@@ -1,5 +1,5 @@
 /**
- * @shopana/service-config
+ * @shopana/shared-service-config
  *
  * Centralized configuration management for Shopana microservices.
  * Provides unified configuration loading from a single YAML file.

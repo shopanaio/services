@@ -2,7 +2,7 @@ import { Service, ServiceSchema, Context } from "moleculer";
 
 import { MoleculerLogger } from "@src/infrastructure/logger/logger";
 import { InventoryPluginManager } from "@src/infrastructure/plugins/pluginManager";
-import { createProviderContext } from "@shopana/plugin-core";
+import { createProviderContext } from "@shopana/plugin-sdk";
 
 import {
   getOffers,

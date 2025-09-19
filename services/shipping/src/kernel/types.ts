@@ -1,7 +1,7 @@
 import type {
   PluginManager as CorePluginManager,
   ResilienceRunner
-} from "@shopana/plugin-core";
+} from "@shopana/plugin-sdk";
 import type {
   ProviderContext,
   ShippingMethod,

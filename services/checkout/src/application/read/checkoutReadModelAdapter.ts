@@ -2,7 +2,7 @@ import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCh
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod } from "./checkoutReadRepository";
 import { CheckoutLineItemReadView } from "./checkoutLineItemsReadRepository";
-import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-api";
+import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
 import { DiscountType } from "@shopana/pricing-plugin-sdk";
 
 /**

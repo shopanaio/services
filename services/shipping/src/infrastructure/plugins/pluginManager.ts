@@ -1,7 +1,7 @@
 import {
   PluginManager as CorePluginManager,
   ResilienceRunner,
-} from "@shopana/plugin-core";
+} from "@shopana/plugin-sdk";
 import type {
   ProviderContext,
   ShippingMethod,
@@ -12,8 +12,8 @@ import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
 
 // Import plugins
-import novaposhta from "@shopana/shipping-novaposhta";
-import meest from "@shopana/shipping-meest-express";
+import novaposhta from "@shopana/shipping-plugin-novaposhta";
+import meest from "@shopana/shipping-plugin-meest-express";
 
 /**
  * Registry of available plugins

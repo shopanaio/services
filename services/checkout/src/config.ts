@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { loadServiceConfig } from "@shopana/service-config";
+import { loadServiceConfig } from "@shopana/shared-service-config";
 
 // Load environment variables from .env file
 dotenv.config();

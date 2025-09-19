@@ -2,7 +2,7 @@ import { Service, ServiceSchema, Context } from "moleculer";
 
 import { Kernel } from "@src/kernel/Kernel";
 import { ShippingPluginManager } from "@src/infrastructure/plugins/pluginManager";
-import { createProviderContext } from "@shopana/plugin-core";
+import { createProviderContext } from "@shopana/plugin-sdk";
 import { config } from "@src/config";
 import { MoleculerLogger } from "@src/infrastructure/logger/logger";
 

@@ -3,7 +3,7 @@ import { Knex } from "knex";
 
 import { Kernel } from "@src/kernel/Kernel";
 import { PricingPluginManager } from "@src/infrastructure/plugins/pluginManager";
-import { createProviderContext } from "@shopana/plugin-core";
+import { createProviderContext } from "@shopana/plugin-sdk";
 import { MoleculerLogger } from "@src/infrastructure/logger/logger";
 
 import {

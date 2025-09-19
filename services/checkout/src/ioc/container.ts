@@ -1,5 +1,4 @@
 import { CheckoutUsecase } from "@src/application/checkout/checkoutUsecase";
-import { NoopWorkflowClient } from "@src/application/workflows/noop";
 import { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
 import { dumboPool } from "@src/infrastructure/db/dumbo";
 import { createLogger } from "@src/infrastructure/logger/pino";
@@ -21,7 +20,6 @@ export class App {
   private static instance: App | null = null;
 
   public logger!: ReturnType<typeof createLogger>;
-  public workflowClient!: NoopWorkflowClient;
 
   public broker!: ServiceBroker;
   public inventoryClient!: InventoryClient;
@@ -57,7 +55,6 @@ export class App {
 
     // Initialize basic dependencies
     app.logger = createLogger();
-    app.workflowClient = new NoopWorkflowClient();
     app.broker = broker;
 
     // Initialize API clients
@@ -82,7 +79,6 @@ export class App {
       app.inventoryClient
     );
     app.checkoutUsecase = new CheckoutUsecase({
-      workflows: app.workflowClient,
       eventStore: app.eventStore,
       streamNames: app.streamNames,
       logger: app.logger,
@@ -91,8 +87,6 @@ export class App {
       pricingApiClient: app.pricingClient,
       checkoutService: app.checkoutService,
       checkoutReadRepository: app.checkoutReadRepository,
-      promoService: {} as any, // TODO: Add proper promo service
-      taxService: {} as any, // TODO: Add proper tax service
     });
 
     this.instance = app;

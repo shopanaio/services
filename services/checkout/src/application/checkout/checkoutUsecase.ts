@@ -1,12 +1,8 @@
 import type { EventStorePort } from "@src/application/ports/eventStorePort";
 import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort";
 import type { Logger } from "pino";
-import type { InventoryPort } from "@src/application/ports/inventoryPort";
 import type { ShippingApiClient } from "@shopana/shipping-api";
 import type { PricingApiClient } from "@shopana/pricing-api";
-import { PromoServicePort } from "@src/application/ports/promoServicePort";
-import { TaxServicePort } from "@src/application/ports/taxServicePort";
-import type { WorkflowPort } from "@src/application/workflows/port";
 
 // Import use cases
 import {
@@ -30,6 +26,7 @@ import {
 } from "@src/application/usecases";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
+import { InventoryApiClient } from "@shopana/inventory-api";
 
 export class CheckoutUsecase {
   // Checkout use cases
@@ -54,15 +51,12 @@ export class CheckoutUsecase {
   public readonly updateDeliveryGroupAddress: UpdateDeliveryGroupAddressUseCase;
 
   constructor(deps: {
-    workflows?: WorkflowPort;
     eventStore: EventStorePort;
     streamNames: StreamNamePolicyPort;
     logger?: Logger;
-    inventory: InventoryPort;
+    inventory: InventoryApiClient;
     shippingApiClient: ShippingApiClient;
     pricingApiClient: PricingApiClient;
-    promoService: PromoServicePort;
-    taxService: TaxServicePort;
     checkoutService: CheckoutService;
     checkoutReadRepository: CheckoutReadRepository;
   }) {

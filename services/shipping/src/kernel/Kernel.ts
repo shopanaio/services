@@ -5,7 +5,7 @@ import type {
   PluginManager,
 } from "./types";
 import { KernelError } from "./types";
-import type { ResilienceRunner } from "@shopana/plugin-core";
+import type { ResilienceRunner } from "@shopana/plugin-sdk";
 
 /**
  * Minimal kernel for shipping microservice

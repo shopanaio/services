@@ -1,7 +1,7 @@
 import {
   PluginManager as CorePluginManager,
   ResilienceRunner,
-} from "@shopana/plugin-core";
+} from "@shopana/plugin-sdk";
 import type {
   ProviderContext,
   Discount,
@@ -13,7 +13,7 @@ import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
 
 // Import discount plugins
-import simplePromoPlugin from "@shopana/pricing-simple-promo-plugin";
+import simplePromoPlugin from "@shopana/pricing-plugin-simple-promo";
 
 /**
  * Registry of available discount plugins
