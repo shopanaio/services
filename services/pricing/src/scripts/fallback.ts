@@ -1,4 +1,4 @@
-import type { Discount } from '@shopana/pricing-plugin-kit';
+import type { Discount } from '@shopana/pricing-plugin-sdk';
 
 export type FallbackResult = {
   discounts: Discount[];

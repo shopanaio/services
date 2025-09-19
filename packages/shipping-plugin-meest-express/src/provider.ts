@@ -4,7 +4,7 @@ import {
   type ShippingMethod,
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-plugin-sdk";
 import { MeestExpressClient } from "./client";
 import { configSchema } from "./index";
 import { z } from "zod";

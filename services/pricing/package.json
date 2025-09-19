@@ -15,7 +15,7 @@
   "dependencies": {
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
     "@shopana/shared-money": "0.0.1",
-    "@shopana/core-plugin": "0.0.1",
+    "@shopana/plugin-sdk": "0.0.1",
     "@shopana/pricing-plugin-sdk": "0.0.1",
     "@shopana/pricing-plugin-simple-promo": "0.0.1",
     "@types/uuid": "^10.0.0",

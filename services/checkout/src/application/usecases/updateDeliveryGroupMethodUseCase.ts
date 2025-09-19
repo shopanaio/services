@@ -1,4 +1,4 @@
-import { DeliveryMethodType } from "@shopana/shipping-plugin-kit";
+import { DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
 import { UseCase } from "@src/application/usecases/useCase";
 import type { UpdateDeliveryGroupMethodCommand } from "@src/domain/checkout/commands";
 import { checkoutDecider } from "@src/domain/checkout/decider";

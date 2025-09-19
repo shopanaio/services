@@ -1,4 +1,4 @@
-import { Discount } from "@shopana/pricing-plugin-kit";
+import { Discount } from "@shopana/pricing-plugin-sdk";
 
 /**
  * Result of discount evaluation

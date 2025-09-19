@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ShippingPlugin } from '@shopana/shipping-plugin-kit';
+import type { ShippingPlugin } from '@shopana/shipping-plugin-sdk';
 import { NovaPoshtaProvider } from './provider';
 
 const IS_MOCK = process.env.SHIPPING_NOVAPOSHTA_MOCK_METHODS === '1';

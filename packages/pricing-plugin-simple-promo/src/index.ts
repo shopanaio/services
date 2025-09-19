@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { PricingPlugin, ProviderContext } from '@shopana/pricing-plugin-kit';
-import { DiscountType } from '@shopana/pricing-plugin-kit';
+import type { PricingPlugin, ProviderContext } from '@shopana/pricing-plugin-sdk';
+import { DiscountType } from '@shopana/pricing-plugin-sdk';
 import { SimplePromoPricingProvider } from './provider';
 
 export const configSchema = z.object({

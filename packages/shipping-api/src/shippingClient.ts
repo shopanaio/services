@@ -5,7 +5,7 @@ import type {
   CreateDeliveryGroupsResponse,
   DeliveryGroup,
 } from "./types";
-import { ShippingMethod } from "@shopana/shipping-plugin-kit";
+import { ShippingMethod } from "@shopana/shipping-plugin-sdk";
 
 export class ShippingClient implements ShippingApiClient {
   private readonly broker: ServiceBroker;

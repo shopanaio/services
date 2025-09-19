@@ -1,2 +1,2 @@
-import type { ShippingMethod } from '@shopana/shipping-plugin-kit';
+import type { ShippingMethod } from '@shopana/shipping-plugin-sdk';
 import { getDocumentPriceResp } from './schemas';

@@ -19,7 +19,7 @@ export type GeneratePluginsOptions = Readonly<{
   outFileName?: string; // default: generated.ts
   keywords?: string[]; // default: ['portal-plugin'] + domain-specific provided by caller
   explicitList?: string[]; // explicit package names list
-  typeImportFrom?: string; // e.g. '@shopana/<domain>-plugin-kit'
+  typeImportFrom?: string; // e.g. '@shopana/<domain>-plugin-sdk'
 }>;
 
 /**

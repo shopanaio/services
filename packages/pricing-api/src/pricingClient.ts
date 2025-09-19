@@ -6,7 +6,7 @@ import type {
   PricingEvaluateDiscountsInput,
   PricingEvaluateDiscountsResult,
 } from "./types";
-import type { Discount } from "@shopana/pricing-plugin-kit";
+import type { Discount } from "@shopana/pricing-plugin-sdk";
 
 export class PricingClient implements PricingApiClient {
   private readonly broker: ServiceBroker;

@@ -7,8 +7,8 @@ import type {
   Discount,
   PluginModule,
   PricingProvider,
-} from "@shopana/pricing-plugin-kit";
-import { CORE_API_VERSION } from "@shopana/pricing-plugin-kit";
+} from "@shopana/pricing-plugin-sdk";
+import { CORE_API_VERSION } from "@shopana/pricing-plugin-sdk";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
 

@@ -14,8 +14,8 @@
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],
-      "@shopana/core-plugin": ["../../packages/core-plugin/dist"],
-      "@shopana/core-plugin/*": ["../../packages/core-plugin/dist/*"]
+      "@shopana/plugin-sdk": ["../../packages/plugin-sdk/dist"],
+      "@shopana/plugin-sdk/*": ["../../packages/plugin-sdk/dist/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true

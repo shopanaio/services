@@ -11,7 +11,7 @@ import { checkoutDecider } from "@src/domain/checkout/decider";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-plugin-sdk";
 
 export interface CreateCheckoutUseCaseDependencies
   extends UseCaseDependencies {}

@@ -6,7 +6,7 @@ import type {
   ProviderContext,
   ShippingMethod,
   PluginModule,
-} from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-plugin-sdk";
 // Base types for kernel
 export interface Logger {
   info: (...args: any[]) => void;

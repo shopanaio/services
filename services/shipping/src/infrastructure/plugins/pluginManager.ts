@@ -6,8 +6,8 @@ import type {
   ProviderContext,
   ShippingMethod,
   PluginModule,
-} from "@shopana/shipping-plugin-kit";
-import { CORE_API_VERSION } from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-plugin-sdk";
+import { CORE_API_VERSION } from "@shopana/shipping-plugin-sdk";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
 

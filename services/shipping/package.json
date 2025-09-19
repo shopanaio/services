@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
-    "@shopana/core-plugin": "0.0.1",
+    "@shopana/plugin-sdk": "0.0.1",
     "@shopana/shipping-plugin-meest-express": "0.0.1",
     "@shopana/shipping-plugin-novaposhta": "0.0.1",
     "@shopana/shipping-plugin-sdk": "0.0.1",

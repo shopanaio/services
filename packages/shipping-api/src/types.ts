@@ -1,7 +1,7 @@
 import {
   DeliveryMethodType,
   ShippingMethod,
-} from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-plugin-sdk";
 
 
 /**

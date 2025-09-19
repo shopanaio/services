@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ShippingPlugin } from '@shopana/shipping-plugin-kit';
+import type { ShippingPlugin } from '@shopana/shipping-plugin-sdk';
 import { MeestExpressProvider } from './provider';
 
 const IS_MOCK = process.env.SHIPPING_MEEST_EXPRESS_MOCK_METHODS === '1';

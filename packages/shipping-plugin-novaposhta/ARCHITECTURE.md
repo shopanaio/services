@@ -1,7 +1,7 @@
 ### Nova Poshta Plugin Architecture
 
 Briefly:
-- Package `@shopana/shipping-novaposhta` implements `PluginModule` contract from `@shopana/shipping-plugin-kit`.
+- Package `@shopana/shipping-novaposhta` implements `PluginModule` contract from `@shopana/shipping-plugin-sdk`.
 - Exports `plugin` with manifest, `zod` config schema and `create(ctx, cfg)`.
 - Provider `NovaPoshtaProvider` uses contextual `HttpClient` to call Nova Poshta API and maps rates to `ShippingMethodDto[]`.
 

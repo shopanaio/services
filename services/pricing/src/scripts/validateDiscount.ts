@@ -1,5 +1,5 @@
 import type { TransactionScript } from "@src/kernel/types";
-import type { Discount } from "@shopana/pricing-plugin-kit";
+import type { Discount } from "@shopana/pricing-plugin-sdk";
 import { getAllDiscounts } from "@src/scripts/getAllDiscounts";
 
 // Parameters for discount validation

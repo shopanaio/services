@@ -5,7 +5,7 @@ import {
   type ShippingMethod,
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-plugin-sdk";
 import { NovaPoshtaClient } from "./client";
 import { configSchema } from "./index";
 

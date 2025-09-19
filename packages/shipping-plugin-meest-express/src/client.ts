@@ -1,4 +1,4 @@
-import type { HttpClient } from '@shopana/shipping-plugin-kit';
+import type { HttpClient } from '@shopana/shipping-plugin-sdk';
 
 export class MeestExpressClient {
   constructor(

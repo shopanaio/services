@@ -16,7 +16,7 @@
   "dependencies": {
     "@shopana/inventory-plugin-sdk": "*",
     "@shopana/inventory-plugin-shopana": "*",
-    "@shopana/core-plugin": "*",
+    "@shopana/plugin-sdk": "*",
     "dotenv": "^16.4.5",
     "moleculer": "^0.14.35",
     "moleculer-repl": "^0.7.4",

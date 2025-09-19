@@ -1,5 +1,5 @@
 import type { TransactionScript } from "@src/kernel/types";
-import type { ShippingMethod } from "@shopana/shipping-plugin-kit";
+import type { ShippingMethod } from "@shopana/shipping-plugin-sdk";
 import { transformMethodCodes } from "../utils/transformMethods";
 
 // Parameters for getting all shipping methods
