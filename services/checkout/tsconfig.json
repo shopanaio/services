@@ -23,8 +23,8 @@
       "@shopana/pricing-api/*": ["../../packages/pricing-api/dist/*"],
       "@shopana/inventory-api": ["../../packages/inventory-api/dist/index.d.ts"],
       "@shopana/inventory-api/*": ["../../packages/inventory-api/dist/*"],
-      "@shopana/money": ["../../packages/money/dist/index.d.ts"],
-      "@shopana/money/*": ["../../packages/money/dist/*"]
+      "@shopana/shared-money": ["../../packages/shared-money/dist/index.d.ts"],
+      "@shopana/shared-money/*": ["../../packages/shared-money/dist/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true

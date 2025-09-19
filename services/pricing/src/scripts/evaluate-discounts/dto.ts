@@ -13,7 +13,7 @@ import {
   ValidateNested,
   ArrayNotEmpty,
 } from "class-validator";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 
 /**
  * DTO for product unit within cart item

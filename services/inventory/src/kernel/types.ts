@@ -1,13 +1,13 @@
 import type {
   PluginManager as CorePluginManager,
   ResilienceRunner,
-} from "@shopana/plugin-core";
+} from "@shopana/core-plugin";
 import type {
   ProviderContext,
   InventoryOffer,
   InventoryProvider,
   GetOffersInput,
-} from "@shopana/inventory-plugin-kit";
+} from "@shopana/inventory-plugin-sdk";
 
 // Base types for kernel
 export interface Logger {

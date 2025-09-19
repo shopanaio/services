@@ -1,7 +1,7 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutLinesClearInput } from "@src/application/checkout/types";
 import type { ClearCheckoutLinesCommand } from "@src/domain/checkout/commands";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import { checkoutDecider } from "@src/domain/checkout/decider";
 
 export class ClearCheckoutLinesUseCase extends UseCase<

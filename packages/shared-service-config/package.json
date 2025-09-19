@@ -1,0 +1,32 @@
+{
+  "name": "@shopana/shared-service-config",
+  "version": "0.0.1",
+  "description": "Centralized configuration management for Shopana microservices",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "dev": "tsc -w",
+    "test": "jest --passWithNoTests"
+  },
+  "keywords": ["shopana", "config", "microservices"],
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.7.4",
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.5.4"
+  },
+  "peerDependencies": {
+    "dotenv": "^16.4.5"
+  }
+}

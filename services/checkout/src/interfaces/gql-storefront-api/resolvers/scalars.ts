@@ -1,5 +1,5 @@
 import { GraphQLScalarType, Kind } from "graphql";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import { parseDecimalInput } from "@src/utils/decimal";
 
 const BigIntScalar = new GraphQLScalarType({

@@ -6,8 +6,8 @@ import {
   DeliveryMethodType,
   ShippingMethod,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-kit";
-import { Money } from "@shopana/money";
+} from "@shopana/shipping-api";
+import { Money } from "@shopana/shared-money";
 import type {
   CheckoutLinesAdded,
   CheckoutLinesUpdated,

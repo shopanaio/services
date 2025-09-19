@@ -23,8 +23,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/correlation": "*",
-    "@shopana/shipping-plugin-kit": "*"
+    "@shopana/shipping-plugin-sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^24.5.1",

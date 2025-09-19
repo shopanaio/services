@@ -4,7 +4,7 @@ import {
 } from "@src/application/usecases/useCase";
 import type { CheckoutLinesAddInput } from "@src/application/checkout/types";
 import type { AddCheckoutLinesCommand } from "@src/domain/checkout/commands";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
 import { type CheckoutContext } from "@src/context/index.js";
 import {

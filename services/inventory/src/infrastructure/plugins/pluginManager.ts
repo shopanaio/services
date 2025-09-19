@@ -1,17 +1,17 @@
 import {
   PluginManager as CorePluginManager,
   ResilienceRunner,
-} from "@shopana/plugin-core";
+} from "@shopana/core-plugin";
 import type {
   ProviderContext,
   InventoryOffer,
   InventoryProvider,
   GetOffersInput,
   PluginModule,
-} from "@shopana/inventory-plugin-kit";
+} from "@shopana/inventory-plugin-sdk";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 
-import shopanaPlugin from "@shopana/inventory-shopana-plugin";
+import shopanaPlugin from "@shopana/inventory-plugin-shopana";
 
 const plugins: PluginModule[] = [shopanaPlugin as any];
 

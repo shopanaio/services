@@ -19,6 +19,7 @@
     "sourceMap": true,
     "paths": {
       "@shopana/inventory-plugin-sdk": ["../inventory-plugin-sdk/dist/index.d.ts"],
+      "@shopana/platform-api": ["../platform-api/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*"],

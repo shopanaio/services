@@ -1,7 +1,7 @@
 import type { ApiCheckoutLine } from "@src/interfaces/gql-storefront-api/types";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import type { CheckoutLineItemReadView } from "@src/application/read/checkoutLineItemsReadRepository";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 
 export function mapCheckoutLineReadToApi(
   read: CheckoutLineItemReadView,

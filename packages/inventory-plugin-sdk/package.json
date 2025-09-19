@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/inventory-api",
+  "name": "@shopana/inventory-plugin-sdk",
   "version": "0.0.1",
   "private": false,
   "type": "module",
@@ -21,7 +21,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/inventory-plugin-sdk": "*"
+    "zod": "^3.21.4"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",

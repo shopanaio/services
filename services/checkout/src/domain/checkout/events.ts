@@ -1,11 +1,11 @@
 import type { CreateEventType } from "@event-driven-io/emmett";
 import { CheckoutCommandMetadata } from "@src/domain/checkout/commands";
-import { Money } from "@shopana/money";
-import { DiscountCondition, DiscountType } from "@shopana/pricing-plugin-kit";
+import { Money } from "@shopana/shared-money";
+import { DiscountCondition, DiscountType } from "@shopana/pricing-plugin-sdk";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-kit";
+} from "@shopana/shipping-api";
 import type {
   CheckoutLineCostSnapshot,
   CheckoutTotalsSnapshot,

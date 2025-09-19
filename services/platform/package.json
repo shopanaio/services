@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@shopana/platform-api": "0.0.1",
-    "@shopana/service-config": "0.0.1",
+    "@shopana/shared-service-config": "0.0.1",
     "@types/uuid": "^10.0.0",
     "ansis": "^4.1.0",
     "async-retry": "^1.3.3",

@@ -2,7 +2,7 @@ import {
   CheckoutLineItemReadView,
   CheckoutLineItemsReadRepository,
 } from "@src/application/read/checkoutLineItemsReadRepository";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import { CheckoutState } from "@src/domain/checkout/evolve";
 import { CheckoutReadModelAdapter } from "./checkoutReadModelAdapter";
 

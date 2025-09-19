@@ -4,7 +4,7 @@ import type {
   CheckoutPromoCode,
   CheckoutDeliveryGroup,
 } from "@src/domain/checkout/decider";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import { coerceToDate } from "@src/utils/date";
 
 // Domain line item modeled after checkout_line_items schema (simplified)

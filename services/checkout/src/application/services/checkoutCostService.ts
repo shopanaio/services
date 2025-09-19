@@ -3,8 +3,8 @@ import type {
   PricingEvaluateDiscountsResult,
   PricingEvaluateDiscountsInput,
 } from "@shopana/pricing-api";
-import { Money } from "@shopana/money";
-import { Discount, DiscountType } from "@shopana/pricing-plugin-kit";
+import { Money } from "@shopana/shared-money";
+import { Discount, DiscountType } from "@shopana/pricing-plugin-sdk";
 import { CheckoutLineItemState } from "@src/domain/checkout/decider";
 
 export type CheckoutLineItemCost = Readonly<{

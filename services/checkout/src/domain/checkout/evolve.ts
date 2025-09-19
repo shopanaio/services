@@ -11,13 +11,13 @@ import {
   type CheckoutDeliveryGroupAddressCleared,
   type CheckoutDeliveryGroupRemoved,
 } from "./events";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import { coerceMoney, coerceNullableMoney } from "@src/utils/money";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-kit";
-import { DiscountCondition } from "@shopana/pricing-plugin-kit";
+} from "@shopana/shipping-api";
+import { DiscountCondition } from "@shopana/pricing-plugin-sdk";
 import { AppliedDiscountSnapshot } from "./discount";
 
 // Duplicate types from types.ts to avoid import issues

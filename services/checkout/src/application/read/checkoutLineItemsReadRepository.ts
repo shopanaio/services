@@ -1,4 +1,4 @@
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 
 export type CheckoutLineItemReadPortRow = {
   id: string;

@@ -1,4 +1,4 @@
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 
 export function _coerceMoney(value: unknown): Money {
   if (value instanceof Money) return value;

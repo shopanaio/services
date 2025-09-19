@@ -1,4 +1,4 @@
-import { InventoryOffer, GetOffersInput } from "@shopana/inventory-plugin-kit";
+import { InventoryOffer, GetOffersInput } from "@shopana/inventory-plugin-sdk";
 
 /**
  * Response for get offers endpoint

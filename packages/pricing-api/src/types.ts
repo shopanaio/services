@@ -1,5 +1,5 @@
-import { Money } from "@shopana/money";
-import { Discount, DiscountType } from "@shopana/pricing-plugin-kit";
+import { Money } from "@shopana/shared-money";
+import { Discount, DiscountType } from "@shopana/pricing-plugin-sdk";
 
 /**
  * Response for discount validation

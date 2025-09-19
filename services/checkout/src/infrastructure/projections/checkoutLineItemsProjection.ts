@@ -11,7 +11,7 @@ import type {
 } from "@src/domain/checkout/events";
 import type { CheckoutCommandMetadata } from "@src/domain/checkout/commands";
 import { knex } from "@src/infrastructure/db/knex";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 
 type CheckoutLinesPayload =
   | CheckoutLinesAddedPayload

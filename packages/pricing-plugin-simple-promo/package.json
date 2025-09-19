@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/inventory-api",
+  "name": "@shopana/pricing-plugin-simple-promo",
   "version": "0.0.1",
   "private": false,
   "type": "module",
@@ -15,16 +15,19 @@
   "engines": {
     "node": ">=18"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/inventory-plugin-sdk": "*"
+    "@shopana/pricing-plugin-sdk": "0.0.1"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "zod": "^3.23.8"
   }
 }

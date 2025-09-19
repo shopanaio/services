@@ -2,7 +2,7 @@ import type { TransactionScript } from "@src/kernel/types";
 import type {
   InventoryOffer,
   GetOffersInput,
-} from "@shopana/inventory-plugin-kit";
+} from "@shopana/inventory-plugin-sdk";
 
 /**
  * Parameters for transaction script getOffers

@@ -1,7 +1,7 @@
 // Value Objects and validators for domain invariants
 
 import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-api";
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 
 export type CurrencyCode = string & { readonly __brand: "CurrencyCode" };
 export type SalesChannel = string & { readonly __brand: "SalesChannel" };

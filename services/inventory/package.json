@@ -14,10 +14,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@shopana/inventory-plugin-kit": "*",
-    "@shopana/inventory-shopana-plugin": "*",
-    "@shopana/plugin-core": "*",
-    "@shopana/slots": "*",
+    "@shopana/inventory-plugin-sdk": "*",
+    "@shopana/inventory-plugin-shopana": "*",
+    "@shopana/core-plugin": "*",
     "dotenv": "^16.4.5",
     "moleculer": "^0.14.35",
     "moleculer-repl": "^0.7.4",

@@ -3,7 +3,7 @@
  * Applies Information Expert pattern from GRASP
  */
 
-import { Money } from "@shopana/money";
+import { Money } from "@shopana/shared-money";
 import type { LineItemDto } from "./dto.js";
 
 /**
