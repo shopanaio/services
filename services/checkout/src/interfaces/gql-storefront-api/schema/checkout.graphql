@@ -1,0 +1,482 @@
+"""
+All monetary calculations related to the checkout.
+"""
+type CheckoutCost {
+  """
+  Total value of items before any discounts.
+  """
+  subtotalAmount: Money!
+
+  """
+  Total discount from both item-level and checkout-level promotions.
+  """
+  totalDiscountAmount: Money!
+
+  """
+  Total tax amount applied to the checkout.
+  """
+  totalTaxAmount: Money!
+
+  """
+  Total shipping cost (only MERCHANT_COLLECTED payments).
+  """
+  totalShippingAmount: Money!
+
+  """
+  Final amount to be paid, including item cost, shipping, and taxes.
+  """
+  totalAmount: Money!
+}
+
+type CheckoutCustomerIdentity {
+  """
+  Country code of the customer.
+  """
+  countryCode: CountryCode
+
+  """
+  Customer associated with the checkout.
+  """
+  customer: User
+
+  """
+  Customer email address associated with the checkout.
+  """
+  email: Email
+
+  """
+  Phone number of the customer.
+  """
+  phone: String
+}
+
+"""
+A checkout with multiple items.
+"""
+type Checkout implements Node @key(fields: "id") {
+  """
+  A globally-unique ID.
+  """
+  id: ID!
+
+  """
+  When this checkout was first created.
+  """
+  createdAt: DateTime!
+
+  """
+  When this checkout was last updated.
+  """
+  updatedAt: DateTime!
+
+  """
+  All cost calculations for the checkout.
+  """
+  cost: CheckoutCost!
+
+  """
+  Customer identity associated with the checkout.
+  """
+  customerIdentity: CheckoutCustomerIdentity!
+
+  """
+  Customer note or special instructions for the checkout.
+  """
+  customerNote: String
+
+  """
+  Quantity of the item being purchased.
+  """
+  totalQuantity: Int!
+
+  """
+  List of items in the checkout (paginated).
+  """
+  lines: [CheckoutLine!]!
+
+  """
+  Notifications for the user regarding the checkout.
+  """
+  notifications: [CheckoutNotification!]!
+
+  """
+  Delivery groups.
+  """
+  deliveryGroups: [CheckoutDeliveryGroup!]!
+
+  """
+  Applied promo codes for the checkout.
+  """
+  appliedPromoCodes: [CheckoutPromoCode!]!
+}
+
+"""
+Input data for creating a new checkout.
+"""
+input CheckoutCreateInput {
+  """
+  Unique idempotency key for the checkout.
+  """
+  idempotency: String!
+  """
+  Source of sales for the checkout.
+  """
+  externalSource: String
+  """
+  ID of the external source for the checkout.
+  """
+  externalId: String
+  """
+  Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru")
+  """
+  localeCode: String!
+  """
+  Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
+  """
+  currencyCode: CurrencyCode!
+  """
+  Initial items to add to the new checkout.
+  """
+  items: [CheckoutLineInput!]!
+}
+
+type CheckoutFieldError {
+  """
+  The field that caused the error.
+  """
+  field: String!
+  """
+  The error message.
+  """
+  message: String!
+}
+
+"""
+Payload returned after creating a checkout.
+"""
+type CheckoutCreatePayload {
+  """
+  The newly created checkout.
+  """
+  checkout: Checkout
+  """
+  List of field-specific or general errors.
+  """
+  errors: [CheckoutFieldError!]
+}
+
+type CheckoutQuery {
+  """
+  Get a checkout by its ID.
+  """
+  checkout(id: ID!): Checkout
+}
+
+type CheckoutMutation {
+  """
+  Creates a new checkout.
+  """
+  checkoutCreate(input: CheckoutCreateInput!): Checkout!
+
+  """
+  Adds an item to an existing checkout.
+  """
+  checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!
+
+  """
+  Updates the quantity of a specific checkout item.
+  """
+  checkoutLinesUpdate(
+    input: CheckoutLinesUpdateInput!
+  ): CheckoutLinesUpdatePayload!
+
+  """
+  Removes a single item from the checkout.
+  """
+  checkoutLinesDelete(
+    input: CheckoutLinesDeleteInput!
+  ): CheckoutLinesDeletePayload!
+
+  """
+  Clears all items from a checkout.
+  """
+  checkoutLinesClear(
+    input: CheckoutLinesClearInput!
+  ): CheckoutLinesClearPayload!
+
+  """
+  Updates customer identification data associated with the checkout
+  (email, customerId and if necessary country/language for calculations).
+  """
+  checkoutCustomerIdentityUpdate(
+    input: CheckoutCustomerIdentityUpdateInput!
+  ): Checkout!
+
+  """
+  Updates the customer note attached to the checkout (delivery instructions, etc.).
+  """
+  checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): Checkout!
+
+  """
+  Updates the language/locale of the checkout (affects localization and formatting).
+  """
+  checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
+
+  """
+  Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR").
+  """
+  checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
+
+  """
+  Adds one or more delivery addresses to the checkout (supports multi-shipping).
+  """
+  checkoutDeliveryAddressesAdd(
+    input: CheckoutDeliveryAddressesAddInput!
+  ): Checkout!
+
+  """
+  Updates previously added delivery addresses (e.g., correcting postal code or city).
+  """
+  checkoutDeliveryAddressesUpdate(
+    input: CheckoutDeliveryAddressesUpdateInput!
+  ): Checkout!
+
+  """
+  Removes one or more delivery addresses previously attached to the checkout.
+  """
+  checkoutDeliveryAddressesRemove(
+    input: CheckoutDeliveryAddressesRemoveInput!
+  ): Checkout!
+
+  """
+  Selects or changes the delivery method for the entire checkout or specific address.
+  """
+  checkoutDeliveryMethodUpdate(
+    input: CheckoutDeliveryMethodUpdateInput!
+  ): Checkout!
+
+  """
+  Applies a promo code/coupon to the checkout.
+  """
+  checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
+
+  """
+  Removes a previously applied promo code/coupon from the checkout.
+  """
+  checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+}
+
+extend type Query {
+  checkoutQuery: CheckoutQuery!
+}
+
+extend type Mutation {
+  checkoutMutation: CheckoutMutation!
+}
+
+"""
+Input data for updating customer identification data associated with the checkout.
+"""
+input CheckoutCustomerIdentityUpdateInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Customer's email address. If specified, will be linked to the checkout.
+  """
+  email: Email
+
+  """
+  Phone number of the customer.
+  """
+  phone: String
+
+  """
+  Country code of the customer.
+  ISO 3166-1 alpha-2.
+  """
+  countryCode: CountryCode
+
+  """
+  Customer identifier in external/internal system.
+  Used to link the checkout with an existing customer.
+  """
+  customerId: ID
+}
+
+"""
+Input data for updating the customer note attached to the checkout.
+"""
+input CheckoutCustomerNoteUpdateInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Text of the customer note (delivery instructions, etc.).
+  Empty value clears the note.
+  """
+  note: String
+}
+
+"""
+Input data for updating the language/locale code of the checkout.
+"""
+input CheckoutLanguageCodeUpdateInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
+  Affects localization and formatting.
+  """
+  localeCode: String!
+}
+
+"""
+Input data for updating the display currency of the checkout.
+"""
+input CheckoutCurrencyCodeUpdateInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Currency code according to ISO 4217 (e.g., "USD", "EUR").
+  """
+  currencyCode: CurrencyCode!
+}
+
+"""
+Input data for applying a promo code to the checkout.
+"""
+input CheckoutPromoCodeAddInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Text code of the coupon/promo code.
+  """
+  code: String!
+}
+
+"""
+Input data for removing a previously applied promo code from the checkout.
+"""
+input CheckoutPromoCodeRemoveInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Text code of the coupon/promo code to be cancelled.
+  """
+  code: String!
+}
+
+"""
+Codes for warnings that may be returned with Checkout mutations,
+indicating non-blocking adjustments or issues in the checkout.
+"""
+enum CheckoutNotificationCode {
+  """
+  The requested item is completely out of stock and has been removed from the checkout.
+  """
+  OUT_OF_STOCK
+  """
+  The requested quantity exceeds available stock;
+  quantity was automatically reduced to the maximum available.
+  """
+  NOT_ENOUGH_STOCK
+  """
+  The price of one or more items has changed since they were added to the checkout.
+  """
+  PRICE_CHANGED
+  """
+  An item in the checkout is no longer available for sale.
+  """
+  ITEM_UNAVAILABLE
+}
+
+"""
+Severity levels for checkout warnings.
+"""
+enum NotificationSeverity {
+  """
+  Informational notice; does not indicate any change in checkout data.
+  """
+  INFO
+  """
+  Notification about automatic adjustments (e.g., quantity reduced).
+  """
+  WARNING
+}
+
+"""
+A non-blocking warning generated by checkout operations.
+"""
+type CheckoutNotification {
+  """
+  A globally-unique ID.
+  """
+  id: ID!
+
+  """
+  Code categorizing the warning.
+  """
+  code: CheckoutNotificationCode!
+
+  """
+  Importance level of the warning.
+  """
+  severity: NotificationSeverity!
+
+  """
+  Whether the warning has been acknowledged by the user.
+  """
+  isDismissed: Boolean!
+}
+
+"""
+Applied promo code for a checkout.
+"""
+type CheckoutPromoCode {
+  """
+  Promo code text.
+  """
+  code: String!
+
+  """
+  When this promo code was applied.
+  """
+  appliedAt: DateTime!
+
+  """
+  Discount type (percentage).
+  """
+  discountType: String!
+
+  """
+  Discount value (percentage as number).
+  """
+  value: Int!
+
+  """
+  Discount provider.
+  """
+  provider: String!
+
+  """
+  Discount conditions.
+  """
+  conditions: JSON
+}

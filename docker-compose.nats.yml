@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  nats:
+    image: nats:latest
+    container_name: nats
+    ports:
+      - "4222:4222"   # main client port
+      - "8222:8222"   # HTTP monitoring
+      - "6222:6222"   # internal cluster port (for cluster setup)
+    volumes:
+      - ./nats-server.conf:/etc/nats/nats-server.conf
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    restart: unless-stopped

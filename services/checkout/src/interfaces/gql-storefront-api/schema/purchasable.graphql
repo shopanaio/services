@@ -1,0 +1,5 @@
+type PurchasableSnapshot {
+  snapshot: JSON!
+}
+
+union Purchasable = PurchasableSnapshot

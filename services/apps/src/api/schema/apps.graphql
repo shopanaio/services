@@ -1,0 +1,30 @@
+type App {
+  code: String!
+  name: String!
+  meta: JSON
+}
+
+type InstalledApp {
+  id: String!
+  projectID: String!
+  appCode: String!
+  baseURL: String!
+  enabled: Boolean!
+  meta: JSON
+}
+
+type AppsQuery {
+  """Get list of available apps for installation"""
+  apps: [App!]!
+
+  """Get list of installed apps"""
+  installedApps: [InstalledApp!]!
+}
+
+type AppsMutation {
+  """Install app"""
+  install(code: String!): Boolean!
+
+  """Uninstall app"""
+  uninstall(code: String!): Boolean!
+}

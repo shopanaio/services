@@ -1,0 +1,47 @@
+{
+  "name": "pricing-service-v2",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "dev:watch": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "@event-driven-io/dumbo": "^0.13.0-alpha.6",
+    "@shopana/money": "1.0.0",
+    "@shopana/plugin-core": "1.0.0",
+    "@shopana/pricing-plugin-kit": "1.0.0",
+    "@shopana/pricing-simple-promo-plugin": "1.0.0",
+    "@shopana/slots": "0.1.0",
+    "@types/uuid": "^10.0.0",
+    "async-retry": "^1.3.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "dotenv": "^16.4.5",
+    "knex": "^3.1.0",
+    "moleculer": "^0.14.35",
+    "moleculer-repl": "^0.7.4",
+    "nats": "^2.29.3",
+    "pg": "^8.16.3",
+    "pino": "^9.3.2",
+    "reflect-metadata": "^0.1.14",
+    "uuid": "^11.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.7.4",
+    "jest": "^30.1.3",
+    "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}

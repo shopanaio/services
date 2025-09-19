@@ -1,0 +1,9 @@
+scalar JSON
+
+extend type Query {
+  appsQuery: AppsQuery!
+}
+
+extend type Mutation {
+  appsMutation: AppsMutation!
+}

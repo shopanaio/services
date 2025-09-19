@@ -1,0 +1,11 @@
+{
+  "name": "moleculer-services",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Moleculer-based services for the portal",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ]
+}

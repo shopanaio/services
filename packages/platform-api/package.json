@@ -1,0 +1,26 @@
+{
+  "name": "@shopana/platform-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "graphql-request": "^7.1.0"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.0",
+    "typescript": "^5.5.4",
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.8"
+  }
+}

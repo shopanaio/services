@@ -1,0 +1,174 @@
+import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCheckoutDeliveryGroup, CheckoutPromoCode as DomainCheckoutPromoCode, CheckoutDeliveryAddress as DomainCheckoutDeliveryAddress, CheckoutDeliveryMethod as DomainCheckoutDeliveryMethod } from "@src/domain/checkout/evolve";
+import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
+import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod } from "./checkoutReadRepository";
+import { CheckoutLineItemReadView } from "./checkoutLineItemsReadRepository";
+import { Money } from "@shopana/money";
+import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-plugin-kit";
+import { DiscountType } from "@shopana/pricing-plugin-kit";
+
+/**
+ * Adapter for converting data from read model to CheckoutState domain model format
+ */
+export class CheckoutReadModelAdapter {
+  /**
+   * Converts CheckoutReadView to CheckoutState
+   */
+  static toCheckoutState(readView: CheckoutReadView): CheckoutState {
+    return {
+      id: readView.id,
+      exists: true, // If data exists in read model, checkout exists
+      projectId: readView.projectId,
+      currencyCode: readView.currencyCode,
+      displayCurrencyCode: readView.displayCurrencyCode,
+      displayExchangeRate: readView.displayExchangeRate,
+      idempotencyKey: "", // Not available in read model, setting default
+      salesChannel: readView.salesChannel || "",
+      externalSource: readView.externalSource,
+      externalId: readView.externalId,
+      localeCode: readView.localeCode,
+      createdAt: readView.createdAt,
+      updatedAt: readView.updatedAt,
+      subtotal: readView.subtotal,
+      grandTotal: readView.grandTotal,
+      totalQuantity: readView.totalQuantity,
+      apiKey: readView.apiKeyId || "", // Map apiKeyId to apiKey
+      createdBy: readView.adminId, // Map adminId to createdBy
+      number: null, // Not available in read model
+      status: readView.status,
+      expiresAt: readView.expiresAt,
+      version: Number(readView.projectedVersion), // Convert bigint to number
+      metadata: readView.metadata || {},
+      deletedAt: readView.deletedAt,
+      customerEmail: readView.customerEmail,
+      customerId: readView.customerId,
+      customerPhone: readView.customerPhoneE164, // Map customerPhoneE164 to customerPhone
+      customerCountryCode: readView.customerCountryCode,
+      customerNote: readView.customerNote,
+      deliveryGroups: this.mapDeliveryGroups(readView.deliveryGroups, readView.deliveryAddresses, readView.deliveryMethods),
+      appliedPromoCodes: this.mapPromoCodes(readView.appliedPromoCodes),
+      discountTotal: readView.discountTotal,
+      taxTotal: readView.taxTotal,
+      shippingTotal: readView.shippingTotal,
+      linesRecord: this.mapLineItemsToLinesRecord(readView.lineItems),
+      appliedDiscounts: this.mapPromoCodesToAppliedDiscounts(readView.appliedPromoCodes),
+    };
+  }
+
+  /**
+   * Converts lineItems to linesRecord
+   */
+  private static mapLineItemsToLinesRecord(lineItems: CheckoutLineItemReadView[]): Record<string, CheckoutLineItemState> {
+    const linesRecord: Record<string, CheckoutLineItemState> = {};
+
+    for (const item of lineItems) {
+      linesRecord[item.id] = {
+        lineId: item.id,
+        quantity: item.quantity,
+        unit: {
+          id: item.unit.id,
+          price: item.unit.price,
+          compareAtPrice: item.unit.compareAtPrice,
+          title: item.unit.title,
+          imageUrl: item.unit.imageUrl,
+          sku: item.unit.sku,
+          snapshot: item.unit.snapshot,
+        },
+      };
+    }
+
+    return linesRecord;
+  }
+
+  /**
+   * Converts delivery groups from read model to domain model
+   */
+  private static mapDeliveryGroups(
+    deliveryGroups: CheckoutDeliveryGroup[],
+    deliveryAddresses: CheckoutDeliveryAddress[],
+    deliveryMethods: CheckoutDeliveryMethod[]
+  ): DomainCheckoutDeliveryGroup[] {
+    return deliveryGroups.map(group => {
+      // Find address for this delivery group
+      const groupAddress = deliveryAddresses.find(addr => addr.deliveryGroupId === group.id);
+
+      // Find delivery methods for this group
+      const groupMethods = deliveryMethods.filter(method => method.deliveryGroupId === group.id);
+
+      // Find selected delivery method
+      const selectedMethod = group.selectedDeliveryMethod
+        ? groupMethods.find(method => method.code === group.selectedDeliveryMethod)
+        : null;
+
+      return {
+        id: group.id,
+        checkoutLineIds: group.lineItemIds,
+        deliveryAddress: groupAddress ? this.mapDeliveryAddress(groupAddress) : null,
+        selectedDeliveryMethod: selectedMethod ? this.mapDeliveryMethod(selectedMethod) : null,
+        deliveryMethods: groupMethods.map(method => this.mapDeliveryMethod(method)),
+        shippingCost: null, // Not available in read model, may require additional logic
+      };
+    });
+  }
+
+  /**
+   * Converts delivery address from read model to domain model
+   */
+  private static mapDeliveryAddress(address: CheckoutDeliveryAddress): DomainCheckoutDeliveryAddress {
+    return {
+      id: address.id,
+      address1: address.address1,
+      address2: address.address2,
+      city: address.city,
+      countryCode: address.countryCode,
+      provinceCode: address.provinceCode,
+      postalCode: address.postalCode,
+      email: address.email,
+      firstName: address.firstName,
+      lastName: address.lastName,
+      phone: address.phone,
+      data: address.metadata,
+    };
+  }
+
+  /**
+   * Converts delivery method from read model to domain model
+   */
+  private static mapDeliveryMethod(method: CheckoutDeliveryMethod): DomainCheckoutDeliveryMethod {
+    return {
+      code: method.code,
+      deliveryMethodType: method.deliveryMethodType as DeliveryMethodType,
+      shippingPaymentModel: method.paymentModel as ShippingPaymentModel,
+      provider: {
+        code: method.code, // Use code as provider code, may need adjustment
+        data: {}, // Not available in read model
+      },
+    };
+  }
+
+  /**
+   * Converts promo codes from read model to domain model
+   */
+  private static mapPromoCodes(promoCodes: CheckoutPromoCode[]): DomainCheckoutPromoCode[] {
+    return promoCodes.map(promoCode => ({
+      code: promoCode.code,
+      appliedAt: promoCode.appliedAt,
+      discountType: promoCode.discountType,
+      value: promoCode.value,
+      provider: promoCode.provider,
+      conditions: promoCode.conditions || null,
+    }));
+  }
+
+  /**
+   * Converts promo codes to applied discounts
+   */
+  private static mapPromoCodesToAppliedDiscounts(promoCodes: CheckoutPromoCode[]): AppliedDiscountSnapshot[] {
+    return promoCodes.map(promoCode => ({
+      code: promoCode.code,
+      appliedAt: promoCode.appliedAt,
+      type: promoCode.discountType as DiscountType,
+      value: promoCode.value,
+      provider: promoCode.provider,
+    }));
+  }
+}

@@ -1,0 +1,5371 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.4", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+}
+
+directive @join__directive(graphs: [join__Graph!], name: String!, args: join__DirectiveArguments) repeatable on SCHEMA | OBJECT | INTERFACE | FIELD_DEFINITION
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean, overrideLabel: String) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+"""Input data for adding an item to an existing cart."""
+input AddCartLineInput
+  @join__type(graph: CORE)
+{
+  """ID of the cart."""
+  cartId: ID!
+
+  """
+  ID of the product to add.
+  Error if the product is not found or already exists in the cart.
+  """
+  productId: ID!
+
+  """Quantity to add; must be greater than 0."""
+  quantity: Int!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after adding an item to the cart."""
+type AddCartLinePayload
+  @join__type(graph: CORE)
+{
+  """The updated cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""
+A postal address.
+Implements the Node interface.
+"""
+type Address implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """
+  The first line of the street address (e.g., house number and street name).
+  """
+  addressLine1: String!
+
+  """The second line of the street address (e.g., apartment, suite, unit)."""
+  addressLine2: String
+
+  """City where the address is located."""
+  city: String!
+
+  """ISO 3166-1 alpha-2 country code (e.g., "US" for United States)."""
+  countryCode: CountryCode!
+
+  """Recipient’s first name."""
+  firstName: String
+
+  """Recipient’s last name."""
+  lastName: String
+
+  """Recipient’s middle name."""
+  middleName: String
+
+  """Latitude coordinate of the address location."""
+  latitude: Float
+
+  """Longitude coordinate of the address location."""
+  longitude: Float
+
+  """Contact email for this address."""
+  email: String
+
+  """Contact phone number for this address."""
+  phone: String
+
+  """Province, state or region code (e.g., "CA" for California)."""
+  provinceCode: String
+
+  """Postal or ZIP code."""
+  postalCode: String
+
+  """Arbitrary metadata as JSON (e.g., delivery instructions)."""
+  metadata: JSON
+}
+
+"""
+Input type for creating or updating an Address.
+Maps to Go model portal/project/storage/address/dto.Input.
+"""
+input AddressInput
+  @join__type(graph: CORE)
+{
+  """
+  The first line of the street address (e.g., house number and street name).
+  """
+  addressLine1: String!
+
+  """The second line of the street address (e.g., apartment, suite, unit)."""
+  addressLine2: String
+
+  """City where the address is located."""
+  city: String!
+
+  """ISO 3166-1 alpha-2 country code (e.g., "US" for United States)."""
+  countryCode: CountryCode!
+
+  """Recipient’s first name."""
+  firstName: String
+
+  """Recipient’s last name."""
+  lastName: String
+
+  """Recipient’s middle name."""
+  middleName: String
+
+  """Latitude coordinate of the address location."""
+  latitude: Float
+
+  """Longitude coordinate of the address location."""
+  longitude: Float
+
+  """Contact email for this address."""
+  email: String
+
+  """Contact phone number for this address."""
+  phone: String
+
+  """Province, state or region code (e.g., "CA" for California)."""
+  provinceCode: String
+
+  """Postal or ZIP code."""
+  postalCode: String
+
+  """Arbitrary metadata as JSON (e.g., delivery instructions)."""
+  metadata: JSON
+}
+
+"""Information about an applied discount or promotion."""
+type AppliedDiscount
+  @join__type(graph: CORE)
+{
+  """ID of the promotion or coupon in the system (if applicable)."""
+  id: ID
+
+  """Coupon code used (if this is a coupon)."""
+  code: String
+
+  """Amount by which the cost was reduced."""
+  amount: Money!
+}
+
+"""A content article."""
+type Article implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Unique human-readable slug."""
+  handle: String!
+
+  """The article’s title."""
+  title: String!
+
+  """The full description of the article."""
+  description: String!
+
+  """A short excerpt of the article."""
+  excerpt: String!
+
+  """The cover image for the article."""
+  cover: File
+
+  """The date and time when the article was created."""
+  createdAt: DateTime!
+
+  """The date and time when the article was last updated."""
+  updatedAt: DateTime!
+
+  """The type of the article."""
+  articleType: String!
+
+  """Gallery of additional images with cursor-based pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+}
+
+"""Connection type for articles."""
+type ArticleConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of article edges."""
+  edges: [ArticleEdge!]!
+
+  """Pagination details."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the paginated list of articles."""
+type ArticleEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The article node."""
+  node: Article!
+}
+
+enum ArticleSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  UPDATED_AT_ASC @join__enumValue(graph: CORE)
+  UPDATED_AT_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+}
+
+scalar BigInt
+  @join__type(graph: CHECKOUT)
+
+"""A shopping cart with multiple items."""
+type Cart implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """A globally-unique ID."""
+  id: ID!
+
+  """When this cart was first created."""
+  createdAt: DateTime!
+
+  """When this cart was last updated."""
+  updatedAt: DateTime!
+
+  """All cost calculations for the cart."""
+  cost: CartCost!
+
+  """Quantity of the item being purchased."""
+  totalQuantity: Int!
+
+  """List of items in the cart (paginated)."""
+  lines(
+    """Return the first n items after the given cursor."""
+    first: Int = 50
+
+    """Return items after this cursor."""
+    after: Cursor
+
+    """Return the last n items before the given cursor."""
+    last: Int
+
+    """Return items before this cursor."""
+    before: Cursor
+  ): CartLineConnection!
+
+  """List of all discounts applied at the cart level."""
+  appliedDiscounts: [AppliedDiscount!]!
+
+  """Details of all tax components applied at the cart level."""
+  appliedTaxLines: [TaxLine!]!
+
+  """Shipping information including available and selected methods."""
+  shippingDetails: CartShippingDetails!
+
+  """Notifications for the user regarding the cart."""
+  notifications: [CartNotification!]!
+
+  """Shipping address, if provided."""
+  shippingAddress: Address
+
+  """Billing address, if provided."""
+  billingAddress: Address
+}
+
+"""All monetary calculations related to the cart."""
+type CartCost
+  @join__type(graph: CORE)
+{
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Shipping cost including taxes (if selected)."""
+  shippingCost: Money
+
+  """Total discount from both item-level and cart-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the cart."""
+  totalTaxAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+"""A single item in a shopping cart."""
+type CartLine implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost calculations for this cart item."""
+  cost: CartLineCost!
+
+  """The purchasable item added to the cart, such as a product or bundle."""
+  purchasable: ProductVariant!
+
+  """List of discounts applied specifically to this cart item."""
+  appliedDiscounts: [AppliedDiscount!]!
+
+  """Details of all taxes applied to this cart item."""
+  appliedTaxLines: [TaxLine!]!
+
+  """
+  A list of components that make up this cart line, such as individual products in a bundle.
+  """
+  children: [CartLine]!
+}
+
+"""A paginated list of CartLines."""
+type CartLineConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+
+  """List of CartLine edges."""
+  edges: [CartLineEdge!]!
+}
+
+"""Detailed breakdown of costs for a cart line item"""
+type CartLineCost
+  @join__type(graph: CORE)
+{
+  """The original list price per unit before any discounts."""
+  compareAtUnitPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """Discount amount applied to a single unit."""
+  discountAmount: Money!
+
+  """Total cost of all units before discounts."""
+  subtotalAmount: Money!
+
+  """Total tax amount applied to the cart line."""
+  taxAmount: Money!
+
+  """
+  Final total cost for the cart line, including all discounts, taxes, and any additional fees.
+  """
+  totalAmount: Money!
+}
+
+"""An edge in a paginated list of CartLines."""
+type CartLineEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The CartLine at this edge."""
+  node: CartLine!
+}
+
+"""Input data for a single item in the cart."""
+input CartLineInput
+  @join__type(graph: CORE)
+{
+  """Quantity of the product in the cart."""
+  quantity: Int!
+
+  """ID of the product to add or update."""
+  productId: ID!
+}
+
+"""A non-blocking warning generated by cart operations."""
+type CartNotification
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """A globally-unique ID."""
+  id: ID!
+
+  """Code categorizing the warning."""
+  code: CartNotificationCode!
+
+  """Importance level of the warning."""
+  severity: NotificationSeverity!
+
+  """Whether the warning has been acknowledged by the user."""
+  isDismissed: Boolean!
+}
+
+"""
+Codes for warnings that may be returned with Cart mutations,
+indicating non-blocking adjustments or issues in the cart.
+"""
+enum CartNotificationCode
+  @join__type(graph: CORE)
+{
+  """
+  The requested item is completely out of stock and has been removed from the cart.
+  """
+  OUT_OF_STOCK @join__enumValue(graph: CORE)
+
+  """
+  The requested quantity exceeds available stock;
+  quantity was automatically reduced to the maximum available.
+  """
+  NOT_ENOUGH_STOCK @join__enumValue(graph: CORE)
+
+  """
+  The price of one or more items has changed since they were added to the cart.
+  """
+  PRICE_CHANGED @join__enumValue(graph: CORE)
+
+  """An item in the cart is no longer available for sale."""
+  ITEM_UNAVAILABLE @join__enumValue(graph: CORE)
+}
+
+"""Details about shipping methods at the cart level."""
+type CartShippingDetails
+  @join__type(graph: CORE)
+{
+  """List of available shipping methods."""
+  availableMethods: [ShippingMethod!]!
+
+  """Currently selected shipping method, if any."""
+  selectedMethod: ShippingMethod
+
+  """Estimated delivery date based on the selected shipping method."""
+  estimatedDeliveryDate: DateTime
+}
+
+type Category implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """A unique human-readable identifier for the category."""
+  handle: String!
+
+  """
+  The category title in the language specified by the Accept-Language header.
+  """
+  title: String!
+
+  """
+  The category description in the language specified by the Accept-Language header.
+  """
+  description: String!
+
+  """
+  A short excerpt of the category in the language specified by the Accept-Language header.
+  """
+  excerpt: String!
+
+  """The cover image file for the category."""
+  cover: File
+
+  """Child categories using Relay-style pagination."""
+  children(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Breadcrumbs from the root category to this category (inclusive)."""
+  breadcrumbs: [Category!]!
+
+  """A preview listing with filters, sorting, and pagination."""
+  listing(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order. Defaults to the category's default sort."""
+    sort: ListingSort = MOST_RELEVANT
+
+    """Filters to apply (AND-combined)."""
+    filters: [FilterInput!]
+  ): ListingConnection!
+
+  """The listing mode for this category (SMART, STANDARD, CONTAINER)."""
+  listingType: ListingType!
+
+  """Gallery images using Relay-style pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+
+  """DateTime when the category was created."""
+  createdAt: DateTime!
+
+  """DateTime when the category was last updated."""
+  updatedAt: DateTime!
+
+  """SEO title for the category page."""
+  seoTitle: String
+
+  """SEO description for the category page."""
+  seoDescription: String
+}
+
+type CategoryConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of category edges (each contains a node and a cursor)."""
+  edges: [CategoryEdge!]!
+
+  """Pagination metadata (hasNextPage, endCursor, etc.)."""
+  pageInfo: PageInfo!
+}
+
+type CategoryEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for Relay-style pagination."""
+  cursor: Cursor!
+
+  """Node containing the category data."""
+  node: Category!
+}
+
+enum CategorySort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  UPDATED_AT_ASC @join__enumValue(graph: CORE)
+  UPDATED_AT_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+}
+
+"""A checkout with multiple items."""
+type Checkout implements Node
+  @join__implements(graph: CHECKOUT, interface: "Node")
+  @join__type(graph: CHECKOUT, key: "id")
+{
+  """A globally-unique ID."""
+  id: ID!
+
+  """When this checkout was first created."""
+  createdAt: DateTime!
+
+  """When this checkout was last updated."""
+  updatedAt: DateTime!
+
+  """All cost calculations for the checkout."""
+  cost: CheckoutCost!
+
+  """Customer identity associated with the checkout."""
+  customerIdentity: CheckoutCustomerIdentity!
+
+  """Customer note or special instructions for the checkout."""
+  customerNote: String
+
+  """Quantity of the item being purchased."""
+  totalQuantity: Int!
+
+  """List of items in the checkout (paginated)."""
+  lines: [CheckoutLine!]!
+
+  """Notifications for the user regarding the checkout."""
+  notifications: [CheckoutNotification!]!
+
+  """Delivery groups."""
+  deliveryGroups: [CheckoutDeliveryGroup!]!
+
+  """Applied promo codes for the checkout."""
+  appliedPromoCodes: [CheckoutPromoCode!]!
+}
+
+"""All monetary calculations related to the checkout."""
+type CheckoutCost
+  @join__type(graph: CHECKOUT)
+{
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Total discount from both item-level and checkout-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the checkout."""
+  totalTaxAmount: Money!
+
+  """Total shipping cost (only MERCHANT_COLLECTED payments)."""
+  totalShippingAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+"""Input data for creating a new checkout."""
+input CheckoutCreateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Unique idempotency key for the checkout."""
+  idempotency: String!
+
+  """Source of sales for the checkout."""
+  externalSource: String
+
+  """ID of the external source for the checkout."""
+  externalId: String
+
+  """Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru")"""
+  localeCode: String!
+
+  """
+  Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
+  """
+  currencyCode: CurrencyCode!
+
+  """Initial items to add to the new checkout."""
+  items: [CheckoutLineInput!]!
+}
+
+"""Payload returned after creating a checkout."""
+type CheckoutCreatePayload
+  @join__type(graph: CHECKOUT)
+{
+  """The newly created checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for updating the cart's display currency."""
+input CheckoutCurrencyCodeUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """Currency code according to ISO 4217 (e.g., "USD", "EUR")."""
+  currencyCode: CurrencyCode!
+}
+
+type CheckoutCustomerIdentity
+  @join__type(graph: CHECKOUT)
+{
+  """Country code of the customer."""
+  countryCode: CountryCode
+
+  """Customer associated with the checkout."""
+  customer: User
+
+  """Customer email address associated with the checkout."""
+  email: Email
+
+  """Phone number of the customer."""
+  phone: String
+}
+
+"""
+Input data for updating customer identification data associated with the cart.
+"""
+input CheckoutCustomerIdentityUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """Customer's email. If specified, will be linked to the cart."""
+  email: Email
+
+  """Phone number of the customer."""
+  phone: String
+
+  """
+  Country code of the customer.
+  ISO 3166-1 alpha-2.
+  """
+  countryCode: CountryCode
+
+  """
+  Customer identifier in external/internal system.
+  Used to link the cart with an existing customer.
+  """
+  customerId: ID
+}
+
+"""
+Input data for updating customer's note attached to the cart.
+"""
+input CheckoutCustomerNoteUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Customer's note text (delivery instructions, etc.).
+  Empty value clears the note.
+  """
+  note: String
+}
+
+"""Delivery address associated with a checkout."""
+type CheckoutDeliveryAddress
+  @join__type(graph: CHECKOUT)
+{
+  """Unique identifier for the delivery address."""
+  id: ID!
+
+  """Primary address line."""
+  address1: String!
+
+  """Secondary address line."""
+  address2: String
+
+  """City name."""
+  city: String!
+
+  """Country code (ISO 3166-1 alpha-2)."""
+  countryCode: CountryCode!
+
+  """Province code."""
+  provinceCode: String
+
+  """Postal code."""
+  postalCode: String
+
+  """Email address for this delivery address."""
+  email: Email
+
+  """First name for delivery."""
+  firstName: String
+
+  """Last name for delivery."""
+  lastName: String
+
+  """Data associated with the delivery address."""
+  data: JSON
+}
+
+"""
+Input data for adding one or more delivery addresses to the cart.
+Supports multi-shipping.
+"""
+input CheckoutDeliveryAddressesAddInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of delivery addresses to be added."""
+  addresses: [CheckoutDeliveryAddressInput!]!
+}
+
+"""
+Input data for removing one or more delivery addresses from the cart.
+"""
+input CheckoutDeliveryAddressesRemoveInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """Identifiers of delivery addresses to be removed."""
+  addressIds: [ID!]!
+}
+
+"""
+Input data for batch updating previously added delivery addresses.
+"""
+input CheckoutDeliveryAddressesUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of updates for delivery addresses."""
+  updates: [CheckoutDeliveryAddressUpdateInput!]!
+}
+
+input CheckoutDeliveryAddressInput
+  @join__type(graph: CHECKOUT)
+{
+  """Primary address line."""
+  address1: String!
+
+  """Secondary address line."""
+  address2: String
+
+  """City name."""
+  city: String!
+
+  """Country code (ISO 3166-1 alpha-2)."""
+  countryCode: CountryCode!
+
+  """Province code."""
+  provinceCode: String
+
+  """Postal code."""
+  postalCode: String
+
+  """Email address for this delivery address."""
+  email: Email
+
+  """First name for delivery."""
+  firstName: String
+
+  """Last name for delivery."""
+  lastName: String
+
+  """Data associated with the delivery address."""
+  data: JSON
+}
+
+"""
+Delivery address update element: which address to update and with what data.
+"""
+input CheckoutDeliveryAddressUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Identifier of existing delivery address in the cart."""
+  addressId: ID!
+
+  """New postal address values."""
+  address: CheckoutDeliveryAddressInput!
+}
+
+"""Delivery group for one or more checkout lines."""
+type CheckoutDeliveryGroup
+  @join__type(graph: CHECKOUT)
+{
+  """Unique identifier for the delivery group."""
+  id: ID!
+
+  """Checkout lines associated with the delivery group."""
+  checkoutLines: [CheckoutLine!]!
+
+  """Delivery address associated with the delivery group."""
+  deliveryAddress: CheckoutDeliveryAddress
+
+  """Delivery methods associated with the delivery group."""
+  deliveryMethods: [CheckoutDeliveryMethod!]!
+
+  """Selected delivery method associated with the delivery group."""
+  selectedDeliveryMethod: CheckoutDeliveryMethod
+
+  """Estimated cost of the delivery group."""
+  estimatedCost: DeliveryCost
+}
+
+type CheckoutDeliveryMethod
+  @join__type(graph: CHECKOUT)
+{
+  """Code of the shipping method (e.g., "standard", "express", "courier")."""
+  code: String!
+
+  """Delivery method type associated with the delivery option."""
+  deliveryMethodType: CheckoutDeliveryMethodType!
+
+  """Provider data associated with the delivery method."""
+  provider: CheckoutDeliveryProvider!
+}
+
+enum CheckoutDeliveryMethodType
+  @join__type(graph: CHECKOUT)
+{
+  """Pickup delivery method."""
+  PICKUP @join__enumValue(graph: CHECKOUT)
+
+  """Shipping delivery method."""
+  SHIPPING @join__enumValue(graph: CHECKOUT)
+}
+
+"""
+Input data for selecting/changing delivery method.
+Can be applied to the entire cart or to a specific delivery address.
+"""
+input CheckoutDeliveryMethodUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """Code of delivery method available for this cart/address."""
+  shippingMethodCode: String!
+
+  """Identifier of delivery group for which delivery method is selected."""
+  deliveryGroupId: ID!
+}
+
+type CheckoutDeliveryProvider
+  @join__type(graph: CHECKOUT)
+{
+  """
+  Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
+  """
+  code: String!
+
+  """Data associated with the provider."""
+  data: JSON!
+}
+
+type CheckoutFieldError
+  @join__type(graph: CHECKOUT)
+{
+  """The field that caused the error."""
+  field: String!
+
+  """The error message."""
+  message: String!
+}
+
+"""Input data for placing an order (checkout)."""
+input CheckoutInput
+  @join__type(graph: CORE)
+{
+  """Unique key for idempotency."""
+  idempotencyKey: String!
+
+  """Cart ID."""
+  cartId: ID!
+
+  """Billing address."""
+  billingAddress: AddressInput!
+
+  """Shipping address."""
+  shippingAddress: AddressInput!
+
+  """Customer contact details."""
+  customerDetails: OrderCustomerDetailsInput!
+
+  """Payment method ID."""
+  paymentMethod: ID!
+
+  """Shipping method ID."""
+  shippingMethod: ID!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Input data for updating cart's language/locale code."""
+input CheckoutLanguageCodeUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Language/locale code (ISO 639-1, BCP 47 if needed), e.g. "en", "ru", "uk".
+  Affects localization and formatting.
+  """
+  localeCode: String!
+}
+
+"""A single item in a checkout."""
+type CheckoutLine implements Node
+  @join__implements(graph: CHECKOUT, interface: "Node")
+  @join__type(graph: CHECKOUT)
+{
+  """Global unique identifier for the checkout line."""
+  id: ID!
+
+  """Title of the purchasable."""
+  title: String!
+
+  """SKU of the purchasable."""
+  sku: String
+
+  """Image URL of the purchasable."""
+  imageSrc: String
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost calculations for this checkout item."""
+  cost: CheckoutLineCost!
+
+  """
+  A list of components that make up this checkout line, such as individual products in a bundle.
+  """
+  children: [CheckoutLine]!
+
+  """ID of the purchasable."""
+  purchasableId: ID!
+
+  """Purchasable unit."""
+  purchasable: Purchasable
+}
+
+"""Detailed breakdown of costs for a checkout line item"""
+type CheckoutLineCost
+  @join__type(graph: CHECKOUT)
+{
+  """The original list price per unit before any discounts."""
+  compareAtUnitPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """Discount amount applied to a line."""
+  discountAmount: Money!
+
+  """Total cost of all units before discounts."""
+  subtotalAmount: Money!
+
+  """Total tax amount applied to the checkout line."""
+  taxAmount: Money!
+
+  """Total cost of this line (all units), after discounts and taxes."""
+  totalAmount: Money!
+}
+
+"""Input data for a single item in the checkout."""
+input CheckoutLineInput
+  @join__type(graph: CHECKOUT)
+{
+  """Quantity of the product in the checkout."""
+  quantity: Int!
+
+  """ID of the product to add or update."""
+  purchasableId: ID!
+
+  """ID of the purchasable snapshot to add or update."""
+  purchasableSnapshot: PurchasableSnapshotInput
+}
+
+"""Input data for adding an item to an existing checkout."""
+input CheckoutLinesAddInput
+  @join__type(graph: CHECKOUT)
+{
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of checkout items to add."""
+  lines: [CheckoutLineInput!]!
+}
+
+"""Payload returned after adding an item to the checkout."""
+type CheckoutLinesAddPayload
+  @join__type(graph: CHECKOUT)
+{
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for clearing all items from a checkout."""
+input CheckoutLinesClearInput
+  @join__type(graph: CHECKOUT)
+{
+  """ID of the checkout to clear."""
+  checkoutId: ID!
+}
+
+"""Payload returned after clearing all items from the checkout."""
+type CheckoutLinesClearPayload
+  @join__type(graph: CHECKOUT)
+{
+  """The updated (now empty) checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for removing one or more items from the checkout."""
+input CheckoutLinesDeleteInput
+  @join__type(graph: CHECKOUT)
+{
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """IDs of the lines to remove."""
+  lineIds: [ID!]!
+}
+
+"""Payload returned after removing an item from the checkout."""
+type CheckoutLinesDeletePayload
+  @join__type(graph: CHECKOUT)
+{
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for adding an item to an existing checkout line."""
+input CheckoutLinesLineAddInput
+  @join__type(graph: CHECKOUT)
+{
+  """ID of the purchasable to add."""
+  purchasableId: ID!
+
+  """Quantity to add; must be greater than 0."""
+  quantity: Int!
+}
+
+"""Input data for updating the quantity of a specific checkout item."""
+input CheckoutLinesUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of checkout items to update."""
+  lines: [CheckoutLineUpdateInput!]!
+}
+
+"""Payload returned after updating a checkout item's quantity."""
+type CheckoutLinesUpdatePayload
+  @join__type(graph: CHECKOUT)
+{
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for updating the quantity of a specific checkout item."""
+input CheckoutLineUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """ID of the checkout item to update."""
+  lineId: ID!
+
+  """
+  New quantity for the checkout item.
+  If set to 0, the item will be removed.
+  """
+  quantity: Int!
+}
+
+type CheckoutMutation
+  @join__type(graph: CHECKOUT)
+{
+  """Creates a new checkout."""
+  checkoutCreate(input: CheckoutCreateInput!): Checkout!
+
+  """Adds an item to an existing checkout."""
+  checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!
+
+  """Updates the quantity of a specific checkout item."""
+  checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
+
+  """Removes a single item from the checkout."""
+  checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
+
+  """Clears all items from a checkout."""
+  checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutLinesClearPayload!
+
+  """
+  Updates customer identification data associated with the cart
+  (email, customerId and optionally country/language for calculations).
+  """
+  checkoutCustomerIdentityUpdate(input: CheckoutCustomerIdentityUpdateInput!): Checkout!
+
+  """
+  Updates customer's note attached to the cart (delivery instructions, etc.).
+  """
+  checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): Checkout!
+
+  """
+  Updates cart's language/locale (affects localization and formatting).
+  """
+  checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
+
+  """
+  Updates cart's display currency (ISO 4217, e.g. "USD", "EUR").
+  """
+  checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
+
+  """
+  Adds one or more delivery addresses to the cart (supports multi-shipping).
+  """
+  checkoutDeliveryAddressesAdd(input: CheckoutDeliveryAddressesAddInput!): Checkout!
+
+  """
+  Updates previously added delivery addresses (e.g., postal code or city correction).
+  """
+  checkoutDeliveryAddressesUpdate(input: CheckoutDeliveryAddressesUpdateInput!): Checkout!
+
+  """
+  Removes one or more delivery addresses previously linked to the cart.
+  """
+  checkoutDeliveryAddressesRemove(input: CheckoutDeliveryAddressesRemoveInput!): Checkout!
+
+  """
+  Selects or changes delivery method for the entire cart or specific address.
+  """
+  checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
+
+  """Applies promo code/coupon to the cart."""
+  checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
+
+  """Removes previously applied promo code/coupon from the cart."""
+  checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+}
+
+"""A non-blocking warning generated by checkout operations."""
+type CheckoutNotification
+  @join__type(graph: CHECKOUT)
+{
+  """A globally-unique ID."""
+  id: ID!
+
+  """Code categorizing the warning."""
+  code: CheckoutNotificationCode!
+
+  """Importance level of the warning."""
+  severity: NotificationSeverity!
+
+  """Whether the warning has been acknowledged by the user."""
+  isDismissed: Boolean!
+}
+
+"""
+Codes for warnings that may be returned with Checkout mutations,
+indicating non-blocking adjustments or issues in the checkout.
+"""
+enum CheckoutNotificationCode
+  @join__type(graph: CHECKOUT)
+{
+  """
+  The requested item is completely out of stock and has been removed from the checkout.
+  """
+  OUT_OF_STOCK @join__enumValue(graph: CHECKOUT)
+
+  """
+  The requested quantity exceeds available stock;
+  quantity was automatically reduced to the maximum available.
+  """
+  NOT_ENOUGH_STOCK @join__enumValue(graph: CHECKOUT)
+
+  """
+  The price of one or more items has changed since they were added to the checkout.
+  """
+  PRICE_CHANGED @join__enumValue(graph: CHECKOUT)
+
+  """An item in the checkout is no longer available for sale."""
+  ITEM_UNAVAILABLE @join__enumValue(graph: CHECKOUT)
+}
+
+"""Payload returned after performing checkout (placing an order)."""
+type CheckoutPayload
+  @join__type(graph: CORE)
+{
+  """The newly created order."""
+  order: Order
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Applied promo code for a checkout."""
+type CheckoutPromoCode
+  @join__type(graph: CHECKOUT)
+{
+  """Promo code text."""
+  code: String!
+
+  """When this promo code was applied."""
+  appliedAt: DateTime!
+
+  """Discount type (percentage)."""
+  discountType: String!
+
+  """Discount value (percentage as number)."""
+  value: Int!
+
+  """Discount provider."""
+  provider: String!
+
+  """Discount conditions."""
+  conditions: JSON
+}
+
+"""Input data for applying promo code to the cart."""
+input CheckoutPromoCodeAddInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """Text code of coupon/promo code."""
+  code: String!
+}
+
+"""Input data for removing previously applied promo code from the cart."""
+input CheckoutPromoCodeRemoveInput
+  @join__type(graph: CHECKOUT)
+{
+  """Cart identifier on which the operation is performed."""
+  checkoutId: ID!
+
+  """Text code of coupon/promo code that needs to be cancelled."""
+  code: String!
+}
+
+type CheckoutQuery
+  @join__type(graph: CHECKOUT)
+{
+  """Get a checkout by its ID."""
+  checkout(id: ID!): Checkout
+}
+
+"""Input data for clearing all items from a cart."""
+input ClearCartLinesInput
+  @join__type(graph: CORE)
+{
+  """ID of the cart to clear."""
+  cartId: ID!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after clearing all items from the cart."""
+type ClearCartLinesPayload
+  @join__type(graph: CORE)
+{
+  """The updated (now empty) cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+enum CountryCode
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  """United States"""
+  US @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Canada"""
+  CA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Mexico"""
+  MX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """United Kingdom"""
+  GB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Germany"""
+  DE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """France"""
+  FR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Italy"""
+  IT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Spain"""
+  ES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Australia"""
+  AU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """New Zealand"""
+  NZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Japan"""
+  JP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """China"""
+  CN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """South Korea"""
+  KR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """India"""
+  IN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Brazil"""
+  BR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Argentina"""
+  AR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """South Africa"""
+  ZA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Russia"""
+  RU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Ukraine"""
+  UA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Poland"""
+  PL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Netherlands"""
+  NL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Belgium"""
+  BE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Sweden"""
+  SE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Norway"""
+  NO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Denmark"""
+  DK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Finland"""
+  FI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Switzerland"""
+  CH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Austria"""
+  AT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Portugal"""
+  PT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Ireland"""
+  IE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Czech Republic"""
+  CZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Hungary"""
+  HU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Slovakia"""
+  SK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Slovenia"""
+  SI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Croatia"""
+  HR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Greece"""
+  GR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Turkey"""
+  TR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Romania"""
+  RO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bulgaria"""
+  BG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Estonia"""
+  EE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Latvia"""
+  LV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Lithuania"""
+  LT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Iceland"""
+  IS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Luxembourg"""
+  LU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Liechtenstein"""
+  LI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Malta"""
+  MT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Cyprus"""
+  CY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Israel"""
+  IL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Saudi Arabia"""
+  SA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """United Arab Emirates"""
+  AE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Qatar"""
+  QA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Kuwait"""
+  KW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Oman"""
+  OM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Jordan"""
+  JO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Egypt"""
+  EG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Morocco"""
+  MA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Tunisia"""
+  TN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Algeria"""
+  DZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Nigeria"""
+  NG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Kenya"""
+  KE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Ethiopia"""
+  ET @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Ghana"""
+  GH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Senegal"""
+  SN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Ivory Coast"""
+  CI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Tanzania"""
+  TZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Uganda"""
+  UG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Cameroon"""
+  CM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Zambia"""
+  ZM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Zimbabwe"""
+  ZW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Mozambique"""
+  MZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Botswana"""
+  BW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Namibia"""
+  NA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Angola"""
+  AO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Democratic Republic of the Congo"""
+  CD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Sudan"""
+  SD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Pakistan"""
+  PK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bangladesh"""
+  BD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Nepal"""
+  NP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Thailand"""
+  TH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Vietnam"""
+  VN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Malaysia"""
+  MY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Singapore"""
+  SG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Indonesia"""
+  ID @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Philippines"""
+  PH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Myanmar"""
+  MM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Cambodia"""
+  KH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Laos"""
+  LA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Brunei"""
+  BN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Kazakhstan"""
+  KZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Uzbekistan"""
+  UZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Turkmenistan"""
+  TM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Kyrgyzstan"""
+  KG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Tajikistan"""
+  TJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Georgia"""
+  GE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Armenia"""
+  AM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Azerbaijan"""
+  AZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Belarus"""
+  BY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Moldova"""
+  MD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Serbia"""
+  RS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Montenegro"""
+  ME @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """North Macedonia"""
+  MK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bosnia and Herzegovina"""
+  BA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Albania"""
+  AL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Kosovo"""
+  XK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Greenland"""
+  GL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Panama"""
+  PA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Costa Rica"""
+  CR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """El Salvador"""
+  SV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Guatemala"""
+  GT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Honduras"""
+  HN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Nicaragua"""
+  NI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Jamaica"""
+  JM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Cuba"""
+  CU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Dominican Republic"""
+  DO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Haiti"""
+  HT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Trinidad and Tobago"""
+  TT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Barbados"""
+  BB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bahamas"""
+  BS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Paraguay"""
+  PY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Uruguay"""
+  UY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Chile"""
+  CL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Peru"""
+  PE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Colombia"""
+  CO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Venezuela"""
+  VE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bolivia"""
+  BO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Ecuador"""
+  EC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Suriname"""
+  SR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Guyana"""
+  GY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Fiji"""
+  FJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Papua New Guinea"""
+  PG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Samoa"""
+  WS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Tonga"""
+  TO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Solomon Islands"""
+  SB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Vanuatu"""
+  VU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """New Caledonia"""
+  NC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Marshall Islands"""
+  MH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Micronesia"""
+  FM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Palau"""
+  PW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Maldives"""
+  MV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Seychelles"""
+  SC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Mauritius"""
+  MU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Sri Lanka"""
+  LK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bhutan"""
+  BT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Mongolia"""
+  MN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """North Korea"""
+  KP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Iraq"""
+  IQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Iran"""
+  IR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Afghanistan"""
+  AF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Yemen"""
+  YE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Syria"""
+  SY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Lebanon"""
+  LB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Palestine"""
+  PS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bahrain"""
+  BH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Malawi"""
+  MW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Rwanda"""
+  RW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Burundi"""
+  BI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """South Sudan"""
+  SS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Lesotho"""
+  LS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Swaziland (Eswatini)"""
+  SZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Madagascar"""
+  MG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Central African Republic"""
+  CF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Republic of the Congo"""
+  CG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Gabon"""
+  GA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Guinea"""
+  GN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Guinea-Bissau"""
+  GW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Equatorial Guinea"""
+  GQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Sierra Leone"""
+  SL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Liberia"""
+  LR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Benin"""
+  BJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Togo"""
+  TG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Niger"""
+  NE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Mali"""
+  ML @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Burkina Faso"""
+  BF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Chad"""
+  TD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Mauritania"""
+  MR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Gambia"""
+  GM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Cape Verde"""
+  CV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Eritrea"""
+  ER @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Djibouti"""
+  DJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Comoros"""
+  KM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Andorra"""
+  AD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Monaco"""
+  MC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """San Marino"""
+  SM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Vatican City"""
+  VA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Timor-Leste (East Timor)"""
+  TL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Antigua and Barbuda"""
+  AG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Saint Kitts and Nevis"""
+  KN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Saint Lucia"""
+  LC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Saint Vincent and the Grenadines"""
+  VC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Grenada"""
+  GD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Dominica"""
+  DM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Belize"""
+  BZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Aruba"""
+  AW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Curaçao"""
+  CW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Bermuda"""
+  BM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Faroe Islands"""
+  FO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Isle of Man"""
+  IM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Jersey"""
+  JE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Guernsey"""
+  GG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Åland Islands"""
+  AX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Western Sahara"""
+  EH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """British Virgin Islands"""
+  VG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """US Virgin Islands"""
+  VI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+}
+
+"""Input data for creating a new cart."""
+input CreateCartInput
+  @join__type(graph: CORE)
+{
+  """Currency code for all items (e.g., "USD")."""
+  currencyCode: CurrencyCode!
+
+  """Initial items to add to the new cart."""
+  items: [CartLineInput!]!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after creating a cart."""
+type CreateCartPayload
+  @join__type(graph: CORE)
+{
+  """The newly created cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input type for submitting a new product review."""
+input CreateReviewInput
+  @join__type(graph: CORE)
+{
+  """The unique identifier of the product to which this review belongs."""
+  productId: ID!
+
+  """
+  The numerical rating given by the reviewer.
+  Valid values typically range from 1.0 (worst) to 5.0 (best).
+  """
+  rating: Float!
+
+  """
+  The publicly displayed name of the reviewer.
+  This may be a username, nickname, or real name, depending on your policy.
+  """
+  displayName: String!
+
+  """
+  The main body of the review.
+  Should capture the reviewer's overall experience and opinions.
+  """
+  message: String!
+
+  """
+  A brief, descriptive title summarizing the review.
+  For example: "Excellent quality, highly recommend".
+  """
+  title: String
+
+  """
+  A summary of key positive points noted by the reviewer.
+  Use commas or semicolons to separate multiple pros.
+  """
+  pros: String
+
+  """
+  A summary of key negative points noted by the reviewer.
+  Use commas or semicolons to separate multiple cons.
+  """
+  cons: String
+
+  """
+  An optional list of image IDs uploaded by the reviewer.
+  Images should illustrate product features or usage.
+  """
+  images: [ID!]
+
+  """The locale or language code."""
+  locale: LocaleCode
+}
+
+"""Currency codes according to ISO 4217"""
+enum CurrencyCode
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  """2 decimals — UAE Dirham (United Arab Emirates)"""
+  AED @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Afghan Afghani (Afghanistan)"""
+  AFN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Albanian Lek (Albania)"""
+  ALL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Armenian Dram (Armenia)"""
+  AMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
+  ANG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Angolan Kwanza (Angola)"""
+  AOA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Argentine Peso (Argentina)"""
+  ARS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Australian Dollar (Australia)"""
+  AUD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Aruban Florin (Aruba)"""
+  AWG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Azerbaijani Manat (Azerbaijan)"""
+  AZN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """
+  2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
+  """
+  BAM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Barbadian Dollar (Barbados)"""
+  BBD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Bangladeshi Taka (Bangladesh)"""
+  BDT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Bulgarian Lev (Bulgaria)"""
+  BGN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """3 decimals — Bahraini Dinar (Bahrain)"""
+  BHD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Burundian Franc (Burundi)"""
+  BIF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Bermudian Dollar (Bermuda)"""
+  BMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Brunei Dollar (Brunei)"""
+  BND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Bolivian Boliviano (Bolivia)"""
+  BOB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Brazilian Real (Brazil)"""
+  BRL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Bahamian Dollar (Bahamas)"""
+  BSD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Bhutanese Ngultrum (Bhutan)"""
+  BTN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Botswana Pula (Botswana)"""
+  BWP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Belarusian Ruble (Belarus)"""
+  BYN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Belize Dollar (Belize)"""
+  BZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Canadian Dollar (Canada)"""
+  CAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
+  CDF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Swiss Franc (Switzerland)"""
+  CHF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Chilean Peso (Chile)"""
+  CLP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Chinese Yuan (China)"""
+  CNY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Colombian Peso (Colombia)"""
+  COP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Costa Rican Colon (Costa Rica)"""
+  CRC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Cuban Peso (Cuba)"""
+  CUP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Cape Verdean Escudo (Cape Verde)"""
+  CVE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Czech Koruna (Czech Republic)"""
+  CZK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Djiboutian Franc (Djibouti)"""
+  DJF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Danish Krone (Denmark)"""
+  DKK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Dominican Peso (Dominican Republic)"""
+  DOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Algerian Dinar (Algeria)"""
+  DZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Egyptian Pound (Egypt)"""
+  EGP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Eritrean Nakfa (Eritrea)"""
+  ERN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Ethiopian Birr (Ethiopia)"""
+  ETB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Euro (European Union)"""
+  EUR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Fijian Dollar (Fiji)"""
+  FJD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Falkland Islands Pound (Falkland Islands)"""
+  FKP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Faroese Króna (Faroe Islands)"""
+  FOK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Pound Sterling (United Kingdom)"""
+  GBP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Georgian Lari (Georgia)"""
+  GEL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Guernsey Pound (Guernsey)"""
+  GGP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Ghanaian Cedi (Ghana)"""
+  GHS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Gibraltar Pound (Gibraltar)"""
+  GIP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Gambian Dalasi (Gambia)"""
+  GMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Guinean Franc (Guinea)"""
+  GNF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Guatemalan Quetzal (Guatemala)"""
+  GTQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Guyanese Dollar (Guyana)"""
+  GYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Hong Kong Dollar (Hong Kong)"""
+  HKD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Honduran Lempira (Honduras)"""
+  HNL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Croatian Kuna (Croatia)"""
+  HRK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Haitian Gourde (Haiti)"""
+  HTG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Hungarian Forint (Hungary)"""
+  HUF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Indonesian Rupiah (Indonesia)"""
+  IDR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Israeli New Shekel (Israel)"""
+  ILS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Isle of Man Pound (Isle of Man)"""
+  IMP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Indian Rupee (India)"""
+  INR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """3 decimals — Iraqi Dinar (Iraq)"""
+  IQD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Iranian Rial (Iran)"""
+  IRR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Icelandic Króna (Iceland)"""
+  ISK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Jersey Pound (Jersey)"""
+  JEP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Jamaican Dollar (Jamaica)"""
+  JMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """3 decimals — Jordanian Dinar (Jordan)"""
+  JOD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Japanese Yen (Japan)"""
+  JPY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Kenyan Shilling (Kenya)"""
+  KES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
+  KGS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Cambodian Riel (Cambodia)"""
+  KHR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Comorian Franc (Comoros)"""
+  KMF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — North Korean Won (North Korea)"""
+  KPW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — South Korean Won (South Korea)"""
+  KRW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """3 decimals — Kuwaiti Dinar (Kuwait)"""
+  KWD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
+  KYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
+  KZT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Lao Kip (Laos)"""
+  LAK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Lebanese Pound (Lebanon)"""
+  LBP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
+  LKR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """3 decimals — Liberian Dollar (Liberia)"""
+  LRD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """3 decimals — Libyan Dinar (Libya)"""
+  LYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Moroccan Dirham (Morocco)"""
+  MAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Moldovan Leu (Moldova)"""
+  MDL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Malagasy Ariary (Madagascar)"""
+  MGA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Macedonian Denar (North Macedonia)"""
+  MKD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Burmese Kyat (Myanmar)"""
+  MMK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Mongolian Tögrög (Mongolia)"""
+  MNT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Macanese Pataca (Macau)"""
+  MOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Mauritanian Ouguiya (Mauritania)"""
+  MRU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Mauritian Rupee (Mauritius)"""
+  MUR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Maldivian Rufiyaa (Maldives)"""
+  MVR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Malawian Kwacha (Malawi)"""
+  MWK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Mexican Peso (Mexico)"""
+  MXN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Malaysian Ringgit (Malaysia)"""
+  MYR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Mozambican Metical (Mozambique)"""
+  MZN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Namibian Dollar (Namibia)"""
+  NAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Nigerian Naira (Nigeria)"""
+  NGN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
+  NIO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Norwegian Krone (Norway)"""
+  NOK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Nepalese Rupee (Nepal)"""
+  NPR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — New Zealand Dollar (New Zealand)"""
+  NZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Omani Rial (Oman)"""
+  OMR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Panamanian Balboa (Panama)"""
+  PAB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Peruvian Sol (Peru)"""
+  PEN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
+  PGK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Philippine Peso (Philippines)"""
+  PHP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Pakistani Rupee (Pakistan)"""
+  PKR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Polish Zloty (Poland)"""
+  PLN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Paraguayan Guaraní (Paraguay)"""
+  PYG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Qatari Riyal (Qatar)"""
+  QAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Romanian Leu (Romania)"""
+  RON @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Serbian Dinar (Serbia)"""
+  RSD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Russian Ruble (Russia)"""
+  RUB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Rwandan Franc (Rwanda)"""
+  RWF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Saudi Riyal (Saudi Arabia)"""
+  SAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
+  SBD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Seychelles Rupee (Seychelles)"""
+  SCR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Sudanese Pound (Sudan)"""
+  SDG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Swedish Krona (Sweden)"""
+  SEK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Singapore Dollar (Singapore)"""
+  SGD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Saint Helena Pound (Saint Helena)"""
+  SHP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
+  SLE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Somali Shilling (Somalia)"""
+  SOS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Surinamese Dollar (Suriname)"""
+  SRD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — South Sudanese Pound (South Sudan)"""
+  SSP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
+  STN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Salvadoran Colón (El Salvador)"""
+  SVC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Syrian Pound (Syria)"""
+  SYP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Eswatini Lilangeni (Eswatini)"""
+  SZL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Thai Baht (Thailand)"""
+  THB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Tajikistani Somoni (Tajikistan)"""
+  TJS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Turkmenistani Manat (Turkmenistan)"""
+  TMT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Tunisian Dinar (Tunisia)"""
+  TND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Tongan Paʻanga (Tonga)"""
+  TOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Turkish Lira (Türkiye)"""
+  TRY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
+  TTD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — New Taiwan Dollar (Taiwan)"""
+  TWD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Tanzanian Shilling (Tanzania)"""
+  TZS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Ukrainian Hryvnia (Ukraine)"""
+  UAH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Ugandan Shilling (Uganda)"""
+  UGX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — United States Dollar (United States)"""
+  USD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Uruguayan Peso (Uruguay)"""
+  UYU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Uzbekistan Som (Uzbekistan)"""
+  UZS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Venezuelan Bolívar (Venezuela)"""
+  VES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Vietnamese Dong (Vietnam)"""
+  VND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Vanuatu Vatu (Vanuatu)"""
+  VUV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Samoan Tala (Samoa)"""
+  WST @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Central African CFA Franc (CEMAC)"""
+  XAF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — East Caribbean Dollar (OECS)"""
+  XCD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — Special Drawing Rights (IMF)"""
+  XDR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — West African CFA Franc (UEMOA)"""
+  XOF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """0 decimals — CFP Franc (French overseas territories)"""
+  XPF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Yemeni Rial (Yemen)"""
+  YER @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — South African Rand (South Africa)"""
+  ZAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Zambian Kwacha (Zambia)"""
+  ZMW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
+  ZWL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+}
+
+scalar Cursor
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+
+scalar DateTime
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+
+scalar Decimal
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+
+"""Delivery cost with payment model"""
+type DeliveryCost
+  @join__type(graph: CHECKOUT)
+{
+  """Delivery amount"""
+  amount: Money!
+
+  """Delivery payment model"""
+  paymentModel: ShippingPaymentModel!
+}
+
+scalar Email
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+
+"""Error information for a failed field."""
+type FieldError
+  @join__type(graph: CORE)
+{
+  """Name of the field that caused the error."""
+  field: String!
+
+  """Human-readable error message."""
+  message: String!
+
+  """Optional machine-readable error code."""
+  code: String
+}
+
+"""Represents a file or media resource in the system."""
+type File implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The origin of the media (e.g., URL, YouTube)."""
+  source: MediaSource!
+
+  """Direct link to the resource or identifier (for YouTube, the video ID)."""
+  url: String!
+}
+
+interface Filter
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier."""
+  id: String!
+
+  """The handle of the Filter."""
+  handle: String!
+
+  """Display title for the Filter."""
+  title: String!
+}
+
+"""Input type for applying a Filter to a listing."""
+input FilterInput
+  @join__type(graph: CORE)
+{
+  """The handle of the Filter."""
+  handle: String!
+
+  """The value handles of the Filter. Ranges accept min, max values."""
+  values: [String!]!
+}
+
+"""Fulfillment information for the order."""
+type Fulfillment implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Fulfillment status."""
+  status: FulfillmentStatus!
+
+  """Tracking number."""
+  trackingNumber: String
+
+  """Tracking URL."""
+  trackingUrl: String
+
+  """Fulfillment creation date."""
+  createdAt: DateTime!
+
+  """Fulfillment lines."""
+  lines: [FulfillmentLine!]!
+}
+
+"""Fulfillment line within a fulfillment."""
+type FulfillmentLine implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Order item ID."""
+  orderItemId: ID!
+
+  """Quantity shipped."""
+  quantity: Int!
+}
+
+enum FulfillmentStatus
+  @join__type(graph: CORE)
+{
+  PENDING @join__enumValue(graph: CORE)
+  PROCESSING @join__enumValue(graph: CORE)
+  ON_HOLD @join__enumValue(graph: CORE)
+  SHIPPED @join__enumValue(graph: CORE)
+  DELIVERED @join__enumValue(graph: CORE)
+  RETURNED @join__enumValue(graph: CORE)
+  FULFILLED @join__enumValue(graph: CORE)
+  CANCELLED @join__enumValue(graph: CORE)
+}
+
+"""Result of cursor-based pagination for a gallery of files."""
+type GalleryConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of edges (file nodes with cursors)."""
+  edges: [GalleryEdge!]!
+
+  """
+  Pagination information (hasNextPage, hasPreviousPage, start/end cursors).
+  """
+  pageInfo: PageInfo!
+}
+
+"""An edge in the gallery connection, containing a file and its cursor."""
+type GalleryEdge
+  @join__type(graph: CORE)
+{
+  """The file node."""
+  node: File!
+
+  """Cursor for pagination."""
+  cursor: Cursor!
+}
+
+scalar join__DirectiveArguments
+
+scalar join__FieldSet
+
+enum join__Graph {
+  CHECKOUT @join__graph(name: "checkout", url: "http://host.docker.internal:10002/graphql")
+  CORE @join__graph(name: "core", url: "http://host.docker.internal:8000/api/client/graphql")
+}
+
+scalar JSON
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+type ListFilter implements Filter
+  @join__implements(graph: CORE, interface: "Filter")
+  @join__type(graph: CORE)
+{
+  iid: Uuid!
+  id: String!
+  title: String!
+  handle: String!
+
+  """List of available categories for filtering."""
+  values: [ListFilterValue!]!
+}
+
+type ListFilterValue
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier."""
+  id: String!
+
+  """The handle of the Filter."""
+  handle: String!
+
+  """The swatch of the Filter value. Usually used for color filters."""
+  swatch: Swatch
+
+  """Display title for the Filter."""
+  title: String!
+
+  """Number of products associated with this Filter value."""
+  count: Int!
+}
+
+"""A connection object for listings, following the cursor-based pattern."""
+type ListingConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """A list of edges."""
+  edges: [ListingEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """filters of the listing."""
+  filters: [Filter!]!
+
+  """The sort order that was applied."""
+  sort: ListingSort!
+
+  """Show available products first."""
+  availabilitySortApplied: Boolean!
+
+  """Include nested categories."""
+  nestedCategoriesIncluded: Boolean!
+}
+
+"""An edge in a listing connection, with the cursor for pagination."""
+type ListingEdge
+  @join__type(graph: CORE)
+{
+  """The item at the end of this edge."""
+  node: ListingNode!
+
+  """A cursor for use in pagination."""
+  cursor: Cursor!
+}
+
+"""A node in a listing."""
+union ListingNode
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CORE, member: "ProductVariant")
+ = ProductVariant
+
+"""
+Defines the available sorting orders for Listings.
+Maps to Go enum portal/project/entity/listing/listingOrder.Enum.
+"""
+enum ListingSort
+  @join__type(graph: CORE)
+{
+  """Newest first"""
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+
+  """Oldest first"""
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+
+  """Price ascending"""
+  PRICE_ASC @join__enumValue(graph: CORE)
+
+  """Price descending"""
+  PRICE_DESC @join__enumValue(graph: CORE)
+
+  """Title ascending"""
+  TITLE_ASC @join__enumValue(graph: CORE)
+
+  """Title descending"""
+  TITLE_DESC @join__enumValue(graph: CORE)
+
+  """Recommended order based on the listing settings"""
+  MOST_RELEVANT @join__enumValue(graph: CORE)
+}
+
+"""Defines the type of listing, determining how products are selected."""
+enum ListingType
+  @join__type(graph: CORE)
+{
+  """Automatically generated by applying predefined filters."""
+  SMART @join__enumValue(graph: CORE)
+
+  """Manually curated: admin selects products and defines their order;"""
+  STANDARD @join__enumValue(graph: CORE)
+
+  """
+  Aggregates all products from this category and its subcategories recursively.
+  """
+  CONTAINER @join__enumValue(graph: CORE)
+}
+
+"""Input data for loading a cart by its ID."""
+input LoadCartInput
+  @join__type(graph: CORE)
+{
+  """ID of the cart to load."""
+  cartId: ID!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after clearing all items from the cart."""
+type LoadCartPayload
+  @join__type(graph: CORE)
+{
+  """The updated (now empty) cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Language codes based on ISO 639-1 and BCP 47"""
+enum LocaleCode
+  @join__type(graph: CORE)
+{
+  """English"""
+  en @join__enumValue(graph: CORE)
+
+  """Russian"""
+  ru @join__enumValue(graph: CORE)
+
+  """Ukrainian"""
+  uk @join__enumValue(graph: CORE)
+
+  """French"""
+  fr @join__enumValue(graph: CORE)
+
+  """Spanish"""
+  es @join__enumValue(graph: CORE)
+
+  """German"""
+  de @join__enumValue(graph: CORE)
+
+  """Italian"""
+  it @join__enumValue(graph: CORE)
+
+  """Portuguese (Portugal/Brazil unified)"""
+  pt @join__enumValue(graph: CORE)
+
+  """Japanese"""
+  ja @join__enumValue(graph: CORE)
+
+  """Korean"""
+  ko @join__enumValue(graph: CORE)
+
+  """Chinese (Simplified, China)"""
+  zh_CN @join__enumValue(graph: CORE)
+
+  """Chinese (Traditional, Taiwan)"""
+  zh_TW @join__enumValue(graph: CORE)
+
+  """Polish"""
+  pl @join__enumValue(graph: CORE)
+
+  """Turkish"""
+  tr @join__enumValue(graph: CORE)
+
+  """Dutch"""
+  nl @join__enumValue(graph: CORE)
+
+  """Arabic"""
+  ar @join__enumValue(graph: CORE)
+
+  """Hebrew"""
+  he @join__enumValue(graph: CORE)
+
+  """Hindi"""
+  hi @join__enumValue(graph: CORE)
+
+  """Bengali"""
+  bn @join__enumValue(graph: CORE)
+
+  """Vietnamese"""
+  vi @join__enumValue(graph: CORE)
+
+  """Thai"""
+  th @join__enumValue(graph: CORE)
+
+  """Indonesian"""
+  id @join__enumValue(graph: CORE)
+
+  """Malay"""
+  ms @join__enumValue(graph: CORE)
+
+  """Czech"""
+  cs @join__enumValue(graph: CORE)
+
+  """Slovak"""
+  sk @join__enumValue(graph: CORE)
+
+  """Romanian"""
+  ro @join__enumValue(graph: CORE)
+
+  """Hungarian"""
+  hu @join__enumValue(graph: CORE)
+
+  """Greek"""
+  el @join__enumValue(graph: CORE)
+
+  """Bulgarian"""
+  bg @join__enumValue(graph: CORE)
+
+  """Serbian"""
+  sr @join__enumValue(graph: CORE)
+
+  """Croatian"""
+  hr @join__enumValue(graph: CORE)
+
+  """Slovenian"""
+  sl @join__enumValue(graph: CORE)
+
+  """Lithuanian"""
+  lt @join__enumValue(graph: CORE)
+
+  """Latvian"""
+  lv @join__enumValue(graph: CORE)
+
+  """Estonian"""
+  et @join__enumValue(graph: CORE)
+
+  """Finnish"""
+  fi @join__enumValue(graph: CORE)
+
+  """Swedish"""
+  sv @join__enumValue(graph: CORE)
+
+  """Norwegian"""
+  no @join__enumValue(graph: CORE)
+
+  """Danish"""
+  da @join__enumValue(graph: CORE)
+
+  """Icelandic"""
+  is @join__enumValue(graph: CORE)
+
+  """Filipino"""
+  fil @join__enumValue(graph: CORE)
+
+  """Swahili"""
+  sw @join__enumValue(graph: CORE)
+
+  """Azerbaijani"""
+  az @join__enumValue(graph: CORE)
+
+  """Armenian"""
+  hy @join__enumValue(graph: CORE)
+
+  """Georgian"""
+  ka @join__enumValue(graph: CORE)
+
+  """Kazakh"""
+  kk @join__enumValue(graph: CORE)
+
+  """Uzbek"""
+  uz @join__enumValue(graph: CORE)
+
+  """Turkmen"""
+  tk @join__enumValue(graph: CORE)
+
+  """Kyrgyz"""
+  ky @join__enumValue(graph: CORE)
+
+  """Tajik"""
+  tg @join__enumValue(graph: CORE)
+
+  """Pashto"""
+  ps @join__enumValue(graph: CORE)
+
+  """Persian (Farsi)"""
+  fa @join__enumValue(graph: CORE)
+
+  """Kurdish"""
+  ku @join__enumValue(graph: CORE)
+
+  """Mongolian"""
+  mn @join__enumValue(graph: CORE)
+
+  """Nepali"""
+  ne @join__enumValue(graph: CORE)
+
+  """Sinhala"""
+  si @join__enumValue(graph: CORE)
+
+  """Tamil"""
+  ta @join__enumValue(graph: CORE)
+
+  """Telugu"""
+  te @join__enumValue(graph: CORE)
+
+  """Kannada"""
+  kn @join__enumValue(graph: CORE)
+
+  """Malayalam"""
+  ml @join__enumValue(graph: CORE)
+
+  """Marathi"""
+  mr @join__enumValue(graph: CORE)
+
+  """Gujarati"""
+  gu @join__enumValue(graph: CORE)
+
+  """Punjabi"""
+  pa @join__enumValue(graph: CORE)
+
+  """Lao"""
+  lo @join__enumValue(graph: CORE)
+
+  """Burmese"""
+  my @join__enumValue(graph: CORE)
+
+  """Khmer"""
+  km @join__enumValue(graph: CORE)
+
+  """Basque"""
+  eu @join__enumValue(graph: CORE)
+
+  """Galician"""
+  gl @join__enumValue(graph: CORE)
+
+  """Catalan"""
+  ca @join__enumValue(graph: CORE)
+
+  """Welsh"""
+  cy @join__enumValue(graph: CORE)
+
+  """Irish"""
+  ga @join__enumValue(graph: CORE)
+
+  """Scottish Gaelic"""
+  gd @join__enumValue(graph: CORE)
+
+  """Haitian Creole"""
+  ht @join__enumValue(graph: CORE)
+
+  """Afrikaans"""
+  af @join__enumValue(graph: CORE)
+
+  """Zulu"""
+  zu @join__enumValue(graph: CORE)
+
+  """Xhosa"""
+  xh @join__enumValue(graph: CORE)
+
+  """Yoruba"""
+  yo @join__enumValue(graph: CORE)
+
+  """Igbo"""
+  ig @join__enumValue(graph: CORE)
+
+  """Amharic"""
+  am @join__enumValue(graph: CORE)
+
+  """Malagasy"""
+  mg @join__enumValue(graph: CORE)
+
+  """Maori"""
+  mi @join__enumValue(graph: CORE)
+
+  """Samoan"""
+  sm @join__enumValue(graph: CORE)
+
+  """Tongan"""
+  to @join__enumValue(graph: CORE)
+
+  """Esperanto"""
+  eo @join__enumValue(graph: CORE)
+
+  """Latin"""
+  la @join__enumValue(graph: CORE)
+}
+
+"""Source of the media file."""
+enum MediaSource
+  @join__type(graph: CORE)
+{
+  """The file is available at an arbitrary URL."""
+  URL @join__enumValue(graph: CORE)
+
+  """YouTube video (the `url` field contains the YouTube Video ID)."""
+  YOUTUBE @join__enumValue(graph: CORE)
+}
+
+"""A menu."""
+type Menu implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Human-friendly unique handle."""
+  handle: String!
+
+  """The menu's title."""
+  title: String!
+
+  """Paginated list of menu items."""
+  items(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: MenuItemSort = UPDATED_AT_DESC
+  ): MenuItemConnection!
+}
+
+"""Connection type for menus."""
+type MenuConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of edges."""
+  edges: [MenuEdge!]!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the Menu connection."""
+type MenuEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The menu node."""
+  node: Menu!
+}
+
+"""A single menu item."""
+type MenuItem implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The item's title."""
+  title: String!
+
+  """The referenced node (Product, Category, Page, or URLNode)."""
+  node: MenuNode!
+
+  """Paginated list of nested menu items."""
+  items(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: MenuItemSort = UPDATED_AT_DESC
+  ): MenuItemConnection!
+}
+
+"""Connection type for menu items."""
+type MenuItemConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of edges."""
+  edges: [MenuItemEdge!]!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the MenuItem connection."""
+type MenuItemEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The menu item node."""
+  node: MenuItem!
+}
+
+enum MenuItemSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  UPDATED_AT_ASC @join__enumValue(graph: CORE)
+  UPDATED_AT_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+}
+
+"""A menu node: Product, Category, Page, or URL."""
+union MenuNode
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CORE, member: "ProductVariant")
+  @join__unionMember(graph: CORE, member: "Category")
+  @join__unionMember(graph: CORE, member: "Page")
+  @join__unionMember(graph: CORE, member: "URLNode")
+ = ProductVariant | Category | Page | URLNode
+
+enum MenuSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  UPDATED_AT_ASC @join__enumValue(graph: CORE)
+  UPDATED_AT_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+}
+
+type Money
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  """The amount of money"""
+  amount: Decimal!
+
+  """The currency code"""
+  currencyCode: CurrencyCode!
+}
+
+input MoneyInput
+  @join__type(graph: CORE)
+{
+  """The amount of money"""
+  amount: Decimal!
+
+  """The currency code"""
+  currencyCode: CurrencyCode!
+}
+
+type Mutation
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  checkoutMutation: CheckoutMutation! @join__field(graph: CHECKOUT)
+
+  """Loads a cart by its ID. Has side effects."""
+  loadCart(input: LoadCartInput!): LoadCartPayload @join__field(graph: CORE)
+
+  """Creates a new cart."""
+  createCart(input: CreateCartInput!): CreateCartPayload! @join__field(graph: CORE)
+
+  """Adds an item to an existing cart."""
+  addCartLine(input: AddCartLineInput!): AddCartLinePayload! @join__field(graph: CORE)
+
+  """Updates the quantity of a specific cart item."""
+  updateCartLineQuantity(input: UpdateCartLineQuantityInput!): UpdateCartLineQuantityPayload! @join__field(graph: CORE)
+
+  """Removes a single item from the cart."""
+  removeCartLine(input: RemoveCartLineInput!): RemoveCartLinePayload! @join__field(graph: CORE)
+
+  """Replaces all items in an existing cart."""
+  replaceCartLines(input: ReplaceCartLinesInput!): ReplaceCartLinesPayload! @join__field(graph: CORE)
+
+  """Clears all items from a cart."""
+  clearCartLines(input: ClearCartLinesInput!): ClearCartLinesPayload! @join__field(graph: CORE)
+
+  """Place an order (checkout)."""
+  checkout(
+    """Input for performing checkout."""
+    input: CheckoutInput!
+  ): CheckoutPayload! @join__field(graph: CORE)
+
+  """Create a review."""
+  createReview(input: CreateReviewInput!): ProductReview! @join__field(graph: CORE)
+
+  """Edit own review."""
+  updateReview(input: UpdateReviewInput!): ProductReview! @join__field(graph: CORE)
+
+  """Delete own review."""
+  deleteReview(id: ID!): Boolean! @join__field(graph: CORE)
+
+  """Mark review as helpful / not helpful."""
+  voteReviewHelpful(input: VoteReviewHelpfulInput!): Boolean! @join__field(graph: CORE)
+
+  """Report review abuse."""
+  reportReviewAbuse(reviewId: ID!, reason: String!): Boolean! @join__field(graph: CORE)
+
+  """Reply to review as seller."""
+  sellerReplyToReview(input: SellerReplyInput!): Boolean! @join__field(graph: CORE)
+
+  """Creates a new session using email and password."""
+  passwordSignIn(
+    """Input for signing in."""
+    input: PasswordSignInInput!
+  ): PasswordSignInPayload! @join__field(graph: CORE)
+
+  """Registers a new user and returns a session."""
+  passwordSignUp(
+    """Input for signing up."""
+    input: PasswordSignUpInput!
+  ): PasswordSignUpPayload! @join__field(graph: CORE)
+
+  """Signs out the current user."""
+  signOut: Boolean! @join__field(graph: CORE)
+
+  """Confirms a user's email address using a token."""
+  verifyEmail(
+    """Input for email verification."""
+    input: VerifyEmailInput!
+  ): VerifyEmailPayload! @join__field(graph: CORE)
+
+  """Sends a password recovery email."""
+  requestPasswordRecovery(
+    """Input for requesting password recovery."""
+    input: PasswordRecoveryInput!
+  ): PasswordRecoveryPayload! @join__field(graph: CORE)
+
+  """Resets the user's password with a recovery token."""
+  resetPassword(
+    """Input for password reset."""
+    input: ResetPasswordInput!
+  ): ResetPasswordPayload! @join__field(graph: CORE)
+
+  """Updates the authenticated user's password."""
+  updatePassword(
+    """Input for updating password."""
+    input: UpdatePasswordInput!
+  ): UpdatePasswordPayload! @join__field(graph: CORE)
+
+  """Updates the authenticated user's profile information."""
+  updateUserProfile(
+    """Input for updating user profile."""
+    input: UpdateUserProfileInput!
+  ): UpdateUserProfilePayload! @join__field(graph: CORE)
+}
+
+interface Node
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  id: ID!
+}
+
+"""Severity levels for checkout warnings."""
+enum NotificationSeverity
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  """Informational notice; does not indicate any change in checkout data."""
+  INFO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+
+  """Notification about automatic adjustments (e.g., quantity reduced)."""
+  WARNING @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+}
+
+"""Order."""
+type Order implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The code of the currency used for the payment."""
+  currencyCode: CurrencyCode!
+
+  """Billing address."""
+  billingAddress: Address!
+
+  """Shipping address."""
+  shippingAddress: Address!
+
+  """Customer contact details."""
+  customerDetails: OrderCustomerDetails!
+
+  """Paginated order items."""
+  items(
+    """Return the first n items after the given cursor."""
+    first: Int = 50
+
+    """Return items after this cursor."""
+    after: Cursor
+
+    """Return the last n items before the given cursor."""
+    last: Int
+
+    """Return items before this cursor."""
+    before: Cursor
+  ): OrderItemConnection!
+
+  """Tax lines at the order level."""
+  taxLines: [TaxLine!]!
+
+  """Financial status (payment, refund, etc.)."""
+  financialStatus: OrderFinancialStatus!
+
+  """Order status."""
+  status: OrderStatus!
+
+  """Fulfillment status."""
+  fulfillmentStatus: FulfillmentStatus!
+
+  """Refund information."""
+  refunds: [Refund!]!
+
+  """Fulfillment information."""
+  fulfillments: [Fulfillment!]!
+
+  """Shipping cost."""
+  totalShippingAmount: Money!
+
+  """Total tax amount for the order."""
+  totalTaxAmount: Money!
+
+  """Total discount amount for the order."""
+  discount: Money!
+
+  """Order subtotal without discounts and taxes."""
+  subtotal: Money!
+
+  """Order total including discounts and taxes."""
+  total: Money!
+
+  """Payment method."""
+  paymentMethod: PaymentMethod!
+
+  """Shipping method."""
+  shippingMethod: ShippingMethod!
+
+  """Public metadata."""
+  metadata: JSON
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """
+  A unique numeric identifier for the order for use by shop owner and customer.
+  """
+  orderNumber: Int!
+
+  """Last updated date."""
+  updatedAt: DateTime!
+}
+
+"""A paginated list of Orders."""
+type OrderConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """Pagination metadata."""
+  pageInfo: PageInfo!
+
+  """List of edges in this connection."""
+  edges: [OrderEdge!]!
+}
+
+"""Customer's contact details in the order."""
+type OrderCustomerDetails
+  @join__type(graph: CORE)
+{
+  """Customer's email address."""
+  email: Email!
+
+  """Customer's full name."""
+  name: UserName!
+
+  """Customer's phone number in E.164 format."""
+  phone: Phone!
+
+  """Public metadata (plugins, notes, etc.)."""
+  metadata: JSON
+}
+
+"""Input type for customer's contact details."""
+input OrderCustomerDetailsInput
+  @join__type(graph: CORE)
+{
+  """Customer's email address."""
+  email: Email!
+
+  """Customer's full name."""
+  name: UserNameInput!
+
+  """Customer's phone number in E.164 format."""
+  phone: Phone!
+
+  """Additional public metadata."""
+  metadata: JSON
+}
+
+"""A single edge in a paginated list of Orders."""
+type OrderEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for this edge."""
+  cursor: Cursor!
+
+  """The Order at this edge."""
+  node: Order!
+}
+
+enum OrderFinancialStatus
+  @join__type(graph: CORE)
+{
+  AUTHORIZED @join__enumValue(graph: CORE)
+  PENDING @join__enumValue(graph: CORE)
+  PAID @join__enumValue(graph: CORE)
+  PARTIALLY_PAID @join__enumValue(graph: CORE)
+  PARTIALLY_REFUNDED @join__enumValue(graph: CORE)
+  REFUNDED @join__enumValue(graph: CORE)
+  VOIDED @join__enumValue(graph: CORE)
+}
+
+"""Order item (line) in the order."""
+type OrderItem implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Product title."""
+  title: String!
+
+  """Quantity of units."""
+  quantity: Int!
+
+  """Discount amount for this item."""
+  discountAmount: Money!
+
+  """Subtotal for this item without discounts."""
+  subtotalAmount: Money!
+
+  """Subtotal for this item after item level discounts."""
+  discountedSubtotalAmount: Money!
+
+  """Total amount for this item including taxes and discounts."""
+  totalAmount: Money!
+
+  """The purchasable item such as a product or bundle."""
+  target: Purchasable!
+}
+
+"""Connection for order items (Relay-style pagination)."""
+type OrderItemConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+
+  """List of item edges."""
+  edges: [OrderItemEdge!]!
+}
+
+"""Cursor for Relay-style pagination."""
+type OrderItemEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for Relay-style pagination."""
+  cursor: Cursor!
+
+  """Node containing the order item data."""
+  node: OrderItem!
+}
+
+"""Overall order status."""
+enum OrderStatus
+  @join__type(graph: CORE)
+{
+  PENDING @join__enumValue(graph: CORE)
+  ACTIVE @join__enumValue(graph: CORE)
+  COMPLETED @join__enumValue(graph: CORE)
+  CANCELLED @join__enumValue(graph: CORE)
+}
+
+"""A content page."""
+type Page implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Unique human-readable slug."""
+  handle: String!
+
+  """The page’s title."""
+  title: String!
+
+  """The full description of the page."""
+  description: String!
+
+  """A short excerpt of the page."""
+  excerpt: String!
+
+  """The cover image for the page."""
+  cover: File
+
+  """The date and time when the page was created."""
+  createdAt: DateTime!
+
+  """The date and time when the page was last updated."""
+  updatedAt: DateTime!
+
+  """The type of the page (e.g., "page", "article")."""
+  pageType: String!
+
+  """Gallery of additional images with cursor-based pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+}
+
+"""Connection type for pages."""
+type PageConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of page edges."""
+  edges: [PageEdge!]!
+
+  """Pagination details."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the paginated list of pages."""
+type PageEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The page node."""
+  node: Page!
+}
+
+"""Pagination information according to the Relay/Shopify spec."""
+type PageInfo
+  @join__type(graph: CORE)
+{
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """The cursor corresponding to the first node in edges."""
+  startCursor: String
+
+  """The cursor corresponding to the last node in edges."""
+  endCursor: String
+}
+
+enum PageSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  UPDATED_AT_ASC @join__enumValue(graph: CORE)
+  UPDATED_AT_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+}
+
+"""Input data for requesting a password recovery email."""
+input PasswordRecoveryInput
+  @join__type(graph: CORE)
+{
+  """User's email address."""
+  email: Email!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after requesting password recovery."""
+type PasswordRecoveryPayload
+  @join__type(graph: CORE)
+{
+  """True if the recovery email was sent successfully."""
+  success: Boolean!
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for signing in with email and password."""
+input PasswordSignInInput
+  @join__type(graph: CORE)
+{
+  """User's email address."""
+  email: Email!
+
+  """User's password."""
+  password: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after signing in."""
+type PasswordSignInPayload
+  @join__type(graph: CORE)
+{
+  """Newly created session."""
+  session: Session
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for registering a new user."""
+input PasswordSignUpInput
+  @join__type(graph: CORE)
+{
+  """User's email address."""
+  email: Email!
+
+  """User's password."""
+  password: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after signing up."""
+type PasswordSignUpPayload
+  @join__type(graph: CORE)
+{
+  """Newly created session."""
+  session: Session
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+type PaymentMethod implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Payment method type."""
+  handle: String!
+
+  """Title of the payment method."""
+  title: String!
+}
+
+scalar Phone
+  @join__type(graph: CORE)
+
+"""Input type for executing predictive search (autocomplete suggestions)."""
+input PredictiveSearchInput
+  @join__type(graph: CORE)
+{
+  """The search query string."""
+  query: String!
+}
+
+"""
+Result of a predictive search: arrays of matching entities for quick suggestions.
+"""
+type PredictiveSearchResult
+  @join__type(graph: CORE)
+{
+  """Top matching articles."""
+  articles: [Article!]!
+
+  """Top matching categories."""
+  categories: [Category!]!
+
+  """Top matching pages."""
+  pages: [Page!]!
+
+  """Top matching products."""
+  products: [ProductVariant!]!
+}
+
+"""Filter representing a price range filter."""
+type PriceRangeFilter implements Filter
+  @join__implements(graph: CORE, interface: "Filter")
+  @join__type(graph: CORE)
+{
+  iid: Uuid!
+  id: String!
+  title: String!
+  handle: String!
+
+  """Minimum price in the range."""
+  minPrice: Money!
+
+  """Maximum price in the range."""
+  maxPrice: Money!
+
+  """Count of products in the range."""
+  count: Int!
+}
+
+type Product implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE, key: "id")
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """URL-friendly slug for the product."""
+  handle: String!
+
+  """Name of the product."""
+  title: String!
+
+  """Full description of the product."""
+  description: String!
+
+  """Short excerpt or summary of the product."""
+  excerpt: String!
+
+  """Primary category of the product."""
+  category: Category
+
+  """Feature sections and their values."""
+  features: [ProductFeature!]!
+
+  """
+  All option groups defined for this product—each group represents a configurable attribute
+  (for example: color, size, material) and includes the full set of possible values.
+  """
+  options: [ProductOption!]!
+
+  """Variants of the product (different option combinations)."""
+  variants: [ProductVariant!]!
+
+  """Tags associated with the product."""
+  tags(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: TagSort = UPDATED_AT_DESC
+  ): TagConnection!
+
+  """Groups of related products (e.g., bundles)."""
+  groups: [ProductGroup!]!
+
+  """Seo title for the product page."""
+  seoTitle: String
+
+  """Seo description for the product page."""
+  seoDescription: String
+
+  """DateTime when the category was created."""
+  createdAt: DateTime!
+
+  """DateTime when the category was last updated."""
+  updatedAt: DateTime!
+
+  """Product rating."""
+  rating: ProductRating!
+
+  """List of reviews with pagination/filters."""
+  reviews(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order."""
+    sort: ProductReviewSort
+  ): ProductReviewConnection!
+}
+
+"""A specific feature of a product, such as "Color" or "Size"."""
+type ProductFeature implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Machine-friendly slug for the feature, e.g., "color" or "size"."""
+  handle: String!
+
+  """Human-readable name of the feature shown to users."""
+  title: String!
+
+  """Available values for this feature."""
+  values: [ProductFeatureValue!]!
+}
+
+"""
+A single possible value for a product feature, such as "Red" or "Large".
+"""
+type ProductFeatureValue implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Display name of the value shown to users."""
+  title: String!
+
+  """Machine-friendly slug for the value, e.g., "red" or "large"."""
+  handle: String!
+}
+
+"""A group of related products (e.g., bundled items)."""
+type ProductGroup implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Human-readable title of the group."""
+  title: String!
+
+  """Whether at least one item from this group is required."""
+  isRequired: Boolean!
+
+  """Whether multiple items can be selected from this group."""
+  isMultiple: Boolean!
+
+  """List of products in this group."""
+  items: [ProductGroupItem!]!
+}
+
+"""
+An item within a product group, with optional quantity and custom pricing.
+"""
+type ProductGroupItem
+  @join__type(graph: CORE)
+{
+  """The product included in this group."""
+  node: ProductGroupNode!
+
+  """Optional quantity for this item in the group."""
+  maxQuantity: Int
+
+  """Pricing strategy and override values for this item."""
+  price: ProductGroupPrice!
+}
+
+union ProductGroupNode
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CORE, member: "ProductVariant")
+ = ProductVariant
+
+"""Defines how to calculate the price for a grouped item."""
+type ProductGroupPrice
+  @join__type(graph: CORE)
+{
+  """Pricing mode to apply."""
+  type: ProductGroupPriceType!
+
+  """
+  Fixed amount to add to the product’s base price.
+  Only used when `type: FIXED`.
+  """
+  amount: Money
+
+  """
+  Percentage to add to the product’s base price (e.g. 10.0 adds 10%).
+  Only used when `type: PERCENT`.
+  """
+  percentage: Float
+}
+
+"""Available pricing modes for group items."""
+enum ProductGroupPriceType
+  @join__type(graph: CORE)
+{
+  """Use the product's standard price."""
+  BASE @join__enumValue(graph: CORE)
+
+  """Add a fixed markup (the `amount` field) to the base price."""
+  FIXED @join__enumValue(graph: CORE)
+
+  """Add a percentage markup (the `percentage` field) to the base price."""
+  PERCENT @join__enumValue(graph: CORE)
+
+  """Include the item free of charge."""
+  FREE @join__enumValue(graph: CORE)
+}
+
+"""A group of product options (e.g., "Color", "Size")."""
+type ProductOption implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The slug for this group (e.g., "color", "size")."""
+  handle: String!
+
+  """The display name of the option group shown to users."""
+  title: String!
+
+  """The display type (color swatch, image, or control)."""
+  displayType: ProductOptionDisplayType!
+
+  """The selected or available value in this group."""
+  values: [ProductOptionValue!]!
+}
+
+"""How a product option is displayed in the UI."""
+enum ProductOptionDisplayType
+  @join__type(graph: CORE)
+{
+  """Display a swatch (color or image)."""
+  SWATCH @join__enumValue(graph: CORE)
+
+  """Display an image (e.g., picture or video)."""
+  VARIANT_COVER @join__enumValue(graph: CORE)
+
+  """Display options as radio buttons with text."""
+  RADIO @join__enumValue(graph: CORE)
+
+  """Display options in a dropdown select."""
+  DROPDOWN @join__enumValue(graph: CORE)
+
+  """Apparel size control (e.g., S, M, L, XL)."""
+  APPAREL_SIZE @join__enumValue(graph: CORE)
+}
+
+"""A single value for a product option (e.g., "Red", "XL", "Patterned")."""
+type ProductOptionValue implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The display name of the value shown to users."""
+  title: String!
+
+  """The human-readable slug used in API/URLs."""
+  handle: String!
+
+  """The swatch object. For swatch display type."""
+  swatch: Swatch
+
+  """Variant cover image. For variant cover display type."""
+  image: File
+}
+
+type ProductRating implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Internal ID of the rating. (product container id)"""
+  iid: Uuid!
+
+  """Global ID of the rating."""
+  id: ID!
+
+  """Average rating."""
+  rating: Float!
+
+  """Number of approved reviews."""
+  count: Int!
+
+  """Rating breakdown details."""
+  breakdown: [RatingBreakdown!]!
+}
+
+"""ProductReview — user review of a product (Relay-Node)."""
+type ProductReview implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Internal ID of the review."""
+  iid: Uuid!
+
+  """Global ID of the review."""
+  id: ID!
+
+  """Number of stars (1–5, step 0.5)."""
+  rating: Float!
+
+  """Review title."""
+  title: String
+
+  """Main review text."""
+  message: String!
+
+  """Author's name."""
+  displayName: String!
+
+  """Product pros."""
+  pros: String
+
+  """Product cons."""
+  cons: String
+
+  """Review language (ISO-639-1)."""
+  locale: String
+
+  """Whether the product was actually purchased by this user."""
+  verifiedPurchase: Boolean!
+
+  """Publication status."""
+  status: ReviewStatus!
+
+  """Total "helpful" votes."""
+  helpfulYes: Int!
+
+  """Total "not helpful" votes."""
+  helpfulNo: Int!
+
+  """Did the current user mark the review as helpful?"""
+  meHelpful: Boolean!
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """Last edit date."""
+  editedAt: DateTime
+
+  """Review author."""
+  user: User!
+
+  """Attached media files."""
+  media: [File!]
+
+  """Seller reply (if any)."""
+  sellerReply: ReviewComment
+}
+
+type ProductReviewConnection
+  @join__type(graph: CORE)
+{
+  edges: [ProductReviewEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductReviewEdge
+  @join__type(graph: CORE)
+{
+  node: ProductReview!
+  cursor: String!
+}
+
+enum ProductReviewSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  RATING_DESC @join__enumValue(graph: CORE)
+  HELPFUL_YES_DESC @join__enumValue(graph: CORE)
+}
+
+type ProductVariant implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE, key: "id")
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """URL-friendly slug for the product."""
+  handle: String!
+
+  """Name of the product."""
+  title: String!
+
+  """Full description of the product."""
+  description: String!
+
+  """Short excerpt or summary of the product."""
+  excerpt: String!
+
+  """Primary cover image of the product."""
+  cover: File
+
+  """Gallery of additional images with cursor-based pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+
+  """Current price of the product, including currency."""
+  price: Money!
+
+  """Original or list price when on sale."""
+  compareAtPrice: Money
+
+  """Stock keeping unit identifier."""
+  sku: String
+
+  """Stock availability information."""
+  stockStatus: StockStatus!
+
+  """Primary category of the product."""
+  category: Category
+
+  """All categories this product [variant] belongs to."""
+  categories(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Feature sections and their values."""
+  features: [ProductFeature!]!
+
+  """
+  All option groups defined for this product—each group represents a configurable attribute
+  (for example: color, size, material) and includes the full set of possible values.
+  """
+  options: [ProductOption!]!
+
+  """
+  The ordered list of value handles currently applied to this product configuration.
+  Each entry is the `handle` of a selected `ProductOptionValue` (for example: ["red", "m", "patterned"]).
+  """
+  selectedOptions: [String!]!
+
+  """Variants of the product (different option combinations)."""
+  variants: [ProductVariant!]!
+
+  """Tags associated with the product."""
+  tags(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: TagSort = UPDATED_AT_DESC
+  ): TagConnection!
+
+  """Groups of related products (e.g., bundles)."""
+  groups: [ProductGroup!]!
+
+  """Seo title for the product page."""
+  seoTitle: String
+
+  """Seo description for the product page."""
+  seoDescription: String
+
+  """Private field won't be in prod. Used for internal purposes."""
+  productId: Uuid!
+
+  """Product that this variant belongs to."""
+  product: Product!
+
+  """DateTime when the category was created."""
+  createdAt: DateTime!
+
+  """DateTime when the category was last updated."""
+  updatedAt: DateTime!
+
+  """Product rating."""
+  rating: ProductRating!
+
+  """List of reviews with pagination/filters."""
+  reviews(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order."""
+    sort: ProductReviewSort
+  ): ProductReviewConnection!
+}
+
+union Purchasable
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CHECKOUT, member: "PurchasableSnapshot")
+  @join__unionMember(graph: CORE, member: "ProductVariant")
+ = PurchasableSnapshot | ProductVariant
+
+type PurchasableSnapshot
+  @join__type(graph: CHECKOUT)
+{
+  snapshot: JSON!
+}
+
+input PurchasableSnapshotInput
+  @join__type(graph: CHECKOUT)
+{
+  """SKU of the purchasable snapshot."""
+  sku: String
+
+  """Title of the purchasable snapshot."""
+  title: String!
+
+  """Image URL of the purchasable snapshot."""
+  imageUrl: String
+
+  """JSON data of the purchasable snapshot."""
+  data: JSON
+}
+
+type Query
+  @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
+{
+  checkoutQuery: CheckoutQuery! @join__field(graph: CHECKOUT)
+
+  """Retrieve a paginated list of articles (Relay Connection)."""
+  articles(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: ArticleSort = UPDATED_AT_DESC
+  ): ArticleConnection! @join__field(graph: CORE)
+
+  """Retrieve a single article by its slug."""
+  article(slug: String!): Article @join__field(graph: CORE)
+
+  """Retrieve a paginated list of menus (Relay Connection)."""
+  menus(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: MenuSort = UPDATED_AT_DESC
+  ): MenuConnection! @join__field(graph: CORE)
+
+  """Retrieve a single menu by its handle."""
+  menu(handle: String!): Menu @join__field(graph: CORE)
+
+  """Retrieve a paginated list of pages (Relay Connection)."""
+  pages(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: PageSort = UPDATED_AT_DESC
+  ): PageConnection! @join__field(graph: CORE)
+
+  """Retrieve a single page by its slug."""
+  page(slug: String!): Page @join__field(graph: CORE)
+  node(id: ID!): Node @join__field(graph: CORE)
+
+  """Retrieve a paginated list of categories."""
+  categories(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection! @join__field(graph: CORE)
+
+  """Retrieve a single category by its handle."""
+  category(handle: String!): Category @join__field(graph: CORE)
+
+  """
+  Performs a full search and returns Relay‐style connections for each entity.
+  """
+  search(input: SearchInput!): SearchResult! @join__field(graph: CORE)
+
+  """
+  Performs a predictive (autocomplete) search and returns a limited list of entities.
+  """
+  predictiveSearch(input: PredictiveSearchInput!): PredictiveSearchResult! @join__field(graph: CORE)
+
+  """Fetch a single product by its handle (slug)."""
+  product(handle: String!): ProductVariant @join__field(graph: CORE)
+  productBySelectedOptions(selectedOptions: [String!]!): ProductVariant @join__field(graph: CORE)
+
+  """Retrieves the current authentication session."""
+  session: Session @join__field(graph: CORE)
+}
+
+type RatingBreakdown
+  @join__type(graph: CORE)
+{
+  """Number of stars (1–5, step 0.5)."""
+  star: Int!
+
+  """Number of approved reviews."""
+  count: Int!
+
+  """Percentage of approved reviews."""
+  percentage: Float!
+}
+
+"""Filter representing a rating range filter."""
+type RatingRangeFilter implements Filter
+  @join__implements(graph: CORE, interface: "Filter")
+  @join__type(graph: CORE)
+{
+  iid: Uuid!
+  id: String!
+  title: String!
+  handle: String!
+
+  """Minimum rating in the range."""
+  minRate: Float!
+
+  """Maximum rating in the range."""
+  maxRate: Float!
+
+  """Count of products in the range."""
+  count: Int!
+}
+
+"""Refund information for the order."""
+type Refund implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Refund amount."""
+  amount: Money!
+
+  """Reason for the refund."""
+  reason: String
+
+  """Refund creation date."""
+  createdAt: DateTime!
+}
+
+"""Input data for removing a single item from the cart."""
+input RemoveCartLineInput
+  @join__type(graph: CORE)
+{
+  """ID of the cart."""
+  cartId: ID!
+
+  """
+  ID of the product to remove.
+  Error if the product is not found in the cart.
+  """
+  productId: ID!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after removing an item from the cart."""
+type RemoveCartLinePayload
+  @join__type(graph: CORE)
+{
+  """The updated cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for replacing all items in an existing cart."""
+input ReplaceCartLinesInput
+  @join__type(graph: CORE)
+{
+  """ID of the cart to update."""
+  cartId: ID!
+
+  """
+  New list of items for the cart.
+  Providing an empty array clears the cart completely.
+  """
+  items: [CartLineInput!]!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after replacing all items in the cart."""
+type ReplaceCartLinesPayload
+  @join__type(graph: CORE)
+{
+  """The updated cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for resetting a password using a token."""
+input ResetPasswordInput
+  @join__type(graph: CORE)
+{
+  """User's email address."""
+  email: Email!
+
+  """New password."""
+  password: String!
+
+  """Password reset token sent to the email."""
+  token: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after resetting the password."""
+type ResetPasswordPayload
+  @join__type(graph: CORE)
+{
+  """True if the password was reset successfully."""
+  success: Boolean!
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Comment/reply to a review."""
+type ReviewComment implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Global unique identifier."""
+  id: ID!
+
+  """Comment author."""
+  author: User!
+
+  """Comment message."""
+  message: String!
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """Last edit date."""
+  editedAt: DateTime
+}
+
+"""Review status."""
+enum ReviewStatus
+  @join__type(graph: CORE)
+{
+  PENDING @join__enumValue(graph: CORE)
+  APPROVED @join__enumValue(graph: CORE)
+  REJECTED @join__enumValue(graph: CORE)
+}
+
+"""Input type for executing full search."""
+input SearchInput
+  @join__type(graph: CORE)
+{
+  """The search query string."""
+  query: String!
+}
+
+"""
+Result of a full search: a set of Relay connections for various entity types.
+"""
+type SearchResult
+  @join__type(graph: CORE)
+{
+  """Relay‐style connection for articles."""
+  articles(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: ArticleSort = UPDATED_AT_DESC
+  ): ArticleConnection!
+
+  """Relay‐style connection for categories."""
+  categories(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Relay‐style connection for pages."""
+  pages(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: PageSort = UPDATED_AT_DESC
+  ): PageConnection!
+
+  """Relay‐style connection for products."""
+  products(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order. Defaults to the category's default sort."""
+    sort: ListingSort = MOST_RELEVANT
+
+    """Filters to apply (AND-combined)."""
+    filters: [FilterInput!]
+  ): ListingConnection!
+}
+
+input SellerReplyInput
+  @join__type(graph: CORE)
+{
+  reviewId: ID!
+  text: String!
+}
+
+"""Represents an authentication session."""
+type Session
+  @join__type(graph: CORE)
+{
+  """The authenticated user."""
+  user: User!
+
+  """JWT access token for authenticating subsequent requests."""
+  accessToken: String
+}
+
+type ShippingMethod implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Payment method type."""
+  handle: String!
+
+  """Title of the payment method."""
+  title: String!
+
+  """Estimated delivery time as a textual representation."""
+  estimatedDeliveryTime: String
+}
+
+"""Delivery payment model"""
+enum ShippingPaymentModel
+  @join__type(graph: CHECKOUT)
+{
+  """Customer pays merchant, included in grandTotal"""
+  MERCHANT_COLLECTED @join__enumValue(graph: CHECKOUT)
+
+  """Customer pays carrier directly, NOT included in grandTotal"""
+  CARRIER_DIRECT @join__enumValue(graph: CHECKOUT)
+}
+
+"""Stock status of the product."""
+type StockStatus
+  @join__type(graph: CORE)
+{
+  """Machine-readable status identifier (e.g., "IN_STOCK", "OUT_OF_STOCK")."""
+  handle: String!
+
+  """Indicates whether the product is available for purchase."""
+  isAvailable: Boolean!
+}
+
+type Swatch
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The primary color in HEX format, e.g., "#ff0000"."""
+  color: String!
+
+  """An optional secondary color (e.g., for gradients)."""
+  color2: String
+
+  """The image or video file."""
+  image: File
+
+  """The type of swatch."""
+  displayType: SwatchDisplayType!
+}
+
+enum SwatchDisplayType
+  @join__type(graph: CORE)
+{
+  COLOR @join__enumValue(graph: CORE)
+  COLOR_DUO @join__enumValue(graph: CORE)
+  IMAGE @join__enumValue(graph: CORE)
+}
+
+type Tag implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Slug is a unique identifier for the Tag in the human-readable format"""
+  handle: String!
+
+  """The title"""
+  title: String!
+}
+
+type TagConnection
+  @join__type(graph: CORE)
+{
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of category edges (each contains a node and a cursor)."""
+  edges: [TagEdge!]!
+
+  """Pagination metadata (hasNextPage, endCursor, etc.)."""
+  pageInfo: PageInfo!
+}
+
+type TagEdge
+  @join__type(graph: CORE)
+{
+  """Cursor for Relay-style pagination."""
+  cursor: Cursor!
+
+  """Node containing the category data."""
+  node: Tag!
+}
+
+enum TagSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  UPDATED_AT_ASC @join__enumValue(graph: CORE)
+  UPDATED_AT_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+}
+
+"""Detailed tax line."""
+type TaxLine implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Tax type name, e.g., VAT."""
+  title: String!
+
+  """Tax rate (decimal value, e.g., 0.20)."""
+  rate: Float!
+
+  """Tax amount."""
+  amountCollected: Money!
+}
+
+"""Input data for updating the quantity of a specific cart item."""
+input UpdateCartLineQuantityInput
+  @join__type(graph: CORE)
+{
+  """ID of the cart."""
+  cartId: ID!
+
+  """ID of the cart item to update."""
+  cartItemId: ID!
+
+  """
+  New quantity for the cart item.
+  If set to 0, the item will be removed.
+  """
+  quantity: Int!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after updating a cart item's quantity."""
+type UpdateCartLineQuantityPayload
+  @join__type(graph: CORE)
+{
+  """The updated cart."""
+  cart: Cart
+
+  """List of field-specific or general errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for changing the password of an authenticated user."""
+input UpdatePasswordInput
+  @join__type(graph: CORE)
+{
+  """New password."""
+  password: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after updating the password."""
+type UpdatePasswordPayload
+  @join__type(graph: CORE)
+{
+  """True if the password was updated successfully."""
+  success: Boolean!
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+input UpdateReviewInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  rating: Float
+  title: String
+  message: String
+  pros: String
+  cons: String
+  images: [ID!]
+  displayName: String
+}
+
+"""Input data for updating the authenticated user's profile."""
+input UpdateUserProfileInput
+  @join__type(graph: CORE)
+{
+  """New email address (optional)."""
+  email: Email
+
+  """Preferred interface language (locale code)."""
+  language: LocaleCode
+
+  """User's full name."""
+  name: UserNameInput
+
+  """Phone number in E.164 format."""
+  phone: Phone
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after updating the user profile."""
+type UpdateUserProfilePayload
+  @join__type(graph: CORE)
+{
+  """The updated user object."""
+  user: User
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""A node representing an arbitrary URL."""
+type URLNode
+  @join__type(graph: CORE)
+{
+  """The URL string."""
+  url: String!
+}
+
+"""Represents a user in the system."""
+type User implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CHECKOUT, key: "id", extension: true)
+  @join__type(graph: CORE, key: "id")
+{
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Object identifier (Internal)."""
+  iid: Uuid! @join__field(graph: CORE)
+
+  """User's email address."""
+  email: Email! @join__field(graph: CORE)
+
+  """Full name of the user."""
+  name: UserName! @join__field(graph: CORE)
+
+  """Whether the user's email has been verified."""
+  isVerified: Boolean! @join__field(graph: CORE)
+
+  """Preferred interface language (locale code)."""
+  language: LocaleCode @join__field(graph: CORE)
+
+  """Phone number in E.164 format."""
+  phone: Phone @join__field(graph: CORE)
+
+  """Paginated list of the user's orders."""
+  orders(
+    """Return the first n orders after the given cursor."""
+    first: Int = 20
+
+    """Return orders after this cursor."""
+    after: Cursor
+
+    """Return the last n orders before the given cursor."""
+    last: Int
+
+    """Return orders before this cursor."""
+    before: Cursor
+  ): OrderConnection! @join__field(graph: CORE)
+}
+
+"""Customer's first, middle, and last name."""
+type UserName
+  @join__type(graph: CORE)
+{
+  """First name."""
+  first: String!
+
+  """Middle name (optional)."""
+  middle: String
+
+  """Last name."""
+  last: String!
+}
+
+"""Input type for customer's name."""
+input UserNameInput
+  @join__type(graph: CORE)
+{
+  """First name."""
+  first: String!
+
+  """Middle name (optional)."""
+  middle: String
+
+  """Last name."""
+  last: String!
+}
+
+scalar Uuid
+  @join__type(graph: CORE)
+
+type Vendor implements Node
+  @join__implements(graph: CORE, interface: "Node")
+  @join__type(graph: CORE)
+{
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """
+  Slug is a unique identifier for the Vendor in the human-readable format
+  """
+  handle: String!
+
+  """The title"""
+  title: String!
+}
+
+"""Input data for verifying a user's email address."""
+input VerifyEmailInput
+  @join__type(graph: CORE)
+{
+  """Email address to verify."""
+  email: Email!
+
+  """Verification token sent to the email."""
+  token: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after email verification."""
+type VerifyEmailPayload
+  @join__type(graph: CORE)
+{
+  """Session created upon successful verification."""
+  session: Session
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+input VoteReviewHelpfulInput
+  @join__type(graph: CORE)
+{
+  reviewId: ID!
+  helpful: Boolean!
+}

@@ -1,0 +1,10 @@
+federation_version: 2
+subgraphs:
+  core:
+    routing_url: http://host.docker.internal:8000/api/client/graphql
+    schema:
+      subgraph_url: http://host.docker.internal:8000/api/client/graphql
+  checkout:
+    routing_url: http://host.docker.internal:10002/graphql
+    schema:
+      subgraph_url: http://host.docker.internal:10002/graphql

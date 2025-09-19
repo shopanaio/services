@@ -1,0 +1,153 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start All Dev Services",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Start Checkout Service",
+        "Start Apps Service",
+        "Start Inventory Service",
+        "Start Pricing Service",
+        "Start Shipping Service",
+        "Start Platform Service"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Start Checkout Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/checkout && echo 'Starting Checkout Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Apps Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/apps && echo 'Starting Apps Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Inventory Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/inventory && echo 'Starting Inventory Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Pricing Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/pricing && echo 'Starting Pricing Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Shipping Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/shipping && echo 'Starting Shipping Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Platform Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/platform && echo 'Starting Platform Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

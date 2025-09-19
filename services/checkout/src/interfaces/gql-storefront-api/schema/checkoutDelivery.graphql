@@ -1,0 +1,296 @@
+"""
+Shipping payment model
+"""
+enum ShippingPaymentModel {
+  """
+  Customer pays merchant, included in grandTotal
+  """
+  MERCHANT_COLLECTED
+  """
+  Customer pays carrier directly, NOT included in grandTotal
+  """
+  CARRIER_DIRECT
+}
+
+enum CheckoutDeliveryMethodType {
+  """
+  Pickup delivery method.
+  """
+  PICKUP
+  """
+  Shipping delivery method.
+  """
+  SHIPPING
+}
+
+"""
+Delivery cost with payment model
+"""
+type DeliveryCost {
+  """
+  Delivery amount
+  """
+  amount: Money!
+  """
+  Shipping payment model
+  """
+  paymentModel: ShippingPaymentModel!
+}
+
+"""
+Delivery group for one or more checkout lines.
+"""
+type CheckoutDeliveryGroup {
+  """
+  Unique identifier for the delivery group.
+  """
+  id: ID!
+
+  """
+  Checkout lines associated with the delivery group.
+  """
+  checkoutLines: [CheckoutLine!]!
+
+  """
+  Delivery address associated with the delivery group.
+  """
+  deliveryAddress: CheckoutDeliveryAddress
+
+  """
+  Delivery methods associated with the delivery group.
+  """
+  deliveryMethods: [CheckoutDeliveryMethod!]!
+
+  """
+  Selected delivery method associated with the delivery group.
+  """
+  selectedDeliveryMethod: CheckoutDeliveryMethod
+
+  """
+  Estimated cost of the delivery group.
+  """
+  estimatedCost: DeliveryCost
+}
+
+type CheckoutDeliveryMethod {
+  """
+  Code of the shipping method (e.g., "standard", "express", "courier").
+  """
+  code: String!
+
+  """
+  Delivery method type associated with the delivery option.
+  """
+  deliveryMethodType: CheckoutDeliveryMethodType!
+
+  """
+  Provider data associated with the delivery method.
+  """
+  provider: CheckoutDeliveryProvider!
+}
+
+type CheckoutDeliveryProvider {
+  """
+  Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
+  """
+  code: String!
+
+  """
+  Data associated with the provider.
+  """
+  data: JSON!
+}
+
+"""
+Input data for adding one or more delivery addresses to the checkout.
+Supports multi-shipping.
+"""
+input CheckoutDeliveryAddressesAddInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  List of delivery addresses to be added.
+  """
+  addresses: [CheckoutDeliveryAddressInput!]!
+}
+
+"""
+Delivery address update element: which address to update and with what data.
+"""
+input CheckoutDeliveryAddressUpdateInput {
+  """
+  Identifier of the existing delivery address in the checkout.
+  """
+  addressId: ID!
+
+  """
+  New postal address values.
+  """
+  address: CheckoutDeliveryAddressInput!
+}
+
+"""
+Input data for batch updating previously added delivery addresses.
+"""
+input CheckoutDeliveryAddressesUpdateInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  List of updates for delivery addresses.
+  """
+  updates: [CheckoutDeliveryAddressUpdateInput!]!
+}
+
+"""
+Input data for removing one or more delivery addresses from the checkout.
+"""
+input CheckoutDeliveryAddressesRemoveInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Identifiers of delivery addresses to be removed.
+  """
+  addressIds: [ID!]!
+}
+
+"""
+Input data for selecting/changing delivery method.
+Can be applied to the entire checkout or to a specific delivery address.
+"""
+input CheckoutDeliveryMethodUpdateInput {
+  """
+  Identifier of the checkout on which the operation is performed.
+  """
+  checkoutId: ID!
+
+  """
+  Code of the delivery method available for this checkout/address.
+  """
+  shippingMethodCode: String!
+
+  """
+  Identifier of the delivery group for which the delivery method is selected.
+  """
+  deliveryGroupId: ID!
+}
+
+input CheckoutDeliveryAddressInput {
+  """
+  Primary address line.
+  """
+  address1: String!
+
+  """
+  Secondary address line.
+  """
+  address2: String
+
+  """
+  City name.
+  """
+  city: String!
+
+  """
+  Country code (ISO 3166-1 alpha-2).
+  """
+  countryCode: CountryCode!
+
+  """
+  Province code.
+  """
+  provinceCode: String
+
+  """
+  Postal code.
+  """
+  postalCode: String
+
+  """
+  Email address for this delivery address.
+  """
+  email: Email
+
+  """
+  First name for delivery.
+  """
+  firstName: String
+
+  """
+  Last name for delivery.
+  """
+  lastName: String
+
+  """
+  Data associated with the delivery address.
+  """
+  data: JSON
+}
+
+"""
+Delivery address associated with a checkout.
+"""
+type CheckoutDeliveryAddress {
+  """
+  Unique identifier for the delivery address.
+  """
+  id: ID!
+
+  """
+  Primary address line.
+  """
+  address1: String!
+
+  """
+  Secondary address line.
+  """
+  address2: String
+
+  """
+  City name.
+  """
+  city: String!
+
+  """
+  Country code (ISO 3166-1 alpha-2).
+  """
+  countryCode: CountryCode!
+
+  """
+  Province code.
+  """
+  provinceCode: String
+
+  """
+  Postal code.
+  """
+  postalCode: String
+
+  """
+  Email address for this delivery address.
+  """
+  email: Email
+
+  """
+  First name for delivery.
+  """
+  firstName: String
+
+  """
+  Last name for delivery.
+  """
+  lastName: String
+
+  """
+  Data associated with the delivery address.
+  """
+  data: JSON
+}

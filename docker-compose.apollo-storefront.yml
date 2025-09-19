@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  storefront-rover:
+    build:
+      context: ./apollo/storefront-api
+      dockerfile: Dockerfile.rover
+    working_dir: /workspace
+    environment:
+      - APOLLO_ELV2_LICENSE=accept
+    volumes:
+      - ./apollo/storefront-api:/workspace
+    command: >
+      supergraph compose --config supergraph.yaml
+      --output supergraph.graphql
+
+  storefront-apollo-router:
+    build:
+      context: ./apollo/storefront-api
+      dockerfile: Dockerfile.router
+    depends_on:
+      - storefront-rover
+    ports:
+      - "4001:4001"
+      - "8089:8088"
+    environment:
+      APOLLO_ROUTER_SUPERGRAPH_PATH: /dist/supergraph.graphql
+      APOLLO_ELV2_LICENSE: accept
+    volumes:
+      - ./apollo/storefront-api/router.yaml:/dist/router.yaml:ro
+      - ./apollo/storefront-api/supergraph.graphql:/dist/supergraph.graphql:ro
+    entrypoint:
+      [
+        "/bin/sh",
+        "-lc",
+        "while [ ! -f /dist/supergraph.graphql ]; do sleep 1; done; exec /dist/router -c /dist/router.yaml"
+      ]

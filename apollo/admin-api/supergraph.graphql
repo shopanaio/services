@@ -1,0 +1,3484 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+union Actor
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CORE, member: "User")
+  @join__unionMember(graph: CORE, member: "ApiKey")
+ = User | ApiKey
+
+input AddCategoryProductsInput
+  @join__type(graph: CORE)
+{
+  categoryId: ID!
+  productContainerIds: [ID!]!
+}
+
+input AddCommentInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  comment: String!
+}
+
+type Address
+  @join__type(graph: CORE)
+{
+  id: ID!
+  address1: String
+  address2: String
+  city: String
+  countryCode: String
+  email: String
+  firstName: String
+  lastName: String
+  latitude: Int
+  longitude: Int
+  middleName: String
+  phone: String
+  provinceCode: String
+  postalCode: String
+  meta: String
+}
+
+input AddressInput
+  @join__type(graph: CORE)
+{
+  id: ID
+  address1: String
+  address2: String
+  city: String
+  countryCode: String
+  email: String
+  firstName: String
+  lastName: String
+  latitude: Int
+  longitude: Int
+  middleName: String
+  phone: String
+  provinceCode: String
+  postalCode: String
+  meta: String
+}
+
+input AddressWhereInput
+  @join__type(graph: CORE)
+{
+  And: [AddressWhereInput!]
+  Or: [AddressWhereInput!]
+  id: FilterV2
+  address1: FilterV2
+  address2: FilterV2
+  city: FilterV2
+  countryCode: FilterV2
+  email: FilterV2
+  firstName: FilterV2
+  lastName: FilterV2
+  latitude: FilterV2
+  longitude: FilterV2
+  middleName: FilterV2
+  phoneNumber: FilterV2
+  provinceCode: FilterV2
+  postalCode: FilterV2
+}
+
+scalar Any
+  @join__type(graph: CORE)
+
+type ApiKey
+  @join__type(graph: CORE)
+{
+  id: ID!
+  name: String!
+  createdAt: Timestamp!
+  createdBy: User!
+  dueDate: Timestamp
+  lastUsedAt: Timestamp
+  isBanned: Boolean!
+}
+
+type App
+  @join__type(graph: ADDONS)
+{
+  code: String!
+  name: String!
+  meta: JSON
+}
+
+input ApproveReviewInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+}
+
+type AppsMutation
+  @join__type(graph: ADDONS)
+{
+  """Install app"""
+  install(code: String!): Boolean!
+
+  """Uninstall app"""
+  uninstall(code: String!): Boolean!
+}
+
+type AppsQuery
+  @join__type(graph: ADDONS)
+{
+  """Get list of available apps for installation"""
+  apps: [App!]!
+
+  """Get list of installed apps"""
+  installedApps: [InstalledApp!]!
+}
+
+input BulkDeleteInput
+  @join__type(graph: CORE)
+{
+  ids: [ID!]!
+  entity: EntityType!
+}
+
+type BulkMutation
+  @join__type(graph: CORE)
+{
+  delete(input: BulkDeleteInput!): Boolean!
+  update(input: BulkUpdateInput!): Boolean!
+  clear: Boolean!
+  checkSlug(input: BulkUniqueSlugInput!): Boolean!
+}
+
+input BulkUniqueSlugInput
+  @join__type(graph: CORE)
+{
+  entity: EntityType!
+  slug: String!
+}
+
+input BulkUpdateInput
+  @join__type(graph: CORE)
+{
+  ids: [ID!]!
+  entity: EntityType!
+  status: String!
+}
+
+input BulkUpdateStatusInput
+  @join__type(graph: CORE)
+{
+  ids: [ID!]!
+  status: String!
+}
+
+input CancelOrderInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  comment: String!
+  reason: CancelReasonEnum!
+}
+
+enum CancelReasonEnum
+  @join__type(graph: CORE)
+{
+  CUSTOMER @join__enumValue(graph: CORE)
+  FRAUD @join__enumValue(graph: CORE)
+  INVENTORY @join__enumValue(graph: CORE)
+  STAFF @join__enumValue(graph: CORE)
+  OTHER @join__enumValue(graph: CORE)
+}
+
+type Cart
+  @join__type(graph: CORE)
+{
+  id: ID!
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  baseCurrencyCode: String
+  displayCurrencyCode: String
+  displayExchangeRate: Float
+  subtotalAmount: Int
+  discountTotalAmount: Int
+  taxTotalAmount: Int
+  shippingTotalAmount: Int
+  grandTotalAmount: Int
+  totalQuantity: Int
+  items: [CartItem!]!
+}
+
+type CartItem
+  @join__type(graph: CORE)
+{
+  id: ID!
+  purchasableId: ID!
+  purchasableType: String!
+  purchasableSnapshot: ProductSnapshot!
+  unitPrice: Int!
+  compareAtUnitPrice: Int
+  quantity: Int!
+  subtotalAmount: Int!
+  discountAmount: Int!
+  taxAmount: Int!
+  totalAmount: Int!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  children: [CartItem!]!
+}
+
+type CartMutation
+  @join__type(graph: CORE)
+{
+  delete(id: ID!): Boolean!
+}
+
+type CartQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: CartsInput): CartsOutput!
+  findOne(id: ID!): Cart
+}
+
+input CartsInput
+  @join__type(graph: CORE)
+{
+  where: CartWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type CartsOutput
+  @join__type(graph: CORE)
+{
+  data: [Cart!]!
+  meta: CollectionMeta!
+}
+
+input CartWhereInput
+  @join__type(graph: CORE)
+{
+  And: [CartWhereInput!]
+  Or: [CartWhereInput!]
+  id: FilterV2
+  customerId: FilterV2
+  clientToken: FilterV2
+}
+
+input CategoriesInput
+  @join__type(graph: CORE)
+{
+  where: CategoriesWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type CategoriesOutput
+  @join__type(graph: CORE)
+{
+  data: [Category!]!
+  meta: CollectionMeta!
+}
+
+input CategoriesWhereInput
+  @join__type(graph: CORE)
+{
+  And: [CategoriesWhereInput!]
+  Or: [CategoriesWhereInput!]
+  children: CategoriesWhereInput
+  createdAt: FilterV2
+  id: FilterV2
+  listingOrder: FilterV2
+  listingType: FilterV2
+  locale: FilterV2
+  parent: CategoriesWhereInput
+  products: ProductWhereInput
+  slug: FilterV2
+  status: FilterV2
+  title: FilterV2
+  translationField: FilterV2
+  updatedAt: FilterV2
+}
+
+type Category
+  @join__type(graph: CORE)
+{
+  children(input: CategoriesInput): [Category]!
+  cover: File
+  createdAt: Timestamp!
+  description: String
+  excerpt: String
+  gallery: [File!]!
+  id: ID!
+  includeChildrenProducts: Boolean!
+  listingFilters: [CategoryListingFilter!]!
+  labels: [Label!]!
+  tags: [Tag!]!
+  listingOrderBy: ListingSort!
+  listingOrderByStatus: Boolean!
+  listingPlacement: Int
+  listingType: ListingType!
+  parent: Category
+  products: [Variant!]!
+  seoDescription: String
+  seoTitle: String
+  slug: String!
+  status: String!
+  sublistingStep: Int!
+  title: String!
+  updatedAt: Timestamp!
+}
+
+input CategoryFilterInput
+  @join__type(graph: CORE)
+{
+  slug: String
+  parent: CategoryFilterInput
+}
+
+type CategoryListingFilter
+  @join__type(graph: CORE)
+{
+  createdAt: Timestamp!
+  id: ID!
+  path: String!
+  operator: String!
+  type: FilterType!
+  updatedAt: Timestamp!
+  value: String!
+  entry: ListingFilterEntry
+}
+
+type CategoryMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateCategoryInput!): ID!
+  createMany(input: [CreateCategoryInput!]!): [Category!]!
+  update(input: UpdateCategoryInput!): Boolean!
+  addProducts(input: AddCategoryProductsInput!): Boolean!
+  deleteProduct(input: DeleteCategoryProductInput!): Boolean!
+  updateProductRank(input: UpdateCategoryProductInput!): Boolean!
+  delete(id: ID!): Boolean!
+  archive(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+  archiveMany(ids: [ID!]!): Boolean!
+}
+
+type CategoryQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: CategoriesInput): CategoriesOutput!
+  findOne(id: ID!): Category
+}
+
+type ClientInfo
+  @join__type(graph: CORE)
+{
+  ip: String
+  language: String
+  userAgent: String
+  meta: String
+}
+
+input ClientInfoInput
+  @join__type(graph: CORE)
+{
+  language: String
+  userAgent: String
+  meta: String
+}
+
+type CollectionMeta
+  @join__type(graph: CORE)
+{
+  page: Int!
+  pageSize: Int!
+  count: Int!
+  total: Int!
+  pageCount: Int!
+}
+
+type CoreShippingMethod
+  @join__type(graph: CORE)
+{
+  code: String!
+  name: String!
+  service: ShippingService!
+}
+
+input CreateApiKeyInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  dueDate: Timestamp
+}
+
+input CreateCategoryInput
+  @join__type(graph: CORE)
+{
+  children: [ID]
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  includeChildrenProducts: Boolean!
+  listingFilters: [CreateListingFilterInput!]
+  listingOrderBy: ListingSort
+  listingOrderByStatus: Boolean!
+  listingType: ListingType!
+  parentId: ID
+  products: [ID!]
+  seo: SeoFieldsInput
+  slug: String!
+  status: String!
+  title: String!
+  labels: [ID!]
+}
+
+input CreateCustomerInput
+  @join__type(graph: CORE)
+{
+  email: String!
+  firstName: String!
+  lastName: String!
+  language: String!
+  phone: String
+  password: String
+  isVerified: Boolean!
+}
+
+input CreateEmailProfilesInput
+  @join__type(graph: CORE)
+{
+  host: String!
+  port: Int!
+  username: String!
+  password: String!
+  sortIndex: Int!
+}
+
+input CreateEmailSettingsInput
+  @join__type(graph: CORE)
+{
+  from: String!
+  replyTo: String!
+}
+
+input CreateEmailTemplateInput
+  @join__type(graph: CORE)
+{
+  template: String!
+  subject: String!
+  type: EmailTypeEnum!
+}
+
+input CreateFilterInput
+  @join__type(graph: CORE)
+{
+  title: String!
+  isActive: Boolean!
+  sortIndex: Int!
+  type: FilterType!
+}
+
+input CreateLabelInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  slug: String!
+  colorHex: String
+}
+
+input CreateLinkInput
+  @join__type(graph: CORE)
+{
+  title: String!
+  slug: String
+  type: MenuNodeType!
+  entryId: ID
+  parentId: ID
+  sortIndex: Int!
+  menuId: ID!
+}
+
+input CreateListingFilterInput
+  @join__type(graph: CORE)
+{
+  operator: String!
+  type: FilterType!
+  value: String!
+  entryID: ID
+  path: String!
+}
+
+input CreateLocaleInput
+  @join__type(graph: CORE)
+{
+  isActive: Boolean!
+  code: String!
+}
+
+input CreateMenuInput
+  @join__type(graph: CORE)
+{
+  title: String!
+  items: [CreateLinkInput!]!
+  slug: String!
+  status: EntityStatus!
+}
+
+input CreateOrderInput
+  @join__type(graph: CORE)
+{
+  currency: OrderCurrencyInput
+  payment: OrderPaymentInfoInput
+  shipping: OrderShippingInfoInput
+  customerId: ID
+  items: [CreateOrderItemInput!]
+  clientInfo: ClientInfoInput!
+  tags: [ID!]
+  externalSystemId: String
+}
+
+input CreateOrderItemInput
+  @join__type(graph: CORE)
+{
+  productId: ID!
+  orderId: ID!
+  quantity: Int = 1
+}
+
+input CreatePageInput
+  @join__type(graph: CORE)
+{
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  seo: SeoFieldsInput
+  slug: String!
+  status: String!
+  title: String!
+  labels: [ID!]
+}
+
+input CreatePaymentMethodInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  code: String!
+  serviceId: String!
+}
+
+input CreatePaymentServiceInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  code: String!
+  coverId: ID
+}
+
+input CreateProductGroupInput
+  @join__type(graph: CORE)
+{
+  title: String!
+  items: [CreateProductGroupItemInput!]!
+  isMultiple: Boolean!
+  isRequired: Boolean!
+  sortIndex: Int!
+}
+
+input CreateProductGroupItemInput
+  @join__type(graph: CORE)
+{
+  variantId: ID!
+  sortIndex: Int!
+  priceType: ProductGroupPriceType
+  priceAmountValue: Int
+  pricePercentageValue: Float
+  maxQuantity: Int
+}
+
+input CreateProductInput
+  @join__type(graph: CORE)
+{
+  requiresShipping: Boolean!
+  title: String!
+  description: DescriptionFieldsInput
+  seo: SeoFieldsInput
+  excerpt: String
+  slug: String
+  tags: [ID!]!
+  labels: [ID!]
+  variants: ProductVariantsInput!
+  groups: [CreateProductGroupInput!]!
+  status: EntityStatus!
+  primaryCategory: ID
+}
+
+input CreateProductVariantInput
+  @join__type(graph: CORE)
+{
+  barcode: String
+  categories: [ID!]!
+  title: String!
+  costPrice: Int
+  coverId: ID
+  features: [ProductFeatureInput!]
+  gallery: [ID!]
+  oldPrice: Int
+  price: Int!
+  sku: String
+  slug: String
+  inListing: Boolean!
+  variantSortIndex: Int!
+  stockStatus: String!
+  weight: Float!
+  weightUnit: WeightUnit!
+  width: Float!
+  length: Float!
+  height: Float!
+  dimensionUnit: DimensionUnit!
+}
+
+input CreateProfileInput
+  @join__type(graph: CORE)
+{
+  firstName: String!
+  lastName: String!
+  language: String!
+  timezone: String!
+}
+
+input CreateProjectInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  locales: [String!]!
+  currency: String!
+  country: String!
+  status: ProjectStatus!
+  timezone: String!
+  phoneNumber: String
+  email: String
+}
+
+input CreateReviewInput
+  @join__type(graph: CORE)
+{
+  productId: ID
+  rating: Float!
+  title: String!
+  message: String
+  displayName: String!
+  pros: String
+  cons: String
+  images: [ID!]
+  locale: String
+  customerId: ID
+  status: ReviewStatus
+}
+
+input CreateShippingItemInput
+  @join__type(graph: CORE)
+{
+  estimatedDeliveryAt: Timestamp
+  fulfillmentId: ID!
+  notificationsEnabled: Boolean
+  shippingMethodId: String
+  shippingPrice: Int
+  trackingCode: String
+  trackingEnabled: Boolean
+  trackingUrl: String
+}
+
+input CreateShippingMethodInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  code: String!
+  serviceId: String!
+}
+
+input CreateShippingServiceInput
+  @join__type(graph: CORE)
+{
+  name: String!
+  code: String!
+  coverId: ID
+}
+
+input CreateStockStatusInput
+  @join__type(graph: CORE)
+{
+  code: String!
+  title: String!
+  isAvailable: Boolean!
+}
+
+input CreateTagInput
+  @join__type(graph: CORE)
+{
+  title: String!
+  slug: String!
+  color: String
+}
+
+input CreateTranslationInput
+  @join__type(graph: CORE)
+{
+  sourceId: ID!
+  sourceType: EntityType!
+  locale: String!
+  fieldValue: String!
+  fieldName: TranslationField!
+}
+
+input CrmAppendTicketInput
+  @join__type(graph: CORE)
+{
+  columnId: ID!
+  orderID: ID!
+}
+
+type CrmColumn
+  @join__type(graph: CORE)
+{
+  ID: ID!
+  title: String!
+  slug: String!
+  sortIndex: Int!
+  tickets: [Order!]!
+}
+
+input CrmCreateColumnInput
+  @join__type(graph: CORE)
+{
+  title: String!
+  slug: String!
+  sortIndex: Int!
+}
+
+input CrmMoveTicketInput
+  @join__type(graph: CORE)
+{
+  columnId: ID!
+  orderId: ID!
+  afterOrderId: ID!
+}
+
+type CrmMutation
+  @join__type(graph: CORE)
+{
+  columnCreateOne(input: CrmCreateColumnInput!): Boolean!
+  columnUpdateOne(input: CrmUpdateColumnInput!): Boolean!
+  columnUpdateMany(input: [CrmUpdateColumnInput!]!): Boolean!
+  columnDeleteOne(id: ID!): Boolean!
+  ticketAppend(input: CrmAppendTicketInput!): Boolean!
+  ticketMove(input: CrmMoveTicketInput!): Boolean!
+}
+
+type CrmQuery
+  @join__type(graph: CORE)
+{
+  getColumns: [CrmColumn!]!
+  getTickets(input: CrmTicketsQueryInput!): [CrmTicketsQueryColumnOutput!]!
+}
+
+type CrmTicketsQueryColumnOutput
+  @join__type(graph: CORE)
+{
+  hasNextPage: Boolean!
+  data: CrmColumn!
+}
+
+input CrmTicketsQueryInput
+  @join__type(graph: CORE)
+{
+  offset: Int
+  limit: Int!
+  columns: [ID!]!
+  where: OrderWhereInput
+}
+
+input CrmUpdateColumnInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  slug: String
+  title: String
+  sortIndex: Int
+}
+
+type Currency
+  @join__type(graph: CORE)
+{
+  title: String!
+  code: String!
+  isActive: Boolean!
+  decimalPlaces: Int!
+  exchangeRate: Float!
+  symbolLeft: String!
+  symbolRight: String!
+  decimalSeparator: String!
+  thousandsSeparator: String!
+}
+
+type Customer
+  @join__type(graph: CORE, key: "id")
+{
+  createdAt: Timestamp!
+  email: String!
+  firstName: String!
+  id: ID!
+  isBlocked: Boolean
+  isVerified: Boolean!
+  lastName: String!
+  language: String
+  phone: String
+  updatedAt: Timestamp!
+  orders: [Order!]!
+}
+
+type CustomerMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateCustomerInput!): ID!
+  update(input: UpdateCustomerInput!): Boolean!
+  delete(id: ID!): Boolean!
+  archive(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): [Boolean!]!
+  archiveMany(ids: [ID!]!): [Boolean!]!
+}
+
+type CustomerQuery
+  @join__type(graph: CORE)
+{
+  findOne(id: ID!): Customer
+  findMany(input: CustomersInput): CustomersOutput!
+}
+
+input CustomersInput
+  @join__type(graph: CORE)
+{
+  page: Int!
+  pageSize: Int!
+  sortField: String
+  sortOrder: String
+  search: String
+}
+
+type CustomersOutput
+  @join__type(graph: CORE)
+{
+  data: [Customer!]!
+  meta: CollectionMeta!
+}
+
+input DeleteCategoryProductInput
+  @join__type(graph: CORE)
+{
+  categoryId: ID!
+  productId: ID!
+}
+
+input DescriptionFieldsInput
+  @join__type(graph: CORE)
+{
+  json: String!
+  text: String!
+  html: String!
+}
+
+enum DimensionUnit
+  @join__type(graph: CORE)
+{
+  MM @join__enumValue(graph: CORE)
+  CM @join__enumValue(graph: CORE)
+  M @join__enumValue(graph: CORE)
+  IN @join__enumValue(graph: CORE)
+}
+
+type EmailProfiles
+  @join__type(graph: CORE)
+{
+  host: String!
+  port: Int!
+  username: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  sortIndex: Int!
+  id: ID!
+}
+
+type EmailProfilesMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateEmailProfilesInput!): EmailProfiles!
+  update(input: UpdateEmailProfilesInput!): EmailProfiles!
+}
+
+type EmailProfilesQuery
+  @join__type(graph: CORE)
+{
+  findOne: EmailProfiles
+}
+
+type EmailSettings
+  @join__type(graph: CORE)
+{
+  from: String!
+  replyTo: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  id: ID!
+}
+
+type EmailSettingsMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateEmailSettingsInput!): EmailSettings!
+  update(input: UpdateEmailSettingsInput!): EmailSettings!
+}
+
+type EmailSettingsQuery
+  @join__type(graph: CORE)
+{
+  findOne: EmailSettings
+}
+
+type EmailTemplate
+  @join__type(graph: CORE)
+{
+  template: String!
+  subject: String!
+  type: EmailTypeEnum!
+  id: ID!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type EmailTemplateMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateEmailTemplateInput!): EmailTemplate!
+  update(input: UpdateEmailTemplateInput!): EmailTemplate!
+  sendTestEmail(input: SendTestEmailInput!): Boolean!
+}
+
+type EmailTemplateQuery
+  @join__type(graph: CORE)
+{
+  findOne(input: EmailTemplatesInput!): EmailTemplate
+  findMany(input: EmailTemplatesInput!): [EmailTemplate!]!
+}
+
+input EmailTemplatesInput
+  @join__type(graph: CORE)
+{
+  where: EmailTemplatesWhereInput
+}
+
+input EmailTemplatesWhereInput
+  @join__type(graph: CORE)
+{
+  And: [EmailTemplatesWhereInput!]
+  Or: [EmailTemplatesWhereInput!]
+  id: FilterV2
+  type: FilterV2
+}
+
+enum EmailTypeEnum
+  @join__type(graph: CORE)
+{
+  TENANT_SIGN_UP @join__enumValue(graph: CORE)
+  TENANT_INVITATION @join__enumValue(graph: CORE)
+  TENANT_RESET_PASSWORD @join__enumValue(graph: CORE)
+  CUSTOMER_SIGN_UP @join__enumValue(graph: CORE)
+  CUSTOMER_INVITATION @join__enumValue(graph: CORE)
+  CUSTOMER_RESET_PASSWORD @join__enumValue(graph: CORE)
+  CUSTOMER_ORDER_CREATED @join__enumValue(graph: CORE)
+  CUSTOMER_ORDER_SHIPPED @join__enumValue(graph: CORE)
+  CUSTOMER_ORDER_DELIVERED @join__enumValue(graph: CORE)
+  CUSTOMER_ORDER_CANCELLED @join__enumValue(graph: CORE)
+}
+
+enum EntityStatus
+  @join__type(graph: CORE)
+{
+  PUBLISHED @join__enumValue(graph: CORE)
+  DRAFT @join__enumValue(graph: CORE)
+  ARCHIVED @join__enumValue(graph: CORE)
+}
+
+enum EntityType
+  @join__type(graph: CORE)
+{
+  BOARD @join__enumValue(graph: CORE)
+  BOARD_COL @join__enumValue(graph: CORE)
+  BUNDLE @join__enumValue(graph: CORE)
+  CATEGORY @join__enumValue(graph: CORE)
+  CUSTOMER @join__enumValue(graph: CORE)
+  EMAIL_TPL @join__enumValue(graph: CORE)
+  PROD_FEAT @join__enumValue(graph: CORE)
+  PROD_FEAT_GROUP @join__enumValue(graph: CORE)
+  FILE @join__enumValue(graph: CORE)
+  FILTER @join__enumValue(graph: CORE)
+  FULFILLMENT @join__enumValue(graph: CORE)
+  LINK @join__enumValue(graph: CORE)
+  MENU @join__enumValue(graph: CORE)
+  ORDER @join__enumValue(graph: CORE)
+  ORDER_ITEM @join__enumValue(graph: CORE)
+  PAGE @join__enumValue(graph: CORE)
+  PAY_ITEM @join__enumValue(graph: CORE)
+  PAY_METHOD @join__enumValue(graph: CORE)
+  PROD_CONTAINER @join__enumValue(graph: CORE)
+  PROD_GROUP @join__enumValue(graph: CORE)
+  PROD_VARIANT @join__enumValue(graph: CORE)
+  REVIEW @join__enumValue(graph: CORE)
+  SHIP_ITEM @join__enumValue(graph: CORE)
+  SHIP_METHOD @join__enumValue(graph: CORE)
+  SHIP_SERVICE @join__enumValue(graph: CORE)
+  STOCK_STATUS @join__enumValue(graph: CORE)
+  TAG @join__enumValue(graph: CORE)
+}
+
+enum FeatureStyleType
+  @join__type(graph: CORE)
+{
+  RADIO @join__enumValue(graph: CORE)
+  DROPDOWN @join__enumValue(graph: CORE)
+  VARIANT_COVER @join__enumValue(graph: CORE)
+  SWATCH @join__enumValue(graph: CORE)
+  APPAREL_SIZE @join__enumValue(graph: CORE)
+}
+
+type FeatureSwatch
+  @join__type(graph: CORE)
+{
+  id: ID!
+  color1: String
+  color2: String
+  image: File
+  type: FeatureSwatchType!
+}
+
+input FeatureSwatchInput
+  @join__type(graph: CORE)
+{
+  id: ID
+  color1: String
+  color2: String
+  imageId: ID
+  type: FeatureSwatchType!
+}
+
+enum FeatureSwatchType
+  @join__type(graph: CORE)
+{
+  COLOR @join__enumValue(graph: CORE)
+  COLOR_DUO @join__enumValue(graph: CORE)
+  IMAGE @join__enumValue(graph: CORE)
+}
+
+type File
+  @join__type(graph: CORE)
+{
+  id: ID!
+  driver: FileDriver!
+  name: String!
+  url: String!
+  size: Int!
+  ext: String!
+  key: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+enum FileDriver
+  @join__type(graph: CORE)
+{
+  LOCAL @join__enumValue(graph: CORE)
+  S3 @join__enumValue(graph: CORE)
+  YTB @join__enumValue(graph: CORE)
+  URL @join__enumValue(graph: CORE)
+}
+
+type FileMutation
+  @join__type(graph: CORE)
+{
+  updateOne(input: UpdateFileInput!): File!
+  updateMany(input: [UpdateFileInput!]!): [File!]!
+  deleteOne(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+  archiveOne(id: ID!): Boolean!
+  archiveMany(ids: [ID!]!): Boolean!
+}
+
+type FileQuery
+  @join__type(graph: CORE)
+{
+  findOne(id: ID!): File
+  findMany(input: FilesInput): FilesOutput!
+}
+
+input FilesInput
+  @join__type(graph: CORE)
+{
+  where: FilesWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type FilesOutput
+  @join__type(graph: CORE)
+{
+  data: [File!]!
+  meta: CollectionMeta!
+}
+
+input FilesWhereInput
+  @join__type(graph: CORE)
+{
+  And: [FilesWhereInput!]
+  Or: [FilesWhereInput!]
+  id: FilterV2
+  name: FilterV2
+  url: FilterV2
+  size: FilterV2
+  ext: FilterV2
+  createdAt: FilterV2
+  updatedAt: FilterV2
+  product: FilterV2
+  category: FilterV2
+  post: FilterV2
+  page: FilterV2
+}
+
+type Filter
+  @join__type(graph: CORE)
+{
+  title: String!
+  createdAt: Timestamp!
+  isActive: Boolean!
+  id: ID!
+  sortIndex: Int!
+  type: FilterType!
+  updatedAt: Timestamp!
+}
+
+input FilterInput
+  @join__type(graph: CORE)
+{
+  Eq: Any
+  NotEq: Any
+  Gt: Any
+  Gte: Any
+  Is: Any
+  IsNot: Any
+  Lt: Any
+  Lte: Any
+  In: Any
+  NotIn: Any
+  Like: Any
+  NotLike: Any
+  ILike: Any
+  NotILike: Any
+}
+
+type FilterMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateFilterInput!): Filter!
+  createMany(input: [CreateFilterInput!]!): Boolean!
+  update(input: UpdateFilterInput!): Filter!
+  updateMany(input: [UpdateFilterInput!]!): Boolean!
+}
+
+type FilterQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: ProductFilterV2): [Filter!]!
+  findOne(id: ID!): Filter
+}
+
+input FiltersWhereInput
+  @join__type(graph: CORE)
+{
+  And: [FiltersWhereInput!]
+  Or: [FiltersWhereInput!]
+  id: FilterV2
+}
+
+enum FilterType
+  @join__type(graph: CORE)
+{
+  PRICE @join__enumValue(graph: CORE)
+  CATEGORY @join__enumValue(graph: CORE)
+  AVAILABILITY @join__enumValue(graph: CORE)
+  FEATURE @join__enumValue(graph: CORE)
+  TAG @join__enumValue(graph: CORE)
+}
+
+scalar FilterV2
+  @join__type(graph: CORE)
+
+input ForgotPasswordInput
+  @join__type(graph: CORE)
+{
+  email: String!
+}
+
+type Fulfillment
+  @join__type(graph: CORE)
+{
+  id: ID!
+  createdAt: Timestamp!
+  parentId: ID
+  shippingItem: ShippingItem
+  items: [FulfillmentItem!]!
+  status: FulfillmentStatusEnum!
+}
+
+type FulfillmentItem
+  @join__type(graph: CORE)
+{
+  orderItemId: ID!
+  quantity: Int!
+}
+
+enum FulfillmentStatusEnum
+  @join__type(graph: CORE)
+{
+  PENDING @join__enumValue(graph: CORE)
+  PROCESSING @join__enumValue(graph: CORE)
+  ON_HOLD @join__enumValue(graph: CORE)
+  SHIPPED @join__enumValue(graph: CORE)
+  DELIVERED @join__enumValue(graph: CORE)
+  RETURNED @join__enumValue(graph: CORE)
+  CANCELLED @join__enumValue(graph: CORE)
+  FULFILLED @join__enumValue(graph: CORE)
+}
+
+input FulfillmentWhereInput
+  @join__type(graph: CORE)
+{
+  And: [FulfillmentWhereInput!]
+  Or: [FulfillmentWhereInput!]
+  id: FilterV2
+  orderId: FilterV2
+  status: FilterV2
+}
+
+input GroupProductLinkInput
+  @join__type(graph: CORE)
+{
+  groupId: ID!
+  productId: ID!
+}
+
+type InstalledApp
+  @join__type(graph: ADDONS)
+{
+  id: String!
+  projectID: String!
+  appCode: String!
+  baseURL: String!
+  enabled: Boolean!
+  meta: JSON
+}
+
+input InviteInput
+  @join__type(graph: CORE)
+{
+  email: String!
+}
+
+scalar join__FieldSet
+
+enum join__Graph {
+  ADDONS @join__graph(name: "addons", url: "http://host.docker.internal:10001/graphql")
+  CORE @join__graph(name: "core", url: "http://host.docker.internal:8000/api/admin/graphql")
+}
+
+scalar JSON
+  @join__type(graph: ADDONS)
+
+input KeywordCreateInput
+  @join__type(graph: CORE)
+{
+  groupId: ID!
+  keyword: String!
+  localeCode: String!
+}
+
+input KeywordDeleteInput
+  @join__type(graph: CORE)
+{
+  groupId: ID!
+  keyword: String!
+  localeCode: String!
+}
+
+input KeywordGroupCreateInput
+  @join__type(graph: CORE)
+{
+  title: String!
+}
+
+input KeywordGroupDeleteInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+}
+
+input KeywordGroupUpdateInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String!
+}
+
+type Label
+  @join__type(graph: CORE)
+{
+  id: ID!
+  name: String!
+  slug: String!
+  colorHex: String
+}
+
+type LabelMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateLabelInput!): ID!
+  update(input: UpdateLabelInput!): Boolean!
+}
+
+type LabelQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: LabelsInput): LabelsOutput!
+  findOne(id: ID!): Label
+}
+
+input LabelsInput
+  @join__type(graph: CORE)
+{
+  where: LabelWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type LabelsOutput
+  @join__type(graph: CORE)
+{
+  data: [Label!]!
+  meta: CollectionMeta!
+}
+
+input LabelWhereInput
+  @join__type(graph: CORE)
+{
+  And: [LabelWhereInput!]
+  Or: [LabelWhereInput!]
+  id: FilterV2
+  slug: FilterV2
+}
+
+input LanguageConfigInput
+  @join__type(graph: CORE)
+{
+  localeCode: String!
+  tsConfig: String!
+  description: String
+}
+
+type Link
+  @join__type(graph: CORE)
+{
+  title: String!
+  createdAt: Timestamp!
+  entry: LinkEntry
+  type: MenuNodeType!
+  id: ID!
+  updatedAt: Timestamp!
+  slug: String
+  parentId: ID
+  sortIndex: Int!
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+union LinkEntry
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CORE, member: "Variant")
+  @join__unionMember(graph: CORE, member: "Category")
+  @join__unionMember(graph: CORE, member: "Page")
+ = Variant | Category | Page
+
+type LinkMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateLinkInput!): Link!
+  update(input: UpdateLinkInput!): Boolean!
+}
+
+type LinkQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: LinksInput): LinksOutput!
+  findOne(id: ID!): Link
+}
+
+input LinksInput
+  @join__type(graph: CORE)
+{
+  where: LinksWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type LinksOutput
+  @join__type(graph: CORE)
+{
+  data: [Link!]!
+  meta: CollectionMeta!
+}
+
+input LinksWhereInput
+  @join__type(graph: CORE)
+{
+  And: [LinksWhereInput!]
+  Or: [LinksWhereInput!]
+  title: FilterV2
+  createdAt: FilterV2
+  id: FilterV2
+  slug: FilterV2
+  type: FilterV2
+  entryId: FilterV2
+  updatedAt: FilterV2
+}
+
+type ListingFilter
+  @join__type(graph: CORE)
+{
+  type: String!
+  values: [Any!]!
+}
+
+union ListingFilterEntry
+  @join__type(graph: CORE)
+  @join__unionMember(graph: CORE, member: "Category")
+  @join__unionMember(graph: CORE, member: "Tag")
+ = Category | Tag
+
+input ListingFilterInput
+  @join__type(graph: CORE)
+{
+  type: FilterType!
+  values: [Any!]!
+}
+
+input ListingInput
+  @join__type(graph: CORE)
+{
+  listingType: ListingType!
+  category: CategoryFilterInput!
+  filters: [ListingFilterInput!]
+  settings: ListingInputSettings
+  sort: ListingSort
+  page: Int! = 1
+  perPage: Int! = 25
+}
+
+input ListingInputSettings
+  @join__type(graph: CORE)
+{
+  availableFirst: Boolean
+  types: [ListingNodeType!]
+}
+
+type ListingMeta
+  @join__type(graph: CORE)
+{
+  filters: [ListingFilter!]!
+  sort: ListingSort!
+}
+
+enum ListingNodeType
+  @join__type(graph: CORE)
+{
+  PRODUCT @join__enumValue(graph: CORE)
+}
+
+type ListingOutputV1
+  @join__type(graph: CORE)
+{
+  data: [Variant!]!
+  meta: CollectionMeta!
+}
+
+type ListingQuery
+  @join__type(graph: CORE)
+{
+  listingV1(input: ListingInput!): ListingOutputV1!
+}
+
+enum ListingSort
+  @join__type(graph: CORE)
+{
+  CREATED_AT_ASC @join__enumValue(graph: CORE)
+  CREATED_AT_DESC @join__enumValue(graph: CORE)
+  PRICE_ASC @join__enumValue(graph: CORE)
+  PRICE_DESC @join__enumValue(graph: CORE)
+  TITLE_ASC @join__enumValue(graph: CORE)
+  TITLE_DESC @join__enumValue(graph: CORE)
+  CUSTOM @join__enumValue(graph: CORE)
+}
+
+enum ListingType
+  @join__type(graph: CORE)
+{
+  AUTO @join__enumValue(graph: CORE)
+  MANUAL @join__enumValue(graph: CORE)
+  COMPOSITE @join__enumValue(graph: CORE)
+}
+
+type Locale
+  @join__type(graph: CORE)
+{
+  title: String!
+  code: String!
+  isActive: Boolean!
+}
+
+input LocaleWhereInput
+  @join__type(graph: CORE)
+{
+  title: FilterV2
+  code: FilterV2
+  isActive: FilterV2
+  isDefault: FilterV2
+}
+
+type Menu
+  @join__type(graph: CORE)
+{
+  id: ID!
+  items: [Link!]!
+  slug: String!
+  title: String!
+  status: EntityStatus!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type MenuMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateMenuInput!): ID!
+  update(input: UpdateMenuInput!): Boolean!
+  delete(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+}
+
+enum MenuNodeType
+  @join__type(graph: CORE)
+{
+  PRODUCT @join__enumValue(graph: CORE)
+  CATEGORY @join__enumValue(graph: CORE)
+  PAGE @join__enumValue(graph: CORE)
+  MENU @join__enumValue(graph: CORE)
+  LINK @join__enumValue(graph: CORE)
+  TEXT @join__enumValue(graph: CORE)
+}
+
+type MenuQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: MenusInput): MenusOutput!
+  findOne(id: ID!): Menu
+}
+
+input MenusInput
+  @join__type(graph: CORE)
+{
+  where: MenusWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type MenusOutput
+  @join__type(graph: CORE)
+{
+  data: [Menu!]!
+  meta: CollectionMeta!
+}
+
+input MenusWhereInput
+  @join__type(graph: CORE)
+{
+  And: [MenusWhereInput!]
+  Or: [MenusWhereInput!]
+  createdAt: FilterV2
+  id: FilterV2
+  locale: FilterV2
+  slug: FilterV2
+  status: FilterV2
+  title: FilterV2
+  updatedAt: FilterV2
+  translationField: FilterV2
+}
+
+type Mutation
+  @join__type(graph: ADDONS)
+  @join__type(graph: CORE)
+{
+  appsMutation: AppsMutation! @join__field(graph: ADDONS)
+  bulkMutation: BulkMutation! @join__field(graph: CORE)
+  cartMutation: CartMutation! @join__field(graph: CORE)
+  categoryMutation: CategoryMutation! @join__field(graph: CORE)
+  customerMutation: CustomerMutation! @join__field(graph: CORE)
+  emailProfilesMutation: EmailProfilesMutation! @join__field(graph: CORE)
+  emailSettingsMutation: EmailSettingsMutation! @join__field(graph: CORE)
+  emailTemplateMutation: EmailTemplateMutation! @join__field(graph: CORE)
+  filterMutation: FilterMutation! @join__field(graph: CORE)
+  labelMutation: LabelMutation! @join__field(graph: CORE)
+  fileMutation: FileMutation! @join__field(graph: CORE)
+  orderMutation: OrderMutation! @join__field(graph: CORE)
+  crmMutation: CrmMutation! @join__field(graph: CORE)
+  paymentMethodMutation: PaymentMethodMutation! @join__field(graph: CORE)
+  paymentServiceMutation: PaymentServiceMutation! @join__field(graph: CORE)
+  productMutation: ProductMutation! @join__field(graph: CORE)
+  projectMutation: ProjectMutation! @join__field(graph: CORE)
+  reviewMutation: ReviewMutation! @join__field(graph: CORE)
+  searchMutation: SearchMutation! @join__field(graph: CORE)
+  shippingMethodMutation: ShippingMethodMutation! @join__field(graph: CORE)
+  shippingServiceMutation: ShippingServiceMutation! @join__field(graph: CORE)
+  stockStatusMutation: StockStatusMutation! @join__field(graph: CORE)
+  linkMutation: LinkMutation! @join__field(graph: CORE)
+  menuMutation: MenuMutation! @join__field(graph: CORE)
+  pageMutation: PageMutation! @join__field(graph: CORE)
+  tagMutation: TagMutation! @join__field(graph: CORE)
+  userMutation: UserMutation! @join__field(graph: CORE)
+  translationMutation: TranslationMutation! @join__field(graph: CORE)
+}
+
+type Order
+  @join__type(graph: CORE)
+{
+  id: ID!
+  idempotencyKey: ID!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  status: OrderStatusEnum!
+  orderNumber: Int!
+  externalSystemId: String
+  createdBy: Actor!
+  currencyCode: String!
+  displayCurrencyCode: String
+  displayExchangeRate: Float
+  totalShippingAmount: Int
+  totalRefundedAmount: Int
+  totalDiscountAmount: Int
+  totalTaxAmount: Int
+  totalAmount: Int!
+  subtotalAmount: Int!
+  clientInfo: ClientInfo
+  customer: Customer
+  customerStatistic: OrderCustomerStatistic
+  customerNote: String
+  customerEmail: String
+  customerPhone: String
+  customerFirstName: String
+  customerMiddleName: String
+  customerLastName: String
+  customerMeta: String
+  adminNote: String
+  events: [OrderEvent!]!
+  tags: [Tag!]!
+  labels: [Label!]!
+  paymentMethod: PaymentMethod
+  shippingMethod: CoreShippingMethod
+  shippingAddress: Address
+  billingAddress: Address
+  fulfillments: [Fulfillment!]!
+  payment: PaymentItem
+  orderItems: [OrderItem!]!
+  productsInfo: [OrderItemProductInfo!]!
+}
+
+input OrderCurrencyInput
+  @join__type(graph: CORE)
+{
+  currencyCode: String!
+  displayCurrencyCode: String
+  displayExchangeRate: Float
+}
+
+type OrderCustomerStatistic
+  @join__type(graph: CORE)
+{
+  totalRevenue: Int!
+  totalGuestOrders: Int!
+  totalAuthorizedOrders: Int!
+}
+
+type OrderEvent
+  @join__type(graph: CORE)
+{
+  id: ID!
+  createdBy: Actor!
+  eventType: OrderEventTypeEnum!
+  eventData: String
+  createdAt: Timestamp!
+}
+
+enum OrderEventTypeEnum
+  @join__type(graph: CORE)
+{
+  ORDER_CREATED @join__enumValue(graph: CORE)
+  ORDER_NOTE_UPDATED @join__enumValue(graph: CORE)
+  ORDER_TAGS_UPDATED @join__enumValue(graph: CORE)
+  ORDER_ITEM_CREATED @join__enumValue(graph: CORE)
+  ORDER_ITEM_UPDATED @join__enumValue(graph: CORE)
+  ORDER_ITEM_DELETED @join__enumValue(graph: CORE)
+  SHIPPING_DETAILS_UPDATED @join__enumValue(graph: CORE)
+  PAYMENT_DETAILS_UPDATED @join__enumValue(graph: CORE)
+  CUSTOMER_ASSIGNED @join__enumValue(graph: CORE)
+  CUSTOMER_UNASSIGNED @join__enumValue(graph: CORE)
+  CONTACT_INFO_UPDATED @join__enumValue(graph: CORE)
+  COMMENT_CREATED @join__enumValue(graph: CORE)
+  NOTIFICATION_SENT @join__enumValue(graph: CORE)
+  ORDER_STATUS_UPDATED @join__enumValue(graph: CORE)
+  PAYMENT_STATUS_UPDATED @join__enumValue(graph: CORE)
+  FULFILLMENT_STATUS_UPDATED @join__enumValue(graph: CORE)
+  FULFILLMENT_SPLIT @join__enumValue(graph: CORE)
+  FULFILLMENT_UNSPLIT @join__enumValue(graph: CORE)
+  SHIPPING_PROFILE_CREATED @join__enumValue(graph: CORE)
+  SHIPPING_PROFILE_DELETED @join__enumValue(graph: CORE)
+  SHIPPING_PROFILE_UPDATED @join__enumValue(graph: CORE)
+}
+
+type OrderItem
+  @join__type(graph: CORE)
+{
+  id: ID!
+  createdAt: Timestamp!
+  discountAmount: Int!
+  originalQuantity: Int!
+  price: Int!
+  product: Variant
+  productInfo: OrderItemProductInfo!
+  productCostPrice: Int
+  quantity: Int!
+  subtotalAmount: Int!
+  taxAmount: Int
+  totalAmount: Int!
+  weight: Weight
+}
+
+type OrderItemProductInfo
+  @join__type(graph: CORE)
+{
+  id: ID!
+  variantId: ID
+  snapshot: ProductSnapshot!
+}
+
+input OrderItemWhereInput
+  @join__type(graph: CORE)
+{
+  And: [OrderItemWhereInput!]
+  Or: [OrderItemWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  discount: FilterV2
+  discountAmount: FilterV2
+  fulfillmentId: FilterV2
+  orderId: FilterV2
+  originalQuantity: FilterV2
+  price: FilterV2
+  product: ProductWhereInput
+  productCostPrice: FilterV2
+  productId: FilterV2
+  quantity: FilterV2
+  subtotalAmount: FilterV2
+  taxAmount: FilterV2
+  totalAmount: FilterV2
+  updatedAt: FilterV2
+  weight: FilterV2
+  weightUnit: FilterV2
+}
+
+type OrderMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateOrderInput!): ID!
+  update(input: UpdateOrderInput!): Boolean!
+  updateStatus(input: UpdateOrderStatusInput!): Boolean!
+  updateCustomer(input: UpdateOrderCustomerInput!): Boolean!
+  deleteCustomer(id: ID!): Boolean!
+  updateTags(input: UpdateOrderTagsInput!): Boolean!
+  updateLabels(input: UpdateOrderLabelsInput!): Boolean!
+  updateAdminNote(input: UpdateAdminNoteInput!): Boolean!
+  addComment(input: AddCommentInput!): Boolean!
+  cancel(input: CancelOrderInput!): Boolean!
+  updatePaymentStatus(input: UpdatePaymentStatusInput!): Boolean!
+  splitFulfillment(input: SplitFulfillmentInput!): Boolean!
+  undoSplitFulfillment(id: ID!): Boolean!
+  updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Boolean!
+  createShippingItem(input: CreateShippingItemInput!): Boolean!
+  updateShippingItem(input: UpdateShippingItemInput!): Boolean!
+  createOrderItem(input: CreateOrderItemInput!): Boolean!
+  updateOrderItem(input: UpdateOrderItemInput!): Boolean!
+  deleteOrderItem(id: ID!): Boolean!
+}
+
+input OrderPaymentInfoInput
+  @join__type(graph: CORE)
+{
+  paymentMethodId: String
+  billingAddress: AddressInput
+}
+
+type OrderQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: OrdersInput): OrdersOutput!
+  findOne(id: ID!): Order
+}
+
+input OrderShippingInfoInput
+  @join__type(graph: CORE)
+{
+  shippingMethodId: String
+  shippingAddress: AddressInput
+}
+
+input OrdersInput
+  @join__type(graph: CORE)
+{
+  where: OrderWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type OrdersOutput
+  @join__type(graph: CORE)
+{
+  data: [Order!]!
+  meta: CollectionMeta!
+}
+
+enum OrderStatusEnum
+  @join__type(graph: CORE)
+{
+  DRAFT @join__enumValue(graph: CORE)
+  ACTIVE @join__enumValue(graph: CORE)
+  COMPLETED @join__enumValue(graph: CORE)
+  CANCELLED @join__enumValue(graph: CORE)
+  ARCHIVED @join__enumValue(graph: CORE)
+}
+
+input OrderTagsWhereInput
+  @join__type(graph: CORE)
+{
+  And: [OrderTagsWhereInput!]
+  Or: [OrderTagsWhereInput!]
+  tagId: FilterV2
+}
+
+input OrderWhereInput
+  @join__type(graph: CORE)
+{
+  And: [OrderWhereInput!]
+  Or: [OrderWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  customerId: FilterV2
+  customerEmail: FilterV2
+  customerFirstName: FilterV2
+  customerLastName: FilterV2
+  customerMiddleName: FilterV2
+  customerPhone: FilterV2
+  status: FilterV2
+  orderNumber: FilterV2
+  adminNote: FilterV2
+  items: OrderItemWhereInput
+  shippingMethodId: FilterV2
+  shippingAddress: AddressWhereInput
+  shippingLine: ShippingItemWhereInput
+  paymentMethodId: FilterV2
+  billingAddress: AddressWhereInput
+  paymentLine: PaymentItemWhereInput
+  fulfillment: FulfillmentWhereInput
+  tags: OrderTagsWhereInput
+  createdByUserId: FilterV2
+  createdByApiToken: FilterV2
+  currencyCode: FilterV2
+  displayCurrencyCode: FilterV2
+  totalShippingAmount: FilterV2
+  totalRefundedAmount: FilterV2
+  totalDiscountAmount: FilterV2
+  totalTaxAmount: FilterV2
+  totalAmount: FilterV2
+  subtotalAmount: FilterV2
+  crmTicketColumnId: FilterV2
+}
+
+type Page
+  @join__type(graph: CORE)
+{
+  cover: File
+  createdAt: Timestamp!
+  description: String
+  excerpt: String
+  gallery: [File!]!
+  id: ID!
+  seoDescription: String
+  seoTitle: String
+  slug: String!
+  status: String!
+  title: String!
+  updatedAt: Timestamp!
+  labels: [Label!]!
+}
+
+type PageMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreatePageInput!): ID!
+  update(input: UpdatePageInput!): Boolean!
+  delete(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+}
+
+type PageQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: PagesInput): PagesOutput!
+  findOne(id: ID!): Page
+}
+
+input PagesInput
+  @join__type(graph: CORE)
+{
+  where: PagesWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type PagesOutput
+  @join__type(graph: CORE)
+{
+  data: [Page!]!
+  meta: CollectionMeta!
+}
+
+input PagesWhereInput
+  @join__type(graph: CORE)
+{
+  And: [PagesWhereInput!]
+  Or: [PagesWhereInput!]
+  title: FilterV2
+  createdAt: FilterV2
+  id: FilterV2
+  slug: FilterV2
+  status: FilterV2
+  translationField: FilterV2
+  updatedAt: FilterV2
+}
+
+type PaginationInfo
+  @join__type(graph: CORE)
+{
+  count: Int!
+  page: Int!
+  perPage: Int!
+  total: Int!
+  totalPages: Int!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+}
+
+type PaymentItem
+  @join__type(graph: CORE)
+{
+  amount: Int!
+  createdAt: Timestamp!
+  id: ID!
+  paymentMethod: PaymentMethod
+  status: PaymentStatusEnum!
+  meta: String
+}
+
+input PaymentItemWhereInput
+  @join__type(graph: CORE)
+{
+  And: [PaymentItemWhereInput!]
+  Or: [PaymentItemWhereInput!]
+  id: FilterV2
+  amount: FilterV2
+  createdAt: FilterV2
+  orderId: FilterV2
+  paymentMethodId: FilterV2
+  status: FilterV2
+}
+
+type PaymentMethod
+  @join__type(graph: CORE)
+{
+  code: String!
+  name: String!
+  service: PaymentService!
+}
+
+type PaymentMethodMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreatePaymentMethodInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type PaymentMethodQuery
+  @join__type(graph: CORE)
+{
+  findMany: [PaymentMethod!]!
+  findOne(id: String!): PaymentMethod
+}
+
+input PaymentMethodWhereInput
+  @join__type(graph: CORE)
+{
+  And: [PaymentMethodWhereInput!]
+  Or: [PaymentMethodWhereInput!]
+  code: FilterV2
+  name: FilterV2
+  serviceId: FilterV2
+}
+
+type PaymentService
+  @join__type(graph: CORE)
+{
+  code: String!
+  name: String!
+  cover: File
+  methods: [PaymentMethod!]!
+}
+
+type PaymentServiceMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreatePaymentServiceInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type PaymentServiceQuery
+  @join__type(graph: CORE)
+{
+  findMany: [PaymentService!]!
+  findOne(id: String!): PaymentService
+}
+
+enum PaymentStatusEnum
+  @join__type(graph: CORE)
+{
+  PENDING @join__enumValue(graph: CORE)
+  AUTHORIZED @join__enumValue(graph: CORE)
+  CAPTURED @join__enumValue(graph: CORE)
+  PAID @join__enumValue(graph: CORE)
+  PARTIALLY_PAID @join__enumValue(graph: CORE)
+  REFUNDED @join__enumValue(graph: CORE)
+  PARTIALLY_REFUNDED @join__enumValue(graph: CORE)
+  FAILED @join__enumValue(graph: CORE)
+  CANCELLED @join__enumValue(graph: CORE)
+  VOIDED @join__enumValue(graph: CORE)
+}
+
+type Product
+  @join__type(graph: CORE, key: "id")
+{
+  createdAt: Timestamp!
+  description: String
+  excerpt: String
+  groups: [ProductGroup!]!
+  id: ID!
+  requiresShipping: Boolean
+  seoDescription: String
+  seoTitle: String
+  slug: String!
+  status: EntityStatus!
+  title: String!
+  updatedAt: Timestamp!
+  variants: [Variant!]!
+  labels: [Label!]!
+  tags: [Tag!]!
+  primaryCategory: Category
+}
+
+input ProductCategoriesWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ProductCategoriesWhereInput!]
+  Or: [ProductCategoriesWhereInput!]
+  categoryId: FilterV2
+}
+
+type ProductFeature
+  @join__type(graph: CORE)
+{
+  title: String!
+  slug: String!
+  swatch: FeatureSwatch
+  group: ProductFeatureGroup!
+  isAttribute: Boolean!
+  isOption: Boolean!
+  attributeSortIndex: Int
+  optionSortIndex: Int
+  featureId: ID!
+}
+
+type ProductFeatureGroup
+  @join__type(graph: CORE)
+{
+  id: ID!
+  slug: String!
+  title: String!
+  featureStyleType: FeatureStyleType!
+}
+
+input ProductFeatureGroupInput
+  @join__type(graph: CORE)
+{
+  id: ID
+  title: String
+  slug: String
+  featureStyleType: FeatureStyleType
+}
+
+input ProductFeatureInput
+  @join__type(graph: CORE)
+{
+  featureId: ID
+  title: String
+  slug: String
+  swatch: FeatureSwatchInput
+  group: ProductFeatureGroupInput
+  isAttribute: Boolean
+  isOption: Boolean
+  attributeSortIndex: Int
+  optionSortIndex: Int
+}
+
+input ProductFeaturesWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ProductFeaturesWhereInput!]
+  Or: [ProductFeaturesWhereInput!]
+  id: FilterV2
+  groupId: FilterV2
+  isAttribute: FilterV2
+  isOption: FilterV2
+}
+
+input ProductFilterV2
+  @join__type(graph: CORE)
+{
+  where: FiltersWhereInput
+  order: String
+}
+
+type ProductGroup
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String!
+  items: [ProductGroupItem!]!
+  isRequired: Boolean!
+  isMultiple: Boolean!
+  sortIndex: Int!
+}
+
+type ProductGroupItem
+  @join__type(graph: CORE)
+{
+  id: ID!
+  variant: Variant!
+  sortIndex: Int!
+  priceType: ProductGroupPriceType!
+  priceAmountValue: Int
+  pricePercentageValue: Float
+  maxQuantity: Int
+}
+
+enum ProductGroupPriceType
+  @join__type(graph: CORE)
+{
+  FREE @join__enumValue(graph: CORE)
+  BASE @join__enumValue(graph: CORE)
+  BASE_ADJUST_AMOUNT @join__enumValue(graph: CORE)
+  BASE_ADJUST_PERCENT @join__enumValue(graph: CORE)
+  BASE_OVERRIDE @join__enumValue(graph: CORE)
+}
+
+type ProductMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateProductInput!): Product!
+  createMany(input: [CreateProductInput!]!): [Boolean!]!
+  update(input: UpdateProductInput!): Product!
+  delete(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+  archive(id: ID!): Boolean!
+  archiveMany(ids: [ID!]!): Boolean!
+}
+
+type ProductQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: ProductsInput): ProductsOutput!
+  findByListingFilters(filters: [CreateListingFilterInput!]!, order: String!): [Variant!]!
+  findOne(id: ID!): Product
+  findManyVariants(input: VariantsInput): VariantsOutput!
+}
+
+input ProductsInput
+  @join__type(graph: CORE)
+{
+  where: ProductWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type ProductSnapshot
+  @join__type(graph: CORE)
+{
+  schemaVersion: Int!
+  createdAt: Timestamp!
+  productId: ID!
+  variantId: ID!
+  containerId: ID!
+  title: String!
+  containerTitle: String!
+  slug: String!
+  sku: String
+  barcode: String
+  cover: File
+  gallery: [File!]!
+  price: Int!
+  oldPrice: Int
+  costPrice: Int
+  currencyCode: String!
+  weight: Float
+  weightUnit: WeightUnit
+  width: Float
+  length: Float
+  height: Float
+  dimensionUnit: DimensionUnit
+  options: [ProductSnapshotOption!]!
+  attributes: [ProductSnapshotAttribute!]!
+  groups: [ProductSnapshotGroup!]!
+  requiresShipping: Boolean!
+}
+
+type ProductSnapshotAttribute
+  @join__type(graph: CORE)
+{
+  groupId: ID!
+  groupTitle: String!
+  featureId: ID!
+  title: String!
+  sortIndex: Int!
+}
+
+type ProductSnapshotGroup
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String!
+  isRequired: Boolean!
+  isMultiple: Boolean!
+  sortIndex: Int!
+  items: [ProductSnapshotGroupItem!]!
+}
+
+type ProductSnapshotGroupItem
+  @join__type(graph: CORE)
+{
+  id: ID!
+  variantId: ID!
+  title: String!
+  sku: String
+  quantity: Int!
+  price: Int!
+  priceType: String!
+  maxQuantity: Int
+  sortIndex: Int!
+}
+
+type ProductSnapshotOption
+  @join__type(graph: CORE)
+{
+  groupId: ID!
+  groupTitle: String!
+  featureId: ID!
+  title: String!
+  swatch: ProductSnapshotSwatch
+  sortIndex: Int!
+}
+
+type ProductSnapshotSwatch
+  @join__type(graph: CORE)
+{
+  type: String!
+  color1: String
+  color2: String
+  image: File
+}
+
+type ProductsOutput
+  @join__type(graph: CORE)
+{
+  data: [Product!]!
+  meta: CollectionMeta!
+}
+
+input ProductTagsWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ProductTagsWhereInput!]
+  Or: [ProductTagsWhereInput!]
+  tagId: FilterV2
+}
+
+input ProductVariantsInput
+  @join__type(graph: CORE)
+{
+  create: [CreateProductVariantInput!]
+  update: [UpdateProductVariantInput!]
+  delete: [ID!]
+}
+
+input ProductWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ProductWhereInput!]
+  Or: [ProductWhereInput!]
+  variants: VariantWhereInput
+  categories: ProductCategoriesWhereInput
+  title: FilterV2
+  locale: FilterV2
+  translationField: FilterV2
+  createdAt: FilterV2
+  id: FilterV2
+  tags: ProductTagsWhereInput
+  trackQuantity: FilterV2
+  updatedAt: FilterV2
+  status: FilterV2
+}
+
+type Project
+  @join__type(graph: CORE)
+{
+  id: ID!
+  name: String!
+  slug: String!
+  status: ProjectStatus!
+}
+
+type ProjectInfo
+  @join__type(graph: CORE)
+{
+  name: String!
+  timezone: String!
+  country: String!
+  phoneNumber: String!
+  email: String!
+  currency: String!
+  locale: String!
+}
+
+type ProjectMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateProjectInput!): Project!
+  update(input: UpdateProjectInput!): Boolean!
+  delete(id: ID!): Boolean!
+  updateCurrencyFormat(input: UpdateCurrencyFormatInput!): Boolean!
+  updateDefaultCurrency(input: String!): Boolean!
+  updateLocales(input: UpdateLocalesInput!): Boolean!
+  updateDefaultLocale(input: String!): Boolean!
+  createApiKey(input: CreateApiKeyInput!): String!
+  revokeApiKey(input: ID!): Boolean!
+  deleteApiKey(input: ID!): Boolean!
+}
+
+type ProjectQuery
+  @join__type(graph: CORE)
+{
+  findMany: [Project]!
+  findOne(slug: String!): Project
+  current: ProjectInfo!
+  locales: [Locale!]!
+  currencies: [Currency!]!
+  apiKeys: [ApiKey!]!
+}
+
+enum ProjectStatus
+  @join__type(graph: CORE)
+{
+  ACTIVE @join__enumValue(graph: CORE)
+  INACTIVE @join__enumValue(graph: CORE)
+}
+
+type Query
+  @join__type(graph: ADDONS)
+  @join__type(graph: CORE)
+{
+  appsQuery: AppsQuery! @join__field(graph: ADDONS)
+  cartQuery: CartQuery! @join__field(graph: CORE)
+  categoryQuery: CategoryQuery! @join__field(graph: CORE)
+  listingQuery: ListingQuery! @join__field(graph: CORE)
+  customerQuery: CustomerQuery! @join__field(graph: CORE)
+  emailProfilesQuery: EmailProfilesQuery! @join__field(graph: CORE)
+  emailSettingsQuery: EmailSettingsQuery! @join__field(graph: CORE)
+  emailTemplateQuery: EmailTemplateQuery! @join__field(graph: CORE)
+  filterQuery: FilterQuery! @join__field(graph: CORE)
+  labelQuery: LabelQuery! @join__field(graph: CORE)
+  fileQuery: FileQuery! @join__field(graph: CORE)
+  orderQuery: OrderQuery! @join__field(graph: CORE)
+  crmQuery: CrmQuery! @join__field(graph: CORE)
+  paymentMethodQuery: PaymentMethodQuery! @join__field(graph: CORE)
+  paymentServiceQuery: PaymentServiceQuery! @join__field(graph: CORE)
+  productQuery: ProductQuery! @join__field(graph: CORE)
+  projectQuery: ProjectQuery! @join__field(graph: CORE)
+  reviewQuery: ReviewQuery! @join__field(graph: CORE)
+  shippingMethodQuery: ShippingMethodQuery! @join__field(graph: CORE)
+  shippingServiceQuery: ShippingServiceQuery! @join__field(graph: CORE)
+  stockStatusQuery: StockStatusQuery! @join__field(graph: CORE)
+  linkQuery: LinkQuery! @join__field(graph: CORE)
+  menuQuery: MenuQuery! @join__field(graph: CORE)
+  pageQuery: PageQuery! @join__field(graph: CORE)
+  tagQuery: TagQuery! @join__field(graph: CORE)
+  userQuery: UserQuery! @join__field(graph: CORE)
+  translationQuery: TranslationQuery! @join__field(graph: CORE)
+}
+
+input RejectReviewInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  reason: String!
+}
+
+input ReplyToReviewInput
+  @join__type(graph: CORE)
+{
+  reviewId: ID!
+  text: String!
+}
+
+input ResetPasswordInput
+  @join__type(graph: CORE)
+{
+  email: String!
+  token: String!
+  password: String!
+}
+
+type Review
+  @join__type(graph: CORE)
+{
+  id: ID!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  status: ReviewStatus!
+  title: String!
+  message: String!
+  rating: Float!
+  displayName: String!
+  verifiedPurchase: Boolean
+  languageCode: String
+  product: Variant
+  customer: Customer
+  pros: String
+  cons: String
+  helpfulYes: Int!
+  helpfulNo: Int!
+}
+
+type ReviewMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateReviewInput!): ID!
+  edit(input: UpdateReviewInput!): Boolean!
+  approve(input: ApproveReviewInput!): Boolean!
+  reject(input: RejectReviewInput!): Boolean!
+  bulkUpdateStatus(input: BulkUpdateStatusInput!): Boolean!
+  delete(input: ID!): Boolean!
+  replyToReview(input: ReplyToReviewInput!): Boolean!
+}
+
+type ReviewQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: ReviewsInput): ReviewsOutput!
+  findOne(id: ID!): Review
+}
+
+input ReviewsInput
+  @join__type(graph: CORE)
+{
+  where: ReviewsWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type ReviewsOutput
+  @join__type(graph: CORE)
+{
+  data: [Review!]!
+  meta: CollectionMeta!
+}
+
+enum ReviewStatus
+  @join__type(graph: CORE)
+{
+  PENDING @join__enumValue(graph: CORE)
+  APPROVED @join__enumValue(graph: CORE)
+  REJECTED @join__enumValue(graph: CORE)
+}
+
+input ReviewsWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ReviewsWhereInput!]
+  Or: [ReviewsWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  updatedAt: FilterV2
+  status: FilterV2
+}
+
+type SearchMutation
+  @join__type(graph: CORE)
+{
+  keywordGroupCreate(input: KeywordGroupCreateInput!): ID!
+  keywordGroupUpdate(input: KeywordGroupUpdateInput!): Boolean!
+  keywordGroupDelete(input: KeywordGroupDeleteInput!): Boolean!
+  keywordCreate(input: KeywordCreateInput!): Boolean!
+  keywordDelete(input: KeywordDeleteInput!): Boolean!
+  linkGroupToProduct(input: GroupProductLinkInput!): Boolean!
+  unlinkGroupFromProduct(input: GroupProductLinkInput!): Boolean!
+  synonymUpsert(input: SynonymUpsertInput!): Boolean!
+  synonymDelete(input: SynonymDeleteInput!): Boolean!
+  stopWordSet(input: StopWordSetInput!): Boolean!
+  languageConfigUpsert(input: LanguageConfigInput!): Boolean!
+}
+
+input SendTestEmailInput
+  @join__type(graph: CORE)
+{
+  type: EmailTypeEnum!
+  to: String!
+}
+
+input SeoFieldsInput
+  @join__type(graph: CORE)
+{
+  title: String
+  description: String
+}
+
+type Session
+  @join__type(graph: CORE)
+{
+  user: User!
+  jwt: String!
+}
+
+type ShippingItem
+  @join__type(graph: CORE)
+{
+  createdAt: Timestamp!
+  estimatedDeliveryAt: Timestamp
+  id: ID!
+  notificationsEnabled: Boolean
+  shippingMethod: CoreShippingMethod
+  shippingPrice: Int!
+  shippingService: ShippingService
+  trackingCode: String
+  trackingData: String
+  trackingEnabled: Boolean!
+  trackingUrl: String
+}
+
+input ShippingItemWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ShippingItemWhereInput!]
+  Or: [ShippingItemWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  notificationsEnabled: FilterV2
+  estimatedDeliveryAt: FilterV2
+  fulfillmentId: FilterV2
+  orderId: FilterV2
+  shippingMethodId: FilterV2
+  shippingServiceId: FilterV2
+  trackingEnabled: FilterV2
+  trackingCode: FilterV2
+  trackingUrl: FilterV2
+}
+
+type ShippingMethodMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateShippingMethodInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type ShippingMethodQuery
+  @join__type(graph: CORE)
+{
+  findMany: [CoreShippingMethod!]!
+  findOne(id: String!): CoreShippingMethod
+}
+
+input ShippingMethodWhereInput
+  @join__type(graph: CORE)
+{
+  And: [ShippingMethodWhereInput!]
+  Or: [ShippingMethodWhereInput!]
+  code: FilterV2
+  name: FilterV2
+  serviceId: FilterV2
+}
+
+type ShippingService
+  @join__type(graph: CORE)
+{
+  code: String!
+  name: String!
+  cover: File
+  methods: [CoreShippingMethod!]!
+}
+
+type ShippingServiceMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateShippingServiceInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type ShippingServiceQuery
+  @join__type(graph: CORE)
+{
+  findMany: [ShippingService!]!
+  findOne(id: String!): ShippingService
+}
+
+input SignInInput
+  @join__type(graph: CORE)
+{
+  email: String!
+  password: String!
+}
+
+input SignUpInput
+  @join__type(graph: CORE)
+{
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  language: String!
+  timezone: String!
+}
+
+input SortRankInput
+  @join__type(graph: CORE)
+{
+  prev: String!
+  next: String!
+}
+
+input SplitFulfillmentInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  items: [SplitFulfillmentItemInput!]!
+}
+
+input SplitFulfillmentItemInput
+  @join__type(graph: CORE)
+{
+  orderItemId: ID!
+  quantity: Int!
+}
+
+type StockStatus
+  @join__type(graph: CORE)
+{
+  title: String!
+  code: String!
+}
+
+type StockStatusMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateStockStatusInput!): StockStatus!
+  update(input: UpdateStockStatusInput!): StockStatus!
+  delete(code: String!): Boolean!
+}
+
+type StockStatusQuery
+  @join__type(graph: CORE)
+{
+  findMany: [StockStatus!]!
+  findOne(code: String!): StockStatus
+}
+
+input StopWordSetInput
+  @join__type(graph: CORE)
+{
+  word: String!
+  localeCode: String!
+  isActive: Boolean!
+}
+
+input SynonymDeleteInput
+  @join__type(graph: CORE)
+{
+  term: String!
+  synonym: String!
+  localeCode: String!
+}
+
+input SynonymUpsertInput
+  @join__type(graph: CORE)
+{
+  term: String!
+  synonym: String!
+  localeCode: String!
+  weight: Float!
+}
+
+type Tag
+  @join__type(graph: CORE)
+{
+  id: ID!
+  slug: String!
+  title: String!
+  color: String
+}
+
+type TagMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateTagInput!): ID!
+  update(input: UpdateTagInput!): Boolean!
+}
+
+type TagQuery
+  @join__type(graph: CORE)
+{
+  findMany(input: TagsInput): TagsOutput!
+  findOne(id: ID!): Tag
+}
+
+input TagsInput
+  @join__type(graph: CORE)
+{
+  where: TagWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type TagsOutput
+  @join__type(graph: CORE)
+{
+  data: [Tag!]!
+  meta: CollectionMeta!
+}
+
+input TagWhereInput
+  @join__type(graph: CORE)
+{
+  And: [TagWhereInput!]
+  Or: [TagWhereInput!]
+  id: FilterV2
+  slug: FilterV2
+}
+
+scalar Timestamp
+  @join__type(graph: CORE)
+
+type Translation
+  @join__type(graph: CORE)
+{
+  fieldValue: String!
+  fieldName: TranslationField!
+  sourceId: ID!
+  sourceType: EntityType!
+  locale: String!
+}
+
+enum TranslationField
+  @join__type(graph: CORE)
+{
+  TITLE @join__enumValue(graph: CORE)
+  DESCRIPTION_TEXT @join__enumValue(graph: CORE)
+  DESCRIPTION_HTML @join__enumValue(graph: CORE)
+  DESCRIPTION_JSON @join__enumValue(graph: CORE)
+  EXCERPT_TEXT @join__enumValue(graph: CORE)
+  SEO_TITLE @join__enumValue(graph: CORE)
+  SEO_DESCRIPTION @join__enumValue(graph: CORE)
+}
+
+type TranslationMutation
+  @join__type(graph: CORE)
+{
+  create(input: CreateTranslationInput!): Translation!
+  update(input: UpdateTranslationInput!): Translation!
+  updateMany(input: [UpdateTranslationInput!]!): Boolean!
+}
+
+type TranslationQuery
+  @join__type(graph: CORE)
+{
+  findMany(where: TranslationWhereInput!): [Translation!]!
+}
+
+input TranslationWhereInput
+  @join__type(graph: CORE)
+{
+  And: [TranslationWhereInput!]
+  Or: [TranslationWhereInput!]
+  fieldValue: FilterV2
+  fieldName: FilterV2
+  sourceId: FilterV2
+  sourceType: FilterV2
+  locale: FilterV2
+}
+
+scalar Uint
+  @join__type(graph: CORE)
+
+enum UnitSystem
+  @join__type(graph: CORE)
+{
+  IMPERIAL @join__enumValue(graph: CORE)
+  METRIC @join__enumValue(graph: CORE)
+}
+
+input UpdateAdminNoteInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  adminNote: String
+}
+
+input UpdateCategoryInput
+  @join__type(graph: CORE)
+{
+  children: [ID]
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  id: ID!
+  includeChildrenProducts: Boolean
+  listingFilters: [CreateListingFilterInput!]
+  listingOrderBy: ListingSort
+  listingOrderByStatus: Boolean
+  listingType: ListingType
+  parentId: ID
+  products: [ID!]
+  seo: SeoFieldsInput
+  slug: String
+  status: String
+  title: String
+  labels: [ID!]
+  tags: [ID!]
+}
+
+input UpdateCategoryProductInput
+  @join__type(graph: CORE)
+{
+  categoryId: ID!
+  productId: ID!
+  afterId: ID
+}
+
+input UpdateCurrencyFormatInput
+  @join__type(graph: CORE)
+{
+  code: String!
+  decimalPlaces: Int
+  symbolLeft: String
+  symbolRight: String
+  decimalSeparator: String
+  thousandSeparator: String
+}
+
+input UpdateCustomerInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  email: String
+  language: String
+  firstName: String
+  isVerified: Boolean
+  lastName: String
+  phone: String
+  password: String
+}
+
+input UpdateEmailInput
+  @join__type(graph: CORE)
+{
+  email: String!
+}
+
+input UpdateEmailProfilesInput
+  @join__type(graph: CORE)
+{
+  host: String
+  port: Int
+  username: String
+  password: String
+  sortIndex: Int
+}
+
+input UpdateEmailSettingsInput
+  @join__type(graph: CORE)
+{
+  from: String
+  replyTo: String
+}
+
+input UpdateEmailTemplateInput
+  @join__type(graph: CORE)
+{
+  template: String
+  subject: String
+  id: ID!
+}
+
+input UpdateFileInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  driver: FileDriver!
+  name: String!
+  url: String
+  file: Upload!
+}
+
+input UpdateFilterInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String
+  isActive: Boolean
+  sortIndex: Int
+  type: FilterType
+}
+
+input UpdateFulfillmentStatusInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  status: FulfillmentStatusEnum!
+  comment: String
+}
+
+input UpdateImageInput
+  @join__type(graph: CORE)
+{
+  image: ID!
+}
+
+input UpdateLabelInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  name: String
+  slug: String
+  colorHex: String
+}
+
+input UpdateLinkInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String
+  slug: String
+  type: MenuNodeType
+  entryId: ID
+  parentId: ID
+  sortIndex: Int
+}
+
+input UpdateLocaleInput
+  @join__type(graph: CORE)
+{
+  isActive: Boolean!
+  code: String!
+}
+
+input UpdateLocalesInput
+  @join__type(graph: CORE)
+{
+  create: [CreateLocaleInput!]!
+  update: [UpdateLocaleInput!]!
+  delete: [String!]!
+}
+
+input UpdateMenuInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String
+  items: [UpdateLinkInput!]
+  slug: String
+  status: EntityStatus
+}
+
+input UpdateOrderCurrencyInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  currency: OrderCurrencyInput!
+}
+
+input UpdateOrderCustomerInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  customerId: ID!
+}
+
+input UpdateOrderInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  payment: OrderPaymentInfoInput
+  shipping: OrderShippingInfoInput
+}
+
+input UpdateOrderItemInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  quantity: Int
+  productCostPrice: Int
+  weight: WeightInput
+}
+
+input UpdateOrderLabelsInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  labels: [ID!]
+}
+
+input UpdateOrderStatusInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  status: OrderStatusEnum!
+  comment: String
+}
+
+input UpdateOrderTagsInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  tags: [ID!]
+  labels: [ID!]
+}
+
+input UpdatePageInput
+  @join__type(graph: CORE)
+{
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  id: ID!
+  seo: SeoFieldsInput
+  slug: String
+  status: String
+  title: String
+  labels: [ID!]
+}
+
+input UpdatePasswordInput
+  @join__type(graph: CORE)
+{
+  password: String!
+}
+
+input UpdatePaymentStatusInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  status: PaymentStatusEnum!
+  comment: String
+}
+
+input UpdatePhoneNumberInput
+  @join__type(graph: CORE)
+{
+  phoneNumber: String!
+}
+
+input UpdateProductGroupInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String
+  items: UpdateProductGroupItemsInput
+  isMultiple: Boolean
+  isRequired: Boolean
+  sortIndex: Int
+}
+
+input UpdateProductGroupItemInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  sortIndex: Int
+  priceType: ProductGroupPriceType
+  priceAmountValue: Int
+  pricePercentageValue: Float
+  maxQuantity: Int
+}
+
+input UpdateProductGroupItemsInput
+  @join__type(graph: CORE)
+{
+  create: [CreateProductGroupItemInput!]
+  update: [UpdateProductGroupItemInput!]
+  delete: [ID!]
+}
+
+input UpdateProductGroupsInput
+  @join__type(graph: CORE)
+{
+  create: [CreateProductGroupInput!]
+  update: [UpdateProductGroupInput!]
+  delete: [ID!]
+}
+
+input UpdateProductInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  requiresShipping: Boolean
+  title: String
+  description: DescriptionFieldsInput
+  seo: SeoFieldsInput
+  excerpt: String
+  slug: String
+  tags: [ID!]
+  labels: [ID!]
+  variants: ProductVariantsInput
+  groups: UpdateProductGroupsInput
+  status: EntityStatus
+  primaryCategory: ID
+}
+
+input UpdateProductVariantInput
+  @join__type(graph: CORE)
+{
+  barcode: String
+  title: String
+  costPrice: Int
+  coverId: ID
+  categories: [ID!]
+  features: [ProductFeatureInput!]
+  gallery: [ID!]
+  id: ID!
+  oldPrice: Int
+  inListing: Boolean
+  price: Int
+  sku: String
+  slug: String
+  variantSortIndex: Int
+  stockStatus: String
+  weight: Float
+  weightUnit: WeightUnit
+  width: Float
+  length: Float
+  height: Float
+  dimensionUnit: DimensionUnit
+}
+
+input UpdateProfileInput
+  @join__type(graph: CORE)
+{
+  firstName: String
+  lastName: String
+  language: String
+  timezone: String
+}
+
+input UpdateProjectInput
+  @join__type(graph: CORE)
+{
+  name: String
+  phoneNumber: String
+  email: String
+  country: String
+  timezone: String
+  weightUnit: WeightUnit
+  unitSystem: UnitSystem
+}
+
+input UpdateReviewInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  rating: Float
+  title: String
+  message: String
+  pros: String
+  cons: String
+  images: [ID!]
+  status: ReviewStatus
+  displayName: String
+  productId: ID
+  customerId: ID
+}
+
+input UpdateShippingItemInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  estimatedDeliveryAt: Timestamp
+  notificationsEnabled: Boolean
+  shippingMethodId: String
+  shippingPrice: Int
+  trackingCode: String
+  trackingData: String
+  trackingEnabled: Boolean
+  trackingUrl: String
+}
+
+input UpdateStockStatusInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  code: String
+  title: String
+  isAvailable: Boolean
+}
+
+input UpdateTagInput
+  @join__type(graph: CORE)
+{
+  id: ID!
+  title: String
+  slug: String
+  color: String
+}
+
+input UpdateTranslationInput
+  @join__type(graph: CORE)
+{
+  sourceId: ID!
+  sourceType: EntityType!
+  locale: String!
+  fieldValue: String!
+  fieldName: TranslationField!
+}
+
+scalar Upload
+  @join__type(graph: CORE)
+
+type User
+  @join__type(graph: CORE)
+{
+  createdAt: Timestamp!
+  tenantId: ID!
+  email: String!
+  firstName: String!
+  id: String!
+  isReady: Boolean!
+  isVerified: Boolean!
+  language: String!
+  lastName: String!
+  phoneNumber: String
+  timezone: String!
+  updatedAt: Timestamp!
+}
+
+type UserMutation
+  @join__type(graph: CORE)
+{
+  createProfile(input: CreateProfileInput!): Boolean!
+  signIn(input: SignInInput!): Session!
+  googleSignIn(token: String!): Session!
+  signUp(input: SignUpInput!): Session!
+  verifyEmail(input: VerifyEmailInput!): Boolean!
+  forgotPassword(input: ForgotPasswordInput!): Boolean!
+  resetPassword(input: ResetPasswordInput!): Boolean!
+  updatePassword(input: UpdatePasswordInput!): Boolean!
+  updateProfile(input: UpdateProfileInput!): Boolean!
+  updateEmail(input: UpdateEmailInput!): Boolean!
+  updatePhoneNumber(input: UpdatePhoneNumberInput!): Boolean!
+  invite(input: InviteInput!): Boolean
+  updateImage(input: UpdateImageInput!): Boolean!
+  delete: Boolean!
+}
+
+type UserQuery
+  @join__type(graph: CORE)
+{
+  me: User!
+}
+
+scalar Uuid
+  @join__type(graph: CORE)
+
+type Variant
+  @join__type(graph: CORE)
+{
+  barcode: String
+  categories: [Category!]!
+  containerId: ID!
+  containerTitle: String!
+  costPrice: Int
+  cover: File
+  createdAt: Timestamp!
+  features: [ProductFeature!]!
+  gallery: [File!]!
+  id: ID!
+  inListing: Boolean
+  listingSortIndex: String
+  oldPrice: Int
+  price: Int!
+  sku: String
+  slug: String!
+  stockStatus: String!
+  title: String!
+  updatedAt: Timestamp!
+  variantSortIndex: Int!
+  weight: Float
+  weightUnit: WeightUnit
+  width: Float
+  length: Float
+  height: Float
+  dimensionUnit: DimensionUnit
+}
+
+input VariantsInput
+  @join__type(graph: CORE)
+{
+  where: VariantWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type VariantsOutput
+  @join__type(graph: CORE)
+{
+  data: [Variant!]!
+  meta: CollectionMeta!
+}
+
+input VariantWhereInput
+  @join__type(graph: CORE)
+{
+  And: [VariantWhereInput!]
+  Or: [VariantWhereInput!]
+  title: FilterV2
+  createdAt: FilterV2
+  features: ProductFeaturesWhereInput
+  id: FilterV2
+  oldPrice: FilterV2
+  container: ProductWhereInput
+  containerId: FilterV2
+  price: FilterV2
+  qnt: FilterV2
+  sku: FilterV2
+  slug: FilterV2
+  stockStatus: FilterV2
+  updatedAt: FilterV2
+  categoryId: FilterV2
+}
+
+input VerifyEmailInput
+  @join__type(graph: CORE)
+{
+  email: String!
+  token: String!
+}
+
+type Weight
+  @join__type(graph: CORE)
+{
+  weight: Float!
+  unit: WeightUnit!
+}
+
+input WeightInput
+  @join__type(graph: CORE)
+{
+  weight: Float!
+  unit: WeightUnit!
+}
+
+enum WeightUnit
+  @join__type(graph: CORE)
+{
+  GR @join__enumValue(graph: CORE)
+  KG @join__enumValue(graph: CORE)
+  LB @join__enumValue(graph: CORE)
+  OZ @join__enumValue(graph: CORE)
+}

@@ -1,0 +1,257 @@
+"""
+A single item in a checkout.
+"""
+type CheckoutLine implements Node {
+  """
+  Global unique identifier for the checkout line.
+  """
+  id: ID!
+
+  """
+  Title of the purchasable.
+  """
+  title: String!
+
+  """
+  SKU of the purchasable.
+  """
+  sku: String
+
+  """
+  Image URL of the purchasable.
+  """
+  imageSrc: String
+
+  """
+  Quantity of the item being purchased.
+  """
+  quantity: Int!
+
+  """
+  Cost calculations for this checkout item.
+  """
+  cost: CheckoutLineCost!
+
+  """
+  A list of components that make up this checkout line, such as individual products in a bundle.
+  """
+  children: [CheckoutLine]!
+  """
+  ID of the purchasable.
+  """
+  purchasableId: ID!
+
+  """
+  Purchasable unit.
+  """
+  purchasable: Purchasable
+}
+
+"""
+Detailed breakdown of costs for a checkout line item
+"""
+type CheckoutLineCost {
+  """
+  The original list price per unit before any discounts.
+  """
+  compareAtUnitPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """
+  Discount amount applied to a line.
+  """
+  discountAmount: Money!
+
+  """
+  Total cost of all units before discounts.
+  """
+  subtotalAmount: Money!
+
+  """
+  Total tax amount applied to the checkout line.
+  """
+  taxAmount: Money!
+
+  """
+  Total cost of this line (all units), after discounts and taxes.
+  """
+  totalAmount: Money!
+}
+
+"""
+Input data for a single item in the checkout.
+"""
+input CheckoutLineInput {
+  """
+  Quantity of the product in the checkout.
+  """
+  quantity: Int!
+  """
+  ID of the product to add or update.
+  """
+  purchasableId: ID!
+  """
+  ID of the purchasable snapshot to add or update.
+  """
+  purchasableSnapshot: PurchasableSnapshotInput
+}
+
+"""
+Input data for adding an item to an existing checkout.
+"""
+input CheckoutLinesAddInput {
+  """
+  ID of the checkout.
+  """
+  checkoutId: ID!
+  """
+  List of checkout items to add.
+  """
+  lines: [CheckoutLineInput!]!
+}
+
+"""
+Input data for adding an item to an existing checkout line.
+"""
+input CheckoutLinesLineAddInput {
+  """
+  ID of the purchasable to add.
+  """
+  purchasableId: ID!
+  """
+  Quantity to add; must be greater than 0.
+  """
+  quantity: Int!
+}
+
+"""
+Input data for updating the quantity of a specific checkout item.
+"""
+input CheckoutLinesUpdateInput {
+  """
+  ID of the checkout.
+  """
+  checkoutId: ID!
+  """
+  List of checkout items to update.
+  """
+  lines: [CheckoutLineUpdateInput!]!
+}
+
+"""
+Input data for updating the quantity of a specific checkout item.
+"""
+input CheckoutLineUpdateInput {
+  """
+  ID of the checkout item to update.
+  """
+  lineId: ID!
+  """
+  New quantity for the checkout item.
+  If set to 0, the item will be removed.
+  """
+  quantity: Int!
+}
+
+"""
+Input data for removing one or more items from the checkout.
+"""
+input CheckoutLinesDeleteInput {
+  """
+  ID of the checkout.
+  """
+  checkoutId: ID!
+  """
+  IDs of the lines to remove.
+  """
+  lineIds: [ID!]!
+}
+
+"""
+Input data for clearing all items from a checkout.
+"""
+input CheckoutLinesClearInput {
+  """
+  ID of the checkout to clear.
+  """
+  checkoutId: ID!
+}
+
+"""
+Payload returned after adding an item to the checkout.
+"""
+type CheckoutLinesAddPayload {
+  """
+  The updated checkout.
+  """
+  checkout: Checkout
+  """
+  List of field-specific or general errors.
+  """
+  errors: [CheckoutFieldError!]
+}
+
+"""
+Payload returned after updating a checkout item's quantity.
+"""
+type CheckoutLinesUpdatePayload {
+  """
+  The updated checkout.
+  """
+  checkout: Checkout
+  """
+  List of field-specific or general errors.
+  """
+  errors: [CheckoutFieldError!]
+}
+
+"""
+Payload returned after removing an item from the checkout.
+"""
+type CheckoutLinesDeletePayload {
+  """
+  The updated checkout.
+  """
+  checkout: Checkout
+  """
+  List of field-specific or general errors.
+  """
+  errors: [CheckoutFieldError!]
+}
+
+"""
+Payload returned after clearing all items from the checkout.
+"""
+type CheckoutLinesClearPayload {
+  """
+  The updated (now empty) checkout.
+  """
+  checkout: Checkout
+  """
+  List of field-specific or general errors.
+  """
+  errors: [CheckoutFieldError!]
+}
+
+input PurchasableSnapshotInput {
+  """
+  SKU of the purchasable snapshot.
+  """
+  sku: String
+  """
+  Title of the purchasable snapshot.
+  """
+  title: String!
+  """
+  Image URL of the purchasable snapshot.
+  """
+  imageUrl: String
+  """
+  JSON data of the purchasable snapshot.
+  """
+  data: JSON
+}

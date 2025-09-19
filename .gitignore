@@ -1,0 +1,13 @@
+.cursor/
+.vscode/!tasks.json
+.vscode/!settings.json
+.env
+*/.env
+postgres-data
+node_modules/
+uploads/
+/client/
+.DS_Store
+.volumes/
+libs/
+dist/
