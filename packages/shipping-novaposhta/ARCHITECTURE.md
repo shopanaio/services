@@ -18,7 +18,7 @@ Manifest:
 Slot config (example):
 ```
 {
-  "configVersion": "0.1.0",
+  "configVersion": "0.0.1",
   "baseUrl": "https://api.novaposhta.ua/v2.0/json/",
   "apiKey": { "$secret": "NP_API_KEY" },
   "senderCityRef": "00000000-0000-0000-0000-000000000000",
