@@ -4,17 +4,14 @@ import {
 } from "@src/application/usecases/useCase";
 import type { CreateOrderInput } from "@src/application/order/types";
 import type { CreateOrderCommand } from "@src/domain/order/commands";
+import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import type { OrderCreated } from "@src/domain/order/events";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
 
-export interface CreateOrderUseCaseDependencies
-  extends UseCaseDependencies {}
+export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {}
 
-export class CreateOrderUseCase extends UseCase<
-  CreateOrderInput,
-  string
-> {
+export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
   constructor(deps: CreateOrderUseCaseDependencies) {
     super(deps);
   }
@@ -26,11 +23,15 @@ export class CreateOrderUseCase extends UseCase<
     const id = uuidv7();
     const streamId = this.streamNames.buildOrderStreamNameFromId(id);
 
+    // TODO: get checkout snapshot from checkout service
+    const checkoutSnapshot = {} as CheckoutSnapshot;
+
     const command: CreateOrderCommand = {
       type: "order.create",
       data: {
         currencyCode: businessInput.currencyCode,
         idempotencyKey: businessInput.idempotencyKey,
+        checkoutSnapshot,
       },
       metadata: this.createCommandMetadata(id, context),
     };
