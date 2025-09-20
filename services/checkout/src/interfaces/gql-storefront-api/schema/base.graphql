@@ -11,6 +11,3 @@ extend schema
       "@inaccessible"
     ]
   )
-
-scalar BigInt
-scalar JSON

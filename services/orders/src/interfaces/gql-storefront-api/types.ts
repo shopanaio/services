@@ -438,6 +438,11 @@ export type ApiCountryCode =
   /** Zimbabwe */
   | 'ZW';
 
+export type ApiCreateOrderInput = {
+  /** ID of the checkout. */
+  checkoutId: Scalars['ID']['input'];
+};
+
 /** Currency codes according to ISO 4217 */
 export type ApiCurrencyCode =
   /** 2 decimals — UAE Dirham (United Arab Emirates) */
@@ -769,6 +774,11 @@ export type ApiMoney = {
   currencyCode: ApiCurrencyCode;
 };
 
+export type ApiMutation = {
+  __typename?: 'Mutation';
+  orderMutation: ApiOrderMutation;
+};
+
 export type ApiNode = {
   id: Scalars['ID']['output'];
 };
@@ -833,6 +843,16 @@ export type ApiOrderLineCost = {
   unitCompareAtPrice: ApiMoney;
   /** The current price per unit before discounts are applied (may differ from compareAt price if on sale). */
   unitPrice: ApiMoney;
+};
+
+export type ApiOrderMutation = {
+  __typename?: 'OrderMutation';
+  orderCreate: ApiOrder;
+};
+
+
+export type ApiOrderMutationOrderCreateArgs = {
+  input: ApiCreateOrderInput;
 };
 
 export type ApiOrderStatus =
@@ -961,6 +981,7 @@ export type ApiResolversTypes = {
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CountryCode: ApiCountryCode;
+  CreateOrderInput: ApiCreateOrderInput;
   CurrencyCode: ApiCurrencyCode;
   Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
@@ -970,11 +991,13 @@ export type ApiResolversTypes = {
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   Money: ResolverTypeWrapper<ApiMoney>;
+  Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
   Order: ResolverTypeWrapper<Omit<ApiOrder, 'lines'> & { lines: Array<ApiResolversTypes['OrderLine']> }>;
   OrderCost: ResolverTypeWrapper<ApiOrderCost>;
   OrderLine: ResolverTypeWrapper<Omit<ApiOrderLine, 'cost' | 'purchasable'> & { cost: ApiResolversTypes['OrderLineCost'], purchasable: ApiResolversTypes['Purchasable'] }>;
   OrderLineCost: ResolverTypeWrapper<ApiOrderLineCost>;
+  OrderMutation: ResolverTypeWrapper<Omit<ApiOrderMutation, 'orderCreate'> & { orderCreate: ApiResolversTypes['Order'] }>;
   OrderStatus: ApiOrderStatus;
   Purchasable: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['Purchasable']>;
   PurchasableSnapshot: ResolverTypeWrapper<ApiPurchasableSnapshot>;
@@ -995,6 +1018,7 @@ export type ApiResolversTypes = {
 export type ApiResolversParentTypes = {
   BigInt: Scalars['BigInt']['output'];
   Boolean: Scalars['Boolean']['output'];
+  CreateOrderInput: ApiCreateOrderInput;
   Cursor: Scalars['Cursor']['output'];
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
@@ -1003,11 +1027,13 @@ export type ApiResolversParentTypes = {
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
   Money: ApiMoney;
+  Mutation: {};
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
   Order: Omit<ApiOrder, 'lines'> & { lines: Array<ApiResolversParentTypes['OrderLine']> };
   OrderCost: ApiOrderCost;
   OrderLine: Omit<ApiOrderLine, 'cost' | 'purchasable'> & { cost: ApiResolversParentTypes['OrderLineCost'], purchasable: ApiResolversParentTypes['Purchasable'] };
   OrderLineCost: ApiOrderLineCost;
+  OrderMutation: Omit<ApiOrderMutation, 'orderCreate'> & { orderCreate: ApiResolversParentTypes['Order'] };
   Purchasable: ApiResolversUnionTypes<ApiResolversParentTypes>['Purchasable'];
   PurchasableSnapshot: ApiPurchasableSnapshot;
   Query: {};
@@ -1137,6 +1163,10 @@ export type ApiMoneyResolvers<ContextType = GraphQLContext, ParentType extends A
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ApiMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Mutation'] = ApiResolversParentTypes['Mutation']> = {
+  orderMutation: Resolver<ApiResolversTypes['OrderMutation'], ParentType, ContextType>;
+};
+
 export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
   __resolveType: TypeResolveFn<null, ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
@@ -1178,6 +1208,11 @@ export type ApiOrderLineCostResolvers<ContextType = GraphQLContext, ParentType e
   totalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   unitCompareAtPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   unitPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiOrderMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderMutation'] = ApiResolversParentTypes['OrderMutation']> = {
+  orderCreate: Resolver<ApiResolversTypes['Order'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCreateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1238,11 +1273,13 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   Email: GraphQLScalarType;
   JSON: GraphQLScalarType;
   Money: ApiMoneyResolvers<ContextType>;
+  Mutation: ApiMutationResolvers<ContextType>;
   Node: ApiNodeResolvers<ContextType>;
   Order: ApiOrderResolvers<ContextType>;
   OrderCost: ApiOrderCostResolvers<ContextType>;
   OrderLine: ApiOrderLineResolvers<ContextType>;
   OrderLineCost: ApiOrderLineCostResolvers<ContextType>;
+  OrderMutation: ApiOrderMutationResolvers<ContextType>;
   Purchasable: ApiPurchasableResolvers<ContextType>;
   PurchasableSnapshot: ApiPurchasableSnapshotResolvers<ContextType>;
   Query: ApiQueryResolvers<ContextType>;

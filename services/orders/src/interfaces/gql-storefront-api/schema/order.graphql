@@ -120,3 +120,18 @@ extend type User @key(fields: "id") {
   """
   orders: [Order!]!
 }
+
+input CreateOrderInput {
+  """
+  ID of the checkout.
+  """
+  checkoutId: ID!
+}
+
+type OrderMutation {
+  orderCreate(input: CreateOrderInput!): Order!
+}
+
+extend type Mutation {
+  orderMutation: OrderMutation!
+}

@@ -4,6 +4,8 @@ import {
   order,
   // Mutation resolvers
   orderCreate,
+  // Field resolvers
+  userOrders,
 } from "./order/index";
 
 const orderResolvers = {
@@ -18,6 +20,9 @@ const orderResolvers = {
   },
   Order: {
     // Fields totalQuantity and lines are filled in mapper from full read-model
+  },
+  User: {
+    orders: userOrders,
   },
   OrderMutation: {
     orderCreate,

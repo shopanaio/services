@@ -2,8 +2,13 @@
 import {
   // Query resolvers
   order,
+  orders,
   // Mutation resolvers
   orderCreate,
+  orderAdminNoteUpdate,
+  orderCommentAdd,
+  orderCancel,
+  orderClose,
 } from "./order/index";
 
 const orderResolvers = {
@@ -15,12 +20,17 @@ const orderResolvers = {
   },
   OrderQuery: {
     order,
+    orders,
   },
   Order: {
     // Fields totalQuantity and lines are filled in mapper from full read-model
   },
   OrderMutation: {
     orderCreate,
+    orderAdminNoteUpdate,
+    orderCommentAdd,
+    orderCancel,
+    orderClose,
   },
 } as any;
 

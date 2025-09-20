@@ -1,13 +1,14 @@
 # ---- Types of a parent subgraph ----
 
+scalar BigInt
+scalar DateTime
+scalar Decimal
+scalar Email
+scalar JSON
+
 interface Node {
   id: ID!
 }
-
-scalar DateTime
-scalar Cursor
-scalar Decimal # String: "10.99", "10", "10.999"
-scalar Email
 
 type Money {
   """

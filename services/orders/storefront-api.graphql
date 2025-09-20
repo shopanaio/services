@@ -1211,6 +1211,15 @@ type OrderLine {
   updatedAt: DateTime!
 }
 
+input CreateOrderInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+}
+
+type OrderMutation {
+  orderCreate(input: CreateOrderInput!): Order!
+}
+
 interface Node {
   id: ID!
 }
@@ -1282,4 +1291,8 @@ type User {
 
   """List of the user's orders."""
   orders: [Order!]!
+}
+
+type Mutation {
+  orderMutation: OrderMutation!
 }
