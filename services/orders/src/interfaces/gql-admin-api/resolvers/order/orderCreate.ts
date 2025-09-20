@@ -2,11 +2,11 @@ import { App } from "@src/ioc/container";
 import type {
   ApiOrderMutationOrderCreateArgs,
   ApiOrderMutation,
-} from "@src/interfaces/gql-storefront-api/types";
-import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
+} from "@src/interfaces/gql-admin-api/types";
+import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
 import { CreateOrderDto } from "@src/application/dto/createOrder.dto";
-import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapOrderReadToApi } from "@src/interfaces/gql-storefront-api/mapper/order";
+import { fromDomainError } from "@src/interfaces/gql-admin-api/errors";
+import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
 import { createValidated } from "@src/utils/validation";
 
 /**

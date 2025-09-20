@@ -2,8 +2,8 @@ import { App } from "@src/ioc/container";
 import type {
   ApiOrderQueryOrderArgs,
   ApiOrderQuery,
-} from "@src/interfaces/gql-storefront-api/types";
-import { mapOrderReadToApi } from "@src/interfaces/gql-storefront-api/mapper/order";
+} from "@src/interfaces/gql-admin-api/types";
+import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
 
 /**
  * order(id: ID!): Order

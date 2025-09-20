@@ -5,21 +5,43 @@ interface Node {
 }
 
 scalar DateTime
-scalar Cursor
-scalar Decimal # String: "10.99", "10", "10.999"
-scalar Email
 
-type Money {
-  """
-  The amount of money
-  """
-  amount: Decimal! @shareable
-  """
-  The currency code
-  """
-  currencyCode: CurrencyCode! @shareable
+extend type ApiKey @key(fields: "id") {
+  id: ID! @external
 }
 
 extend type User @key(fields: "id") {
   id: ID! @external
+}
+
+extend type Customer @key(fields: "id") {
+  id: ID! @external
+}
+
+extend type Label @key(fields: "id") {
+  id: ID! @external
+}
+
+extend type Tag @key(fields: "id") {
+  id: ID! @external
+}
+
+enum WeightUnit {
+  GR
+  KG
+  LB
+  OZ
+}
+
+type Weight {
+  weight: Float!
+  unit: WeightUnit!
+}
+
+type CollectionMeta {
+  page: Int! @shareable
+  pageSize: Int! @shareable
+  count: Int! @shareable
+  total: Int! @shareable
+  pageCount: Int! @shareable
 }

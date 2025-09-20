@@ -5,7 +5,7 @@ import { download } from "./download.js";
 
 const run = async () => {
   try {
-    await download("http://127.0.0.1:8084/graphql", "schema-order.graphql");
+    await download("http://127.0.0.1:10003/graphql", "admin-api.graphql");
     // Core schema is now maintained in @shopana/platform-api; skip downloading here
     await generate();
   } catch (e) {

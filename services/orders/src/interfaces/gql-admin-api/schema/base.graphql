@@ -12,5 +12,6 @@ extend schema
     ]
   )
 
+scalar Email
 scalar BigInt
 scalar JSON

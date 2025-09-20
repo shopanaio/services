@@ -1,5 +1,5 @@
 type PurchasableSnapshot {
-  snapshot: JSON!
+  snapshot: JSON! @shareable
 }
 
 union Purchasable = PurchasableSnapshot

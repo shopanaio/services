@@ -4,24 +4,6 @@ import {
   order,
   // Mutation resolvers
   orderCreate,
-  orderLinesAdd,
-  orderLinesUpdate,
-  orderLinesDelete,
-  orderLinesClear,
-  orderCustomerIdentityUpdate,
-  orderCustomerNoteUpdate,
-  orderLanguageCodeUpdate,
-  orderCurrencyCodeUpdate,
-  orderDeliveryAddressesAdd,
-  orderDeliveryAddressesRemove,
-  orderPromoCodeAdd,
-  orderPromoCodeRemove,
-  orderDeliveryAddressesUpdate,
-  orderDeliveryMethodUpdate,
-  // OrderDeliveryGroup resolvers
-  selectedDeliveryMethod,
-  estimatedCost,
-  deliveryMethods,
 } from "./order/index";
 
 const orderResolvers = {
@@ -37,27 +19,8 @@ const orderResolvers = {
   Order: {
     // Fields totalQuantity and lines are filled in mapper from full read-model
   },
-  OrderDeliveryGroup: {
-    selectedDeliveryMethod,
-    estimatedCost,
-    deliveryMethods,
-  },
   OrderMutation: {
     orderCreate,
-    orderLinesAdd,
-    orderLinesUpdate,
-    orderLinesDelete,
-    orderLinesClear,
-    orderCustomerIdentityUpdate,
-    orderCustomerNoteUpdate,
-    orderLanguageCodeUpdate,
-    orderCurrencyCodeUpdate,
-    orderDeliveryAddressesAdd,
-    orderDeliveryAddressesRemove,
-    orderPromoCodeAdd,
-    orderPromoCodeRemove,
-    orderDeliveryAddressesUpdate,
-    orderDeliveryMethodUpdate,
   },
 } as any;
 

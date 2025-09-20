@@ -1,182 +1,149 @@
-"""
-All monetary calculations related to the order.
-"""
-type OrderCost {
-  """
-  Total value of items before any discounts.
-  """
-  subtotalAmount: Money!
-
-  """
-  Total discount from both item-level and order-level promotions.
-  """
-  totalDiscountAmount: Money!
-
-  """
-  Total tax amount applied to the order.
-  """
-  totalTaxAmount: Money!
-
-  """
-  Total shipping cost (only MERCHANT_COLLECTED payments).
-  """
-  totalShippingAmount: Money!
-
-  """
-  Final amount to be paid, including item cost, shipping, and taxes.
-  """
-  totalAmount: Money!
+enum OrderStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  CANCELLED
 }
+
+enum OrderCancelReason {
+  CUSTOMER
+  FRAUD
+  INVENTORY
+  STAFF
+  OTHER
+}
+
+enum OrderEventType {
+  ORDER_CREATED
+}
+
+union OrderActor = User | ApiKey
 
 type OrderCustomerIdentity {
-  """
-  Country code of the customer.
-  """
-  countryCode: CountryCode
-
-  """
-  Customer associated with the order.
-  """
-  customer: User
-
-  """
-  Customer email address associated with the order.
-  """
+  customer: Customer
   email: Email
-
-  """
-  Phone number of the customer.
-  """
   phone: String
+  countryCode: CountryCode
+  data: JSON
 }
 
-"""
-A order with multiple items.
-"""
-type Order implements Node @key(fields: "id") {
-  """
-  A globally-unique ID.
-  """
+type Order {
   id: ID!
-
-  """
-  When this order was first created.
-  """
-  createdAt: DateTime!
-
-  """
-  When this order was last updated.
-  """
-  updatedAt: DateTime!
-
-  """
-  All cost calculations for the order.
-  """
-  cost: OrderCost!
-
-  """
-  Customer identity associated with the order.
-  """
+  createdBy: OrderActor!
+  status: OrderStatus!
+  number: BigInt!
+  # Currency
+  currencyCode: String!
+  # Amounts
+  subtotal: BigInt!
+  shippingTotal: BigInt
+  discountTotal: BigInt
+  taxTotal: BigInt
+  grandTotal: BigInt!
+  # customerId: ID
   customerIdentity: OrderCustomerIdentity!
-
-  """
-  Customer note or special instructions for the order.
-  """
+  customerStatistic: OrderCustomerStatistic!
+  adminNote: String
   customerNote: String
-
-  """
-  Quantity of the item being purchased.
-  """
-  totalQuantity: Int!
-
-  """
-  List of items in the order (paginated).
-  """
+  # Order Logs
+  events: [OrderEvent!]!
+  # Tags
+  tags: [Tag!]!
+  labels: [Label!]!
+  # Order items
   lines: [OrderLine!]!
-
-  """
-  Notifications for the user regarding the order.
-  """
-  notifications: [OrderNotification!]!
-
-  """
-  Delivery groups.
-  """
-  deliveryGroups: [OrderDeliveryGroup!]!
-
-  """
-  Applied promo codes for the order.
-  """
-  appliedPromoCodes: [OrderPromoCode!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
 }
 
-"""
-Input data for creating a new order.
-"""
-input OrderCreateInput {
-  """
-  Unique idempotency key for the order.
-  """
-  idempotency: String!
-  """
-  Source of sales for the order.
-  """
-  externalSource: String
-  """
-  ID of the external source for the order.
-  """
-  externalId: String
-  """
-  Locale code for the order. ISO 639-1 (2 letters, e.g., "en", "ru")
-  """
-  localeCode: String!
-  """
-  Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
-  """
-  currencyCode: CurrencyCode!
-  """
-  Initial items to add to the new order.
-  """
-  items: [OrderLineInput!]!
+type OrderLine {
+  id: ID!
+  quantity: Int!
+  unitPrice: Int!
+  unitComparePrice: Int!
+  discountAmount: Int!
+  subtotalAmount: Int!
+  taxAmount: Int
+  totalAmount: Int!
+  purchasableId: ID!
+  purchasable: Purchasable!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-type OrderFieldError {
-  """
-  The field that caused the error.
-  """
-  field: String!
-  """
-  The error message.
-  """
-  message: String!
+type OrderDeliveryAddress {
+  id: ID!
+  address1: String!
+  address2: String
+  city: String!
+  countryCode: CountryCode!
+  provinceCode: String
+  postalCode: String
+  email: Email
+  firstName: String
+  lastName: String
+  data: JSON
 }
 
-"""
-Payload returned after creating a order.
-"""
-type OrderCreatePayload {
-  """
-  The newly created order.
-  """
-  order: Order
-  """
-  List of field-specific or general errors.
-  """
-  errors: [OrderFieldError!]
+type OrderCustomerStatistic {
+  totalRevenue: Int!
+  totalGuestOrders: Int!
+  totalAuthorizedOrders: Int!
+}
+
+type OrderEvent {
+  id: String!
+  performedBy: OrderActor!
+  eventType: OrderEventType!
+  data: JSON
+  metadata: JSON
+  createdAt: DateTime!
+}
+
+input OrderAdminNoteUpdateInput {
+  orderId: ID!
+  note: String!
+}
+
+input OrderCommentAddInput {
+  orderId: ID!
+  comment: String!
+}
+
+input OrderCancelInput {
+  orderId: ID!
+  comment: String
+  reason: OrderCancelReason!
+}
+
+input OrderCloseInput {
+  orderId: ID!
+  comment: String
+}
+
+input OrdersInput {
+  where: JSON
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type OrdersOutput {
+  data: [Order!]!
+  meta: CollectionMeta!
 }
 
 type OrderQuery {
-  """
-  Get a order by its ID.
-  """
+  orders(input: OrdersInput): OrdersOutput!
   order(id: ID!): Order
 }
 
 type OrderMutation {
-  """
-  Creates a new order.
-  """
-  orderCreate(input: OrderCreateInput!): Order!
+  orderAdminNoteUpdate(input: OrderAdminNoteUpdateInput!): Boolean!
+  orderCommentAdd(input: OrderCommentAddInput!): Boolean!
+  orderCancel(input: OrderCancelInput!): Boolean!
+  orderClose(input: OrderCloseInput!): Boolean!
 }
 
 extend type Query {

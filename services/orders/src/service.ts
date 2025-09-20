@@ -6,21 +6,6 @@ import { App } from "@src/ioc/container";
 import { startServer } from "@src/interfaces/server/server";
 import type {
   CreateOrderInput,
-  OrderLinesAddInput,
-  OrderLinesUpdateInput,
-  OrderLinesDeleteInput,
-  OrderLinesClearInput,
-  OrderCustomerIdentityUpdateInput,
-  OrderCustomerNoteUpdateInput,
-  OrderLanguageCodeUpdateInput,
-  OrderCurrencyCodeUpdateInput,
-  OrderPromoCodeAddInput,
-  OrderPromoCodeRemoveInput,
-  OrderDeliveryAddressAddInput,
-  OrderDeliveryAddressUpdateInput,
-  OrderDeliveryAddressRemoveInput,
-  OrderDeliveryGroupAddressUpdateInput,
-  OrderDeliveryMethodUpdateInput,
   OrderContext,
 } from "@src/application/order/types";
 
@@ -82,10 +67,9 @@ const OrderService: ServiceSchema<any> = {
       this.graphqlServer = await startServer(this.broker);
       this.logger.info("GraphQL server started successfully");
 
-      this.logger.info(
-        "Order service started and ready to process requests!"
-      );
+      this.logger.info("Order service started and ready to process requests!");
     } catch (error) {
+      console.log(error);
       this.logger.error("Error during service startup:", error);
       throw error;
     }

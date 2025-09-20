@@ -9,8 +9,8 @@ import { join } from "path";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "moleculer";
-import { resolvers } from "@src/interfaces/gql-storefront-api/resolvers";
-import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
+import { resolvers } from "@src/interfaces/gql-admin-api/resolvers";
+import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
 import { config } from "@src/config";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
 
@@ -43,17 +43,15 @@ export async function startServer(broker: ServiceBroker) {
     process.cwd(),
     "src",
     "interfaces",
-    "gql-storefront-api",
+    "gql-admin-api",
     "schema",
   ];
   const storefrontSchemas = [
-    join(...schemaPath, "parent.graphql"),
     join(...schemaPath, "base.graphql"),
-    join(...schemaPath, "order.graphql"),
-    join(...schemaPath, "orderLine.graphql"),
-    join(...schemaPath, "orderDelivery.graphql"),
-    join(...schemaPath, "currency.graphql"),
     join(...schemaPath, "country.graphql"),
+    join(...schemaPath, "currency.graphql"),
+    join(...schemaPath, "order.graphql"),
+    join(...schemaPath, "parent.graphql"),
     join(...schemaPath, "purchasable.graphql"),
   ];
 
