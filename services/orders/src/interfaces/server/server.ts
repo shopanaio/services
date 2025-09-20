@@ -9,7 +9,8 @@ import { join } from "path";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "moleculer";
-import { resolvers } from "@src/interfaces/gql-admin-api/resolvers";
+import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
+import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
 import { config } from "@src/config";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
@@ -38,53 +39,103 @@ export async function startServer(broker: ServiceBroker) {
       : true,
   });
 
-  // Load GraphQL schema
-  const schemaPath = [
+  // Load GraphQL schemas for both Admin and Storefront APIs
+  const adminSchemaPath = [
     process.cwd(),
     "src",
     "interfaces",
     "gql-admin-api",
     "schema",
   ];
-  const storefrontSchemas = [
-    join(...schemaPath, "base.graphql"),
-    join(...schemaPath, "country.graphql"),
-    join(...schemaPath, "currency.graphql"),
-    join(...schemaPath, "order.graphql"),
-    join(...schemaPath, "parent.graphql"),
-    join(...schemaPath, "purchasable.graphql"),
+  const storefrontSchemaPath = [
+    process.cwd(),
+    "src",
+    "interfaces",
+    "gql-storefront-api",
+    "schema",
   ];
 
-  const modules = storefrontSchemas.map((p) => ({
+  const schemaFiles = [
+    "base.graphql",
+    "country.graphql",
+    "currency.graphql",
+    "order.graphql",
+    "parent.graphql",
+    "purchasable.graphql",
+  ];
+
+  // Admin API schemas and modules
+  const adminSchemas = schemaFiles.map(file => join(...adminSchemaPath, file));
+  const adminModules = adminSchemas.map((p) => ({
     typeDefs: gql(readFileSync(p, "utf-8")),
-    resolvers,
+    resolvers: adminResolvers,
   }));
 
-  // Create Apollo Server
-  const apollo = new ApolloServer<GraphQLContext>({
+  // Storefront API schemas and modules
+  const storefrontSchemas = schemaFiles.map(file => join(...storefrontSchemaPath, file));
+  const storefrontModules = storefrontSchemas.map((p) => ({
+    typeDefs: gql(readFileSync(p, "utf-8")),
+    resolvers: storefrontResolvers,
+  }));
+
+  // Create Apollo Servers
+  const adminApollo = new ApolloServer<GraphQLContext>({
     introspection: true,
-    schema: buildSubgraphSchema(modules),
+    schema: buildSubgraphSchema(adminModules),
     plugins: [fastifyApolloDrainPlugin(app)],
   });
 
-  await apollo.start();
+  const storefrontApollo = new ApolloServer<GraphQLContext>({
+    introspection: true,
+    schema: buildSubgraphSchema(storefrontModules),
+    plugins: [fastifyApolloDrainPlugin(app)],
+  });
+
+  await adminApollo.start();
+  await storefrontApollo.start();
 
   // Health check endpoint
   app.get("/", async (_request, reply) => {
     return reply.send({ status: "ok", service: "order" });
   });
 
-  // GraphQL route group with context middleware
-  await app.register(async function (graphqlInstance) {
+  // Admin GraphQL route group with context middleware
+  await app.register(async function (adminGraphqlInstance) {
     // Core context middleware that sets async local storage
-    await graphqlInstance.addHook(
+    await adminGraphqlInstance.addHook(
       "preHandler",
       buildCoreContextMiddleware(broker)
     );
 
-    // GraphQL endpoint with simplified context
-    await graphqlInstance.register(fastifyApollo(apollo), {
-      path: "/graphql",
+    // Admin GraphQL endpoint with simplified context
+    await adminGraphqlInstance.register(fastifyApollo(adminApollo), {
+      path: "/graphql/admin/v1",
+      context: async (request, _reply) => {
+        // Simplified context - only essential fields
+        const ctx = {
+          requestId: request.id as string,
+          apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
+          project: request.project,
+          user: null,
+          customer: request.customer,
+        } satisfies GraphQLContext;
+
+        return ctx;
+      },
+    });
+  });
+
+  // Storefront GraphQL route group with context middleware
+  await app.register(async function (storefrontGraphqlInstance) {
+    // Core context middleware that sets async local storage
+    await storefrontGraphqlInstance.addHook(
+      "preHandler",
+      buildCoreContextMiddleware(broker)
+    );
+
+    // Storefront GraphQL endpoint with simplified context
+    await storefrontGraphqlInstance.register(fastifyApollo(storefrontApollo), {
+      path: "/graphql/storefront/v1",
       context: async (request, _reply) => {
         // Simplified context - only essential fields
         const ctx = {
@@ -107,7 +158,9 @@ export async function startServer(broker: ServiceBroker) {
   });
 
   app.log.info(
-    `Order GraphQL API ready at http://localhost:${config.port}/graphql`
+    `Order GraphQL API ready:\n` +
+    `  Admin API: http://localhost:${config.port}/graphql/admin/v1\n` +
+    `  Storefront API: http://localhost:${config.port}/graphql/storefront/v1`
   );
 
   return app;

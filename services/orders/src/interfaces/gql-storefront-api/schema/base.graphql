@@ -11,7 +11,3 @@ extend schema
       "@inaccessible"
     ]
   )
-
-scalar Email
-scalar BigInt
-scalar JSON

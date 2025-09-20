@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { GraphQLContext } from '@src/interfaces/gql-admin-api/context.js';
+import { GraphQLContext } from '@src/interfaces/gql-storefront-api/context.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -17,28 +17,17 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   BigInt: { input: number; output: number; }
-  DateTime: { input: any; output: any; }
-  Email: { input: any; output: any; }
+  Cursor: { input: any; output: any; }
+  DateTime: { input: string; output: string; }
+  /** Decimal represented as integer amount and scale internally; serialized as normalized string */
+  Decimal: { input: string; output: string; }
+  Email: { input: string; output: string; }
   JSON: { input: unknown; output: unknown; }
   _Any: { input: any; output: any; }
   federation__FieldSet: { input: any; output: any; }
   federation__Policy: { input: any; output: any; }
   federation__Scope: { input: any; output: any; }
   link__Import: { input: any; output: any; }
-};
-
-export type ApiApiKey = {
-  __typename?: 'ApiKey';
-  id: Scalars['ID']['output'];
-};
-
-export type ApiCollectionMeta = {
-  __typename?: 'CollectionMeta';
-  count: Scalars['Int']['output'];
-  page: Scalars['Int']['output'];
-  pageCount: Scalars['Int']['output'];
-  pageSize: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
 };
 
 export type ApiCountryCode =
@@ -772,19 +761,12 @@ export type ApiCurrencyCode =
   /** 2 decimals — Zimbabwean Dollar (Zimbabwe) */
   | 'ZWL';
 
-export type ApiCustomer = {
-  __typename?: 'Customer';
-  id: Scalars['ID']['output'];
-};
-
-export type ApiLabel = {
-  __typename?: 'Label';
-  id: Scalars['ID']['output'];
-};
-
-export type ApiMutation = {
-  __typename?: 'Mutation';
-  orderMutation: ApiOrderMutation;
+export type ApiMoney = {
+  __typename?: 'Money';
+  /** The amount of money */
+  amount: Scalars['Decimal']['output'];
+  /** The currency code */
+  currencyCode: ApiCurrencyCode;
 };
 
 export type ApiNode = {
@@ -793,181 +775,70 @@ export type ApiNode = {
 
 export type ApiOrder = {
   __typename?: 'Order';
-  adminNote: Maybe<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  createdBy: ApiOrderActor;
-  currencyCode: Scalars['String']['output'];
-  customerIdentity: ApiOrderCustomerIdentity;
-  customerNote: Maybe<Scalars['String']['output']>;
-  customerStatistic: ApiOrderCustomerStatistic;
-  deletedAt: Maybe<Scalars['DateTime']['output']>;
-  discountTotal: Maybe<Scalars['BigInt']['output']>;
-  events: Array<ApiOrderEvent>;
-  grandTotal: Scalars['BigInt']['output'];
+  /** Cost breakdown for the order. */
+  cost: ApiOrderCost;
+  /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  labels: Array<ApiLabel>;
+  /** Order items. */
   lines: Array<ApiOrderLine>;
+  /** A unique numeric identifier for the order for use by shop owner and customer. */
   number: Scalars['BigInt']['output'];
-  shippingTotal: Maybe<Scalars['BigInt']['output']>;
+  /** Order status. */
   status: ApiOrderStatus;
-  subtotal: Scalars['BigInt']['output'];
-  tags: Array<ApiTag>;
-  taxTotal: Maybe<Scalars['BigInt']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiOrderActor = ApiApiKey | ApiUser;
-
-export type ApiOrderAdminNoteUpdateInput = {
-  note: Scalars['String']['input'];
-  orderId: Scalars['ID']['input'];
+export type ApiOrderCost = {
+  __typename?: 'OrderCost';
+  /** Total value of items before any discounts. */
+  subtotalAmount: ApiMoney;
+  /** Final amount to be paid, including item cost, shipping, and taxes. */
+  totalAmount: ApiMoney;
+  /** Total discount from both item-level and checkout-level promotions. */
+  totalDiscountAmount: ApiMoney;
+  /** Total shipping cost (only MERCHANT_COLLECTED payments). */
+  totalShippingAmount: ApiMoney;
+  /** Total tax amount applied to the checkout. */
+  totalTaxAmount: ApiMoney;
 };
-
-export type ApiOrderCancelInput = {
-  comment: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['ID']['input'];
-  reason: ApiOrderCancelReason;
-};
-
-export type ApiOrderCancelReason =
-  | 'CUSTOMER'
-  | 'FRAUD'
-  | 'INVENTORY'
-  | 'OTHER'
-  | 'STAFF';
-
-export type ApiOrderCloseInput = {
-  comment: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['ID']['input'];
-};
-
-export type ApiOrderCommentAddInput = {
-  comment: Scalars['String']['input'];
-  orderId: Scalars['ID']['input'];
-};
-
-export type ApiOrderCustomerIdentity = {
-  __typename?: 'OrderCustomerIdentity';
-  countryCode: Maybe<ApiCountryCode>;
-  customer: Maybe<ApiCustomer>;
-  data: Maybe<Scalars['JSON']['output']>;
-  email: Maybe<Scalars['Email']['output']>;
-  phone: Maybe<Scalars['String']['output']>;
-};
-
-export type ApiOrderCustomerStatistic = {
-  __typename?: 'OrderCustomerStatistic';
-  totalAuthorizedOrders: Scalars['Int']['output'];
-  totalGuestOrders: Scalars['Int']['output'];
-  totalRevenue: Scalars['Int']['output'];
-};
-
-export type ApiOrderDeliveryAddress = {
-  __typename?: 'OrderDeliveryAddress';
-  address1: Scalars['String']['output'];
-  address2: Maybe<Scalars['String']['output']>;
-  city: Scalars['String']['output'];
-  countryCode: ApiCountryCode;
-  data: Maybe<Scalars['JSON']['output']>;
-  email: Maybe<Scalars['Email']['output']>;
-  firstName: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  lastName: Maybe<Scalars['String']['output']>;
-  postalCode: Maybe<Scalars['String']['output']>;
-  provinceCode: Maybe<Scalars['String']['output']>;
-};
-
-export type ApiOrderEvent = {
-  __typename?: 'OrderEvent';
-  createdAt: Scalars['DateTime']['output'];
-  data: Maybe<Scalars['JSON']['output']>;
-  eventType: ApiOrderEventType;
-  id: Scalars['String']['output'];
-  metadata: Maybe<Scalars['JSON']['output']>;
-  performedBy: ApiOrderActor;
-};
-
-export type ApiOrderEventType =
-  | 'ORDER_CREATED';
 
 export type ApiOrderLine = {
   __typename?: 'OrderLine';
+  /** Cost breakdown for the order line. */
+  cost: ApiOrderLineCost;
+  /** Creation date. */
   createdAt: Scalars['DateTime']['output'];
-  discountAmount: Scalars['Int']['output'];
+  /** A globally-unique ID. */
   id: Scalars['ID']['output'];
+  /** Purchasable unit. */
   purchasable: ApiPurchasable;
+  /** ID of the purchasable. */
   purchasableId: Scalars['ID']['output'];
+  /** Quantity of the item being purchased. */
   quantity: Scalars['Int']['output'];
-  subtotalAmount: Scalars['Int']['output'];
-  taxAmount: Maybe<Scalars['Int']['output']>;
-  totalAmount: Scalars['Int']['output'];
-  unitComparePrice: Scalars['Int']['output'];
-  unitPrice: Scalars['Int']['output'];
+  /** Last updated date. */
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiOrderMutation = {
-  __typename?: 'OrderMutation';
-  orderAdminNoteUpdate: Scalars['Boolean']['output'];
-  orderCancel: Scalars['Boolean']['output'];
-  orderClose: Scalars['Boolean']['output'];
-  orderCommentAdd: Scalars['Boolean']['output'];
-};
-
-
-export type ApiOrderMutationOrderAdminNoteUpdateArgs = {
-  input: ApiOrderAdminNoteUpdateInput;
-};
-
-
-export type ApiOrderMutationOrderCancelArgs = {
-  input: ApiOrderCancelInput;
-};
-
-
-export type ApiOrderMutationOrderCloseArgs = {
-  input: ApiOrderCloseInput;
-};
-
-
-export type ApiOrderMutationOrderCommentAddArgs = {
-  input: ApiOrderCommentAddInput;
-};
-
-export type ApiOrderQuery = {
-  __typename?: 'OrderQuery';
-  order: Maybe<ApiOrder>;
-  orders: ApiOrdersOutput;
-};
-
-
-export type ApiOrderQueryOrderArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiOrderQueryOrdersArgs = {
-  input: InputMaybe<ApiOrdersInput>;
+export type ApiOrderLineCost = {
+  __typename?: 'OrderLineCost';
+  /** Discount amount applied to a line. */
+  discountAmount: ApiMoney;
+  /** Total cost of all units before discounts. */
+  subtotalAmount: ApiMoney;
+  /** Total tax amount applied to the checkout line. */
+  taxAmount: ApiMoney;
+  /** Total cost of this line (all units), after discounts and taxes. */
+  totalAmount: ApiMoney;
+  /** The original list price per unit before any discounts. */
+  unitCompareAtPrice: ApiMoney;
+  /** The current price per unit before discounts are applied (may differ from compareAt price if on sale). */
+  unitPrice: ApiMoney;
 };
 
 export type ApiOrderStatus =
   | 'ACTIVE'
   | 'CANCELLED'
-  | 'CLOSED'
-  | 'DRAFT';
-
-export type ApiOrdersInput = {
-  order: InputMaybe<Scalars['String']['input']>;
-  page: InputMaybe<Scalars['Int']['input']>;
-  pageSize: InputMaybe<Scalars['Int']['input']>;
-  where: InputMaybe<Scalars['JSON']['input']>;
-};
-
-export type ApiOrdersOutput = {
-  __typename?: 'OrdersOutput';
-  data: Array<ApiOrder>;
-  meta: ApiCollectionMeta;
-};
+  | 'CLOSED';
 
 export type ApiPurchasable = ApiPurchasableSnapshot;
 
@@ -980,7 +851,6 @@ export type ApiQuery = {
   __typename?: 'Query';
   _entities: Array<Maybe<Api_Entity>>;
   _service: Api_Service;
-  orderQuery: ApiOrderQuery;
 };
 
 
@@ -988,29 +858,14 @@ export type ApiQuery_EntitiesArgs = {
   representations: Array<Scalars['_Any']['input']>;
 };
 
-export type ApiTag = {
-  __typename?: 'Tag';
-  id: Scalars['ID']['output'];
-};
-
 export type ApiUser = {
   __typename?: 'User';
   id: Scalars['ID']['output'];
+  /** List of the user's orders. */
+  orders: Array<ApiOrder>;
 };
 
-export type ApiWeight = {
-  __typename?: 'Weight';
-  unit: ApiWeightUnit;
-  weight: Scalars['Float']['output'];
-};
-
-export type ApiWeightUnit =
-  | 'GR'
-  | 'KG'
-  | 'LB'
-  | 'OZ';
-
-export type Api_Entity = ApiApiKey | ApiCustomer | ApiLabel | ApiTag | ApiUser;
+export type Api_Entity = ApiUser;
 
 export type Api_Service = {
   __typename?: '_Service';
@@ -1092,9 +947,8 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of union types */
 export type ApiResolversUnionTypes<_RefType extends Record<string, unknown>> = {
-  OrderActor: ( ApiApiKey ) | ( ApiUser );
   Purchasable: ( ApiPurchasableSnapshot );
-  _Entity: ( ApiApiKey ) | ( ApiCustomer ) | ( ApiLabel ) | ( ApiTag ) | ( ApiUser );
+  _Entity: ( Omit<ApiUser, 'orders'> & { orders: Array<_RefType['Order']> } );
 };
 
 /** Mapping of interface types */
@@ -1104,48 +958,29 @@ export type ApiResolversInterfaceTypes<_RefType extends Record<string, unknown>>
 
 /** Mapping between all available schema types and the resolvers types */
 export type ApiResolversTypes = {
-  ApiKey: ResolverTypeWrapper<ApiApiKey>;
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  CollectionMeta: ResolverTypeWrapper<ApiCollectionMeta>;
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
-  Customer: ResolverTypeWrapper<ApiCustomer>;
+  Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  Decimal: ResolverTypeWrapper<Scalars['Decimal']['output']>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
-  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
-  Label: ResolverTypeWrapper<ApiLabel>;
-  Mutation: ResolverTypeWrapper<{}>;
+  Money: ResolverTypeWrapper<ApiMoney>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
-  Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy' | 'events' | 'lines'> & { createdBy: ApiResolversTypes['OrderActor'], events: Array<ApiResolversTypes['OrderEvent']>, lines: Array<ApiResolversTypes['OrderLine']> }>;
-  OrderActor: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['OrderActor']>;
-  OrderAdminNoteUpdateInput: ApiOrderAdminNoteUpdateInput;
-  OrderCancelInput: ApiOrderCancelInput;
-  OrderCancelReason: ApiOrderCancelReason;
-  OrderCloseInput: ApiOrderCloseInput;
-  OrderCommentAddInput: ApiOrderCommentAddInput;
-  OrderCustomerIdentity: ResolverTypeWrapper<ApiOrderCustomerIdentity>;
-  OrderCustomerStatistic: ResolverTypeWrapper<ApiOrderCustomerStatistic>;
-  OrderDeliveryAddress: ResolverTypeWrapper<ApiOrderDeliveryAddress>;
-  OrderEvent: ResolverTypeWrapper<Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversTypes['OrderActor'] }>;
-  OrderEventType: ApiOrderEventType;
-  OrderLine: ResolverTypeWrapper<Omit<ApiOrderLine, 'purchasable'> & { purchasable: ApiResolversTypes['Purchasable'] }>;
-  OrderMutation: ResolverTypeWrapper<ApiOrderMutation>;
-  OrderQuery: ResolverTypeWrapper<Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversTypes['Order']>, orders: ApiResolversTypes['OrdersOutput'] }>;
+  Order: ResolverTypeWrapper<Omit<ApiOrder, 'lines'> & { lines: Array<ApiResolversTypes['OrderLine']> }>;
+  OrderCost: ResolverTypeWrapper<ApiOrderCost>;
+  OrderLine: ResolverTypeWrapper<Omit<ApiOrderLine, 'cost' | 'purchasable'> & { cost: ApiResolversTypes['OrderLineCost'], purchasable: ApiResolversTypes['Purchasable'] }>;
+  OrderLineCost: ResolverTypeWrapper<ApiOrderLineCost>;
   OrderStatus: ApiOrderStatus;
-  OrdersInput: ApiOrdersInput;
-  OrdersOutput: ResolverTypeWrapper<Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversTypes['Order']> }>;
   Purchasable: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['Purchasable']>;
   PurchasableSnapshot: ResolverTypeWrapper<ApiPurchasableSnapshot>;
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  Tag: ResolverTypeWrapper<ApiTag>;
-  User: ResolverTypeWrapper<ApiUser>;
-  Weight: ResolverTypeWrapper<ApiWeight>;
-  WeightUnit: ApiWeightUnit;
+  User: ResolverTypeWrapper<Omit<ApiUser, 'orders'> & { orders: Array<ApiResolversTypes['Order']> }>;
   _Any: ResolverTypeWrapper<Scalars['_Any']['output']>;
   _Entity: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['_Entity']>;
   _Service: ResolverTypeWrapper<Api_Service>;
@@ -1158,42 +993,26 @@ export type ApiResolversTypes = {
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ApiResolversParentTypes = {
-  ApiKey: ApiApiKey;
   BigInt: Scalars['BigInt']['output'];
   Boolean: Scalars['Boolean']['output'];
-  CollectionMeta: ApiCollectionMeta;
-  Customer: ApiCustomer;
+  Cursor: Scalars['Cursor']['output'];
   DateTime: Scalars['DateTime']['output'];
+  Decimal: Scalars['Decimal']['output'];
   Email: Scalars['Email']['output'];
-  Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
-  Label: ApiLabel;
-  Mutation: {};
+  Money: ApiMoney;
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
-  Order: Omit<ApiOrder, 'createdBy' | 'events' | 'lines'> & { createdBy: ApiResolversParentTypes['OrderActor'], events: Array<ApiResolversParentTypes['OrderEvent']>, lines: Array<ApiResolversParentTypes['OrderLine']> };
-  OrderActor: ApiResolversUnionTypes<ApiResolversParentTypes>['OrderActor'];
-  OrderAdminNoteUpdateInput: ApiOrderAdminNoteUpdateInput;
-  OrderCancelInput: ApiOrderCancelInput;
-  OrderCloseInput: ApiOrderCloseInput;
-  OrderCommentAddInput: ApiOrderCommentAddInput;
-  OrderCustomerIdentity: ApiOrderCustomerIdentity;
-  OrderCustomerStatistic: ApiOrderCustomerStatistic;
-  OrderDeliveryAddress: ApiOrderDeliveryAddress;
-  OrderEvent: Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversParentTypes['OrderActor'] };
-  OrderLine: Omit<ApiOrderLine, 'purchasable'> & { purchasable: ApiResolversParentTypes['Purchasable'] };
-  OrderMutation: ApiOrderMutation;
-  OrderQuery: Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversParentTypes['Order']>, orders: ApiResolversParentTypes['OrdersOutput'] };
-  OrdersInput: ApiOrdersInput;
-  OrdersOutput: Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversParentTypes['Order']> };
+  Order: Omit<ApiOrder, 'lines'> & { lines: Array<ApiResolversParentTypes['OrderLine']> };
+  OrderCost: ApiOrderCost;
+  OrderLine: Omit<ApiOrderLine, 'cost' | 'purchasable'> & { cost: ApiResolversParentTypes['OrderLineCost'], purchasable: ApiResolversParentTypes['Purchasable'] };
+  OrderLineCost: ApiOrderLineCost;
   Purchasable: ApiResolversUnionTypes<ApiResolversParentTypes>['Purchasable'];
   PurchasableSnapshot: ApiPurchasableSnapshot;
   Query: {};
   String: Scalars['String']['output'];
-  Tag: ApiTag;
-  User: ApiUser;
-  Weight: ApiWeight;
+  User: Omit<ApiUser, 'orders'> & { orders: Array<ApiResolversParentTypes['Order']> };
   _Any: Scalars['_Any']['output'];
   _Entity: ApiResolversUnionTypes<ApiResolversParentTypes>['_Entity'];
   _Service: Api_Service;
@@ -1288,31 +1107,20 @@ export type ApiShareableDirectiveArgs = { };
 
 export type ApiShareableDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiShareableDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
-export type ApiApiKeyResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['ApiKey'] = ApiResolversParentTypes['ApiKey']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['BigInt'], any> {
   name: 'BigInt';
 }
 
-export type ApiCollectionMetaResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CollectionMeta'] = ApiResolversParentTypes['CollectionMeta']> = {
-  count: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  page: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  pageCount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  pageSize: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  total: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiCustomerResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Customer'] = ApiResolversParentTypes['Customer']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
+export interface ApiCursorScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Cursor'], any> {
+  name: 'Cursor';
+}
 
 export interface ApiDateTimeScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['DateTime'], any> {
   name: 'DateTime';
+}
+
+export interface ApiDecimalScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Decimal'], any> {
+  name: 'Decimal';
 }
 
 export interface ApiEmailScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Email'], any> {
@@ -1323,13 +1131,10 @@ export interface ApiJsonScalarConfig extends GraphQLScalarTypeConfig<ApiResolver
   name: 'JSON';
 }
 
-export type ApiLabelResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Label'] = ApiResolversParentTypes['Label']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+export type ApiMoneyResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Money'] = ApiResolversParentTypes['Money']> = {
+  amount: Resolver<ApiResolversTypes['Decimal'], ParentType, ContextType>;
+  currencyCode: Resolver<ApiResolversTypes['CurrencyCode'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Mutation'] = ApiResolversParentTypes['Mutation']> = {
-  orderMutation: Resolver<ApiResolversTypes['OrderMutation'], ParentType, ContextType>;
 };
 
 export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
@@ -1338,108 +1143,41 @@ export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends Ap
 };
 
 export type ApiOrderResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Order'] = ApiResolversParentTypes['Order']> = {
-  adminNote: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
-  createdBy: Resolver<ApiResolversTypes['OrderActor'], ParentType, ContextType>;
-  currencyCode: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  customerIdentity: Resolver<ApiResolversTypes['OrderCustomerIdentity'], ParentType, ContextType>;
-  customerNote: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  customerStatistic: Resolver<ApiResolversTypes['OrderCustomerStatistic'], ParentType, ContextType>;
-  deletedAt: Resolver<Maybe<ApiResolversTypes['DateTime']>, ParentType, ContextType>;
-  discountTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
-  events: Resolver<Array<ApiResolversTypes['OrderEvent']>, ParentType, ContextType>;
-  grandTotal: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
+  cost: Resolver<ApiResolversTypes['OrderCost'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  labels: Resolver<Array<ApiResolversTypes['Label']>, ParentType, ContextType>;
   lines: Resolver<Array<ApiResolversTypes['OrderLine']>, ParentType, ContextType>;
   number: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
-  shippingTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
   status: Resolver<ApiResolversTypes['OrderStatus'], ParentType, ContextType>;
-  subtotal: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
-  tags: Resolver<Array<ApiResolversTypes['Tag']>, ParentType, ContextType>;
-  taxTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderActorResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderActor'] = ApiResolversParentTypes['OrderActor']> = {
-  __resolveType: TypeResolveFn<'ApiKey' | 'User', ParentType, ContextType>;
-};
-
-export type ApiOrderCustomerIdentityResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderCustomerIdentity'] = ApiResolversParentTypes['OrderCustomerIdentity']> = {
-  countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
-  customer: Resolver<Maybe<ApiResolversTypes['Customer']>, ParentType, ContextType>;
-  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
-  phone: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiOrderCustomerStatisticResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderCustomerStatistic'] = ApiResolversParentTypes['OrderCustomerStatistic']> = {
-  totalAuthorizedOrders: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  totalGuestOrders: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  totalRevenue: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiOrderDeliveryAddressResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderDeliveryAddress'] = ApiResolversParentTypes['OrderDeliveryAddress']> = {
-  address1: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  address2: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  city: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  countryCode: Resolver<ApiResolversTypes['CountryCode'], ParentType, ContextType>;
-  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
-  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  postalCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiOrderEventResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderEvent'] = ApiResolversParentTypes['OrderEvent']> = {
-  createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
-  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  eventType: Resolver<ApiResolversTypes['OrderEventType'], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  metadata: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  performedBy: Resolver<ApiResolversTypes['OrderActor'], ParentType, ContextType>;
+export type ApiOrderCostResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderCost'] = ApiResolversParentTypes['OrderCost']> = {
+  subtotalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  totalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  totalDiscountAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  totalShippingAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  totalTaxAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiOrderLineResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderLine'] = ApiResolversParentTypes['OrderLine']> = {
+  cost: Resolver<ApiResolversTypes['OrderLineCost'], ParentType, ContextType>;
   createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
-  discountAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   purchasable: Resolver<ApiResolversTypes['Purchasable'], ParentType, ContextType>;
   purchasableId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   quantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  subtotalAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  taxAmount: Resolver<Maybe<ApiResolversTypes['Int']>, ParentType, ContextType>;
-  totalAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  unitComparePrice: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  unitPrice: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   updatedAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderMutation'] = ApiResolversParentTypes['OrderMutation']> = {
-  orderAdminNoteUpdate: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderAdminNoteUpdateArgs, 'input'>>;
-  orderCancel: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCancelArgs, 'input'>>;
-  orderClose: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCloseArgs, 'input'>>;
-  orderCommentAdd: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCommentAddArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiOrderQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderQuery'] = ApiResolversParentTypes['OrderQuery']> = {
-  order: Resolver<Maybe<ApiResolversTypes['Order']>, ParentType, ContextType, RequireFields<ApiOrderQueryOrderArgs, 'id'>>;
-  orders: Resolver<ApiResolversTypes['OrdersOutput'], ParentType, ContextType, ApiOrderQueryOrdersArgs>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiOrdersOutputResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrdersOutput'] = ApiResolversParentTypes['OrdersOutput']> = {
-  data: Resolver<Array<ApiResolversTypes['Order']>, ParentType, ContextType>;
-  meta: Resolver<ApiResolversTypes['CollectionMeta'], ParentType, ContextType>;
+export type ApiOrderLineCostResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderLineCost'] = ApiResolversParentTypes['OrderLineCost']> = {
+  discountAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  subtotalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  taxAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  totalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  unitCompareAtPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  unitPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1455,22 +1193,11 @@ export type ApiPurchasableSnapshotResolvers<ContextType = GraphQLContext, Parent
 export type ApiQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Query'] = ApiResolversParentTypes['Query']> = {
   _entities: Resolver<Array<Maybe<ApiResolversTypes['_Entity']>>, ParentType, ContextType, RequireFields<ApiQuery_EntitiesArgs, 'representations'>>;
   _service: Resolver<ApiResolversTypes['_Service'], ParentType, ContextType>;
-  orderQuery: Resolver<ApiResolversTypes['OrderQuery'], ParentType, ContextType>;
-};
-
-export type ApiTagResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Tag'] = ApiResolversParentTypes['Tag']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiUserResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['User'] = ApiResolversParentTypes['User']> = {
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiWeightResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Weight'] = ApiResolversParentTypes['Weight']> = {
-  unit: Resolver<ApiResolversTypes['WeightUnit'], ParentType, ContextType>;
-  weight: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
+  orders: Resolver<Array<ApiResolversTypes['Order']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1479,7 +1206,7 @@ export interface Api_AnyScalarConfig extends GraphQLScalarTypeConfig<ApiResolver
 }
 
 export type Api_EntityResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['_Entity'] = ApiResolversParentTypes['_Entity']> = {
-  __resolveType: TypeResolveFn<'ApiKey' | 'Customer' | 'Label' | 'Tag' | 'User', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'User', ParentType, ContextType>;
 };
 
 export type Api_ServiceResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['_Service'] = ApiResolversParentTypes['_Service']> = {
@@ -1504,32 +1231,22 @@ export interface ApiLink__ImportScalarConfig extends GraphQLScalarTypeConfig<Api
 }
 
 export type ApiResolvers<ContextType = GraphQLContext> = {
-  ApiKey: ApiApiKeyResolvers<ContextType>;
   BigInt: GraphQLScalarType;
-  CollectionMeta: ApiCollectionMetaResolvers<ContextType>;
-  Customer: ApiCustomerResolvers<ContextType>;
+  Cursor: GraphQLScalarType;
   DateTime: GraphQLScalarType;
+  Decimal: GraphQLScalarType;
   Email: GraphQLScalarType;
   JSON: GraphQLScalarType;
-  Label: ApiLabelResolvers<ContextType>;
-  Mutation: ApiMutationResolvers<ContextType>;
+  Money: ApiMoneyResolvers<ContextType>;
   Node: ApiNodeResolvers<ContextType>;
   Order: ApiOrderResolvers<ContextType>;
-  OrderActor: ApiOrderActorResolvers<ContextType>;
-  OrderCustomerIdentity: ApiOrderCustomerIdentityResolvers<ContextType>;
-  OrderCustomerStatistic: ApiOrderCustomerStatisticResolvers<ContextType>;
-  OrderDeliveryAddress: ApiOrderDeliveryAddressResolvers<ContextType>;
-  OrderEvent: ApiOrderEventResolvers<ContextType>;
+  OrderCost: ApiOrderCostResolvers<ContextType>;
   OrderLine: ApiOrderLineResolvers<ContextType>;
-  OrderMutation: ApiOrderMutationResolvers<ContextType>;
-  OrderQuery: ApiOrderQueryResolvers<ContextType>;
-  OrdersOutput: ApiOrdersOutputResolvers<ContextType>;
+  OrderLineCost: ApiOrderLineCostResolvers<ContextType>;
   Purchasable: ApiPurchasableResolvers<ContextType>;
   PurchasableSnapshot: ApiPurchasableSnapshotResolvers<ContextType>;
   Query: ApiQueryResolvers<ContextType>;
-  Tag: ApiTagResolvers<ContextType>;
   User: ApiUserResolvers<ContextType>;
-  Weight: ApiWeightResolvers<ContextType>;
   _Any: GraphQLScalarType;
   _Entity: Api_EntityResolvers<ContextType>;
   _Service: Api_ServiceResolvers<ContextType>;

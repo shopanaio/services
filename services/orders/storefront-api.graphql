@@ -1,0 +1,1285 @@
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
+
+directive @key(fields: federation__FieldSet!, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @requires(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @provides(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @external(reason: String) on OBJECT | FIELD_DEFINITION
+
+directive @federation__tag(name: String!) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
+
+directive @federation__extends on OBJECT | INTERFACE
+
+directive @shareable on OBJECT | FIELD_DEFINITION
+
+directive @inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+directive @override(from: String!, label: String) on FIELD_DEFINITION
+
+directive @federation__composeDirective(name: String) on SCHEMA
+
+directive @federation__interfaceObject on OBJECT
+
+directive @federation__authenticated on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+directive @federation__requiresScopes(scopes: [[federation__Scope!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+directive @federation__policy(policies: [[federation__Policy!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+enum CountryCode {
+  """United States"""
+  US
+
+  """Canada"""
+  CA
+
+  """Mexico"""
+  MX
+
+  """United Kingdom"""
+  GB
+
+  """Germany"""
+  DE
+
+  """France"""
+  FR
+
+  """Italy"""
+  IT
+
+  """Spain"""
+  ES
+
+  """Australia"""
+  AU
+
+  """New Zealand"""
+  NZ
+
+  """Japan"""
+  JP
+
+  """China"""
+  CN
+
+  """South Korea"""
+  KR
+
+  """India"""
+  IN
+
+  """Brazil"""
+  BR
+
+  """Argentina"""
+  AR
+
+  """South Africa"""
+  ZA
+
+  """Russia"""
+  RU
+
+  """Ukraine"""
+  UA
+
+  """Poland"""
+  PL
+
+  """Netherlands"""
+  NL
+
+  """Belgium"""
+  BE
+
+  """Sweden"""
+  SE
+
+  """Norway"""
+  NO
+
+  """Denmark"""
+  DK
+
+  """Finland"""
+  FI
+
+  """Switzerland"""
+  CH
+
+  """Austria"""
+  AT
+
+  """Portugal"""
+  PT
+
+  """Ireland"""
+  IE
+
+  """Czech Republic"""
+  CZ
+
+  """Hungary"""
+  HU
+
+  """Slovakia"""
+  SK
+
+  """Slovenia"""
+  SI
+
+  """Croatia"""
+  HR
+
+  """Greece"""
+  GR
+
+  """Turkey"""
+  TR
+
+  """Romania"""
+  RO
+
+  """Bulgaria"""
+  BG
+
+  """Estonia"""
+  EE
+
+  """Latvia"""
+  LV
+
+  """Lithuania"""
+  LT
+
+  """Iceland"""
+  IS
+
+  """Luxembourg"""
+  LU
+
+  """Liechtenstein"""
+  LI
+
+  """Malta"""
+  MT
+
+  """Cyprus"""
+  CY
+
+  """Israel"""
+  IL
+
+  """Saudi Arabia"""
+  SA
+
+  """United Arab Emirates"""
+  AE
+
+  """Qatar"""
+  QA
+
+  """Kuwait"""
+  KW
+
+  """Oman"""
+  OM
+
+  """Jordan"""
+  JO
+
+  """Egypt"""
+  EG
+
+  """Morocco"""
+  MA
+
+  """Tunisia"""
+  TN
+
+  """Algeria"""
+  DZ
+
+  """Nigeria"""
+  NG
+
+  """Kenya"""
+  KE
+
+  """Ethiopia"""
+  ET
+
+  """Ghana"""
+  GH
+
+  """Senegal"""
+  SN
+
+  """Ivory Coast"""
+  CI
+
+  """Tanzania"""
+  TZ
+
+  """Uganda"""
+  UG
+
+  """Cameroon"""
+  CM
+
+  """Zambia"""
+  ZM
+
+  """Zimbabwe"""
+  ZW
+
+  """Mozambique"""
+  MZ
+
+  """Botswana"""
+  BW
+
+  """Namibia"""
+  NA
+
+  """Angola"""
+  AO
+
+  """Democratic Republic of the Congo"""
+  CD
+
+  """Sudan"""
+  SD
+
+  """Pakistan"""
+  PK
+
+  """Bangladesh"""
+  BD
+
+  """Nepal"""
+  NP
+
+  """Thailand"""
+  TH
+
+  """Vietnam"""
+  VN
+
+  """Malaysia"""
+  MY
+
+  """Singapore"""
+  SG
+
+  """Indonesia"""
+  ID
+
+  """Philippines"""
+  PH
+
+  """Myanmar"""
+  MM
+
+  """Cambodia"""
+  KH
+
+  """Laos"""
+  LA
+
+  """Brunei"""
+  BN
+
+  """Kazakhstan"""
+  KZ
+
+  """Uzbekistan"""
+  UZ
+
+  """Turkmenistan"""
+  TM
+
+  """Kyrgyzstan"""
+  KG
+
+  """Tajikistan"""
+  TJ
+
+  """Georgia"""
+  GE
+
+  """Armenia"""
+  AM
+
+  """Azerbaijan"""
+  AZ
+
+  """Belarus"""
+  BY
+
+  """Moldova"""
+  MD
+
+  """Serbia"""
+  RS
+
+  """Montenegro"""
+  ME
+
+  """North Macedonia"""
+  MK
+
+  """Bosnia and Herzegovina"""
+  BA
+
+  """Albania"""
+  AL
+
+  """Kosovo"""
+  XK
+
+  """Greenland"""
+  GL
+
+  """Panama"""
+  PA
+
+  """Costa Rica"""
+  CR
+
+  """El Salvador"""
+  SV
+
+  """Guatemala"""
+  GT
+
+  """Honduras"""
+  HN
+
+  """Nicaragua"""
+  NI
+
+  """Jamaica"""
+  JM
+
+  """Cuba"""
+  CU
+
+  """Dominican Republic"""
+  DO
+
+  """Haiti"""
+  HT
+
+  """Trinidad and Tobago"""
+  TT
+
+  """Barbados"""
+  BB
+
+  """Bahamas"""
+  BS
+
+  """Paraguay"""
+  PY
+
+  """Uruguay"""
+  UY
+
+  """Chile"""
+  CL
+
+  """Peru"""
+  PE
+
+  """Colombia"""
+  CO
+
+  """Venezuela"""
+  VE
+
+  """Bolivia"""
+  BO
+
+  """Ecuador"""
+  EC
+
+  """Suriname"""
+  SR
+
+  """Guyana"""
+  GY
+
+  """Fiji"""
+  FJ
+
+  """Papua New Guinea"""
+  PG
+
+  """Samoa"""
+  WS
+
+  """Tonga"""
+  TO
+
+  """Solomon Islands"""
+  SB
+
+  """Vanuatu"""
+  VU
+
+  """New Caledonia"""
+  NC
+
+  """Marshall Islands"""
+  MH
+
+  """Micronesia"""
+  FM
+
+  """Palau"""
+  PW
+
+  """Maldives"""
+  MV
+
+  """Seychelles"""
+  SC
+
+  """Mauritius"""
+  MU
+
+  """Sri Lanka"""
+  LK
+
+  """Bhutan"""
+  BT
+
+  """Mongolia"""
+  MN
+
+  """North Korea"""
+  KP
+
+  """Iraq"""
+  IQ
+
+  """Iran"""
+  IR
+
+  """Afghanistan"""
+  AF
+
+  """Yemen"""
+  YE
+
+  """Syria"""
+  SY
+
+  """Lebanon"""
+  LB
+
+  """Palestine"""
+  PS
+
+  """Bahrain"""
+  BH
+
+  """Malawi"""
+  MW
+
+  """Rwanda"""
+  RW
+
+  """Burundi"""
+  BI
+
+  """South Sudan"""
+  SS
+
+  """Lesotho"""
+  LS
+
+  """Swaziland (Eswatini)"""
+  SZ
+
+  """Madagascar"""
+  MG
+
+  """Central African Republic"""
+  CF
+
+  """Republic of the Congo"""
+  CG
+
+  """Gabon"""
+  GA
+
+  """Guinea"""
+  GN
+
+  """Guinea-Bissau"""
+  GW
+
+  """Equatorial Guinea"""
+  GQ
+
+  """Sierra Leone"""
+  SL
+
+  """Liberia"""
+  LR
+
+  """Benin"""
+  BJ
+
+  """Togo"""
+  TG
+
+  """Niger"""
+  NE
+
+  """Mali"""
+  ML
+
+  """Burkina Faso"""
+  BF
+
+  """Chad"""
+  TD
+
+  """Mauritania"""
+  MR
+
+  """Gambia"""
+  GM
+
+  """Cape Verde"""
+  CV
+
+  """Eritrea"""
+  ER
+
+  """Djibouti"""
+  DJ
+
+  """Comoros"""
+  KM
+
+  """Andorra"""
+  AD
+
+  """Monaco"""
+  MC
+
+  """San Marino"""
+  SM
+
+  """Vatican City"""
+  VA
+
+  """Timor-Leste (East Timor)"""
+  TL
+
+  """Antigua and Barbuda"""
+  AG
+
+  """Saint Kitts and Nevis"""
+  KN
+
+  """Saint Lucia"""
+  LC
+
+  """Saint Vincent and the Grenadines"""
+  VC
+
+  """Grenada"""
+  GD
+
+  """Dominica"""
+  DM
+
+  """Belize"""
+  BZ
+
+  """Aruba"""
+  AW
+
+  """Curaçao"""
+  CW
+
+  """Bermuda"""
+  BM
+
+  """Faroe Islands"""
+  FO
+
+  """Isle of Man"""
+  IM
+
+  """Jersey"""
+  JE
+
+  """Guernsey"""
+  GG
+
+  """Åland Islands"""
+  AX
+
+  """Western Sahara"""
+  EH
+
+  """British Virgin Islands"""
+  VG
+
+  """US Virgin Islands"""
+  VI
+}
+
+"""Currency codes according to ISO 4217"""
+enum CurrencyCode {
+  """2 decimals — UAE Dirham (United Arab Emirates)"""
+  AED
+
+  """2 decimals — Afghan Afghani (Afghanistan)"""
+  AFN
+
+  """2 decimals — Albanian Lek (Albania)"""
+  ALL
+
+  """2 decimals — Armenian Dram (Armenia)"""
+  AMD
+
+  """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
+  ANG
+
+  """2 decimals — Angolan Kwanza (Angola)"""
+  AOA
+
+  """2 decimals — Argentine Peso (Argentina)"""
+  ARS
+
+  """2 decimals — Australian Dollar (Australia)"""
+  AUD
+
+  """2 decimals — Aruban Florin (Aruba)"""
+  AWG
+
+  """2 decimals — Azerbaijani Manat (Azerbaijan)"""
+  AZN
+
+  """
+  2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
+  """
+  BAM
+
+  """2 decimals — Barbadian Dollar (Barbados)"""
+  BBD
+
+  """2 decimals — Bangladeshi Taka (Bangladesh)"""
+  BDT
+
+  """2 decimals — Bulgarian Lev (Bulgaria)"""
+  BGN
+
+  """3 decimals — Bahraini Dinar (Bahrain)"""
+  BHD
+
+  """0 decimals — Burundian Franc (Burundi)"""
+  BIF
+
+  """2 decimals — Bermudian Dollar (Bermuda)"""
+  BMD
+
+  """2 decimals — Brunei Dollar (Brunei)"""
+  BND
+
+  """2 decimals — Bolivian Boliviano (Bolivia)"""
+  BOB
+
+  """2 decimals — Brazilian Real (Brazil)"""
+  BRL
+
+  """2 decimals — Bahamian Dollar (Bahamas)"""
+  BSD
+
+  """2 decimals — Bhutanese Ngultrum (Bhutan)"""
+  BTN
+
+  """2 decimals — Botswana Pula (Botswana)"""
+  BWP
+
+  """2 decimals — Belarusian Ruble (Belarus)"""
+  BYN
+
+  """2 decimals — Belize Dollar (Belize)"""
+  BZD
+
+  """2 decimals — Canadian Dollar (Canada)"""
+  CAD
+
+  """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
+  CDF
+
+  """2 decimals — Swiss Franc (Switzerland)"""
+  CHF
+
+  """0 decimals — Chilean Peso (Chile)"""
+  CLP
+
+  """2 decimals — Chinese Yuan (China)"""
+  CNY
+
+  """2 decimals — Colombian Peso (Colombia)"""
+  COP
+
+  """2 decimals — Costa Rican Colon (Costa Rica)"""
+  CRC
+
+  """2 decimals — Cuban Peso (Cuba)"""
+  CUP
+
+  """2 decimals — Cape Verdean Escudo (Cape Verde)"""
+  CVE
+
+  """2 decimals — Czech Koruna (Czech Republic)"""
+  CZK
+
+  """0 decimals — Djiboutian Franc (Djibouti)"""
+  DJF
+
+  """2 decimals — Danish Krone (Denmark)"""
+  DKK
+
+  """2 decimals — Dominican Peso (Dominican Republic)"""
+  DOP
+
+  """2 decimals — Algerian Dinar (Algeria)"""
+  DZD
+
+  """2 decimals — Egyptian Pound (Egypt)"""
+  EGP
+
+  """2 decimals — Eritrean Nakfa (Eritrea)"""
+  ERN
+
+  """2 decimals — Ethiopian Birr (Ethiopia)"""
+  ETB
+
+  """2 decimals — Euro (European Union)"""
+  EUR
+
+  """2 decimals — Fijian Dollar (Fiji)"""
+  FJD
+
+  """2 decimals — Falkland Islands Pound (Falkland Islands)"""
+  FKP
+
+  """2 decimals — Faroese Króna (Faroe Islands)"""
+  FOK
+
+  """2 decimals — Pound Sterling (United Kingdom)"""
+  GBP
+
+  """2 decimals — Georgian Lari (Georgia)"""
+  GEL
+
+  """2 decimals — Guernsey Pound (Guernsey)"""
+  GGP
+
+  """2 decimals — Ghanaian Cedi (Ghana)"""
+  GHS
+
+  """2 decimals — Gibraltar Pound (Gibraltar)"""
+  GIP
+
+  """2 decimals — Gambian Dalasi (Gambia)"""
+  GMD
+
+  """0 decimals — Guinean Franc (Guinea)"""
+  GNF
+
+  """2 decimals — Guatemalan Quetzal (Guatemala)"""
+  GTQ
+
+  """2 decimals — Guyanese Dollar (Guyana)"""
+  GYD
+
+  """2 decimals — Hong Kong Dollar (Hong Kong)"""
+  HKD
+
+  """2 decimals — Honduran Lempira (Honduras)"""
+  HNL
+
+  """2 decimals — Croatian Kuna (Croatia)"""
+  HRK
+
+  """2 decimals — Haitian Gourde (Haiti)"""
+  HTG
+
+  """2 decimals — Hungarian Forint (Hungary)"""
+  HUF
+
+  """0 decimals — Indonesian Rupiah (Indonesia)"""
+  IDR
+
+  """2 decimals — Israeli New Shekel (Israel)"""
+  ILS
+
+  """2 decimals — Isle of Man Pound (Isle of Man)"""
+  IMP
+
+  """2 decimals — Indian Rupee (India)"""
+  INR
+
+  """3 decimals — Iraqi Dinar (Iraq)"""
+  IQD
+
+  """2 decimals — Iranian Rial (Iran)"""
+  IRR
+
+  """0 decimals — Icelandic Króna (Iceland)"""
+  ISK
+
+  """2 decimals — Jersey Pound (Jersey)"""
+  JEP
+
+  """2 decimals — Jamaican Dollar (Jamaica)"""
+  JMD
+
+  """3 decimals — Jordanian Dinar (Jordan)"""
+  JOD
+
+  """0 decimals — Japanese Yen (Japan)"""
+  JPY
+
+  """2 decimals — Kenyan Shilling (Kenya)"""
+  KES
+
+  """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
+  KGS
+
+  """2 decimals — Cambodian Riel (Cambodia)"""
+  KHR
+
+  """2 decimals — Comorian Franc (Comoros)"""
+  KMF
+
+  """2 decimals — North Korean Won (North Korea)"""
+  KPW
+
+  """2 decimals — South Korean Won (South Korea)"""
+  KRW
+
+  """3 decimals — Kuwaiti Dinar (Kuwait)"""
+  KWD
+
+  """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
+  KYD
+
+  """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
+  KZT
+
+  """2 decimals — Lao Kip (Laos)"""
+  LAK
+
+  """2 decimals — Lebanese Pound (Lebanon)"""
+  LBP
+
+  """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
+  LKR
+
+  """3 decimals — Liberian Dollar (Liberia)"""
+  LRD
+
+  """3 decimals — Libyan Dinar (Libya)"""
+  LYD
+
+  """2 decimals — Moroccan Dirham (Morocco)"""
+  MAD
+
+  """2 decimals — Moldovan Leu (Moldova)"""
+  MDL
+
+  """2 decimals — Malagasy Ariary (Madagascar)"""
+  MGA
+
+  """2 decimals — Macedonian Denar (North Macedonia)"""
+  MKD
+
+  """2 decimals — Burmese Kyat (Myanmar)"""
+  MMK
+
+  """2 decimals — Mongolian Tögrög (Mongolia)"""
+  MNT
+
+  """2 decimals — Macanese Pataca (Macau)"""
+  MOP
+
+  """2 decimals — Mauritanian Ouguiya (Mauritania)"""
+  MRU
+
+  """2 decimals — Mauritian Rupee (Mauritius)"""
+  MUR
+
+  """2 decimals — Maldivian Rufiyaa (Maldives)"""
+  MVR
+
+  """2 decimals — Malawian Kwacha (Malawi)"""
+  MWK
+
+  """2 decimals — Mexican Peso (Mexico)"""
+  MXN
+
+  """2 decimals — Malaysian Ringgit (Malaysia)"""
+  MYR
+
+  """2 decimals — Mozambican Metical (Mozambique)"""
+  MZN
+
+  """2 decimals — Namibian Dollar (Namibia)"""
+  NAD
+
+  """2 decimals — Nigerian Naira (Nigeria)"""
+  NGN
+
+  """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
+  NIO
+
+  """2 decimals — Norwegian Krone (Norway)"""
+  NOK
+
+  """2 decimals — Nepalese Rupee (Nepal)"""
+  NPR
+
+  """2 decimals — New Zealand Dollar (New Zealand)"""
+  NZD
+
+  """2 decimals — Omani Rial (Oman)"""
+  OMR
+
+  """2 decimals — Panamanian Balboa (Panama)"""
+  PAB
+
+  """2 decimals — Peruvian Sol (Peru)"""
+  PEN
+
+  """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
+  PGK
+
+  """2 decimals — Philippine Peso (Philippines)"""
+  PHP
+
+  """2 decimals — Pakistani Rupee (Pakistan)"""
+  PKR
+
+  """0 decimals — Polish Zloty (Poland)"""
+  PLN
+
+  """2 decimals — Paraguayan Guaraní (Paraguay)"""
+  PYG
+
+  """2 decimals — Qatari Riyal (Qatar)"""
+  QAR
+
+  """2 decimals — Romanian Leu (Romania)"""
+  RON
+
+  """2 decimals — Serbian Dinar (Serbia)"""
+  RSD
+
+  """2 decimals — Russian Ruble (Russia)"""
+  RUB
+
+  """2 decimals — Rwandan Franc (Rwanda)"""
+  RWF
+
+  """2 decimals — Saudi Riyal (Saudi Arabia)"""
+  SAR
+
+  """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
+  SBD
+
+  """2 decimals — Seychelles Rupee (Seychelles)"""
+  SCR
+
+  """2 decimals — Sudanese Pound (Sudan)"""
+  SDG
+
+  """2 decimals — Swedish Krona (Sweden)"""
+  SEK
+
+  """2 decimals — Singapore Dollar (Singapore)"""
+  SGD
+
+  """0 decimals — Saint Helena Pound (Saint Helena)"""
+  SHP
+
+  """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
+  SLE
+
+  """2 decimals — Somali Shilling (Somalia)"""
+  SOS
+
+  """2 decimals — Surinamese Dollar (Suriname)"""
+  SRD
+
+  """2 decimals — South Sudanese Pound (South Sudan)"""
+  SSP
+
+  """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
+  STN
+
+  """2 decimals — Salvadoran Colón (El Salvador)"""
+  SVC
+
+  """2 decimals — Syrian Pound (Syria)"""
+  SYP
+
+  """2 decimals — Eswatini Lilangeni (Eswatini)"""
+  SZL
+
+  """2 decimals — Thai Baht (Thailand)"""
+  THB
+
+  """2 decimals — Tajikistani Somoni (Tajikistan)"""
+  TJS
+
+  """2 decimals — Turkmenistani Manat (Turkmenistan)"""
+  TMT
+
+  """2 decimals — Tunisian Dinar (Tunisia)"""
+  TND
+
+  """2 decimals — Tongan Paʻanga (Tonga)"""
+  TOP
+
+  """2 decimals — Turkish Lira (Türkiye)"""
+  TRY
+
+  """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
+  TTD
+
+  """2 decimals — New Taiwan Dollar (Taiwan)"""
+  TWD
+
+  """0 decimals — Tanzanian Shilling (Tanzania)"""
+  TZS
+
+  """2 decimals — Ukrainian Hryvnia (Ukraine)"""
+  UAH
+
+  """2 decimals — Ugandan Shilling (Uganda)"""
+  UGX
+
+  """2 decimals — United States Dollar (United States)"""
+  USD
+
+  """2 decimals — Uruguayan Peso (Uruguay)"""
+  UYU
+
+  """2 decimals — Uzbekistan Som (Uzbekistan)"""
+  UZS
+
+  """2 decimals — Venezuelan Bolívar (Venezuela)"""
+  VES
+
+  """0 decimals — Vietnamese Dong (Vietnam)"""
+  VND
+
+  """2 decimals — Vanuatu Vatu (Vanuatu)"""
+  VUV
+
+  """2 decimals — Samoan Tala (Samoa)"""
+  WST
+
+  """2 decimals — Central African CFA Franc (CEMAC)"""
+  XAF
+
+  """0 decimals — East Caribbean Dollar (OECS)"""
+  XCD
+
+  """0 decimals — Special Drawing Rights (IMF)"""
+  XDR
+
+  """0 decimals — West African CFA Franc (UEMOA)"""
+  XOF
+
+  """0 decimals — CFP Franc (French overseas territories)"""
+  XPF
+
+  """2 decimals — Yemeni Rial (Yemen)"""
+  YER
+
+  """2 decimals — South African Rand (South Africa)"""
+  ZAR
+
+  """2 decimals — Zambian Kwacha (Zambia)"""
+  ZMW
+
+  """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
+  ZWL
+}
+
+enum OrderStatus {
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+type OrderCost {
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Total discount from both item-level and checkout-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the checkout."""
+  totalTaxAmount: Money!
+
+  """Total shipping cost (only MERCHANT_COLLECTED payments)."""
+  totalShippingAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+type Order {
+  """A globally-unique ID."""
+  id: ID!
+
+  """Order status."""
+  status: OrderStatus!
+
+  """
+  A unique numeric identifier for the order for use by shop owner and customer.
+  """
+  number: BigInt!
+
+  """Cost breakdown for the order."""
+  cost: OrderCost!
+
+  """Order items."""
+  lines: [OrderLine!]!
+}
+
+type OrderLineCost {
+  """The original list price per unit before any discounts."""
+  unitCompareAtPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """Discount amount applied to a line."""
+  discountAmount: Money!
+
+  """Total cost of all units before discounts."""
+  subtotalAmount: Money!
+
+  """Total tax amount applied to the checkout line."""
+  taxAmount: Money!
+
+  """Total cost of this line (all units), after discounts and taxes."""
+  totalAmount: Money!
+}
+
+type OrderLine {
+  """A globally-unique ID."""
+  id: ID!
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost breakdown for the order line."""
+  cost: OrderLineCost!
+
+  """ID of the purchasable."""
+  purchasableId: ID!
+
+  """Purchasable unit."""
+  purchasable: Purchasable!
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """Last updated date."""
+  updatedAt: DateTime!
+}
+
+interface Node {
+  id: ID!
+}
+
+scalar BigInt
+
+scalar JSON
+
+scalar DateTime
+
+scalar Cursor
+
+"""
+Decimal represented as integer amount and scale internally; serialized as normalized string
+"""
+scalar Decimal
+
+scalar Email
+
+type Money {
+  """The amount of money"""
+  amount: Decimal!
+
+  """The currency code"""
+  currencyCode: CurrencyCode!
+}
+
+type PurchasableSnapshot {
+  snapshot: JSON!
+}
+
+union Purchasable = PurchasableSnapshot
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+scalar link__Import
+
+scalar federation__FieldSet
+
+scalar federation__Scope
+
+scalar federation__Policy
+
+scalar _Any
+
+type _Service {
+  sdl: String
+}
+
+union _Entity = User
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type User {
+  id: ID!
+
+  """List of the user's orders."""
+  orders: [Order!]!
+}

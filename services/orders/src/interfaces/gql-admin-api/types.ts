@@ -18,7 +18,7 @@ export type Scalars = {
   Float: { input: number; output: number; }
   BigInt: { input: number; output: number; }
   DateTime: { input: any; output: any; }
-  Email: { input: any; output: any; }
+  Email: { input: string; output: string; }
   JSON: { input: unknown; output: unknown; }
   _Any: { input: any; output: any; }
   federation__FieldSet: { input: any; output: any; }
