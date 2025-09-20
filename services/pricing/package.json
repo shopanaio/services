@@ -1,5 +1,5 @@
 {
-  "name": "pricing-service-v2",
+  "name": "@shopana/pricing-service",
   "version": "0.0.1",
   "private": true,
   "type": "module",

@@ -1,5 +1,5 @@
 {
-  "name": "platform-service",
+  "name": "@shopana/platform-service",
   "version": "0.0.1",
   "private": true,
   "type": "module",

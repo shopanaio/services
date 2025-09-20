@@ -1,5 +1,5 @@
 {
-  "name": "inventory-service",
+  "name": "@shopana/inventory-service",
   "version": "0.0.1",
   "description": "Inventory microservice with microkernel + transaction script architecture",
   "type": "module",

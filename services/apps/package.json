@@ -1,5 +1,5 @@
 {
-  "name": "addons-service-v2",
+  "name": "@shopana/apps-service",
   "version": "0.0.1",
   "private": true,
   "type": "module",
