@@ -1,0 +1,122 @@
+enum OrderStatus {
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+type OrderCost {
+  """
+  Total value of items before any discounts.
+  """
+  subtotalAmount: Money!
+  """
+  Total discount from both item-level and checkout-level promotions.
+  """
+  totalDiscountAmount: Money!
+  """
+  Total tax amount applied to the checkout.
+  """
+  totalTaxAmount: Money!
+  """
+  Total shipping cost (only MERCHANT_COLLECTED payments).
+  """
+  totalShippingAmount: Money!
+  """
+  Final amount to be paid, including item cost, shipping, and taxes.
+  """
+  totalAmount: Money!
+}
+
+type Order {
+  """
+  A globally-unique ID.
+  """
+  id: ID!
+  """
+  Order status.
+  """
+  status: OrderStatus!
+  """
+  A unique numeric identifier for the order for use by shop owner and customer.
+  """
+  number: BigInt!
+  """
+  Cost breakdown for the order.
+  """
+  cost: OrderCost!
+  """
+  Order items.
+  """
+  lines: [OrderLine!]!
+}
+
+type OrderLineCost {
+  """
+  The original list price per unit before any discounts.
+  """
+  unitCompareAtPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """
+  Discount amount applied to a line.
+  """
+  discountAmount: Money!
+
+  """
+  Total cost of all units before discounts.
+  """
+  subtotalAmount: Money!
+
+  """
+  Total tax amount applied to the checkout line.
+  """
+  taxAmount: Money!
+
+  """
+  Total cost of this line (all units), after discounts and taxes.
+  """
+  totalAmount: Money!
+}
+
+type OrderLine {
+  """
+  A globally-unique ID.
+  """
+  id: ID!
+  """
+  Quantity of the item being purchased.
+  """
+  quantity: Int!
+  """
+  Cost breakdown for the order line.
+  """
+  cost: OrderLineCost!
+  """
+  ID of the purchasable.
+  """
+  purchasableId: ID!
+  """
+  Purchasable unit.
+  """
+  purchasable: Purchasable!
+  """
+  Creation date.
+  """
+  createdAt: DateTime!
+  """
+  Last updated date.
+  """
+  updatedAt: DateTime!
+}
+
+extend type User @key(fields: "id") {
+  id: ID! @external
+  """
+  List of the user's orders.
+  """
+  orders: [Order!]!
+}

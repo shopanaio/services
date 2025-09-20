@@ -22,19 +22,22 @@ build\:packages:
 	done
 
 dev\:checkout:
-	yarn workspace checkout-service run dev
+	yarn workspace @shopana/checkout-service run dev
 
 dev\:apps:
-	yarn workspace addons-service-v2 run dev
+	yarn workspace @shopana/apps-service run dev
 
 dev\:inventory:
-	yarn workspace inventory-service run dev
+	yarn workspace @shopana/inventory-service run dev
 
 dev\:pricing:
-	yarn workspace pricing-service-v2 run dev
+	yarn workspace @shopana/pricing-service run dev
 
 dev\:shipping:
-	yarn workspace shipping-service-v2 run dev
+	yarn workspace @shopana/delivery-service run dev
 
 dev\:platform:
-	yarn workspace platform-service run dev
+	yarn workspace @shopana/platform-service run dev
+
+dev\:orders:
+	yarn workspace @shopana/orders-service run dev
