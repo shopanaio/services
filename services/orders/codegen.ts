@@ -3,12 +3,12 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 const config: CodegenConfig = {
   generates: {
     "./src/interfaces/graphql/types.ts": {
-      schema: "./src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      schema: "./src/interfaces/gql-admin-api/schema/**/*.graphql",
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         typesPrefix: "Api",
         useIndexSignature: false,
-        contextType: "@src/interfaces/gql-storefront-api/context.js#GraphQLContext",
+        contextType: "@src/interfaces/gql-admin-api/context.js#GraphQLContext",
         scalars: {
           BigInt: "number",
           JSON: "unknown",

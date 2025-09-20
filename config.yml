@@ -1,11 +1,14 @@
 # Services Configuration
 
 services:
-
   apps:
     port: 10001
     database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
 
   checkout:
     port: 10002
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+
+  orders:
+    port: 10003
     database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"

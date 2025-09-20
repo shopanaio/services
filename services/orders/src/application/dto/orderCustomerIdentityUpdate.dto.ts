@@ -1,0 +1,30 @@
+import { IsUUID, IsEmail, IsString, IsOptional, MinLength, Matches } from "class-validator";
+
+export class OrderCustomerIdentityUpdateInput {
+  @IsUUID(7, { message: "Invalid order ID format" })
+  orderId!: string;
+
+  @IsOptional()
+  @IsEmail({}, { message: "Invalid email format" })
+  email?: string | null;
+
+  @IsOptional()
+  @IsString({ message: "Customer ID must be a string" })
+  @MinLength(1, { message: "Customer ID cannot be empty" })
+  customerId?: string | null;
+
+  @IsOptional()
+  @IsString({ message: "Phone number must be a string" })
+  @Matches(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format" })
+  phone?: string | null;
+
+  @IsOptional()
+  @IsString({ message: "Country code must be a string" })
+  @Matches(/^[A-Z]{2}$/, { message: "Country code must be a valid 2-letter ISO code" })
+  countryCode?: string | null;
+
+  @IsOptional()
+  @IsString({ message: "Idempotency key must be a string" })
+  @MinLength(1, { message: "Idempotency key cannot be empty" })
+  idempotencyKey?: string;
+}

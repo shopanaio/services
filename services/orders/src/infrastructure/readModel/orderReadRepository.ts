@@ -1,0 +1,193 @@
+import type { SQLExecutor } from "@event-driven-io/dumbo";
+import { rawSql, singleOrNull } from "@event-driven-io/dumbo";
+import { dumboPool } from "@src/infrastructure/db/dumbo";
+import { knex } from "@src/infrastructure/db/knex";
+import type {
+  OrderReadPort,
+  OrderReadPortRow,
+  OrderDeliveryAddressRow,
+  OrderPromoCodeRow,
+  OrderDeliveryGroupRow,
+  OrderDeliveryMethodRow,
+  OrderDeliveryGroup,
+  OrderPromoCode,
+} from "@src/application/read/orderReadRepository";
+
+export class OrderReadRepository implements OrderReadPort {
+  private readonly execute: SQLExecutor;
+
+  constructor(executor: SQLExecutor = dumboPool.execute) {
+    this.execute = executor;
+  }
+
+  async findById(id: string): Promise<OrderReadPortRow | null> {
+    const q = knex
+      .withSchema("platform")
+      .table("orders")
+      .select(
+        "id",
+        "project_id",
+        "api_key_id",
+        "admin_id",
+        "sales_channel",
+        "external_source",
+        "external_id",
+        "customer_id",
+        "customer_email",
+        "customer_phone_e164",
+        "customer_country_code",
+        "customer_note",
+        "locale_code",
+        "currency_code",
+        "display_currency_code",
+        "display_exchange_rate",
+        "subtotal",
+        "shipping_total",
+        "discount_total",
+        "tax_total",
+        "grand_total",
+        "status",
+        "expires_at",
+        "projected_version",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      )
+      .where({ id })
+      .toString();
+
+    const row = await singleOrNull(
+      this.execute.query<OrderReadPortRow>(rawSql(q))
+    );
+    return row ?? null;
+  }
+
+  async findDeliveryAddresses(
+    orderId: string
+  ): Promise<OrderDeliveryAddressRow[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("order_delivery_addresses as da")
+      .join("order_delivery_groups as dg", "dg.id", "da.delivery_group_id")
+      .select(
+        "da.id",
+        "da.delivery_group_id",
+        "da.address1",
+        "da.address2",
+        "da.city",
+        "da.country_code",
+        "da.province_code",
+        "da.postal_code",
+        "da.first_name",
+        "da.last_name",
+        "da.email",
+        "da.phone",
+        "da.metadata",
+        "da.created_at",
+        "da.updated_at"
+      )
+      .where("dg.order_id", orderId)
+      .orderBy("da.created_at", "asc")
+      .toString();
+
+    const result = await this.execute.query<OrderDeliveryAddressRow>(
+      rawSql(q)
+    );
+    return result.rows;
+  }
+
+  async findAppliedPromoCodes(
+    orderId: string
+  ): Promise<OrderPromoCode[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("order_applied_discounts")
+      .select(
+        "order_id",
+        "project_id",
+        "code",
+        "discount_type",
+        "value",
+        "provider",
+        "conditions",
+        "applied_at"
+      )
+      .where({ order_id: orderId })
+      .orderBy("applied_at", "asc")
+      .toString();
+
+    const result = await this.execute.query<OrderPromoCodeRow>(rawSql(q));
+    return result.rows.map(
+      (row): OrderPromoCode => ({
+        orderId: row.order_id,
+        projectId: row.project_id,
+        code: row.code,
+        discountType: row.discount_type,
+        value: parseInt(row.value, 10), // Convert bigint string to number
+        provider: row.provider,
+        conditions: row.conditions,
+        appliedAt: row.applied_at,
+      })
+    );
+  }
+
+  async findDeliveryGroups(
+    orderId: string
+  ): Promise<OrderDeliveryGroup[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("order_delivery_groups")
+      .select(
+        "id",
+        "project_id",
+        "order_id",
+        "selected_delivery_method",
+        knex.raw("COALESCE(line_item_ids::text[], '{}') as line_item_ids"),
+        "created_at",
+        "updated_at"
+      )
+      .where({ order_id: orderId })
+      .orderBy("created_at", "asc")
+      .toString();
+
+    const result = await this.execute.query<OrderDeliveryGroupRow>(
+      rawSql(q)
+    );
+    return result.rows.map(
+      (group): OrderDeliveryGroup => ({
+        id: group.id,
+        projectId: group.project_id,
+        orderId: group.order_id,
+        selectedDeliveryMethod: group.selected_delivery_method,
+        lineItemIds: group.line_item_ids,
+        createdAt: group.created_at,
+        updatedAt: group.updated_at,
+      })
+    );
+  }
+
+  async findDeliveryMethods(
+    orderId: string
+  ): Promise<OrderDeliveryMethodRow[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("order_delivery_methods as dm")
+      .join("order_delivery_groups as dg", "dg.id", "dm.delivery_group_id")
+      .select(
+        "dm.code",
+        "dm.project_id",
+        "dm.delivery_group_id",
+        "dm.delivery_method_type",
+        "dm.payment_model"
+      )
+      .where("dg.order_id", orderId)
+      .orderBy("dm.code", "asc")
+      .toString();
+
+    const result = await this.execute.query<OrderDeliveryMethodRow>(
+      rawSql(q)
+    );
+    return result.rows;
+  }
+}

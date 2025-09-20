@@ -1,0 +1,25 @@
+# ---- Types of a parent subgraph ----
+
+interface Node {
+  id: ID!
+}
+
+scalar DateTime
+scalar Cursor
+scalar Decimal # String: "10.99", "10", "10.999"
+scalar Email
+
+type Money {
+  """
+  The amount of money
+  """
+  amount: Decimal! @shareable
+  """
+  The currency code
+  """
+  currencyCode: CurrencyCode! @shareable
+}
+
+extend type User @key(fields: "id") {
+  id: ID! @external
+}

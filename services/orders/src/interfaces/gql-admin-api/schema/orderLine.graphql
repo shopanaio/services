@@ -1,0 +1,257 @@
+"""
+A single item in a order.
+"""
+type OrderLine implements Node {
+  """
+  Global unique identifier for the order line.
+  """
+  id: ID!
+
+  """
+  Title of the purchasable.
+  """
+  title: String!
+
+  """
+  SKU of the purchasable.
+  """
+  sku: String
+
+  """
+  Image URL of the purchasable.
+  """
+  imageSrc: String
+
+  """
+  Quantity of the item being purchased.
+  """
+  quantity: Int!
+
+  """
+  Cost calculations for this order item.
+  """
+  cost: OrderLineCost!
+
+  """
+  A list of components that make up this order line, such as individual products in a bundle.
+  """
+  children: [OrderLine]!
+  """
+  ID of the purchasable.
+  """
+  purchasableId: ID!
+
+  """
+  Purchasable unit.
+  """
+  purchasable: Purchasable
+}
+
+"""
+Detailed breakdown of costs for a order line item
+"""
+type OrderLineCost {
+  """
+  The original list price per unit before any discounts.
+  """
+  compareAtUnitPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """
+  Discount amount applied to a line.
+  """
+  discountAmount: Money!
+
+  """
+  Total cost of all units before discounts.
+  """
+  subtotalAmount: Money!
+
+  """
+  Total tax amount applied to the order line.
+  """
+  taxAmount: Money!
+
+  """
+  Total cost of this line (all units), after discounts and taxes.
+  """
+  totalAmount: Money!
+}
+
+"""
+Input data for a single item in the order.
+"""
+input OrderLineInput {
+  """
+  Quantity of the product in the order.
+  """
+  quantity: Int!
+  """
+  ID of the product to add or update.
+  """
+  purchasableId: ID!
+  """
+  ID of the purchasable snapshot to add or update.
+  """
+  purchasableSnapshot: PurchasableSnapshotInput
+}
+
+"""
+Input data for adding an item to an existing order.
+"""
+input OrderLinesAddInput {
+  """
+  ID of the order.
+  """
+  orderId: ID!
+  """
+  List of order items to add.
+  """
+  lines: [OrderLineInput!]!
+}
+
+"""
+Input data for adding an item to an existing order line.
+"""
+input OrderLinesLineAddInput {
+  """
+  ID of the purchasable to add.
+  """
+  purchasableId: ID!
+  """
+  Quantity to add; must be greater than 0.
+  """
+  quantity: Int!
+}
+
+"""
+Input data for updating the quantity of a specific order item.
+"""
+input OrderLinesUpdateInput {
+  """
+  ID of the order.
+  """
+  orderId: ID!
+  """
+  List of order items to update.
+  """
+  lines: [OrderLineUpdateInput!]!
+}
+
+"""
+Input data for updating the quantity of a specific order item.
+"""
+input OrderLineUpdateInput {
+  """
+  ID of the order item to update.
+  """
+  lineId: ID!
+  """
+  New quantity for the order item.
+  If set to 0, the item will be removed.
+  """
+  quantity: Int!
+}
+
+"""
+Input data for removing one or more items from the order.
+"""
+input OrderLinesDeleteInput {
+  """
+  ID of the order.
+  """
+  orderId: ID!
+  """
+  IDs of the lines to remove.
+  """
+  lineIds: [ID!]!
+}
+
+"""
+Input data for clearing all items from a order.
+"""
+input OrderLinesClearInput {
+  """
+  ID of the order to clear.
+  """
+  orderId: ID!
+}
+
+"""
+Payload returned after adding an item to the order.
+"""
+type OrderLinesAddPayload {
+  """
+  The updated order.
+  """
+  order: Order
+  """
+  List of field-specific or general errors.
+  """
+  errors: [OrderFieldError!]
+}
+
+"""
+Payload returned after updating a order item's quantity.
+"""
+type OrderLinesUpdatePayload {
+  """
+  The updated order.
+  """
+  order: Order
+  """
+  List of field-specific or general errors.
+  """
+  errors: [OrderFieldError!]
+}
+
+"""
+Payload returned after removing an item from the order.
+"""
+type OrderLinesDeletePayload {
+  """
+  The updated order.
+  """
+  order: Order
+  """
+  List of field-specific or general errors.
+  """
+  errors: [OrderFieldError!]
+}
+
+"""
+Payload returned after clearing all items from the order.
+"""
+type OrderLinesClearPayload {
+  """
+  The updated (now empty) order.
+  """
+  order: Order
+  """
+  List of field-specific or general errors.
+  """
+  errors: [OrderFieldError!]
+}
+
+input PurchasableSnapshotInput {
+  """
+  SKU of the purchasable snapshot.
+  """
+  sku: String
+  """
+  Title of the purchasable snapshot.
+  """
+  title: String!
+  """
+  Image URL of the purchasable snapshot.
+  """
+  imageUrl: String
+  """
+  JSON data of the purchasable snapshot.
+  """
+  data: JSON
+}

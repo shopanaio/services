@@ -24,6 +24,8 @@ export interface ServicesConfig {
   platform: ServiceConfig;
   /** Checkout service configuration */
   checkout: ServiceConfig;
+  /** Orders service configuration */
+  orders: ServiceConfig;
 }
 
 /**

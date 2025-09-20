@@ -1,0 +1,188 @@
+"""
+All monetary calculations related to the order.
+"""
+type OrderCost {
+  """
+  Total value of items before any discounts.
+  """
+  subtotalAmount: Money!
+
+  """
+  Total discount from both item-level and order-level promotions.
+  """
+  totalDiscountAmount: Money!
+
+  """
+  Total tax amount applied to the order.
+  """
+  totalTaxAmount: Money!
+
+  """
+  Total shipping cost (only MERCHANT_COLLECTED payments).
+  """
+  totalShippingAmount: Money!
+
+  """
+  Final amount to be paid, including item cost, shipping, and taxes.
+  """
+  totalAmount: Money!
+}
+
+type OrderCustomerIdentity {
+  """
+  Country code of the customer.
+  """
+  countryCode: CountryCode
+
+  """
+  Customer associated with the order.
+  """
+  customer: User
+
+  """
+  Customer email address associated with the order.
+  """
+  email: Email
+
+  """
+  Phone number of the customer.
+  """
+  phone: String
+}
+
+"""
+A order with multiple items.
+"""
+type Order implements Node @key(fields: "id") {
+  """
+  A globally-unique ID.
+  """
+  id: ID!
+
+  """
+  When this order was first created.
+  """
+  createdAt: DateTime!
+
+  """
+  When this order was last updated.
+  """
+  updatedAt: DateTime!
+
+  """
+  All cost calculations for the order.
+  """
+  cost: OrderCost!
+
+  """
+  Customer identity associated with the order.
+  """
+  customerIdentity: OrderCustomerIdentity!
+
+  """
+  Customer note or special instructions for the order.
+  """
+  customerNote: String
+
+  """
+  Quantity of the item being purchased.
+  """
+  totalQuantity: Int!
+
+  """
+  List of items in the order (paginated).
+  """
+  lines: [OrderLine!]!
+
+  """
+  Notifications for the user regarding the order.
+  """
+  notifications: [OrderNotification!]!
+
+  """
+  Delivery groups.
+  """
+  deliveryGroups: [OrderDeliveryGroup!]!
+
+  """
+  Applied promo codes for the order.
+  """
+  appliedPromoCodes: [OrderPromoCode!]!
+}
+
+"""
+Input data for creating a new order.
+"""
+input OrderCreateInput {
+  """
+  Unique idempotency key for the order.
+  """
+  idempotency: String!
+  """
+  Source of sales for the order.
+  """
+  externalSource: String
+  """
+  ID of the external source for the order.
+  """
+  externalId: String
+  """
+  Locale code for the order. ISO 639-1 (2 letters, e.g., "en", "ru")
+  """
+  localeCode: String!
+  """
+  Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
+  """
+  currencyCode: CurrencyCode!
+  """
+  Initial items to add to the new order.
+  """
+  items: [OrderLineInput!]!
+}
+
+type OrderFieldError {
+  """
+  The field that caused the error.
+  """
+  field: String!
+  """
+  The error message.
+  """
+  message: String!
+}
+
+"""
+Payload returned after creating a order.
+"""
+type OrderCreatePayload {
+  """
+  The newly created order.
+  """
+  order: Order
+  """
+  List of field-specific or general errors.
+  """
+  errors: [OrderFieldError!]
+}
+
+type OrderQuery {
+  """
+  Get a order by its ID.
+  """
+  order(id: ID!): Order
+}
+
+type OrderMutation {
+  """
+  Creates a new order.
+  """
+  orderCreate(input: OrderCreateInput!): Order!
+}
+
+extend type Query {
+  orderQuery: OrderQuery!
+}
+
+extend type Mutation {
+  orderMutation: OrderMutation!
+}
