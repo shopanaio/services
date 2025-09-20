@@ -16,7 +16,7 @@ import { coerceMoney, coerceNullableMoney } from "@src/utils/money";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-api";
+} from "@shopana/shipping-plugin-sdk";
 import { DiscountCondition } from "@shopana/pricing-plugin-sdk";
 import { AppliedDiscountSnapshot } from "./discount";
 
@@ -88,8 +88,6 @@ export type CheckoutState = {
   exists: boolean;
   projectId: string;
   currencyCode: string;
-  displayCurrencyCode: string | null;
-  displayExchangeRate: number | null;
   idempotencyKey: string;
   salesChannel: string;
   externalSource: string | null;
@@ -128,8 +126,6 @@ export const checkoutInitialState = (): CheckoutState => ({
   exists: false,
   projectId: "",
   currencyCode: "",
-  displayCurrencyCode: null,
-  displayExchangeRate: null,
   idempotencyKey: "",
   salesChannel: "",
   externalSource: null,
@@ -175,8 +171,6 @@ export const checkoutEvolve = (
         exists: true,
         projectId: metadata.projectId,
         currencyCode: data.currencyCode,
-        displayCurrencyCode: data.displayCurrencyCode ?? null,
-        displayExchangeRate: data.displayExchangeRate ?? null,
         salesChannel: data.salesChannel,
         externalSource: data.externalSource ?? null,
         externalId: data.externalId ?? null,

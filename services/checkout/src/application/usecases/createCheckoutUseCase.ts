@@ -38,8 +38,6 @@ export class CreateCheckoutUseCase extends UseCase<
         idempotencyKey: businessInput.idempotencyKey,
         salesChannel: businessInput.salesChannel ?? "default",
         externalSource: businessInput.externalSource ?? businessInput.salesChannel ?? null,
-        displayCurrencyCode: businessInput.displayCurrencyCode ?? null,
-        displayExchangeRate: businessInput.displayExchangeRate ?? null,
         externalId: businessInput.externalId ?? null,
         localeCode: businessInput.localeCode ?? null,
         deliveryGroups: await this.createDeliveryGroups(context),

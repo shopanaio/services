@@ -39,8 +39,6 @@ export class OrderReadRepository implements OrderReadPort {
         "customer_note",
         "locale_code",
         "currency_code",
-        "display_currency_code",
-        "display_exchange_rate",
         "subtotal",
         "shipping_total",
         "discount_total",

@@ -4,8 +4,6 @@ export type { CheckoutContext };
 
 export type CreateCheckoutInput = {
   currencyCode: string;
-  displayCurrencyCode?: string | null;
-  displayExchangeRate?: number | null;
   idempotencyKey: string;
   salesChannel?: string | null;
   externalSource?: string | null;

@@ -59,8 +59,6 @@ export type CreateCheckoutCommand = CreateCommandType<
     idempotencyKey: string;
     salesChannel: string;
     externalSource: string | null;
-    displayCurrencyCode: string | null;
-    displayExchangeRate: number | null;
     externalId: string | null;
     localeCode: string | null;
     deliveryGroups: Array<{

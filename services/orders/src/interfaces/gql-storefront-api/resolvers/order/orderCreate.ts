@@ -1,9 +1,9 @@
 import { App } from "@src/ioc/container";
+import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
 import type {
   ApiOrderMutationOrderCreateArgs,
   ApiOrderMutation,
-} from "@src/interfaces/gql-admin-api/types";
-import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
+} from "@src/interfaces/gql-storefront-api/types";
 import { CreateOrderDto } from "@src/application/dto/createOrder.dto";
 import { fromDomainError } from "@src/interfaces/gql-admin-api/errors";
 import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
@@ -15,7 +15,7 @@ import { createValidated } from "@src/utils/validation";
 export const orderCreate = async (
   _parent: ApiOrderMutation,
   args: ApiOrderMutationOrderCreateArgs,
-  ctx: GraphQLContext,
+  ctx: GraphQLContext
 ) => {
   const { broker, idempotencyRepository, logger } = App.getInstance();
   const { input } = args;
@@ -33,10 +33,8 @@ export const orderCreate = async (
       }
     }
 
-    const id = await broker.call("order.createOrder", {
+    const id = (await broker.call("order.createOrder", {
       currencyCode: dto.currencyCode,
-      displayCurrencyCode: null,
-      displayExchangeRate: null,
       externalId: dto.externalId ?? null,
       idempotencyKey: dto.idempotency,
       localeCode: dto.localeCode ?? null,
@@ -46,7 +44,7 @@ export const orderCreate = async (
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
+    })) as string;
 
     const order = await orderReadRepository.findById(id);
     if (!order) {

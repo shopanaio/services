@@ -56,31 +56,4 @@ export function IsUUIDv7(validationOptions?: ValidationOptions) {
   };
 }
 
-/**
- * Class-level validator ensuring displayCurrencyCode and displayExchangeRate
- * are provided together or both null. Also ensures exchange rate is > 0 when provided.
- */
-@ValidatorConstraint({ name: "DisplayCurrencyPair", async: false })
-export class DisplayCurrencyPairConstraint
-  implements ValidatorConstraintInterface
-{
-  validate(_value: any, args: ValidationArguments) {
-    const obj = args.object as Record<string, unknown>;
-    const code = obj["displayCurrencyCode"];
-    const rate = obj["displayExchangeRate"];
-    const hasCode = code != null;
-    const hasRate = rate != null;
-    if (hasCode !== hasRate) return false;
-    if (hasRate && typeof rate === "number" && !(rate > 0)) return false;
-    return true;
-  }
-  defaultMessage(): string {
-    return "displayCurrencyCode and displayExchangeRate must be provided together (and exchange rate must be > 0 when provided)";
-  }
-}
-
-export function ValidateDisplayCurrencyPair(
-  validationOptions?: ValidationOptions
-) {
-  return Validate(DisplayCurrencyPairConstraint, [], validationOptions);
-}
+// Removed obsolete display currency pair validator

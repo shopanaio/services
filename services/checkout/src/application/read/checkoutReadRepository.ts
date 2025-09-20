@@ -68,8 +68,6 @@ export type CheckoutReadPortRow = {
   customer_note: string | null;
   locale_code: string | null;
   currency_code: string;
-  display_currency_code: string | null;
-  display_exchange_rate: bigint | null;
   subtotal: bigint;
   shipping_total: bigint;
   discount_total: bigint;
@@ -156,8 +154,6 @@ export type CheckoutReadView = {
   customerNote: string | null;
   localeCode: string | null;
   currencyCode: string;
-  displayCurrencyCode: string | null;
-  displayExchangeRate: number | null;
   subtotal: Money;
   shippingTotal: Money;
   discountTotal: Money;
@@ -270,8 +266,6 @@ export class CheckoutReadRepository {
       customerNote: row.customer_note,
       localeCode: row.locale_code,
       currencyCode: row.currency_code,
-      displayCurrencyCode: row.display_currency_code,
-      displayExchangeRate: row.display_exchange_rate ? Number(row.display_exchange_rate) : null,
       subtotal: Money.fromMinor(row.subtotal, row.currency_code),
       shippingTotal: Money.fromMinor(row.shipping_total, row.currency_code),
       discountTotal: Money.fromMinor(row.discount_total, row.currency_code),

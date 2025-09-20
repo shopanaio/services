@@ -20,8 +20,6 @@ export type CheckoutSnapshot = Readonly<{
 
   /** Pricing and localization */
   currencyCode: string;
-  displayCurrencyCode: string | null;
-  displayExchangeRate: number | null;
   localeCode: string | null;
 
   /** Sales channel and external system references */

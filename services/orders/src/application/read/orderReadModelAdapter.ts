@@ -1,5 +1,4 @@
-import { OrderState, OrderLineItemState, OrderDeliveryGroup as DomainOrderDeliveryGroup, OrderPromoCode as DomainOrderPromoCode, OrderDeliveryAddress as DomainOrderDeliveryAddress, OrderDeliveryMethod as DomainOrderDeliveryMethod } from "@src/domain/order/evolve";
-import { AppliedDiscountSnapshot } from "@src/domain/order/discount";
+import { OrderState, OrderLineItemState, OrderDeliveryGroup as DomainOrderDeliveryGroup, OrderPromoCode as DomainOrderPromoCode, OrderDeliveryAddress as DomainOrderDeliveryAddress, OrderDeliveryMethod as DomainOrderDeliveryMethod, OrderStatus, AppliedDiscount } from "@src/domain/order/evolve";
 import { OrderReadView, OrderDeliveryGroup, OrderPromoCode, OrderDeliveryAddress, OrderDeliveryMethod } from "./orderReadRepository";
 import { OrderLineItemReadView } from "./orderLineItemsReadRepository";
 import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
@@ -18,8 +17,6 @@ export class OrderReadModelAdapter {
       exists: true, // If data exists in read model, order exists
       projectId: readView.projectId,
       currencyCode: readView.currencyCode,
-      displayCurrencyCode: readView.displayCurrencyCode,
-      displayExchangeRate: readView.displayExchangeRate,
       idempotencyKey: "", // Not available in read model, setting default
       salesChannel: readView.salesChannel || "",
       externalSource: readView.externalSource,
@@ -33,7 +30,7 @@ export class OrderReadModelAdapter {
       apiKey: readView.apiKeyId || "", // Map apiKeyId to apiKey
       createdBy: readView.adminId, // Map adminId to createdBy
       number: null, // Not available in read model
-      status: readView.status,
+      status: OrderReadModelAdapter.mapStatus(readView.status),
       expiresAt: readView.expiresAt,
       version: Number(readView.projectedVersion), // Convert bigint to number
       metadata: readView.metadata || {},
@@ -51,6 +48,22 @@ export class OrderReadModelAdapter {
       linesRecord: this.mapLineItemsToLinesRecord(readView.lineItems),
       appliedDiscounts: this.mapPromoCodesToAppliedDiscounts(readView.appliedPromoCodes),
     };
+  }
+
+  /** Maps string status from read model to domain enum. */
+  private static mapStatus(value: string): OrderStatus {
+    switch (value) {
+      case "DRAFT":
+        return OrderStatus.DRAFT;
+      case "ACTIVE":
+        return OrderStatus.ACTIVE;
+      case "CLOSED":
+        return OrderStatus.CLOSED;
+      case "CANCELLED":
+        return OrderStatus.CANCELLED;
+      default:
+        return OrderStatus.DRAFT;
+    }
   }
 
   /**

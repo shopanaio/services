@@ -18,8 +18,6 @@ export class CheckoutReadModelAdapter {
       exists: true, // If data exists in read model, checkout exists
       projectId: readView.projectId,
       currencyCode: readView.currencyCode,
-      displayCurrencyCode: readView.displayCurrencyCode,
-      displayExchangeRate: readView.displayExchangeRate,
       idempotencyKey: "", // Not available in read model, setting default
       salesChannel: readView.salesChannel || "",
       externalSource: readView.externalSource,

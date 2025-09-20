@@ -35,8 +35,6 @@ export const checkoutCreate = async (
 
     const id = await broker.call("checkout.createCheckout", {
       currencyCode: dto.currencyCode,
-      displayCurrencyCode: null,
-      displayExchangeRate: null,
       externalId: dto.externalId ?? null,
       idempotencyKey: dto.idempotency,
       localeCode: dto.localeCode ?? null,

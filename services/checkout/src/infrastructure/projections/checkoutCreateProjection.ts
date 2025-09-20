@@ -35,8 +35,6 @@ export const checkoutCreateProjection =
           customer_note: null,
           locale_code: event.data.localeCode as any,
           currency_code: event.data.currencyCode,
-          display_currency_code: event.data.displayCurrencyCode,
-          display_exchange_rate: event.data.displayExchangeRate as any,
           subtotal: 0,
           shipping_total: 0,
           discount_total: 0,

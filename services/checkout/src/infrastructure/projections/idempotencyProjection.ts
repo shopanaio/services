@@ -22,8 +22,6 @@ export const idempotencyProjection =
       const req = {
         projectId: (event.metadata as any).projectId,
         currencyCode: event.data.currencyCode,
-        displayCurrencyCode: event.data.displayCurrencyCode,
-        displayExchangeRate: event.data.displayExchangeRate,
         salesChannel: event.data.salesChannel,
       };
       const requestHash = createHash("sha256")

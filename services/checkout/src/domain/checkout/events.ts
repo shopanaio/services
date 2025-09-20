@@ -5,7 +5,7 @@ import { DiscountCondition, DiscountType } from "@shopana/pricing-plugin-sdk";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-api";
+} from "@shopana/shipping-plugin-sdk";
 import type {
   CheckoutLineCostSnapshot,
   CheckoutTotalsSnapshot,
@@ -64,8 +64,6 @@ export type CheckoutCreatedPayload = Readonly<{
   externalSource: string | null;
   externalId: string | null;
   localeCode: string | null;
-  displayCurrencyCode: string | null;
-  displayExchangeRate: number | null;
   deliveryGroups: Array<{
     id: string;
     deliveryMethods: Array<{
