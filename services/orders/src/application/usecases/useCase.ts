@@ -21,6 +21,7 @@ import {
 } from "@event-driven-io/emmett";
 import { InventoryApiClient } from "@shopana/inventory-api";
 import type { CheckoutApiClient } from "@shopana/checkout-api";
+import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 
 /**
  * Dependencies required for use case execution.
@@ -42,6 +43,8 @@ export interface UseCaseDependencies {
   checkoutApiClient: CheckoutApiClient;
   /** Order service for professional totals computation and pricing validation */
   orderService: OrderService;
+  /** Repository for persisting Order PII in dedicated tables */
+  ordersPiiRepository: OrdersPiiRepository;
 }
 
 /**
@@ -69,6 +72,8 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   protected readonly checkoutApi: CheckoutApiClient;
   /** Order service for totals/pricing */
   protected readonly orderService: OrderService;
+  /** PII repository */
+  protected readonly ordersPiiRepository: OrdersPiiRepository;
 
   /**
    * Creates a new use case instance with the provided dependencies.
@@ -84,6 +89,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
     this.inventory = deps.inventory;
     this.checkoutApi = deps.checkoutApiClient;
     this.orderService = deps.orderService;
+    this.ordersPiiRepository = deps.ordersPiiRepository;
   }
 
   /**

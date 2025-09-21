@@ -16,6 +16,7 @@ import { OrderService } from "@src/application/services/orderService";
 import type { ServiceBroker } from "moleculer";
 import { InventoryClient } from "@shopana/inventory-api";
 import { CheckoutClient } from "@shopana/checkout-api";
+import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 
 export class App {
   private static instance: App | null = null;
@@ -36,6 +37,7 @@ export class App {
   public orderReadRepository!: AppOrderReadRepository;
   public orderService!: OrderService;
   public orderUsecase!: OrderUsecase;
+  public ordersPiiRepository!: OrdersPiiRepository;
 
   private constructor() {}
 
@@ -82,6 +84,7 @@ export class App {
       app.pricingClient,
       app.inventoryClient
     );
+    app.ordersPiiRepository = new OrdersPiiRepository();
     app.orderUsecase = new OrderUsecase({
       eventStore: app.eventStore,
       streamNames: app.streamNames,
@@ -92,6 +95,7 @@ export class App {
       checkoutApiClient: app.checkoutClient,
       orderService: app.orderService,
       orderReadRepository: app.orderReadRepository,
+      ordersPiiRepository: app.ordersPiiRepository,
     });
 
     this.instance = app;

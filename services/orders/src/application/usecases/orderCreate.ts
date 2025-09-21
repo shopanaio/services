@@ -7,12 +7,7 @@ import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import type { Checkout } from "@shopana/checkout-sdk";
 import type { OrderCreated } from "@src/domain/order/events";
-import type {
-  AppliedDiscount,
-  OrderDeliveryAddress,
-  OrderDeliveryGroup,
-  OrderUnitSnapshot,
-} from "@src/domain/order/evolve";
+import type { AppliedDiscount, OrderUnitSnapshot } from "@src/domain/order/evolve";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
 
@@ -56,34 +51,64 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       } satisfies OrderUnitSnapshot,
     }));
 
-    const orderDeliveryGroups: OrderDeliveryGroup[] = checkoutAggregate.deliveryGroups.map(
-      (g) => ({
-        id: g.id,
-        orderLineIds: g.checkoutLines.map((cl) => cl.id),
-        deliveryAddress: g.deliveryAddress
-          ? ({
-              id: g.deliveryAddress.id,
-              address1: g.deliveryAddress.address1,
-              address2: g.deliveryAddress.address2 ?? null,
-              city: g.deliveryAddress.city,
-              countryCode: g.deliveryAddress.countryCode,
-              provinceCode: g.deliveryAddress.provinceCode ?? null,
-              postalCode: g.deliveryAddress.postalCode ?? null,
-              email: g.deliveryAddress.email ?? null,
-              firstName: g.deliveryAddress.firstName ?? null,
-              lastName: g.deliveryAddress.lastName ?? null,
-              phone: g.deliveryAddress.phone ?? null,
-              data: (g.deliveryAddress.data as Record<string, unknown> | null) ?? null,
-            } satisfies OrderDeliveryAddress)
-          : null,
-        deliveryCost: g.shippingCost
-          ? {
-              amount: g.shippingCost.amount,
-              paymentModel: g.shippingCost.paymentModel,
-            }
-          : null,
-      })
+    // Prepare PII to be persisted separately and map delivery group -> addressId
+    // 1) Generate address IDs and persist addresses in PII tables
+    const deliveryAddressesToPersist = checkoutAggregate.deliveryGroups
+      .filter((g) => !!g.deliveryAddress)
+      .map((g) => {
+        const addrId = uuidv7();
+        return {
+          addrId,
+          groupId: g.id,
+          payload: {
+            id: addrId,
+            projectId: project.id,
+            orderId: id,
+            deliveryGroupId: g.id,
+            address1: g.deliveryAddress!.address1,
+            address2: g.deliveryAddress!.address2 ?? null,
+            city: g.deliveryAddress!.city,
+            countryCode: g.deliveryAddress!.countryCode,
+            provinceCode: g.deliveryAddress!.provinceCode ?? null,
+            postalCode: g.deliveryAddress!.postalCode ?? null,
+            email: g.deliveryAddress!.email ?? null,
+            firstName: g.deliveryAddress!.firstName ?? null,
+            lastName: g.deliveryAddress!.lastName ?? null,
+            phone: g.deliveryAddress!.phone ?? null,
+            metadata: (g.deliveryAddress!.data as Record<string, unknown> | null) ?? null,
+          },
+        };
+      });
+
+    // 2) Persist order contact PII and delivery addresses
+    // Note: this side-write keeps PII out of event payloads. If this write fails,
+    // the order creation should be aborted to avoid dangling references.
+    await this.ordersPiiRepository.upsertOrderContacts({
+      projectId: project.id,
+      orderId: id,
+      customerEmail: checkoutAggregate.customerIdentity.email ?? null,
+      customerPhoneE164: checkoutAggregate.customerIdentity.phone ?? null,
+      customerNote: checkoutAggregate.customerNote ?? null,
+      expiresAt: null,
+    });
+
+    await this.ordersPiiRepository.insertDeliveryAddresses(
+      deliveryAddressesToPersist.map((a) => a.payload)
     );
+
+    // 3) Build delivery groups payload for event with references to PII (addressId)
+    const deliveryGroupsForEvent = checkoutAggregate.deliveryGroups.map((g) => ({
+      id: g.id,
+      orderLineIds: g.checkoutLines.map((cl) => cl.id),
+      deliveryAddressId:
+        deliveryAddressesToPersist.find((a) => a.groupId === g.id)?.addrId ?? null,
+      deliveryCost: g.shippingCost
+        ? {
+            amount: g.shippingCost.amount,
+            paymentModel: g.shippingCost.paymentModel,
+          }
+        : null,
+    }));
 
     const appliedDiscounts: AppliedDiscount[] = checkoutAggregate.appliedPromoCodes.map(
       (p) => ({
@@ -114,16 +139,13 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         totalShippingAmount: checkoutAggregate.cost.totalShippingAmount,
         totalAmount: checkoutAggregate.cost.totalAmount,
 
-        // Customer
-        customerEmail: checkoutAggregate.customerIdentity.email,
-        customerPhone: checkoutAggregate.customerIdentity.phone,
+        // Customer (no PII in events)
         customerId: checkoutAggregate.customerIdentity.customer?.id ?? null,
         customerCountryCode: checkoutAggregate.customerIdentity.countryCode,
-        customerNote: checkoutAggregate.customerNote,
 
         // Order business state
         lines: orderLines,
-        deliveryGroups: orderDeliveryGroups,
+        deliveryGroups: deliveryGroupsForEvent,
         appliedDiscounts,
 
         // Snapshot for audit
@@ -145,6 +167,9 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       "STREAM_DOES_NOT_EXIST"
     );
 
+    // NOTE: PII has been persisted into platform.orders_pii_records and
+    // platform.order_delivery_addresses. Only references (deliveryAddressId)
+    // are kept in event payloads for safe, GDPR-compliant event sourcing.
     return id;
   }
 

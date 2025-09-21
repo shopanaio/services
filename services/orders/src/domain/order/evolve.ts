@@ -34,21 +34,32 @@ export type OrderLineItemState = Readonly<{
 
 /**
  * Delivery address attached to a delivery group.
+ *
+ * Note: This structure contains PII. Avoid persisting it in event payloads.
+ * Keep addresses in PII storage/read-model and only reference them from events.
  */
 export type OrderDeliveryAddress = Readonly<{
   id: string;
+  /** PII */
   address1: string;
+  /** PII */
   address2?: string | null;
+  /** PII */
   city: string;
   countryCode: string;
   provinceCode?: string | null;
   postalCode?: string | null;
+  /** PII */
   email?: string | null;
+  /** PII */
   firstName?: string | null;
+  /** PII */
   lastName?: string | null;
+  /** PII */
   phone?: string | null;
+  /** PII: may contain additional personal attributes */
   data?: Record<string, unknown> | null;
-}>;
+}>; 
 
 /**
  * Delivery group that groups lines by delivery address/method.
@@ -57,6 +68,10 @@ export type OrderDeliveryGroup = Readonly<{
   id: string;
   /** Order lines associated with the delivery group. */
   orderLineIds: string[];
+  /**
+   * PII: Full delivery address contains personal data. Do not persist in event payloads.
+   * Prefer storing a reference (deliveryAddressId) and keep address record in PII storage.
+   */
   deliveryAddress: OrderDeliveryAddress | null;
   /**
    * Delivery cost could update after order creation.
@@ -66,7 +81,7 @@ export type OrderDeliveryGroup = Readonly<{
     amount: Money;
     paymentModel: ShippingPaymentModel;
   } | null;
-}>;
+}>; 
 
 /**
  * Applied promo code snapshot attached to order.
@@ -129,10 +144,13 @@ export type OrderState = Readonly<{
   metadata: Record<string, unknown>;
 
   // Customer identity
+  /** PII: keep out of event payloads; store in PII storage/read-model. */
   customerEmail: string | null;
   customerId: string | null;
+  /** PII: keep out of event payloads; store in PII storage/read-model. */
   customerPhone: string | null;
   customerCountryCode: string | null;
+  /** PII: may contain personal data. Keep out of event payloads. */
   customerNote: string | null;
 
   // Business data
@@ -215,11 +233,9 @@ export const orderEvolve = (
         shippingTotal: event.data.totalShippingAmount,
         grandTotal: event.data.totalAmount,
 
-        customerEmail: event.data.customerEmail,
         customerId: event.data.customerId,
-        customerPhone: event.data.customerPhone,
         customerCountryCode: event.data.customerCountryCode,
-        customerNote: event.data.customerNote,
+        // PII (email/phone/note) is intentionally not part of event payloads
 
         idempotencyKey: event.data.idempotencyKey,
       };
