@@ -22,6 +22,7 @@ import {
 import { InventoryApiClient } from "@shopana/inventory-api";
 import type { CheckoutApiClient } from "@shopana/checkout-api";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
+import { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
 
 /**
  * Dependencies required for use case execution.
@@ -45,6 +46,8 @@ export interface UseCaseDependencies {
   orderService: OrderService;
   /** Repository for persisting Order PII in dedicated tables */
   ordersPiiRepository: OrdersPiiRepository;
+  /** Idempotency repository for API-level deduplication */
+  idempotencyRepository: IdempotencyRepository;
 }
 
 /**
@@ -74,6 +77,8 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   protected readonly orderService: OrderService;
   /** PII repository */
   protected readonly ordersPiiRepository: OrdersPiiRepository;
+  /** Idempotency repository */
+  protected readonly idempotencyRepository: IdempotencyRepository;
 
   /**
    * Creates a new use case instance with the provided dependencies.
@@ -90,6 +95,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
     this.checkoutApi = deps.checkoutApiClient;
     this.orderService = deps.orderService;
     this.ordersPiiRepository = deps.ordersPiiRepository;
+    this.idempotencyRepository = deps.idempotencyRepository;
   }
 
   /**

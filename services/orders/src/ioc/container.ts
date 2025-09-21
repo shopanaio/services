@@ -96,6 +96,7 @@ export class App {
       orderService: app.orderService,
       orderReadRepository: app.orderReadRepository,
       ordersPiiRepository: app.ordersPiiRepository,
+      idempotencyRepository: app.idempotencyRepository,
     });
 
     this.instance = app;
