@@ -1,43 +1,40 @@
 import { Expose, Type } from "class-transformer";
 import {
-  IsString,
+  IsArray,
+  IsInt,
   IsNotEmpty,
   IsOptional,
-  IsInt,
+  IsString,
   Min,
-  IsArray,
   ValidateNested,
 } from "class-validator";
-import { IsISO4217 } from "@src/application/validation/decorators";
 
+/**
+ * Snapshot of purchasable data used when adding lines to an order.
+ */
 export class PurchasableSnapshotInputDto {
-  /** Title of the purchasable snapshot. */
   @Expose()
   @IsString()
   @IsNotEmpty()
   title!: string;
 
-  /** Image URL of the purchasable snapshot. */
   @Expose()
   @IsOptional()
   @IsString()
   imageUrl?: string;
 
-  /** SKU of the purchasable snapshot. */
   @Expose()
   @IsOptional()
   @IsString()
   sku?: string;
 
-  /** JSON data of the purchasable snapshot. */
   @Expose()
   @IsOptional()
   data?: Record<string, unknown>;
 }
 
 /**
- * DTO for orderCreate API. Class-validator runs here to guard API inputs.
- * Domain invariants are additionally enforced in the decider/validator.
+ * DTO for order line payloads reused across mutations.
  */
 export class OrderLineInputDto {
   @Expose()
@@ -53,42 +50,17 @@ export class OrderLineInputDto {
   @Expose()
   @IsOptional()
   @ValidateNested()
-  // AI: Share a snapshot with inventory.
   @Type(() => PurchasableSnapshotInputDto)
   purchasableSnapshot?: PurchasableSnapshotInputDto;
 }
 
+/**
+ * DTO for storefront mutation orderCreate.
+ * Validates single required argument checkoutId.
+ */
 export class CreateOrderDto {
-  // Matches OrderCreateInput from GraphQL schema
   @Expose()
   @IsString()
   @IsNotEmpty()
-  idempotency!: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  externalSource?: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString()
-  externalId?: string;
-
-  @Expose()
-  @IsString()
-  @IsNotEmpty()
-  // ISO 639-1 code (2 letters) – keep as generic string validation here
-  localeCode!: string;
-
-  @Expose()
-  @IsString()
-  @IsISO4217({ message: "currencyCode must be ISO-4217 (3 uppercase letters)" })
-  currencyCode!: string;
-
-  @Expose()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => OrderLineInputDto)
-  items!: OrderLineInputDto[];
+  checkoutId!: string;
 }
