@@ -8,7 +8,6 @@ import type {
   OrderDeliveryAddressRow,
   OrderPromoCodeRow,
   OrderDeliveryGroupRow,
-  OrderDeliveryMethodRow,
   OrderDeliveryGroup,
   OrderPromoCode,
 } from "@src/application/read/orderReadRepository";
@@ -165,27 +164,4 @@ export class OrderReadRepository implements OrderReadPort {
     );
   }
 
-  async findDeliveryMethods(
-    orderId: string
-  ): Promise<OrderDeliveryMethodRow[]> {
-    const q = knex
-      .withSchema("platform")
-      .table("order_delivery_methods as dm")
-      .join("order_delivery_groups as dg", "dg.id", "dm.delivery_group_id")
-      .select(
-        "dm.code",
-        "dm.project_id",
-        "dm.delivery_group_id",
-        "dm.delivery_method_type",
-        "dm.payment_model"
-      )
-      .where("dg.order_id", orderId)
-      .orderBy("dm.code", "asc")
-      .toString();
-
-    const result = await this.execute.query<OrderDeliveryMethodRow>(
-      rawSql(q)
-    );
-    return result.rows;
-  }
 }

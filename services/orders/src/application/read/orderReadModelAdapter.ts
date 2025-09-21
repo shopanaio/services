@@ -1,8 +1,18 @@
-import { OrderState, OrderLineItemState, OrderDeliveryGroup as DomainOrderDeliveryGroup, OrderPromoCode as DomainOrderPromoCode, OrderDeliveryAddress as DomainOrderDeliveryAddress, OrderDeliveryMethod as DomainOrderDeliveryMethod, OrderStatus, AppliedDiscount } from "@src/domain/order/evolve";
-import { OrderReadView, OrderDeliveryGroup, OrderPromoCode, OrderDeliveryAddress, OrderDeliveryMethod } from "./orderReadRepository";
+import {
+  OrderState,
+  OrderLineItemState,
+  OrderDeliveryGroup as DomainOrderDeliveryGroup,
+  OrderDeliveryAddress as DomainOrderDeliveryAddress,
+  OrderStatus,
+  AppliedDiscount,
+} from "@src/domain/order/evolve";
+import {
+  OrderReadView,
+  OrderDeliveryGroup,
+  OrderDeliveryAddress,
+  OrderPromoCode,
+} from "./orderReadRepository";
 import { OrderLineItemReadView } from "./orderLineItemsReadRepository";
-import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
-import { DiscountType } from "@shopana/pricing-plugin-sdk";
 
 /**
  * Adapter for converting data from read model to OrderState domain model format
@@ -26,7 +36,6 @@ export class OrderReadModelAdapter {
       updatedAt: readView.updatedAt,
       subtotal: readView.subtotal,
       grandTotal: readView.grandTotal,
-      totalQuantity: readView.totalQuantity,
       apiKey: readView.apiKeyId || "", // Map apiKeyId to apiKey
       createdBy: readView.adminId, // Map adminId to createdBy
       number: null, // Not available in read model
@@ -40,8 +49,10 @@ export class OrderReadModelAdapter {
       customerPhone: readView.customerPhoneE164, // Map customerPhoneE164 to customerPhone
       customerCountryCode: readView.customerCountryCode,
       customerNote: readView.customerNote,
-      deliveryGroups: this.mapDeliveryGroups(readView.deliveryGroups, readView.deliveryAddresses, readView.deliveryMethods),
-      appliedPromoCodes: this.mapPromoCodes(readView.appliedPromoCodes),
+      deliveryGroups: this.mapDeliveryGroups(
+        readView.deliveryGroups,
+        readView.deliveryAddresses
+      ),
       discountTotal: readView.discountTotal,
       taxTotal: readView.taxTotal,
       shippingTotal: readView.shippingTotal,
@@ -96,28 +107,19 @@ export class OrderReadModelAdapter {
    */
   private static mapDeliveryGroups(
     deliveryGroups: OrderDeliveryGroup[],
-    deliveryAddresses: OrderDeliveryAddress[],
-    deliveryMethods: OrderDeliveryMethod[]
+    deliveryAddresses: OrderDeliveryAddress[]
   ): DomainOrderDeliveryGroup[] {
     return deliveryGroups.map(group => {
       // Find address for this delivery group
       const groupAddress = deliveryAddresses.find(addr => addr.deliveryGroupId === group.id);
 
-      // Find delivery methods for this group
-      const groupMethods = deliveryMethods.filter(method => method.deliveryGroupId === group.id);
-
-      // Find selected delivery method
-      const selectedMethod = group.selectedDeliveryMethod
-        ? groupMethods.find(method => method.code === group.selectedDeliveryMethod)
-        : null;
-
       return {
         id: group.id,
         orderLineIds: group.lineItemIds,
-        deliveryAddress: groupAddress ? this.mapDeliveryAddress(groupAddress) : null,
-        selectedDeliveryMethod: selectedMethod ? this.mapDeliveryMethod(selectedMethod) : null,
-        deliveryMethods: groupMethods.map(method => this.mapDeliveryMethod(method)),
-        shippingCost: null, // Not available in read model, may require additional logic
+        deliveryAddress: groupAddress
+          ? this.mapDeliveryAddress(groupAddress)
+          : null,
+        deliveryCost: null,
       };
     });
   }
@@ -125,7 +127,9 @@ export class OrderReadModelAdapter {
   /**
    * Converts delivery address from read model to domain model
    */
-  private static mapDeliveryAddress(address: OrderDeliveryAddress): DomainOrderDeliveryAddress {
+  private static mapDeliveryAddress(
+    address: OrderDeliveryAddress
+  ): DomainOrderDeliveryAddress {
     return {
       id: address.id,
       address1: address.address1,
@@ -143,42 +147,15 @@ export class OrderReadModelAdapter {
   }
 
   /**
-   * Converts delivery method from read model to domain model
-   */
-  private static mapDeliveryMethod(method: OrderDeliveryMethod): DomainOrderDeliveryMethod {
-    return {
-      code: method.code,
-      deliveryMethodType: method.deliveryMethodType as DeliveryMethodType,
-      shippingPaymentModel: method.paymentModel as ShippingPaymentModel,
-      provider: {
-        code: method.code, // Use code as provider code, may need adjustment
-        data: {}, // Not available in read model
-      },
-    };
-  }
-
-  /**
-   * Converts promo codes from read model to domain model
-   */
-  private static mapPromoCodes(promoCodes: OrderPromoCode[]): DomainOrderPromoCode[] {
-    return promoCodes.map(promoCode => ({
-      code: promoCode.code,
-      appliedAt: promoCode.appliedAt,
-      discountType: promoCode.discountType,
-      value: promoCode.value,
-      provider: promoCode.provider,
-      conditions: promoCode.conditions || null,
-    }));
-  }
-
-  /**
    * Converts promo codes to applied discounts
    */
-  private static mapPromoCodesToAppliedDiscounts(promoCodes: OrderPromoCode[]): AppliedDiscountSnapshot[] {
+  private static mapPromoCodesToAppliedDiscounts(
+    promoCodes: OrderPromoCode[]
+  ): AppliedDiscount[] {
     return promoCodes.map(promoCode => ({
       code: promoCode.code,
       appliedAt: promoCode.appliedAt,
-      type: promoCode.discountType as DiscountType,
+      type: promoCode.discountType,
       value: promoCode.value,
       provider: promoCode.provider,
     }));

@@ -45,14 +45,6 @@ export type OrderDeliveryGroupRow = {
   updated_at: Date;
 };
 
-export type OrderDeliveryMethodRow = {
-  code: string;
-  project_id: string;
-  delivery_group_id: string;
-  delivery_method_type: string;
-  payment_model: string;
-};
-
 export type OrderReadPortRow = {
   id: string;
   project_id: string;
@@ -89,7 +81,6 @@ export interface OrderReadPort {
   ): Promise<OrderDeliveryAddressRow[]>;
   findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]>;
   findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]>;
-  findDeliveryMethods(orderId: string): Promise<OrderDeliveryMethodRow[]>;
 }
 
 export type OrderDeliveryAddress = {
@@ -131,14 +122,6 @@ export type OrderDeliveryGroup = {
   updatedAt: Date;
 };
 
-export type OrderDeliveryMethod = {
-  code: string;
-  projectId: string;
-  deliveryGroupId: string;
-  deliveryMethodType: string;
-  paymentModel: string;
-};
-
 export type OrderReadView = {
   id: string;
   projectId: string;
@@ -169,7 +152,6 @@ export type OrderReadView = {
   appliedPromoCodes: OrderPromoCode[];
   deliveryGroups: OrderDeliveryGroup[];
   deliveryAddresses: OrderDeliveryAddress[];
-  deliveryMethods: OrderDeliveryMethod[];
   // Aggregated data
   lineItems: OrderLineItemReadView[];
   totalQuantity: number;
@@ -188,13 +170,12 @@ export class OrderReadRepository {
   }
 
   async findById(id: string): Promise<OrderReadView | null> {
-    const [row, appliedPromoCodes, deliveryGroups, deliveryAddresses, deliveryMethods, lineItems] =
+    const [row, appliedPromoCodes, deliveryGroups, deliveryAddresses, lineItems] =
       await Promise.all([
         this.port.findById(id),
         this.port.findAppliedPromoCodes(id),
         this.port.findDeliveryGroups(id),
         this.port.findDeliveryAddresses(id),
-        this.port.findDeliveryMethods(id),
         this.lineItemsReadRepository.findByOrderId(id),
       ]);
 
@@ -222,16 +203,6 @@ export class OrderReadRepository {
         metadata: address.metadata,
         createdAt: address.created_at,
         updatedAt: address.updated_at,
-      })
-    );
-
-    const mappedDeliveryMethods: OrderDeliveryMethod[] = deliveryMethods.map(
-      (method): OrderDeliveryMethod => ({
-        code: method.code,
-        projectId: method.project_id,
-        deliveryGroupId: method.delivery_group_id,
-        deliveryMethodType: method.delivery_method_type,
-        paymentModel: method.payment_model,
       })
     );
 
@@ -281,7 +252,6 @@ export class OrderReadRepository {
       appliedPromoCodes: appliedPromoCodes,
       deliveryGroups,
       deliveryAddresses: mappedDeliveryAddresses,
-      deliveryMethods: mappedDeliveryMethods,
       lineItems: normalizedLineItems,
       totalQuantity,
     };

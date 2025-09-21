@@ -1,7 +1,6 @@
 import { OrderEventTypes, type OrderEvent } from "./events";
-import type { CheckoutSnapshot } from "./checkoutSnapshot";
 import { Money } from "@shopana/shared-money";
-import type { DeliveryMethodType, ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
+import type { ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
 
 /** Order status aligned with admin GraphQL schema. */
 export enum OrderStatus {
@@ -34,24 +33,6 @@ export type OrderLineItemState = Readonly<{
 }>;
 
 /**
- * Delivery provider descriptor for a delivery method.
- */
-export type OrderDeliveryProvider = Readonly<{
-  code: string;
-  data: Record<string, unknown>;
-}>;
-
-/**
- * Delivery method descriptor selected or available for a delivery group.
- */
-export type OrderDeliveryMethod = Readonly<{
-  code: string;
-  deliveryMethodType: DeliveryMethodType;
-  shippingPaymentModel: ShippingPaymentModel;
-  provider: OrderDeliveryProvider;
-}>;
-
-/**
  * Delivery address attached to a delivery group.
  */
 export type OrderDeliveryAddress = Readonly<{
@@ -74,11 +55,17 @@ export type OrderDeliveryAddress = Readonly<{
  */
 export type OrderDeliveryGroup = Readonly<{
   id: string;
+  /** Order lines associated with the delivery group. */
   orderLineIds: string[];
   deliveryAddress: OrderDeliveryAddress | null;
-  selectedDeliveryMethod: OrderDeliveryMethod | null;
-  deliveryMethods: OrderDeliveryMethod[];
-  shippingCost: { amount: Money; paymentModel: ShippingPaymentModel } | null;
+  /**
+   * Delivery cost could update after order creation.
+   * Initial cost is set to the cost of the selected delivery method.
+   */
+  deliveryCost: {
+    amount: Money;
+    paymentModel: ShippingPaymentModel;
+  } | null;
 }>;
 
 /**
@@ -133,7 +120,6 @@ export type OrderState = Readonly<{
   taxTotal: Money;
   shippingTotal: Money;
   grandTotal: Money;
-  totalQuantity: number;
 
   // Customer facing metadata
   number: number | null;
@@ -152,9 +138,8 @@ export type OrderState = Readonly<{
   // Business data
   idempotencyKey: string;
   linesRecord: Record<string, OrderLineItemState>;
-  deliveryGroups: OrderDeliveryGroup[];
-  appliedPromoCodes: OrderPromoCode[];
   appliedDiscounts: AppliedDiscount[];
+  deliveryGroups: OrderDeliveryGroup[];
 }>;
 
 /**
@@ -182,7 +167,6 @@ export const orderInitialState = (): OrderState => ({
   taxTotal: Money.zero(),
   shippingTotal: Money.zero(),
   grandTotal: Money.zero(),
-  totalQuantity: 0,
 
   number: null,
   status: OrderStatus.DRAFT,
@@ -198,9 +182,8 @@ export const orderInitialState = (): OrderState => ({
 
   idempotencyKey: "",
   linesRecord: {},
-  deliveryGroups: [],
-  appliedPromoCodes: [],
   appliedDiscounts: [],
+  deliveryGroups: [],
 });
 
 export const orderEvolve = (
@@ -209,121 +192,7 @@ export const orderEvolve = (
 ): OrderState => {
   switch (event.type) {
     case OrderEventTypes.OrderCreated: {
-      const { data, metadata } = event;
-      const snapshot: CheckoutSnapshot = data.checkoutSnapshot;
-
-      // Build lines record
-      const linesRecord = Object.fromEntries(
-        snapshot.lines.map((l) => [
-          l.lineId,
-          {
-            lineId: l.lineId,
-            quantity: l.quantity,
-            unit: {
-              id: l.unit.id,
-              price: l.unit.price,
-              compareAtPrice: l.unit.compareAtPrice,
-              title: l.unit.title,
-              imageUrl: l.unit.imageUrl,
-              sku: l.unit.sku,
-              snapshot: l.unit.snapshot,
-            },
-          } as OrderLineItemState,
-        ])
-      );
-
-      // Build delivery groups
-      const deliveryGroups: OrderDeliveryGroup[] = snapshot.deliveryGroups.map(
-        (g) => ({
-          id: g.id,
-          orderLineIds: g.checkoutLineIds,
-          deliveryAddress: g.deliveryAddress
-            ? {
-                id: g.deliveryAddress.id,
-                address1: g.deliveryAddress.address1,
-                address2: g.deliveryAddress.address2 ?? null,
-                city: g.deliveryAddress.city,
-                countryCode: g.deliveryAddress.countryCode,
-                provinceCode: g.deliveryAddress.provinceCode ?? null,
-                postalCode: g.deliveryAddress.postalCode ?? null,
-                email: g.deliveryAddress.email ?? null,
-                firstName: g.deliveryAddress.firstName ?? null,
-                lastName: g.deliveryAddress.lastName ?? null,
-                phone: g.deliveryAddress.phone ?? null,
-                data: g.deliveryAddress.data ?? null,
-              }
-            : null,
-          selectedDeliveryMethod: g.selectedDeliveryMethod
-            ? {
-                code: g.selectedDeliveryMethod.code,
-                deliveryMethodType: g.selectedDeliveryMethod.deliveryMethodType,
-                shippingPaymentModel: g.selectedDeliveryMethod.shippingPaymentModel,
-                provider: {
-                  code: g.selectedDeliveryMethod.provider.code,
-                  data: g.selectedDeliveryMethod.provider.data,
-                },
-              }
-            : null,
-          deliveryMethods: [],
-          shippingCost: g.shippingCost
-            ? {
-                amount: g.shippingCost.amount,
-                paymentModel: g.shippingCost.paymentModel,
-              }
-            : null,
-        })
-      );
-
-      // Applied promo codes
-      const appliedPromoCodes: OrderPromoCode[] = snapshot.appliedPromoCodes.map(
-        (p) => ({
-          code: p.code,
-          appliedAt: p.appliedAt,
-          discountType: p.discountType,
-          value: p.value,
-          provider: p.provider,
-          conditions: null,
-        })
-      );
-
-      return {
-        ...current,
-        id: metadata.aggregateId,
-        exists: true,
-        projectId: metadata.projectId,
-        apiKey: metadata.apiKey,
-        createdBy: metadata.userId ?? null,
-        salesChannel: snapshot.salesChannel,
-        externalSource: snapshot.externalSource,
-        externalId: snapshot.externalId,
-        currencyCode: data.currencyCode,
-        localeCode: snapshot.localeCode,
-        subtotal: snapshot.totals.subtotal,
-        discountTotal: snapshot.totals.discountTotal,
-        taxTotal: snapshot.totals.taxTotal,
-        shippingTotal: snapshot.totals.shippingTotal,
-        grandTotal: snapshot.totals.grandTotal,
-        totalQuantity: snapshot.totals.totalQuantity,
-        customerEmail: snapshot.customer.email,
-        customerId: snapshot.customer.customerId,
-        customerPhone: snapshot.customer.phone,
-        customerCountryCode: snapshot.customer.countryCode,
-        customerNote: snapshot.customer.note,
-        idempotencyKey: data.idempotencyKey,
-        linesRecord,
-        deliveryGroups,
-        appliedPromoCodes,
-        // Defaults
-        number: null,
-        status: OrderStatus.ACTIVE,
-        expiresAt: null,
-        version: 0,
-        metadata: {},
-        deletedAt: null,
-        createdAt: metadata.now,
-        updatedAt: metadata.now,
-        appliedDiscounts: [],
-      };
+      return { ...current };
     }
 
     default:

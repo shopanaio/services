@@ -28,11 +28,7 @@ export type CheckoutSnapshot = Readonly<{
   externalId: string | null;
 
   /** Timestamps */
-  createdAt: Date; // checkout creation time
   capturedAt: Date; // when this snapshot was captured (order creation time)
-
-  /** Totals computed by checkout domain */
-  totals: CheckoutTotalsSnapshot;
 
   /** Customer identity and note provided at checkout time */
   customer: CheckoutCustomerSnapshot;
