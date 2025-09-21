@@ -1,30 +1,24 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiUser,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiUser } from "@src/interfaces/gql-storefront-api/types";
+import type { OrderReadView } from "@src/application/read/orderReadRepository";
 import { mapOrderReadToApi } from "@src/interfaces/gql-storefront-api/mapper/order";
 
 /**
  * User.orders: [Order!]!
  */
-export const userOrders = async (
-  parent: ApiUser
-) => {
-  // TODO: Implement user orders retrieval logic
-  // This would involve calling appropriate repository method to get orders by user ID
-
+export const userOrders = async (parent: ApiUser) => {
   const userId = parent.id;
+  const app = App.getInstance();
 
   try {
-    // Placeholder implementation - should be replaced with actual repository call
-    console.log(`Fetching orders for user ${userId}`);
+    // TODO: Replace placeholder once repository method for user orders is implemented.
+    const orders: OrderReadView[] = [];
 
-    // Example: const orders = await App.getInstance().orderReadRepository.findByUserId(userId);
-    const orders: any[] = [];
+    app.logger.debug({ userId }, "Returning placeholder orders for user");
 
     return orders.map(mapOrderReadToApi);
   } catch (error) {
-    console.error("Failed to fetch user orders:", error);
+    app.logger.error({ error, userId }, "Failed to fetch user orders");
     return [];
   }
 };

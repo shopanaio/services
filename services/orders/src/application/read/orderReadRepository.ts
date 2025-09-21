@@ -52,6 +52,7 @@ export type OrderReadPortRow = {
   admin_id: string | null;
   sales_channel: string | null;
   external_source: string | null;
+  order_number: bigint;
   external_id: string | null;
   customer_id: string | null;
   customer_email: string | null;
@@ -76,9 +77,8 @@ export type OrderReadPortRow = {
 
 export interface OrderReadPort {
   findById(id: string): Promise<OrderReadPortRow | null>;
-  findDeliveryAddresses(
-    orderId: string
-  ): Promise<OrderDeliveryAddressRow[]>;
+  findByOrderNumber(orderNumber: bigint, projectId: string): Promise<OrderReadPortRow | null>;
+  findDeliveryAddresses(orderId: string): Promise<OrderDeliveryAddressRow[]>;
   findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]>;
   findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]>;
 }
@@ -127,6 +127,7 @@ export type OrderReadView = {
   projectId: string;
   apiKeyId: string | null;
   adminId: string | null;
+  orderNumber: bigint;
   salesChannel: string | null;
   externalSource: string | null;
   externalId: string | null;
@@ -170,14 +171,19 @@ export class OrderReadRepository {
   }
 
   async findById(id: string): Promise<OrderReadView | null> {
-    const [row, appliedPromoCodes, deliveryGroups, deliveryAddresses, lineItems] =
-      await Promise.all([
-        this.port.findById(id),
-        this.port.findAppliedPromoCodes(id),
-        this.port.findDeliveryGroups(id),
-        this.port.findDeliveryAddresses(id),
-        this.lineItemsReadRepository.findByOrderId(id),
-      ]);
+    const [
+      row,
+      appliedPromoCodes,
+      deliveryGroups,
+      deliveryAddresses,
+      lineItems,
+    ] = await Promise.all([
+      this.port.findById(id),
+      this.port.findAppliedPromoCodes(id),
+      this.port.findDeliveryGroups(id),
+      this.port.findDeliveryAddresses(id),
+      this.lineItemsReadRepository.findByOrderId(id),
+    ]);
 
     if (!row) return null;
 
@@ -186,40 +192,59 @@ export class OrderReadRepository {
       0
     );
 
-    const mappedDeliveryAddresses: OrderDeliveryAddress[] = deliveryAddresses.map(
-      (address): OrderDeliveryAddress => ({
-        id: address.id,
-        deliveryGroupId: address.delivery_group_id,
-        address1: address.address1,
-        address2: address.address2,
-        city: address.city,
-        countryCode: address.country_code,
-        provinceCode: address.province_code,
-        postalCode: address.postal_code,
-        firstName: address.first_name,
-        lastName: address.last_name,
-        email: address.email,
-        phone: address.phone,
-        metadata: address.metadata,
-        createdAt: address.created_at,
-        updatedAt: address.updated_at,
-      })
-    );
+    const mappedDeliveryAddresses: OrderDeliveryAddress[] =
+      deliveryAddresses.map(
+        (address): OrderDeliveryAddress => ({
+          id: address.id,
+          deliveryGroupId: address.delivery_group_id,
+          address1: address.address1,
+          address2: address.address2,
+          city: address.city,
+          countryCode: address.country_code,
+          provinceCode: address.province_code,
+          postalCode: address.postal_code,
+          firstName: address.first_name,
+          lastName: address.last_name,
+          email: address.email,
+          phone: address.phone,
+          metadata: address.metadata,
+          createdAt: address.created_at,
+          updatedAt: address.updated_at,
+        })
+      );
 
     // Normalize Money currency in lines to cart currency
     const normalizedLineItems = lineItems.map((item) => ({
       ...item,
       unit: {
         ...item.unit,
-        price: Money.fromMinor(item.unit.price.amountMinor(), row.currency_code),
+        price: Money.fromMinor(
+          item.unit.price.amountMinor(),
+          row.currency_code
+        ),
         compareAtPrice: item.unit.compareAtPrice
-          ? Money.fromMinor(item.unit.compareAtPrice.amountMinor(), row.currency_code)
+          ? Money.fromMinor(
+              item.unit.compareAtPrice.amountMinor(),
+              row.currency_code
+            )
           : null,
       },
-      subtotalAmount: Money.fromMinor(item.subtotalAmount.amountMinor(), row.currency_code),
-      discountAmount: Money.fromMinor(item.discountAmount.amountMinor(), row.currency_code),
-      taxAmount: Money.fromMinor(item.taxAmount.amountMinor(), row.currency_code),
-      totalAmount: Money.fromMinor(item.totalAmount.amountMinor(), row.currency_code),
+      subtotalAmount: Money.fromMinor(
+        item.subtotalAmount.amountMinor(),
+        row.currency_code
+      ),
+      discountAmount: Money.fromMinor(
+        item.discountAmount.amountMinor(),
+        row.currency_code
+      ),
+      taxAmount: Money.fromMinor(
+        item.taxAmount.amountMinor(),
+        row.currency_code
+      ),
+      totalAmount: Money.fromMinor(
+        item.totalAmount.amountMinor(),
+        row.currency_code
+      ),
     }));
 
     return {
@@ -229,6 +254,7 @@ export class OrderReadRepository {
       adminId: row.admin_id,
       salesChannel: row.sales_channel,
       externalSource: row.external_source,
+      orderNumber: row.order_number,
       externalId: row.external_id,
       customerId: row.customer_id,
       customerEmail: row.customer_email,
@@ -255,6 +281,13 @@ export class OrderReadRepository {
       lineItems: normalizedLineItems,
       totalQuantity,
     };
+  }
+
+  async findByOrderNumber(orderNumber: bigint, projectId: string): Promise<OrderReadView | null> {
+    const row = await this.port.findByOrderNumber(orderNumber, projectId);
+    if (!row) return null;
+
+    return this.findById(row.id);
   }
 
   /**

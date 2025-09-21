@@ -1,12 +1,12 @@
 import { App } from "@src/ioc/container";
-import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
+import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import type {
-  ApiOrderMutationOrderCreateArgs,
   ApiOrderMutation,
+  ApiOrderMutationOrderCreateArgs,
 } from "@src/interfaces/gql-storefront-api/types";
 import { CreateOrderDto } from "@src/application/dto/createOrder.dto";
-import { fromDomainError } from "@src/interfaces/gql-admin-api/errors";
-import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
+import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
+import { mapOrderReadToApi } from "@src/interfaces/gql-storefront-api/mapper/order";
 import { createValidated } from "@src/utils/validation";
 
 /**
@@ -15,15 +15,15 @@ import { createValidated } from "@src/utils/validation";
 export const orderCreate = async (
   _parent: ApiOrderMutation,
   args: ApiOrderMutationOrderCreateArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
-  const { broker, logger } = App.getInstance();
   const { input } = args;
   const dto = createValidated(CreateOrderDto, input);
 
-  try {
-    const { orderReadRepository } = App.getInstance();
+  const app = App.getInstance();
+  const { broker, orderReadRepository, logger } = app;
 
+  try {
     const id = (await broker.call("order.createOrder", {
       currencyCode: dto.currencyCode,
       externalId: dto.externalId ?? null,
@@ -39,17 +39,12 @@ export const orderCreate = async (
 
     const order = await orderReadRepository.findById(id);
     if (!order) {
-      return null;
+      throw new Error(`Order ${id} not found after creation`);
     }
 
     return mapOrderReadToApi(order);
   } catch (err) {
-    // Don't implementing right now. will monitor occurrences and implement if needed.
-    // Fallback: if a race occurred, idempotency record may exist now
-
-    // Log domain error with context for debugging
     const reason = err instanceof Error ? err.message : String(err);
-    //
     logger.error({ reason, input: dto }, "Order creation failed");
     throw await fromDomainError(err);
   }
