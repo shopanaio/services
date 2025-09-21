@@ -3,11 +3,7 @@ import { deserializeCheckout } from "@shopana/checkout-sdk";
 import type { Checkout, CheckoutDto } from "@shopana/checkout-sdk";
 
 export interface CheckoutApiClient {
-  getByCheckoutId(input: {
-    projectId: string;
-    checkoutId: string;
-    customerId?: string | null;
-  }): Promise<Checkout>;
+  getById(checkoutId: string): Promise<Checkout>;
 }
 
 export class CheckoutClient implements CheckoutApiClient {
@@ -17,16 +13,11 @@ export class CheckoutClient implements CheckoutApiClient {
     this.broker = broker;
   }
 
-  async getByCheckoutId(input: {
-    projectId: string;
-    checkoutId: string;
-    customerId?: string | null;
-  }): Promise<Checkout> {
+  async getById(checkoutId: string): Promise<Checkout> {
     const dto = (await this.broker.call(
       "checkout.getById",
-      input
+      { checkoutId }
     )) as CheckoutDto;
-
     return deserializeCheckout(dto);
   }
 }
