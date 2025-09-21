@@ -229,10 +229,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
           id: l.purchasableId,
           price: l.cost.unitPrice,
           compareAtPrice: l.cost.compareAtUnitPrice ?? null,
-          title: l.title,
+          // PII/UGC trimmed: no title/imageUrl/snapshot
           sku: l.sku ?? null,
-          imageUrl: l.imageSrc ?? null,
-          snapshot: (l.purchasable as Record<string, unknown> | null) ?? null,
         },
       })),
       deliveryGroups: aggregate.deliveryGroups.map((g) => ({

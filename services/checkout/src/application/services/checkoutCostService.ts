@@ -77,14 +77,14 @@ export class CheckoutCostService {
     // Checkout-level discounts are applied without distribution across items
     const checkoutCost = this.calculateCheckoutCostWithDiscounts(
       baseLineItems,
-      discountsResult.checkoutDiscounts,
+      discountsResult.aggregatedDiscounts,
     );
     const checkoutLinesCost = this.buildLinesCostMap(baseLineItems);
 
     return {
       checkoutCost,
       checkoutLinesCost,
-      appliedDiscounts: discountsResult.checkoutDiscounts,
+      appliedDiscounts: discountsResult.aggregatedDiscounts,
     };
   }
 
@@ -126,7 +126,7 @@ export class CheckoutCostService {
    * @private
    */
   private async resolveDiscounts(input: ComputeTotalsInput): Promise<{
-    checkoutDiscounts: Discount[];
+    aggregatedDiscounts: Discount[];
     lineDiscounts: Record<string, Discount[]>;
   }> {
     try {
@@ -135,7 +135,7 @@ export class CheckoutCostService {
 
       console.log("\n\n Pricing request", input, "response", pricingResult);
 
-      const checkoutDiscounts = pricingResult.checkoutDiscounts;
+      const aggregatedDiscounts = pricingResult.aggregatedDiscounts;
       const lineDiscounts: Record<string, Discount[]> = {};
       Object.entries(pricingResult.lineDiscounts).forEach(
         ([lineId, discounts]) => {
@@ -144,12 +144,12 @@ export class CheckoutCostService {
       );
 
       return {
-        checkoutDiscounts,
+        aggregatedDiscounts,
         lineDiscounts,
       };
     } catch {
       return {
-        checkoutDiscounts: input.appliedDiscounts ?? [],
+        aggregatedDiscounts: input.appliedDiscounts ?? [],
         lineDiscounts: {},
       };
     }
@@ -234,13 +234,13 @@ export class CheckoutCostService {
    * 3. Returns final cost indicators
    *
    * @param lineItems - Base items without discounts
-   * @param checkoutDiscounts - Cart-level discounts from pricing service
+   * @param aggregatedDiscounts - Aggregated discounts from pricing service
    * @returns Final cart cost indicators
    * @private
    */
   private calculateCheckoutCostWithDiscounts(
     lineItems: CheckoutLineItemCost[],
-    checkoutDiscounts: Discount[],
+    aggregatedDiscounts: Discount[],
   ): CheckoutCost {
     const subtotal = lineItems.reduce(
       (total, line) => total.add(line.subtotal),
@@ -254,7 +254,7 @@ export class CheckoutCostService {
     // Apply checkout-level discounts to total amount
     const discountTotal = this.calculateDiscountAmount(
       subtotal,
-      checkoutDiscounts,
+      aggregatedDiscounts,
     );
     const grandTotal = subtotal.subtract(discountTotal);
 

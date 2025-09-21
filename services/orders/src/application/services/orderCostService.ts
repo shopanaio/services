@@ -5,7 +5,7 @@ import type {
 } from "@shopana/pricing-api";
 import { Money } from "@shopana/shared-money";
 import { Discount, DiscountType } from "@shopana/pricing-plugin-sdk";
-import { OrderLineItemState } from "@src/domain/order/decider";
+import { OrderLineItemState } from "@src/domain/order/evolve";
 
 export type OrderLineItemCost = Readonly<{
   lineId: string;
@@ -46,7 +46,7 @@ type ComputeTotalsResult = {
  * Responsible for:
  * - Calculating base cost of items in cart
  * - Getting and applying discounts from pricing service
- * - Proportional distribution of cart-level discounts
+ * - Applying cart-level discounts (no line distribution yet)
  * - Calculating final totals
  */
 export class OrderCostService {
@@ -59,7 +59,7 @@ export class OrderCostService {
    * 1. Creates base cart items with initial prices
    * 2. Gets discounts from pricing service (with fallback to provided discounts)
    * 3. Applies discounts at individual item level
-   * 4. Applies cart-level discounts with proportional distribution
+   * 4. Applies cart-level discounts without distribution across items
    * 5. Calculates final totals
    *
    * @param input - Input data for calculation
@@ -74,10 +74,10 @@ export class OrderCostService {
 
     // Line-level discounts are not supported yet, so we skip this step
 
-    // Order-level discounts are applied without distribution across items
+    // Order-level (checkout-like) discounts are applied without distribution across items
     const orderCost = this.calculateOrderCostWithDiscounts(
       baseLineItems,
-      discountsResult.orderDiscounts,
+      discountsResult.orderDiscounts
     );
     const orderLinesCost = this.buildLinesCostMap(baseLineItems);
 
@@ -98,7 +98,7 @@ export class OrderCostService {
    * @returns List of base cost elements without applied discounts
    */
   private buildBaseLineItems(
-    orderLines: OrderLineItemState[],
+    orderLines: OrderLineItemState[]
   ): OrderLineItemCost[] {
     return orderLines.map((line) => {
       const lineSubtotal = line.unit.price.multiply(line.quantity);
@@ -133,15 +133,13 @@ export class OrderCostService {
       const pricingInput = this.buildPricingInput(input);
       const pricingResult = await this.evaluateDiscounts(pricingInput);
 
-      console.log("\n\n Pricing request", input, "response", pricingResult);
-
-      const orderDiscounts = pricingResult.orderDiscounts;
+      // Align behavior with checkout service: default missing fields
+      const orderDiscounts = pricingResult.aggregatedDiscounts ?? [];
+      const lineDiscountsSource = pricingResult.lineDiscounts ?? {};
       const lineDiscounts: Record<string, Discount[]> = {};
-      Object.entries(pricingResult.lineDiscounts).forEach(
-        ([lineId, discounts]) => {
-          lineDiscounts[lineId] = discounts;
-        },
-      );
+      Object.entries(lineDiscountsSource).forEach(([lineId, discounts]) => {
+        lineDiscounts[lineId] = discounts;
+      });
 
       return {
         orderDiscounts,
@@ -159,7 +157,6 @@ export class OrderCostService {
    * Converts cart data to pricing service format.
    *
    * Converts internal cart item structures to format expected by pricing service API.
-   * Prices are converted to minor units (kopecks) for calculation accuracy.
    * Extracts discount codes from appliedDiscounts for transmission to pricing service.
    *
    * @param input - Input data with items, currency and applied discounts
@@ -167,11 +164,11 @@ export class OrderCostService {
    * @private
    */
   private buildPricingInput(
-    input: ComputeTotalsInput,
+    input: ComputeTotalsInput
   ): PricingEvaluateDiscountsInput {
     // Check for required projectId presence
-    if (!input.projectId || input.projectId.trim() === '') {
-      throw new Error('projectId is required for pricing evaluation');
+    if (!input.projectId || input.projectId.trim() === "") {
+      throw new Error("projectId is required for pricing evaluation");
     }
 
     // Extract discount codes from appliedDiscounts
@@ -193,7 +190,7 @@ export class OrderCostService {
           snapshot: line.unit.snapshot ?? null,
         },
       })),
-    } as PricingEvaluateDiscountsInput;
+    };
   }
 
   /**
@@ -218,7 +215,7 @@ export class OrderCostService {
         const amountMinor = amount.amountMinor();
         const discountMinor = (amountMinor * BigInt(discount.value)) / 100n;
         return total.add(
-          Money.fromMinor(discountMinor, amount.currency().code),
+          Money.fromMinor(discountMinor, amount.currency().code)
         );
       }
       return total;
@@ -240,21 +237,21 @@ export class OrderCostService {
    */
   private calculateOrderCostWithDiscounts(
     lineItems: OrderLineItemCost[],
-    orderDiscounts: Discount[],
+    orderDiscounts: Discount[]
   ): OrderCost {
     const subtotal = lineItems.reduce(
       (total, line) => total.add(line.subtotal),
-      Money.zero(),
+      Money.zero()
     );
     const totalQuantity = lineItems.reduce(
       (total, line) => total + line.quantity,
-      0,
+      0
     );
 
     // Apply order-level discounts to total amount
     const discountTotal = this.calculateDiscountAmount(
       subtotal,
-      orderDiscounts,
+      orderDiscounts
     );
     const grandTotal = subtotal.subtract(discountTotal);
 
@@ -280,11 +277,11 @@ export class OrderCostService {
    * @private
    */
   private buildLinesCostMap(
-    lineItems: OrderLineItemCost[],
+    lineItems: OrderLineItemCost[]
   ): Record<string, OrderLineItemCost> {
     return lineItems.reduce(
       (map, line) => ({ ...map, [line.lineId]: line }),
-      {} as Record<string, OrderLineItemCost>,
+      {} as Record<string, OrderLineItemCost>
     );
   }
 
@@ -301,11 +298,11 @@ export class OrderCostService {
    * @private
    */
   private async evaluateDiscounts(
-    input: PricingEvaluateDiscountsInput,
+    input: PricingEvaluateDiscountsInput
   ): Promise<PricingEvaluateDiscountsResult> {
     if (!this.pricingApi.evaluateDiscounts) {
       throw new Error(
-        "evaluateDiscounts method is not available on pricingApi client",
+        "evaluateDiscounts method is not available on pricingApi client"
       );
     }
     return await this.pricingApi.evaluateDiscounts(input);

@@ -39,7 +39,7 @@ export class DiscountEvaluationController {
       );
 
       return {
-        checkoutDiscounts: validDiscounts,
+        aggregatedDiscounts: validDiscounts,
         lineDiscounts: {}, // item-level discounts not supported yet
       };
     } catch (error) {

@@ -75,6 +75,12 @@ export type PricingEvaluateDiscountsInput = Readonly<{
 }>;
 
 export type PricingEvaluateDiscountsResult = Readonly<{
-  checkoutDiscounts: Discount[];
+  /**
+   * Aggregated discounts applicable at order/checkout scope.
+   */
+  aggregatedDiscounts: Discount[];
+  /**
+   * Item-level discounts keyed by line identifier.
+   */
   lineDiscounts: Record<string, Discount[]>;
 }>;

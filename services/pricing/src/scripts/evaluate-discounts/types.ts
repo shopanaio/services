@@ -5,7 +5,7 @@ import { Discount } from "@shopana/pricing-plugin-sdk";
  */
 export interface EvaluateDiscountsResult {
   /** Discounts applied to the entire cart */
-  checkoutDiscounts: Discount[];
+  aggregatedDiscounts: Discount[];
 
   /** Discounts applied to individual cart items (not yet supported) */
   lineDiscounts: Record<string, Discount[]>;
@@ -77,7 +77,7 @@ export type { KernelServices } from "@src/kernel/types";
 export const DISCOUNT_CONSTANTS = {
   /** Empty discount evaluation result for fallback cases */
   EMPTY_RESULT: {
-    checkoutDiscounts: [],
+    aggregatedDiscounts: [],
     lineDiscounts: {},
   } as EvaluateDiscountsResult,
 } as const;
