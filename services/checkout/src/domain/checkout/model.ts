@@ -1,11 +1,9 @@
 import type {
   CheckoutState,
   CheckoutDeliveryAddress,
-  CheckoutPromoCode,
   CheckoutDeliveryGroup,
 } from "@src/domain/checkout/decider";
 import { Money } from "@shopana/shared-money";
-import { coerceToDate } from "@src/utils/date";
 
 // Domain line item modeled after checkout_line_items schema (simplified)
 /**
@@ -127,10 +125,7 @@ export class Checkout {
     return this.state.deliveryGroups;
   }
 
-  // Promo codes getters
-  getAppliedPromoCodes(): CheckoutPromoCode[] {
-    return this.state.appliedPromoCodes;
-  }
+  // removed: getAppliedPromoCodes — promo codes are not part of aggregate state
 
   // Locale/Currency getters (for backward compatibility during migration)
   getLocaleCode(): string | null {

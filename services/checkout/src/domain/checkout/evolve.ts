@@ -74,14 +74,7 @@ export type CheckoutDeliveryGroup = {
   } | null;
 };
 
-export type CheckoutPromoCode = {
-  code: string;
-  appliedAt: Date;
-  discountType: string;
-  value: number;
-  provider: string;
-  conditions: DiscountCondition | null;
-};
+// removed: CheckoutPromoCode — promo codes are not part of aggregate state
 
 export type CheckoutState = {
   id: string;
@@ -113,7 +106,6 @@ export type CheckoutState = {
   customerCountryCode: string | null;
   customerNote: string | null;
   deliveryGroups: CheckoutDeliveryGroup[];
-  appliedPromoCodes: CheckoutPromoCode[];
   discountTotal: Money;
   taxTotal: Money;
   shippingTotal: Money;
@@ -150,7 +142,6 @@ export const checkoutInitialState = (): CheckoutState => ({
   customerCountryCode: null,
   customerNote: null,
   deliveryGroups: [],
-  appliedPromoCodes: [],
   discountTotal: Money.zero(),
   taxTotal: Money.zero(),
   shippingTotal: Money.zero(),

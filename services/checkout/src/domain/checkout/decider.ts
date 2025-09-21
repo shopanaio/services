@@ -12,7 +12,6 @@ export type {
   CheckoutDeliveryProvider,
   CheckoutDeliveryMethod,
   CheckoutDeliveryGroup,
-  CheckoutPromoCode,
 } from "./evolve";
 
 // Re-export functions

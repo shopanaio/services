@@ -1,4 +1,4 @@
-import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCheckoutDeliveryGroup, CheckoutPromoCode as DomainCheckoutPromoCode, CheckoutDeliveryAddress as DomainCheckoutDeliveryAddress, CheckoutDeliveryMethod as DomainCheckoutDeliveryMethod } from "@src/domain/checkout/evolve";
+import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCheckoutDeliveryGroup, CheckoutDeliveryAddress as DomainCheckoutDeliveryAddress, CheckoutDeliveryMethod as DomainCheckoutDeliveryMethod } from "@src/domain/checkout/evolve";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod } from "./checkoutReadRepository";
 import { CheckoutLineItemReadView } from "./checkoutLineItemsReadRepository";
@@ -42,7 +42,6 @@ export class CheckoutReadModelAdapter {
       customerCountryCode: readView.customerCountryCode,
       customerNote: readView.customerNote,
       deliveryGroups: this.mapDeliveryGroups(readView.deliveryGroups, readView.deliveryAddresses, readView.deliveryMethods),
-      appliedPromoCodes: this.mapPromoCodes(readView.appliedPromoCodes),
       discountTotal: readView.discountTotal,
       taxTotal: readView.taxTotal,
       shippingTotal: readView.shippingTotal,
@@ -140,20 +139,6 @@ export class CheckoutReadModelAdapter {
         data: {}, // Not available in read model
       },
     };
-  }
-
-  /**
-   * Converts promo codes from read model to domain model
-   */
-  private static mapPromoCodes(promoCodes: CheckoutPromoCode[]): DomainCheckoutPromoCode[] {
-    return promoCodes.map(promoCode => ({
-      code: promoCode.code,
-      appliedAt: promoCode.appliedAt,
-      discountType: promoCode.discountType,
-      value: promoCode.value,
-      provider: promoCode.provider,
-      conditions: promoCode.conditions || null,
-    }));
   }
 
   /**
