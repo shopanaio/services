@@ -22,7 +22,7 @@ export class OrderLineItemsReadRepositoryPort
   ): Promise<OrderLineItemReadPortRow[]> {
     const q = knex
       .withSchema("platform")
-      .table("order_line_items")
+      .table("order_items")
       .select(
         "id",
         "project_id",
