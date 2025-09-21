@@ -38,7 +38,7 @@ export class OrderReadModelAdapter {
       grandTotal: readView.grandTotal,
       apiKey: readView.apiKeyId || "", // Map apiKeyId to apiKey
       createdBy: readView.adminId, // Map adminId to createdBy
-      number: null, // Not available in read model
+      number: readView.number,
       status: OrderReadModelAdapter.mapStatus(readView.status),
       expiresAt: readView.expiresAt,
       version: Number(readView.projectedVersion), // Convert bigint to number

@@ -52,7 +52,7 @@ export type OrderReadPortRow = {
   admin_id: string | null;
   sales_channel: string | null;
   external_source: string | null;
-  order_number: bigint;
+  order_number: number;
   external_id: string | null;
   customer_id: string | null;
   customer_email: string | null;
@@ -77,7 +77,7 @@ export type OrderReadPortRow = {
 
 export interface OrderReadPort {
   findById(id: string): Promise<OrderReadPortRow | null>;
-  findByOrderNumber(orderNumber: bigint, projectId: string): Promise<OrderReadPortRow | null>;
+  findByOrderNumber(orderNumber: number, projectId: string): Promise<OrderReadPortRow | null>;
   findDeliveryAddresses(orderId: string): Promise<OrderDeliveryAddressRow[]>;
   findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]>;
   findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]>;
@@ -127,7 +127,7 @@ export type OrderReadView = {
   projectId: string;
   apiKeyId: string | null;
   adminId: string | null;
-  orderNumber: bigint;
+  number: number;
   salesChannel: string | null;
   externalSource: string | null;
   externalId: string | null;
@@ -254,7 +254,7 @@ export class OrderReadRepository {
       adminId: row.admin_id,
       salesChannel: row.sales_channel,
       externalSource: row.external_source,
-      orderNumber: row.order_number,
+      number: row.order_number,
       externalId: row.external_id,
       customerId: row.customer_id,
       customerEmail: row.customer_email,
@@ -283,7 +283,7 @@ export class OrderReadRepository {
     };
   }
 
-  async findByOrderNumber(orderNumber: bigint, projectId: string): Promise<OrderReadView | null> {
+  async findByOrderNumber(orderNumber: number, projectId: string): Promise<OrderReadView | null> {
     const row = await this.port.findByOrderNumber(orderNumber, projectId);
     if (!row) return null;
 

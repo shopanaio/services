@@ -50,6 +50,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       return idemHit.id;
     }
 
+    const orderNumber = await this.orderNumbers.reserve(project.id);
+
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
       input
@@ -160,6 +162,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         externalSource: checkoutAggregate.externalSource ?? null,
         externalId: checkoutAggregate.externalId ?? null,
         localeCode: checkoutAggregate.localeCode ?? null,
+        orderNumber,
 
         // Totals
         subtotalAmount: checkoutAggregate.cost.subtotalAmount,

@@ -53,7 +53,7 @@ export const orderCreateProjection =
           id: orderId,
           // TODO: Remove `as any` by aligning metadata type with DB schema (UUID/text).
           project_id: projectId as any,
-          order_number: null,
+          order_number: event.data.orderNumber,
           api_key_id: null,
           user_id: event.metadata.userId ?? null,
           sales_channel: event.data.salesChannel,

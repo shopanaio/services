@@ -30,6 +30,7 @@ export class OrderReadRepository implements OrderReadPort {
         "admin_id",
         "sales_channel",
         "external_source",
+        "order_number",
         "external_id",
         "customer_id",
         "customer_email",
@@ -57,7 +58,55 @@ export class OrderReadRepository implements OrderReadPort {
     const row = await singleOrNull(
       this.execute.query<OrderReadPortRow>(rawSql(q))
     );
-    return row ?? null;
+    return this.mapOrderRow(row, id);
+  }
+
+  async findByOrderNumber(
+    orderNumber: number,
+    projectId: string
+  ): Promise<OrderReadPortRow | null> {
+    const q = knex
+      .withSchema("platform")
+      .table("orders")
+      .select(
+        "id",
+        "project_id",
+        "api_key_id",
+        "admin_id",
+        "sales_channel",
+        "external_source",
+        "order_number",
+        "external_id",
+        "customer_id",
+        "customer_email",
+        "customer_phone_e164",
+        "customer_country_code",
+        "customer_note",
+        "locale_code",
+        "currency_code",
+        "subtotal",
+        "shipping_total",
+        "discount_total",
+        "tax_total",
+        "grand_total",
+        "status",
+        "expires_at",
+        "projected_version",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      )
+      .where({
+        project_id: projectId,
+        order_number: orderNumber,
+      })
+      .toString();
+
+    const row = await singleOrNull(
+      this.execute.query<OrderReadPortRow>(rawSql(q))
+    );
+    return this.mapOrderRow(row);
   }
 
   async findDeliveryAddresses(
@@ -164,4 +213,25 @@ export class OrderReadRepository implements OrderReadPort {
     );
   }
 
+  private mapOrderRow(
+    row: OrderReadPortRow | null,
+    orderIdForError?: string
+  ): OrderReadPortRow | null {
+    if (!row) {
+      return null;
+    }
+
+    const numericOrderNumber = Number(row.order_number);
+    if (!Number.isFinite(numericOrderNumber)) {
+      const identifier = orderIdForError ?? row.id;
+      throw new Error(
+        `Invalid order number in read model for order ${identifier}`
+      );
+    }
+
+    return {
+      ...row,
+      order_number: numericOrderNumber,
+    };
+  }
 }

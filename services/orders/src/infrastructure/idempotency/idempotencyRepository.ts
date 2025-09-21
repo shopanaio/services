@@ -44,7 +44,7 @@ export class IdempotencyRepository {
     projectId: string;
     idempotencyKey: string;
     requestHash: string;
-    response: unknown;
+    response: { id: string };
     ttlSeconds?: number;
   }): Promise<void> {
     const ttl = input.ttlSeconds ?? 24 * 60 * 60;

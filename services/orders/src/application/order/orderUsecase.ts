@@ -15,6 +15,7 @@ import { InventoryApiClient } from "@shopana/inventory-api";
 import type { CheckoutApiClient } from "@shopana/checkout-api";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import type { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
+import type { OrderNumberPort } from "@src/application/ports/orderNumberPort";
 
 export class OrderUsecase {
   // Order use cases
@@ -33,6 +34,7 @@ export class OrderUsecase {
     orderReadRepository: OrderReadRepository;
     ordersPiiRepository: OrdersPiiRepository;
     idempotencyRepository: IdempotencyRepository;
+    orderNumberRepository: OrderNumberPort;
   }) {
     const baseDeps = {
       eventStore: deps.eventStore,
@@ -45,6 +47,7 @@ export class OrderUsecase {
       orderService: deps.orderService,
       ordersPiiRepository: deps.ordersPiiRepository,
       idempotencyRepository: deps.idempotencyRepository,
+      orderNumberGenerator: deps.orderNumberRepository,
     };
 
     // Initialize order use cases
