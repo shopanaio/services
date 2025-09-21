@@ -68,6 +68,7 @@ export type CheckoutDeliveryProvider = Readonly<{
 export type CheckoutDeliveryMethod = Readonly<{
   code: string;
   deliveryMethodType: CheckoutDeliveryMethodType;
+  shippingPaymentModel: ShippingPaymentModel;
   provider: CheckoutDeliveryProvider;
 }>;
 
@@ -82,6 +83,7 @@ export type CheckoutDeliveryAddress = Readonly<{
   email?: string | null; // Email
   firstName?: string | null;
   lastName?: string | null;
+  phone: string | null;
   data?: unknown;
 }>;
 
@@ -91,13 +93,20 @@ export type CheckoutDeliveryGroup = Readonly<{
   deliveryAddress?: CheckoutDeliveryAddress | null;
   deliveryMethods: CheckoutDeliveryMethod[];
   selectedDeliveryMethod?: CheckoutDeliveryMethod | null;
-  estimatedCost?: DeliveryCost | null;
+  shippingCost: DeliveryCost | null;
 }>;
 
 export type Checkout = Readonly<{
   id: string;
   createdAt: string; // DateTime ISO
   updatedAt: string; // DateTime ISO
+  projectId?: string;
+  currencyCode?: string;
+  idempotencyKey?: string;
+  salesChannel?: string;
+  externalSource: string | null;
+  externalId: string | null;
+  localeCode: string | null;
   cost: CheckoutCost;
   customerIdentity: CheckoutCustomerIdentity;
   customerNote: string | null;
@@ -106,4 +115,12 @@ export type Checkout = Readonly<{
   notifications: CheckoutNotification[];
   deliveryGroups: CheckoutDeliveryGroup[];
   appliedPromoCodes: CheckoutPromoCode[];
+  apiKey?: string;
+  createdBy: string | null;
+  number: number | null;
+  status?: string;
+  expiresAt: string | null; // DateTime ISO
+  version?: number;
+  metadata?: Record<string, unknown>;
+  deletedAt: string | null; // DateTime ISO
 }>;

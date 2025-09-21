@@ -64,6 +64,7 @@ export type CheckoutDeliveryProviderDto = Readonly<{
 export type CheckoutDeliveryMethodDto = Readonly<{
   code: string;
   deliveryMethodType: DeliveryMethodType;
+  shippingPaymentModel: ShippingPaymentModel;
   provider: CheckoutDeliveryProviderDto;
 }>;
 
@@ -83,6 +84,7 @@ export type CheckoutDeliveryAddressDto = Readonly<{
   email?: string | null;
   firstName?: string | null;
   lastName?: string | null;
+  phone: string | null;
   data?: unknown;
 }>;
 
@@ -92,13 +94,20 @@ export type CheckoutDeliveryGroupDto = Readonly<{
   deliveryAddress?: CheckoutDeliveryAddressDto | null;
   deliveryMethods: CheckoutDeliveryMethodDto[];
   selectedDeliveryMethod?: CheckoutDeliveryMethodDto | null;
-  estimatedCost?: DeliveryCostDto | null;
+  shippingCost: DeliveryCostDto | null;
 }>;
 
 export type CheckoutDto = Readonly<{
   id: string;
   createdAt: string;
   updatedAt: string;
+  projectId?: string;
+  currencyCode?: string;
+  idempotencyKey?: string;
+  salesChannel?: string;
+  externalSource: string | null;
+  externalId: string | null;
+  localeCode: string | null;
   cost: CheckoutCostDto;
   customerIdentity: CheckoutCustomerIdentityDto;
   customerNote: string | null;
@@ -107,4 +116,12 @@ export type CheckoutDto = Readonly<{
   notifications: CheckoutNotificationDto[];
   deliveryGroups: CheckoutDeliveryGroupDto[];
   appliedPromoCodes: CheckoutPromoCodeDto[];
+  apiKey?: string;
+  createdBy: string | null;
+  number: number | null;
+  status?: string;
+  expiresAt: string | null;
+  version?: number;
+  metadata?: Record<string, unknown>;
+  deletedAt: string | null;
 }>;
