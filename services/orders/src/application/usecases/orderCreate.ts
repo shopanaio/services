@@ -6,8 +6,13 @@ import type { CreateOrderInput } from "@src/application/order/types";
 import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import type { Checkout } from "@shopana/checkout-sdk";
-// no ShippingPaymentModel needed in redacted snapshot mapping
 import type { OrderCreated } from "@src/domain/order/events";
+import type {
+  AppliedDiscount,
+  OrderDeliveryAddress,
+  OrderDeliveryGroup,
+  OrderUnitSnapshot,
+} from "@src/domain/order/evolve";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
 
@@ -36,6 +41,60 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       input
     );
 
+    // Build order business data (independent from audit snapshot)
+    const orderLines = checkoutAggregate.lines.map((l) => ({
+      lineId: l.id, // use checkout line id as initial order line id
+      quantity: l.quantity,
+      unit: {
+        id: l.purchasableId,
+        price: l.cost.unitPrice,
+        compareAtPrice: l.cost.compareAtUnitPrice ?? null,
+        title: l.title,
+        sku: l.sku ?? null,
+        imageUrl: l.imageSrc ?? null,
+        snapshot: (l.purchasable as Record<string, unknown> | null) ?? null,
+      } satisfies OrderUnitSnapshot,
+    }));
+
+    const orderDeliveryGroups: OrderDeliveryGroup[] = checkoutAggregate.deliveryGroups.map(
+      (g) => ({
+        id: g.id,
+        orderLineIds: g.checkoutLines.map((cl) => cl.id),
+        deliveryAddress: g.deliveryAddress
+          ? ({
+              id: g.deliveryAddress.id,
+              address1: g.deliveryAddress.address1,
+              address2: g.deliveryAddress.address2 ?? null,
+              city: g.deliveryAddress.city,
+              countryCode: g.deliveryAddress.countryCode,
+              provinceCode: g.deliveryAddress.provinceCode ?? null,
+              postalCode: g.deliveryAddress.postalCode ?? null,
+              email: g.deliveryAddress.email ?? null,
+              firstName: g.deliveryAddress.firstName ?? null,
+              lastName: g.deliveryAddress.lastName ?? null,
+              phone: g.deliveryAddress.phone ?? null,
+              data: (g.deliveryAddress.data as Record<string, unknown> | null) ?? null,
+            } satisfies OrderDeliveryAddress)
+          : null,
+        deliveryCost: g.shippingCost
+          ? {
+              amount: g.shippingCost.amount,
+              paymentModel: g.shippingCost.paymentModel,
+            }
+          : null,
+      })
+    );
+
+    const appliedDiscounts: AppliedDiscount[] = checkoutAggregate.appliedPromoCodes.map(
+      (p) => ({
+        code: p.code,
+        appliedAt: new Date(p.appliedAt),
+        type: p.discountType,
+        value: p.value,
+        provider: p.provider,
+      })
+    );
+
     const command: CreateOrderCommand = {
       type: "order.create",
       data: {
@@ -61,6 +120,11 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         customerId: checkoutAggregate.customerIdentity.customer?.id ?? null,
         customerCountryCode: checkoutAggregate.customerIdentity.countryCode,
         customerNote: checkoutAggregate.customerNote,
+
+        // Order business state
+        lines: orderLines,
+        deliveryGroups: orderDeliveryGroups,
+        appliedDiscounts,
 
         // Snapshot for audit
         checkoutSnapshot,

@@ -1,5 +1,5 @@
 import { Money } from "@shopana/shared-money";
-import { DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
+import { DeliveryMethodType, type ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
 
 /**
  * Snapshot of a Checkout captured at Order creation time for audit/disputes.
@@ -131,7 +131,7 @@ export type CheckoutDeliveryGroupSnapshot = Readonly<{
   /** Selected delivery method descriptor */
   selectedDeliveryMethod: CheckoutDeliveryMethodSnapshot | null;
   /** Shipping cost amount at checkout time */
-  shippingCost: { amount: Money } | null;
+  shippingCost: { amount: Money; paymentModel: ShippingPaymentModel | null } | null;
 }>;
 
 /**

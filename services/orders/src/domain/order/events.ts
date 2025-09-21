@@ -2,6 +2,13 @@ import type { CreateEventType } from "@event-driven-io/emmett";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import { Money } from "@shopana/shared-money";
+import type {
+  OrderDeliveryAddress,
+  OrderDeliveryGroup,
+  OrderLineItemState,
+  OrderUnitSnapshot,
+  AppliedDiscount,
+} from "@src/domain/order/evolve";
 
 export const OrderEventTypes = {
   OrderCreated: "order.created",
@@ -31,6 +38,20 @@ export type OrderCreatedPayload = Readonly<{
   customerId: string | null;
   customerCountryCode: string | null;
   customerNote: string | null;
+
+  // Order business state (independent from checkout snapshot)
+  lines: ReadonlyArray<{
+    lineId: string;
+    quantity: number;
+    unit: OrderUnitSnapshot;
+  }>;
+  deliveryGroups: ReadonlyArray<{
+    id: string;
+    orderLineIds: string[];
+    deliveryAddress: OrderDeliveryAddress | null;
+    deliveryCost: OrderDeliveryGroup["deliveryCost"];
+  }>;
+  appliedDiscounts: AppliedDiscount[];
 
   // Original checkout snapshot for audit/troubleshooting
   checkoutSnapshot: CheckoutSnapshot;
