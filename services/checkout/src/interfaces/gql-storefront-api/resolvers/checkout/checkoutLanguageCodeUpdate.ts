@@ -17,21 +17,19 @@ export const checkoutLanguageCodeUpdate = async (
   args: ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutLanguageCodeUpdateInput, args.input);
 
   try {
-
-    const checkoutId = await broker.call("checkout.updateLanguageCode", {
+    const checkoutId = await checkoutUsecase.updateLanguageCode.execute({
       checkoutId: dto.checkoutId,
       localeCode: dto.localeCode,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

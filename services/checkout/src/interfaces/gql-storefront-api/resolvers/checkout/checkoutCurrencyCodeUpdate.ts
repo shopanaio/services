@@ -17,21 +17,19 @@ export const checkoutCurrencyCodeUpdate = async (
   args: ApiCheckoutMutationCheckoutCurrencyCodeUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutCurrencyCodeUpdateInput, args.input);
 
   try {
-
-    const checkoutId = await broker.call("checkout.updateCurrencyCode", {
+    const checkoutId = await checkoutUsecase.updateCurrencyCode.execute({
       checkoutId: dto.checkoutId,
       currencyCode: dto.currencyCode,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

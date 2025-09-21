@@ -17,14 +17,15 @@ export const checkoutDeliveryAddressesUpdate = async (
   args: ApiCheckoutMutationCheckoutDeliveryAddressesUpdateArgs,
   ctx: GraphQLContext,
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutDeliveryAddressesUpdateDto, args.input);
 
   try {
 
     // Updating each delivery address
     for (const updateItem of dto.updates) {
-      await broker.call("checkout.updateDeliveryAddress", {
+      await checkoutUsecase.updateDeliveryAddress.execute({
         checkoutId: dto.checkoutId,
         addressId: updateItem.addressId,
         address1: updateItem.address.address1,
@@ -42,10 +43,9 @@ export const checkoutDeliveryAddressesUpdate = async (
         project: ctx.project,
         customer: ctx.customer,
         user: ctx.user,
-      }) as void;
+      });
     }
 
-    const { checkoutReadRepository } = App.getInstance();
     const checkout = await checkoutReadRepository.findById(dto.checkoutId);
     if (!checkout) {
       return null;

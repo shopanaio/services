@@ -17,11 +17,12 @@ export const checkoutLinesAdd = async (
   args: ApiCheckoutMutationCheckoutLinesAddArgs,
   ctx: GraphQLContext,
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutLinesAddDto, args.input);
 
   try {
-    const checkoutId = await broker.call("checkout.addCheckoutLines", {
+    const checkoutId = await checkoutUsecase.addCheckoutLines.execute({
       checkoutId: dto.checkoutId,
       lines: dto.lines.map((l) => ({
         quantity: l.quantity,
@@ -32,9 +33,7 @@ export const checkoutLinesAdd = async (
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

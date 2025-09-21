@@ -17,11 +17,12 @@ export const checkoutDeliveryMethodUpdate = async (
   args: ApiCheckoutMutationCheckoutDeliveryMethodUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutDeliveryMethodUpdateInput, args.input);
 
   try {
-    await broker.call("checkout.updateDeliveryGroupMethod", {
+    await checkoutUsecase.updateDeliveryGroupMethod.execute({
       deliveryGroupId: dto.deliveryGroupId,
       deliveryMethodCode: dto.shippingMethodCode,
       checkoutId: dto.checkoutId,
@@ -29,9 +30,7 @@ export const checkoutDeliveryMethodUpdate = async (
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as void;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(dto.checkoutId);
     if (!checkout) {
       return null;

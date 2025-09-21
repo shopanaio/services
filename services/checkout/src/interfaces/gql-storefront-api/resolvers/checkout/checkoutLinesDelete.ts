@@ -17,21 +17,19 @@ export const checkoutLinesDelete = async (
   args: ApiCheckoutMutationCheckoutLinesDeleteArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutLinesDeleteDto, args.input);
 
   try {
-
-    const checkoutId = await broker.call("checkout.removeCheckoutLines", {
+    const checkoutId = await checkoutUsecase.deleteCheckoutLines.execute({
       checkoutId: dto.checkoutId,
       lineIds: dto.lineIds,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

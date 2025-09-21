@@ -17,21 +17,19 @@ export const checkoutPromoCodeRemove = async (
   args: ApiCheckoutMutationCheckoutPromoCodeRemoveArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutPromoCodeRemoveDto, args.input);
 
   try {
-
-    const checkoutId = await broker.call("checkout.removePromoCode", {
+    const checkoutId = await checkoutUsecase.removePromoCode.execute({
       checkoutId: dto.checkoutId,
       code: dto.code,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

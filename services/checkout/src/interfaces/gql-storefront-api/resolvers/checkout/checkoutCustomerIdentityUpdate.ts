@@ -17,27 +17,26 @@ export const checkoutCustomerIdentityUpdate = async (
   args: ApiCheckoutMutationCheckoutCustomerIdentityUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(
     CheckoutCustomerIdentityUpdateInput,
     args.input
   );
 
   try {
-
-    const checkoutId = await broker.call("checkout.updateCustomerIdentity", {
-      checkoutId: dto.checkoutId,
-      email: dto.email,
-      customerId: dto.customerId,
-      phone: dto.phone,
-      countryCode: dto.countryCode,
-      apiKey: ctx.apiKey,
-      project: ctx.project,
-      customer: ctx.customer,
-      user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    const checkoutId =
+      await checkoutUsecase.updateCustomerIdentity.execute({
+        checkoutId: dto.checkoutId,
+        email: dto.email,
+        customerId: dto.customerId,
+        phone: dto.phone,
+        countryCode: dto.countryCode,
+        apiKey: ctx.apiKey,
+        project: ctx.project,
+        customer: ctx.customer,
+        user: ctx.user,
+      });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

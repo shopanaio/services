@@ -17,12 +17,12 @@ export const checkoutLinesUpdate = async (
   args: ApiCheckoutMutationCheckoutLinesUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutLinesUpdateDto, args.input);
 
   try {
-
-    const checkoutId = await broker.call("checkout.updateCheckoutLines", {
+    const checkoutId = await checkoutUsecase.updateCheckoutLines.execute({
       checkoutId: dto.checkoutId,
       lines: dto.lines.map((l) => ({
         lineId: l.lineId,
@@ -32,9 +32,7 @@ export const checkoutLinesUpdate = async (
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

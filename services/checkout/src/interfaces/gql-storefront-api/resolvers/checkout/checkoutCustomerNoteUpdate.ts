@@ -17,21 +17,19 @@ export const checkoutCustomerNoteUpdate = async (
   args: ApiCheckoutMutationCheckoutCustomerNoteUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, logger } = App.getInstance();
+  const app = App.getInstance();
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const dto = createValidated(CheckoutCustomerNoteUpdateInput, args.input);
 
   try {
-
-    const checkoutId = await broker.call("checkout.updateCustomerNote", {
+    const checkoutId = await checkoutUsecase.updateCustomerNote.execute({
       checkoutId: dto.checkoutId,
       note: dto.note,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
-
-    const { checkoutReadRepository } = App.getInstance();
+    });
     const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;

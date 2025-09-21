@@ -17,14 +17,19 @@ export const checkoutCreate = async (
   args: ApiCheckoutMutationCheckoutCreateArgs,
   ctx: GraphQLContext,
 ) => {
-  const { broker, idempotencyRepository, logger } = App.getInstance();
+  const app = App.getInstance();
+  const {
+    checkoutUsecase,
+    idempotencyRepository,
+    checkoutReadRepository,
+    logger,
+  } = app;
   const { input } = args;
   const dto = createValidated(CreateCheckoutDto, input);
 
   try {
     const projectId = ctx.project.id;
 
-    const { checkoutReadRepository } = App.getInstance();
     const hit = await idempotencyRepository.get(projectId, dto.idempotency);
     if (hit?.id) {
       const read = await checkoutReadRepository.findById(hit.id);
@@ -33,7 +38,7 @@ export const checkoutCreate = async (
       }
     }
 
-    const id = await broker.call("checkout.createCheckout", {
+    const id = await checkoutUsecase.createCheckout.execute({
       currencyCode: dto.currencyCode,
       externalId: dto.externalId ?? null,
       idempotencyKey: dto.idempotency,
@@ -44,7 +49,7 @@ export const checkoutCreate = async (
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
-    }) as string;
+    });
 
     const checkout = await checkoutReadRepository.findById(id);
     if (!checkout) {
