@@ -7,7 +7,10 @@ import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import type { Checkout } from "@shopana/checkout-sdk";
 import type { OrderCreated } from "@src/domain/order/events";
-import type { AppliedDiscount, OrderUnitSnapshot } from "@src/domain/order/evolve";
+import type {
+  AppliedDiscount,
+  OrderUnitSnapshot,
+} from "@src/domain/order/evolve";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
 
@@ -91,7 +94,9 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
             firstName: g.deliveryAddress!.firstName ?? null,
             lastName: g.deliveryAddress!.lastName ?? null,
             phone: g.deliveryAddress!.phone ?? null,
-            metadata: (g.deliveryAddress!.data as Record<string, unknown> | null) ?? null,
+            metadata:
+              (g.deliveryAddress!.data as Record<string, unknown> | null) ??
+              null,
           },
         };
       });
@@ -118,28 +123,30 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     );
 
     // 3) Build delivery groups payload for event with references to PII (addressId)
-    const deliveryGroupsForEvent = checkoutAggregate.deliveryGroups.map((g) => ({
-      id: g.id,
-      orderLineIds: g.checkoutLines.map((cl) => cl.id),
-      deliveryAddressId:
-        deliveryAddressesToPersist.find((a) => a.groupId === g.id)?.addrId ?? null,
-      deliveryCost: g.shippingCost
-        ? {
-            amount: g.shippingCost.amount,
-            paymentModel: g.shippingCost.paymentModel,
-          }
-        : null,
-    }));
+    const deliveryGroupsForEvent = checkoutAggregate.deliveryGroups.map(
+      (g) => ({
+        id: g.id,
+        orderLineIds: g.checkoutLines.map((cl) => cl.id),
+        deliveryAddressId:
+          deliveryAddressesToPersist.find((a) => a.groupId === g.id)?.addrId ??
+          null,
+        deliveryCost: g.shippingCost
+          ? {
+              amount: g.shippingCost.amount,
+              paymentModel: g.shippingCost.paymentModel,
+            }
+          : null,
+      })
+    );
 
-    const appliedDiscounts: AppliedDiscount[] = checkoutAggregate.appliedPromoCodes.map(
-      (p) => ({
+    const appliedDiscounts: AppliedDiscount[] =
+      checkoutAggregate.appliedPromoCodes.map((p) => ({
         code: p.code,
         appliedAt: new Date(p.appliedAt),
         type: p.discountType,
         value: p.value,
         provider: p.provider,
-      })
-    );
+      }));
 
     const command: CreateOrderCommand = {
       type: "order.create",
@@ -147,7 +154,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         // Core context
         currencyCode:
           checkoutAggregate.currencyCode ?? checkoutSnapshot.currencyCode,
-        idempotencyKey: checkoutAggregate.idempotencyKey ?? businessInput.checkoutId,
+        idempotencyKey:
+          checkoutAggregate.idempotencyKey ?? businessInput.checkoutId,
         salesChannel: checkoutAggregate.salesChannel ?? null,
         externalSource: checkoutAggregate.externalSource ?? null,
         externalId: checkoutAggregate.externalId ?? null,
@@ -228,6 +236,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         unit: {
           id: l.purchasableId,
           price: l.cost.unitPrice,
+          title: l.title,
           compareAtPrice: l.cost.compareAtUnitPrice ?? null,
           // PII/UGC trimmed: no title/imageUrl/snapshot
           sku: l.sku ?? null,
