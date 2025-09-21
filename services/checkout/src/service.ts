@@ -17,6 +17,22 @@ const CheckoutService: ServiceSchema<any> = {
 
   actions: {
     /**
+     * Get checkout by ID (serialized DTO from event store)
+     */
+    async getById(
+      this: ServiceThis,
+      ctx: Context<{ checkoutId: string } & CheckoutContext>
+    ) {
+      const { checkoutId } = ctx.params;
+      const dto = await this.app.checkoutUsecase.getCheckoutDtoById.execute({
+        checkoutId,
+      });
+      if (!dto) {
+        throw new Error("Checkout not found");
+      }
+      return dto;
+    },
+    /**
      * Get checkout by ID
      */
     async getCheckoutById(

@@ -27,11 +27,13 @@ import {
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { InventoryApiClient } from "@shopana/inventory-api";
+import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
 
 export class CheckoutUsecase {
   // Checkout use cases
   public readonly createCheckout: CreateCheckoutUseCase;
   public readonly getCheckoutById: GetCheckoutByIdUseCase;
+  public readonly getCheckoutDtoById: GetCheckoutDtoByIdUseCase;
 
   // Lines use cases
   public readonly addCheckoutLines: AddCheckoutLinesUseCase;
@@ -78,6 +80,9 @@ export class CheckoutUsecase {
     this.getCheckoutById = new GetCheckoutByIdUseCase({
       checkoutReadRepository: deps.checkoutReadRepository,
     }, baseDeps);
+
+    // Serialized DTO from event store aggregate
+    this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(baseDeps);
 
     // Initialize lines use cases
     this.addCheckoutLines = new AddCheckoutLinesUseCase({

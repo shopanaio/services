@@ -10,6 +10,7 @@ export { CheckoutUsecase } from "../checkout/checkoutUsecase";
 // Checkout use cases
 export { CreateCheckoutUseCase } from "./createCheckoutUseCase";
 export { GetCheckoutByIdUseCase } from "./getCheckoutByIdUseCase";
+export { GetCheckoutDtoByIdUseCase } from "./getCheckoutDtoByIdUseCase";
 
 // Lines management use cases
 export { AddCheckoutLinesUseCase } from "./addCheckoutLinesUseCase";
