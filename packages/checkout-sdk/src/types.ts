@@ -1,4 +1,5 @@
 import type { Money } from "@shopana/shared-money";
+import { ShippingPaymentModel, DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
 
 export type CheckoutCost = Readonly<{
   subtotalAmount: Money;
@@ -31,14 +32,66 @@ export type CheckoutNotification = Readonly<{
   isDismissed: boolean;
 }>;
 
+export type CheckoutLineCost = Readonly<{
+  compareAtUnitPrice: Money;
+  unitPrice: Money;
+  discountAmount: Money;
+  subtotalAmount: Money;
+  taxAmount: Money;
+  totalAmount: Money;
+}>;
+
 export type CheckoutLine = Readonly<{
   id: string;
-  // В GraphQL есть отдельный файл checkoutLine.graphql — здесь оставляем маркеры для дальнейшего расширения
+  title: string;
+  sku?: string | null;
+  imageSrc?: string | null;
+  quantity: number;
+  cost: CheckoutLineCost;
+  children: CheckoutLine[];
+  purchasableId: string;
+  purchasable?: unknown | null;
+}>;
+
+export type CheckoutDeliveryMethodType = DeliveryMethodType;
+
+export type DeliveryCost = Readonly<{
+  amount: Money;
+  paymentModel: ShippingPaymentModel;
+}>;
+
+export type CheckoutDeliveryProvider = Readonly<{
+  code: string;
+  data: unknown;
+}>;
+
+export type CheckoutDeliveryMethod = Readonly<{
+  code: string;
+  deliveryMethodType: CheckoutDeliveryMethodType;
+  provider: CheckoutDeliveryProvider;
+}>;
+
+export type CheckoutDeliveryAddress = Readonly<{
+  id: string;
+  address1: string;
+  address2?: string | null;
+  city: string;
+  countryCode: string; // CountryCode
+  provinceCode?: string | null;
+  postalCode?: string | null;
+  email?: string | null; // Email
+  firstName?: string | null;
+  lastName?: string | null;
+  data?: unknown;
 }>;
 
 export type CheckoutDeliveryGroup = Readonly<{
   id: string;
-  // См. checkoutDelivery.graphql — можно детализировать при необходимости
+  checkoutLines: CheckoutLine[];
+  deliveryAddress?: CheckoutDeliveryAddress | null;
+  deliveryMethods: CheckoutDeliveryMethod[];
+  selectedDeliveryMethod?: CheckoutDeliveryMethod | null;
+  estimatedCost?: DeliveryCost | null;
 }>;
 
 export type Checkout = Readonly<{
@@ -54,4 +107,3 @@ export type Checkout = Readonly<{
   deliveryGroups: CheckoutDeliveryGroup[];
   appliedPromoCodes: CheckoutPromoCode[];
 }>;
-
