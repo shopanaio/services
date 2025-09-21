@@ -1,6 +1,6 @@
 import { OrderEventTypes, type OrderEvent } from "./events";
 import { Money } from "@shopana/shared-money";
-import type { ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
+import { ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
 
 /** Order status aligned with admin GraphQL schema. */
 export enum OrderStatus {
@@ -59,7 +59,7 @@ export type OrderDeliveryAddress = Readonly<{
   phone?: string | null;
   /** PII: may contain additional personal attributes */
   data?: Record<string, unknown> | null;
-}>; 
+}>;
 
 /**
  * Delivery group that groups lines by delivery address/method.
@@ -81,7 +81,7 @@ export type OrderDeliveryGroup = Readonly<{
     amount: Money;
     paymentModel: ShippingPaymentModel;
   } | null;
-}>; 
+}>;
 
 /**
  * Applied promo code snapshot attached to order.
@@ -210,6 +210,31 @@ export const orderEvolve = (
 ): OrderState => {
   switch (event.type) {
     case OrderEventTypes.OrderCreated: {
+      // Build lines record for quick lookup and immutable state representation
+      const linesRecord: Record<string, OrderLineItemState> = {};
+      for (const line of event.data.lines) {
+        linesRecord[line.lineId] = {
+          lineId: line.lineId,
+          quantity: line.quantity,
+          unit: line.unit,
+        };
+      }
+
+      // Build delivery groups without PII (addresses are stored in PII storage)
+      const deliveryGroups: OrderDeliveryGroup[] =
+        event.data.deliveryGroups.map((g) => ({
+          id: g.id,
+          orderLineIds: g.orderLineIds,
+          deliveryAddress: null, // PII is not stored in events; resolved via read-model
+          deliveryCost: g.deliveryCost
+            ? {
+                amount: g.deliveryCost.amount,
+                paymentModel: g.deliveryCost
+                  .paymentModel as ShippingPaymentModel,
+              }
+            : null,
+        }));
+
       return {
         ...current,
         exists: true,
@@ -219,7 +244,7 @@ export const orderEvolve = (
         updatedAt: event.metadata.now,
 
         apiKey: event.metadata.apiKey,
-        // createdBy is not provided in metadata currently; keeping null
+        createdBy: event.metadata.userId ?? null,
         salesChannel: event.data.salesChannel ?? "",
         externalSource: event.data.externalSource,
         externalId: event.data.externalId,
@@ -233,11 +258,18 @@ export const orderEvolve = (
         shippingTotal: event.data.totalShippingAmount,
         grandTotal: event.data.totalAmount,
 
+        // Keep status as DRAFT on creation; follow-up events drive transitions
+        status: OrderStatus.DRAFT,
+        version: current.version + 1,
+
         customerId: event.data.customerId,
         customerCountryCode: event.data.customerCountryCode,
         // PII (email/phone/note) is intentionally not part of event payloads
 
         idempotencyKey: event.data.idempotencyKey,
+        linesRecord,
+        deliveryGroups,
+        appliedDiscounts: event.data.appliedDiscounts,
       };
     }
 
