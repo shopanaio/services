@@ -85,34 +85,42 @@ export const orderCreateProjection =
       // Insert order items
       const lines = event.data.lines || [];
       if (lines.length > 0) {
-        const itemRows = lines.map((l) => ({
-          id: l.lineId,
-          // TODO: Remove `as any` by aligning types with DB (UUID).
-          project_id: projectId as any,
-          order_id: orderId,
-          quantity: l.quantity,
-          // TODO: Consider denormalizing amounts now or add note where they are computed later.
-          subtotal_amount: null,
-          discount_amount: null,
-          tax_amount: null,
-          total_amount: null,
-          unit_id: l.unit.id,
-          unit_title: l.unit.title,
-          // TODO: Avoid casts; make `toBigintSql` accept number/Money safely.
-          unit_price: toBigintSql(l.unit.price as unknown as Money),
-          unit_compare_at_price: l.unit.compareAtPrice
-            ? toBigintSql(l.unit.compareAtPrice as unknown as Money)
-            : null,
-          unit_sku: l.unit.sku,
-          unit_image_url: l.unit.imageUrl,
-          // TODO: Use shared `jsonb` helper for consistency across inserts.
-          unit_snapshot: knex.raw("?::jsonb", [JSON.stringify(l.unit.snapshot ?? null)]),
-          metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-          projected_version: 0,
-          created_at: event.metadata.now,
-          updated_at: event.metadata.now,
-          deleted_at: null,
-        }));
+        const itemRows = lines.map((l) => {
+          const unitPrice = l.unit.price as unknown as Money;
+          const currencyCode = unitPrice.currency().code as string;
+          const subtotalMoney = unitPrice
+            .multiply(l.quantity)
+            .normalizeScale();
+          const zeroMoney = Money.zero(currencyCode);
+          const discountMoney = zeroMoney;
+          const taxMoney = zeroMoney;
+          const totalMoney = subtotalMoney;
+
+          return {
+            id: l.lineId,
+            project_id: projectId,
+            order_id: orderId,
+            quantity: l.quantity,
+            subtotal_amount: toBigintSql(subtotalMoney),
+            discount_amount: toBigintSql(discountMoney),
+            tax_amount: toBigintSql(taxMoney),
+            total_amount: toBigintSql(totalMoney),
+            unit_id: l.unit.id,
+            unit_title: l.unit.title,
+            unit_price: toBigintSql(unitPrice),
+            unit_compare_at_price: l.unit.compareAtPrice
+              ? toBigintSql(l.unit.compareAtPrice as unknown as Money)
+              : null,
+            unit_sku: l.unit.sku,
+            unit_image_url: l.unit.imageUrl,
+            unit_snapshot: knex.raw("?::jsonb", [JSON.stringify(l.unit.snapshot ?? null)]),
+            metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
+            projected_version: 0,
+            created_at: event.metadata.now,
+            updated_at: event.metadata.now,
+            deleted_at: null,
+          };
+        });
 
         const insertItemsSql = knex
           .withSchema("platform")

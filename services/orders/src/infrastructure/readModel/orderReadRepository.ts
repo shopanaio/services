@@ -22,37 +22,36 @@ export class OrderReadRepository implements OrderReadPort {
   async findById(id: string): Promise<OrderReadPortRow | null> {
     const q = knex
       .withSchema("platform")
-      .table("orders")
+      .table({ o: "orders" })
+      .leftJoin({ pii: "orders_pii_records" }, "pii.order_id", "o.id")
       .select(
-        "id",
-        "project_id",
-        "api_key_id",
-        "admin_id",
-        "sales_channel",
-        "external_source",
-        "order_number",
-        "external_id",
-        "customer_id",
-        "customer_email",
-        "customer_phone_e164",
-        "customer_country_code",
-        "customer_note",
-        "locale_code",
-        "currency_code",
-        "subtotal",
-        "shipping_total",
-        "discount_total",
-        "tax_total",
-        "grand_total",
-        "status",
-        "expires_at",
-        "projected_version",
-        "metadata",
-        "created_at",
-        "updated_at",
-        "deleted_at"
+        "o.id",
+        "o.project_id",
+        "o.api_key_id",
+        "o.user_id",
+        "o.sales_channel",
+        "o.external_source",
+        "o.order_number",
+        "o.external_id",
+        "o.locale_code",
+        "o.currency_code",
+        "o.subtotal_amount",
+        "o.total_shipping_amount",
+        "o.total_discount_amount",
+        "o.total_tax_amount",
+        "o.total_amount",
+        "o.status",
+        "o.expires_at",
+        "o.projected_version",
+        "o.metadata",
+        "o.created_at",
+        "o.updated_at",
+        "o.deleted_at",
+        "pii.customer_email",
+        "pii.customer_phone_e164",
+        "pii.customer_note"
       )
-      .where({ id })
+      .where("o.id", id)
       .toString();
 
     const row = await singleOrNull(
@@ -67,39 +66,38 @@ export class OrderReadRepository implements OrderReadPort {
   ): Promise<OrderReadPortRow | null> {
     const q = knex
       .withSchema("platform")
-      .table("orders")
+      .table({ o: "orders" })
+      .leftJoin({ pii: "orders_pii_records" }, "pii.order_id", "o.id")
       .select(
-        "id",
-        "project_id",
-        "api_key_id",
-        "admin_id",
-        "sales_channel",
-        "external_source",
-        "order_number",
-        "external_id",
-        "customer_id",
-        "customer_email",
-        "customer_phone_e164",
-        "customer_country_code",
-        "customer_note",
-        "locale_code",
-        "currency_code",
-        "subtotal",
-        "shipping_total",
-        "discount_total",
-        "tax_total",
-        "grand_total",
-        "status",
-        "expires_at",
-        "projected_version",
-        "metadata",
-        "created_at",
-        "updated_at",
-        "deleted_at"
+        "o.id",
+        "o.project_id",
+        "o.api_key_id",
+        "o.user_id",
+        "o.sales_channel",
+        "o.external_source",
+        "o.order_number",
+        "o.external_id",
+        "o.locale_code",
+        "o.currency_code",
+        "o.subtotal_amount",
+        "o.total_shipping_amount",
+        "o.total_discount_amount",
+        "o.total_tax_amount",
+        "o.total_amount",
+        "o.status",
+        "o.expires_at",
+        "o.projected_version",
+        "o.metadata",
+        "o.created_at",
+        "o.updated_at",
+        "o.deleted_at",
+        "pii.customer_email",
+        "pii.customer_phone_e164",
+        "pii.customer_note"
       )
       .where({
-        project_id: projectId,
-        order_number: orderNumber,
+        "o.project_id": projectId,
+        "o.order_number": orderNumber,
       })
       .toString();
 
