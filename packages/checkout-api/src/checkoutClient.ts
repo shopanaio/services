@@ -1,5 +1,6 @@
 import type { ServiceBroker } from "moleculer";
-import type { Checkout } from "@shopana/checkout-sdk";
+import { deserializeCheckout } from "@shopana/checkout-sdk";
+import type { Checkout, CheckoutDto } from "@shopana/checkout-sdk";
 
 export interface CheckoutApiClient {
   getByCheckoutId(input: {
@@ -21,9 +22,11 @@ export class CheckoutClient implements CheckoutApiClient {
     checkoutId: string;
     customerId?: string | null;
   }): Promise<Checkout> {
-    return (await this.broker.call(
+    const dto = (await this.broker.call(
       "checkout.getById",
       input
-    )) as Checkout;
+    )) as CheckoutDto;
+
+    return deserializeCheckout(dto);
   }
 }

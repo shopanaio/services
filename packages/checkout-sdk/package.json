@@ -23,11 +23,11 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/shared-money": "*"
+    "@shopana/shared-money": "*",
+    "@shopana/shipping-plugin-sdk": "*"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",
     "typescript": "^5.5.4"
   }
 }
-
