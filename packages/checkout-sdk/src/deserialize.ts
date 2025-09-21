@@ -66,6 +66,7 @@ const deserializeDeliveryMethod = (
 ): CheckoutDeliveryMethod => ({
   code: dto.code,
   deliveryMethodType: dto.deliveryMethodType,
+  shippingPaymentModel: dto.shippingPaymentModel,
   provider: deserializeDeliveryProvider(dto.provider),
 });
 
@@ -84,6 +85,7 @@ const deserializeDeliveryAddress = (
     email: dto.email ?? null,
     firstName: dto.firstName ?? null,
     lastName: dto.lastName ?? null,
+    phone: dto.phone,
     data: dto.data,
   };
 };
@@ -98,7 +100,7 @@ const deserializeDeliveryGroup = (
   selectedDeliveryMethod: dto.selectedDeliveryMethod
     ? deserializeDeliveryMethod(dto.selectedDeliveryMethod)
     : null,
-  estimatedCost: deserializeCost(dto.estimatedCost ?? null) ?? undefined,
+  shippingCost: deserializeCost(dto.shippingCost),
 });
 
 const deserializeCheckoutCost = (dto: CheckoutDto["cost"]): CheckoutCost => ({
@@ -140,6 +142,13 @@ export const deserializeCheckout = (dto: CheckoutDto): Checkout => ({
   id: dto.id,
   createdAt: dto.createdAt,
   updatedAt: dto.updatedAt,
+  projectId: dto.projectId,
+  currencyCode: dto.currencyCode,
+  idempotencyKey: dto.idempotencyKey,
+  salesChannel: dto.salesChannel,
+  externalSource: dto.externalSource,
+  externalId: dto.externalId,
+  localeCode: dto.localeCode,
   cost: deserializeCheckoutCost(dto.cost),
   customerIdentity: deserializeCustomerIdentity(dto.customerIdentity),
   customerNote: dto.customerNote,
@@ -148,4 +157,12 @@ export const deserializeCheckout = (dto: CheckoutDto): Checkout => ({
   notifications: dto.notifications.map(deserializeNotification),
   deliveryGroups: dto.deliveryGroups.map(deserializeDeliveryGroup),
   appliedPromoCodes: dto.appliedPromoCodes.map(deserializePromoCode),
+  apiKey: dto.apiKey,
+  createdBy: dto.createdBy,
+  number: dto.number,
+  status: dto.status,
+  expiresAt: dto.expiresAt,
+  version: dto.version,
+  metadata: dto.metadata,
+  deletedAt: dto.deletedAt,
 });
