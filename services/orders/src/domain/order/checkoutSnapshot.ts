@@ -1,8 +1,5 @@
 import { Money } from "@shopana/shared-money";
-import {
-  DeliveryMethodType,
-  ShippingPaymentModel,
-} from "@shopana/shipping-plugin-sdk";
+import { DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
 
 /**
  * Snapshot of a Checkout captured at Order creation time for audit/disputes.
@@ -57,8 +54,6 @@ export type CheckoutLineSnapshot = Readonly<{
 export type CheckoutUnitSnapshot = Readonly<{
   /** Final unit price at checkout time */
   price: Money;
-  /** Reference (strike-through) price if applicable */
-  compareAtPrice: Money | null;
   /** Human-readable title of the unit */
   title: string;
   /** Merchant SKU if provided */
@@ -87,11 +82,10 @@ export type CheckoutTotalsSnapshot = Readonly<{
  * Customer identity data present at checkout time.
  */
 export type CheckoutCustomerSnapshot = Readonly<{
-  email: string | null;
+  /** Stable internal customer identifier if known */
   customerId: string | null;
-  phone: string | null;
+  /** Country for jurisdictional/audit purposes */
   countryCode: string | null;
-  note: string | null;
 }>;
 
 /**
@@ -106,9 +100,11 @@ export type CheckoutDeliveryProviderSnapshot = Readonly<{
  * Delivery method descriptor selected or proposed for a group.
  */
 export type CheckoutDeliveryMethodSnapshot = Readonly<{
+  /** Business code of the delivery method */
   code: string;
+  /** Delivery method type (e.g., COURIER, PICKUP) */
   deliveryMethodType: DeliveryMethodType;
-  shippingPaymentModel: ShippingPaymentModel;
+  /** Provider descriptor (no opaque data) */
   provider: CheckoutDeliveryProviderSnapshot;
 }>;
 
@@ -116,16 +112,12 @@ export type CheckoutDeliveryMethodSnapshot = Readonly<{
  * Delivery address attached to a group.
  */
 export type CheckoutDeliveryAddressSnapshot = Readonly<{
-  address1: string;
-  address2: string | null;
-  city: string;
+  /** Country for taxation/jurisdiction */
   countryCode: string;
+  /** Region/state code where applicable */
   provinceCode: string | null;
+  /** Postal/ZIP code where applicable */
   postalCode: string | null;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  phone: string | null;
 }>;
 
 /**
@@ -134,20 +126,24 @@ export type CheckoutDeliveryAddressSnapshot = Readonly<{
 export type CheckoutDeliveryGroupSnapshot = Readonly<{
   /** Relation to checkout line identities for traceability */
   checkoutLineIds: string[];
+  /** Redacted address with only jurisdictional fields */
   deliveryAddress: CheckoutDeliveryAddressSnapshot | null;
+  /** Selected delivery method descriptor */
   selectedDeliveryMethod: CheckoutDeliveryMethodSnapshot | null;
-  shippingCost: { amount: Money; paymentModel: ShippingPaymentModel } | null;
+  /** Shipping cost amount at checkout time */
+  shippingCost: { amount: Money } | null;
 }>;
 
 /**
  * Applied promo code snapshot stored with the checkout.
  */
 export type CheckoutPromoCodeSnapshot = Readonly<{
+  /** Promo code value */
   code: string;
-  appliedAt: Date;
   /** Discount type as opaque string to avoid tight coupling */
   discountType: string;
   /** Discount value; may be percentage/amount depending on type */
   value: number | Money;
+  /** Provider code or name */
   provider: string;
 }>;

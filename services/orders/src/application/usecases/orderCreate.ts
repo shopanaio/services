@@ -6,7 +6,7 @@ import type { CreateOrderInput } from "@src/application/order/types";
 import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import type { Checkout } from "@shopana/checkout-sdk";
-import { ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
+// no ShippingPaymentModel needed in redacted snapshot mapping
 import type { OrderCreated } from "@src/domain/order/events";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
@@ -79,17 +79,13 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       externalId: aggregate.externalId ?? null,
       capturedAt: new Date(),
       customer: {
-        email: aggregate.customerIdentity.email ?? null,
         customerId: aggregate.customerIdentity.customer?.id ?? null,
-        phone: aggregate.customerIdentity.phone ?? null,
         countryCode: aggregate.customerIdentity.countryCode ?? null,
-        note: aggregate.customerNote ?? null,
       },
       lines: aggregate.lines.map((l) => ({
         quantity: l.quantity,
         unit: {
           price: l.cost.unitPrice,
-          compareAtPrice: l.cost.compareAtUnitPrice,
           title: l.title,
           sku: l.sku ?? null,
         },
@@ -98,25 +94,15 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         checkoutLineIds: g.checkoutLines.map((cl) => cl.id),
         deliveryAddress: g.deliveryAddress
           ? {
-              address1: g.deliveryAddress.address1,
-              address2: g.deliveryAddress.address2 ?? null,
-              city: g.deliveryAddress.city,
               countryCode: g.deliveryAddress.countryCode,
               provinceCode: g.deliveryAddress.provinceCode ?? null,
               postalCode: g.deliveryAddress.postalCode ?? null,
-              email: g.deliveryAddress.email ?? null,
-              firstName: g.deliveryAddress.firstName ?? null,
-              lastName: g.deliveryAddress.lastName ?? null,
-              phone: (g.deliveryAddress as any).phone ?? null,
             }
           : null,
         selectedDeliveryMethod: g.selectedDeliveryMethod
           ? {
               code: g.selectedDeliveryMethod.code,
               deliveryMethodType: g.selectedDeliveryMethod.deliveryMethodType,
-              shippingPaymentModel:
-                g.selectedDeliveryMethod.shippingPaymentModel ??
-                ShippingPaymentModel.MERCHANT_COLLECTED,
               provider: {
                 code: g.selectedDeliveryMethod.provider.code,
               },
@@ -125,13 +111,11 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         shippingCost: g.shippingCost
           ? {
               amount: g.shippingCost.amount,
-              paymentModel: g.shippingCost.paymentModel,
             }
           : null,
       })),
       appliedPromoCodes: aggregate.appliedPromoCodes.map((p) => ({
         code: p.code,
-        appliedAt: new Date(p.appliedAt),
         discountType: p.discountType,
         value: p.value,
         provider: p.provider,
