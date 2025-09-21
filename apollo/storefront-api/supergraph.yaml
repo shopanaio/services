@@ -8,3 +8,7 @@ subgraphs:
     routing_url: http://host.docker.internal:10002/graphql
     schema:
       subgraph_url: http://host.docker.internal:10002/graphql
+  orders:
+    routing_url: http://host.docker.internal:10003/graphql/storefront/v1
+    schema:
+      subgraph_url: http://host.docker.internal:10003/graphql/storefront/v1

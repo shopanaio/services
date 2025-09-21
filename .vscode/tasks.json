@@ -110,7 +110,7 @@
     {
       "label": "Start Shipping Service",
       "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/shipping && echo 'Starting Shipping Service...' && yarn dev:watch",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/delivery && echo 'Starting Shipping Service...' && yarn dev:watch",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {

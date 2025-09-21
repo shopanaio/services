@@ -22,40 +22,6 @@ directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on
 
 directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
 
-"""Input data for adding an item to an existing cart."""
-input AddCartLineInput
-  @join__type(graph: CORE)
-{
-  """ID of the cart."""
-  cartId: ID!
-
-  """
-  ID of the product to add.
-  Error if the product is not found or already exists in the cart.
-  """
-  productId: ID!
-
-  """Quantity to add; must be greater than 0."""
-  quantity: Int!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after adding an item to the cart."""
-type AddCartLinePayload
-  @join__type(graph: CORE)
-{
-  """The updated cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
-}
-
 """
 A postal address.
 Implements the Node interface.
@@ -167,20 +133,6 @@ input AddressInput
   metadata: JSON
 }
 
-"""Information about an applied discount or promotion."""
-type AppliedDiscount
-  @join__type(graph: CORE)
-{
-  """ID of the promotion or coupon in the system (if applicable)."""
-  id: ID
-
-  """Coupon code used (if this is a coupon)."""
-  code: String
-
-  """Amount by which the cost was reduced."""
-  amount: Money!
-}
-
 """A content article."""
 type Article implements Node
   @join__implements(graph: CORE, interface: "Node")
@@ -270,239 +222,7 @@ enum ArticleSort
 
 scalar BigInt
   @join__type(graph: CHECKOUT)
-
-"""A shopping cart with multiple items."""
-type Cart implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """A globally-unique ID."""
-  id: ID!
-
-  """When this cart was first created."""
-  createdAt: DateTime!
-
-  """When this cart was last updated."""
-  updatedAt: DateTime!
-
-  """All cost calculations for the cart."""
-  cost: CartCost!
-
-  """Quantity of the item being purchased."""
-  totalQuantity: Int!
-
-  """List of items in the cart (paginated)."""
-  lines(
-    """Return the first n items after the given cursor."""
-    first: Int = 50
-
-    """Return items after this cursor."""
-    after: Cursor
-
-    """Return the last n items before the given cursor."""
-    last: Int
-
-    """Return items before this cursor."""
-    before: Cursor
-  ): CartLineConnection!
-
-  """List of all discounts applied at the cart level."""
-  appliedDiscounts: [AppliedDiscount!]!
-
-  """Details of all tax components applied at the cart level."""
-  appliedTaxLines: [TaxLine!]!
-
-  """Shipping information including available and selected methods."""
-  shippingDetails: CartShippingDetails!
-
-  """Notifications for the user regarding the cart."""
-  notifications: [CartNotification!]!
-
-  """Shipping address, if provided."""
-  shippingAddress: Address
-
-  """Billing address, if provided."""
-  billingAddress: Address
-}
-
-"""All monetary calculations related to the cart."""
-type CartCost
-  @join__type(graph: CORE)
-{
-  """Total value of items before any discounts."""
-  subtotalAmount: Money!
-
-  """Shipping cost including taxes (if selected)."""
-  shippingCost: Money
-
-  """Total discount from both item-level and cart-level promotions."""
-  totalDiscountAmount: Money!
-
-  """Total tax amount applied to the cart."""
-  totalTaxAmount: Money!
-
-  """Final amount to be paid, including item cost, shipping, and taxes."""
-  totalAmount: Money!
-}
-
-"""A single item in a shopping cart."""
-type CartLine implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Quantity of the item being purchased."""
-  quantity: Int!
-
-  """Cost calculations for this cart item."""
-  cost: CartLineCost!
-
-  """The purchasable item added to the cart, such as a product or bundle."""
-  purchasable: ProductVariant!
-
-  """List of discounts applied specifically to this cart item."""
-  appliedDiscounts: [AppliedDiscount!]!
-
-  """Details of all taxes applied to this cart item."""
-  appliedTaxLines: [TaxLine!]!
-
-  """
-  A list of components that make up this cart line, such as individual products in a bundle.
-  """
-  children: [CartLine]!
-}
-
-"""A paginated list of CartLines."""
-type CartLineConnection
-  @join__type(graph: CORE)
-{
-  """The total number of items."""
-  totalCount: Int!
-
-  """Pagination information."""
-  pageInfo: PageInfo!
-
-  """List of CartLine edges."""
-  edges: [CartLineEdge!]!
-}
-
-"""Detailed breakdown of costs for a cart line item"""
-type CartLineCost
-  @join__type(graph: CORE)
-{
-  """The original list price per unit before any discounts."""
-  compareAtUnitPrice: Money!
-
-  """
-  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
-  """
-  unitPrice: Money!
-
-  """Discount amount applied to a single unit."""
-  discountAmount: Money!
-
-  """Total cost of all units before discounts."""
-  subtotalAmount: Money!
-
-  """Total tax amount applied to the cart line."""
-  taxAmount: Money!
-
-  """
-  Final total cost for the cart line, including all discounts, taxes, and any additional fees.
-  """
-  totalAmount: Money!
-}
-
-"""An edge in a paginated list of CartLines."""
-type CartLineEdge
-  @join__type(graph: CORE)
-{
-  """Cursor for pagination."""
-  cursor: Cursor!
-
-  """The CartLine at this edge."""
-  node: CartLine!
-}
-
-"""Input data for a single item in the cart."""
-input CartLineInput
-  @join__type(graph: CORE)
-{
-  """Quantity of the product in the cart."""
-  quantity: Int!
-
-  """ID of the product to add or update."""
-  productId: ID!
-}
-
-"""A non-blocking warning generated by cart operations."""
-type CartNotification
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """A globally-unique ID."""
-  id: ID!
-
-  """Code categorizing the warning."""
-  code: CartNotificationCode!
-
-  """Importance level of the warning."""
-  severity: NotificationSeverity!
-
-  """Whether the warning has been acknowledged by the user."""
-  isDismissed: Boolean!
-}
-
-"""
-Codes for warnings that may be returned with Cart mutations,
-indicating non-blocking adjustments or issues in the cart.
-"""
-enum CartNotificationCode
-  @join__type(graph: CORE)
-{
-  """
-  The requested item is completely out of stock and has been removed from the cart.
-  """
-  OUT_OF_STOCK @join__enumValue(graph: CORE)
-
-  """
-  The requested quantity exceeds available stock;
-  quantity was automatically reduced to the maximum available.
-  """
-  NOT_ENOUGH_STOCK @join__enumValue(graph: CORE)
-
-  """
-  The price of one or more items has changed since they were added to the cart.
-  """
-  PRICE_CHANGED @join__enumValue(graph: CORE)
-
-  """An item in the cart is no longer available for sale."""
-  ITEM_UNAVAILABLE @join__enumValue(graph: CORE)
-}
-
-"""Details about shipping methods at the cart level."""
-type CartShippingDetails
-  @join__type(graph: CORE)
-{
-  """List of available shipping methods."""
-  availableMethods: [ShippingMethod!]!
-
-  """Currently selected shipping method, if any."""
-  selectedMethod: ShippingMethod
-
-  """Estimated delivery date based on the selected shipping method."""
-  estimatedDeliveryDate: DateTime
-}
+  @join__type(graph: ORDERS)
 
 type Category implements Node
   @join__implements(graph: CORE, interface: "Node")
@@ -737,11 +457,11 @@ type CheckoutCreatePayload
   errors: [CheckoutFieldError!]
 }
 
-"""Input data for updating the cart's display currency."""
+"""Input data for updating the display currency of the checkout."""
 input CheckoutCurrencyCodeUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
   """Currency code according to ISO 4217 (e.g., "USD", "EUR")."""
@@ -765,15 +485,17 @@ type CheckoutCustomerIdentity
 }
 
 """
-Input data for updating customer identification data associated with the cart.
+Input data for updating customer identification data associated with the checkout.
 """
 input CheckoutCustomerIdentityUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
-  """Customer's email. If specified, will be linked to the cart."""
+  """
+  Customer's email address. If specified, will be linked to the checkout.
+  """
   email: Email
 
   """Phone number of the customer."""
@@ -787,22 +509,20 @@ input CheckoutCustomerIdentityUpdateInput
 
   """
   Customer identifier in external/internal system.
-  Used to link the cart with an existing customer.
+  Used to link the checkout with an existing customer.
   """
   customerId: ID
 }
 
-"""
-Input data for updating customer's note attached to the cart.
-"""
+"""Input data for updating the customer note attached to the checkout."""
 input CheckoutCustomerNoteUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
   """
-  Customer's note text (delivery instructions, etc.).
+  Text of the customer note (delivery instructions, etc.).
   Empty value clears the note.
   """
   note: String
@@ -847,13 +567,13 @@ type CheckoutDeliveryAddress
 }
 
 """
-Input data for adding one or more delivery addresses to the cart.
+Input data for adding one or more delivery addresses to the checkout.
 Supports multi-shipping.
 """
 input CheckoutDeliveryAddressesAddInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
   """List of delivery addresses to be added."""
@@ -861,25 +581,23 @@ input CheckoutDeliveryAddressesAddInput
 }
 
 """
-Input data for removing one or more delivery addresses from the cart.
+Input data for removing one or more delivery addresses from the checkout.
 """
 input CheckoutDeliveryAddressesRemoveInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
   """Identifiers of delivery addresses to be removed."""
   addressIds: [ID!]!
 }
 
-"""
-Input data for batch updating previously added delivery addresses.
-"""
+"""Input data for batch updating previously added delivery addresses."""
 input CheckoutDeliveryAddressesUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
   """List of updates for delivery addresses."""
@@ -926,7 +644,7 @@ Delivery address update element: which address to update and with what data.
 input CheckoutDeliveryAddressUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Identifier of existing delivery address in the cart."""
+  """Identifier of the existing delivery address in the checkout."""
   addressId: ID!
 
   """New postal address values."""
@@ -981,18 +699,20 @@ enum CheckoutDeliveryMethodType
 
 """
 Input data for selecting/changing delivery method.
-Can be applied to the entire cart or to a specific delivery address.
+Can be applied to the entire checkout or to a specific delivery address.
 """
 input CheckoutDeliveryMethodUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
-  """Code of delivery method available for this cart/address."""
+  """Code of the delivery method available for this checkout/address."""
   shippingMethodCode: String!
 
-  """Identifier of delivery group for which delivery method is selected."""
+  """
+  Identifier of the delivery group for which the delivery method is selected.
+  """
   deliveryGroupId: ID!
 }
 
@@ -1018,44 +738,15 @@ type CheckoutFieldError
   message: String!
 }
 
-"""Input data for placing an order (checkout)."""
-input CheckoutInput
-  @join__type(graph: CORE)
-{
-  """Unique key for idempotency."""
-  idempotencyKey: String!
-
-  """Cart ID."""
-  cartId: ID!
-
-  """Billing address."""
-  billingAddress: AddressInput!
-
-  """Shipping address."""
-  shippingAddress: AddressInput!
-
-  """Customer contact details."""
-  customerDetails: OrderCustomerDetailsInput!
-
-  """Payment method ID."""
-  paymentMethod: ID!
-
-  """Shipping method ID."""
-  shippingMethod: ID!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Input data for updating cart's language/locale code."""
+"""Input data for updating the language/locale code of the checkout."""
 input CheckoutLanguageCodeUpdateInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
   """
-  Language/locale code (ISO 639-1, BCP 47 if needed), e.g. "en", "ru", "uk".
+  Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
   Affects localization and formatting.
   """
   localeCode: String!
@@ -1264,50 +955,50 @@ type CheckoutMutation
   checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutLinesClearPayload!
 
   """
-  Updates customer identification data associated with the cart
-  (email, customerId and optionally country/language for calculations).
+  Updates customer identification data associated with the checkout
+  (email, customerId and if necessary country/language for calculations).
   """
   checkoutCustomerIdentityUpdate(input: CheckoutCustomerIdentityUpdateInput!): Checkout!
 
   """
-  Updates customer's note attached to the cart (delivery instructions, etc.).
+  Updates the customer note attached to the checkout (delivery instructions, etc.).
   """
   checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): Checkout!
 
   """
-  Updates cart's language/locale (affects localization and formatting).
+  Updates the language/locale of the checkout (affects localization and formatting).
   """
   checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
 
   """
-  Updates cart's display currency (ISO 4217, e.g. "USD", "EUR").
+  Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR").
   """
   checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
 
   """
-  Adds one or more delivery addresses to the cart (supports multi-shipping).
+  Adds one or more delivery addresses to the checkout (supports multi-shipping).
   """
   checkoutDeliveryAddressesAdd(input: CheckoutDeliveryAddressesAddInput!): Checkout!
 
   """
-  Updates previously added delivery addresses (e.g., postal code or city correction).
+  Updates previously added delivery addresses (e.g., correcting postal code or city).
   """
   checkoutDeliveryAddressesUpdate(input: CheckoutDeliveryAddressesUpdateInput!): Checkout!
 
   """
-  Removes one or more delivery addresses previously linked to the cart.
+  Removes one or more delivery addresses previously attached to the checkout.
   """
   checkoutDeliveryAddressesRemove(input: CheckoutDeliveryAddressesRemoveInput!): Checkout!
 
   """
-  Selects or changes delivery method for the entire cart or specific address.
+  Selects or changes the delivery method for the entire checkout or specific address.
   """
   checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
 
-  """Applies promo code/coupon to the cart."""
+  """Applies a promo code/coupon to the checkout."""
   checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
 
-  """Removes previously applied promo code/coupon from the cart."""
+  """Removes a previously applied promo code/coupon from the checkout."""
   checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
 }
 
@@ -1355,20 +1046,6 @@ enum CheckoutNotificationCode
   ITEM_UNAVAILABLE @join__enumValue(graph: CHECKOUT)
 }
 
-"""Payload returned after performing checkout (placing an order)."""
-type CheckoutPayload
-  @join__type(graph: CORE)
-{
-  """The newly created order."""
-  order: Order
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
-}
-
 """Applied promo code for a checkout."""
 type CheckoutPromoCode
   @join__type(graph: CHECKOUT)
@@ -1392,25 +1069,27 @@ type CheckoutPromoCode
   conditions: JSON
 }
 
-"""Input data for applying promo code to the cart."""
+"""Input data for applying a promo code to the checkout."""
 input CheckoutPromoCodeAddInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
-  """Text code of coupon/promo code."""
+  """Text code of the coupon/promo code."""
   code: String!
 }
 
-"""Input data for removing previously applied promo code from the cart."""
+"""
+Input data for removing a previously applied promo code from the checkout.
+"""
 input CheckoutPromoCodeRemoveInput
   @join__type(graph: CHECKOUT)
 {
-  """Cart identifier on which the operation is performed."""
+  """Identifier of the checkout on which the operation is performed."""
   checkoutId: ID!
 
-  """Text code of coupon/promo code that needs to be cancelled."""
+  """Text code of the coupon/promo code to be cancelled."""
   code: String!
 }
 
@@ -1421,671 +1100,626 @@ type CheckoutQuery
   checkout(id: ID!): Checkout
 }
 
-"""Input data for clearing all items from a cart."""
-input ClearCartLinesInput
-  @join__type(graph: CORE)
-{
-  """ID of the cart to clear."""
-  cartId: ID!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after clearing all items from the cart."""
-type ClearCartLinesPayload
-  @join__type(graph: CORE)
-{
-  """The updated (now empty) cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
-}
-
 enum CountryCode
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
   """United States"""
-  US @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  US @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Canada"""
-  CA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Mexico"""
-  MX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """United Kingdom"""
-  GB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Germany"""
-  DE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """France"""
-  FR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Italy"""
-  IT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Spain"""
-  ES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Australia"""
-  AU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """New Zealand"""
-  NZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Japan"""
-  JP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """China"""
-  CN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """South Korea"""
-  KR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """India"""
-  IN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Brazil"""
-  BR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Argentina"""
-  AR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """South Africa"""
-  ZA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ZA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Russia"""
-  RU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Ukraine"""
-  UA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Poland"""
-  PL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Netherlands"""
-  NL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Belgium"""
-  BE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Sweden"""
-  SE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Norway"""
-  NO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Denmark"""
-  DK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Finland"""
-  FI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Switzerland"""
-  CH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Austria"""
-  AT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Portugal"""
-  PT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Ireland"""
-  IE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Czech Republic"""
-  CZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Hungary"""
-  HU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Slovakia"""
-  SK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Slovenia"""
-  SI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Croatia"""
-  HR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Greece"""
-  GR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Turkey"""
-  TR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Romania"""
-  RO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bulgaria"""
-  BG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Estonia"""
-  EE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  EE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Latvia"""
-  LV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Lithuania"""
-  LT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Iceland"""
-  IS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Luxembourg"""
-  LU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Liechtenstein"""
-  LI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Malta"""
-  MT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Cyprus"""
-  CY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Israel"""
-  IL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Saudi Arabia"""
-  SA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """United Arab Emirates"""
-  AE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Qatar"""
-  QA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  QA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Kuwait"""
-  KW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Oman"""
-  OM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  OM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Jordan"""
-  JO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Egypt"""
-  EG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  EG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Morocco"""
-  MA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Tunisia"""
-  TN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Algeria"""
-  DZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Nigeria"""
-  NG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Kenya"""
-  KE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Ethiopia"""
-  ET @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ET @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Ghana"""
-  GH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Senegal"""
-  SN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Ivory Coast"""
-  CI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Tanzania"""
-  TZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Uganda"""
-  UG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Cameroon"""
-  CM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Zambia"""
-  ZM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ZM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Zimbabwe"""
-  ZW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ZW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Mozambique"""
-  MZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Botswana"""
-  BW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Namibia"""
-  NA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Angola"""
-  AO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Democratic Republic of the Congo"""
-  CD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Sudan"""
-  SD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Pakistan"""
-  PK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bangladesh"""
-  BD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Nepal"""
-  NP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Thailand"""
-  TH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Vietnam"""
-  VN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Malaysia"""
-  MY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Singapore"""
-  SG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Indonesia"""
-  ID @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ID @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Philippines"""
-  PH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Myanmar"""
-  MM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Cambodia"""
-  KH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Laos"""
-  LA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Brunei"""
-  BN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Kazakhstan"""
-  KZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Uzbekistan"""
-  UZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Turkmenistan"""
-  TM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Kyrgyzstan"""
-  KG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Tajikistan"""
-  TJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Georgia"""
-  GE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Armenia"""
-  AM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Azerbaijan"""
-  AZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Belarus"""
-  BY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Moldova"""
-  MD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Serbia"""
-  RS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Montenegro"""
-  ME @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ME @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """North Macedonia"""
-  MK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bosnia and Herzegovina"""
-  BA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Albania"""
-  AL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Kosovo"""
-  XK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  XK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Greenland"""
-  GL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Panama"""
-  PA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Costa Rica"""
-  CR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """El Salvador"""
-  SV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Guatemala"""
-  GT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Honduras"""
-  HN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Nicaragua"""
-  NI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Jamaica"""
-  JM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Cuba"""
-  CU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Dominican Republic"""
-  DO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Haiti"""
-  HT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Trinidad and Tobago"""
-  TT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Barbados"""
-  BB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bahamas"""
-  BS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Paraguay"""
-  PY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Uruguay"""
-  UY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Chile"""
-  CL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Peru"""
-  PE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Colombia"""
-  CO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Venezuela"""
-  VE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bolivia"""
-  BO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Ecuador"""
-  EC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  EC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Suriname"""
-  SR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Guyana"""
-  GY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Fiji"""
-  FJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Papua New Guinea"""
-  PG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Samoa"""
-  WS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  WS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Tonga"""
-  TO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Solomon Islands"""
-  SB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Vanuatu"""
-  VU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """New Caledonia"""
-  NC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Marshall Islands"""
-  MH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Micronesia"""
-  FM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Palau"""
-  PW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Maldives"""
-  MV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Seychelles"""
-  SC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Mauritius"""
-  MU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Sri Lanka"""
-  LK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bhutan"""
-  BT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Mongolia"""
-  MN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """North Korea"""
-  KP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Iraq"""
-  IQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Iran"""
-  IR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Afghanistan"""
-  AF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Yemen"""
-  YE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  YE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Syria"""
-  SY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Lebanon"""
-  LB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Palestine"""
-  PS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bahrain"""
-  BH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Malawi"""
-  MW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Rwanda"""
-  RW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Burundi"""
-  BI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """South Sudan"""
-  SS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Lesotho"""
-  LS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Swaziland (Eswatini)"""
-  SZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Madagascar"""
-  MG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Central African Republic"""
-  CF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Republic of the Congo"""
-  CG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Gabon"""
-  GA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Guinea"""
-  GN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Guinea-Bissau"""
-  GW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Equatorial Guinea"""
-  GQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Sierra Leone"""
-  SL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Liberia"""
-  LR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Benin"""
-  BJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Togo"""
-  TG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Niger"""
-  NE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Mali"""
-  ML @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ML @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Burkina Faso"""
-  BF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Chad"""
-  TD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Mauritania"""
-  MR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Gambia"""
-  GM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Cape Verde"""
-  CV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Eritrea"""
-  ER @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ER @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Djibouti"""
-  DJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DJ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Comoros"""
-  KM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Andorra"""
-  AD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Monaco"""
-  MC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """San Marino"""
-  SM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Vatican City"""
-  VA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Timor-Leste (East Timor)"""
-  TL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Antigua and Barbuda"""
-  AG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Saint Kitts and Nevis"""
-  KN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Saint Lucia"""
-  LC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Saint Vincent and the Grenadines"""
-  VC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Grenada"""
-  GD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Dominica"""
-  DM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Belize"""
-  BZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BZ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Aruba"""
-  AW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Curaçao"""
-  CW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Bermuda"""
-  BM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Faroe Islands"""
-  FO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Isle of Man"""
-  IM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Jersey"""
-  JE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Guernsey"""
-  GG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Åland Islands"""
-  AX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """Western Sahara"""
-  EH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  EH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """British Virgin Islands"""
-  VG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """US Virgin Islands"""
-  VI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VI @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 }
 
-"""Input data for creating a new cart."""
-input CreateCartInput
-  @join__type(graph: CORE)
+input CreateOrderInput
+  @join__type(graph: ORDERS)
 {
-  """Currency code for all items (e.g., "USD")."""
-  currencyCode: CurrencyCode!
-
-  """Initial items to add to the new cart."""
-  items: [CartLineInput!]!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after creating a cart."""
-type CreateCartPayload
-  @join__type(graph: CORE)
-{
-  """The newly created cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
+  """ID of the checkout."""
+  checkoutId: ID!
 }
 
 """Input type for submitting a new product review."""
@@ -2145,501 +1779,504 @@ input CreateReviewInput
 enum CurrencyCode
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
   """2 decimals — UAE Dirham (United Arab Emirates)"""
-  AED @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AED @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Afghan Afghani (Afghanistan)"""
-  AFN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AFN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Albanian Lek (Albania)"""
-  ALL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ALL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Armenian Dram (Armenia)"""
-  AMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
-  ANG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ANG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Angolan Kwanza (Angola)"""
-  AOA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AOA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Argentine Peso (Argentina)"""
-  ARS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ARS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Australian Dollar (Australia)"""
-  AUD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AUD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Aruban Florin (Aruba)"""
-  AWG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AWG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Azerbaijani Manat (Azerbaijan)"""
-  AZN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  AZN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """
   2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
   """
-  BAM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BAM @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Barbadian Dollar (Barbados)"""
-  BBD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BBD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Bangladeshi Taka (Bangladesh)"""
-  BDT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BDT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Bulgarian Lev (Bulgaria)"""
-  BGN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BGN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """3 decimals — Bahraini Dinar (Bahrain)"""
-  BHD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BHD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Burundian Franc (Burundi)"""
-  BIF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BIF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Bermudian Dollar (Bermuda)"""
-  BMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Brunei Dollar (Brunei)"""
-  BND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Bolivian Boliviano (Bolivia)"""
-  BOB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BOB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Brazilian Real (Brazil)"""
-  BRL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BRL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Bahamian Dollar (Bahamas)"""
-  BSD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BSD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Bhutanese Ngultrum (Bhutan)"""
-  BTN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BTN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Botswana Pula (Botswana)"""
-  BWP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BWP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Belarusian Ruble (Belarus)"""
-  BYN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BYN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Belize Dollar (Belize)"""
-  BZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  BZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Canadian Dollar (Canada)"""
-  CAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
-  CDF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CDF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Swiss Franc (Switzerland)"""
-  CHF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CHF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Chilean Peso (Chile)"""
-  CLP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CLP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Chinese Yuan (China)"""
-  CNY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CNY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Colombian Peso (Colombia)"""
-  COP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  COP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Costa Rican Colon (Costa Rica)"""
-  CRC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CRC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Cuban Peso (Cuba)"""
-  CUP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CUP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Cape Verdean Escudo (Cape Verde)"""
-  CVE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CVE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Czech Koruna (Czech Republic)"""
-  CZK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  CZK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Djiboutian Franc (Djibouti)"""
-  DJF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DJF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Danish Krone (Denmark)"""
-  DKK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DKK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Dominican Peso (Dominican Republic)"""
-  DOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Algerian Dinar (Algeria)"""
-  DZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  DZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Egyptian Pound (Egypt)"""
-  EGP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  EGP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Eritrean Nakfa (Eritrea)"""
-  ERN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ERN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Ethiopian Birr (Ethiopia)"""
-  ETB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ETB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Euro (European Union)"""
-  EUR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  EUR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Fijian Dollar (Fiji)"""
-  FJD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FJD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Falkland Islands Pound (Falkland Islands)"""
-  FKP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FKP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Faroese Króna (Faroe Islands)"""
-  FOK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  FOK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Pound Sterling (United Kingdom)"""
-  GBP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GBP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Georgian Lari (Georgia)"""
-  GEL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GEL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Guernsey Pound (Guernsey)"""
-  GGP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GGP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Ghanaian Cedi (Ghana)"""
-  GHS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GHS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Gibraltar Pound (Gibraltar)"""
-  GIP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GIP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Gambian Dalasi (Gambia)"""
-  GMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Guinean Franc (Guinea)"""
-  GNF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GNF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Guatemalan Quetzal (Guatemala)"""
-  GTQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GTQ @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Guyanese Dollar (Guyana)"""
-  GYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  GYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Hong Kong Dollar (Hong Kong)"""
-  HKD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HKD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Honduran Lempira (Honduras)"""
-  HNL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HNL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Croatian Kuna (Croatia)"""
-  HRK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HRK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Haitian Gourde (Haiti)"""
-  HTG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HTG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Hungarian Forint (Hungary)"""
-  HUF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  HUF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Indonesian Rupiah (Indonesia)"""
-  IDR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IDR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Israeli New Shekel (Israel)"""
-  ILS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ILS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Isle of Man Pound (Isle of Man)"""
-  IMP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IMP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Indian Rupee (India)"""
-  INR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  INR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """3 decimals — Iraqi Dinar (Iraq)"""
-  IQD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IQD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Iranian Rial (Iran)"""
-  IRR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  IRR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Icelandic Króna (Iceland)"""
-  ISK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ISK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Jersey Pound (Jersey)"""
-  JEP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JEP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Jamaican Dollar (Jamaica)"""
-  JMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JMD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """3 decimals — Jordanian Dinar (Jordan)"""
-  JOD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JOD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Japanese Yen (Japan)"""
-  JPY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  JPY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Kenyan Shilling (Kenya)"""
-  KES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
-  KGS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KGS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Cambodian Riel (Cambodia)"""
-  KHR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KHR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Comorian Franc (Comoros)"""
-  KMF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KMF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — North Korean Won (North Korea)"""
-  KPW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KPW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — South Korean Won (South Korea)"""
-  KRW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KRW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """3 decimals — Kuwaiti Dinar (Kuwait)"""
-  KWD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KWD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
-  KYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
-  KZT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  KZT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Lao Kip (Laos)"""
-  LAK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LAK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Lebanese Pound (Lebanon)"""
-  LBP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LBP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
-  LKR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LKR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """3 decimals — Liberian Dollar (Liberia)"""
-  LRD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LRD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """3 decimals — Libyan Dinar (Libya)"""
-  LYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  LYD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Moroccan Dirham (Morocco)"""
-  MAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Moldovan Leu (Moldova)"""
-  MDL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MDL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Malagasy Ariary (Madagascar)"""
-  MGA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MGA @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Macedonian Denar (North Macedonia)"""
-  MKD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MKD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Burmese Kyat (Myanmar)"""
-  MMK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MMK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Mongolian Tögrög (Mongolia)"""
-  MNT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MNT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Macanese Pataca (Macau)"""
-  MOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Mauritanian Ouguiya (Mauritania)"""
-  MRU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MRU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Mauritian Rupee (Mauritius)"""
-  MUR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MUR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Maldivian Rufiyaa (Maldives)"""
-  MVR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MVR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Malawian Kwacha (Malawi)"""
-  MWK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MWK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Mexican Peso (Mexico)"""
-  MXN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MXN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Malaysian Ringgit (Malaysia)"""
-  MYR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MYR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Mozambican Metical (Mozambique)"""
-  MZN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  MZN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Namibian Dollar (Namibia)"""
-  NAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NAD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Nigerian Naira (Nigeria)"""
-  NGN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NGN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
-  NIO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NIO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Norwegian Krone (Norway)"""
-  NOK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NOK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Nepalese Rupee (Nepal)"""
-  NPR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NPR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — New Zealand Dollar (New Zealand)"""
-  NZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  NZD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Omani Rial (Oman)"""
-  OMR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  OMR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Panamanian Balboa (Panama)"""
-  PAB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PAB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Peruvian Sol (Peru)"""
-  PEN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PEN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
-  PGK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PGK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Philippine Peso (Philippines)"""
-  PHP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PHP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Pakistani Rupee (Pakistan)"""
-  PKR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PKR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Polish Zloty (Poland)"""
-  PLN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PLN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Paraguayan Guaraní (Paraguay)"""
-  PYG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  PYG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Qatari Riyal (Qatar)"""
-  QAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  QAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Romanian Leu (Romania)"""
-  RON @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RON @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Serbian Dinar (Serbia)"""
-  RSD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RSD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Russian Ruble (Russia)"""
-  RUB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RUB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Rwandan Franc (Rwanda)"""
-  RWF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  RWF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Saudi Riyal (Saudi Arabia)"""
-  SAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
-  SBD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SBD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Seychelles Rupee (Seychelles)"""
-  SCR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SCR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Sudanese Pound (Sudan)"""
-  SDG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SDG @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Swedish Krona (Sweden)"""
-  SEK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SEK @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Singapore Dollar (Singapore)"""
-  SGD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SGD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Saint Helena Pound (Saint Helena)"""
-  SHP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SHP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
-  SLE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SLE @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Somali Shilling (Somalia)"""
-  SOS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SOS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Surinamese Dollar (Suriname)"""
-  SRD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SRD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — South Sudanese Pound (South Sudan)"""
-  SSP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SSP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
-  STN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  STN @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Salvadoran Colón (El Salvador)"""
-  SVC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SVC @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Syrian Pound (Syria)"""
-  SYP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SYP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Eswatini Lilangeni (Eswatini)"""
-  SZL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  SZL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Thai Baht (Thailand)"""
-  THB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  THB @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Tajikistani Somoni (Tajikistan)"""
-  TJS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TJS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Turkmenistani Manat (Turkmenistan)"""
-  TMT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TMT @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Tunisian Dinar (Tunisia)"""
-  TND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Tongan Paʻanga (Tonga)"""
-  TOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TOP @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Turkish Lira (Türkiye)"""
-  TRY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TRY @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
-  TTD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TTD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — New Taiwan Dollar (Taiwan)"""
-  TWD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TWD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Tanzanian Shilling (Tanzania)"""
-  TZS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  TZS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Ukrainian Hryvnia (Ukraine)"""
-  UAH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UAH @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Ugandan Shilling (Uganda)"""
-  UGX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UGX @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — United States Dollar (United States)"""
-  USD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  USD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Uruguayan Peso (Uruguay)"""
-  UYU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UYU @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Uzbekistan Som (Uzbekistan)"""
-  UZS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  UZS @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Venezuelan Bolívar (Venezuela)"""
-  VES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VES @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Vietnamese Dong (Vietnam)"""
-  VND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VND @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Vanuatu Vatu (Vanuatu)"""
-  VUV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  VUV @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Samoan Tala (Samoa)"""
-  WST @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  WST @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Central African CFA Franc (CEMAC)"""
-  XAF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  XAF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — East Caribbean Dollar (OECS)"""
-  XCD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  XCD @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — Special Drawing Rights (IMF)"""
-  XDR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  XDR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — West African CFA Franc (UEMOA)"""
-  XOF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  XOF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """0 decimals — CFP Franc (French overseas territories)"""
-  XPF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  XPF @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Yemeni Rial (Yemen)"""
-  YER @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  YER @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — South African Rand (South Africa)"""
-  ZAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ZAR @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Zambian Kwacha (Zambia)"""
-  ZMW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ZMW @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 
   """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
-  ZWL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  ZWL @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE) @join__enumValue(graph: ORDERS)
 }
 
 scalar Cursor
-  @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 
 scalar DateTime
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 
 scalar Decimal
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 
 """Delivery cost with payment model"""
 type DeliveryCost
@@ -2648,13 +2285,14 @@ type DeliveryCost
   """Delivery amount"""
   amount: Money!
 
-  """Delivery payment model"""
+  """Shipping payment model"""
   paymentModel: ShippingPaymentModel!
 }
 
 scalar Email
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 
 """Error information for a failed field."""
 type FieldError
@@ -2715,64 +2353,6 @@ input FilterInput
   values: [String!]!
 }
 
-"""Fulfillment information for the order."""
-type Fulfillment implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Fulfillment status."""
-  status: FulfillmentStatus!
-
-  """Tracking number."""
-  trackingNumber: String
-
-  """Tracking URL."""
-  trackingUrl: String
-
-  """Fulfillment creation date."""
-  createdAt: DateTime!
-
-  """Fulfillment lines."""
-  lines: [FulfillmentLine!]!
-}
-
-"""Fulfillment line within a fulfillment."""
-type FulfillmentLine implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Order item ID."""
-  orderItemId: ID!
-
-  """Quantity shipped."""
-  quantity: Int!
-}
-
-enum FulfillmentStatus
-  @join__type(graph: CORE)
-{
-  PENDING @join__enumValue(graph: CORE)
-  PROCESSING @join__enumValue(graph: CORE)
-  ON_HOLD @join__enumValue(graph: CORE)
-  SHIPPED @join__enumValue(graph: CORE)
-  DELIVERED @join__enumValue(graph: CORE)
-  RETURNED @join__enumValue(graph: CORE)
-  FULFILLED @join__enumValue(graph: CORE)
-  CANCELLED @join__enumValue(graph: CORE)
-}
-
 """Result of cursor-based pagination for a gallery of files."""
 type GalleryConnection
   @join__type(graph: CORE)
@@ -2807,11 +2387,13 @@ scalar join__FieldSet
 enum join__Graph {
   CHECKOUT @join__graph(name: "checkout", url: "http://host.docker.internal:10002/graphql")
   CORE @join__graph(name: "core", url: "http://host.docker.internal:8000/api/client/graphql")
+  ORDERS @join__graph(name: "orders", url: "http://host.docker.internal:10003/graphql/storefront/v1")
 }
 
 scalar JSON
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 
 scalar link__Import
 
@@ -2948,31 +2530,6 @@ enum ListingType
   Aggregates all products from this category and its subcategories recursively.
   """
   CONTAINER @join__enumValue(graph: CORE)
-}
-
-"""Input data for loading a cart by its ID."""
-input LoadCartInput
-  @join__type(graph: CORE)
-{
-  """ID of the cart to load."""
-  cartId: ID!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after clearing all items from the cart."""
-type LoadCartPayload
-  @join__type(graph: CORE)
-{
-  """The updated (now empty) cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
 }
 
 """Language codes based on ISO 639-1 and BCP 47"""
@@ -3402,6 +2959,7 @@ enum MenuSort
 type Money
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
   """The amount of money"""
   amount: Decimal!
@@ -3423,35 +2981,9 @@ input MoneyInput
 type Mutation
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
   checkoutMutation: CheckoutMutation! @join__field(graph: CHECKOUT)
-
-  """Loads a cart by its ID. Has side effects."""
-  loadCart(input: LoadCartInput!): LoadCartPayload @join__field(graph: CORE)
-
-  """Creates a new cart."""
-  createCart(input: CreateCartInput!): CreateCartPayload! @join__field(graph: CORE)
-
-  """Adds an item to an existing cart."""
-  addCartLine(input: AddCartLineInput!): AddCartLinePayload! @join__field(graph: CORE)
-
-  """Updates the quantity of a specific cart item."""
-  updateCartLineQuantity(input: UpdateCartLineQuantityInput!): UpdateCartLineQuantityPayload! @join__field(graph: CORE)
-
-  """Removes a single item from the cart."""
-  removeCartLine(input: RemoveCartLineInput!): RemoveCartLinePayload! @join__field(graph: CORE)
-
-  """Replaces all items in an existing cart."""
-  replaceCartLines(input: ReplaceCartLinesInput!): ReplaceCartLinesPayload! @join__field(graph: CORE)
-
-  """Clears all items from a cart."""
-  clearCartLines(input: ClearCartLinesInput!): ClearCartLinesPayload! @join__field(graph: CORE)
-
-  """Place an order (checkout)."""
-  checkout(
-    """Input for performing checkout."""
-    input: CheckoutInput!
-  ): CheckoutPayload! @join__field(graph: CORE)
 
   """Create a review."""
   createReview(input: CreateReviewInput!): ProductReview! @join__field(graph: CORE)
@@ -3515,11 +3047,13 @@ type Mutation
     """Input for updating user profile."""
     input: UpdateUserProfileInput!
   ): UpdateUserProfilePayload! @join__field(graph: CORE)
+  orderMutation: OrderMutation! @join__field(graph: ORDERS)
 }
 
 interface Node
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
   id: ID!
 }
@@ -3527,244 +3061,115 @@ interface Node
 """Severity levels for checkout warnings."""
 enum NotificationSeverity
   @join__type(graph: CHECKOUT)
-  @join__type(graph: CORE)
 {
   """Informational notice; does not indicate any change in checkout data."""
-  INFO @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  INFO @join__enumValue(graph: CHECKOUT)
 
   """Notification about automatic adjustments (e.g., quantity reduced)."""
-  WARNING @join__enumValue(graph: CHECKOUT) @join__enumValue(graph: CORE)
+  WARNING @join__enumValue(graph: CHECKOUT)
 }
 
-"""Order."""
-type Order implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
+type Order
+  @join__type(graph: ORDERS)
 {
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
+  """A globally-unique ID."""
   id: ID!
-
-  """The code of the currency used for the payment."""
-  currencyCode: CurrencyCode!
-
-  """Billing address."""
-  billingAddress: Address!
-
-  """Shipping address."""
-  shippingAddress: Address!
-
-  """Customer contact details."""
-  customerDetails: OrderCustomerDetails!
-
-  """Paginated order items."""
-  items(
-    """Return the first n items after the given cursor."""
-    first: Int = 50
-
-    """Return items after this cursor."""
-    after: Cursor
-
-    """Return the last n items before the given cursor."""
-    last: Int
-
-    """Return items before this cursor."""
-    before: Cursor
-  ): OrderItemConnection!
-
-  """Tax lines at the order level."""
-  taxLines: [TaxLine!]!
-
-  """Financial status (payment, refund, etc.)."""
-  financialStatus: OrderFinancialStatus!
 
   """Order status."""
   status: OrderStatus!
 
-  """Fulfillment status."""
-  fulfillmentStatus: FulfillmentStatus!
-
-  """Refund information."""
-  refunds: [Refund!]!
-
-  """Fulfillment information."""
-  fulfillments: [Fulfillment!]!
-
-  """Shipping cost."""
-  totalShippingAmount: Money!
-
-  """Total tax amount for the order."""
-  totalTaxAmount: Money!
-
-  """Total discount amount for the order."""
-  discount: Money!
-
-  """Order subtotal without discounts and taxes."""
-  subtotal: Money!
-
-  """Order total including discounts and taxes."""
-  total: Money!
-
-  """Payment method."""
-  paymentMethod: PaymentMethod!
-
-  """Shipping method."""
-  shippingMethod: ShippingMethod!
-
-  """Public metadata."""
-  metadata: JSON
-
-  """Creation date."""
-  createdAt: DateTime!
-
   """
   A unique numeric identifier for the order for use by shop owner and customer.
   """
-  orderNumber: Int!
+  number: BigInt!
+
+  """Cost breakdown for the order."""
+  cost: OrderCost!
+
+  """Order items."""
+  lines: [OrderLine!]!
+}
+
+type OrderCost
+  @join__type(graph: ORDERS)
+{
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Total discount from both item-level and checkout-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the checkout."""
+  totalTaxAmount: Money!
+
+  """Total shipping cost (only MERCHANT_COLLECTED payments)."""
+  totalShippingAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+type OrderLine
+  @join__type(graph: ORDERS)
+{
+  """A globally-unique ID."""
+  id: ID!
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost breakdown for the order line."""
+  cost: OrderLineCost!
+
+  """ID of the purchasable."""
+  purchasableId: ID!
+
+  """Purchasable unit."""
+  purchasable: Purchasable!
+
+  """Creation date."""
+  createdAt: DateTime!
 
   """Last updated date."""
   updatedAt: DateTime!
 }
 
-"""A paginated list of Orders."""
-type OrderConnection
-  @join__type(graph: CORE)
+type OrderLineCost
+  @join__type(graph: ORDERS)
 {
-  """The total number of items."""
-  totalCount: Int!
+  """The original list price per unit before any discounts."""
+  unitCompareAtPrice: Money!
 
-  """Pagination metadata."""
-  pageInfo: PageInfo!
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
 
-  """List of edges in this connection."""
-  edges: [OrderEdge!]!
-}
-
-"""Customer's contact details in the order."""
-type OrderCustomerDetails
-  @join__type(graph: CORE)
-{
-  """Customer's email address."""
-  email: Email!
-
-  """Customer's full name."""
-  name: UserName!
-
-  """Customer's phone number in E.164 format."""
-  phone: Phone!
-
-  """Public metadata (plugins, notes, etc.)."""
-  metadata: JSON
-}
-
-"""Input type for customer's contact details."""
-input OrderCustomerDetailsInput
-  @join__type(graph: CORE)
-{
-  """Customer's email address."""
-  email: Email!
-
-  """Customer's full name."""
-  name: UserNameInput!
-
-  """Customer's phone number in E.164 format."""
-  phone: Phone!
-
-  """Additional public metadata."""
-  metadata: JSON
-}
-
-"""A single edge in a paginated list of Orders."""
-type OrderEdge
-  @join__type(graph: CORE)
-{
-  """Cursor for this edge."""
-  cursor: Cursor!
-
-  """The Order at this edge."""
-  node: Order!
-}
-
-enum OrderFinancialStatus
-  @join__type(graph: CORE)
-{
-  AUTHORIZED @join__enumValue(graph: CORE)
-  PENDING @join__enumValue(graph: CORE)
-  PAID @join__enumValue(graph: CORE)
-  PARTIALLY_PAID @join__enumValue(graph: CORE)
-  PARTIALLY_REFUNDED @join__enumValue(graph: CORE)
-  REFUNDED @join__enumValue(graph: CORE)
-  VOIDED @join__enumValue(graph: CORE)
-}
-
-"""Order item (line) in the order."""
-type OrderItem implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Product title."""
-  title: String!
-
-  """Quantity of units."""
-  quantity: Int!
-
-  """Discount amount for this item."""
+  """Discount amount applied to a line."""
   discountAmount: Money!
 
-  """Subtotal for this item without discounts."""
+  """Total cost of all units before discounts."""
   subtotalAmount: Money!
 
-  """Subtotal for this item after item level discounts."""
-  discountedSubtotalAmount: Money!
+  """Total tax amount applied to the checkout line."""
+  taxAmount: Money!
 
-  """Total amount for this item including taxes and discounts."""
+  """Total cost of this line (all units), after discounts and taxes."""
   totalAmount: Money!
-
-  """The purchasable item such as a product or bundle."""
-  target: Purchasable!
 }
 
-"""Connection for order items (Relay-style pagination)."""
-type OrderItemConnection
-  @join__type(graph: CORE)
+type OrderMutation
+  @join__type(graph: ORDERS)
 {
-  """The total number of items."""
-  totalCount: Int!
-
-  """Pagination information."""
-  pageInfo: PageInfo!
-
-  """List of item edges."""
-  edges: [OrderItemEdge!]!
+  orderCreate(input: CreateOrderInput!): Order!
 }
 
-"""Cursor for Relay-style pagination."""
-type OrderItemEdge
-  @join__type(graph: CORE)
-{
-  """Cursor for Relay-style pagination."""
-  cursor: Cursor!
-
-  """Node containing the order item data."""
-  node: OrderItem!
-}
-
-"""Overall order status."""
 enum OrderStatus
-  @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
-  PENDING @join__enumValue(graph: CORE)
-  ACTIVE @join__enumValue(graph: CORE)
-  COMPLETED @join__enumValue(graph: CORE)
-  CANCELLED @join__enumValue(graph: CORE)
+  ACTIVE @join__enumValue(graph: ORDERS)
+  CLOSED @join__enumValue(graph: ORDERS)
+  CANCELLED @join__enumValue(graph: ORDERS)
 }
 
 """A content page."""
@@ -3950,23 +3355,6 @@ type PasswordSignUpPayload
 
   """Unique identifier echoed from the input."""
   clientMutationId: String
-}
-
-type PaymentMethod implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Payment method type."""
-  handle: String!
-
-  """Title of the payment method."""
-  title: String!
 }
 
 scalar Phone
@@ -4563,13 +3951,14 @@ type ProductVariant implements Node
 
 union Purchasable
   @join__type(graph: CHECKOUT)
-  @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
   @join__unionMember(graph: CHECKOUT, member: "PurchasableSnapshot")
-  @join__unionMember(graph: CORE, member: "ProductVariant")
- = PurchasableSnapshot | ProductVariant
+  @join__unionMember(graph: ORDERS, member: "PurchasableSnapshot")
+ = PurchasableSnapshot
 
 type PurchasableSnapshot
   @join__type(graph: CHECKOUT)
+  @join__type(graph: ORDERS)
 {
   snapshot: JSON!
 }
@@ -4593,6 +3982,7 @@ input PurchasableSnapshotInput
 type Query
   @join__type(graph: CHECKOUT)
   @join__type(graph: CORE)
+  @join__type(graph: ORDERS)
 {
   checkoutQuery: CheckoutQuery! @join__field(graph: CHECKOUT)
 
@@ -4730,89 +4120,6 @@ type RatingRangeFilter implements Filter
 
   """Count of products in the range."""
   count: Int!
-}
-
-"""Refund information for the order."""
-type Refund implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Refund amount."""
-  amount: Money!
-
-  """Reason for the refund."""
-  reason: String
-
-  """Refund creation date."""
-  createdAt: DateTime!
-}
-
-"""Input data for removing a single item from the cart."""
-input RemoveCartLineInput
-  @join__type(graph: CORE)
-{
-  """ID of the cart."""
-  cartId: ID!
-
-  """
-  ID of the product to remove.
-  Error if the product is not found in the cart.
-  """
-  productId: ID!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after removing an item from the cart."""
-type RemoveCartLinePayload
-  @join__type(graph: CORE)
-{
-  """The updated cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
-}
-
-"""Input data for replacing all items in an existing cart."""
-input ReplaceCartLinesInput
-  @join__type(graph: CORE)
-{
-  """ID of the cart to update."""
-  cartId: ID!
-
-  """
-  New list of items for the cart.
-  Providing an empty array clears the cart completely.
-  """
-  items: [CartLineInput!]!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after replacing all items in the cart."""
-type ReplaceCartLinesPayload
-  @join__type(graph: CORE)
-{
-  """The updated cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
 }
 
 """Input data for resetting a password using a token."""
@@ -4984,27 +4291,7 @@ type Session
   accessToken: String
 }
 
-type ShippingMethod implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Payment method type."""
-  handle: String!
-
-  """Title of the payment method."""
-  title: String!
-
-  """Estimated delivery time as a textual representation."""
-  estimatedDeliveryTime: String
-}
-
-"""Delivery payment model"""
+"""Shipping payment model"""
 enum ShippingPaymentModel
   @join__type(graph: CHECKOUT)
 {
@@ -5107,61 +4394,6 @@ enum TagSort
   TITLE_DESC @join__enumValue(graph: CORE)
 }
 
-"""Detailed tax line."""
-type TaxLine implements Node
-  @join__implements(graph: CORE, interface: "Node")
-  @join__type(graph: CORE)
-{
-  """Object identifier (Internal)."""
-  iid: Uuid!
-
-  """Global unique identifier for the address."""
-  id: ID!
-
-  """Tax type name, e.g., VAT."""
-  title: String!
-
-  """Tax rate (decimal value, e.g., 0.20)."""
-  rate: Float!
-
-  """Tax amount."""
-  amountCollected: Money!
-}
-
-"""Input data for updating the quantity of a specific cart item."""
-input UpdateCartLineQuantityInput
-  @join__type(graph: CORE)
-{
-  """ID of the cart."""
-  cartId: ID!
-
-  """ID of the cart item to update."""
-  cartItemId: ID!
-
-  """
-  New quantity for the cart item.
-  If set to 0, the item will be removed.
-  """
-  quantity: Int!
-
-  """Unique identifier for the client mutation."""
-  clientMutationId: String
-}
-
-"""Payload returned after updating a cart item's quantity."""
-type UpdateCartLineQuantityPayload
-  @join__type(graph: CORE)
-{
-  """The updated cart."""
-  cart: Cart
-
-  """List of field-specific or general errors."""
-  errors: [FieldError!]
-
-  """Unique identifier echoed from the input."""
-  clientMutationId: String
-}
-
 """Input data for changing the password of an authenticated user."""
 input UpdatePasswordInput
   @join__type(graph: CORE)
@@ -5247,6 +4479,7 @@ type User implements Node
   @join__implements(graph: CORE, interface: "Node")
   @join__type(graph: CHECKOUT, key: "id", extension: true)
   @join__type(graph: CORE, key: "id")
+  @join__type(graph: ORDERS, key: "id", extension: true)
 {
   """Global unique identifier for the address."""
   id: ID!
@@ -5269,20 +4502,8 @@ type User implements Node
   """Phone number in E.164 format."""
   phone: Phone @join__field(graph: CORE)
 
-  """Paginated list of the user's orders."""
-  orders(
-    """Return the first n orders after the given cursor."""
-    first: Int = 20
-
-    """Return orders after this cursor."""
-    after: Cursor
-
-    """Return the last n orders before the given cursor."""
-    last: Int
-
-    """Return orders before this cursor."""
-    before: Cursor
-  ): OrderConnection! @join__field(graph: CORE)
+  """List of the user's orders."""
+  orders: [Order!]! @join__field(graph: ORDERS)
 }
 
 """Customer's first, middle, and last name."""
