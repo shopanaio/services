@@ -49,7 +49,7 @@ export type OrderReadPortRow = {
   id: string;
   project_id: string;
   api_key_id: string | null;
-  admin_id: string | null;
+  user_id: string | null;
   sales_channel: string | null;
   external_source: string | null;
   order_number: number;
@@ -251,7 +251,7 @@ export class OrderReadRepository {
       id: row.id,
       projectId: row.project_id,
       apiKeyId: row.api_key_id,
-      adminId: row.admin_id,
+      adminId: row.user_id,
       salesChannel: row.sales_channel,
       externalSource: row.external_source,
       number: row.order_number,
