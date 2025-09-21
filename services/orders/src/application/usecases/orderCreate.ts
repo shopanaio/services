@@ -26,10 +26,10 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     const streamId = this.streamNames.buildOrderStreamNameFromId(id);
 
     // Получаем полный агрегат Checkout через checkout-api и превращаем в снапшот
-    const checkoutAggregate: Checkout = await this.checkoutApi.getByCheckoutId({
-      projectId: project.id,
-      checkoutId: businessInput.checkoutId,
-    });
+    const checkoutAggregate: Checkout = await this.checkoutApi.getById(
+      businessInput.checkoutId,
+      project.id,
+    );
 
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
@@ -60,10 +60,10 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     return id;
   }
 
-  private toSnapshotFromCheckout(aggregate: Checkout, _input: CreateOrderInput): CheckoutSnapshot {
+  private toSnapshotFromCheckout(aggregate: Checkout, input: CreateOrderInput): CheckoutSnapshot {
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
-      projectId: aggregate.customerIdentity.customer?.id ?? "",
+      projectId: input.project.id,
       currencyCode: aggregate.cost.totalAmount.currency().code,
       localeCode: null,
       salesChannel: "",
