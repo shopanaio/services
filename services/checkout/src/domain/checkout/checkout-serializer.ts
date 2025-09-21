@@ -27,6 +27,13 @@ export class CheckoutSerializer {
       id,
       createdAt: state.createdAt.toISOString(),
       updatedAt: state.updatedAt.toISOString(),
+      projectId: state.projectId,
+      currencyCode: state.currencyCode,
+      idempotencyKey: state.idempotencyKey,
+      salesChannel: state.salesChannel,
+      externalSource: state.externalSource,
+      externalId: state.externalId,
+      localeCode: state.localeCode,
       cost: {
         subtotalAmount: state.subtotal.toJSON(),
         totalDiscountAmount: state.discountTotal.toJSON(),
@@ -56,6 +63,14 @@ export class CheckoutSerializer {
         provider: discount.provider,
         conditions: null,
       })),
+      apiKey: state.apiKey,
+      createdBy: state.createdBy,
+      number: state.number,
+      status: state.status,
+      expiresAt: state.expiresAt ? state.expiresAt.toISOString() : null,
+      version: state.version,
+      metadata: state.metadata,
+      deletedAt: state.deletedAt ? state.deletedAt.toISOString() : null,
     };
   }
 
@@ -110,7 +125,7 @@ export class CheckoutSerializer {
       selectedDeliveryMethod: group.selectedDeliveryMethod
         ? this.serializeDeliveryMethod(group.selectedDeliveryMethod)
         : null,
-      estimatedCost: group.shippingCost
+      shippingCost: group.shippingCost
         ? {
             amount: group.shippingCost.amount.toJSON(),
             paymentModel: group.shippingCost.paymentModel,
@@ -133,6 +148,7 @@ export class CheckoutSerializer {
       email: address.email ?? null,
       firstName: address.firstName ?? null,
       lastName: address.lastName ?? null,
+      phone: address.phone ?? null,
       data: address.data ?? undefined,
     };
   }
@@ -143,6 +159,7 @@ export class CheckoutSerializer {
     return {
       code: method.code,
       deliveryMethodType: method.deliveryMethodType,
+      shippingPaymentModel: method.shippingPaymentModel,
       provider: {
         code: method.provider.code,
         data: method.provider.data,
