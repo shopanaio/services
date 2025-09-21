@@ -28,7 +28,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     // Получаем полный агрегат Checkout через checkout-api и превращаем в снапшот
     const checkoutAggregate: Checkout = await this.checkoutApi.getById(
       businessInput.checkoutId,
-      project.id,
+      project.id
     );
 
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
@@ -39,6 +39,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     const command: CreateOrderCommand = {
       type: "order.create",
       data: {
+        currencyCode: checkoutSnapshot.currencyCode,
+        idempotencyKey: businessInput.checkoutId, // Using checkoutId as idempotency key
         checkoutSnapshot,
       },
       metadata: this.createCommandMetadata(id, context),
@@ -60,15 +62,21 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     return id;
   }
 
-  private toSnapshotFromCheckout(aggregate: Checkout, input: CreateOrderInput): CheckoutSnapshot {
+  /**
+   * Builds audit-focused snapshot from Checkout aggregate.
+   * Keeps only business-critical data for disputes and audits.
+   */
+  private toSnapshotFromCheckout(
+    aggregate: Checkout,
+    input: CreateOrderInput
+  ): CheckoutSnapshot {
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
       projectId: input.project.id,
-      currencyCode: aggregate.cost.totalAmount.currency().code,
-      localeCode: null,
-      salesChannel: "",
-      externalSource: null,
-      externalId: null,
+      currencyCode:
+        aggregate.currencyCode ?? aggregate.cost.totalAmount.currency().code,
+      externalSource: aggregate.externalSource ?? null,
+      externalId: aggregate.externalId ?? null,
       capturedAt: new Date(),
       customer: {
         email: aggregate.customerIdentity.email ?? null,
@@ -78,24 +86,18 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         note: aggregate.customerNote ?? null,
       },
       lines: aggregate.lines.map((l) => ({
-        lineId: l.id,
         quantity: l.quantity,
         unit: {
-          id: l.purchasableId,
           price: l.cost.unitPrice,
           compareAtPrice: l.cost.compareAtUnitPrice,
           title: l.title,
-          imageUrl: l.imageSrc ?? null,
           sku: l.sku ?? null,
-          snapshot: (l as any).purchasable?.snapshot ?? null,
         },
       })),
       deliveryGroups: aggregate.deliveryGroups.map((g) => ({
-        id: g.id,
         checkoutLineIds: g.checkoutLines.map((cl) => cl.id),
         deliveryAddress: g.deliveryAddress
           ? {
-              id: g.deliveryAddress.id,
               address1: g.deliveryAddress.address1,
               address2: g.deliveryAddress.address2 ?? null,
               city: g.deliveryAddress.city,
@@ -106,7 +108,6 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
               firstName: g.deliveryAddress.firstName ?? null,
               lastName: g.deliveryAddress.lastName ?? null,
               phone: (g.deliveryAddress as any).phone ?? null,
-              data: (g.deliveryAddress?.data as any) ?? null,
             }
           : null,
         selectedDeliveryMethod: g.selectedDeliveryMethod
@@ -114,15 +115,18 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
               code: g.selectedDeliveryMethod.code,
               deliveryMethodType: g.selectedDeliveryMethod.deliveryMethodType,
               shippingPaymentModel:
-                g.estimatedCost?.paymentModel ?? ShippingPaymentModel.MERCHANT_COLLECTED,
+                g.selectedDeliveryMethod.shippingPaymentModel ??
+                ShippingPaymentModel.MERCHANT_COLLECTED,
               provider: {
                 code: g.selectedDeliveryMethod.provider.code,
-                data: g.selectedDeliveryMethod.provider.data as any,
               },
             }
           : null,
-        shippingCost: g.estimatedCost
-          ? { amount: g.estimatedCost.amount, paymentModel: g.estimatedCost.paymentModel }
+        shippingCost: g.shippingCost
+          ? {
+              amount: g.shippingCost.amount,
+              paymentModel: g.shippingCost.paymentModel,
+            }
           : null,
       })),
       appliedPromoCodes: aggregate.appliedPromoCodes.map((p) => ({
