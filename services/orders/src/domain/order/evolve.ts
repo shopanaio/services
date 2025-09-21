@@ -192,7 +192,37 @@ export const orderEvolve = (
 ): OrderState => {
   switch (event.type) {
     case OrderEventTypes.OrderCreated: {
-      return { ...current };
+      return {
+        ...current,
+        exists: true,
+        id: event.metadata.aggregateId,
+        projectId: event.metadata.projectId,
+        createdAt: event.metadata.now,
+        updatedAt: event.metadata.now,
+
+        apiKey: event.metadata.apiKey,
+        // createdBy is not provided in metadata currently; keeping null
+        salesChannel: event.data.salesChannel ?? "",
+        externalSource: event.data.externalSource,
+        externalId: event.data.externalId,
+
+        currencyCode: event.data.currencyCode,
+        localeCode: event.data.localeCode,
+
+        subtotal: event.data.subtotalAmount,
+        discountTotal: event.data.totalDiscountAmount,
+        taxTotal: event.data.totalTaxAmount,
+        shippingTotal: event.data.totalShippingAmount,
+        grandTotal: event.data.totalAmount,
+
+        customerEmail: event.data.customerEmail,
+        customerId: event.data.customerId,
+        customerPhone: event.data.customerPhone,
+        customerCountryCode: event.data.customerCountryCode,
+        customerNote: event.data.customerNote,
+
+        idempotencyKey: event.data.idempotencyKey,
+      };
     }
 
     default:

@@ -39,8 +39,30 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     const command: CreateOrderCommand = {
       type: "order.create",
       data: {
-        currencyCode: checkoutSnapshot.currencyCode,
-        idempotencyKey: businessInput.checkoutId, // Using checkoutId as idempotency key
+        // Core context
+        currencyCode:
+          checkoutAggregate.currencyCode ?? checkoutSnapshot.currencyCode,
+        idempotencyKey: checkoutAggregate.idempotencyKey ?? businessInput.checkoutId,
+        salesChannel: checkoutAggregate.salesChannel ?? null,
+        externalSource: checkoutAggregate.externalSource ?? null,
+        externalId: checkoutAggregate.externalId ?? null,
+        localeCode: checkoutAggregate.localeCode ?? null,
+
+        // Totals
+        subtotalAmount: checkoutAggregate.cost.subtotalAmount,
+        totalDiscountAmount: checkoutAggregate.cost.totalDiscountAmount,
+        totalTaxAmount: checkoutAggregate.cost.totalTaxAmount,
+        totalShippingAmount: checkoutAggregate.cost.totalShippingAmount,
+        totalAmount: checkoutAggregate.cost.totalAmount,
+
+        // Customer
+        customerEmail: checkoutAggregate.customerIdentity.email,
+        customerPhone: checkoutAggregate.customerIdentity.phone,
+        customerId: checkoutAggregate.customerIdentity.customer?.id ?? null,
+        customerCountryCode: checkoutAggregate.customerIdentity.countryCode,
+        customerNote: checkoutAggregate.customerNote,
+
+        // Snapshot for audit
         checkoutSnapshot,
       },
       metadata: this.createCommandMetadata(id, context),
@@ -85,9 +107,13 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       lines: aggregate.lines.map((l) => ({
         quantity: l.quantity,
         unit: {
+          id: l.purchasableId,
           price: l.cost.unitPrice,
+          compareAtPrice: l.cost.compareAtUnitPrice ?? null,
           title: l.title,
           sku: l.sku ?? null,
+          imageUrl: l.imageSrc ?? null,
+          snapshot: (l.purchasable as Record<string, unknown> | null) ?? null,
         },
       })),
       deliveryGroups: aggregate.deliveryGroups.map((g) => ({
@@ -111,11 +137,13 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         shippingCost: g.shippingCost
           ? {
               amount: g.shippingCost.amount,
+              paymentModel: g.shippingCost.paymentModel ?? null,
             }
           : null,
       })),
       appliedPromoCodes: aggregate.appliedPromoCodes.map((p) => ({
         code: p.code,
+        appliedAt: new Date(p.appliedAt),
         discountType: p.discountType,
         value: p.value,
         provider: p.provider,
