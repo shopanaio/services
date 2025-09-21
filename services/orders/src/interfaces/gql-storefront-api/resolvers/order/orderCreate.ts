@@ -17,21 +17,12 @@ export const orderCreate = async (
   args: ApiOrderMutationOrderCreateArgs,
   ctx: GraphQLContext
 ) => {
-  const { broker, idempotencyRepository, logger } = App.getInstance();
+  const { broker, logger } = App.getInstance();
   const { input } = args;
   const dto = createValidated(CreateOrderDto, input);
 
   try {
-    const projectId = ctx.project.id;
-
     const { orderReadRepository } = App.getInstance();
-    const hit = await idempotencyRepository.get(projectId, dto.idempotency);
-    if (hit?.id) {
-      const read = await orderReadRepository.findById(hit.id);
-      if (read) {
-        return mapOrderReadToApi(read);
-      }
-    }
 
     const id = (await broker.call("order.createOrder", {
       currencyCode: dto.currencyCode,

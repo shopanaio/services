@@ -31,6 +31,22 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       project.id
     );
 
+    // Validate checkout readiness before creating order (mock implementation)
+    this.validateCheckout(checkoutAggregate);
+
+    // Resolve idempotency key from checkout aggregate or fallback
+    const idempotencyKey =
+      checkoutAggregate.idempotencyKey ?? businessInput.checkoutId;
+
+    // Idempotency: return existing order if key previously used
+    const idemHit = await this.idempotencyRepository.get(
+      project.id,
+      idempotencyKey
+    );
+    if (idemHit?.id) {
+      return idemHit.id;
+    }
+
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
       input
@@ -83,6 +99,11 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     // 2) Persist order contact PII and delivery addresses
     // Note: this side-write keeps PII out of event payloads. If this write fails,
     // the order creation should be aborted to avoid dangling references.
+    /**
+     * TODO: Ensure PII writes and event append happen atomically.
+     * Consider transactional outbox or a saga to avoid orphan PII rows
+     * if append fails after successful PII persistence.
+     */
     await this.ordersPiiRepository.upsertOrderContacts({
       projectId: project.id,
       orderId: id,
@@ -151,7 +172,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         // Snapshot for audit
         checkoutSnapshot,
       },
-      metadata: this.createCommandMetadata(id, context),
+      metadata: this.createCommandMetadata(id, context, idempotencyKey),
     };
 
     const { state } = await this.loadOrderState(id);
@@ -166,6 +187,15 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       eventsToAppend,
       "STREAM_DOES_NOT_EXIST"
     );
+
+    // Save idempotency record for future retries returning the same order id
+    await this.idempotencyRepository.save({
+      projectId: project.id,
+      idempotencyKey,
+      // For now we use key as a simple request hash placeholder
+      requestHash: idempotencyKey,
+      response: { id },
+    });
 
     // NOTE: PII has been persisted into platform.orders_pii_records and
     // platform.order_delivery_addresses. Only references (deliveryAddressId)
@@ -239,5 +269,19 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       })),
     };
     return snapshot;
+  }
+
+  /**
+   * Validates that checkout aggregate is eligible to be turned into an order.
+   * This is a mock implementation and should be replaced with real checks
+   * (e.g., finalized state, non-empty lines, inventory/payment validations).
+   *
+   * @param aggregate - Checkout aggregate loaded from checkout service
+   */
+  protected validateCheckout(aggregate: Checkout): void {
+    // Mock: basic guard to ensure there is at least one line
+    if (!aggregate.lines || aggregate.lines.length === 0) {
+      throw new Error("Checkout has no lines to create an order");
+    }
   }
 }
