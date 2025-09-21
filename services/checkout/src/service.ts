@@ -21,16 +21,14 @@ const CheckoutService: ServiceSchema<any> = {
      */
     async getById(
       this: ServiceThis,
-      ctx: Context<{ checkoutId: string } & CheckoutContext>
+      ctx: Context<{ checkoutId: string; projectId: string } & CheckoutContext>
     ) {
-      const { checkoutId } = ctx.params;
-      const dto = await this.app.checkoutUsecase.getCheckoutDtoById.execute({
+      const { checkoutId, projectId } = ctx.params;
+      return await this.app.checkoutUsecase.getCheckoutDtoById.execute({
         checkoutId,
+        projectId,
       });
-      if (!dto) {
-        throw new Error("Checkout not found");
-      }
-      return dto;
+
     },
     /**
      * Get checkout by ID
