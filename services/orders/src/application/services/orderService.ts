@@ -1,5 +1,5 @@
 import type { Discount, PricingApiClient } from "@shopana/pricing-api";
-import { OrderLineItemState } from "@src/domain/order/decider";
+import type { OrderLineItemState } from "@src/domain/order/evolve";
 import {
   OrderCostService,
   type OrderLineItemCost,
