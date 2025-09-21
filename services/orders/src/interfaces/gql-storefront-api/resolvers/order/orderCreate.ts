@@ -25,12 +25,7 @@ export const orderCreate = async (
 
   try {
     const id = (await broker.call("order.createOrder", {
-      currencyCode: dto.currencyCode,
-      externalId: dto.externalId ?? null,
-      idempotencyKey: dto.idempotency,
-      localeCode: dto.localeCode ?? null,
-      salesChannel: dto.externalSource ?? null,
-      externalSource: dto.externalSource ?? null,
+      checkoutId: dto.checkoutId,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
