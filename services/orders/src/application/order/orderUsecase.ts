@@ -12,6 +12,7 @@ import {
 import { OrderService } from "@src/application/services/orderService";
 import { OrderReadRepository } from "@src/application/read/orderReadRepository";
 import { InventoryApiClient } from "@shopana/inventory-api";
+import type { CheckoutApiClient } from "@shopana/checkout-api";
 
 export class OrderUsecase {
   // Order use cases
@@ -25,6 +26,7 @@ export class OrderUsecase {
     inventory: InventoryApiClient;
     shippingApiClient: ShippingApiClient;
     pricingApiClient: PricingApiClient;
+    checkoutApiClient: CheckoutApiClient;
     orderService: OrderService;
     orderReadRepository: OrderReadRepository;
   }) {
@@ -35,6 +37,7 @@ export class OrderUsecase {
       inventory: deps.inventory,
       shippingApiClient: deps.shippingApiClient,
       pricingApiClient: deps.pricingApiClient,
+      checkoutApiClient: deps.checkoutApiClient,
       orderService: deps.orderService,
     };
 

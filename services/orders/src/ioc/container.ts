@@ -15,6 +15,7 @@ import { PricingClient } from "@shopana/pricing-api";
 import { OrderService } from "@src/application/services/orderService";
 import type { ServiceBroker } from "moleculer";
 import { InventoryClient } from "@shopana/inventory-api";
+import { CheckoutClient } from "@shopana/checkout-api";
 
 export class App {
   private static instance: App | null = null;
@@ -25,6 +26,7 @@ export class App {
   public inventoryClient!: InventoryClient;
   public shippingClient!: ShippingClient;
   public pricingClient!: PricingClient;
+  public checkoutClient!: CheckoutClient;
 
   public eventStore!: EventStorePort;
   public streamNames!: StreamNamePolicyPort;
@@ -45,6 +47,7 @@ export class App {
     this.inventoryClient = new InventoryClient(this.broker);
     this.shippingClient = new ShippingClient(this.broker);
     this.pricingClient = new PricingClient(this.broker);
+    this.checkoutClient = new CheckoutClient(this.broker);
   }
 
   /**
@@ -61,6 +64,7 @@ export class App {
     app.inventoryClient = new InventoryClient(broker);
     app.shippingClient = new ShippingClient(broker);
     app.pricingClient = new PricingClient(broker);
+    app.checkoutClient = new CheckoutClient(broker);
 
     // Initialize infrastructure dependencies
     app.eventStore = new EmmetPostgresqlEventStoreAdapter();
@@ -85,6 +89,7 @@ export class App {
       inventory: app.inventoryClient,
       shippingApiClient: app.shippingClient,
       pricingApiClient: app.pricingClient,
+      checkoutApiClient: app.checkoutClient,
       orderService: app.orderService,
       orderReadRepository: app.orderReadRepository,
     });

@@ -20,6 +20,7 @@ import {
   NotFoundError,
 } from "@event-driven-io/emmett";
 import { InventoryApiClient } from "@shopana/inventory-api";
+import type { CheckoutApiClient } from "@shopana/checkout-api";
 
 /**
  * Dependencies required for use case execution.
@@ -37,6 +38,8 @@ export interface UseCaseDependencies {
   pricingApiClient: PricingApiClient;
   /** Inventory API client for interacting with the inventory service */
   inventory: InventoryApiClient;
+  /** Checkout API client for interacting with the checkout service */
+  checkoutApiClient: CheckoutApiClient;
   /** Order service for professional totals computation and pricing validation */
   orderService: OrderService;
 }
@@ -62,6 +65,8 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   protected readonly pricingApi: PricingApiClient;
   /** Inventory API client for interacting with the inventory service */
   protected readonly inventory: InventoryApiClient;
+  /** Checkout API client */
+  protected readonly checkoutApi: CheckoutApiClient;
   /** Order service for totals/pricing */
   protected readonly orderService: OrderService;
 
@@ -77,6 +82,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
     this.shippingApi = deps.shippingApiClient;
     this.pricingApi = deps.pricingApiClient;
     this.inventory = deps.inventory;
+    this.checkoutApi = deps.checkoutApiClient;
     this.orderService = deps.orderService;
   }
 

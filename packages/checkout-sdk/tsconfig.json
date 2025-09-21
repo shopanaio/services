@@ -1,17 +1,20 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,
+    "strict": true,
     "module": "esnext",
     "target": "ES2020",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@shopana/shared-money": ["../shared-money/dist/index.d.ts"],
+      "@shopana/shared-money/*": ["../shared-money/dist/*"]
+    }
   },
   "include": ["src"]
 }
-

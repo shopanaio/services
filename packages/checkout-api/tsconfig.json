@@ -1,5 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -12,7 +11,11 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@shopana/checkout-sdk": ["../checkout-sdk/dist/index.d.ts"],
+      "@shopana/checkout-sdk/*": ["../checkout-sdk/dist/*"]
+    }
   },
   "include": ["src"]
 }
