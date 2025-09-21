@@ -18,28 +18,26 @@ export type CheckoutSnapshot = Readonly<{
   /** Project (tenant) identifier */
   projectId: string;
 
-  /** Pricing and localization */
+  /** Pricing */
   currencyCode: string;
-  localeCode: string | null;
 
-  /** Sales channel and external system references */
-  salesChannel: string;
+  /** External system references (for reconciliation) */
   externalSource: string | null;
   externalId: string | null;
 
-  /** Timestamps */
-  capturedAt: Date; // when this snapshot was captured (order creation time)
+  /** Timestamp when this snapshot was captured (order creation time) */
+  capturedAt: Date;
 
-  /** Customer identity and note provided at checkout time */
+  /** Minimal customer identity (no PII beyond stable id) */
   customer: CheckoutCustomerSnapshot;
 
-  /** Flattened list of checkout lines (no DB ids from orders domain) */
+  /** Flattened list of checkout lines relevant to audit */
   lines: CheckoutLineSnapshot[];
 
-  /** Delivery groups state captured from checkout */
+  /** Delivery groups state: geography and selected method */
   deliveryGroups: CheckoutDeliveryGroupSnapshot[];
 
-  /** Applied promo codes visible to the customer */
+  /** Minimal promo code facts (no provider-specific calculations) */
   appliedPromoCodes: CheckoutPromoCodeSnapshot[];
 }>;
 
@@ -47,8 +45,9 @@ export type CheckoutSnapshot = Readonly<{
  * Per-line snapshot including purchasable unit snapshot and quantity.
  */
 export type CheckoutLineSnapshot = Readonly<{
-  lineId: string;
+  /** Quantity of the purchasable unit */
   quantity: number;
+  /** Unit business descriptor */
   unit: CheckoutUnitSnapshot;
 }>;
 
@@ -56,25 +55,31 @@ export type CheckoutLineSnapshot = Readonly<{
  * Purchasable unit snapshot copied from checkout event payloads.
  */
 export type CheckoutUnitSnapshot = Readonly<{
-  id: string;
+  /** Final unit price at checkout time */
   price: Money;
+  /** Reference (strike-through) price if applicable */
   compareAtPrice: Money | null;
+  /** Human-readable title of the unit */
   title: string;
-  imageUrl: string | null;
+  /** Merchant SKU if provided */
   sku: string | null;
-  /** Opaque vendor-specific snapshot payload */
-  snapshot: Record<string, unknown> | null;
 }>;
 
 /**
  * Totals snapshot aligned with checkout domain calculation output.
  */
 export type CheckoutTotalsSnapshot = Readonly<{
+  /** Subtotal before discounts and taxes */
   subtotal: Money;
+  /** Total discounts applied */
   discountTotal: Money;
+  /** Total tax amount */
   taxTotal: Money;
+  /** Total shipping amount */
   shippingTotal: Money;
+  /** Grand total (customer pays) */
   grandTotal: Money;
+  /** Total quantity across all lines */
   totalQuantity: number;
 }>;
 
@@ -93,8 +98,8 @@ export type CheckoutCustomerSnapshot = Readonly<{
  * Delivery provider descriptor.
  */
 export type CheckoutDeliveryProviderSnapshot = Readonly<{
+  /** Provider code (no opaque data) */
   code: string;
-  data: Record<string, unknown>;
 }>;
 
 /**
@@ -111,25 +116,23 @@ export type CheckoutDeliveryMethodSnapshot = Readonly<{
  * Delivery address attached to a group.
  */
 export type CheckoutDeliveryAddressSnapshot = Readonly<{
-  id: string;
   address1: string;
-  address2?: string | null;
+  address2: string | null;
   city: string;
   countryCode: string;
-  provinceCode?: string | null;
-  postalCode?: string | null;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  phone?: string | null;
-  data?: Record<string, unknown> | null;
+  provinceCode: string | null;
+  postalCode: string | null;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
 }>;
 
 /**
  * Delivery group state including selected method and shipping cost.
  */
 export type CheckoutDeliveryGroupSnapshot = Readonly<{
-  id: string;
+  /** Relation to checkout line identities for traceability */
   checkoutLineIds: string[];
   deliveryAddress: CheckoutDeliveryAddressSnapshot | null;
   selectedDeliveryMethod: CheckoutDeliveryMethodSnapshot | null;
