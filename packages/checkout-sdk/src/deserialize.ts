@@ -131,7 +131,7 @@ const deserializePromoCode = (dto: CheckoutPromoCodeDto): CheckoutPromoCode => (
   code: dto.code,
   appliedAt: dto.appliedAt,
   discountType: dto.discountType,
-  value: dto.value,
+  value: typeof dto.value === "number" ? dto.value : Money.fromJSON(dto.value),
   provider: dto.provider,
   conditions: dto.conditions,
 });

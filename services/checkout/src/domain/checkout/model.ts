@@ -3,26 +3,9 @@ import type {
   CheckoutDeliveryAddress,
   CheckoutDeliveryGroup,
 } from "@src/domain/checkout/decider";
-import { Money } from "@shopana/shared-money";
-
-// Domain line item modeled after checkout_line_items schema (simplified)
-/**
- * Domain representation of a checkout line item (aligned with `checkout_line_items` table)
- *
- * Notes for extension:
- * - Monetary values are in minor units (e.g. cents)
- * - `metadata` is reserved for technical/opaque data, not business logic
- * - All timestamps are UTC
- */
-// Moved to decider.ts as single source of truth
-
-/**
- * Domain model for a single checkout line item.
- *
- * This class provides an object-oriented façade around raw line item data, enabling
- * richer behavior (e.g., domain validations/formatting) without mutating the source state.
- */
-// Removed OO line item façade; domain exposes raw value object with Money fields
+import type { CheckoutDto } from "@shopana/checkout-sdk";
+import type { Money } from "@shopana/shared-money";
+import { CheckoutSerializer } from "./checkout-serializer";
 
 /**
  * Checkout domain model (aggregate façade)
@@ -35,10 +18,12 @@ import { Money } from "@shopana/shared-money";
 export class Checkout {
   private readonly state: CheckoutState;
   private readonly id: string;
+  private readonly serializer: CheckoutSerializer;
 
   private constructor(id: string, state: CheckoutState) {
     this.id = id;
     this.state = state;
+    this.serializer = new CheckoutSerializer();
   }
 
   static fromAggregate(id: string, state: CheckoutState): Checkout {
@@ -137,5 +122,9 @@ export class Checkout {
     return (this.state.deliveryGroups ?? [])
       .map((group) => group.deliveryAddress)
       .filter((addr): addr is CheckoutDeliveryAddress => addr !== null);
+  }
+
+  toJSON(): CheckoutDto {
+    return this.serializer.toJSON(this.id, this.state);
   }
 }

@@ -20,7 +20,7 @@ export type CheckoutPromoCode = Readonly<{
   code: string;
   appliedAt: string; // DateTime ISO
   discountType: string;
-  value: number;
+  value: number | Money;
   provider: string;
   conditions: unknown;
 }>;

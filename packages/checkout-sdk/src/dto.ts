@@ -23,7 +23,7 @@ export type CheckoutPromoCodeDto = Readonly<{
   code: string;
   appliedAt: string;
   discountType: string;
-  value: number;
+  value: number | MoneySnapshot;
   provider: string;
   conditions: unknown;
 }>;
