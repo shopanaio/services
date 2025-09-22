@@ -7,6 +7,7 @@ import { Money } from "@shopana/shared-money";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
 import { consumeOrderCreateProjectionContext } from "@src/application/usecases/orderCreateProjectionContext";
 import { App } from "@src/ioc/container";
+import { coerceMoney, coerceNullableMoney } from "@src/utils/money";
 
 type OrderCreatedEvent = Event & {
   type: "order.created";
@@ -72,11 +73,11 @@ export const orderCreateProjection =
           locale_code: event.data.localeCode as any,
           currency_code: event.data.currencyCode,
           // TODO: Use parameterized bindings for bigint values instead of strings.
-          subtotal_amount: toBigintSql(event.data.subtotalAmount) ?? null,
-          total_shipping_amount: toBigintSql(event.data.totalShippingAmount) ?? null,
-          total_discount_amount: toBigintSql(event.data.totalDiscountAmount) ?? null,
-          total_tax_amount: toBigintSql(event.data.totalTaxAmount) ?? null,
-          total_amount: toBigintSql(event.data.totalAmount) ?? null,
+          subtotal_amount: toBigintSql(coerceMoney(event.data.subtotalAmount)) ?? null,
+          total_shipping_amount: toBigintSql(coerceMoney(event.data.totalShippingAmount)) ?? null,
+          total_discount_amount: toBigintSql(coerceMoney(event.data.totalDiscountAmount)) ?? null,
+          total_tax_amount: toBigintSql(coerceMoney(event.data.totalTaxAmount)) ?? null,
+          total_amount: toBigintSql(coerceMoney(event.data.totalAmount)) ?? null,
           status: "DRAFT",
           placed_at: null,
           closed_at: null,
@@ -95,8 +96,9 @@ export const orderCreateProjection =
       const lines = event.data.lines || [];
       if (lines.length > 0) {
         const itemRows = lines.map((l) => {
-          const unitPrice = l.unit.price as unknown as Money;
-          const currencyCode = unitPrice.currency().code as string;
+          const unitPrice = coerceMoney(l.unit.price);
+          const compareAtPrice = coerceNullableMoney(l.unit.compareAtPrice);
+          const currencyCode = unitPrice.currency().code;
           const subtotalMoney = unitPrice
             .multiply(l.quantity)
             .normalizeScale();
@@ -117,9 +119,7 @@ export const orderCreateProjection =
             unit_id: l.unit.id,
             unit_title: l.unit.title,
             unit_price: toBigintSql(unitPrice),
-            unit_compare_at_price: l.unit.compareAtPrice
-              ? toBigintSql(l.unit.compareAtPrice as unknown as Money)
-              : null,
+            unit_compare_at_price: toBigintSql(compareAtPrice),
             unit_sku: l.unit.sku,
             unit_image_url: l.unit.imageUrl,
             unit_snapshot: knex.raw("?::jsonb", [JSON.stringify(l.unit.snapshot ?? null)]),
