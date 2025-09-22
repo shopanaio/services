@@ -14,8 +14,11 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
     console.warn(
       `Invalid order status "${read.status}" for order ${read.id}, defaulting to DRAFT`
     );
+
+    throw new Error(`Invalid order status "${read.status}" for order ${read.id}`);
   }
 
+  console.log('read.status', read.status);
   const api = {
     id: read.id,
     status: read.status as ApiOrderStatus,
