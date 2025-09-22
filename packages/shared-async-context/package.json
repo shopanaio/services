@@ -1,0 +1,23 @@
+{
+  "name": "@shopana/shared-async-context",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "AsyncLocalStorage helpers for ephemeral use case context",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "tsc-alias": "^1.8.10",
+    "@types/node": "^20.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}
