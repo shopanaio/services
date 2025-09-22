@@ -3167,6 +3167,7 @@ type OrderMutation
 enum OrderStatus
   @join__type(graph: ORDERS)
 {
+  DRAFT @join__enumValue(graph: ORDERS)
   ACTIVE @join__enumValue(graph: ORDERS)
   CLOSED @join__enumValue(graph: ORDERS)
   CANCELLED @join__enumValue(graph: ORDERS)

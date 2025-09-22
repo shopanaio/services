@@ -282,13 +282,6 @@ export class OrderReadRepository {
     };
   }
 
-  async findByOrderNumber(orderNumber: number, projectId: string): Promise<OrderReadView | null> {
-    const row = await this.port.findByOrderNumber(orderNumber, projectId);
-    if (!row) return null;
-
-    return this.findById(row.id);
-  }
-
   /**
    * Returns order data in OrderState domain model format
    * Uses the same data source as findById, but returns OrderState

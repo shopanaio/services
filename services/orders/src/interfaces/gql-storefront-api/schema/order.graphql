@@ -1,4 +1,5 @@
 enum OrderStatus {
+  DRAFT
   ACTIVE
   CLOSED
   CANCELLED

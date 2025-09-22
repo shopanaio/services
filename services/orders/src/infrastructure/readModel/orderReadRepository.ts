@@ -35,11 +35,11 @@ export class OrderReadRepository implements OrderReadPort {
         "o.external_id",
         "o.locale_code",
         "o.currency_code",
-        "o.subtotal_amount",
-        "o.total_shipping_amount",
-        "o.total_discount_amount",
-        "o.total_tax_amount",
-        "o.total_amount",
+        "o.subtotal",
+        "o.shipping_total",
+        "o.discount_total",
+        "o.tax_total",
+        "o.grand_total",
         "o.status",
         "o.expires_at",
         "o.projected_version",
@@ -57,6 +57,7 @@ export class OrderReadRepository implements OrderReadPort {
     const row = await singleOrNull(
       this.execute.query<OrderReadPortRow>(rawSql(q))
     );
+
     return this.mapOrderRow(row, id);
   }
 

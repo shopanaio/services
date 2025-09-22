@@ -858,7 +858,8 @@ export type ApiOrderMutationOrderCreateArgs = {
 export type ApiOrderStatus =
   | 'ACTIVE'
   | 'CANCELLED'
-  | 'CLOSED';
+  | 'CLOSED'
+  | 'DRAFT';
 
 export type ApiPurchasable = ApiPurchasableSnapshot;
 
