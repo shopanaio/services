@@ -259,7 +259,7 @@ export const orderEvolve = (
         grandTotal: event.data.totalAmount,
 
         // Keep status as DRAFT on creation; follow-up events drive transitions
-        number: event.data.orderNumber,
+        number: null, // populated from numbers
         status: OrderStatus.DRAFT,
         version: current.version + 1,
 

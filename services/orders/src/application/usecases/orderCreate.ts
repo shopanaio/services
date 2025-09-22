@@ -13,6 +13,11 @@ import type {
 } from "@src/domain/order/evolve";
 import { v7 as uuidv7 } from "uuid";
 import { orderDecider } from "@src/domain/order/decider";
+import {
+  runOrderCreateProjectionContext,
+  setOrderCreateProjectionContext,
+  type OrderCreateProjectionContextData,
+} from "@src/application/usecases/orderCreateProjectionContext";
 
 export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {}
 
@@ -22,6 +27,14 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
   }
 
   async execute(input: CreateOrderInput): Promise<string> {
+    return runOrderCreateProjectionContext(async () => {
+      return this.executeWithProjectionContext(input);
+    });
+  }
+
+  private async executeWithProjectionContext(
+    input: CreateOrderInput
+  ): Promise<string> {
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
@@ -50,8 +63,6 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       return idemHit.id;
     }
 
-    const orderNumber = await this.orderNumbers.reserve(project.id);
-
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
       input
@@ -72,66 +83,18 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       } satisfies OrderUnitSnapshot,
     }));
 
-    // Prepare PII to be persisted separately and map delivery group -> addressId
-    // 1) Generate address IDs and persist addresses in PII tables
-    const deliveryAddressesToPersist = checkoutAggregate.deliveryGroups
-      .filter((g) => !!g.deliveryAddress)
-      .map((g) => {
-        const addrId = uuidv7();
-        return {
-          addrId,
-          groupId: g.id,
-          payload: {
-            id: addrId,
-            projectId: project.id,
-            orderId: id,
-            deliveryGroupId: g.id,
-            address1: g.deliveryAddress!.address1,
-            address2: g.deliveryAddress!.address2 ?? null,
-            city: g.deliveryAddress!.city,
-            countryCode: g.deliveryAddress!.countryCode,
-            provinceCode: g.deliveryAddress!.provinceCode ?? null,
-            postalCode: g.deliveryAddress!.postalCode ?? null,
-            email: g.deliveryAddress!.email ?? null,
-            firstName: g.deliveryAddress!.firstName ?? null,
-            lastName: g.deliveryAddress!.lastName ?? null,
-            phone: g.deliveryAddress!.phone ?? null,
-            metadata:
-              (g.deliveryAddress!.data as Record<string, unknown> | null) ??
-              null,
-          },
-        };
-      });
-
-    // 2) Persist order contact PII and delivery addresses
-    // Note: this side-write keeps PII out of event payloads. If this write fails,
-    // the order creation should be aborted to avoid dangling references.
-    /**
-     * TODO: Ensure PII writes and event append happen atomically.
-     * Consider transactional outbox or a saga to avoid orphan PII rows
-     * if append fails after successful PII persistence.
-     */
-    await this.ordersPiiRepository.upsertOrderContacts({
-      projectId: project.id,
-      orderId: id,
-      customerEmail: checkoutAggregate.customerIdentity.email ?? null,
-      customerPhoneE164: checkoutAggregate.customerIdentity.phone ?? null,
-      customerNote: checkoutAggregate.customerNote ?? null,
-      expiresAt: null,
-    });
-
-    await this.ordersPiiRepository.insertDeliveryAddresses(
-      deliveryAddressesToPersist.map((a) => a.payload)
+    const deliveryAddressRefs = this.populateProjectionContext(
+      id,
+      project.id,
+      checkoutAggregate
     );
 
-    // 3) Build delivery groups payload for event with references to PII (addressId)
+    // Build delivery groups payload for event with references to PII (addressId)
     const deliveryGroupsForEvent = checkoutAggregate.deliveryGroups.map(
       (g) => ({
         id: g.id,
         orderLineIds: g.checkoutLines.map((cl) => cl.id),
-        deliveryAddressId:
-          deliveryAddressesToPersist.find((a) => a.groupId === g.id)?.addrId ??
-          null,
+        deliveryAddressId: deliveryAddressRefs.get(g.id) ?? null,
         deliveryCost: g.shippingCost
           ? {
               amount: g.shippingCost.amount,
@@ -162,7 +125,6 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         externalSource: checkoutAggregate.externalSource ?? null,
         externalId: checkoutAggregate.externalId ?? null,
         localeCode: checkoutAggregate.localeCode ?? null,
-        orderNumber,
 
         // Totals
         subtotalAmount: checkoutAggregate.cost.subtotalAmount,
@@ -199,19 +161,62 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
       "STREAM_DOES_NOT_EXIST"
     );
 
-    // Save idempotency record for future retries returning the same order id
-    await this.idempotencyRepository.save({
-      projectId: project.id,
-      idempotencyKey,
-      // For now we use key as a simple request hash placeholder
-      requestHash: idempotencyKey,
-      response: { id },
-    });
-
     // NOTE: PII has been persisted into platform.orders_pii_records and
     // platform.order_delivery_addresses. Only references (deliveryAddressId)
     // are kept in event payloads for safe, GDPR-compliant event sourcing.
     return id;
+  }
+
+  private populateProjectionContext(
+    orderId: string,
+    projectId: string,
+    checkoutAggregate: Checkout
+  ): Map<string, string> {
+    const deliveryGroups = checkoutAggregate.deliveryGroups.filter(
+      (group) => group.deliveryAddress
+    );
+
+    const contact = {
+      projectId,
+      orderId,
+      customerEmail: checkoutAggregate.customerIdentity.email ?? null,
+      customerPhoneE164: checkoutAggregate.customerIdentity.phone ?? null,
+      customerNote: checkoutAggregate.customerNote ?? null,
+      expiresAt: null,
+    } satisfies OrderCreateProjectionContextData["contact"];
+
+    const deliveryAddressRefs = new Map<string, string>();
+
+    const deliveryAddresses = deliveryGroups.map((group) => {
+      const addrId = uuidv7();
+      deliveryAddressRefs.set(group.id, addrId);
+
+      const address = group.deliveryAddress!;
+      return {
+        id: addrId,
+        projectId,
+        orderId,
+        deliveryGroupId: group.id,
+        address1: address.address1,
+        address2: address.address2 ?? null,
+        city: address.city,
+        countryCode: address.countryCode,
+        provinceCode: address.provinceCode ?? null,
+        postalCode: address.postalCode ?? null,
+        email: address.email ?? null,
+        firstName: address.firstName ?? null,
+        lastName: address.lastName ?? null,
+        phone: address.phone ?? null,
+        metadata: (address.data as Record<string, unknown> | null) ?? null,
+      } satisfies OrderCreateProjectionContextData["deliveryAddresses"][number];
+    });
+
+    setOrderCreateProjectionContext(orderId, {
+      contact,
+      deliveryAddresses,
+    });
+
+    return deliveryAddressRefs;
   }
 
   /**

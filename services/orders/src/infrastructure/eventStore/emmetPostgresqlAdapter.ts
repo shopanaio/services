@@ -9,13 +9,17 @@ import { getPostgreSQLEventStore } from "@event-driven-io/emmett-postgresql";
 import { config } from "@src/config";
 import { dumboPool } from "@src/infrastructure/db/dumbo";
 import { orderCreateProjection } from "@src/infrastructure/projections/orderCreateProjection";
+import { orderIdempotencyProjection } from "@src/infrastructure/projections/idempotencyProjection";
 
 const inline = (projection: any) => ({ type: "inline", projection } as any);
 
 export class EmmetPostgresqlEventStoreAdapter implements EventStorePort {
   private readonly store = getPostgreSQLEventStore(config.databaseUrl, {
     schema: { autoMigration: "CreateOrUpdate" },
-    projections: [inline(orderCreateProjection)],
+    projections: [
+      inline(orderIdempotencyProjection),
+      inline(orderCreateProjection),
+    ],
     connectionOptions: { dumbo: dumboPool },
     hooks: {
       onAfterSchemaCreated: () => {

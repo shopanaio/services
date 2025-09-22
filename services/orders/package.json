@@ -24,6 +24,7 @@
     "@event-driven-io/pongo": "^0.17.0-alpha.6",
     "@shopana/checkout-api": "*",
     "@shopana/inventory-api": "*",
+    "@shopana/shared-async-context": "0.0.1",
     "@shopana/shared-money": "0.0.1",
     "@shopana/platform-api": "0.0.1",
     "@shopana/pricing-api": "*",

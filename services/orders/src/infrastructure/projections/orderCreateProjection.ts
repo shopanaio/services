@@ -5,6 +5,7 @@ import type { OrderCreatedPayload } from "@src/domain/order/events";
 import { knex } from "@src/infrastructure/db/knex";
 import { Money } from "@shopana/shared-money";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
+import { consumeOrderCreateProjectionContext } from "@src/application/usecases/orderCreateProjectionContext";
 
 type OrderCreatedEvent = Event & {
   type: "order.created";
@@ -38,12 +39,15 @@ const uuidArray = (ids: readonly string[]) =>
  * Inline projection: materialize order row, items, delivery groups and applied discounts.
  */
 export const orderCreateProjection =
-  postgreSQLRawBatchSQLProjection<OrderCreatedEvent>((events) => {
-    const sqls = events.flatMap((event) => {
+  postgreSQLRawBatchSQLProjection<OrderCreatedEvent>(async (events) => {
+    const sqls: ReturnType<typeof rawSql>[] = [];
+
+    for (const event of events) {
       const statements: ReturnType<typeof rawSql>[] = [];
 
       const projectId = event.metadata.projectId;
       const orderId = event.metadata.aggregateId;
+      const projectionContext = consumeOrderCreateProjectionContext(orderId);
 
       // Insert order head
       const insertOrderSql = knex
@@ -53,7 +57,7 @@ export const orderCreateProjection =
           id: orderId,
           // TODO: Remove `as any` by aligning metadata type with DB schema (UUID/text).
           project_id: projectId as any,
-          order_number: event.data.orderNumber,
+          order_number: orderNumber,
           api_key_id: null,
           user_id: event.metadata.userId ?? null,
           sales_channel: event.data.salesChannel,
@@ -190,8 +194,62 @@ export const orderCreateProjection =
         statements.push(rawSql(insertDiscountsSql));
       }
 
-      return statements;
-    });
+      if (projectionContext?.contact) {
+        const { contact } = projectionContext;
+        const contactSql = knex
+          .withSchema("platform")
+          .table("orders_pii_records")
+          .insert({
+            project_id: contact.projectId,
+            order_id: orderId,
+            customer_email: contact.customerEmail,
+            customer_phone_e164: contact.customerPhoneE164,
+            customer_note: contact.customerNote,
+            expires_at: contact.expiresAt,
+          })
+          .onConflict(["order_id"])
+          .merge({
+            customer_email: knex.raw("EXCLUDED.customer_email"),
+            customer_phone_e164: knex.raw("EXCLUDED.customer_phone_e164"),
+            customer_note: knex.raw("EXCLUDED.customer_note"),
+            expires_at: knex.raw("EXCLUDED.expires_at"),
+            updated_at: knex.raw("?::timestamptz", [event.metadata.now]),
+          })
+          .toString();
+        statements.push(rawSql(contactSql));
+      }
+
+      if (projectionContext?.deliveryAddresses.length) {
+        const addressesSql = knex
+          .withSchema("platform")
+          .table("order_delivery_addresses")
+          .insert(
+            projectionContext.deliveryAddresses.map((address) => ({
+              id: address.id,
+              project_id: address.projectId,
+              order_id: orderId,
+              delivery_group_id: address.deliveryGroupId,
+              address1: address.address1,
+              address2: address.address2,
+              city: address.city,
+              country_code: address.countryCode,
+              province_code: address.provinceCode,
+              postal_code: address.postalCode,
+              email: address.email,
+              first_name: address.firstName,
+              last_name: address.lastName,
+              phone: address.phone,
+              metadata: knex.raw("?::jsonb", [
+                JSON.stringify(address.metadata ?? null),
+              ]),
+            }))
+          )
+          .toString();
+        statements.push(rawSql(addressesSql));
+      }
+
+      sqls.push(...statements);
+    }
 
     return sqls;
   }, "order.created");

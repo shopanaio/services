@@ -18,9 +18,6 @@ export type OrderCreatedPayload = Readonly<{
   externalSource: string | null;
   externalId: string | null;
   localeCode: string | null;
-  /** Sequential order number unique per project. */
-  orderNumber: number;
-
   // Totals at the moment of order creation
   subtotalAmount: Money;
   totalDiscountAmount: Money;
