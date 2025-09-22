@@ -95,7 +95,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
         id: g.id,
         orderLineIds: g.checkoutLines.map((cl) => cl.id),
         deliveryAddressId: deliveryAddressRefs.get(g.id) ?? null,
-        deliveryCost: g.shippingCost
+        deliveryCost: g.shippingCost?.amount
           ? {
               amount: g.shippingCost.amount,
               paymentModel: g.shippingCost.paymentModel,
@@ -268,7 +268,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
               },
             }
           : null,
-        shippingCost: g.shippingCost
+        shippingCost: g.shippingCost?.amount
           ? {
               amount: g.shippingCost.amount,
               paymentModel: g.shippingCost.paymentModel ?? null,

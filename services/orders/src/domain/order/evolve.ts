@@ -226,7 +226,7 @@ export const orderEvolve = (
           id: g.id,
           orderLineIds: g.orderLineIds,
           deliveryAddress: null, // PII is not stored in events; resolved via read-model
-          deliveryCost: g.deliveryCost
+          deliveryCost: g.deliveryCost?.amount
             ? {
                 amount: g.deliveryCost.amount,
                 paymentModel: g.deliveryCost

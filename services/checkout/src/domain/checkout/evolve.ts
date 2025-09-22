@@ -17,7 +17,6 @@ import {
   DeliveryMethodType,
   ShippingPaymentModel,
 } from "@shopana/shipping-plugin-sdk";
-import { DiscountCondition } from "@shopana/pricing-plugin-sdk";
 import { AppliedDiscountSnapshot } from "./discount";
 
 // Duplicate types from types.ts to avoid import issues
@@ -179,8 +178,8 @@ export const checkoutEvolve = (
           })),
           shippingCost: null,
         })),
-        createdAt: metadata.now,
-        updatedAt: metadata.now,
+        createdAt: new Date(metadata.now),
+        updatedAt: new Date(metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutLinesAdded: {
@@ -208,7 +207,7 @@ export const checkoutEvolve = (
         shippingTotal: coerceMoney(d.checkoutCost.shippingTotal),
         grandTotal: coerceMoney(d.checkoutCost.grandTotal),
         totalQuantity: d.checkoutCost.totalQuantity,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutLinesUpdated: {
@@ -236,7 +235,7 @@ export const checkoutEvolve = (
         discountTotal: coerceMoney(d.checkoutCost.discountTotal),
         taxTotal: coerceMoney(d.checkoutCost.taxTotal),
         shippingTotal: coerceMoney(d.checkoutCost.shippingTotal),
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutLinesDeleted: {
@@ -264,7 +263,7 @@ export const checkoutEvolve = (
         discountTotal: coerceMoney(d.checkoutCost.discountTotal),
         taxTotal: coerceMoney(d.checkoutCost.taxTotal),
         shippingTotal: coerceMoney(d.checkoutCost.shippingTotal),
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutLinesCleared: {
@@ -280,7 +279,7 @@ export const checkoutEvolve = (
         discountTotal: coerceMoney(d.checkoutCost.discountTotal),
         taxTotal: coerceMoney(d.checkoutCost.taxTotal),
         shippingTotal: coerceMoney(d.checkoutCost.shippingTotal),
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutCustomerIdentityUpdated: {
@@ -291,7 +290,7 @@ export const checkoutEvolve = (
         customerId: d.customerId ?? null,
         customerPhone: d.phone ?? null,
         customerCountryCode: d.countryCode ?? null,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutCustomerNoteUpdated: {
@@ -299,7 +298,7 @@ export const checkoutEvolve = (
       return {
         ...current,
         customerNote: d.note ?? null,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutLanguageCodeUpdated: {
@@ -307,7 +306,7 @@ export const checkoutEvolve = (
       return {
         ...current,
         localeCode: d.localeCode ?? null,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutCurrencyCodeUpdated: {
@@ -315,7 +314,7 @@ export const checkoutEvolve = (
       return {
         ...current,
         currencyCode: d.currencyCode,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
 
@@ -345,7 +344,7 @@ export const checkoutEvolve = (
         shippingTotal: coerceMoney(d.checkoutCost.shippingTotal),
         grandTotal: coerceMoney(d.checkoutCost.grandTotal),
         totalQuantity: d.checkoutCost.totalQuantity,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutPromoCodeRemoved: {
@@ -373,7 +372,7 @@ export const checkoutEvolve = (
         shippingTotal: coerceMoney(d.checkoutCost.shippingTotal),
         grandTotal: coerceMoney(d.checkoutCost.grandTotal),
         totalQuantity: d.checkoutCost.totalQuantity,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     // removed: CheckoutDeliveryGroupsCreated — groups applied via CheckoutLinesAdded
@@ -392,7 +391,7 @@ export const checkoutEvolve = (
       return {
         ...current,
         deliveryGroups,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutDeliveryGroupAddressCleared: {
@@ -410,7 +409,7 @@ export const checkoutEvolve = (
       return {
         ...current,
         deliveryGroups,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutDeliveryGroupMethodUpdated: {
@@ -443,7 +442,7 @@ export const checkoutEvolve = (
         ...current,
         deliveryGroups,
         shippingTotal: newShippingTotal,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     case CheckoutEventTypes.CheckoutDeliveryGroupRemoved: {
@@ -461,7 +460,7 @@ export const checkoutEvolve = (
         ...current,
         deliveryGroups,
         shippingTotal: newShippingTotal,
-        updatedAt: event.metadata.now,
+        updatedAt: new Date(event.metadata.now),
       };
     }
     default:

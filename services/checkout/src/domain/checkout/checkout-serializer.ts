@@ -15,12 +15,12 @@ export class CheckoutSerializer {
   toJSON(id: string, state: CheckoutState): CheckoutDto {
     const currency = state.currencyCode || "USD";
     const lineDtos = Object.values(state.linesRecord ?? {}).map((line) =>
-      this.serializeLine(line, currency),
+      this.serializeLine(line, currency)
     );
     const lineDtosById = new Map(lineDtos.map((line) => [line.id, line]));
 
     const deliveryGroupDtos = (state.deliveryGroups ?? []).map((group) =>
-      this.serializeDeliveryGroup(group, lineDtosById),
+      this.serializeDeliveryGroup(group, lineDtosById)
     );
 
     return {
@@ -76,14 +76,16 @@ export class CheckoutSerializer {
 
   private serializeLine(
     line: CheckoutLineItemState,
-    fallbackCurrency: string,
+    fallbackCurrency: string
   ): CheckoutDto["lines"][number] {
     const unitPriceSnapshot = line.unit.price.toJSON();
     const currencyCode = unitPriceSnapshot.currency.code || fallbackCurrency;
     const subtotal = line.unit.price.multiply(line.quantity);
     const total = subtotal;
     const zeroSnapshot = Money.zero(currencyCode).toJSON();
-    const compareAtSnapshot = (line.unit.compareAtPrice ?? line.unit.price).toJSON();
+    const compareAtSnapshot = line.unit.compareAtPrice
+      ? line.unit.compareAtPrice.toJSON()
+      : null;
 
     return {
       id: line.lineId,
@@ -107,7 +109,7 @@ export class CheckoutSerializer {
 
   private serializeDeliveryGroup(
     group: CheckoutDeliveryGroup,
-    lineDtosById: Map<string, CheckoutDto["lines"][number]>,
+    lineDtosById: Map<string, CheckoutDto["lines"][number]>
   ): CheckoutDto["deliveryGroups"][number] {
     const checkoutLines = group.checkoutLineIds
       .map((lineId) => lineDtosById.get(lineId))
@@ -120,12 +122,12 @@ export class CheckoutSerializer {
         ? this.serializeDeliveryAddress(group.deliveryAddress)
         : null,
       deliveryMethods: group.deliveryMethods.map((method) =>
-        this.serializeDeliveryMethod(method),
+        this.serializeDeliveryMethod(method)
       ),
       selectedDeliveryMethod: group.selectedDeliveryMethod
         ? this.serializeDeliveryMethod(group.selectedDeliveryMethod)
         : null,
-      shippingCost: group.shippingCost
+      shippingCost: group.shippingCost?.amount
         ? {
             amount: group.shippingCost.amount.toJSON(),
             paymentModel: group.shippingCost.paymentModel,
@@ -135,7 +137,7 @@ export class CheckoutSerializer {
   }
 
   private serializeDeliveryAddress(
-    address: CheckoutDeliveryAddress,
+    address: CheckoutDeliveryAddress
   ): NonNullable<CheckoutDto["deliveryGroups"][number]["deliveryAddress"]> {
     return {
       id: address.id,
@@ -154,7 +156,7 @@ export class CheckoutSerializer {
   }
 
   private serializeDeliveryMethod(
-    method: CheckoutDeliveryMethod,
+    method: CheckoutDeliveryMethod
   ): CheckoutDto["deliveryGroups"][number]["deliveryMethods"][number] {
     return {
       code: method.code,

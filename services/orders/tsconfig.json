@@ -23,10 +23,12 @@
       "@shopana/shipping-api/*": ["../../packages/shipping-api/dist/*"],
       "@shopana/pricing-api": ["../../packages/pricing-api/dist/index.d.ts"],
       "@shopana/pricing-api/*": ["../../packages/pricing-api/dist/*"],
-      "@shopana/inventory-api": ["../../packages/inventory-api/dist/index.d.ts"],
+      "@shopana/inventory-api": [
+        "../../packages/inventory-api/dist/index.d.ts"
+      ],
       "@shopana/inventory-api/*": ["../../packages/inventory-api/dist/*"],
       "@shopana/shared-async-context": [
-        "../../packages/shared-async-context/dist/index.d.ts"
+        "../../packages/shared-async-context/dist/index"
       ],
       "@shopana/shared-async-context/*": [
         "../../packages/shared-async-context/dist/*"

@@ -22,7 +22,7 @@ export class OrderReadRepository implements OrderReadPort {
   async findById(id: string): Promise<OrderReadPortRow | null> {
     const q = knex
       .withSchema("platform")
-      .table({ o: "orders" })
+      .from("orders as o")
       .leftJoin({ pii: "orders_pii_records" }, "pii.order_id", "o.id")
       .select(
         "o.id",
@@ -60,53 +60,6 @@ export class OrderReadRepository implements OrderReadPort {
     return this.mapOrderRow(row, id);
   }
 
-  async findByOrderNumber(
-    orderNumber: number,
-    projectId: string
-  ): Promise<OrderReadPortRow | null> {
-    const q = knex
-      .withSchema("platform")
-      .table({ o: "orders" })
-      .leftJoin({ pii: "orders_pii_records" }, "pii.order_id", "o.id")
-      .select(
-        "o.id",
-        "o.project_id",
-        "o.api_key_id",
-        "o.user_id",
-        "o.sales_channel",
-        "o.external_source",
-        "o.order_number",
-        "o.external_id",
-        "o.locale_code",
-        "o.currency_code",
-        "o.subtotal_amount",
-        "o.total_shipping_amount",
-        "o.total_discount_amount",
-        "o.total_tax_amount",
-        "o.total_amount",
-        "o.status",
-        "o.expires_at",
-        "o.projected_version",
-        "o.metadata",
-        "o.created_at",
-        "o.updated_at",
-        "o.deleted_at",
-        "pii.customer_email",
-        "pii.customer_phone_e164",
-        "pii.customer_note"
-      )
-      .where({
-        "o.project_id": projectId,
-        "o.order_number": orderNumber,
-      })
-      .toString();
-
-    const row = await singleOrNull(
-      this.execute.query<OrderReadPortRow>(rawSql(q))
-    );
-    return this.mapOrderRow(row);
-  }
-
   async findDeliveryAddresses(
     orderId: string
   ): Promise<OrderDeliveryAddressRow[]> {
@@ -135,15 +88,11 @@ export class OrderReadRepository implements OrderReadPort {
       .orderBy("da.created_at", "asc")
       .toString();
 
-    const result = await this.execute.query<OrderDeliveryAddressRow>(
-      rawSql(q)
-    );
+    const result = await this.execute.query<OrderDeliveryAddressRow>(rawSql(q));
     return result.rows;
   }
 
-  async findAppliedPromoCodes(
-    orderId: string
-  ): Promise<OrderPromoCode[]> {
+  async findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]> {
     const q = knex
       .withSchema("platform")
       .table("order_applied_discounts")
@@ -176,9 +125,7 @@ export class OrderReadRepository implements OrderReadPort {
     );
   }
 
-  async findDeliveryGroups(
-    orderId: string
-  ): Promise<OrderDeliveryGroup[]> {
+  async findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]> {
     const q = knex
       .withSchema("platform")
       .table("order_delivery_groups")
@@ -195,9 +142,7 @@ export class OrderReadRepository implements OrderReadPort {
       .orderBy("created_at", "asc")
       .toString();
 
-    const result = await this.execute.query<OrderDeliveryGroupRow>(
-      rawSql(q)
-    );
+    const result = await this.execute.query<OrderDeliveryGroupRow>(rawSql(q));
     return result.rows.map(
       (group): OrderDeliveryGroup => ({
         id: group.id,

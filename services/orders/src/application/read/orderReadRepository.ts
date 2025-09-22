@@ -77,7 +77,6 @@ export type OrderReadPortRow = {
 
 export interface OrderReadPort {
   findById(id: string): Promise<OrderReadPortRow | null>;
-  findByOrderNumber(orderNumber: number, projectId: string): Promise<OrderReadPortRow | null>;
   findDeliveryAddresses(orderId: string): Promise<OrderDeliveryAddressRow[]>;
   findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]>;
   findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]>;
