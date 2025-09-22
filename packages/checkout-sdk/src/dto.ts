@@ -36,7 +36,7 @@ export type CheckoutNotificationDto = Readonly<{
 }>;
 
 export type CheckoutLineCostDto = Readonly<{
-  compareAtUnitPrice: MoneySnapshot;
+  compareAtUnitPrice: MoneySnapshot | null;
   unitPrice: MoneySnapshot;
   discountAmount: MoneySnapshot;
   subtotalAmount: MoneySnapshot;
