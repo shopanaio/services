@@ -14,10 +14,15 @@ export class CheckoutClient implements CheckoutApiClient {
   }
 
   async getById(checkoutId: string, projectId: string): Promise<Checkout> {
-    const dto = (await this.broker.call(
-      "checkout.getById",
-      { checkoutId, projectId }
-    )) as CheckoutDto;
-    return deserializeCheckout(dto);
+    const dto = (await this.broker.call("checkout.getById", {
+      checkoutId,
+      projectId,
+    })) as CheckoutDto;
+    try {
+      return deserializeCheckout(dto);
+    } catch (error) {
+      console.error("Error deserializing checkout", error);
+      throw error;
+    }
   }
 }

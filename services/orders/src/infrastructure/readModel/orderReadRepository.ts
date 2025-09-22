@@ -23,7 +23,7 @@ export class OrderReadRepository implements OrderReadPort {
     const q = knex
       .withSchema("platform")
       .from("orders as o")
-      .leftJoin({ pii: "orders_pii_records" }, "pii.order_id", "o.id")
+      .leftJoin("orders_pii_records as pii", "pii.order_id", "o.id")
       .select(
         "o.id",
         "o.project_id",

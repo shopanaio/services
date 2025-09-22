@@ -33,7 +33,7 @@ export type CheckoutNotification = Readonly<{
 }>;
 
 export type CheckoutLineCost = Readonly<{
-  compareAtUnitPrice: Money;
+  compareAtUnitPrice: Money | null;
   unitPrice: Money;
   discountAmount: Money;
   subtotalAmount: Money;

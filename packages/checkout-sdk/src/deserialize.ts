@@ -34,7 +34,7 @@ const deserializeCost = (dto: DeliveryCostDto | null | undefined): DeliveryCost 
 };
 
 const deserializeLineCost = (dto: CheckoutLineDto["cost"]): CheckoutLineCost => ({
-  compareAtUnitPrice: Money.fromJSON(dto.compareAtUnitPrice),
+  compareAtUnitPrice: dto.compareAtUnitPrice ? Money.fromJSON(dto.compareAtUnitPrice) : null,
   unitPrice: Money.fromJSON(dto.unitPrice),
   discountAmount: Money.fromJSON(dto.discountAmount),
   subtotalAmount: Money.fromJSON(dto.subtotalAmount),
