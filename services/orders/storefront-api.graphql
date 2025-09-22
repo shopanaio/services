@@ -1125,6 +1125,7 @@ enum CurrencyCode {
 }
 
 enum OrderStatus {
+  DRAFT
   ACTIVE
   CLOSED
   CANCELLED
