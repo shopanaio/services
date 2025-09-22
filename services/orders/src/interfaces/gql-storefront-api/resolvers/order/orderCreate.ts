@@ -15,7 +15,7 @@ import { createValidated } from "@src/utils/validation";
 export const orderCreate = async (
   _parent: ApiOrderMutation,
   args: ApiOrderMutationOrderCreateArgs,
-  ctx: GraphQLContext,
+  ctx: GraphQLContext
 ) => {
   const { input } = args;
   const dto = createValidated(CreateOrderDto, input);

@@ -41,736 +41,738 @@ export type ApiCollectionMeta = {
   total: Scalars['Int']['output'];
 };
 
-export type ApiCountryCode =
+export enum ApiCountryCode {
   /** Andorra */
-  | 'AD'
+  Ad = 'AD',
   /** United Arab Emirates */
-  | 'AE'
+  Ae = 'AE',
   /** Afghanistan */
-  | 'AF'
+  Af = 'AF',
   /** Antigua and Barbuda */
-  | 'AG'
+  Ag = 'AG',
   /** Albania */
-  | 'AL'
+  Al = 'AL',
   /** Armenia */
-  | 'AM'
+  Am = 'AM',
   /** Angola */
-  | 'AO'
+  Ao = 'AO',
   /** Argentina */
-  | 'AR'
+  Ar = 'AR',
   /** Austria */
-  | 'AT'
+  At = 'AT',
   /** Australia */
-  | 'AU'
+  Au = 'AU',
   /** Aruba */
-  | 'AW'
+  Aw = 'AW',
   /** Åland Islands */
-  | 'AX'
+  Ax = 'AX',
   /** Azerbaijan */
-  | 'AZ'
+  Az = 'AZ',
   /** Bosnia and Herzegovina */
-  | 'BA'
+  Ba = 'BA',
   /** Barbados */
-  | 'BB'
+  Bb = 'BB',
   /** Bangladesh */
-  | 'BD'
+  Bd = 'BD',
   /** Belgium */
-  | 'BE'
+  Be = 'BE',
   /** Burkina Faso */
-  | 'BF'
+  Bf = 'BF',
   /** Bulgaria */
-  | 'BG'
+  Bg = 'BG',
   /** Bahrain */
-  | 'BH'
+  Bh = 'BH',
   /** Burundi */
-  | 'BI'
+  Bi = 'BI',
   /** Benin */
-  | 'BJ'
+  Bj = 'BJ',
   /** Bermuda */
-  | 'BM'
+  Bm = 'BM',
   /** Brunei */
-  | 'BN'
+  Bn = 'BN',
   /** Bolivia */
-  | 'BO'
+  Bo = 'BO',
   /** Brazil */
-  | 'BR'
+  Br = 'BR',
   /** Bahamas */
-  | 'BS'
+  Bs = 'BS',
   /** Bhutan */
-  | 'BT'
+  Bt = 'BT',
   /** Botswana */
-  | 'BW'
+  Bw = 'BW',
   /** Belarus */
-  | 'BY'
+  By = 'BY',
   /** Belize */
-  | 'BZ'
+  Bz = 'BZ',
   /** Canada */
-  | 'CA'
+  Ca = 'CA',
   /** Democratic Republic of the Congo */
-  | 'CD'
+  Cd = 'CD',
   /** Central African Republic */
-  | 'CF'
+  Cf = 'CF',
   /** Republic of the Congo */
-  | 'CG'
+  Cg = 'CG',
   /** Switzerland */
-  | 'CH'
+  Ch = 'CH',
   /** Ivory Coast */
-  | 'CI'
+  Ci = 'CI',
   /** Chile */
-  | 'CL'
+  Cl = 'CL',
   /** Cameroon */
-  | 'CM'
+  Cm = 'CM',
   /** China */
-  | 'CN'
+  Cn = 'CN',
   /** Colombia */
-  | 'CO'
+  Co = 'CO',
   /** Costa Rica */
-  | 'CR'
+  Cr = 'CR',
   /** Cuba */
-  | 'CU'
+  Cu = 'CU',
   /** Cape Verde */
-  | 'CV'
+  Cv = 'CV',
   /** Curaçao */
-  | 'CW'
+  Cw = 'CW',
   /** Cyprus */
-  | 'CY'
+  Cy = 'CY',
   /** Czech Republic */
-  | 'CZ'
+  Cz = 'CZ',
   /** Germany */
-  | 'DE'
+  De = 'DE',
   /** Djibouti */
-  | 'DJ'
+  Dj = 'DJ',
   /** Denmark */
-  | 'DK'
+  Dk = 'DK',
   /** Dominica */
-  | 'DM'
+  Dm = 'DM',
   /** Dominican Republic */
-  | 'DO'
+  Do = 'DO',
   /** Algeria */
-  | 'DZ'
+  Dz = 'DZ',
   /** Ecuador */
-  | 'EC'
+  Ec = 'EC',
   /** Estonia */
-  | 'EE'
+  Ee = 'EE',
   /** Egypt */
-  | 'EG'
+  Eg = 'EG',
   /** Western Sahara */
-  | 'EH'
+  Eh = 'EH',
   /** Eritrea */
-  | 'ER'
+  Er = 'ER',
   /** Spain */
-  | 'ES'
+  Es = 'ES',
   /** Ethiopia */
-  | 'ET'
+  Et = 'ET',
   /** Finland */
-  | 'FI'
+  Fi = 'FI',
   /** Fiji */
-  | 'FJ'
+  Fj = 'FJ',
   /** Micronesia */
-  | 'FM'
+  Fm = 'FM',
   /** Faroe Islands */
-  | 'FO'
+  Fo = 'FO',
   /** France */
-  | 'FR'
+  Fr = 'FR',
   /** Gabon */
-  | 'GA'
+  Ga = 'GA',
   /** United Kingdom */
-  | 'GB'
+  Gb = 'GB',
   /** Grenada */
-  | 'GD'
+  Gd = 'GD',
   /** Georgia */
-  | 'GE'
+  Ge = 'GE',
   /** Guernsey */
-  | 'GG'
+  Gg = 'GG',
   /** Ghana */
-  | 'GH'
+  Gh = 'GH',
   /** Greenland */
-  | 'GL'
+  Gl = 'GL',
   /** Gambia */
-  | 'GM'
+  Gm = 'GM',
   /** Guinea */
-  | 'GN'
+  Gn = 'GN',
   /** Equatorial Guinea */
-  | 'GQ'
+  Gq = 'GQ',
   /** Greece */
-  | 'GR'
+  Gr = 'GR',
   /** Guatemala */
-  | 'GT'
+  Gt = 'GT',
   /** Guinea-Bissau */
-  | 'GW'
+  Gw = 'GW',
   /** Guyana */
-  | 'GY'
+  Gy = 'GY',
   /** Honduras */
-  | 'HN'
+  Hn = 'HN',
   /** Croatia */
-  | 'HR'
+  Hr = 'HR',
   /** Haiti */
-  | 'HT'
+  Ht = 'HT',
   /** Hungary */
-  | 'HU'
+  Hu = 'HU',
   /** Indonesia */
-  | 'ID'
+  Id = 'ID',
   /** Ireland */
-  | 'IE'
+  Ie = 'IE',
   /** Israel */
-  | 'IL'
+  Il = 'IL',
   /** Isle of Man */
-  | 'IM'
+  Im = 'IM',
   /** India */
-  | 'IN'
+  In = 'IN',
   /** Iraq */
-  | 'IQ'
+  Iq = 'IQ',
   /** Iran */
-  | 'IR'
+  Ir = 'IR',
   /** Iceland */
-  | 'IS'
+  Is = 'IS',
   /** Italy */
-  | 'IT'
+  It = 'IT',
   /** Jersey */
-  | 'JE'
+  Je = 'JE',
   /** Jamaica */
-  | 'JM'
+  Jm = 'JM',
   /** Jordan */
-  | 'JO'
+  Jo = 'JO',
   /** Japan */
-  | 'JP'
+  Jp = 'JP',
   /** Kenya */
-  | 'KE'
+  Ke = 'KE',
   /** Kyrgyzstan */
-  | 'KG'
+  Kg = 'KG',
   /** Cambodia */
-  | 'KH'
+  Kh = 'KH',
   /** Comoros */
-  | 'KM'
+  Km = 'KM',
   /** Saint Kitts and Nevis */
-  | 'KN'
+  Kn = 'KN',
   /** North Korea */
-  | 'KP'
+  Kp = 'KP',
   /** South Korea */
-  | 'KR'
+  Kr = 'KR',
   /** Kuwait */
-  | 'KW'
+  Kw = 'KW',
   /** Kazakhstan */
-  | 'KZ'
+  Kz = 'KZ',
   /** Laos */
-  | 'LA'
+  La = 'LA',
   /** Lebanon */
-  | 'LB'
+  Lb = 'LB',
   /** Saint Lucia */
-  | 'LC'
+  Lc = 'LC',
   /** Liechtenstein */
-  | 'LI'
+  Li = 'LI',
   /** Sri Lanka */
-  | 'LK'
+  Lk = 'LK',
   /** Liberia */
-  | 'LR'
+  Lr = 'LR',
   /** Lesotho */
-  | 'LS'
+  Ls = 'LS',
   /** Lithuania */
-  | 'LT'
+  Lt = 'LT',
   /** Luxembourg */
-  | 'LU'
+  Lu = 'LU',
   /** Latvia */
-  | 'LV'
+  Lv = 'LV',
   /** Morocco */
-  | 'MA'
+  Ma = 'MA',
   /** Monaco */
-  | 'MC'
+  Mc = 'MC',
   /** Moldova */
-  | 'MD'
+  Md = 'MD',
   /** Montenegro */
-  | 'ME'
+  Me = 'ME',
   /** Madagascar */
-  | 'MG'
+  Mg = 'MG',
   /** Marshall Islands */
-  | 'MH'
+  Mh = 'MH',
   /** North Macedonia */
-  | 'MK'
+  Mk = 'MK',
   /** Mali */
-  | 'ML'
+  Ml = 'ML',
   /** Myanmar */
-  | 'MM'
+  Mm = 'MM',
   /** Mongolia */
-  | 'MN'
+  Mn = 'MN',
   /** Mauritania */
-  | 'MR'
+  Mr = 'MR',
   /** Malta */
-  | 'MT'
+  Mt = 'MT',
   /** Mauritius */
-  | 'MU'
+  Mu = 'MU',
   /** Maldives */
-  | 'MV'
+  Mv = 'MV',
   /** Malawi */
-  | 'MW'
+  Mw = 'MW',
   /** Mexico */
-  | 'MX'
+  Mx = 'MX',
   /** Malaysia */
-  | 'MY'
+  My = 'MY',
   /** Mozambique */
-  | 'MZ'
+  Mz = 'MZ',
   /** Namibia */
-  | 'NA'
+  Na = 'NA',
   /** New Caledonia */
-  | 'NC'
+  Nc = 'NC',
   /** Niger */
-  | 'NE'
+  Ne = 'NE',
   /** Nigeria */
-  | 'NG'
+  Ng = 'NG',
   /** Nicaragua */
-  | 'NI'
+  Ni = 'NI',
   /** Netherlands */
-  | 'NL'
+  Nl = 'NL',
   /** Norway */
-  | 'NO'
+  No = 'NO',
   /** Nepal */
-  | 'NP'
+  Np = 'NP',
   /** New Zealand */
-  | 'NZ'
+  Nz = 'NZ',
   /** Oman */
-  | 'OM'
+  Om = 'OM',
   /** Panama */
-  | 'PA'
+  Pa = 'PA',
   /** Peru */
-  | 'PE'
+  Pe = 'PE',
   /** Papua New Guinea */
-  | 'PG'
+  Pg = 'PG',
   /** Philippines */
-  | 'PH'
+  Ph = 'PH',
   /** Pakistan */
-  | 'PK'
+  Pk = 'PK',
   /** Poland */
-  | 'PL'
+  Pl = 'PL',
   /** Palestine */
-  | 'PS'
+  Ps = 'PS',
   /** Portugal */
-  | 'PT'
+  Pt = 'PT',
   /** Palau */
-  | 'PW'
+  Pw = 'PW',
   /** Paraguay */
-  | 'PY'
+  Py = 'PY',
   /** Qatar */
-  | 'QA'
+  Qa = 'QA',
   /** Romania */
-  | 'RO'
+  Ro = 'RO',
   /** Serbia */
-  | 'RS'
+  Rs = 'RS',
   /** Russia */
-  | 'RU'
+  Ru = 'RU',
   /** Rwanda */
-  | 'RW'
+  Rw = 'RW',
   /** Saudi Arabia */
-  | 'SA'
+  Sa = 'SA',
   /** Solomon Islands */
-  | 'SB'
+  Sb = 'SB',
   /** Seychelles */
-  | 'SC'
+  Sc = 'SC',
   /** Sudan */
-  | 'SD'
+  Sd = 'SD',
   /** Sweden */
-  | 'SE'
+  Se = 'SE',
   /** Singapore */
-  | 'SG'
+  Sg = 'SG',
   /** Slovenia */
-  | 'SI'
+  Si = 'SI',
   /** Slovakia */
-  | 'SK'
+  Sk = 'SK',
   /** Sierra Leone */
-  | 'SL'
+  Sl = 'SL',
   /** San Marino */
-  | 'SM'
+  Sm = 'SM',
   /** Senegal */
-  | 'SN'
+  Sn = 'SN',
   /** Suriname */
-  | 'SR'
+  Sr = 'SR',
   /** South Sudan */
-  | 'SS'
+  Ss = 'SS',
   /** El Salvador */
-  | 'SV'
+  Sv = 'SV',
   /** Syria */
-  | 'SY'
+  Sy = 'SY',
   /** Swaziland (Eswatini) */
-  | 'SZ'
+  Sz = 'SZ',
   /** Chad */
-  | 'TD'
+  Td = 'TD',
   /** Togo */
-  | 'TG'
+  Tg = 'TG',
   /** Thailand */
-  | 'TH'
+  Th = 'TH',
   /** Tajikistan */
-  | 'TJ'
+  Tj = 'TJ',
   /** Timor-Leste (East Timor) */
-  | 'TL'
+  Tl = 'TL',
   /** Turkmenistan */
-  | 'TM'
+  Tm = 'TM',
   /** Tunisia */
-  | 'TN'
+  Tn = 'TN',
   /** Tonga */
-  | 'TO'
+  To = 'TO',
   /** Turkey */
-  | 'TR'
+  Tr = 'TR',
   /** Trinidad and Tobago */
-  | 'TT'
+  Tt = 'TT',
   /** Tanzania */
-  | 'TZ'
+  Tz = 'TZ',
   /** Ukraine */
-  | 'UA'
+  Ua = 'UA',
   /** Uganda */
-  | 'UG'
+  Ug = 'UG',
   /** United States */
-  | 'US'
+  Us = 'US',
   /** Uruguay */
-  | 'UY'
+  Uy = 'UY',
   /** Uzbekistan */
-  | 'UZ'
+  Uz = 'UZ',
   /** Vatican City */
-  | 'VA'
+  Va = 'VA',
   /** Saint Vincent and the Grenadines */
-  | 'VC'
+  Vc = 'VC',
   /** Venezuela */
-  | 'VE'
+  Ve = 'VE',
   /** British Virgin Islands */
-  | 'VG'
+  Vg = 'VG',
   /** US Virgin Islands */
-  | 'VI'
+  Vi = 'VI',
   /** Vietnam */
-  | 'VN'
+  Vn = 'VN',
   /** Vanuatu */
-  | 'VU'
+  Vu = 'VU',
   /** Samoa */
-  | 'WS'
+  Ws = 'WS',
   /** Kosovo */
-  | 'XK'
+  Xk = 'XK',
   /** Yemen */
-  | 'YE'
+  Ye = 'YE',
   /** South Africa */
-  | 'ZA'
+  Za = 'ZA',
   /** Zambia */
-  | 'ZM'
+  Zm = 'ZM',
   /** Zimbabwe */
-  | 'ZW';
+  Zw = 'ZW'
+}
 
 /** Currency codes according to ISO 4217 */
-export type ApiCurrencyCode =
+export enum ApiCurrencyCode {
   /** 2 decimals — UAE Dirham (United Arab Emirates) */
-  | 'AED'
+  Aed = 'AED',
   /** 2 decimals — Afghan Afghani (Afghanistan) */
-  | 'AFN'
+  Afn = 'AFN',
   /** 2 decimals — Albanian Lek (Albania) */
-  | 'ALL'
+  All = 'ALL',
   /** 2 decimals — Armenian Dram (Armenia) */
-  | 'AMD'
+  Amd = 'AMD',
   /** 2 decimals — Netherlands Antillean Guilder (Netherlands Antilles) */
-  | 'ANG'
+  Ang = 'ANG',
   /** 2 decimals — Angolan Kwanza (Angola) */
-  | 'AOA'
+  Aoa = 'AOA',
   /** 2 decimals — Argentine Peso (Argentina) */
-  | 'ARS'
+  Ars = 'ARS',
   /** 2 decimals — Australian Dollar (Australia) */
-  | 'AUD'
+  Aud = 'AUD',
   /** 2 decimals — Aruban Florin (Aruba) */
-  | 'AWG'
+  Awg = 'AWG',
   /** 2 decimals — Azerbaijani Manat (Azerbaijan) */
-  | 'AZN'
+  Azn = 'AZN',
   /** 2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina) */
-  | 'BAM'
+  Bam = 'BAM',
   /** 2 decimals — Barbadian Dollar (Barbados) */
-  | 'BBD'
+  Bbd = 'BBD',
   /** 2 decimals — Bangladeshi Taka (Bangladesh) */
-  | 'BDT'
+  Bdt = 'BDT',
   /** 2 decimals — Bulgarian Lev (Bulgaria) */
-  | 'BGN'
+  Bgn = 'BGN',
   /** 3 decimals — Bahraini Dinar (Bahrain) */
-  | 'BHD'
+  Bhd = 'BHD',
   /** 0 decimals — Burundian Franc (Burundi) */
-  | 'BIF'
+  Bif = 'BIF',
   /** 2 decimals — Bermudian Dollar (Bermuda) */
-  | 'BMD'
+  Bmd = 'BMD',
   /** 2 decimals — Brunei Dollar (Brunei) */
-  | 'BND'
+  Bnd = 'BND',
   /** 2 decimals — Bolivian Boliviano (Bolivia) */
-  | 'BOB'
+  Bob = 'BOB',
   /** 2 decimals — Brazilian Real (Brazil) */
-  | 'BRL'
+  Brl = 'BRL',
   /** 2 decimals — Bahamian Dollar (Bahamas) */
-  | 'BSD'
+  Bsd = 'BSD',
   /** 2 decimals — Bhutanese Ngultrum (Bhutan) */
-  | 'BTN'
+  Btn = 'BTN',
   /** 2 decimals — Botswana Pula (Botswana) */
-  | 'BWP'
+  Bwp = 'BWP',
   /** 2 decimals — Belarusian Ruble (Belarus) */
-  | 'BYN'
+  Byn = 'BYN',
   /** 2 decimals — Belize Dollar (Belize) */
-  | 'BZD'
+  Bzd = 'BZD',
   /** 2 decimals — Canadian Dollar (Canada) */
-  | 'CAD'
+  Cad = 'CAD',
   /** 2 decimals — Congolese Franc (Democratic Republic of the Congo) */
-  | 'CDF'
+  Cdf = 'CDF',
   /** 2 decimals — Swiss Franc (Switzerland) */
-  | 'CHF'
+  Chf = 'CHF',
   /** 0 decimals — Chilean Peso (Chile) */
-  | 'CLP'
+  Clp = 'CLP',
   /** 2 decimals — Chinese Yuan (China) */
-  | 'CNY'
+  Cny = 'CNY',
   /** 2 decimals — Colombian Peso (Colombia) */
-  | 'COP'
+  Cop = 'COP',
   /** 2 decimals — Costa Rican Colon (Costa Rica) */
-  | 'CRC'
+  Crc = 'CRC',
   /** 2 decimals — Cuban Peso (Cuba) */
-  | 'CUP'
+  Cup = 'CUP',
   /** 2 decimals — Cape Verdean Escudo (Cape Verde) */
-  | 'CVE'
+  Cve = 'CVE',
   /** 2 decimals — Czech Koruna (Czech Republic) */
-  | 'CZK'
+  Czk = 'CZK',
   /** 0 decimals — Djiboutian Franc (Djibouti) */
-  | 'DJF'
+  Djf = 'DJF',
   /** 2 decimals — Danish Krone (Denmark) */
-  | 'DKK'
+  Dkk = 'DKK',
   /** 2 decimals — Dominican Peso (Dominican Republic) */
-  | 'DOP'
+  Dop = 'DOP',
   /** 2 decimals — Algerian Dinar (Algeria) */
-  | 'DZD'
+  Dzd = 'DZD',
   /** 2 decimals — Egyptian Pound (Egypt) */
-  | 'EGP'
+  Egp = 'EGP',
   /** 2 decimals — Eritrean Nakfa (Eritrea) */
-  | 'ERN'
+  Ern = 'ERN',
   /** 2 decimals — Ethiopian Birr (Ethiopia) */
-  | 'ETB'
+  Etb = 'ETB',
   /** 2 decimals — Euro (European Union) */
-  | 'EUR'
+  Eur = 'EUR',
   /** 2 decimals — Fijian Dollar (Fiji) */
-  | 'FJD'
+  Fjd = 'FJD',
   /** 2 decimals — Falkland Islands Pound (Falkland Islands) */
-  | 'FKP'
+  Fkp = 'FKP',
   /** 2 decimals — Faroese Króna (Faroe Islands) */
-  | 'FOK'
+  Fok = 'FOK',
   /** 2 decimals — Pound Sterling (United Kingdom) */
-  | 'GBP'
+  Gbp = 'GBP',
   /** 2 decimals — Georgian Lari (Georgia) */
-  | 'GEL'
+  Gel = 'GEL',
   /** 2 decimals — Guernsey Pound (Guernsey) */
-  | 'GGP'
+  Ggp = 'GGP',
   /** 2 decimals — Ghanaian Cedi (Ghana) */
-  | 'GHS'
+  Ghs = 'GHS',
   /** 2 decimals — Gibraltar Pound (Gibraltar) */
-  | 'GIP'
+  Gip = 'GIP',
   /** 2 decimals — Gambian Dalasi (Gambia) */
-  | 'GMD'
+  Gmd = 'GMD',
   /** 0 decimals — Guinean Franc (Guinea) */
-  | 'GNF'
+  Gnf = 'GNF',
   /** 2 decimals — Guatemalan Quetzal (Guatemala) */
-  | 'GTQ'
+  Gtq = 'GTQ',
   /** 2 decimals — Guyanese Dollar (Guyana) */
-  | 'GYD'
+  Gyd = 'GYD',
   /** 2 decimals — Hong Kong Dollar (Hong Kong) */
-  | 'HKD'
+  Hkd = 'HKD',
   /** 2 decimals — Honduran Lempira (Honduras) */
-  | 'HNL'
+  Hnl = 'HNL',
   /** 2 decimals — Croatian Kuna (Croatia) */
-  | 'HRK'
+  Hrk = 'HRK',
   /** 2 decimals — Haitian Gourde (Haiti) */
-  | 'HTG'
+  Htg = 'HTG',
   /** 2 decimals — Hungarian Forint (Hungary) */
-  | 'HUF'
+  Huf = 'HUF',
   /** 0 decimals — Indonesian Rupiah (Indonesia) */
-  | 'IDR'
+  Idr = 'IDR',
   /** 2 decimals — Israeli New Shekel (Israel) */
-  | 'ILS'
+  Ils = 'ILS',
   /** 2 decimals — Isle of Man Pound (Isle of Man) */
-  | 'IMP'
+  Imp = 'IMP',
   /** 2 decimals — Indian Rupee (India) */
-  | 'INR'
+  Inr = 'INR',
   /** 3 decimals — Iraqi Dinar (Iraq) */
-  | 'IQD'
+  Iqd = 'IQD',
   /** 2 decimals — Iranian Rial (Iran) */
-  | 'IRR'
+  Irr = 'IRR',
   /** 0 decimals — Icelandic Króna (Iceland) */
-  | 'ISK'
+  Isk = 'ISK',
   /** 2 decimals — Jersey Pound (Jersey) */
-  | 'JEP'
+  Jep = 'JEP',
   /** 2 decimals — Jamaican Dollar (Jamaica) */
-  | 'JMD'
+  Jmd = 'JMD',
   /** 3 decimals — Jordanian Dinar (Jordan) */
-  | 'JOD'
+  Jod = 'JOD',
   /** 0 decimals — Japanese Yen (Japan) */
-  | 'JPY'
+  Jpy = 'JPY',
   /** 2 decimals — Kenyan Shilling (Kenya) */
-  | 'KES'
+  Kes = 'KES',
   /** 2 decimals — Kyrgyzstani Som (Kyrgyzstan) */
-  | 'KGS'
+  Kgs = 'KGS',
   /** 2 decimals — Cambodian Riel (Cambodia) */
-  | 'KHR'
+  Khr = 'KHR',
   /** 2 decimals — Comorian Franc (Comoros) */
-  | 'KMF'
+  Kmf = 'KMF',
   /** 2 decimals — North Korean Won (North Korea) */
-  | 'KPW'
+  Kpw = 'KPW',
   /** 2 decimals — South Korean Won (South Korea) */
-  | 'KRW'
+  Krw = 'KRW',
   /** 3 decimals — Kuwaiti Dinar (Kuwait) */
-  | 'KWD'
+  Kwd = 'KWD',
   /** 2 decimals — Cayman Islands Dollar (Cayman Islands) */
-  | 'KYD'
+  Kyd = 'KYD',
   /** 2 decimals — Kazakhstani Tenge (Kazakhstan) */
-  | 'KZT'
+  Kzt = 'KZT',
   /** 2 decimals — Lao Kip (Laos) */
-  | 'LAK'
+  Lak = 'LAK',
   /** 2 decimals — Lebanese Pound (Lebanon) */
-  | 'LBP'
+  Lbp = 'LBP',
   /** 2 decimals — Sri Lankan Rupee (Sri Lanka) */
-  | 'LKR'
+  Lkr = 'LKR',
   /** 3 decimals — Liberian Dollar (Liberia) */
-  | 'LRD'
+  Lrd = 'LRD',
   /** 3 decimals — Libyan Dinar (Libya) */
-  | 'LYD'
+  Lyd = 'LYD',
   /** 2 decimals — Moroccan Dirham (Morocco) */
-  | 'MAD'
+  Mad = 'MAD',
   /** 2 decimals — Moldovan Leu (Moldova) */
-  | 'MDL'
+  Mdl = 'MDL',
   /** 2 decimals — Malagasy Ariary (Madagascar) */
-  | 'MGA'
+  Mga = 'MGA',
   /** 2 decimals — Macedonian Denar (North Macedonia) */
-  | 'MKD'
+  Mkd = 'MKD',
   /** 2 decimals — Burmese Kyat (Myanmar) */
-  | 'MMK'
+  Mmk = 'MMK',
   /** 2 decimals — Mongolian Tögrög (Mongolia) */
-  | 'MNT'
+  Mnt = 'MNT',
   /** 2 decimals — Macanese Pataca (Macau) */
-  | 'MOP'
+  Mop = 'MOP',
   /** 2 decimals — Mauritanian Ouguiya (Mauritania) */
-  | 'MRU'
+  Mru = 'MRU',
   /** 2 decimals — Mauritian Rupee (Mauritius) */
-  | 'MUR'
+  Mur = 'MUR',
   /** 2 decimals — Maldivian Rufiyaa (Maldives) */
-  | 'MVR'
+  Mvr = 'MVR',
   /** 2 decimals — Malawian Kwacha (Malawi) */
-  | 'MWK'
+  Mwk = 'MWK',
   /** 2 decimals — Mexican Peso (Mexico) */
-  | 'MXN'
+  Mxn = 'MXN',
   /** 2 decimals — Malaysian Ringgit (Malaysia) */
-  | 'MYR'
+  Myr = 'MYR',
   /** 2 decimals — Mozambican Metical (Mozambique) */
-  | 'MZN'
+  Mzn = 'MZN',
   /** 2 decimals — Namibian Dollar (Namibia) */
-  | 'NAD'
+  Nad = 'NAD',
   /** 2 decimals — Nigerian Naira (Nigeria) */
-  | 'NGN'
+  Ngn = 'NGN',
   /** 2 decimals — Nicaraguan Córdoba (Nicaragua) */
-  | 'NIO'
+  Nio = 'NIO',
   /** 2 decimals — Norwegian Krone (Norway) */
-  | 'NOK'
+  Nok = 'NOK',
   /** 2 decimals — Nepalese Rupee (Nepal) */
-  | 'NPR'
+  Npr = 'NPR',
   /** 2 decimals — New Zealand Dollar (New Zealand) */
-  | 'NZD'
+  Nzd = 'NZD',
   /** 2 decimals — Omani Rial (Oman) */
-  | 'OMR'
+  Omr = 'OMR',
   /** 2 decimals — Panamanian Balboa (Panama) */
-  | 'PAB'
+  Pab = 'PAB',
   /** 2 decimals — Peruvian Sol (Peru) */
-  | 'PEN'
+  Pen = 'PEN',
   /** 0 decimals — Papua New Guinean Kina (Papua New Guinea) */
-  | 'PGK'
+  Pgk = 'PGK',
   /** 2 decimals — Philippine Peso (Philippines) */
-  | 'PHP'
+  Php = 'PHP',
   /** 2 decimals — Pakistani Rupee (Pakistan) */
-  | 'PKR'
+  Pkr = 'PKR',
   /** 0 decimals — Polish Zloty (Poland) */
-  | 'PLN'
+  Pln = 'PLN',
   /** 2 decimals — Paraguayan Guaraní (Paraguay) */
-  | 'PYG'
+  Pyg = 'PYG',
   /** 2 decimals — Qatari Riyal (Qatar) */
-  | 'QAR'
+  Qar = 'QAR',
   /** 2 decimals — Romanian Leu (Romania) */
-  | 'RON'
+  Ron = 'RON',
   /** 2 decimals — Serbian Dinar (Serbia) */
-  | 'RSD'
+  Rsd = 'RSD',
   /** 2 decimals — Russian Ruble (Russia) */
-  | 'RUB'
+  Rub = 'RUB',
   /** 2 decimals — Rwandan Franc (Rwanda) */
-  | 'RWF'
+  Rwf = 'RWF',
   /** 2 decimals — Saudi Riyal (Saudi Arabia) */
-  | 'SAR'
+  Sar = 'SAR',
   /** 2 decimals — Solomon Islands Dollar (Solomon Islands) */
-  | 'SBD'
+  Sbd = 'SBD',
   /** 2 decimals — Seychelles Rupee (Seychelles) */
-  | 'SCR'
+  Scr = 'SCR',
   /** 2 decimals — Sudanese Pound (Sudan) */
-  | 'SDG'
+  Sdg = 'SDG',
   /** 2 decimals — Swedish Krona (Sweden) */
-  | 'SEK'
+  Sek = 'SEK',
   /** 2 decimals — Singapore Dollar (Singapore) */
-  | 'SGD'
+  Sgd = 'SGD',
   /** 0 decimals — Saint Helena Pound (Saint Helena) */
-  | 'SHP'
+  Shp = 'SHP',
   /** 2 decimals — Sierra Leonean Leone (Sierra Leone) */
-  | 'SLE'
+  Sle = 'SLE',
   /** 2 decimals — Somali Shilling (Somalia) */
-  | 'SOS'
+  Sos = 'SOS',
   /** 2 decimals — Surinamese Dollar (Suriname) */
-  | 'SRD'
+  Srd = 'SRD',
   /** 2 decimals — South Sudanese Pound (South Sudan) */
-  | 'SSP'
+  Ssp = 'SSP',
   /** 2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe) */
-  | 'STN'
+  Stn = 'STN',
   /** 2 decimals — Salvadoran Colón (El Salvador) */
-  | 'SVC'
+  Svc = 'SVC',
   /** 2 decimals — Syrian Pound (Syria) */
-  | 'SYP'
+  Syp = 'SYP',
   /** 2 decimals — Eswatini Lilangeni (Eswatini) */
-  | 'SZL'
+  Szl = 'SZL',
   /** 2 decimals — Thai Baht (Thailand) */
-  | 'THB'
+  Thb = 'THB',
   /** 2 decimals — Tajikistani Somoni (Tajikistan) */
-  | 'TJS'
+  Tjs = 'TJS',
   /** 2 decimals — Turkmenistani Manat (Turkmenistan) */
-  | 'TMT'
+  Tmt = 'TMT',
   /** 2 decimals — Tunisian Dinar (Tunisia) */
-  | 'TND'
+  Tnd = 'TND',
   /** 2 decimals — Tongan Paʻanga (Tonga) */
-  | 'TOP'
+  Top = 'TOP',
   /** 2 decimals — Turkish Lira (Türkiye) */
-  | 'TRY'
+  Try = 'TRY',
   /** 2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago) */
-  | 'TTD'
+  Ttd = 'TTD',
   /** 2 decimals — New Taiwan Dollar (Taiwan) */
-  | 'TWD'
+  Twd = 'TWD',
   /** 0 decimals — Tanzanian Shilling (Tanzania) */
-  | 'TZS'
+  Tzs = 'TZS',
   /** 2 decimals — Ukrainian Hryvnia (Ukraine) */
-  | 'UAH'
+  Uah = 'UAH',
   /** 2 decimals — Ugandan Shilling (Uganda) */
-  | 'UGX'
+  Ugx = 'UGX',
   /** 2 decimals — United States Dollar (United States) */
-  | 'USD'
+  Usd = 'USD',
   /** 2 decimals — Uruguayan Peso (Uruguay) */
-  | 'UYU'
+  Uyu = 'UYU',
   /** 2 decimals — Uzbekistan Som (Uzbekistan) */
-  | 'UZS'
+  Uzs = 'UZS',
   /** 2 decimals — Venezuelan Bolívar (Venezuela) */
-  | 'VES'
+  Ves = 'VES',
   /** 0 decimals — Vietnamese Dong (Vietnam) */
-  | 'VND'
+  Vnd = 'VND',
   /** 2 decimals — Vanuatu Vatu (Vanuatu) */
-  | 'VUV'
+  Vuv = 'VUV',
   /** 2 decimals — Samoan Tala (Samoa) */
-  | 'WST'
+  Wst = 'WST',
   /** 2 decimals — Central African CFA Franc (CEMAC) */
-  | 'XAF'
+  Xaf = 'XAF',
   /** 0 decimals — East Caribbean Dollar (OECS) */
-  | 'XCD'
+  Xcd = 'XCD',
   /** 0 decimals — Special Drawing Rights (IMF) */
-  | 'XDR'
+  Xdr = 'XDR',
   /** 0 decimals — West African CFA Franc (UEMOA) */
-  | 'XOF'
+  Xof = 'XOF',
   /** 0 decimals — CFP Franc (French overseas territories) */
-  | 'XPF'
+  Xpf = 'XPF',
   /** 2 decimals — Yemeni Rial (Yemen) */
-  | 'YER'
+  Yer = 'YER',
   /** 2 decimals — South African Rand (South Africa) */
-  | 'ZAR'
+  Zar = 'ZAR',
   /** 2 decimals — Zambian Kwacha (Zambia) */
-  | 'ZMW'
+  Zmw = 'ZMW',
   /** 2 decimals — Zimbabwean Dollar (Zimbabwe) */
-  | 'ZWL';
+  Zwl = 'ZWL'
+}
 
 export type ApiCustomer = {
   __typename?: 'Customer';
@@ -829,12 +831,13 @@ export type ApiOrderCancelInput = {
   reason: ApiOrderCancelReason;
 };
 
-export type ApiOrderCancelReason =
-  | 'CUSTOMER'
-  | 'FRAUD'
-  | 'INVENTORY'
-  | 'OTHER'
-  | 'STAFF';
+export enum ApiOrderCancelReason {
+  Customer = 'CUSTOMER',
+  Fraud = 'FRAUD',
+  Inventory = 'INVENTORY',
+  Other = 'OTHER',
+  Staff = 'STAFF'
+}
 
 export type ApiOrderCloseInput = {
   comment: InputMaybe<Scalars['String']['input']>;
@@ -887,8 +890,9 @@ export type ApiOrderEvent = {
   performedBy: ApiOrderActor;
 };
 
-export type ApiOrderEventType =
-  | 'ORDER_CREATED';
+export enum ApiOrderEventType {
+  OrderCreated = 'ORDER_CREATED'
+}
 
 export type ApiOrderLine = {
   __typename?: 'OrderLine';
@@ -950,11 +954,12 @@ export type ApiOrderQueryOrdersArgs = {
   input: InputMaybe<ApiOrdersInput>;
 };
 
-export type ApiOrderStatus =
-  | 'ACTIVE'
-  | 'CANCELLED'
-  | 'CLOSED'
-  | 'DRAFT';
+export enum ApiOrderStatus {
+  Active = 'ACTIVE',
+  Cancelled = 'CANCELLED',
+  Closed = 'CLOSED',
+  Draft = 'DRAFT'
+}
 
 export type ApiOrdersInput = {
   order: InputMaybe<Scalars['String']['input']>;
@@ -1004,11 +1009,12 @@ export type ApiWeight = {
   weight: Scalars['Float']['output'];
 };
 
-export type ApiWeightUnit =
-  | 'GR'
-  | 'KG'
-  | 'LB'
-  | 'OZ';
+export enum ApiWeightUnit {
+  Gr = 'GR',
+  Kg = 'KG',
+  Lb = 'LB',
+  Oz = 'OZ'
+}
 
 export type Api_Entity = ApiApiKey | ApiCustomer | ApiLabel | ApiTag | ApiUser;
 
@@ -1017,11 +1023,12 @@ export type Api_Service = {
   sdl: Maybe<Scalars['String']['output']>;
 };
 
-export type ApiLink__Purpose =
+export enum ApiLink__Purpose {
   /** `EXECUTION` features provide metadata necessary for operation execution. */
-  | 'EXECUTION'
+  Execution = 'EXECUTION',
   /** `SECURITY` features provide metadata necessary to securely resolve fields. */
-  | 'SECURITY';
+  Security = 'SECURITY'
+}
 
 
 

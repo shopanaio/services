@@ -50,6 +50,10 @@ const DecimalScalar = new GraphQLScalarType({
   description:
     "Decimal represented as integer amount and scale internally; serialized as normalized string",
   serialize(value: unknown): string | null {
+    // If we were passed a string already - return it as is
+    if (typeof value === "string") {
+      return value;
+    }
     // If we were passed Money already - use its conversion
     if (value instanceof Money) {
       return value.toRoundedUnit();

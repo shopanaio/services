@@ -1,5 +1,5 @@
-import type {
-  ApiOrder,
+import {
+  type ApiOrder,
   ApiOrderStatus,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { OrderReadView } from "@src/application/read/orderReadRepository";
@@ -10,7 +10,13 @@ import { mapOrderLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper
  * Maps Order read-model snapshot to GraphQL ApiOrder type.
  */
 export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
-  return {
+  if (!Object.values(ApiOrderStatus).includes(read.status as ApiOrderStatus)) {
+    console.warn(
+      `Invalid order status "${read.status}" for order ${read.id}, defaulting to DRAFT`
+    );
+  }
+
+  const api = {
     id: read.id,
     status: read.status as ApiOrderStatus,
     number: read.number,
@@ -23,4 +29,6 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
     },
     lines: read.lineItems.map(mapOrderLineReadToApi),
   };
+
+  return api;
 }
