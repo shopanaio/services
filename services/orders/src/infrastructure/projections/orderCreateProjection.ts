@@ -6,6 +6,7 @@ import { knex } from "@src/infrastructure/db/knex";
 import { Money } from "@shopana/shared-money";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
 import { consumeOrderCreateProjectionContext } from "@src/application/usecases/orderCreateProjectionContext";
+import { App } from "@src/ioc/container";
 
 type OrderCreatedEvent = Event & {
   type: "order.created";
@@ -39,8 +40,9 @@ const uuidArray = (ids: readonly string[]) =>
  * Inline projection: materialize order row, items, delivery groups and applied discounts.
  */
 export const orderCreateProjection =
-  postgreSQLRawBatchSQLProjection<OrderCreatedEvent>(async (events) => {
+  postgreSQLRawBatchSQLProjection<OrderCreatedEvent>(async (events, context) => {
     const sqls: ReturnType<typeof rawSql>[] = [];
+    const { orderNumberRepository } = App.getInstance();
 
     for (const event of events) {
       const statements: ReturnType<typeof rawSql>[] = [];
@@ -48,6 +50,9 @@ export const orderCreateProjection =
       const projectId = event.metadata.projectId;
       const orderId = event.metadata.aggregateId;
       const projectionContext = consumeOrderCreateProjectionContext(orderId);
+      const orderNumber = await orderNumberRepository.reserve(projectId, {
+        executor: context.execute,
+      });
 
       // Insert order head
       const insertOrderSql = knex

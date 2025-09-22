@@ -15,7 +15,15 @@ export class OrderNumberRepository implements OrderNumberPort {
     this.execute = executor;
   }
 
-  async reserve(projectId: string): Promise<number> {
+  /**
+   * Reserves the next sequential order number for the provided project.
+   * Allows overriding the SQL executor to share a transaction context.
+   */
+  async reserve(
+    projectId: string,
+    options?: { executor?: SQLExecutor }
+  ): Promise<number> {
+    const executor = options?.executor ?? this.execute;
     const query = knex
       .withSchema("platform")
       .table("order_number_counters")
@@ -31,7 +39,7 @@ export class OrderNumberRepository implements OrderNumberPort {
       .returning("last_number")
       .toString();
 
-    const result = await this.execute.query<ReserveRow>(rawSql(query));
+    const result = await executor.query<ReserveRow>(rawSql(query));
     const row = result.rows[0];
     if (!row) {
       throw new Error(`Failed to reserve order number for project ${projectId}`);
