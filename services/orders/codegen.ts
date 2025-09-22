@@ -8,6 +8,7 @@ const config: CodegenConfig = {
       config: {
         typesPrefix: "Api",
         useIndexSignature: false,
+        enumPrefix: "Api",
         contextType: "@src/interfaces/gql-admin-api/context.js#GraphQLContext",
         scalars: {
           Email: "string",
@@ -15,7 +16,7 @@ const config: CodegenConfig = {
           JSON: "unknown",
           CurrencyCode: "string",
         },
-        enumsAsTypes: true,
+        enumsAsTypes: false,
         avoidOptionals: true,
       },
     },
@@ -25,6 +26,7 @@ const config: CodegenConfig = {
       config: {
         typesPrefix: "Api",
         useIndexSignature: false,
+        enumPrefix: "Api",
         contextType:
           "@src/interfaces/gql-storefront-api/context.js#GraphQLContext",
         scalars: {
@@ -35,7 +37,7 @@ const config: CodegenConfig = {
           JSON: "unknown",
           CurrencyCode: "string",
         },
-        enumsAsTypes: true,
+        enumsAsTypes: false,
         avoidOptionals: true,
       },
     },
