@@ -3952,10 +3952,12 @@ type ProductVariant implements Node
 
 union Purchasable
   @join__type(graph: CHECKOUT)
+  @join__type(graph: CORE)
   @join__type(graph: ORDERS)
   @join__unionMember(graph: CHECKOUT, member: "PurchasableSnapshot")
   @join__unionMember(graph: ORDERS, member: "PurchasableSnapshot")
- = PurchasableSnapshot
+  @join__unionMember(graph: CORE, member: "ProductVariant")
+ = PurchasableSnapshot | ProductVariant
 
 type PurchasableSnapshot
   @join__type(graph: CHECKOUT)
