@@ -41,7 +41,7 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     const id = uuidv7();
     const streamId = this.streamNames.buildOrderStreamNameFromId(id);
 
-    // Получаем полный агрегат Checkout через checkout-api и превращаем в снапшот
+    // Get full checkout aggregate through checkout-api and convert to snapshot
     const checkoutAggregate: Checkout = await this.checkoutApi.getById(
       businessInput.checkoutId,
       project.id
@@ -246,7 +246,6 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
           price: l.cost.unitPrice,
           title: l.title,
           compareAtPrice: l.cost.compareAtUnitPrice ?? null,
-          // PII/UGC trimmed: no title/imageUrl/snapshot
           sku: l.sku ?? null,
         },
       })),

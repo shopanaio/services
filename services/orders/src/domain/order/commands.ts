@@ -16,6 +16,7 @@ export type OrderCommandMetadata = DefaultCommandMetadata & {
 
 export const OrderCommandTypes = {
   Create: "order.create",
+  AddComment: "order.comment.add",
 } as const;
 
 export type CreateOrderCommand = CreateCommandType<
@@ -24,4 +25,12 @@ export type CreateOrderCommand = CreateCommandType<
   OrderCommandMetadata
 >;
 
-export type OrderCommand = CreateOrderCommand;
+export type AddOrderCommentCommand = CreateCommandType<
+  typeof OrderCommandTypes.AddComment,
+  {
+    comment: string;
+  },
+  OrderCommandMetadata
+>;
+
+export type OrderCommand = CreateOrderCommand | AddOrderCommentCommand;

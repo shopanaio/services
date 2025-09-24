@@ -1,5 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { OrderContext } from "@src/context/index.js";
+import type { AddOrderCommentCommand } from "@src/domain/order/commands";
 
 export interface AddOrderCommentInput {
   orderId: string;
@@ -30,12 +31,11 @@ export class AddOrderCommentUseCase extends UseCase<
       this.validateOrderExists(streamExists);
       this.validateTenantAccess(state, context);
 
-      // TODO: Create and implement AddOrderCommentCommand in domain layer
-      // const command: AddOrderCommentCommand = {
-      //   type: "order.comment.add",
-      //   data: { comment },
-      //   metadata: this.createCommandMetadata(orderId, context),
-      // };
+      const command: AddOrderCommentCommand = {
+        type: "order.comment.add",
+        data: { comment },
+        metadata: this.createCommandMetadata(orderId, context),
+      };
 
       // TODO: Use order decider to process command and generate events
       // const events = orderDecider.decide(command, state);
