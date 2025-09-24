@@ -10,7 +10,8 @@
         "Start Inventory Service",
         "Start Pricing Service",
         "Start Shipping Service",
-        "Start Platform Service"
+        "Start Platform Service",
+        "Start Orders Service",
       ],
       "group": {
         "kind": "build",
@@ -132,6 +133,27 @@
       "label": "Start Platform Service",
       "type": "shell",
       "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/platform && echo 'Starting Platform Service...' && yarn dev:watch",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Orders Service",
+      "type": "shell",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/orders && echo 'Starting Orders Service...' && yarn dev:watch",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
