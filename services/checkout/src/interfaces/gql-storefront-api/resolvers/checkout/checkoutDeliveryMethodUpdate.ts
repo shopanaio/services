@@ -8,6 +8,10 @@ import { CheckoutDeliveryMethodUpdateInput } from "@src/application/dto/checkout
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import {
+  decodeCheckoutDeliveryGroupId,
+  decodeCheckoutId,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
@@ -22,16 +26,18 @@ export const checkoutDeliveryMethodUpdate = async (
   const dto = createValidated(CheckoutDeliveryMethodUpdateInput, args.input);
 
   try {
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
+
     await checkoutUsecase.updateDeliveryGroupMethod.execute({
-      deliveryGroupId: dto.deliveryGroupId,
+      deliveryGroupId: decodeCheckoutDeliveryGroupId(dto.deliveryGroupId),
       deliveryMethodCode: dto.shippingMethodCode,
-      checkoutId: dto.checkoutId,
+      checkoutId,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
+    const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;
     }

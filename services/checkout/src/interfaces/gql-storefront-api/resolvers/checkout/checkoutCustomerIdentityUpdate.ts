@@ -8,6 +8,10 @@ import { CheckoutCustomerIdentityUpdateInput } from "@src/application/dto/checko
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import {
+  decodeCheckoutId,
+  decodeUserId,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutCustomerIdentityUpdate(input: CheckoutCustomerIdentityUpdateInput!): Checkout!
@@ -25,11 +29,16 @@ export const checkoutCustomerIdentityUpdate = async (
   );
 
   try {
-    const checkoutId =
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
+    const customerId = dto.customerId
+      ? decodeUserId(dto.customerId)
+      : null;
+
+    const updatedCheckoutId =
       await checkoutUsecase.updateCustomerIdentity.execute({
-        checkoutId: dto.checkoutId,
+        checkoutId,
         email: dto.email,
-        customerId: dto.customerId,
+        customerId,
         phone: dto.phone,
         countryCode: dto.countryCode,
         apiKey: ctx.apiKey,
@@ -37,7 +46,7 @@ export const checkoutCustomerIdentityUpdate = async (
         customer: ctx.customer,
         user: ctx.user,
       });
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
     if (!checkout) {
       return null;
     }

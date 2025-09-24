@@ -8,6 +8,10 @@ import { CheckoutLinesUpdateDto } from "@src/application/dto/checkoutLinesUpdate
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import {
+  decodeCheckoutId,
+  decodeCheckoutLineId,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
@@ -22,18 +26,21 @@ export const checkoutLinesUpdate = async (
   const dto = createValidated(CheckoutLinesUpdateDto, args.input);
 
   try {
-    const checkoutId = await checkoutUsecase.updateCheckoutLines.execute({
-      checkoutId: dto.checkoutId,
-      lines: dto.lines.map((l) => ({
-        lineId: l.lineId,
-        quantity: l.quantity,
-      })),
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
+    const lines = dto.lines.map((line) => ({
+      lineId: decodeCheckoutLineId(line.lineId),
+      quantity: line.quantity,
+    }));
+
+    const updatedCheckoutId = await checkoutUsecase.updateCheckoutLines.execute({
+      checkoutId,
+      lines,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
     if (!checkout) {
       return null;
     }

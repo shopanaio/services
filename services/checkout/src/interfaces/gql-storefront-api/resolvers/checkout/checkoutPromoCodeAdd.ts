@@ -8,6 +8,7 @@ import { CheckoutPromoCodeAddDto } from "@src/application/dto/checkoutPromoCodes
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import { decodeCheckoutId } from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
@@ -22,15 +23,17 @@ export const checkoutPromoCodeAdd = async (
   const dto = createValidated(CheckoutPromoCodeAddDto, args.input);
 
   try {
-    const checkoutId = await checkoutUsecase.addPromoCode.execute({
-      checkoutId: dto.checkoutId,
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
+
+    const updatedCheckoutId = await checkoutUsecase.addPromoCode.execute({
+      checkoutId,
       code: dto.code,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
     if (!checkout) {
       return null;
     }

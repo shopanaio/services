@@ -8,6 +8,7 @@ import { CreateCheckoutDto } from "@src/application/dto/createCheckout.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import { decodeProductVariantId } from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutCreate(input: CheckoutCreateInput!): Checkout!
@@ -28,6 +29,10 @@ export const checkoutCreate = async (
   const dto = createValidated(CreateCheckoutDto, input);
 
   try {
+    dto.items.forEach((item) => {
+      decodeProductVariantId(item.purchasableId);
+    });
+
     const projectId = ctx.project.id;
 
     const hit = await idempotencyRepository.get(projectId, dto.idempotency);

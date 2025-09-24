@@ -8,6 +8,10 @@ import { CheckoutDeliveryAddressesUpdateDto } from "@src/application/dto/checkou
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import {
+  decodeCheckoutDeliveryAddressId,
+  decodeCheckoutId,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutDeliveryAddressesUpdate(input: CheckoutDeliveryAddressesUpdateInput!): Checkout!
@@ -22,12 +26,13 @@ export const checkoutDeliveryAddressesUpdate = async (
   const dto = createValidated(CheckoutDeliveryAddressesUpdateDto, args.input);
 
   try {
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
 
     // Updating each delivery address
     for (const updateItem of dto.updates) {
       await checkoutUsecase.updateDeliveryAddress.execute({
-        checkoutId: dto.checkoutId,
-        addressId: updateItem.addressId,
+        checkoutId,
+        addressId: decodeCheckoutDeliveryAddressId(updateItem.addressId),
         address1: updateItem.address.address1,
         address2: updateItem.address.address2,
         city: updateItem.address.city,
@@ -46,7 +51,7 @@ export const checkoutDeliveryAddressesUpdate = async (
       });
     }
 
-    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
+    const checkout = await checkoutReadRepository.findById(checkoutId);
     if (!checkout) {
       return null;
     }

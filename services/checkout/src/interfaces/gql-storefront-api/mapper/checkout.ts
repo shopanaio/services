@@ -2,11 +2,17 @@ import type { ApiCheckout } from "@src/interfaces/gql-storefront-api/types";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import type { CheckoutReadView } from "@src/application/read/checkoutReadRepository";
 import { mapCheckoutLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkoutLine";
+import {
+  encodeCheckoutDeliveryAddressId,
+  encodeCheckoutDeliveryGroupId,
+  encodeCheckoutId,
+  encodeUserId,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
   return {
     __typename: "Checkout",
-    id: read.id,
+    id: encodeCheckoutId(read.id),
     createdAt: read.createdAt.toISOString(),
     updatedAt: read.updatedAt.toISOString(),
     totalQuantity: read.totalQuantity,
@@ -16,7 +22,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
       __typename: "CheckoutCustomerIdentity" as const,
       countryCode: read.customerCountryCode,
       /** Customer is being resolved by another subgraph */
-      customer: read.customerId ? { id: read.customerId } : null,
+      customer: read.customerId ? { id: encodeUserId(read.customerId) } : null,
       email: read.customerEmail,
       phone: read.customerPhoneE164,
     },
@@ -69,14 +75,14 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
 
       return {
         __typename: "CheckoutDeliveryGroup" as const,
-        id: group.id,
+        id: encodeCheckoutDeliveryGroupId(group.id),
         checkoutLines: read.lineItems
           .filter((l) => group.lineItemIds.includes(l.id))
           .map(mapCheckoutLineReadToApi),
         deliveryAddress: deliveryAddress
           ? {
               __typename: "CheckoutDeliveryAddress" as const,
-              id: deliveryAddress.id,
+              id: encodeCheckoutDeliveryAddressId(deliveryAddress.id),
               address1: deliveryAddress.address1,
               address2: deliveryAddress.address2,
               city: deliveryAddress.city,

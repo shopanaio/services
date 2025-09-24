@@ -8,6 +8,10 @@ import { CheckoutLinesDeleteDto } from "@src/application/dto/checkoutLinesDelete
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import {
+  decodeCheckoutId,
+  decodeCheckoutLineId,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
@@ -22,15 +26,20 @@ export const checkoutLinesDelete = async (
   const dto = createValidated(CheckoutLinesDeleteDto, args.input);
 
   try {
-    const checkoutId = await checkoutUsecase.deleteCheckoutLines.execute({
-      checkoutId: dto.checkoutId,
-      lineIds: dto.lineIds,
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
+    const lineIds = dto.lineIds.map((lineId) =>
+      decodeCheckoutLineId(lineId),
+    );
+
+    const updatedCheckoutId = await checkoutUsecase.deleteCheckoutLines.execute({
+      checkoutId,
+      lineIds,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
     if (!checkout) {
       return null;
     }

@@ -8,6 +8,7 @@ import { CheckoutCurrencyCodeUpdateInput } from "@src/application/dto/checkoutCu
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import { decodeCheckoutId } from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
@@ -22,15 +23,17 @@ export const checkoutCurrencyCodeUpdate = async (
   const dto = createValidated(CheckoutCurrencyCodeUpdateInput, args.input);
 
   try {
-    const checkoutId = await checkoutUsecase.updateCurrencyCode.execute({
-      checkoutId: dto.checkoutId,
+    const checkoutId = decodeCheckoutId(dto.checkoutId);
+
+    const updatedCheckoutId = await checkoutUsecase.updateCurrencyCode.execute({
+      checkoutId,
       currencyCode: dto.currencyCode,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
     if (!checkout) {
       return null;
     }
