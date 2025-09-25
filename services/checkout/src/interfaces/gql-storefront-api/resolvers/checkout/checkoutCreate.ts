@@ -16,7 +16,7 @@ import { createValidated } from "@src/utils/validation";
 export const checkoutCreate = async (
   _parent: ApiCheckoutMutation,
   args: ApiCheckoutMutationCheckoutCreateArgs,
-  ctx: GraphQLContext,
+  ctx: GraphQLContext
 ) => {
   const app = App.getInstance();
   const {
@@ -53,6 +53,22 @@ export const checkoutCreate = async (
       customer: ctx.customer,
       user: ctx.user,
     });
+
+    // If items were provided and checkout was created, add them to the checkout
+    if (dto.items && dto.items.length > 0) {
+      await checkoutUsecase.addCheckoutLines.execute({
+        checkoutId: id,
+        lines: dto.items.map((item) => ({
+          purchasableId: item.purchasableId,
+          quantity: item.quantity,
+          purchasableSnapshot: item.purchasableSnapshot ?? null,
+        })),
+        apiKey: ctx.apiKey,
+        project: ctx.project,
+        customer: ctx.customer,
+        user: ctx.user,
+      });
+    }
 
     const checkout = await checkoutReadRepository.findById(id);
     if (!checkout) {
