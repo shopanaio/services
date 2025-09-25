@@ -8,6 +8,7 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
+import { IsGlobalId } from "@shopana/shared-graphql-guid";
 
 /**
  * Snapshot of purchasable data used when adding lines to an order.
@@ -60,7 +61,6 @@ export class OrderLineInputDto {
  */
 export class CreateOrderDto {
   @Expose()
-  @IsString()
-  @IsNotEmpty()
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 }

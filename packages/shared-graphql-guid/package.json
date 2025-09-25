@@ -11,7 +11,10 @@
     "dev": "tsc -p tsconfig.json --watch",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsc-alias": "^1.8.10",

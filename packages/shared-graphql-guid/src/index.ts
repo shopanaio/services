@@ -96,3 +96,9 @@ export enum GlobalIdEntity {
  * Type representing any valid Global ID entity type
  */
 export type GlobalIdType = (typeof GlobalIdEntity)[keyof typeof GlobalIdEntity];
+
+// Export codec functions
+export { encodeGlobalIdByType, decodeGlobalIdByType } from './idCodec.js';
+
+// Export validators
+export { IsGlobalId, IsGlobalIdArray } from './validators.js';
