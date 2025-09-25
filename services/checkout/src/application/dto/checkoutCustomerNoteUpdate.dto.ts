@@ -1,7 +1,10 @@
-import { IsUUID, IsString, IsOptional, MinLength, MaxLength } from "class-validator";
+import { IsString, IsOptional, MinLength, MaxLength } from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class CheckoutCustomerNoteUpdateInput {
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({
+    message: "Invalid checkout ID format",
+  })
   checkoutId!: string;
 
   @IsOptional()

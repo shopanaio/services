@@ -1,7 +1,14 @@
-import { IsUUID, IsEmail, IsString, IsOptional, MinLength, Matches } from "class-validator";
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  MinLength,
+  Matches,
+} from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class CheckoutCustomerIdentityUpdateInput {
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @IsOptional()
@@ -9,8 +16,7 @@ export class CheckoutCustomerIdentityUpdateInput {
   email?: string | null;
 
   @IsOptional()
-  @IsString({ message: "Customer ID must be a string" })
-  @MinLength(1, { message: "Customer ID cannot be empty" })
+  @IsGlobalId({ message: "Invalid customer ID format" })
   customerId?: string | null;
 
   @IsOptional()
@@ -20,7 +26,9 @@ export class CheckoutCustomerIdentityUpdateInput {
 
   @IsOptional()
   @IsString({ message: "Country code must be a string" })
-  @Matches(/^[A-Z]{2}$/, { message: "Country code must be a valid 2-letter ISO code" })
+  @Matches(/^[A-Z]{2}$/, {
+    message: "Country code must be a valid 2-letter ISO code",
+  })
   countryCode?: string | null;
 
   @IsOptional()

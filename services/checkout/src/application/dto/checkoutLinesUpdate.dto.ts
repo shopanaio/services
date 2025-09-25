@@ -1,10 +1,10 @@
 import { Expose, Type } from "class-transformer";
-import { IsArray, IsInt, IsNotEmpty, IsString, Min, ValidateNested } from "class-validator";
+import { IsArray, IsInt, Min, ValidateNested } from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class CheckoutLineUpdateItemDto {
   @Expose()
-  @IsString()
-  @IsNotEmpty()
+  @IsGlobalId({ message: "Invalid checkout line ID format" })
   lineId!: string;
 
   @Expose()
@@ -15,8 +15,7 @@ export class CheckoutLineUpdateItemDto {
 
 export class CheckoutLinesUpdateDto {
   @Expose()
-  @IsString()
-  @IsNotEmpty()
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()

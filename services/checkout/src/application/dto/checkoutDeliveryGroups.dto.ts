@@ -5,19 +5,19 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
   Length,
   Matches,
   Min,
   ValidateNested,
 } from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 // Update Delivery Group Address DTO
 export class UpdateDeliveryGroupAddressDto {
-  @IsUUID()
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
-  @IsUUID()
+  @IsGlobalId({ message: "Invalid delivery group ID format" })
   deliveryGroupId!: string;
 
   @IsString()
@@ -78,10 +78,10 @@ export class ShippingCostDto {
 
 // Update Delivery Group Method DTO
 export class UpdateDeliveryGroupMethodDto {
-  @IsUUID()
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
-  @IsUUID()
+  @IsGlobalId({ message: "Invalid delivery group ID format" })
   deliveryGroupId!: string;
 
   @IsString()
@@ -120,10 +120,10 @@ export class UpdateDeliveryGroupMethodDto {
 
 // Remove Delivery Group DTO
 export class RemoveDeliveryGroupDto {
-  @IsUUID()
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
-  @IsUUID()
+  @IsGlobalId({ message: "Invalid delivery group ID format" })
   deliveryGroupId!: string;
 
   @IsOptional()

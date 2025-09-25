@@ -8,10 +8,7 @@ import { CheckoutDeliveryMethodUpdateInput } from "@src/application/dto/checkout
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import {
-  decodeCheckoutDeliveryGroupId,
-  decodeCheckoutId,
-} from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
@@ -26,18 +23,16 @@ export const checkoutDeliveryMethodUpdate = async (
   const dto = createValidated(CheckoutDeliveryMethodUpdateInput, args.input);
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
-
     await checkoutUsecase.updateDeliveryGroupMethod.execute({
-      deliveryGroupId: decodeCheckoutDeliveryGroupId(dto.deliveryGroupId),
-      deliveryMethodCode: dto.shippingMethodCode,
-      checkoutId,
+      deliveryGroupId: dto.deliveryGroupId, // Already decoded by validator
+      shippingMethodCode: dto.shippingMethodCode,
+      checkoutId: dto.checkoutId, // Already decoded by validator
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
     if (!checkout) {
       return null;
     }

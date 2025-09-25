@@ -8,7 +8,7 @@ import { CreateCheckoutDto } from "@src/application/dto/createCheckout.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import { decodeProductVariantId } from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutCreate(input: CheckoutCreateInput!): Checkout!
@@ -29,9 +29,7 @@ export const checkoutCreate = async (
   const dto = createValidated(CreateCheckoutDto, input);
 
   try {
-    dto.items.forEach((item) => {
-      decodeProductVariantId(item.purchasableId);
-    });
+    // Validation and decoding now happens in DTO validators
 
     const projectId = ctx.project.id;
 

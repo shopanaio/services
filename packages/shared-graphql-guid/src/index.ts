@@ -73,3 +73,26 @@ function decodeBase64(value: string): string {
     throw new Error(`Failed to decode Global ID: ${(error as Error).message}`);
   }
 }
+
+/**
+ * The namespace used for all Global IDs in the Shopana platform
+ */
+export const GLOBAL_ID_NAMESPACE = "shopana" as const;
+
+/**
+ * Enum defining all available Global ID entity types in the system
+ */
+export enum GlobalIdEntity {
+  Checkout = "Checkout",
+  CheckoutLine = "CheckoutLine",
+  CheckoutDeliveryGroup = "CheckoutDeliveryGroup",
+  CheckoutDeliveryAddress = "CheckoutDeliveryAddress",
+  CheckoutNotification = "CheckoutNotification",
+  User = "User",
+  ProductVariant = "ProductVariant",
+}
+
+/**
+ * Type representing any valid Global ID entity type
+ */
+export type GlobalIdType = (typeof GlobalIdEntity)[keyof typeof GlobalIdEntity];

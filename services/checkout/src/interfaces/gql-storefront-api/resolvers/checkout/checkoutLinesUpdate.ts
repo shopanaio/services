@@ -8,10 +8,7 @@ import { CheckoutLinesUpdateDto } from "@src/application/dto/checkoutLinesUpdate
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import {
-  decodeCheckoutId,
-  decodeCheckoutLineId,
-} from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
@@ -26,14 +23,13 @@ export const checkoutLinesUpdate = async (
   const dto = createValidated(CheckoutLinesUpdateDto, args.input);
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
     const lines = dto.lines.map((line) => ({
-      lineId: decodeCheckoutLineId(line.lineId),
+      lineId: line.lineId, // Already decoded by validator
       quantity: line.quantity,
     }));
 
     const updatedCheckoutId = await checkoutUsecase.updateCheckoutLines.execute({
-      checkoutId,
+      checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       lines,
       apiKey: ctx.apiKey,
       project: ctx.project,

@@ -8,10 +8,7 @@ import { CheckoutDeliveryAddressesRemoveDto } from "@src/application/dto/checkou
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import {
-  decodeCheckoutDeliveryAddressId,
-  decodeCheckoutId,
-} from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutDeliveryAddressesRemove(input: CheckoutDeliveryAddressesRemoveInput!): Checkout!
@@ -26,13 +23,13 @@ export const checkoutDeliveryAddressesRemove = async (
   const dto = createValidated(CheckoutDeliveryAddressesRemoveDto, args.input);
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
+    // checkoutId already decoded by validator
 
     // Removing delivery addresses from checkout
     for (const addressId of dto.addressIds) {
       await checkoutUsecase.removeDeliveryAddress.execute({
-        checkoutId,
-        addressId: decodeCheckoutDeliveryAddressId(addressId),
+        checkoutId: dto.checkoutId, // Already decoded by validator
+        addressId: addressId, // Already decoded by validator
         apiKey: ctx.apiKey,
         project: ctx.project,
         customer: ctx.customer,
@@ -40,7 +37,7 @@ export const checkoutDeliveryAddressesRemove = async (
       });
     }
 
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
     if (!checkout) {
       return null;
     }

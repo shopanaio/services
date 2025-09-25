@@ -26,11 +26,11 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<
     }
 
     const method = group.deliveryMethods.find(
-      (m) => m.code === businessInput.deliveryMethodCode
+      (m) => m.code === businessInput.shippingMethodCode
     );
     if (!method) {
       throw new Error(
-        `Delivery method code not available: ${businessInput.deliveryMethodCode}`
+        `Delivery method code not available: ${businessInput.shippingMethodCode}`
       );
     }
 

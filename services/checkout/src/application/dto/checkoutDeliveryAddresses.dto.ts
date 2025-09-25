@@ -4,11 +4,14 @@ import {
   IsEmail,
   IsOptional,
   IsString,
-  IsUUID,
   Length,
   Matches,
   ValidateNested,
 } from "class-validator";
+import {
+  IsGlobalId,
+  IsGlobalIdArray,
+} from "@src/application/validation/globalIdValidators";
 
 /**
  * DTO for single delivery address (corresponds to CheckoutDeliveryAddressInput)
@@ -65,7 +68,9 @@ export class CheckoutDeliveryAddressInputDto {
  * DTO for adding delivery addresses (corresponds to CheckoutDeliveryAddressesAddInput)
  */
 export class CheckoutDeliveryAddressesAddDto {
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({
+    message: "Invalid checkout ID format",
+  })
   checkoutId!: string;
 
   @IsArray({ message: "Addresses must be an array" })
@@ -78,7 +83,9 @@ export class CheckoutDeliveryAddressesAddDto {
  * DTO for updating single delivery address (corresponds to CheckoutDeliveryAddressUpdateInput)
  */
 export class CheckoutDeliveryAddressUpdateDto {
-  @IsUUID(7, { message: "Invalid address ID format" })
+  @IsGlobalId({
+    message: "Invalid address ID format",
+  })
   addressId!: string;
 
   @ValidateNested()
@@ -90,7 +97,9 @@ export class CheckoutDeliveryAddressUpdateDto {
  * DTO for batch updating delivery addresses (corresponds to CheckoutDeliveryAddressesUpdateInput)
  */
 export class CheckoutDeliveryAddressesUpdateDto {
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({
+    message: "Invalid checkout ID format",
+  })
   checkoutId!: string;
 
   @IsArray({ message: "Updates must be an array" })
@@ -103,10 +112,14 @@ export class CheckoutDeliveryAddressesUpdateDto {
  * DTO for removing delivery addresses (corresponds to CheckoutDeliveryAddressesRemoveInput)
  */
 export class CheckoutDeliveryAddressesRemoveDto {
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({
+    message: "Invalid checkout ID format",
+  })
   checkoutId!: string;
 
   @IsArray({ message: "AddressIds must be an array" })
-  @IsUUID(7, { each: true, message: "Each address ID must be a valid UUID" })
+  @IsGlobalIdArray({
+    message: "Each address ID must be a valid Global ID",
+  })
   addressIds!: string[];
 }

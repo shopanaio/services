@@ -8,7 +8,7 @@ import { CheckoutDeliveryAddressesAddDto } from "@src/application/dto/checkoutDe
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import { decodeCheckoutId } from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutDeliveryAddressesAdd(input: CheckoutDeliveryAddressesAddInput!): Checkout!
@@ -23,12 +23,12 @@ export const checkoutDeliveryAddressesAdd = async (
   const dto = createValidated(CheckoutDeliveryAddressesAddDto, args.input);
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
+    // checkoutId already decoded by validator
 
     // Adding delivery addresses to checkout
     for (const addressInput of dto.addresses) {
       await checkoutUsecase.addDeliveryAddress.execute({
-        checkoutId,
+        checkoutId: dto.checkoutId, // Already decoded by validator
         address1: addressInput.address1,
         address2: addressInput.address2,
         city: addressInput.city,
@@ -47,7 +47,7 @@ export const checkoutDeliveryAddressesAdd = async (
       });
     }
 
-    const checkout = await checkoutReadRepository.findById(checkoutId);
+    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
     if (!checkout) {
       return null;
     }

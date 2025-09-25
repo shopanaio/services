@@ -1,12 +1,11 @@
 import { Expose } from "class-transformer";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 /**
  * DTO for checkoutLinesClear API. Mirrors CheckoutLinesClearInput from GraphQL schema.
  */
 export class CheckoutLinesClearDto {
   @Expose()
-  @IsString()
-  @IsNotEmpty()
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 }

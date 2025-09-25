@@ -1,7 +1,10 @@
-import { IsUUID, IsString, IsOptional, MinLength, MaxLength } from "class-validator";
+import { IsString, IsOptional, MinLength, MaxLength } from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class CheckoutDeliveryMethodUpdateInput {
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({
+    message: "Invalid checkout ID format",
+  })
   checkoutId!: string;
 
   @IsString({ message: "Shipping method code must be a string" })
@@ -9,7 +12,9 @@ export class CheckoutDeliveryMethodUpdateInput {
   @MaxLength(100, { message: "Shipping method code too long" })
   shippingMethodCode!: string;
 
-  @IsUUID(7, { message: "Invalid delivery group ID format" })
+  @IsGlobalId({
+    message: "Invalid delivery group ID format",
+  })
   deliveryGroupId!: string;
 
   @IsOptional()

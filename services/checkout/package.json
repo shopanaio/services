@@ -23,6 +23,7 @@
     "@event-driven-io/emmett-postgresql": "^0.38.5",
     "@event-driven-io/pongo": "^0.17.0-alpha.6",
     "@shopana/inventory-api": "*",
+    "@shopana/shared-graphql-guid": "0.0.1",
     "@shopana/shared-money": "0.0.1",
     "@shopana/platform-api": "0.0.1",
     "@shopana/pricing-api": "*",

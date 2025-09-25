@@ -8,10 +8,7 @@ import { CheckoutCustomerIdentityUpdateInput } from "@src/application/dto/checko
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import {
-  decodeCheckoutId,
-  decodeUserId,
-} from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutCustomerIdentityUpdate(input: CheckoutCustomerIdentityUpdateInput!): Checkout!
@@ -21,24 +18,19 @@ export const checkoutCustomerIdentityUpdate = async (
   args: ApiCheckoutMutationCheckoutCustomerIdentityUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
-  const dto = createValidated(
-    CheckoutCustomerIdentityUpdateInput,
-    args.input
-  );
+  const { checkoutUsecase, checkoutReadRepository, logger } = App.getInstance();
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
-    const customerId = dto.customerId
-      ? decodeUserId(dto.customerId)
-      : null;
+    const dto = createValidated(
+      CheckoutCustomerIdentityUpdateInput,
+      args.input
+    );
 
     const updatedCheckoutId =
       await checkoutUsecase.updateCustomerIdentity.execute({
-        checkoutId,
+        checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
         email: dto.email,
-        customerId,
+        customerId: dto.customerId, // Already decoded by validator
         phone: dto.phone,
         countryCode: dto.countryCode,
         apiKey: ctx.apiKey,
@@ -54,7 +46,7 @@ export const checkoutCustomerIdentityUpdate = async (
     return mapCheckoutReadToApi(checkout);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "customerIdentityUpdate error");
+    logger.error({ reason }, "customerIdentityUpdate error");
     throw await fromDomainError(err);
   }
 };

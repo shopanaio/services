@@ -8,7 +8,7 @@ import { CheckoutCurrencyCodeUpdateInput } from "@src/application/dto/checkoutCu
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import { decodeCheckoutId } from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
@@ -23,10 +23,8 @@ export const checkoutCurrencyCodeUpdate = async (
   const dto = createValidated(CheckoutCurrencyCodeUpdateInput, args.input);
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
-
     const updatedCheckoutId = await checkoutUsecase.updateCurrencyCode.execute({
-      checkoutId,
+      checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       currencyCode: dto.currencyCode,
       apiKey: ctx.apiKey,
       project: ctx.project,

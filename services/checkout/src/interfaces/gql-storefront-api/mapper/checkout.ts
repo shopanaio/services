@@ -1,18 +1,14 @@
-import type { ApiCheckout } from "@src/interfaces/gql-storefront-api/types";
+import type { ApiCheckout, ApiCheckoutDeliveryMethodType } from "@src/interfaces/gql-storefront-api/types";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import type { CheckoutReadView } from "@src/application/read/checkoutReadRepository";
 import { mapCheckoutLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkoutLine";
-import {
-  encodeCheckoutDeliveryAddressId,
-  encodeCheckoutDeliveryGroupId,
-  encodeCheckoutId,
-  encodeUserId,
-} from "@src/interfaces/gql-storefront-api/idCodec";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { encodeGlobalIdByType } from "@src/interfaces/gql-storefront-api/idCodec";
 
 export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
   return {
     __typename: "Checkout",
-    id: encodeCheckoutId(read.id),
+    id: encodeGlobalIdByType(read.id, GlobalIdEntity.Checkout),
     createdAt: read.createdAt.toISOString(),
     updatedAt: read.updatedAt.toISOString(),
     totalQuantity: read.totalQuantity,
@@ -22,7 +18,9 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
       __typename: "CheckoutCustomerIdentity" as const,
       countryCode: read.customerCountryCode,
       /** Customer is being resolved by another subgraph */
-      customer: read.customerId ? { id: encodeUserId(read.customerId) } : null,
+      customer: read.customerId
+        ? { id: encodeGlobalIdByType(read.customerId, GlobalIdEntity.User) }
+        : null,
       email: read.customerEmail,
       phone: read.customerPhoneE164,
     },
@@ -46,7 +44,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
     })),
     deliveryGroups: read.deliveryGroups.map((group) => {
       const deliveryAddress = read.deliveryAddresses.find(
-        (address) => address.deliveryGroupId === group.id,
+        (address) => address.deliveryGroupId === group.id
       );
 
       const groupDeliveryMethods = read.deliveryMethods
@@ -54,10 +52,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
         .map((method) => ({
           __typename: "CheckoutDeliveryMethod" as const,
           code: method.code,
-          deliveryMethodType:
-            method.deliveryMethodType === "PICKUP"
-              ? ("PICKUP" as const)
-              : ("SHIPPING" as const),
+          deliveryMethodType: method.deliveryMethodType as ApiCheckoutDeliveryMethodType,
           provider: {
             __typename: "CheckoutDeliveryProvider" as const,
             code: "unknown", // TODO: provider data not available in new schema
@@ -69,20 +64,23 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
         ? read.deliveryMethods.find(
             (method) =>
               method.deliveryGroupId === group.id &&
-              method.code === group.selectedDeliveryMethod,
+              method.code === group.selectedDeliveryMethod
           )
         : null;
 
       return {
         __typename: "CheckoutDeliveryGroup" as const,
-        id: encodeCheckoutDeliveryGroupId(group.id),
+        id: encodeGlobalIdByType(group.id, GlobalIdEntity.CheckoutDeliveryGroup),
         checkoutLines: read.lineItems
           .filter((l) => group.lineItemIds.includes(l.id))
           .map(mapCheckoutLineReadToApi),
         deliveryAddress: deliveryAddress
           ? {
               __typename: "CheckoutDeliveryAddress" as const,
-              id: encodeCheckoutDeliveryAddressId(deliveryAddress.id),
+              id: encodeGlobalIdByType(
+                deliveryAddress.id,
+                GlobalIdEntity.CheckoutDeliveryAddress
+              ),
               address1: deliveryAddress.address1,
               address2: deliveryAddress.address2,
               city: deliveryAddress.city,

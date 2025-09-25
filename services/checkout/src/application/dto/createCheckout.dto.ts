@@ -9,6 +9,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { IsISO4217 } from "@src/application/validation/decorators";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class PurchasableSnapshotInputDto {
   /** Title of the purchasable snapshot. */
@@ -41,8 +42,7 @@ export class PurchasableSnapshotInputDto {
  */
 export class CheckoutLineInputDto {
   @Expose()
-  @IsString()
-  @IsNotEmpty()
+  @IsGlobalId({ message: "Invalid purchasable ID format" })
   purchasableId!: string;
 
   @Expose()

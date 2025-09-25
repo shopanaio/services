@@ -8,7 +8,7 @@ import { CheckoutPromoCodeRemoveDto } from "@src/application/dto/checkoutPromoCo
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import { decodeCheckoutId } from "@src/interfaces/gql-storefront-api/idCodec";
+// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
@@ -23,10 +23,8 @@ export const checkoutPromoCodeRemove = async (
   const dto = createValidated(CheckoutPromoCodeRemoveDto, args.input);
 
   try {
-    const checkoutId = decodeCheckoutId(dto.checkoutId);
-
     const updatedCheckoutId = await checkoutUsecase.removePromoCode.execute({
-      checkoutId,
+      checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       code: dto.code,
       apiKey: ctx.apiKey,
       project: ctx.project,

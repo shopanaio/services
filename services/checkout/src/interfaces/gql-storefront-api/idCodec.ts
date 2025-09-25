@@ -1,18 +1,13 @@
-import { decodeGlobalId, encodeGlobalId, type GlobalId } from "@shopana/shared-graphql-guid";
+import {
+  decodeGlobalId,
+  encodeGlobalId,
+  type GlobalId,
+  GLOBAL_ID_NAMESPACE,
+  GlobalIdEntity,
+  type GlobalIdType,
+} from "@shopana/shared-graphql-guid";
 
-const GLOBAL_ID_NAMESPACE = "shopana" as const;
-
-export const GlobalIdTypes = {
-  Checkout: "Checkout",
-  CheckoutLine: "CheckoutLine",
-  CheckoutDeliveryGroup: "CheckoutDeliveryGroup",
-  CheckoutDeliveryAddress: "CheckoutDeliveryAddress",
-  CheckoutNotification: "CheckoutNotification",
-  User: "User",
-  ProductVariant: "ProductVariant",
-} as const;
-
-export type GlobalIdType = (typeof GlobalIdTypes)[keyof typeof GlobalIdTypes];
+export { GlobalIdEntity, type GlobalIdType };
 
 interface DecodedGlobalId extends GlobalId {
   typeName: GlobalIdType | string;
@@ -30,16 +25,16 @@ function decode(globalId: string): DecodedGlobalId {
 
 function ensureType(
   decoded: DecodedGlobalId,
-  expectedTypes: readonly GlobalIdType[],
+  expectedTypes: readonly GlobalIdType[]
 ): DecodedGlobalId {
   if (expectedTypes.length > 0) {
-    const matchesType = expectedTypes.some(
-      (type) => decoded.typeName === type,
-    );
+    const matchesType = expectedTypes.some((type) => decoded.typeName === type);
 
     if (!matchesType) {
       throw new Error(
-        `Unexpected Global ID type: ${decoded.typeName}. Expected one of: ${expectedTypes.join(", ")}`,
+        `Unexpected Global ID type: ${
+          decoded.typeName
+        }. Expected one of: ${expectedTypes.join(", ")}`
       );
     }
   }
@@ -56,58 +51,43 @@ function decodeId(globalId: string, ...types: GlobalIdType[]): string {
   return decoded.id;
 }
 
-export function encodeCheckoutId(id: string): string {
-  return encode(GlobalIdTypes.Checkout, id);
+/**
+ * Universal function to encode any Global ID type
+ *
+ * @param id - The UUID to encode
+ * @param type - The Global ID type from GlobalIdEntity
+ *
+ * @example
+ * ```typescript
+ * const checkoutGlobalId = encodeGlobalIdByType(checkoutUuid, GlobalIdEntity.Checkout);
+ * const userGlobalId = encodeGlobalIdByType(userUuid, GlobalIdEntity.User);
+ * ```
+ */
+export function encodeGlobalIdByType(id: string, type: GlobalIdType): string {
+  return encode(type, id);
 }
 
-export function decodeCheckoutId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.Checkout);
-}
-
-export function encodeCheckoutLineId(id: string): string {
-  return encode(GlobalIdTypes.CheckoutLine, id);
-}
-
-export function decodeCheckoutLineId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.CheckoutLine);
-}
-
-export function encodeCheckoutDeliveryGroupId(id: string): string {
-  return encode(GlobalIdTypes.CheckoutDeliveryGroup, id);
-}
-
-export function decodeCheckoutDeliveryGroupId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.CheckoutDeliveryGroup);
-}
-
-export function encodeCheckoutDeliveryAddressId(id: string): string {
-  return encode(GlobalIdTypes.CheckoutDeliveryAddress, id);
-}
-
-export function decodeCheckoutDeliveryAddressId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.CheckoutDeliveryAddress);
-}
-
-export function encodeCheckoutNotificationId(id: string): string {
-  return encode(GlobalIdTypes.CheckoutNotification, id);
-}
-
-export function decodeCheckoutNotificationId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.CheckoutNotification);
-}
-
-export function encodeUserId(id: string): string {
-  return encode(GlobalIdTypes.User, id);
-}
-
-export function decodeUserId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.User);
-}
-
-export function encodeProductVariantId(id: string): string {
-  return encode(GlobalIdTypes.ProductVariant, id);
-}
-
-export function decodeProductVariantId(globalId: string): string {
-  return decodeId(globalId, GlobalIdTypes.ProductVariant);
+/**
+ * Universal function to decode any Global ID type
+ *
+ * @param globalId - The base64 Global ID to decode
+ * @param expectedType - Optional expected type. If provided, validates the type matches.
+ *
+ * @example
+ * ```typescript
+ * const checkoutUuid = decodeGlobalIdByType(globalId, GlobalIdEntity.Checkout);
+ * const anyUuid = decodeGlobalIdByType(globalId); // Any valid type
+ * ```
+ */
+export function decodeGlobalIdByType(
+  globalId: string,
+  expectedType?: GlobalIdType
+): string {
+  if (expectedType) {
+    return decodeId(globalId, expectedType);
+  } else {
+    // Decode without type validation - any valid Global ID type
+    const decoded = decode(globalId);
+    return decoded.id;
+  }
 }

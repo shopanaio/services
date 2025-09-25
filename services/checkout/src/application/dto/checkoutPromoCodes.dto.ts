@@ -1,12 +1,19 @@
 import { Expose } from "class-transformer";
-import { IsString, IsNotEmpty, IsUUID, IsOptional, MinLength, MaxLength } from "class-validator";
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  MinLength,
+  MaxLength,
+} from "class-validator";
+import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 /**
  * DTO for checkoutPromoCodeAdd API.
  */
 export class CheckoutPromoCodeAddDto {
   @Expose()
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
@@ -27,7 +34,7 @@ export class CheckoutPromoCodeAddDto {
  */
 export class CheckoutPromoCodeRemoveDto {
   @Expose()
-  @IsUUID(7, { message: "Invalid checkout ID format" })
+  @IsGlobalId({ message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
