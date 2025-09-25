@@ -88,6 +88,9 @@ export enum GlobalIdEntity {
   CheckoutDeliveryGroup = "CheckoutDeliveryGroup",
   CheckoutDeliveryAddress = "CheckoutDeliveryAddress",
   CheckoutNotification = "CheckoutNotification",
+  Order = "Order",
+  OrderLine = "OrderLine",
+  OrderDeliveryAddress = "OrderDeliveryAddress",
   User = "User",
   ProductVariant = "ProductVariant",
 }

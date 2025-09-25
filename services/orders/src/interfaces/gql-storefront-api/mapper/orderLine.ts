@@ -2,6 +2,7 @@ import type { ApiOrderLine } from "@src/interfaces/gql-storefront-api/types";
 import type { OrderLineItemReadView } from "@src/application/read/orderLineItemsReadRepository";
 import { Money } from "@shopana/shared-money";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * Maps Order line read model to GraphQL representation.
@@ -13,11 +14,11 @@ export function mapOrderLineReadToApi(
 
   return {
     __typename: "OrderLine" as const,
-    id: read.id,
+    id: encodeGlobalIdByType(read.id, GlobalIdEntity.OrderLine),
     quantity: read.quantity,
     createdAt: read.createdAt.toISOString(),
     updatedAt: read.updatedAt.toISOString(),
-    purchasableId: read.unit.id,
+    purchasableId: encodeGlobalIdByType(read.unit.id, GlobalIdEntity.ProductVariant),
     purchasable: {
       __typename: "PurchasableSnapshot" as const,
       snapshot: read.unit.snapshot ?? {},

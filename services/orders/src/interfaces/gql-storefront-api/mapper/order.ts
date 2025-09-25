@@ -5,6 +5,7 @@ import {
 import type { OrderReadView } from "@src/application/read/orderReadRepository";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import { mapOrderLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/orderLine";
+import { encodeGlobalIdByType, GlobalIdEntity } from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * Maps Order read-model snapshot to GraphQL ApiOrder type.
@@ -20,7 +21,7 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
 
   console.log('read.status', read.status);
   const api = {
-    id: read.id,
+    id: encodeGlobalIdByType(read.id, GlobalIdEntity.Order),
     status: read.status as ApiOrderStatus,
     number: read.number,
     cost: {
