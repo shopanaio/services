@@ -63,6 +63,7 @@ export class MeestExpressProvider implements ShippingProvider {
         paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
         flow: PaymentFlow.ON_DELIVERY,
         metadata: { instrument: "CASH" },
+        constraints: { shippingProvider: "meest" },
       },
       {
         code: "cod_card",
@@ -72,6 +73,7 @@ export class MeestExpressProvider implements ShippingProvider {
         paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
         flow: PaymentFlow.ON_DELIVERY,
         metadata: { instrument: "CARD" },
+        constraints: { shippingProvider: "meest" },
       },
     ];
   }

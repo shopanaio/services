@@ -20,4 +20,13 @@ export type GraphQLContext = {
   project: CoreProject;
   user?: CoreUser | null;
   customer?: CoreCustomer | null;
+  /**
+   * Client IP address (as seen by Fastify), if available.
+   */
+  ip?: string;
+  /**
+   * Request headers snapshot passed to resolvers for idempotency hashing.
+   * Only safe headers exposed by server layer.
+   */
+  headers?: Record<string, string | string[] | undefined>;
 };

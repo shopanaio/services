@@ -2,10 +2,6 @@ import { CheckoutUsecase } from "@src/application/checkout/checkoutUsecase";
 import { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
 import { dumboPool } from "@src/infrastructure/db/dumbo";
 import { createLogger } from "@src/infrastructure/logger/pino";
-import type { EventStorePort } from "@src/application/ports/eventStorePort";
-import { EmmetPostgresqlEventStoreAdapter } from "@src/infrastructure/eventStore/emmetPostgresqlAdapter";
-import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort";
-import { StreamNamePolicyAdapter } from "@src/infrastructure/eventStore/streamNamePolicyAdapter";
 import { CheckoutReadRepository as InfraCheckoutReadRepository } from "@src/infrastructure/readModel/checkoutReadRepository";
 import { CheckoutLineItemsReadRepositoryPort } from "@src/infrastructure/readModel/checkoutLineItemsReadRepository";
 import { CheckoutLineItemsReadRepository } from "@src/application/read/checkoutLineItemsReadRepository";
@@ -15,6 +11,7 @@ import { PricingClient } from "@shopana/pricing-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import type { ServiceBroker } from "moleculer";
 import { InventoryClient } from "@shopana/inventory-api";
+import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
 
 export class App {
   private static instance: App | null = null;
@@ -26,12 +23,13 @@ export class App {
   public shippingClient!: ShippingClient;
   public pricingClient!: PricingClient;
 
-  public eventStore!: EventStorePort;
-  public streamNames!: StreamNamePolicyPort;
+  public eventStore!: any;
+  public streamNames!: any;
   public idempotencyRepository!: IdempotencyRepository;
   public readModelRepository!: InfraCheckoutReadRepository;
   public lineItemsReadRepository!: CheckoutLineItemsReadRepository;
   public checkoutReadRepository!: AppCheckoutReadRepository;
+  public checkoutWriteRepository!: CheckoutWriteRepository;
   public checkoutService!: CheckoutService;
   public checkoutUsecase!: CheckoutUsecase;
 
@@ -63,8 +61,7 @@ export class App {
     app.pricingClient = new PricingClient(broker);
 
     // Initialize infrastructure dependencies
-    app.eventStore = new EmmetPostgresqlEventStoreAdapter();
-    app.streamNames = new StreamNamePolicyAdapter();
+    // Event store removed; using write repository instead
     app.idempotencyRepository = new IdempotencyRepository(dumboPool.execute);
     app.readModelRepository = new InfraCheckoutReadRepository();
     app.lineItemsReadRepository = new CheckoutLineItemsReadRepository(
@@ -74,19 +71,19 @@ export class App {
       app.readModelRepository,
       app.lineItemsReadRepository
     );
+    app.checkoutWriteRepository = new CheckoutWriteRepository();
     app.checkoutService = new CheckoutService(
       app.pricingClient,
       app.inventoryClient
     );
     app.checkoutUsecase = new CheckoutUsecase({
-      eventStore: app.eventStore,
-      streamNames: app.streamNames,
       logger: app.logger,
       inventory: app.inventoryClient,
       shippingApiClient: app.shippingClient,
       pricingApiClient: app.pricingClient,
       checkoutService: app.checkoutService,
       checkoutReadRepository: app.checkoutReadRepository,
+      checkoutWriteRepository: app.checkoutWriteRepository,
     });
 
     this.instance = app;

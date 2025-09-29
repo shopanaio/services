@@ -115,10 +115,6 @@ Input data for creating a new checkout.
 """
 input CheckoutCreateInput {
   """
-  Unique idempotency key for the checkout.
-  """
-  idempotency: String!
-  """
   Source of sales for the checkout.
   """
   externalSource: String

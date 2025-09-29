@@ -14,9 +14,8 @@ export class UpdateDeliveryAddressUseCase extends UseCase<CheckoutDeliveryAddres
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists } = await this.loadCheckoutState(businessInput.checkoutId);
-
-    this.validateCheckoutExists(streamExists);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
     // Find delivery group with matching address ID

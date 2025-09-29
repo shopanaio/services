@@ -4,7 +4,7 @@ export type { CheckoutContext };
 
 export type CreateCheckoutInput = {
   currencyCode: string;
-  idempotencyKey: string;
+  idempotencyKey: string; // computed from request hash on server
   salesChannel?: string | null;
   externalSource?: string | null;
   externalId?: string | null;

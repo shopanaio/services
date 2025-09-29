@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@shopana/plugin-sdk": ["../../packages/plugin-sdk/dist"],
+      "@shopana/plugin-sdk/*": ["../../packages/plugin-sdk/dist/*"],
+      "@shopana/payment-plugin-sdk": ["../../packages/payment-plugin-sdk/dist"],
+      "@shopana/payment-plugin-sdk/*": ["../../packages/payment-plugin-sdk/dist/*"]
+    }
+  },
+  "include": ["src"]
+}

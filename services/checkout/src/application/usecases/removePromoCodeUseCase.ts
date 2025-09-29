@@ -3,8 +3,7 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutPromoCodeRemoveInput } from "@src/application/checkout/types";
-import type { RemovePromoCodeCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutPromoCodeRemovedDto } from "@src/domain/checkout/events";
 
 export interface RemovePromoCodeUseCaseDependencies
   extends UseCaseDependencies {}
@@ -21,10 +20,9 @@ export class RemovePromoCodeUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
     if (!state.appliedDiscounts?.some((disc) => disc.code === businessInput.code)) {
@@ -44,22 +42,18 @@ export class RemovePromoCodeUseCase extends UseCase<
       currency: state.currencyCode,
     });
 
-    const command: RemovePromoCodeCommand = {
-      type: "checkout.promo.code.remove",
+    const event: CheckoutPromoCodeRemovedDto = {
+      type: "checkout.promo.code.removed",
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
         appliedDiscounts: newAppliedDiscounts,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.appendToStream(
-      streamId,
-      checkoutDecider.decide(command, state),
-      streamVersion,
-    );
+    await this.checkoutWriteRepository.applyPromoCodeRemoved(event);
 
     return businessInput.checkoutId;
   }

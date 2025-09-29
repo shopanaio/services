@@ -4,10 +4,8 @@ import {
 } from "@src/application/usecases/useCase";
 import type { CreateCheckoutInput } from "@src/application/checkout/types";
 import type { CheckoutContext } from "@src/context/index.js";
-import type { CreateCheckoutCommand } from "@src/domain/checkout/commands";
-import type { CheckoutCreated } from "@src/domain/checkout/events";
+import type { CheckoutCreatedDto } from "@src/domain/checkout/events";
 import { v7 as uuidv7 } from "uuid";
-import { checkoutDecider } from "@src/domain/checkout/decider";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
@@ -29,34 +27,22 @@ export class CreateCheckoutUseCase extends UseCase<
     const context = { apiKey, project, customer, user };
 
     const id = uuidv7();
-    const streamId = this.streamNames.buildCheckoutStreamNameFromId(id);
-
-    const command: CreateCheckoutCommand = {
-      type: "checkout.create",
+    const event: CheckoutCreatedDto = {
+      type: "checkout.created",
       data: {
         currencyCode: businessInput.currencyCode,
         idempotencyKey: businessInput.idempotencyKey,
         salesChannel: businessInput.salesChannel ?? "default",
-        externalSource: businessInput.externalSource ?? businessInput.salesChannel ?? null,
+        externalSource:
+          businessInput.externalSource ?? businessInput.salesChannel ?? null,
         externalId: businessInput.externalId ?? null,
         localeCode: businessInput.localeCode ?? null,
         deliveryGroups: await this.createDeliveryGroups(context),
       },
-      metadata: this.createCommandMetadata(id, context),
+      metadata: this.createMetadataDto(id, context),
     };
 
-    const { state } = await this.loadCheckoutState(id);
-
-    const events = checkoutDecider.decide(command, state);
-    const eventsToAppend = (
-      Array.isArray(events) ? events : [events]
-    ) as CheckoutCreated[];
-
-    await this.appendToStream(
-      streamId,
-      eventsToAppend,
-      "STREAM_DOES_NOT_EXIST",
-    );
+    await this.checkoutWriteRepository.createCheckout(event);
 
     return id;
   }

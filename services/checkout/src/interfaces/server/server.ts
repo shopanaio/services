@@ -52,6 +52,7 @@ export async function startServer(broker: ServiceBroker) {
     join(...schemaPath, "checkout.graphql"),
     join(...schemaPath, "checkoutLine.graphql"),
     join(...schemaPath, "checkoutDelivery.graphql"),
+    join(...schemaPath, "checkoutPayment.graphql"),
     join(...schemaPath, "currency.graphql"),
     join(...schemaPath, "country.graphql"),
   ];
@@ -94,6 +95,14 @@ export async function startServer(broker: ServiceBroker) {
           project: request.project,
           user: null,
           customer: request.customer,
+          ip: request.ip,
+          headers: {
+            // expose only a safe subset for hashing
+            "x-api-key": request.headers["x-api-key"] as string | undefined,
+            authorization: request.headers["authorization"] as string | undefined,
+            "accept-language": request.headers["accept-language"] as string | undefined,
+            "user-agent": request.headers["user-agent"] as string | undefined,
+          },
         } satisfies GraphQLContext;
 
         return ctx;

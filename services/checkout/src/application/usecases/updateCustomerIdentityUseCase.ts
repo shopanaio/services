@@ -1,7 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutCustomerIdentityUpdateInput } from "@src/application/checkout/types";
-import type { UpdateCustomerIdentityCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutCustomerIdentityUpdatedDto } from "@src/domain/checkout/events";
 
 export class UpdateCustomerIdentityUseCase extends UseCase<
   CheckoutCustomerIdentityUpdateInput,
@@ -11,28 +10,23 @@ export class UpdateCustomerIdentityUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
-    const command: UpdateCustomerIdentityCommand = {
-      type: "checkout.customer.identity.update",
+    const event: CheckoutCustomerIdentityUpdatedDto = {
+      type: "checkout.customer.identity.updated",
       data: {
         email: businessInput.email,
         customerId: businessInput.customerId,
         phone: businessInput.phone,
         countryCode: businessInput.countryCode,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.appendToStream(
-      streamId,
-      checkoutDecider.decide(command, state),
-      streamVersion
-    );
+    await this.checkoutWriteRepository.updateCustomerIdentity(event);
 
     return businessInput.checkoutId;
   }

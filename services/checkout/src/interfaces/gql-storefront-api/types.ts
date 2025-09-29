@@ -78,8 +78,6 @@ export type ApiCheckoutCreateInput = {
   externalId: InputMaybe<Scalars['String']['input']>;
   /** Source of sales for the checkout. */
   externalSource: InputMaybe<Scalars['String']['input']>;
-  /** Unique idempotency key for the checkout. */
-  idempotency: Scalars['String']['input'];
   /** Initial items to add to the new checkout. */
   items: Array<ApiCheckoutLineInput>;
   /** Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru") */

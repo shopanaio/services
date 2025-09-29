@@ -1,6 +1,5 @@
 import { UseCase } from "@src/application/usecases/useCase";
-import type { UpdateDeliveryGroupAddressCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutDeliveryGroupAddressUpdatedDto } from "@src/domain/checkout/events";
 import type { CheckoutDeliveryGroupAddressUpdateInput } from "@src/application/checkout/types";
 
 export class UpdateDeliveryGroupAddressUseCase extends UseCase<
@@ -11,26 +10,20 @@ export class UpdateDeliveryGroupAddressUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
-    const command: UpdateDeliveryGroupAddressCommand = {
-      type: "checkout.delivery.group.address.update",
+    const event: CheckoutDeliveryGroupAddressUpdatedDto = {
+      type: "checkout.delivery.group.address.updated",
       data: {
         deliveryGroupId: businessInput.deliveryGroupId,
         address: businessInput.address,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    const events = checkoutDecider.decide(command, state);
-    if (Array.isArray(events) && events.length === 0) {
-      return;
-    }
-
-    await this.appendToStream(streamId, events, streamVersion);
+    await this.checkoutWriteRepository.updateDeliveryGroupAddress(event);
   }
 }

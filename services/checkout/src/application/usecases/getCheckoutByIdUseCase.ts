@@ -4,12 +4,6 @@ import { CheckoutReadRepository } from "@src/application/read/checkoutReadReposi
 
 export interface GetCheckoutByIdInput {
   checkoutId: string;
-  /**
-   * Data source for getting checkout
-   * - 'event_store' - data from event store (default)
-   * - 'read_model' - data from read model (faster, but may not be the most current version)
-   */
-  dataSource?: 'event_store' | 'read_model';
 }
 
 export interface GetCheckoutByIdUseCaseDependencies {
@@ -28,24 +22,8 @@ export class GetCheckoutByIdUseCase extends UseCase<GetCheckoutByIdInput, Checko
   private readonly checkoutReadRepository: CheckoutReadRepository;
 
   async execute(input: GetCheckoutByIdInput): Promise<Checkout | null> {
-    const dataSource = input.dataSource || 'event_store';
-
-    if (dataSource === 'read_model') {
-      // Get data from read model
-      const state = await this.checkoutReadRepository.findByIdAsCheckoutState(input.checkoutId);
-      if (!state) {
-        return null;
-      }
-      return Checkout.fromAggregate(input.checkoutId, state);
-    } else {
-      // Get data from event store (default)
-      const { state, streamExists } = await this.loadCheckoutState(input.checkoutId);
-
-      if (!streamExists) {
-        return null;
-      }
-
-      return Checkout.fromAggregate(input.checkoutId, state);
-    }
+    const state = await this.checkoutReadRepository.findByIdAsCheckoutState(input.checkoutId);
+    if (!state) return null;
+    return Checkout.fromAggregate(input.checkoutId, state);
   }
 }

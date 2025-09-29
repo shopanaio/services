@@ -1,7 +1,6 @@
 import { DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
 import { UseCase } from "@src/application/usecases/useCase";
-import type { UpdateDeliveryGroupMethodCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutDeliveryGroupMethodUpdatedDto } from "@src/domain/checkout/events";
 import type { CheckoutDeliveryMethodUpdateInput } from "@src/application/checkout/types";
 
 export class UpdateDeliveryGroupMethodUseCase extends UseCase<
@@ -12,10 +11,9 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
     const group = state.deliveryGroups?.find(
@@ -34,26 +32,23 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<
       );
     }
 
-    const command: UpdateDeliveryGroupMethodCommand = {
-      type: "checkout.delivery.group.method.update",
+    const event: CheckoutDeliveryGroupMethodUpdatedDto = {
+      type: "checkout.delivery.group.method.updated",
       data: {
         deliveryGroupId: businessInput.deliveryGroupId,
         deliveryMethod: {
           code: method.code,
-          provider: method.provider.code,
-          deliveryMethodType: method.deliveryMethodType,
-          shippingPaymentModel: method.shippingPaymentModel,
-          estimatedDeliveryDays: null, // Not available in current state structure
-          shippingCost: null, // Will be calculated later if needed
+            provider: method.provider.code,
+            deliveryMethodType: method.deliveryMethodType,
+            shippingPaymentModel: method.shippingPaymentModel,
+            estimatedDeliveryDays: null,
+            shippingCost: null,
         },
-        shippingTotal: null, // Will be calculated by decider if needed
+        shippingTotal: null,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    const events = checkoutDecider.decide(command, state);
-    if (Array.isArray(events) && events.length === 0) return;
-
-    await this.appendToStream(streamId, events, streamVersion);
+    await this.checkoutWriteRepository.updateDeliveryGroupMethod(event);
   }
 }

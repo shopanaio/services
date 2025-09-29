@@ -49,6 +49,7 @@ export class NovaPoshtaProvider implements ShippingProvider {
         paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
         flow: PaymentFlow.ON_DELIVERY,
         metadata: { instrument: "CASH" },
+        constraints: { shippingProvider: "novaposhta" },
       },
       {
         code: "cod_card",
@@ -58,6 +59,7 @@ export class NovaPoshtaProvider implements ShippingProvider {
         paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
         flow: PaymentFlow.ON_DELIVERY,
         metadata: { instrument: "CARD" },
+        constraints: { shippingProvider: "novaposhta" },
       },
     ];
 

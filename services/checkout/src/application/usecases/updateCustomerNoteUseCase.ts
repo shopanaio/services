@@ -1,7 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutCustomerNoteUpdateInput } from "@src/application/checkout/types";
-import type { UpdateCustomerNoteCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutCustomerNoteUpdatedDto } from "@src/domain/checkout/events";
 
 export class UpdateCustomerNoteUseCase extends UseCase<
   CheckoutCustomerNoteUpdateInput,
@@ -11,25 +10,20 @@ export class UpdateCustomerNoteUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
-    const command: UpdateCustomerNoteCommand = {
-      type: "checkout.customer.note.update",
+    const event: CheckoutCustomerNoteUpdatedDto = {
+      type: "checkout.customer.note.updated",
       data: {
         note: businessInput.note ?? null,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.appendToStream(
-      streamId,
-      checkoutDecider.decide(command, state),
-      streamVersion
-    );
+    await this.checkoutWriteRepository.updateCustomerNote(event);
 
     return businessInput.checkoutId;
   }

@@ -1,8 +1,7 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutLinesClearInput } from "@src/application/checkout/types";
-import type { ClearCheckoutLinesCommand } from "@src/domain/checkout/commands";
+import type { CheckoutLinesClearedDto } from "@src/domain/checkout/events";
 import { Money } from "@shopana/shared-money";
-import { checkoutDecider } from "@src/domain/checkout/decider";
 
 export class ClearCheckoutLinesUseCase extends UseCase<
   CheckoutLinesClearInput,
@@ -12,15 +11,14 @@ export class ClearCheckoutLinesUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
     this.validateCurrencyCode(state);
 
-    const command: ClearCheckoutLinesCommand = {
-      type: "checkout.lines.clear",
+    const event: CheckoutLinesClearedDto = {
+      type: "checkout.lines.cleared",
       data: {
         checkoutLines: [],
         checkoutLinesCost: {},
@@ -33,11 +31,10 @@ export class ClearCheckoutLinesUseCase extends UseCase<
           totalQuantity: 0,
         },
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    const events = checkoutDecider.decide(command, state);
-    await this.appendToStream(streamId, events, streamVersion!);
+    await this.checkoutWriteRepository.clearCheckoutLines(event);
 
     return businessInput.checkoutId;
   }

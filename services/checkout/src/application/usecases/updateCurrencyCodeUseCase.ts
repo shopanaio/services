@@ -1,7 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutCurrencyCodeUpdateInput } from "@src/application/checkout/types";
-import type { UpdateCurrencyCodeCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutCurrencyCodeUpdatedDto } from "@src/domain/checkout/events";
 import { vo } from "@src/domain/shared/valueObjects";
 
 export class UpdateCurrencyCodeUseCase extends UseCase<
@@ -12,10 +11,8 @@ export class UpdateCurrencyCodeUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
-
-    this.validateCheckoutExists(streamExists);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
     // Validate currency code using domain validators
@@ -25,19 +22,15 @@ export class UpdateCurrencyCodeUseCase extends UseCase<
       throw new Error(`Invalid currency code: ${businessInput.currencyCode}`);
     }
 
-    const command: UpdateCurrencyCodeCommand = {
-      type: "checkout.currency.code.update",
+    const event: CheckoutCurrencyCodeUpdatedDto = {
+      type: "checkout.currency.code.updated",
       data: {
         currencyCode: businessInput.currencyCode,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.appendToStream(
-      streamId,
-      checkoutDecider.decide(command, state),
-      streamVersion
-    );
+    await this.checkoutWriteRepository.updateCurrencyCode(event);
 
     return businessInput.checkoutId;
   }

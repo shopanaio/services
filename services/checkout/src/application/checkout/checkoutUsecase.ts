@@ -1,5 +1,3 @@
-import type { EventStorePort } from "@src/application/ports/eventStorePort";
-import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort";
 import type { Logger } from "pino";
 import type { ShippingApiClient } from "@shopana/shipping-api";
 import type { PricingApiClient } from "@shopana/pricing-api";
@@ -28,6 +26,7 @@ import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { InventoryApiClient } from "@shopana/inventory-api";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
+import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
 
 export class CheckoutUsecase {
   // Checkout use cases
@@ -53,23 +52,22 @@ export class CheckoutUsecase {
   public readonly updateDeliveryGroupAddress: UpdateDeliveryGroupAddressUseCase;
 
   constructor(deps: {
-    eventStore: EventStorePort;
-    streamNames: StreamNamePolicyPort;
     logger?: Logger;
     inventory: InventoryApiClient;
     shippingApiClient: ShippingApiClient;
     pricingApiClient: PricingApiClient;
     checkoutService: CheckoutService;
     checkoutReadRepository: CheckoutReadRepository;
+    checkoutWriteRepository: CheckoutWriteRepository;
   }) {
     const baseDeps = {
-      eventStore: deps.eventStore,
-      streamNames: deps.streamNames,
       logger: deps.logger,
       inventory: deps.inventory,
       shippingApiClient: deps.shippingApiClient,
       pricingApiClient: deps.pricingApiClient,
       checkoutService: deps.checkoutService,
+      checkoutReadRepository: deps.checkoutReadRepository,
+      checkoutWriteRepository: deps.checkoutWriteRepository,
     };
 
     // Initialize checkout use cases
@@ -85,17 +83,11 @@ export class CheckoutUsecase {
     this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(baseDeps);
 
     // Initialize lines use cases
-    this.addCheckoutLines = new AddCheckoutLinesUseCase({
-      ...baseDeps,
-    });
+    this.addCheckoutLines = new AddCheckoutLinesUseCase(baseDeps);
 
-    this.updateCheckoutLines = new UpdateCheckoutLinesUseCase({
-      ...baseDeps,
-    });
+    this.updateCheckoutLines = new UpdateCheckoutLinesUseCase(baseDeps);
 
-    this.deleteCheckoutLines = new DeleteCheckoutLinesUseCase({
-      ...baseDeps,
-    });
+    this.deleteCheckoutLines = new DeleteCheckoutLinesUseCase(baseDeps);
 
     this.clearCheckoutLines = new ClearCheckoutLinesUseCase(baseDeps);
 
@@ -107,18 +99,13 @@ export class CheckoutUsecase {
 
     // Initialize promo use cases
     this.addPromoCode = new AddPromoCodeUseCase(baseDeps);
-
     this.removePromoCode = new RemovePromoCodeUseCase(baseDeps);
 
     // Initialize delivery use cases
-    this.updateDeliveryGroupMethod = new UpdateDeliveryGroupMethodUseCase(
-      baseDeps,
-    );
+    this.updateDeliveryGroupMethod = new UpdateDeliveryGroupMethodUseCase(baseDeps);
     this.addDeliveryAddress = new AddDeliveryAddressUseCase(baseDeps);
     this.updateDeliveryAddress = new UpdateDeliveryAddressUseCase(baseDeps);
     this.removeDeliveryAddress = new RemoveDeliveryAddressUseCase(baseDeps);
-    this.updateDeliveryGroupAddress = new UpdateDeliveryGroupAddressUseCase(
-      baseDeps,
-    );
+    this.updateDeliveryGroupAddress = new UpdateDeliveryGroupAddressUseCase(baseDeps);
   }
 }

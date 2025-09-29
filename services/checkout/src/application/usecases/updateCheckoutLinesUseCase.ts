@@ -3,13 +3,10 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutLinesUpdateInput } from "@src/application/checkout/types";
-import type { UpdateCheckoutLinesCommand } from "@src/domain/checkout/commands";
+import type { CheckoutLinesUpdatedDto } from "@src/domain/checkout/events";
 import { Money } from "@shopana/shared-money";
 import { type CheckoutContext } from "@src/context/index.js";
-import {
-  checkoutDecider,
-  CheckoutLineItemState,
-} from "@src/domain/checkout/decider";
+import { CheckoutLineItemState } from "@src/domain/checkout/evolve";
 
 export interface UpdateCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
@@ -26,10 +23,9 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
     const ctx = context;
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
     this.validateCurrencyCode(state);
 
@@ -105,18 +101,17 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
       currency: state.currencyCode,
     });
 
-    const command: UpdateCheckoutLinesCommand = {
-      type: "checkout.lines.update",
+    const event: CheckoutLinesUpdatedDto = {
+      type: "checkout.lines.updated",
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    const events = checkoutDecider.decide(command, state);
-    await this.appendToStream(streamId, events, streamVersion!);
+    await this.checkoutWriteRepository.applyCheckoutLines(event);
 
     return input.checkoutId;
   }

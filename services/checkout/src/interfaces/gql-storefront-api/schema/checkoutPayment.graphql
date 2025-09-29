@@ -1,0 +1,122 @@
+"""
+Payment flow for the method, aligned with payment-plugin-sdk.
+"""
+enum PaymentFlow {
+  """
+  Customer pays online via provider (redirect/app flow handled externally).
+  """
+  ONLINE
+
+  """
+  Customer pays offline via provider (QR code, display code, etc).
+  """
+  OFFLINE
+
+  """
+  Customer pays later/on delivery or by invoice (offline instructions).
+  """
+  ON_DELIVERY
+}
+
+"""
+Payment method available/selected for checkout.
+"""
+type CheckoutPaymentMethod {
+  """
+  Method code (e.g., "card", "apple_pay", "bank_transfer", "cod").
+  """
+  code: String!
+
+  """
+  Provider code (e.g., "stripe", "liqpay", "monobank", "paypal").
+  """
+  provider: String!
+
+  """
+  Human-readable name of the method.
+  """
+  name: String!
+
+  """
+  Optional human-readable description.
+  """
+  description: String
+
+  """
+  Payment flow (ONLINE vs ON_DELIVERY).
+  """
+  flow: PaymentFlow!
+
+  """
+  Optional method metadata (icons, labels, extra config).
+  """
+  metadata: JSON
+
+  """
+  Optional constraints for availability binding to shipping.
+  """
+  constraints: CheckoutPaymentMethodConstraints
+}
+
+"""
+Constraints for payment method availability (from payment-plugin-sdk).
+"""
+type CheckoutPaymentMethodConstraints {
+  """
+  Limit to specific shipping method codes. If empty, all shipping methods are allowed.
+  Code includes shipping provider code.
+  """
+  shippingMethods: [String!]!
+}
+
+"""
+Payment aggregate for a checkout.
+"""
+type CheckoutPayment {
+  """
+  Available payment methods for this checkout context.
+  """
+  paymentMethods: [CheckoutPaymentMethod!]!
+
+  """
+  Selected payment method, if any.
+  """
+  selectedPaymentMethod: CheckoutPaymentMethod
+
+  """
+  Amount payable to the merchant via the selected method.
+  This excludes SHIPPING_CARRIER components (CARRIER_DIRECT).
+  """
+  payableAmount: Money!
+}
+
+"""
+Select or change payment method for the checkout.
+"""
+input CheckoutPaymentMethodUpdateInput {
+  """
+  Checkout identifier.
+  """
+  checkoutId: ID!
+
+  """
+  Code of the payment method available for this checkout.
+  """
+  paymentMethodCode: String!
+}
+
+extend type Checkout {
+  """
+  Payment aggregate for this checkout.
+  """
+  payment: CheckoutPayment!
+}
+
+extend type CheckoutMutation {
+  """
+  Selects or changes the payment method for the checkout.
+  """
+  checkoutPaymentMethodUpdate(
+    input: CheckoutPaymentMethodUpdateInput!
+  ): Checkout!
+}

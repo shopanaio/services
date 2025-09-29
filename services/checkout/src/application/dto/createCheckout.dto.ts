@@ -60,10 +60,7 @@ export class CheckoutLineInputDto {
 
 export class CreateCheckoutDto {
   // Matches CheckoutCreateInput from GraphQL schema
-  @Expose()
-  @IsString()
-  @IsNotEmpty()
-  idempotency!: string;
+  // idempotency removed: idempotency will be computed by server from request
 
   @Expose()
   @IsOptional()

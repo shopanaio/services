@@ -5,9 +5,13 @@ import type {
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CreateCheckoutDto } from "@src/application/dto/createCheckout.dto";
-import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
+import {
+  badUserInput,
+  fromDomainError,
+} from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
+import { v7 as uuidv7 } from "uuid";
 // Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
@@ -19,32 +23,18 @@ export const checkoutCreate = async (
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();
-  const {
-    checkoutUsecase,
-    idempotencyRepository,
-    checkoutReadRepository,
-    logger,
-  } = app;
+  const { checkoutUsecase, checkoutReadRepository, logger } = app;
   const { input } = args;
   const dto = createValidated(CreateCheckoutDto, input);
 
   try {
-    // Validation and decoding now happens in DTO validators
-
-    const projectId = ctx.project.id;
-
-    const hit = await idempotencyRepository.get(projectId, dto.idempotency);
-    if (hit?.id) {
-      const read = await checkoutReadRepository.findById(hit.id);
-      if (read) {
-        return mapCheckoutReadToApi(read);
-      }
-    }
+    // Generate non-deterministic idempotency key (idempotency validation removed)
+    const idempotencyKey = uuidv7();
 
     const id = await checkoutUsecase.createCheckout.execute({
       currencyCode: dto.currencyCode,
       externalId: dto.externalId ?? null,
-      idempotencyKey: dto.idempotency,
+      idempotencyKey,
       localeCode: dto.localeCode ?? null,
       salesChannel: dto.externalSource ?? null,
       externalSource: dto.externalSource ?? null,

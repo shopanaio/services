@@ -3,8 +3,7 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutPromoCodeAddInput } from "@src/application/checkout/types";
-import type { AddPromoCodeCommand } from "@src/domain/checkout/commands";
-import { checkoutDecider } from "@src/domain/checkout/decider";
+import type { CheckoutPromoCodeAddedDto } from "@src/domain/checkout/events";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 
 export interface AddPromoCodeUseCaseDependencies extends UseCaseDependencies {}
@@ -21,10 +20,9 @@ export class AddPromoCodeUseCase extends UseCase<
     const { apiKey, project, customer, user, ...businessInput } = input;
     const context = { apiKey, project, customer, user };
 
-    const { state, streamExists, streamVersion, streamId } =
-      await this.loadCheckoutState(businessInput.checkoutId);
+    const state = await this.getCheckoutState(businessInput.checkoutId);
 
-    this.validateCheckoutExists(streamExists);
+    this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
     this.validateCurrencyCode(state);
 
@@ -68,22 +66,18 @@ export class AddPromoCodeUseCase extends UseCase<
       currency: state.currencyCode,
     });
 
-    const command: AddPromoCodeCommand = {
-      type: "checkout.promo.code.add",
+    const event: CheckoutPromoCodeAddedDto = {
+      type: "checkout.promo.code.added",
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
         appliedDiscounts: newAppliedDiscounts,
       },
-      metadata: this.createCommandMetadata(businessInput.checkoutId, context),
+      metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.appendToStream(
-      streamId,
-      checkoutDecider.decide(command, state),
-      streamVersion,
-    );
+    await this.checkoutWriteRepository.applyPromoCodeAdded(event);
 
     return businessInput.checkoutId;
   }
