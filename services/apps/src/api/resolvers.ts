@@ -60,6 +60,7 @@ export function createResolvers(broker: ServiceBroker): Resolvers {
           id: a.id,
           projectID: a.projectID,
           appCode: a.appCode,
+          domain: a.domain,
           baseURL: a.baseURL,
           enabled: a.enabled,
           meta: a.meta ?? null,

@@ -39,18 +39,33 @@ export const uninstallAppScript: TransactionScript<
     }
 
     // 2. App code parsing
-    const [domain, provider] = appCode.includes(":")
-      ? appCode.split(":", 2)
-      : ["shipping", appCode];
+    let domain: string;
+    let provider: string;
 
-    if (!domain || !provider) {
+    if (appCode.includes(":")) {
+      const parts = appCode.split(":", 2);
+      domain = parts[0];
+      provider = parts[1];
+    } else {
+      // If no domain specified, try to determine from provider name or use default
+      provider = appCode;
+      // Determine domain based on provider naming convention or use shipping as default
+      if (provider.includes("pricing") || provider.includes("promo") || provider.includes("discount")) {
+        domain = "pricing";
+      } else if (provider.includes("inventory") || provider.includes("stock")) {
+        domain = "inventory";
+      } else {
+        domain = "shipping"; // Default domain
+      }
+    }
+
+    if (!provider || provider.trim().length === 0) {
       return {
         success: false,
         warnings: [
           {
             code: "VALIDATION_ERROR",
-            message:
-              "Invalid app code format. Expected: domain:provider or provider",
+            message: "Provider code cannot be empty",
           },
         ],
       };

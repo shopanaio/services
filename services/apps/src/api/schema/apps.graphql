@@ -8,6 +8,7 @@ type InstalledApp {
   id: String!
   projectID: String!
   appCode: String!
+  domain: String!
   baseURL: String!
   enabled: Boolean!
   meta: JSON

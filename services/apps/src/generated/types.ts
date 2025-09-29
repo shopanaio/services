@@ -28,11 +28,9 @@ export type App = {
 
 export type AppsMutation = {
   __typename?: 'AppsMutation';
-  /** Install application */
+  /** Install app */
   install: Scalars['Boolean']['output'];
-  /** Publish event (for testing) */
-  publishEvent: Scalars['Boolean']['output'];
-  /** Uninstall application */
+  /** Uninstall app */
   uninstall: Scalars['Boolean']['output'];
 };
 
@@ -48,9 +46,9 @@ export type AppsMutationUninstallArgs = {
 
 export type AppsQuery = {
   __typename?: 'AppsQuery';
-  /** Get list of available applications for installation */
+  /** Get list of available apps for installation */
   apps: Array<App>;
-  /** Get list of installed applications */
+  /** Get list of installed apps */
   installedApps: Array<InstalledApp>;
 };
 
@@ -58,6 +56,7 @@ export type InstalledApp = {
   __typename?: 'InstalledApp';
   appCode: Scalars['String']['output'];
   baseURL: Scalars['String']['output'];
+  domain: Scalars['String']['output'];
   enabled: Scalars['Boolean']['output'];
   id: Scalars['String']['output'];
   meta?: Maybe<Scalars['JSON']['output']>;
@@ -179,7 +178,6 @@ export type AppResolvers<ContextType = GraphQLContext, ParentType extends Resolv
 
 export type AppsMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['AppsMutation'] = ResolversParentTypes['AppsMutation']> = ResolversObject<{
   install?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<AppsMutationInstallArgs, 'code'>>;
-  publishEvent?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   uninstall?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType, RequireFields<AppsMutationUninstallArgs, 'code'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -193,6 +191,7 @@ export type AppsQueryResolvers<ContextType = GraphQLContext, ParentType extends 
 export type InstalledAppResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['InstalledApp'] = ResolversParentTypes['InstalledApp']> = ResolversObject<{
   appCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   baseURL?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  domain?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   meta?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
@@ -221,3 +220,4 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   Mutation?: MutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
 }>;
+

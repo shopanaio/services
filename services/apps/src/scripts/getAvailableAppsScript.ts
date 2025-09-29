@@ -23,7 +23,7 @@ export const getAvailableAppsScript: TransactionScript<
 
   try {
     // 1. Determine list of services to query via Moleculer
-    const servicesToQuery = ["shipping"]; // Call shipping service directly via Moleculer
+    const servicesToQuery = ["shipping", "pricing", "inventory"]; // Call services directly via Moleculer
 
     logger.debug(
       {
@@ -36,7 +36,7 @@ export const getAvailableAppsScript: TransactionScript<
     // 2. Parallel data fetching from all services via Moleculer
     const fetchPromises = servicesToQuery.map(async (serviceName) => {
       try {
-        const response = await broker.call(`${serviceName}.plugins`, {
+        const response = await broker.call(`${serviceName}.pluginInfo`, {
           projectId,
         });
 
@@ -45,8 +45,7 @@ export const getAvailableAppsScript: TransactionScript<
             manifest: {
               code: string;
               displayName?: string;
-              title?: string;
-              name?: string;
+              [key: string]: unknown;
             };
             compatible: boolean;
             allowed: boolean;
@@ -60,9 +59,7 @@ export const getAvailableAppsScript: TransactionScript<
           .map((m) => {
             const man = m.manifest;
             const code = man.code;
-            const name = String(
-              man.displayName ?? man.title ?? man.name ?? man.code
-            );
+            const name = String(man.displayName ?? man.code);
             return { code, name };
           });
       } catch (error) {

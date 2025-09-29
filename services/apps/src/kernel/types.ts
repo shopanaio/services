@@ -42,6 +42,7 @@ export interface InstalledApp {
   id: string;
   projectID: string;
   appCode: string;
+  domain: string;
   baseURL: string;
   enabled: boolean;
   meta: Record<string, unknown> | null;

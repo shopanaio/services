@@ -27,16 +27,18 @@ export const getInstalledAppsScript: TransactionScript<
   const { slotsRepository, logger } = services;
 
   try {
-    // 1. Getting all slots (shipping domain only for now)
-    const slots = await slotsRepository.findAllSlots(projectId, "shipping");
+    // 1. Getting all slots from all domains (shipping, pricing, inventory, etc.)
+    const slots = await slotsRepository.findAllSlots(projectId);
 
     // 2. Transform slots to InstalledApp format
     const installedApps: InstalledApp[] = slots.map((slot) => ({
       id: slot.id,
       projectID: projectId,
       appCode: slot.provider,
+      domain: slot.domain, // Include domain information
       baseURL: String((slot.data as any)?.baseUrl ?? ""),
-      enabled: true, // all installed apps are considered active
+      // enabled: slot.status === "active", // Use actual slot status
+      enabled: true,
       meta: slot.data as Record<string, unknown> | null,
     }));
 
