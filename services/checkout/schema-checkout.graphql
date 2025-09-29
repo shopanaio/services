@@ -1,0 +1,1893 @@
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
+
+directive @key(fields: federation__FieldSet!, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @requires(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @provides(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @external(reason: String) on OBJECT | FIELD_DEFINITION
+
+directive @federation__tag(name: String!) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
+
+directive @federation__extends on OBJECT | INTERFACE
+
+directive @shareable on OBJECT | FIELD_DEFINITION
+
+directive @inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+directive @override(from: String!, label: String) on FIELD_DEFINITION
+
+directive @federation__composeDirective(name: String) on SCHEMA
+
+directive @federation__interfaceObject on OBJECT
+
+directive @federation__authenticated on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+directive @federation__requiresScopes(scopes: [[federation__Scope!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+directive @federation__policy(policies: [[federation__Policy!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+scalar BigInt
+
+scalar DateTime
+
+"""
+Decimal represented as integer amount and scale internally; serialized as normalized string
+"""
+scalar Decimal
+
+scalar Email
+
+scalar JSON
+
+interface Node {
+  id: ID!
+}
+
+type Money {
+  """The amount of money"""
+  amount: Decimal!
+
+  """The currency code"""
+  currencyCode: CurrencyCode!
+}
+
+"""All monetary calculations related to the checkout."""
+type CheckoutCost {
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Total discount from both item-level and checkout-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the checkout."""
+  totalTaxAmount: Money!
+
+  """Total shipping cost (only MERCHANT_COLLECTED payments)."""
+  totalShippingAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+type CheckoutCustomerIdentity {
+  """Country code of the customer."""
+  countryCode: CountryCode
+
+  """Customer associated with the checkout."""
+  customer: User
+
+  """Customer email address associated with the checkout."""
+  email: Email
+
+  """Phone number of the customer."""
+  phone: String
+}
+
+"""A checkout with multiple items."""
+type Checkout implements Node {
+  """A globally-unique ID."""
+  id: ID!
+
+  """When this checkout was first created."""
+  createdAt: DateTime!
+
+  """When this checkout was last updated."""
+  updatedAt: DateTime!
+
+  """All cost calculations for the checkout."""
+  cost: CheckoutCost!
+
+  """Customer identity associated with the checkout."""
+  customerIdentity: CheckoutCustomerIdentity!
+
+  """Customer note or special instructions for the checkout."""
+  customerNote: String
+
+  """Quantity of the item being purchased."""
+  totalQuantity: Int!
+
+  """List of items in the checkout (paginated)."""
+  lines: [CheckoutLine!]!
+
+  """Notifications for the user regarding the checkout."""
+  notifications: [CheckoutNotification!]!
+
+  """Delivery groups."""
+  deliveryGroups: [CheckoutDeliveryGroup!]!
+
+  """Applied promo codes for the checkout."""
+  appliedPromoCodes: [CheckoutPromoCode!]!
+}
+
+"""Input data for creating a new checkout."""
+input CheckoutCreateInput {
+  """Unique idempotency key for the checkout."""
+  idempotency: String!
+
+  """Source of sales for the checkout."""
+  externalSource: String
+
+  """ID of the external source for the checkout."""
+  externalId: String
+
+  """Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru")"""
+  localeCode: String!
+
+  """
+  Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
+  """
+  currencyCode: CurrencyCode!
+
+  """Initial items to add to the new checkout."""
+  items: [CheckoutLineInput!]!
+}
+
+type CheckoutFieldError {
+  """The field that caused the error."""
+  field: String!
+
+  """The error message."""
+  message: String!
+}
+
+"""Payload returned after creating a checkout."""
+type CheckoutCreatePayload {
+  """The newly created checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+type CheckoutQuery {
+  """Get a checkout by its ID."""
+  checkout(id: ID!): Checkout
+}
+
+type CheckoutMutation {
+  """Creates a new checkout."""
+  checkoutCreate(input: CheckoutCreateInput!): Checkout!
+
+  """Adds an item to an existing checkout."""
+  checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!
+
+  """Updates the quantity of a specific checkout item."""
+  checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
+
+  """Removes a single item from the checkout."""
+  checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
+
+  """Clears all items from a checkout."""
+  checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutLinesClearPayload!
+
+  """
+  Updates customer identification data associated with the checkout
+  (email, customerId and if necessary country/language for calculations).
+  """
+  checkoutCustomerIdentityUpdate(input: CheckoutCustomerIdentityUpdateInput!): Checkout!
+
+  """
+  Updates the customer note attached to the checkout (delivery instructions, etc.).
+  """
+  checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): Checkout!
+
+  """
+  Updates the language/locale of the checkout (affects localization and formatting).
+  """
+  checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
+
+  """
+  Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR").
+  """
+  checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
+
+  """
+  Adds one or more delivery addresses to the checkout (supports multi-shipping).
+  """
+  checkoutDeliveryAddressesAdd(input: CheckoutDeliveryAddressesAddInput!): Checkout!
+
+  """
+  Updates previously added delivery addresses (e.g., correcting postal code or city).
+  """
+  checkoutDeliveryAddressesUpdate(input: CheckoutDeliveryAddressesUpdateInput!): Checkout!
+
+  """
+  Removes one or more delivery addresses previously attached to the checkout.
+  """
+  checkoutDeliveryAddressesRemove(input: CheckoutDeliveryAddressesRemoveInput!): Checkout!
+
+  """
+  Selects or changes the delivery method for the entire checkout or specific address.
+  """
+  checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
+
+  """Applies a promo code/coupon to the checkout."""
+  checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
+
+  """Removes a previously applied promo code/coupon from the checkout."""
+  checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  checkoutQuery: CheckoutQuery!
+}
+
+"""
+Input data for updating customer identification data associated with the checkout.
+"""
+input CheckoutCustomerIdentityUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Customer's email address. If specified, will be linked to the checkout.
+  """
+  email: Email
+
+  """Phone number of the customer."""
+  phone: String
+
+  """
+  Country code of the customer.
+  ISO 3166-1 alpha-2.
+  """
+  countryCode: CountryCode
+
+  """
+  Customer identifier in external/internal system.
+  Used to link the checkout with an existing customer.
+  """
+  customerId: ID
+}
+
+"""Input data for updating the customer note attached to the checkout."""
+input CheckoutCustomerNoteUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Text of the customer note (delivery instructions, etc.).
+  Empty value clears the note.
+  """
+  note: String
+}
+
+"""Input data for updating the language/locale code of the checkout."""
+input CheckoutLanguageCodeUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
+  Affects localization and formatting.
+  """
+  localeCode: String!
+}
+
+"""Input data for updating the display currency of the checkout."""
+input CheckoutCurrencyCodeUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Currency code according to ISO 4217 (e.g., "USD", "EUR")."""
+  currencyCode: CurrencyCode!
+}
+
+"""Input data for applying a promo code to the checkout."""
+input CheckoutPromoCodeAddInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Text code of the coupon/promo code."""
+  code: String!
+}
+
+"""
+Input data for removing a previously applied promo code from the checkout.
+"""
+input CheckoutPromoCodeRemoveInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Text code of the coupon/promo code to be cancelled."""
+  code: String!
+}
+
+"""
+Codes for warnings that may be returned with Checkout mutations,
+indicating non-blocking adjustments or issues in the checkout.
+"""
+enum CheckoutNotificationCode {
+  """
+  The requested item is completely out of stock and has been removed from the checkout.
+  """
+  OUT_OF_STOCK
+
+  """
+  The requested quantity exceeds available stock;
+  quantity was automatically reduced to the maximum available.
+  """
+  NOT_ENOUGH_STOCK
+
+  """
+  The price of one or more items has changed since they were added to the checkout.
+  """
+  PRICE_CHANGED
+
+  """An item in the checkout is no longer available for sale."""
+  ITEM_UNAVAILABLE
+}
+
+"""Severity levels for checkout warnings."""
+enum NotificationSeverity {
+  """Informational notice; does not indicate any change in checkout data."""
+  INFO
+
+  """Notification about automatic adjustments (e.g., quantity reduced)."""
+  WARNING
+}
+
+"""A non-blocking warning generated by checkout operations."""
+type CheckoutNotification {
+  """A globally-unique ID."""
+  id: ID!
+
+  """Code categorizing the warning."""
+  code: CheckoutNotificationCode!
+
+  """Importance level of the warning."""
+  severity: NotificationSeverity!
+
+  """Whether the warning has been acknowledged by the user."""
+  isDismissed: Boolean!
+}
+
+"""Applied promo code for a checkout."""
+type CheckoutPromoCode {
+  """Promo code text."""
+  code: String!
+
+  """When this promo code was applied."""
+  appliedAt: DateTime!
+
+  """Discount type (percentage)."""
+  discountType: String!
+
+  """Discount value (percentage as number)."""
+  value: Int!
+
+  """Discount provider."""
+  provider: String!
+
+  """Discount conditions."""
+  conditions: JSON
+}
+
+"""A single item in a checkout."""
+type CheckoutLine implements Node {
+  """Global unique identifier for the checkout line."""
+  id: ID!
+
+  """Title of the purchasable."""
+  title: String!
+
+  """SKU of the purchasable."""
+  sku: String
+
+  """Image URL of the purchasable."""
+  imageSrc: String
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost calculations for this checkout item."""
+  cost: CheckoutLineCost!
+
+  """
+  A list of components that make up this checkout line, such as individual products in a bundle.
+  """
+  children: [CheckoutLine]!
+
+  """ID of the purchasable."""
+  purchasableId: ID!
+}
+
+"""Detailed breakdown of costs for a checkout line item"""
+type CheckoutLineCost {
+  """The original list price per unit before any discounts."""
+  compareAtUnitPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """Discount amount applied to a line."""
+  discountAmount: Money!
+
+  """Total cost of all units before discounts."""
+  subtotalAmount: Money!
+
+  """Total tax amount applied to the checkout line."""
+  taxAmount: Money!
+
+  """Total cost of this line (all units), after discounts and taxes."""
+  totalAmount: Money!
+}
+
+"""Input data for a single item in the checkout."""
+input CheckoutLineInput {
+  """Quantity of the product in the checkout."""
+  quantity: Int!
+
+  """ID of the product to add or update."""
+  purchasableId: ID!
+
+  """ID of the purchasable snapshot to add or update."""
+  purchasableSnapshot: PurchasableSnapshotInput
+}
+
+"""Input data for adding an item to an existing checkout."""
+input CheckoutLinesAddInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of checkout items to add."""
+  lines: [CheckoutLineInput!]!
+}
+
+"""Input data for adding an item to an existing checkout line."""
+input CheckoutLinesLineAddInput {
+  """ID of the purchasable to add."""
+  purchasableId: ID!
+
+  """Quantity to add; must be greater than 0."""
+  quantity: Int!
+}
+
+"""Input data for updating the quantity of a specific checkout item."""
+input CheckoutLinesUpdateInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of checkout items to update."""
+  lines: [CheckoutLineUpdateInput!]!
+}
+
+"""Input data for updating the quantity of a specific checkout item."""
+input CheckoutLineUpdateInput {
+  """ID of the checkout item to update."""
+  lineId: ID!
+
+  """
+  New quantity for the checkout item.
+  If set to 0, the item will be removed.
+  """
+  quantity: Int!
+}
+
+"""Input data for removing one or more items from the checkout."""
+input CheckoutLinesDeleteInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """IDs of the lines to remove."""
+  lineIds: [ID!]!
+}
+
+"""Input data for clearing all items from a checkout."""
+input CheckoutLinesClearInput {
+  """ID of the checkout to clear."""
+  checkoutId: ID!
+}
+
+"""Payload returned after adding an item to the checkout."""
+type CheckoutLinesAddPayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Payload returned after updating a checkout item's quantity."""
+type CheckoutLinesUpdatePayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Payload returned after removing an item from the checkout."""
+type CheckoutLinesDeletePayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Payload returned after clearing all items from the checkout."""
+type CheckoutLinesClearPayload {
+  """The updated (now empty) checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+input PurchasableSnapshotInput {
+  """SKU of the purchasable snapshot."""
+  sku: String
+
+  """Title of the purchasable snapshot."""
+  title: String!
+
+  """Image URL of the purchasable snapshot."""
+  imageUrl: String
+
+  """JSON data of the purchasable snapshot."""
+  data: JSON
+}
+
+"""Shipping payment model"""
+enum ShippingPaymentModel {
+  """Customer pays merchant, included in grandTotal"""
+  MERCHANT_COLLECTED
+
+  """Customer pays carrier directly, NOT included in grandTotal"""
+  CARRIER_DIRECT
+}
+
+enum CheckoutDeliveryMethodType {
+  """Pickup delivery method."""
+  PICKUP
+
+  """Shipping delivery method."""
+  SHIPPING
+}
+
+"""Delivery cost with payment model"""
+type DeliveryCost {
+  """Delivery amount"""
+  amount: Money!
+
+  """Shipping payment model"""
+  paymentModel: ShippingPaymentModel!
+}
+
+"""Delivery group for one or more checkout lines."""
+type CheckoutDeliveryGroup {
+  """Unique identifier for the delivery group."""
+  id: ID!
+
+  """Checkout lines associated with the delivery group."""
+  checkoutLines: [CheckoutLine!]!
+
+  """Delivery address associated with the delivery group."""
+  deliveryAddress: CheckoutDeliveryAddress
+
+  """Delivery methods associated with the delivery group."""
+  deliveryMethods: [CheckoutDeliveryMethod!]!
+
+  """Selected delivery method associated with the delivery group."""
+  selectedDeliveryMethod: CheckoutDeliveryMethod
+
+  """Estimated cost of the delivery group."""
+  estimatedCost: DeliveryCost
+}
+
+type CheckoutDeliveryMethod {
+  """Code of the shipping method (e.g., "standard", "express", "courier")."""
+  code: String!
+
+  """Delivery method type associated with the delivery option."""
+  deliveryMethodType: CheckoutDeliveryMethodType!
+
+  """Provider data associated with the delivery method."""
+  provider: CheckoutDeliveryProvider!
+}
+
+type CheckoutDeliveryProvider {
+  """
+  Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
+  """
+  code: String!
+
+  """Data associated with the provider."""
+  data: JSON!
+}
+
+"""
+Input data for adding one or more delivery addresses to the checkout.
+Supports multi-shipping.
+"""
+input CheckoutDeliveryAddressesAddInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of delivery addresses to be added."""
+  addresses: [CheckoutDeliveryAddressInput!]!
+}
+
+"""
+Delivery address update element: which address to update and with what data.
+"""
+input CheckoutDeliveryAddressUpdateInput {
+  """Identifier of the existing delivery address in the checkout."""
+  addressId: ID!
+
+  """New postal address values."""
+  address: CheckoutDeliveryAddressInput!
+}
+
+"""Input data for batch updating previously added delivery addresses."""
+input CheckoutDeliveryAddressesUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of updates for delivery addresses."""
+  updates: [CheckoutDeliveryAddressUpdateInput!]!
+}
+
+"""
+Input data for removing one or more delivery addresses from the checkout.
+"""
+input CheckoutDeliveryAddressesRemoveInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Identifiers of delivery addresses to be removed."""
+  addressIds: [ID!]!
+}
+
+"""
+Input data for selecting/changing delivery method.
+Can be applied to the entire checkout or to a specific delivery address.
+"""
+input CheckoutDeliveryMethodUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Code of the delivery method available for this checkout/address."""
+  shippingMethodCode: String!
+
+  """
+  Identifier of the delivery group for which the delivery method is selected.
+  """
+  deliveryGroupId: ID!
+}
+
+input CheckoutDeliveryAddressInput {
+  """Primary address line."""
+  address1: String!
+
+  """Secondary address line."""
+  address2: String
+
+  """City name."""
+  city: String!
+
+  """Country code (ISO 3166-1 alpha-2)."""
+  countryCode: CountryCode!
+
+  """Province code."""
+  provinceCode: String
+
+  """Postal code."""
+  postalCode: String
+
+  """Email address for this delivery address."""
+  email: Email
+
+  """First name for delivery."""
+  firstName: String
+
+  """Last name for delivery."""
+  lastName: String
+
+  """Data associated with the delivery address."""
+  data: JSON
+}
+
+"""Delivery address associated with a checkout."""
+type CheckoutDeliveryAddress {
+  """Unique identifier for the delivery address."""
+  id: ID!
+
+  """Primary address line."""
+  address1: String!
+
+  """Secondary address line."""
+  address2: String
+
+  """City name."""
+  city: String!
+
+  """Country code (ISO 3166-1 alpha-2)."""
+  countryCode: CountryCode!
+
+  """Province code."""
+  provinceCode: String
+
+  """Postal code."""
+  postalCode: String
+
+  """Email address for this delivery address."""
+  email: Email
+
+  """First name for delivery."""
+  firstName: String
+
+  """Last name for delivery."""
+  lastName: String
+
+  """Data associated with the delivery address."""
+  data: JSON
+}
+
+"""Currency codes according to ISO 4217"""
+enum CurrencyCode {
+  """2 decimals — UAE Dirham (United Arab Emirates)"""
+  AED
+
+  """2 decimals — Afghan Afghani (Afghanistan)"""
+  AFN
+
+  """2 decimals — Albanian Lek (Albania)"""
+  ALL
+
+  """2 decimals — Armenian Dram (Armenia)"""
+  AMD
+
+  """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
+  ANG
+
+  """2 decimals — Angolan Kwanza (Angola)"""
+  AOA
+
+  """2 decimals — Argentine Peso (Argentina)"""
+  ARS
+
+  """2 decimals — Australian Dollar (Australia)"""
+  AUD
+
+  """2 decimals — Aruban Florin (Aruba)"""
+  AWG
+
+  """2 decimals — Azerbaijani Manat (Azerbaijan)"""
+  AZN
+
+  """
+  2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
+  """
+  BAM
+
+  """2 decimals — Barbadian Dollar (Barbados)"""
+  BBD
+
+  """2 decimals — Bangladeshi Taka (Bangladesh)"""
+  BDT
+
+  """2 decimals — Bulgarian Lev (Bulgaria)"""
+  BGN
+
+  """3 decimals — Bahraini Dinar (Bahrain)"""
+  BHD
+
+  """0 decimals — Burundian Franc (Burundi)"""
+  BIF
+
+  """2 decimals — Bermudian Dollar (Bermuda)"""
+  BMD
+
+  """2 decimals — Brunei Dollar (Brunei)"""
+  BND
+
+  """2 decimals — Bolivian Boliviano (Bolivia)"""
+  BOB
+
+  """2 decimals — Brazilian Real (Brazil)"""
+  BRL
+
+  """2 decimals — Bahamian Dollar (Bahamas)"""
+  BSD
+
+  """2 decimals — Bhutanese Ngultrum (Bhutan)"""
+  BTN
+
+  """2 decimals — Botswana Pula (Botswana)"""
+  BWP
+
+  """2 decimals — Belarusian Ruble (Belarus)"""
+  BYN
+
+  """2 decimals — Belize Dollar (Belize)"""
+  BZD
+
+  """2 decimals — Canadian Dollar (Canada)"""
+  CAD
+
+  """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
+  CDF
+
+  """2 decimals — Swiss Franc (Switzerland)"""
+  CHF
+
+  """0 decimals — Chilean Peso (Chile)"""
+  CLP
+
+  """2 decimals — Chinese Yuan (China)"""
+  CNY
+
+  """2 decimals — Colombian Peso (Colombia)"""
+  COP
+
+  """2 decimals — Costa Rican Colon (Costa Rica)"""
+  CRC
+
+  """2 decimals — Cuban Peso (Cuba)"""
+  CUP
+
+  """2 decimals — Cape Verdean Escudo (Cape Verde)"""
+  CVE
+
+  """2 decimals — Czech Koruna (Czech Republic)"""
+  CZK
+
+  """0 decimals — Djiboutian Franc (Djibouti)"""
+  DJF
+
+  """2 decimals — Danish Krone (Denmark)"""
+  DKK
+
+  """2 decimals — Dominican Peso (Dominican Republic)"""
+  DOP
+
+  """2 decimals — Algerian Dinar (Algeria)"""
+  DZD
+
+  """2 decimals — Egyptian Pound (Egypt)"""
+  EGP
+
+  """2 decimals — Eritrean Nakfa (Eritrea)"""
+  ERN
+
+  """2 decimals — Ethiopian Birr (Ethiopia)"""
+  ETB
+
+  """2 decimals — Euro (European Union)"""
+  EUR
+
+  """2 decimals — Fijian Dollar (Fiji)"""
+  FJD
+
+  """2 decimals — Falkland Islands Pound (Falkland Islands)"""
+  FKP
+
+  """2 decimals — Faroese Króna (Faroe Islands)"""
+  FOK
+
+  """2 decimals — Pound Sterling (United Kingdom)"""
+  GBP
+
+  """2 decimals — Georgian Lari (Georgia)"""
+  GEL
+
+  """2 decimals — Guernsey Pound (Guernsey)"""
+  GGP
+
+  """2 decimals — Ghanaian Cedi (Ghana)"""
+  GHS
+
+  """2 decimals — Gibraltar Pound (Gibraltar)"""
+  GIP
+
+  """2 decimals — Gambian Dalasi (Gambia)"""
+  GMD
+
+  """0 decimals — Guinean Franc (Guinea)"""
+  GNF
+
+  """2 decimals — Guatemalan Quetzal (Guatemala)"""
+  GTQ
+
+  """2 decimals — Guyanese Dollar (Guyana)"""
+  GYD
+
+  """2 decimals — Hong Kong Dollar (Hong Kong)"""
+  HKD
+
+  """2 decimals — Honduran Lempira (Honduras)"""
+  HNL
+
+  """2 decimals — Croatian Kuna (Croatia)"""
+  HRK
+
+  """2 decimals — Haitian Gourde (Haiti)"""
+  HTG
+
+  """2 decimals — Hungarian Forint (Hungary)"""
+  HUF
+
+  """0 decimals — Indonesian Rupiah (Indonesia)"""
+  IDR
+
+  """2 decimals — Israeli New Shekel (Israel)"""
+  ILS
+
+  """2 decimals — Isle of Man Pound (Isle of Man)"""
+  IMP
+
+  """2 decimals — Indian Rupee (India)"""
+  INR
+
+  """3 decimals — Iraqi Dinar (Iraq)"""
+  IQD
+
+  """2 decimals — Iranian Rial (Iran)"""
+  IRR
+
+  """0 decimals — Icelandic Króna (Iceland)"""
+  ISK
+
+  """2 decimals — Jersey Pound (Jersey)"""
+  JEP
+
+  """2 decimals — Jamaican Dollar (Jamaica)"""
+  JMD
+
+  """3 decimals — Jordanian Dinar (Jordan)"""
+  JOD
+
+  """0 decimals — Japanese Yen (Japan)"""
+  JPY
+
+  """2 decimals — Kenyan Shilling (Kenya)"""
+  KES
+
+  """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
+  KGS
+
+  """2 decimals — Cambodian Riel (Cambodia)"""
+  KHR
+
+  """2 decimals — Comorian Franc (Comoros)"""
+  KMF
+
+  """2 decimals — North Korean Won (North Korea)"""
+  KPW
+
+  """2 decimals — South Korean Won (South Korea)"""
+  KRW
+
+  """3 decimals — Kuwaiti Dinar (Kuwait)"""
+  KWD
+
+  """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
+  KYD
+
+  """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
+  KZT
+
+  """2 decimals — Lao Kip (Laos)"""
+  LAK
+
+  """2 decimals — Lebanese Pound (Lebanon)"""
+  LBP
+
+  """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
+  LKR
+
+  """3 decimals — Liberian Dollar (Liberia)"""
+  LRD
+
+  """3 decimals — Libyan Dinar (Libya)"""
+  LYD
+
+  """2 decimals — Moroccan Dirham (Morocco)"""
+  MAD
+
+  """2 decimals — Moldovan Leu (Moldova)"""
+  MDL
+
+  """2 decimals — Malagasy Ariary (Madagascar)"""
+  MGA
+
+  """2 decimals — Macedonian Denar (North Macedonia)"""
+  MKD
+
+  """2 decimals — Burmese Kyat (Myanmar)"""
+  MMK
+
+  """2 decimals — Mongolian Tögrög (Mongolia)"""
+  MNT
+
+  """2 decimals — Macanese Pataca (Macau)"""
+  MOP
+
+  """2 decimals — Mauritanian Ouguiya (Mauritania)"""
+  MRU
+
+  """2 decimals — Mauritian Rupee (Mauritius)"""
+  MUR
+
+  """2 decimals — Maldivian Rufiyaa (Maldives)"""
+  MVR
+
+  """2 decimals — Malawian Kwacha (Malawi)"""
+  MWK
+
+  """2 decimals — Mexican Peso (Mexico)"""
+  MXN
+
+  """2 decimals — Malaysian Ringgit (Malaysia)"""
+  MYR
+
+  """2 decimals — Mozambican Metical (Mozambique)"""
+  MZN
+
+  """2 decimals — Namibian Dollar (Namibia)"""
+  NAD
+
+  """2 decimals — Nigerian Naira (Nigeria)"""
+  NGN
+
+  """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
+  NIO
+
+  """2 decimals — Norwegian Krone (Norway)"""
+  NOK
+
+  """2 decimals — Nepalese Rupee (Nepal)"""
+  NPR
+
+  """2 decimals — New Zealand Dollar (New Zealand)"""
+  NZD
+
+  """2 decimals — Omani Rial (Oman)"""
+  OMR
+
+  """2 decimals — Panamanian Balboa (Panama)"""
+  PAB
+
+  """2 decimals — Peruvian Sol (Peru)"""
+  PEN
+
+  """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
+  PGK
+
+  """2 decimals — Philippine Peso (Philippines)"""
+  PHP
+
+  """2 decimals — Pakistani Rupee (Pakistan)"""
+  PKR
+
+  """0 decimals — Polish Zloty (Poland)"""
+  PLN
+
+  """2 decimals — Paraguayan Guaraní (Paraguay)"""
+  PYG
+
+  """2 decimals — Qatari Riyal (Qatar)"""
+  QAR
+
+  """2 decimals — Romanian Leu (Romania)"""
+  RON
+
+  """2 decimals — Serbian Dinar (Serbia)"""
+  RSD
+
+  """2 decimals — Russian Ruble (Russia)"""
+  RUB
+
+  """2 decimals — Rwandan Franc (Rwanda)"""
+  RWF
+
+  """2 decimals — Saudi Riyal (Saudi Arabia)"""
+  SAR
+
+  """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
+  SBD
+
+  """2 decimals — Seychelles Rupee (Seychelles)"""
+  SCR
+
+  """2 decimals — Sudanese Pound (Sudan)"""
+  SDG
+
+  """2 decimals — Swedish Krona (Sweden)"""
+  SEK
+
+  """2 decimals — Singapore Dollar (Singapore)"""
+  SGD
+
+  """0 decimals — Saint Helena Pound (Saint Helena)"""
+  SHP
+
+  """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
+  SLE
+
+  """2 decimals — Somali Shilling (Somalia)"""
+  SOS
+
+  """2 decimals — Surinamese Dollar (Suriname)"""
+  SRD
+
+  """2 decimals — South Sudanese Pound (South Sudan)"""
+  SSP
+
+  """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
+  STN
+
+  """2 decimals — Salvadoran Colón (El Salvador)"""
+  SVC
+
+  """2 decimals — Syrian Pound (Syria)"""
+  SYP
+
+  """2 decimals — Eswatini Lilangeni (Eswatini)"""
+  SZL
+
+  """2 decimals — Thai Baht (Thailand)"""
+  THB
+
+  """2 decimals — Tajikistani Somoni (Tajikistan)"""
+  TJS
+
+  """2 decimals — Turkmenistani Manat (Turkmenistan)"""
+  TMT
+
+  """2 decimals — Tunisian Dinar (Tunisia)"""
+  TND
+
+  """2 decimals — Tongan Paʻanga (Tonga)"""
+  TOP
+
+  """2 decimals — Turkish Lira (Türkiye)"""
+  TRY
+
+  """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
+  TTD
+
+  """2 decimals — New Taiwan Dollar (Taiwan)"""
+  TWD
+
+  """0 decimals — Tanzanian Shilling (Tanzania)"""
+  TZS
+
+  """2 decimals — Ukrainian Hryvnia (Ukraine)"""
+  UAH
+
+  """2 decimals — Ugandan Shilling (Uganda)"""
+  UGX
+
+  """2 decimals — United States Dollar (United States)"""
+  USD
+
+  """2 decimals — Uruguayan Peso (Uruguay)"""
+  UYU
+
+  """2 decimals — Uzbekistan Som (Uzbekistan)"""
+  UZS
+
+  """2 decimals — Venezuelan Bolívar (Venezuela)"""
+  VES
+
+  """0 decimals — Vietnamese Dong (Vietnam)"""
+  VND
+
+  """2 decimals — Vanuatu Vatu (Vanuatu)"""
+  VUV
+
+  """2 decimals — Samoan Tala (Samoa)"""
+  WST
+
+  """2 decimals — Central African CFA Franc (CEMAC)"""
+  XAF
+
+  """0 decimals — East Caribbean Dollar (OECS)"""
+  XCD
+
+  """0 decimals — Special Drawing Rights (IMF)"""
+  XDR
+
+  """0 decimals — West African CFA Franc (UEMOA)"""
+  XOF
+
+  """0 decimals — CFP Franc (French overseas territories)"""
+  XPF
+
+  """2 decimals — Yemeni Rial (Yemen)"""
+  YER
+
+  """2 decimals — South African Rand (South Africa)"""
+  ZAR
+
+  """2 decimals — Zambian Kwacha (Zambia)"""
+  ZMW
+
+  """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
+  ZWL
+}
+
+enum CountryCode {
+  """United States"""
+  US
+
+  """Canada"""
+  CA
+
+  """Mexico"""
+  MX
+
+  """United Kingdom"""
+  GB
+
+  """Germany"""
+  DE
+
+  """France"""
+  FR
+
+  """Italy"""
+  IT
+
+  """Spain"""
+  ES
+
+  """Australia"""
+  AU
+
+  """New Zealand"""
+  NZ
+
+  """Japan"""
+  JP
+
+  """China"""
+  CN
+
+  """South Korea"""
+  KR
+
+  """India"""
+  IN
+
+  """Brazil"""
+  BR
+
+  """Argentina"""
+  AR
+
+  """South Africa"""
+  ZA
+
+  """Russia"""
+  RU
+
+  """Ukraine"""
+  UA
+
+  """Poland"""
+  PL
+
+  """Netherlands"""
+  NL
+
+  """Belgium"""
+  BE
+
+  """Sweden"""
+  SE
+
+  """Norway"""
+  NO
+
+  """Denmark"""
+  DK
+
+  """Finland"""
+  FI
+
+  """Switzerland"""
+  CH
+
+  """Austria"""
+  AT
+
+  """Portugal"""
+  PT
+
+  """Ireland"""
+  IE
+
+  """Czech Republic"""
+  CZ
+
+  """Hungary"""
+  HU
+
+  """Slovakia"""
+  SK
+
+  """Slovenia"""
+  SI
+
+  """Croatia"""
+  HR
+
+  """Greece"""
+  GR
+
+  """Turkey"""
+  TR
+
+  """Romania"""
+  RO
+
+  """Bulgaria"""
+  BG
+
+  """Estonia"""
+  EE
+
+  """Latvia"""
+  LV
+
+  """Lithuania"""
+  LT
+
+  """Iceland"""
+  IS
+
+  """Luxembourg"""
+  LU
+
+  """Liechtenstein"""
+  LI
+
+  """Malta"""
+  MT
+
+  """Cyprus"""
+  CY
+
+  """Israel"""
+  IL
+
+  """Saudi Arabia"""
+  SA
+
+  """United Arab Emirates"""
+  AE
+
+  """Qatar"""
+  QA
+
+  """Kuwait"""
+  KW
+
+  """Oman"""
+  OM
+
+  """Jordan"""
+  JO
+
+  """Egypt"""
+  EG
+
+  """Morocco"""
+  MA
+
+  """Tunisia"""
+  TN
+
+  """Algeria"""
+  DZ
+
+  """Nigeria"""
+  NG
+
+  """Kenya"""
+  KE
+
+  """Ethiopia"""
+  ET
+
+  """Ghana"""
+  GH
+
+  """Senegal"""
+  SN
+
+  """Ivory Coast"""
+  CI
+
+  """Tanzania"""
+  TZ
+
+  """Uganda"""
+  UG
+
+  """Cameroon"""
+  CM
+
+  """Zambia"""
+  ZM
+
+  """Zimbabwe"""
+  ZW
+
+  """Mozambique"""
+  MZ
+
+  """Botswana"""
+  BW
+
+  """Namibia"""
+  NA
+
+  """Angola"""
+  AO
+
+  """Democratic Republic of the Congo"""
+  CD
+
+  """Sudan"""
+  SD
+
+  """Pakistan"""
+  PK
+
+  """Bangladesh"""
+  BD
+
+  """Nepal"""
+  NP
+
+  """Thailand"""
+  TH
+
+  """Vietnam"""
+  VN
+
+  """Malaysia"""
+  MY
+
+  """Singapore"""
+  SG
+
+  """Indonesia"""
+  ID
+
+  """Philippines"""
+  PH
+
+  """Myanmar"""
+  MM
+
+  """Cambodia"""
+  KH
+
+  """Laos"""
+  LA
+
+  """Brunei"""
+  BN
+
+  """Kazakhstan"""
+  KZ
+
+  """Uzbekistan"""
+  UZ
+
+  """Turkmenistan"""
+  TM
+
+  """Kyrgyzstan"""
+  KG
+
+  """Tajikistan"""
+  TJ
+
+  """Georgia"""
+  GE
+
+  """Armenia"""
+  AM
+
+  """Azerbaijan"""
+  AZ
+
+  """Belarus"""
+  BY
+
+  """Moldova"""
+  MD
+
+  """Serbia"""
+  RS
+
+  """Montenegro"""
+  ME
+
+  """North Macedonia"""
+  MK
+
+  """Bosnia and Herzegovina"""
+  BA
+
+  """Albania"""
+  AL
+
+  """Kosovo"""
+  XK
+
+  """Greenland"""
+  GL
+
+  """Panama"""
+  PA
+
+  """Costa Rica"""
+  CR
+
+  """El Salvador"""
+  SV
+
+  """Guatemala"""
+  GT
+
+  """Honduras"""
+  HN
+
+  """Nicaragua"""
+  NI
+
+  """Jamaica"""
+  JM
+
+  """Cuba"""
+  CU
+
+  """Dominican Republic"""
+  DO
+
+  """Haiti"""
+  HT
+
+  """Trinidad and Tobago"""
+  TT
+
+  """Barbados"""
+  BB
+
+  """Bahamas"""
+  BS
+
+  """Paraguay"""
+  PY
+
+  """Uruguay"""
+  UY
+
+  """Chile"""
+  CL
+
+  """Peru"""
+  PE
+
+  """Colombia"""
+  CO
+
+  """Venezuela"""
+  VE
+
+  """Bolivia"""
+  BO
+
+  """Ecuador"""
+  EC
+
+  """Suriname"""
+  SR
+
+  """Guyana"""
+  GY
+
+  """Fiji"""
+  FJ
+
+  """Papua New Guinea"""
+  PG
+
+  """Samoa"""
+  WS
+
+  """Tonga"""
+  TO
+
+  """Solomon Islands"""
+  SB
+
+  """Vanuatu"""
+  VU
+
+  """New Caledonia"""
+  NC
+
+  """Marshall Islands"""
+  MH
+
+  """Micronesia"""
+  FM
+
+  """Palau"""
+  PW
+
+  """Maldives"""
+  MV
+
+  """Seychelles"""
+  SC
+
+  """Mauritius"""
+  MU
+
+  """Sri Lanka"""
+  LK
+
+  """Bhutan"""
+  BT
+
+  """Mongolia"""
+  MN
+
+  """North Korea"""
+  KP
+
+  """Iraq"""
+  IQ
+
+  """Iran"""
+  IR
+
+  """Afghanistan"""
+  AF
+
+  """Yemen"""
+  YE
+
+  """Syria"""
+  SY
+
+  """Lebanon"""
+  LB
+
+  """Palestine"""
+  PS
+
+  """Bahrain"""
+  BH
+
+  """Malawi"""
+  MW
+
+  """Rwanda"""
+  RW
+
+  """Burundi"""
+  BI
+
+  """South Sudan"""
+  SS
+
+  """Lesotho"""
+  LS
+
+  """Swaziland (Eswatini)"""
+  SZ
+
+  """Madagascar"""
+  MG
+
+  """Central African Republic"""
+  CF
+
+  """Republic of the Congo"""
+  CG
+
+  """Gabon"""
+  GA
+
+  """Guinea"""
+  GN
+
+  """Guinea-Bissau"""
+  GW
+
+  """Equatorial Guinea"""
+  GQ
+
+  """Sierra Leone"""
+  SL
+
+  """Liberia"""
+  LR
+
+  """Benin"""
+  BJ
+
+  """Togo"""
+  TG
+
+  """Niger"""
+  NE
+
+  """Mali"""
+  ML
+
+  """Burkina Faso"""
+  BF
+
+  """Chad"""
+  TD
+
+  """Mauritania"""
+  MR
+
+  """Gambia"""
+  GM
+
+  """Cape Verde"""
+  CV
+
+  """Eritrea"""
+  ER
+
+  """Djibouti"""
+  DJ
+
+  """Comoros"""
+  KM
+
+  """Andorra"""
+  AD
+
+  """Monaco"""
+  MC
+
+  """San Marino"""
+  SM
+
+  """Vatican City"""
+  VA
+
+  """Timor-Leste (East Timor)"""
+  TL
+
+  """Antigua and Barbuda"""
+  AG
+
+  """Saint Kitts and Nevis"""
+  KN
+
+  """Saint Lucia"""
+  LC
+
+  """Saint Vincent and the Grenadines"""
+  VC
+
+  """Grenada"""
+  GD
+
+  """Dominica"""
+  DM
+
+  """Belize"""
+  BZ
+
+  """Aruba"""
+  AW
+
+  """Curaçao"""
+  CW
+
+  """Bermuda"""
+  BM
+
+  """Faroe Islands"""
+  FO
+
+  """Isle of Man"""
+  IM
+
+  """Jersey"""
+  JE
+
+  """Guernsey"""
+  GG
+
+  """Åland Islands"""
+  AX
+
+  """Western Sahara"""
+  EH
+
+  """British Virgin Islands"""
+  VG
+
+  """US Virgin Islands"""
+  VI
+}
+
+interface Purchasable {
+  id: ID!
+}
+
+type PurchasableSnapshot implements Purchasable {
+  id: ID!
+  purchasableSnapshot: JSON!
+}
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+scalar link__Import
+
+scalar federation__FieldSet
+
+scalar federation__Scope
+
+scalar federation__Policy
+
+scalar _Any
+
+type _Service {
+  sdl: String
+}
+
+union _Entity = Checkout | CheckoutLine | User
+
+type User {
+  id: ID!
+}
+
+type Mutation {
+  checkoutMutation: CheckoutMutation!
+}

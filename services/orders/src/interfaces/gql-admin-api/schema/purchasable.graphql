@@ -1,5 +1,11 @@
-type PurchasableSnapshot {
-  snapshot: JSON! @shareable
+interface Purchasable {
+  """
+  Unique identifier of the purchasable entity.
+  """
+  id: ID!
 }
 
-union Purchasable = PurchasableSnapshot
+type PurchasableSnapshot implements Purchasable {
+  id: ID! @shareable
+  purchasableSnapshot: JSON! @shareable
+}

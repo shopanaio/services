@@ -1248,11 +1248,15 @@ type Money {
   currencyCode: CurrencyCode!
 }
 
-type PurchasableSnapshot {
-  snapshot: JSON!
+interface Purchasable {
+  """Unique identifier of the purchasable entity."""
+  id: ID!
 }
 
-union Purchasable = PurchasableSnapshot
+type PurchasableSnapshot implements Purchasable {
+  id: ID!
+  snapshot: JSON!
+}
 
 enum link__Purpose {
   """

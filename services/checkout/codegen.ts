@@ -2,8 +2,8 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   generates: {
-    "./src/interfaces/graphql/types.ts": {
-      schema: "./src/interfaces/gql-storefront-api/schema/**/*.graphql",
+    "./src/interfaces/gql-storefront-api/types.ts": {
+      schema: "./schema-checkout.graphql",
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         typesPrefix: "Api",
@@ -14,7 +14,7 @@ const config: CodegenConfig = {
           JSON: "unknown",
           CurrencyCode: "string",
         },
-        enumsAsTypes: true,
+        enumsAsTypes: false,
         avoidOptionals: true,
       },
     },

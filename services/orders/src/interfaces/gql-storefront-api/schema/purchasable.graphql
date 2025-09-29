@@ -1,5 +1,0 @@
-type PurchasableSnapshot {
-  snapshot: JSON! @shareable
-}
-
-union Purchasable = PurchasableSnapshot

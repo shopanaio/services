@@ -1,7 +1,7 @@
 """
 A single item in a checkout.
 """
-type CheckoutLine implements Node {
+type CheckoutLine implements Node @key(fields: "id") {
   """
   Global unique identifier for the checkout line.
   """
@@ -40,11 +40,10 @@ type CheckoutLine implements Node {
   ID of the purchasable.
   """
   purchasableId: ID!
-
   """
-  Purchasable unit.
+  Purchasable snapshot data at the time of adding to checkout.
   """
-  purchasable: Purchasable
+  purchasableSnapshot: JSON!
 }
 
 """

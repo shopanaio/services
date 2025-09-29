@@ -54,7 +54,6 @@ export async function startServer(broker: ServiceBroker) {
     join(...schemaPath, "checkoutDelivery.graphql"),
     join(...schemaPath, "currency.graphql"),
     join(...schemaPath, "country.graphql"),
-    join(...schemaPath, "purchasable.graphql"),
   ];
 
   const modules = storefrontSchemas.map((p) => ({

@@ -83,7 +83,7 @@ type OrderLineCost {
   totalAmount: Money!
 }
 
-type OrderLine {
+type OrderLine @key(fields: "id") {
   """
   A globally-unique ID.
   """
@@ -101,9 +101,9 @@ type OrderLine {
   """
   purchasableId: ID!
   """
-  Purchasable unit.
+  Purchasable snapshot data at the time of adding to checkout.
   """
-  purchasable: Purchasable!
+  purchasableSnapshot: JSON!
   """
   Creation date.
   """

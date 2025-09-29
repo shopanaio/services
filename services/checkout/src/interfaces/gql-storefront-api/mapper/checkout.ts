@@ -19,7 +19,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
       countryCode: read.customerCountryCode,
       /** Customer is being resolved by another subgraph */
       customer: read.customerId
-        ? { id: encodeGlobalIdByType(read.customerId, GlobalIdEntity.User) }
+        ? { id: encodeGlobalIdByType(read.customerId, GlobalIdEntity.Customer) }
         : null,
       email: read.customerEmail,
       phone: read.customerPhoneE164,

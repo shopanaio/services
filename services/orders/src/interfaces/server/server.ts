@@ -61,18 +61,21 @@ export async function startServer(broker: ServiceBroker) {
     "currency.graphql",
     "order.graphql",
     "parent.graphql",
-    "purchasable.graphql",
   ];
 
   // Admin API schemas and modules
-  const adminSchemas = schemaFiles.map(file => join(...adminSchemaPath, file));
+  const adminSchemas = schemaFiles.map((file) =>
+    join(...adminSchemaPath, file)
+  );
   const adminModules = adminSchemas.map((p) => ({
     typeDefs: gql(readFileSync(p, "utf-8")),
     resolvers: adminResolvers,
   }));
 
   // Storefront API schemas and modules
-  const storefrontSchemas = schemaFiles.map(file => join(...storefrontSchemaPath, file));
+  const storefrontSchemas = schemaFiles.map((file) =>
+    join(...storefrontSchemaPath, file)
+  );
   const storefrontModules = storefrontSchemas.map((p) => ({
     typeDefs: gql(readFileSync(p, "utf-8")),
     resolvers: storefrontResolvers,
@@ -159,8 +162,8 @@ export async function startServer(broker: ServiceBroker) {
 
   app.log.info(
     `Order GraphQL API ready:\n` +
-    `  Admin API: http://localhost:${config.port}/graphql/admin/v1\n` +
-    `  Storefront API: http://localhost:${config.port}/graphql/storefront/v1`
+      `  Admin API: http://localhost:${config.port}/graphql/admin/v1\n` +
+      `  Storefront API: http://localhost:${config.port}/graphql/storefront/v1`
   );
 
   return app;

@@ -92,6 +92,7 @@ export enum GlobalIdEntity {
   OrderLine = "OrderLine",
   OrderDeliveryAddress = "OrderDeliveryAddress",
   User = "User",
+  Customer = "Customer",
   ProductVariant = "ProductVariant",
 }
 

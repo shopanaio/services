@@ -67,7 +67,6 @@ type OrderLine {
   taxAmount: Int
   totalAmount: Int!
   purchasableId: ID!
-  purchasable: Purchasable!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

@@ -974,10 +974,14 @@ export type ApiOrdersOutput = {
   meta: ApiCollectionMeta;
 };
 
-export type ApiPurchasable = ApiPurchasableSnapshot;
+export type ApiPurchasable = {
+  /** Unique identifier of the purchasable entity. */
+  id: Scalars['ID']['output'];
+};
 
-export type ApiPurchasableSnapshot = {
+export type ApiPurchasableSnapshot = ApiPurchasable & {
   __typename?: 'PurchasableSnapshot';
+  id: Scalars['ID']['output'];
   snapshot: Scalars['JSON']['output'];
 };
 
@@ -1100,13 +1104,13 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of union types */
 export type ApiResolversUnionTypes<_RefType extends Record<string, unknown>> = {
   OrderActor: ( ApiApiKey ) | ( ApiUser );
-  Purchasable: ( ApiPurchasableSnapshot );
   _Entity: ( ApiApiKey ) | ( ApiCustomer ) | ( ApiLabel ) | ( ApiTag ) | ( ApiUser );
 };
 
 /** Mapping of interface types */
 export type ApiResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
   Node: never;
+  Purchasable: ( ApiPurchasableSnapshot );
 };
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1145,7 +1149,7 @@ export type ApiResolversTypes = {
   OrderStatus: ApiOrderStatus;
   OrdersInput: ApiOrdersInput;
   OrdersOutput: ResolverTypeWrapper<Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversTypes['Order']> }>;
-  Purchasable: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['Purchasable']>;
+  Purchasable: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Purchasable']>;
   PurchasableSnapshot: ResolverTypeWrapper<ApiPurchasableSnapshot>;
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -1194,7 +1198,7 @@ export type ApiResolversParentTypes = {
   OrderQuery: Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversParentTypes['Order']>, orders: ApiResolversParentTypes['OrdersOutput'] };
   OrdersInput: ApiOrdersInput;
   OrdersOutput: Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversParentTypes['Order']> };
-  Purchasable: ApiResolversUnionTypes<ApiResolversParentTypes>['Purchasable'];
+  Purchasable: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Purchasable'];
   PurchasableSnapshot: ApiPurchasableSnapshot;
   Query: {};
   String: Scalars['String']['output'];
@@ -1452,9 +1456,11 @@ export type ApiOrdersOutputResolvers<ContextType = GraphQLContext, ParentType ex
 
 export type ApiPurchasableResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Purchasable'] = ApiResolversParentTypes['Purchasable']> = {
   __resolveType: TypeResolveFn<'PurchasableSnapshot', ParentType, ContextType>;
+  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
 };
 
 export type ApiPurchasableSnapshotResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PurchasableSnapshot'] = ApiResolversParentTypes['PurchasableSnapshot']> = {
+  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   snapshot: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

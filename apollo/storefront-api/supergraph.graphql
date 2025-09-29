@@ -755,36 +755,38 @@ input CheckoutLanguageCodeUpdateInput
 """A single item in a checkout."""
 type CheckoutLine implements Node
   @join__implements(graph: CHECKOUT, interface: "Node")
-  @join__type(graph: CHECKOUT)
+  @join__type(graph: CHECKOUT, key: "id")
+  @join__type(graph: CORE, key: "id", extension: true)
 {
   """Global unique identifier for the checkout line."""
   id: ID!
 
   """Title of the purchasable."""
-  title: String!
+  title: String! @join__field(graph: CHECKOUT)
 
   """SKU of the purchasable."""
-  sku: String
+  sku: String @join__field(graph: CHECKOUT)
 
   """Image URL of the purchasable."""
-  imageSrc: String
+  imageSrc: String @join__field(graph: CHECKOUT)
 
   """Quantity of the item being purchased."""
-  quantity: Int!
+  quantity: Int! @join__field(graph: CHECKOUT)
 
   """Cost calculations for this checkout item."""
-  cost: CheckoutLineCost!
+  cost: CheckoutLineCost! @join__field(graph: CHECKOUT)
 
   """
   A list of components that make up this checkout line, such as individual products in a bundle.
   """
-  children: [CheckoutLine]!
+  children: [CheckoutLine]! @join__field(graph: CHECKOUT)
 
   """ID of the purchasable."""
-  purchasableId: ID!
+  purchasableId: ID! @join__field(graph: CHECKOUT) @join__field(graph: CORE, external: true)
 
-  """Purchasable unit."""
-  purchasable: Purchasable
+  """Purchasable snapshot data at the time of adding to checkout."""
+  purchasableSnapshot: JSON! @join__field(graph: CHECKOUT)
+  purchasable: ProductVariant! @join__field(graph: CORE, requires: "purchasableId")
 }
 
 """Detailed breakdown of costs for a checkout line item"""
@@ -3110,28 +3112,30 @@ type OrderCost
 }
 
 type OrderLine
-  @join__type(graph: ORDERS)
+  @join__type(graph: CORE, key: "id", extension: true)
+  @join__type(graph: ORDERS, key: "id")
 {
   """A globally-unique ID."""
   id: ID!
 
+  """ID of the purchasable."""
+  purchasableId: ID! @join__field(graph: CORE, external: true) @join__field(graph: ORDERS)
+  purchasable: ProductVariant! @join__field(graph: CORE, requires: "purchasableId")
+
   """Quantity of the item being purchased."""
-  quantity: Int!
+  quantity: Int! @join__field(graph: ORDERS)
 
   """Cost breakdown for the order line."""
-  cost: OrderLineCost!
+  cost: OrderLineCost! @join__field(graph: ORDERS)
 
-  """ID of the purchasable."""
-  purchasableId: ID!
-
-  """Purchasable unit."""
-  purchasable: Purchasable!
+  """Purchasable snapshot data at the time of adding to checkout."""
+  purchasableSnapshot: JSON! @join__field(graph: ORDERS)
 
   """Creation date."""
-  createdAt: DateTime!
+  createdAt: DateTime! @join__field(graph: ORDERS)
 
   """Last updated date."""
-  updatedAt: DateTime!
+  updatedAt: DateTime! @join__field(graph: ORDERS)
 }
 
 type OrderLineCost
@@ -3948,22 +3952,6 @@ type ProductVariant implements Node
     """Sort order."""
     sort: ProductReviewSort
   ): ProductReviewConnection!
-}
-
-union Purchasable
-  @join__type(graph: CHECKOUT)
-  @join__type(graph: CORE)
-  @join__type(graph: ORDERS)
-  @join__unionMember(graph: CHECKOUT, member: "PurchasableSnapshot")
-  @join__unionMember(graph: ORDERS, member: "PurchasableSnapshot")
-  @join__unionMember(graph: CORE, member: "ProductVariant")
- = PurchasableSnapshot | ProductVariant
-
-type PurchasableSnapshot
-  @join__type(graph: CHECKOUT)
-  @join__type(graph: ORDERS)
-{
-  snapshot: JSON!
 }
 
 input PurchasableSnapshotInput
