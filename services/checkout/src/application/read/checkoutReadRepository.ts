@@ -3,7 +3,7 @@ import {
   CheckoutLineItemsReadRepository,
 } from "@src/application/read/checkoutLineItemsReadRepository";
 import { Money } from "@shopana/shared-money";
-import { CheckoutState } from "@src/domain/checkout/evolve";
+import { CheckoutState } from "@src/domain/checkout/types";
 import { CheckoutReadModelAdapter } from "./checkoutReadModelAdapter";
 
 export type CheckoutDeliveryAddressRow = {

@@ -1,4 +1,4 @@
-import type { CheckoutDeliveryGroup } from "./decider";
+import type { CheckoutDeliveryGroup } from "./types";
 
 // Line item with inventory offer for grouping decisions
 export type LineItemWithOffer = {

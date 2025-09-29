@@ -10,19 +10,21 @@ export interface GetCheckoutByIdUseCaseDependencies {
   checkoutReadRepository: CheckoutReadRepository;
 }
 
-export class GetCheckoutByIdUseCase extends UseCase<GetCheckoutByIdInput, Checkout | null> {
-  constructor(
-    deps: GetCheckoutByIdUseCaseDependencies,
-    baseDeps?: any
-  ) {
+export class GetCheckoutByIdUseCase extends UseCase<
+  GetCheckoutByIdInput,
+  Checkout | null
+> {
+  constructor(deps: GetCheckoutByIdUseCaseDependencies, baseDeps?: any) {
     super(baseDeps);
     this.checkoutReadRepository = deps.checkoutReadRepository;
   }
 
-  private readonly checkoutReadRepository: CheckoutReadRepository;
+  readonly checkoutReadRepository: CheckoutReadRepository;
 
   async execute(input: GetCheckoutByIdInput): Promise<Checkout | null> {
-    const state = await this.checkoutReadRepository.findByIdAsCheckoutState(input.checkoutId);
+    const state = await this.checkoutReadRepository.findByIdAsCheckoutState(
+      input.checkoutId
+    );
     if (!state) return null;
     return Checkout.fromAggregate(input.checkoutId, state);
   }

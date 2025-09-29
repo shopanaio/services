@@ -3,10 +3,10 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutLinesAddInput } from "@src/application/checkout/types";
-import type { CheckoutLinesAddedDto } from "@src/domain/checkout/events";
+import type { CheckoutLinesAddedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
-import { CheckoutLineItemState } from "@src/domain/checkout/evolve";
+import { CheckoutLineItemState } from "@src/domain/checkout/types";
 
 export interface AddCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
@@ -105,8 +105,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       currency: state.currencyCode,
     });
 
-    const event: CheckoutLinesAddedDto = {
-      type: "checkout.lines.added",
+    const dto: CheckoutLinesAddedDto = {
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
@@ -115,7 +114,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.applyCheckoutLines(event);
+    await this.checkoutWriteRepository.applyCheckoutLines(dto);
 
     return input.checkoutId;
   }

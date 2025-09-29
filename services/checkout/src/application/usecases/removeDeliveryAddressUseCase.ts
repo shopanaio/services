@@ -1,5 +1,5 @@
 import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutDeliveryGroupAddressClearedDto } from "@src/domain/checkout/events";
+import type { CheckoutDeliveryGroupAddressClearedDto } from "@src/domain/checkout/dto";
 import type { CheckoutDeliveryAddressRemoveInput } from "@src/application/checkout/types";
 
 export class RemoveDeliveryAddressUseCase extends UseCase<
@@ -26,8 +26,7 @@ export class RemoveDeliveryAddressUseCase extends UseCase<
       );
     }
 
-    const event: CheckoutDeliveryGroupAddressClearedDto = {
-      type: "checkout.delivery.group.address.cleared",
+    const dto: CheckoutDeliveryGroupAddressClearedDto = {
       data: {
         addressId: businessInput.addressId,
         deliveryGroupId: groupToRemove.id,
@@ -35,7 +34,7 @@ export class RemoveDeliveryAddressUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.clearDeliveryGroupAddress(event);
+    await this.checkoutWriteRepository.clearDeliveryGroupAddress(dto);
 
     return businessInput.checkoutId;
   }

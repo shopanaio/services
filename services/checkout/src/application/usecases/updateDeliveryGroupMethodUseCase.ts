@@ -1,6 +1,6 @@
 import { DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
 import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutDeliveryGroupMethodUpdatedDto } from "@src/domain/checkout/events";
+import type { CheckoutDeliveryGroupMethodUpdatedDto } from "@src/domain/checkout/dto";
 import type { CheckoutDeliveryMethodUpdateInput } from "@src/application/checkout/types";
 
 export class UpdateDeliveryGroupMethodUseCase extends UseCase<
@@ -20,7 +20,9 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<
       (g) => g.id === businessInput.deliveryGroupId
     );
     if (!group) {
-      throw new Error(`Delivery group not found: ${businessInput.deliveryGroupId}`);
+      throw new Error(
+        `Delivery group not found: ${businessInput.deliveryGroupId}`
+      );
     }
 
     const method = group.deliveryMethods.find(
@@ -32,23 +34,22 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<
       );
     }
 
-    const event: CheckoutDeliveryGroupMethodUpdatedDto = {
-      type: "checkout.delivery.group.method.updated",
+    const dto: CheckoutDeliveryGroupMethodUpdatedDto = {
       data: {
         deliveryGroupId: businessInput.deliveryGroupId,
         deliveryMethod: {
           code: method.code,
-            provider: method.provider.code,
-            deliveryMethodType: method.deliveryMethodType,
-            shippingPaymentModel: method.shippingPaymentModel,
-            estimatedDeliveryDays: null,
-            shippingCost: null,
+          provider: method.provider.code,
+          deliveryMethodType: method.deliveryMethodType,
+          shippingPaymentModel: method.shippingPaymentModel,
+          estimatedDeliveryDays: null,
+          shippingCost: null,
         },
         shippingTotal: null,
       },
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.updateDeliveryGroupMethod(event);
+    await this.checkoutWriteRepository.updateDeliveryGroupMethod(dto);
   }
 }

@@ -1,12 +1,13 @@
 import { Money } from "@shopana/shared-money";
-
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
 } from "@shopana/shipping-plugin-sdk";
 import { AppliedDiscountSnapshot } from "./discount";
 
-// Duplicate types from types.ts to avoid import issues
+/**
+ * Checkout line item state representation
+ */
 export type CheckoutLineItemState = {
   lineId: string;
   quantity: number;
@@ -21,6 +22,9 @@ export type CheckoutLineItemState = {
   };
 };
 
+/**
+ * Checkout delivery address
+ */
 export type CheckoutDeliveryAddress = {
   id: string;
   address1: string;
@@ -36,11 +40,17 @@ export type CheckoutDeliveryAddress = {
   data?: Record<string, unknown> | null;
 };
 
+/**
+ * Checkout delivery provider
+ */
 export type CheckoutDeliveryProvider = {
   code: string;
   data: Record<string, unknown>;
 };
 
+/**
+ * Checkout delivery method
+ */
 export type CheckoutDeliveryMethod = {
   code: string;
   deliveryMethodType: DeliveryMethodType;
@@ -48,6 +58,9 @@ export type CheckoutDeliveryMethod = {
   provider: CheckoutDeliveryProvider;
 };
 
+/**
+ * Checkout delivery group
+ */
 export type CheckoutDeliveryGroup = {
   id: string;
   checkoutLineIds: string[];
@@ -60,6 +73,9 @@ export type CheckoutDeliveryGroup = {
   } | null;
 };
 
+/**
+ * Complete checkout aggregate state
+ */
 export type CheckoutState = {
   id: string;
   exists: boolean;
@@ -83,7 +99,6 @@ export type CheckoutState = {
   version: number;
   metadata: Record<string, unknown>;
   deletedAt: Date | null;
-  // removed: lineItems (use linesRecord + read model)
   customerEmail: string | null;
   customerId: string | null;
   customerPhone: string | null;
@@ -97,6 +112,9 @@ export type CheckoutState = {
   appliedDiscounts: Array<AppliedDiscountSnapshot>;
 };
 
+/**
+ * Creates initial checkout state
+ */
 export const checkoutInitialState = (): CheckoutState => ({
   id: "",
   exists: false,

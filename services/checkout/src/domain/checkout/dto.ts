@@ -1,6 +1,4 @@
-import { CheckoutCommandMetadata } from "@src/domain/checkout/commands";
 import { Money } from "@shopana/shared-money";
-import { DiscountCondition, DiscountType } from "@shopana/pricing-plugin-sdk";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
@@ -8,44 +6,17 @@ import {
 import type {
   CheckoutLineCostSnapshot,
   CheckoutTotalsSnapshot,
-  CheckoutCostSnapshot,
 } from "@src/domain/checkout/cost";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 
-export const CheckoutEventTypes = {
-  CheckoutCreated: "checkout.created",
-  CheckoutLinesAdded: "checkout.lines.added",
-  CheckoutLinesUpdated: "checkout.lines.updated",
-  CheckoutLinesDeleted: "checkout.lines.deleted",
-  CheckoutLinesCleared: "checkout.lines.cleared",
-  // New events for extended functionality
-  CheckoutCustomerIdentityUpdated: "checkout.customer.identity.updated",
-  CheckoutCustomerNoteUpdated: "checkout.customer.note.updated",
-  CheckoutLanguageCodeUpdated: "checkout.language.code.updated",
-  CheckoutCurrencyCodeUpdated: "checkout.currency.code.updated",
-  CheckoutPromoCodeAdded: "checkout.promo.code.added",
-  CheckoutPromoCodeRemoved: "checkout.promo.code.removed",
-  // Delivery Groups events (deprecated separate created)
-  CheckoutDeliveryGroupAddressUpdated:
-    "checkout.delivery.group.address.updated",
-  CheckoutDeliveryGroupAddressCleared:
-    "checkout.delivery.group.address.cleared",
-  CheckoutDeliveryGroupMethodUpdated: "checkout.delivery.group.method.updated",
-  CheckoutDeliveryGroupRemoved: "checkout.delivery.group.removed",
-} as const;
-
-/**
- * Contract version for checkout domain events.
- *
- * Versioning policy:
- * - Every event carries `metadata.contractVersion` set to this constant at write time.
- * - Readers (aggregates/projections/consumers) MUST upcast older versions to the latest
- *   before evolve/projection. Upcasters are pure functions registered per (type, fromVersion).
- * - Backward-incompatible schema changes bump this value and require corresponding upcasters.
- *
- * See also: ARCHITECTURE.md → "Event Versioning & Upcasting".
- */
-export const CheckoutEventsContractVersion = 3 as const;
+type CheckoutMetadataDto = {
+  apiKey: string;
+  aggregateId: string;
+  contractVersion: number;
+  projectId: string;
+  userId?: string;
+  now: Date;
+};
 
 /**
  * Event: checkout.created (v1)
@@ -75,9 +46,8 @@ export type CheckoutCreatedPayload = Readonly<{
 }>;
 
 export type CheckoutCreatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutCreated;
   data: CheckoutCreatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutUnit = Readonly<{
@@ -104,9 +74,8 @@ export type CheckoutLinesAddedPayload = Readonly<{
 }>;
 
 export type CheckoutLinesAddedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutLinesAdded;
   data: CheckoutLinesAddedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutLinesUpdatedPayload = Readonly<{
@@ -117,9 +86,8 @@ export type CheckoutLinesUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutLinesUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutLinesUpdated;
   data: CheckoutLinesUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutLinesDeletedPayload = Readonly<{
@@ -130,9 +98,8 @@ export type CheckoutLinesDeletedPayload = Readonly<{
 }>;
 
 export type CheckoutLinesDeletedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutLinesDeleted;
   data: CheckoutLinesDeletedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutLinesClearedPayload = Readonly<{
@@ -143,9 +110,8 @@ export type CheckoutLinesClearedPayload = Readonly<{
 }>;
 
 export type CheckoutLinesClearedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutLinesCleared;
   data: CheckoutLinesClearedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 // New events for extended functionality
@@ -157,9 +123,8 @@ export type CheckoutCustomerIdentityUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutCustomerIdentityUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutCustomerIdentityUpdated;
   data: CheckoutCustomerIdentityUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutCustomerNoteUpdatedPayload = Readonly<{
@@ -167,9 +132,8 @@ export type CheckoutCustomerNoteUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutCustomerNoteUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutCustomerNoteUpdated;
   data: CheckoutCustomerNoteUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutLanguageCodeUpdatedPayload = Readonly<{
@@ -177,9 +141,8 @@ export type CheckoutLanguageCodeUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutLanguageCodeUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutLanguageCodeUpdated;
   data: CheckoutLanguageCodeUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutCurrencyCodeUpdatedPayload = Readonly<{
@@ -187,25 +150,11 @@ export type CheckoutCurrencyCodeUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutCurrencyCodeUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutCurrencyCodeUpdated;
   data: CheckoutCurrencyCodeUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
-export type CheckoutDeliveryAddress = Readonly<{
-  id: string;
-  address1: string;
-  address2?: string | null;
-  city: string;
-  countryCode: string;
-  provinceCode?: string | null;
-  postalCode?: string | null;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  phone?: string | null;
-  data?: Record<string, unknown> | null;
-}>;
+import type { CheckoutDeliveryAddress } from "./types";
 
 // Removed: CheckoutDeliveryMethodUpdated (use group-level method update)
 
@@ -217,9 +166,8 @@ export type CheckoutPromoCodeAddedPayload = Readonly<{
 }>;
 
 export type CheckoutPromoCodeAddedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutPromoCodeAdded;
   data: CheckoutPromoCodeAddedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutPromoCodeRemovedPayload = Readonly<{
@@ -230,9 +178,8 @@ export type CheckoutPromoCodeRemovedPayload = Readonly<{
 }>;
 
 export type CheckoutPromoCodeRemovedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutPromoCodeRemoved;
   data: CheckoutPromoCodeRemovedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 // Delivery Groups events
@@ -257,9 +204,8 @@ export type CheckoutDeliveryGroupAddressUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutDeliveryGroupAddressUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutDeliveryGroupAddressUpdated;
   data: CheckoutDeliveryGroupAddressUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutDeliveryGroupAddressClearedPayload = Readonly<{
@@ -268,9 +214,8 @@ export type CheckoutDeliveryGroupAddressClearedPayload = Readonly<{
 }>;
 
 export type CheckoutDeliveryGroupAddressClearedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutDeliveryGroupAddressCleared;
   data: CheckoutDeliveryGroupAddressClearedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutDeliveryGroupMethodUpdatedPayload = Readonly<{
@@ -291,9 +236,8 @@ export type CheckoutDeliveryGroupMethodUpdatedPayload = Readonly<{
 }>;
 
 export type CheckoutDeliveryGroupMethodUpdatedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutDeliveryGroupMethodUpdated;
   data: CheckoutDeliveryGroupMethodUpdatedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
 
 export type CheckoutDeliveryGroupRemovedPayload = Readonly<{
@@ -303,24 +247,6 @@ export type CheckoutDeliveryGroupRemovedPayload = Readonly<{
 }>;
 
 export type CheckoutDeliveryGroupRemovedDto = Readonly<{
-  type: typeof CheckoutEventTypes.CheckoutDeliveryGroupRemoved;
   data: CheckoutDeliveryGroupRemovedPayload;
-  metadata: CheckoutCommandMetadata;
+  metadata: CheckoutMetadataDto;
 }>;
-
-export type CheckoutDto =
-  | CheckoutCreatedDto
-  | CheckoutLinesAddedDto
-  | CheckoutLinesUpdatedDto
-  | CheckoutLinesDeletedDto
-  | CheckoutLinesClearedDto
-  | CheckoutCustomerIdentityUpdatedDto
-  | CheckoutCustomerNoteUpdatedDto
-  | CheckoutLanguageCodeUpdatedDto
-  | CheckoutCurrencyCodeUpdatedDto
-  | CheckoutPromoCodeAddedDto
-  | CheckoutPromoCodeRemovedDto
-  | CheckoutDeliveryGroupAddressUpdatedDto
-  | CheckoutDeliveryGroupAddressClearedDto
-  | CheckoutDeliveryGroupMethodUpdatedDto
-  | CheckoutDeliveryGroupRemovedDto;

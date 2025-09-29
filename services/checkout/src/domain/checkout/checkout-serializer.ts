@@ -4,7 +4,7 @@ import type {
   CheckoutDeliveryGroup,
   CheckoutLineItemState,
   CheckoutDeliveryMethod,
-} from "@src/domain/checkout/evolve";
+} from "./types";
 import type { CheckoutDto } from "@shopana/checkout-sdk";
 import { Money } from "@shopana/shared-money";
 

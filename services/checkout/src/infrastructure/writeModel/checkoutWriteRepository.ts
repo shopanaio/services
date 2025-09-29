@@ -19,7 +19,7 @@ import type {
   CheckoutCustomerNoteUpdatedDto,
   CheckoutLanguageCodeUpdatedDto,
   CheckoutCurrencyCodeUpdatedDto,
-} from "@src/domain/checkout/events";
+} from "@src/domain/checkout/dto";
 
 /**
  * Repository for performing write operations on checkout read model tables.
@@ -38,16 +38,16 @@ export class CheckoutWriteRepository {
   /**
    * Updates customer identity fields on checkout.
    */
-  async updateCustomerIdentity(event: CheckoutCustomerIdentityUpdatedDto): Promise<void> {
+  async updateCustomerIdentity(input: CheckoutCustomerIdentityUpdatedDto): Promise<void> {
     const q = knex
       .withSchema("platform")
       .table("checkouts")
-      .where("id", event.metadata.aggregateId)
+      .where("id", input.metadata.aggregateId)
       .update({
-        customer_email: event.data.email ?? null,
-        customer_id: (event.data.customerId as any) ?? null,
-        customer_phone_e164: event.data.phone ?? null,
-        customer_country_code: (event.data.countryCode as any) ?? null,
+        customer_email: input.data.email ?? null,
+        customer_id: (input.data.customerId as any) ?? null,
+        customer_phone_e164: input.data.phone ?? null,
+        customer_country_code: (input.data.countryCode as any) ?? null,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -57,13 +57,13 @@ export class CheckoutWriteRepository {
   /**
    * Updates customer note on checkout.
    */
-  async updateCustomerNote(event: CheckoutCustomerNoteUpdatedDto): Promise<void> {
+  async updateCustomerNote(input: CheckoutCustomerNoteUpdatedDto): Promise<void> {
     const q = knex
       .withSchema("platform")
       .table("checkouts")
-      .where("id", event.metadata.aggregateId)
+      .where("id", input.metadata.aggregateId)
       .update({
-        customer_note: event.data.note ?? null,
+        customer_note: input.data.note ?? null,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -73,13 +73,13 @@ export class CheckoutWriteRepository {
   /**
    * Updates checkout language code.
    */
-  async updateLanguageCode(event: CheckoutLanguageCodeUpdatedDto): Promise<void> {
+  async updateLanguageCode(input: CheckoutLanguageCodeUpdatedDto): Promise<void> {
     const q = knex
       .withSchema("platform")
       .table("checkouts")
-      .where("id", event.metadata.aggregateId)
+      .where("id", input.metadata.aggregateId)
       .update({
-        locale_code: (event.data.localeCode as any) ?? null,
+        locale_code: (input.data.localeCode as any) ?? null,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -89,13 +89,13 @@ export class CheckoutWriteRepository {
   /**
    * Updates checkout currency code.
    */
-  async updateCurrencyCode(event: CheckoutCurrencyCodeUpdatedDto): Promise<void> {
+  async updateCurrencyCode(input: CheckoutCurrencyCodeUpdatedDto): Promise<void> {
     const q = knex
       .withSchema("platform")
       .table("checkouts")
-      .where("id", event.metadata.aggregateId)
+      .where("id", input.metadata.aggregateId)
       .update({
-        currency_code: event.data.currencyCode,
+        currency_code: input.data.currencyCode,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -105,27 +105,27 @@ export class CheckoutWriteRepository {
   /**
    * Creates a checkout row and initial delivery groups/methods.
    */
-  async createCheckout(event: CheckoutCreatedDto): Promise<void> {
+  async createCheckout(input: CheckoutCreatedDto): Promise<void> {
     const statements: string[] = [];
 
     const insertCheckoutSql = knex
       .withSchema("platform")
       .table("checkouts")
       .insert({
-        id: event.metadata.aggregateId,
-        project_id: event.metadata.projectId as any,
+        id: input.metadata.aggregateId,
+        project_id: input.metadata.projectId as any,
         api_key_id: null,
         admin_id: null,
-        sales_channel: event.data.salesChannel,
-        external_source: event.data.externalSource,
-        external_id: event.data.externalId,
+        sales_channel: input.data.salesChannel,
+        external_source: input.data.externalSource,
+        external_id: input.data.externalId,
         customer_id: null,
         customer_email: null,
         customer_phone_e164: null,
         customer_country_code: null,
         customer_note: null,
-        locale_code: event.data.localeCode as any,
-        currency_code: event.data.currencyCode,
+        locale_code: input.data.localeCode as any,
+        currency_code: input.data.currencyCode,
         subtotal: 0,
         shipping_total: 0,
         discount_total: 0,
@@ -135,14 +135,14 @@ export class CheckoutWriteRepository {
         expires_at: null,
         projected_version: 0,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-        created_at: event.metadata.now,
-        updated_at: event.metadata.now,
+        created_at: input.metadata.now,
+        updated_at: input.metadata.now,
         deleted_at: null,
       })
       .toString();
     statements.push(insertCheckoutSql);
 
-    const deliveryGroups = event.data.deliveryGroups ?? [];
+    const deliveryGroups = input.data.deliveryGroups ?? [];
     if (deliveryGroups.length > 0) {
       const insertGroupsSql = knex
         .withSchema("platform")
@@ -150,19 +150,19 @@ export class CheckoutWriteRepository {
         .insert(
           deliveryGroups.map((g) => ({
             id: g.id,
-            project_id: event.metadata.projectId as any,
-            checkout_id: event.metadata.aggregateId,
+            project_id: input.metadata.projectId as any,
+            checkout_id: input.metadata.aggregateId,
             selected_delivery_method: null,
             line_item_ids: knex.raw("ARRAY[]::uuid[]"),
-            created_at: event.metadata.now,
-            updated_at: event.metadata.now,
+            created_at: input.metadata.now,
+            updated_at: input.metadata.now,
           })),
         )
         .toString();
       statements.push(insertGroupsSql);
     }
 
-    const methods = (event.data.deliveryGroups || []).flatMap((g) =>
+    const methods = (input.data.deliveryGroups || []).flatMap((g) =>
       (g.deliveryMethods || []).map((m) => ({ groupId: g.id, method: m })),
     );
     if (methods.length > 0) {
@@ -172,7 +172,7 @@ export class CheckoutWriteRepository {
         .insert(
           methods.map(({ groupId, method }) => ({
             code: method.code,
-            project_id: event.metadata.projectId as any,
+            project_id: input.metadata.projectId as any,
             delivery_group_id: groupId,
             delivery_method_type: method.deliveryMethodType,
             payment_model: method.shippingPaymentModel,
@@ -189,13 +189,13 @@ export class CheckoutWriteRepository {
    * Applies full upsert of checkout lines and totals for Added/Updated/Deleted events.
    */
   async applyCheckoutLines(
-    event: CheckoutLinesAddedDto | CheckoutLinesUpdatedDto | CheckoutLinesDeletedDto,
+    input: CheckoutLinesAddedDto | CheckoutLinesUpdatedDto | CheckoutLinesDeletedDto,
   ): Promise<void> {
     const sqls = this.buildCheckoutLinesUpsertStatements({
-      projectId: event.metadata.projectId,
-      checkoutId: event.metadata.aggregateId,
-      now: event.metadata.now,
-      data: event.data,
+      projectId: input.metadata.projectId,
+      checkoutId: input.metadata.aggregateId,
+      now: input.metadata.now,
+      data: input.data,
     });
     await this.run(sqls);
   }
@@ -203,9 +203,9 @@ export class CheckoutWriteRepository {
   /**
    * Clears lines and updates totals to provided values.
    */
-  async clearCheckoutLines(event: CheckoutLinesClearedDto): Promise<void> {
-    const projectId = event.metadata.projectId;
-    const checkoutId = event.metadata.aggregateId;
+  async clearCheckoutLines(input: CheckoutLinesClearedDto): Promise<void> {
+    const projectId = input.metadata.projectId;
+    const checkoutId = input.metadata.aggregateId;
 
     const toBigintSql = (m: Money | null) => (m == null ? null : m.amountMinor().toString());
 
@@ -221,11 +221,11 @@ export class CheckoutWriteRepository {
       .table("checkouts")
       .where("id", checkoutId)
       .update({
-        subtotal: toBigintSql(event.data.checkoutCost.subtotal),
-        discount_total: toBigintSql(event.data.checkoutCost.discountTotal),
-        tax_total: toBigintSql(event.data.checkoutCost.taxTotal),
-        shipping_total: toBigintSql(event.data.checkoutCost.shippingTotal),
-        grand_total: toBigintSql(event.data.checkoutCost.grandTotal),
+        subtotal: toBigintSql(input.data.checkoutCost.subtotal),
+        discount_total: toBigintSql(input.data.checkoutCost.discountTotal),
+        tax_total: toBigintSql(input.data.checkoutCost.taxTotal),
+        shipping_total: toBigintSql(input.data.checkoutCost.shippingTotal),
+        grand_total: toBigintSql(input.data.checkoutCost.grandTotal),
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -236,22 +236,22 @@ export class CheckoutWriteRepository {
   /**
    * Applies promo code change: updates line totals and applied discounts list.
    */
-  async applyPromoCodeAdded(event: CheckoutPromoCodeAddedDto): Promise<void> {
+  async applyPromoCodeAdded(input: CheckoutPromoCodeAddedDto): Promise<void> {
     const linesSqls = this.buildCheckoutLinesUpsertStatements({
-      projectId: event.metadata.projectId,
-      checkoutId: event.metadata.aggregateId,
-      now: event.metadata.now,
+      projectId: input.metadata.projectId,
+      checkoutId: input.metadata.aggregateId,
+      now: input.metadata.now,
       data: {
-        checkoutLines: event.data.checkoutLines,
-        checkoutLinesCost: event.data.checkoutLinesCost,
-        checkoutCost: event.data.checkoutCost,
+        checkoutLines: input.data.checkoutLines,
+        checkoutLinesCost: input.data.checkoutLinesCost,
+        checkoutCost: input.data.checkoutCost,
       },
     });
 
     const discountsSqls = this.buildAppliedDiscountsUpsertStatements({
-      projectId: event.metadata.projectId,
-      checkoutId: event.metadata.aggregateId,
-      data: event.data,
+      projectId: input.metadata.projectId,
+      checkoutId: input.metadata.aggregateId,
+      data: input.data,
     });
 
     await this.run([...linesSqls, ...discountsSqls]);
@@ -260,22 +260,22 @@ export class CheckoutWriteRepository {
   /**
    * Applies promo code removal: updates line totals and applied discounts list.
    */
-  async applyPromoCodeRemoved(event: CheckoutPromoCodeRemovedDto): Promise<void> {
+  async applyPromoCodeRemoved(input: CheckoutPromoCodeRemovedDto): Promise<void> {
     const linesSqls = this.buildCheckoutLinesUpsertStatements({
-      projectId: event.metadata.projectId,
-      checkoutId: event.metadata.aggregateId,
-      now: event.metadata.now,
+      projectId: input.metadata.projectId,
+      checkoutId: input.metadata.aggregateId,
+      now: input.metadata.now,
       data: {
-        checkoutLines: event.data.checkoutLines,
-        checkoutLinesCost: event.data.checkoutLinesCost,
-        checkoutCost: event.data.checkoutCost,
+        checkoutLines: input.data.checkoutLines,
+        checkoutLinesCost: input.data.checkoutLinesCost,
+        checkoutCost: input.data.checkoutCost,
       },
     });
 
     const discountsSqls = this.buildAppliedDiscountsUpsertStatements({
-      projectId: event.metadata.projectId,
-      checkoutId: event.metadata.aggregateId,
-      data: event.data,
+      projectId: input.metadata.projectId,
+      checkoutId: input.metadata.aggregateId,
+      data: input.data,
     });
 
     await this.run([...linesSqls, ...discountsSqls]);
@@ -284,8 +284,8 @@ export class CheckoutWriteRepository {
   /**
    * Updates delivery group address (upsert) and group timestamp.
    */
-  async updateDeliveryGroupAddress(event: CheckoutDeliveryGroupAddressUpdatedDto): Promise<void> {
-    const { deliveryGroupId, address } = event.data;
+  async updateDeliveryGroupAddress(input: CheckoutDeliveryGroupAddressUpdatedDto): Promise<void> {
+    const { deliveryGroupId, address } = input.data;
 
     const upsertAddressSql = knex
       .withSchema("platform")
@@ -304,8 +304,8 @@ export class CheckoutWriteRepository {
         email: address.email,
         phone: address.phone,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-        created_at: event.metadata.now,
-        updated_at: event.metadata.now,
+        created_at: input.metadata.now,
+        updated_at: input.metadata.now,
       })
       .onConflict("id")
       .merge({
@@ -337,8 +337,8 @@ export class CheckoutWriteRepository {
   /**
    * Clears delivery group address and updates group timestamp.
    */
-  async clearDeliveryGroupAddress(event: CheckoutDeliveryGroupAddressClearedDto): Promise<void> {
-    const { deliveryGroupId, addressId } = event.data;
+  async clearDeliveryGroupAddress(input: CheckoutDeliveryGroupAddressClearedDto): Promise<void> {
+    const { deliveryGroupId, addressId } = input.data;
 
     const deleteAddressSql = knex
       .withSchema("platform")
@@ -360,9 +360,9 @@ export class CheckoutWriteRepository {
   /**
    * Updates selected delivery method and optionally updates shipping and grand totals.
    */
-  async updateDeliveryGroupMethod(event: CheckoutDeliveryGroupMethodUpdatedDto): Promise<void> {
-    const { deliveryGroupId, deliveryMethod, shippingTotal } = event.data;
-    const checkoutId = event.metadata.aggregateId;
+  async updateDeliveryGroupMethod(input: CheckoutDeliveryGroupMethodUpdatedDto): Promise<void> {
+    const { deliveryGroupId, deliveryMethod, shippingTotal } = input.data;
+    const checkoutId = input.metadata.aggregateId;
 
     const updateGroupSql = knex
       .withSchema("platform")
@@ -398,9 +398,9 @@ export class CheckoutWriteRepository {
   /**
    * Removes delivery group and its address; optionally updates shipping/grand totals.
    */
-  async removeDeliveryGroup(event: CheckoutDeliveryGroupRemovedDto): Promise<void> {
-    const { deliveryGroupId, shippingTotal } = event.data;
-    const checkoutId = event.metadata.aggregateId;
+  async removeDeliveryGroup(input: CheckoutDeliveryGroupRemovedDto): Promise<void> {
+    const { deliveryGroupId, shippingTotal } = input.data;
+    const checkoutId = input.metadata.aggregateId;
 
     const deleteAddressSql = knex
       .withSchema("platform")

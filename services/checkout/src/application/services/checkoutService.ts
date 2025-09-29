@@ -1,5 +1,5 @@
 import type { Discount, PricingApiClient } from "@shopana/pricing-api";
-import { CheckoutLineItemState } from "@src/domain/checkout/evolve";
+import { CheckoutLineItemState } from "@src/domain/checkout/types";
 import {
   CheckoutCostService,
   type CheckoutLineItemCost,

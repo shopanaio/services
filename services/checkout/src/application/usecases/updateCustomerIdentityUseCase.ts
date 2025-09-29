@@ -1,6 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutCustomerIdentityUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutCustomerIdentityUpdatedDto } from "@src/domain/checkout/events";
+import type { CheckoutCustomerIdentityUpdatedDto } from "@src/domain/checkout/dto";
 
 export class UpdateCustomerIdentityUseCase extends UseCase<
   CheckoutCustomerIdentityUpdateInput,
@@ -15,8 +15,7 @@ export class UpdateCustomerIdentityUseCase extends UseCase<
     this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
-    const event: CheckoutCustomerIdentityUpdatedDto = {
-      type: "checkout.customer.identity.updated",
+    const dto: CheckoutCustomerIdentityUpdatedDto = {
       data: {
         email: businessInput.email,
         customerId: businessInput.customerId,
@@ -26,7 +25,7 @@ export class UpdateCustomerIdentityUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.updateCustomerIdentity(event);
+    await this.checkoutWriteRepository.updateCustomerIdentity(dto);
 
     return businessInput.checkoutId;
   }

@@ -1,5 +1,5 @@
 import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutDeliveryGroupAddressUpdatedDto } from "@src/domain/checkout/events";
+import type { CheckoutDeliveryGroupAddressUpdatedDto } from "@src/domain/checkout/dto";
 import type { CheckoutDeliveryGroupAddressUpdateInput } from "@src/application/checkout/types";
 
 export class UpdateDeliveryGroupAddressUseCase extends UseCase<
@@ -15,8 +15,7 @@ export class UpdateDeliveryGroupAddressUseCase extends UseCase<
     this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
-    const event: CheckoutDeliveryGroupAddressUpdatedDto = {
-      type: "checkout.delivery.group.address.updated",
+    const dto: CheckoutDeliveryGroupAddressUpdatedDto = {
       data: {
         deliveryGroupId: businessInput.deliveryGroupId,
         address: businessInput.address,
@@ -24,6 +23,6 @@ export class UpdateDeliveryGroupAddressUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.updateDeliveryGroupAddress(event);
+    await this.checkoutWriteRepository.updateDeliveryGroupAddress(dto);
   }
 }

@@ -1,6 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutLanguageCodeUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutLanguageCodeUpdatedDto } from "@src/domain/checkout/events";
+import type { CheckoutLanguageCodeUpdatedDto } from "@src/domain/checkout/dto";
 
 export class UpdateLanguageCodeUseCase extends UseCase<
   CheckoutLanguageCodeUpdateInput,
@@ -15,16 +15,14 @@ export class UpdateLanguageCodeUseCase extends UseCase<
     this.assertCheckoutExists(state);
     this.validateTenantAccess(state, context);
 
-    const event: CheckoutLanguageCodeUpdatedDto = {
-      type: "checkout.language.code.updated",
+    const dto: CheckoutLanguageCodeUpdatedDto = {
       data: {
         localeCode: businessInput.localeCode,
       },
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.updateLanguageCode(event);
-
+    await this.checkoutWriteRepository.updateLanguageCode(dto);
     return businessInput.checkoutId;
   }
 }

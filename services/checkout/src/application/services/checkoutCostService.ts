@@ -5,7 +5,7 @@ import type {
 } from "@shopana/pricing-api";
 import { Money } from "@shopana/shared-money";
 import { Discount, DiscountType } from "@shopana/pricing-plugin-sdk";
-import { CheckoutLineItemState } from "@src/domain/checkout/evolve";
+import { CheckoutLineItemState } from "@src/domain/checkout/types";
 
 export type CheckoutLineItemCost = Readonly<{
   lineId: string;

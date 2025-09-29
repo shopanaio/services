@@ -3,7 +3,7 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutPromoCodeRemoveInput } from "@src/application/checkout/types";
-import type { CheckoutPromoCodeRemovedDto } from "@src/domain/checkout/events";
+import type { CheckoutPromoCodeRemovedDto } from "@src/domain/checkout/dto";
 
 export interface RemovePromoCodeUseCaseDependencies
   extends UseCaseDependencies {}
@@ -42,8 +42,7 @@ export class RemovePromoCodeUseCase extends UseCase<
       currency: state.currencyCode,
     });
 
-    const event: CheckoutPromoCodeRemovedDto = {
-      type: "checkout.promo.code.removed",
+    const dto: CheckoutPromoCodeRemovedDto = {
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
@@ -53,7 +52,7 @@ export class RemovePromoCodeUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.applyPromoCodeRemoved(event);
+    await this.checkoutWriteRepository.applyPromoCodeRemoved(dto);
 
     return businessInput.checkoutId;
   }

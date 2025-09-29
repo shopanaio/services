@@ -4,7 +4,7 @@ import {
 } from "@src/application/usecases/useCase";
 import type { CreateCheckoutInput } from "@src/application/checkout/types";
 import type { CheckoutContext } from "@src/context/index.js";
-import type { CheckoutCreatedDto } from "@src/domain/checkout/events";
+import type { CheckoutCreatedDto } from "@src/domain/checkout/dto";
 import { v7 as uuidv7 } from "uuid";
 import {
   DeliveryMethodType,
@@ -27,8 +27,7 @@ export class CreateCheckoutUseCase extends UseCase<
     const context = { apiKey, project, customer, user };
 
     const id = uuidv7();
-    const event: CheckoutCreatedDto = {
-      type: "checkout.created",
+    const dto: CheckoutCreatedDto = {
       data: {
         currencyCode: businessInput.currencyCode,
         idempotencyKey: businessInput.idempotencyKey,
@@ -42,7 +41,7 @@ export class CreateCheckoutUseCase extends UseCase<
       metadata: this.createMetadataDto(id, context),
     };
 
-    await this.checkoutWriteRepository.createCheckout(event);
+    await this.checkoutWriteRepository.createCheckout(dto);
 
     return id;
   }
@@ -84,7 +83,7 @@ export class CreateCheckoutUseCase extends UseCase<
       throw new Error(
         `Failed to create delivery groups: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`,
+        }`
       );
     }
   }

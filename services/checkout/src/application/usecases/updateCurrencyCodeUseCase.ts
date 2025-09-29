@@ -1,6 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutCurrencyCodeUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutCurrencyCodeUpdatedDto } from "@src/domain/checkout/events";
+import type { CheckoutCurrencyCodeUpdatedDto } from "@src/domain/checkout/dto";
 import { vo } from "@src/domain/shared/valueObjects";
 
 export class UpdateCurrencyCodeUseCase extends UseCase<
@@ -22,15 +22,14 @@ export class UpdateCurrencyCodeUseCase extends UseCase<
       throw new Error(`Invalid currency code: ${businessInput.currencyCode}`);
     }
 
-    const event: CheckoutCurrencyCodeUpdatedDto = {
-      type: "checkout.currency.code.updated",
+    const dto: CheckoutCurrencyCodeUpdatedDto = {
       data: {
         currencyCode: businessInput.currencyCode,
       },
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.updateCurrencyCode(event);
+    await this.checkoutWriteRepository.updateCurrencyCode(dto);
 
     return businessInput.checkoutId;
   }

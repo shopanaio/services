@@ -1,4 +1,4 @@
-import type { CheckoutState } from "@src/domain/checkout/evolve";
+import type { CheckoutState } from "./types";
 import type { CheckoutDto } from "@shopana/checkout-sdk";
 import { CheckoutSerializer } from "./checkout-serializer";
 

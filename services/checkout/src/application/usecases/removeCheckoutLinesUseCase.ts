@@ -3,9 +3,9 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutLinesDeleteInput } from "@src/application/checkout/types";
-import type { CheckoutLinesDeletedDto } from "@src/domain/checkout/events";
+import type { CheckoutLinesDeletedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
-import { CheckoutLineItemState } from "@src/domain/checkout/evolve";
+import { CheckoutLineItemState } from "@src/domain/checkout/types";
 
 export interface DeleteCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
@@ -37,7 +37,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
     // Remaining lines after deletion
     const existingLines = Object.values(state.linesRecord ?? {});
     const remainingLines = existingLines.filter(
-      line => !businessInput.lineIds.includes(line.lineId)
+      (line) => !businessInput.lineIds.includes(line.lineId)
     );
 
     let checkoutLines: CheckoutLineItemState[] = [];
@@ -50,7 +50,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
         shippingTotal: Money.zero(),
         grandTotal: Money.zero(),
         totalQuantity: 0,
-      }
+      },
     };
 
     // If lines remain - get current data and recalculate
@@ -60,14 +60,14 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
         apiKey: ctx.apiKey,
         currency: state.currencyCode,
         projectId: ctx.project.id,
-        items: remainingLines.map(l => ({
+        items: remainingLines.map((l) => ({
           lineId: l.lineId,
           purchasableId: l.unit.id,
           quantity: l.quantity,
         })),
       });
 
-      checkoutLines = remainingLines.map(line => {
+      checkoutLines = remainingLines.map((line) => {
         const offer = offers.get(line.unit.id);
         if (!offer?.isAvailable) {
           throw new Error(`Product not found in inventory`);
@@ -98,8 +98,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       });
     }
 
-    const event: CheckoutLinesDeletedDto = {
-      type: "checkout.lines.deleted",
+    const dto: CheckoutLinesDeletedDto = {
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
@@ -108,7 +107,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.applyCheckoutLines(event);
+    await this.checkoutWriteRepository.applyCheckoutLines(dto);
 
     return input.checkoutId;
   }

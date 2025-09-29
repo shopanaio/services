@@ -1,6 +1,6 @@
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutLinesClearInput } from "@src/application/checkout/types";
-import type { CheckoutLinesClearedDto } from "@src/domain/checkout/events";
+import type { CheckoutLinesClearedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
 
 export class ClearCheckoutLinesUseCase extends UseCase<
@@ -17,8 +17,7 @@ export class ClearCheckoutLinesUseCase extends UseCase<
     this.validateTenantAccess(state, context);
     this.validateCurrencyCode(state);
 
-    const event: CheckoutLinesClearedDto = {
-      type: "checkout.lines.cleared",
+    const dto: CheckoutLinesClearedDto = {
       data: {
         checkoutLines: [],
         checkoutLinesCost: {},
@@ -34,7 +33,7 @@ export class ClearCheckoutLinesUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.clearCheckoutLines(event);
+    await this.checkoutWriteRepository.clearCheckoutLines(dto);
 
     return businessInput.checkoutId;
   }

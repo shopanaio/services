@@ -1,6 +1,6 @@
 import type { Logger } from "pino";
 import { type CheckoutContext } from "@src/context/index.js";
-import type { CheckoutState } from "@src/domain/checkout/evolve";
+import type { CheckoutState } from "@src/domain/checkout/types";
 import type { ShippingApiClient } from "@shopana/shipping-api";
 import type { PricingApiClient } from "@shopana/pricing-api";
 import { CheckoutService } from "@src/application/services/checkoutService";

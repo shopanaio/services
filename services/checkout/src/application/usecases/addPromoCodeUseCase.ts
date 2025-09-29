@@ -3,7 +3,7 @@ import {
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
 import type { CheckoutPromoCodeAddInput } from "@src/application/checkout/types";
-import type { CheckoutPromoCodeAddedDto } from "@src/domain/checkout/events";
+import type { CheckoutPromoCodeAddedDto } from "@src/domain/checkout/dto";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 
 export interface AddPromoCodeUseCaseDependencies extends UseCaseDependencies {}
@@ -66,8 +66,7 @@ export class AddPromoCodeUseCase extends UseCase<
       currency: state.currencyCode,
     });
 
-    const event: CheckoutPromoCodeAddedDto = {
-      type: "checkout.promo.code.added",
+    const dto: CheckoutPromoCodeAddedDto = {
       data: {
         checkoutLines,
         checkoutLinesCost: computed.checkoutLinesCost,
@@ -77,7 +76,7 @@ export class AddPromoCodeUseCase extends UseCase<
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };
 
-    await this.checkoutWriteRepository.applyPromoCodeAdded(event);
+    await this.checkoutWriteRepository.applyPromoCodeAdded(dto);
 
     return businessInput.checkoutId;
   }

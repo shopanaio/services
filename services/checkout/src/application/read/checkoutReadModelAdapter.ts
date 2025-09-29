@@ -1,4 +1,4 @@
-import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCheckoutDeliveryGroup, CheckoutDeliveryAddress as DomainCheckoutDeliveryAddress, CheckoutDeliveryMethod as DomainCheckoutDeliveryMethod } from "@src/domain/checkout/evolve";
+import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCheckoutDeliveryGroup, CheckoutDeliveryAddress as DomainCheckoutDeliveryAddress, CheckoutDeliveryMethod as DomainCheckoutDeliveryMethod } from "@src/domain/checkout/types";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod } from "./checkoutReadRepository";
 import { CheckoutLineItemReadView } from "./checkoutLineItemsReadRepository";
