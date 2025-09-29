@@ -7,6 +7,7 @@ import type {
   ShippingMethod,
   PluginModule,
 } from "@shopana/shipping-plugin-sdk";
+import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/payment-plugin-sdk";
 import { CORE_API_VERSION } from "@shopana/shipping-plugin-sdk";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
@@ -40,7 +41,7 @@ export class ShippingPluginManager
   extends CorePluginManager<
     Record<string, unknown>,
     ProviderContext,
-    { getMethods(): Promise<ShippingMethod[]> }
+    { getMethods(): Promise<ShippingMethod[]>; getPaymentMethods?(input?: GetPaymentMethodsInput): Promise<PaymentMethod[]> }
   >
   implements IPluginManager
 {
@@ -84,6 +85,50 @@ export class ShippingPluginManager
         } catch (err) {
           hooks.onError?.(err, {
             operation: "getMethods",
+            projectId: params.projectId,
+          });
+          throw err;
+        }
+      }
+    );
+  }
+
+  /**
+   * Get payment methods from plugin (if supported by capability)
+   */
+  async getPaymentMethods(params: {
+    pluginCode: string;
+    rawConfig: Record<string, unknown> & { configVersion?: string };
+    projectId: string;
+    input?: GetPaymentMethodsInput;
+  }): Promise<PaymentMethod[]> {
+    const { provider, plugin } = await this.createProvider({
+      pluginCode: params.pluginCode,
+      rawConfig: params.rawConfig,
+    });
+
+    const hooks = (plugin as any).hooks ?? {};
+
+    return runner.execute(
+      {
+        pluginCode: plugin.manifest.code,
+        operation: "getPaymentMethods",
+        projectId: params.projectId,
+      },
+      async () => {
+        try {
+          if (typeof provider.getPaymentMethods !== "function") {
+            return [];
+          }
+          const result = await provider.getPaymentMethods(params.input);
+          hooks.onTelemetry?.("getPaymentMethods.success", {
+            count: result.length,
+            projectId: params.projectId,
+          });
+          return result;
+        } catch (err) {
+          hooks.onError?.(err, {
+            operation: "getPaymentMethods",
             projectId: params.projectId,
           });
           throw err;

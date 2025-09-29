@@ -6,6 +6,7 @@ import {
   DeliveryMethodType,
   ShippingPaymentModel,
 } from "@shopana/shipping-plugin-sdk";
+import { type PaymentMethod, type GetPaymentMethodsInput, PaymentFlow } from "@shopana/payment-plugin-sdk";
 import { NovaPoshtaClient } from "./client";
 import { configSchema } from "./index";
 
@@ -14,16 +15,13 @@ type Config = z.infer<typeof configSchema>;
 export class NovaPoshtaProvider implements ShippingProvider {
   private readonly client: NovaPoshtaClient;
 
-  constructor(
-    ctx: ProviderContext,
-    private readonly cfg: Config,
-  ) {
+  constructor(ctx: ProviderContext, private readonly cfg: Config) {
     const http = ctx.createHttp(cfg.baseUrl);
     this.client = new NovaPoshtaClient(http, cfg.apiKey);
   }
 
   async getMethods(): Promise<ShippingMethod[]> {
-    const mock: ShippingMethod[] = [
+    return [
       {
         deliveryMethodType: DeliveryMethodType.SHIPPING,
         shippingPaymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
@@ -36,20 +34,34 @@ export class NovaPoshtaProvider implements ShippingProvider {
         deliveryMethodType: DeliveryMethodType.SHIPPING,
         shippingPaymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
       },
+    ];
+  }
+
+  async getPaymentMethods(input?: GetPaymentMethodsInput): Promise<PaymentMethod[]> {
+    // For Nova Poshta, common payment on delivery options are COD (cash) and POS at branch/courier.
+    // We expose them as two distinct methods. Filtering by shippingMethodCode is not needed here.
+    const methods: PaymentMethod[] = [
       {
-        code: "doors_warehouse",
+        code: "cod_cash",
         provider: "novaposhta",
-        deliveryMethodType: DeliveryMethodType.SHIPPING,
-        shippingPaymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
+        name: "Cash on Delivery",
+        description: "Pay cash to courier or at branch upon delivery",
+        paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
+        flow: PaymentFlow.ON_DELIVERY,
+        metadata: { instrument: "CASH" },
       },
       {
-        code: "doors_doors",
+        code: "cod_card",
         provider: "novaposhta",
-        deliveryMethodType: DeliveryMethodType.SHIPPING,
-        shippingPaymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
+        name: "Card on Delivery",
+        description: "Pay by card to courier or at branch upon delivery",
+        paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
+        flow: PaymentFlow.ON_DELIVERY,
+        metadata: { instrument: "CARD" },
       },
     ];
 
-    return mock;
+    // If amount limits are provided, we could filter unsupported amounts in the future.
+    return methods;
   }
 }

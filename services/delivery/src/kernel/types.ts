@@ -7,6 +7,7 @@ import type {
   ShippingMethod,
   PluginModule,
 } from "@shopana/shipping-plugin-sdk";
+import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/payment-plugin-sdk";
 // Base types for kernel
 export interface Logger {
   info: (...args: any[]) => void;
@@ -19,7 +20,7 @@ export interface Logger {
 export interface PluginManager extends CorePluginManager<
   Record<string, unknown>,
   ProviderContext,
-  { getMethods(): Promise<ShippingMethod[]> }
+  { getMethods(): Promise<ShippingMethod[]>; getPaymentMethods?(input?: GetPaymentMethodsInput): Promise<PaymentMethod[]> }
 > {
   getMethods(params: {
     pluginCode: string;
@@ -27,6 +28,12 @@ export interface PluginManager extends CorePluginManager<
     projectId: string;
     requestMeta?: { requestId?: string; userAgent?: string };
   }): Promise<ShippingMethod[]>;
+  getPaymentMethods(params: {
+    pluginCode: string;
+    rawConfig: Record<string, unknown> & { configVersion?: string };
+    projectId: string;
+    input?: GetPaymentMethodsInput;
+  }): Promise<PaymentMethod[]>;
 }
 
 // Services provided by kernel for transaction scripts

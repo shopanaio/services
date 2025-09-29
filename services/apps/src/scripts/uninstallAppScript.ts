@@ -1,8 +1,4 @@
-import type {
-  TransactionScript,
-  KernelServices,
-  ScriptContext,
-} from "@src/kernel/types";
+import type { TransactionScript } from "@src/kernel/types";
 
 // Parameters for app uninstallation
 export interface UninstallAppParams {
@@ -22,7 +18,7 @@ export interface UninstallAppResult {
 export const uninstallAppScript: TransactionScript<
   UninstallAppParams,
   UninstallAppResult
-> = async (params, services, scriptContext) => {
+> = async (params, services) => {
   console.log("\n\n\nuninstallAppScript");
   const { appCode, projectId } = params;
   const { slotsRepository, logger } = services;
@@ -50,7 +46,11 @@ export const uninstallAppScript: TransactionScript<
       // If no domain specified, try to determine from provider name or use default
       provider = appCode;
       // Determine domain based on provider naming convention or use shipping as default
-      if (provider.includes("pricing") || provider.includes("promo") || provider.includes("discount")) {
+      if (
+        provider.includes("pricing") ||
+        provider.includes("promo") ||
+        provider.includes("discount")
+      ) {
         domain = "pricing";
       } else if (provider.includes("inventory") || provider.includes("stock")) {
         domain = "inventory";

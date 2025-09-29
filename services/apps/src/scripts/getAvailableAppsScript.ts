@@ -23,7 +23,7 @@ export const getAvailableAppsScript: TransactionScript<
 
   try {
     // 1. Determine list of services to query via Moleculer
-    const servicesToQuery = ["shipping", "pricing", "inventory"]; // Call services directly via Moleculer
+    const servicesToQuery = ["shipping", "pricing"]; // Call services directly via Moleculer
 
     logger.debug(
       {

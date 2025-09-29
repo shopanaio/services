@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/shipping-plugin-meest-express",
+  "name": "@shopana/payment-plugin-sdk",
   "version": "0.0.1",
   "private": false,
   "type": "module",
@@ -9,13 +9,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./package.json": "./package.json"
+    }
   },
-  "keywords": [
-    "portal-plugin",
-    "portal-shipping-plugin"
-  ],
   "files": [
     "dist"
   ],
@@ -23,15 +18,18 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/payment-plugin-sdk": "0.0.1",
-    "@shopana/shipping-plugin-sdk": "0.0.1",
-    "zod": "^3.23.8"
+    "@shopana/shipping-plugin-sdk": "0.0.1"
+  },
+  "peerDependencies": {
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.4"
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.5.4",
+    "zod": "^3.23.8"
   }
 }

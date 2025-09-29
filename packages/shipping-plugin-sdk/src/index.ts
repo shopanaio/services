@@ -55,6 +55,15 @@ export type ShippingMethod = Readonly<{
 }>;
 
 /**
+ * Payment flow describes how the payment interaction happens.
+ *
+ * - `ON_DELIVERY` — Pay at delivery (cash/card at courier/branch).
+ * - `ONLINE` — Online payment (redirect or embedded). Implementation is plugin-specific.
+ *
+ * @public
+ */
+
+/**
  * Additional JSON request settings for {@link HttpClient}.
  *
  * @remarks
@@ -174,6 +183,8 @@ export type ConfigMigration = Readonly<{
  *
  * @public
  */
+export type ShippingCapability = "rates" | "tracking" | "payment";
+
 export type ShippingPluginManifest = Readonly<{
   code: string; // unique provider code, e.g. 'novaposhta', 'fedex'
   displayName: string;
@@ -181,7 +192,7 @@ export type ShippingPluginManifest = Readonly<{
   version: string; // plugin version
   apiVersionRange: string; // semver range compatible with CORE_API_VERSION
   domains: string[]; // e.g. ['shipping']
-  capabilities?: string[]; // e.g. ['rates', 'tracking']
+  capabilities?: ShippingCapability[]; // e.g. ['rates', 'tracking', 'payment']
   priority?: number; // lower number — higher priority
 }>;
 

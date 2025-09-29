@@ -23,7 +23,7 @@ export const plugin: ShippingPlugin<typeof configSchema> = {
     version: '0.1.0',
     apiVersionRange: '^1.0.0',
     domains: ['shipping'],
-    capabilities: ['rates'],
+    capabilities: ['rates', 'payment'],
     priority: 20,
   },
   configSchema,
