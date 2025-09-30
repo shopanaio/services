@@ -402,6 +402,8 @@ export class SlotsRepository {
     type ResolvedSlotRow = {
       /** Slot ID. */
       slot_id: string;
+      /** Slot project ID. */
+      slot_project_id: string;
       /** Slot domain. */
       slot_domain: string;
       /** Slot provider. */
@@ -450,6 +452,7 @@ export class SlotsRepository {
 
     const slot: Slot = {
       id: row.slot_id,
+      project_id: row.slot_project_id,
       domain: row.slot_domain,
       provider: row.slot_provider,
       status: row.slot_status as any,
@@ -538,6 +541,8 @@ export class SlotsRepository {
     type ResolvedSlotRow = {
       /** Slot ID. */
       slot_id: string;
+      /** Slot project ID. */
+      slot_project_id: string;
       /** Slot domain. */
       slot_domain: string;
       /** Slot provider. */
@@ -585,8 +590,11 @@ export class SlotsRepository {
     return rows.map((row) => ({
       slot: {
         id: row.slot_id,
+        project_id: row.slot_project_id,
         domain: row.slot_domain,
         provider: row.slot_provider,
+        status: row.slot_status as any,
+        environment: row.slot_environment as any,
         capabilities: row.slot_capabilities,
         version: row.slot_version,
         data: row.slot_data,

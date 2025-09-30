@@ -1,7 +1,5 @@
 import { Service, ServiceSchema, Context } from "moleculer";
 import { Kernel } from "@src/kernel/Kernel";
-import { ResilienceRunner, createProviderContext } from "@shopana/plugin-sdk";
-import { PaymentsPluginManager } from "@src/infrastructure/plugins/pluginManager";
 import {
   paymentMethods,
   type GetPaymentMethodsParams,
@@ -22,9 +20,6 @@ const PaymentsService: ServiceSchema<any> = {
       return this.kernel.executeScript(paymentMethods, ctx.params);
     },
 
-    async pluginInfo(this: ServiceThis): Promise<any> {
-      return this.kernel.getPluginInfo();
-    },
   },
 
   created() {
@@ -33,27 +28,14 @@ const PaymentsService: ServiceSchema<any> = {
 
   async started() {
     this.logger.info("Payments service starting...");
-    const runner = new ResilienceRunner({
-      timeoutMs: 3000,
-      retries: 1,
-      rateLimit: 10,
-      cbThreshold: 5,
-      cbResetMs: 15000,
-    });
-    const ctxFactory = () =>
-      createProviderContext({
-        info: (...args: any[]) => this.logger.info(...args),
-        warn: (...args: any[]) => this.logger.warn(...args),
-        error: (...args: any[]) => this.logger.error(...args),
-        debug: (...args: any[]) => this.logger.debug(...args),
-      } as any);
-    const pluginManager = new PaymentsPluginManager(ctxFactory, runner);
+
+    // Create kernel with broker and logger
+    // Plugin management is now centralized in apps service
     this.kernel = new Kernel(
-      pluginManager as any,
       this.broker,
-      this.logger as any,
-      runner
+      this.logger as any
     );
+
     this.logger.info("Payments service started successfully");
   },
 

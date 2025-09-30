@@ -1,9 +1,6 @@
 import { Service, ServiceSchema, Context } from "moleculer";
 
 import { Kernel } from "@src/kernel/Kernel";
-import { ShippingPluginManager } from "@src/infrastructure/plugins/pluginManager";
-import { createProviderContext } from "@shopana/plugin-sdk";
-import { config } from "@src/config";
 import { MoleculerLogger } from "@src/infrastructure/logger/logger";
 
 import {
@@ -90,13 +87,6 @@ const ShippingService: ServiceSchema<any> = {
       }
     },
 
-    /**
-     * Get plugin information
-     */
-    async pluginInfo(this: ServiceThis): Promise<any> {
-      return this.kernel.getPluginInfo();
-    },
-
   },
 
   /**
@@ -110,18 +100,13 @@ const ShippingService: ServiceSchema<any> = {
     this.logger.info("Shipping service starting...");
 
     try {
-      // Create Plugin Manager with context factory
+      // Create kernel with broker and logger
+      // Plugin management is now centralized in apps service
       const moleculerLogger = new MoleculerLogger(this.logger);
-      const ctxFactory = () => createProviderContext(moleculerLogger);
-      const pluginManager = new ShippingPluginManager(ctxFactory);
-
-      // Create kernel
       this.kernel = new Kernel(
-        pluginManager,
         this.broker,
         moleculerLogger
       );
-
 
       this.logger.info("Shipping service started successfully");
     } catch (error) {

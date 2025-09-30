@@ -1,9 +1,6 @@
 import { Service, ServiceSchema, Context } from "moleculer";
-import { Knex } from "knex";
 
 import { Kernel } from "@src/kernel/Kernel";
-import { PricingPluginManager } from "@src/infrastructure/plugins/pluginManager";
-import { createProviderContext } from "@shopana/plugin-sdk";
 import { MoleculerLogger } from "@src/infrastructure/logger/logger";
 
 import {
@@ -70,12 +67,6 @@ const PricingService: ServiceSchema<any> = {
       },
     },
 
-    /**
-     * Get plugin information
-     */
-    async pluginInfo(this: ServiceThis): Promise<any> {
-      return this.kernel.getPluginInfo();
-    },
   },
 
   /**
@@ -89,14 +80,11 @@ const PricingService: ServiceSchema<any> = {
     this.logger.info("Pricing service starting...");
 
     try {
-      // Create Plugin Manager with context factory
+      // Create kernel with broker and logger
+      // Plugin management is now centralized in apps service
       const moleculerLogger = new MoleculerLogger(this.logger);
-      const ctxFactory = () => createProviderContext(moleculerLogger);
+      this.kernel = new Kernel(this.broker, moleculerLogger);
 
-      const pluginManager = new PricingPluginManager(ctxFactory);
-
-      // Create kernel
-      this.kernel = new Kernel(pluginManager, moleculerLogger, this.broker);
       this.logger.info("Pricing service started successfully");
     } catch (error) {
       this.logger.error("Error during service startup:", error);

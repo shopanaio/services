@@ -19,83 +19,37 @@ export const getAvailableAppsScript: TransactionScript<
   GetAvailableAppsResult
 > = async (params, services) => {
   const { projectId } = params;
-  const { broker, logger } = services;
+  const { pluginManager, logger } = services;
 
   try {
-    // 1. Determine list of services to query via Moleculer
-    const servicesToQuery = ["shipping", "pricing"]; // Call services directly via Moleculer
+    logger.debug({ projectId }, "Fetching available apps from plugin manager");
 
-    logger.debug(
-      {
-        servicesToQuery,
-        projectId,
-      },
-      "Fetching available apps"
-    );
+    // Get all plugin manifests from centralized plugin manager
+    const manifests = pluginManager.listManifests();
 
-    // 2. Parallel data fetching from all services via Moleculer
-    const fetchPromises = servicesToQuery.map(async (serviceName) => {
-      try {
-        const response = await broker.call(`${serviceName}.pluginInfo`, {
-          projectId,
-        });
-
-        const json = response as {
-          manifests?: {
-            manifest: {
-              code: string;
-              displayName?: string;
-              [key: string]: unknown;
-            };
-            compatible: boolean;
-            allowed: boolean;
-          }[];
-        };
-
-        // 3. Filter and transform results
-        const manifests = json.manifests ?? [];
-        return manifests
-          .filter((m) => m.allowed && m.compatible)
-          .map((m) => {
-            const man = m.manifest;
-            const code = man.code;
-            const name = String(man.displayName ?? man.code);
-            return { code, name };
-          });
-      } catch (error) {
-        logger.error(
-          { serviceName, error },
-          "Failed to fetch plugins from service"
-        );
-        return [];
-      }
-    });
-
-    // 4. Wait for all requests and merge results
-    const results = await Promise.all(fetchPromises);
-    const flatResults = results.flat();
-
-    // 5. Deduplicate results by app code
-    const uniqueApps = new Map<string, AvailableApp>();
-    for (const app of flatResults) {
-      if (!uniqueApps.has(app.code)) {
-        uniqueApps.set(app.code, app);
-      }
-    }
-
-    const apps = Array.from(uniqueApps.values());
+    // Filter and transform to available apps
+    const apps = manifests
+      .filter((m: any) => m.allowed && m.compatible)
+      .map((m: any) => ({
+        code: m.manifest.code,
+        name: m.manifest.displayName ?? m.manifest.code,
+        meta: {
+          domains: m.manifest.domains,
+          version: m.manifest.version,
+          priority: m.manifest.priority,
+        },
+      }));
 
     logger.info(
       {
         count: apps.length,
         projectId,
       },
-      "Retrieved available apps"
+      "Retrieved available apps from plugin manager"
     );
 
     return { apps };
   } catch (error) {
-    console.log("\n\nerror", error);
     logger.error({ error, projectId }, "Failed to get available apps");
 
     return {

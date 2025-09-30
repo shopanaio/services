@@ -1,7 +1,7 @@
 import type { TransactionScript } from "@src/kernel/types";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
+import type { PaymentMethod, ListPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
 
-export interface GetPaymentMethodsParams extends GetPaymentMethodsInput {
+export interface GetPaymentMethodsParams extends ListPaymentMethodsInput {
   readonly projectId: string;
   readonly requestId?: string;
   readonly userAgent?: string;
@@ -16,32 +16,29 @@ export const paymentMethods: TransactionScript<
   GetPaymentMethodsParams,
   GetPaymentMethodsResult
 > = async (params, services) => {
-  const { projectId, requestId, userAgent, ...input } = params;
-  const { pluginManager, broker, logger } = services;
+  const { projectId, ...input } = params;
+  const { broker, logger } = services;
 
   try {
-    const slotsResult = await broker.call("apps.getSlots", {
-      projectId,
+    // Execute apps.execute to get payment methods via centralized plugin manager
+    const result = await broker.call("apps.execute", {
       domain: "payment",
+      operation: "list",
+      params: { projectId, ...input },
     });
-    const slots = slotsResult.slots as Array<{ provider: string; data: Record<string, unknown> }>;
-    if (!slots || slots.length === 0) {
-      logger.warn({ projectId }, "No payment slots configured for project");
-      return { methods: [], warnings: [] };
-    }
-    const all: PaymentMethod[] = [];
-    for (const slot of slots) {
-      const methods = await pluginManager.getPaymentMethods({
-        pluginCode: slot.provider,
-        rawConfig: (slot.data as Record<string, unknown>) ?? {},
-        projectId,
-        input,
-      });
-      if (methods?.length) all.push(...methods);
-    }
-    return { methods: all };
+
+    const methods = result.data as PaymentMethod[] || [];
+    const warnings = result.warnings || [];
+
+    return {
+      methods,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
   } catch (error) {
     logger.error({ error }, "paymentMethods failed");
-    return { methods: [], warnings: [{ code: "INTERNAL_ERROR", message: "Internal server error" }] };
+    return {
+      methods: [],
+      warnings: [{ code: "INTERNAL_ERROR", message: "Internal server error" }],
+    };
   }
 };

@@ -21,12 +21,14 @@ export class Kernel {
   constructor(
     slotsRepository: SlotsRepository,
     logger: Logger,
-    broker: any
+    broker: any,
+    pluginManager: any
   ) {
     this.services = {
       slotsRepository,
       logger,
       broker,
+      pluginManager,
     };
   }
 

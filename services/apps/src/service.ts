@@ -178,14 +178,15 @@ const AppsService: ServiceSchema<any> = {
       this.db
     );
 
+    // Initialize single instance of AppsPluginManager and reuse it in executor
+    this.pluginManager = new AppsPluginManager(new MoleculerLogger(this.logger));
+
     this.kernel = new Kernel(
       slotsRepository,
       this.logger,
-      this.broker
+      this.broker,
+      this.pluginManager
     );
-
-    // Initialize single instance of AppsPluginManager and reuse it in executor
-    this.pluginManager = new AppsPluginManager(new MoleculerLogger(this.logger));
 
     this.logger.info("Apps service created.");
   },

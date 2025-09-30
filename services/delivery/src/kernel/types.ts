@@ -1,13 +1,8 @@
-import type {
-  PluginManager as CorePluginManager,
-  ResilienceRunner
-} from "@shopana/plugin-sdk";
-import type {
-  ProviderContext,
-  ShippingMethod,
-  PluginModule,
-} from "@shopana/plugin-sdk/shipping";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
+/**
+ * Kernel types for delivery service
+ * After migration to centralized apps.execute, pluginManager is no longer needed
+ */
+
 // Base types for kernel
 export interface Logger {
   info: (...args: any[]) => void;
@@ -16,32 +11,10 @@ export interface Logger {
   debug: (...args: any[]) => void;
 }
 
-// Plugin Manager for shipping
-export interface PluginManager extends CorePluginManager<
-  Record<string, unknown>,
-  ProviderContext,
-  { getMethods(): Promise<ShippingMethod[]>; getPaymentMethods?(input?: GetPaymentMethodsInput): Promise<PaymentMethod[]> }
-> {
-  getMethods(params: {
-    pluginCode: string;
-    rawConfig: Record<string, unknown> & { configVersion?: string };
-    projectId: string;
-    requestMeta?: { requestId?: string; userAgent?: string };
-  }): Promise<ShippingMethod[]>;
-  getPaymentMethods(params: {
-    pluginCode: string;
-    rawConfig: Record<string, unknown> & { configVersion?: string };
-    projectId: string;
-    input?: GetPaymentMethodsInput;
-  }): Promise<PaymentMethod[]>;
-}
-
 // Services provided by kernel for transaction scripts
 export interface KernelServices {
-  readonly pluginManager: PluginManager;
-  readonly broker: any; // Moleculer ServiceBroker for calling other services
+  readonly broker: any; // Moleculer ServiceBroker for calling apps.execute
   readonly logger: Logger;
-  readonly runner?: ResilienceRunner;
 }
 
 // Base interface for any transaction script

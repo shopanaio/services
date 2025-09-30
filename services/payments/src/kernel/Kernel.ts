@@ -1,24 +1,41 @@
-import type { KernelServices, TransactionScript, Logger, PluginManager } from "./types";
-import type { ResilienceRunner } from "@shopana/plugin-sdk";
+import type { KernelServices, TransactionScript, Logger } from "./types";
 
+/**
+ * Minimal kernel for payments microservice
+ *
+ * Provides basic services for transaction scripts:
+ * - Broker for calling apps.execute (centralized plugin management)
+ * - Logging
+ */
 export class Kernel {
   private readonly services: KernelServices;
 
-  constructor(pluginManager: PluginManager, broker: any, logger: Logger, runner?: ResilienceRunner) {
-    this.services = { pluginManager, broker, logger, runner };
+  constructor(broker: any, logger: Logger) {
+    this.services = { broker, logger };
   }
 
-  getServices(): KernelServices { return this.services; }
-
-  async executeScript<TParams, TResult>(script: TransactionScript<TParams, TResult>, params: TParams): Promise<TResult> {
-    return script(params, this.services);
+  getServices(): KernelServices {
+    return this.services;
   }
 
-  async getPluginInfo() {
-    const manifests = this.services.pluginManager.listManifests();
-    const health = await this.services.pluginManager.health();
-    return { manifests, health, count: manifests.length };
+  async executeScript<TParams, TResult>(
+    script: TransactionScript<TParams, TResult>,
+    params: TParams
+  ): Promise<TResult> {
+    try {
+      return await script(params, this.services);
+    } catch (error) {
+      this.services.logger.error(
+        {
+          script: script.name,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "Transaction script failed"
+      );
+      throw error;
+    }
   }
+
 }
 
 export type { KernelServices, TransactionScript } from "./types";

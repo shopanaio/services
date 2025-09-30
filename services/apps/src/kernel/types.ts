@@ -35,7 +35,12 @@ export interface SlotAssignment {
 export interface AvailableApp {
   code: string;
   name: string;
-  meta?: Record<string, unknown>;
+  meta?: {
+    domains?: string[];
+    version?: string;
+    priority?: number;
+    [key: string]: unknown;
+  };
 }
 
 export interface InstalledApp {
@@ -87,6 +92,7 @@ export interface KernelServices {
   readonly slotsRepository: SlotsRepository;
   readonly logger: Logger;
   readonly broker: any; // Moleculer ServiceBroker for calling other services
+  readonly pluginManager: any; // AppsPluginManager for plugin operations
 }
 
 /**

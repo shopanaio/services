@@ -1,12 +1,8 @@
-import type {
-  PluginManager as CorePluginManager,
-  ResilienceRunner,
-} from "@shopana/plugin-sdk";
-import type {
-  ProviderContext,
-  Discount,
-  PricingProvider,
-} from "@shopana/plugin-sdk/pricing";
+/**
+ * Kernel types for pricing service
+ * After migration to centralized apps.execute, pluginManager is no longer needed
+ */
+
 // Base types for kernel
 export interface Logger {
   info: (...args: any[]) => void;
@@ -15,34 +11,10 @@ export interface Logger {
   debug: (...args: any[]) => void;
 }
 
-// Plugin Manager for pricing
-export interface PluginManager
-  extends CorePluginManager<
-    Record<string, unknown>,
-    ProviderContext,
-    PricingProvider
-  > {
-  getDiscounts(params: {
-    pluginCode: string;
-    rawConfig: Record<string, unknown> & { configVersion?: string };
-    projectId: string;
-    requestMeta?: { requestId?: string; userAgent?: string };
-  }): Promise<Discount[]>;
-
-  validateDiscount(params: {
-    code: string;
-    pluginCode: string;
-    projectId: string;
-    requestMeta?: { requestId?: string; userAgent?: string };
-  }): Promise<{ valid: boolean; discount?: Discount }>;
-}
-
 // Services provided by kernel for transaction scripts
 export interface KernelServices {
-  readonly pluginManager: PluginManager;
+  readonly broker: any; // Moleculer ServiceBroker for calling apps.execute
   readonly logger: Logger;
-  readonly runner?: ResilienceRunner;
-  readonly broker: any; // Moleculer ServiceBroker for calling other services
 }
 
 // Base interface for any transaction script

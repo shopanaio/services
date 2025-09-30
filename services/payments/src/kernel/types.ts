@@ -1,6 +1,7 @@
-import type { ResilienceRunner } from "@shopana/plugin-sdk";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
-import type { ProviderContext } from "@shopana/plugin-sdk/payment";
+/**
+ * Kernel types for payments service
+ * After migration to centralized apps.execute, pluginManager is no longer needed
+ */
 
 export interface Logger {
   info: (...args: any[]) => void;
@@ -9,22 +10,9 @@ export interface Logger {
   debug: (...args: any[]) => void;
 }
 
-export interface PluginManager {
-  listManifests(): any[];
-  health(): Promise<any[]>;
-  getPaymentMethods(params: {
-    pluginCode: string;
-    rawConfig: Record<string, unknown> & { configVersion?: string };
-    projectId: string;
-    input?: GetPaymentMethodsInput;
-  }): Promise<PaymentMethod[]>;
-}
-
 export interface KernelServices {
-  readonly pluginManager: PluginManager;
-  readonly broker: any;
+  readonly broker: any; // Moleculer ServiceBroker for calling apps.execute
   readonly logger: Logger;
-  readonly runner?: ResilienceRunner;
 }
 
 export interface TransactionScript<TParams = any, TResult = any> {

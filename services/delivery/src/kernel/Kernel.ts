@@ -2,34 +2,26 @@ import type {
   KernelServices,
   TransactionScript,
   Logger,
-  PluginManager,
 } from "./types";
 import { KernelError } from "./types";
-import type { ResilienceRunner } from "@shopana/plugin-sdk";
 
 /**
  * Minimal kernel for shipping microservice
  *
  * Provides basic services for transaction scripts:
- * - Plugin management
- * - Data access (slots)
+ * - Broker for calling apps.execute (centralized plugin management)
  * - Logging
- * - Resilience (optional)
  */
 export class Kernel {
   private readonly services: KernelServices;
 
   constructor(
-    pluginManager: PluginManager,
     broker: any,
-    logger: Logger,
-    runner?: ResilienceRunner
+    logger: Logger
   ) {
     this.services = {
-      pluginManager,
       broker,
       logger,
-      runner,
     };
   }
 
@@ -62,28 +54,6 @@ export class Kernel {
     }
   }
 
-  /**
-   * Get information about available plugins
-   */
-  async getPluginInfo() {
-    try {
-      const manifests = this.services.pluginManager.listManifests();
-      const health = await this.services.pluginManager.health();
-
-      return {
-        manifests,
-        health,
-        count: manifests.length,
-      };
-    } catch (error) {
-      this.services.logger.error({ error }, "Failed to get plugin info");
-      throw new KernelError(
-        "Failed to get plugin info",
-        "PLUGIN_INFO_ERROR",
-        error
-      );
-    }
-  }
 }
 
 // Export types for convenience

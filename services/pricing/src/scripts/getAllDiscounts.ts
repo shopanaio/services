@@ -25,47 +25,30 @@ export const getAllDiscounts: TransactionScript<
   GetAllDiscountsParams,
   GetAllDiscountsResult
 > = async (params, services) => {
-  const { projectId, requestId, userAgent } = params;
-  const { pluginManager, broker, logger } = services;
+  const { projectId } = params;
+  const { broker, logger } = services;
 
   try {
-    // 1. Get project slots
-    const slotsResult = await broker.call("apps.getSlots", {
-      projectId,
+    // Execute apps.execute to get discounts via centralized plugin manager
+    const result = await broker.call("apps.execute", {
       domain: "pricing",
+      operation: "list",
+      params: { projectId },
     });
-    const slots = slotsResult.slots;
 
+    const discounts = result.data as Discount[] || [];
+    const warnings = result.warnings || [];
 
-    // 2. If no slots - emergency fallback
-    if (!slots || slots.length === 0) {
-      logger.warn({ projectId }, "No pricing slots configured for project");
-      const fb = buildEmergencyFallback();
-      return { discounts: [], warnings: fb.warnings };
-    }
-
-    // 3. Results aggregation WITHOUT MAPPING
-    const allDiscounts: Discount[] = [];
-    const warnings: Array<{ code: string; message: string }> = [];
-
-    // 4. Get discounts for each slot - plugins already return Discount
-    for (const slot of slots) {
-      const discounts = await pluginManager.getDiscounts({
-        pluginCode: slot.provider,
-        rawConfig: (slot.data as Record<string, unknown>) ?? {},
-        projectId,
-        requestMeta: { requestId, userAgent },
-      });
-
-      // 5. Just add them - no mapping!
-      allDiscounts.push(...discounts);
+    if (discounts.length === 0) {
+      logger.warn({ projectId }, "No discounts returned");
     }
 
     return {
-      discounts: allDiscounts,
+      discounts,
       warnings: warnings.length > 0 ? warnings : undefined,
     };
   } catch (error) {
+    logger.error({ error }, "getAllDiscounts failed");
     return {
       discounts: [],
       warnings: [{ code: "INTERNAL_ERROR", message: "Internal server error" }],
