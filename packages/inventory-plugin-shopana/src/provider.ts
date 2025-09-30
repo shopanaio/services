@@ -1,12 +1,6 @@
 import { z } from "zod";
-import type {
-  InventoryProvider,
-  ProviderContext,
-  InventoryOffer,
-  GetOffersInput,
-  PurchasableSnapshot,
-} from "@shopana/inventory-plugin-sdk";
-import { PaymentMode } from "@shopana/inventory-plugin-sdk";
+import type { inventory as Inventory } from "@shopana/plugin-sdk";
+import { inventory } from "@shopana/plugin-sdk";
 import { gqlRequest } from "@shopana/platform-api";
 import { gql } from "graphql-request";
 import { configSchema } from "./index";
@@ -44,13 +38,23 @@ interface CoreVariantsResponse {
 /**
  * Shopana provider for fetching inventory offers via Core Apps GraphQL API
  */
-export class ShopanaInventoryProvider implements InventoryProvider {
+export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
   constructor(
-    private readonly ctx: ProviderContext,
-    private readonly cfg: Config,
+    private readonly ctx: Inventory.ProviderContext,
+    private readonly cfg: Config
   ) {}
 
-  async getOffers(input: GetOffersInput): Promise<InventoryOffer[]> {
+  inventory = {
+    getOffers: async (
+      input: Inventory.GetOffersInput
+    ): Promise<Inventory.InventoryOffer[]> => {
+      return this.getOffersImpl(input);
+    },
+  };
+
+  private async getOffersImpl(
+    input: Inventory.GetOffersInput
+  ): Promise<Inventory.InventoryOffer[]> {
     if (!input.items.length) {
       return [];
     }
@@ -82,7 +86,8 @@ export class ShopanaInventoryProvider implements InventoryProvider {
       `;
 
       // Execute request to Core Apps GraphQL API
-      const coreAppsGraphqlUrl = process.env.CORE_APPS_GRAPHQL_URL || 'http://localhost:4000/graphql';
+      const coreAppsGraphqlUrl =
+        process.env.CORE_APPS_GRAPHQL_URL || "http://localhost:4000/graphql";
       const data = await gqlRequest<CoreVariantsResponse>(
         { getCoreAppsGraphqlUrl: () => coreAppsGraphqlUrl },
         query,
@@ -90,16 +95,16 @@ export class ShopanaInventoryProvider implements InventoryProvider {
         {
           "x-api-key": input.apiKey!,
           "x-currency": input.currency!,
-        },
+        }
       );
 
       // Create map for fast variant lookup by ID
       const variantById = new Map<string, CoreVariant>(
-        (data.variants ?? []).map((v) => [v.id, v]),
+        (data.variants ?? []).map((v) => [v.id, v])
       );
 
       // Transform data to InventoryOffer format
-      const offers: InventoryOffer[] = input.items
+      const offers: Inventory.InventoryOffer[] = input.items
         .map(({ purchasableId, lineId, quantity }) => {
           const variant = variantById.get(purchasableId);
 
@@ -113,14 +118,14 @@ export class ShopanaInventoryProvider implements InventoryProvider {
           // Determine payment mode based on product status
           const paymentMode =
             variant.stockStatus === "IN_STOCK"
-              ? PaymentMode.IMMEDIATE
-              : PaymentMode.DEFERRED;
+              ? inventory.PaymentMode.IMMEDIATE
+              : inventory.PaymentMode.DEFERRED;
 
           // Consider product physical by default for safety
           const isPhysical = variant.product?.productType?.isPhysical ?? true;
 
           // Create product data snapshot
-          const purchasableSnapshot: PurchasableSnapshot = {
+          const purchasableSnapshot: Inventory.PurchasableSnapshot = {
             title: variant.title,
             sku: variant.sku || null,
             imageUrl: variant.cover?.url || null,
@@ -131,7 +136,7 @@ export class ShopanaInventoryProvider implements InventoryProvider {
             },
           };
 
-          const offer: InventoryOffer = {
+          const offer: Inventory.InventoryOffer = {
             purchasableId,
             unitPrice: variant.price,
             unitCompareAtPrice: variant.oldPrice || null,
@@ -150,7 +155,7 @@ export class ShopanaInventoryProvider implements InventoryProvider {
 
           return offer;
         })
-        .filter((offer): offer is InventoryOffer => offer !== null);
+        .filter((offer): offer is Inventory.InventoryOffer => offer !== null);
 
       this.ctx.logger.info("Successfully retrieved inventory offers", {
         requestedCount: input.items.length,
@@ -173,7 +178,9 @@ export class ShopanaInventoryProvider implements InventoryProvider {
   /**
    * Returns test data for mock mode
    */
-  private getMockOffers(input: GetOffersInput): InventoryOffer[] {
+  private getMockOffers(
+    input: Inventory.GetOffersInput
+  ): Inventory.InventoryOffer[] {
     this.ctx.logger.info("Returning mock inventory offers");
 
     return input.items.map(({ purchasableId, lineId, quantity }) => ({
@@ -182,7 +189,7 @@ export class ShopanaInventoryProvider implements InventoryProvider {
       unitCompareAtPrice: 1500, // $15.00 in minor units
       isAvailable: true,
       isPhysical: true,
-      paymentMode: PaymentMode.IMMEDIATE,
+      paymentMode: inventory.PaymentMode.IMMEDIATE,
       purchasableSnapshot: {
         title: `Mock Product ${purchasableId}`,
         sku: `MOCK-${purchasableId}`,

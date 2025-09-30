@@ -5,7 +5,7 @@ import type {
   ValidateDiscountResponse,
   PricingEvaluateDiscountsInput,
   PricingEvaluateDiscountsResult,
-} from "./types";
+} from "./pricingTypes";
 import type { Discount } from "@shopana/plugin-sdk/pricing";
 
 export class PricingClient implements PricingApiClient {

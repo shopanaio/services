@@ -2,7 +2,7 @@ import type {
   PricingApiClient,
   PricingEvaluateDiscountsResult,
   PricingEvaluateDiscountsInput,
-} from "@shopana/pricing-api";
+} from "@shopana/shared-service-api";
 import { Money } from "@shopana/shared-money";
 import { Discount, DiscountType } from "@shopana/plugin-sdk/pricing";
 import { OrderLineItemState } from "@src/domain/order/evolve";

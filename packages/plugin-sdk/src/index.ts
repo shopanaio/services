@@ -15,3 +15,4 @@ export * from './utils/manifest';
 export * as shipping from './shipping';
 export * as payment from './payment';
 export * as pricing from './pricing';
+export * as inventory from './inventory';

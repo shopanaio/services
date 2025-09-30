@@ -10,12 +10,10 @@ import { OrderReadRepository as InfraOrderReadRepository } from "@src/infrastruc
 import { OrderLineItemsReadRepositoryPort } from "@src/infrastructure/readModel/orderLineItemsReadRepository";
 import { OrderLineItemsReadRepository } from "@src/application/read/orderLineItemsReadRepository";
 import { OrderReadRepository as AppOrderReadRepository } from "@src/application/read/orderReadRepository";
-import { ShippingClient } from "@shopana/shipping-api";
-import { PricingClient } from "@shopana/pricing-api";
+import { createServiceApi } from "@shopana/shared-service-api";
+import type { ServiceApi } from "@shopana/shared-service-api";
 import { OrderService } from "@src/application/services/orderService";
 import type { ServiceBroker } from "moleculer";
-import { InventoryClient } from "@shopana/inventory-api";
-import { CheckoutClient } from "@shopana/checkout-api";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import { OrderNumberRepository } from "@src/infrastructure/orderNumber/orderNumberRepository";
 
@@ -25,10 +23,7 @@ export class App {
   public logger!: ReturnType<typeof createLogger>;
 
   public broker!: ServiceBroker;
-  public inventoryClient!: InventoryClient;
-  public shippingClient!: ShippingClient;
-  public pricingClient!: PricingClient;
-  public checkoutClient!: CheckoutClient;
+  public serviceApi!: ServiceApi;
 
   public eventStore!: EventStorePort;
   public streamNames!: StreamNamePolicyPort;
@@ -48,10 +43,7 @@ export class App {
    */
   public setBroker(broker: ServiceBroker): void {
     this.broker = broker;
-    this.inventoryClient = new InventoryClient(this.broker);
-    this.shippingClient = new ShippingClient(this.broker);
-    this.pricingClient = new PricingClient(this.broker);
-    this.checkoutClient = new CheckoutClient(this.broker);
+    this.serviceApi = createServiceApi(this.broker);
   }
 
   /**
@@ -65,10 +57,7 @@ export class App {
     app.broker = broker;
 
     // Initialize API clients
-    app.inventoryClient = new InventoryClient(broker);
-    app.shippingClient = new ShippingClient(broker);
-    app.pricingClient = new PricingClient(broker);
-    app.checkoutClient = new CheckoutClient(broker);
+    app.serviceApi = createServiceApi(broker);
 
     // Initialize infrastructure dependencies
     app.eventStore = new EmmetPostgresqlEventStoreAdapter();
@@ -83,8 +72,8 @@ export class App {
       app.lineItemsReadRepository
     );
     app.orderService = new OrderService(
-      app.pricingClient,
-      app.inventoryClient
+      app.serviceApi.pricing,
+      app.serviceApi.inventory
     );
     app.ordersPiiRepository = new OrdersPiiRepository();
     app.orderNumberRepository = new OrderNumberRepository();
@@ -92,10 +81,10 @@ export class App {
       eventStore: app.eventStore,
       streamNames: app.streamNames,
       logger: app.logger,
-      inventory: app.inventoryClient,
-      shippingApiClient: app.shippingClient,
-      pricingApiClient: app.pricingClient,
-      checkoutApiClient: app.checkoutClient,
+      inventory: app.serviceApi.inventory,
+      shippingApiClient: app.serviceApi.shipping,
+      pricingApiClient: app.serviceApi.pricing,
+      checkoutApiClient: app.serviceApi.checkout,
       orderService: app.orderService,
       orderReadRepository: app.orderReadRepository,
       ordersPiiRepository: app.ordersPiiRepository,

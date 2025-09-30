@@ -7,9 +7,13 @@ import bankTransfer from "@shopana/payment-plugin-bank-transfer";
 
 // Pricing plugins
 import simplePromo from "@shopana/pricing-plugin-simple-promo";
+// Inventory plugins
+import inventoryShopana from "@shopana/inventory-plugin-shopana";
 
 export const shippingPlugins = [novaposhta, meestExpress];
 
 export const paymentPlugins = [bankTransfer];
 
 export const pricingPlugins = [simplePromo];
+
+export const inventoryPlugins = [inventoryShopana];

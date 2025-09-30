@@ -10,8 +10,7 @@ import {
 import type { OrderEvent } from "@src/domain/order/events";
 import { OrderEventsContractVersion } from "@src/domain/order/events";
 import { Order } from "@src/domain/order/model";
-import type { ShippingApiClient } from "@shopana/shipping-api";
-import type { PricingApiClient } from "@shopana/pricing-api";
+import type { ShippingApiClient, PricingApiClient, InventoryApiClient, CheckoutApiClient } from "@shopana/shared-service-api";
 import { OrderService } from "@src/application/services/orderService";
 import {
   ConcurrencyError,
@@ -19,8 +18,6 @@ import {
   IllegalStateError,
   NotFoundError,
 } from "@event-driven-io/emmett";
-import { InventoryApiClient } from "@shopana/inventory-api";
-import type { CheckoutApiClient } from "@shopana/checkout-api";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
 

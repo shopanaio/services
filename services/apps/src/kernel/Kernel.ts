@@ -1,6 +1,6 @@
-import { Kernel as BaseKernel, MoleculerLogger } from "@shopana/kernel";
+import { Kernel as BaseKernel, MoleculerLogger } from "@shopana/shared-kernel";
 import type { AppsKernelServices, SlotsRepository } from "./types";
-import type { Logger } from "@shopana/kernel";
+import type { Logger } from "@shopana/shared-kernel";
 
 /**
  * Extended kernel for apps microservice

@@ -1,4 +1,4 @@
-import type { TransactionScript } from "@shopana/kernel";
+import type { TransactionScript } from "@shopana/shared-kernel";
 import type { Discount } from "@shopana/plugin-sdk/pricing";
 import { buildEmergencyFallback } from "./fallback";
 

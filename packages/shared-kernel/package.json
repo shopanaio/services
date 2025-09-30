@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/kernel",
+  "name": "@shopana/shared-kernel",
   "version": "1.0.0",
   "description": "Microkernel architecture with Transaction Script pattern for Shopana microservices",
   "main": "dist/index.js",

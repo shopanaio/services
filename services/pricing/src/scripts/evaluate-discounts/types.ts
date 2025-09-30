@@ -69,7 +69,7 @@ export interface RequestContext {
 }
 
 // Using types from core system
-export type { KernelServices } from "@shopana/kernel";
+export type { KernelServices } from "@shopana/shared-kernel";
 
 /**
  * Discount system constants

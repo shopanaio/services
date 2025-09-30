@@ -1,5 +1,5 @@
 /**
- * @shopana/kernel
+ * @shopana/shared-kernel
  *
  * Microkernel architecture package for Shopana microservices.
  * Implements Transaction Script pattern with minimal dependencies.

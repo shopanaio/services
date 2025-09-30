@@ -32,7 +32,7 @@ const AppsService: ServiceSchema<any> = {
      */
     execute: {
       params: {
-        domain: { type: "string", enum: [Domain.SHIPPING, Domain.PAYMENT, Domain.PRICING] },
+        domain: { type: "string", enum: [Domain.SHIPPING, Domain.PAYMENT, Domain.PRICING, Domain.INVENTORY] },
         operation: { type: "string", min: 1 },
         provider: { type: "string", optional: true },
         params: { type: "object", optional: true },

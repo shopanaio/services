@@ -1,11 +1,8 @@
 import type { Logger } from "pino";
 import { type CheckoutContext } from "@src/context/index.js";
 import type { CheckoutState } from "@src/domain/checkout/types";
-import type { ShippingApiClient } from "@shopana/shipping-api";
-import type { PaymentApiClient } from "@shopana/payment-api";
-import type { PricingApiClient } from "@shopana/pricing-api";
+import type { ShippingApiClient, PaymentApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
-import { InventoryApiClient } from "@shopana/inventory-api";
 import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
 

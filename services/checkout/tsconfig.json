@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "rootDir": "./",
     "strict": true,
@@ -17,12 +17,8 @@
       "@domain/*": ["src/domain/*"],
       "@shopana/platform-api": ["../../packages/platform-api/dist/index.d.ts"],
       "@shopana/platform-api/*": ["../../packages/platform-api/dist/*"],
-      "@shopana/shipping-api": ["../../packages/shipping-api/dist/index.d.ts"],
-      "@shopana/shipping-api/*": ["../../packages/shipping-api/dist/*"],
-      "@shopana/pricing-api": ["../../packages/pricing-api/dist/index.d.ts"],
-      "@shopana/pricing-api/*": ["../../packages/pricing-api/dist/*"],
-      "@shopana/inventory-api": ["../../packages/inventory-api/dist/index.d.ts"],
-      "@shopana/inventory-api/*": ["../../packages/inventory-api/dist/*"],
+      "@shopana/shared-service-api": ["../../packages/shared-service-api/dist/index.d.ts"],
+      "@shopana/shared-service-api/*": ["../../packages/shared-service-api/dist/*"],
       "@shopana/shared-money": ["../../packages/shared-money/dist/index.d.ts"],
       "@shopana/shared-money/*": ["../../packages/shared-money/dist/*"]
     },

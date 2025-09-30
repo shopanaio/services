@@ -1,9 +1,9 @@
 import type { ServiceBroker } from "moleculer";
-import type { InventoryApiClient, GetOffersResponse } from "./types";
+import type { InventoryApiClient, GetOffersResponse } from "./inventoryTypes";
 import type {
   GetOffersInput,
   InventoryOffer,
-} from "@shopana/inventory-plugin-sdk";
+} from "@shopana/plugin-sdk/inventory";
 
 export class InventoryClient implements InventoryApiClient {
   private readonly broker: ServiceBroker;

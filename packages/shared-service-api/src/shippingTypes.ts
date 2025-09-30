@@ -1,8 +1,5 @@
 import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
-import type {
-  PaymentMethod,
-  GetPaymentMethodsInput as ProviderGetPaymentMethodsInput,
-} from "@shopana/plugin-sdk/payment";
+import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
 
 /**
  * Raw response shape returned by the shipping service for list methods endpoints.
@@ -99,5 +96,8 @@ export type GetPaymentMethodsResponse = Readonly<{
 /**
  * Input for getting payment methods from shipping service (proxied to plugins).
  */
-
-export type GetPaymentMethodsInput = ProviderGetPaymentMethodsInput;
+export type GetPaymentMethodsInput = Readonly<{
+  projectId: string;
+  currency: string;
+  apiKey: string;
+}>;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { InventoryPlugin } from '@shopana/inventory-plugin-sdk';
+import type { inventory as Inventory } from '@shopana/plugin-sdk';
 import { ShopanaInventoryProvider } from './provider';
 
 export const configSchema = z.object({
@@ -16,7 +16,7 @@ export const configSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
-export const plugin: InventoryPlugin<typeof configSchema> = {
+export const plugin: Inventory.InventoryPlugin<typeof configSchema> = {
   manifest: {
     code: 'shopana',
     displayName: 'Shopana Inventory',
@@ -24,7 +24,6 @@ export const plugin: InventoryPlugin<typeof configSchema> = {
     version: '0.1.0',
     apiVersionRange: '^1.0.0',
     domains: ['inventory'],
-    capabilities: ['offers'],
     priority: 10,
   },
   configSchema,

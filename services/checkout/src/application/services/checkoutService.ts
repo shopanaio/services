@@ -1,11 +1,11 @@
-import type { Discount, PricingApiClient } from "@shopana/pricing-api";
+import type { Discount, PricingApiClient } from "@shopana/shared-service-api";
 import { CheckoutLineItemState } from "@src/domain/checkout/types";
 import {
   CheckoutCostService,
   type CheckoutLineItemCost,
   type CheckoutCost,
 } from "./checkoutCostService";
-import { InventoryApiClient, InventoryOffer } from "@shopana/inventory-api";
+import type { InventoryApiClient, InventoryOffer } from "@shopana/shared-service-api";
 
 // Re-export types for backward compatibility
 export type { CheckoutLineItemCost, CheckoutCost };

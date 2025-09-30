@@ -1,8 +1,8 @@
 import { PluginManager as CorePluginManager, ResilienceRunner, createProviderContext } from "@shopana/plugin-sdk";
 import type { shipping as ShippingSDK } from "@shopana/plugin-sdk";
 import { config } from "@src/config";
-import { shippingPlugins, paymentPlugins, pricingPlugins } from "@src/infrastructure/plugins/registry";
-import type { Logger } from "@shopana/kernel";
+import { shippingPlugins, paymentPlugins, pricingPlugins, inventoryPlugins } from "@src/infrastructure/plugins/registry";
+import type { Logger } from "@shopana/shared-kernel";
 
 // No aliasing: operation equals provider method name across domains (e.g., list, validate)
 
@@ -18,7 +18,7 @@ export class AppsPluginManager {
       cbThreshold: 5,
       cbResetMs: 15000,
     });
-    const allModules = ([] as any[]).concat(shippingPlugins as any, paymentPlugins as any, pricingPlugins as any);
+    const allModules = ([] as any[]).concat(shippingPlugins as any, paymentPlugins as any, pricingPlugins as any, inventoryPlugins as any);
     this.corePM = new CorePluginManager<Record<string, unknown>, ShippingSDK.ProviderContext, any>(
       allModules,
       () => createProviderContext(this.logger),
@@ -32,7 +32,7 @@ export class AppsPluginManager {
    * Dynamic execute on specific provider by operation.
    * Manager resolves method name at runtime (operation equals provider method name).
    */
-  async executeOnProvider(params: { domain: "shipping" | "payment" | "pricing"; operationId: string; pluginCode: string; rawConfig: Record<string, unknown> & { configVersion?: string }; projectId: string; input?: unknown }): Promise<unknown> {
+  async executeOnProvider(params: { domain: "shipping" | "payment" | "pricing" | "inventory"; operationId: string; pluginCode: string; rawConfig: Record<string, unknown> & { configVersion?: string }; projectId: string; input?: unknown }): Promise<unknown> {
     const { provider, plugin } = await this.corePM.createProvider({ pluginCode: params.pluginCode, rawConfig: params.rawConfig });
     const hooks = (plugin as any).hooks ?? {};
 
@@ -64,7 +64,7 @@ export class AppsPluginManager {
   }
 
   /** Execute operation across all target slots sequentially; collect results and warnings. */
-  async executeOnAll(params: { domain: "shipping" | "payment" | "pricing"; operationId: string; slots: Array<{ provider: string; data: Record<string, unknown> }>; projectId: string; input?: unknown }): Promise<{ results: unknown[]; warnings: Array<{ provider: string; message: string; error?: unknown }> }> {
+  async executeOnAll(params: { domain: "shipping" | "payment" | "pricing" | "inventory"; operationId: string; slots: Array<{ provider: string; data: Record<string, unknown> }>; projectId: string; input?: unknown }): Promise<{ results: unknown[]; warnings: Array<{ provider: string; message: string; error?: unknown }> }> {
     const results: unknown[] = [];
     const warnings: Array<{ provider: string; message: string; error?: unknown }> = [];
     for (const s of params.slots) {

@@ -1,15 +1,13 @@
 import { Service, ServiceSchema, Context } from "moleculer";
 
-import { MoleculerLogger } from "@src/infrastructure/logger/logger";
-import { InventoryPluginManager } from "@src/infrastructure/plugins/pluginManager";
-import { createProviderContext } from "@shopana/plugin-sdk";
+import { MoleculerLogger } from "@shopana/shared-kernel";
 
 import {
   getOffers,
   GetOffersParams,
   GetOffersResult,
 } from "@src/scripts/getOffers";
-import { Kernel } from "@src/kernel/Kernel";
+import { Kernel } from "@shopana/shared-kernel";
 
 // Define extended `this` type for Moleculer service context.
 // This allows TypeScript to understand properties added by broker (logger, broker, etc.)
@@ -34,52 +32,21 @@ const InventoryService: ServiceSchema<any> = {
     ): Promise<GetOffersResult> {
       return this.kernel.executeScript(getOffers, ctx.params);
     },
-
-    /**
-     * Get plugin information
-     */
-    async pluginInfo(this: ServiceThis): Promise<any> {
-      return this.kernel.getPluginInfo();
-    },
   },
 
   /**
    * Lifecycle methods
    */
   created() {
-    // Create Plugin Manager with context factory using Moleculer logger
-    const ctxFactory = () =>
-      createProviderContext(new MoleculerLogger(this.logger));
-
-    const pluginManager = new InventoryPluginManager(ctxFactory);
-
-    // Create kernel with Moleculer logger
+    // Create kernel with Moleculer logger and broker only (apps.execute will be used)
     this.kernel = new Kernel(
-      pluginManager,
+      this.broker,
       new MoleculerLogger(this.logger)
     );
   },
 
   async started() {
-    try {
-      // Check plugin health
-      try {
-        const pluginInfo = await this.kernel.getPluginInfo();
-        this.logger.info("Plugin info loaded successfully", {
-          pluginCount: pluginInfo.count,
-        });
-      } catch (error) {
-        this.logger.warn(
-          { error: error instanceof Error ? error.message : String(error) },
-          "Plugin health check failed, but continuing..."
-        );
-      }
-
-      this.logger.info("Inventory service started successfully");
-    } catch (error) {
-      this.logger.error("Error during service startup:", error);
-      throw error;
-    }
+    this.logger.info("Inventory service started successfully");
   },
 
   async stopped() {

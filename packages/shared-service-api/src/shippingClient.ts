@@ -1,15 +1,14 @@
 import type { ServiceBroker } from "moleculer";
-import type { ShippingApiClient, GetAllMethodsResponse } from "./types";
 import type {
+  ShippingApiClient,
+  GetAllMethodsResponse,
   CreateDeliveryGroupsInput,
   CreateDeliveryGroupsResponse,
   DeliveryGroup,
-} from "./types";
-import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
-import type {
   GetPaymentMethodsInput,
   GetPaymentMethodsResponse,
-} from "./types";
+} from "./shippingTypes";
+import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
 
 export class ShippingClient implements ShippingApiClient {

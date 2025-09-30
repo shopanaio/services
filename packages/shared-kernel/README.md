@@ -1,4 +1,4 @@
-# @shopana/kernel
+# @shopana/shared-kernel
 
 Архитектурное ядро (microkernel) для микросервисов Shopana, реализующее паттерн Transaction Script.
 
@@ -14,7 +14,7 @@
 ## Установка
 
 ```bash
-yarn add @shopana/kernel
+yarn add @shopana/shared-kernel
 ```
 
 ## Использование
@@ -22,7 +22,7 @@ yarn add @shopana/kernel
 ### 1. Создание Kernel в сервисе
 
 ```typescript
-import { Kernel, MoleculerLogger } from "@shopana/kernel";
+import { Kernel, MoleculerLogger } from "@shopana/shared-kernel";
 import { Service, ServiceSchema } from "moleculer";
 
 type ServiceThis = Service & { kernel: Kernel };
@@ -40,7 +40,7 @@ const MyService: ServiceSchema = {
 ### 2. Создание Transaction Script
 
 ```typescript
-import type { TransactionScript } from "@shopana/kernel";
+import type { TransactionScript } from "@shopana/shared-kernel";
 
 export interface GetDataParams {
   readonly projectId: string;

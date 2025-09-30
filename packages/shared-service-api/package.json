@@ -1,6 +1,6 @@
 {
-  "name": "@shopana/shipping-api",
-  "version": "0.0.1",
+  "name": "@shopana/shared-service-api",
+  "version": "0.1.0",
   "private": false,
   "type": "module",
   "main": "dist/index.js",
@@ -23,10 +23,11 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/plugin-sdk": "*"
+    "@shopana/checkout-sdk": "*",
+    "@shopana/plugin-sdk": "*",
+    "@shopana/shared-money": "*"
   },
   "devDependencies": {
-    "@types/node": "^24.5.1",
     "tsc-alias": "^1.8.10",
     "typescript": "^5.5.4"
   }

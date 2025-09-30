@@ -1,6 +1,6 @@
 import type { CoreCustomer, CoreProject } from "@shopana/platform-api";
 import type { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
-import type { BaseKernelServices, ScriptContext as BaseScriptContext, TransactionScript as BaseTransactionScript } from "@shopana/kernel";
+import type { BaseKernelServices, ScriptContext as BaseScriptContext, TransactionScript as BaseTransactionScript } from "@shopana/shared-kernel";
 
 // Base types for addons
 export type SlotStatus = 'active' | 'inactive' | 'maintenance' | 'deprecated';

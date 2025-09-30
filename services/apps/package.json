@@ -19,7 +19,7 @@
     "@as-integrations/fastify": "^2.1.0",
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
     "@event-driven-io/pongo": "^0.17.0-alpha.6",
-    "@shopana/kernel": "*",
+    "@shopana/shared-kernel": "*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-service-config": "0.0.1",
     "@types/uuid": "^10.0.0",

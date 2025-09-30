@@ -1,13 +1,10 @@
-import type { TransactionScript } from "@src/kernel/types";
-import type {
-  InventoryOffer,
-  GetOffersInput,
-} from "@shopana/inventory-plugin-sdk";
+import type { TransactionScript } from "@shopana/shared-kernel";
+import type { inventory as Inventory } from "@shopana/plugin-sdk";
 
 /**
  * Parameters for transaction script getOffers
  */
-export interface GetOffersParams extends GetOffersInput {
+export interface GetOffersParams extends Inventory.GetOffersInput {
   projectId: string;
   requestId: string;
   userAgent?: string;
@@ -17,7 +14,7 @@ export interface GetOffersParams extends GetOffersInput {
  * Result of getOffers execution
  */
 export interface GetOffersResult {
-  offers: InventoryOffer[];
+  offers: Inventory.InventoryOffer[];
   warnings?: Array<{ code: string; message: string }>;
   fallbackSource?: string;
 }
@@ -31,80 +28,17 @@ export const getOffers: TransactionScript<
   GetOffersParams,
   GetOffersResult
 > = async (params, services) => {
-  const { logger, pluginManager } = services;
+  const { logger, broker } = services;
 
   try {
-    // List of plugins in priority order
-    const pluginCodes = ["shopana"]; // In the future, it can be obtained from configuration
-    const warnings: Array<{ code: string; message: string }> = [];
+    // Delegate to `apps.execute` for domain inventory
+    const { data, warnings } = await broker.call("apps.execute", {
+      domain: "inventory",
+      operation: "getOffers",
+      params,
+    });
 
-    // Try each plugin in sequence
-    for (const pluginCode of pluginCodes) {
-      try {
-        const offers = await pluginManager.getOffers({
-          pluginCode,
-          input: {
-            items: params.items,
-            currency: params.currency,
-            locale: params.locale,
-            apiKey: params.apiKey,
-          },
-        });
-
-        logger.info(
-          {
-            pluginCode,
-            offersCount: offers.length,
-            itemsRequested: params.items?.length || 0,
-            projectId: params.projectId,
-          },
-          "Successfully retrieved offers from plugin"
-        );
-
-        return {
-          offers,
-          warnings: warnings.length > 0 ? warnings : undefined,
-        } satisfies GetOffersResult;
-      } catch (pluginError) {
-        logger.warn(
-          {
-            pluginCode,
-            error:
-              pluginError instanceof Error
-                ? pluginError.message
-                : String(pluginError),
-            projectId: params.projectId,
-          },
-          "Plugin failed, trying next plugin"
-        );
-
-        warnings.push({
-          code: "PLUGIN_ERROR",
-          message: `Plugin ${pluginCode} failed: ${pluginError instanceof Error ? pluginError.message : String(pluginError)}`,
-        });
-      }
-    }
-
-    // If all plugins failed, return fallback
-    logger.error(
-      {
-        pluginCodes,
-        projectId: params.projectId,
-      },
-      "All plugins failed, returning empty result"
-    );
-
-    return {
-      offers: [],
-      warnings: [
-        ...warnings,
-        {
-          code: "ALL_PLUGINS_FAILED",
-          message: "All inventory plugins failed to provide offers",
-        },
-      ],
-      fallbackSource: "empty",
-    };
+    return { offers: data as Inventory.InventoryOffer[], warnings, fallbackSource: undefined };
   } catch (error) {
     logger.error(
       {

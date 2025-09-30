@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
-    "@shopana/kernel": "*",
+    "@shopana/shared-kernel": "*",
     "@shopana/shared-money": "0.0.1",
     "@shopana/plugin-sdk": "*",
     "@types/uuid": "^10.0.0",

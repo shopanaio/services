@@ -1,6 +1,5 @@
 import type { Logger } from "pino";
-import type { ShippingApiClient } from "@shopana/shipping-api";
-import type { PricingApiClient } from "@shopana/pricing-api";
+import type { ShippingApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
 
 // Import use cases
 import {
@@ -25,7 +24,6 @@ import {
 } from "@src/application/usecases";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
-import { InventoryApiClient } from "@shopana/inventory-api";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
 import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
 

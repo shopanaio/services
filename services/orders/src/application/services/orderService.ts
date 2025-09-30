@@ -1,11 +1,11 @@
-import type { Discount, PricingApiClient } from "@shopana/pricing-api";
+import type { Discount, PricingApiClient } from "@shopana/shared-service-api";
 import type { OrderLineItemState } from "@src/domain/order/evolve";
 import {
   OrderCostService,
   type OrderLineItemCost,
   type OrderCost,
 } from "./orderCostService";
-import { InventoryApiClient, InventoryOffer } from "@shopana/inventory-api";
+import type { InventoryApiClient, InventoryOffer } from "@shopana/shared-service-api";
 
 // Re-export types for backward compatibility
 export type { OrderLineItemCost, OrderCost };

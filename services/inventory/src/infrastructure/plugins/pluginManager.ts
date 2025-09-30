@@ -2,18 +2,12 @@ import {
   PluginManager as CorePluginManager,
   ResilienceRunner,
 } from "@shopana/plugin-sdk";
-import type {
-  ProviderContext,
-  InventoryOffer,
-  InventoryProvider,
-  GetOffersInput,
-  PluginModule,
-} from "@shopana/inventory-plugin-sdk";
+import type { inventory as Inventory } from "@shopana/plugin-sdk";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 
-import shopanaPlugin from "@shopana/inventory-plugin-shopana";
-
-const plugins: PluginModule[] = [shopanaPlugin as any];
+// Legacy local plugin registry is no longer used; inventory service now calls apps.execute directly.
+// Kept only to avoid breaking imports during transition if any remain.
+const plugins: Inventory.PluginModule[] = [];
 
 /**
  * Resilience Runner for plugins
@@ -34,12 +28,12 @@ const runner = new ResilienceRunner({
 export class InventoryPluginManager
   extends CorePluginManager<
     Record<string, unknown>,
-    ProviderContext,
-    InventoryProvider
+    Inventory.ProviderContext,
+    Inventory.InventoryProvider
   >
   implements IPluginManager
 {
-  constructor(ctxFactory: () => ProviderContext) {
+  constructor(ctxFactory: () => Inventory.ProviderContext) {
     super(plugins as any, ctxFactory, { runner });
   }
 
@@ -48,10 +42,10 @@ export class InventoryPluginManager
    */
   async getOffers(params: {
     pluginCode: string;
-    input: GetOffersInput;
+    input: Inventory.GetOffersInput;
     requestMeta?: { requestId?: string; userAgent?: string };
     projectId?: string;
-  }): Promise<InventoryOffer[]> {
+  }): Promise<Inventory.InventoryOffer[]> {
     const { provider, plugin } = await this.createProvider({
       pluginCode: params.pluginCode,
       rawConfig: {},
@@ -69,7 +63,7 @@ export class InventoryPluginManager
       },
       async () => {
         try {
-          const result = await provider.getOffers(params.input);
+          const result = await (provider as any).inventory.getOffers(params.input);
           hooks.onTelemetry?.("getOffers.success", {
             count: result.length,
             itemsRequested: params.input.items.length,

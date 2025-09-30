@@ -1,5 +1,5 @@
 import { Service, ServiceSchema, Context } from "moleculer";
-import { Kernel, MoleculerLogger } from "@shopana/kernel";
+import { Kernel, MoleculerLogger } from "@shopana/shared-kernel";
 import {
   paymentMethods,
   type GetPaymentMethodsParams,

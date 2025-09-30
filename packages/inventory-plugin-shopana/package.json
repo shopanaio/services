@@ -27,7 +27,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/inventory-plugin-sdk": "*",
+    "@shopana/plugin-sdk": "*",
     "@shopana/platform-api": "*",
     "graphql-request": "^6.1.0",
     "zod": "^3.23.8"

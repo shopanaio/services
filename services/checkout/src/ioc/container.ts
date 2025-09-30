@@ -6,12 +6,10 @@ import { CheckoutReadRepository as InfraCheckoutReadRepository } from "@src/infr
 import { CheckoutLineItemsReadRepositoryPort } from "@src/infrastructure/readModel/checkoutLineItemsReadRepository";
 import { CheckoutLineItemsReadRepository } from "@src/application/read/checkoutLineItemsReadRepository";
 import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
-import { ShippingClient } from "@shopana/shipping-api";
-import { PaymentClient } from "@shopana/payment-api";
-import { PricingClient } from "@shopana/pricing-api";
+import { createServiceApi } from "@shopana/shared-service-api";
+import type { ServiceApi } from "@shopana/shared-service-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import type { ServiceBroker } from "moleculer";
-import { InventoryClient } from "@shopana/inventory-api";
 import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
 
 export class App {
@@ -20,10 +18,7 @@ export class App {
   public logger!: ReturnType<typeof createLogger>;
 
   public broker!: ServiceBroker;
-  public inventoryClient!: InventoryClient;
-  public shippingClient!: ShippingClient;
-  public paymentClient!: PaymentClient;
-  public pricingClient!: PricingClient;
+  public serviceApi!: ServiceApi;
 
   public eventStore!: any;
   public streamNames!: any;
@@ -42,10 +37,7 @@ export class App {
    */
   public setBroker(broker: ServiceBroker): void {
     this.broker = broker;
-    this.inventoryClient = new InventoryClient(this.broker);
-    this.shippingClient = new ShippingClient(this.broker);
-    this.paymentClient = new PaymentClient(this.broker);
-    this.pricingClient = new PricingClient(this.broker);
+    this.serviceApi = createServiceApi(this.broker);
   }
 
   /**
@@ -59,10 +51,7 @@ export class App {
     app.broker = broker;
 
     // Initialize API clients
-    app.inventoryClient = new InventoryClient(broker);
-    app.shippingClient = new ShippingClient(broker);
-    app.paymentClient = new PaymentClient(broker);
-    app.pricingClient = new PricingClient(broker);
+    app.serviceApi = createServiceApi(broker);
 
     // Initialize infrastructure dependencies
     // Event store removed; using write repository instead
@@ -77,16 +66,15 @@ export class App {
     );
     app.checkoutWriteRepository = new CheckoutWriteRepository();
     app.checkoutService = new CheckoutService(
-      app.pricingClient,
-      app.inventoryClient
+      app.serviceApi.pricing,
+      app.serviceApi.inventory
     );
     app.checkoutUsecase = new CheckoutUsecase({
       logger: app.logger,
-      inventory: app.inventoryClient,
-      shippingApiClient: app.shippingClient,
-      paymentApiClient: app.paymentClient,
-      paymentApiClient: app.paymentClient,
-      pricingApiClient: app.pricingClient,
+      inventory: app.serviceApi.inventory,
+      shippingApiClient: app.serviceApi.shipping,
+      paymentApiClient: app.serviceApi.payment,
+      pricingApiClient: app.serviceApi.pricing,
       checkoutService: app.checkoutService,
       checkoutReadRepository: app.checkoutReadRepository,
       checkoutWriteRepository: app.checkoutWriteRepository,

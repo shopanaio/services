@@ -1,8 +1,7 @@
 import type { EventStorePort } from "@src/application/ports/eventStorePort";
 import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort";
 import type { Logger } from "pino";
-import type { ShippingApiClient } from "@shopana/shipping-api";
-import type { PricingApiClient } from "@shopana/pricing-api";
+import type { ShippingApiClient, PricingApiClient, InventoryApiClient, CheckoutApiClient } from "@shopana/shared-service-api";
 
 // Import use cases
 import {
@@ -11,8 +10,6 @@ import {
 } from "@src/application/usecases";
 import { OrderService } from "@src/application/services/orderService";
 import { OrderReadRepository } from "@src/application/read/orderReadRepository";
-import { InventoryApiClient } from "@shopana/inventory-api";
-import type { CheckoutApiClient } from "@shopana/checkout-api";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import type { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
 
