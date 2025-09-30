@@ -1,4 +1,3 @@
-import type { ServiceBroker } from "moleculer";
 import type {
   QueryResolvers,
   MutationResolvers,
@@ -8,23 +7,19 @@ import type {
   AppsQuery,
   AppsMutation,
 } from "../generated/types";
-import type {
-  GetAvailableAppsParams,
-  InstallAppParams,
-  UninstallAppParams,
-  GetInstalledAppsParams,
-  GetAvailableAppsResult,
-  InstallAppResult,
-  UninstallAppResult,
-  GetInstalledAppsResult,
+import type { Kernel } from "@src/kernel/Kernel";
+import {
+  getAvailableAppsScript,
+  getInstalledAppsScript,
+  installAppScript,
+  uninstallAppScript,
 } from "@src/scripts/index";
 
 /**
- * GraphQL Resolvers - thin layer over Moleculer actions
- * Uses Moleculer's built-in tracing (ctx.requestID, ctx.parentID)
- * No external correlation dependencies
+ * GraphQL Resolvers - direct script execution
+ * No Moleculer action calls - scripts are executed directly via kernel
  */
-export function createResolvers(broker: ServiceBroker): Resolvers {
+export function createResolvers(kernel: Kernel): Resolvers {
   return {
     Query: {
       appsQuery: (): AppsQuery => ({} as AppsQuery),
@@ -35,11 +30,9 @@ export function createResolvers(broker: ServiceBroker): Resolvers {
     AppsQuery: {
       // Getting available apps
       apps: async (_p, _a, ctx) => {
-        const params: GetAvailableAppsParams = {
+        const result = await kernel.executeScript(getAvailableAppsScript, {
           projectId: ctx.project.id,
-        };
-
-        const result: GetAvailableAppsResult = await broker.call("apps.getAvailable", params);
+        });
 
         return result.apps.map((a) => ({
           code: a.code,
@@ -50,11 +43,9 @@ export function createResolvers(broker: ServiceBroker): Resolvers {
 
       // Getting installed apps
       installedApps: async (_p, _a, ctx) => {
-        const params: GetInstalledAppsParams = {
+        const result = await kernel.executeScript(getInstalledAppsScript, {
           projectId: ctx.project.id,
-        };
-
-        const result: GetInstalledAppsResult = await broker.call("apps.getInstalled", params);
+        });
 
         return result.apps.map((a) => ({
           id: a.id,
@@ -70,24 +61,20 @@ export function createResolvers(broker: ServiceBroker): Resolvers {
     AppsMutation: {
       // App installation
       install: async (_p, args: { code: string }, ctx) => {
-        const params: InstallAppParams = {
+        const result = await kernel.executeScript(installAppScript, {
           appCode: args.code,
           projectId: ctx.project.id,
-        };
-
-        const result: InstallAppResult = await broker.call("apps.install", params);
+        });
 
         return result.success;
       },
 
       // App removal
       uninstall: async (_p, args: { code: string }, ctx) => {
-        const params: UninstallAppParams = {
+        const result = await kernel.executeScript(uninstallAppScript, {
           appCode: args.code,
           projectId: ctx.project.id,
-        };
-
-        const result: UninstallAppResult = await broker.call("apps.uninstall", params);
+        });
 
         return result.success;
       },

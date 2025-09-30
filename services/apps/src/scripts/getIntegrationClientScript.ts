@@ -1,6 +1,5 @@
 import type {
   TransactionScript,
-  KernelServices,
   ScriptContext,
   HttpClient,
 } from '@src/kernel/types';
@@ -106,7 +105,7 @@ export const getIntegrationClientScript: TransactionScript<
       baseUrl,
       projectId,
       aggregateId,
-      requestId: scriptContext.requestId
+      requestId: scriptContext?.requestId
     }, 'Integration client created');
 
     return { client: httpClient };

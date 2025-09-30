@@ -2,39 +2,13 @@ import { Service, ServiceSchema, Context } from "moleculer";
 import { Knex } from "knex";
 import { FastifyInstance } from "fastify";
 
-import { Kernel } from "@src/kernel/Kernel";
+import { Kernel, MoleculerLogger } from "@src/kernel/Kernel";
 import { dumboPool, knexInstance } from "@src/infrastructure/db/database";
 import { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
 import { startServer } from "@src/api/server";
-import { MoleculerLogger } from "@src/infrastructure/logger/logger";
 import { AppsPluginManager } from "@src/infrastructure/plugins/pluginManager";
 import { Domain } from "@shopana/plugin-sdk";
 
-import {
-  getInstalledAppsScript,
-  GetInstalledAppsParams,
-  GetInstalledAppsResult,
-} from "@src/scripts/getInstalledAppsScript";
-import {
-  installAppScript,
-  InstallAppParams,
-  InstallAppResult,
-} from "@src/scripts/installAppScript";
-import {
-  uninstallAppScript,
-  UninstallAppParams,
-  UninstallAppResult,
-} from "@src/scripts/uninstallAppScript";
-import {
-  getAvailableAppsScript,
-  GetAvailableAppsParams,
-  GetAvailableAppsResult,
-} from "@src/scripts/getAvailableAppsScript";
-import {
-  getSlotsScript,
-  GetSlotsParams,
-  GetSlotsResult,
-} from "@src/scripts/getSlotsScript";
 
 // Define extended `this` type for Moleculer service context.
 // This allows TypeScript to understand properties added by broker (logger, broker, etc.)
@@ -45,16 +19,17 @@ type ServiceThis = Service & {
   pluginManager: AppsPluginManager;
 };
 
-// operation is passed directly and equals provider method name
-
 const AppsService: ServiceSchema<any> = {
   name: "apps",
 
   /**
    * Service actions
-   * Now uses simplified calls without external tracing - Moleculer handles this internally
+   * Only inter-service communication actions
    */
   actions: {
+    /**
+     * Execute operation on plugin providers (for inter-service communication)
+     */
     execute: {
       params: {
         domain: { type: "string", enum: [Domain.SHIPPING, Domain.PAYMENT, Domain.PRICING] },
@@ -115,52 +90,6 @@ const AppsService: ServiceSchema<any> = {
         return { data, warnings };
       },
     },
-    install(
-      this: ServiceThis,
-      ctx: Context<InstallAppParams>
-    ): Promise<InstallAppResult> {
-      return this.kernel.executeScript(installAppScript, ctx.params);
-    },
-
-    uninstall(
-      this: ServiceThis,
-      ctx: Context<UninstallAppParams>
-    ): Promise<UninstallAppResult> {
-      return this.kernel.executeScript(uninstallAppScript, ctx.params);
-    },
-
-    getInstalled(
-      this: ServiceThis,
-      ctx: Context<GetInstalledAppsParams>
-    ): Promise<GetInstalledAppsResult> {
-      return this.kernel.executeScript(
-        getInstalledAppsScript,
-        ctx.params
-      );
-    },
-
-    getAvailable(
-      this: ServiceThis,
-      ctx: Context<GetAvailableAppsParams>
-    ): Promise<GetAvailableAppsResult> {
-      return this.kernel.executeScript(
-        getAvailableAppsScript,
-        ctx.params
-      );
-    },
-
-    getSlots: {
-      params: {
-        projectId: { type: "string", min: 1 },
-        domain: { type: "string", optional: true }
-      },
-      handler(
-        this: ServiceThis,
-        ctx: Context<GetSlotsParams>
-      ): Promise<GetSlotsResult> {
-        return this.kernel.executeScript(getSlotsScript, ctx.params);
-      }
-    },
   },
 
   /**
@@ -202,7 +131,7 @@ const AppsService: ServiceSchema<any> = {
 
       // Start GraphQL server
       this.logger.info("Starting GraphQL server...");
-      this.graphqlServer = await startServer(this.broker);
+      this.graphqlServer = await startServer(this.broker, this.kernel);
       this.logger.info("GraphQL server started successfully");
     } catch (error) {
       this.logger.error("Error during service startup:", error);

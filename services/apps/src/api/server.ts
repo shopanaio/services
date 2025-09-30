@@ -11,15 +11,15 @@ import { gql } from "graphql-tag";
 import type { ServiceBroker } from "moleculer";
 import { createResolvers } from "./resolvers";
 import type { GraphQLContext } from "@src/kernel/types";
+import type { Kernel } from "@src/kernel/Kernel";
 import { config } from "@src/config";
 import { buildCoreContextMiddleware } from "./contextMiddleware";
 
 /**
  * Create and start GraphQL-only server
- * Simplified without correlation dependencies - uses only core context middleware
- * Tracing is handled internally by Moleculer
+ * Resolvers use kernel for direct script execution
  */
-export async function startServer(broker: ServiceBroker) {
+export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   const app = fastify({ logger: true });
 
   // Load GraphQL schema
@@ -29,7 +29,7 @@ export async function startServer(broker: ServiceBroker) {
     join(...schemaPath, "apps.graphql"),
   ];
 
-  const resolvers = createResolvers(broker);
+  const resolvers = createResolvers(kernel);
   const modules = sdlFiles.map((p) => ({
     typeDefs: gql(readFileSync(p, "utf-8")),
     resolvers,

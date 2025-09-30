@@ -3,10 +3,9 @@
  * Main entry point for discount evaluation module
  */
 
-import type { TransactionScript } from "@src/kernel/types";
+import type { TransactionScript, KernelServices } from "@shopana/kernel";
 import type {
   EvaluateDiscountsResult,
-  KernelServices,
 } from "./types.js";
 import type { EvaluateDiscountsParamsDto } from "./dto.js";
 import { DiscountEvaluationController } from "./discount-evaluation-controller.js";
@@ -36,8 +35,8 @@ export type {
   DiscountValidationRequest,
   Logger,
   RequestContext,
-  KernelServices,
 } from "./types.js";
+export type { KernelServices } from "@shopana/kernel";
 
 // Re-export DTO classes for validation
 export {

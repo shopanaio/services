@@ -1,5 +1,6 @@
 import type { CoreCustomer, CoreProject } from "@shopana/platform-api";
 import type { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
+import type { BaseKernelServices, ScriptContext as BaseScriptContext, TransactionScript as BaseTransactionScript } from "@shopana/kernel";
 
 // Base types for addons
 export type SlotStatus = 'active' | 'inactive' | 'maintenance' | 'deprecated';
@@ -74,46 +75,29 @@ export interface HttpClient {
   provider: string;
 }
 
-// Logger interface
-export interface Logger {
-  info: (...args: any[]) => void;
-  warn: (...args: any[]) => void;
-  error: (...args: any[]) => void;
-  debug: (...args: any[]) => void;
-}
-
 // HTTP Client for external APIs
 export interface ExternalHttpClient {
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
-// Services provided by kernel for transaction scripts
-export interface KernelServices {
+/**
+ * Extended services for apps microservice
+ * Adds repository and plugin manager to base kernel services
+ */
+export interface AppsKernelServices extends BaseKernelServices {
   readonly slotsRepository: SlotsRepository;
-  readonly logger: Logger;
-  readonly broker: any; // Moleculer ServiceBroker for calling other services
   readonly pluginManager: any; // AppsPluginManager for plugin operations
 }
 
 /**
- * Simplified transaction script execution context
- * Removed correlation fields - Moleculer handles this internally
+ * Script context for apps service - uses base ScriptContext from kernel
  */
-export interface ScriptContext {
-  readonly requestId?: string;
-  readonly projectId: string;
-  readonly startTime: number;
-  // Removed: traceId, spanId, correlationId, causationId
-}
+export type ScriptContext = BaseScriptContext;
 
-// Base interface for any transaction script
-export interface TransactionScript<TParams = any, TResult = any> {
-  (
-    params: TParams,
-    services: KernelServices,
-    context: ScriptContext
-  ): Promise<TResult>;
-}
+/**
+ * Transaction script for apps service - uses base TransactionScript with AppsKernelServices
+ */
+export type TransactionScript<TParams = any, TResult = any> = BaseTransactionScript<TParams, TResult, AppsKernelServices>;
 
 // Script execution result with warnings
 export interface ScriptResult<TData = any> {

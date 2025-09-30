@@ -1,6 +1,5 @@
 import type {
   TransactionScript,
-  KernelServices,
   ScriptResult,
   Slot,
 } from "@src/kernel/types";

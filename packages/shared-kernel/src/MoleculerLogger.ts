@@ -1,10 +1,12 @@
 import type { LoggerInstance } from 'moleculer';
-import type { Logger } from '@src/kernel/types';
+import type { Logger } from './types';
 
 /**
- * Moleculer logger adapter that implements the Logger interface
- * This allows using Moleculer's built-in logger throughout the application
- * while maintaining compatibility with the existing Logger interface
+ * Moleculer logger adapter
+ *
+ * Implements the Logger interface using Moleculer's built-in logger.
+ * This adapter allows using Moleculer's logging infrastructure while
+ * maintaining compatibility with the kernel's Logger interface.
  */
 export class MoleculerLogger implements Logger {
   constructor(private readonly moleculerLogger: LoggerInstance) {}

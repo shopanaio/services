@@ -1,15 +1,10 @@
 import { Service, ServiceSchema, Context } from "moleculer";
-
-import { Kernel } from "@src/kernel/Kernel";
-import { MoleculerLogger } from "@src/infrastructure/logger/logger";
-
+import { Kernel, MoleculerLogger } from "@shopana/kernel";
 import {
   createDeliveryGroups,
   type CreateDeliveryGroupsParams,
   type CreateDeliveryGroupsResult,
 } from "@src/scripts/createDeliveryGroups";
-import type { GetPaymentMethodsParams, GetPaymentMethodsResult } from "./scripts/paymentMethods";
-import { paymentMethods } from "./scripts/paymentMethods";
 import {
   GetShippingMethodsParams,
   GetShippingMethodsResult,
@@ -44,27 +39,6 @@ const ShippingService: ServiceSchema<any> = {
         ctx: Context<GetShippingMethodsParams>
       ): Promise<GetShippingMethodsResult> {
         return this.kernel.executeScript(shippingMethods, ctx.params);
-      }
-    },
-
-    /**
-     * Get payment methods from shipping plugins (if supported)
-     */
-    paymentMethods: {
-      params: {
-        projectId: { type: "string", min: 1 },
-        requestId: { type: "string", optional: true },
-        userAgent: { type: "string", optional: true },
-        shippingMethodCode: { type: "string", optional: true },
-        amountMinor: { type: "number", optional: true },
-        currency: { type: "string", optional: true },
-        locale: { type: "string", optional: true },
-      },
-      handler(
-        this: ServiceThis,
-        ctx: Context<GetPaymentMethodsParams>
-      ): Promise<GetPaymentMethodsResult> {
-        return this.kernel.executeScript(paymentMethods, ctx.params);
       }
     },
 

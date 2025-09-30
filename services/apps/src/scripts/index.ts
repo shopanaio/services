@@ -29,11 +29,5 @@ export {
   type GetIntegrationClientResult
 } from './getIntegrationClientScript';
 
-export {
-  getSlotsScript,
-  type GetSlotsParams,
-  type GetSlotsResult
-} from './getSlotsScript';
-
 // New transaction scripts will be added here
 // when additional requirements appear

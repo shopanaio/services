@@ -2,7 +2,7 @@ import { PluginManager as CorePluginManager, ResilienceRunner, createProviderCon
 import type { shipping as ShippingSDK } from "@shopana/plugin-sdk";
 import { config } from "@src/config";
 import { shippingPlugins, paymentPlugins, pricingPlugins } from "@src/infrastructure/plugins/registry";
-import type { Logger } from "@src/kernel/types";
+import type { Logger } from "@shopana/kernel";
 
 // No aliasing: operation equals provider method name across domains (e.g., list, validate)
 

@@ -1,4 +1,4 @@
-import type { TransactionScript } from "@src/kernel/types";
+import type { TransactionScript } from "@shopana/kernel";
 import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import { shippingMethods } from "./shippingMethods";
 

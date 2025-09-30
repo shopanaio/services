@@ -1,7 +1,4 @@
-import type {
-  KernelServices,
-  TransactionScript,
-} from "@src/kernel/types";
+import type { TransactionScript } from "@shopana/kernel";
 import type { Discount } from "@shopana/plugin-sdk/pricing";
 import { buildEmergencyFallback } from "./fallback";
 

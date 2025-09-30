@@ -1,8 +1,5 @@
 import { Service, ServiceSchema, Context } from "moleculer";
-
-import { Kernel } from "@src/kernel/Kernel";
-import { MoleculerLogger } from "@src/infrastructure/logger/logger";
-
+import { Kernel, MoleculerLogger } from "@shopana/kernel";
 import {
   getAllDiscounts,
   validateDiscount,

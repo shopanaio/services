@@ -1,5 +1,5 @@
 import { Service, ServiceSchema, Context } from "moleculer";
-import { Kernel } from "@src/kernel/Kernel";
+import { Kernel, MoleculerLogger } from "@shopana/kernel";
 import {
   paymentMethods,
   type GetPaymentMethodsParams,
@@ -16,7 +16,6 @@ const PaymentsService: ServiceSchema<any> = {
       this: ServiceThis,
       ctx: Context<GetPaymentMethodsParams>
     ): Promise<GetPaymentMethodsResult> {
-      console.log(ctx.params, "ctx.params");
       return this.kernel.executeScript(paymentMethods, ctx.params);
     },
 
@@ -29,14 +28,20 @@ const PaymentsService: ServiceSchema<any> = {
   async started() {
     this.logger.info("Payments service starting...");
 
-    // Create kernel with broker and logger
-    // Plugin management is now centralized in apps service
-    this.kernel = new Kernel(
-      this.broker,
-      this.logger as any
-    );
+    try {
+      // Create kernel with broker and logger
+      // Plugin management is now centralized in apps service
+      const moleculerLogger = new MoleculerLogger(this.logger);
+      this.kernel = new Kernel(
+        this.broker,
+        moleculerLogger
+      );
 
-    this.logger.info("Payments service started successfully");
+      this.logger.info("Payments service started successfully");
+    } catch (error) {
+      this.logger.error("Error during service startup:", error);
+      throw error;
+    }
   },
 
   async stopped() {

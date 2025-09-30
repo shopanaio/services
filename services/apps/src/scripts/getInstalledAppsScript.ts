@@ -1,6 +1,5 @@
 import type {
   TransactionScript,
-  KernelServices,
   ScriptContext,
   InstalledApp,
 } from "@src/kernel/types";
