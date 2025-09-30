@@ -1,5 +1,5 @@
 import type { Logger } from "pino";
-import type { ShippingApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
+import type { ShippingApiClient, PaymentApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
 
 // Import use cases
 import {

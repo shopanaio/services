@@ -3,7 +3,7 @@ export * from './serviceApi';
 export * from './inventoryTypes';
 export * from './paymentTypes';
 export * from './pricingTypes';
-export {
+export type {
   ShippingApiClient,
   GetAllMethodsResponse,
   CreateDeliveryGroupsInput,
