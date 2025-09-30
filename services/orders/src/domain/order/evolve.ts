@@ -1,6 +1,6 @@
 import { OrderEventTypes, type OrderEvent } from "./events";
 import { Money } from "@shopana/shared-money";
-import { ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
+import { ShippingPaymentModel } from "@shopana/plugin-sdk/shipping";
 
 /** Order status aligned with admin GraphQL schema. */
 export enum OrderStatus {

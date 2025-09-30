@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
@@ -13,8 +13,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@shopana/shipping-plugin-sdk": ["../shipping-plugin-sdk/dist"],
-      "@shopana/shipping-plugin-sdk/*": ["../shipping-plugin-sdk/dist/*"]
+      "@shopana/plugin-sdk": ["../plugin-sdk/dist"],
+      "@shopana/plugin-sdk/*": ["../plugin-sdk/dist/*"]
     }
   },
   "include": ["src"]

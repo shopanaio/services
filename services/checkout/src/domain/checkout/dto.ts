@@ -2,12 +2,13 @@ import { Money } from "@shopana/shared-money";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-sdk";
+} from "@shopana/plugin-sdk/shipping";
 import type {
   CheckoutLineCostSnapshot,
   CheckoutTotalsSnapshot,
 } from "@src/domain/checkout/cost";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
+import { PaymentFlow } from "@shopana/plugin-sdk/payment";
 
 type CheckoutMetadataDto = {
   apiKey: string;
@@ -42,6 +43,13 @@ export type CheckoutCreatedPayload = Readonly<{
       deliveryMethodType: DeliveryMethodType;
       shippingPaymentModel: ShippingPaymentModel;
     }>;
+  }>;
+  paymentMethods: Array<{
+    code: string;
+    provider: string;
+    flow: PaymentFlow;
+    metadata: Record<string, unknown> | null;
+    constraints: Record<string, unknown> | null;
   }>;
 }>;
 
@@ -248,5 +256,21 @@ export type CheckoutDeliveryGroupRemovedPayload = Readonly<{
 
 export type CheckoutDeliveryGroupRemovedDto = Readonly<{
   data: CheckoutDeliveryGroupRemovedPayload;
+  metadata: CheckoutMetadataDto;
+}>;
+
+export type CheckoutPaymentMethodUpdatedPayload = Readonly<{
+  paymentMethod: {
+    code: string;
+    provider: string;
+    flow: PaymentFlow;
+    metadata: Record<string, unknown> | null;
+    constraints?: Record<string, unknown> | null;
+  };
+  payableAmount: Money;
+}>;
+
+export type CheckoutPaymentMethodUpdatedDto = Readonly<{
+  data: CheckoutPaymentMethodUpdatedPayload;
   metadata: CheckoutMetadataDto;
 }>;

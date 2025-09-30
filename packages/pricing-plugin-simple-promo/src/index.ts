@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { PricingPlugin, ProviderContext } from '@shopana/pricing-plugin-sdk';
-import { DiscountType } from '@shopana/pricing-plugin-sdk';
+import type { PricingPlugin, ProviderContext } from '@shopana/plugin-sdk/pricing';
+import { DiscountType } from '@shopana/plugin-sdk/pricing';
 import { SimplePromoPricingProvider } from './provider';
 
 export const configSchema = z.object({
@@ -25,7 +25,6 @@ export const plugin: PricingPlugin<typeof configSchema> = {
     version: '1.0.0',
     apiVersionRange: '^1.0.0',
     domains: ['pricing'],
-    capabilities: ['discounts'],
     priority: 100, // low priority, fallback
   },
   configSchema,

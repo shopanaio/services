@@ -8,7 +8,7 @@
 
 import type { KernelServices } from "./types.js";
 import type { EvaluateDiscountsParamsDto } from "./dto.js";
-import type { Discount } from "@shopana/pricing-plugin-sdk";
+import type { Discount } from "@shopana/plugin-sdk/pricing";
 import { validateDiscount } from "@src/scripts/validateDiscount.js";
 import { Money } from "@shopana/shared-money";
 

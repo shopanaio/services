@@ -16,8 +16,8 @@
       "@src/*": ["src/*"],
       "@shopana/plugin-sdk": ["../../packages/plugin-sdk/dist"],
       "@shopana/plugin-sdk/*": ["../../packages/plugin-sdk/dist/*"],
-      "@shopana/payment-plugin-sdk": ["../../packages/payment-plugin-sdk/dist"],
-      "@shopana/payment-plugin-sdk/*": ["../../packages/payment-plugin-sdk/dist/*"]
+      "@shopana/payment-plugin-bank-transfer": ["../../packages/payment-plugin-bank-transfer/dist"],
+      "@shopana/payment-plugin-bank-transfer/*": ["../../packages/payment-plugin-bank-transfer/dist/*"]
     }
   },
   "include": ["src"]

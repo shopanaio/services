@@ -1,5 +1,5 @@
 import type { Money } from "@shopana/shared-money";
-import { ShippingPaymentModel, DeliveryMethodType } from "@shopana/shipping-plugin-sdk";
+import { ShippingPaymentModel, DeliveryMethodType } from "@shopana/plugin-sdk/shipping";
 
 export type CheckoutCost = Readonly<{
   subtotalAmount: Money;

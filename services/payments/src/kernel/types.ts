@@ -1,6 +1,6 @@
 import type { ResilienceRunner } from "@shopana/plugin-sdk";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/payment-plugin-sdk";
-import type { ProviderContext } from "@shopana/shipping-plugin-sdk";
+import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
+import type { ProviderContext } from "@shopana/plugin-sdk/payment";
 
 export interface Logger {
   info: (...args: any[]) => void;

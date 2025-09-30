@@ -23,7 +23,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/pricing-plugin-sdk": "0.0.1"
+    "@shopana/plugin-sdk": "*"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",

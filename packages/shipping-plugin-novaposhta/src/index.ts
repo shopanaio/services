@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ShippingPlugin } from '@shopana/shipping-plugin-sdk';
+import type { ShippingPlugin } from '@shopana/plugin-sdk/shipping';
 import { NovaPoshtaProvider } from './provider';
 
 const IS_MOCK = process.env.SHIPPING_NOVAPOSHTA_MOCK_METHODS === '1';
@@ -23,7 +23,6 @@ export const plugin: ShippingPlugin<typeof configSchema> = {
     version: '0.1.0',
     apiVersionRange: '^1.0.0',
     domains: ['shipping'],
-    capabilities: ['rates', 'payment'],
     priority: 10,
   },
   configSchema,

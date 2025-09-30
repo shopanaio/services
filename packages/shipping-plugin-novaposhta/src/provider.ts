@@ -1,69 +1,54 @@
 import { z } from "zod";
-import {
-  type ShippingProvider,
-  type ProviderContext,
-  type ShippingMethod,
-  DeliveryMethodType,
-  ShippingPaymentModel,
-} from "@shopana/shipping-plugin-sdk";
-import { type PaymentMethod, type GetPaymentMethodsInput, PaymentFlow } from "@shopana/payment-plugin-sdk";
+import { shipping as ShippingSDK, payment as PaymentSDK } from "@shopana/plugin-sdk";
 import { NovaPoshtaClient } from "./client";
 import { configSchema } from "./index";
 
 type Config = z.infer<typeof configSchema>;
 
-export class NovaPoshtaProvider implements ShippingProvider {
+export class NovaPoshtaProvider implements ShippingSDK.ShippingProvider {
   private readonly client: NovaPoshtaClient;
 
-  constructor(ctx: ProviderContext, private readonly cfg: Config) {
+  constructor(ctx: ShippingSDK.ProviderContext, private readonly cfg: Config) {
     const http = ctx.createHttp(cfg.baseUrl);
     this.client = new NovaPoshtaClient(http, cfg.apiKey);
   }
 
-  async getMethods(): Promise<ShippingMethod[]> {
-    return [
-      {
-        deliveryMethodType: DeliveryMethodType.SHIPPING,
-        shippingPaymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
-        code: "warehouse_warehouse",
-        provider: "novaposhta",
-      },
-      {
-        code: "warehouse_doors",
-        provider: "novaposhta",
-        deliveryMethodType: DeliveryMethodType.SHIPPING,
-        shippingPaymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
-      },
-    ];
-  }
+  shipping = {
+    list: async (): Promise<ShippingSDK.ShippingMethod[]> => {
+      return [
+        {
+          deliveryMethodType: ShippingSDK.DeliveryMethodType.SHIPPING,
+          shippingPaymentModel: ShippingSDK.ShippingPaymentModel.MERCHANT_COLLECTED,
+          code: "warehouse_warehouse",
+          provider: "novaposhta",
+        },
+        {
+          code: "warehouse_doors",
+          provider: "novaposhta",
+          deliveryMethodType: ShippingSDK.DeliveryMethodType.SHIPPING,
+          shippingPaymentModel: ShippingSDK.ShippingPaymentModel.MERCHANT_COLLECTED,
+        },
+      ];
+    }
+  } as const;
 
-  async getPaymentMethods(input?: GetPaymentMethodsInput): Promise<PaymentMethod[]> {
-    // For Nova Poshta, common payment on delivery options are COD (cash) and POS at branch/courier.
-    // We expose them as two distinct methods. Filtering by shippingMethodCode is not needed here.
-    const methods: PaymentMethod[] = [
-      {
-        code: "cod_cash",
-        provider: "novaposhta",
-        name: "Cash on Delivery",
-        description: "Pay cash to courier or at branch upon delivery",
-        paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
-        flow: PaymentFlow.ON_DELIVERY,
-        metadata: { instrument: "CASH" },
-        constraints: { shippingProvider: "novaposhta" },
-      },
-      {
-        code: "cod_card",
-        provider: "novaposhta",
-        name: "Card on Delivery",
-        description: "Pay by card to courier or at branch upon delivery",
-        paymentModel: ShippingPaymentModel.MERCHANT_COLLECTED,
-        flow: PaymentFlow.ON_DELIVERY,
-        metadata: { instrument: "CARD" },
-        constraints: { shippingProvider: "novaposhta" },
-      },
-    ];
-
-    // If amount limits are provided, we could filter unsupported amounts in the future.
-    return methods;
-  }
+  payment = {
+    list: async (_input?: PaymentSDK.ListPaymentMethodsInput): Promise<PaymentSDK.PaymentMethod[]> => {
+      const methods: PaymentSDK.PaymentMethod[] = [
+        {
+          code: "cod_cash",
+          provider: "novaposhta",
+          flow: PaymentSDK.PaymentFlow.ON_DELIVERY,
+          metadata: {},
+          constraints: {
+            shippingMethodCodes: [
+              "novaposhta:warehouse_warehouse",
+              "novaposhta:warehouse_doors",
+            ],
+          },
+        },
+      ];
+      return methods;
+    }
+  } as const;
 }

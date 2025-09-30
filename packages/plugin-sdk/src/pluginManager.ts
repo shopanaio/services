@@ -13,18 +13,13 @@ import semver from 'semver';
 import { z } from 'zod';
 import { collectMissingSecrets, substituteSecrets } from './secrets';
 import { ResilienceRunner, type ServiceError } from './runner';
+import type { BasePluginManifest } from './types';
 
 export type ValidatedConfig<T> = { success: true; data: T } | { success: false; errors: Array<{ path: string; message: string }> };
 
 export type SchemaLike<T> = z.ZodType<T>;
 
-export type CorePluginManifest = Readonly<{
-  code: string;
-  version: string;
-  apiVersionRange: string;
-  // Additional manifest fields remain arbitrary
-  [key: string]: unknown;
-}>;
+export type CorePluginManifest = BasePluginManifest;
 
 /**
  * Main plugin contract: manifest description, config schema, hooks and provider factory.
@@ -120,7 +115,6 @@ export class PluginManager<TConfig extends Record<string, unknown>, TContext, TP
    * Returns list of manifests of all known plugins, including compatibility/allowance flags.
    */
   listManifests(): Array<{ manifest: CorePluginManifest; compatible: boolean; allowed: boolean }> {
-    console.log('listManifests', this.descriptors);
     return this.descriptors.map((d) => ({ manifest: d.plugin.manifest, compatible: d.compatible, allowed: d.allowed }));
   }
 

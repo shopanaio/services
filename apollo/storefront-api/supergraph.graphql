@@ -1078,12 +1078,6 @@ type CheckoutPaymentMethod
   """Provider code (e.g., "stripe", "liqpay", "monobank", "paypal")."""
   provider: String!
 
-  """Human-readable name of the method."""
-  name: String!
-
-  """Optional human-readable description."""
-  description: String
-
   """Payment flow (ONLINE vs ON_DELIVERY)."""
   flow: PaymentFlow!
 

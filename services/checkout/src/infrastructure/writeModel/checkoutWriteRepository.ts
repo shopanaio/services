@@ -19,6 +19,7 @@ import type {
   CheckoutCustomerNoteUpdatedDto,
   CheckoutLanguageCodeUpdatedDto,
   CheckoutCurrencyCodeUpdatedDto,
+  CheckoutPaymentMethodUpdatedDto,
 } from "@src/domain/checkout/dto";
 
 /**
@@ -133,7 +134,6 @@ export class CheckoutWriteRepository {
         grand_total: 0,
         status: "new",
         expires_at: null,
-        projected_version: 0,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
         created_at: input.metadata.now,
         updated_at: input.metadata.now,
@@ -180,6 +180,27 @@ export class CheckoutWriteRepository {
         )
         .toString();
       statements.push(insertMethodsSql);
+    }
+
+    // Insert payment methods if provided
+    const paymentMethods = input.data.paymentMethods || [];
+    if (paymentMethods.length > 0) {
+      const insertPaymentMethodsSql = knex
+        .withSchema("platform")
+        .table("checkout_payment_methods")
+        .insert(
+          paymentMethods.map((method) => ({
+            checkout_id: input.metadata.aggregateId,
+            project_id: input.metadata.projectId as any,
+            code: method.code,
+            provider: method.provider,
+            flow: method.flow,
+            metadata: knex.raw("?::jsonb", [JSON.stringify(method.metadata ?? {})]),
+            constraints: knex.raw("?::jsonb", [JSON.stringify(method.constraints ?? {})]),
+          })),
+        )
+        .toString();
+      statements.push(insertPaymentMethodsSql);
     }
 
     await this.run(statements);
@@ -437,6 +458,57 @@ export class CheckoutWriteRepository {
     await this.run(stmts);
   }
 
+  /**
+   * Updates payment methods and selected payment method for checkout.
+   */
+  async updatePaymentMethod(input: CheckoutPaymentMethodUpdatedDto): Promise<void> {
+    const { paymentMethod } = input.data;
+    const checkoutId = input.metadata.aggregateId;
+    const projectId = input.metadata.projectId;
+
+    const statements: string[] = [];
+
+    // Upsert payment method
+    const upsertPaymentMethodSql = knex
+      .withSchema("platform")
+      .table("checkout_payment_methods")
+      .insert({
+        checkout_id: checkoutId,
+        project_id: projectId as any,
+        code: paymentMethod.code,
+        provider: paymentMethod.provider,
+        flow: paymentMethod.flow,
+        metadata: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.metadata ?? {})]),
+        constraints: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.constraints ?? {})]),
+      })
+      .onConflict(["checkout_id", "code"])
+      .merge({
+        provider: paymentMethod.provider,
+        flow: paymentMethod.flow,
+        metadata: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.metadata ?? {})]),
+      })
+      .toString();
+    statements.push(upsertPaymentMethodSql);
+
+    // Update selected payment method
+    const upsertSelectedPaymentMethodSql = knex
+      .withSchema("platform")
+      .table("checkout_selected_payment_methods")
+      .insert({
+        checkout_id: checkoutId,
+        project_id: projectId as any,
+        code: paymentMethod.code,
+      })
+      .onConflict(["checkout_id"]) // PK is checkout_id
+      .merge({
+        code: paymentMethod.code,
+      })
+      .toString();
+    statements.push(upsertSelectedPaymentMethodSql);
+
+    await this.run(statements);
+  }
+
   // -----------------------------
   // Helpers
   // -----------------------------
@@ -513,7 +585,6 @@ export class CheckoutWriteRepository {
           unit_image_url: l.unit.imageUrl,
           unit_snapshot: knex.raw("?::jsonb", [JSON.stringify(l.unit.snapshot ?? {})]),
           metadata: null,
-          projected_version: 0,
           created_at: now,
           updated_at: now,
           deleted_at: null,

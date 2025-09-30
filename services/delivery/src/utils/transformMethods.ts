@@ -1,4 +1,4 @@
-import type { ShippingMethod } from "@shopana/shipping-plugin-sdk";
+import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 
 /**
  * Transforms delivery methods by adding provider prefix to method code.

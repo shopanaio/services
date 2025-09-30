@@ -2,8 +2,9 @@ import { Money } from "@shopana/shared-money";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-sdk";
+} from "@shopana/plugin-sdk/shipping";
 import { AppliedDiscountSnapshot } from "./discount";
+import { PaymentFlow } from "@shopana/plugin-sdk/payment";
 
 /**
  * Checkout line item state representation
@@ -110,6 +111,16 @@ export type CheckoutState = {
   shippingTotal: Money;
   linesRecord: Record<string, CheckoutLineItemState>;
   appliedDiscounts: Array<AppliedDiscountSnapshot>;
+  payment: {
+    methods: Array<{
+      code: string;
+      provider: string;
+      flow: PaymentFlow;
+      metadata: Record<string, unknown> | null;
+    }>;
+    selectedMethod: string | null;
+    payableAmount: Money;
+  } | null;
 };
 
 /**
@@ -149,4 +160,5 @@ export const checkoutInitialState = (): CheckoutState => ({
   shippingTotal: Money.zero(),
   linesRecord: {},
   appliedDiscounts: [],
+  payment: null,
 });

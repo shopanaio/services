@@ -72,6 +72,11 @@ export type CheckoutDeliveryMethodUpdateInput = {
   deliveryGroupId: string;
 } & CheckoutContext;
 
+export type CheckoutPaymentMethodUpdateInput = {
+  checkoutId: string;
+  paymentMethodCode: string;
+} & CheckoutContext;
+
 export type CheckoutDeliveryAddressAddInput = {
   checkoutId: string;
   address1: string;

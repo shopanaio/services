@@ -61,11 +61,14 @@ export const checkoutCreate = async (
     }
 
     const checkout = await checkoutReadRepository.findById(id);
+
     if (!checkout) {
       return null;
     }
 
-    return mapCheckoutReadToApi(checkout);
+    const r = mapCheckoutReadToApi(checkout);
+
+    return r;
   } catch (err) {
     // Don't implementing right now. will monitor occurrences and implement if needed.
     // Fallback: if a race occurred, idempotency record may exist now

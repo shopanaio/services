@@ -68,11 +68,11 @@ export type OrderReadPortRow = {
   grand_total: bigint;
   status: string;
   expires_at: Date | null;
-  projected_version: bigint;
   metadata: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
+  projected_version: bigint;
 };
 
 export interface OrderReadPort {
@@ -269,11 +269,11 @@ export class OrderReadRepository {
       grandTotal: Money.fromMinor(row.grand_total, row.currency_code),
       status: row.status,
       expiresAt: row.expires_at,
-      projectedVersion: row.projected_version,
       metadata: row.metadata,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
+      projectedVersion: row.projected_version,
       appliedPromoCodes: appliedPromoCodes,
       deliveryGroups,
       deliveryAddresses: mappedDeliveryAddresses,

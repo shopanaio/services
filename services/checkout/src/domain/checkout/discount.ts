@@ -1,5 +1,5 @@
 import { Money } from "@shopana/shared-money";
-import { DiscountType } from "@shopana/pricing-plugin-sdk";
+import { DiscountType } from "@shopana/plugin-sdk/pricing";
 
 export type AppliedDiscountSnapshot = {
   code: string;

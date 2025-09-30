@@ -1,5 +1,5 @@
 import type { TransactionScript } from "@src/kernel/types";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/payment-plugin-sdk";
+import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
 
 export interface GetPaymentMethodsParams extends GetPaymentMethodsInput {
   readonly projectId: string;

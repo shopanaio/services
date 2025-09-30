@@ -10,8 +10,8 @@
     "start": "node dist/src/index.js"
   },
   "dependencies": {
-    "@shopana/plugin-sdk": "0.0.1",
-    "@shopana/payment-plugin-sdk": "0.0.1",
+    "@shopana/plugin-sdk": "*",
+    "@shopana/payment-plugin-bank-transfer": "0.0.1",
     "dotenv": "^16.4.5",
     "moleculer": "^0.14.35",
     "moleculer-repl": "^0.7.4",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
+    "pino-pretty": "^11.2.2",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4"

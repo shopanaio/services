@@ -6,6 +6,9 @@ import { Kernel } from "@src/kernel/Kernel";
 import { dumboPool, knexInstance } from "@src/infrastructure/db/database";
 import { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
 import { startServer } from "@src/api/server";
+import { MoleculerLogger } from "@src/infrastructure/logger/logger";
+import { AppsPluginManager } from "@src/infrastructure/plugins/pluginManager";
+import { Domain } from "@shopana/plugin-sdk";
 
 import {
   getInstalledAppsScript,
@@ -39,7 +42,10 @@ type ServiceThis = Service & {
   kernel: Kernel;
   db: Knex;
   graphqlServer: FastifyInstance;
+  pluginManager: AppsPluginManager;
 };
+
+// operation is passed directly and equals provider method name
 
 const AppsService: ServiceSchema<any> = {
   name: "apps",
@@ -49,6 +55,66 @@ const AppsService: ServiceSchema<any> = {
    * Now uses simplified calls without external tracing - Moleculer handles this internally
    */
   actions: {
+    execute: {
+      params: {
+        domain: { type: "string", enum: [Domain.SHIPPING, Domain.PAYMENT, Domain.PRICING] },
+        operation: { type: "string", min: 1 },
+        provider: { type: "string", optional: true },
+        params: { type: "object", optional: true },
+      },
+      async handler(this: ServiceThis, ctx: Context<{ domain: Domain; operation: string; provider?: string; params?: any }>) {
+        const { domain, operation, provider } = ctx.params;
+        const params = ctx.params.params || {};
+        const projectId = params.projectId as string | undefined;
+        if (!projectId) {
+          throw new Error("projectId is required in params");
+        }
+
+        const { slotsRepository } = this.kernel.getServices();
+        const slots = await slotsRepository.findAllSlots(projectId, domain);
+        const targetSlots = provider ? slots.filter((s: any) => s.provider === provider) : slots;
+
+        const operationId = operation;
+        const warnings: Array<{ code: string; message: string; details?: unknown }> = [];
+
+        // Target a single provider if specified
+        if (provider) {
+          const s = targetSlots[0];
+          if (!s) {
+            throw new Error(`Provider ${provider} not installed for domain ${domain}`);
+          }
+          const data = await this.pluginManager.executeOnProvider({
+            domain,
+            operationId,
+            pluginCode: s.provider,
+            rawConfig: (s.data ?? {}) as any,
+            projectId,
+            input: params,
+          });
+          return { data, warnings };
+        }
+
+        // Execute on all providers for the domain
+        const exec = await this.pluginManager.executeOnAll({
+          domain,
+          operationId,
+          slots: targetSlots as any,
+          projectId,
+          input: params,
+        });
+
+        warnings.push(
+          ...exec.warnings.map((w) => ({
+            code: "PROVIDER_ERROR",
+            message: w.message,
+            details: { provider: w.provider, error: w.error },
+          }))
+        );
+
+        const data = ([] as any[]).concat(...exec.results);
+        return { data, warnings };
+      },
+    },
     install(
       this: ServiceThis,
       ctx: Context<InstallAppParams>
@@ -117,6 +183,9 @@ const AppsService: ServiceSchema<any> = {
       this.logger,
       this.broker
     );
+
+    // Initialize single instance of AppsPluginManager and reuse it in executor
+    this.pluginManager = new AppsPluginManager(new MoleculerLogger(this.logger));
 
     this.logger.info("Apps service created.");
   },

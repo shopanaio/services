@@ -147,6 +147,15 @@ export class ResilienceRunner {
   }
 }
 
+/** Public defaults for ResilienceRunner. */
+export const DEFAULT_RUNNER_OPTIONS: RunnerOptions = Object.freeze({
+  timeoutMs: 3000,
+  retries: 1,
+  rateLimit: 10,
+  cbThreshold: 5,
+  cbResetMs: 15000,
+});
+
 /**
  * Creates `ResilienceRunner`, reading configuration from environment variables with given prefix.
  * Useful for CLI/microservices without complex configuration.

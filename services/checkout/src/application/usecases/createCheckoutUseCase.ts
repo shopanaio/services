@@ -9,7 +9,9 @@ import { v7 as uuidv7 } from "uuid";
 import {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-sdk";
+} from "@shopana/plugin-sdk/shipping";
+import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+// Payment types will be resolved at runtime through the API
 
 export interface CreateCheckoutUseCaseDependencies
   extends UseCaseDependencies {}
@@ -37,6 +39,11 @@ export class CreateCheckoutUseCase extends UseCase<
         externalId: businessInput.externalId ?? null,
         localeCode: businessInput.localeCode ?? null,
         deliveryGroups: await this.createDeliveryGroups(context),
+        paymentMethods: await this.createPaymentMethods(
+          context,
+          id,
+          businessInput.currencyCode
+        ),
       },
       metadata: this.createMetadataDto(id, context),
     };
@@ -85,6 +92,61 @@ export class CreateCheckoutUseCase extends UseCase<
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+    }
+  }
+
+  /**
+   * Get available payment methods for checkout.
+   */
+  protected async createPaymentMethods(
+    context: CheckoutContext,
+    checkoutId: string,
+    currencyCode: string
+  ): Promise<
+    Array<{
+      code: string;
+      provider: string;
+      flow: PaymentFlow;
+      metadata: Record<string, unknown> | null;
+      constraints: Record<string, unknown> | null;
+    }>
+  > {
+    try {
+      // const paymentApiMethods = await this.paymentApi.getPaymentMethods({
+      //   projectId: context.project.id,
+      //   currencyCode,
+      //   apiKey: context.apiKey,
+      // });
+
+      // const shippingApiMethods = await this.shippingApi.getPaymentMethods({
+      //   projectId: context.project.id,
+      //   currency: currencyCode,
+      //   apiKey: context.apiKey,
+      // });
+      // const combined = [...paymentApiMethods, ...shippingApiMethods];
+
+      // Deduplicate by provider+code pair
+      const seen = new Set<string>();
+      const unique = [].filter((method: any) => {
+        const key = `${method.provider}:${method.code}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return unique.map((method: any) => ({
+        code: method.code,
+        provider: method.provider,
+        flow: method.flow,
+        metadata: method.metadata ?? null,
+        constraints: method.constraints ?? null,
+      }));
+    } catch (error) {
+      this.logger.error({ error }, "Failed to get payment methods");
+
+      // For payment API errors, return empty array instead of failing checkout creation
+      this.logger.warn("Returning empty payment methods due to API error");
+      return [];
     }
   }
 }

@@ -33,16 +33,6 @@ type CheckoutPaymentMethod {
   provider: String!
 
   """
-  Human-readable name of the method.
-  """
-  name: String!
-
-  """
-  Optional human-readable description.
-  """
-  description: String
-
-  """
   Payment flow (ONLINE vs ON_DELIVERY).
   """
   flow: PaymentFlow!

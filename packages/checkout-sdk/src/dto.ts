@@ -2,7 +2,7 @@ import type { MoneySnapshot } from "@shopana/shared-money";
 import type {
   DeliveryMethodType,
   ShippingPaymentModel,
-} from "@shopana/shipping-plugin-sdk";
+} from "@shopana/plugin-sdk/shipping";
 
 export type CheckoutCostDto = Readonly<{
   subtotalAmount: MoneySnapshot;

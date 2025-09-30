@@ -27,8 +27,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/payment-plugin-sdk": "0.0.1",
-    "@shopana/shipping-plugin-sdk": "0.0.1",
+    "@shopana/plugin-sdk": "*",
     "zod": "^3.23.8"
   },
   "devDependencies": {

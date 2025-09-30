@@ -1,5 +1,5 @@
 import type { TransactionScript } from "@src/kernel/types";
-import { ShippingMethod } from "@shopana/shipping-plugin-sdk";
+import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import { shippingMethods } from "./shippingMethods";
 
 export interface CreateDeliveryGroupsParams {

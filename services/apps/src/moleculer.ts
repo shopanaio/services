@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import AppsService from "./service";
-import "dotenv/config";
+import { config } from "@src/config";
 
 // Broker configuration for apps service
 const brokerConfig = {
@@ -12,12 +12,31 @@ const brokerConfig = {
 	nodeID: "apps-service",
 
 	// Logging configuration
-	logger: true,
-	logLevel: "info" as LogLevels,
+	logger: {
+		type: "Pino",
+		options: {
+			pino: {
+				level: config.logLevel,
+				...(config.nodeEnv === "development" && {
+					transport: {
+						target: "pino-pretty",
+						options: {
+							colorize: true,
+							translateTime: "SYS:HH:MM:ss.l",
+							ignore: "pid,hostname",
+							messageFormat: "[MOLECULER] {msg}",
+							levelFirst: true,
+						},
+					},
+				}),
+			},
+		},
+	},
+	logLevel: config.logLevel as LogLevels,
 
 	// Transport for communication with other services
 	// null for development, NATS for production
-	transporter: process.env.MOLECULER_TRANSPORTER || "NATS",
+	transporter: config.transporter,
 
 	// Caching configuration
 	cacher: "Memory",

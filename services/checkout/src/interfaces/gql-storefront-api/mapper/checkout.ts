@@ -1,9 +1,28 @@
-import type { ApiCheckout, ApiCheckoutDeliveryMethodType } from "@src/interfaces/gql-storefront-api/types";
+import type {
+  ApiCheckout,
+  ApiCountryCode,
+} from "@src/interfaces/gql-storefront-api/types";
+import { ApiCheckoutDeliveryMethodType, ApiPaymentFlow } from "@src/interfaces/gql-storefront-api/types";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import type { CheckoutReadView } from "@src/application/read/checkoutReadRepository";
 import { mapCheckoutLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkoutLine";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { encodeGlobalIdByType } from "@src/interfaces/gql-storefront-api/idCodec";
+import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+
+/**
+ * Maps PaymentFlow from payment-plugin-sdk to ApiPaymentFlow for GraphQL API.
+ */
+function mapPaymentFlowToApi(flow: PaymentFlow): ApiPaymentFlow {
+  switch (flow) {
+    case PaymentFlow.ONLINE:
+      return ApiPaymentFlow.Online;
+    case PaymentFlow.OFFLINE:
+      return ApiPaymentFlow.Offline;
+    case PaymentFlow.ON_DELIVERY:
+      return ApiPaymentFlow.OnDelivery;
+  }
+}
 
 export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
   return {
@@ -16,7 +35,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
     lines: read.lineItems.map(mapCheckoutLineReadToApi),
     customerIdentity: {
       __typename: "CheckoutCustomerIdentity" as const,
-      countryCode: read.customerCountryCode,
+      countryCode: (read.customerCountryCode as ApiCountryCode | null),
       /** Customer is being resolved by another subgraph */
       customer: read.customerId
         ? { id: encodeGlobalIdByType(read.customerId, GlobalIdEntity.Customer) }
@@ -52,7 +71,10 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
         .map((method) => ({
           __typename: "CheckoutDeliveryMethod" as const,
           code: method.code,
-          deliveryMethodType: method.deliveryMethodType as ApiCheckoutDeliveryMethodType,
+          deliveryMethodType:
+            method.deliveryMethodType === "PICKUP"
+              ? ApiCheckoutDeliveryMethodType.Pickup
+              : ApiCheckoutDeliveryMethodType.Shipping,
           provider: {
             __typename: "CheckoutDeliveryProvider" as const,
             code: "unknown", // TODO: provider data not available in new schema
@@ -70,7 +92,10 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
 
       return {
         __typename: "CheckoutDeliveryGroup" as const,
-        id: encodeGlobalIdByType(group.id, GlobalIdEntity.CheckoutDeliveryGroup),
+        id: encodeGlobalIdByType(
+          group.id,
+          GlobalIdEntity.CheckoutDeliveryGroup
+        ),
         checkoutLines: read.lineItems
           .filter((l) => group.lineItemIds.includes(l.id))
           .map(mapCheckoutLineReadToApi),
@@ -84,7 +109,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
               address1: deliveryAddress.address1,
               address2: deliveryAddress.address2,
               city: deliveryAddress.city,
-              countryCode: deliveryAddress.countryCode,
+              countryCode: deliveryAddress.countryCode as ApiCountryCode,
               provinceCode: deliveryAddress.provinceCode,
               postalCode: deliveryAddress.postalCode,
               firstName: deliveryAddress.firstName,
@@ -99,8 +124,8 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
               code: selectedMethod.code,
               deliveryMethodType:
                 selectedMethod.deliveryMethodType === "PICKUP"
-                  ? ("PICKUP" as const)
-                  : ("SHIPPING" as const),
+                  ? ApiCheckoutDeliveryMethodType.Pickup
+                  : ApiCheckoutDeliveryMethodType.Shipping,
               provider: {
                 __typename: "CheckoutDeliveryProvider" as const,
                 code: "unknown", // TODO: provider data not available in new schema
@@ -112,5 +137,31 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
         estimatedCost: null,
       };
     }),
+    payment: (() => {
+      const paymentMethods = (read.payment?.methods ?? []).map((m) => ({
+        __typename: "CheckoutPaymentMethod" as const,
+        code: m.code,
+        provider: m.provider,
+        flow: mapPaymentFlowToApi(m.flow),
+        metadata: m.metadata,
+        constraints: m.constraints
+          ? {
+              __typename: "CheckoutPaymentMethodConstraints" as const,
+              shippingMethods: m.constraints.shippingMethodCodes ?? [],
+            }
+          : null,
+      }));
+
+      const selectedPaymentMethod = read.payment?.selectedMethod
+        ? paymentMethods.find((m) => m.code === read.payment!.selectedMethod!.code) ?? null
+        : null;
+
+      return {
+        __typename: "CheckoutPayment" as const,
+        paymentMethods,
+        selectedPaymentMethod,
+        payableAmount: moneyToApi(read.grandTotal),
+      };
+    })(),
   };
 }

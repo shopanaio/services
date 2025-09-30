@@ -17,6 +17,7 @@ export { checkoutPromoCodeAdd } from "./checkoutPromoCodeAdd";
 export { checkoutPromoCodeRemove } from "./checkoutPromoCodeRemove";
 export { checkoutDeliveryAddressesUpdate } from "./checkoutDeliveryAddressesUpdate";
 export { checkoutDeliveryMethodUpdate } from "./checkoutDeliveryMethodUpdate";
+export { checkoutPaymentMethodUpdate } from "./checkoutPaymentMethodUpdate";
 
 // CheckoutDeliveryGroup resolvers
 export {

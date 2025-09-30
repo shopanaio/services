@@ -5,6 +5,7 @@ import {
 import { Money } from "@shopana/shared-money";
 import { CheckoutState } from "@src/domain/checkout/types";
 import { CheckoutReadModelAdapter } from "./checkoutReadModelAdapter";
+import type { PaymentFlow, PaymentMethodConstraints } from "@shopana/plugin-sdk/payment";
 
 export type CheckoutDeliveryAddressRow = {
   id: string;
@@ -53,6 +54,14 @@ export type CheckoutDeliveryMethodRow = {
   payment_model: string;
 };
 
+export type CheckoutPaymentMethod = {
+  code: string;
+  provider: string;
+  flow: PaymentFlow;
+  metadata: Record<string, unknown> | null;
+  constraints: PaymentMethodConstraints | null;
+};
+
 export type CheckoutReadPortRow = {
   id: string;
   project_id: string;
@@ -75,7 +84,6 @@ export type CheckoutReadPortRow = {
   grand_total: bigint;
   status: string;
   expires_at: Date | null;
-  projected_version: bigint;
   metadata: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
@@ -90,6 +98,10 @@ export interface CheckoutReadPort {
   findAppliedPromoCodes(checkoutId: string): Promise<CheckoutPromoCode[]>;
   findDeliveryGroups(checkoutId: string): Promise<CheckoutDeliveryGroup[]>;
   findDeliveryMethods(checkoutId: string): Promise<CheckoutDeliveryMethodRow[]>;
+  findPaymentMethods(checkoutId: string): Promise<CheckoutPaymentMethod[]>;
+  findSelectedPaymentMethod(
+    checkoutId: string
+  ): Promise<{ code: string } | null>;
 }
 
 export type CheckoutDeliveryAddress = {
@@ -170,6 +182,12 @@ export type CheckoutReadView = {
   deliveryGroups: CheckoutDeliveryGroup[];
   deliveryAddresses: CheckoutDeliveryAddress[];
   deliveryMethods: CheckoutDeliveryMethod[];
+  // Payment aggregate (read from checkout_payment_methods)
+  payment: {
+    methods: CheckoutPaymentMethod[];
+    selectedMethod: { code: string } | null;
+    payableAmount: Money; // currently equals grandTotal minus carrier direct if applicable (not available yet)
+  } | null;
   // Aggregated data
   lineItems: CheckoutLineItemReadView[];
   totalQuantity: number;
@@ -188,15 +206,25 @@ export class CheckoutReadRepository {
   }
 
   async findById(id: string): Promise<CheckoutReadView | null> {
-    const [row, appliedPromoCodes, deliveryGroups, deliveryAddresses, deliveryMethods, lineItems] =
-      await Promise.all([
-        this.port.findById(id),
-        this.port.findAppliedPromoCodes(id),
-        this.port.findDeliveryGroups(id),
-        this.port.findDeliveryAddresses(id),
-        this.port.findDeliveryMethods(id),
-        this.lineItemsReadRepository.findByCheckoutId(id),
-      ]);
+    const [
+      row,
+      appliedPromoCodes,
+      deliveryGroups,
+      deliveryAddresses,
+      deliveryMethods,
+      lineItems,
+      paymentMethods,
+      selectedPayment,
+    ] = await Promise.all([
+      this.port.findById(id),
+      this.port.findAppliedPromoCodes(id),
+      this.port.findDeliveryGroups(id),
+      this.port.findDeliveryAddresses(id),
+      this.port.findDeliveryMethods(id),
+      this.lineItemsReadRepository.findByCheckoutId(id),
+      this.port.findPaymentMethods(id),
+      this.port.findSelectedPaymentMethod(id),
+    ]);
 
     if (!row) return null;
 
@@ -205,25 +233,26 @@ export class CheckoutReadRepository {
       0
     );
 
-    const mappedDeliveryAddresses: CheckoutDeliveryAddress[] = deliveryAddresses.map(
-      (address): CheckoutDeliveryAddress => ({
-        id: address.id,
-        deliveryGroupId: address.delivery_group_id,
-        address1: address.address1,
-        address2: address.address2,
-        city: address.city,
-        countryCode: address.country_code,
-        provinceCode: address.province_code,
-        postalCode: address.postal_code,
-        firstName: address.first_name,
-        lastName: address.last_name,
-        email: address.email,
-        phone: address.phone,
-        metadata: address.metadata,
-        createdAt: address.created_at,
-        updatedAt: address.updated_at,
-      })
-    );
+    const mappedDeliveryAddresses: CheckoutDeliveryAddress[] =
+      deliveryAddresses.map(
+        (address): CheckoutDeliveryAddress => ({
+          id: address.id,
+          deliveryGroupId: address.delivery_group_id,
+          address1: address.address1,
+          address2: address.address2,
+          city: address.city,
+          countryCode: address.country_code,
+          provinceCode: address.province_code,
+          postalCode: address.postal_code,
+          firstName: address.first_name,
+          lastName: address.last_name,
+          email: address.email,
+          phone: address.phone,
+          metadata: address.metadata,
+          createdAt: address.created_at,
+          updatedAt: address.updated_at,
+        })
+      );
 
     const mappedDeliveryMethods: CheckoutDeliveryMethod[] = deliveryMethods.map(
       (method): CheckoutDeliveryMethod => ({
@@ -240,15 +269,33 @@ export class CheckoutReadRepository {
       ...item,
       unit: {
         ...item.unit,
-        price: Money.fromMinor(item.unit.price.amountMinor(), row.currency_code),
+        price: Money.fromMinor(
+          item.unit.price.amountMinor(),
+          row.currency_code
+        ),
         compareAtPrice: item.unit.compareAtPrice
-          ? Money.fromMinor(item.unit.compareAtPrice.amountMinor(), row.currency_code)
+          ? Money.fromMinor(
+              item.unit.compareAtPrice.amountMinor(),
+              row.currency_code
+            )
           : null,
       },
-      subtotalAmount: Money.fromMinor(item.subtotalAmount.amountMinor(), row.currency_code),
-      discountAmount: Money.fromMinor(item.discountAmount.amountMinor(), row.currency_code),
-      taxAmount: Money.fromMinor(item.taxAmount.amountMinor(), row.currency_code),
-      totalAmount: Money.fromMinor(item.totalAmount.amountMinor(), row.currency_code),
+      subtotalAmount: Money.fromMinor(
+        item.subtotalAmount.amountMinor(),
+        row.currency_code
+      ),
+      discountAmount: Money.fromMinor(
+        item.discountAmount.amountMinor(),
+        row.currency_code
+      ),
+      taxAmount: Money.fromMinor(
+        item.taxAmount.amountMinor(),
+        row.currency_code
+      ),
+      totalAmount: Money.fromMinor(
+        item.totalAmount.amountMinor(),
+        row.currency_code
+      ),
     }));
 
     return {
@@ -273,7 +320,6 @@ export class CheckoutReadRepository {
       grandTotal: Money.fromMinor(row.grand_total, row.currency_code),
       status: row.status,
       expiresAt: row.expires_at,
-      projectedVersion: row.projected_version,
       metadata: row.metadata,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -284,6 +330,11 @@ export class CheckoutReadRepository {
       deliveryMethods: mappedDeliveryMethods,
       lineItems: normalizedLineItems,
       totalQuantity,
+      payment: {
+        methods: paymentMethods,
+        selectedMethod: selectedPayment,
+        payableAmount: Money.fromMinor(row.grand_total, row.currency_code),
+      },
     };
   }
 

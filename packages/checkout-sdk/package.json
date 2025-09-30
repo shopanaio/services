@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@shopana/shared-money": "*",
-    "@shopana/shipping-plugin-sdk": "*"
+    "@shopana/plugin-sdk": "*"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",

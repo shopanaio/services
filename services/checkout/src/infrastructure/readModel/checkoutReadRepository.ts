@@ -11,7 +11,9 @@ import type {
   CheckoutDeliveryMethodRow,
   CheckoutDeliveryGroup,
   CheckoutPromoCode,
+  CheckoutPaymentMethod,
 } from "@src/application/read/checkoutReadRepository";
+import { PaymentFlow, type PaymentMethodConstraints } from "@shopana/plugin-sdk/payment";
 
 export class CheckoutReadRepository implements CheckoutReadPort {
   private readonly execute: SQLExecutor;
@@ -46,7 +48,6 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         "grand_total",
         "status",
         "expires_at",
-        "projected_version",
         "metadata",
         "created_at",
         "updated_at",
@@ -187,5 +188,46 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       rawSql(q)
     );
     return result.rows;
+  }
+
+  async findPaymentMethods(checkoutId: string): Promise<CheckoutPaymentMethod[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("checkout_payment_methods")
+      .select("code", "provider", "flow", "metadata", "constraints")
+      .where({ checkout_id: checkoutId })
+      .orderBy(["provider", "code"])
+      .toString();
+
+    const result = await this.execute.query<any>(rawSql(q));
+    return result.rows.map((row): CheckoutPaymentMethod => {
+      const parseConstraints = (c: Record<string, unknown> | null): PaymentMethodConstraints | null => {
+        if (!c) return null;
+        return {
+          shippingMethodCodes: Array.isArray(c.shippingMethodCodes) ? c.shippingMethodCodes : undefined,
+        };
+      };
+
+      return {
+        code: row.code,
+        provider: row.provider,
+        flow: row.flow as PaymentFlow,
+        metadata: row.metadata,
+        constraints: parseConstraints(row.constraints),
+      };
+    });
+  }
+
+  async findSelectedPaymentMethod(checkoutId: string): Promise<{ code: string } | null> {
+    const q = knex
+      .withSchema("platform")
+      .table("checkout_selected_payment_methods")
+      .select("code")
+      .where({ checkout_id: checkoutId })
+      .toString();
+
+    const result = await this.execute.query<any>(rawSql(q));
+    if (result.rows.length === 0) return null;
+    return { code: result.rows[0].code };
   }
 }

@@ -40,7 +40,6 @@ export class CheckoutLineItemsReadRepositoryPort
         "tax_amount",
         "total_amount",
         "metadata",
-        "projected_version",
         "created_at",
         "updated_at",
         "deleted_at"

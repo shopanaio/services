@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import { type CheckoutContext } from "@src/context/index.js";
 import type { CheckoutState } from "@src/domain/checkout/types";
 import type { ShippingApiClient } from "@shopana/shipping-api";
+import type { PaymentApiClient } from "@shopana/payment-api";
 import type { PricingApiClient } from "@shopana/pricing-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { InventoryApiClient } from "@shopana/inventory-api";
@@ -16,6 +17,8 @@ export interface UseCaseDependencies {
   logger?: Logger;
   /** Shipping API client for interacting with the shipping service */
   shippingApiClient: ShippingApiClient;
+  /** Payment API client for interacting with the payment service */
+  paymentApiClient: PaymentApiClient;
   /** Pricing API client for interacting with the pricing service */
   pricingApiClient: PricingApiClient;
   /** Inventory API client for interacting with the inventory service */
@@ -41,6 +44,8 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   protected readonly logger: Pick<Logger, "info" | "warn" | "error" | "debug">;
   /** Shipping API client for interacting with the shipping service */
   protected readonly shippingApi: ShippingApiClient;
+  /** Payment API client for interacting with the payment service */
+  protected readonly paymentApi: PaymentApiClient;
   /** Pricing API client for interacting with the pricing service */
   protected readonly pricingApi: PricingApiClient;
   /** Inventory API client for interacting with the inventory service */
@@ -60,6 +65,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   constructor(deps: UseCaseDependencies) {
     this.logger = deps.logger ?? console;
     this.shippingApi = deps.shippingApiClient;
+    this.paymentApi = deps.paymentApiClient;
     this.pricingApi = deps.pricingApiClient;
     this.inventory = deps.inventory;
     this.checkoutService = deps.checkoutService;

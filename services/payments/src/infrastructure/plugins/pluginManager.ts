@@ -1,13 +1,14 @@
 import { PluginManager as CorePluginManager, ResilienceRunner } from "@shopana/plugin-sdk";
-import type { ProviderContext } from "@shopana/shipping-plugin-sdk";
 import type {
   PaymentMethod,
   GetPaymentMethodsInput,
   PaymentPluginModule,
-} from "@shopana/payment-plugin-sdk";
+  ProviderContext,
+} from "@shopana/plugin-sdk/payment";
+import bankTransfer from "@shopana/payment-plugin-bank-transfer";
 
-// Registry placeholder: connect payment plugins here when available
-const plugins: PaymentPluginModule<any>[] = [] as any;
+// Registry of available payment plugins
+const plugins: PaymentPluginModule<any>[] = [bankTransfer as any];
 
 export class PaymentsPluginManager extends CorePluginManager<
   Record<string, unknown>,

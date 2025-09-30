@@ -21,7 +21,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "zod": "^3.21.4"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",

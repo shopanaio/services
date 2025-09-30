@@ -1,14 +1,14 @@
 import {
   PluginManager as CorePluginManager,
   ResilienceRunner,
+  CORE_API_VERSION,
 } from "@shopana/plugin-sdk";
 import type {
   ProviderContext,
   Discount,
   PluginModule,
   PricingProvider,
-} from "@shopana/pricing-plugin-sdk";
-import { CORE_API_VERSION } from "@shopana/pricing-plugin-sdk";
+} from "@shopana/plugin-sdk/pricing";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
 

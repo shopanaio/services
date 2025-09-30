@@ -6,8 +6,8 @@ import type {
   ProviderContext,
   ShippingMethod,
   PluginModule,
-} from "@shopana/shipping-plugin-sdk";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/payment-plugin-sdk";
+} from "@shopana/plugin-sdk/shipping";
+import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
 // Base types for kernel
 export interface Logger {
   info: (...args: any[]) => void;

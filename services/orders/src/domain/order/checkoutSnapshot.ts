@@ -1,5 +1,5 @@
 import { Money } from "@shopana/shared-money";
-import { DeliveryMethodType, type ShippingPaymentModel } from "@shopana/shipping-plugin-sdk";
+import { DeliveryMethodType, type ShippingPaymentModel } from "@shopana/plugin-sdk/shipping";
 
 /**
  * Snapshot of a Checkout captured at Order creation time for audit/disputes.

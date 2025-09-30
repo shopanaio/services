@@ -42,7 +42,6 @@ export class OrderReadRepository implements OrderReadPort {
         "o.grand_total",
         "o.status",
         "o.expires_at",
-        "o.projected_version",
         "o.metadata",
         "o.created_at",
         "o.updated_at",

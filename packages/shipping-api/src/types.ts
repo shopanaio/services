@@ -1,8 +1,8 @@
-import {
-  DeliveryMethodType,
-  ShippingMethod,
-} from "@shopana/shipping-plugin-sdk";
-
+import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
+import type {
+  PaymentMethod,
+  GetPaymentMethodsInput as ProviderGetPaymentMethodsInput,
+} from "@shopana/plugin-sdk/payment";
 
 /**
  * Raw response shape returned by the shipping service for list methods endpoints.
@@ -29,15 +29,19 @@ export interface ShippingApiClient {
     userAgent?: string;
   }): Promise<ShippingMethod[]>;
 
-
   /**
    * Build delivery groups for checkout based on item physicality flags.
    * @param input - Create delivery groups command input.
    * @returns List of delivery groups with method type candidates and item refs.
    */
   createDeliveryGroups(
-    input: CreateDeliveryGroupsInput,
+    input: CreateDeliveryGroupsInput
   ): Promise<DeliveryGroup[]>;
+
+  /**
+   * Fetch payment methods exposed by shipping plugins (if supported).
+   */
+  getPaymentMethods(input: GetPaymentMethodsInput): Promise<PaymentMethod[]>;
 }
 
 /**
@@ -83,3 +87,17 @@ export type CreateDeliveryGroupsResponse = Readonly<{
   /** Optional warnings describing non-critical issues. */
   warnings?: Array<{ code: string; message: string }>;
 }>;
+
+/**
+ * Raw response shape returned by the shipping service for payment methods endpoint.
+ */
+export type GetPaymentMethodsResponse = Readonly<{
+  methods: PaymentMethod[];
+  warnings?: Array<{ code: string; message: string }>;
+}>;
+
+/**
+ * Input for getting payment methods from shipping service (proxied to plugins).
+ */
+
+export type GetPaymentMethodsInput = ProviderGetPaymentMethodsInput;

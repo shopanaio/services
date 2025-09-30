@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/shipping-plugin-sdk",
+  "name": "@shopana/payment-api",
   "version": "0.0.1",
   "private": false,
   "type": "module",
@@ -22,12 +22,11 @@
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
-  "peerDependencies": {
-    "zod": "^3.23.0"
+  "dependencies": {
+    "@shopana/plugin-sdk": "*"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",
-    "typescript": "^5.5.4",
-    "zod": "^3.23.8"
+    "typescript": "^5.5.4"
   }
 }

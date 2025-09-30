@@ -84,7 +84,6 @@ export const orderCreateProjection =
           expires_at: null,
           // TODO: Introduce small `jsonb(value)` helper to unify JSONB bindings.
           metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-          projected_version: 0,
           created_at: event.metadata.now,
           updated_at: event.metadata.now,
           deleted_at: null,
@@ -124,7 +123,6 @@ export const orderCreateProjection =
             unit_image_url: l.unit.imageUrl,
             unit_snapshot: knex.raw("?::jsonb", [JSON.stringify(l.unit.snapshot ?? null)]),
             metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-            projected_version: 0,
             created_at: event.metadata.now,
             updated_at: event.metadata.now,
             deleted_at: null,

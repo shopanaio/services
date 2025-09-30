@@ -7,6 +7,7 @@ import { CheckoutLineItemsReadRepositoryPort } from "@src/infrastructure/readMod
 import { CheckoutLineItemsReadRepository } from "@src/application/read/checkoutLineItemsReadRepository";
 import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { ShippingClient } from "@shopana/shipping-api";
+import { PaymentClient } from "@shopana/payment-api";
 import { PricingClient } from "@shopana/pricing-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import type { ServiceBroker } from "moleculer";
@@ -21,6 +22,7 @@ export class App {
   public broker!: ServiceBroker;
   public inventoryClient!: InventoryClient;
   public shippingClient!: ShippingClient;
+  public paymentClient!: PaymentClient;
   public pricingClient!: PricingClient;
 
   public eventStore!: any;
@@ -42,6 +44,7 @@ export class App {
     this.broker = broker;
     this.inventoryClient = new InventoryClient(this.broker);
     this.shippingClient = new ShippingClient(this.broker);
+    this.paymentClient = new PaymentClient(this.broker);
     this.pricingClient = new PricingClient(this.broker);
   }
 
@@ -58,6 +61,7 @@ export class App {
     // Initialize API clients
     app.inventoryClient = new InventoryClient(broker);
     app.shippingClient = new ShippingClient(broker);
+    app.paymentClient = new PaymentClient(broker);
     app.pricingClient = new PricingClient(broker);
 
     // Initialize infrastructure dependencies
@@ -80,6 +84,8 @@ export class App {
       logger: app.logger,
       inventory: app.inventoryClient,
       shippingApiClient: app.shippingClient,
+      paymentApiClient: app.paymentClient,
+      paymentApiClient: app.paymentClient,
       pricingApiClient: app.pricingClient,
       checkoutService: app.checkoutService,
       checkoutReadRepository: app.checkoutReadRepository,

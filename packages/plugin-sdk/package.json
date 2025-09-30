@@ -8,6 +8,24 @@
   "engines": {
     "node": ">=18.17"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./shipping": {
+      "types": "./dist/shipping.d.ts",
+      "default": "./dist/shipping.js"
+    },
+    "./payment": {
+      "types": "./dist/payment.d.ts",
+      "default": "./dist/payment.js"
+    },
+    "./pricing": {
+      "types": "./dist/pricing.d.ts",
+      "default": "./dist/pricing.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
@@ -18,7 +36,7 @@
     "cockatiel": "^3.2.1",
     "got": "^14.4.8",
     "semver": "^7.7.2",
-    "zod": "^4.1.5"
+    "zod": "^3.23.8"
   },
   "peerDependencies": {},
   "devDependencies": {

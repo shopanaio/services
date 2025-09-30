@@ -2,7 +2,7 @@
  * Validation utilities and type guards for discount evaluation system
  */
 
-import { DiscountType, type Discount } from "@shopana/pricing-plugin-sdk";
+import { DiscountType, type Discount } from "@shopana/plugin-sdk/pricing";
 import { plainToInstance } from "class-transformer";
 import { validateSync, ValidationError } from "class-validator";
 import { EvaluateDiscountsParamsDto } from "./dto.js";

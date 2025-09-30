@@ -1,14 +1,14 @@
 import {
   PluginManager as CorePluginManager,
   ResilienceRunner,
+  CORE_API_VERSION,
 } from "@shopana/plugin-sdk";
 import type {
   ProviderContext,
   ShippingMethod,
   PluginModule,
-} from "@shopana/shipping-plugin-sdk";
-import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/payment-plugin-sdk";
-import { CORE_API_VERSION } from "@shopana/shipping-plugin-sdk";
+} from "@shopana/plugin-sdk/shipping";
+import type { PaymentMethod, GetPaymentMethodsInput } from "@shopana/plugin-sdk/payment";
 import type { PluginManager as IPluginManager } from "@src/kernel/types";
 import { config } from "@src/config";
 

@@ -17,7 +17,6 @@ export type CheckoutLineItemReadPortRow = {
   tax_amount: bigint;
   total_amount: bigint;
   metadata: Record<string, unknown> | null;
-  projected_version: bigint;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
@@ -85,7 +84,6 @@ export class CheckoutLineItemsReadRepository {
       taxAmount: Money.fromMinor(row.tax_amount),
       totalAmount: Money.fromMinor(row.total_amount),
       metadata: row.metadata,
-      projectedVersion: row.projected_version,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,

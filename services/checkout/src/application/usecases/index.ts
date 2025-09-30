@@ -23,6 +23,7 @@ export { UpdateCustomerIdentityUseCase } from "./updateCustomerIdentityUseCase";
 export { UpdateCustomerNoteUseCase } from "./updateCustomerNoteUseCase";
 export { UpdateLanguageCodeUseCase } from "./updateLanguageCodeUseCase";
 export { UpdateCurrencyCodeUseCase } from "./updateCurrencyCodeUseCase";
+export { UpdatePaymentMethodUseCase } from "./updatePaymentMethodUseCase";
 
 // Promo code use cases
 export { AddPromoCodeUseCase } from "./addPromoCodeUseCase";

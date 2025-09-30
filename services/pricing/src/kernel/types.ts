@@ -6,7 +6,7 @@ import type {
   ProviderContext,
   Discount,
   PricingProvider,
-} from "@shopana/pricing-plugin-sdk";
+} from "@shopana/plugin-sdk/pricing";
 // Base types for kernel
 export interface Logger {
   info: (...args: any[]) => void;

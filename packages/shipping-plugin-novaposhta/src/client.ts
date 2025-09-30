@@ -1,4 +1,4 @@
-import type { HttpClient } from '@shopana/shipping-plugin-sdk';
+import type { HttpClient } from '@shopana/plugin-sdk/shipping';
 import type { GetDocumentPriceResp } from './schemas';
 
 export class NovaPoshtaClient {

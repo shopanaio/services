@@ -5,7 +5,12 @@ import type {
   CreateDeliveryGroupsResponse,
   DeliveryGroup,
 } from "./types";
-import { ShippingMethod } from "@shopana/shipping-plugin-sdk";
+import { ShippingMethod } from "@shopana/plugin-sdk/shipping";
+import type {
+  GetPaymentMethodsInput,
+  GetPaymentMethodsResponse,
+} from "./types";
+import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
 
 export class ShippingClient implements ShippingApiClient {
   private readonly broker: ServiceBroker;
@@ -37,5 +42,15 @@ export class ShippingClient implements ShippingApiClient {
     )) as CreateDeliveryGroupsResponse;
 
     return data.groups ?? [];
+  }
+
+  /** @inheritdoc */
+  async getPaymentMethods(input: GetPaymentMethodsInput): Promise<PaymentMethod[]> {
+    const data = (await this.broker.call(
+      "shipping.paymentMethods",
+      input
+    )) as GetPaymentMethodsResponse;
+
+    return data.methods ?? [];
   }
 }

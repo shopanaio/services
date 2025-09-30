@@ -4,7 +4,7 @@ import type {
   PricingEvaluateDiscountsInput,
 } from "@shopana/pricing-api";
 import { Money } from "@shopana/shared-money";
-import { Discount, DiscountType } from "@shopana/pricing-plugin-sdk";
+import { Discount, DiscountType } from "@shopana/plugin-sdk/pricing";
 import { OrderLineItemState } from "@src/domain/order/evolve";
 
 export type OrderLineItemCost = Readonly<{
