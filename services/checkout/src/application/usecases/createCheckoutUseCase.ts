@@ -122,7 +122,7 @@ export class CreateCheckoutUseCase extends UseCase<
 
       // Deduplicate by provider+code pair
       const seen = new Set<string>();
-      const unique = [].filter((method: any) => {
+      const unique = paymentMethods.filter((method: any) => {
         const key = `${method.provider}:${method.code}`;
         if (seen.has(key)) return false;
         seen.add(key);

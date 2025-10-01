@@ -1,4 +1,4 @@
-import type { TransactionScript, ScriptContext } from "@src/kernel/types";
+import type { TransactionScript } from "@src/kernel/types";
 
 // Parameters for app installation
 export interface InstallAppParams {
@@ -19,7 +19,7 @@ export interface InstallAppResult {
 export const installAppScript: TransactionScript<
   InstallAppParams,
   InstallAppResult
-> = async (params, services, scriptContext) => {
+> = async (params, services) => {
   const { appCode, projectId } = params;
   const { slotsRepository, logger, pluginManager } = services;
   const provider = appCode.trim();
@@ -42,7 +42,6 @@ export const installAppScript: TransactionScript<
     const manifests = pluginManager.listManifests();
     const descriptor = manifests.find((m) => m.manifest.code === provider);
 
-    console.log("installAppScript", descriptor);
     if (!descriptor) {
       return {
         success: false,
