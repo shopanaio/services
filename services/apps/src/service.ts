@@ -9,7 +9,6 @@ import { startServer } from "@src/api/server";
 import { AppsPluginManager } from "@src/infrastructure/plugins/pluginManager";
 import { Domain } from "@shopana/plugin-sdk";
 
-
 // Define extended `this` type for Moleculer service context.
 // This allows TypeScript to understand properties added by broker (logger, broker, etc.)
 type ServiceThis = Service & {
@@ -32,12 +31,28 @@ const AppsService: ServiceSchema<any> = {
      */
     execute: {
       params: {
-        domain: { type: "string", enum: [Domain.SHIPPING, Domain.PAYMENT, Domain.PRICING, Domain.INVENTORY] },
+        domain: {
+          type: "string",
+          enum: [
+            Domain.SHIPPING,
+            Domain.PAYMENT,
+            Domain.PRICING,
+            Domain.INVENTORY,
+          ],
+        },
         operation: { type: "string", min: 1 },
         provider: { type: "string", optional: true },
         params: { type: "object", optional: true },
       },
-      async handler(this: ServiceThis, ctx: Context<{ domain: Domain; operation: string; provider?: string; params?: any }>) {
+      async handler(
+        this: ServiceThis,
+        ctx: Context<{
+          domain: Domain;
+          operation: string;
+          provider?: string;
+          params?: any;
+        }>
+      ) {
         const { domain, operation, provider } = ctx.params;
         const params = ctx.params.params || {};
         const projectId = params.projectId as string | undefined;
@@ -47,16 +62,24 @@ const AppsService: ServiceSchema<any> = {
 
         const { slotsRepository } = this.kernel.getServices();
         const slots = await slotsRepository.findAllSlots(projectId, domain);
-        const targetSlots = provider ? slots.filter((s: any) => s.provider === provider) : slots;
+        const targetSlots = provider
+          ? slots.filter((s: any) => s.provider === provider)
+          : slots;
 
         const operationId = operation;
-        const warnings: Array<{ code: string; message: string; details?: unknown }> = [];
+        const warnings: Array<{
+          code: string;
+          message: string;
+          details?: unknown;
+        }> = [];
 
         // Target a single provider if specified
         if (provider) {
           const s = targetSlots[0];
           if (!s) {
-            throw new Error(`Provider ${provider} not installed for domain ${domain}`);
+            throw new Error(
+              `Provider ${provider} not installed for domain ${domain}`
+            );
           }
           const data = await this.pluginManager.executeOnProvider({
             domain,
@@ -102,13 +125,12 @@ const AppsService: ServiceSchema<any> = {
     this.db = knexInstance;
 
     // Then create the repository with the properly initialized knex instance
-    const slotsRepository = new SlotsRepository(
-      dumboPool.execute,
-      this.db
-    );
+    const slotsRepository = new SlotsRepository(dumboPool.execute, this.db);
 
     // Initialize single instance of AppsPluginManager and reuse it in executor
-    this.pluginManager = new AppsPluginManager(new MoleculerLogger(this.logger));
+    this.pluginManager = new AppsPluginManager(
+      new MoleculerLogger(this.logger)
+    );
 
     this.kernel = new Kernel(
       slotsRepository,

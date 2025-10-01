@@ -20,54 +20,28 @@ export class BankTransferPaymentProvider implements PaymentSDK.PaymentProvider {
     ): Promise<PaymentSDK.PaymentMethod[]> => {
       this.ctx.logger.info("Getting bank transfer payment methods", { input });
 
-    // Check if currency is supported
-    if (
-      input?.currency &&
-      !this.cfg.supportedCurrencies.includes(input.currency)
-    ) {
-      this.ctx.logger.warn("Currency not supported", {
-        currency: input.currency,
-      });
-      return [];
-    }
+      // Check if currency is supported
+      if (
+        input?.currency &&
+        !this.cfg.supportedCurrencies.includes(input.currency)
+      ) {
+        this.ctx.logger.warn("Currency not supported", {
+          currency: input.currency,
+        });
+        return [];
+      }
 
-    const paymentMethod: PaymentSDK.PaymentMethod = {
-      code: "bank-transfer",
-      provider: "bank-transfer",
-      flow: PaymentSDK.PaymentFlow.OFFLINE,
-      metadata: {},
-      constraints: {
-        shippingMethodCodes: [],
-      },
-    };
+      const paymentMethod: PaymentSDK.PaymentMethod = {
+        code: "bank_transfer",
+        provider: "bank_transfer",
+        flow: PaymentSDK.PaymentFlow.OFFLINE,
+        metadata: {},
+        constraints: {
+          shippingMethodCodes: [],
+        },
+      };
 
       return [paymentMethod];
-    }
-  } as const;
-
-  /**
-   * Generate payment instructions for bank transfer
-   */
-  private generatePaymentInstructions(): string {
-    const baseInstructions = `
-Payment Details:
-
-Bank: ${this.cfg.bankName}
-Account Holder: ${this.cfg.accountHolder}
-Account Number: ${this.cfg.accountNumber}
-Routing Number: ${this.cfg.routingNumber}
-
-IMPORTANT:
-1. Please include your order number in the payment reference
-2. Keep your payment receipt and send it to us for confirmation
-3. Payment processing may take 1-3 business days
-4. Contact support if you have any questions
-    `.trim();
-
-    if (this.cfg.instructions) {
-      return `${baseInstructions}\n\nAdditional Instructions:\n${this.cfg.instructions}`;
-    }
-
-    return baseInstructions;
-  }
+    },
+  };
 }

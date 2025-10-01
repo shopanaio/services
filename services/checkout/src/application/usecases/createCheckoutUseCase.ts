@@ -112,18 +112,13 @@ export class CreateCheckoutUseCase extends UseCase<
     }>
   > {
     try {
-      // const paymentApiMethods = await this.paymentApi.getPaymentMethods({
-      //   projectId: context.project.id,
-      //   currencyCode,
-      //   apiKey: context.apiKey,
-      // });
+      const paymentMethods = await this.paymentApi.getPaymentMethods({
+        projectId: context.project.id,
+        currencyCode,
+        apiKey: context.apiKey,
+      });
 
-      // const shippingApiMethods = await this.shippingApi.getPaymentMethods({
-      //   projectId: context.project.id,
-      //   currency: currencyCode,
-      //   apiKey: context.apiKey,
-      // });
-      // const combined = [...paymentApiMethods, ...shippingApiMethods];
+      console.log(paymentMethods, "paymentMethods");
 
       // Deduplicate by provider+code pair
       const seen = new Set<string>();

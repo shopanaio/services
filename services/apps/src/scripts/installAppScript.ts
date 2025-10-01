@@ -1,7 +1,4 @@
-import type {
-  TransactionScript,
-  ScriptContext,
-} from "@src/kernel/types";
+import type { TransactionScript, ScriptContext } from "@src/kernel/types";
 
 // Parameters for app installation
 export interface InstallAppParams {
@@ -25,7 +22,6 @@ export const installAppScript: TransactionScript<
   const { appCode, projectId } = params;
   const { slotsRepository, logger } = services;
 
-  console.log("installAppScript", params);
   try {
     // 1. Input data validation
     if (!appCode || !appCode.trim()) {
@@ -37,7 +33,6 @@ export const installAppScript: TransactionScript<
       };
     }
 
-    console.log("appCode", appCode);
     // 2. App code parsing
     let domain: string;
     let provider: string;
@@ -50,7 +45,11 @@ export const installAppScript: TransactionScript<
       // If no domain specified, try to determine from provider name or use default
       provider = appCode;
       // Determine domain based on provider naming convention or use shipping as default
-      if (provider.includes("pricing") || provider.includes("promo") || provider.includes("discount")) {
+      if (
+        provider.includes("pricing") ||
+        provider.includes("promo") ||
+        provider.includes("discount")
+      ) {
         domain = "pricing";
       } else if (provider.includes("inventory") || provider.includes("stock")) {
         domain = "inventory";
@@ -82,7 +81,6 @@ export const installAppScript: TransactionScript<
 
     return { success: true };
   } catch (error) {
-    console.log("\n\nerror", error);
     logger.error(
       {
         appCode,

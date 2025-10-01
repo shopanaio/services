@@ -46,7 +46,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
     businessInput.lines.forEach((line) => {
       // Find existing line by purchasableId
       const existingLine = addedLines.find(
-        (l) => l.purchasableId === line.purchasableId,
+        (l) => l.purchasableId === line.purchasableId
       );
 
       if (existingLine) {

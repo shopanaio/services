@@ -1,6 +1,7 @@
 import type { TransactionScript } from "@shopana/shared-kernel";
 import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import { transformMethodCodes } from "../utils/transformMethods";
+import { Domain } from "@shopana/plugin-sdk";
 
 // Parameters for getting all shipping methods
 export interface GetShippingMethodsParams {
@@ -28,7 +29,7 @@ export const shippingMethods: TransactionScript<
   try {
     // Execute apps.execute to get shipping methods via centralized plugin manager
     const result = await broker.call("apps.execute", {
-      domain: "shipping",
+      domain: Domain.SHIPPING,
       operation: "list",
       params: { projectId },
     });

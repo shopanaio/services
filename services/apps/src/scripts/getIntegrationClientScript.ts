@@ -26,7 +26,6 @@ export const getIntegrationClientScript: TransactionScript<
   GetIntegrationClientParams,
   GetIntegrationClientResult
 > = async (params, services, scriptContext) => {
-  console.log("\n\n\ngetIntegrationClientScript");
   const { domain, projectId, aggregateId, apiKey } = params;
   const { slotsRepository, logger } = services;
 
@@ -111,7 +110,6 @@ export const getIntegrationClientScript: TransactionScript<
     return { client: httpClient };
 
   } catch (error) {
-    console.log("\n\nerror", error);
     logger.error({
       domain,
       projectId,

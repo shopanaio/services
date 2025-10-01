@@ -1,8 +1,8 @@
-export * from './checkoutClient';
+export * from './checkout';
 export * from './serviceApi';
-export * from './inventoryTypes';
-export * from './paymentTypes';
-export * from './pricingTypes';
+export * from './inventory';
+export * from './payment';
+export * from './pricing';
 export type {
   ShippingApiClient,
   GetAllMethodsResponse,
@@ -10,7 +10,7 @@ export type {
   CreateDeliveryGroupsResponse,
   DeliveryGroup,
   GroupingItem
-} from './shippingTypes';
+} from './shipping';
 export * from './types';
 
 export type { Checkout, CheckoutDto } from '@shopana/checkout-sdk';

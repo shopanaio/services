@@ -52,7 +52,6 @@ export const getInstalledAppsScript: TransactionScript<
 
     return { apps: installedApps };
   } catch (error) {
-    console.log("\n\nerror", error);
     logger.error({ error, projectId }, "Failed to get installed apps");
 
     return {

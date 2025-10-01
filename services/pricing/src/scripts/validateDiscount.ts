@@ -33,8 +33,6 @@ export const validateDiscount: TransactionScript<
   try {
     const { discounts } = await getAllDiscounts({ projectId }, services);
 
-    console.log("discounts", discounts);
-
     // Search for the required discount by code among all available
     const normalizedCode = code.trim().toLowerCase();
     const codeMatches = discounts

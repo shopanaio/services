@@ -20,7 +20,7 @@ export class DiscountValidator {
     codes: string[],
     totalAmount: Money,
     services: KernelServices,
-    params: EvaluateDiscountsParamsDto,
+    params: EvaluateDiscountsParamsDto
   ): Promise<Discount[]> {
     const { logger } = services;
 
@@ -35,7 +35,7 @@ export class DiscountValidator {
             requestId: params.requestId,
             userAgent: params.userAgent,
           },
-          services,
+          services
         );
 
         if (!result.discount) {
@@ -44,8 +44,19 @@ export class DiscountValidator {
 
         // TODO: Implement full validation on plugin level
         const { conditions } = result.discount;
-        if (conditions?.minAmount && totalAmount.lt(conditions.minAmount)) {
-          continue;
+        if (conditions?.minAmount) {
+          try {
+            // @ts-expect-error TODO: deserialize Money properly
+            const minAmount = Money.fromJSON(conditions.minAmount);
+            if (totalAmount.lt(minAmount)) {
+              continue;
+            }
+          } catch (error) {
+            logger.error(
+              { error, conditions },
+              "Failed to validate discount conditions"
+            );
+          }
         }
 
         validDiscounts.push(result.discount);

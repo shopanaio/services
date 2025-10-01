@@ -5,7 +5,10 @@ import {
 import type { OrderReadView } from "@src/application/read/orderReadRepository";
 import { moneyToApi } from "@src/interfaces/gql-storefront-api/mapper/money";
 import { mapOrderLineReadToApi } from "@src/interfaces/gql-storefront-api/mapper/orderLine";
-import { encodeGlobalIdByType, GlobalIdEntity } from "@src/interfaces/gql-storefront-api/idCodec";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@src/interfaces/gql-storefront-api/idCodec";
 
 /**
  * Maps Order read-model snapshot to GraphQL ApiOrder type.
@@ -16,10 +19,11 @@ export function mapOrderReadToApi(read: OrderReadView): ApiOrder {
       `Invalid order status "${read.status}" for order ${read.id}, defaulting to DRAFT`
     );
 
-    throw new Error(`Invalid order status "${read.status}" for order ${read.id}`);
+    throw new Error(
+      `Invalid order status "${read.status}" for order ${read.id}`
+    );
   }
 
-  console.log('read.status', read.status);
   const api = {
     id: encodeGlobalIdByType(read.id, GlobalIdEntity.Order),
     status: read.status as ApiOrderStatus,

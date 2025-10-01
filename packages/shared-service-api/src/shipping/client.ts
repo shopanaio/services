@@ -7,7 +7,7 @@ import type {
   DeliveryGroup,
   GetPaymentMethodsInput,
   GetPaymentMethodsResponse,
-} from "./shippingTypes";
+} from "./types";
 import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
 

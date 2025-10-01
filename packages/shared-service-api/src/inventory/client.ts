@@ -1,5 +1,5 @@
 import type { ServiceBroker } from "moleculer";
-import type { InventoryApiClient, GetOffersResponse } from "./inventoryTypes";
+import type { InventoryApiClient, GetOffersResponse } from "./types";
 import type {
   GetOffersInput,
   InventoryOffer,

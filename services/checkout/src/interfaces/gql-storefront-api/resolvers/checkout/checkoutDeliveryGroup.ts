@@ -1,7 +1,5 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiCheckoutDeliveryGroup,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiCheckoutDeliveryGroup } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 
 /**
@@ -9,7 +7,9 @@ import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context"
  *
  * Returns the selected delivery method for the group (can be null)
  */
-export const selectedDeliveryMethod = async (parent: ApiCheckoutDeliveryGroup) => {
+export const selectedDeliveryMethod = async (
+  parent: ApiCheckoutDeliveryGroup
+) => {
   // The selected delivery method is already included in the parent object from the domain model
   return parent.selectedDeliveryMethod || null;
 };
@@ -31,28 +31,39 @@ export const estimatedCost = async (parent: ApiCheckoutDeliveryGroup) => {
 /**
  * deliveryMethods: [CheckoutDeliveryMethod!]!
  *
- * Gets available delivery methods for the delivery group using slots.
+ * Returns delivery methods for the delivery group.
  *
- * How it works:
- * 1. Searches for configured shipping provider in slots for the project
- * 2. Calls the provider's HTTP API to get the list of methods
- * 3. Returns a standardized list with fields:
- *    - code: method code (standard, express, etc.)
- *    - deliveryMethodType: delivery method type
- *    - provider: provider data
+ * Strategy:
+ * 1. First tries to return methods from parent (read model)
+ * 2. If parent.deliveryMethods is empty, falls back to runtime API call
+ *    to get methods from configured shipping provider
  *
- * If provider is not configured - returns empty array.
- * If request to provider fails - logs error and returns empty array.
+ * Fallback behavior (if read model is empty):
+ * - Searches for configured shipping provider in slots for the project
+ * - Calls the provider's HTTP API to get the list of methods
+ * - Returns a standardized list with fields:
+ *   - code: method code (standard, express, etc.)
+ *   - deliveryMethodType: delivery method type
+ *   - provider: provider data
+ *
+ * If provider is not configured or request fails - returns empty array.
  */
-export const deliveryMethods = async (parent: ApiCheckoutDeliveryGroup, _args: {}, ctx: GraphQLContext) => {
+export const deliveryMethods = async (
+  parent: ApiCheckoutDeliveryGroup,
+  _args: {},
+  ctx: GraphQLContext
+) => {
+  // Strategy 1: Return from read model if available
+  if (parent.deliveryMethods && parent.deliveryMethods.length > 0) {
+    return parent.deliveryMethods;
+  }
+
+  // Strategy 2: Fallback to runtime API call if read model is empty
+  const { serviceApi, logger } = App.getInstance();
   try {
-    const { shippingClient } = App.getInstance();
-
-    const methods = await shippingClient.getProjectMethods({
+    const methods = await serviceApi.shipping.getProjectMethods({
       projectId: ctx.project.id,
-      apiKey: ctx.apiKey,
     });
-
 
     return (methods || []).map((method: any) => ({
       code: method.code,
@@ -63,10 +74,9 @@ export const deliveryMethods = async (parent: ApiCheckoutDeliveryGroup, _args: {
       },
     }));
   } catch (error) {
-    const { logger } = App.getInstance();
     logger.error(
       { error, deliveryGroupId: parent.id },
-      "Failed to fetch delivery methods"
+      "Failed to fetch delivery methods from runtime API"
     );
     return [];
   }

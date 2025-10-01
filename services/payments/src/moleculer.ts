@@ -11,27 +11,7 @@ const brokerConfig = {
   nodeID: "payments-service",
 
   // Logging configuration
-  logger: {
-    type: "Pino",
-    options: {
-      // Use custom pino logger with pretty formatting
-      pino: {
-        level: process.env.LOG_LEVEL || "info",
-        ...(process.env.NODE_ENV === "development" && {
-          transport: {
-            target: "pino-pretty",
-            options: {
-              colorize: true,
-              translateTime: "SYS:HH:MM:ss.l",
-              ignore: "pid,hostname",
-              messageFormat: "[MOLECULER] {msg}",
-              levelFirst: true,
-            },
-          },
-        }),
-      },
-    },
-  },
+  logger: true,
   logLevel: "info" as LogLevels,
 
   // Transport for communication with other services

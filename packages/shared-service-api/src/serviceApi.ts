@@ -1,15 +1,15 @@
 import type { ServiceBroker } from "moleculer";
-import { PaymentClient } from "./paymentClient";
-import { PricingClient } from "./pricingClient";
-import { ShippingClient } from "./shippingClient";
-import { InventoryClient } from "./inventoryClient";
-import { CheckoutClient } from "./checkoutClient";
+import { PaymentClient } from "./payment/client";
+import { PricingClient } from "./pricing/client";
+import { ShippingClient } from "./shipping/client";
+import { InventoryClient } from "./inventory/client";
+import { CheckoutClient } from "./checkout/client";
 
-import type { PaymentApiClient } from "./paymentTypes";
-import type { PricingApiClient } from "./pricingTypes";
-import type { ShippingApiClient } from "./shippingTypes";
-import type { InventoryApiClient } from "./inventoryTypes";
-import type { CheckoutApiClient } from "./checkoutClient";
+import type { PaymentApiClient } from "./payment/types";
+import type { PricingApiClient } from "./pricing/types";
+import type { ShippingApiClient } from "./shipping/types";
+import type { InventoryApiClient } from "./inventory/types";
+import type { CheckoutApiClient } from "./checkout/client";
 
 /**
  * Aggregated access point for platform service API clients.

@@ -77,7 +77,7 @@ export class CheckoutCostService {
     // Checkout-level discounts are applied without distribution across items
     const checkoutCost = this.calculateCheckoutCostWithDiscounts(
       baseLineItems,
-      discountsResult.aggregatedDiscounts,
+      discountsResult.aggregatedDiscounts
     );
     const checkoutLinesCost = this.buildLinesCostMap(baseLineItems);
 
@@ -98,7 +98,7 @@ export class CheckoutCostService {
    * @returns List of base cost elements without applied discounts
    */
   private buildBaseLineItems(
-    checkoutLines: CheckoutLineItemState[],
+    checkoutLines: CheckoutLineItemState[]
   ): CheckoutLineItemCost[] {
     return checkoutLines.map((line) => {
       const lineSubtotal = line.unit.price.multiply(line.quantity);
@@ -133,14 +133,12 @@ export class CheckoutCostService {
       const pricingInput = this.buildPricingInput(input);
       const pricingResult = await this.evaluateDiscounts(pricingInput);
 
-      console.log("\n\n Pricing request", input, "response", pricingResult);
-
       const aggregatedDiscounts = pricingResult.aggregatedDiscounts;
       const lineDiscounts: Record<string, Discount[]> = {};
       Object.entries(pricingResult.lineDiscounts).forEach(
         ([lineId, discounts]) => {
           lineDiscounts[lineId] = discounts;
-        },
+        }
       );
 
       return {
@@ -167,11 +165,11 @@ export class CheckoutCostService {
    * @private
    */
   private buildPricingInput(
-    input: ComputeTotalsInput,
+    input: ComputeTotalsInput
   ): PricingEvaluateDiscountsInput {
     // Check for required projectId presence
-    if (!input.projectId || input.projectId.trim() === '') {
-      throw new Error('projectId is required for pricing evaluation');
+    if (!input.projectId || input.projectId.trim() === "") {
+      throw new Error("projectId is required for pricing evaluation");
     }
 
     // Extract discount codes from appliedDiscounts
@@ -218,7 +216,7 @@ export class CheckoutCostService {
         const amountMinor = amount.amountMinor();
         const discountMinor = (amountMinor * BigInt(discount.value)) / 100n;
         return total.add(
-          Money.fromMinor(discountMinor, amount.currency().code),
+          Money.fromMinor(discountMinor, amount.currency().code)
         );
       }
       return total;
@@ -240,21 +238,21 @@ export class CheckoutCostService {
    */
   private calculateCheckoutCostWithDiscounts(
     lineItems: CheckoutLineItemCost[],
-    aggregatedDiscounts: Discount[],
+    aggregatedDiscounts: Discount[]
   ): CheckoutCost {
     const subtotal = lineItems.reduce(
       (total, line) => total.add(line.subtotal),
-      Money.zero(),
+      Money.zero()
     );
     const totalQuantity = lineItems.reduce(
       (total, line) => total + line.quantity,
-      0,
+      0
     );
 
     // Apply checkout-level discounts to total amount
     const discountTotal = this.calculateDiscountAmount(
       subtotal,
-      aggregatedDiscounts,
+      aggregatedDiscounts
     );
     const grandTotal = subtotal.subtract(discountTotal);
 
@@ -280,11 +278,11 @@ export class CheckoutCostService {
    * @private
    */
   private buildLinesCostMap(
-    lineItems: CheckoutLineItemCost[],
+    lineItems: CheckoutLineItemCost[]
   ): Record<string, CheckoutLineItemCost> {
     return lineItems.reduce(
       (map, line) => ({ ...map, [line.lineId]: line }),
-      {} as Record<string, CheckoutLineItemCost>,
+      {} as Record<string, CheckoutLineItemCost>
     );
   }
 
@@ -301,11 +299,11 @@ export class CheckoutCostService {
    * @private
    */
   private async evaluateDiscounts(
-    input: PricingEvaluateDiscountsInput,
+    input: PricingEvaluateDiscountsInput
   ): Promise<PricingEvaluateDiscountsResult> {
     if (!this.pricingApi.evaluateDiscounts) {
       throw new Error(
-        "evaluateDiscounts method is not available on pricingApi client",
+        "evaluateDiscounts method is not available on pricingApi client"
       );
     }
     return await this.pricingApi.evaluateDiscounts(input);

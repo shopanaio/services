@@ -19,7 +19,6 @@ export const uninstallAppScript: TransactionScript<
   UninstallAppParams,
   UninstallAppResult
 > = async (params, services) => {
-  console.log("\n\n\nuninstallAppScript");
   const { appCode, projectId } = params;
   const { slotsRepository, logger } = services;
 
@@ -83,7 +82,6 @@ export const uninstallAppScript: TransactionScript<
 
     return { success: wasRemoved };
   } catch (error) {
-    console.log("\n\nerror", error);
     logger.error(
       {
         appCode,

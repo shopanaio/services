@@ -18,7 +18,6 @@ const PaymentsService: ServiceSchema<any> = {
     ): Promise<GetPaymentMethodsResult> {
       return this.kernel.executeScript(paymentMethods, ctx.params);
     },
-
   },
 
   created() {
@@ -32,10 +31,7 @@ const PaymentsService: ServiceSchema<any> = {
       // Create kernel with broker and logger
       // Plugin management is now centralized in apps service
       const moleculerLogger = new MoleculerLogger(this.logger);
-      this.kernel = new Kernel(
-        this.broker,
-        moleculerLogger
-      );
+      this.kernel = new Kernel(this.broker, moleculerLogger);
 
       this.logger.info("Payments service started successfully");
     } catch (error) {

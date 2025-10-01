@@ -43,7 +43,7 @@ export class AddPromoCodeUseCase extends UseCase<
 
     if (!promo.discount) {
       throw new Error(
-        `No discount data received for promo code: ${promo.code}`,
+        `No discount data received for promo code: ${promo.code}`
       );
     }
 
@@ -77,7 +77,7 @@ export class AddPromoCodeUseCase extends UseCase<
     };
 
     await this.checkoutWriteRepository.applyPromoCodeAdded(dto);
-
+    console.log("Added promo code:", dto);
     return businessInput.checkoutId;
   }
 }

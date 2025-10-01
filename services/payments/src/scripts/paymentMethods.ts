@@ -27,6 +27,8 @@ export const paymentMethods: TransactionScript<
       params: { projectId, ...input },
     });
 
+    console.log(result, "result");
+
     const methods = result.data as PaymentMethod[] || [];
     const warnings = result.warnings || [];
 

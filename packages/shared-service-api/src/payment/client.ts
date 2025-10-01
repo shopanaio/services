@@ -4,7 +4,7 @@ import type {
   PaymentApiClient,
   GetPaymentMethodsInput,
   GetPaymentMethodsResponse
-} from "./paymentTypes";
+} from "./types";
 
 export class PaymentClient implements PaymentApiClient {
   private readonly broker: ServiceBroker;
