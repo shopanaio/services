@@ -13,7 +13,7 @@ export const plugin: ShippingPlugin<typeof configSchema> = {
     description: "Integration with Ukrainian delivery service Meest Express",
     version: "0.1.0",
     apiVersionRange: "^1.0.0",
-    domains: ["shipping"],
+    domains: ["shipping", "payment"],
     priority: 20,
   },
   configSchema,

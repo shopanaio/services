@@ -3,6 +3,7 @@ import {
   ResilienceRunner,
   createProviderContext,
 } from "@shopana/plugin-sdk";
+import type { CorePluginManifest } from "@shopana/plugin-sdk";
 import type { Domain, shipping as ShippingSDK } from "@shopana/plugin-sdk";
 import { config } from "@src/config";
 import {
@@ -46,7 +47,7 @@ export class AppsPluginManager {
     });
   }
 
-  listManifests() {
+  listManifests(): Array<{ manifest: CorePluginManifest; compatible: boolean; allowed: boolean }> {
     return this.corePM.listManifests();
   }
 
@@ -62,11 +63,15 @@ export class AppsPluginManager {
     projectId: string;
     input?: unknown;
   }): Promise<unknown> {
+    console.log(`[PluginManager] 🔵 executeOnProvider: plugin=${params.pluginCode}, domain=${params.domain}, operation=${params.operationId}`);
+
     try {
       const { provider, plugin } = await this.corePM.createProvider({
         pluginCode: params.pluginCode,
         rawConfig: params.rawConfig,
       });
+
+      console.log(`[PluginManager] 🔌 Provider created: ${params.pluginCode}, manifest:`, (plugin as any).manifest);
 
       const hooks = (plugin as any).hooks ?? {};
 
@@ -75,6 +80,13 @@ export class AppsPluginManager {
 
       const prov: any = provider as any;
       const domainApi = prov[params.domain];
+
+      console.log(`[PluginManager] 🔍 Checking provider[${params.domain}].${method}...`, {
+        hasDomainApi: !!domainApi,
+        hasMethod: domainApi && typeof domainApi[method] === 'function',
+        availableMethods: domainApi ? Object.keys(domainApi) : []
+      });
+
       if (!domainApi || typeof domainApi[method] !== "function") {
         throw new Error(`Missing method ${method} for domain ${params.domain}`);
       }
@@ -87,18 +99,22 @@ export class AppsPluginManager {
         },
         async () => {
           try {
+            console.log(`[PluginManager] ⚡ Executing ${params.pluginCode}.${params.domain}.${method}()`);
             const result = await domainApi[method](params.input);
+            console.log(`[PluginManager] ✅ Result from ${params.pluginCode}:`, result);
             hooks.onTelemetry?.(`${method}.success`, {
               projectId: params.projectId,
             });
             return result;
           } catch (err) {
+            console.log(`[PluginManager] ❌ Error from ${params.pluginCode}:`, err);
             hooks.onError?.(err, { operation: method });
             throw err;
           }
         }
       );
     } catch (e) {
+      console.log(`[PluginManager] ❌ executeOnProvider failed for ${params.pluginCode}:`, e);
       this.logger.error({ error: e }, "Error executing on provider");
       throw e;
     }
@@ -115,6 +131,9 @@ export class AppsPluginManager {
     results: unknown[];
     warnings: Array<{ provider: string; message: string; error?: unknown }>;
   }> {
+    console.log(`[PluginManager] 🔄 executeOnAll: domain=${params.domain}, operation=${params.operationId}, slots count=${params.slots.length}`);
+    console.log(`[PluginManager] 📋 Slots:`, params.slots.map(s => s.provider));
+
     const results: unknown[] = [];
     const warnings: Array<{
       provider: string;
@@ -123,6 +142,7 @@ export class AppsPluginManager {
     }> = [];
     for (const s of params.slots) {
       try {
+        console.log(`[PluginManager] 🔄 Processing slot: ${s.provider}`);
         const res = await this.executeOnProvider({
           domain: params.domain,
           operationId: params.operationId,
@@ -133,7 +153,9 @@ export class AppsPluginManager {
         });
 
         results.push(res);
+        console.log(`[PluginManager] ✅ Slot ${s.provider} completed successfully`);
       } catch (e) {
+        console.log(`[PluginManager] ⚠️ Slot ${s.provider} failed:`, e);
         warnings.push({
           provider: s.provider,
           message: `execute failed`,
@@ -141,6 +163,7 @@ export class AppsPluginManager {
         });
       }
     }
+    console.log(`[PluginManager] 🏁 executeOnAll finished: ${results.length} successful, ${warnings.length} failed`);
     return { results, warnings };
   }
 }

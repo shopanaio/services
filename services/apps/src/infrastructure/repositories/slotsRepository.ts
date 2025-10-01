@@ -26,17 +26,19 @@ type SlotAssignmentRow = Omit<SlotAssignment, "created_at" | "updated_at"> & {
 };
 
 const slotColumns = [
-  "id",
-  "project_id",
-  "domain",
-  "provider",
-  "status",
-  "environment",
-  "capabilities",
-  "version",
-  "data",
-  "created_at",
-  "updated_at",
+  "s.id",
+  "s.project_id",
+  "s.domain",
+  "s.provider",
+  "s.provider_config_id",
+  "s.capabilities",
+  "s.created_at as created_at",
+  "s.updated_at as updated_at",
+  // Provider config fields (joined)
+  "pc.data as config_data",
+  "pc.version as config_version",
+  "pc.status as config_status",
+  "pc.environment as config_environment",
 ];
 
 const assignmentColumns = [
@@ -76,26 +78,22 @@ export class SlotsRepository {
    * @param projectId - Unique identifier of the project.
    * @returns Slot object or `null` if the slot is not found.
    */
-  async findSlotById(
-    id: string,
-    projectId: string
-  ): Promise<Slot | null> {
+  async findSlotById(id: string, projectId: string): Promise<Slot | null> {
     const query = this.knex
       .select(slotColumns)
-      .from("platform.slots")
-      .where({ id, project_id: projectId })
+      .from("platform.slots as s")
+      .innerJoin(
+        "platform.provider_configs as pc",
+        "s.provider_config_id",
+        "pc.id"
+      )
+      .where({ "s.id": id, "s.project_id": projectId })
       .toString();
 
-    const result = await singleOrNull(
-      this.executor.query<SlotRow>(rawSql(query))
-    );
+    const result = await singleOrNull(this.executor.query<any>(rawSql(query)));
     if (!result) return null;
 
-    return {
-      ...result,
-      created_at: result.created_at.toISOString(),
-      updated_at: result.updated_at.toISOString(),
-    };
+    return this.mapRowToSlot(result);
   }
 
   /**
@@ -104,32 +102,118 @@ export class SlotsRepository {
    * @param domain - Optional domain for filtering slots.
    * @returns Array of found slots.
    */
-  async findAllSlots(
-    projectId: string,
-    domain?: string
-  ): Promise<Slot[]> {
+  async findAllSlots(projectId: string, domain?: string): Promise<Slot[]> {
     let queryBuilder = this.knex
       .select(slotColumns)
-      .from("platform.slots")
-      .where({ project_id: projectId })
-      .orderBy("updated_at", "desc");
+      .from("platform.slots as s")
+      .innerJoin(
+        "platform.provider_configs as pc",
+        "s.provider_config_id",
+        "pc.id"
+      )
+      .where({ "s.project_id": projectId })
+      .orderBy("s.updated_at", "desc");
 
     if (domain) {
-      queryBuilder = queryBuilder.where({ domain });
+      queryBuilder = queryBuilder.where({ "s.domain": domain });
     }
 
-    const { rows } = await this.executor.query<SlotRow>(
+    const { rows } = await this.executor.query<any>(
       rawSql(queryBuilder.toString())
     );
-    return rows.map((row) => ({
-      ...row,
-      created_at: row.created_at.toISOString(),
-      updated_at: row.updated_at.toISOString(),
-    }));
+    return rows.map((row) => this.mapRowToSlot(row));
+  }
+
+  /**
+   * Maps a database row (with joined provider_config) to Slot object
+   */
+  private mapRowToSlot(row: any): Slot {
+    return {
+      id: row.id,
+      project_id: row.project_id,
+      domain: row.domain,
+      provider: row.provider,
+      provider_config_id: row.provider_config_id,
+      capabilities: row.capabilities || [],
+      created_at:
+        row.created_at instanceof Date
+          ? row.created_at.toISOString()
+          : row.created_at,
+      updated_at:
+        row.updated_at instanceof Date
+          ? row.updated_at.toISOString()
+          : row.updated_at,
+      config: {
+        id: row.provider_config_id,
+        project_id: row.project_id,
+        provider: row.provider,
+        data: row.config_data || {},
+        version: row.config_version || 1,
+        status: row.config_status || "active",
+        environment: row.config_environment || "production",
+        created_at:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : row.created_at,
+        updated_at:
+          row.updated_at instanceof Date
+            ? row.updated_at.toISOString()
+            : row.updated_at,
+      },
+    };
+  }
+
+  /**
+   * Upserts provider config - creates or updates configuration for a provider
+   */
+  private async upsertProviderConfig(params: {
+    projectId: string;
+    provider: string;
+    data?: Record<string, unknown>;
+    version?: number;
+    status?: "active" | "inactive" | "maintenance" | "deprecated";
+    environment?: "development" | "staging" | "production";
+  }): Promise<string> {
+    const {
+      projectId,
+      provider,
+      data = {},
+      version = 1,
+      status = "active",
+      environment = "production",
+    } = params;
+
+    const query = this.knex
+      .insert({
+        project_id: projectId,
+        provider,
+        data: this.knex.raw(`?::jsonb`, [JSON.stringify(data)]),
+        version,
+        status,
+        environment,
+      })
+      .withSchema("platform")
+      .into("provider_configs")
+      .onConflict(["project_id", "provider"])
+      .merge({
+        data: this.knex.raw(`?::jsonb`, [JSON.stringify(data)]),
+        version,
+        status,
+        environment,
+        updated_at: this.knex.raw("now()"),
+      })
+      .returning("id")
+      .toString();
+
+    const result = await single(
+      this.executor.query<{ id: string }>(rawSql(query))
+    );
+    return result.id;
   }
 
   /**
    * Creates a new slot or updates an existing one based on the unique key (projectId, domain, provider).
+   * Now works with normalized provider_configs structure.
    * @param params - Parameters for creating/updating the slot.
    * @returns Created or updated slot object.
    */
@@ -146,6 +230,10 @@ export class SlotsRepository {
     data?: Record<string, unknown>;
     /** Slot status. */
     status?: "active" | "inactive" | "maintenance" | "deprecated";
+    /** Environment */
+    environment?: "development" | "staging" | "production";
+    /** Version */
+    version?: number;
   }): Promise<Slot> {
     const {
       domain,
@@ -153,36 +241,52 @@ export class SlotsRepository {
       capabilities = [],
       data = {},
       projectId,
-      status = 'active',
+      status = "active",
+      environment = "production",
+      version = 1,
     } = params;
 
+    // Step 1: Upsert provider config (shared across all domains for this provider)
+    const providerConfigId = await this.upsertProviderConfig({
+      projectId,
+      provider,
+      data,
+      version,
+      status,
+      environment,
+    });
+
+    // Step 2: Upsert slot (domain-specific reference to provider config)
     const query = this.knex
       .insert({
         domain,
         project_id: projectId,
         provider,
+        provider_config_id: providerConfigId,
         capabilities,
-        status,
-        data: this.knex.raw(`?::jsonb`, [JSON.stringify(data)]),
       })
       .withSchema("platform")
       .into("slots")
       .onConflict(["project_id", "domain", "provider"])
       .merge({
         capabilities,
-        status,
-        data: this.knex.raw(`?::jsonb`, [JSON.stringify(data)]),
+        provider_config_id: providerConfigId,
         updated_at: this.knex.raw("now()"),
       })
-      .returning(slotColumns)
+      .returning(["id"])
       .toString();
 
-    const result = await single(this.executor.query<SlotRow>(rawSql(query)));
-    return {
-      ...result,
-      created_at: result.created_at.toISOString(),
-      updated_at: result.updated_at.toISOString(),
-    };
+    const result = await single(
+      this.executor.query<{ id: string }>(rawSql(query))
+    );
+
+    // Step 3: Fetch the complete slot with joined config
+    const slot = await this.findSlotById(result.id, projectId);
+    if (!slot) {
+      throw new Error(`Failed to fetch created slot ${result.id}`);
+    }
+
+    return slot;
   }
 
   /**
@@ -364,13 +468,18 @@ export class SlotsRepository {
     const query = this.knex
       .select({
         slot_id: "s.id",
+        slot_project_id: "s.project_id",
         slot_domain: "s.domain",
         slot_provider: "s.provider",
+        slot_provider_config_id: "s.provider_config_id",
         slot_capabilities: "s.capabilities",
-        slot_version: "s.version",
-        slot_data: "s.data",
         slot_created_at: "s.created_at",
         slot_updated_at: "s.updated_at",
+        // Provider config fields
+        config_data: "pc.data",
+        config_version: "pc.version",
+        config_status: "pc.status",
+        config_environment: "pc.environment",
         assignment_id: "sa.id",
         assignment_project_id: "sa.project_id",
         assignment_aggregate: "sa.aggregate",
@@ -384,6 +493,7 @@ export class SlotsRepository {
       })
       .from({ sa: "platform.slot_assignments" })
       .join({ s: "platform.slots" }, "s.id", "sa.slot_id")
+      .join({ pc: "platform.provider_configs" }, "s.provider_config_id", "pc.id")
       .where({
         "sa.project_id": projectId,
         "sa.aggregate": aggregate,
@@ -397,50 +507,30 @@ export class SlotsRepository {
       .toString();
 
     /**
-     * Helper type for JOIN query result between slots and assignments.
+     * Helper type for JOIN query result between slots, provider_configs and assignments.
      */
     type ResolvedSlotRow = {
-      /** Slot ID. */
       slot_id: string;
-      /** Slot project ID. */
       slot_project_id: string;
-      /** Slot domain. */
       slot_domain: string;
-      /** Slot provider. */
       slot_provider: string;
-      /** Slot status. */
-      slot_status: string;
-      /** Slot environment. */
-      slot_environment: string;
-      /** Slot capabilities. */
+      slot_provider_config_id: string;
       slot_capabilities: string[];
-      /** Slot version. */
-      slot_version: number;
-      /** Slot data. */
-      slot_data: Record<string, unknown>;
-      /** Slot creation date. */
       slot_created_at: Date;
-      /** Slot update date. */
       slot_updated_at: Date;
-      /** Assignment ID. */
+      config_data: Record<string, unknown>;
+      config_version: number;
+      config_status: string;
+      config_environment: string;
       assignment_id: string;
-      /** Project ID for assignment. */
       assignment_project_id: string;
-      /** Assignment aggregate. */
       assignment_aggregate: string;
-      /** Aggregate ID for assignment. */
       assignment_aggregate_id: string;
-      /** Slot ID for assignment. */
       assignment_slot_id: string;
-      /** Assignment domain. */
       assignment_domain: string;
-      /** Assignment precedence. */
       assignment_precedence: number;
-      /** Assignment status. */
       assignment_status: "active" | "disabled";
-      /** Assignment creation date. */
       assignment_created_at: Date;
-      /** Assignment update date. */
       assignment_updated_at: Date;
     };
 
@@ -455,13 +545,21 @@ export class SlotsRepository {
       project_id: row.slot_project_id,
       domain: row.slot_domain,
       provider: row.slot_provider,
-      status: row.slot_status as any,
-      environment: row.slot_environment as any,
+      provider_config_id: row.slot_provider_config_id,
       capabilities: row.slot_capabilities,
-      version: row.slot_version,
-      data: row.slot_data,
       created_at: row.slot_created_at.toISOString(),
       updated_at: row.slot_updated_at.toISOString(),
+      config: {
+        id: row.slot_provider_config_id,
+        project_id: row.slot_project_id,
+        provider: row.slot_provider,
+        data: row.config_data,
+        version: row.config_version,
+        status: row.config_status as any,
+        environment: row.config_environment as any,
+        created_at: row.slot_created_at.toISOString(),
+        updated_at: row.slot_updated_at.toISOString(),
+      },
     };
 
     const assignment: SlotAssignment = {
@@ -499,13 +597,17 @@ export class SlotsRepository {
     let query = this.knex
       .select({
         slot_id: "s.id",
+        slot_project_id: "s.project_id",
         slot_domain: "s.domain",
         slot_provider: "s.provider",
+        slot_provider_config_id: "s.provider_config_id",
         slot_capabilities: "s.capabilities",
-        slot_version: "s.version",
-        slot_data: "s.data",
         slot_created_at: "s.created_at",
         slot_updated_at: "s.updated_at",
+        config_data: "pc.data",
+        config_version: "pc.version",
+        config_status: "pc.status",
+        config_environment: "pc.environment",
         assignment_id: "sa.id",
         assignment_project_id: "sa.project_id",
         assignment_aggregate: "sa.aggregate",
@@ -519,6 +621,7 @@ export class SlotsRepository {
       })
       .from({ sa: "platform.slot_assignments" })
       .join({ s: "platform.slots" }, "s.id", "sa.slot_id")
+      .join({ pc: "platform.provider_configs" }, "s.provider_config_id", "pc.id")
       .where({
         "sa.project_id": projectId,
         "sa.aggregate": aggregate,
@@ -536,50 +639,30 @@ export class SlotsRepository {
       .toString();
 
     /**
-     * Helper type for JOIN query result between slots and assignments.
+     * Helper type for JOIN query result between slots, provider_configs and assignments.
      */
     type ResolvedSlotRow = {
-      /** Slot ID. */
       slot_id: string;
-      /** Slot project ID. */
       slot_project_id: string;
-      /** Slot domain. */
       slot_domain: string;
-      /** Slot provider. */
       slot_provider: string;
-      /** Slot status. */
-      slot_status: string;
-      /** Slot environment. */
-      slot_environment: string;
-      /** Slot capabilities. */
+      slot_provider_config_id: string;
       slot_capabilities: string[];
-      /** Slot version. */
-      slot_version: number;
-      /** Slot data. */
-      slot_data: Record<string, unknown>;
-      /** Slot creation date. */
       slot_created_at: Date;
-      /** Slot update date. */
       slot_updated_at: Date;
-      /** Assignment ID. */
+      config_data: Record<string, unknown>;
+      config_version: number;
+      config_status: string;
+      config_environment: string;
       assignment_id: string;
-      /** Project ID for assignment. */
       assignment_project_id: string;
-      /** Assignment aggregate. */
       assignment_aggregate: string;
-      /** Aggregate ID for assignment. */
       assignment_aggregate_id: string;
-      /** Slot ID for assignment. */
       assignment_slot_id: string;
-      /** Assignment domain. */
       assignment_domain: string;
-      /** Assignment precedence. */
       assignment_precedence: number;
-      /** Assignment status. */
       assignment_status: "active" | "disabled";
-      /** Assignment creation date. */
       assignment_created_at: Date;
-      /** Assignment update date. */
       assignment_updated_at: Date;
     };
 
@@ -593,13 +676,21 @@ export class SlotsRepository {
         project_id: row.slot_project_id,
         domain: row.slot_domain,
         provider: row.slot_provider,
-        status: row.slot_status as any,
-        environment: row.slot_environment as any,
+        provider_config_id: row.slot_provider_config_id,
         capabilities: row.slot_capabilities,
-        version: row.slot_version,
-        data: row.slot_data,
         created_at: row.slot_created_at.toISOString(),
         updated_at: row.slot_updated_at.toISOString(),
+        config: {
+          id: row.slot_provider_config_id,
+          project_id: row.slot_project_id,
+          provider: row.slot_provider,
+          data: row.config_data,
+          version: row.config_version,
+          status: row.config_status as any,
+          environment: row.config_environment as any,
+          created_at: row.slot_created_at.toISOString(),
+          updated_at: row.slot_updated_at.toISOString(),
+        },
       },
       assignment: {
         id: row.assignment_id,

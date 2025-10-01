@@ -20,6 +20,8 @@ export const paymentMethods: TransactionScript<
   const { broker, logger } = services;
 
   try {
+    console.log("[paymentMethods] 🔵 Calling apps.execute with domain=payment, operation=list, projectId=", projectId);
+
     // Execute apps.execute to get payment methods via centralized plugin manager
     const result = await broker.call("apps.execute", {
       domain: "payment",
@@ -27,10 +29,12 @@ export const paymentMethods: TransactionScript<
       params: { projectId, ...input },
     });
 
-    console.log(result, "result");
+    console.log("[paymentMethods] ✅ Received result:", JSON.stringify(result, null, 2));
 
     const methods = result.data as PaymentMethod[] || [];
     const warnings = result.warnings || [];
+
+    console.log("[paymentMethods] 📦 Parsed methods count:", methods.length);
 
     return {
       methods,

@@ -64,8 +64,8 @@ export const getIntegrationClientScript: TransactionScript<
 
     const { slot } = result;
 
-    // 3. Extract baseUrl from slot data
-    const baseUrl = (slot.data as any)?.baseUrl;
+    // 3. Extract baseUrl from slot config data
+    const baseUrl = (slot.config?.data as any)?.baseUrl;
     if (!baseUrl || typeof baseUrl !== 'string') {
       logger.warn({ slotId: slot.id }, 'Slot missing baseUrl configuration');
       return { client: null };

@@ -14,70 +14,82 @@ export interface InstallAppResult {
 
 /**
  * Transaction Script: App installation
+ * Supports multi-domain plugins - creates one slot per domain from plugin manifest
  */
 export const installAppScript: TransactionScript<
   InstallAppParams,
   InstallAppResult
 > = async (params, services, scriptContext) => {
   const { appCode, projectId } = params;
-  const { slotsRepository, logger } = services;
+  const { slotsRepository, logger, pluginManager } = services;
+  const provider = appCode.trim();
 
   try {
     // 1. Input data validation
-    if (!appCode || !appCode.trim()) {
-      return {
-        success: false,
-        warnings: [
-          { code: "VALIDATION_ERROR", message: "App code is required" },
-        ],
-      };
-    }
-
-    // 2. App code parsing
-    let domain: string;
-    let provider: string;
-
-    if (appCode.includes(":")) {
-      const parts = appCode.split(":", 2);
-      domain = parts[0];
-      provider = parts[1];
-    } else {
-      // If no domain specified, try to determine from provider name or use default
-      provider = appCode;
-      // Determine domain based on provider naming convention or use shipping as default
-      if (
-        provider.includes("pricing") ||
-        provider.includes("promo") ||
-        provider.includes("discount")
-      ) {
-        domain = "pricing";
-      } else if (provider.includes("inventory") || provider.includes("stock")) {
-        domain = "inventory";
-      } else {
-        domain = "shipping"; // Default domain
-      }
-    }
-
-    if (!provider || provider.trim().length === 0) {
+    if (!provider) {
       return {
         success: false,
         warnings: [
           {
             code: "VALIDATION_ERROR",
-            message: "Provider code cannot be empty",
+            message: "App code is required",
           },
         ],
       };
     }
 
-    // 3. Creating/updating slot in catalog
-    const slot = await slotsRepository.upsertSlot({
-      domain,
-      projectId,
-      provider,
-      capabilities: [],
-      data: {},
-    });
+    // 2. Get plugin manifest to determine supported domains
+    const manifests = pluginManager.listManifests();
+    const descriptor = manifests.find((m) => m.manifest.code === provider);
+
+    console.log("installAppScript", descriptor);
+    if (!descriptor) {
+      return {
+        success: false,
+        warnings: [
+          {
+            code: "PLUGIN_NOT_FOUND",
+            message: `Plugin '${provider}' not found in registry`,
+          },
+        ],
+      };
+    }
+
+    const domains = descriptor.manifest.domains || [];
+    if (domains.length === 0) {
+      return {
+        success: false,
+        warnings: [
+          {
+            code: "NO_DOMAINS",
+            message: `Plugin '${provider}' has no domains specified`,
+          },
+        ],
+      };
+    }
+
+    logger.info(
+      { provider, domains, projectId },
+      `Installing plugin for ${domains.length} domain(s)`
+    );
+
+    // 3. Create/update slot for EACH domain
+    // This allows multi-domain plugins (e.g., novaposhta with shipping + payment)
+    // to share the same provider_config but have separate slots
+    for (const domain of domains) {
+      await slotsRepository.upsertSlot({
+        domain,
+        projectId,
+        provider,
+        capabilities: [],
+        data: {}, // Configuration shared via provider_configs table
+      });
+
+      logger.info(
+        { provider, domain, projectId },
+        `Created/updated slot for domain '${domain}'`
+      );
+    }
 
     return { success: true };
   } catch (error) {

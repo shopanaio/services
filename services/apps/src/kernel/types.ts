@@ -1,23 +1,42 @@
 import type { CoreCustomer, CoreProject } from "@shopana/platform-api";
 import type { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
 import type { BaseKernelServices, ScriptContext as BaseScriptContext, TransactionScript as BaseTransactionScript } from "@shopana/shared-kernel";
+import type { AppsPluginManager } from "@src/infrastructure/plugins/pluginManager";
 
 // Base types for addons
 export type SlotStatus = 'active' | 'inactive' | 'maintenance' | 'deprecated';
 export type SlotEnvironment = 'development' | 'staging' | 'production';
 
+/**
+ * Provider configuration - centralized config shared across multi-domain slots
+ */
+export interface ProviderConfig {
+  id: string;
+  project_id: string;
+  provider: string;
+  data: Record<string, unknown>;
+  version: number;
+  status: SlotStatus;
+  environment: SlotEnvironment;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Slot - lightweight reference to domain + provider combination
+ * References shared provider_config to avoid data duplication
+ */
 export interface Slot {
   id: string;
   project_id: string;
   domain: string;
   provider: string;
-  status: SlotStatus;
-  environment: SlotEnvironment;
+  provider_config_id: string;
   capabilities: string[];
-  version: number;
-  data: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  // Joined data from provider_config (when fetched with JOIN)
+  config?: ProviderConfig;
 }
 
 export interface SlotAssignment {
@@ -86,7 +105,7 @@ export interface ExternalHttpClient {
  */
 export interface AppsKernelServices extends BaseKernelServices {
   readonly slotsRepository: SlotsRepository;
-  readonly pluginManager: any; // AppsPluginManager for plugin operations
+  readonly pluginManager: AppsPluginManager;
 }
 
 /**

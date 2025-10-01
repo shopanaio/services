@@ -60,8 +60,12 @@ const AppsService: ServiceSchema<any> = {
           throw new Error("projectId is required in params");
         }
 
+        console.log(`[apps.execute] 🔵 Handler called: domain=${domain}, operation=${operation}, provider=${provider || 'ALL'}, projectId=${projectId}`);
+
         const { slotsRepository } = this.kernel.getServices();
         const slots = await slotsRepository.findAllSlots(projectId, domain);
+
+        console.log(`[apps.execute] 📋 Found ${slots.length} slots for domain=${domain}:`, slots.map(s => ({ provider: s.provider, status: s.config?.status })));
         const targetSlots = provider
           ? slots.filter((s: any) => s.provider === provider)
           : slots;
@@ -75,6 +79,7 @@ const AppsService: ServiceSchema<any> = {
 
         // Target a single provider if specified
         if (provider) {
+          console.log(`[apps.execute] 🎯 Targeting single provider: ${provider}`);
           const s = targetSlots[0];
           if (!s) {
             throw new Error(
@@ -85,18 +90,23 @@ const AppsService: ServiceSchema<any> = {
             domain,
             operationId,
             pluginCode: s.provider,
-            rawConfig: (s.data ?? {}) as any,
+            rawConfig: (s.config?.data ?? {}) as any,
             projectId,
             input: params,
           });
+          console.log(`[apps.execute] ✅ Single provider result:`, data);
           return { data, warnings };
         }
 
+        console.log(`[apps.execute] 🔄 Executing on ALL ${targetSlots.length} providers`);
         // Execute on all providers for the domain
         const exec = await this.pluginManager.executeOnAll({
           domain,
           operationId,
-          slots: targetSlots as any,
+          slots: targetSlots.map(s => ({
+            provider: s.provider,
+            data: s.config?.data ?? {},
+          })) as any,
           projectId,
           input: params,
         });
@@ -110,6 +120,7 @@ const AppsService: ServiceSchema<any> = {
         );
 
         const data = ([] as any[]).concat(...exec.results);
+        console.log(`[apps.execute] ✅ Returning ${data.length} items from ${exec.results.length} providers, ${warnings.length} warnings`);
         return { data, warnings };
       },
     },

@@ -35,10 +35,9 @@ export const getInstalledAppsScript: TransactionScript<
       projectID: projectId,
       appCode: slot.provider,
       domain: slot.domain, // Include domain information
-      baseURL: String((slot.data as any)?.baseUrl ?? ""),
-      // enabled: slot.status === "active", // Use actual slot status
-      enabled: true,
-      meta: slot.data as Record<string, unknown> | null,
+      baseURL: String((slot.config?.data as any)?.baseUrl ?? ""),
+      enabled: slot.config?.status === "active",
+      meta: slot.config?.data as Record<string, unknown> | null,
     }));
 
     // 3. Logging for debugging

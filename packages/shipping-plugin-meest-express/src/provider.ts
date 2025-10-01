@@ -1,5 +1,7 @@
-import { shipping as ShippingSDK } from "@shopana/plugin-sdk";
-// Payment-related methods are no longer exposed from shipping provider
+import {
+  shipping as ShippingSDK,
+  payment as PaymentSDK,
+} from "@shopana/plugin-sdk";
 import { MeestExpressClient } from "./client";
 import { configSchema } from "./index";
 import { z } from "zod";
@@ -53,5 +55,27 @@ export class MeestExpressProvider implements ShippingSDK.ShippingProvider {
     },
   } as const;
 
-  // No payment listing here; use dedicated payment plugin instead
+  payment = {
+    list: async (
+      _input?: PaymentSDK.ListPaymentMethodsInput
+    ): Promise<PaymentSDK.PaymentMethod[]> => {
+      const methods: PaymentSDK.PaymentMethod[] = [
+        {
+          code: "cod_cash",
+          provider: "meest",
+          flow: PaymentSDK.PaymentFlow.ON_DELIVERY,
+          metadata: {},
+          constraints: {
+            shippingMethodCodes: [
+              "meest:warehouse_warehouse",
+              "meest:warehouse_doors",
+              "meest:doors_warehouse",
+              "meest:doors_doors",
+            ],
+          },
+        },
+      ];
+      return methods;
+    },
+  } as const;
 }
