@@ -48,10 +48,7 @@ export class NovaPoshtaProvider implements ShippingSDK.ShippingProvider {
           flow: PaymentSDK.PaymentFlow.ON_DELIVERY,
           metadata: {},
           constraints: {
-            shippingMethodCodes: [
-              "novaposhta:warehouse_warehouse",
-              "novaposhta:warehouse_doors",
-            ],
+            shippingMethodCodes: ["warehouse_warehouse", "warehouse_doors"],
           },
         },
       ];

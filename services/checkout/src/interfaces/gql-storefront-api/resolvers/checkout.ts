@@ -18,6 +18,7 @@ import {
   checkoutPromoCodeRemove,
   checkoutDeliveryAddressesUpdate,
   checkoutDeliveryMethodUpdate,
+  checkoutPaymentMethodUpdate,
   // CheckoutDeliveryGroup resolvers
   selectedDeliveryMethod,
   estimatedCost,
@@ -57,6 +58,7 @@ const checkoutResolvers = {
     checkoutPromoCodeAdd,
     checkoutPromoCodeRemove,
     checkoutDeliveryAddressesUpdate,
+    checkoutPaymentMethodUpdate,
     checkoutDeliveryMethodUpdate,
   },
 } as any;

@@ -27,11 +27,13 @@ export const checkoutPaymentMethodUpdate = async (
       customer: ctx.customer,
       user: ctx.user,
     });
+
     const checkout = await checkoutReadRepository.findById(dto.checkoutId);
     if (!checkout) {
-      return null;
+      throw new Error("Checkout not found");
     }
 
+    console.log("checkout", checkout);
     return mapCheckoutReadToApi(checkout);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);

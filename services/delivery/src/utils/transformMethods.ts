@@ -1,16 +1,11 @@
 import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 
 /**
- * Transforms delivery methods by adding provider prefix to method code.
+ * Returns shipping methods unchanged preserving separation of provider and code.
  *
- * Changes code format from "warehouse_warehouse" to "novaposhta:warehouse_warehouse"
- *
- * @param methods - Array of delivery methods
- * @returns Array of methods with transformed codes
+ * We keep `method.code` as the pure method identifier (e.g. "doors_doors")
+ * and expose provider separately via `method.provider`.
  */
 export function transformMethodCodes(methods: ShippingMethod[]): ShippingMethod[] {
-  return methods.map(method => ({
-    ...method,
-    code: `${method.provider}:${method.code}`
-  }));
+  return methods;
 }

@@ -152,7 +152,8 @@ export class CheckoutWriteRepository {
             id: g.id,
             project_id: input.metadata.projectId as any,
             checkout_id: input.metadata.aggregateId,
-            selected_delivery_method: null,
+            selected_delivery_method_code: null,
+            selected_delivery_method_provider: null,
             line_item_ids: knex.raw("ARRAY[]::uuid[]"),
             created_at: input.metadata.now,
             updated_at: input.metadata.now,
@@ -172,6 +173,7 @@ export class CheckoutWriteRepository {
         .insert(
           methods.map(({ groupId, method }) => ({
             code: method.code,
+            provider: method.provider,
             project_id: input.metadata.projectId as any,
             delivery_group_id: groupId,
             delivery_method_type: method.deliveryMethodType,
@@ -390,7 +392,8 @@ export class CheckoutWriteRepository {
       .table("checkout_delivery_groups")
       .where("id", deliveryGroupId)
       .update({
-        selected_delivery_method: deliveryMethod.code,
+        selected_delivery_method_code: deliveryMethod.code,
+        selected_delivery_method_provider: deliveryMethod.provider,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -481,9 +484,8 @@ export class CheckoutWriteRepository {
         metadata: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.metadata ?? {})]),
         constraints: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.constraints ?? {})]),
       })
-      .onConflict(["checkout_id", "code"])
+      .onConflict(["checkout_id", "code", "provider"])
       .merge({
-        provider: paymentMethod.provider,
         flow: paymentMethod.flow,
         metadata: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.metadata ?? {})]),
       })
@@ -498,10 +500,12 @@ export class CheckoutWriteRepository {
         checkout_id: checkoutId,
         project_id: projectId as any,
         code: paymentMethod.code,
+        provider: paymentMethod.provider,
       })
       .onConflict(["checkout_id"]) // PK is checkout_id
       .merge({
         code: paymentMethod.code,
+        provider: paymentMethod.provider,
       })
       .toString();
     statements.push(upsertSelectedPaymentMethodSql);

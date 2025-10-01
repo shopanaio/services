@@ -13,7 +13,10 @@ import type {
   CheckoutPromoCode,
   CheckoutPaymentMethod,
 } from "@src/application/read/checkoutReadRepository";
-import { PaymentFlow, type PaymentMethodConstraints } from "@shopana/plugin-sdk/payment";
+import {
+  PaymentFlow,
+  type PaymentMethodConstraints,
+} from "@shopana/plugin-sdk/payment";
 
 export class CheckoutReadRepository implements CheckoutReadPort {
   private readonly execute: SQLExecutor;
@@ -141,7 +144,8 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         "id",
         "project_id",
         "checkout_id",
-        "selected_delivery_method",
+        "selected_delivery_method_code",
+        "selected_delivery_method_provider",
         knex.raw("COALESCE(line_item_ids::text[], '{}') as line_item_ids"),
         "created_at",
         "updated_at"
@@ -158,7 +162,8 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         id: group.id,
         projectId: group.project_id,
         checkoutId: group.checkout_id,
-        selectedDeliveryMethod: group.selected_delivery_method,
+        selectedDeliveryMethod: group.selected_delivery_method_code,
+        selectedDeliveryMethodProvider: group.selected_delivery_method_provider,
         lineItemIds: group.line_item_ids,
         createdAt: group.created_at,
         updatedAt: group.updated_at,
@@ -175,13 +180,14 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       .join("checkout_delivery_groups as dg", "dg.id", "dm.delivery_group_id")
       .select(
         "dm.code",
+        "dm.provider",
         "dm.project_id",
         "dm.delivery_group_id",
         "dm.delivery_method_type",
         "dm.payment_model"
       )
       .where("dg.checkout_id", checkoutId)
-      .orderBy("dm.code", "asc")
+      .orderBy(["dm.provider", "dm.code"])
       .toString();
 
     const result = await this.execute.query<CheckoutDeliveryMethodRow>(
@@ -190,7 +196,9 @@ export class CheckoutReadRepository implements CheckoutReadPort {
     return result.rows;
   }
 
-  async findPaymentMethods(checkoutId: string): Promise<CheckoutPaymentMethod[]> {
+  async findPaymentMethods(
+    checkoutId: string
+  ): Promise<CheckoutPaymentMethod[]> {
     const q = knex
       .withSchema("platform")
       .table("checkout_payment_methods")
@@ -201,10 +209,15 @@ export class CheckoutReadRepository implements CheckoutReadPort {
 
     const result = await this.execute.query<any>(rawSql(q));
     return result.rows.map((row): CheckoutPaymentMethod => {
-      const parseConstraints = (c: Record<string, unknown> | null): PaymentMethodConstraints | null => {
-        if (!c) return null;
+      const parseConstraints = (
+        c: PaymentMethodConstraints | null
+      ): PaymentMethodConstraints | null => {
+        if (!c) {
+          return null;
+        }
+        const codes = c.shippingMethodCodes;
         return {
-          shippingMethodCodes: Array.isArray(c.shippingMethodCodes) ? c.shippingMethodCodes : undefined,
+          shippingMethodCodes: Array.isArray(codes) ? codes : [],
         };
       };
 
@@ -218,16 +231,18 @@ export class CheckoutReadRepository implements CheckoutReadPort {
     });
   }
 
-  async findSelectedPaymentMethod(checkoutId: string): Promise<{ code: string } | null> {
+  async findSelectedPaymentMethod(
+    checkoutId: string
+  ): Promise<{ code: string; provider: string } | null> {
     const q = knex
       .withSchema("platform")
       .table("checkout_selected_payment_methods")
-      .select("code")
+      .select("code", "provider")
       .where({ checkout_id: checkoutId })
       .toString();
 
     const result = await this.execute.query<any>(rawSql(q));
     if (result.rows.length === 0) return null;
-    return { code: result.rows[0].code };
+    return { code: result.rows[0].code, provider: result.rows[0].provider };
   }
 }

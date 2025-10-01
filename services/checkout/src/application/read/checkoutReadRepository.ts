@@ -5,7 +5,10 @@ import {
 import { Money } from "@shopana/shared-money";
 import { CheckoutState } from "@src/domain/checkout/types";
 import { CheckoutReadModelAdapter } from "./checkoutReadModelAdapter";
-import type { PaymentFlow, PaymentMethodConstraints } from "@shopana/plugin-sdk/payment";
+import type {
+  PaymentFlow,
+  PaymentMethodConstraints,
+} from "@shopana/plugin-sdk/payment";
 
 export type CheckoutDeliveryAddressRow = {
   id: string;
@@ -40,7 +43,8 @@ export type CheckoutDeliveryGroupRow = {
   id: string;
   project_id: string;
   checkout_id: string;
-  selected_delivery_method: string | null;
+  selected_delivery_method_code: string | null;
+  selected_delivery_method_provider: string | null;
   line_item_ids: string[];
   created_at: Date;
   updated_at: Date;
@@ -48,6 +52,7 @@ export type CheckoutDeliveryGroupRow = {
 
 export type CheckoutDeliveryMethodRow = {
   code: string;
+  provider: string;
   project_id: string;
   delivery_group_id: string;
   delivery_method_type: string;
@@ -101,7 +106,8 @@ export interface CheckoutReadPort {
   findPaymentMethods(checkoutId: string): Promise<CheckoutPaymentMethod[]>;
   findSelectedPaymentMethod(
     checkoutId: string
-  ): Promise<{ code: string } | null>;
+    // AI: this should be typed with the correct interface
+  ): Promise<{ code: string; provider: string } | null>;
 }
 
 export type CheckoutDeliveryAddress = {
@@ -138,6 +144,7 @@ export type CheckoutDeliveryGroup = {
   projectId: string;
   checkoutId: string;
   selectedDeliveryMethod: string | null;
+  selectedDeliveryMethodProvider?: string | null;
   lineItemIds: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -149,6 +156,7 @@ export type CheckoutDeliveryMethod = {
   deliveryGroupId: string;
   deliveryMethodType: string;
   paymentModel: string;
+  provider: string;
 };
 
 export type CheckoutReadView = {
@@ -173,7 +181,6 @@ export type CheckoutReadView = {
   grandTotal: Money;
   status: string;
   expiresAt: Date | null;
-  projectedVersion: bigint;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
@@ -185,7 +192,7 @@ export type CheckoutReadView = {
   // Payment aggregate (read from checkout_payment_methods)
   payment: {
     methods: CheckoutPaymentMethod[];
-    selectedMethod: { code: string } | null;
+    selectedMethod: { code: string; provider: string } | null;
     payableAmount: Money; // currently equals grandTotal minus carrier direct if applicable (not available yet)
   } | null;
   // Aggregated data
@@ -261,6 +268,7 @@ export class CheckoutReadRepository {
         deliveryGroupId: method.delivery_group_id,
         deliveryMethodType: method.delivery_method_type,
         paymentModel: method.payment_model,
+        provider: method.provider,
       })
     );
 
@@ -332,7 +340,12 @@ export class CheckoutReadRepository {
       totalQuantity,
       payment: {
         methods: paymentMethods,
-        selectedMethod: selectedPayment,
+        selectedMethod: selectedPayment
+          ? {
+              code: selectedPayment.code,
+              provider: selectedPayment.provider,
+            }
+          : null,
         payableAmount: Money.fromMinor(row.grand_total, row.currency_code),
       },
     };

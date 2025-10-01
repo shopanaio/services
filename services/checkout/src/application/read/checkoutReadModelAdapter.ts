@@ -33,7 +33,7 @@ export class CheckoutReadModelAdapter {
       number: null, // Not available in read model
       status: readView.status,
       expiresAt: readView.expiresAt,
-      version: Number(readView.projectedVersion), // Convert bigint to number
+      version: 1,
       metadata: readView.metadata || {},
       deletedAt: readView.deletedAt,
       customerEmail: readView.customerEmail,
@@ -47,6 +47,7 @@ export class CheckoutReadModelAdapter {
       shippingTotal: readView.shippingTotal,
       linesRecord: this.mapLineItemsToLinesRecord(readView.lineItems),
       appliedDiscounts: this.mapPromoCodesToAppliedDiscounts(readView.appliedPromoCodes),
+      payment: this.mapPaymentAggregate(readView),
     };
   }
 
@@ -135,9 +136,34 @@ export class CheckoutReadModelAdapter {
       deliveryMethodType: method.deliveryMethodType as DeliveryMethodType,
       shippingPaymentModel: method.paymentModel as ShippingPaymentModel,
       provider: {
-        code: method.code, // Use code as provider code, may need adjustment
+        code: method.provider,
         data: {}, // Not available in read model
       },
+    };
+  }
+
+  /**
+   * Maps payment aggregate from read model to domain model
+   * Returns null if payment data is not available.
+   */
+  private static mapPaymentAggregate(readView: CheckoutReadView): CheckoutState["payment"] {
+    if (!readView.payment) {
+      return null;
+    }
+
+    const methods = (readView.payment.methods || []).map((m) => ({
+      code: m.code,
+      provider: m.provider,
+      flow: m.flow,
+      metadata: m.metadata ?? null,
+    }));
+
+    return {
+      methods,
+      selectedMethod: readView.payment.selectedMethod
+        ? readView.payment.selectedMethod.code
+        : null,
+      payableAmount: readView.payment.payableAmount,
     };
   }
 
