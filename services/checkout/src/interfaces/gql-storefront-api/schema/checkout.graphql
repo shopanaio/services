@@ -48,6 +48,21 @@ type CheckoutCustomerIdentity {
   Phone number of the customer.
   """
   phone: String
+
+  """
+  First name of the customer.
+  """
+  firstName: String
+
+  """
+  Last name of the customer.
+  """
+  lastName: String
+
+  """
+  Middle name of the customer.
+  """
+  middleName: String
 }
 
 """

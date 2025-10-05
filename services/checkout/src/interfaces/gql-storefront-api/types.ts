@@ -111,6 +111,12 @@ export type ApiCheckoutCustomerIdentity = {
   customer: Maybe<ApiUser>;
   /** Customer email address associated with the checkout. */
   email: Maybe<Scalars['Email']['output']>;
+  /** First name of the customer. */
+  firstName: Maybe<Scalars['String']['output']>;
+  /** Last name of the customer. */
+  lastName: Maybe<Scalars['String']['output']>;
+  /** Middle name of the customer. */
+  middleName: Maybe<Scalars['String']['output']>;
   /** Phone number of the customer. */
   phone: Maybe<Scalars['String']['output']>;
 };
@@ -272,6 +278,11 @@ export enum ApiCheckoutDeliveryMethodType {
 export type ApiCheckoutDeliveryMethodUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /**
+   * Arbitrary customer-provided data for the selected delivery method.
+   * Will be stored in checkout_delivery_methods.customer_input.
+   */
+  data: InputMaybe<Scalars['JSON']['input']>;
   /** Identifier of the delivery group for which the delivery method is selected. */
   deliveryGroupId: Scalars['ID']['input'];
   /** Code of the delivery method available for this checkout/address. */
@@ -633,6 +644,11 @@ export type ApiCheckoutPaymentMethodConstraints = {
 export type ApiCheckoutPaymentMethodUpdateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
+  /**
+   * Arbitrary customer-provided data for the selected payment method.
+   * Will be stored in checkout_payment_methods.customer_input.
+   */
+  data: InputMaybe<Scalars['JSON']['input']>;
   /** Code of the payment method available for this checkout. */
   paymentMethodCode: Scalars['String']['input'];
 };
@@ -1857,6 +1873,9 @@ export type ApiCheckoutCustomerIdentityResolvers<ContextType = GraphQLContext, P
   countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
   customer: Resolver<Maybe<ApiResolversTypes['User']>, ParentType, ContextType>;
   email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
+  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  middleName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   phone: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

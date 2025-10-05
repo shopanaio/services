@@ -45,6 +45,9 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
         : null,
       email: read.customerEmail,
       phone: read.customerPhoneE164,
+      firstName: read.customerFirstName ?? null,
+      lastName: read.customerLastName ?? null,
+      middleName: read.customerMiddleName ?? null,
     },
     customerNote: read.customerNote,
     cost: {

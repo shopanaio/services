@@ -83,6 +83,15 @@ type CheckoutCustomerIdentity {
 
   """Phone number of the customer."""
   phone: String
+
+  """First name of the customer."""
+  firstName: String
+
+  """Last name of the customer."""
+  lastName: String
+
+  """Middle name of the customer."""
+  middleName: String
 }
 
 """A checkout with multiple items."""
@@ -687,6 +696,12 @@ input CheckoutDeliveryMethodUpdateInput {
   Identifier of the delivery group for which the delivery method is selected.
   """
   deliveryGroupId: ID!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON
 }
 
 input CheckoutDeliveryAddressInput {
@@ -820,6 +835,12 @@ input CheckoutPaymentMethodUpdateInput {
 
   """Code of the payment method available for this checkout."""
   paymentMethodCode: String!
+
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON
 }
 
 """Currency codes according to ISO 4217"""

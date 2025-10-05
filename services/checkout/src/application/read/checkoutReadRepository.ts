@@ -76,6 +76,9 @@ export type CheckoutReadPortRow = {
   external_source: string | null;
   external_id: string | null;
   customer_id: string | null;
+  customer_first_name: string | null;
+  customer_last_name: string | null;
+  customer_middle_name: string | null;
   customer_email: string | null;
   customer_phone_e164: string | null;
   customer_country_code: string | null; // kept for compatibility; now null
@@ -168,6 +171,9 @@ export type CheckoutReadView = {
   externalSource: string | null;
   externalId: string | null;
   customerId: string | null;
+  customerFirstName: string | null;
+  customerLastName: string | null;
+  customerMiddleName: string | null;
   customerEmail: string | null;
   customerPhoneE164: string | null;
   customerCountryCode: string | null;
@@ -315,6 +321,9 @@ export class CheckoutReadRepository {
       externalSource: row.external_source,
       externalId: row.external_id,
       customerId: row.customer_id,
+      customerFirstName: row.customer_first_name,
+      customerLastName: row.customer_last_name,
+      customerMiddleName: row.customer_middle_name,
       customerEmail: row.customer_email,
       customerPhoneE164: row.customer_phone_e164,
       customerCountryCode: row.customer_country_code,
