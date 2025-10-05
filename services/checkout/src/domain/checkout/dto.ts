@@ -50,6 +50,7 @@ export type CheckoutCreatedPayload = Readonly<{
     flow: PaymentFlow;
     metadata: Record<string, unknown> | null;
     constraints: Record<string, unknown> | null;
+    customerInput?: Record<string, unknown> | null;
   }>;
 }>;
 
@@ -233,6 +234,7 @@ export type CheckoutDeliveryGroupMethodUpdatedPayload = Readonly<{
     provider: string;
     deliveryMethodType: DeliveryMethodType;
     shippingPaymentModel: ShippingPaymentModel;
+    customerInput?: Record<string, unknown> | null;
     estimatedDeliveryDays?: number | null;
     shippingCost?: {
       amount: Money;
@@ -266,6 +268,7 @@ export type CheckoutPaymentMethodUpdatedPayload = Readonly<{
     flow: PaymentFlow;
     metadata: Record<string, unknown> | null;
     constraints?: Record<string, unknown> | null;
+    customerInput?: Record<string, unknown> | null;
   };
   payableAmount: Money;
 }>;

@@ -181,6 +181,12 @@ input CheckoutDeliveryMethodUpdateInput {
   Identifier of the delivery group for which the delivery method is selected.
   """
   deliveryGroupId: ID!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON
 }
 
 input CheckoutDeliveryAddressInput {

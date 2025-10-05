@@ -70,11 +70,13 @@ export type CheckoutDeliveryMethodUpdateInput = {
   checkoutId: string;
   shippingMethodCode: string;
   deliveryGroupId: string;
+  data?: Record<string, unknown>;
 } & CheckoutContext;
 
 export type CheckoutPaymentMethodUpdateInput = {
   checkoutId: string;
   paymentMethodCode: string;
+  data?: Record<string, unknown>;
 } & CheckoutContext;
 
 export type CheckoutDeliveryAddressAddInput = {

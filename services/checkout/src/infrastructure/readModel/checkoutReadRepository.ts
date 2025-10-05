@@ -28,35 +28,40 @@ export class CheckoutReadRepository implements CheckoutReadPort {
   async findById(id: string): Promise<CheckoutReadPortRow | null> {
     const q = knex
       .withSchema("platform")
-      .table("checkouts")
-      .select(
-        "id",
-        "project_id",
-        "api_key_id",
-        "admin_id",
-        "sales_channel",
-        "external_source",
-        "external_id",
-        "customer_id",
-        "customer_email",
-        "customer_phone_e164",
-        "customer_country_code",
-        "customer_note",
-        "locale_code",
-        "currency_code",
-        "subtotal",
-        "shipping_total",
-        "discount_total",
-        "tax_total",
-        "grand_total",
-        "status",
-        "expires_at",
-        "metadata",
-        "created_at",
-        "updated_at",
-        "deleted_at"
+      .table("checkouts as c")
+      .leftJoin(
+        "checkout_customer_identities as ci",
+        "ci.id",
+        "c.id",
       )
-      .where({ id })
+      .select(
+        "c.id",
+        "c.project_id",
+        "c.api_key_id",
+        "c.admin_id",
+        "c.sales_channel",
+        "c.external_source",
+        "c.external_id",
+        knex.raw("ci.customer_id as customer_id"),
+        knex.raw("ci.email as customer_email"),
+        knex.raw("ci.phone_e164 as customer_phone_e164"),
+        knex.raw("ci.country_code as customer_country_code"),
+        "c.customer_note",
+        "c.locale_code",
+        "c.currency_code",
+        "c.subtotal",
+        "c.shipping_total",
+        "c.discount_total",
+        "c.tax_total",
+        "c.grand_total",
+        "c.status",
+        "c.expires_at",
+        "c.metadata",
+        "c.created_at",
+        "c.updated_at",
+        "c.deleted_at",
+      )
+      .where({ "c.id": id })
       .toString();
 
     const row = await singleOrNull(
@@ -72,6 +77,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
       .withSchema("platform")
       .table("checkout_delivery_addresses as da")
       .join("checkout_delivery_groups as dg", "dg.id", "da.delivery_group_id")
+      .leftJoin("checkout_recipients as cr", "cr.id", "da.recipient_id")
       .select(
         "da.id",
         "da.delivery_group_id",
@@ -81,13 +87,13 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         "da.country_code",
         "da.province_code",
         "da.postal_code",
-        "da.first_name",
-        "da.last_name",
-        "da.email",
-        "da.phone",
+        knex.raw("cr.first_name as first_name"),
+        knex.raw("cr.last_name as last_name"),
+        knex.raw("cr.email as email"),
+        knex.raw("cr.phone as phone"),
         "da.metadata",
         "da.created_at",
-        "da.updated_at"
+        "da.updated_at",
       )
       .where("dg.checkout_id", checkoutId)
       .orderBy("da.created_at", "asc")
@@ -202,7 +208,13 @@ export class CheckoutReadRepository implements CheckoutReadPort {
     const q = knex
       .withSchema("platform")
       .table("checkout_payment_methods")
-      .select("code", "provider", "flow", "metadata", "constraints")
+      .select(
+        "code",
+        "provider",
+        "flow",
+        "metadata",
+        knex.raw("customer_input as constraints"),
+      )
       .where({ checkout_id: checkoutId })
       .orderBy(["provider", "code"])
       .toString();

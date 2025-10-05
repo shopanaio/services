@@ -1,4 +1,3 @@
-import { DeliveryMethodType } from "@shopana/plugin-sdk/shipping";
 import { UseCase } from "@src/application/usecases/useCase";
 import type { CheckoutDeliveryGroupMethodUpdatedDto } from "@src/domain/checkout/dto";
 import type { CheckoutDeliveryMethodUpdateInput } from "@src/application/checkout/types";
@@ -42,6 +41,7 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<
           provider: method.provider.code,
           deliveryMethodType: method.deliveryMethodType,
           shippingPaymentModel: method.shippingPaymentModel,
+          customerInput: businessInput.data ?? null,
           estimatedDeliveryDays: null,
           shippingCost: null,
         },

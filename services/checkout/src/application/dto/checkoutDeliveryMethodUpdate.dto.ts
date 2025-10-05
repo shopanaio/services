@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, MaxLength } from "class-validator";
+import { IsString, IsOptional, MinLength, MaxLength, IsObject } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 
 export class CheckoutDeliveryMethodUpdateInput {
@@ -21,4 +21,8 @@ export class CheckoutDeliveryMethodUpdateInput {
   @IsString({ message: "Idempotency key must be a string" })
   @MinLength(1, { message: "Idempotency key cannot be empty" })
   idempotencyKey?: string;
+
+  @IsOptional()
+  @IsObject({ message: "data must be JSON object" })
+  data?: Record<string, unknown>;
 }

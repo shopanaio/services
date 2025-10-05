@@ -93,6 +93,12 @@ input CheckoutPaymentMethodUpdateInput {
   Code of the payment method available for this checkout.
   """
   paymentMethodCode: String!
+
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON
 }
 
 extend type Checkout {

@@ -19,10 +19,10 @@ export type CheckoutDeliveryAddressRow = {
   country_code: string;
   province_code: string | null;
   postal_code: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  phone: string | null;
+  first_name: string | null; // from checkout_recipients
+  last_name: string | null;  // from checkout_recipients
+  email: string | null;      // from checkout_recipients
+  phone: string | null;      // from checkout_recipients
   metadata: Record<string, unknown> | null;
   created_at: Date;
   updated_at: Date;
@@ -78,7 +78,7 @@ export type CheckoutReadPortRow = {
   customer_id: string | null;
   customer_email: string | null;
   customer_phone_e164: string | null;
-  customer_country_code: string | null;
+  customer_country_code: string | null; // kept for compatibility; now null
   customer_note: string | null;
   locale_code: string | null;
   currency_code: string;

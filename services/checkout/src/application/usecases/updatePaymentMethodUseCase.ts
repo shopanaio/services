@@ -38,6 +38,7 @@ export class UpdatePaymentMethodUseCase extends UseCase<
           provider: availableMethod.provider,
           flow: availableMethod.flow,
           metadata: availableMethod.metadata ?? null,
+          customerInput: businessInput.data ?? null,
         },
         payableAmount: state.payment.payableAmount,
       },

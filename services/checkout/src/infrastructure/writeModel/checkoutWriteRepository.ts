@@ -40,19 +40,36 @@ export class CheckoutWriteRepository {
    * Updates customer identity fields on checkout.
    */
   async updateCustomerIdentity(input: CheckoutCustomerIdentityUpdatedDto): Promise<void> {
-    const q = knex
+    const checkoutId = input.metadata.aggregateId;
+    const projectId = input.metadata.projectId;
+
+    // Upsert into checkout_customer_identities using checkoutId as identity id
+    const upsertIdentitySql = knex
       .withSchema("platform")
-      .table("checkouts")
-      .where("id", input.metadata.aggregateId)
-      .update({
-        customer_email: input.data.email ?? null,
+      .table("checkout_customer_identities")
+      .insert({
+        id: checkoutId,
+        project_id: projectId as any,
         customer_id: (input.data.customerId as any) ?? null,
-        customer_phone_e164: input.data.phone ?? null,
-        customer_country_code: (input.data.countryCode as any) ?? null,
+        email: input.data.email ?? null,
+        phone_e164: input.data.phone ?? null,
+        country_code: (input.data.countryCode as any) ?? null,
+        // name fields are optional and currently not provided by DTO
+        updated_at: input.metadata.now,
+        created_at: input.metadata.now,
+        metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
+      })
+      .onConflict(["id"]).merge({
+        project_id: projectId as any,
+        customer_id: (input.data.customerId as any) ?? null,
+        email: input.data.email ?? null,
+        phone_e164: input.data.phone ?? null,
+        country_code: (input.data.countryCode as any) ?? null,
         updated_at: knex.fn.now(),
       })
       .toString();
-    await this.run([q]);
+
+    await this.run([upsertIdentitySql]);
   }
 
   /**
@@ -120,10 +137,6 @@ export class CheckoutWriteRepository {
         sales_channel: input.data.salesChannel,
         external_source: input.data.externalSource,
         external_id: input.data.externalId,
-        customer_id: null,
-        customer_email: null,
-        customer_phone_e164: null,
-        customer_country_code: null,
         customer_note: null,
         locale_code: input.data.localeCode as any,
         currency_code: input.data.currencyCode,
@@ -198,7 +211,9 @@ export class CheckoutWriteRepository {
             provider: method.provider,
             flow: method.flow,
             metadata: knex.raw("?::jsonb", [JSON.stringify(method.metadata ?? {})]),
-            constraints: knex.raw("?::jsonb", [JSON.stringify(method.constraints ?? {})]),
+            customer_input: knex.raw("?::jsonb", [
+              JSON.stringify((method as any).constraints ?? (method as any).customerInput ?? {}),
+            ]),
           })),
         )
         .toString();
@@ -312,36 +327,53 @@ export class CheckoutWriteRepository {
 
     const upsertAddressSql = knex
       .withSchema("platform")
+      .table("checkout_recipients")
+      .insert({
+        id: address.id, // 1:1 with address
+        project_id: input.metadata.projectId as any,
+        first_name: address.firstName ?? null,
+        last_name: address.lastName ?? null,
+        email: address.email ?? null,
+        phone: address.phone ?? null,
+        metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
+        created_at: input.metadata.now,
+        updated_at: input.metadata.now,
+      })
+      .onConflict(["id"]).merge({
+        first_name: address.firstName ?? null,
+        last_name: address.lastName ?? null,
+        email: address.email ?? null,
+        phone: address.phone ?? null,
+        updated_at: knex.fn.now(),
+      })
+      .toString();
+
+    const upsertDeliveryAddressSql = knex
+      .withSchema("platform")
       .table("checkout_delivery_addresses")
       .insert({
         id: address.id,
         delivery_group_id: deliveryGroupId,
+        recipient_id: address.id,
         address1: address.address1,
-        address2: address.address2,
+        address2: address.address2 ?? null,
         city: address.city,
         country_code: address.countryCode,
-        province_code: address.provinceCode,
-        postal_code: address.postalCode,
-        first_name: address.firstName,
-        last_name: address.lastName,
-        email: address.email,
-        phone: address.phone,
+        province_code: address.provinceCode ?? null,
+        postal_code: address.postalCode ?? null,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
         created_at: input.metadata.now,
         updated_at: input.metadata.now,
       })
       .onConflict("id")
       .merge({
+        recipient_id: address.id,
         address1: address.address1,
-        address2: address.address2,
+        address2: address.address2 ?? null,
         city: address.city,
         country_code: address.countryCode,
-        province_code: address.provinceCode,
-        postal_code: address.postalCode,
-        first_name: address.firstName,
-        last_name: address.lastName,
-        email: address.email,
-        phone: address.phone,
+        province_code: address.provinceCode ?? null,
+        postal_code: address.postalCode ?? null,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
         updated_at: knex.fn.now(),
       })
@@ -354,7 +386,7 @@ export class CheckoutWriteRepository {
       .update({ updated_at: knex.fn.now() })
       .toString();
 
-    await this.run([upsertAddressSql, updateGroupSql]);
+    await this.run([upsertAddressSql, upsertDeliveryAddressSql, updateGroupSql]);
   }
 
   /**
@@ -362,6 +394,13 @@ export class CheckoutWriteRepository {
    */
   async clearDeliveryGroupAddress(input: CheckoutDeliveryGroupAddressClearedDto): Promise<void> {
     const { deliveryGroupId, addressId } = input.data;
+
+    const deleteRecipientsSql = knex
+      .raw(
+        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_addresses WHERE id = ? AND delivery_group_id = ?)`,
+        [addressId, deliveryGroupId],
+      )
+      .toString();
 
     const deleteAddressSql = knex
       .withSchema("platform")
@@ -377,7 +416,7 @@ export class CheckoutWriteRepository {
       .update({ updated_at: knex.fn.now() })
       .toString();
 
-    await this.run([deleteAddressSql, updateGroupSql]);
+    await this.run([deleteRecipientsSql, deleteAddressSql, updateGroupSql]);
   }
 
   /**
@@ -399,6 +438,27 @@ export class CheckoutWriteRepository {
       .toString();
 
     const stmts = [updateGroupSql];
+
+    // Persist customer_input for selected delivery method if provided
+    if (deliveryMethod.customerInput != null) {
+      const upsertDeliveryMethodSql = knex
+        .withSchema("platform")
+        .table("checkout_delivery_methods")
+        .insert({
+          code: deliveryMethod.code,
+          provider: deliveryMethod.provider,
+          project_id: input.metadata.projectId as any,
+          delivery_group_id: deliveryGroupId,
+          delivery_method_type: deliveryMethod.deliveryMethodType,
+          payment_model: deliveryMethod.shippingPaymentModel,
+          customer_input: knex.raw("?::jsonb", [JSON.stringify(deliveryMethod.customerInput ?? {})]),
+        })
+        .onConflict(["code", "provider", "delivery_group_id"]).merge({
+          customer_input: knex.raw("?::jsonb", [JSON.stringify(deliveryMethod.customerInput ?? {})]),
+        })
+        .toString();
+      stmts.push(upsertDeliveryMethodSql);
+    }
 
     if (shippingTotal !== undefined) {
       const updateCheckoutSql = knex
@@ -426,6 +486,13 @@ export class CheckoutWriteRepository {
     const { deliveryGroupId, shippingTotal } = input.data;
     const checkoutId = input.metadata.aggregateId;
 
+    const deleteRecipientsSql = knex
+      .raw(
+        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_addresses WHERE delivery_group_id = ?)`,
+        [deliveryGroupId],
+      )
+      .toString();
+
     const deleteAddressSql = knex
       .withSchema("platform")
       .table("checkout_delivery_addresses")
@@ -440,7 +507,7 @@ export class CheckoutWriteRepository {
       .del()
       .toString();
 
-    const stmts = [deleteAddressSql, deleteGroupSql];
+    const stmts = [deleteRecipientsSql, deleteAddressSql, deleteGroupSql];
 
     if (shippingTotal !== undefined) {
       const updateCheckoutSql = knex
@@ -482,12 +549,17 @@ export class CheckoutWriteRepository {
         provider: paymentMethod.provider,
         flow: paymentMethod.flow,
         metadata: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.metadata ?? {})]),
-        constraints: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.constraints ?? {})]),
+        customer_input: knex.raw("?::jsonb", [
+          JSON.stringify((paymentMethod as any).customerInput ?? {}),
+        ]),
       })
       .onConflict(["checkout_id", "code", "provider"])
       .merge({
         flow: paymentMethod.flow,
         metadata: knex.raw("?::jsonb", [JSON.stringify(paymentMethod.metadata ?? {})]),
+        customer_input: knex.raw("?::jsonb", [
+          JSON.stringify((paymentMethod as any).customerInput ?? {}),
+        ]),
       })
       .toString();
     statements.push(upsertPaymentMethodSql);

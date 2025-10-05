@@ -27,6 +27,7 @@ export const checkoutDeliveryMethodUpdate = async (
       deliveryGroupId: dto.deliveryGroupId, // Already decoded by validator
       shippingMethodCode: dto.shippingMethodCode,
       checkoutId: dto.checkoutId, // Already decoded by validator
+      data: dto.data,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,
