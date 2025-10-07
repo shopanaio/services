@@ -26,6 +26,7 @@ export const checkoutDeliveryMethodUpdate = async (
     await checkoutUsecase.updateDeliveryGroupMethod.execute({
       deliveryGroupId: dto.deliveryGroupId, // Already decoded by validator
       shippingMethodCode: dto.shippingMethodCode,
+      provider: dto.provider,
       checkoutId: dto.checkoutId, // Already decoded by validator
       data: dto.data,
       apiKey: ctx.apiKey,

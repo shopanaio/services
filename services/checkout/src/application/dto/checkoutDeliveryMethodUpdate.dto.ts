@@ -12,6 +12,11 @@ export class CheckoutDeliveryMethodUpdateInput {
   @MaxLength(100, { message: "Shipping method code too long" })
   shippingMethodCode!: string;
 
+  @IsString({ message: "Provider code must be a string" })
+  @MinLength(1, { message: "Provider code is required" })
+  @MaxLength(100, { message: "Provider code too long" })
+  provider!: string;
+
   @IsGlobalId({
     message: "Invalid delivery group ID format",
   })

@@ -39,6 +39,9 @@ scalar Decimal
 
 scalar Email
 
+"""
+Advanced JSON scalar supporting BigInt, Date, Map, Set, RegExp, functions and other complex types
+"""
 scalar JSON
 
 interface Node {
@@ -790,6 +793,9 @@ input CheckoutDeliveryMethodUpdateInput {
   """Code of the delivery method available for this checkout/address."""
   shippingMethodCode: String!
 
+  """Provider code (e.g., "novaposhta", "ups", "fedex", "dhl", "usps")."""
+  provider: String!
+
   """
   Identifier of the delivery group for which the delivery method is selected.
   """
@@ -837,7 +843,7 @@ input CheckoutDeliveryAddressInput {
 """Delivery address associated with a checkout."""
 type CheckoutDeliveryAddress {
   """Unique identifier for the delivery address."""
-  id: ID!
+  id: ID
 
   """Primary address line."""
   address1: String

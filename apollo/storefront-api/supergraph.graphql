@@ -728,6 +728,9 @@ input CheckoutDeliveryMethodUpdateInput
   """Code of the delivery method available for this checkout/address."""
   shippingMethodCode: String!
 
+  """Provider code (e.g., "novaposhta", "ups", "fedex", "dhl", "usps")."""
+  provider: String!
+
   """
   Identifier of the delivery group for which the delivery method is selected.
   """

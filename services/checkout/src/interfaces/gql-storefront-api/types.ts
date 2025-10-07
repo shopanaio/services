@@ -20,6 +20,7 @@ export type Scalars = {
   /** Decimal represented as integer amount and scale internally; serialized as normalized string */
   Decimal: { input: any; output: any; }
   Email: { input: any; output: any; }
+  /** Advanced JSON scalar supporting BigInt, Date, Map, Set, RegExp, functions and other complex types */
   JSON: { input: unknown; output: unknown; }
   _Any: { input: any; output: any; }
   federation__FieldSet: { input: any; output: any; }
@@ -162,17 +163,17 @@ export type ApiCheckoutCustomerNoteUpdateInput = {
 export type ApiCheckoutDeliveryAddress = {
   __typename?: 'CheckoutDeliveryAddress';
   /** Primary address line. */
-  address1: Scalars['String']['output'];
+  address1: Maybe<Scalars['String']['output']>;
   /** Secondary address line. */
   address2: Maybe<Scalars['String']['output']>;
   /** City name. */
-  city: Scalars['String']['output'];
+  city: Maybe<Scalars['String']['output']>;
   /** Country code (ISO 3166-1 alpha-2). */
-  countryCode: ApiCountryCode;
+  countryCode: Maybe<ApiCountryCode>;
   /** Data associated with the delivery address. */
   data: Maybe<Scalars['JSON']['output']>;
   /** Unique identifier for the delivery address. */
-  id: Scalars['ID']['output'];
+  id: Maybe<Scalars['ID']['output']>;
   /** Postal code. */
   postalCode: Maybe<Scalars['String']['output']>;
   /** Province code. */
@@ -292,6 +293,8 @@ export type ApiCheckoutDeliveryMethodUpdateInput = {
   data: InputMaybe<Scalars['JSON']['input']>;
   /** Identifier of the delivery group for which the delivery method is selected. */
   deliveryGroupId: Scalars['ID']['input'];
+  /** Provider code (e.g., "novaposhta", "ups", "fedex", "dhl", "usps"). */
+  provider: Scalars['String']['input'];
   /** Code of the delivery method available for this checkout/address. */
   shippingMethodCode: Scalars['String']['input'];
 };
@@ -1991,12 +1994,12 @@ export type ApiCheckoutCustomerIdentityResolvers<ContextType = GraphQLContext, P
 };
 
 export type ApiCheckoutDeliveryAddressResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutDeliveryAddress'] = ApiResolversParentTypes['CheckoutDeliveryAddress']> = {
-  address1: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  address1: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   address2: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  city: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  countryCode: Resolver<ApiResolversTypes['CountryCode'], ParentType, ContextType>;
+  city: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
   data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  id: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   postalCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
