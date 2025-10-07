@@ -70,8 +70,8 @@ export const deliveryMethods = async (
       deliveryMethodType: method.deliveryMethodType || "SHIPPING",
       provider: {
         code: method.provider ?? "unknown",
-        data: method.providerData || {},
       },
+      data: method.providerData || {},
     }));
   } catch (error) {
     logger.error(

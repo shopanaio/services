@@ -375,12 +375,12 @@ type CheckoutDeliveryAddress {
   """
   Unique identifier for the delivery address.
   """
-  id: ID!
+  id: ID
 
   """
   Primary address line.
   """
-  address1: String!
+  address1: String
 
   """
   Secondary address line.
@@ -390,12 +390,12 @@ type CheckoutDeliveryAddress {
   """
   City name.
   """
-  city: String!
+  city: String
 
   """
   Country code (ISO 3166-1 alpha-2).
   """
-  countryCode: CountryCode!
+  countryCode: CountryCode
 
   """
   Province code.

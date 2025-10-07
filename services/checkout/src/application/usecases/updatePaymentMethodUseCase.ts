@@ -22,12 +22,14 @@ export class UpdatePaymentMethodUseCase extends UseCase<
     }
 
     const availableMethod = state.payment.methods.find(
-      (method) => method.code === businessInput.paymentMethodCode
+      (method) =>
+        method.code === businessInput.paymentMethodCode &&
+        method.provider === businessInput.provider
     );
 
     if (!availableMethod) {
       throw new Error(
-        `Payment method not available: ${businessInput.paymentMethodCode}`
+        `Payment method not available: ${businessInput.provider}:${businessInput.paymentMethodCode}`
       );
     }
 

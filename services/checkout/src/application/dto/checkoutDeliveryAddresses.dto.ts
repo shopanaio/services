@@ -17,24 +17,27 @@ import {
  * DTO for single delivery address (corresponds to CheckoutDeliveryAddressInput)
  */
 export class CheckoutDeliveryAddressInputDto {
+  @IsOptional()
   @IsString({ message: "Address1 must be a string" })
   @Matches(/\S/, { message: "Address1 cannot be blank" })
-  address1!: string;
+  address1?: string | null;
 
   @IsOptional()
   @IsString({ message: "Address2 must be a string" })
   address2?: string | null;
 
+  @IsOptional()
   @IsString({ message: "City must be a string" })
   @Matches(/\S/, { message: "City cannot be blank" })
-  city!: string;
+  city?: string | null;
 
+  @IsOptional()
   @IsString({ message: "Country code must be a string" })
   @Length(2, 2, { message: "Country code must be exactly 2 characters" })
   @Matches(/^[A-Z]{2}$/, {
     message: "Country code must be uppercase ISO 3166-1 alpha-2",
   })
-  countryCode!: string;
+  countryCode?: string | null;
 
   @IsOptional()
   @IsString({ message: "Province code must be a string" })

@@ -521,6 +521,15 @@ input CheckoutCustomerIdentityUpdateInput
   Used to link the checkout with an existing customer.
   """
   customerId: ID
+
+  """First name of the customer."""
+  firstName: String
+
+  """Last name of the customer."""
+  lastName: String
+
+  """Middle name of the customer."""
+  middleName: String
 }
 
 """Input data for updating the customer note attached to the checkout."""
@@ -542,19 +551,19 @@ type CheckoutDeliveryAddress
   @join__type(graph: CHECKOUT)
 {
   """Unique identifier for the delivery address."""
-  id: ID!
+  id: ID
 
   """Primary address line."""
-  address1: String!
+  address1: String
 
   """Secondary address line."""
   address2: String
 
   """City name."""
-  city: String!
+  city: String
 
   """Country code (ISO 3166-1 alpha-2)."""
-  countryCode: CountryCode!
+  countryCode: CountryCode
 
   """Province code."""
   provinceCode: String
@@ -608,16 +617,16 @@ input CheckoutDeliveryAddressInput
   @join__type(graph: CHECKOUT)
 {
   """Primary address line."""
-  address1: String!
+  address1: String
 
   """Secondary address line."""
   address2: String
 
   """City name."""
-  city: String!
+  city: String
 
   """Country code (ISO 3166-1 alpha-2)."""
-  countryCode: CountryCode!
+  countryCode: CountryCode
 
   """Province code."""
   provinceCode: String
@@ -688,6 +697,12 @@ type CheckoutDeliveryMethod
 
   """Provider data associated with the delivery method."""
   provider: CheckoutDeliveryProvider!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON!
 }
 
 enum CheckoutDeliveryMethodType
@@ -732,9 +747,52 @@ type CheckoutDeliveryProvider
   Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
   """
   code: String!
+}
 
-  """Data associated with the provider."""
-  data: JSON!
+"""Input data for adding recipients for delivery groups."""
+input CheckoutDeliveryRecipientsAddInput
+  @join__type(graph: CHECKOUT)
+{
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of recipients to be added for delivery groups."""
+  recipients: [CheckoutDeliveryRecipientUpdateInput!]!
+}
+
+"""Input data for removing recipients associated with delivery groups."""
+input CheckoutDeliveryRecipientsRemoveInput
+  @join__type(graph: CHECKOUT)
+{
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Identifiers of delivery groups whose recipients should be removed."""
+  deliveryGroupIds: [ID!]!
+}
+
+"""Input data for batch updating recipients for delivery groups."""
+input CheckoutDeliveryRecipientsUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of updates for recipients."""
+  updates: [CheckoutDeliveryRecipientUpdateInput!]!
+}
+
+"""
+Recipient update element: which delivery group's recipient to update and with what data.
+"""
+input CheckoutDeliveryRecipientUpdateInput
+  @join__type(graph: CHECKOUT)
+{
+  """Identifier of the delivery group in the checkout."""
+  deliveryGroupId: ID!
+
+  """New recipient values."""
+  recipient: CheckoutRecipientInput!
 }
 
 type CheckoutFieldError
@@ -1006,6 +1064,15 @@ type CheckoutMutation
   """
   checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
 
+  """Adds recipients to delivery groups."""
+  checkoutDeliveryRecipientsAdd(input: CheckoutDeliveryRecipientsAddInput!): Checkout!
+
+  """Updates recipients for delivery groups."""
+  checkoutDeliveryRecipientsUpdate(input: CheckoutDeliveryRecipientsUpdateInput!): Checkout!
+
+  """Removes recipients from delivery groups."""
+  checkoutDeliveryRecipientsRemove(input: CheckoutDeliveryRecipientsRemoveInput!): Checkout!
+
   """Applies a promo code/coupon to the checkout."""
   checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
 
@@ -1084,17 +1151,17 @@ type CheckoutPaymentMethod
   """Method code (e.g., "card", "apple_pay", "bank_transfer", "cod")."""
   code: String!
 
-  """Provider code (e.g., "stripe", "liqpay", "monobank", "paypal")."""
-  provider: String!
+  """Provider data associated with the payment method."""
+  provider: CheckoutPaymentProvider!
 
   """Payment flow (ONLINE vs ON_DELIVERY)."""
   flow: PaymentFlow!
 
-  """Optional method metadata (icons, labels, extra config)."""
-  metadata: JSON
-
-  """Optional constraints for availability binding to shipping."""
-  constraints: CheckoutPaymentMethodConstraints
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON!
 }
 
 """Constraints for payment method availability (from payment-plugin-sdk)."""
@@ -1118,11 +1185,21 @@ input CheckoutPaymentMethodUpdateInput
   """Code of the payment method available for this checkout."""
   paymentMethodCode: String!
 
+  """Provider code (e.g., "stripe", "liqpay", "monobank", "paypal")."""
+  provider: String!
+
   """
   Arbitrary customer-provided data for the selected payment method.
   Will be stored in checkout_payment_methods.customer_input.
   """
   data: JSON
+}
+
+type CheckoutPaymentProvider
+  @join__type(graph: CHECKOUT)
+{
+  """Code of the provider (e.g., "stripe", "liqpay", "monobank", "paypal")."""
+  code: String!
 }
 
 """Applied promo code for a checkout."""
@@ -1181,6 +1258,26 @@ type CheckoutQuery
 
 """Recipient details for the delivery group."""
 type CheckoutRecipient
+  @join__type(graph: CHECKOUT)
+{
+  """First name of the recipient."""
+  firstName: String
+
+  """Last name of the recipient."""
+  lastName: String
+
+  """Middle name of the recipient."""
+  middleName: String
+
+  """Email of the recipient."""
+  email: Email
+
+  """Phone of the recipient."""
+  phone: String
+}
+
+"""Input fields for recipient details."""
+input CheckoutRecipientInput
   @join__type(graph: CHECKOUT)
 {
   """First name of the recipient."""

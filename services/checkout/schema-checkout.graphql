@@ -283,6 +283,15 @@ input CheckoutCustomerIdentityUpdateInput {
   Used to link the checkout with an existing customer.
   """
   customerId: ID
+
+  """First name of the customer."""
+  firstName: String
+
+  """Last name of the customer."""
+  lastName: String
+
+  """Middle name of the customer."""
+  middleName: String
 }
 
 """Input data for updating the customer note attached to the checkout."""
@@ -712,6 +721,12 @@ type CheckoutDeliveryMethod {
 
   """Provider data associated with the delivery method."""
   provider: CheckoutDeliveryProvider!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON!
 }
 
 type CheckoutDeliveryProvider {
@@ -719,9 +734,6 @@ type CheckoutDeliveryProvider {
   Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
   """
   code: String!
-
-  """Data associated with the provider."""
-  data: JSON!
 }
 
 """
@@ -792,16 +804,16 @@ input CheckoutDeliveryMethodUpdateInput {
 
 input CheckoutDeliveryAddressInput {
   """Primary address line."""
-  address1: String!
+  address1: String
 
   """Secondary address line."""
   address2: String
 
   """City name."""
-  city: String!
+  city: String
 
   """Country code (ISO 3166-1 alpha-2)."""
-  countryCode: CountryCode!
+  countryCode: CountryCode
 
   """Province code."""
   provinceCode: String
@@ -828,16 +840,16 @@ type CheckoutDeliveryAddress {
   id: ID!
 
   """Primary address line."""
-  address1: String!
+  address1: String
 
   """Secondary address line."""
   address2: String
 
   """City name."""
-  city: String!
+  city: String
 
   """Country code (ISO 3166-1 alpha-2)."""
-  countryCode: CountryCode!
+  countryCode: CountryCode
 
   """Province code."""
   provinceCode: String
@@ -863,22 +875,27 @@ enum PaymentFlow {
   ON_DELIVERY
 }
 
+type CheckoutPaymentProvider {
+  """Code of the provider (e.g., "stripe", "liqpay", "monobank", "paypal")."""
+  code: String!
+}
+
 """Payment method available/selected for checkout."""
 type CheckoutPaymentMethod {
   """Method code (e.g., "card", "apple_pay", "bank_transfer", "cod")."""
   code: String!
 
-  """Provider code (e.g., "stripe", "liqpay", "monobank", "paypal")."""
-  provider: String!
+  """Provider data associated with the payment method."""
+  provider: CheckoutPaymentProvider!
 
   """Payment flow (ONLINE vs ON_DELIVERY)."""
   flow: PaymentFlow!
 
-  """Optional method metadata (icons, labels, extra config)."""
-  metadata: JSON
-
-  """Optional constraints for availability binding to shipping."""
-  constraints: CheckoutPaymentMethodConstraints
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON!
 }
 
 """Constraints for payment method availability (from payment-plugin-sdk)."""
@@ -912,6 +929,9 @@ input CheckoutPaymentMethodUpdateInput {
 
   """Code of the payment method available for this checkout."""
   paymentMethodCode: String!
+
+  """Provider code (e.g., "stripe", "liqpay", "monobank", "paypal")."""
+  provider: String!
 
   """
   Arbitrary customer-provided data for the selected payment method.

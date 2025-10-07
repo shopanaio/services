@@ -137,6 +137,12 @@ export type ApiCheckoutCustomerIdentityUpdateInput = {
   customerId: InputMaybe<Scalars['ID']['input']>;
   /** Customer's email address. If specified, will be linked to the checkout. */
   email: InputMaybe<Scalars['Email']['input']>;
+  /** First name of the customer. */
+  firstName: InputMaybe<Scalars['String']['input']>;
+  /** Last name of the customer. */
+  lastName: InputMaybe<Scalars['String']['input']>;
+  /** Middle name of the customer. */
+  middleName: InputMaybe<Scalars['String']['input']>;
   /** Phone number of the customer. */
   phone: InputMaybe<Scalars['String']['input']>;
 };
@@ -175,13 +181,13 @@ export type ApiCheckoutDeliveryAddress = {
 
 export type ApiCheckoutDeliveryAddressInput = {
   /** Primary address line. */
-  address1: Scalars['String']['input'];
+  address1: InputMaybe<Scalars['String']['input']>;
   /** Secondary address line. */
   address2: InputMaybe<Scalars['String']['input']>;
   /** City name. */
-  city: Scalars['String']['input'];
+  city: InputMaybe<Scalars['String']['input']>;
   /** Country code (ISO 3166-1 alpha-2). */
-  countryCode: ApiCountryCode;
+  countryCode: InputMaybe<ApiCountryCode>;
   /** Data associated with the delivery address. */
   data: InputMaybe<Scalars['JSON']['input']>;
   /** Email address for this delivery address. */
@@ -254,6 +260,11 @@ export type ApiCheckoutDeliveryMethod = {
   __typename?: 'CheckoutDeliveryMethod';
   /** Code of the shipping method (e.g., "standard", "express", "courier"). */
   code: Scalars['String']['output'];
+  /**
+   * Arbitrary customer-provided data for the selected delivery method.
+   * Will be stored in checkout_delivery_methods.customer_input.
+   */
+  data: Scalars['JSON']['output'];
   /** Delivery method type associated with the delivery option. */
   deliveryMethodType: ApiCheckoutDeliveryMethodType;
   /** Provider data associated with the delivery method. */
@@ -289,8 +300,6 @@ export type ApiCheckoutDeliveryProvider = {
   __typename?: 'CheckoutDeliveryProvider';
   /** Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps"). */
   code: Scalars['String']['output'];
-  /** Data associated with the provider. */
-  data: Scalars['JSON']['output'];
 };
 
 /** Recipient update element: which delivery group's recipient to update and with what data. */
@@ -669,14 +678,15 @@ export type ApiCheckoutPaymentMethod = {
   __typename?: 'CheckoutPaymentMethod';
   /** Method code (e.g., "card", "apple_pay", "bank_transfer", "cod"). */
   code: Scalars['String']['output'];
-  /** Optional constraints for availability binding to shipping. */
-  constraints: Maybe<ApiCheckoutPaymentMethodConstraints>;
+  /**
+   * Arbitrary customer-provided data for the selected payment method.
+   * Will be stored in checkout_payment_methods.customer_input.
+   */
+  data: Scalars['JSON']['output'];
   /** Payment flow (ONLINE vs ON_DELIVERY). */
   flow: ApiPaymentFlow;
-  /** Optional method metadata (icons, labels, extra config). */
-  metadata: Maybe<Scalars['JSON']['output']>;
-  /** Provider code (e.g., "stripe", "liqpay", "monobank", "paypal"). */
-  provider: Scalars['String']['output'];
+  /** Provider data associated with the payment method. */
+  provider: ApiCheckoutPaymentProvider;
 };
 
 /** Constraints for payment method availability (from payment-plugin-sdk). */
@@ -700,6 +710,14 @@ export type ApiCheckoutPaymentMethodUpdateInput = {
   data: InputMaybe<Scalars['JSON']['input']>;
   /** Code of the payment method available for this checkout. */
   paymentMethodCode: Scalars['String']['input'];
+  /** Provider code (e.g., "stripe", "liqpay", "monobank", "paypal"). */
+  provider: Scalars['String']['input'];
+};
+
+export type ApiCheckoutPaymentProvider = {
+  __typename?: 'CheckoutPaymentProvider';
+  /** Code of the provider (e.g., "stripe", "liqpay", "monobank", "paypal"). */
+  code: Scalars['String']['output'];
 };
 
 /** Applied promo code for a checkout. */
@@ -1728,6 +1746,7 @@ export type ApiResolversTypes = {
   CheckoutPaymentMethod: ResolverTypeWrapper<ApiCheckoutPaymentMethod>;
   CheckoutPaymentMethodConstraints: ResolverTypeWrapper<ApiCheckoutPaymentMethodConstraints>;
   CheckoutPaymentMethodUpdateInput: ApiCheckoutPaymentMethodUpdateInput;
+  CheckoutPaymentProvider: ResolverTypeWrapper<ApiCheckoutPaymentProvider>;
   CheckoutPromoCode: ResolverTypeWrapper<ApiCheckoutPromoCode>;
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
@@ -1810,6 +1829,7 @@ export type ApiResolversParentTypes = {
   CheckoutPaymentMethod: ApiCheckoutPaymentMethod;
   CheckoutPaymentMethodConstraints: ApiCheckoutPaymentMethodConstraints;
   CheckoutPaymentMethodUpdateInput: ApiCheckoutPaymentMethodUpdateInput;
+  CheckoutPaymentProvider: ApiCheckoutPaymentProvider;
   CheckoutPromoCode: ApiCheckoutPromoCode;
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
@@ -1995,6 +2015,7 @@ export type ApiCheckoutDeliveryGroupResolvers<ContextType = GraphQLContext, Pare
 
 export type ApiCheckoutDeliveryMethodResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutDeliveryMethod'] = ApiResolversParentTypes['CheckoutDeliveryMethod']> = {
   code: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  data: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   deliveryMethodType: Resolver<ApiResolversTypes['CheckoutDeliveryMethodType'], ParentType, ContextType>;
   provider: Resolver<ApiResolversTypes['CheckoutDeliveryProvider'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2002,7 +2023,6 @@ export type ApiCheckoutDeliveryMethodResolvers<ContextType = GraphQLContext, Par
 
 export type ApiCheckoutDeliveryProviderResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutDeliveryProvider'] = ApiResolversParentTypes['CheckoutDeliveryProvider']> = {
   code: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  data: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2099,15 +2119,19 @@ export type ApiCheckoutPaymentResolvers<ContextType = GraphQLContext, ParentType
 
 export type ApiCheckoutPaymentMethodResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutPaymentMethod'] = ApiResolversParentTypes['CheckoutPaymentMethod']> = {
   code: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  constraints: Resolver<Maybe<ApiResolversTypes['CheckoutPaymentMethodConstraints']>, ParentType, ContextType>;
+  data: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   flow: Resolver<ApiResolversTypes['PaymentFlow'], ParentType, ContextType>;
-  metadata: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  provider: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  provider: Resolver<ApiResolversTypes['CheckoutPaymentProvider'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiCheckoutPaymentMethodConstraintsResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutPaymentMethodConstraints'] = ApiResolversParentTypes['CheckoutPaymentMethodConstraints']> = {
   shippingMethods: Resolver<Array<ApiResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiCheckoutPaymentProviderResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutPaymentProvider'] = ApiResolversParentTypes['CheckoutPaymentProvider']> = {
+  code: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2234,6 +2258,7 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   CheckoutPayment: ApiCheckoutPaymentResolvers<ContextType>;
   CheckoutPaymentMethod: ApiCheckoutPaymentMethodResolvers<ContextType>;
   CheckoutPaymentMethodConstraints: ApiCheckoutPaymentMethodConstraintsResolvers<ContextType>;
+  CheckoutPaymentProvider: ApiCheckoutPaymentProviderResolvers<ContextType>;
   CheckoutPromoCode: ApiCheckoutPromoCodeResolvers<ContextType>;
   CheckoutQuery: ApiCheckoutQueryResolvers<ContextType>;
   CheckoutRecipient: ApiCheckoutRecipientResolvers<ContextType>;

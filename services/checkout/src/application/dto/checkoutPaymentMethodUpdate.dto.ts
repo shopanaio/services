@@ -10,6 +10,11 @@ export class CheckoutPaymentMethodUpdateDto {
   @MaxLength(100, { message: "Payment method code too long" })
   paymentMethodCode!: string;
 
+  @IsString({ message: "Provider code must be a string" })
+  @MinLength(1, { message: "Provider code is required" })
+  @MaxLength(100, { message: "Provider code too long" })
+  provider!: string;
+
   @IsOptional()
   @IsObject({ message: "data must be JSON object" })
   data?: Record<string, unknown>;

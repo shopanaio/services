@@ -79,6 +79,7 @@ export type CheckoutDeliveryMethodUpdateInput = {
 export type CheckoutPaymentMethodUpdateInput = {
   checkoutId: string;
   paymentMethodCode: string;
+  provider: string;
   data?: Record<string, unknown>;
 } & CheckoutContext;
 

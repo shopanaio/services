@@ -82,8 +82,8 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
           provider: {
             __typename: "CheckoutDeliveryProvider" as const,
             code: method.provider ?? "unknown",
-            data: {},
           },
+          data: {},
         }));
 
       const selectedMethod = group.selectedDeliveryMethod
@@ -141,8 +141,8 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
               provider: {
                 __typename: "CheckoutDeliveryProvider" as const,
                 code: selectedMethod.provider ?? "unknown",
-                data: {},
               },
+              data: {},
             }
           : null,
         deliveryMethods: groupDeliveryMethods,
@@ -153,18 +153,12 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
       const paymentMethods = (read.payment?.methods ?? []).map((m) => ({
         __typename: "CheckoutPaymentMethod" as const,
         code: m.code,
-        provider: m.provider,
+        provider: {
+          __typename: "CheckoutPaymentProvider" as const,
+          code: m.provider,
+        },
         flow: mapPaymentFlowToApi(m.flow),
-        metadata: m.metadata,
-        /** TODO: constraints shouldn't be included, filter available methods instead */
-        constraints: m.constraints
-          ? {
-              __typename: "CheckoutPaymentMethodConstraints" as const,
-              shippingMethods: Array.from(
-                m.constraints.shippingMethodCodes ?? []
-              ),
-            }
-          : null,
+        data: {},
       }));
 
       const selectedPaymentMethod =
@@ -172,7 +166,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
           (m) =>
             m.code &&
             m.code === read.payment?.selectedMethod?.code &&
-            m.provider === read.payment?.selectedMethod?.provider
+            m.provider.code === read.payment?.selectedMethod?.provider
         ) ?? null;
 
       return {

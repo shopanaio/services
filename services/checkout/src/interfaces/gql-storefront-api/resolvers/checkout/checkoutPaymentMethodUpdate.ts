@@ -22,6 +22,7 @@ export const checkoutPaymentMethodUpdate = async (
     await checkoutUsecase.updatePaymentMethod.execute({
       checkoutId: dto.checkoutId,
       paymentMethodCode: dto.paymentMethodCode,
+      provider: dto.provider,
       data: dto.data,
       apiKey: ctx.apiKey,
       project: ctx.project,
