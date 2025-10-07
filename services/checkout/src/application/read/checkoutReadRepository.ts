@@ -5,10 +5,7 @@ import {
 import { Money } from "@shopana/shared-money";
 import { CheckoutState } from "@src/domain/checkout/types";
 import { CheckoutReadModelAdapter } from "./checkoutReadModelAdapter";
-import type {
-  PaymentFlow,
-  PaymentMethodConstraints,
-} from "@shopana/plugin-sdk/payment";
+import type { PaymentFlow } from "@shopana/plugin-sdk/payment";
 
 export type CheckoutDeliveryAddressRow = {
   id: string;
@@ -58,6 +55,7 @@ export type CheckoutDeliveryMethodRow = {
   delivery_group_id: string;
   delivery_method_type: string;
   payment_model: string;
+  customer_input: Record<string, unknown> | null;
 };
 
 export type CheckoutPaymentMethod = {
@@ -65,7 +63,7 @@ export type CheckoutPaymentMethod = {
   provider: string;
   flow: PaymentFlow;
   metadata: Record<string, unknown> | null;
-  constraints: PaymentMethodConstraints | null;
+  customerInput: Record<string, unknown> | null;
 };
 
 export type CheckoutReadPortRow = {
@@ -164,6 +162,7 @@ export type CheckoutDeliveryMethod = {
   deliveryMethodType: string;
   paymentModel: string;
   provider: string;
+  customerInput: Record<string, unknown> | null;
 };
 
 export type CheckoutReadView = {
@@ -275,6 +274,7 @@ export class CheckoutReadRepository {
         deliveryMethodType: method.delivery_method_type,
         paymentModel: method.payment_model,
         provider: method.provider,
+        customerInput: method.customer_input,
       })
     );
 

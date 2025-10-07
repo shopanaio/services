@@ -83,7 +83,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
             __typename: "CheckoutDeliveryProvider" as const,
             code: method.provider ?? "unknown",
           },
-          data: {},
+          data: method.customerInput ?? {},
         }));
 
       const selectedMethod = group.selectedDeliveryMethod
@@ -117,7 +117,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
               countryCode: deliveryAddress.countryCode as ApiCountryCode,
               provinceCode: deliveryAddress.provinceCode,
               postalCode: deliveryAddress.postalCode,
-              data: null,
+              data: deliveryAddress.metadata ?? {},
             }
           : null,
         recipient: group.recipient
@@ -142,7 +142,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
                 __typename: "CheckoutDeliveryProvider" as const,
                 code: selectedMethod.provider ?? "unknown",
               },
-              data: {},
+              data: selectedMethod.customerInput ?? {},
             }
           : null,
         deliveryMethods: groupDeliveryMethods,
@@ -158,7 +158,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
           code: m.provider,
         },
         flow: mapPaymentFlowToApi(m.flow),
-        data: {},
+        data: m.customerInput ?? {},
       }));
 
       const selectedPaymentMethod =

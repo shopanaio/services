@@ -13,10 +13,7 @@ import type {
   CheckoutPromoCode,
   CheckoutPaymentMethod,
 } from "@src/application/read/checkoutReadRepository";
-import {
-  PaymentFlow,
-  type PaymentMethodConstraints,
-} from "@shopana/plugin-sdk/payment";
+import { PaymentFlow } from "@shopana/plugin-sdk/payment";
 
 export class CheckoutReadRepository implements CheckoutReadPort {
   private readonly execute: SQLExecutor;
@@ -195,7 +192,8 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         "dm.project_id",
         "dm.delivery_group_id",
         "dm.delivery_method_type",
-        "dm.payment_model"
+        "dm.payment_model",
+        "dm.customer_input"
       )
       .where("dg.checkout_id", checkoutId)
       .orderBy(["dm.provider", "dm.code"])
@@ -218,34 +216,20 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         "provider",
         "flow",
         "metadata",
-        knex.raw("customer_input as constraints"),
+        "customer_input",
       )
       .where({ checkout_id: checkoutId })
       .orderBy(["provider", "code"])
       .toString();
 
     const result = await this.execute.query<any>(rawSql(q));
-    return result.rows.map((row): CheckoutPaymentMethod => {
-      const parseConstraints = (
-        c: PaymentMethodConstraints | null
-      ): PaymentMethodConstraints | null => {
-        if (!c) {
-          return null;
-        }
-        const codes = c.shippingMethodCodes;
-        return {
-          shippingMethodCodes: Array.isArray(codes) ? codes : [],
-        };
-      };
-
-      return {
-        code: row.code,
-        provider: row.provider,
-        flow: row.flow as PaymentFlow,
-        metadata: row.metadata,
-        constraints: parseConstraints(row.constraints),
-      };
-    });
+    return result.rows.map((row): CheckoutPaymentMethod => ({
+      code: row.code,
+      provider: row.provider,
+      flow: row.flow as PaymentFlow,
+      metadata: row.metadata,
+      customerInput: row.customer_input,
+    }));
   }
 
   async findSelectedPaymentMethod(

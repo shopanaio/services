@@ -368,7 +368,7 @@ export class CheckoutWriteRepository {
         country_code: address.countryCode,
         province_code: address.provinceCode ?? null,
         postal_code: address.postalCode ?? null,
-        metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
+        metadata: knex.raw("?::jsonb", [JSON.stringify(address.data ?? {})]),
         created_at: input.metadata.now,
         updated_at: input.metadata.now,
       })
@@ -380,7 +380,7 @@ export class CheckoutWriteRepository {
         country_code: address.countryCode,
         province_code: address.provinceCode ?? null,
         postal_code: address.postalCode ?? null,
-        metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
+        metadata: knex.raw("?::jsonb", [JSON.stringify(address.data ?? {})]),
         updated_at: knex.fn.now(),
       })
       .toString();
