@@ -94,9 +94,12 @@ export class CheckoutReadModelAdapter {
       // Find delivery methods for this group
       const groupMethods = deliveryMethods.filter(method => method.deliveryGroupId === group.id);
 
-      // Find selected delivery method
-      const selectedMethod = group.selectedDeliveryMethod
-        ? groupMethods.find(method => method.code === group.selectedDeliveryMethod)
+      // Find selected delivery method by code AND provider
+      const selectedMethod = group.selectedDeliveryMethod && group.selectedDeliveryMethodProvider
+        ? groupMethods.find(method =>
+            method.code === group.selectedDeliveryMethod &&
+            method.provider === group.selectedDeliveryMethodProvider
+          )
         : null;
 
       return {
@@ -142,6 +145,7 @@ export class CheckoutReadModelAdapter {
         code: method.provider,
         data: {}, // Not available in read model
       },
+      customerInput: method.customerInput ?? null,
     };
   }
 

@@ -57,6 +57,7 @@ export type CheckoutDeliveryMethod = {
   deliveryMethodType: DeliveryMethodType;
   shippingPaymentModel: ShippingPaymentModel;
   provider: CheckoutDeliveryProvider;
+  customerInput?: Record<string, unknown> | null;
 };
 
 /**

@@ -142,7 +142,7 @@ export type CheckoutDeliveryGroup = {
   projectId: string;
   checkoutId: string;
   selectedDeliveryMethod: string | null;
-  selectedDeliveryMethodProvider?: string | null;
+  selectedDeliveryMethodProvider: string | null;
   lineItemIds: string[];
   recipient: {
     id: string;
