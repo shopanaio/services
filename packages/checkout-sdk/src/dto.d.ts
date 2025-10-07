@@ -14,6 +14,9 @@ export type CheckoutCustomerIdentityDto = Readonly<{
     } | null;
     email: string | null;
     phone: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    middleName: string | null;
 }>;
 export type CheckoutPromoCodeDto = Readonly<{
     code: string;

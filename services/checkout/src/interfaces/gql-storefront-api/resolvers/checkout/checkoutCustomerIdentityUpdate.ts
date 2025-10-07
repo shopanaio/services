@@ -33,6 +33,9 @@ export const checkoutCustomerIdentityUpdate = async (
         customerId: dto.customerId, // Already decoded by validator
         phone: dto.phone,
         countryCode: dto.countryCode,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        middleName: dto.middleName,
         apiKey: ctx.apiKey,
         project: ctx.project,
         customer: ctx.customer,

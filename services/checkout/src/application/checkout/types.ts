@@ -49,6 +49,9 @@ export type CheckoutCustomerIdentityUpdateInput = {
   customerId?: string | null;
   phone?: string | null;
   countryCode?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  middleName?: string | null;
 } & CheckoutContext;
 
 export type CheckoutCustomerNoteUpdateInput = {
@@ -107,6 +110,7 @@ export type CheckoutDeliveryGroupAddressUpdateInput = {
     postalCode?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    middleName?: string | null;
     email?: string | null;
     phone?: string | null;
     data?: any;
@@ -142,4 +146,22 @@ export type CheckoutPromoCodeAddInput = {
 export type CheckoutPromoCodeRemoveInput = {
   checkoutId: string;
   code: string;
+} & CheckoutContext;
+
+export type CheckoutDeliveryGroupRecipientUpdateInput = {
+  checkoutId: string;
+  deliveryGroupId: string;
+  recipient: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    middleName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+} & CheckoutContext;
+
+export type CheckoutDeliveryGroupRecipientRemoveInput = {
+  checkoutId: string;
+  deliveryGroupId: string;
 } & CheckoutContext;

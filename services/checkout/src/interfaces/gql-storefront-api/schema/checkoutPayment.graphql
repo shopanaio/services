@@ -18,6 +18,13 @@ enum PaymentFlow {
   ON_DELIVERY
 }
 
+type CheckoutPaymentProvider {
+  """
+  Code of the provider (e.g., "stripe", "liqpay", "monobank", "paypal").
+  """
+  code: String!
+}
+
 """
 Payment method available/selected for checkout.
 """
@@ -28,9 +35,9 @@ type CheckoutPaymentMethod {
   code: String!
 
   """
-  Provider code (e.g., "stripe", "liqpay", "monobank", "paypal").
+  Provider data associated with the payment method.
   """
-  provider: String!
+  provider: CheckoutPaymentProvider!
 
   """
   Payment flow (ONLINE vs ON_DELIVERY).
@@ -38,14 +45,10 @@ type CheckoutPaymentMethod {
   flow: PaymentFlow!
 
   """
-  Optional method metadata (icons, labels, extra config).
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
   """
-  metadata: JSON
-
-  """
-  Optional constraints for availability binding to shipping.
-  """
-  constraints: CheckoutPaymentMethodConstraints
+  data: JSON!
 }
 
 """
@@ -93,6 +96,11 @@ input CheckoutPaymentMethodUpdateInput {
   Code of the payment method available for this checkout.
   """
   paymentMethodCode: String!
+
+  """
+  Provider code (e.g., "stripe", "liqpay", "monobank", "paypal").
+  """
+  provider: String!
 
   """
   Arbitrary customer-provided data for the selected payment method.

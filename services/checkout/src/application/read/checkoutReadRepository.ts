@@ -21,6 +21,7 @@ export type CheckoutDeliveryAddressRow = {
   postal_code: string | null;
   first_name: string | null; // from checkout_recipients
   last_name: string | null;  // from checkout_recipients
+  middle_name: string | null; // from checkout_recipients
   email: string | null;      // from checkout_recipients
   phone: string | null;      // from checkout_recipients
   metadata: Record<string, unknown> | null;
@@ -122,10 +123,6 @@ export type CheckoutDeliveryAddress = {
   countryCode: string;
   provinceCode: string | null;
   postalCode: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | null;
-  phone: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
@@ -149,6 +146,13 @@ export type CheckoutDeliveryGroup = {
   selectedDeliveryMethod: string | null;
   selectedDeliveryMethodProvider?: string | null;
   lineItemIds: string[];
+  recipient: {
+    firstName: string | null;
+    lastName: string | null;
+    middleName: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -257,10 +261,6 @@ export class CheckoutReadRepository {
           countryCode: address.country_code,
           provinceCode: address.province_code,
           postalCode: address.postal_code,
-          firstName: address.first_name,
-          lastName: address.last_name,
-          email: address.email,
-          phone: address.phone,
           metadata: address.metadata,
           createdAt: address.created_at,
           updatedAt: address.updated_at,
@@ -342,7 +342,21 @@ export class CheckoutReadRepository {
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
       appliedPromoCodes: appliedPromoCodes,
-      deliveryGroups,
+      deliveryGroups: deliveryGroups.map((g) => {
+        const addr = deliveryAddresses.find((a) => a.delivery_group_id === g.id);
+        return {
+          ...g,
+          recipient: addr
+            ? {
+                firstName: addr.first_name,
+                lastName: addr.last_name,
+                middleName: addr.middle_name ?? null,
+                email: addr.email,
+                phone: addr.phone,
+              }
+            : null,
+        };
+      }),
       deliveryAddresses: mappedDeliveryAddresses,
       deliveryMethods: mappedDeliveryMethods,
       lineItems: normalizedLineItems,

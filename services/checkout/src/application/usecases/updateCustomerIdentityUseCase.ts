@@ -21,6 +21,9 @@ export class UpdateCustomerIdentityUseCase extends UseCase<
         customerId: businessInput.customerId,
         phone: businessInput.phone,
         countryCode: businessInput.countryCode,
+        firstName: businessInput.firstName,
+        lastName: businessInput.lastName,
+        middleName: businessInput.middleName,
       },
       metadata: this.createMetadataDto(businessInput.checkoutId, context),
     };

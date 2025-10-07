@@ -40,6 +40,9 @@ export class CheckoutReadModelAdapter {
       customerId: readView.customerId,
       customerPhone: readView.customerPhoneE164, // Map customerPhoneE164 to customerPhone
       customerCountryCode: readView.customerCountryCode,
+      customerFirstName: readView.customerFirstName,
+      customerLastName: readView.customerLastName,
+      customerMiddleName: readView.customerMiddleName,
       customerNote: readView.customerNote,
       deliveryGroups: this.mapDeliveryGroups(readView.deliveryGroups, readView.deliveryAddresses, readView.deliveryMethods),
       discountTotal: readView.discountTotal,

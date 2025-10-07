@@ -129,6 +129,9 @@ export type CheckoutCustomerIdentityUpdatedPayload = Readonly<{
   customerId?: string | null;
   phone?: string | null;
   countryCode?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  middleName?: string | null;
 }>;
 
 export type CheckoutCustomerIdentityUpdatedDto = Readonly<{
@@ -206,6 +209,7 @@ export type CheckoutDeliveryGroupAddressUpdatedPayload = Readonly<{
     postalCode?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    middleName?: string | null;
     email?: string | null;
     phone?: string | null;
     data?: any;
@@ -275,5 +279,31 @@ export type CheckoutPaymentMethodUpdatedPayload = Readonly<{
 
 export type CheckoutPaymentMethodUpdatedDto = Readonly<{
   data: CheckoutPaymentMethodUpdatedPayload;
+  metadata: CheckoutMetadataDto;
+}>;
+
+export type CheckoutDeliveryGroupRecipientUpdatedPayload = Readonly<{
+  deliveryGroupId: string;
+  recipient: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    middleName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+}>;
+
+export type CheckoutDeliveryGroupRecipientUpdatedDto = Readonly<{
+  data: CheckoutDeliveryGroupRecipientUpdatedPayload;
+  metadata: CheckoutMetadataDto;
+}>;
+
+export type CheckoutDeliveryGroupRecipientClearedPayload = Readonly<{
+  deliveryGroupId: string;
+}>;
+
+export type CheckoutDeliveryGroupRecipientClearedDto = Readonly<{
+  data: CheckoutDeliveryGroupRecipientClearedPayload;
   metadata: CheckoutMetadataDto;
 }>;

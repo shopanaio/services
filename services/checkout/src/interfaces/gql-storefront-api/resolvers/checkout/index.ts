@@ -13,10 +13,13 @@ export { checkoutLanguageCodeUpdate } from "./checkoutLanguageCodeUpdate";
 export { checkoutCurrencyCodeUpdate } from "./checkoutCurrencyCodeUpdate";
 export { checkoutDeliveryAddressesAdd } from "./checkoutDeliveryAddressesAdd";
 export { checkoutDeliveryAddressesRemove } from "./checkoutDeliveryAddressesRemove";
-export { checkoutPromoCodeAdd } from "./checkoutPromoCodeAdd";
-export { checkoutPromoCodeRemove } from "./checkoutPromoCodeRemove";
 export { checkoutDeliveryAddressesUpdate } from "./checkoutDeliveryAddressesUpdate";
 export { checkoutDeliveryMethodUpdate } from "./checkoutDeliveryMethodUpdate";
+export { checkoutDeliveryRecipientsAdd } from "./checkoutDeliveryRecipientsAdd";
+export { checkoutDeliveryRecipientsUpdate } from "./checkoutDeliveryRecipientsUpdate";
+export { checkoutDeliveryRecipientsRemove } from "./checkoutDeliveryRecipientsRemove";
+export { checkoutPromoCodeAdd } from "./checkoutPromoCodeAdd";
+export { checkoutPromoCodeRemove } from "./checkoutPromoCodeRemove";
 export { checkoutPaymentMethodUpdate } from "./checkoutPaymentMethodUpdate";
 
 // CheckoutDeliveryGroup resolvers

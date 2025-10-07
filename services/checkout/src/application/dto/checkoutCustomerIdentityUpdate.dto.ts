@@ -35,4 +35,16 @@ export class CheckoutCustomerIdentityUpdateInput {
   @IsString({ message: "Idempotency key must be a string" })
   @MinLength(1, { message: "Idempotency key cannot be empty" })
   idempotencyKey?: string;
+
+  @IsOptional()
+  @IsString({ message: "First name must be a string" })
+  firstName?: string | null;
+
+  @IsOptional()
+  @IsString({ message: "Last name must be a string" })
+  lastName?: string | null;
+
+  @IsOptional()
+  @IsString({ message: "Middle name must be a string" })
+  middleName?: string | null;
 }

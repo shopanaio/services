@@ -232,6 +232,15 @@ type CheckoutMutation {
   """
   checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
 
+  """Adds recipients to delivery groups."""
+  checkoutDeliveryRecipientsAdd(input: CheckoutDeliveryRecipientsAddInput!): Checkout!
+
+  """Updates recipients for delivery groups."""
+  checkoutDeliveryRecipientsUpdate(input: CheckoutDeliveryRecipientsUpdateInput!): Checkout!
+
+  """Removes recipients from delivery groups."""
+  checkoutDeliveryRecipientsRemove(input: CheckoutDeliveryRecipientsRemoveInput!): Checkout!
+
   """Applies a promo code/coupon to the checkout."""
   checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
 
@@ -607,6 +616,9 @@ type CheckoutDeliveryGroup {
   """Delivery address associated with the delivery group."""
   deliveryAddress: CheckoutDeliveryAddress
 
+  """Recipient associated with the delivery group."""
+  recipient: CheckoutRecipient
+
   """Delivery methods associated with the delivery group."""
   deliveryMethods: [CheckoutDeliveryMethod!]!
 
@@ -615,6 +627,80 @@ type CheckoutDeliveryGroup {
 
   """Estimated cost of the delivery group."""
   estimatedCost: DeliveryCost
+}
+
+"""Recipient details for the delivery group."""
+type CheckoutRecipient {
+  """First name of the recipient."""
+  firstName: String
+
+  """Last name of the recipient."""
+  lastName: String
+
+  """Middle name of the recipient."""
+  middleName: String
+
+  """Email of the recipient."""
+  email: Email
+
+  """Phone of the recipient."""
+  phone: String
+}
+
+"""Input fields for recipient details."""
+input CheckoutRecipientInput {
+  """First name of the recipient."""
+  firstName: String
+
+  """Last name of the recipient."""
+  lastName: String
+
+  """Middle name of the recipient."""
+  middleName: String
+
+  """Email of the recipient."""
+  email: Email
+
+  """Phone of the recipient."""
+  phone: String
+}
+
+"""
+Recipient update element: which delivery group's recipient to update and with what data.
+"""
+input CheckoutDeliveryRecipientUpdateInput {
+  """Identifier of the delivery group in the checkout."""
+  deliveryGroupId: ID!
+
+  """New recipient values."""
+  recipient: CheckoutRecipientInput!
+}
+
+"""Input data for adding recipients for delivery groups."""
+input CheckoutDeliveryRecipientsAddInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of recipients to be added for delivery groups."""
+  recipients: [CheckoutDeliveryRecipientUpdateInput!]!
+}
+
+"""Input data for batch updating recipients for delivery groups."""
+input CheckoutDeliveryRecipientsUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of updates for recipients."""
+  updates: [CheckoutDeliveryRecipientUpdateInput!]!
+}
+
+"""Input data for removing recipients associated with delivery groups."""
+input CheckoutDeliveryRecipientsRemoveInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Identifiers of delivery groups whose recipients should be removed."""
+  deliveryGroupIds: [ID!]!
 }
 
 type CheckoutDeliveryMethod {
@@ -758,15 +844,6 @@ type CheckoutDeliveryAddress {
 
   """Postal code."""
   postalCode: String
-
-  """Email address for this delivery address."""
-  email: Email
-
-  """First name for delivery."""
-  firstName: String
-
-  """Last name for delivery."""
-  lastName: String
 
   """Data associated with the delivery address."""
   data: JSON

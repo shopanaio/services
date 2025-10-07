@@ -104,6 +104,9 @@ export type CheckoutState = {
   customerId: string | null;
   customerPhone: string | null;
   customerCountryCode: string | null;
+  customerFirstName: string | null;
+  customerLastName: string | null;
+  customerMiddleName: string | null;
   customerNote: string | null;
   deliveryGroups: CheckoutDeliveryGroup[];
   discountTotal: Money;
@@ -153,6 +156,9 @@ export const checkoutInitialState = (): CheckoutState => ({
   customerId: null,
   customerPhone: null,
   customerCountryCode: null,
+  customerFirstName: null,
+  customerLastName: null,
+  customerMiddleName: null,
   customerNote: null,
   deliveryGroups: [],
   discountTotal: Money.zero(),

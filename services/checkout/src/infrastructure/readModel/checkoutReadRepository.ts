@@ -78,12 +78,12 @@ export class CheckoutReadRepository implements CheckoutReadPort {
   ): Promise<CheckoutDeliveryAddressRow[]> {
     const q = knex
       .withSchema("platform")
-      .table("checkout_delivery_addresses as da")
-      .join("checkout_delivery_groups as dg", "dg.id", "da.delivery_group_id")
-      .leftJoin("checkout_recipients as cr", "cr.id", "da.recipient_id")
+      .table("checkout_delivery_groups as dg")
+      .join("checkout_delivery_addresses as da", "dg.address_id", "da.id")
+      .leftJoin("checkout_recipients as cr", "cr.id", "dg.recipient_id")
       .select(
         "da.id",
-        "da.delivery_group_id",
+        knex.raw("dg.id as delivery_group_id"),
         "da.address1",
         "da.address2",
         "da.city",
@@ -92,6 +92,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         "da.postal_code",
         knex.raw("cr.first_name as first_name"),
         knex.raw("cr.last_name as last_name"),
+        knex.raw("cr.middle_name as middle_name"),
         knex.raw("cr.email as email"),
         knex.raw("cr.phone as phone"),
         "da.metadata",
@@ -174,6 +175,7 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         selectedDeliveryMethod: group.selected_delivery_method_code,
         selectedDeliveryMethodProvider: group.selected_delivery_method_provider,
         lineItemIds: group.line_item_ids,
+        recipient: null,
         createdAt: group.created_at,
         updatedAt: group.updated_at,
       })

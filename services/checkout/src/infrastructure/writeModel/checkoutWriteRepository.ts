@@ -20,6 +20,8 @@ import type {
   CheckoutLanguageCodeUpdatedDto,
   CheckoutCurrencyCodeUpdatedDto,
   CheckoutPaymentMethodUpdatedDto,
+  CheckoutDeliveryGroupRecipientUpdatedDto,
+  CheckoutDeliveryGroupRecipientClearedDto,
 } from "@src/domain/checkout/dto";
 
 /**
@@ -54,7 +56,9 @@ export class CheckoutWriteRepository {
         email: input.data.email ?? null,
         phone_e164: input.data.phone ?? null,
         country_code: (input.data.countryCode as any) ?? null,
-        // name fields are optional and currently not provided by DTO
+        first_name: input.data.firstName ?? null,
+        last_name: input.data.lastName ?? null,
+        middle_name: input.data.middleName ?? null,
         updated_at: input.metadata.now,
         created_at: input.metadata.now,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
@@ -65,6 +69,9 @@ export class CheckoutWriteRepository {
         email: input.data.email ?? null,
         phone_e164: input.data.phone ?? null,
         country_code: (input.data.countryCode as any) ?? null,
+        first_name: input.data.firstName ?? null,
+        last_name: input.data.lastName ?? null,
+        middle_name: input.data.middleName ?? null,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -333,6 +340,7 @@ export class CheckoutWriteRepository {
         project_id: input.metadata.projectId as any,
         first_name: address.firstName ?? null,
         last_name: address.lastName ?? null,
+        middle_name: (address as any).middleName ?? null,
         email: address.email ?? null,
         phone: address.phone ?? null,
         metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
@@ -342,6 +350,7 @@ export class CheckoutWriteRepository {
       .onConflict(["id"]).merge({
         first_name: address.firstName ?? null,
         last_name: address.lastName ?? null,
+        middle_name: (address as any).middleName ?? null,
         email: address.email ?? null,
         phone: address.phone ?? null,
         updated_at: knex.fn.now(),
@@ -353,8 +362,6 @@ export class CheckoutWriteRepository {
       .table("checkout_delivery_addresses")
       .insert({
         id: address.id,
-        delivery_group_id: deliveryGroupId,
-        recipient_id: address.id,
         address1: address.address1,
         address2: address.address2 ?? null,
         city: address.city,
@@ -367,7 +374,6 @@ export class CheckoutWriteRepository {
       })
       .onConflict("id")
       .merge({
-        recipient_id: address.id,
         address1: address.address1,
         address2: address.address2 ?? null,
         city: address.city,
@@ -383,7 +389,11 @@ export class CheckoutWriteRepository {
       .withSchema("platform")
       .table("checkout_delivery_groups")
       .where("id", deliveryGroupId)
-      .update({ updated_at: knex.fn.now() })
+      .update({
+        address_id: address.id,
+        recipient_id: address.id,
+        updated_at: knex.fn.now(),
+      })
       .toString();
 
     await this.run([upsertAddressSql, upsertDeliveryAddressSql, updateGroupSql]);
@@ -397,26 +407,26 @@ export class CheckoutWriteRepository {
 
     const deleteRecipientsSql = knex
       .raw(
-        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_addresses WHERE id = ? AND delivery_group_id = ?)`,
-        [addressId, deliveryGroupId],
+        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_groups WHERE id = ?)`,
+        [deliveryGroupId],
       )
       .toString();
 
     const deleteAddressSql = knex
-      .withSchema("platform")
-      .table("checkout_delivery_addresses")
-      .where({ id: addressId, delivery_group_id: deliveryGroupId })
-      .del()
+      .raw(
+        `DELETE FROM platform.checkout_delivery_addresses a WHERE a.id IN (SELECT address_id FROM platform.checkout_delivery_groups WHERE id = ?)`,
+        [deliveryGroupId],
+      )
       .toString();
 
-    const updateGroupSql = knex
+    const updateGroupTimestampSql = knex
       .withSchema("platform")
       .table("checkout_delivery_groups")
       .where("id", deliveryGroupId)
       .update({ updated_at: knex.fn.now() })
       .toString();
 
-    await this.run([deleteRecipientsSql, deleteAddressSql, updateGroupSql]);
+    await this.run([deleteRecipientsSql, deleteAddressSql, updateGroupTimestampSql]);
   }
 
   /**
@@ -488,16 +498,16 @@ export class CheckoutWriteRepository {
 
     const deleteRecipientsSql = knex
       .raw(
-        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_addresses WHERE delivery_group_id = ?)`,
+        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_groups WHERE id = ?)`,
         [deliveryGroupId],
       )
       .toString();
 
     const deleteAddressSql = knex
-      .withSchema("platform")
-      .table("checkout_delivery_addresses")
-      .where("delivery_group_id", deliveryGroupId)
-      .del()
+      .raw(
+        `DELETE FROM platform.checkout_delivery_addresses a WHERE a.id IN (SELECT address_id FROM platform.checkout_delivery_groups WHERE id = ?)`,
+        [deliveryGroupId],
+      )
       .toString();
 
     const deleteGroupSql = knex
@@ -583,6 +593,73 @@ export class CheckoutWriteRepository {
     statements.push(upsertSelectedPaymentMethodSql);
 
     await this.run(statements);
+  }
+
+  /**
+   * Updates delivery group recipient (upsert) and group timestamp.
+   */
+  async updateDeliveryGroupRecipient(input: CheckoutDeliveryGroupRecipientUpdatedDto): Promise<void> {
+    const { deliveryGroupId, recipient } = input.data;
+
+    const upsertRecipientSql = knex
+      .withSchema("platform")
+      .table("checkout_recipients")
+      .insert({
+        id: recipient.id,
+        project_id: input.metadata.projectId as any,
+        first_name: recipient.firstName ?? null,
+        last_name: recipient.lastName ?? null,
+        middle_name: recipient.middleName ?? null,
+        email: recipient.email ?? null,
+        phone: recipient.phone ?? null,
+        metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
+        created_at: input.metadata.now,
+        updated_at: input.metadata.now,
+      })
+      .onConflict(["id"]).merge({
+        first_name: recipient.firstName ?? null,
+        last_name: recipient.lastName ?? null,
+        middle_name: recipient.middleName ?? null,
+        email: recipient.email ?? null,
+        phone: recipient.phone ?? null,
+        updated_at: knex.fn.now(),
+      })
+      .toString();
+
+    const updateGroupSql = knex
+      .withSchema("platform")
+      .table("checkout_delivery_groups")
+      .where("id", deliveryGroupId)
+      .update({
+        recipient_id: recipient.id,
+        updated_at: knex.fn.now(),
+      })
+      .toString();
+
+    await this.run([upsertRecipientSql, updateGroupSql]);
+  }
+
+  /**
+   * Clears delivery group recipient and updates group timestamp.
+   */
+  async clearDeliveryGroupRecipient(input: CheckoutDeliveryGroupRecipientClearedDto): Promise<void> {
+    const { deliveryGroupId } = input.data;
+
+    const deleteRecipientsSql = knex
+      .raw(
+        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_groups WHERE id = ?)`,
+        [deliveryGroupId],
+      )
+      .toString();
+
+    const updateGroupTimestampSql = knex
+      .withSchema("platform")
+      .table("checkout_delivery_groups")
+      .where("id", deliveryGroupId)
+      .update({ updated_at: knex.fn.now() })
+      .toString();
+
+    await this.run([deleteRecipientsSql, updateGroupTimestampSql]);
   }
 
   // -----------------------------

@@ -267,6 +267,27 @@ type CheckoutMutation {
   ): Checkout!
 
   """
+  Adds recipients to delivery groups.
+  """
+  checkoutDeliveryRecipientsAdd(
+    input: CheckoutDeliveryRecipientsAddInput!
+  ): Checkout!
+
+  """
+  Updates recipients for delivery groups.
+  """
+  checkoutDeliveryRecipientsUpdate(
+    input: CheckoutDeliveryRecipientsUpdateInput!
+  ): Checkout!
+
+  """
+  Removes recipients from delivery groups.
+  """
+  checkoutDeliveryRecipientsRemove(
+    input: CheckoutDeliveryRecipientsRemoveInput!
+  ): Checkout!
+
+  """
   Applies a promo code/coupon to the checkout.
   """
   checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
@@ -315,6 +336,21 @@ input CheckoutCustomerIdentityUpdateInput {
   Used to link the checkout with an existing customer.
   """
   customerId: ID
+
+  """
+  First name of the customer.
+  """
+  firstName: String
+
+  """
+  Last name of the customer.
+  """
+  lastName: String
+
+  """
+  Middle name of the customer.
+  """
+  middleName: String
 }
 
 """

@@ -118,6 +118,9 @@ const deserializeCustomerIdentity = (
   customer: dto.customer,
   email: dto.email,
   phone: dto.phone,
+  firstName: dto.firstName,
+  lastName: dto.lastName,
+  middleName: dto.middleName,
 });
 
 const deserializeNotification = (

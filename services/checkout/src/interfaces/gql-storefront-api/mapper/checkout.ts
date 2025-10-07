@@ -117,10 +117,17 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
               countryCode: deliveryAddress.countryCode as ApiCountryCode,
               provinceCode: deliveryAddress.provinceCode,
               postalCode: deliveryAddress.postalCode,
-              firstName: deliveryAddress.firstName,
-              lastName: deliveryAddress.lastName,
-              email: deliveryAddress.email,
               data: null,
+            }
+          : null,
+        recipient: group.recipient
+          ? {
+              __typename: "CheckoutRecipient" as const,
+              firstName: group.recipient.firstName,
+              lastName: group.recipient.lastName,
+              middleName: group.recipient.middleName,
+              email: group.recipient.email,
+              phone: group.recipient.phone,
             }
           : null,
         selectedDeliveryMethod: selectedMethod

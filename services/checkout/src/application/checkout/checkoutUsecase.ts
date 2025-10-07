@@ -22,6 +22,8 @@ import {
   RemoveDeliveryAddressUseCase,
   UpdateDeliveryGroupAddressUseCase,
 } from "@src/application/usecases";
+import { UpdateDeliveryGroupRecipientUseCase } from "@src/application/usecases/updateDeliveryGroupRecipientUseCase";
+import { RemoveDeliveryGroupRecipientUseCase } from "@src/application/usecases/removeDeliveryGroupRecipientUseCase";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
@@ -50,6 +52,8 @@ export class CheckoutUsecase {
   public readonly updateDeliveryAddress: UpdateDeliveryAddressUseCase;
   public readonly removeDeliveryAddress: RemoveDeliveryAddressUseCase;
   public readonly updateDeliveryGroupAddress: UpdateDeliveryGroupAddressUseCase;
+  public readonly updateDeliveryGroupRecipient: UpdateDeliveryGroupRecipientUseCase;
+  public readonly removeDeliveryGroupRecipient: RemoveDeliveryGroupRecipientUseCase;
 
   constructor(deps: {
     logger?: Logger;
@@ -112,6 +116,12 @@ export class CheckoutUsecase {
     this.updateDeliveryAddress = new UpdateDeliveryAddressUseCase(baseDeps);
     this.removeDeliveryAddress = new RemoveDeliveryAddressUseCase(baseDeps);
     this.updateDeliveryGroupAddress = new UpdateDeliveryGroupAddressUseCase(
+      baseDeps
+    );
+    this.updateDeliveryGroupRecipient = new UpdateDeliveryGroupRecipientUseCase(
+      baseDeps
+    );
+    this.removeDeliveryGroupRecipient = new RemoveDeliveryGroupRecipientUseCase(
       baseDeps
     );
   }

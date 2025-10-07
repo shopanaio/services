@@ -165,14 +165,8 @@ export type ApiCheckoutDeliveryAddress = {
   countryCode: ApiCountryCode;
   /** Data associated with the delivery address. */
   data: Maybe<Scalars['JSON']['output']>;
-  /** Email address for this delivery address. */
-  email: Maybe<Scalars['Email']['output']>;
-  /** First name for delivery. */
-  firstName: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the delivery address. */
   id: Scalars['ID']['output'];
-  /** Last name for delivery. */
-  lastName: Maybe<Scalars['String']['output']>;
   /** Postal code. */
   postalCode: Maybe<Scalars['String']['output']>;
   /** Province code. */
@@ -250,6 +244,8 @@ export type ApiCheckoutDeliveryGroup = {
   estimatedCost: Maybe<ApiDeliveryCost>;
   /** Unique identifier for the delivery group. */
   id: Scalars['ID']['output'];
+  /** Recipient associated with the delivery group. */
+  recipient: Maybe<ApiCheckoutRecipient>;
   /** Selected delivery method associated with the delivery group. */
   selectedDeliveryMethod: Maybe<ApiCheckoutDeliveryMethod>;
 };
@@ -295,6 +291,38 @@ export type ApiCheckoutDeliveryProvider = {
   code: Scalars['String']['output'];
   /** Data associated with the provider. */
   data: Scalars['JSON']['output'];
+};
+
+/** Recipient update element: which delivery group's recipient to update and with what data. */
+export type ApiCheckoutDeliveryRecipientUpdateInput = {
+  /** Identifier of the delivery group in the checkout. */
+  deliveryGroupId: Scalars['ID']['input'];
+  /** New recipient values. */
+  recipient: ApiCheckoutRecipientInput;
+};
+
+/** Input data for adding recipients for delivery groups. */
+export type ApiCheckoutDeliveryRecipientsAddInput = {
+  /** Identifier of the checkout on which the operation is performed. */
+  checkoutId: Scalars['ID']['input'];
+  /** List of recipients to be added for delivery groups. */
+  recipients: Array<ApiCheckoutDeliveryRecipientUpdateInput>;
+};
+
+/** Input data for removing recipients associated with delivery groups. */
+export type ApiCheckoutDeliveryRecipientsRemoveInput = {
+  /** Identifier of the checkout on which the operation is performed. */
+  checkoutId: Scalars['ID']['input'];
+  /** Identifiers of delivery groups whose recipients should be removed. */
+  deliveryGroupIds: Array<Scalars['ID']['input']>;
+};
+
+/** Input data for batch updating recipients for delivery groups. */
+export type ApiCheckoutDeliveryRecipientsUpdateInput = {
+  /** Identifier of the checkout on which the operation is performed. */
+  checkoutId: Scalars['ID']['input'];
+  /** List of updates for recipients. */
+  updates: Array<ApiCheckoutDeliveryRecipientUpdateInput>;
 };
 
 export type ApiCheckoutFieldError = {
@@ -472,6 +500,12 @@ export type ApiCheckoutMutation = {
   checkoutDeliveryAddressesUpdate: ApiCheckout;
   /** Selects or changes the delivery method for the entire checkout or specific address. */
   checkoutDeliveryMethodUpdate: ApiCheckout;
+  /** Adds recipients to delivery groups. */
+  checkoutDeliveryRecipientsAdd: ApiCheckout;
+  /** Removes recipients from delivery groups. */
+  checkoutDeliveryRecipientsRemove: ApiCheckout;
+  /** Updates recipients for delivery groups. */
+  checkoutDeliveryRecipientsUpdate: ApiCheckout;
   /** Updates the language/locale of the checkout (affects localization and formatting). */
   checkoutLanguageCodeUpdate: ApiCheckout;
   /** Adds an item to an existing checkout. */
@@ -528,6 +562,21 @@ export type ApiCheckoutMutationCheckoutDeliveryAddressesUpdateArgs = {
 
 export type ApiCheckoutMutationCheckoutDeliveryMethodUpdateArgs = {
   input: ApiCheckoutDeliveryMethodUpdateInput;
+};
+
+
+export type ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs = {
+  input: ApiCheckoutDeliveryRecipientsAddInput;
+};
+
+
+export type ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs = {
+  input: ApiCheckoutDeliveryRecipientsRemoveInput;
+};
+
+
+export type ApiCheckoutMutationCheckoutDeliveryRecipientsUpdateArgs = {
+  input: ApiCheckoutDeliveryRecipientsUpdateInput;
 };
 
 
@@ -695,6 +744,35 @@ export type ApiCheckoutQuery = {
 
 export type ApiCheckoutQueryCheckoutArgs = {
   id: Scalars['ID']['input'];
+};
+
+/** Recipient details for the delivery group. */
+export type ApiCheckoutRecipient = {
+  __typename?: 'CheckoutRecipient';
+  /** Email of the recipient. */
+  email: Maybe<Scalars['Email']['output']>;
+  /** First name of the recipient. */
+  firstName: Maybe<Scalars['String']['output']>;
+  /** Last name of the recipient. */
+  lastName: Maybe<Scalars['String']['output']>;
+  /** Middle name of the recipient. */
+  middleName: Maybe<Scalars['String']['output']>;
+  /** Phone of the recipient. */
+  phone: Maybe<Scalars['String']['output']>;
+};
+
+/** Input fields for recipient details. */
+export type ApiCheckoutRecipientInput = {
+  /** Email of the recipient. */
+  email: InputMaybe<Scalars['Email']['input']>;
+  /** First name of the recipient. */
+  firstName: InputMaybe<Scalars['String']['input']>;
+  /** Last name of the recipient. */
+  lastName: InputMaybe<Scalars['String']['input']>;
+  /** Middle name of the recipient. */
+  middleName: InputMaybe<Scalars['String']['input']>;
+  /** Phone of the recipient. */
+  phone: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum ApiCountryCode {
@@ -1624,6 +1702,10 @@ export type ApiResolversTypes = {
   CheckoutDeliveryMethodType: ApiCheckoutDeliveryMethodType;
   CheckoutDeliveryMethodUpdateInput: ApiCheckoutDeliveryMethodUpdateInput;
   CheckoutDeliveryProvider: ResolverTypeWrapper<ApiCheckoutDeliveryProvider>;
+  CheckoutDeliveryRecipientUpdateInput: ApiCheckoutDeliveryRecipientUpdateInput;
+  CheckoutDeliveryRecipientsAddInput: ApiCheckoutDeliveryRecipientsAddInput;
+  CheckoutDeliveryRecipientsRemoveInput: ApiCheckoutDeliveryRecipientsRemoveInput;
+  CheckoutDeliveryRecipientsUpdateInput: ApiCheckoutDeliveryRecipientsUpdateInput;
   CheckoutFieldError: ResolverTypeWrapper<ApiCheckoutFieldError>;
   CheckoutLanguageCodeUpdateInput: ApiCheckoutLanguageCodeUpdateInput;
   CheckoutLine: ResolverTypeWrapper<ApiCheckoutLine>;
@@ -1650,6 +1732,8 @@ export type ApiResolversTypes = {
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
   CheckoutQuery: ResolverTypeWrapper<ApiCheckoutQuery>;
+  CheckoutRecipient: ResolverTypeWrapper<ApiCheckoutRecipient>;
+  CheckoutRecipientInput: ApiCheckoutRecipientInput;
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
@@ -1701,6 +1785,10 @@ export type ApiResolversParentTypes = {
   CheckoutDeliveryMethod: ApiCheckoutDeliveryMethod;
   CheckoutDeliveryMethodUpdateInput: ApiCheckoutDeliveryMethodUpdateInput;
   CheckoutDeliveryProvider: ApiCheckoutDeliveryProvider;
+  CheckoutDeliveryRecipientUpdateInput: ApiCheckoutDeliveryRecipientUpdateInput;
+  CheckoutDeliveryRecipientsAddInput: ApiCheckoutDeliveryRecipientsAddInput;
+  CheckoutDeliveryRecipientsRemoveInput: ApiCheckoutDeliveryRecipientsRemoveInput;
+  CheckoutDeliveryRecipientsUpdateInput: ApiCheckoutDeliveryRecipientsUpdateInput;
   CheckoutFieldError: ApiCheckoutFieldError;
   CheckoutLanguageCodeUpdateInput: ApiCheckoutLanguageCodeUpdateInput;
   CheckoutLine: ApiCheckoutLine;
@@ -1726,6 +1814,8 @@ export type ApiResolversParentTypes = {
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
   CheckoutQuery: ApiCheckoutQuery;
+  CheckoutRecipient: ApiCheckoutRecipient;
+  CheckoutRecipientInput: ApiCheckoutRecipientInput;
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
   DeliveryCost: ApiDeliveryCost;
@@ -1886,10 +1976,7 @@ export type ApiCheckoutDeliveryAddressResolvers<ContextType = GraphQLContext, Pa
   city: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   countryCode: Resolver<ApiResolversTypes['CountryCode'], ParentType, ContextType>;
   data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
-  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   postalCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1901,6 +1988,7 @@ export type ApiCheckoutDeliveryGroupResolvers<ContextType = GraphQLContext, Pare
   deliveryMethods: Resolver<Array<ApiResolversTypes['CheckoutDeliveryMethod']>, ParentType, ContextType>;
   estimatedCost: Resolver<Maybe<ApiResolversTypes['DeliveryCost']>, ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  recipient: Resolver<Maybe<ApiResolversTypes['CheckoutRecipient']>, ParentType, ContextType>;
   selectedDeliveryMethod: Resolver<Maybe<ApiResolversTypes['CheckoutDeliveryMethod']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -1980,6 +2068,9 @@ export type ApiCheckoutMutationResolvers<ContextType = GraphQLContext, ParentTyp
   checkoutDeliveryAddressesRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryAddressesRemoveArgs, 'input'>>;
   checkoutDeliveryAddressesUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryAddressesUpdateArgs, 'input'>>;
   checkoutDeliveryMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryMethodUpdateArgs, 'input'>>;
+  checkoutDeliveryRecipientsAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs, 'input'>>;
+  checkoutDeliveryRecipientsRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs, 'input'>>;
+  checkoutDeliveryRecipientsUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryRecipientsUpdateArgs, 'input'>>;
   checkoutLanguageCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs, 'input'>>;
   checkoutLinesAdd: Resolver<ApiResolversTypes['CheckoutLinesAddPayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesAddArgs, 'input'>>;
   checkoutLinesClear: Resolver<ApiResolversTypes['CheckoutLinesClearPayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesClearArgs, 'input'>>;
@@ -2032,6 +2123,15 @@ export type ApiCheckoutPromoCodeResolvers<ContextType = GraphQLContext, ParentTy
 
 export type ApiCheckoutQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutQuery'] = ApiResolversParentTypes['CheckoutQuery']> = {
   checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType, RequireFields<ApiCheckoutQueryCheckoutArgs, 'id'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiCheckoutRecipientResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutRecipient'] = ApiResolversParentTypes['CheckoutRecipient']> = {
+  email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
+  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  middleName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  phone: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2136,6 +2236,7 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   CheckoutPaymentMethodConstraints: ApiCheckoutPaymentMethodConstraintsResolvers<ContextType>;
   CheckoutPromoCode: ApiCheckoutPromoCodeResolvers<ContextType>;
   CheckoutQuery: ApiCheckoutQueryResolvers<ContextType>;
+  CheckoutRecipient: ApiCheckoutRecipientResolvers<ContextType>;
   DateTime: GraphQLScalarType;
   Decimal: GraphQLScalarType;
   DeliveryCost: ApiDeliveryCostResolvers<ContextType>;

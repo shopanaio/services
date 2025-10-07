@@ -482,6 +482,15 @@ type CheckoutCustomerIdentity
 
   """Phone number of the customer."""
   phone: String
+
+  """First name of the customer."""
+  firstName: String
+
+  """Last name of the customer."""
+  lastName: String
+
+  """Middle name of the customer."""
+  middleName: String
 }
 
 """
@@ -552,15 +561,6 @@ type CheckoutDeliveryAddress
 
   """Postal code."""
   postalCode: String
-
-  """Email address for this delivery address."""
-  email: Email
-
-  """First name for delivery."""
-  firstName: String
-
-  """Last name for delivery."""
-  lastName: String
 
   """Data associated with the delivery address."""
   data: JSON
@@ -664,6 +664,9 @@ type CheckoutDeliveryGroup
   """Delivery address associated with the delivery group."""
   deliveryAddress: CheckoutDeliveryAddress
 
+  """Recipient associated with the delivery group."""
+  recipient: CheckoutRecipient
+
   """Delivery methods associated with the delivery group."""
   deliveryMethods: [CheckoutDeliveryMethod!]!
 
@@ -714,6 +717,12 @@ input CheckoutDeliveryMethodUpdateInput
   Identifier of the delivery group for which the delivery method is selected.
   """
   deliveryGroupId: ID!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON
 }
 
 type CheckoutDeliveryProvider
@@ -1108,6 +1117,12 @@ input CheckoutPaymentMethodUpdateInput
 
   """Code of the payment method available for this checkout."""
   paymentMethodCode: String!
+
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON
 }
 
 """Applied promo code for a checkout."""
@@ -1162,6 +1177,26 @@ type CheckoutQuery
 {
   """Get a checkout by its ID."""
   checkout(id: ID!): Checkout
+}
+
+"""Recipient details for the delivery group."""
+type CheckoutRecipient
+  @join__type(graph: CHECKOUT)
+{
+  """First name of the recipient."""
+  firstName: String
+
+  """Last name of the recipient."""
+  lastName: String
+
+  """Middle name of the recipient."""
+  middleName: String
+
+  """Email of the recipient."""
+  email: Email
+
+  """Phone of the recipient."""
+  phone: String
 }
 
 enum CountryCode
