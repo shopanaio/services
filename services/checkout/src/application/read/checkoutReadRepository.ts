@@ -145,6 +145,7 @@ export type CheckoutDeliveryGroup = {
   selectedDeliveryMethodProvider?: string | null;
   lineItemIds: string[];
   recipient: {
+    id: string;
     firstName: string | null;
     lastName: string | null;
     middleName: string | null;
@@ -342,21 +343,7 @@ export class CheckoutReadRepository {
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
       appliedPromoCodes: appliedPromoCodes,
-      deliveryGroups: deliveryGroups.map((g) => {
-        const addr = deliveryAddresses.find((a) => a.delivery_group_id === g.id);
-        return {
-          ...g,
-          recipient: addr
-            ? {
-                firstName: addr.first_name,
-                lastName: addr.last_name,
-                middleName: addr.middle_name ?? null,
-                email: addr.email,
-                phone: addr.phone,
-              }
-            : null,
-        };
-      }),
+      deliveryGroups: deliveryGroups,
       deliveryAddresses: mappedDeliveryAddresses,
       deliveryMethods: mappedDeliveryMethods,
       lineItems: normalizedLineItems,

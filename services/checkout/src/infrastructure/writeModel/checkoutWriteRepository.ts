@@ -328,15 +328,16 @@ export class CheckoutWriteRepository {
 
   /**
    * Updates delivery group address (upsert) and group timestamp.
+   * Uses deliveryGroupId as the recipient id to ensure 1:1 relationship.
    */
   async updateDeliveryGroupAddress(input: CheckoutDeliveryGroupAddressUpdatedDto): Promise<void> {
     const { deliveryGroupId, address } = input.data;
 
-    const upsertAddressSql = knex
+    const upsertRecipientSql = knex
       .withSchema("platform")
       .table("checkout_recipients")
       .insert({
-        id: address.id, // 1:1 with address
+        id: deliveryGroupId,
         project_id: input.metadata.projectId as any,
         first_name: address.firstName ?? null,
         last_name: address.lastName ?? null,
@@ -391,12 +392,12 @@ export class CheckoutWriteRepository {
       .where("id", deliveryGroupId)
       .update({
         address_id: address.id,
-        recipient_id: address.id,
+        recipient_id: deliveryGroupId,
         updated_at: knex.fn.now(),
       })
       .toString();
 
-    await this.run([upsertAddressSql, upsertDeliveryAddressSql, updateGroupSql]);
+    await this.run([upsertRecipientSql, upsertDeliveryAddressSql, updateGroupSql]);
   }
 
   /**
@@ -597,6 +598,7 @@ export class CheckoutWriteRepository {
 
   /**
    * Updates delivery group recipient (upsert) and group timestamp.
+   * Uses deliveryGroupId as the recipient id to ensure 1:1 relationship.
    */
   async updateDeliveryGroupRecipient(input: CheckoutDeliveryGroupRecipientUpdatedDto): Promise<void> {
     const { deliveryGroupId, recipient } = input.data;
@@ -605,7 +607,7 @@ export class CheckoutWriteRepository {
       .withSchema("platform")
       .table("checkout_recipients")
       .insert({
-        id: recipient.id,
+        id: deliveryGroupId,
         project_id: input.metadata.projectId as any,
         first_name: recipient.firstName ?? null,
         last_name: recipient.lastName ?? null,
@@ -631,7 +633,7 @@ export class CheckoutWriteRepository {
       .table("checkout_delivery_groups")
       .where("id", deliveryGroupId)
       .update({
-        recipient_id: recipient.id,
+        recipient_id: deliveryGroupId,
         updated_at: knex.fn.now(),
       })
       .toString();
@@ -645,21 +647,46 @@ export class CheckoutWriteRepository {
   async clearDeliveryGroupRecipient(input: CheckoutDeliveryGroupRecipientClearedDto): Promise<void> {
     const { deliveryGroupId } = input.data;
 
-    const deleteRecipientsSql = knex
-      .raw(
-        `DELETE FROM platform.checkout_recipients r WHERE r.id IN (SELECT recipient_id FROM platform.checkout_delivery_groups WHERE id = ?)`,
-        [deliveryGroupId],
-      )
+    // First, get the recipient_id to delete
+    const getRecipientIdSql = knex
+      .withSchema("platform")
+      .table("checkout_delivery_groups")
+      .select("recipient_id")
+      .where("id", deliveryGroupId)
       .toString();
 
-    const updateGroupTimestampSql = knex
+    const result = await this.execute.query<{ recipient_id: string | null }>(
+      rawSql(getRecipientIdSql)
+    );
+
+    const recipientId = result.rows[0]?.recipient_id;
+
+    // Clear recipient_id in delivery group and update timestamp
+    const clearGroupRecipientSql = knex
       .withSchema("platform")
       .table("checkout_delivery_groups")
       .where("id", deliveryGroupId)
-      .update({ updated_at: knex.fn.now() })
+      .update({
+        recipient_id: null,
+        updated_at: knex.fn.now(),
+      })
       .toString();
 
-    await this.run([deleteRecipientsSql, updateGroupTimestampSql]);
+    const statements = [clearGroupRecipientSql];
+
+    // Delete recipient if it exists
+    if (recipientId) {
+      const deleteRecipientSql = knex
+        .withSchema("platform")
+        .table("checkout_recipients")
+        .where("id", recipientId)
+        .delete()
+        .toString();
+
+      statements.push(deleteRecipientSql);
+    }
+
+    await this.run(statements);
   }
 
   // -----------------------------

@@ -146,24 +146,37 @@ export class CheckoutReadRepository implements CheckoutReadPort {
   ): Promise<CheckoutDeliveryGroup[]> {
     const q = knex
       .withSchema("platform")
-      .table("checkout_delivery_groups")
+      .table("checkout_delivery_groups as dg")
+      .leftJoin("checkout_recipients as cr", "cr.id", "dg.recipient_id")
       .select(
-        "id",
-        "project_id",
-        "checkout_id",
-        "selected_delivery_method_code",
-        "selected_delivery_method_provider",
-        knex.raw("COALESCE(line_item_ids::text[], '{}') as line_item_ids"),
-        "created_at",
-        "updated_at"
+        "dg.id",
+        "dg.project_id",
+        "dg.checkout_id",
+        "dg.selected_delivery_method_code",
+        "dg.selected_delivery_method_provider",
+        knex.raw("COALESCE(dg.line_item_ids::text[], '{}') as line_item_ids"),
+        "dg.created_at",
+        "dg.updated_at",
+        knex.raw("cr.id as recipient_id"),
+        knex.raw("cr.first_name as recipient_first_name"),
+        knex.raw("cr.last_name as recipient_last_name"),
+        knex.raw("cr.middle_name as recipient_middle_name"),
+        knex.raw("cr.email as recipient_email"),
+        knex.raw("cr.phone as recipient_phone")
       )
-      .where({ checkout_id: checkoutId })
-      .orderBy("created_at", "asc")
+      .where({ "dg.checkout_id": checkoutId })
+      .orderBy("dg.created_at", "asc")
       .toString();
 
-    const result = await this.execute.query<CheckoutDeliveryGroupRow>(
-      rawSql(q)
-    );
+    const result = await this.execute.query<CheckoutDeliveryGroupRow & {
+      recipient_id: string | null;
+      recipient_first_name: string | null;
+      recipient_last_name: string | null;
+      recipient_middle_name: string | null;
+      recipient_email: string | null;
+      recipient_phone: string | null;
+    }>(rawSql(q));
+
     return result.rows.map(
       (group): CheckoutDeliveryGroup => ({
         id: group.id,
@@ -172,7 +185,14 @@ export class CheckoutReadRepository implements CheckoutReadPort {
         selectedDeliveryMethod: group.selected_delivery_method_code,
         selectedDeliveryMethodProvider: group.selected_delivery_method_provider,
         lineItemIds: group.line_item_ids,
-        recipient: null,
+        recipient: group.recipient_id ? {
+          id: group.recipient_id,
+          firstName: group.recipient_first_name,
+          lastName: group.recipient_last_name,
+          middleName: group.recipient_middle_name,
+          email: group.recipient_email,
+          phone: group.recipient_phone,
+        } : null,
         createdAt: group.created_at,
         updatedAt: group.updated_at,
       })

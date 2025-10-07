@@ -285,7 +285,6 @@ export type CheckoutPaymentMethodUpdatedDto = Readonly<{
 export type CheckoutDeliveryGroupRecipientUpdatedPayload = Readonly<{
   deliveryGroupId: string;
   recipient: {
-    id: string;
     firstName?: string | null;
     lastName?: string | null;
     middleName?: string | null;

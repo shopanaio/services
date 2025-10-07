@@ -153,7 +153,6 @@ export type CheckoutDeliveryGroupRecipientUpdateInput = {
   checkoutId: string;
   deliveryGroupId: string;
   recipient: {
-    id: string;
     firstName?: string | null;
     lastName?: string | null;
     middleName?: string | null;
