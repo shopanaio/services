@@ -8,8 +8,6 @@ import { CheckoutDeliveryRecipientsAddDto } from "@src/application/dto/checkoutD
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-import { v7 as uuidv7 } from "uuid";
-
 /**
  * checkoutDeliveryRecipientsAdd(input: CheckoutDeliveryRecipientsAddInput!): Checkout!
  */
@@ -29,7 +27,6 @@ export const checkoutDeliveryRecipientsAdd = async (
         checkoutId: dto.checkoutId,
         deliveryGroupId: recipientInput.deliveryGroupId,
         recipient: {
-          id: uuidv7(),
           firstName: recipientInput.recipient.firstName,
           lastName: recipientInput.recipient.lastName,
           middleName: recipientInput.recipient.middleName,

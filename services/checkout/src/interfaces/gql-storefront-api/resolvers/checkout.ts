@@ -23,6 +23,9 @@ import {
   selectedDeliveryMethod,
   estimatedCost,
   deliveryMethods,
+  checkoutDeliveryRecipientsAdd,
+  checkoutDeliveryRecipientsRemove,
+  checkoutDeliveryRecipientsUpdate,
 } from "./checkout/index";
 
 const checkoutResolvers = {
@@ -60,6 +63,9 @@ const checkoutResolvers = {
     checkoutDeliveryAddressesUpdate,
     checkoutPaymentMethodUpdate,
     checkoutDeliveryMethodUpdate,
+    checkoutDeliveryRecipientsAdd,
+    checkoutDeliveryRecipientsUpdate,
+    checkoutDeliveryRecipientsRemove,
   },
 } as any;
 

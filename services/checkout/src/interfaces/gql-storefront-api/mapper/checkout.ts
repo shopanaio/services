@@ -81,7 +81,7 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
             method.deliveryMethodType as ApiCheckoutDeliveryMethodType,
           provider: {
             __typename: "CheckoutDeliveryProvider" as const,
-            code: method.provider ?? "unknown",
+            code: method.provider,
           },
           data: method.customerInput ?? {},
         }));
