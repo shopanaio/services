@@ -349,38 +349,12 @@ export class CheckoutWriteRepository {
 
   /**
    * Updates delivery group address (upsert) and group timestamp.
-   * Uses deliveryGroupId as the recipient id to ensure 1:1 relationship.
+   * Does not affect recipient data.
    */
   async updateDeliveryGroupAddress(
     input: CheckoutDeliveryGroupAddressUpdatedDto
   ): Promise<void> {
     const { deliveryGroupId, address } = input.data;
-
-    const upsertRecipientSql = knex
-      .withSchema("platform")
-      .table("checkout_recipients")
-      .insert({
-        id: deliveryGroupId,
-        project_id: input.metadata.projectId as any,
-        first_name: address.firstName ?? null,
-        last_name: address.lastName ?? null,
-        middle_name: (address as any).middleName ?? null,
-        email: address.email ?? null,
-        phone: address.phone ?? null,
-        metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-        created_at: input.metadata.now,
-        updated_at: input.metadata.now,
-      })
-      .onConflict(["id"])
-      .merge({
-        first_name: address.firstName ?? null,
-        last_name: address.lastName ?? null,
-        middle_name: (address as any).middleName ?? null,
-        email: address.email ?? null,
-        phone: address.phone ?? null,
-        updated_at: knex.fn.now(),
-      })
-      .toString();
 
     const upsertDeliveryAddressSql = knex
       .withSchema("platform")
@@ -416,13 +390,11 @@ export class CheckoutWriteRepository {
       .where("id", deliveryGroupId)
       .update({
         address_id: address.id,
-        recipient_id: deliveryGroupId,
         updated_at: knex.fn.now(),
       })
       .toString();
 
     await this.run([
-      upsertRecipientSql,
       upsertDeliveryAddressSql,
       updateGroupSql,
     ]);
