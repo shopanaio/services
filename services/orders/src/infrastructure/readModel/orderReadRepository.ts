@@ -6,6 +6,10 @@ import type {
   OrderReadPort,
   OrderReadPortRow,
   OrderDeliveryAddressRow,
+  OrderRecipientRow,
+  OrderDeliveryMethodRow,
+  OrderPaymentMethodRow,
+  OrderSelectedPaymentMethodRow,
   OrderPromoCodeRow,
   OrderDeliveryGroupRow,
   OrderDeliveryGroup,
@@ -61,34 +65,56 @@ export class OrderReadRepository implements OrderReadPort {
   }
 
   async findDeliveryAddresses(
-    orderId: string
+    addressIds: string[]
   ): Promise<OrderDeliveryAddressRow[]> {
+    if (addressIds.length === 0) return [];
+
     const q = knex
       .withSchema("platform")
-      .table("order_delivery_addresses as da")
-      .join("order_delivery_groups as dg", "dg.id", "da.delivery_group_id")
+      .table("order_delivery_addresses")
       .select(
-        "da.id",
-        "da.delivery_group_id",
-        "da.address1",
-        "da.address2",
-        "da.city",
-        "da.country_code",
-        "da.province_code",
-        "da.postal_code",
-        "da.first_name",
-        "da.last_name",
-        "da.email",
-        "da.phone",
-        "da.metadata",
-        "da.created_at",
-        "da.updated_at"
+        "id",
+        "address1",
+        "address2",
+        "city",
+        "country_code",
+        "province_code",
+        "postal_code",
+        "metadata",
+        "created_at",
+        "updated_at"
       )
-      .where("dg.order_id", orderId)
-      .orderBy("da.created_at", "asc")
+      .whereIn("id", addressIds)
       .toString();
 
     const result = await this.execute.query<OrderDeliveryAddressRow>(rawSql(q));
+    return result.rows;
+  }
+
+  async findRecipients(
+    recipientIds: string[]
+  ): Promise<OrderRecipientRow[]> {
+    if (recipientIds.length === 0) return [];
+
+    const q = knex
+      .withSchema("platform")
+      .table("order_recipients")
+      .select(
+        "id",
+        "project_id",
+        "first_name",
+        "last_name",
+        "middle_name",
+        "email",
+        "phone",
+        "metadata",
+        "created_at",
+        "updated_at"
+      )
+      .whereIn("id", recipientIds)
+      .toString();
+
+    const result = await this.execute.query<OrderRecipientRow>(rawSql(q));
     return result.rows;
   }
 
@@ -133,7 +159,10 @@ export class OrderReadRepository implements OrderReadPort {
         "id",
         "project_id",
         "order_id",
-        "selected_delivery_method",
+        "address_id",
+        "recipient_id",
+        "selected_delivery_method_code",
+        "selected_delivery_method_provider",
         knex.raw("COALESCE(line_item_ids::text[], '{}') as line_item_ids"),
         "created_at",
         "updated_at"
@@ -148,12 +177,77 @@ export class OrderReadRepository implements OrderReadPort {
         id: group.id,
         projectId: group.project_id,
         orderId: group.order_id,
-        selectedDeliveryMethod: group.selected_delivery_method,
+        addressId: group.address_id,
+        recipientId: group.recipient_id,
+        selectedDeliveryMethodCode: group.selected_delivery_method_code,
+        selectedDeliveryMethodProvider: group.selected_delivery_method_provider,
         lineItemIds: group.line_item_ids,
         createdAt: group.created_at,
         updatedAt: group.updated_at,
       })
     );
+  }
+
+  async findDeliveryMethods(
+    deliveryGroupIds: string[]
+  ): Promise<OrderDeliveryMethodRow[]> {
+    if (deliveryGroupIds.length === 0) return [];
+
+    const q = knex
+      .withSchema("platform")
+      .table("order_delivery_methods")
+      .select(
+        "code",
+        "provider",
+        "project_id",
+        "delivery_group_id",
+        "delivery_method_type",
+        "payment_model",
+        "metadata",
+        "customer_input"
+      )
+      .whereIn("delivery_group_id", deliveryGroupIds)
+      .toString();
+
+    const result = await this.execute.query<OrderDeliveryMethodRow>(rawSql(q));
+    return result.rows;
+  }
+
+  async findPaymentMethods(orderId: string): Promise<OrderPaymentMethodRow[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("order_payment_methods")
+      .select(
+        "order_id",
+        "project_id",
+        "code",
+        "provider",
+        "flow",
+        "metadata",
+        "customer_input"
+      )
+      .where({ order_id: orderId })
+      .toString();
+
+    const result = await this.execute.query<OrderPaymentMethodRow>(rawSql(q));
+    return result.rows;
+  }
+
+  async findSelectedPaymentMethod(
+    orderId: string
+  ): Promise<OrderSelectedPaymentMethodRow | null> {
+    const q = knex
+      .withSchema("platform")
+      .table("order_selected_payment_methods")
+      .select("order_id", "project_id", "code", "provider")
+      .where({ order_id: orderId })
+      .toString();
+
+    const row = await singleOrNull(
+      this.execute.query<OrderSelectedPaymentMethodRow>(rawSql(q))
+    );
+
+    return row;
   }
 
   private mapOrderRow(

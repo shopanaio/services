@@ -179,41 +179,95 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     const contact = {
       projectId,
       orderId,
+      firstName: checkoutAggregate.customerIdentity.firstName ?? null,
+      lastName: checkoutAggregate.customerIdentity.lastName ?? null,
+      middleName: checkoutAggregate.customerIdentity.middleName ?? null,
+      customerId: checkoutAggregate.customerIdentity.customer?.id ?? null,
       customerEmail: checkoutAggregate.customerIdentity.email ?? null,
       customerPhoneE164: checkoutAggregate.customerIdentity.phone ?? null,
       customerNote: checkoutAggregate.customerNote ?? null,
+      countryCode: checkoutAggregate.customerIdentity.countryCode ?? null,
+      metadata: null,
       expiresAt: null,
     } satisfies OrderCreateProjectionContextData["contact"];
 
     const deliveryAddressRefs = new Map<string, string>();
+    const deliveryAddresses: OrderCreateProjectionContextData["deliveryAddresses"] = [];
+    const recipients: OrderCreateProjectionContextData["recipients"] = [];
+    const deliveryGroupMappings: OrderCreateProjectionContextData["deliveryGroupMappings"] = [];
+    const deliveryMethods: OrderCreateProjectionContextData["deliveryMethods"] = [];
+    const selectedDeliveryMethods: OrderCreateProjectionContextData["selectedDeliveryMethods"] = [];
 
-    const deliveryAddresses = deliveryGroups.map((group) => {
+    for (const group of deliveryGroups) {
+      const address = group.deliveryAddress!;
+
       const addrId = uuidv7();
+      const recipientId = uuidv7();
+
       deliveryAddressRefs.set(group.id, addrId);
 
-      const address = group.deliveryAddress!;
-      return {
+      deliveryAddresses.push({
         id: addrId,
-        projectId,
-        orderId,
-        deliveryGroupId: group.id,
         address1: address.address1,
         address2: address.address2 ?? null,
         city: address.city,
         countryCode: address.countryCode,
         provinceCode: address.provinceCode ?? null,
         postalCode: address.postalCode ?? null,
-        email: address.email ?? null,
+        metadata: (address.data as Record<string, unknown> | null) ?? null,
+      });
+
+      recipients.push({
+        id: recipientId,
+        projectId,
         firstName: address.firstName ?? null,
         lastName: address.lastName ?? null,
+        middleName: null,
+        email: address.email ?? null,
         phone: address.phone ?? null,
-        metadata: (address.data as Record<string, unknown> | null) ?? null,
-      } satisfies OrderCreateProjectionContextData["deliveryAddresses"][number];
-    });
+        metadata: null,
+      });
+
+      deliveryGroupMappings.push({
+        deliveryGroupId: group.id,
+        addressId: addrId,
+        recipientId: recipientId,
+      });
+    }
+
+    // Collect all delivery methods from all groups
+    for (const group of checkoutAggregate.deliveryGroups) {
+      for (const method of group.deliveryMethods) {
+        deliveryMethods.push({
+          code: method.code,
+          provider: method.provider.code,
+          deliveryGroupId: group.id,
+          deliveryMethodType: method.deliveryMethodType,
+          paymentModel: method.shippingPaymentModel ?? null,
+          metadata: null,
+          customerInput: (method.provider.data as Record<string, unknown> | null) ?? null,
+        });
+      }
+
+      // Store selected delivery method
+      if (group.selectedDeliveryMethod) {
+        selectedDeliveryMethods.push({
+          deliveryGroupId: group.id,
+          code: group.selectedDeliveryMethod.code,
+          provider: group.selectedDeliveryMethod.provider.code,
+        });
+      }
+    }
 
     setOrderCreateProjectionContext(orderId, {
       contact,
       deliveryAddresses,
+      recipients,
+      deliveryGroupMappings,
+      deliveryMethods,
+      selectedDeliveryMethods,
+      paymentMethods: [], // TODO: Add when payment methods are available in checkout
+      selectedPaymentMethod: null,
     });
 
     return deliveryAddressRefs;

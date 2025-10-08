@@ -137,23 +137,110 @@ export const orderCreateProjection =
         statements.push(rawSql(insertItemsSql));
       }
 
-      // Insert delivery groups
+      // Insert delivery addresses and recipients first
+      if (projectionContext?.deliveryAddresses.length) {
+        const addressesSql = knex
+          .withSchema("platform")
+          .table("order_delivery_addresses")
+          .insert(
+            projectionContext.deliveryAddresses.map((address) => ({
+              id: address.id,
+              address1: address.address1,
+              address2: address.address2,
+              city: address.city,
+              country_code: address.countryCode,
+              province_code: address.provinceCode,
+              postal_code: address.postalCode,
+              metadata: knex.raw("?::jsonb", [
+                JSON.stringify(address.metadata ?? {}),
+              ]),
+            }))
+          )
+          .toString();
+        statements.push(rawSql(addressesSql));
+      }
+
+      if (projectionContext?.recipients.length) {
+        const recipientsSql = knex
+          .withSchema("platform")
+          .table("order_recipients")
+          .insert(
+            projectionContext.recipients.map((recipient) => ({
+              id: recipient.id,
+              project_id: recipient.projectId,
+              first_name: recipient.firstName,
+              last_name: recipient.lastName,
+              middle_name: recipient.middleName,
+              email: recipient.email,
+              phone: recipient.phone,
+              metadata: knex.raw("?::jsonb", [
+                JSON.stringify(recipient.metadata ?? {}),
+              ]),
+            }))
+          )
+          .toString();
+        statements.push(rawSql(recipientsSql));
+      }
+
+      // Insert delivery methods first
+      if (projectionContext?.deliveryMethods.length) {
+        const methodsInsert = projectionContext.deliveryMethods.map((method) =>
+          knex
+            .withSchema("platform")
+            .table("order_delivery_methods")
+            .insert({
+              code: method.code,
+              provider: method.provider,
+              project_id: projectId,
+              delivery_group_id: method.deliveryGroupId,
+              delivery_method_type: method.deliveryMethodType,
+              payment_model: method.paymentModel,
+              metadata: knex.raw("?::jsonb", [
+                JSON.stringify(method.metadata ?? {}),
+              ]),
+              customer_input: knex.raw("?::jsonb", [
+                JSON.stringify(method.customerInput ?? {}),
+              ]),
+            })
+            .toString()
+        );
+        methodsInsert.forEach((sql) => statements.push(rawSql(sql)));
+      }
+
+      // Insert delivery groups with references to addresses and recipients
       const groups = event.data.deliveryGroups || [];
       if (groups.length > 0) {
-        const groupRows = groups.map((g) => ({
-          id: g.id,
-          // TODO: Remove `as any` by aligning types with DB (UUID).
-          project_id: projectId as any,
-          order_id: orderId,
-          selected_delivery_method: null,
-          // TODO: Switch to parameterized uuid[] binding instead of interpolated literals.
-          line_item_ids: uuidArray(g.orderLineIds),
-          created_at: event.metadata.now,
-          updated_at: event.metadata.now,
-        }));
+        const mappings = new Map(
+          projectionContext?.deliveryGroupMappings.map((m) => [
+            m.deliveryGroupId,
+            { addressId: m.addressId, recipientId: m.recipientId },
+          ]) ?? []
+        );
 
-        // Knex doesn't support array literals directly in object values when batching.
-        // Build VALUES list via raw inserts per row to preserve uuid[] type.
+        const selectedMethods = new Map(
+          projectionContext?.selectedDeliveryMethods.map((m) => [
+            m.deliveryGroupId,
+            { code: m.code, provider: m.provider },
+          ]) ?? []
+        );
+
+        const groupRows = groups.map((g) => {
+          const mapping = mappings.get(g.id);
+          const selectedMethod = selectedMethods.get(g.id);
+          return {
+            id: g.id,
+            project_id: projectId as any,
+            order_id: orderId,
+            address_id: mapping?.addressId ?? null,
+            recipient_id: mapping?.recipientId ?? null,
+            selected_delivery_method_code: selectedMethod?.code ?? null,
+            selected_delivery_method_provider: selectedMethod?.provider ?? null,
+            line_item_ids: uuidArray(g.orderLineIds),
+            created_at: event.metadata.now,
+            updated_at: event.metadata.now,
+          };
+        });
+
         const groupsInsert = groupRows.map((r) =>
           knex
             .withSchema("platform")
@@ -162,7 +249,10 @@ export const orderCreateProjection =
               id: r.id,
               project_id: r.project_id as any,
               order_id: r.order_id,
-              selected_delivery_method: r.selected_delivery_method,
+              address_id: r.address_id,
+              recipient_id: r.recipient_id,
+              selected_delivery_method_code: r.selected_delivery_method_code,
+              selected_delivery_method_provider: r.selected_delivery_method_provider,
               line_item_ids: r.line_item_ids,
               created_at: r.created_at,
               updated_at: r.updated_at,
@@ -170,6 +260,46 @@ export const orderCreateProjection =
             .toString(),
         );
         groupsInsert.forEach((sql) => statements.push(rawSql(sql)));
+      }
+
+      // Insert payment methods
+      if (projectionContext?.paymentMethods.length) {
+        const paymentMethodsSql = knex
+          .withSchema("platform")
+          .table("order_payment_methods")
+          .insert(
+            projectionContext.paymentMethods.map((method) => ({
+              order_id: orderId,
+              project_id: projectId,
+              code: method.code,
+              provider: method.provider,
+              flow: method.flow,
+              metadata: knex.raw("?::jsonb", [
+                JSON.stringify(method.metadata ?? {}),
+              ]),
+              customer_input: knex.raw("?::jsonb", [
+                JSON.stringify(method.customerInput ?? {}),
+              ]),
+            }))
+          )
+          .toString();
+        statements.push(rawSql(paymentMethodsSql));
+      }
+
+      // Insert selected payment method
+      if (projectionContext?.selectedPaymentMethod) {
+        const { selectedPaymentMethod } = projectionContext;
+        const selectedPaymentSql = knex
+          .withSchema("platform")
+          .table("order_selected_payment_methods")
+          .insert({
+            order_id: orderId,
+            project_id: projectId,
+            code: selectedPaymentMethod.code,
+            provider: selectedPaymentMethod.provider,
+          })
+          .toString();
+        statements.push(rawSql(selectedPaymentSql));
       }
 
       // Insert applied discounts
@@ -205,50 +335,35 @@ export const orderCreateProjection =
           .insert({
             project_id: contact.projectId,
             order_id: orderId,
+            first_name: contact.firstName,
+            last_name: contact.lastName,
+            middle_name: contact.middleName,
+            customer_id: contact.customerId,
             customer_email: contact.customerEmail,
             customer_phone_e164: contact.customerPhoneE164,
             customer_note: contact.customerNote,
+            country_code: contact.countryCode,
+            metadata: knex.raw("?::jsonb", [
+              JSON.stringify(contact.metadata ?? {}),
+            ]),
             expires_at: contact.expiresAt,
           })
           .onConflict(["order_id"])
           .merge({
+            first_name: knex.raw("EXCLUDED.first_name"),
+            last_name: knex.raw("EXCLUDED.last_name"),
+            middle_name: knex.raw("EXCLUDED.middle_name"),
+            customer_id: knex.raw("EXCLUDED.customer_id"),
             customer_email: knex.raw("EXCLUDED.customer_email"),
             customer_phone_e164: knex.raw("EXCLUDED.customer_phone_e164"),
             customer_note: knex.raw("EXCLUDED.customer_note"),
+            country_code: knex.raw("EXCLUDED.country_code"),
+            metadata: knex.raw("EXCLUDED.metadata"),
             expires_at: knex.raw("EXCLUDED.expires_at"),
             updated_at: knex.raw("?::timestamptz", [event.metadata.now]),
           })
           .toString();
         statements.push(rawSql(contactSql));
-      }
-
-      if (projectionContext?.deliveryAddresses.length) {
-        const addressesSql = knex
-          .withSchema("platform")
-          .table("order_delivery_addresses")
-          .insert(
-            projectionContext.deliveryAddresses.map((address) => ({
-              id: address.id,
-              project_id: address.projectId,
-              order_id: orderId,
-              delivery_group_id: address.deliveryGroupId,
-              address1: address.address1,
-              address2: address.address2,
-              city: address.city,
-              country_code: address.countryCode,
-              province_code: address.provinceCode,
-              postal_code: address.postalCode,
-              email: address.email,
-              first_name: address.firstName,
-              last_name: address.lastName,
-              phone: address.phone,
-              metadata: knex.raw("?::jsonb", [
-                JSON.stringify(address.metadata ?? null),
-              ]),
-            }))
-          )
-          .toString();
-        statements.push(rawSql(addressesSql));
       }
 
       sqls.push(...statements);

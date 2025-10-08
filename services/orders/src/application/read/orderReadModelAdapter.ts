@@ -10,6 +10,7 @@ import {
   OrderReadView,
   OrderDeliveryGroup,
   OrderDeliveryAddress,
+  OrderRecipient,
   OrderPromoCode,
 } from "./orderReadRepository";
 import { OrderLineItemReadView } from "./orderLineItemsReadRepository";
@@ -51,7 +52,8 @@ export class OrderReadModelAdapter {
       customerNote: readView.customerNote,
       deliveryGroups: this.mapDeliveryGroups(
         readView.deliveryGroups,
-        readView.deliveryAddresses
+        readView.deliveryAddresses,
+        readView.recipients
       ),
       discountTotal: readView.discountTotal,
       taxTotal: readView.taxTotal,
@@ -107,17 +109,19 @@ export class OrderReadModelAdapter {
    */
   private static mapDeliveryGroups(
     deliveryGroups: OrderDeliveryGroup[],
-    deliveryAddresses: OrderDeliveryAddress[]
+    deliveryAddresses: Map<string, OrderDeliveryAddress>,
+    recipients: Map<string, OrderRecipient>
   ): DomainOrderDeliveryGroup[] {
     return deliveryGroups.map(group => {
-      // Find address for this delivery group
-      const groupAddress = deliveryAddresses.find(addr => addr.deliveryGroupId === group.id);
+      // Get address and recipient for this delivery group
+      const address = group.addressId ? deliveryAddresses.get(group.addressId) : null;
+      const recipient = group.recipientId ? recipients.get(group.recipientId) : null;
 
       return {
         id: group.id,
         orderLineIds: group.lineItemIds,
-        deliveryAddress: groupAddress
-          ? this.mapDeliveryAddress(groupAddress)
+        deliveryAddress: address
+          ? this.mapDeliveryAddress(address, recipient)
           : null,
         deliveryCost: null,
       };
@@ -126,9 +130,11 @@ export class OrderReadModelAdapter {
 
   /**
    * Converts delivery address from read model to domain model
+   * Merges address and recipient data into a single domain object
    */
   private static mapDeliveryAddress(
-    address: OrderDeliveryAddress
+    address: OrderDeliveryAddress,
+    recipient: OrderRecipient | null | undefined
   ): DomainOrderDeliveryAddress {
     return {
       id: address.id,
@@ -138,10 +144,10 @@ export class OrderReadModelAdapter {
       countryCode: address.countryCode,
       provinceCode: address.provinceCode,
       postalCode: address.postalCode,
-      email: address.email,
-      firstName: address.firstName,
-      lastName: address.lastName,
-      phone: address.phone,
+      email: recipient?.email ?? null,
+      firstName: recipient?.firstName ?? null,
+      lastName: recipient?.lastName ?? null,
+      phone: recipient?.phone ?? null,
       data: address.metadata,
     };
   }
