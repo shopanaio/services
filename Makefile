@@ -1,5 +1,8 @@
 .SILENT:
 
+.PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:platform dev\:orders
+.PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-platform docker\:build-apps
+
 apollo\:storefront:
 	docker-compose -f docker-compose.apollo-storefront.yml up --build
 
@@ -41,3 +44,40 @@ dev\:platform:
 
 dev\:orders:
 	yarn workspace @shopana/orders-service run dev
+
+# Docker build commands
+SERVICE ?= checkout
+TAG ?= latest
+
+docker\:build:
+	@echo "Building $(SERVICE) service with tag $(TAG)..."
+	@docker build \
+		--build-arg SERVICE_NAME=$(SERVICE) \
+		--build-arg NODE_VERSION=20 \
+		-t shopana/$(SERVICE)-service:$(TAG) \
+		-f services/Dockerfile \
+		.
+
+docker\:build-checkout:
+	@$(MAKE) docker:build SERVICE=checkout
+
+docker\:build-orders:
+	@$(MAKE) docker:build SERVICE=orders
+
+docker\:build-payments:
+	@$(MAKE) docker:build SERVICE=payments
+
+docker\:build-delivery:
+	@$(MAKE) docker:build SERVICE=delivery
+
+docker\:build-inventory:
+	@$(MAKE) docker:build SERVICE=inventory
+
+docker\:build-pricing:
+	@$(MAKE) docker:build SERVICE=pricing
+
+docker\:build-platform:
+	@$(MAKE) docker:build SERVICE=platform
+
+docker\:build-apps:
+	@$(MAKE) docker:build SERVICE=apps

@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  checkout-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: checkout
+        NODE_VERSION: 20
+    image: shopana/checkout-service:latest
+    container_name: shopana-checkout-service
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: orders
+        NODE_VERSION: 20
+    image: shopana/orders-service:latest
+    container_name: shopana-orders-service
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  payments-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: payments
+        NODE_VERSION: 20
+    image: shopana/payments-service:latest
+    container_name: shopana-payments-service
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  delivery-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: delivery
+        NODE_VERSION: 20
+    image: shopana/delivery-service:latest
+    container_name: shopana-delivery-service
+    restart: unless-stopped
+    ports:
+      - "3004:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: inventory
+        NODE_VERSION: 20
+    image: shopana/inventory-service:latest
+    container_name: shopana-inventory-service
+    restart: unless-stopped
+    ports:
+      - "3005:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  pricing-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: pricing
+        NODE_VERSION: 20
+    image: shopana/pricing-service:latest
+    container_name: shopana-pricing-service
+    restart: unless-stopped
+    ports:
+      - "3006:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  platform-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: platform
+        NODE_VERSION: 20
+    image: shopana/platform-service:latest
+    container_name: shopana-platform-service
+    restart: unless-stopped
+    ports:
+      - "3007:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+  apps-service:
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      args:
+        SERVICE_NAME: apps
+        NODE_VERSION: 20
+    image: shopana/apps-service:latest
+    container_name: shopana-apps-service
+    restart: unless-stopped
+    ports:
+      - "3008:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - shopana-network
+
+networks:
+  shopana-network:
+    driver: bridge

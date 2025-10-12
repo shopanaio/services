@@ -8,7 +8,6 @@ import { CheckoutLinesAddDto } from "@src/application/dto/checkoutLinesAdd.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
 import { createValidated } from "@src/utils/validation";
-// Removed idCodec imports as validation/transformation now happens in DTO
 
 /**
  * checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!

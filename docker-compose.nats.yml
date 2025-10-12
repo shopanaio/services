@@ -2,13 +2,66 @@ version: "3.8"
 
 services:
   nats:
-    image: nats:latest
-    container_name: nats
-    ports:
-      - "4222:4222"   # main client port
-      - "8222:8222"   # HTTP monitoring
-      - "6222:6222"   # internal cluster port (for cluster setup)
-    volumes:
-      - ./nats-server.conf:/etc/nats/nats-server.conf
-    command: ["-c", "/etc/nats/nats-server.conf"]
+    image: nats:2.10-alpine
+    container_name: shopana-nats
     restart: unless-stopped
+    ports:
+      - "4222:4222"   # Client port
+      - "8222:8222"   # HTTP monitoring
+      - "6222:6222"   # Cluster port (for future clustering)
+    volumes:
+      - ./nats/nats-${NATS_ENV:-dev}.conf:/etc/nats/nats-server.conf:ro
+      - nats-data:/data
+      - nats-logs:/var/log/nats
+    environment:
+      # Server configuration
+      - SERVER_NAME=${NATS_SERVER_NAME:-nats-dev}
+
+      # Authentication
+      - NATS_USER=${NATS_USER:-shopana}
+      - NATS_PASSWORD=${NATS_PASSWORD:-shopana_dev_password}
+      - NATS_ADMIN_PASSWORD=${NATS_ADMIN_PASSWORD:-admin_dev_password}
+
+      # Cluster authentication (for future use)
+      - CLUSTER_USER=${NATS_CLUSTER_USER:-cluster}
+      - CLUSTER_PASSWORD=${NATS_CLUSTER_PASSWORD:-cluster_password}
+
+      # Leafnode authentication (for future use)
+      - LEAFNODE_USER=${NATS_LEAFNODE_USER:-leafnode}
+      - LEAFNODE_PASSWORD=${NATS_LEAFNODE_PASSWORD:-leafnode_password}
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - shopana-network
+
+  # NATS monitoring UI (optional)
+  nats-surveyor:
+    image: natsio/nats-surveyor:latest
+    container_name: shopana-nats-surveyor
+    restart: unless-stopped
+    ports:
+      - "7777:7777"
+    environment:
+      - NATS_SURVEYOR_SERVERS=nats://shopana:shopana_dev_password@nats:4222
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - shopana-network
+    profiles:
+      - monitoring
+
+volumes:
+  nats-data:
+    driver: local
+  nats-logs:
+    driver: local
+
+networks:
+  shopana-network:
+    driver: bridge
