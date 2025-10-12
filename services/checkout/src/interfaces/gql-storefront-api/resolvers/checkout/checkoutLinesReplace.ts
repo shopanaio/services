@@ -13,8 +13,8 @@ type CheckoutLinesReplaceArgs = {
   input: {
     checkoutId: string;
     lines: Array<{
-      lineIdFrom: string;
-      lineIdTo: string;
+      lineId: string;
+      purchasableId: string;
       quantity?: number;
     }>;
   };
@@ -33,8 +33,8 @@ export const checkoutLinesReplace = async (
     const updatedCheckoutId = await checkoutUsecase.replaceCheckoutLines.execute({
       checkoutId: dto.checkoutId,
       lines: dto.lines.map((l) => ({
-        lineIdFrom: l.lineIdFrom,
-        lineIdTo: l.lineIdTo,
+        lineId: l.lineId,
+        purchasableId: l.purchasableId,
         quantity: l.quantity,
       })),
       apiKey: ctx.apiKey,

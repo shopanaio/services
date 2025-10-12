@@ -903,10 +903,10 @@ input CheckoutLineReplaceInput
   @join__type(graph: CHECKOUT)
 {
   """Source line ID to replace (quantity will be moved from this line)."""
-  lineIdFrom: ID!
+  lineId: ID!
 
-  """Target line ID to receive the quantity."""
-  lineIdTo: ID!
+  """Target purchasable ID to receive the quantity."""
+  purchasableId: ID!
 
   """
   Quantity to move; if not set, moves full quantity from source line.
@@ -3916,6 +3916,9 @@ enum ProductOptionDisplayType
 
   """Display options in a dropdown select."""
   DROPDOWN @join__enumValue(graph: CORE)
+
+  """Display dropdown with variant cover image per value."""
+  DROPDOWN_VARIANT_COVER @join__enumValue(graph: CORE)
 
   """Apparel size control (e.g., S, M, L, XL)."""
   APPAREL_SIZE @join__enumValue(graph: CORE)

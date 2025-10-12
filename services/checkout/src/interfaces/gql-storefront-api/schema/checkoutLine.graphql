@@ -217,11 +217,11 @@ input CheckoutLineReplaceInput {
   """
   Source line ID to replace (quantity will be moved from this line).
   """
-  lineIdFrom: ID!
+  lineId: ID!
   """
-  Target line ID to receive the quantity.
+  Target purchasable ID to receive the quantity.
   """
-  lineIdTo: ID!
+  purchasableId: ID!
   """
   Quantity to move; if not set, moves full quantity from source line.
   Must be greater than 0 if provided.

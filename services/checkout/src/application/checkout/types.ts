@@ -45,8 +45,8 @@ export type CheckoutLinesClearInput = {
 export type CheckoutLinesReplaceInput = {
   checkoutId: string;
   lines: Array<{
-    lineIdFrom: string;
-    lineIdTo: string;
+    lineId: string; // source line id
+    purchasableId: string; // target purchasable id
     quantity?: number; // if not provided, move full quantity from source line
   }>;
 } & CheckoutContext;

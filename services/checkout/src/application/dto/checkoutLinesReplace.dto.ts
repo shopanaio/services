@@ -5,11 +5,11 @@ import { IsArray, ValidateNested, IsInt, Min, IsOptional } from "class-validator
 export class CheckoutLineReplaceItemDto {
   @Expose()
   @IsGlobalId({ message: "Invalid source line ID format" })
-  lineIdFrom!: string;
+  lineId!: string;
 
   @Expose()
-  @IsGlobalId({ message: "Invalid target line ID format" })
-  lineIdTo!: string;
+  @IsGlobalId({ message: "Invalid target purchasable ID format" })
+  purchasableId!: string;
 
   @Expose()
   @IsOptional()
