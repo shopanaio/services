@@ -84,7 +84,7 @@ type CheckoutLineCost {
 """
 Input data for a single item in the checkout.
 """
-input CheckoutLineInput {
+input CheckoutLineAddInput {
   """
   Quantity of the product in the checkout.
   """
@@ -110,21 +110,7 @@ input CheckoutLinesAddInput {
   """
   List of checkout items to add.
   """
-  lines: [CheckoutLineInput!]!
-}
-
-"""
-Input data for adding an item to an existing checkout line.
-"""
-input CheckoutLinesLineAddInput {
-  """
-  ID of the purchasable to add.
-  """
-  purchasableId: ID!
-  """
-  Quantity to add; must be greater than 0.
-  """
-  quantity: Int!
+  lines: [CheckoutLineAddInput!]!
 }
 
 """
@@ -198,6 +184,55 @@ type CheckoutLinesAddPayload {
 Payload returned after updating a checkout item's quantity.
 """
 type CheckoutLinesUpdatePayload {
+  """
+  The updated checkout.
+  """
+  checkout: Checkout
+  """
+  List of field-specific or general errors.
+  """
+  errors: [CheckoutFieldError!]
+}
+
+"""
+Input data for replacing one or more checkout lines.
+Each replacement moves quantity from source line to target line.
+If quantity is not provided, full quantity from the source line will be moved.
+"""
+input CheckoutLinesReplaceInput {
+  """
+  ID of the checkout.
+  """
+  checkoutId: ID!
+  """
+  List of replacement operations to apply.
+  """
+  lines: [CheckoutLineReplaceInput!]!
+}
+
+"""
+Single replacement operation.
+"""
+input CheckoutLineReplaceInput {
+  """
+  Source line ID to replace (quantity will be moved from this line).
+  """
+  lineIdFrom: ID!
+  """
+  Target line ID to receive the quantity.
+  """
+  lineIdTo: ID!
+  """
+  Quantity to move; if not set, moves full quantity from source line.
+  Must be greater than 0 if provided.
+  """
+  quantity: Int
+}
+
+"""
+Payload returned after replacing one checkout line with another.
+"""
+type CheckoutLinesReplacePayload {
   """
   The updated checkout.
   """

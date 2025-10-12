@@ -7,6 +7,7 @@ export { checkoutLinesAdd } from "./checkoutLinesAdd";
 export { checkoutLinesUpdate } from "./checkoutLinesUpdate";
 export { checkoutLinesDelete } from "./checkoutLinesDelete";
 export { checkoutLinesClear } from "./checkoutLinesClear";
+export { checkoutLinesReplace } from "./checkoutLinesReplace";
 export { checkoutCustomerIdentityUpdate } from "./checkoutCustomerIdentityUpdate";
 export { checkoutCustomerNoteUpdate } from "./checkoutCustomerNoteUpdate";
 export { checkoutLanguageCodeUpdate } from "./checkoutLanguageCodeUpdate";

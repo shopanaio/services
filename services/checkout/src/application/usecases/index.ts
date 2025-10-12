@@ -17,6 +17,7 @@ export { AddCheckoutLinesUseCase } from "./addCheckoutLinesUseCase";
 export { UpdateCheckoutLinesUseCase } from "./updateCheckoutLinesUseCase";
 export { DeleteCheckoutLinesUseCase } from "./removeCheckoutLinesUseCase";
 export { ClearCheckoutLinesUseCase } from "./clearCheckoutLinesUseCase";
+export { ReplaceCheckoutLinesUseCase } from "./replaceCheckoutLinesUseCase";
 
 // Customer use cases
 export { UpdateCustomerIdentityUseCase } from "./updateCustomerIdentityUseCase";

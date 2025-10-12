@@ -194,6 +194,9 @@ type CheckoutMutation {
   """Clears all items from a checkout."""
   checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutLinesClearPayload!
 
+  """Replaces one checkout line with another by merging quantities and removing the source line."""
+  checkoutLinesReplace(input: CheckoutLinesReplaceInput!): CheckoutLinesReplacePayload!
+
   """
   Updates customer identification data associated with the checkout
   (email, customerId and if necessary country/language for calculations).
@@ -541,6 +544,27 @@ input CheckoutLinesClearInput {
   checkoutId: ID!
 }
 
+"""Input data for replacing one or more checkout lines."""
+input CheckoutLinesReplaceInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+  """List of replacement operations to apply."""
+  lines: [CheckoutLineReplaceInput!]!
+}
+
+"""Single replacement operation."""
+input CheckoutLineReplaceInput {
+  """Source line ID to replace (quantity will be moved from this line)."""
+  lineIdFrom: ID!
+  """Target line ID to receive the quantity."""
+  lineIdTo: ID!
+  """
+  Quantity to move; if not set, moves full quantity from source line.
+  Must be greater than 0 if provided.
+  """
+  quantity: Int
+}
+
 """Payload returned after adding an item to the checkout."""
 type CheckoutLinesAddPayload {
   """The updated checkout."""
@@ -571,6 +595,15 @@ type CheckoutLinesDeletePayload {
 """Payload returned after clearing all items from the checkout."""
 type CheckoutLinesClearPayload {
   """The updated (now empty) checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Payload returned after replacing one checkout line with another."""
+type CheckoutLinesReplacePayload {
+  """The updated checkout."""
   checkout: Checkout
 
   """List of field-specific or general errors."""

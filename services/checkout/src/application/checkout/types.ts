@@ -42,6 +42,15 @@ export type CheckoutLinesClearInput = {
   checkoutId: string;
 } & CheckoutContext;
 
+export type CheckoutLinesReplaceInput = {
+  checkoutId: string;
+  lines: Array<{
+    lineIdFrom: string;
+    lineIdTo: string;
+    quantity?: number; // if not provided, move full quantity from source line
+  }>;
+} & CheckoutContext;
+
 // New types for extended functionality
 export type CheckoutCustomerIdentityUpdateInput = {
   checkoutId: string;

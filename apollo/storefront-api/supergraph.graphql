@@ -443,7 +443,7 @@ input CheckoutCreateInput
   currencyCode: CurrencyCode!
 
   """Initial items to add to the new checkout."""
-  items: [CheckoutLineInput!]!
+  items: [CheckoutLineAddInput!]!
 }
 
 """Payload returned after creating a checkout."""
@@ -859,6 +859,20 @@ type CheckoutLine implements Node
   purchasable: ProductVariant! @join__field(graph: CORE, requires: "purchasableId")
 }
 
+"""Input data for a single item in the checkout."""
+input CheckoutLineAddInput
+  @join__type(graph: CHECKOUT)
+{
+  """Quantity of the product in the checkout."""
+  quantity: Int!
+
+  """ID of the product to add or update."""
+  purchasableId: ID!
+
+  """ID of the purchasable snapshot to add or update."""
+  purchasableSnapshot: PurchasableSnapshotInput
+}
+
 """Detailed breakdown of costs for a checkout line item"""
 type CheckoutLineCost
   @join__type(graph: CHECKOUT)
@@ -884,18 +898,21 @@ type CheckoutLineCost
   totalAmount: Money!
 }
 
-"""Input data for a single item in the checkout."""
-input CheckoutLineInput
+"""Single replacement operation."""
+input CheckoutLineReplaceInput
   @join__type(graph: CHECKOUT)
 {
-  """Quantity of the product in the checkout."""
-  quantity: Int!
+  """Source line ID to replace (quantity will be moved from this line)."""
+  lineIdFrom: ID!
 
-  """ID of the product to add or update."""
-  purchasableId: ID!
+  """Target line ID to receive the quantity."""
+  lineIdTo: ID!
 
-  """ID of the purchasable snapshot to add or update."""
-  purchasableSnapshot: PurchasableSnapshotInput
+  """
+  Quantity to move; if not set, moves full quantity from source line.
+  Must be greater than 0 if provided.
+  """
+  quantity: Int
 }
 
 """Input data for adding an item to an existing checkout."""
@@ -906,7 +923,7 @@ input CheckoutLinesAddInput
   checkoutId: ID!
 
   """List of checkout items to add."""
-  lines: [CheckoutLineInput!]!
+  lines: [CheckoutLineAddInput!]!
 }
 
 """Payload returned after adding an item to the checkout."""
@@ -961,15 +978,30 @@ type CheckoutLinesDeletePayload
   errors: [CheckoutFieldError!]
 }
 
-"""Input data for adding an item to an existing checkout line."""
-input CheckoutLinesLineAddInput
+"""
+Input data for replacing one or more checkout lines.
+Each replacement moves quantity from source line to target line.
+If quantity is not provided, full quantity from the source line will be moved.
+"""
+input CheckoutLinesReplaceInput
   @join__type(graph: CHECKOUT)
 {
-  """ID of the purchasable to add."""
-  purchasableId: ID!
+  """ID of the checkout."""
+  checkoutId: ID!
 
-  """Quantity to add; must be greater than 0."""
-  quantity: Int!
+  """List of replacement operations to apply."""
+  lines: [CheckoutLineReplaceInput!]!
+}
+
+"""Payload returned after replacing one checkout line with another."""
+type CheckoutLinesReplacePayload
+  @join__type(graph: CHECKOUT)
+{
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
 }
 
 """Input data for updating the quantity of a specific checkout item."""
@@ -1019,6 +1051,11 @@ type CheckoutMutation
 
   """Updates the quantity of a specific checkout item."""
   checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
+
+  """
+  Replaces one checkout line with another by merging quantities and removing the source line.
+  """
+  checkoutLinesReplace(input: CheckoutLinesReplaceInput!): CheckoutLinesReplacePayload!
 
   """Removes a single item from the checkout."""
   checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
@@ -4286,8 +4323,9 @@ type Query
   predictiveSearch(input: PredictiveSearchInput!): PredictiveSearchResult! @join__field(graph: CORE)
 
   """Fetch a single product by its handle (slug)."""
-  product(handle: String!): ProductVariant @join__field(graph: CORE)
-  productBySelectedOptions(selectedOptions: [String!]!): ProductVariant @join__field(graph: CORE)
+  product(handle: String!): Product @join__field(graph: CORE)
+  variant(handle: String!): ProductVariant @join__field(graph: CORE)
+  variantBySelectedOptions(selectedOptions: [String!]!): ProductVariant @join__field(graph: CORE)
 
   """Retrieves the current authentication session."""
   session: Session @join__field(graph: CORE)

@@ -64,6 +64,7 @@ enum FeatureStyleType {
   VARIANT_COVER
   SWATCH
   APPAREL_SIZE
+  DROPDOWN_VARIANT_COVER
 }
 
 type FeatureSwatch {

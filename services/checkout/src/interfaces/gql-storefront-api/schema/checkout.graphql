@@ -148,7 +148,7 @@ input CheckoutCreateInput {
   """
   Initial items to add to the new checkout.
   """
-  items: [CheckoutLineInput!]!
+  items: [CheckoutLineAddInput!]!
 }
 
 type CheckoutFieldError {
@@ -200,6 +200,13 @@ type CheckoutMutation {
   checkoutLinesUpdate(
     input: CheckoutLinesUpdateInput!
   ): CheckoutLinesUpdatePayload!
+
+  """
+  Replaces one checkout line with another by merging quantities and removing the source line.
+  """
+  checkoutLinesReplace(
+    input: CheckoutLinesReplaceInput!
+  ): CheckoutLinesReplacePayload!
 
   """
   Removes a single item from the checkout.

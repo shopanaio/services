@@ -102,6 +102,7 @@ broker
     }
   })
   .catch((error) => {
-    broker.logger.error("Failed to start Checkout service:", error);
+    console.error(error);
+    broker.logger.error("Failed to start Checkout service:", );
     process.exit(1);
   });

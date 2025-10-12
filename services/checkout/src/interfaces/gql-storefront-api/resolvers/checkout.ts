@@ -6,8 +6,8 @@ import {
   checkoutCreate,
   checkoutLinesAdd,
   checkoutLinesUpdate,
-  checkoutLinesDelete,
-  checkoutLinesClear,
+    checkoutLinesDelete,
+    checkoutLinesClear,
   checkoutCustomerIdentityUpdate,
   checkoutCustomerNoteUpdate,
   checkoutLanguageCodeUpdate,
@@ -26,6 +26,7 @@ import {
   checkoutDeliveryRecipientsAdd,
   checkoutDeliveryRecipientsRemove,
   checkoutDeliveryRecipientsUpdate,
+  checkoutLinesReplace,
 } from "./checkout/index";
 
 const checkoutResolvers = {
@@ -52,6 +53,7 @@ const checkoutResolvers = {
     checkoutLinesUpdate,
     checkoutLinesDelete,
     checkoutLinesClear,
+    checkoutLinesReplace,
     checkoutCustomerIdentityUpdate,
     checkoutCustomerNoteUpdate,
     checkoutLanguageCodeUpdate,

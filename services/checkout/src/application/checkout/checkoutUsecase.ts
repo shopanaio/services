@@ -22,6 +22,7 @@ import {
   RemoveDeliveryAddressUseCase,
   UpdateDeliveryGroupAddressUseCase,
 } from "@src/application/usecases";
+import { ReplaceCheckoutLinesUseCase } from "@src/application/usecases/replaceCheckoutLinesUseCase";
 import { UpdateDeliveryGroupRecipientUseCase } from "@src/application/usecases/updateDeliveryGroupRecipientUseCase";
 import { RemoveDeliveryGroupRecipientUseCase } from "@src/application/usecases/removeDeliveryGroupRecipientUseCase";
 import { CheckoutService } from "@src/application/services/checkoutService";
@@ -54,6 +55,7 @@ export class CheckoutUsecase {
   public readonly updateDeliveryGroupAddress: UpdateDeliveryGroupAddressUseCase;
   public readonly updateDeliveryGroupRecipient: UpdateDeliveryGroupRecipientUseCase;
   public readonly removeDeliveryGroupRecipient: RemoveDeliveryGroupRecipientUseCase;
+  public readonly replaceCheckoutLines: ReplaceCheckoutLinesUseCase;
 
   constructor(deps: {
     logger?: Logger;
@@ -96,6 +98,7 @@ export class CheckoutUsecase {
     this.updateCheckoutLines = new UpdateCheckoutLinesUseCase(baseDeps);
     this.deleteCheckoutLines = new DeleteCheckoutLinesUseCase(baseDeps);
     this.clearCheckoutLines = new ClearCheckoutLinesUseCase(baseDeps);
+    this.replaceCheckoutLines = new ReplaceCheckoutLinesUseCase(baseDeps);
 
     // Initialize customer use cases
     this.updateCustomerIdentity = new UpdateCustomerIdentityUseCase(baseDeps);
