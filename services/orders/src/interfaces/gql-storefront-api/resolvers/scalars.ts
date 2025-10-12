@@ -103,6 +103,11 @@ const CurrencyCodeScalar = StringLikeScalar("CurrencyCode");
 const CountryCodeScalar = StringLikeScalar("CountryCode");
 const EmailScalar = StringLikeScalar("Email");
 
+const MoneyResolver = {
+  amount: (parent: Money) => parent,
+  currencyCode: (parent: Money) => parent.currency().code,
+};
+
 export const scalarResolvers = {
   BigInt: BigIntScalar,
   JSON: JSONScalar,
@@ -113,4 +118,8 @@ export const scalarResolvers = {
   CurrencyCode: CurrencyCodeScalar,
   CountryCode: CountryCodeScalar,
   Email: EmailScalar,
+};
+
+export const typeResolvers = {
+  Money: MoneyResolver,
 };

@@ -356,4 +356,26 @@ export class Money {
 
     return toDecimalFn(rounded) as string;
   }
+
+  /**
+   * Returns value as a float in major units.
+   * Converts minor units to major units using currency exponent.
+   * Note: May lose precision for very large amounts.
+   *
+   * @example
+   * ```ts
+   * const price = Money.fromMinor(199n, "USD");
+   * price.toFloat() // 1.99
+   * ```
+   */
+  toFloat(): number {
+    const snap = this.value.toJSON();
+    const scaled = transformScaleFn(
+      this.value,
+      snap.currency.exponent,
+      Core.halfEven,
+    );
+    const decimal = toDecimalFn(scaled) as string;
+    return Number.parseFloat(decimal);
+  }
 }

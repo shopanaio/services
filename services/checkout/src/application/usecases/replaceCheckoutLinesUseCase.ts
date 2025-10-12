@@ -6,17 +6,17 @@ import type { CheckoutLinesReplaceInput } from "@src/application/checkout/types"
 import type { CheckoutLinesUpdatedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
 import { CheckoutLineItemState } from "@src/domain/checkout/types";
-import { v7 as uuidv7 } from "uuid";
 
 export interface ReplaceCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
 
   /**
-   * Applies multiple replacements: moves quantity from a source line (by lineId)
-   * to a target purchasable (by purchasableId). If a line with the target
-   * purchasable already exists, its quantity is increased; otherwise a new line
-   * is created. If quantity is omitted, moves full quantity from the source
-   * line. Removes the source line if its quantity becomes 0.
+   * Applies replacements by transforming the source line (by lineId) into the
+   * target purchasable (by purchasableId) with the requested quantity. No new
+   * lines are created. If a different line with the target purchasable already
+   * exists, it is removed to ensure a single resulting line. If quantity is
+   * omitted, the full quantity from the source is used. Any remaining quantity
+   * on the source is not preserved.
    */
 export class ReplaceCheckoutLinesUseCase extends UseCase<
   CheckoutLinesReplaceInput,
@@ -60,43 +60,41 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
         continue;
       }
 
-      // Decrease quantity on source line or remove it if zero
-      const newFromQty = fromLine.quantity - moveQty;
-      if (newFromQty === 0) {
-        linesMap.delete(lineId);
-      } else {
-        linesMap.set(lineId, { ...fromLine, quantity: newFromQty });
+      // If target purchasable is the same as the source, adjust quantity if provided
+      if (fromLine.unit.id === purchasableId) {
+        // If no quantity specified, nothing to change
+        if (op.quantity == null) {
+          continue;
+        }
+
+        linesMap.set(lineId, { ...fromLine, quantity: moveQty });
+        continue;
       }
 
-      // Find an existing line with the target purchasable
+      // Remove any other existing line with the target purchasable to avoid duplicates
       const existingTarget = Array.from(linesMap.values()).find(
-        (l) => l.unit.id === purchasableId
+        (l) => l.unit.id === purchasableId && l.lineId !== fromLine.lineId
       );
-
       if (existingTarget) {
-        // Increase quantity on existing target line
-        linesMap.set(existingTarget.lineId, {
-          ...existingTarget,
-          quantity: existingTarget.quantity + moveQty,
-        });
-      } else {
-        // Create a new line for the target purchasable
-        const newLine: CheckoutLineItemState = {
-          lineId: uuidv7(),
-          quantity: moveQty,
-          unit: {
-            id: purchasableId,
-            // The rest of unit fields will be refreshed from offers below
-            title: "",
-            sku: null,
-            price: Money.fromMinor(0n),
-            compareAtPrice: null,
-            imageUrl: null,
-            snapshot: null,
-          },
-        };
-        linesMap.set(newLine.lineId, newLine);
+        linesMap.delete(existingTarget.lineId);
       }
+
+      // Transform the source line into the target purchasable with the requested quantity
+      linesMap.set(lineId, {
+        ...fromLine,
+        quantity: moveQty,
+        unit: {
+          ...fromLine.unit,
+          id: purchasableId,
+          // The rest of unit fields will be refreshed from offers below
+          title: "",
+          sku: null,
+          price: Money.fromMinor(0n),
+          compareAtPrice: null,
+          imageUrl: null,
+          snapshot: null,
+        },
+      });
     }
 
     const mergedLines: CheckoutLineItemState[] = Array.from(linesMap.values());

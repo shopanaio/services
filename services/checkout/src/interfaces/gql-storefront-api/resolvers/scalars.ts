@@ -111,11 +111,11 @@ function parseObjectLiteral(ast: any): Record<string, unknown> {
 const DecimalScalar = new GraphQLScalarType({
   name: "Decimal",
   description:
-    "Decimal represented as integer amount and scale internally; serialized as normalized string",
-  serialize(value: unknown): string | null {
+    "Decimal represented as integer amount and scale internally; serialized as float number",
+  serialize(value: unknown): number | null {
     // If we were passed Money already - use its conversion
     if (value instanceof Money) {
-      return value.toRoundedUnit();
+      return value.toFloat();
     }
     throw new Error("Invalid value for Decimal");
   },
