@@ -2,8 +2,7 @@ import express, { Request, Response } from 'express';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { AppConfig } from './core/config';
-import { BitbucketPullRequestService } from './core/pr';
-import { BitBucketRepository } from './core/repository';
+import { BitBucketRepository } from './repositories/repository';
 import { ScriptRegistry } from './core/registry';
 import { DronePipeline, ScriptContext } from './core/types';
 import { loadScripts } from './core/loader';
@@ -19,8 +18,6 @@ export function createServer(config: AppConfig) {
   app.get('/healthz', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok' });
   });
-
-  const prService = new BitbucketPullRequestService(config.bitbucketToken);
 
   app.post('/', async (req: Request, res: Response) => {
     const { repo, build } = req.body as any;
@@ -39,8 +36,11 @@ export function createServer(config: AppConfig) {
           .join('/');
       const commitSha: string = build.after;
 
+      // Initialize repository
+      const repository = new BitBucketRepository(repoSlug, config.bitbucketToken);
+
       // PR check
-      const hasOpenPr = await prService.hasOpenPullRequest(repoSlug, sourceBranch, defaultBranch);
+      const hasOpenPr = await repository.hasOpenPullRequest(sourceBranch, defaultBranch);
       if (!hasOpenPr) {
         const skipPipeline: DronePipeline = {
           kind: 'pipeline',
@@ -58,12 +58,11 @@ export function createServer(config: AppConfig) {
       }
 
       // Checkout repository
-      const repository = new BitBucketRepository(repoSlug, config.bitbucketToken);
       tmpRepoDir = await repository.checkout(commitSha);
 
       // Build pipelines
       const registry = new ScriptRegistry();
-      const scripts = await loadScripts(repoSlug);
+      const scripts = await loadScripts();
       for (const script of scripts) {
         registry.register(script);
       }

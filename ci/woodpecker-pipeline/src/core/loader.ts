@@ -7,7 +7,7 @@ import { PipelineScript } from './types';
  * Dynamically loads all pipeline scripts from the scripts directory.
  * A script module may export one or more classes that implement PipelineScript.
  */
-export async function loadScripts(repoSlug: string): Promise<PipelineScript[]> {
+export async function loadScripts(): Promise<PipelineScript[]> {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const scriptsRootDir = path.resolve(__dirname, '..', 'scripts');
@@ -21,29 +21,26 @@ export async function loadScripts(repoSlug: string): Promise<PipelineScript[]> {
     }
   }
 
-  // 1) Общие скрипты по умолчанию: scripts/services
-  const commonDir = path.join(scriptsRootDir, 'services');
-  // 2) Репо-специфичные (если есть): scripts/<workspace>/<repo>
-  const repoSpecificDir = path.join(scriptsRootDir, ...repoSlug.split('/'));
-
-  const searchDirs: string[] = [];
-  if (await dirExists(commonDir)) searchDirs.push(commonDir);
-  if (await dirExists(repoSpecificDir)) searchDirs.push(repoSpecificDir);
-
-  if (searchDirs.length === 0) {
+  if (!(await dirExists(scriptsRootDir))) {
     return [];
   }
 
-  // Собираем файлы .ts/.js из всех доступных директорий (без дублей)
+  // Рекурсивно собираем .ts/.js файлы из scripts/**
   const filesSet = new Set<string>();
-  for (const dir of searchDirs) {
+  async function walk(dir: string): Promise<void> {
     const entries = await fs.readdir(dir, { withFileTypes: true });
-    for (const e of entries) {
-      if (!e.isFile()) continue;
-      if (!e.name.endsWith('.js') && !e.name.endsWith('.ts')) continue;
-      filesSet.add(path.join(dir, e.name));
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+        continue;
+      }
+      if (entry.isFile() && (entry.name.endsWith('.js') || entry.name.endsWith('.ts'))) {
+        filesSet.add(full);
+      }
     }
   }
+  await walk(scriptsRootDir);
 
   const scripts: PipelineScript[] = [];
   for (const file of filesSet) {
