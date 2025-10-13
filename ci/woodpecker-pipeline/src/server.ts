@@ -1,0 +1,94 @@
+import express, { Request, Response } from 'express';
+import bodyParser from 'body-parser';
+import fs from 'fs/promises';
+import yaml from 'js-yaml';
+import { AppConfig } from './core/config';
+import { BitbucketPullRequestService } from './core/pr';
+import { BitBucketRepository } from './core/repository';
+import { ScriptRegistry } from './core/registry';
+import { DronePipeline, ScriptContext } from './core/types';
+import { loadScripts } from './core/loader';
+
+/**
+ * Compose and create an Express server.
+ */
+export function createServer(config: AppConfig) {
+  const app = express();
+  app.use(bodyParser.json());
+
+  const prService = new BitbucketPullRequestService(config.bitbucketToken);
+
+  app.post('/', async (req: Request, res: Response) => {
+    const { repo, build } = req.body as any;
+    let tmpRepoDir: string | undefined;
+
+    try {
+      const sourceBranch: string = build.source;
+      const defaultBranch: string = repo.default_branch || 'main';
+      const repoSlug: string = repo.slug;
+      const commitSha: string = build.after;
+
+      // PR check
+      const hasOpenPr = await prService.hasOpenPullRequest(repoSlug, sourceBranch, defaultBranch);
+      if (!hasOpenPr) {
+        const skipPipeline: DronePipeline = {
+          kind: 'pipeline',
+          type: 'docker',
+          name: 'skip',
+          trigger: {
+            event: ['pull_request'],
+            branch: { exclude: [sourceBranch] },
+          },
+          clone: { disable: true },
+          steps: [],
+        };
+        const yml = yaml.dump(skipPipeline);
+        return res.json({ data: yml });
+      }
+
+      // Checkout repository
+      const repository = new BitBucketRepository(repoSlug, config.bitbucketToken);
+      tmpRepoDir = await repository.checkout(commitSha);
+
+      // Build pipelines
+      const registry = new ScriptRegistry();
+      const scripts = await loadScripts(repoSlug);
+      for (const script of scripts) {
+        registry.register(script);
+      }
+
+      const context: ScriptContext = {
+        repoSlug,
+        commitSha,
+        sourceBranch,
+        defaultBranch,
+        tmpRepoDir,
+        env: {
+          MAX_PARALLEL_STEPS: config.maxParallelSteps,
+          BASE_URL: config.baseUrl,
+          GRAPHQL_URL: config.graphqlUrl,
+          BITBUCKET_TOKEN: config.bitbucketToken,
+        },
+      };
+
+      const pipelines = await registry.buildPipelines(context);
+      if (pipelines.length === 0) {
+        throw new Error('No pipelines produced by scripts');
+      }
+
+      const yml = pipelines.map((p) => yaml.dump(p)).join('---\n');
+      res.json({ data: yml });
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Unknown error');
+      // eslint-disable-next-line no-console
+      console.error('Pipeline generation error:', error);
+      res.status(500).json({ error: error.message });
+    } finally {
+      if (tmpRepoDir) {
+        await fs.rm(tmpRepoDir, { recursive: true, force: true });
+      }
+    }
+  });
+
+  return app;
+}
