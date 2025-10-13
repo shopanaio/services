@@ -8,7 +8,7 @@ import { ScriptRegistry } from './core/registry';
 import { DronePipeline, ScriptContext } from './core/types';
 import { loadScripts } from './core/loader';
 import { createLogger } from './core/logger';
-import crypto from 'crypto';
+import { verifyHttpMessageSignature, verifyHmacSignature } from './core/signature';
 import { GitHubRepository } from './repositories/repository';
 
 /**
@@ -45,37 +45,60 @@ export function createServer(config: AppConfig) {
     }),
   );
 
-  // HMAC signature verification middleware
-  const hmacMiddleware: RequestHandler = (req: Request, res: Response, next: NextFunction): void => {
+  // Signature verification middleware
+  const signatureMiddleware: RequestHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const header = (req.headers['x-woodpecker-signature'] || req.headers['x-drone-signature']) as string | undefined;
-      if (!header) {
-        logger.warn('HMAC signature header missing');
-        res.status(401).json({ error: 'missing signature' });
+      // Skip verification if configured (development only)
+      if (config.skipSignatureVerification) {
+        logger.warn('⚠️  Signature verification DISABLED - development mode only!');
+        next();
         return;
       }
-      const rawBody: Buffer | undefined = (req as unknown as { rawBody?: Buffer }).rawBody;
-      if (!rawBody) {
-        logger.warn('Raw body missing for HMAC verification');
-        res.status(400).json({ error: 'missing raw body' });
-        return;
+
+      // Try HTTP Message Signature (RFC 9421) with ed25519 first
+      if (req.headers['signature'] && req.headers['signature-input'] && config.publicKey) {
+        logger.debug('Attempting HTTP Message Signature verification (ed25519)');
+        const isValid = await verifyHttpMessageSignature(req, config.publicKey);
+        if (isValid) {
+          logger.debug('✓ HTTP Message Signature verified successfully');
+          next();
+          return;
+        } else {
+          logger.warn('HTTP Message Signature verification failed');
+          res.status(401).json({ error: 'invalid signature' });
+          return;
+        }
       }
-      const hmac = crypto.createHmac('sha256', config.convertSecret);
-      hmac.update(rawBody);
-      const digest = `sha256=${hmac.digest('hex')}`;
-      if (digest !== header) {
-        logger.warn({ expected: digest, received: header }, 'HMAC signature mismatch');
-        res.status(401).json({ error: 'invalid signature' });
-        return;
+
+      // Fallback to legacy HMAC signature
+      if ((req.headers['x-woodpecker-signature'] || req.headers['x-drone-signature']) && config.convertSecret) {
+        logger.debug('Attempting legacy HMAC signature verification');
+        const isValid = verifyHmacSignature(req, config.convertSecret);
+        if (isValid) {
+          logger.debug('✓ HMAC signature verified successfully');
+          next();
+          return;
+        } else {
+          logger.warn('HMAC signature verification failed');
+          res.status(401).json({ error: 'invalid signature' });
+          return;
+        }
       }
-      logger.debug('HMAC signature verified successfully');
-      next();
+
+      // No valid signature method found
+      logger.warn({
+        hasHttpSignature: !!(req.headers['signature']),
+        hasHmacSignature: !!(req.headers['x-woodpecker-signature'] || req.headers['x-drone-signature']),
+        hasPublicKey: !!config.publicKey,
+        hasConvertSecret: !!config.convertSecret,
+      }, 'No valid signature found or missing keys');
+      res.status(401).json({ error: 'missing or invalid signature' });
     } catch (e) {
-      logger.error({ err: e }, 'HMAC signature validation error');
+      logger.error({ err: e }, 'Signature validation error');
       res.status(401).json({ error: 'signature validation failed' });
     }
   };
-  app.use(hmacMiddleware);
+  app.use(signatureMiddleware);
 
   // Liveness probe
   app.get('/healthz', (_req: Request, res: Response) => {

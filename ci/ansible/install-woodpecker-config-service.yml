@@ -57,6 +57,8 @@
                     - NODE_ENV=production
                     - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_GITHUB_TOKEN}
                     - WOODPECKER_CONFIG_SERVICE_SECRET=${WOODPECKER_CONFIG_SERVICE_SECRET}
+                    # Temporarily skip signature verification until Woodpecker public key is configured
+                    - SKIP_SIGNATURE_VERIFICATION=true
                     # Only GitHub is supported
 
         - name: Create .env for {{ app_name }}
@@ -140,11 +142,16 @@
               - "  Env: {{ app_dir }}/.env"
               - ""
               - "📋 Woodpecker Configuration:"
-              - "  In Woodpecker UI settings, set Config Service URL to:"
-              - "    http://host.docker.internal:{{ host_http_port }}"
-              - "  Or if host.docker.internal doesn't work:"
-              - "    http://172.17.0.1:{{ host_http_port }}"
-              - "  Secret: Use WOODPECKER_CONFIG_SERVICE_SECRET from .env"
+              - "  In Woodpecker docker-compose.yml, add:"
+              - "    - WOODPECKER_CONFIG_SERVICE_ENDPOINT=http://host.docker.internal:{{ host_http_port }}"
+              - "    - WOODPECKER_CONFIG_SERVICE_SECRET=<same as config-service>"
+              - ""
+              - "⚠️  Security Warning:"
+              - "  Signature verification is currently DISABLED (SKIP_SIGNATURE_VERIFICATION=true)"
+              - "  This is for development only. For production:"
+              - "  1. Get Woodpecker public key from Woodpecker server"
+              - "  2. Set WOODPECKER_PUBLIC_KEY in config-service .env"
+              - "  3. Set SKIP_SIGNATURE_VERIFICATION=false"
               - ""
               - "📊 View Logs:"
               - "  ansible-playbook logs-woodpecker-config-service.yml"
