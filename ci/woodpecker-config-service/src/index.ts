@@ -2,6 +2,8 @@ import { loadConfig } from "./core/config";
 import { createLogger } from "./core/logger";
 import { createConfigService } from "@shopana/ci-woodpecker-config-service";
 import express, { Router } from "express";
+import { LintScript } from "./scripts/lint";
+import { PlaywrightScript } from "./scripts/playwright";
 
 try {
   const config = loadConfig();
@@ -19,7 +21,7 @@ try {
         skipSignatureVerification: config.skipSignatureVerification,
         logger,
       },
-      []
+      [new LintScript(), new PlaywrightScript()]
     ) as unknown as Router
   );
 

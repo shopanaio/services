@@ -9,8 +9,8 @@ export class PlaywrightScript implements PipelineScript {
     return 'playwright';
   }
 
-  supports(): boolean {
-    return false;
+  supports(context: ScriptContext): boolean {
+    return Boolean(context.tmpRepoDir);
   }
 
   async build(context: ScriptContext) {
