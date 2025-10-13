@@ -18,6 +18,22 @@
         path: "{{ woodpecker_dir }}"
       register: woodpecker_dir_stat
 
+    - name: Display current Woodpecker status before removal
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ woodpecker_dir }}"
+      register: pre_removal_status
+      when: woodpecker_dir_stat.stat.exists
+      changed_when: false
+      ignore_errors: true
+
+    - name: Show current Woodpecker containers
+      ansible.builtin.debug:
+        msg: "{{ pre_removal_status.stdout_lines }}"
+      when:
+        - woodpecker_dir_stat.stat.exists
+        - pre_removal_status is succeeded
+
     - name: Stop and remove services with Compose v2 (module)
       community.docker.docker_compose_v2:
         project_src: "{{ woodpecker_dir }}"
@@ -75,11 +91,32 @@
         state: absent
       when: remove_project_dir
 
+    - name: Verify containers are removed
+      ansible.builtin.command:
+        cmd: docker ps -a --filter "name=woodpecker" --format "table {% raw %}{{.Names}}\t{{.Status}}{% endraw %}"
+      register: remaining_containers
+      changed_when: false
+      ignore_errors: true
+
+    - name: Verify networks are removed
+      ansible.builtin.command:
+        cmd: docker network ls --filter "name=woodpecker" --format "table {% raw %}{{.Name}}\t{{.Driver}}{% endraw %}"
+      register: remaining_networks
+      changed_when: false
+      ignore_errors: true
+
     - name: Display uninstall status
       ansible.builtin.debug:
         msg:
           - "✅ Woodpecker CI has been removed from host {{ inventory_hostname }}"
-          - "Removed images: {{ remove_images }}"
-          - "Removed data dir: {{ remove_data }} ({{ woodpecker_data_dir }})"
-          - "Removed project dir: {{ remove_project_dir }} ({{ woodpecker_dir }})"
-          - "If any resources remain, consider running: docker system prune -a --volumes"
+          - ""
+          - "Removed components:"
+          - "  - Images: {{ remove_images }}"
+          - "  - Data directory: {{ remove_data }} ({{ woodpecker_data_dir }})"
+          - "  - Project directory: {{ remove_project_dir }} ({{ woodpecker_dir }})"
+          - ""
+          - "Remaining containers: {{ remaining_containers.stdout_lines | length - 1 if remaining_containers.stdout_lines | length > 1 else 0 }}"
+          - "Remaining networks: {{ remaining_networks.stdout_lines | length - 1 if remaining_networks.stdout_lines | length > 1 else 0 }}"
+          - ""
+          - "To clean up unused Docker resources, run:"
+          - "  docker system prune -a --volumes"

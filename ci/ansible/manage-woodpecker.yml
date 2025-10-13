@@ -4,6 +4,9 @@
 # ansible-playbook manage-woodpecker.yml -e "action=restart"
 # ansible-playbook manage-woodpecker.yml -e "action=status"
 # ansible-playbook manage-woodpecker.yml -e "action=logs"
+# ansible-playbook manage-woodpecker.yml -e "action=version"
+# ansible-playbook manage-woodpecker.yml -e "action=upgrade"
+# ansible-playbook manage-woodpecker.yml -e "action=diagnose"
 ---
 - name: Manage Woodpecker CI
   hosts: shopana
@@ -46,19 +49,33 @@
       when: action == 'restart'
       changed_when: true
 
+    - name: Pull latest Woodpecker images
+      ansible.builtin.command:
+        cmd: docker compose pull
+        chdir: "{{ woodpecker_dir }}"
+      when: action == 'upgrade'
+      changed_when: true
+
+    - name: Recreate and start Woodpecker CI (upgrade)
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ woodpecker_dir }}"
+      when: action == 'upgrade'
+      changed_when: true
+
     - name: Get Woodpecker status
       ansible.builtin.command:
         cmd: docker compose ps
         chdir: "{{ woodpecker_dir }}"
       register: status_output
       changed_when: false
-      when: action in ['status', 'start', 'restart', 'diagnose']
+      when: action in ['status', 'start', 'restart', 'diagnose', 'version', 'upgrade']
 
     - name: Display status
       ansible.builtin.debug:
         var: status_output.stdout_lines
       when:
-        - action in ['status', 'start', 'restart', 'diagnose']
+        - action in ['status', 'start', 'restart', 'diagnose', 'version', 'upgrade']
         - status_output is defined
 
     - name: Get Woodpecker logs
@@ -90,6 +107,48 @@
       when:
         - action == 'diagnose'
         - env_output is defined
+
+    - name: Show compose images
+      ansible.builtin.command:
+        cmd: docker compose images
+        chdir: "{{ woodpecker_dir }}"
+      register: images_output
+      changed_when: false
+      when: action in ['version', 'diagnose']
+
+    - name: Detect server image reference
+      ansible.builtin.command:
+        cmd: docker inspect -f '{{"{{"}}.Config.Image{{"}}"}}' woodpecker-server
+      register: server_image_ref
+      changed_when: false
+      failed_when: false
+      when: action in ['version', 'diagnose']
+
+    - name: Read server image OCI version label
+      ansible.builtin.command:
+        cmd: docker inspect -f '{{"{{"}} index .Config.Labels "org.opencontainers.image.version" {{"}}"}}' {{ server_image_ref.stdout | default('woodpeckerci/woodpecker-server:latest') }}
+      register: server_image_label_version
+      changed_when: false
+      failed_when: false
+      when: action in ['version', 'diagnose']
+
+    - name: Exec server --version inside container
+      ansible.builtin.command:
+        cmd: bash -lc "docker exec woodpecker-server sh -c 'woodpecker-server --version 2>/dev/null || /usr/local/bin/woodpecker-server --version 2>/dev/null || echo n/a'"
+      register: server_bin_version
+      changed_when: false
+      failed_when: false
+      when: action in ['version', 'diagnose']
+
+    - name: Display Woodpecker version information
+      ansible.builtin.debug:
+        msg:
+          - "Image (server): {{ server_image_ref.stdout | default('unknown') }}"
+          - "OCI label version: {{ (server_image_label_version.stdout | trim) | default('unknown', true) }}"
+          - "Binary --version: {{ (server_bin_version.stdout | trim) | default('unknown', true) }}"
+          - "Compose images:"
+          - "{{ images_output.stdout_lines | default([]) }}"
+      when: action == 'version'
 
     - name: Check listening ports 8000/9000
       ansible.builtin.shell: |

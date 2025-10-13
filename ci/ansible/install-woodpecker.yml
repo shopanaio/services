@@ -1,4 +1,15 @@
 # ansible-playbook install-woodpecker.yml
+#
+# This playbook installs Woodpecker CI server and agent on a remote host.
+#
+# IMPORTANT: The Woodpecker container runs as UID 1000, so the data directory
+# must be owned by UID 1000:1000, otherwise the container won't be able to
+# create the SQLite database file and other necessary files.
+#
+# Environment variables can be provided via:
+# - ansible/.env file
+# - Command line: ansible-playbook -e "woodpecker_host=https://ci.example.com" install-woodpecker.yml
+# - Shell environment: export WOODPECKER_HOST=https://ci.example.com
 ---
 - name: Install Woodpecker CI on remote host
   hosts: shopana
@@ -8,7 +19,7 @@
   vars:
     woodpecker_dir: /opt/woodpecker
     woodpecker_data_dir: /opt/woodpecker/data
-    woodpecker_version: "latest"
+    woodpecker_version: v3.10.0
     # These should be overridden via extra vars or ansible vault
     woodpecker_host: "{{ lookup('env', 'WOODPECKER_HOST') | default('ci.example.com', true) }}"
     woodpecker_admin: "{{ lookup('env', 'WOODPECKER_ADMIN') | default('', true) }}"
@@ -26,13 +37,19 @@
         - "{{ woodpecker_dir }}"
         - "{{ woodpecker_data_dir }}"
 
+    - name: Set correct ownership for data directory
+      ansible.builtin.file:
+        path: "{{ woodpecker_data_dir }}"
+        owner: '1000'
+        group: '1000'
+        recurse: true
+        state: directory
+
     - name: Create Woodpecker docker-compose file
       ansible.builtin.copy:
         dest: "{{ woodpecker_dir }}/docker-compose.yml"
         mode: '0644'
         content: |
-          version: '3'
-
           services:
             woodpecker-server:
               image: woodpeckerci/woodpecker-server:{{ woodpecker_version }}
@@ -108,7 +125,7 @@
     - name: Pull Woodpecker Docker images
       community.docker.docker_compose_v2:
         project_src: "{{ woodpecker_dir }}"
-        pull: true
+        pull: always
         state: present
       register: pull_result
       ignore_errors: true
@@ -163,9 +180,29 @@
       register: woodpecker_status
       changed_when: false
 
+    - name: Check Woodpecker logs for errors
+      ansible.builtin.command:
+        cmd: docker compose logs --tail=20 woodpecker-server
+        chdir: "{{ woodpecker_dir }}"
+      register: woodpecker_logs
+      changed_when: false
+
+    - name: Verify data directory permissions
+      ansible.builtin.stat:
+        path: "{{ woodpecker_data_dir }}"
+      register: data_dir_perms
+
     - name: Show Woodpecker status
       ansible.builtin.debug:
         var: woodpecker_status.stdout_lines
+
+    - name: Display permissions info
+      ansible.builtin.debug:
+        msg:
+          - "Data directory permissions:"
+          - "  Owner UID: {{ data_dir_perms.stat.uid }}"
+          - "  Owner GID: {{ data_dir_perms.stat.gid }}"
+          - "  Mode: {{ data_dir_perms.stat.mode }}"
 
     - name: Display access information
       ansible.builtin.debug:

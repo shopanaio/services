@@ -1,0 +1,41 @@
+services:
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:v3.10.0
+    container_name: woodpecker-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    volumes:
+      - ./data/woodpecker:/var/lib/woodpecker/
+    environment:
+      - WOODPECKER_OPEN=true
+      - WOODPECKER_HOST=${WOODPECKER_HOST}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_ADMIN=${WOODPECKER_ADMIN}
+      # GitHub OAuth configuration
+      - WOODPECKER_GITHUB=true
+      - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
+      - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET}
+    networks:
+      - woodpecker
+
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:v3.10.0
+    container_name: woodpecker-agent
+    restart: unless-stopped
+    depends_on:
+      - woodpecker-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WOODPECKER_SERVER=woodpecker-server:9000
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_MAX_WORKFLOWS=4
+      - WOODPECKER_BACKEND=docker
+    networks:
+      - woodpecker
+
+networks:
+  woodpecker:
+    driver: bridge
