@@ -1,0 +1,159 @@
+# Update Woodpecker CI configuration and restart
+# ansible-playbook update-woodpecker-config.yml
+# or with extra vars:
+# ansible-playbook update-woodpecker-config.yml -e "woodpecker_host=https://ci.example.com" -e "woodpecker_admin=username"
+---
+- name: Update Woodpecker CI configuration
+  hosts: shopana
+  become: true
+  gather_facts: true
+
+  vars:
+    woodpecker_dir: /opt/woodpecker
+    woodpecker_data_dir: /opt/woodpecker/data
+    # These can be overridden via environment variables or extra vars
+    woodpecker_host: "{{ lookup('env', 'WOODPECKER_HOST') | default('', true) }}"
+    woodpecker_admin: "{{ lookup('env', 'WOODPECKER_ADMIN') | default('', true) }}"
+    woodpecker_github_client: "{{ lookup('env', 'WOODPECKER_GITHUB_CLIENT') | default('', true) }}"
+    woodpecker_github_secret: "{{ lookup('env', 'WOODPECKER_GITHUB_SECRET') | default('', true) }}"
+    woodpecker_agent_secret: "{{ lookup('env', 'WOODPECKER_AGENT_SECRET') | default('', true) }}"
+
+  tasks:
+    - name: Verify Woodpecker directory exists
+      ansible.builtin.stat:
+        path: "{{ woodpecker_dir }}/docker-compose.yml"
+      register: compose_file
+
+    - name: Fail if Woodpecker is not installed
+      ansible.builtin.fail:
+        msg: "Woodpecker is not installed at {{ woodpecker_dir }}. Run install-woodpecker.yml first."
+      when: not compose_file.stat.exists
+
+    - name: Check if .env file exists
+      ansible.builtin.stat:
+        path: "{{ woodpecker_dir }}/.env"
+      register: env_file
+
+    - name: Read current .env file
+      ansible.builtin.slurp:
+        src: "{{ woodpecker_dir }}/.env"
+      register: current_env
+      when: env_file.stat.exists
+
+    - name: Parse current environment variables
+      ansible.builtin.set_fact:
+        current_config: "{{ (current_env.content | b64decode).split('\n') | select('match', '^[A-Z_]+=.*') | list }}"
+      when: env_file.stat.exists
+
+    - name: Display current configuration
+      ansible.builtin.debug:
+        msg:
+          - "Current Woodpecker configuration:"
+          - "{{ current_config | default(['No configuration found']) }}"
+      when: env_file.stat.exists
+
+    - name: Display new values to be set
+      ansible.builtin.debug:
+        msg:
+          - "New configuration values:"
+          - "WOODPECKER_HOST: {{ woodpecker_host if woodpecker_host else '(not changed)' }}"
+          - "WOODPECKER_ADMIN: {{ woodpecker_admin if woodpecker_admin else '(not changed)' }}"
+          - "WOODPECKER_GITHUB_CLIENT: {{ woodpecker_github_client if woodpecker_github_client else '(not changed)' }}"
+          - "WOODPECKER_GITHUB_SECRET: {{ '***' if woodpecker_github_secret else '(not changed)' }}"
+          - "WOODPECKER_AGENT_SECRET: {{ '***' if woodpecker_agent_secret else '(not changed)' }}"
+
+    - name: Backup current .env file
+      ansible.builtin.copy:
+        src: "{{ woodpecker_dir }}/.env"
+        dest: "{{ woodpecker_dir }}/.env.backup.{{ ansible_date_time.epoch }}"
+        remote_src: true
+        mode: '0600'
+      when: env_file.stat.exists
+
+    - name: Read existing .env to preserve unset values
+      ansible.builtin.slurp:
+        src: "{{ woodpecker_dir }}/.env"
+      register: existing_env
+      when: env_file.stat.exists
+
+    - name: Extract existing values from .env
+      ansible.builtin.set_fact:
+        existing_host: "{{ (existing_env.content | b64decode) | regex_search('^WOODPECKER_HOST=(.*)$', '\\1', multiline=True) | default('', true) }}"
+        existing_admin: "{{ (existing_env.content | b64decode) | regex_search('^WOODPECKER_ADMIN=(.*)$', '\\1', multiline=True) | default('', true) }}"
+        existing_agent_secret: "{{ (existing_env.content | b64decode) | regex_search('^WOODPECKER_AGENT_SECRET=(.*)$', '\\1', multiline=True) | default('', true) }}"
+        existing_github_client: "{{ (existing_env.content | b64decode) | regex_search('^WOODPECKER_GITHUB_CLIENT=(.*)$', '\\1', multiline=True) | default('', true) }}"
+        existing_github_secret: "{{ (existing_env.content | b64decode) | regex_search('^WOODPECKER_GITHUB_SECRET=(.*)$', '\\1', multiline=True) | default('', true) }}"
+      when: env_file.stat.exists
+
+    - name: Set merged values (prefer provided > existing > defaults)
+      ansible.builtin.set_fact:
+        merged_host: "{{ woodpecker_host | default(existing_host, true) | default('https://ci.example.com', true) }}"
+        merged_admin: "{{ woodpecker_admin | default(existing_admin, true) | default('', true) }}"
+        merged_agent_secret: "{{ woodpecker_agent_secret | default(existing_agent_secret, true) | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits'), true) }}"
+        merged_github_client: "{{ woodpecker_github_client | default(existing_github_client, true) | default('', true) }}"
+        merged_github_secret: "{{ woodpecker_github_secret | default(existing_github_secret, true) | default('', true) }}"
+      when: env_file.stat.exists
+
+    - name: Update Woodpecker environment file
+      ansible.builtin.copy:
+        dest: "{{ woodpecker_dir }}/.env"
+        mode: '0600'
+        content: |
+          # Woodpecker CI Configuration
+          # Updated at: {{ ansible_date_time.iso8601 }}
+          # Server URL (should be accessible from outside)
+          WOODPECKER_HOST={{ merged_host | default(woodpecker_host) | default('https://ci.example.com') }}
+
+          # Admin users (comma-separated list of GitHub usernames)
+          WOODPECKER_ADMIN={{ merged_admin | default(woodpecker_admin) | default('') }}
+
+          # Agent secret (shared between server and agents)
+          WOODPECKER_AGENT_SECRET={{ merged_agent_secret | default(woodpecker_agent_secret) | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits')) }}
+
+          # GitHub OAuth Configuration
+          WOODPECKER_GITHUB_CLIENT={{ merged_github_client | default(woodpecker_github_client) | default('') }}
+          WOODPECKER_GITHUB_SECRET={{ merged_github_secret | default(woodpecker_github_secret) | default('') }}
+
+    - name: Stop Woodpecker CI
+      ansible.builtin.command:
+        cmd: docker compose down
+        chdir: "{{ woodpecker_dir }}"
+      changed_when: true
+
+    - name: Start Woodpecker CI with new configuration
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ woodpecker_dir }}"
+      changed_when: true
+
+    - name: Wait for Woodpecker to be ready
+      ansible.builtin.wait_for:
+        port: 8000
+        delay: 5
+        timeout: 60
+      ignore_errors: true
+
+    - name: Get Woodpecker status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ woodpecker_dir }}"
+      register: status_output
+      changed_when: false
+
+    - name: Display Woodpecker status
+      ansible.builtin.debug:
+        var: status_output.stdout_lines
+
+    - name: Display success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Woodpecker CI configuration updated and restarted!"
+          - ""
+          - "Access Woodpecker at: http://{{ ansible_host }}:8000"
+          - "Or via configured domain: {{ merged_host | default(woodpecker_host) | default('https://ci.example.com') }}"
+          - ""
+          - "Backup created: {{ woodpecker_dir }}/.env.backup.{{ ansible_date_time.epoch }}"
+          - "Configuration file: {{ woodpecker_dir }}/.env"
+          - ""
+          - "To view logs: ansible-playbook manage-woodpecker.yml -e 'action=logs'"
+          - "To check status: ansible-playbook manage-woodpecker.yml -e 'action=status'"

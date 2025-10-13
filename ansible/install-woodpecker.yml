@@ -39,7 +39,7 @@
               container_name: woodpecker-server
               restart: unless-stopped
               ports:
-                - "8000:8000"
+                - "80:8000"
                 - "9000:9000"
               volumes:
                 - {{ woodpecker_data_dir }}:/var/lib/woodpecker/
@@ -151,7 +151,7 @@
 
     - name: Wait for Woodpecker to be ready
       ansible.builtin.wait_for:
-        port: 8000
+        port: 80
         delay: 5
         timeout: 60
       ignore_errors: true
@@ -172,7 +172,7 @@
         msg:
           - "✅ Woodpecker CI has been deployed!"
           - ""
-          - "Access Woodpecker at: http://{{ ansible_host }}:8000"
+          - "Access Woodpecker at: http://{{ ansible_host }}"
           - "Or via configured domain: {{ woodpecker_host }}"
           - ""
           - "To view logs: cd {{ woodpecker_dir }} && docker compose logs -f"
