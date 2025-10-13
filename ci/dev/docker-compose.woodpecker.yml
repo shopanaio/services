@@ -1,6 +1,6 @@
 services:
   woodpecker-server:
-    image: woodpeckerci/woodpecker-server:v3.10.0
+    image: woodpeckerci/woodpecker-server:next-alpine
     container_name: woodpecker-server
     restart: unless-stopped
     ports:
@@ -13,6 +13,9 @@ services:
       - WOODPECKER_HOST=${WOODPECKER_HOST}
       - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
       - WOODPECKER_ADMIN=${WOODPECKER_ADMIN}
+      # Convert (Configuration) Extension
+      - WOODPECKER_CONVERT_PLUGIN_ENDPOINT=${WOODPECKER_CONVERT_PLUGIN_ENDPOINT}
+      - WOODPECKER_CONVERT_PLUGIN_SECRET=${WOODPECKER_CONVERT_PLUGIN_SECRET}
       # GitHub OAuth configuration
       - WOODPECKER_GITHUB=true
       - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
@@ -33,6 +36,7 @@ services:
       - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
       - WOODPECKER_MAX_WORKFLOWS=4
       - WOODPECKER_BACKEND=docker
+      - WOODPECKER_BACKEND_DOCKER_NETWORK=dev_woodpecker
     networks:
       - woodpecker
 

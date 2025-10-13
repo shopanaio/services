@@ -1,26 +1,13 @@
 # Woodpecker pipeline template for Shopana.io services
-# Woodpecker CI reads this template, which is handled by a Node.js
-# server to create dynamic pipelines.
+# Woodpecker CI reads this template, which is handled by a Node.js server
 
-kind: pipeline
-type: docker
-name: template
+skip_clone: true
 
-# 10
-trigger:
-  event:
-    - push
-  ref:
-    exclude:
-      - refs/heads/main
-
-clone:
-  # Don't clone automatically the repo
-  disable: true
+when:
+  - event: [manual]
 
 steps:
   - name: "template"
     image: docker:latest
     commands:
-      - sleep 10
       - echo "Running Woodpecker workflow template"

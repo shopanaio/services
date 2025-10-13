@@ -19,7 +19,6 @@
   vars:
     woodpecker_dir: /opt/woodpecker
     woodpecker_data_dir: /opt/woodpecker/data
-    woodpecker_version: v3.10.0
     # These should be overridden via extra vars or ansible vault
     woodpecker_host: "{{ lookup('env', 'WOODPECKER_HOST') | default('ci.example.com', true) }}"
     woodpecker_admin: "{{ lookup('env', 'WOODPECKER_ADMIN') | default('', true) }}"
@@ -52,7 +51,7 @@
         content: |
           services:
             woodpecker-server:
-              image: woodpeckerci/woodpecker-server:{{ woodpecker_version }}
+              image: woodpeckerci/woodpecker-server:next-alpine
               container_name: woodpecker-server
               restart: unless-stopped
               ports:
@@ -73,7 +72,7 @@
                 - woodpecker
 
             woodpecker-agent:
-              image: woodpeckerci/woodpecker-agent:{{ woodpecker_version }}
+              image: woodpeckerci/woodpecker-agent:v3.10.0
               container_name: woodpecker-agent
               restart: unless-stopped
               depends_on:

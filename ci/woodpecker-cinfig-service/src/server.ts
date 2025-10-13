@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { AppConfig } from './core/config';
@@ -6,13 +6,46 @@ import { BitBucketRepository } from './repositories/repository';
 import { ScriptRegistry } from './core/registry';
 import { DronePipeline, ScriptContext } from './core/types';
 import { loadScripts } from './core/loader';
+import crypto from 'crypto';
+import { GitHubRepository } from './repositories/repository';
 
 /**
  * Compose and create an Express server.
  */
 export function createServer(config: AppConfig) {
   const app = express();
-  app.use(express.json());
+  // Capture raw body for HMAC verification and allow larger payloads
+  app.use(
+    express.json({
+      limit: '2mb',
+      verify: (req, _res, buf) => {
+        (req as unknown as { rawBody?: Buffer }).rawBody = buf;
+      },
+    }),
+  );
+
+  // HMAC signature verification middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    try {
+      const header = (req.headers['x-woodpecker-signature'] || req.headers['x-drone-signature']) as string | undefined;
+      if (!header) {
+        return res.status(401).json({ error: 'missing signature' });
+      }
+      const rawBody: Buffer | undefined = (req as unknown as { rawBody?: Buffer }).rawBody;
+      if (!rawBody) {
+        return res.status(400).json({ error: 'missing raw body' });
+      }
+      const hmac = crypto.createHmac('sha256', config.convertSecret);
+      hmac.update(rawBody);
+      const digest = `sha256=${hmac.digest('hex')}`;
+      if (digest !== header) {
+        return res.status(401).json({ error: 'invalid signature' });
+      }
+      next();
+    } catch (e) {
+      return res.status(401).json({ error: 'signature validation failed' });
+    }
+  });
 
   // Liveness probe
   app.get('/healthz', (_req: Request, res: Response) => {
@@ -36,25 +69,35 @@ export function createServer(config: AppConfig) {
           .join('/');
       const commitSha: string = build.after;
 
-      // Initialize repository
-      const repository = new BitBucketRepository(repoSlug, config.bitbucketToken);
+      // Initialize repository (auto-detect or override)
+      const provider =
+        config.repoProvider ||
+        (typeof repo?.link === 'string' && repo.link.includes('github.com')
+          ? 'github'
+          : 'bitbucket');
+      const repository =
+        provider === 'github'
+          ? new GitHubRepository(repoSlug, config.bitbucketToken)
+          : new BitBucketRepository(repoSlug, config.bitbucketToken);
 
-      // PR check
-      const hasOpenPr = await repository.hasOpenPullRequest(sourceBranch, defaultBranch);
-      if (!hasOpenPr) {
-        const skipPipeline: DronePipeline = {
-          kind: 'pipeline',
-          type: 'docker',
-          name: 'skip',
-          trigger: {
-            event: ['pull_request'],
-            branch: { exclude: [sourceBranch] },
-          },
-          clone: { disable: true },
-          steps: [],
-        };
-        const yml = yaml.dump(skipPipeline);
-        return res.json({ data: yml });
+      // PR check only for pull_request event
+      if (build?.event === 'pull_request') {
+        const hasOpenPr = await repository.hasOpenPullRequest(sourceBranch, defaultBranch);
+        if (!hasOpenPr) {
+          const skipPipeline: DronePipeline = {
+            kind: 'pipeline',
+            type: 'docker',
+            name: 'skip',
+            trigger: {
+              event: ['pull_request'],
+              branch: { exclude: [sourceBranch] },
+            },
+            clone: { disable: true },
+            steps: [],
+          };
+          const yml = yaml.dump(skipPipeline);
+          return res.json({ data: yml });
+        }
       }
 
       // Checkout repository

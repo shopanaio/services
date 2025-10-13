@@ -25,7 +25,10 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 
 # Install only production dependencies
-RUN yarn install --production --frozen-lockfile
+RUN yarn install --production --frozen-lockfile \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends git \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled output from the builder stage
 COPY --from=builder /app/dist ./dist
