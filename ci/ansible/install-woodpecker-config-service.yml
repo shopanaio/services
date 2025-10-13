@@ -36,7 +36,7 @@
       block:
         - name: Build Docker image locally for linux/amd64
           ansible.builtin.command:
-            cmd: docker build --platform linux/amd64 -t {{ image }} -f ci/woodpecker-cinfig-service/Dockerfile .
+            cmd: docker build --platform linux/amd64 -t {{ image }} -f ci/woodpecker-config-service/Dockerfile .
             chdir: "{{ local_build_dir }}"
           delegate_to: localhost
           become: false

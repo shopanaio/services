@@ -8,18 +8,18 @@ COPY package.json yarn.lock ./
 
 # Pre-copy only package manifests to enable efficient install caching
 COPY packages/ci-woodpecker-config-service/package.json packages/ci-woodpecker-config-service/package.json
-COPY ci/woodpecker-cinfig-service/package.json ci/woodpecker-cinfig-service/package.json
+COPY ci/woodpecker-config-service/package.json ci/woodpecker-config-service/package.json
 
 # Install all dependencies via Yarn workspaces
 RUN yarn install --frozen-lockfile
 
 # Copy package sources
 COPY packages/ci-woodpecker-config-service packages/ci-woodpecker-config-service
-COPY ci/woodpecker-cinfig-service ci/woodpecker-cinfig-service
+COPY ci/woodpecker-config-service ci/woodpecker-config-service
 
 # Build the service (bundles deps)
 RUN yarn workspace @shopana/ci-woodpecker-config-service build \
-  && yarn workspace drone-convert-extension build
+  && yarn workspace @shopana/woodpecker-config-service build
 
 # 2) Production stage
 FROM node:22
@@ -29,19 +29,19 @@ WORKDIR /app
 # Copy root manifests for production dependencies install
 COPY --from=builder /app/package.json /app/yarn.lock ./
 COPY --from=builder /app/packages/ci-woodpecker-config-service/package.json ./packages/ci-woodpecker-config-service/
-COPY --from=builder /app/ci/woodpecker-cinfig-service/package.json ./ci/woodpecker-cinfig-service/
+COPY --from=builder /app/ci/woodpecker-config-service/package.json ./ci/woodpecker-config-service/
 
 # Install only production dependencies
 RUN yarn install --frozen-lockfile --production
 
 # Copy compiled output from the builder stage
-COPY --from=builder /app/ci/woodpecker-cinfig-service/dist ./ci/woodpecker-cinfig-service/dist
+COPY --from=builder /app/ci/woodpecker-config-service/dist ./ci/woodpecker-config-service/dist
 COPY --from=builder /app/packages/ci-woodpecker-config-service/dist ./packages/ci-woodpecker-config-service/dist
 
 # Set production environment
 ENV NODE_ENV=production
 
-WORKDIR /app/ci/woodpecker-cinfig-service
+WORKDIR /app/ci/woodpecker-config-service
 
 # Expose application port
 EXPOSE 3000
