@@ -1,0 +1,24 @@
+# Woodpecker pipeline template for Shopana services monorepo
+
+kind: pipeline
+type: docker
+name: template
+
+# 10
+trigger:
+  event:
+    - push
+  ref:
+    exclude:
+      - refs/heads/main
+
+clone:
+  # Don't clone automatically the repo
+  disable: true
+
+steps:
+  - name: "template"
+    image: docker:latest
+    commands:
+      - sleep 10
+      - echo "Running Woodpecker workflow template"

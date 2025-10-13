@@ -1,0 +1,183 @@
+# ansible-playbook install-woodpecker.yml
+---
+- name: Install Woodpecker CI on remote host
+  hosts: shopana
+  become: true
+  gather_facts: true
+
+  vars:
+    woodpecker_dir: /opt/woodpecker
+    woodpecker_data_dir: /opt/woodpecker/data
+    woodpecker_version: "latest"
+    # These should be overridden via extra vars or ansible vault
+    woodpecker_host: "{{ lookup('env', 'WOODPECKER_HOST') | default('ci.example.com', true) }}"
+    woodpecker_admin: "{{ lookup('env', 'WOODPECKER_ADMIN') | default('', true) }}"
+    woodpecker_github_client: "{{ lookup('env', 'WOODPECKER_GITHUB_CLIENT') | default('', true) }}"
+    woodpecker_github_secret: "{{ lookup('env', 'WOODPECKER_GITHUB_SECRET') | default('', true) }}"
+    woodpecker_agent_secret: "{{ lookup('env', 'WOODPECKER_AGENT_SECRET') | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits'), true) }}"
+
+  tasks:
+    - name: Create Woodpecker directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ woodpecker_dir }}"
+        - "{{ woodpecker_data_dir }}"
+
+    - name: Create Woodpecker docker-compose file
+      ansible.builtin.copy:
+        dest: "{{ woodpecker_dir }}/docker-compose.yml"
+        mode: '0644'
+        content: |
+          version: '3'
+
+          services:
+            woodpecker-server:
+              image: woodpeckerci/woodpecker-server:{{ woodpecker_version }}
+              container_name: woodpecker-server
+              restart: unless-stopped
+              ports:
+                - "8000:8000"
+                - "9000:9000"
+              volumes:
+                - {{ woodpecker_data_dir }}:/var/lib/woodpecker/
+              environment:
+                - WOODPECKER_OPEN=true
+                - WOODPECKER_HOST=${WOODPECKER_HOST}
+                - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+                - WOODPECKER_ADMIN=${WOODPECKER_ADMIN}
+                # GitHub OAuth configuration
+                - WOODPECKER_GITHUB=true
+                - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
+                - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET}
+              networks:
+                - woodpecker
+
+            woodpecker-agent:
+              image: woodpeckerci/woodpecker-agent:{{ woodpecker_version }}
+              container_name: woodpecker-agent
+              restart: unless-stopped
+              depends_on:
+                - woodpecker-server
+              volumes:
+                - /var/run/docker.sock:/var/run/docker.sock
+              environment:
+                - WOODPECKER_SERVER=woodpecker-server:9000
+                - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+                - WOODPECKER_MAX_WORKFLOWS=4
+                - WOODPECKER_BACKEND=docker
+              networks:
+                - woodpecker
+
+          networks:
+            woodpecker:
+              driver: bridge
+
+    - name: Create Woodpecker environment file
+      ansible.builtin.copy:
+        dest: "{{ woodpecker_dir }}/.env"
+        mode: '0600'
+        content: |
+          # Woodpecker CI Configuration
+          # Server URL (should be accessible from outside)
+          WOODPECKER_HOST={{ woodpecker_host }}
+
+          # Admin users (comma-separated list of GitHub usernames)
+          WOODPECKER_ADMIN={{ woodpecker_admin }}
+
+          # Agent secret (shared between server and agents)
+          WOODPECKER_AGENT_SECRET={{ woodpecker_agent_secret }}
+
+          # GitHub OAuth Configuration
+          WOODPECKER_GITHUB_CLIENT={{ woodpecker_github_client }}
+          WOODPECKER_GITHUB_SECRET={{ woodpecker_github_secret }}
+
+    - name: Display configuration info
+      ansible.builtin.debug:
+        msg:
+          - "Woodpecker CI will be installed at: {{ woodpecker_dir }}"
+          - "Data directory: {{ woodpecker_data_dir }}"
+          - "Server URL: {{ woodpecker_host }}"
+          - "Admin users: {{ woodpecker_admin if woodpecker_admin else 'Not configured' }}"
+          - ""
+          - "Please review and update {{ woodpecker_dir }}/.env with your OAuth credentials"
+          - "before starting Woodpecker CI."
+
+    - name: Pull Woodpecker Docker images
+      community.docker.docker_compose_v2:
+        project_src: "{{ woodpecker_dir }}"
+        pull: true
+        state: present
+      register: pull_result
+      ignore_errors: true
+
+    - name: Alternative - Pull images using docker compose command
+      ansible.builtin.command:
+        cmd: docker compose pull
+        chdir: "{{ woodpecker_dir }}"
+      when: pull_result is failed
+      changed_when: true
+
+    - name: Check if configuration is complete
+      ansible.builtin.stat:
+        path: "{{ woodpecker_dir }}/.env"
+      register: env_file
+
+    - name: Prompt for manual configuration
+      ansible.builtin.pause:
+        prompt: |
+
+          ⚠️  Before starting Woodpecker CI, please configure OAuth settings in {{ woodpecker_dir }}/.env
+
+          You need to:
+          1. Create an OAuth application in GitHub (Settings → Developer settings → OAuth Apps)
+          2. Update WOODPECKER_GITHUB_CLIENT and WOODPECKER_GITHUB_SECRET
+          3. Set WOODPECKER_HOST to your public domain (e.g., https://ci.example.com)
+          4. Set WOODPECKER_ADMIN to your GitHub username
+
+          Press Enter when configuration is complete, or Ctrl+C to abort and configure later.
+      when:
+        - woodpecker_github_client == '' or woodpecker_github_secret == ''
+        - env_file.stat.exists
+
+    - name: Start Woodpecker CI
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ woodpecker_dir }}"
+      changed_when: true
+      register: start_result
+
+    - name: Wait for Woodpecker to be ready
+      ansible.builtin.wait_for:
+        port: 8000
+        delay: 5
+        timeout: 60
+      ignore_errors: true
+
+    - name: Display Woodpecker status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ woodpecker_dir }}"
+      register: woodpecker_status
+      changed_when: false
+
+    - name: Show Woodpecker status
+      ansible.builtin.debug:
+        var: woodpecker_status.stdout_lines
+
+    - name: Display access information
+      ansible.builtin.debug:
+        msg:
+          - "✅ Woodpecker CI has been deployed!"
+          - ""
+          - "Access Woodpecker at: http://{{ ansible_host }}:8000"
+          - "Or via configured domain: {{ woodpecker_host }}"
+          - ""
+          - "To view logs: cd {{ woodpecker_dir }} && docker compose logs -f"
+          - "To stop: cd {{ woodpecker_dir }} && docker compose down"
+          - "To restart: cd {{ woodpecker_dir }} && docker compose restart"
+          - ""
+          - "Configuration file: {{ woodpecker_dir }}/.env"
+          - "Data directory: {{ woodpecker_data_dir }}"

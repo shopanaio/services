@@ -1,0 +1,132 @@
+# Manage Woodpecker CI
+# ansible-playbook manage-woodpecker.yml -e "action=start"
+# ansible-playbook manage-woodpecker.yml -e "action=stop"
+# ansible-playbook manage-woodpecker.yml -e "action=restart"
+# ansible-playbook manage-woodpecker.yml -e "action=status"
+# ansible-playbook manage-woodpecker.yml -e "action=logs"
+---
+- name: Manage Woodpecker CI
+  hosts: shopana
+  become: true
+  gather_facts: false
+
+  vars:
+    woodpecker_dir: /opt/woodpecker
+    action: status
+
+  tasks:
+    - name: Verify Woodpecker directory exists
+      ansible.builtin.stat:
+        path: "{{ woodpecker_dir }}/docker-compose.yml"
+      register: compose_file
+
+    - name: Fail if Woodpecker is not installed
+      ansible.builtin.fail:
+        msg: "Woodpecker is not installed at {{ woodpecker_dir }}. Run install-woodpecker.yml first."
+      when: not compose_file.stat.exists
+
+    - name: Start Woodpecker CI
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ woodpecker_dir }}"
+      when: action == 'start'
+      changed_when: true
+
+    - name: Stop Woodpecker CI
+      ansible.builtin.command:
+        cmd: docker compose down
+        chdir: "{{ woodpecker_dir }}"
+      when: action == 'stop'
+      changed_when: true
+
+    - name: Restart Woodpecker CI
+      ansible.builtin.command:
+        cmd: docker compose restart
+        chdir: "{{ woodpecker_dir }}"
+      when: action == 'restart'
+      changed_when: true
+
+    - name: Get Woodpecker status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ woodpecker_dir }}"
+      register: status_output
+      changed_when: false
+      when: action in ['status', 'start', 'restart', 'diagnose']
+
+    - name: Display status
+      ansible.builtin.debug:
+        var: status_output.stdout_lines
+      when:
+        - action in ['status', 'start', 'restart', 'diagnose']
+        - status_output is defined
+
+    - name: Get Woodpecker logs
+      ansible.builtin.command:
+        cmd: docker compose logs --tail=100
+        chdir: "{{ woodpecker_dir }}"
+      register: logs_output
+      changed_when: false
+      when: action in ['logs', 'diagnose']
+
+    - name: Display logs
+      ansible.builtin.debug:
+        var: logs_output.stdout_lines
+      when:
+        - action in ['logs', 'diagnose']
+        - logs_output is defined
+
+    - name: Show .env content
+      ansible.builtin.command:
+        cmd: cat .env
+        chdir: "{{ woodpecker_dir }}"
+      register: env_output
+      changed_when: false
+      when: action == 'diagnose'
+
+    - name: Display .env
+      ansible.builtin.debug:
+        var: env_output.stdout_lines
+      when:
+        - action == 'diagnose'
+        - env_output is defined
+
+    - name: Check listening ports 8000/9000
+      ansible.builtin.shell: |
+        if command -v ss >/dev/null 2>&1; then
+          ss -ltnp | grep -E ":8000|:9000" || true
+        elif command -v netstat >/dev/null 2>&1; then
+          netstat -tlnp | grep -E ":8000|:9000" || true
+        else
+          echo "Neither 'ss' nor 'netstat' is available"
+        fi
+      register: ports_output
+      changed_when: false
+      failed_when: false
+      when: action == 'diagnose'
+
+    - name: Display listening ports
+      ansible.builtin.debug:
+        var: ports_output.stdout_lines
+      when:
+        - action == 'diagnose'
+        - ports_output is defined
+
+    - name: Try local HTTP check on 8000
+      ansible.builtin.command:
+        cmd: bash -lc "curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/"
+      register: http_check
+      changed_when: false
+      failed_when: false
+      when: action == 'diagnose'
+
+    - name: Display HTTP status code
+      ansible.builtin.debug:
+        msg: "Local HTTP status on 127.0.0.1:8000 => {{ http_check.stdout | default('n/a') }}"
+      when: action == 'diagnose'
+
+    - name: Display action result
+      ansible.builtin.debug:
+        msg:
+          - "Action '{{ action }}' completed successfully"
+          - "Woodpecker directory: {{ woodpecker_dir }}"

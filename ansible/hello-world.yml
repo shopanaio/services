@@ -1,0 +1,29 @@
+# ansible-playbook hello-world.yml
+---
+- name: Hello World Test Playbook
+  hosts: shopana
+  gather_facts: true
+
+  tasks:
+    - name: Print hello world message
+      ansible.builtin.debug:
+        msg: "Hello World from Ansible!"
+
+    - name: Display hostname
+      ansible.builtin.debug:
+        msg: "Connected to host: {{ inventory_hostname }}"
+
+    - name: Display OS information
+      ansible.builtin.debug:
+        msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+      when: ansible_distribution is defined
+
+    - name: Test simple command execution
+      ansible.builtin.command:
+        cmd: echo "Hello from {{ ansible_hostname }}"
+      register: echo_result
+      changed_when: false
+
+    - name: Show command output
+      ansible.builtin.debug:
+        var: echo_result.stdout

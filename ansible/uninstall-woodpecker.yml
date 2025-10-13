@@ -1,0 +1,85 @@
+# ansible-playbook uninstall-woodpecker.yml
+---
+- name: Uninstall Woodpecker CI from remote host
+  hosts: shopana
+  become: true
+  gather_facts: true
+
+  vars:
+    woodpecker_dir: /opt/woodpecker
+    woodpecker_data_dir: /opt/woodpecker/data
+    remove_images: true
+    remove_data: true
+    remove_project_dir: true
+
+  tasks:
+    - name: Check if Woodpecker directory exists
+      ansible.builtin.stat:
+        path: "{{ woodpecker_dir }}"
+      register: woodpecker_dir_stat
+
+    - name: Stop and remove services with Compose v2 (module)
+      community.docker.docker_compose_v2:
+        project_src: "{{ woodpecker_dir }}"
+        state: absent
+      when: woodpecker_dir_stat.stat.exists
+      register: compose_absent_result
+      ignore_errors: true
+
+    - name: Fallback - Stop and remove with docker compose down -v --remove-orphans
+      ansible.builtin.command:
+        cmd: docker compose down -v --remove-orphans
+        chdir: "{{ woodpecker_dir }}"
+      when:
+        - woodpecker_dir_stat.stat.exists
+        - compose_absent_result is failed
+      changed_when: true
+      ignore_errors: true
+
+    - name: Ensure containers are removed explicitly
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+        force_kill: true
+      loop:
+        - woodpecker-server
+        - woodpecker-agent
+      ignore_errors: true
+
+    - name: Remove Woodpecker docker network if exists
+      community.docker.docker_network:
+        name: woodpecker
+        state: absent
+      ignore_errors: true
+
+    - name: Remove Woodpecker images (server and agent)
+      community.docker.docker_image:
+        name: "{{ item }}"
+        state: absent
+        force_absent: true
+      loop:
+        - woodpeckerci/woodpecker-server
+        - woodpeckerci/woodpecker-agent
+      when: remove_images
+      ignore_errors: true
+
+    - name: Remove data directory
+      ansible.builtin.file:
+        path: "{{ woodpecker_data_dir }}"
+        state: absent
+      when: remove_data
+
+    - name: Remove project directory (includes compose and env files)
+      ansible.builtin.file:
+        path: "{{ woodpecker_dir }}"
+        state: absent
+      when: remove_project_dir
+
+    - name: Display uninstall status
+      ansible.builtin.debug:
+        msg:
+          - "✅ Woodpecker CI has been removed from host {{ inventory_hostname }}"
+          - "Removed images: {{ remove_images }}"
+          - "Removed data dir: {{ remove_data }} ({{ woodpecker_data_dir }})"
+          - "Removed project dir: {{ remove_project_dir }} ({{ woodpecker_dir }})"
+          - "If any resources remain, consider running: docker system prune -a --volumes"
