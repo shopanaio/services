@@ -26,11 +26,22 @@ FROM node:22
 
 WORKDIR /app
 
+# Copy root manifests for production dependencies install
+COPY --from=builder /app/package.json /app/yarn.lock ./
+COPY --from=builder /app/packages/ci-woodpecker-config-service/package.json ./packages/ci-woodpecker-config-service/
+COPY --from=builder /app/ci/woodpecker-cinfig-service/package.json ./ci/woodpecker-cinfig-service/
+
+# Install only production dependencies
+RUN yarn install --frozen-lockfile --production
+
 # Copy compiled output from the builder stage
-COPY --from=builder /app/ci/woodpecker-cinfig-service/dist ./dist
+COPY --from=builder /app/ci/woodpecker-cinfig-service/dist ./ci/woodpecker-cinfig-service/dist
+COPY --from=builder /app/packages/ci-woodpecker-config-service/dist ./packages/ci-woodpecker-config-service/dist
 
 # Set production environment
 ENV NODE_ENV=production
+
+WORKDIR /app/ci/woodpecker-cinfig-service
 
 # Expose application port
 EXPOSE 3000

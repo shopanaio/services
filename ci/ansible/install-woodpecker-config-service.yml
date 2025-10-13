@@ -12,6 +12,10 @@
     image: woodpecker-config-service:local
     container_port: 3000
     host_http_port: 3300
+    local_build_dir: "{{ playbook_dir }}/../.."
+    image_tar_name: "{{ app_name }}.tar"
+    local_image_path: "/tmp/{{ image_tar_name }}"
+    remote_image_path: "{{ app_dir }}/{{ image_tar_name }}"
 
     # Values must be provided via extra vars or env/vault (no defaults)
     WOODPECKER_GITHUB_TOKEN: "{{ lookup('env', 'WOODPECKER_GITHUB_TOKEN') }}"
@@ -30,7 +34,22 @@
 
     - name: Installation block with error handling
       block:
-        - name: Ensure application directories exist
+        - name: Build Docker image locally for linux/amd64
+          ansible.builtin.command:
+            cmd: docker build --platform linux/amd64 -t {{ image }} -f ci/woodpecker-cinfig-service/Dockerfile .
+            chdir: "{{ local_build_dir }}"
+          delegate_to: localhost
+          become: false
+          changed_when: true
+
+        - name: Save Docker image to tar file locally
+          ansible.builtin.command:
+            cmd: docker save -o {{ local_image_path }} {{ image }}
+          delegate_to: localhost
+          become: false
+          changed_when: true
+
+        - name: Ensure application directories exist on remote host
           ansible.builtin.file:
             path: "{{ item }}"
             state: directory
@@ -38,6 +57,29 @@
           loop:
             - "{{ app_dir }}"
             - "{{ app_data_dir }}"
+
+        - name: Copy Docker image tar to remote host
+          ansible.builtin.copy:
+            src: "{{ local_image_path }}"
+            dest: "{{ remote_image_path }}"
+            mode: '0644'
+
+        - name: Load Docker image on remote host
+          ansible.builtin.command:
+            cmd: docker load -i {{ remote_image_path }}
+          changed_when: true
+
+        - name: Remove image tar file from remote host
+          ansible.builtin.file:
+            path: "{{ remote_image_path }}"
+            state: absent
+
+        - name: Remove local image tar file
+          ansible.builtin.file:
+            path: "{{ local_image_path }}"
+            state: absent
+          delegate_to: localhost
+          become: false
 
         - name: Create docker-compose.yml for {{ app_name }}
           ansible.builtin.copy:
@@ -70,25 +112,6 @@
               WOODPECKER_GITHUB_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
               WOODPECKER_CONFIG_SERVICE_SECRET={{ WOODPECKER_CONFIG_SERVICE_SECRET }}
               # Only GitHub is supported
-
-        - name: Sync application source to remote host
-          ansible.posix.synchronize:
-            src: "{{ playbook_dir }}/../woodpecker-cinfig-service/"
-            dest: "{{ app_dir }}/build/"
-            delete: yes
-            rsync_opts:
-              - "--exclude=node_modules"
-              - "--exclude=dist"
-              - "--exclude=.git"
-              - "--exclude=*.log"
-              - "--exclude=.env*"
-              - "--exclude=*.tar"
-
-        - name: Build Docker image on remote host
-          ansible.builtin.command:
-            cmd: docker build -t {{ image }} .
-            chdir: "{{ app_dir }}/build"
-          changed_when: true
 
         - name: Start {{ app_name }}
           ansible.builtin.command:
