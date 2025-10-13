@@ -106,12 +106,23 @@ export function createServer(config: AppConfig) {
   });
 
   const postHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-    const { repo, build } = req.body as any;
     let tmpRepoDir: string | undefined;
 
     try {
-      const sourceBranch: string = build.source;
-      const defaultBranch: string = repo.default_branch || 'main';
+      // Log incoming request body for debugging
+      logger.debug({ body: req.body }, 'Received webhook payload');
+
+      const { repo, build } = req.body as any;
+
+      if (!repo || !build) {
+        logger.error({ body: req.body }, 'Invalid payload: missing repo or build');
+        res.status(400).json({ error: 'Invalid payload: repo and build are required' });
+        return;
+      }
+
+      const sourceBranch: string = build.source || build.source_branch || build.ref || build.branch || 'main';
+      const defaultBranch: string = repo.default_branch || repo.default || 'main';
+
       // Try to construct workspace/repo slug robustly across providers
       const repoSlug: string = (repo.full_name as string)
         || [
@@ -120,9 +131,23 @@ export function createServer(config: AppConfig) {
         ]
           .filter(Boolean)
           .join('/');
-      const commitSha: string = build.after;
 
-      logger.info({ repoSlug, commitSha, sourceBranch, event: build?.event }, 'Processing pipeline request');
+      const commitSha: string = build.after || build.commit || build.sha;
+
+      if (!commitSha) {
+        logger.error({ build }, 'Missing commit SHA in build payload');
+        res.status(400).json({ error: 'Invalid payload: commit SHA is required' });
+        return;
+      }
+
+      logger.info({
+        repoSlug,
+        commitSha,
+        sourceBranch,
+        event: build?.event,
+        buildKeys: Object.keys(build || {}),
+        repoKeys: Object.keys(repo || {})
+      }, 'Processing pipeline request');
 
       // Initialize repository (auto-detect or override)
       // Only GitHub is supported
