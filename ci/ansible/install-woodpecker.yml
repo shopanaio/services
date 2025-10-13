@@ -68,6 +68,8 @@
                 - WOODPECKER_GITHUB=true
                 - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
                 - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET}
+                # Allow config service extensions from host
+                - WOODPECKER_EXTENSIONS_ALLOWED_HOSTS=host.docker.internal,172.17.0.1,localhost,127.0.0.1
               extra_hosts:
                 - "host.docker.internal:host-gateway"
               networks:
