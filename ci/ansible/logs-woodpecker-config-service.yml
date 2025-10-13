@@ -1,0 +1,64 @@
+# Quick access to woodpecker-config-service logs
+#
+# Show last 100 lines:
+#   ansible-playbook logs-woodpecker-config-service.yml
+#
+# Show last 500 lines:
+#   ansible-playbook logs-woodpecker-config-service.yml -e "lines=500"
+#
+# Follow logs in real-time (Ctrl+C to exit):
+#   ansible-playbook logs-woodpecker-config-service.yml -e "follow=true"
+#
+---
+- name: View woodpecker-config-service logs
+  hosts: shopana
+  become: true
+  gather_facts: false
+
+  vars:
+    app_name: woodpecker-config-service
+    app_dir: /opt/woodpecker-config-service
+    lines: 100
+    follow: false
+
+  tasks:
+    - name: Verify service is installed
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/docker-compose.yml"
+      register: compose_file
+
+    - name: Fail if not installed
+      ansible.builtin.fail:
+        msg: "{{ app_name }} is not installed at {{ app_dir }}"
+      when: not compose_file.stat.exists
+
+    - name: Show service status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: service_status
+      changed_when: false
+
+    - name: Display service status
+      ansible.builtin.debug:
+        msg: "{{ service_status.stdout_lines }}"
+
+    - name: Show logs (static)
+      ansible.builtin.command:
+        cmd: docker compose logs --tail={{ lines }}
+        chdir: "{{ app_dir }}"
+      register: static_logs
+      changed_when: false
+      when: not follow | bool
+
+    - name: Display logs (static)
+      ansible.builtin.debug:
+        msg: "{{ static_logs.stdout_lines }}"
+      when: not follow | bool
+
+    - name: Follow logs in real-time (press Ctrl+C to exit)
+      ansible.builtin.shell:
+        cmd: docker compose logs --tail={{ lines }} --follow
+        chdir: "{{ app_dir }}"
+      changed_when: false
+      when: follow | bool

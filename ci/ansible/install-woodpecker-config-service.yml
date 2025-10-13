@@ -53,6 +53,8 @@
                     - "127.0.0.1:{{ host_http_port }}:{{ container_port }}"
                   environment:
                     - PORT={{ container_port }}
+                    - LOG_LEVEL=debug
+                    - NODE_ENV=production
                     - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_GITHUB_TOKEN}
                     - WOODPECKER_CONFIG_SERVICE_SECRET=${WOODPECKER_CONFIG_SERVICE_SECRET}
                     # Only GitHub is supported
@@ -98,7 +100,7 @@
 
         - name: Show startup logs
           ansible.builtin.command:
-            cmd: docker compose logs --tail=20
+            cmd: docker compose logs --tail=30
             chdir: "{{ app_dir }}"
           register: startup_logs
           changed_when: false
@@ -130,17 +132,28 @@
           ansible.builtin.debug:
             msg:
               - "✅ {{ app_name }} deployed"
-              - "HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
-              - "Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
-              - "Dir: {{ app_dir }}"
-              - "Env: {{ app_dir }}/.env"
+              - ""
+              - "🌐 Service Info:"
+              - "  HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
+              - "  Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
+              - "  Dir: {{ app_dir }}"
+              - "  Env: {{ app_dir }}/.env"
               - ""
               - "📋 Woodpecker Configuration:"
-              - "In Woodpecker settings, set Config Service URL to:"
-              - "  http://host.docker.internal:{{ host_http_port }}"
-              - "Or if host.docker.internal doesn't work:"
-              - "  http://172.17.0.1:{{ host_http_port }}"
-              - "Secret: Use WOODPECKER_CONFIG_SERVICE_SECRET from .env"
+              - "  In Woodpecker UI settings, set Config Service URL to:"
+              - "    http://host.docker.internal:{{ host_http_port }}"
+              - "  Or if host.docker.internal doesn't work:"
+              - "    http://172.17.0.1:{{ host_http_port }}"
+              - "  Secret: Use WOODPECKER_CONFIG_SERVICE_SECRET from .env"
+              - ""
+              - "📊 View Logs:"
+              - "  ansible-playbook logs-woodpecker-config-service.yml"
+              - "  ansible-playbook logs-woodpecker-config-service.yml -e 'follow=true'"
+              - "  ansible-playbook manage-woodpecker-config-service.yml -e 'action=logs'"
+              - ""
+              - "🔧 Manage Service:"
+              - "  ansible-playbook manage-woodpecker-config-service.yml -e 'action=restart'"
+              - "  ansible-playbook manage-woodpecker-config-service.yml -e 'action=status'"
 
       rescue:
         - name: Show error details

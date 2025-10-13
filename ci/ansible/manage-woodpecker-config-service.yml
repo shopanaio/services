@@ -8,7 +8,8 @@
   vars:
     app_name: woodpecker-config-service
     app_dir: /opt/woodpecker-config-service
-    action: status  # start|stop|restart|status|logs|upgrade
+    action: status  # start|stop|restart|status|logs|logs-follow|upgrade
+    log_lines: 100  # Number of log lines to show
 
   tasks:
     - name: Verify compose exists
@@ -73,7 +74,7 @@
 
     - name: Show logs
       ansible.builtin.command:
-        cmd: docker compose logs --tail=200
+        cmd: docker compose logs --tail={{ log_lines }}
         chdir: "{{ app_dir }}"
       register: logs_output
       changed_when: false
@@ -84,6 +85,14 @@
         var: logs_output.stdout_lines
       when: action == 'logs'
 
+    - name: Follow logs (press Ctrl+C to exit)
+      ansible.builtin.command:
+        cmd: docker compose logs --tail={{ log_lines }} --follow
+        chdir: "{{ app_dir }}"
+      changed_when: false
+      when: action == 'logs-follow'
+
     - name: Done
       ansible.builtin.debug:
         msg: "Action '{{ action }}' completed for {{ app_name }}"
+      when: action != 'logs-follow'
