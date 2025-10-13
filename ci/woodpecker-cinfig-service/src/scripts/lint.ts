@@ -1,4 +1,4 @@
-import { DronePipeline, PipelineScript, ScriptContext } from '../../core/types';
+import type { PipelineScript, ScriptContext, GeneratedConfig, WorkflowYaml } from '@shopana/ci-woodpecker-config-service';
 
 /**
  * Lint and type-check pipeline script.
@@ -12,11 +12,8 @@ export class LintScript implements PipelineScript {
     return true;
   }
 
-  async build(): Promise<DronePipeline> {
-    return {
-      kind: 'pipeline',
-      type: 'docker',
-      name: 'lint',
+  async build(_ctx: ScriptContext): Promise<GeneratedConfig[]> {
+    const workflow: WorkflowYaml = {
       steps: [
         {
           name: 'lint-and-type-check',
@@ -37,5 +34,6 @@ export class LintScript implements PipelineScript {
         },
       ],
     };
+    return [{ name: '.woodpecker/lint.yml', workflow }];
   }
 }

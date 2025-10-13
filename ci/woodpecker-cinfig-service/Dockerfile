@@ -1,37 +1,33 @@
-# 1) Build stage
+# 1) Build stage (monorepo-aware)
 FROM node:22 AS builder
 
 WORKDIR /app
 
-# Copy dependency manifests including yarn.lock
+# Copy root manifests for workspaces
 COPY package.json yarn.lock ./
 
-# Install all dependencies via Yarn
+# Pre-copy only package manifests to enable efficient install caching
+COPY packages/ci-woodpecker-config-service/package.json packages/ci-woodpecker-config-service/package.json
+COPY ci/woodpecker-cinfig-service/package.json ci/woodpecker-cinfig-service/package.json
+
+# Install all dependencies via Yarn workspaces
 RUN yarn install --frozen-lockfile
 
-# Copy TypeScript config and source code
-COPY tsconfig.json ./
-COPY src ./src
+# Copy package sources
+COPY packages/ci-woodpecker-config-service packages/ci-woodpecker-config-service
+COPY ci/woodpecker-cinfig-service ci/woodpecker-cinfig-service
 
-# Compile TypeScript to JavaScript (output → dist/)
-RUN yarn build
+# Build the service (bundles deps)
+RUN yarn workspace @shopana/ci-woodpecker-config-service build \
+  && yarn workspace drone-convert-extension build
 
 # 2) Production stage
 FROM node:22
 
 WORKDIR /app
 
-# Copy only production dependency manifests including yarn.lock
-COPY package.json yarn.lock ./
-
-# Install only production dependencies
-RUN yarn install --production --frozen-lockfile \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends git \
-  && rm -rf /var/lib/apt/lists/*
-
 # Copy compiled output from the builder stage
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/ci/woodpecker-cinfig-service/dist ./dist
 
 # Set production environment
 ENV NODE_ENV=production

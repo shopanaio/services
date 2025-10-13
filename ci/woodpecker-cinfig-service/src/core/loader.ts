@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { PipelineScript } from './types';
+import type { PipelineScript } from '@shopana/ci-woodpecker-config-service';
 
 /**
  * Dynamically loads all pipeline scripts from the scripts directory.

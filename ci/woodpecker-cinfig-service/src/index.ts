@@ -1,9 +1,28 @@
 import { loadConfig } from "./core/config";
-import { createServer } from "./server";
+import { createLogger } from "./core/logger";
+import { createConfigService } from "@shopana/ci-woodpecker-config-service";
+import express, { Router } from "express";
 
 try {
   const config = loadConfig();
-  const app = createServer(config);
+  const app = express();
+  const logger = createLogger();
+
+  // Example: explicit scripts array is empty in this package runner; users will mount their own
+  app.use(
+    "/",
+    createConfigService(
+      {
+        githubToken: config.githubToken,
+        secret: config.convertSecret,
+        publicKeyHex: config.publicKey,
+        skipSignatureVerification: config.skipSignatureVerification,
+        logger,
+      },
+      []
+    ) as unknown as Router
+  );
+
   app.listen(config.port, config.host, () => {
     console.log(`Woodpecker convert extension listening on ${config.host}:${config.port}`);
     if (config.skipSignatureVerification) {

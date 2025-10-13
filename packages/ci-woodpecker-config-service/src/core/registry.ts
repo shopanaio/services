@@ -1,9 +1,5 @@
 import { PipelineScript, ScriptContext, GeneratedConfig } from '../framework/scripts';
 
-/**
- * Registry for pipeline scripts. Allows registering multiple scripts and
- * building their pipelines for a given execution context.
- */
 export class ScriptRegistry {
   private readonly scripts: PipelineScript[] = [];
 

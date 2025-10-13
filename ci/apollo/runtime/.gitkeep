@@ -1,0 +1,3 @@
+# Supergraph schemas should be placed here:
+# - supergraph-admin.graphql
+# - supergraph-storefront.graphql

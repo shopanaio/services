@@ -11,23 +11,23 @@
  */
 export const enum WebhookEvent {
   /** Push to a branch. */
-  Push = 'push',
+  Push = "push",
   /** Pull request opened/synchronized. */
-  Pull = 'pull_request',
+  Pull = "pull_request",
   /** Pull request closed/merged. */
-  PullClosed = 'pull_request_closed',
+  PullClosed = "pull_request_closed",
   /** Pull request metadata update. */
-  PullMetadata = 'pull_request_metadata',
+  PullMetadata = "pull_request_metadata",
   /** Tag pushed. */
-  Tag = 'tag',
+  Tag = "tag",
   /** Release event. */
-  Release = 'release',
+  Release = "release",
   /** Manual deployment event. */
-  Deploy = 'deployment',
+  Deploy = "deployment",
   /** Scheduled cron event. */
-  Cron = 'cron',
+  Cron = "cron",
   /** Manual trigger. */
-  Manual = 'manual',
+  Manual = "manual",
 }
 
 /**
@@ -35,25 +35,25 @@ export const enum WebhookEvent {
  */
 export const enum StatusValue {
   /** Skipped due to dependency failure or condition. */
-  Skipped = 'skipped',
+  Skipped = "skipped",
   /** Pending execution. */
-  Pending = 'pending',
+  Pending = "pending",
   /** Currently running. */
-  Running = 'running',
+  Running = "running",
   /** Finished successfully. */
-  Success = 'success',
+  Success = "success",
   /** Finished with failure (non-zero exit). */
-  Failure = 'failure',
+  Failure = "failure",
   /** Killed by user. */
-  Killed = 'killed',
+  Killed = "killed",
   /** System/configuration error. */
-  Error = 'error',
+  Error = "error",
   /** Waiting for approval. */
-  Blocked = 'blocked',
+  Blocked = "blocked",
   /** Blocked and declined. */
-  Declined = 'declined',
+  Declined = "declined",
   /** Created (internal use). */
-  Created = 'created',
+  Created = "created",
 }
 
 /**
@@ -61,19 +61,19 @@ export const enum StatusValue {
  */
 export const enum ForgeType {
   /** GitHub SaaS/Enterprise. */
-  Github = 'github',
+  Github = "github",
   /** GitLab SaaS/Self-Managed. */
-  Gitlab = 'gitlab',
+  Gitlab = "gitlab",
   /** Gitea. */
-  Gitea = 'gitea',
+  Gitea = "gitea",
   /** Forgejo. */
-  Forgejo = 'forgejo',
+  Forgejo = "forgejo",
   /** Bitbucket Cloud. */
-  Bitbucket = 'bitbucket',
+  Bitbucket = "bitbucket",
   /** Bitbucket Data Center. */
-  BitbucketDatacenter = 'bitbucket-dc',
+  BitbucketDatacenter = "bitbucket-dc",
   /** Addon (custom adaptor). */
-  Addon = 'addon',
+  Addon = "addon",
 }
 
 /**
@@ -81,11 +81,11 @@ export const enum ForgeType {
  */
 export const enum RepoVisibility {
   /** Visible to everyone. */
-  Public = 'public',
+  Public = "public",
   /** Visible only to authorized users. */
-  Private = 'private',
+  Private = "private",
   /** Visible within an organization/internal network. */
-  Internal = 'internal',
+  Internal = "internal",
 }
 
 /**
@@ -93,13 +93,13 @@ export const enum RepoVisibility {
  */
 export const enum ApprovalMode {
   /** No approvals required. */
-  None = 'none',
+  None = "none",
   /** Require approvals for PRs from forks (default). */
-  Forks = 'forks',
+  Forks = "forks",
   /** Require approvals for all PRs. */
-  PullRequests = 'pull_requests',
+  PullRequests = "pull_requests",
   /** Require approvals for all external events. */
-  AllEvents = 'all_events',
+  AllEvents = "all_events",
 }
 
 // Core models
@@ -180,7 +180,7 @@ export interface Repo {
  */
 export interface PipelineError {
   /** Error category. */
-  type: 'linter' | 'deprecation' | 'compiler' | 'generic' | 'bad_habit';
+  type: "linter" | "deprecation" | "compiler" | "generic" | "bad_habit";
   /** Human-readable error message. */
   message: string;
   /** Whether this error is a warning (non-fatal). */
@@ -224,7 +224,7 @@ export interface Workflow {
 /**
  * Type of a step within a workflow.
  */
-export type StepType = 'clone' | 'service' | 'plugin' | 'commands' | 'cache';
+export type StepType = "clone" | "service" | "plugin" | "commands" | "cache";
 
 /**
  * A single step within a workflow.
@@ -380,34 +380,4 @@ export interface ConfigExtensionRequest {
 export interface ConfigExtensionResponse {
   /** List of configuration files to apply (in order). */
   configs: ConfigFileDto[];
-}
-
-// Type guards for runtime validation
-
-/**
- * Runtime validator for ConfigFileDto values.
- * @param value - Unknown value to validate
- * @returns True if value conforms to ConfigFileDto
- */
-export function isConfigFileDto(value: unknown): value is ConfigFileDto {
-  const v = value as ConfigFileDto;
-  return (
-    !!v &&
-    typeof v.name === 'string' &&
-    typeof v.data === 'string'
-  );
-}
-
-/**
- * Runtime validator for ConfigExtensionResponse values.
- * @param value - Unknown value to validate
- * @returns True if value conforms to ConfigExtensionResponse
- */
-export function isConfigExtensionResponse(value: unknown): value is ConfigExtensionResponse {
-  const v = value as ConfigExtensionResponse;
-  return (
-    !!v &&
-    Array.isArray(v.configs) &&
-    v.configs.every(isConfigFileDto)
-  );
 }

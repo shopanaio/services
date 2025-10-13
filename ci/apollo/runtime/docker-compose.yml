@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  router-admin:
+    image: shopana/apollo-router:latest
+    ports:
+      - "4000:4000"
+      - "8088:8088"
+    volumes:
+      - ./router-admin.yaml:/dist/config/router.yaml:ro
+      - ./supergraph-admin.graphql:/dist/schema/supergraph.graphql:ro
+    environment:
+      APOLLO_ROUTER_CONFIG_PATH: /dist/config/router.yaml
+      APOLLO_ROUTER_SUPERGRAPH_PATH: /dist/schema/supergraph.graphql
+    command:
+      - --supergraph
+      - /dist/schema/supergraph.graphql
+      - --config
+      - /dist/config/router.yaml
+
+  router-storefront:
+    image: shopana/apollo-router:latest
+    ports:
+      - "4001:4001"
+      - "8089:8089"
+    volumes:
+      - ./router-storefront.yaml:/dist/config/router.yaml:ro
+      - ./supergraph-storefront.graphql:/dist/schema/supergraph.graphql:ro
+    environment:
+      APOLLO_ROUTER_CONFIG_PATH: /dist/config/router.yaml
+      APOLLO_ROUTER_SUPERGRAPH_PATH: /dist/schema/supergraph.graphql
+    command:
+      - --supergraph
+      - /dist/schema/supergraph.graphql
+      - --config
+      - /dist/config/router.yaml

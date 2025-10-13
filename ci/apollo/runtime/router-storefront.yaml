@@ -1,0 +1,22 @@
+supergraph:
+  path: /api/client/graphql/query
+  introspection: true
+  listen: 0.0.0.0:4001
+
+homepage:
+  enabled: true
+
+include_subgraph_errors:
+  all: true
+
+cors:
+  allow_any_origin: true
+
+headers:
+  all:
+    request:
+      - propagate:
+          matching: "X*"
+
+health_check:
+  listen: 0.0.0.0:8089
