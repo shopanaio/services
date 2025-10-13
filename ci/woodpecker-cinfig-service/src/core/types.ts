@@ -32,12 +32,7 @@ export interface ScriptContext {
   sourceBranch: string;
   defaultBranch: string;
   tmpRepoDir: string;
-  env: {
-    MAX_PARALLEL_STEPS: number;
-    BASE_URL: string;
-    GRAPHQL_URL: string;
-    BITBUCKET_TOKEN: string;
-  };
+  env: Record<string, string | number | boolean>;
 }
 
 /**

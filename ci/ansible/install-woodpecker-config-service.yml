@@ -1,0 +1,194 @@
+# ansible-playbook install-woodpecker-config-service.yml
+---
+- name: Install woodpecker-config-service on remote host
+  hosts: shopana
+  become: true
+  gather_facts: true
+
+  vars:
+    app_name: woodpecker-config-service
+    app_dir: /opt/woodpecker-config-service
+    app_data_dir: /opt/woodpecker-config-service/data
+    image: woodpecker-config-service:local
+    container_port: 3000
+    host_http_port: 3300
+
+    # Values must be provided via extra vars or env/vault (no defaults)
+    WOODPECKER_GITHUB_TOKEN: "{{ lookup('env', 'WOODPECKER_GITHUB_TOKEN') }}"
+    WOODPECKER_CONFIG_SERVICE_SECRET: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_SECRET') }}"
+
+  tasks:
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - WOODPECKER_GITHUB_TOKEN is defined and WOODPECKER_GITHUB_TOKEN | length > 0
+          - WOODPECKER_CONFIG_SERVICE_SECRET is defined and WOODPECKER_CONFIG_SERVICE_SECRET | length > 0
+        fail_msg: >-
+          Required variables missing. Provide WOODPECKER_GITHUB_TOKEN, WOODPECKER_CONFIG_SERVICE_SECRET
+          via environment or -e "VAR=...".
+        success_msg: "All required variables are present"
+
+    - name: Installation block with error handling
+      block:
+        - name: Ensure application directories exist
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - "{{ app_dir }}"
+            - "{{ app_data_dir }}"
+
+        - name: Create docker-compose.yml for {{ app_name }}
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/docker-compose.yml"
+            mode: '0644'
+            content: |
+              services:
+                {{ app_name }}:
+                  image: {{ image }}
+                  container_name: {{ app_name }}
+                  restart: unless-stopped
+                  ports:
+                    - "127.0.0.1:{{ host_http_port }}:{{ container_port }}"
+                  environment:
+                    - PORT={{ container_port }}
+                    - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_GITHUB_TOKEN}
+                    - WOODPECKER_CONFIG_SERVICE_SECRET=${WOODPECKER_CONFIG_SERVICE_SECRET}
+                    # Only GitHub is supported
+
+        - name: Create .env for {{ app_name }}
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/.env"
+            mode: '0600'
+            content: |
+              # {{ app_name }} configuration
+              WOODPECKER_GITHUB_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
+              WOODPECKER_CONFIG_SERVICE_SECRET={{ WOODPECKER_CONFIG_SERVICE_SECRET }}
+              # Only GitHub is supported
+
+        - name: Sync application source to remote host
+          ansible.posix.synchronize:
+            src: "{{ playbook_dir }}/../woodpecker-cinfig-service/"
+            dest: "{{ app_dir }}/build/"
+            delete: yes
+            rsync_opts:
+              - "--exclude=node_modules"
+              - "--exclude=dist"
+              - "--exclude=.git"
+              - "--exclude=*.log"
+              - "--exclude=.env*"
+              - "--exclude=*.tar"
+
+        - name: Build Docker image on remote host
+          ansible.builtin.command:
+            cmd: docker build -t {{ image }} .
+            chdir: "{{ app_dir }}/build"
+          changed_when: true
+
+        - name: Start {{ app_name }}
+          ansible.builtin.command:
+            cmd: docker compose up -d
+            chdir: "{{ app_dir }}"
+          changed_when: true
+
+        - name: Wait a moment for container to start
+          ansible.builtin.pause:
+            seconds: 3
+
+        - name: Show startup logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=20
+            chdir: "{{ app_dir }}"
+          register: startup_logs
+          changed_when: false
+
+        - name: Display startup logs
+          ansible.builtin.debug:
+            var: startup_logs.stdout_lines
+
+        - name: Wait for {{ app_name }} to listen on {{ host_http_port }}
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ host_http_port }}"
+            delay: 2
+            timeout: 60
+          ignore_errors: true
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+
+        - name: Show access info
+          ansible.builtin.debug:
+            msg:
+              - "✅ {{ app_name }} deployed"
+              - "HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
+              - "Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
+              - "Dir: {{ app_dir }}"
+              - "Env: {{ app_dir }}/.env"
+              - ""
+              - "📋 Woodpecker Configuration:"
+              - "In Woodpecker settings, set Config Service URL to:"
+              - "  http://host.docker.internal:{{ host_http_port }}"
+              - "Or if host.docker.internal doesn't work:"
+              - "  http://172.17.0.1:{{ host_http_port }}"
+              - "Secret: Use WOODPECKER_CONFIG_SERVICE_SECRET from .env"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Installation failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+              - ""
+              - "Attempting to show current state..."
+
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: error_compose_ps
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error container status
+          ansible.builtin.debug:
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
+
+        - name: Show container logs on error
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=50
+            chdir: "{{ app_dir }}"
+          register: error_logs
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error logs
+          ansible.builtin.debug:
+            var: error_logs.stdout_lines
+          when: error_logs is defined and error_logs.stdout_lines is defined
+
+        - name: Show recovery instructions
+          ansible.builtin.debug:
+            msg:
+              - "To retry installation:"
+              - "  ansible-playbook install-woodpecker-config-service.yml"
+              - ""
+              - "To check logs manually:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
+              - ""
+              - "To clean up and start fresh:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose down && rm -rf {{ app_dir }}'"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Installation failed. See error details above."

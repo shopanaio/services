@@ -84,7 +84,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.WOODPECKER_GITHUB_TOKEN }}
         env:
           DOCKER_BUILDKIT: 1
 

@@ -68,6 +68,8 @@
                 - WOODPECKER_GITHUB=true
                 - WOODPECKER_GITHUB_CLIENT=${WOODPECKER_GITHUB_CLIENT}
                 - WOODPECKER_GITHUB_SECRET=${WOODPECKER_GITHUB_SECRET}
+              extra_hosts:
+                - "host.docker.internal:host-gateway"
               networks:
                 - woodpecker
 
@@ -89,6 +91,7 @@
 
           networks:
             woodpecker:
+              name: woodpecker
               driver: bridge
 
     - name: Create Woodpecker environment file
@@ -217,3 +220,8 @@
           - ""
           - "Configuration file: {{ woodpecker_dir }}/.env"
           - "Data directory: {{ woodpecker_data_dir }}"
+          - ""
+          - "📋 For Config Service integration:"
+          - "Install config-service with: ansible-playbook install-woodpecker-config-service.yml"
+          - "Then in Woodpecker UI settings, set Config Service URL to:"
+          - "  http://host.docker.internal:3300"

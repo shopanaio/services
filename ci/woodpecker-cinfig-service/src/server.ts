@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express, { NextFunction, Request, RequestHandler, Response } from 'express';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { AppConfig } from './core/config';
@@ -25,34 +25,38 @@ export function createServer(config: AppConfig) {
   );
 
   // HMAC signature verification middleware
-  app.use((req: Request, res: Response, next: NextFunction) => {
+  const hmacMiddleware: RequestHandler = (req: Request, res: Response, next: NextFunction): void => {
     try {
       const header = (req.headers['x-woodpecker-signature'] || req.headers['x-drone-signature']) as string | undefined;
       if (!header) {
-        return res.status(401).json({ error: 'missing signature' });
+        res.status(401).json({ error: 'missing signature' });
+        return;
       }
       const rawBody: Buffer | undefined = (req as unknown as { rawBody?: Buffer }).rawBody;
       if (!rawBody) {
-        return res.status(400).json({ error: 'missing raw body' });
+        res.status(400).json({ error: 'missing raw body' });
+        return;
       }
       const hmac = crypto.createHmac('sha256', config.convertSecret);
       hmac.update(rawBody);
       const digest = `sha256=${hmac.digest('hex')}`;
       if (digest !== header) {
-        return res.status(401).json({ error: 'invalid signature' });
+        res.status(401).json({ error: 'invalid signature' });
+        return;
       }
       next();
     } catch (e) {
-      return res.status(401).json({ error: 'signature validation failed' });
+      res.status(401).json({ error: 'signature validation failed' });
     }
-  });
+  };
+  app.use(hmacMiddleware);
 
   // Liveness probe
   app.get('/healthz', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok' });
   });
 
-  app.post('/', async (req: Request, res: Response) => {
+  const postHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
     const { repo, build } = req.body as any;
     let tmpRepoDir: string | undefined;
 
@@ -70,15 +74,8 @@ export function createServer(config: AppConfig) {
       const commitSha: string = build.after;
 
       // Initialize repository (auto-detect or override)
-      const provider =
-        config.repoProvider ||
-        (typeof repo?.link === 'string' && repo.link.includes('github.com')
-          ? 'github'
-          : 'bitbucket');
-      const repository =
-        provider === 'github'
-          ? new GitHubRepository(repoSlug, config.bitbucketToken)
-          : new BitBucketRepository(repoSlug, config.bitbucketToken);
+      // Only GitHub is supported
+      const repository = new GitHubRepository(repoSlug, config.githubToken);
 
       // PR check only for pull_request event
       if (build?.event === 'pull_request') {
@@ -96,7 +93,8 @@ export function createServer(config: AppConfig) {
             steps: [],
           };
           const yml = yaml.dump(skipPipeline);
-          return res.json({ data: yml });
+          res.json({ data: yml });
+          return;
         }
       }
 
@@ -116,12 +114,7 @@ export function createServer(config: AppConfig) {
         sourceBranch,
         defaultBranch,
         tmpRepoDir,
-        env: {
-          MAX_PARALLEL_STEPS: config.maxParallelSteps,
-          BASE_URL: config.baseUrl,
-          GRAPHQL_URL: config.graphqlUrl,
-          BITBUCKET_TOKEN: config.bitbucketToken,
-        },
+        env: {},
       };
 
       const pipelines = await registry.buildPipelines(context);
@@ -141,7 +134,8 @@ export function createServer(config: AppConfig) {
         await fs.rm(tmpRepoDir, { recursive: true, force: true });
       }
     }
-  });
+  };
+  app.post('/', postHandler);
 
   return app;
 }

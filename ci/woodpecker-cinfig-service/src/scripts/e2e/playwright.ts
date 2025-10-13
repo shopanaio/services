@@ -26,14 +26,16 @@ export class PlaywrightScript implements PipelineScript {
       failure: 'ignore',
       environment: {
         CI: true,
-        BASE_URL: context.env.BASE_URL,
-        GRAPHQL_URL: context.env.GRAPHQL_URL,
+        // These should be injected via secrets or repo-level env at runtime
+        BASE_URL: process.env.BASE_URL,
+        GRAPHQL_URL: process.env.GRAPHQL_URL,
       },
       depends_on: dependsOn,
       commands: ['yarn install --frozen-lockfile', `npx playwright test ${file}`],
     });
 
-    const chunks = chunkArray(rest, context.env.MAX_PARALLEL_STEPS);
+    const maxParallel = Number(process.env.MAX_PARALLEL_STEPS || 4);
+    const chunks = chunkArray(rest, maxParallel);
     const parallelSteps: DroneStep[] = chunks.flatMap((files, chunkIndex) =>
       files.map((file) => {
         const depends = chunkIndex === 0 ? [first] : [...chunks[chunkIndex - 1]];
