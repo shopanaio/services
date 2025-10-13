@@ -50,7 +50,7 @@
                   container_name: {{ app_name }}
                   restart: unless-stopped
                   ports:
-                    - "127.0.0.1:{{ host_http_port }}:{{ container_port }}"
+                    - "0.0.0.0:{{ host_http_port }}:{{ container_port }}"
                   environment:
                     - PORT={{ container_port }}
                     - LOG_LEVEL=debug
