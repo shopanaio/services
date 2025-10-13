@@ -1,4 +1,6 @@
-# Woodpecker pipeline template for Shopana services monorepo
+# Woodpecker pipeline template for Shopana.io services
+# Woodpecker CI reads this template, which is handled by a Node.js
+# server to create dynamic pipelines.
 
 kind: pipeline
 type: docker

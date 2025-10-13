@@ -1,8 +1,8 @@
-import { promisify } from 'util';
-import { execFile } from 'child_process';
-import fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
+import { promisify } from "util";
+import { execFile } from "child_process";
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
 
 const execFileAsync = promisify(execFile);
 
@@ -26,9 +26,15 @@ export abstract class Repository {
    * Implementations should prepare a proper remote URL and call this method.
    */
   protected async clone(remoteUrl: string, commitSha: string): Promise<string> {
-    const workdir = await fs.mkdtemp(path.join(os.tmpdir(), 'repo-'));
-    await execFileAsync('git', ['clone', '--quiet', remoteUrl, workdir]);
-    await execFileAsync('git', ['-C', workdir, 'checkout', '--quiet', commitSha]);
+    const workdir = await fs.mkdtemp(path.join(os.tmpdir(), "repo-"));
+    await execFileAsync("git", ["clone", "--quiet", remoteUrl, workdir]);
+    await execFileAsync("git", [
+      "-C",
+      workdir,
+      "checkout",
+      "--quiet",
+      commitSha,
+    ]);
     return workdir;
   }
 }

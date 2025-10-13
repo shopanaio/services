@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import bodyParser from 'body-parser';
 import fs from 'fs/promises';
 import yaml from 'js-yaml';
 import { AppConfig } from './core/config';
@@ -14,7 +13,12 @@ import { loadScripts } from './core/loader';
  */
 export function createServer(config: AppConfig) {
   const app = express();
-  app.use(bodyParser.json());
+  app.use(express.json());
+
+  // Liveness probe
+  app.get('/healthz', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+  });
 
   const prService = new BitbucketPullRequestService(config.bitbucketToken);
 
@@ -25,7 +29,14 @@ export function createServer(config: AppConfig) {
     try {
       const sourceBranch: string = build.source;
       const defaultBranch: string = repo.default_branch || 'main';
-      const repoSlug: string = repo.slug;
+      // Try to construct workspace/repo slug robustly across providers
+      const repoSlug: string = (repo.full_name as string)
+        || [
+          (repo.owner && (repo.owner.username || repo.owner)) || repo.namespace,
+          repo.slug || repo.name,
+        ]
+          .filter(Boolean)
+          .join('/');
       const commitSha: string = build.after;
 
       // PR check
