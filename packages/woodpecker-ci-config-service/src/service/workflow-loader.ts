@@ -52,7 +52,7 @@ export class WorkflowScriptLoader implements WorkflowLoader {
   }
 
   /**
-   * Recursively finds all files matching *.workflow.ts or *.workflow.js patterns.
+   * Recursively finds all files matching the strict pattern: *.workflow.js
    *
    * @param dir - Directory to search in.
    * @returns Array of absolute file paths.
@@ -68,10 +68,7 @@ export class WorkflowScriptLoader implements WorkflowLoader {
       if (entry.isDirectory()) {
         results.push(...this.findWorkflowFiles(fullPath));
       } else if (entry.isFile()) {
-        if (
-          entry.name.endsWith(".workflow.ts") ||
-          entry.name.endsWith(".workflow.js")
-        ) {
+        if (entry.name.endsWith(".workflow.js")) {
           results.push(fullPath);
         }
       }
@@ -81,8 +78,10 @@ export class WorkflowScriptLoader implements WorkflowLoader {
   }
 
   /**
-   * Extracts WorkflowScript instances from a module.
-   * Supports both default export and named exports.
+   * Extracts WorkflowScript instances from a module using a strict contract:
+   * - default export MUST be a class (constructor) with zero-arg constructor
+   * - the loader will instantiate it and validate the instance shape
+   * Named exports and pre-built instances are ignored.
    *
    * @param module - The loaded module.
    * @returns Array of WorkflowScript instances.
@@ -96,44 +95,19 @@ export class WorkflowScriptLoader implements WorkflowLoader {
 
     const moduleObj = module as Record<string, unknown>;
 
-    // Check default export
-    if (moduleObj.default && this.isWorkflowScript(moduleObj.default)) {
-      scripts.push(moduleObj.default);
-    }
-
-    // Check named exports
-    for (const [key, value] of Object.entries(moduleObj)) {
-      if (key !== "default" && this.isWorkflowScript(value)) {
-        scripts.push(value);
+    const maybeCtor = moduleObj.default as unknown;
+    if (typeof maybeCtor === "function") {
+      try {
+        const instance = new (maybeCtor as new () => unknown)();
+        if (this.isWorkflowScriptInstance(instance)) {
+          scripts.push(instance as WorkflowScript);
+        }
+      } catch (error) {
+        console.error("Failed to instantiate default workflow export:", error);
       }
     }
 
     return scripts;
-  }
-
-  /**
-   * Checks if a value is a WorkflowScript instance or class.
-   *
-   * @param value - Value to check.
-   * @returns True if the value is a WorkflowScript.
-   */
-  private isWorkflowScript(value: unknown): value is WorkflowScript {
-    if (!value || typeof value !== "object") {
-      return false;
-    }
-
-    // Check if it's a class constructor
-    if (typeof value === "function") {
-      try {
-        const instance = new (value as new () => unknown)();
-        return this.isWorkflowScriptInstance(instance);
-      } catch {
-        return false;
-      }
-    }
-
-    // Check if it's already an instance
-    return this.isWorkflowScriptInstance(value);
   }
 
   /**

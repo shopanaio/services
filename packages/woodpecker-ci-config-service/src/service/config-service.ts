@@ -5,7 +5,7 @@ import type {
 } from "../woodpecker/payload";
 import { WorkflowRegistry } from "./workflow-registry";
 import type { ScriptContext, WorkflowLoader } from "./interface";
-import { WorkflowScriptLoader } from "src/service/workflow-loader";
+import { WorkflowScriptLoader } from "./workflow-loader";
 
 export class ConfigService {
   private readonly loader!: WorkflowLoader;
