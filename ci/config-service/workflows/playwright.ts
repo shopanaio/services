@@ -1,8 +1,8 @@
 import type {
   PipelineScript,
   ScriptContext,
-} from "@shopana/ci-woodpecker-config-service";
-import { chunkArray, findSpecFiles } from "../utils/utils";
+} from "@shopana/ci-config-service";
+import { chunkArray, findSpecFiles } from "../src/utils/utils";
 
 /**
  * Playwright tests pipeline script.
@@ -12,8 +12,8 @@ export class PlaywrightWorkflow implements PipelineScript {
     return "playwright";
   }
 
-  supports(context: ScriptContext): boolean {
-    return Boolean(context.tmpRepoDir);
+  supports(_context: ScriptContext): boolean {
+    return true;
   }
 
   async build(context: ScriptContext) {

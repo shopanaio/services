@@ -1,6 +1,6 @@
 import { loadConfig } from "./server/config";
 import { createLogger } from "./server/logger";
-import { createConfigService } from "@shopana/ci-woodpecker-config-service";
+import { createConfigService } from "@shopana/ci-config-service";
 import express, { Router } from "express";
 import "dotenv/config";
 

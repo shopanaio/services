@@ -19,8 +19,8 @@ export function chunkArray<T>(items: T[], chunkSize: number): T[][] {
 /**
  * Recursively find all test spec files under tests/ and return paths relative to tests/.
  */
-export async function findSpecFiles(tmpRepoDir: string): Promise<string[]> {
-  const testsRoot = path.join(tmpRepoDir, "tests");
+export async function findSpecFiles(tempRepoDir: string): Promise<string[]> {
+  const testsRoot = path.join(tempRepoDir, "tests");
   const result: string[] = [];
 
   async function walk(dir: string): Promise<void> {

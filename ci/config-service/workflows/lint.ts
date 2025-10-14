@@ -3,7 +3,7 @@ import type {
   ScriptContext,
   GeneratedConfig,
   WorkflowYaml,
-} from "@shopana/ci-woodpecker-config-service";
+} from "@shopana/ci-config-service";
 
 /**
  * Lint and type-check pipeline script.
