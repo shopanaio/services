@@ -3,7 +3,6 @@ import { createLogger } from "./server/logger";
 import { createConfigService } from "@shopana/ci-woodpecker-config-service";
 import express, { Router } from "express";
 import "dotenv/config";
-import { workflows } from "./workflows";
 
 try {
   const config = loadConfig();
@@ -13,16 +12,13 @@ try {
   // Example: explicit scripts array is empty in this package runner; users will mount their own
   app.use(
     "/",
-    createConfigService(
-      {
-        githubToken: config.githubToken,
-        secret: config.convertSecret,
-        publicKeyHex: config.publicKey,
-        skipSignatureVerification: config.skipSignatureVerification,
-        logger,
-      },
-      workflows
-    ) as unknown as Router
+    createConfigService({
+      githubToken: config.githubToken,
+      secret: config.convertSecret,
+      publicKeyHex: config.publicKey,
+      skipSignatureVerification: config.skipSignatureVerification,
+      logger,
+    }) as unknown as Router
   );
 
   const server = app.listen(config.port, config.host, () => {
