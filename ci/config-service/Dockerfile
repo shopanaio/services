@@ -1,3 +1,6 @@
+# Build context must be the monorepo root: /Users/phl/Projects/shopana-io/services/
+# Run: docker build --platform linux/amd64 -t config-service:local -f ci/config-service/Dockerfile .
+#
 # 1) Build stage (monorepo-aware)
 FROM node:22 AS builder
 
@@ -18,7 +21,7 @@ COPY packages/woodpecker-ci-config-service packages/woodpecker-ci-config-service
 COPY ci/config-service ci/config-service
 
 # Build the service (bundles deps)
-RUN yarn workspace @shopana/ci-config-service build \
+RUN yarn workspace @shopana/woodpecker-ci-config-service build \
   && yarn workspace @shopana/config-service build
 
 # 2) Production stage
