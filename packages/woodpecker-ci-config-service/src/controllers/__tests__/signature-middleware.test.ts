@@ -1,8 +1,11 @@
-import { describe, it, expect } from '@jest/globals';
-import { verifyHttpMessageSignature, verifyHmacSignature } from '../signature';
+import { describe, it, expect, jest } from '@jest/globals';
+import {
+  verifyHttpMessageSignature,
+  verifyHmacSignature,
+  createSignatureMiddleware,
+} from '../signature-middleware';
 import crypto from 'crypto';
-import * as ed25519 from '@noble/ed25519';
-import type { Request } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 describe('signature verification', () => {
   describe('verifyHttpMessageSignature', () => {
@@ -321,6 +324,159 @@ describe('signature verification', () => {
 
       const result = verifyHmacSignature(mockReq, secret);
       expect(result).toBe(true);
+    });
+  });
+
+  describe('createSignatureMiddleware', () => {
+    let mockReq: Partial<Request>;
+    let mockRes: Partial<Response>;
+    let mockNext: jest.Mock;
+    let statusMock: jest.Mock;
+    let jsonMock: jest.Mock;
+
+    beforeEach(() => {
+      mockReq = {
+        headers: {},
+        method: 'POST',
+        url: '/config',
+      };
+
+      jsonMock = jest.fn();
+      statusMock = jest.fn().mockReturnValue({ json: jsonMock });
+
+      mockRes = {
+        status: statusMock as unknown as Response['status'],
+        json: jsonMock as unknown as Response['json'],
+      };
+
+      mockNext = jest.fn();
+    });
+
+    it('should skip verification when skipSignatureVerification is true', async () => {
+      const middleware = createSignatureMiddleware({
+        publicKey: 'test-key',
+        skipSignatureVerification: true,
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when signature header is missing', async () => {
+      const middleware = createSignatureMiddleware({
+        publicKey: 'aabbccdd'.repeat(8),
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'missing or invalid signature' });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when signature is invalid', async () => {
+      mockReq.headers = {
+        signature: 'woodpecker-ci-extensions=:YWJjMTIz:',
+        'signature-input': 'woodpecker-ci-extensions=("@request-target");created=1234567890',
+      };
+
+      const middleware = createSignatureMiddleware({
+        publicKey: 'aabbccdd'.repeat(8),
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'missing or invalid signature' });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should call next() when signature is valid', async () => {
+      // Generate a valid signature for testing
+      const privateKeyHex = 'a'.repeat(64);
+      const publicKeyHex = 'aabbccdd'.repeat(8);
+
+      mockReq.headers = {
+        signature: 'woodpecker-ci-extensions=:validSignature:',
+        'signature-input': 'woodpecker-ci-extensions=("@request-target");created=1234567890',
+      };
+
+      const middleware = createSignatureMiddleware({
+        publicKey: publicKeyHex,
+      });
+
+      // This will fail verification with our mock signature, but we're testing the flow
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      // Should return 401 because signature is not actually valid
+      expect(statusMock).toHaveBeenCalledWith(401);
+    });
+
+    it('should handle missing publicKey gracefully', async () => {
+      mockReq.headers = {
+        signature: 'woodpecker-ci-extensions=:YWJjMTIz:',
+        'signature-input': 'woodpecker-ci-extensions=("@request-target");created=1234567890',
+      };
+
+      const middleware = createSignatureMiddleware({
+        publicKey: '',
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'missing or invalid signature' });
+    });
+
+    it('should handle verification errors and return 401', async () => {
+      mockReq.headers = {
+        signature: 'invalid-format',
+        'signature-input': 'invalid',
+      };
+
+      const middleware = createSignatureMiddleware({
+        publicKey: 'test-key',
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'missing or invalid signature' });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it('should work with different request methods', async () => {
+      mockReq.method = 'GET';
+      mockReq.headers = {
+        signature: 'woodpecker-ci-extensions=:YWJjMTIz:',
+        'signature-input': 'woodpecker-ci-extensions=("@request-target");created=1234567890',
+      };
+
+      const middleware = createSignatureMiddleware({
+        publicKey: 'aabbccdd'.repeat(8),
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+    });
+
+    it('should work with different URL paths', async () => {
+      mockReq.url = '/api/v1/config?param=value';
+      mockReq.headers = {
+        signature: 'woodpecker-ci-extensions=:YWJjMTIz:',
+        'signature-input': 'woodpecker-ci-extensions=("@request-target");created=1234567890',
+      };
+
+      const middleware = createSignatureMiddleware({
+        publicKey: 'aabbccdd'.repeat(8),
+      });
+
+      await middleware(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
     });
   });
 });

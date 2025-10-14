@@ -12,3 +12,5 @@ uploads/
 libs/
 dist/
 AGENTS.md
+
+coverage/
