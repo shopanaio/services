@@ -8,12 +8,12 @@ import type {
 /**
  * Lint and type-check pipeline script.
  */
-export class LintWorkflow implements WorkflowScript {
+export default class LintWorkflow implements WorkflowScript {
   getName(): string {
     return "lint";
   }
 
-  supports(_context: ScriptContext): boolean {
+  supports(_ctx: ScriptContext): boolean {
     return true;
   }
 
@@ -43,6 +43,11 @@ export class LintWorkflow implements WorkflowScript {
         },
       ],
     };
-    return [{ name: ".woodpecker/lint.yml", workflow }];
+    return [
+      {
+        name: ".woodpecker/lint.yml",
+        workflow,
+      },
+    ];
   }
 }

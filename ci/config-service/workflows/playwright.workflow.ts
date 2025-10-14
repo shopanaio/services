@@ -1,23 +1,24 @@
 import type {
-  PipelineScript,
+  WorkflowScript,
   ScriptContext,
-} from "@shopana/ci-config-service";
+} from "@shopana/woodpecker-ci-config-service";
 import { chunkArray, findSpecFiles } from "../src/utils/utils";
 
 /**
  * Playwright tests pipeline script.
  */
-export class PlaywrightWorkflow implements PipelineScript {
+export default class PlaywrightWorkflow implements WorkflowScript {
   getName(): string {
     return "playwright";
   }
 
   supports(_context: ScriptContext): boolean {
-    return true;
+    return false;
   }
 
-  async build(context: ScriptContext) {
-    const testFiles: string[] = await findSpecFiles(context.tmpRepoDir || "");
+  async build(_context: ScriptContext) {
+    const tmpRepoDir = "";
+    const testFiles: string[] = await findSpecFiles(tmpRepoDir || "");
     const [first, ...rest] = testFiles;
     if (!first) {
       throw new Error("No test files found");
