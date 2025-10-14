@@ -55,14 +55,23 @@ export async function verifyHttpMessageSignature(
     const signatureBase64 = signatureMatch[1];
     const signature = Buffer.from(signatureBase64, "base64");
 
+    // Parse signature-input: woodpecker-ci-extensions=(components);params
     const inputMatch = signatureInputHeader.match(
-      /woodpecker-ci-extensions=\(([^)]+)\)/
+      /woodpecker-ci-extensions=(\([^)]+\))(.*)/
     );
     if (!inputMatch) return false;
 
-    const components = inputMatch[1].split(" ").map((c) => c.replace(/"/g, ""));
+    const componentsWithParens = inputMatch[1]; // e.g., '("@request-target" "content-digest")'
+    const paramsString = inputMatch[2]; // e.g., ';created=1760469703;alg="ed25519"'
+
+    // Extract components from parentheses
+    const componentsContent = componentsWithParens.slice(1, -1); // Remove ( and )
+    const components = componentsContent
+      .split(" ")
+      .map((c) => c.replace(/"/g, ""));
     const signatureBase: string[] = [];
 
+    // Build signature base with components
     for (const component of components) {
       if (component === "@request-target") {
         const method = req.method.toLowerCase();
@@ -77,12 +86,8 @@ export async function verifyHttpMessageSignature(
       }
     }
 
-    const createdMatch = signatureInputHeader.match(/created=(\d+)/);
-    if (createdMatch) {
-      signatureBase.push(
-        `"@signature-params": ${inputMatch[1]};created=${createdMatch[1]};alg="ed25519"`
-      );
-    }
+    // Add @signature-params line: (components);params
+    signatureBase.push(`"@signature-params": ${componentsWithParens}${paramsString}`);
 
     const isValid = await ed25519.verify(
       signature,

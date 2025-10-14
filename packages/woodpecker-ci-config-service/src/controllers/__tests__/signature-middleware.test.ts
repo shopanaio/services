@@ -375,18 +375,7 @@ describe("signature verification", () => {
       mockNext = jest.fn();
     });
 
-    it("should skip verification when skipSignatureVerification is true", async () => {
-      const middleware = createSignatureMiddleware({
-        publicKey: "test-key",
-      });
-
-      await middleware(mockReq as Request, mockRes as Response, mockNext);
-
-      expect(mockNext).toHaveBeenCalledTimes(1);
-      expect(statusMock).not.toHaveBeenCalled();
-    });
-
-    it("should return 401 when signature header is missing", async () => {
+    it("should return 401 when signature headers are missing", async () => {
       const middleware = createSignatureMiddleware({
         publicKey: "aabbccdd".repeat(8),
       });
