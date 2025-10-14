@@ -1,6 +1,7 @@
 export { createExpressRouter } from "./controllers/express";
 export { createSignatureMiddleware } from "./controllers/signature-middleware";
 export { ConfigService } from "./service/config-service";
+export { WorkflowScriptLoader } from "./service/workflow-loader";
 export type {
   WorkflowScript,
   ScriptContext,

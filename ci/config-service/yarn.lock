@@ -172,7 +172,7 @@
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.0.1.tgz#fc1a928061d1232b0a52bb754393c37a5216c89e"
   integrity sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==
 
-"@shopana/ci-config-service@file:../../packages/ci-config-service":
+"@shopana/ci-config-service@file:../../packages/woodpecker-ci-config-service":
   version "0.1.0"
   dependencies:
     "@noble/ed25519" "^2.1.0"

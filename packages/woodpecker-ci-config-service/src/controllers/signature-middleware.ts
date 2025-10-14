@@ -4,7 +4,6 @@ import crypto from "crypto";
 
 export interface SignatureMiddlewareConfig {
   publicKey: string;
-  skipSignatureVerification?: boolean;
 }
 
 /**
@@ -19,10 +18,6 @@ export function createSignatureMiddleware(
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    if (cfg.skipSignatureVerification) {
-      return void next();
-    }
-
     try {
       const ok = await verifyHttpMessageSignature(req, cfg.publicKey!);
       if (ok) return void next();

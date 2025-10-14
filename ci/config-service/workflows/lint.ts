@@ -1,14 +1,14 @@
 import type {
-  PipelineScript,
+  WorkflowScript,
   ScriptContext,
   GeneratedConfig,
   WorkflowYaml,
-} from "@shopana/ci-config-service";
+} from "@shopana/woodpecker-ci-config-service";
 
 /**
  * Lint and type-check pipeline script.
  */
-export class LintWorkflow implements PipelineScript {
+export class LintWorkflow implements WorkflowScript {
   getName(): string {
     return "lint";
   }

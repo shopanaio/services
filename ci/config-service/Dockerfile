@@ -7,14 +7,14 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 
 # Pre-copy only package manifests to enable efficient install caching
-COPY packages/ci-config-service/package.json packages/ci-config-service/package.json
+COPY packages/woodpecker-ci-config-service/package.json packages/woodpecker-ci-config-service/package.json
 COPY ci/config-service/package.json ci/config-service/package.json
 
 # Install all dependencies via Yarn workspaces
 RUN yarn install --frozen-lockfile
 
 # Copy package sources
-COPY packages/ci-config-service packages/ci-config-service
+COPY packages/woodpecker-ci-config-service packages/woodpecker-ci-config-service
 COPY ci/config-service ci/config-service
 
 # Build the service (bundles deps)
@@ -28,7 +28,7 @@ WORKDIR /app
 
 # Copy root manifests for production dependencies install
 COPY --from=builder /app/package.json /app/yarn.lock ./
-COPY --from=builder /app/packages/ci-config-service/package.json ./packages/ci-config-service/
+COPY --from=builder /app/packages/woodpecker-ci-config-service/package.json ./packages/woodpecker-ci-config-service/
 COPY --from=builder /app/ci/config-service/package.json ./ci/config-service/
 
 # Install only production dependencies
@@ -36,7 +36,10 @@ RUN yarn install --frozen-lockfile --production
 
 # Copy compiled output from the builder stage
 COPY --from=builder /app/ci/config-service/dist ./ci/config-service/dist
-COPY --from=builder /app/packages/ci-config-service/dist ./packages/ci-config-service/dist
+COPY --from=builder /app/packages/woodpecker-ci-config-service/dist ./packages/woodpecker-ci-config-service/dist
+
+# Copy workflows to the expected location
+COPY --from=builder /app/ci/config-service/dist/workflows ./ci/config-service/workflows
 
 # Set production environment
 ENV NODE_ENV=production
