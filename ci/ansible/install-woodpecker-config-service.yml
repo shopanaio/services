@@ -1,4 +1,4 @@
-# ansible-playbook install-config-service.yml
+# ansible-playbook install-woodpecker-config-service.yml
 ---
 - name: Install config-service on remote host
   hosts: shopana
@@ -112,6 +112,13 @@
               WOODPECKER_GITHUB_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
               WOODPECKER_CONFIG_SERVICE_SECRET={{ WOODPECKER_CONFIG_SERVICE_SECRET }}
               # Only GitHub is supported
+
+        - name: Stop and remove existing {{ app_name }} container if running
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
 
         - name: Start {{ app_name }}
           ansible.builtin.command:

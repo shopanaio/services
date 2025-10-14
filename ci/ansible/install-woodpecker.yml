@@ -163,6 +163,13 @@
         - woodpecker_github_client == '' or woodpecker_github_secret == ''
         - env_file.stat.exists
 
+    - name: Stop and remove existing Woodpecker containers if running
+      ansible.builtin.command:
+        cmd: docker compose down
+        chdir: "{{ woodpecker_dir }}"
+      ignore_errors: true
+      changed_when: true
+
     - name: Start Woodpecker CI
       ansible.builtin.command:
         cmd: docker compose up -d
