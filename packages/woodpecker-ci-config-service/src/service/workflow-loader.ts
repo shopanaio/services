@@ -5,7 +5,7 @@ import { WorkflowLoader, WorkflowScript } from "src/service/interface";
 
 /**
  * Loads workflow scripts from a directory.
- * Recursively searches for files matching *.workflow.ts or *.workflow.js patterns.
+ * Recursively searches for files matching *.workflow.ts (dev mode) or *.workflow.js (production) patterns.
  */
 export class WorkflowScriptLoader implements WorkflowLoader {
   static DEFAULT_WORKFLOWS_DIR = "workflows";
@@ -52,7 +52,7 @@ export class WorkflowScriptLoader implements WorkflowLoader {
   }
 
   /**
-   * Recursively finds all files matching the strict pattern: *.workflow.js
+   * Recursively finds all files matching the strict pattern: *.workflow.ts or *.workflow.js
    *
    * @param dir - Directory to search in.
    * @returns Array of absolute file paths.
@@ -68,7 +68,11 @@ export class WorkflowScriptLoader implements WorkflowLoader {
       if (entry.isDirectory()) {
         results.push(...this.findWorkflowFiles(fullPath));
       } else if (entry.isFile()) {
-        if (entry.name.endsWith(".workflow.js")) {
+        if (
+          entry.name.endsWith(".workflow.js") ||
+          // Enabled .ts for dev mode
+          entry.name.endsWith(".workflow.ts")
+        ) {
           results.push(fullPath);
         }
       }
@@ -94,11 +98,13 @@ export class WorkflowScriptLoader implements WorkflowLoader {
     }
 
     const moduleObj = module as Record<string, unknown>;
+    console.log(moduleObj, "moduleObj --->");
 
     const maybeCtor = moduleObj.default as unknown;
     if (typeof maybeCtor === "function") {
       try {
         const instance = new (maybeCtor as new () => unknown)();
+        console.log(instance, "instance --->");
         if (this.isWorkflowScriptInstance(instance)) {
           scripts.push(instance as WorkflowScript);
         }
