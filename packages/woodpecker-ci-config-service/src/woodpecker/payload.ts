@@ -166,7 +166,7 @@ export interface Netrc {
   type: ForgeType;
 }
 
-export interface ConfigFileDto {
+export interface ConfigFile {
   name: string;
   data: string;
 }
@@ -178,5 +178,5 @@ export interface ConfigExtensionRequest {
 }
 
 export interface ConfigExtensionResponse {
-  configs: ConfigFileDto[];
+  configs: ConfigFile[];
 }
