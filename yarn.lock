@@ -4426,6 +4426,13 @@ http-errors@2.0.0, http-errors@^2.0.0:
     statuses "2.0.1"
     toidentifier "1.0.1"
 
+http-message-signatures@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/http-message-signatures/-/http-message-signatures-1.0.4.tgz#3d1f614977d3a435af7c1d35a75e1e48d9094075"
+  integrity sha512-gavCQWnxHFg0BVlKs6CmYK7hNSH1o0x0mHTC68yBAHYOYuTVXPv52mEE7QuT5TenfiagTdOa/zPJzen4lEX7Rg==
+  dependencies:
+    structured-headers "^1.0.1"
+
 http-proxy-agent@^7.0.0:
   version "7.0.2"
   resolved "https://registry.yarnpkg.com/http-proxy-agent/-/http-proxy-agent-7.0.2.tgz#9a8b1f246866c028509486585f62b8f2c18c270e"
@@ -7321,6 +7328,11 @@ strip-json-comments@^5.0.2:
   version "5.0.3"
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-5.0.3.tgz#b7304249dd402ee67fd518ada993ab3593458bcf"
   integrity sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==
+
+structured-headers@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/structured-headers/-/structured-headers-1.0.1.tgz#1821e434e0fe45bdd78f07c779b16519ab520415"
+  integrity sha512-QYBxdBtA4Tl5rFPuqmbmdrS9kbtren74RTJTcs0VSQNVV5iRhJD4QlYTLD0+81SBwUQctjEQzjTRI3WG4DzICA==
 
 superagent@^10.2.3:
   version "10.2.3"

@@ -1,6 +1,6 @@
 import { NextFunction, Request, RequestHandler, Response } from "express";
-import * as ed25519 from "@noble/ed25519";
-import crypto from "crypto";
+import { httpbis, createVerifier } from "http-message-signatures";
+import type { Request as HttpSigRequest } from "http-message-signatures/lib/types";
 
 export interface SignatureMiddlewareConfig {
   publicKey: string;
@@ -19,103 +19,66 @@ export function createSignatureMiddleware(
     next: NextFunction
   ): Promise<void> => {
     try {
-      const ok = await verifyHttpMessageSignature(req, cfg.publicKey!);
-      if (ok) return void next();
+      if (await verifyHttpMessageSignature(req, cfg.publicKey!)) {
+        return void next();
+      }
+
       res.status(401).json({ error: "missing or invalid signature" });
-    } catch {
+    } catch (error) {
       res.status(401).json({ error: "signature validation failed" });
     }
   };
 }
 
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
-
-export async function verifyHttpMessageSignature(
+/**
+ * Verifies HTTP message signature using ed25519 public key.
+ * This implementation follows RFC 9421 (HTTP Message Signatures)
+ * which is used by Woodpecker CI.
+ *
+ * @param req - Express request object
+ * @param publicKeyPem - Public key in PEM format (ed25519)
+ * @returns True if signature is valid, false otherwise
+ */
+const verifyHttpMessageSignature = async (
   req: Request,
-  publicKey: string
-): Promise<boolean> {
+  publicKeyPem: string
+): Promise<boolean> => {
   try {
-    const signatureHeader = req.headers["signature"] as string | undefined;
-    const signatureInputHeader = req.headers["signature-input"] as
-      | string
-      | undefined;
-    if (!signatureHeader || !signatureInputHeader) {
-      return false;
-    }
-    const signatureMatch = signatureHeader.match(
-      /woodpecker-ci-extensions=:([^:]+):/
-    );
-    if (!signatureMatch) return false;
-    const signatureBase64 = signatureMatch[1];
-    const signature = Buffer.from(signatureBase64, "base64");
+    // Build full URL from request
+    // Express req.url contains only the path, but http-message-signatures needs full URL
+    const protocol = req.protocol || "http";
+    const host = req.get("host") || "localhost";
+    const fullUrl = `${protocol}://${host}${req.url}`;
 
-    // Parse signature-input: woodpecker-ci-extensions=(components);params
-    const inputMatch = signatureInputHeader.match(
-      /woodpecker-ci-extensions=(\([^)]+\))(.*)/
-    );
-    if (!inputMatch) return false;
+    // Convert Express Request to http-message-signatures format
+    const httpSigRequest: HttpSigRequest = {
+      method: req.method,
+      url: fullUrl,
+      headers: req.headers as Record<string, string | string[]>,
+    };
 
-    const componentsWithParens = inputMatch[1]; // e.g., '("@request-target" "content-digest")'
-    const paramsString = inputMatch[2]; // e.g., ';created=1760469703;alg="ed25519"'
+    // Create verifier using ed25519 algorithm with the provided public key
+    const verifier = createVerifier(publicKeyPem, "ed25519");
 
-    // Extract components from parentheses
-    const componentsContent = componentsWithParens.slice(1, -1); // Remove ( and )
-    const components = componentsContent
-      .split(" ")
-      .map((c) => c.replace(/"/g, ""));
-    const signatureBase: string[] = [];
-
-    // Build signature base with components
-    for (const component of components) {
-      if (component === "@request-target") {
-        const method = req.method.toLowerCase();
-        const path = req.url || "/";
-        signatureBase.push(`"@request-target": ${method} ${path}`);
-      } else if (component === "content-digest") {
-        const digest = req.headers["content-digest"] as string | undefined;
-        if (digest) signatureBase.push(`"content-digest": ${digest}`);
-      } else {
-        const value = req.headers[component.toLowerCase()];
-        if (value) signatureBase.push(`"${component}": ${value}`);
-      }
-    }
-
-    // Add @signature-params line: (components);params
-    signatureBase.push(`"@signature-params": ${componentsWithParens}${paramsString}`);
-
-    const isValid = await ed25519.verify(
-      signature,
-      Buffer.from(signatureBase.join("\n"), "utf-8"),
-      hexToBytes(publicKey)
+    // Verify the message signature
+    const verified = await httpbis.verifyMessage(
+      {
+        keyLookup: async (params) => {
+          // Woodpecker CI doesn't use keyid in the signature parameters
+          // Return the verifier for any key lookup
+          return {
+            id: "woodpecker-ci-plugins",
+            algs: ["ed25519"],
+            verify: verifier,
+          };
+        },
+      },
+      httpSigRequest
     );
 
-    return isValid;
-  } catch {
+    return verified === true;
+  } catch (error) {
+    console.error("Error verifying signature:", error);
     return false;
   }
-}
-
-export function verifyHmacSignature(req: Request, secret: string): boolean {
-  try {
-    const header = (req.headers["x-woodpecker-signature"] ||
-      req.headers["x-drone-signature"]) as string | undefined;
-    if (!header) return false;
-
-    const rawBody: Buffer | undefined = (req as unknown as { rawBody?: Buffer })
-      .rawBody;
-    if (!rawBody) return false;
-
-    const hmac = crypto.createHmac("sha256", secret);
-    hmac.update(rawBody);
-    const digest = `sha256=${hmac.digest("hex")}`;
-    return digest === header;
-  } catch {
-    return false;
-  }
-}
+};

@@ -10,8 +10,8 @@ import { WorkflowScriptLoader } from "./workflow-loader";
 export class ConfigService {
   private readonly loader!: WorkflowLoader;
 
-  constructor(params: { loader?: WorkflowLoader }) {
-    this.loader = params.loader || new WorkflowScriptLoader();
+  constructor(params?: { loader?: WorkflowLoader }) {
+    this.loader = params?.loader || new WorkflowScriptLoader();
   }
 
   async generate(body: ConfigExtensionRequest): Promise<ConfigFile[]> {

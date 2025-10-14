@@ -49,7 +49,7 @@
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "dependencies": {
-    "@noble/ed25519": "^2.1.0",
+    "http-message-signatures": "^1.0.4",
     "js-yaml": "^4.1.0"
   },
   "peerDependencies": {
