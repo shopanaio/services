@@ -1,13 +1,13 @@
-# ansible-playbook manage-woodpecker-config-service.yml -e "action=status"
+# ansible-playbook manage-config-service.yml -e "action=status"
 ---
-- name: Manage woodpecker-config-service
+- name: Manage config-service
   hosts: shopana
   become: true
   gather_facts: false
 
   vars:
-    app_name: woodpecker-config-service
-    app_dir: /opt/woodpecker-config-service
+    app_name: config-service
+    app_dir: /opt/config-service
     action: status  # start|stop|restart|status|logs|logs-follow|upgrade
     log_lines: 100  # Number of log lines to show
 
@@ -19,7 +19,7 @@
 
     - name: Fail if not installed
       ansible.builtin.fail:
-        msg: "{{ app_name }} is not installed at {{ app_dir }}. Run install-woodpecker-config-service.yml first."
+        msg: "{{ app_name }} is not installed at {{ app_dir }}. Run install-config-service.yml first."
       when: not compose_file.stat.exists
 
     - name: Start service

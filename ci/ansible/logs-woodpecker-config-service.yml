@@ -1,23 +1,23 @@
-# Quick access to woodpecker-config-service logs
+# Quick access to config-service logs
 #
 # Show last 100 lines:
-#   ansible-playbook logs-woodpecker-config-service.yml
+#   ansible-playbook logs-config-service.yml
 #
 # Show last 500 lines:
-#   ansible-playbook logs-woodpecker-config-service.yml -e "lines=500"
+#   ansible-playbook logs-config-service.yml -e "lines=500"
 #
 # Follow logs in real-time (Ctrl+C to exit):
-#   ansible-playbook logs-woodpecker-config-service.yml -e "follow=true"
+#   ansible-playbook logs-config-service.yml -e "follow=true"
 #
 ---
-- name: View woodpecker-config-service logs
+- name: View config-service logs
   hosts: shopana
   become: true
   gather_facts: false
 
   vars:
-    app_name: woodpecker-config-service
-    app_dir: /opt/woodpecker-config-service
+    app_name: config-service
+    app_dir: /opt/config-service
     lines: 100
     follow: false
 

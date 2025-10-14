@@ -1,15 +1,15 @@
-# ansible-playbook install-woodpecker-config-service.yml
+# ansible-playbook install-config-service.yml
 ---
-- name: Install woodpecker-config-service on remote host
+- name: Install config-service on remote host
   hosts: shopana
   become: true
   gather_facts: true
 
   vars:
-    app_name: woodpecker-config-service
-    app_dir: /opt/woodpecker-config-service
-    app_data_dir: /opt/woodpecker-config-service/data
-    image: woodpecker-config-service:local
+    app_name: config-service
+    app_dir: /opt/config-service
+    app_data_dir: /opt/config-service/data
+    image: config-service:local
     container_port: 3000
     host_http_port: 3300
     local_build_dir: "{{ playbook_dir }}/../.."
@@ -36,7 +36,7 @@
       block:
         - name: Build Docker image locally for linux/amd64
           ansible.builtin.command:
-            cmd: docker build --platform linux/amd64 -t {{ image }} -f ci/woodpecker-config-service/Dockerfile .
+            cmd: docker build --platform linux/amd64 -t {{ image }} -f ci/config-service/Dockerfile .
             chdir: "{{ local_build_dir }}"
           delegate_to: localhost
           become: false
@@ -177,13 +177,13 @@
               - "  3. Set SKIP_SIGNATURE_VERIFICATION=false"
               - ""
               - "📊 View Logs:"
-              - "  ansible-playbook logs-woodpecker-config-service.yml"
-              - "  ansible-playbook logs-woodpecker-config-service.yml -e 'follow=true'"
-              - "  ansible-playbook manage-woodpecker-config-service.yml -e 'action=logs'"
+              - "  ansible-playbook logs-config-service.yml"
+              - "  ansible-playbook logs-config-service.yml -e 'follow=true'"
+              - "  ansible-playbook manage-config-service.yml -e 'action=logs'"
               - ""
               - "🔧 Manage Service:"
-              - "  ansible-playbook manage-woodpecker-config-service.yml -e 'action=restart'"
-              - "  ansible-playbook manage-woodpecker-config-service.yml -e 'action=status'"
+              - "  ansible-playbook manage-config-service.yml -e 'action=restart'"
+              - "  ansible-playbook manage-config-service.yml -e 'action=status'"
 
       rescue:
         - name: Show error details
@@ -224,7 +224,7 @@
           ansible.builtin.debug:
             msg:
               - "To retry installation:"
-              - "  ansible-playbook install-woodpecker-config-service.yml"
+              - "  ansible-playbook install-config-service.yml"
               - ""
               - "To check logs manually:"
               - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
