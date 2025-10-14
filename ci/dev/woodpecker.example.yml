@@ -1,73 +1,14 @@
-# Example Woodpecker CI Pipeline Configuration
-# Place this file as .woodpecker.yml in repository root
+# Woodpecker pipeline template for Shopana.io services
+# Woodpecker CI reads this template, which is handled by a Node.js server
+# Add this file to the root of your test Gitea repository
+
+skip_clone: true
 
 when:
-  - event: push
-    branch: main
-  - event: pull_request
+  - event: [manual]
 
 steps:
-  # Install dependencies
-  - name: install
-    image: node:20-alpine
+  - name: "template"
+    image: docker:latest
     commands:
-      - yarn install --frozen-lockfile
-
-  # Lint code
-  - name: lint
-    image: node:20-alpine
-    commands:
-      - yarn lint
-    depends_on:
-      - install
-
-  # Type check
-  - name: typecheck
-    image: node:20-alpine
-    commands:
-      - yarn typecheck
-    depends_on:
-      - install
-
-  # Build
-  - name: build
-    image: node:20-alpine
-    commands:
-      - yarn build
-    depends_on:
-      - install
-      - lint
-      - typecheck
-
-  # Run tests
-  - name: test
-    image: node:20-alpine
-    commands:
-      - yarn test
-    depends_on:
-      - build
-
-  # E2E tests (example with services)
-  - name: e2e
-    image: mcr.microsoft.com/playwright:v1.40.0-jammy
-    commands:
-      - yarn workspace e2e install
-      - yarn workspace e2e test:e2e
-    depends_on:
-      - build
-    when:
-      event: push
-      branch: main
-
-services:
-  # Example: PostgreSQL service for tests
-  - name: postgres
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: test_db
-
-  # Example: Redis service
-  - name: redis
-    image: redis:7-alpine
+      - echo "Running Woodpecker workflow template"
