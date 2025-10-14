@@ -9,17 +9,27 @@ export interface SignatureMiddlewareConfig {
 /**
  * Creates a middleware that verifies HTTP message signatures
  * using the provided public key.
+ *
+ * @param cfg - Configuration with ed25519 public key in PEM format
+ * @returns Express middleware that verifies HTTP signatures according to RFC 9421
  */
 export function createSignatureMiddleware(
   cfg: SignatureMiddlewareConfig
 ): RequestHandler {
+  if (!cfg.publicKey) {
+    throw new Error("publicKey is required in SignatureMiddlewareConfig");
+  }
+
+  // Pre-create verifier once to avoid recreating it on every request
+  const verifier = createVerifier(cfg.publicKey, "ed25519");
+
   return async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      if (await verifyHttpMessageSignature(req, cfg.publicKey!)) {
+      if (await verifyHttpMessageSignature(req, verifier)) {
         return void next();
       }
 
@@ -31,17 +41,17 @@ export function createSignatureMiddleware(
 }
 
 /**
- * Verifies HTTP message signature using ed25519 public key.
+ * Verifies HTTP message signature using ed25519 verifier.
  * This implementation follows RFC 9421 (HTTP Message Signatures)
  * which is used by Woodpecker CI.
  *
  * @param req - Express request object
- * @param publicKeyPem - Public key in PEM format (ed25519)
+ * @param verifier - Pre-configured ed25519 verifier function
  * @returns True if signature is valid, false otherwise
  */
 const verifyHttpMessageSignature = async (
   req: Request,
-  publicKeyPem: string
+  verifier: ReturnType<typeof createVerifier>
 ): Promise<boolean> => {
   try {
     // Build full URL from request
@@ -57,13 +67,10 @@ const verifyHttpMessageSignature = async (
       headers: req.headers as Record<string, string | string[]>,
     };
 
-    // Create verifier using ed25519 algorithm with the provided public key
-    const verifier = createVerifier(publicKeyPem, "ed25519");
-
     // Verify the message signature
     const verified = await httpbis.verifyMessage(
       {
-        keyLookup: async (params) => {
+        keyLookup: async () => {
           // Woodpecker CI doesn't use keyid in the signature parameters
           // Return the verifier for any key lookup
           return {
@@ -78,7 +85,7 @@ const verifyHttpMessageSignature = async (
 
     return verified === true;
   } catch (error) {
-    console.error("Error verifying signature:", error);
+    // Signature verification failed - this is expected for invalid signatures
     return false;
   }
 };
