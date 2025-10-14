@@ -98,13 +98,10 @@ export class WorkflowScriptLoader implements WorkflowLoader {
     }
 
     const moduleObj = module as Record<string, unknown>;
-    console.log(moduleObj, "moduleObj --->");
-
     const maybeCtor = moduleObj.default as unknown;
     if (typeof maybeCtor === "function") {
       try {
         const instance = new (maybeCtor as new () => unknown)();
-        console.log(instance, "instance --->");
         if (this.isWorkflowScriptInstance(instance)) {
           scripts.push(instance as WorkflowScript);
         }
