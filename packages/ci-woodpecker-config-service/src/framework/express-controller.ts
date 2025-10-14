@@ -1,9 +1,19 @@
-import express, { NextFunction, Request, RequestHandler, Response, Router } from "express";
+import express, {
+  NextFunction,
+  Request,
+  RequestHandler,
+  Response,
+  Router,
+} from "express";
 import pinoHttp from "pino-http";
 import type { Logger } from "pino";
 import { ConfigService } from "./config-service";
-import { CompositeSignatureVerifier, HmacSignatureVerifier, HttpMessageSignatureVerifier, SignatureVerifier } from "./signature";
-import type { PipelineScript } from "./scripts";
+import {
+  CompositeSignatureVerifier,
+  HmacSignatureVerifier,
+  HttpMessageSignatureVerifier,
+  SignatureVerifier,
+} from "./signature";
 
 export interface RouterConfig {
   githubToken: string;
@@ -17,7 +27,10 @@ export interface RouterConfig {
  * Create an Express router that wires logging, JSON, signature verification
  * and delegates POST / handling to ConfigService.
  */
-export function createExpressRouter(cfg: RouterConfig, scripts: PipelineScript[]): Router {
+export function createExpressRouter(
+  cfg: RouterConfig,
+  service: ConfigService
+): Router {
   const router = express.Router();
 
   if (cfg.logger) {
@@ -29,8 +42,10 @@ export function createExpressRouter(cfg: RouterConfig, scripts: PipelineScript[]
           if (res.statusCode >= 400) return "warn";
           return "info";
         },
-        customSuccessMessage: (req: Request, res: Response) => `${req.method} ${req.url} ${res.statusCode}`,
-        customErrorMessage: (req: Request, res: Response, err: Error) => `${req.method} ${req.url} ${res.statusCode} - ${err.message}`,
+        customSuccessMessage: (req: Request, res: Response) =>
+          `${req.method} ${req.url} ${res.statusCode}`,
+        customErrorMessage: (req: Request, res: Response, err: Error) =>
+          `${req.method} ${req.url} ${res.statusCode} - ${err.message}`,
       })
     );
   }
@@ -47,7 +62,8 @@ export function createExpressRouter(cfg: RouterConfig, scripts: PipelineScript[]
   let verifier: SignatureVerifier | undefined;
   if (!cfg.skipSignatureVerification) {
     const verifiers: SignatureVerifier[] = [];
-    if (cfg.publicKeyHex) verifiers.push(new HttpMessageSignatureVerifier(cfg.publicKeyHex));
+    if (cfg.publicKeyHex)
+      verifiers.push(new HttpMessageSignatureVerifier(cfg.publicKeyHex));
     if (cfg.secret) verifiers.push(new HmacSignatureVerifier(cfg.secret));
     verifier = new CompositeSignatureVerifier(verifiers);
   }
@@ -73,9 +89,10 @@ export function createExpressRouter(cfg: RouterConfig, scripts: PipelineScript[]
     res.status(200).json({ status: "ok" });
   });
 
-  const service = new ConfigService({ githubToken: cfg.githubToken, logger: cfg.logger!, scripts });
-
-  const postHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+  const postHandler: RequestHandler = async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
     try {
       const configs = await service.generate(req.body);
       res.json({ configs });

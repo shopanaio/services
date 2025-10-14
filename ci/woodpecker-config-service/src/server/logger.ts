@@ -1,21 +1,21 @@
-import pino from 'pino';
+import pino from "pino";
 
 /**
  * Create and configure application logger
  */
 export function createLogger() {
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-  const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
+  const isDevelopment = process.env.NODE_ENV !== "production";
+  const logLevel = process.env.LOG_LEVEL || (isDevelopment ? "debug" : "info");
 
   return pino({
     level: logLevel,
     transport: isDevelopment
       ? {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'HH:MM:ss.l',
-            ignore: 'pid,hostname',
+            translateTime: "HH:MM:ss.l",
+            ignore: "pid,hostname",
             singleLine: false,
           },
         }

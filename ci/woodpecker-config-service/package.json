@@ -22,9 +22,9 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --external:express --external:pino --external:pino-http --external:js-yaml --external:@noble/ed25519 --external:dotenv --external:dotenv/config --outfile=dist/index.js",
+    "build": "node esbuild.js",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx watch src/index.ts"
   },
   "type": "module"
 }

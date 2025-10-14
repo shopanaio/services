@@ -1,4 +1,8 @@
-import { PipelineScript, ScriptContext, GeneratedConfig } from '../framework/scripts';
+import {
+  PipelineScript,
+  ScriptContext,
+  GeneratedConfig,
+} from "../framework/scripts";
 
 export class ScriptRegistry {
   private readonly scripts: PipelineScript[] = [];
@@ -10,10 +14,15 @@ export class ScriptRegistry {
   async buildPipelines(context: ScriptContext): Promise<GeneratedConfig[]> {
     const results: GeneratedConfig[] = [];
     for (const script of this.scripts) {
-      const isSupported = await script.supports(context);
-      if (!isSupported) continue;
+      if (!(await script.supports(context))) {
+        continue;
+      }
+
       const configs = await script.build(context);
-      if (!configs) continue;
+      if (!configs) {
+        continue;
+      }
+
       results.push(...configs);
     }
     return results;

@@ -1,10 +1,9 @@
-import { loadConfig } from "./core/config";
-import { createLogger } from "./core/logger";
+import { loadConfig } from "./server/config";
+import { createLogger } from "./server/logger";
 import { createConfigService } from "@shopana/ci-woodpecker-config-service";
 import express, { Router } from "express";
-import { LintScript } from "./scripts/lint";
-import { PlaywrightScript } from "./scripts/playwright";
-import 'dotenv/config';
+import "dotenv/config";
+import { workflows } from "./workflows";
 
 try {
   const config = loadConfig();
@@ -22,43 +21,47 @@ try {
         skipSignatureVerification: config.skipSignatureVerification,
         logger,
       },
-      [new LintScript(), new PlaywrightScript()]
+      workflows
     ) as unknown as Router
   );
 
   const server = app.listen(config.port, config.host, () => {
-    console.log(`Woodpecker convert extension listening on ${config.host}:${config.port}`);
+    console.log(
+      `Woodpecker convert extension listening on ${config.host}:${config.port}`
+    );
     if (config.skipSignatureVerification) {
-      console.warn('⚠️  WARNING: Signature verification is DISABLED!');
-      console.warn('   This is insecure and should only be used for development.');
-      console.warn('   Set SKIP_SIGNATURE_VERIFICATION=false in production.');
+      console.warn("⚠️  WARNING: Signature verification is DISABLED!");
+      console.warn(
+        "   This is insecure and should only be used for development."
+      );
+      console.warn("   Set SKIP_SIGNATURE_VERIFICATION=false in production.");
     }
   });
 
-  server.on('error', (error) => {
-    console.error('Server error:', error);
+  server.on("error", (error) => {
+    console.error("Server error:", error);
     process.exit(1);
   });
 
   // Keep process alive
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
+  process.on("SIGTERM", () => {
+    console.log("SIGTERM signal received: closing HTTP server");
     server.close(() => {
-      console.log('HTTP server closed');
+      console.log("HTTP server closed");
       process.exit(0);
     });
   });
 
-  process.on('SIGINT', () => {
-    console.log('SIGINT signal received: closing HTTP server');
+  process.on("SIGINT", () => {
+    console.log("SIGINT signal received: closing HTTP server");
     server.close(() => {
-      console.log('HTTP server closed');
+      console.log("HTTP server closed");
       process.exit(0);
     });
   });
 } catch (error) {
   const err = error instanceof Error ? error : new Error(String(error));
   console.error(`Failed to start server: ${err.message}`);
-  console.error('Stack:', err.stack);
+  console.error("Stack:", err.stack);
   process.exit(1);
 }

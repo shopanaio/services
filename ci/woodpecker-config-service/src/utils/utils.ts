@@ -1,10 +1,5 @@
-import { promisify } from 'util';
-import { execFile } from 'child_process';
-import fs from 'fs/promises';
-import os from 'os';
-import path from 'path';
-
-const execFileAsync = promisify(execFile);
+import fs from "fs/promises";
+import path from "path";
 
 /**
  * Split an array into chunks of a given size.
@@ -22,21 +17,10 @@ export function chunkArray<T>(items: T[], chunkSize: number): T[][] {
 }
 
 /**
- * Clone and checkout the repository into a temporary directory.
- */
-export async function ensureRepoCheckedOut(repoSlug: string, commitSha: string, token: string): Promise<string> {
-  const workdir = await fs.mkdtemp(path.join(os.tmpdir(), 'repo-'));
-  const httpsUrl = `https://x-token-auth:${token}@bitbucket.org/${repoSlug}.git`;
-  await execFileAsync('git', ['clone', '--quiet', httpsUrl, workdir]);
-  await execFileAsync('git', ['-C', workdir, 'checkout', '--quiet', commitSha]);
-  return workdir;
-}
-
-/**
  * Recursively find all test spec files under tests/ and return paths relative to tests/.
  */
 export async function findSpecFiles(tmpRepoDir: string): Promise<string[]> {
-  const testsRoot = path.join(tmpRepoDir, 'tests');
+  const testsRoot = path.join(tmpRepoDir, "tests");
   const result: string[] = [];
 
   async function walk(dir: string): Promise<void> {
@@ -47,7 +31,7 @@ export async function findSpecFiles(tmpRepoDir: string): Promise<string[]> {
         await walk(fullPath);
         continue;
       }
-      if (entry.isFile() && entry.name.endsWith('.spec.ts')) {
+      if (entry.isFile() && entry.name.endsWith(".spec.ts")) {
         const relativeFromTests = path.relative(testsRoot, fullPath);
         result.push(relativeFromTests);
       }
