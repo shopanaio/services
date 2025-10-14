@@ -4,26 +4,27 @@
   "main": "dist/index.js",
   "license": "MIT",
   "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "pino": "^10.0.0",
-    "pino-http": "^11.0.0",
     "js-yaml": "^4.1.0",
-    "@noble/ed25519": "^2.1.0"
+    "pino": "^10.0.0",
+    "pino-http": "^11.0.0"
   },
   "devDependencies": {
+    "@shopana/ci-woodpecker-config-service": "*",
     "@types/express": "^5.0.1",
     "@types/glob": "^8.1.0",
     "@types/node": "^22.14.1",
-    "@shopana/ci-woodpecker-config-service": "*",
     "esbuild": "^0.25.10",
     "pino-pretty": "^13.1.2",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --external:express --external:pino --external:pino-http --external:js-yaml --external:@noble/ed25519 --outfile=dist/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --external:express --external:pino --external:pino-http --external:js-yaml --external:@noble/ed25519 --external:dotenv --external:dotenv/config --outfile=dist/index.js",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "tsx src/index.ts"
   },
   "type": "module"
 }
