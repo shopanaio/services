@@ -1,61 +1,42 @@
-import { loadConfig } from "./server/config";
-import { createLogger } from "./server/logger";
+import "dotenv/config";
+import fs from "fs";
+import path from "path";
+import express from "express";
+import pinoHttp from "pino-http";
 import {
   ConfigService,
   createExpressRouter,
   createSignatureMiddleware,
 } from "@shopana/woodpecker-ci-config-service";
-import express from "express";
-import pinoHttp from "pino-http";
-import "dotenv/config";
+
+import { loadConfig } from "./server/config";
+import { createLogger } from "./server/logger";
 
 try {
   const config = loadConfig();
   const app = express();
   const logger = createLogger();
 
-  app.use(pinoHttp({ logger }));
-  app.use(
-    createExpressRouter(new ConfigService({})).use(
+  app
+    .use(pinoHttp({ logger }))
+    .use(
       createSignatureMiddleware({
-        publicKey: config.publicKey!,
+        publicKey: fs.readFileSync(
+          path.join(process.cwd(), config.pemFile!),
+          "ascii"
+        ),
       })
     )
-  );
-
-  const server = app
-    .listen(config.port, config.host, () => {
+    .use(createExpressRouter(new ConfigService()))
+    .listen(config.port, "0.0.0.0", () => {
       console.log(
-        `Woodpecker convert extension listening on ${config.host}:${config.port}`
+        `Woodpecker convert extension listening on 0.0.0.0:${config.port}`
       );
-      if (config.skipSignatureVerification) {
-        console.warn("⚠️  WARNING: Signature verification is DISABLED!");
-        console.warn(
-          "   This is insecure and should only be used for development."
-        );
-        console.warn("   Set SKIP_SIGNATURE_VERIFICATION=false in production.");
-      }
     })
     .on("error", (error) => {
       console.error("Server error:", error);
       process.exit(1);
     });
-
-  process.on("SIGTERM", () => {
-    console.log("SIGTERM signal received: closing HTTP server");
-    server.close(() => {
-      console.log("HTTP server closed");
-      process.exit(0);
-    });
-  });
-
-  process.on("SIGINT", () => {
-    console.log("SIGINT signal received: closing HTTP server");
-    server.close(() => {
-      console.log("HTTP server closed");
-      process.exit(0);
-    });
-  });
 } catch (error) {
   const err = error instanceof Error ? error : new Error(String(error));
   console.error(`Failed to start server: ${err.message}`);

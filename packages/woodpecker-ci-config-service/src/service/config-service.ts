@@ -1,8 +1,5 @@
 import yaml from "js-yaml";
-import type {
-  ConfigExtensionRequest,
-  ConfigFile,
-} from "../woodpecker/payload";
+import type { ConfigExtensionRequest, ConfigFile } from "../woodpecker/payload";
 import { WorkflowRegistry } from "./workflow-registry";
 import type { ScriptContext, WorkflowLoader } from "./interface";
 import { WorkflowScriptLoader } from "./workflow-loader";

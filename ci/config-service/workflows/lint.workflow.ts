@@ -29,20 +29,9 @@ export default class LintWorkflow implements WorkflowScript {
             "yarn type-check",
           ],
         },
-        {
-          name: "discord",
-          image: "appleboy/drone-discord",
-          settings: {
-            webhook_id: { from_secret: "DISCORD_WEBHOOK_ID" },
-            webhook_token: { from_secret: "DISCORD_WEBHOOK_TOKEN" },
-            avatar_url: "https://avatars.githubusercontent.com/u/2181346?v=4",
-            username: "Drone CI",
-            message:
-              "**Lint & Type Check [#{{build.number}}]({{build.link}})**\\n- Branch `{{commit.branch}}`\\n- Author `{{commit.email}}`",
-          },
-        },
       ],
     };
+
     return [
       {
         name: ".woodpecker/lint.yml",
