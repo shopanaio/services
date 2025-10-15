@@ -1,0 +1,164 @@
+# ansible-playbook build-and-push-config-service.yml
+---
+- name: Build and push config-service image to GitHub Container Registry
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars:
+    app_name: config-service
+    local_build_dir: "{{ playbook_dir }}/../.."
+    dockerfile_path: ci/config-service/Dockerfile
+
+    # GHCR configuration
+    # Example: ghcr.io/shopanaio/config-service:latest
+    ghcr_registry: ghcr.io
+    ghcr_owner: "{{ lookup('env', 'GHCR_OWNER') }}"
+    image_name: "{{ app_name }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ image_name }}:{{ image_tag }}"
+
+    # GitHub token for GHCR authentication
+    github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+
+  tasks:
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - ghcr_owner is defined and ghcr_owner | length > 0
+          - github_token is defined and github_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide GHCR_OWNER and GITHUB_TOKEN
+          via environment or -e "VAR=...".
+          Example: export GHCR_OWNER=shopana-io GITHUB_TOKEN=ghp_xxx
+        success_msg: "All required variables are present"
+
+    - name: Build and push block with error handling
+      block:
+        - name: Show build information
+          ansible.builtin.debug:
+            msg:
+              - "🔨 Building {{ app_name }}"
+              - "  Image: {{ full_image_name }}"
+              - "  Platform: linux/amd64"
+              - "  Dockerfile: {{ dockerfile_path }}"
+
+        - name: Show login information
+          ansible.builtin.debug:
+            msg:
+              - "🔐 Logging into GitHub Container Registry"
+              - "  Registry: {{ ghcr_registry }}"
+              - "  Owner: {{ ghcr_owner }}"
+
+        - name: Check if Docker is running
+          ansible.builtin.command:
+            cmd: docker info
+          register: docker_info
+          changed_when: false
+          failed_when: false
+
+        - name: Fail if Docker is not running
+          ansible.builtin.fail:
+            msg: "Docker is not running locally. Please start Docker daemon."
+          when: docker_info.rc != 0
+
+        - name: Login to GitHub Container Registry
+          ansible.builtin.command:
+            cmd: echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+          no_log: true
+          changed_when: true
+          register: login_result
+
+        - name: Verify login was successful
+          ansible.builtin.debug:
+            msg:
+              - "✅ Login completed"
+              - "Login result: {{ login_result.rc }}"
+
+        - name: Check GitHub token permissions (optional diagnostic)
+          ansible.builtin.uri:
+            url: "https://api.github.com/user"
+            method: GET
+            headers:
+              Authorization: "token {{ github_token }}"
+              Accept: "application/vnd.github.v3+json"
+          register: github_user_check
+          failed_when: false
+          changed_when: false
+
+        - name: Show GitHub API response
+          ansible.builtin.debug:
+            msg:
+              - "🔑 GitHub API check: {{ github_user_check.status if github_user_check.status is defined else 'Failed' }}"
+              - "User: {{ github_user_check.json.login if github_user_check.json is defined and github_user_check.json.login is defined else 'Unknown' }}"
+              - ""
+              - "⚠️  IMPORTANT: GHCR_OWNER is set to '{{ ghcr_owner }}'"
+              - "   But your GitHub user is '{{ github_user_check.json.login if github_user_check.json is defined else 'Unknown' }}'"
+              - "   Make sure the token has 'write:packages' permission for '{{ ghcr_owner }}'"
+              - ""
+              - "💡 If this is wrong, set correct GHCR_OWNER:"
+              - "   export GHCR_OWNER=philipp-sapronov  # for personal repos"
+              - "   export GHCR_OWNER=shopana-io        # for org repos"
+          when: github_user_check.status is defined
+
+        - name: Build Docker image for linux/amd64
+          ansible.builtin.command:
+            cmd: >
+              docker build
+              --platform linux/amd64
+              -t {{ full_image_name }}
+              -f {{ dockerfile_path }}
+              .
+            chdir: "{{ local_build_dir }}"
+          changed_when: true
+
+        - name: Login and push image to GitHub Container Registry
+          ansible.builtin.shell: |
+            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            docker push {{ full_image_name }}
+          no_log: true
+          changed_when: true
+          register: push_result
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Image built and pushed successfully"
+              - ""
+              - "📦 Image: {{ full_image_name }}"
+              - ""
+              - "🚀 To install on server:"
+              - "  ansible-playbook install-woodpecker-config-service.yml -e 'image_tag={{ image_tag }}'"
+              - ""
+              - "💡 To build with custom tag:"
+              - "  export IMAGE_TAG=v1.0.0"
+              - "  ansible-playbook build-and-push-config-service.yml"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Build or push failed!"
+              - "Failed task: {{ ansible_failed_task.name | default('Unknown task') }}"
+              - ""
+              - "Error message: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+              - "{% if ansible_failed_result.stdout is defined and ansible_failed_result.stdout | length > 0 %}Stdout: {{ ansible_failed_result.stdout }}{% endif %}"
+              - ""
+              - "Common issues:"
+              - "  - Check GITHUB_TOKEN has packages:write permission"
+              - "  - Verify GHCR_OWNER is correct (current: {{ ghcr_owner }})"
+              - "  - Ensure Docker daemon is running"
+              - "  - Check Dockerfile exists at {{ dockerfile_path }}"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Build and push failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry
+          ansible.builtin.command:
+            cmd: docker logout {{ ghcr_registry }}
+          changed_when: false
+          ignore_errors: true

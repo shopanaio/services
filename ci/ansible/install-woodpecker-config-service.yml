@@ -1,6 +1,6 @@
 # ansible-playbook install-woodpecker-config-service.yml
 ---
-- name: Install config-service on remote host
+- name: Install config-service on remote host from GHCR
   hosts: shopana
   become: true
   gather_facts: true
@@ -9,45 +9,42 @@
     app_name: config-service
     app_dir: /opt/config-service
     app_data_dir: /opt/config-service/data
-    image: config-service:local
     container_port: 3000
     host_http_port: 3300
-    local_build_dir: "{{ playbook_dir }}/../.."
-    image_tar_name: "{{ app_name }}.tar"
-    local_image_path: "/tmp/{{ image_tar_name }}"
-    remote_image_path: "{{ app_dir }}/{{ image_tar_name }}"
 
-    # Values must be provided via extra vars or env/vault (no defaults)
+    # GHCR configuration
+    ghcr_registry: ghcr.io
+    ghcr_owner: "{{ lookup('env', 'GHCR_OWNER') }}"
+    image_name: "{{ app_name }}"
+    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ image_name }}:{{ image_tag }}"
+
+    # GitHub token for GHCR authentication
+    github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+
+    # Application configuration
     WOODPECKER_GITHUB_TOKEN: "{{ lookup('env', 'WOODPECKER_GITHUB_TOKEN') }}"
-    WOODPECKER_CONFIG_SERVICE_SECRET: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_SECRET') }}"
 
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
+          - ghcr_owner is defined and ghcr_owner | length > 0
+          - github_token is defined and github_token | length > 0
           - WOODPECKER_GITHUB_TOKEN is defined and WOODPECKER_GITHUB_TOKEN | length > 0
-          - WOODPECKER_CONFIG_SERVICE_SECRET is defined and WOODPECKER_CONFIG_SERVICE_SECRET | length > 0
         fail_msg: >-
-          Required variables missing. Provide WOODPECKER_GITHUB_TOKEN, WOODPECKER_CONFIG_SERVICE_SECRET
+          Required variables missing. Provide GHCR_OWNER, GITHUB_TOKEN,
           via environment or -e "VAR=...".
         success_msg: "All required variables are present"
 
     - name: Installation block with error handling
       block:
-        - name: Build Docker image locally for linux/amd64
-          ansible.builtin.command:
-            cmd: docker build --platform linux/amd64 -t {{ image }} -f ci/config-service/Dockerfile .
-            chdir: "{{ local_build_dir }}"
-          delegate_to: localhost
-          become: false
-          changed_when: true
-
-        - name: Save Docker image to tar file locally
-          ansible.builtin.command:
-            cmd: docker save -o {{ local_image_path }} {{ image }}
-          delegate_to: localhost
-          become: false
-          changed_when: true
+        - name: Show installation information
+          ansible.builtin.debug:
+            msg:
+              - "🚀 Installing {{ app_name }}"
+              - "  Image: {{ full_image_name }}"
+              - "  Port: {{ host_http_port }}"
 
         - name: Ensure application directories exist on remote host
           ansible.builtin.file:
@@ -58,28 +55,16 @@
             - "{{ app_dir }}"
             - "{{ app_data_dir }}"
 
-        - name: Copy Docker image tar to remote host
-          ansible.builtin.copy:
-            src: "{{ local_image_path }}"
-            dest: "{{ remote_image_path }}"
-            mode: '0644'
-
-        - name: Load Docker image on remote host
+        - name: Login to GitHub Container Registry
           ansible.builtin.command:
-            cmd: docker load -i {{ remote_image_path }}
+            cmd: echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+          no_log: true
           changed_when: true
 
-        - name: Remove image tar file from remote host
-          ansible.builtin.file:
-            path: "{{ remote_image_path }}"
-            state: absent
-
-        - name: Remove local image tar file
-          ansible.builtin.file:
-            path: "{{ local_image_path }}"
-            state: absent
-          delegate_to: localhost
-          become: false
+        - name: Pull Docker image from GHCR
+          ansible.builtin.command:
+            cmd: docker pull {{ full_image_name }}
+          changed_when: true
 
         - name: Create docker-compose.yml for {{ app_name }}
           ansible.builtin.copy:
@@ -88,7 +73,7 @@
             content: |
               services:
                 {{ app_name }}:
-                  image: {{ image }}
+                  image: {{ full_image_name }}
                   container_name: {{ app_name }}
                   restart: unless-stopped
                   ports:
@@ -98,7 +83,6 @@
                     - LOG_LEVEL=debug
                     - NODE_ENV=production
                     - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_GITHUB_TOKEN}
-                    - WOODPECKER_CONFIG_SERVICE_SECRET=${WOODPECKER_CONFIG_SERVICE_SECRET}
                     # Temporarily skip signature verification until Woodpecker public key is configured
                     - SKIP_SIGNATURE_VERIFICATION=true
                     # Only GitHub is supported
@@ -110,7 +94,6 @@
             content: |
               # {{ app_name }} configuration
               WOODPECKER_GITHUB_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
-              WOODPECKER_CONFIG_SERVICE_SECRET={{ WOODPECKER_CONFIG_SERVICE_SECRET }}
               # Only GitHub is supported
 
         - name: Cleanup containers on port {{ host_http_port }}
@@ -182,6 +165,7 @@
               - "✅ {{ app_name }} deployed"
               - ""
               - "🌐 Service Info:"
+              - "  Image: {{ full_image_name }}"
               - "  HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
               - "  Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
               - "  Dir: {{ app_dir }}"
@@ -252,3 +236,10 @@
         - name: Fail with message
           ansible.builtin.fail:
             msg: "Installation failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry
+          ansible.builtin.command:
+            cmd: docker logout {{ ghcr_registry }}
+          changed_when: false
+          ignore_errors: true
