@@ -7,19 +7,18 @@
   gather_facts: false
 
   vars:
+    # Application configuration
     app_name: config-service
     local_build_dir: "{{ playbook_dir }}/../.."
     dockerfile_path: ci/config-service/Dockerfile
 
     # GHCR configuration
-    # Example: ghcr.io/shopanaio/config-service:latest
     ghcr_registry: ghcr.io
     ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
-    image_name: "{{ app_name }}"
     image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
-    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ image_name }}:{{ image_tag }}"
+    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ app_name }}:{{ image_tag }}"
 
-    # GitHub token for GHCR authentication
+    # Authentication
     github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
 
   tasks:
@@ -43,13 +42,7 @@
               - "  Image: {{ full_image_name }}"
               - "  Platform: linux/amd64"
               - "  Dockerfile: {{ dockerfile_path }}"
-
-        - name: Show login information
-          ansible.builtin.debug:
-            msg:
-              - "🔐 Logging into GitHub Container Registry"
-              - "  Registry: {{ ghcr_registry }}"
-              - "  Owner: {{ ghcr_owner }}"
+              - "🔐 Registry: {{ ghcr_registry }}/{{ ghcr_owner }}"
 
         - name: Check if Docker is running
           ansible.builtin.command:
@@ -72,9 +65,7 @@
 
         - name: Verify login was successful
           ansible.builtin.debug:
-            msg:
-              - "✅ Login completed"
-              - "Login result: {{ login_result.rc }}"
+            msg: "✅ Login to {{ ghcr_registry }} completed successfully"
 
         - name: Check GitHub token permissions (optional diagnostic)
           ansible.builtin.uri:
@@ -90,15 +81,14 @@
         - name: Show GitHub API response
           ansible.builtin.debug:
             msg:
-              - "🔑 GitHub API check: {{ github_user_check.status if github_user_check.status is defined else 'Failed' }}"
-              - "User: {{ github_user_check.json.login if github_user_check.json is defined and github_user_check.json.login is defined else 'Unknown' }}"
+              - "🔑 GitHub API Status: {{ github_user_check.status | default('Failed') }}"
+              - "GitHub User: {{ github_user_check.json.login | default('Unknown') }}"
+              - "GHCR Owner: {{ ghcr_owner }}"
               - ""
-              - "⚠️  IMPORTANT: GHCR_OWNER is set to '{{ ghcr_owner }}'"
-              - "   But your GitHub user is '{{ github_user_check.json.login if github_user_check.json is defined else 'Unknown' }}'"
-              - "   Make sure the token has 'write:packages' permission for '{{ ghcr_owner }}'"
-              - ""
-              - "💡 If this is wrong, set correct SHOPANA_GHCR_OWNER:"
-              - "   export SHOPANA_GHCR_OWNER=shopanaio         # for org repos"
+              - "⚠️  Ensure token has 'write:packages' permission for {{ ghcr_owner }}"
+              - "💡 Set correct SHOPANA_GHCR_OWNER if needed:"
+              - "   export SHOPANA_GHCR_OWNER=philipp-sapronov  # personal"
+              - "   export SHOPANA_GHCR_OWNER=shopanaio         # org"
           when: github_user_check.status is defined
 
         - name: Build Docker image for linux/amd64
@@ -139,17 +129,15 @@
           ansible.builtin.debug:
             msg:
               - "❌ Build or push failed!"
-              - "Failed task: {{ ansible_failed_task.name | default('Unknown task') }}"
-              - ""
-              - "Error message: {{ ansible_failed_result.msg | default('No message') }}"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
               - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
-              - "{% if ansible_failed_result.stdout is defined and ansible_failed_result.stdout | length > 0 %}Stdout: {{ ansible_failed_result.stdout }}{% endif %}"
               - ""
-              - "Common issues:"
-              - "  - Check SHOPANA_GITHUB_TOKEN has packages:write permission"
-              - "  - Verify SHOPANA_GHCR_OWNER is correct (current: {{ ghcr_owner }})"
-              - "  - Ensure Docker daemon is running"
-              - "  - Check Dockerfile exists at {{ dockerfile_path }}"
+              - "💡 Common solutions:"
+              - "  • Check SHOPANA_GITHUB_TOKEN has packages:write permission"
+              - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ ghcr_owner }}"
+              - "  • Ensure Docker daemon is running"
+              - "  • Verify Dockerfile exists at {{ dockerfile_path }}"
 
         - name: Fail with message
           ansible.builtin.fail:

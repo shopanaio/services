@@ -1,7 +1,7 @@
 # Build context must be the monorepo root: /Users/phl/Projects/shopana-io/services/
 # Run: docker build --platform linux/amd64 -t config-service:local -f ci/config-service/Dockerfile .
 #
-# 1) Build stage (monorepo-aware)
+# Builder stage
 FROM node:22 AS builder
 
 WORKDIR /app
@@ -24,8 +24,8 @@ COPY ci/config-service ci/config-service
 RUN yarn workspace @shopana/woodpecker-ci-config-service build \
   && yarn workspace @shopana/config-service build
 
-# 2) Production stage
-FROM node:22
+# Runner stage
+FROM node:22 AS runner
 
 WORKDIR /app
 
@@ -33,6 +33,8 @@ WORKDIR /app
 COPY --from=builder /app/package.json /app/yarn.lock ./
 COPY --from=builder /app/packages/woodpecker-ci-config-service/package.json ./packages/woodpecker-ci-config-service/
 COPY --from=builder /app/ci/config-service/package.json ./ci/config-service/
+# Copy workflows to the expected location
+COPY --from=builder /app/ci/config-service/dist/workflows ./ci/config-service/workflows
 
 # Install only production dependencies
 RUN yarn install --frozen-lockfile --production
@@ -41,8 +43,9 @@ RUN yarn install --frozen-lockfile --production
 COPY --from=builder /app/ci/config-service/dist ./ci/config-service/dist
 COPY --from=builder /app/packages/woodpecker-ci-config-service/dist ./packages/woodpecker-ci-config-service/dist
 
-# Copy workflows to the expected location
-COPY --from=builder /app/ci/config-service/dist/workflows ./ci/config-service/workflows
+# Copy public key for signature verification
+COPY --from=builder /app/ci/config-service/public-key.pem ./ci/config-service/public-key.pem
+
 
 # Set production environment
 ENV NODE_ENV=production

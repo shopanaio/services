@@ -1,4 +1,5 @@
 # ansible-playbook wp-config-service-manage.yml -e "action=status"
+# Available actions: start|stop|restart|status|logs|logs-follow|upgrade
 ---
 - name: Manage config-service
   hosts: shopana
@@ -6,9 +7,12 @@
   gather_facts: false
 
   vars:
+    # Application configuration
     app_name: config-service
     app_dir: /opt/config-service
-    action: status  # start|stop|restart|status|logs|logs-follow|upgrade
+
+    # Action parameters
+    action: status  # Default action
     log_lines: 100  # Number of log lines to show
 
   tasks:
@@ -94,5 +98,5 @@
 
     - name: Done
       ansible.builtin.debug:
-        msg: "Action '{{ action }}' completed for {{ app_name }}"
+        msg: "✅ Action '{{ action }}' completed successfully for {{ app_name }}"
       when: action != 'logs-follow'

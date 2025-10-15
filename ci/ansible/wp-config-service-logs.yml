@@ -16,8 +16,11 @@
   gather_facts: false
 
   vars:
+    # Application configuration
     app_name: config-service
     app_dir: /opt/config-service
+
+    # Log parameters
     lines: 100
     follow: false
 
@@ -32,7 +35,11 @@
         msg: "{{ app_name }} is not installed at {{ app_dir }}"
       when: not compose_file.stat.exists
 
-    - name: Show service status
+    - name: Show service status first
+      ansible.builtin.debug:
+        msg: "📊 Service Status:"
+
+    - name: Get service status
       ansible.builtin.command:
         cmd: docker compose ps
         chdir: "{{ app_dir }}"
@@ -41,7 +48,12 @@
 
     - name: Display service status
       ansible.builtin.debug:
-        msg: "{{ service_status.stdout_lines }}"
+        var: service_status.stdout_lines
+
+    - name: Show logs header
+      ansible.builtin.debug:
+        msg: "📋 Last {{ lines }} log lines:"
+      when: not follow | bool
 
     - name: Show logs (static)
       ansible.builtin.command:
@@ -53,7 +65,7 @@
 
     - name: Display logs (static)
       ansible.builtin.debug:
-        msg: "{{ static_logs.stdout_lines }}"
+        var: static_logs.stdout_lines
       when: not follow | bool
 
     - name: Follow logs in real-time (press Ctrl+C to exit)

@@ -6,6 +6,7 @@
   gather_facts: true
 
   vars:
+    # Application configuration
     app_name: config-service
     app_dir: /opt/config-service
     app_data_dir: /opt/config-service/data
@@ -15,26 +16,23 @@
     # GHCR configuration
     ghcr_registry: ghcr.io
     ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
-    image_name: "{{ app_name }}"
     image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
-    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ image_name }}:{{ image_tag }}"
+    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ app_name }}:{{ image_tag }}"
 
-    # GitHub token for GHCR authentication
+    # Authentication tokens
     github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
-
-    # Application configuration
-    WOODPECKER_GITHUB_TOKEN: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
-
+    config_service_token: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
+    config_service_public_key_file: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_PUBLIC_KEY_FILE') }}"
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
           - ghcr_owner is defined and ghcr_owner | length > 0
           - github_token is defined and github_token | length > 0
-          - WOODPECKER_GITHUB_TOKEN is defined and WOODPECKER_GITHUB_TOKEN | length > 0
+          - config_service_token is defined and config_service_token | length > 0
         fail_msg: >-
-          Required variables missing. Provide SHOPANA_GHCR_OWNER, SHOPANA_GITHUB_TOKEN, and WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN
-          via environment or -e "VAR=...".
+          Required variables missing. Provide SHOPANA_GHCR_OWNER, SHOPANA_GITHUB_TOKEN,
+          and WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN via environment or -e "VAR=...".
         success_msg: "All required variables are present"
 
     - name: Installation block with error handling
@@ -45,6 +43,7 @@
               - "🚀 Installing {{ app_name }}"
               - "  Image: {{ full_image_name }}"
               - "  Port: {{ host_http_port }}"
+              - "  Directory: {{ app_dir }}"
 
         - name: Ensure application directories exist on remote host
           ansible.builtin.file:
@@ -55,15 +54,11 @@
             - "{{ app_dir }}"
             - "{{ app_data_dir }}"
 
-        - name: Login to GitHub Container Registry
-          ansible.builtin.command:
-            cmd: echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+        - name: Login and pull Docker image from GHCR
+          ansible.builtin.shell: |
+            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            docker pull {{ full_image_name }}
           no_log: true
-          changed_when: true
-
-        - name: Pull Docker image from GHCR
-          ansible.builtin.command:
-            cmd: docker pull {{ full_image_name }}
           changed_when: true
 
         - name: Create docker-compose.yml for {{ app_name }}
@@ -83,8 +78,8 @@
                     - LOG_LEVEL=debug
                     - NODE_ENV=production
                     - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN}
-                    # Temporarily skip signature verification until Woodpecker public key is configured
-                    - SKIP_SIGNATURE_VERIFICATION=true
+                    - CONFIG_SERVICE_PUBLIC_KEY_FILE=${CONFIG_SERVICE_PUBLIC_KEY_FILE}
+                    # Signature verification enabled with public key
                     # Only GitHub is supported
 
         - name: Create .env for {{ app_name }}
@@ -93,7 +88,8 @@
             mode: '0600'
             content: |
               # {{ app_name }} configuration
-              WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
+              WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ config_service_token }}
+              CONFIG_SERVICE_PUBLIC_KEY_FILE={{ config_service_public_key_file }}
               # Only GitHub is supported
 
         - name: Cleanup containers on port {{ host_http_port }}
@@ -221,17 +217,11 @@
         - name: Show recovery instructions
           ansible.builtin.debug:
             msg:
-              - "To retry installation:"
-              - "  ansible-playbook wp-config-service-install.yml"
-              - ""
-              - "If port {{ host_http_port }} is occupied:"
-              - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
-              - ""
-              - "To check logs manually:"
-              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
-              - ""
-              - "To clean up and start fresh:"
-              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose down && rm -rf {{ app_dir }}'"
+              - "💡 Recovery options:"
+              - "  • Retry: ansible-playbook wp-config-service-install.yml"
+              - "  • Clean port: ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
+              - "  • Clean install: ssh {{ ansible_host }} 'rm -rf {{ app_dir }}'"
 
         - name: Fail with message
           ansible.builtin.fail:
