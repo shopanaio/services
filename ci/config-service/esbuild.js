@@ -9,7 +9,7 @@ const externalDeps = [
   "@noble/ed25519",
   "dotenv",
   "dotenv/config",
-  "http-signature",
+  "http-message-signatures",
 ];
 
 // Build main index.ts
