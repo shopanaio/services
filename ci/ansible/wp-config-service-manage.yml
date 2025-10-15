@@ -1,4 +1,4 @@
-# ansible-playbook manage-config-service.yml -e "action=status"
+# ansible-playbook wp-config-service-manage.yml -e "action=status"
 ---
 - name: Manage config-service
   hosts: shopana
@@ -19,7 +19,7 @@
 
     - name: Fail if not installed
       ansible.builtin.fail:
-        msg: "{{ app_name }} is not installed at {{ app_dir }}. Run install-config-service.yml first."
+        msg: "{{ app_name }} is not installed at {{ app_dir }}. Run wp-config-service-install.yml first."
       when: not compose_file.stat.exists
 
     - name: Start service

@@ -1,4 +1,4 @@
-# ansible-playbook build-and-push-config-service.yml
+# ansible-playbook wp-config-service-build.yml
 ---
 - name: Build and push config-service image to GitHub Container Registry
   hosts: localhost
@@ -14,13 +14,13 @@
     # GHCR configuration
     # Example: ghcr.io/shopanaio/config-service:latest
     ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'GHCR_OWNER') }}"
+    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
     image_name: "{{ app_name }}"
-    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
     full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ image_name }}:{{ image_tag }}"
 
     # GitHub token for GHCR authentication
-    github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
 
   tasks:
     - name: Validate required variables are provided
@@ -29,9 +29,9 @@
           - ghcr_owner is defined and ghcr_owner | length > 0
           - github_token is defined and github_token | length > 0
         fail_msg: >-
-          Required variables missing. Provide GHCR_OWNER and GITHUB_TOKEN
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
           via environment or -e "VAR=...".
-          Example: export GHCR_OWNER=shopana-io GITHUB_TOKEN=ghp_xxx
+          Example: export SHOPANA_GHCR_OWNER=shopanaio SHOPANA_GITHUB_TOKEN=ghp_xxx
         success_msg: "All required variables are present"
 
     - name: Build and push block with error handling
@@ -97,9 +97,8 @@
               - "   But your GitHub user is '{{ github_user_check.json.login if github_user_check.json is defined else 'Unknown' }}'"
               - "   Make sure the token has 'write:packages' permission for '{{ ghcr_owner }}'"
               - ""
-              - "💡 If this is wrong, set correct GHCR_OWNER:"
-              - "   export GHCR_OWNER=philipp-sapronov  # for personal repos"
-              - "   export GHCR_OWNER=shopana-io        # for org repos"
+              - "💡 If this is wrong, set correct SHOPANA_GHCR_OWNER:"
+              - "   export SHOPANA_GHCR_OWNER=shopanaio         # for org repos"
           when: github_user_check.status is defined
 
         - name: Build Docker image for linux/amd64
@@ -129,11 +128,11 @@
               - "📦 Image: {{ full_image_name }}"
               - ""
               - "🚀 To install on server:"
-              - "  ansible-playbook install-woodpecker-config-service.yml -e 'image_tag={{ image_tag }}'"
+              - "  ansible-playbook wp-config-service-install.yml -e 'image_tag={{ image_tag }}'"
               - ""
               - "💡 To build with custom tag:"
-              - "  export IMAGE_TAG=v1.0.0"
-              - "  ansible-playbook build-and-push-config-service.yml"
+              - "  export WOODPECKER_CONFIG_SERVICE_IMAGE_TAG=v1.0.0"
+              - "  ansible-playbook wp-config-service-build.yml"
 
       rescue:
         - name: Show error details
@@ -147,8 +146,8 @@
               - "{% if ansible_failed_result.stdout is defined and ansible_failed_result.stdout | length > 0 %}Stdout: {{ ansible_failed_result.stdout }}{% endif %}"
               - ""
               - "Common issues:"
-              - "  - Check GITHUB_TOKEN has packages:write permission"
-              - "  - Verify GHCR_OWNER is correct (current: {{ ghcr_owner }})"
+              - "  - Check SHOPANA_GITHUB_TOKEN has packages:write permission"
+              - "  - Verify SHOPANA_GHCR_OWNER is correct (current: {{ ghcr_owner }})"
               - "  - Ensure Docker daemon is running"
               - "  - Check Dockerfile exists at {{ dockerfile_path }}"
 

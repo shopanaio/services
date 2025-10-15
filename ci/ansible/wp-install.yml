@@ -231,6 +231,6 @@
           - "Data directory: {{ woodpecker_data_dir }}"
           - ""
           - "📋 For Config Service integration:"
-          - "Install config-service with: ansible-playbook install-config-service.yml"
+          - "Install config-service with: ansible-playbook wp-config-service-install.yml"
           - "Then in Woodpecker UI settings, set Config Service URL to:"
           - "  http://host.docker.internal:3300"

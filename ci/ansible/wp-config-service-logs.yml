@@ -1,13 +1,13 @@
 # Quick access to config-service logs
 #
 # Show last 100 lines:
-#   ansible-playbook logs-config-service.yml
+#   ansible-playbook wp-config-service-logs.yml
 #
 # Show last 500 lines:
-#   ansible-playbook logs-config-service.yml -e "lines=500"
+#   ansible-playbook wp-config-service-logs.yml -e "lines=500"
 #
 # Follow logs in real-time (Ctrl+C to exit):
-#   ansible-playbook logs-config-service.yml -e "follow=true"
+#   ansible-playbook wp-config-service-logs.yml -e "follow=true"
 #
 ---
 - name: View config-service logs

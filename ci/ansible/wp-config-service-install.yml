@@ -1,4 +1,4 @@
-# ansible-playbook install-woodpecker-config-service.yml
+# ansible-playbook wp-config-service-install.yml
 ---
 - name: Install config-service on remote host from GHCR
   hosts: shopana
@@ -14,16 +14,16 @@
 
     # GHCR configuration
     ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'GHCR_OWNER') }}"
+    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
     image_name: "{{ app_name }}"
-    image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+    image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
     full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ image_name }}:{{ image_tag }}"
 
     # GitHub token for GHCR authentication
-    github_token: "{{ lookup('env', 'GITHUB_TOKEN') }}"
+    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
 
     # Application configuration
-    WOODPECKER_GITHUB_TOKEN: "{{ lookup('env', 'WOODPECKER_GITHUB_TOKEN') }}"
+    WOODPECKER_GITHUB_TOKEN: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
 
   tasks:
     - name: Validate required variables are provided
@@ -33,7 +33,7 @@
           - github_token is defined and github_token | length > 0
           - WOODPECKER_GITHUB_TOKEN is defined and WOODPECKER_GITHUB_TOKEN | length > 0
         fail_msg: >-
-          Required variables missing. Provide GHCR_OWNER, GITHUB_TOKEN,
+          Required variables missing. Provide SHOPANA_GHCR_OWNER, SHOPANA_GITHUB_TOKEN, and WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN
           via environment or -e "VAR=...".
         success_msg: "All required variables are present"
 
@@ -82,7 +82,7 @@
                     - PORT={{ container_port }}
                     - LOG_LEVEL=debug
                     - NODE_ENV=production
-                    - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_GITHUB_TOKEN}
+                    - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN}
                     # Temporarily skip signature verification until Woodpecker public key is configured
                     - SKIP_SIGNATURE_VERIFICATION=true
                     # Only GitHub is supported
@@ -93,7 +93,7 @@
             mode: '0600'
             content: |
               # {{ app_name }} configuration
-              WOODPECKER_GITHUB_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
+              WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ WOODPECKER_GITHUB_TOKEN }}
               # Only GitHub is supported
 
         - name: Cleanup containers on port {{ host_http_port }}
@@ -172,13 +172,13 @@
               - "  Env: {{ app_dir }}/.env"
               - ""
               - "📊 View Logs:"
-              - "  ansible-playbook logs-config-service.yml"
-              - "  ansible-playbook logs-config-service.yml -e 'follow=true'"
-              - "  ansible-playbook manage-config-service.yml -e 'action=logs'"
+              - "  ansible-playbook wp-config-service-logs.yml"
+              - "  ansible-playbook wp-config-service-logs.yml -e 'follow=true'"
+              - "  ansible-playbook wp-config-service-manage.yml -e 'action=logs'"
               - ""
               - "🔧 Manage Service:"
-              - "  ansible-playbook manage-config-service.yml -e 'action=restart'"
-              - "  ansible-playbook manage-config-service.yml -e 'action=status'"
+              - "  ansible-playbook wp-config-service-manage.yml -e 'action=restart'"
+              - "  ansible-playbook wp-config-service-manage.yml -e 'action=status'"
               - ""
               - "🧹 Cleanup Port:"
               - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
@@ -222,7 +222,7 @@
           ansible.builtin.debug:
             msg:
               - "To retry installation:"
-              - "  ansible-playbook install-config-service.yml"
+              - "  ansible-playbook wp-config-service-install.yml"
               - ""
               - "If port {{ host_http_port }} is occupied:"
               - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
