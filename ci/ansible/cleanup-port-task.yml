@@ -1,0 +1,19 @@
+---
+# Task file to cleanup containers using specific port
+# Include with: include_tasks: cleanup-port-task.yml
+# Required vars: cleanup_port
+
+- name: Find container IDs using port {{ cleanup_port }}
+  ansible.builtin.shell:
+    cmd: docker ps -a --filter "publish={{ cleanup_port }}" --format "{{ '{{' }}.ID{{ '}}' }}"
+  register: found_containers
+  changed_when: false
+  ignore_errors: true
+
+- name: Stop and remove containers on port {{ cleanup_port }}
+  ansible.builtin.command:
+    cmd: docker rm -f {{ item }}
+  loop: "{{ found_containers.stdout_lines | default([]) }}"
+  when: found_containers.stdout_lines | default([]) | length > 0
+  ignore_errors: true
+  changed_when: true

@@ -1,0 +1,52 @@
+# ansible-playbook cleanup-port.yml -e "cleanup_port=3300"
+# Or use default port 3300:
+# ansible-playbook cleanup-port.yml
+---
+- name: Cleanup containers using specific port
+  hosts: shopana
+  become: true
+  gather_facts: false
+
+  vars:
+    port: "{{ cleanup_port | default('3300') }}"
+
+  tasks:
+    - name: Find containers using port {{ port }}
+      ansible.builtin.shell:
+        cmd: docker ps -a --filter "publish={{ port }}" --format "{{ '{{' }}.Names{{ '}}' }}\t{{ '{{' }}.ID{{ '}}' }}\t{{ '{{' }}.Status{{ '}}' }}"
+      register: containers_info
+      changed_when: false
+      ignore_errors: true
+
+    - name: Display found containers
+      ansible.builtin.debug:
+        msg: "Found containers on port {{ port }}: {{ containers_info.stdout_lines }}"
+      when:
+        - containers_info.stdout is defined
+        - containers_info.stdout | length > 0
+
+    - name: Get container IDs
+      ansible.builtin.shell:
+        cmd: docker ps -a --filter "publish={{ port }}" --format "{{ '{{' }}.ID{{ '}}' }}"
+      register: container_ids
+      changed_when: false
+      ignore_errors: true
+
+    - name: Stop and remove containers occupying port {{ port }}
+      ansible.builtin.command:
+        cmd: docker rm -f {{ item }}
+      loop: "{{ container_ids.stdout_lines | default([]) }}"
+      when: container_ids.stdout_lines | default([]) | length > 0
+      ignore_errors: true
+      changed_when: true
+
+    - name: Verify port is free
+      ansible.builtin.wait_for:
+        port: "{{ port }}"
+        state: stopped
+        timeout: 10
+      ignore_errors: true
+
+    - name: Final status
+      ansible.builtin.debug:
+        msg: "Port {{ port }} cleanup completed"

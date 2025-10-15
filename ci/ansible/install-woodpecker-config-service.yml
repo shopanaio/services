@@ -113,12 +113,28 @@
               WOODPECKER_CONFIG_SERVICE_SECRET={{ WOODPECKER_CONFIG_SERVICE_SECRET }}
               # Only GitHub is supported
 
+        - name: Cleanup containers on port {{ host_http_port }}
+          ansible.builtin.include_tasks: cleanup-port-task.yml
+          vars:
+            cleanup_port: "{{ host_http_port }}"
+
         - name: Stop and remove existing {{ app_name }} container if running
           ansible.builtin.command:
             cmd: docker compose down
             chdir: "{{ app_dir }}"
           ignore_errors: true
           changed_when: true
+
+        - name: Wait for port to be released
+          ansible.builtin.wait_for:
+            port: "{{ host_http_port }}"
+            state: stopped
+            timeout: 30
+          ignore_errors: true
+
+        - name: Additional pause to ensure cleanup
+          ansible.builtin.pause:
+            seconds: 2
 
         - name: Start {{ app_name }}
           ansible.builtin.command:
@@ -171,18 +187,6 @@
               - "  Dir: {{ app_dir }}"
               - "  Env: {{ app_dir }}/.env"
               - ""
-              - "📋 Woodpecker Configuration:"
-              - "  In Woodpecker docker-compose.yml, add:"
-              - "    - WOODPECKER_CONFIG_SERVICE_ENDPOINT=http://host.docker.internal:{{ host_http_port }}"
-              - "    - WOODPECKER_CONFIG_SERVICE_SECRET=<same as config-service>"
-              - ""
-              - "⚠️  Security Warning:"
-              - "  Signature verification is currently DISABLED (SKIP_SIGNATURE_VERIFICATION=true)"
-              - "  This is for development only. For production:"
-              - "  1. Get Woodpecker public key from Woodpecker server"
-              - "  2. Set WOODPECKER_PUBLIC_KEY in config-service .env"
-              - "  3. Set SKIP_SIGNATURE_VERIFICATION=false"
-              - ""
               - "📊 View Logs:"
               - "  ansible-playbook logs-config-service.yml"
               - "  ansible-playbook logs-config-service.yml -e 'follow=true'"
@@ -191,6 +195,9 @@
               - "🔧 Manage Service:"
               - "  ansible-playbook manage-config-service.yml -e 'action=restart'"
               - "  ansible-playbook manage-config-service.yml -e 'action=status'"
+              - ""
+              - "🧹 Cleanup Port:"
+              - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
 
       rescue:
         - name: Show error details
@@ -232,6 +239,9 @@
             msg:
               - "To retry installation:"
               - "  ansible-playbook install-config-service.yml"
+              - ""
+              - "If port {{ host_http_port }} is occupied:"
+              - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
               - ""
               - "To check logs manually:"
               - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
