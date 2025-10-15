@@ -22,7 +22,9 @@
     # Authentication tokens
     github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
     config_service_token: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
-    config_service_public_key_file: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_PUBLIC_KEY_FILE') }}"
+    config_service_public_key: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_PUBLIC_KEY') }}"
+
+
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
@@ -30,6 +32,7 @@
           - ghcr_owner is defined and ghcr_owner | length > 0
           - github_token is defined and github_token | length > 0
           - config_service_token is defined and config_service_token | length > 0
+          - config_service_public_key is defined and config_service_public_key | length > 0
         fail_msg: >-
           Required variables missing. Provide SHOPANA_GHCR_OWNER, SHOPANA_GITHUB_TOKEN,
           and WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN via environment or -e "VAR=...".
@@ -54,6 +57,8 @@
             - "{{ app_dir }}"
             - "{{ app_data_dir }}"
 
+        # Removed step that tried to update a local public key file which may not exist
+
         - name: Login and pull Docker image from GHCR
           ansible.builtin.shell: |
             echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
@@ -73,6 +78,8 @@
                   restart: unless-stopped
                   ports:
                     - "0.0.0.0:{{ host_http_port }}:{{ container_port }}"
+                  volumes:
+                    - "{{ app_dir }}/public-key.pem:/app/ci/config-service/public-key.pem:ro"
                   environment:
                     - PORT={{ container_port }}
                     - LOG_LEVEL=debug
@@ -89,8 +96,18 @@
             content: |
               # {{ app_name }} configuration
               WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ config_service_token }}
-              CONFIG_SERVICE_PUBLIC_KEY_FILE={{ config_service_public_key_file }}
+              # Hardcoded relative path to PEM inside working directory
+              CONFIG_SERVICE_PUBLIC_KEY_FILE=public-key.pem
               # Only GitHub is supported
+
+        - name: Create public-key.pem file
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/public-key.pem"
+            mode: '0644'
+            content: |
+              -----BEGIN PUBLIC KEY-----
+              {{ config_service_public_key }}
+              -----END PUBLIC KEY-----
 
         - name: Cleanup containers on port {{ host_http_port }}
           ansible.builtin.include_tasks: cleanup-port-task.yml
@@ -143,6 +160,18 @@
             delay: 2
             timeout: 60
           ignore_errors: true
+
+        - name: Update public key in container
+          ansible.builtin.shell: |
+            docker exec {{ app_name }} sh -lc "sed -i 's/\\*\\*\\*/{{ config_service_public_key }}/g' /app/ci/config-service/public-key.pem || true"
+          changed_when: true
+          ignore_errors: true
+
+        - name: Restart container to apply changes
+          ansible.builtin.command:
+            cmd: docker compose restart
+            chdir: "{{ app_dir }}"
+          changed_when: true
 
         - name: Show container status
           ansible.builtin.command:
