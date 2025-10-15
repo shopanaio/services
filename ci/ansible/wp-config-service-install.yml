@@ -14,25 +14,21 @@
     host_http_port: 3300
 
     # GHCR configuration
-    ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
-    image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
-    full_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ app_name }}:{{ image_tag }}"
-
-    # Authentication tokens
-    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
-    config_service_token: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
-    config_service_public_key: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_PUBLIC_KEY') }}"
-
+    shopana_ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+    shopana_github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+    config_service_image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
+    config_service_image_name: "ghcr.io/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ config_service_image_tag }}"
+    config_service_github_api_token: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
+    config_service_public_key_signature: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_PUBLIC_KEY') }}"
 
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
-          - ghcr_owner is defined and ghcr_owner | length > 0
-          - github_token is defined and github_token | length > 0
-          - config_service_token is defined and config_service_token | length > 0
-          - config_service_public_key is defined and config_service_public_key | length > 0
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_github_token is defined and shopana_github_token | length > 0
+          - config_service_github_api_token is defined and config_service_github_api_token | length > 0
+          - config_service_public_key_signature is defined and config_service_public_key_signature | length > 0
         fail_msg: >-
           Required variables missing. Provide SHOPANA_GHCR_OWNER, SHOPANA_GITHUB_TOKEN,
           and WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN via environment or -e "VAR=...".
@@ -44,7 +40,7 @@
           ansible.builtin.debug:
             msg:
               - "🚀 Installing {{ app_name }}"
-              - "  Image: {{ full_image_name }}"
+              - "  Image: {{ config_service_image_name }}"
               - "  Port: {{ host_http_port }}"
               - "  Directory: {{ app_dir }}"
 
@@ -52,7 +48,7 @@
           ansible.builtin.file:
             path: "{{ item }}"
             state: directory
-            mode: '0755'
+            mode: "0755"
           loop:
             - "{{ app_dir }}"
             - "{{ app_data_dir }}"
@@ -61,19 +57,19 @@
 
         - name: Login and pull Docker image from GHCR
           ansible.builtin.shell: |
-            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
-            docker pull {{ full_image_name }}
+            echo "{{ shopana_github_token }}" | docker login ghcr.io -u {{ shopana_ghcr_owner }} --password-stdin
+            docker pull {{ config_service_image_name }}
           no_log: true
           changed_when: true
 
         - name: Create docker-compose.yml for {{ app_name }}
           ansible.builtin.copy:
             dest: "{{ app_dir }}/docker-compose.yml"
-            mode: '0644'
+            mode: "0644"
             content: |
               services:
                 {{ app_name }}:
-                  image: {{ full_image_name }}
+                  image: {{ config_service_image_name }}
                   container_name: {{ app_name }}
                   restart: unless-stopped
                   ports:
@@ -92,10 +88,10 @@
         - name: Create .env for {{ app_name }}
           ansible.builtin.copy:
             dest: "{{ app_dir }}/.env"
-            mode: '0600'
+            mode: "0600"
             content: |
               # {{ app_name }} configuration
-              WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ config_service_token }}
+              WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ config_service_github_api_token }}
               # Hardcoded relative path to PEM inside working directory
               CONFIG_SERVICE_PUBLIC_KEY_FILE=public-key.pem
               # Only GitHub is supported
@@ -103,10 +99,10 @@
         - name: Create public-key.pem file
           ansible.builtin.copy:
             dest: "{{ app_dir }}/public-key.pem"
-            mode: '0644'
+            mode: "0644"
             content: |
               -----BEGIN PUBLIC KEY-----
-              {{ config_service_public_key }}
+              {{ config_service_public_key_signature }}
               -----END PUBLIC KEY-----
 
         - name: Cleanup containers on port {{ host_http_port }}
@@ -161,17 +157,7 @@
             timeout: 60
           ignore_errors: true
 
-        - name: Update public key in container
-          ansible.builtin.shell: |
-            docker exec {{ app_name }} sh -lc "sed -i 's/\\*\\*\\*/{{ config_service_public_key }}/g' /app/ci/config-service/public-key.pem || true"
-          changed_when: true
-          ignore_errors: true
-
-        - name: Restart container to apply changes
-          ansible.builtin.command:
-            cmd: docker compose restart
-            chdir: "{{ app_dir }}"
-          changed_when: true
+        # No need to modify the key inside the container; it's provided via read-only volume
 
         - name: Show container status
           ansible.builtin.command:
@@ -190,7 +176,7 @@
               - "✅ {{ app_name }} deployed"
               - ""
               - "🌐 Service Info:"
-              - "  Image: {{ full_image_name }}"
+              - "  Image: {{ config_service_image_name }}"
               - "  HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
               - "  Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
               - "  Dir: {{ app_dir }}"
@@ -259,6 +245,6 @@
       always:
         - name: Logout from GitHub Container Registry
           ansible.builtin.command:
-            cmd: docker logout {{ ghcr_registry }}
+            cmd: docker logout ghcr.io
           changed_when: false
           ignore_errors: true
