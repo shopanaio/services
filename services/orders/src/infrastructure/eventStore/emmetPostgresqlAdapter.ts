@@ -32,7 +32,7 @@ export class EmmetPostgresqlEventStoreAdapter implements EventStorePort {
     streamId: string,
     options: AggregateOptions<State, Event>
   ): Promise<AggregateResult<State>> {
-    return this.store.aggregateStream(streamId, options);
+    return this.store.aggregateStream(streamId, options as any);
   }
 
   async appendToStream<Event>(
