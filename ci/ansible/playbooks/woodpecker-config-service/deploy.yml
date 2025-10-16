@@ -7,9 +7,9 @@
 
   vars:
     # Application configuration
-    app_name: config-service
-    app_dir: /opt/config-service
-    app_data_dir: /opt/config-service/data
+    app_name: woodpecker-config-service
+    app_dir: /opt/woodpecker-config-service
+    app_data_dir: /opt/woodpecker-config-service/data
     container_port: 3000
     host_http_port: 3300
 
@@ -52,22 +52,49 @@
           loop:
             - "{{ app_dir }}"
             - "{{ app_data_dir }}"
-            - "{{ app_dir }}/workflows"
 
         # Removed step that tried to update a local public key file which may not exist
 
-        - name: Login to GitHub Container Registry
-          community.docker.docker_login:
-            registry: ghcr.io
-            username: "{{ shopana_ghcr_owner }}"
-            password: "{{ shopana_github_token }}"
+        - name: Login and pull Docker image from GHCR
+          ansible.builtin.shell: |
+            echo "{{ shopana_github_token }}" | docker login ghcr.io -u {{ shopana_ghcr_owner }} --password-stdin
+            docker pull {{ config_service_image_name }}
           no_log: true
+          changed_when: true
 
-        - name: Pull Docker image from GHCR
-          community.docker.docker_image:
-            name: "{{ config_service_image_name }}"
-            source: pull
-            force_source: true
+        - name: Create docker-compose.yml for {{ app_name }}
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/docker-compose.yml"
+            mode: "0644"
+            content: |
+              services:
+                {{ app_name }}:
+                  image: {{ config_service_image_name }}
+                  container_name: {{ app_name }}
+                  restart: unless-stopped
+                  ports:
+                    - "0.0.0.0:{{ host_http_port }}:{{ container_port }}"
+                  volumes:
+                    - "{{ app_dir }}/public-key.pem:/app/ci/woodpecker-config-service/public-key.pem:ro"
+                  environment:
+                    - PORT={{ container_port }}
+                    - LOG_LEVEL=debug
+                    - NODE_ENV=production
+                    - WOODPECKER_GITHUB_TOKEN=${WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN}
+                    - CONFIG_SERVICE_PUBLIC_KEY_FILE=${CONFIG_SERVICE_PUBLIC_KEY_FILE}
+                    # Signature verification enabled with public key
+                    # Only GitHub is supported
+
+        - name: Create .env for {{ app_name }}
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/.env"
+            mode: "0600"
+            content: |
+              # {{ app_name }} configuration
+              WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN={{ config_service_github_api_token }}
+              # Hardcoded relative path to PEM inside working directory
+              CONFIG_SERVICE_PUBLIC_KEY_FILE=public-key.pem
+              # Only GitHub is supported
 
         - name: Create public-key.pem file
           ansible.builtin.copy:
@@ -78,11 +105,17 @@
               {{ config_service_public_key_signature }}
               -----END PUBLIC KEY-----
 
+        - name: Cleanup containers on port {{ host_http_port }}
+          ansible.builtin.include_tasks: ../../tasks/cleanup-port-task.yml
+          vars:
+            cleanup_port: "{{ host_http_port }}"
+
         - name: Stop and remove existing {{ app_name }} container if running
-          community.docker.docker_container:
-            name: "{{ app_name }}"
-            state: absent
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
           ignore_errors: true
+          changed_when: true
 
         - name: Wait for port to be released
           ansible.builtin.wait_for:
@@ -91,23 +124,15 @@
             timeout: 30
           ignore_errors: true
 
-        - name: Start {{ app_name }} container
-          community.docker.docker_container:
-            name: "{{ app_name }}"
-            image: "{{ config_service_image_name }}"
-            state: started
-            restart_policy: unless-stopped
-            ports:
-              - "0.0.0.0:{{ host_http_port }}:{{ container_port }}"
-            volumes:
-              - "{{ app_dir }}/public-key.pem:/app/ci/woodpecker-config-service/public-key.pem:ro"
-              - "{{ app_dir }}/workflows:/app/ci/woodpecker-config-service/workflows:ro"
-            env:
-              PORT: "{{ container_port }}"
-              LOG_LEVEL: "debug"
-              NODE_ENV: "production"
-              WOODPECKER_GITHUB_TOKEN: "{{ config_service_github_api_token }}"
-              CONFIG_SERVICE_PUBLIC_KEY_FILE: "public-key.pem"
+        - name: Additional pause to ensure cleanup
+          ansible.builtin.pause:
+            seconds: 2
+
+        - name: Start {{ app_name }}
+          ansible.builtin.command:
+            cmd: docker compose up -d
+            chdir: "{{ app_dir }}"
+          changed_when: true
 
         - name: Wait a moment for container to start
           ansible.builtin.pause:
@@ -115,7 +140,8 @@
 
         - name: Show startup logs
           ansible.builtin.command:
-            cmd: docker logs {{ app_name }} --tail=30
+            cmd: docker compose logs --tail=30
+            chdir: "{{ app_dir }}"
           register: startup_logs
           changed_when: false
 
@@ -131,18 +157,18 @@
             timeout: 60
           ignore_errors: true
 
-        - name: Get container info
-          community.docker.docker_container_info:
-            name: "{{ app_name }}"
-          register: container_info
+        # No need to modify the key inside the container; it's provided via read-only volume
 
-        - name: Display container status
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
           ansible.builtin.debug:
-            msg:
-              - "Container: {{ app_name }}"
-              - "Status: {{ container_info.container.State.Status }}"
-              - "Running: {{ container_info.container.State.Running }}"
-              - "Image: {{ container_info.container.Config.Image }}"
+            var: compose_ps.stdout_lines
 
         - name: Show access info
           ansible.builtin.debug:
@@ -157,14 +183,16 @@
               - "  Env: {{ app_dir }}/.env"
               - ""
               - "📊 View Logs:"
-              - "  ansible-playbook playbooks/woodpecker-config-service/manage.yml -e 'action=logs'"
+              - "  ansible-playbook wp-config-service-logs.yml"
+              - "  ansible-playbook wp-config-service-logs.yml -e 'follow=true'"
+              - "  ansible-playbook wp-config-service-manage.yml -e 'action=logs'"
               - ""
               - "🔧 Manage Service:"
-              - "  ansible-playbook playbooks/woodpecker-config-service/manage.yml -e 'action=restart'"
-              - "  ansible-playbook playbooks/woodpecker-config-service/manage.yml -e 'action=status'"
+              - "  ansible-playbook wp-config-service-manage.yml -e 'action=restart'"
+              - "  ansible-playbook wp-config-service-manage.yml -e 'action=status'"
               - ""
               - "🧹 Cleanup Port:"
-              - "  ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
+              - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
 
       rescue:
         - name: Show error details
@@ -175,23 +203,23 @@
               - ""
               - "Attempting to show current state..."
 
-        - name: Get container info on error
-          community.docker.docker_container_info:
-            name: "{{ app_name }}"
-          register: error_container_info
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: error_compose_ps
+          changed_when: false
           ignore_errors: true
 
         - name: Display error container status
           ansible.builtin.debug:
-            msg:
-              - "Container: {{ app_name }}"
-              - "Status: {{ error_container_info.container.State.Status | default('Not found') }}"
-              - "Running: {{ error_container_info.container.State.Running | default(false) }}"
-          when: error_container_info is defined
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
 
         - name: Show container logs on error
           ansible.builtin.command:
-            cmd: docker logs {{ app_name }} --tail=50
+            cmd: docker compose logs --tail=50
+            chdir: "{{ app_dir }}"
           register: error_logs
           changed_when: false
           ignore_errors: true
@@ -205,9 +233,9 @@
           ansible.builtin.debug:
             msg:
               - "💡 Recovery options:"
-              - "  • Retry: ansible-playbook playbooks/woodpecker-config-service/deploy.yml"
-              - "  • Check logs: ssh {{ ansible_host }} 'docker logs {{ app_name }}'"
-              - "  • Stop container: ssh {{ ansible_host }} 'docker stop {{ app_name }}'"
+              - "  • Retry: ansible-playbook wp-config-service-install.yml"
+              - "  • Clean port: ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
               - "  • Clean install: ssh {{ ansible_host }} 'rm -rf {{ app_dir }}'"
 
         - name: Fail with message

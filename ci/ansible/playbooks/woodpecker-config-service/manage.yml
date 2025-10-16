@@ -8,8 +8,8 @@
 
   vars:
     # Application configuration
-    app_name: config-service
-    app_dir: /opt/config-service
+    app_name: woodpecker-config-service
+    app_dir: /opt/woodpecker-config-service
 
     # Action parameters
     action: status  # Default action

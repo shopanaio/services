@@ -1,4 +1,5 @@
 import { build } from "esbuild";
+import { readdirSync } from "fs";
 
 const externalDeps = [
   "express",
@@ -21,9 +22,30 @@ const mainOptions = {
   external: externalDeps,
 };
 
+// Find all workflow files
+const workflowFiles = readdirSync("workflows")
+  .filter((file) => file.endsWith(".ts"))
+  .map((file) => `workflows/${file}`);
+
+// Build each workflow separately
+const workflowOptions = {
+  entryPoints: workflowFiles,
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  outdir: "dist/workflows",
+  outbase: "workflows",
+  external: externalDeps,
+};
+
 try {
   await build(mainOptions);
-  console.log("🎉 Build completed successfully");
+  console.log("Main build succeeded");
+
+  await build(workflowOptions);
+  console.log("Workflows build succeeded");
+
+  console.log("Build completed successfully");
 } catch (error) {
   console.error("Build failed");
   console.error(error);

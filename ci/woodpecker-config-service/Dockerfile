@@ -1,5 +1,5 @@
 # Build context must be the monorepo root: /Users/phl/Projects/shopana-io/services/
-# Run: docker build --platform linux/amd64 -t config-service:local -f ci/woodpecker-config-service/Dockerfile .
+# Run: docker build --platform linux/amd64 -t woodpecker-config-service:local -f ci/woodpecker-config-service/Dockerfile .
 #
 # Builder stage
 FROM node:22 AS builder
@@ -33,6 +33,8 @@ WORKDIR /app
 COPY --from=builder /app/package.json /app/yarn.lock ./
 COPY --from=builder /app/packages/woodpecker-ci-config-service/package.json ./packages/woodpecker-ci-config-service/
 COPY --from=builder /app/ci/woodpecker-config-service/package.json ./ci/woodpecker-config-service/
+# Copy workflows to the expected location
+COPY --from=builder /app/ci/woodpecker-config-service/dist/workflows ./ci/woodpecker-config-service/workflows
 
 # Install only production dependencies
 RUN yarn install --frozen-lockfile --production
