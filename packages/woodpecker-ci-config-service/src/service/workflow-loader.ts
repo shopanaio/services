@@ -17,8 +17,7 @@ export class WorkflowScriptLoader implements WorkflowLoader {
    *
    * @param workflowsDir - Directory to search for workflow scripts. Can be relative or absolute path.
    */
-  constructor(workflowsDir = WorkflowScriptLoader.DEFAULT_WORKFLOWS_DIR) {
-    this.workflowsDir = path.isAbsolute(workflowsDir)
+  constructor(workflowsDir = WorkflowScriptLoader.DEFAULT_WORKFLOWS_DIR) { this.workflowsDir = path.isAbsolute(workflowsDir)
       ? workflowsDir
       : path.join(process.cwd(), workflowsDir);
   }

@@ -1,12 +1,12 @@
 # Manage Woodpecker CI
-# ansible-playbook manage-woodpecker.yml -e "action=start"
-# ansible-playbook manage-woodpecker.yml -e "action=stop"
-# ansible-playbook manage-woodpecker.yml -e "action=restart"
-# ansible-playbook manage-woodpecker.yml -e "action=status"
-# ansible-playbook manage-woodpecker.yml -e "action=logs"
-# ansible-playbook manage-woodpecker.yml -e "action=version"
-# ansible-playbook manage-woodpecker.yml -e "action=upgrade"
-# ansible-playbook manage-woodpecker.yml -e "action=diagnose"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=start"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=stop"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=restart"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=status"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=logs"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=version"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=upgrade"
+# ansible-playbook playbooks/woodpecker-ci/manage.yml -e "action=diagnose"
 ---
 - name: Manage Woodpecker CI
   hosts: shopana
@@ -25,7 +25,7 @@
 
     - name: Fail if Woodpecker is not installed
       ansible.builtin.fail:
-        msg: "Woodpecker is not installed at {{ woodpecker_dir }}. Run install-woodpecker.yml first."
+        msg: "Woodpecker is not installed at {{ woodpecker_dir }}. Run playbooks/woodpecker-ci/install.yml first."
       when: not compose_file.stat.exists
 
     - name: Start Woodpecker CI

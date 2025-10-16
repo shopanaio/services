@@ -1,4 +1,4 @@
-# ansible-playbook install-docker.yml
+# ansible-playbook playbooks/docker/docker-install.yml
 ---
 - name: Install Docker on remote host
   hosts: shopana

@@ -1,4 +1,4 @@
-# ansible-playbook install-woodpecker.yml
+# ansible-playbook playbooks/woodpecker-ci/install.yml
 #
 # This playbook installs Woodpecker CI server and agent on a remote host.
 #
@@ -8,7 +8,7 @@
 #
 # Environment variables can be provided via:
 # - ansible/.env file
-# - Command line: ansible-playbook -e "woodpecker_host=https://ci.example.com" install-woodpecker.yml
+# - Command line: ansible-playbook playbooks/woodpecker-ci/install.yml -e "woodpecker_host=https://ci.example.com"
 # - Shell environment: export WOODPECKER_HOST=https://ci.example.com
 ---
 - name: Install Woodpecker CI on remote host
@@ -231,6 +231,6 @@
           - "Data directory: {{ woodpecker_data_dir }}"
           - ""
           - "📋 For Config Service integration:"
-          - "Install config-service with: ansible-playbook install-config-service.yml"
+          - "Install config-service with: ansible-playbook playbooks/woodpecker-config-service/deploy.yml"
           - "Then in Woodpecker UI settings, set Config Service URL to:"
           - "  http://host.docker.internal:3300"

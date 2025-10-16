@@ -1,6 +1,6 @@
-# ansible-playbook cleanup-port.yml -e "cleanup_port=3300"
+# ansible-playbook playbooks/cleanup/cleanup-port.yml -e "cleanup_port=3300"
 # Or use default port 3300:
-# ansible-playbook cleanup-port.yml
+# ansible-playbook playbooks/cleanup/cleanup-port.yml
 ---
 - name: Cleanup containers using specific port
   hosts: shopana

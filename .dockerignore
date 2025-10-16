@@ -15,6 +15,7 @@
 # Misc
 **/.DS_Store
 **/*.pem
+!**/*/public-key.pem
 
 # Debug
 **/npm-debug.log*

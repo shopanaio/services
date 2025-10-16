@@ -2,7 +2,7 @@ import type {
   WorkflowScript,
   ScriptContext,
 } from "@shopana/woodpecker-ci-config-service";
-import { chunkArray, findSpecFiles } from "../src/utils/utils";
+import { chunkArray, findSpecFiles } from "../utils/utils";
 
 /**
  * Playwright tests pipeline script.

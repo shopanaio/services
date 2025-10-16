@@ -1,0 +1,106 @@
+# ansible-playbook playbooks/woodpecker-config-service/manage.yml -e "action=status"
+# Available actions: start|stop|restart|status|logs|logs-follow|upgrade
+---
+- name: Manage config-service
+  hosts: shopana
+  become: true
+  gather_facts: false
+
+  vars:
+    # Application configuration
+    app_name: config-service
+    app_dir: /opt/config-service
+
+    # Action parameters
+    action: status  # Default action
+    log_lines: 100  # Number of log lines to show
+
+  tasks:
+    - name: Check if container exists
+      community.docker.docker_container_info:
+        name: "{{ app_name }}"
+      register: container_check
+      ignore_errors: true
+
+    - name: Fail if not installed
+      ansible.builtin.fail:
+        msg: "{{ app_name }} container not found. Run playbooks/woodpecker-config-service/deploy.yml first."
+      when: not container_check.exists
+
+    - name: Start service
+      community.docker.docker_container:
+        name: "{{ app_name }}"
+        state: started
+      when: action == 'start'
+
+    - name: Stop service
+      community.docker.docker_container:
+        name: "{{ app_name }}"
+        state: stopped
+      when: action == 'stop'
+
+    - name: Restart service
+      community.docker.docker_container:
+        name: "{{ app_name }}"
+        state: started
+        restart: true
+      when: action == 'restart'
+
+    - name: Get current container image
+      community.docker.docker_container_info:
+        name: "{{ app_name }}"
+      register: current_container
+      when: action == 'upgrade'
+
+    - name: Pull latest image
+      community.docker.docker_image:
+        name: "{{ current_container.container.Config.Image }}"
+        source: pull
+        force_source: true
+      when: action == 'upgrade'
+
+    - name: Recreate container with new image
+      community.docker.docker_container:
+        name: "{{ app_name }}"
+        state: started
+        recreate: true
+      when: action == 'upgrade'
+
+    - name: Get container info
+      community.docker.docker_container_info:
+        name: "{{ app_name }}"
+      register: container_info
+      when: action in ['status','start','restart','upgrade']
+
+    - name: Display status
+      ansible.builtin.debug:
+        msg:
+          - "Container: {{ app_name }}"
+          - "Status: {{ container_info.container.State.Status }}"
+          - "Running: {{ container_info.container.State.Running }}"
+          - "Image: {{ container_info.container.Config.Image }}"
+          - "Started: {{ container_info.container.State.StartedAt }}"
+      when: action in ['status','start','restart','upgrade']
+
+    - name: Show logs
+      ansible.builtin.command:
+        cmd: docker logs {{ app_name }} --tail={{ log_lines }}
+      register: logs_output
+      changed_when: false
+      when: action == 'logs'
+
+    - name: Display logs
+      ansible.builtin.debug:
+        var: logs_output.stdout_lines
+      when: action == 'logs'
+
+    - name: Follow logs (press Ctrl+C to exit)
+      ansible.builtin.command:
+        cmd: docker logs {{ app_name }} --tail={{ log_lines }} --follow
+      changed_when: false
+      when: action == 'logs-follow'
+
+    - name: Done
+      ansible.builtin.debug:
+        msg: "✅ Action '{{ action }}' completed successfully for {{ app_name }}"
+      when: action != 'logs-follow'

@@ -1,7 +1,7 @@
 # Update Woodpecker CI configuration and restart
-# ansible-playbook update-woodpecker-config.yml
+# ansible-playbook playbooks/woodpecker-ci/update-config.yml
 # or with extra vars:
-# ansible-playbook update-woodpecker-config.yml -e "woodpecker_host=https://ci.example.com" -e "woodpecker_admin=username"
+# ansible-playbook playbooks/woodpecker-ci/update-config.yml -e "woodpecker_host=https://ci.example.com" -e "woodpecker_admin=username"
 ---
 - name: Update Woodpecker CI configuration
   hosts: shopana
@@ -26,7 +26,7 @@
 
     - name: Fail if Woodpecker is not installed
       ansible.builtin.fail:
-        msg: "Woodpecker is not installed at {{ woodpecker_dir }}. Run install-woodpecker.yml first."
+        msg: "Woodpecker is not installed at {{ woodpecker_dir }}. Run playbooks/woodpecker-ci/install.yml first."
       when: not compose_file.stat.exists
 
     - name: Check if .env file exists
@@ -155,5 +155,5 @@
           - "Backup created: {{ woodpecker_dir }}/.env.backup.{{ ansible_date_time.epoch }}"
           - "Configuration file: {{ woodpecker_dir }}/.env"
           - ""
-          - "To view logs: ansible-playbook manage-woodpecker.yml -e 'action=logs'"
-          - "To check status: ansible-playbook manage-woodpecker.yml -e 'action=status'"
+          - "To view logs: ansible-playbook playbooks/woodpecker-ci/manage.yml -e 'action=logs'"
+          - "To check status: ansible-playbook playbooks/woodpecker-ci/manage.yml -e 'action=status'"

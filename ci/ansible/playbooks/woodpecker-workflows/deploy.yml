@@ -1,0 +1,132 @@
+# ansible-playbook playbooks/woodpecker-workflows/deploy.yml
+---
+- name: Deploy woodpecker workflows on remote host
+  hosts: shopana
+  become: true
+  gather_facts: true
+
+  vars:
+    # Application configuration
+    app_name: woodpecker-workflows
+    workflows_dir: /opt/config-service/workflows
+
+    # GHCR configuration
+    shopana_ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+    shopana_github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+    workflows_image_tag: "{{ lookup('env', 'WOODPECKER_WORKFLOWS_IMAGE_TAG') | default('latest', true) }}"
+    workflows_image_name: "ghcr.io/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ workflows_image_tag }}"
+
+  tasks:
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_github_token is defined and shopana_github_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
+          via environment or -e "VAR=...".
+        success_msg: "All required variables are present"
+
+    - name: Deployment block with error handling
+      block:
+        - name: Show deployment information
+          ansible.builtin.debug:
+            msg:
+              - "🚀 Deploying {{ app_name }}"
+              - "  Image: {{ workflows_image_name }}"
+              - "  Target directory: {{ workflows_dir }}"
+
+        - name: Ensure workflows directory exists on remote host
+          ansible.builtin.file:
+            path: "{{ workflows_dir }}"
+            state: directory
+            mode: "0755"
+
+        - name: Login to GitHub Container Registry
+          community.docker.docker_login:
+            registry: ghcr.io
+            username: "{{ shopana_ghcr_owner }}"
+            password: "{{ shopana_github_token }}"
+          no_log: true
+
+        - name: Pull workflows image from GHCR
+          community.docker.docker_image:
+            name: "{{ workflows_image_name }}"
+            source: pull
+            force_source: true
+
+        - name: Remove old workflows
+          ansible.builtin.file:
+            path: "{{ workflows_dir }}"
+            state: absent
+
+        - name: Recreate workflows directory
+          ansible.builtin.file:
+            path: "{{ workflows_dir }}"
+            state: directory
+            mode: "0755"
+
+        - name: Create temporary container to extract workflows
+          community.docker.docker_container:
+            name: "workflows-extractor"
+            image: "{{ workflows_image_name }}"
+            state: present
+            command: "true"
+          register: extractor_container
+
+        - name: Copy workflows from container
+          ansible.builtin.command:
+            cmd: docker cp workflows-extractor:/workflows/. {{ workflows_dir }}/
+          changed_when: true
+
+        - name: Remove temporary container
+          community.docker.docker_container:
+            name: "workflows-extractor"
+            state: absent
+
+        - name: List deployed workflows
+          ansible.builtin.find:
+            paths: "{{ workflows_dir }}"
+            patterns: "*.js"
+          register: workflow_files
+
+        - name: Show deployed workflows
+          ansible.builtin.debug:
+            msg:
+              - "✅ Workflows deployed successfully"
+              - ""
+              - "📁 Workflows directory: {{ workflows_dir }}"
+              - "📄 Deployed workflows ({{ workflow_files.matched }} files):"
+              - "{{ workflow_files.files | map(attribute='path') | map('basename') | list }}"
+              - ""
+              - "🔄 Config service will use these workflows automatically"
+              - ""
+              - "💡 To update workflows:"
+              - "  1. Build new image: ansible-playbook playbooks/woodpecker-workflows/build.yml"
+              - "  2. Deploy: ansible-playbook playbooks/woodpecker-workflows/deploy.yml"
+              - ""
+              - "🔧 To restart config service:"
+              - "  ansible-playbook playbooks/woodpecker-config-service/manage.yml -e 'action=restart'"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Deployment failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+              - ""
+              - "💡 Recovery options:"
+              - "  • Check image exists: docker pull {{ workflows_image_name }}"
+              - "  • Verify SHOPANA_GITHUB_TOKEN has packages:read permission"
+              - "  • Ensure workflows directory is writable: {{ workflows_dir }}"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Deployment failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry
+          ansible.builtin.command:
+            cmd: docker logout ghcr.io
+          changed_when: false
+          ignore_errors: true

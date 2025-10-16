@@ -1,7 +1,7 @@
 # Build context must be the monorepo root: /Users/phl/Projects/shopana-io/services/
-# Run: docker build --platform linux/amd64 -t config-service:local -f ci/config-service/Dockerfile .
+# Run: docker build --platform linux/amd64 -t config-service:local -f ci/woodpecker-config-service/Dockerfile .
 #
-# 1) Build stage (monorepo-aware)
+# Builder stage
 FROM node:22 AS builder
 
 WORKDIR /app
@@ -11,43 +11,44 @@ COPY package.json yarn.lock ./
 
 # Pre-copy only package manifests to enable efficient install caching
 COPY packages/woodpecker-ci-config-service/package.json packages/woodpecker-ci-config-service/package.json
-COPY ci/config-service/package.json ci/config-service/package.json
+COPY ci/woodpecker-config-service/package.json ci/woodpecker-config-service/package.json
 
 # Install all dependencies via Yarn workspaces
 RUN yarn install --frozen-lockfile
 
 # Copy package sources
 COPY packages/woodpecker-ci-config-service packages/woodpecker-ci-config-service
-COPY ci/config-service ci/config-service
+COPY ci/woodpecker-config-service ci/woodpecker-config-service
 
 # Build the service (bundles deps)
 RUN yarn workspace @shopana/woodpecker-ci-config-service build \
-  && yarn workspace @shopana/config-service build
+  && yarn workspace @shopana/woodpecker-config-service build
 
-# 2) Production stage
-FROM node:22
+# Runner stage
+FROM node:22 AS runner
 
 WORKDIR /app
 
 # Copy root manifests for production dependencies install
 COPY --from=builder /app/package.json /app/yarn.lock ./
 COPY --from=builder /app/packages/woodpecker-ci-config-service/package.json ./packages/woodpecker-ci-config-service/
-COPY --from=builder /app/ci/config-service/package.json ./ci/config-service/
+COPY --from=builder /app/ci/woodpecker-config-service/package.json ./ci/woodpecker-config-service/
 
 # Install only production dependencies
 RUN yarn install --frozen-lockfile --production
 
 # Copy compiled output from the builder stage
-COPY --from=builder /app/ci/config-service/dist ./ci/config-service/dist
+COPY --from=builder /app/ci/woodpecker-config-service/dist ./ci/woodpecker-config-service/dist
 COPY --from=builder /app/packages/woodpecker-ci-config-service/dist ./packages/woodpecker-ci-config-service/dist
 
-# Copy workflows to the expected location
-COPY --from=builder /app/ci/config-service/dist/workflows ./ci/config-service/workflows
+# Copy public key for signature verification
+COPY --from=builder /app/ci/woodpecker-config-service/public-key.pem ./ci/woodpecker-config-service/public-key.pem
+
 
 # Set production environment
 ENV NODE_ENV=production
 
-WORKDIR /app/ci/config-service
+WORKDIR /app/ci/woodpecker-config-service
 
 # Expose application port
 EXPOSE 3000
