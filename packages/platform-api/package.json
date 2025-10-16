@@ -18,9 +18,9 @@
     "graphql-request": "^7.1.0"
   },
   "devDependencies": {
-    "rimraf": "^5.0.0",
-    "typescript": "^5.5.4",
     "@graphql-codegen/cli": "^5.0.2",
-    "@graphql-codegen/typescript": "^4.0.8"
+    "@graphql-codegen/typescript": "^4.0.8",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.5.4"
   }
 }

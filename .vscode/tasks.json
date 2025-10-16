@@ -5,6 +5,7 @@
       "label": "Start All Dev Services",
       "dependsOrder": "parallel",
       "dependsOn": [
+        "Start Core Service",
         "Start Checkout Service",
         "Start Apps Service",
         "Start Inventory Service",
@@ -24,6 +25,27 @@
         "focus": false,
         "panel": "dedicated"
       }
+    },
+    {
+      "label": "Start Core Service",
+      "type": "shell",
+      "command": "cd platform && echo 'Starting Core Service...' && make start",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "isBackground": true,
+      "problemMatcher": []
     },
     {
       "label": "Start Checkout Service",

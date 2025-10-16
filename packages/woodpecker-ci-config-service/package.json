@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "Framework for building Woodpecker CI configuration services and workflow management",
   "license": "Apache-2.0",
-  "private": false,
   "type": "module",
   "author": "Shopana.io",
   "homepage": "https://github.com/shopanaio/services/tree/main/packages/woodpecker-ci-config-service",

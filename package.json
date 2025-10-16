@@ -8,5 +8,6 @@
     "packages/*",
     "services/*",
     "ci/*"
-  ]
+  ],
+  "packageManager": "yarn@4.10.3"
 }

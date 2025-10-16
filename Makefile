@@ -4,10 +4,10 @@
 .PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-platform docker\:build-apps
 
 apollo\:storefront:
-	docker-compose -f docker-compose.apollo-storefront.yml up --build
+	docker-compose -f apollo/docker-compose.storefront.yml up --build
 
 apollo\:admin:
-	docker-compose -f docker-compose.apollo-admin.yml up --build
+	docker-compose -f apollo/docker-compose.admin.yml up --build
 
 build\:packages:
 	@echo "Building all packages dynamically..."

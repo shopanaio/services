@@ -16,14 +16,14 @@
   "dependencies": {
     "@shopana/inventory-plugin-shopana": "*",
     "@shopana/plugin-sdk": "*",
+    "@shopana/shared-kernel": "*",
     "dotenv": "^16.4.5",
     "moleculer": "^0.14.35",
     "moleculer-repl": "^0.7.4",
     "nats": "^2.29.3",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
-    "zod": "^3.23.8",
-    "@shopana/shared-kernel": "*"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.14.14",

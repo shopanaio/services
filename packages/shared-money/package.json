@@ -12,10 +12,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "decimal.js": "^10.4.3",
-    "@dinero.js/core": "^2.0.0-alpha.14",
     "@dinero.js/calculator-bigint": "^2.0.0-alpha.2",
-    "@dinero.js/currencies": "^2.0.0-alpha.14"
+    "@dinero.js/core": "^2.0.0-alpha.14",
+    "@dinero.js/currencies": "^2.0.0-alpha.14",
+    "decimal.js": "^10.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

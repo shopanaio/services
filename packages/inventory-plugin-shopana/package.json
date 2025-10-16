@@ -1,7 +1,6 @@
 {
   "name": "@shopana/inventory-plugin-shopana",
   "version": "0.0.1",
-  "private": false,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,8 +26,8 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/plugin-sdk": "*",
     "@shopana/platform-api": "*",
+    "@shopana/plugin-sdk": "*",
     "graphql-request": "^6.1.0",
     "zod": "^3.23.8"
   },

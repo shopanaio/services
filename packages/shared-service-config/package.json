@@ -16,7 +16,11 @@
     "dev": "tsc -w",
     "test": "jest --passWithNoTests"
   },
-  "keywords": ["shopana", "config", "microservices"],
+  "keywords": [
+    "shopana",
+    "config",
+    "microservices"
+  ],
   "dependencies": {
     "js-yaml": "^4.1.0"
   },

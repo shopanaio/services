@@ -1,7 +1,6 @@
 {
   "name": "@shopana/shared-service-api",
   "version": "0.1.0",
-  "private": false,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

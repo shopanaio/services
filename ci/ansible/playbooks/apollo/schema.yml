@@ -7,8 +7,8 @@
   gather_facts: false
 
   vars:
-    # Path to the rover image we built
-    rover_image: "shopana/apollo-rover:latest"
+    # Path to the rover image we built (use 'local' tag for local development)
+    rover_image: "shopana/apollo-rover:{{ lookup('env', 'APOLLO_ROVER_TAG') | default('local', true) }}"
 
     # Admin API config
     admin_api_config_path: "{{ playbook_dir }}/../../../../apollo/admin-api/supergraph.yaml"
@@ -36,6 +36,7 @@
       ansible.builtin.command:
         cmd: >
           docker run --rm
+          -e APOLLO_ELV2_LICENSE=accept
           -v "{{ admin_api_config_path }}:/workspace/supergraph.yaml"
           -v "{{ admin_api_output_path | dirname }}:/workspace/output"
           {{ rover_image }}
@@ -55,6 +56,7 @@
       ansible.builtin.command:
         cmd: >
           docker run --rm
+          -e APOLLO_ELV2_LICENSE=accept
           -v "{{ storefront_api_config_path }}:/workspace/supergraph.yaml"
           -v "{{ storefront_api_output_path | dirname }}:/workspace/output"
           {{ rover_image }}

@@ -8,7 +8,11 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
-  "keywords": ["kernel", "microkernel", "transaction-script"],
+  "keywords": [
+    "kernel",
+    "microkernel",
+    "transaction-script"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

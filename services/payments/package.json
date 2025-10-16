@@ -10,8 +10,8 @@
     "start": "node dist/src/index.js"
   },
   "dependencies": {
-    "@shopana/shared-kernel": "*",
     "@shopana/plugin-sdk": "*",
+    "@shopana/shared-kernel": "*",
     "dotenv": "^16.4.5",
     "moleculer": "^0.14.35",
     "moleculer-repl": "^0.7.4",

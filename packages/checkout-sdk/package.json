@@ -1,7 +1,6 @@
 {
   "name": "@shopana/checkout-sdk",
   "version": "0.0.1",
-  "private": false,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,8 +22,8 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
-    "@shopana/shared-money": "*",
-    "@shopana/plugin-sdk": "*"
+    "@shopana/plugin-sdk": "*",
+    "@shopana/shared-money": "*"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.10",

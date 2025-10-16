@@ -36,13 +36,13 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@shopana/shared-money": "workspace:*",
     "bottleneck": "^2.19.5",
     "cockatiel": "^3.2.1",
     "got": "^14.4.8",
     "semver": "^7.7.2",
     "zod": "^3.23.8"
   },
-  "peerDependencies": {},
   "devDependencies": {
     "@types/semver": "^7.7.1",
     "rimraf": "^5.0.0",
