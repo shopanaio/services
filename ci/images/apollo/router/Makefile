@@ -1,6 +1,6 @@
 IMAGE ?= shopana/apollo-router
 TAG ?= latest
-PLATFORMS ?= linux/amd64,linux/arm64
+PLATFORMS ?= linux/amd64
 ROUTER_RELEASE ?= latest
 
 .PHONY: build

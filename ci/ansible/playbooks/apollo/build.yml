@@ -1,0 +1,110 @@
+# ansible-playbook playbooks/apollo/build.yml
+---
+- name: Build and push apollo images to GitHub Container Registry
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars:
+    # GHCR configuration
+    ghcr_registry: ghcr.io
+    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+
+    # Rover configuration
+    rover_app_name: apollo-rover
+    rover_image_tag: "{{ lookup('env', 'APOLLO_ROVER_IMAGE_TAG') | default('latest', true) }}"
+    rover_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ rover_app_name }}:{{ rover_image_tag }}"
+    rover_build_context: "ci/images/apollo/rover"
+
+    # Router configuration
+    router_app_name: apollo-router
+    router_image_tag: "{{ lookup('env', 'APOLLO_ROUTER_IMAGE_TAG') | default('latest', true) }}"
+    router_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ router_app_name }}:{{ router_image_tag }}"
+    router_build_context: "ci/images/apollo/router"
+
+    # Authentication
+    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+
+    # Build configuration
+    platform: linux/amd64
+    local_build_dir: "{{ playbook_dir }}/../../../../"
+
+  tasks:
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - ghcr_owner is defined and ghcr_owner | length > 0
+          - github_token is defined and github_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN.
+        success_msg: "All required variables are present"
+
+    - name: Build and push block with error handling
+      block:
+        - name: Login to GitHub Container Registry
+          ansible.builtin.command:
+            cmd: echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+          no_log: true
+          changed_when: true
+
+        - name: Build apollo-rover image
+          ansible.builtin.command:
+            cmd: >
+              docker build
+              --platform {{ platform }}
+              -t {{ rover_image_name }}
+              {{ rover_build_context }}
+            chdir: "{{ local_build_dir }}"
+          changed_when: true
+
+        - name: Login and push apollo-rover image
+          ansible.builtin.shell: |
+            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            docker push {{ rover_image_name }}
+          no_log: true
+          changed_when: true
+
+        - name: Build apollo-router image
+          ansible.builtin.command:
+            cmd: >
+              docker build
+              --platform {{ platform }}
+              -t {{ router_image_name }}
+              {{ router_build_context }}
+            chdir: "{{ local_build_dir }}"
+          changed_when: true
+
+        - name: Login and push apollo-router image
+          ansible.builtin.shell: |
+            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            docker push {{ router_image_name }}
+          no_log: true
+          changed_when: true
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Apollo images built and pushed successfully"
+              - "📦 Rover Image: {{ rover_image_name }}"
+              - "📦 Router Image: {{ router_image_name }}"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Build or push failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Build and push failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry
+          ansible.builtin.command:
+            cmd: docker logout {{ ghcr_registry }}
+          changed_when: false
+          ignore_errors: true

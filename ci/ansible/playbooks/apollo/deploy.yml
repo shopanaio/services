@@ -1,0 +1,74 @@
+# ansible-playbook playbooks/apollo/deploy.yml -i your_inventory_file --limit your_apollo_hosts
+---
+- name: Deploy Apollo Router services
+  hosts: all # Specify your target hosts in the inventory
+  become: true
+
+  vars:
+    # Source directory for deployment artifacts
+    local_source_dir: "{{ lookup('pipe', 'git rev-parse --show-toplevel') }}/ci/images/apollo/runtime"
+
+    # Remote deployment configuration
+    remote_deploy_dir: "/opt/shopana/apollo-router"
+
+    # GHCR configuration for pulling images
+    ghcr_registry: ghcr.io
+    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+
+  tasks:
+    - name: Ensure required variables are provided
+      ansible.builtin.assert:
+        that:
+          - ghcr_owner is defined and ghcr_owner | length > 0
+          - github_token is defined and github_token | length > 0
+        fail_msg: "Please provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN as environment variables."
+      run_once: true
+      delegate_to: localhost
+
+    - name: Create remote deployment directory
+      ansible.builtin.file:
+        path: "{{ remote_deploy_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy deployment artifacts to remote server
+      ansible.builtin.copy:
+        src: "{{ local_source_dir }}/{{ item }}"
+        dest: "{{ remote_deploy_dir }}/{{ item }}"
+        mode: '0644'
+      loop:
+        - docker-compose.yml
+        - router-admin.yaml
+        - router-storefront.yaml
+        - supergraph-admin.graphql
+        - supergraph-storefront.graphql
+
+    - name: Deploy block with login/logout
+      block:
+        - name: Login to GitHub Container Registry on the remote server
+          community.docker.docker_login:
+            registry: "{{ ghcr_registry }}"
+            username: "{{ ghcr_owner }}"
+            password: "{{ github_token }}"
+          no_log: true
+
+        - name: Pull the latest images and start services with Docker Compose
+          community.docker.docker_compose_v2:
+            project_src: "{{ remote_deploy_dir }}"
+            pull: always
+            state: present
+            recreate: always # Ensures containers are recreated with the new image/config
+
+      always:
+        - name: Logout from GitHub Container Registry on the remote server
+          ansible.builtin.command:
+            cmd: "docker logout {{ ghcr_registry }}"
+          changed_when: false
+          ignore_errors: true
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg: "✅ Apollo Router services deployed successfully to {{ inventory_hostname }}"
+      run_once: true
+      delegate_to: localhost

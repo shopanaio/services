@@ -17,3 +17,7 @@ coverage/
 
 # CI/CD local test repositories
 ci/dev/repo/
+
+# Apollo GraphQL generated schemas
+**/supergraph-*.graphql
+**/supergraph.graphql

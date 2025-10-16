@@ -1,6 +1,6 @@
 IMAGE ?= shopana/apollo-rover
 TAG ?= latest
-PLATFORMS ?= linux/amd64,linux/arm64
+PLATFORMS ?= linux/amd64
 
 .PHONY: build
 

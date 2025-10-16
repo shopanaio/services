@@ -1,0 +1,78 @@
+# ansible-playbook playbooks/apollo/schema.yml
+---
+- name: Compose Apollo supergraph schemas
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars:
+    # Path to the rover image we built
+    rover_image: "shopana/apollo-rover:latest"
+
+    # Admin API config
+    admin_api_config_path: "{{ playbook_dir }}/../../../../apollo/admin-api/supergraph.yaml"
+    admin_api_output_path: "{{ playbook_dir }}/../../images/apollo/runtime/supergraph-admin.graphql"
+
+    # Storefront API config
+    storefront_api_config_path: "{{ playbook_dir }}/../../../../apollo/storefront-api/supergraph.yaml"
+    storefront_api_output_path: "{{ playbook_dir }}/../../images/apollo/runtime/supergraph-storefront.graphql"
+
+  tasks:
+    - name: Ensure Rover image exists locally
+      community.docker.docker_image_info:
+        name: "{{ rover_image }}"
+      register: rover_image_check
+
+    - name: Fail if rover image is not found
+      ansible.builtin.fail:
+        msg: >
+          Docker image '{{ rover_image }}' not found.
+          Please build it first by running:
+          ansible-playbook ci/ansible/playbooks/apollo/build.yml
+      when: not rover_image_check.images
+
+    - name: Compose Admin API supergraph
+      ansible.builtin.command:
+        cmd: >
+          docker run --rm
+          -v "{{ admin_api_config_path }}:/workspace/supergraph.yaml"
+          -v "{{ admin_api_output_path | dirname }}:/workspace/output"
+          {{ rover_image }}
+          supergraph compose
+          --config /workspace/supergraph.yaml
+      register: admin_compose_result
+      changed_when: true
+      failed_when: admin_compose_result.rc != 0
+
+    - name: Save Admin API supergraph to file
+      ansible.builtin.copy:
+        content: "{{ admin_compose_result.stdout }}"
+        dest: "{{ admin_api_output_path }}"
+      changed_when: true
+
+    - name: Compose Storefront API supergraph
+      ansible.builtin.command:
+        cmd: >
+          docker run --rm
+          -v "{{ storefront_api_config_path }}:/workspace/supergraph.yaml"
+          -v "{{ storefront_api_output_path | dirname }}:/workspace/output"
+          {{ rover_image }}
+          supergraph compose
+          --config /workspace/supergraph.yaml
+      register: storefront_compose_result
+      changed_when: true
+      failed_when: storefront_compose_result.rc != 0
+
+    - name: Save Storefront API supergraph to file
+      ansible.builtin.copy:
+        content: "{{ storefront_compose_result.stdout }}"
+        dest: "{{ storefront_api_output_path }}"
+      changed_when: true
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Supergraph schemas composed successfully:"
+          - "  - {{ admin_api_output_path }}"
+          - "  - {{ storefront_api_output_path }}"

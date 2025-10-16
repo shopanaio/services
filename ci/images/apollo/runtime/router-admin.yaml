@@ -2,6 +2,8 @@ supergraph:
   path: /api/admin/graphql/query
   introspection: true
   listen: 0.0.0.0:4000
+  watch:
+    - "/dist/schema/supergraph.graphql"
 
 homepage:
   enabled: true

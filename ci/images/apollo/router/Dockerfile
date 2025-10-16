@@ -48,9 +48,6 @@ RUN rm -rf /var/lib/apt/lists/*
 # Make directories for config and schema
 RUN mkdir config schema
 
-# Copy configuration for docker image
-COPY router.yaml config
-
 LABEL org.opencontainers.image.authors="Apollo Graph, Inc. ${REPO_URL}"
 LABEL org.opencontainers.image.source="${REPO_URL}"
 LABEL org.opencontainers.image.version="${BASE_VERSION}"
