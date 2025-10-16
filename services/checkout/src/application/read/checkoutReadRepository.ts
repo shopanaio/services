@@ -121,6 +121,10 @@ export type CheckoutDeliveryAddress = {
   countryCode: string;
   provinceCode: string | null;
   postalCode: string | null;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
@@ -261,6 +265,10 @@ export class CheckoutReadRepository {
           countryCode: address.country_code,
           provinceCode: address.province_code,
           postalCode: address.postal_code,
+          email: address.email,
+          firstName: address.first_name,
+          lastName: address.last_name,
+          phone: address.phone,
           metadata: address.metadata,
           createdAt: address.created_at,
           updatedAt: address.updated_at,

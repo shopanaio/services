@@ -1,4 +1,4 @@
-import { WorkflowScript, ScriptContext, GeneratedConfig } from "./interface";
+import { WorkflowScript, WorkflowContext, GeneratedConfig } from "./interface";
 
 export class WorkflowRegistry {
   private readonly scripts: WorkflowScript[] = [];
@@ -7,7 +7,7 @@ export class WorkflowRegistry {
     this.scripts.push(script);
   }
 
-  async buildWorkflows(context: ScriptContext): Promise<GeneratedConfig[]> {
+  async buildWorkflows(context: WorkflowContext): Promise<GeneratedConfig[]> {
     const results = await Promise.all(
       this.scripts.map(async (script) => {
         if (await script.supports(context)) {

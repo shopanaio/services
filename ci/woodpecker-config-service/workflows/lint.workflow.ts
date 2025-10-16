@@ -17,8 +17,16 @@ export default class LintWorkflow implements WorkflowScript {
     return true;
   }
 
-  async build(_ctx: ScriptContext): Promise<GeneratedConfig[]> {
+  async build(ctx: ScriptContext): Promise<GeneratedConfig[]> {
+    // Scripts can now access env and metadata set by hooks!
+    const isMainBranch = ctx.metadata.isMainBranch as boolean;
+
     const workflow: WorkflowYaml = {
+      // Can use env variables from hooks
+      variables: {
+        REPO_NAME: ctx.env.REPO_NAME || ctx.repo.name,
+        IS_MAIN: String(isMainBranch),
+      },
       steps: [
         {
           name: "lint-and-type-check",

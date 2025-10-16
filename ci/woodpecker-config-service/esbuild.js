@@ -38,12 +38,31 @@ const workflowOptions = {
   external: externalDeps,
 };
 
+// Find all hook files
+const hookFiles = readdirSync("hooks")
+  .filter((file) => file.endsWith(".ts"))
+  .map((file) => `hooks/${file}`);
+
+// Build each hook separately
+const hookOptions = {
+  entryPoints: hookFiles,
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  outdir: "dist/hooks",
+  outbase: "hooks",
+  external: externalDeps,
+};
+
 try {
   await build(mainOptions);
   console.log("Main build succeeded");
 
   await build(workflowOptions);
   console.log("Workflows build succeeded");
+
+  await build(hookOptions);
+  console.log("Hooks build succeeded");
 
   console.log("Build completed successfully");
 } catch (error) {

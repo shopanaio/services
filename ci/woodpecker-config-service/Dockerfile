@@ -33,8 +33,9 @@ WORKDIR /app
 COPY --from=builder /app/package.json /app/yarn.lock ./
 COPY --from=builder /app/packages/woodpecker-ci-config-service/package.json ./packages/woodpecker-ci-config-service/
 COPY --from=builder /app/ci/woodpecker-config-service/package.json ./ci/woodpecker-config-service/
-# Copy workflows to the expected location
+# Copy workflows and hooks to the expected location
 COPY --from=builder /app/ci/woodpecker-config-service/dist/workflows ./ci/woodpecker-config-service/workflows
+COPY --from=builder /app/ci/woodpecker-config-service/dist/hooks ./ci/woodpecker-config-service/hooks
 
 # Install only production dependencies
 RUN yarn install --frozen-lockfile --production

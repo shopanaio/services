@@ -84,6 +84,7 @@ export class CheckoutLineItemsReadRepository {
       taxAmount: Money.fromMinor(row.tax_amount),
       totalAmount: Money.fromMinor(row.total_amount),
       metadata: row.metadata,
+      projectedVersion: 0n,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,

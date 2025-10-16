@@ -201,10 +201,10 @@ export type CheckoutDeliveryGroupAddressUpdatedPayload = Readonly<{
   deliveryGroupId: string;
   address: {
     id: string;
-    address1: string;
+    address1?: string | null;
     address2?: string | null;
-    city: string;
-    countryCode: string;
+    city?: string | null;
+    countryCode?: string | null;
     provinceCode?: string | null;
     postalCode?: string | null;
     firstName?: string | null;

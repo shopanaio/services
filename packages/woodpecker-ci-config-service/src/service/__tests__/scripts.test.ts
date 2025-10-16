@@ -70,6 +70,9 @@ describe('defineScript', () => {
       password: 'test-token',
       type: ForgeType.Github,
     },
+    env: {},
+    metadata: {},
+    errors: [],
   };
 
   it('should create workflow script with basic definition', () => {

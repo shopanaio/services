@@ -9,7 +9,7 @@ export function _coerceMoney(value: unknown): Money {
     "scale" in (value as any)
   ) {
     try {
-      return Money.fromJSON(value);
+      return Money.fromJSON(value as any);
     } catch {
       // fallthrough
     }

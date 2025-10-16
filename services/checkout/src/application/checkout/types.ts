@@ -95,10 +95,10 @@ export type CheckoutPaymentMethodUpdateInput = {
 
 export type CheckoutDeliveryAddressAddInput = {
   checkoutId: string;
-  address1: string;
+  address1?: string | null;
   address2?: string | null;
-  city: string;
-  countryCode: string;
+  city?: string | null;
+  countryCode?: string | null;
   provinceCode?: string | null;
   postalCode?: string | null;
   email?: string | null;
@@ -113,10 +113,10 @@ export type CheckoutDeliveryGroupAddressUpdateInput = {
   deliveryGroupId: string;
   address: {
     id: string;
-    address1: string;
+    address1?: string | null;
     address2?: string | null;
-    city: string;
-    countryCode: string;
+    city?: string | null;
+    countryCode?: string | null;
     provinceCode?: string | null;
     postalCode?: string | null;
     firstName?: string | null;
@@ -131,10 +131,10 @@ export type CheckoutDeliveryGroupAddressUpdateInput = {
 export type CheckoutDeliveryAddressUpdateInput = {
   checkoutId: string;
   addressId: string;
-  address1: string;
+  address1?: string | null;
   address2?: string | null;
-  city: string;
-  countryCode: string;
+  city?: string | null;
+  countryCode?: string | null;
   provinceCode?: string | null;
   postalCode?: string | null;
   email?: string | null;

@@ -70,6 +70,9 @@ describe('WorkflowRegistry', () => {
       password: 'test-token',
       type: ForgeType.Github,
     },
+    env: {},
+    metadata: {},
+    errors: [],
   };
 
   function createMockScript(

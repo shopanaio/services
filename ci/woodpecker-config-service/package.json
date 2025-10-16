@@ -12,7 +12,7 @@
     "pino-http": "^11.0.0"
   },
   "devDependencies": {
-    "@shopana/woodpecker-ci-config-service": "*",
+    "@shopana/woodpecker-ci-config-service": "workspace:*",
     "@types/express": "^5.0.1",
     "@types/glob": "^8.1.0",
     "@types/node": "^22.14.1",
