@@ -1,0 +1,43 @@
+---
+# Task file for building and pushing a single service
+# This file is included by build.yml for each service
+
+- name: "Show build info for {{ service.name }}"
+  ansible.builtin.debug:
+    msg:
+      - "🔨 Building {{ service.name }}-service"
+      - "  Tag: {{ service.image_tag }}"
+
+- name: "Build {{ service.name }}-service Docker image"
+  ansible.builtin.command:
+    cmd: >
+      docker build
+      --platform {{ platform }}
+      --build-arg SERVICE_NAME={{ service.name }}
+      --build-arg VERSION={{ service.image_tag }}
+      --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
+      --build-arg VCS_REF={{ lookup('pipe', 'git rev-parse --short HEAD 2>/dev/null || echo "unknown"') }}
+      -t {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}
+      -f {{ dockerfile_path }}
+      .
+    chdir: "{{ local_build_dir }}"
+  changed_when: true
+  register: build_result
+
+- name: "Show build result for {{ service.name }}"
+  ansible.builtin.debug:
+    msg: "✅ {{ service.name }}-service built successfully"
+
+- name: "Login and push {{ service.name }}-service image"
+  ansible.builtin.shell: |
+    echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+    docker push {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}
+  no_log: true
+  changed_when: true
+  register: push_result
+
+- name: "Show push result for {{ service.name }}"
+  ansible.builtin.debug:
+    msg:
+      - "✅ {{ service.name }}-service pushed successfully"
+      - "📦 Image: {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}"

@@ -173,5 +173,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Use tini as PID 1 for proper signal handling and zombie reaping
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# Run the service
-CMD ["node", "--enable-source-maps", "services/${SERVICE_NAME}/dist/src/index.js"]
+# Run the service (using shell form to allow variable substitution)
+CMD node --enable-source-maps services/${SERVICE_NAME}/dist/src/index.js

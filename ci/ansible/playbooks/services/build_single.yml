@@ -1,0 +1,150 @@
+# ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.0.0"
+---
+- name: Build and push single service image to GitHub Container Registry
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+
+  vars:
+    # GHCR configuration
+    ghcr_registry: ghcr.io
+    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+
+    # Build configuration
+    local_build_dir: "{{ playbook_dir }}/../../../.."
+    dockerfile_path: ci/images/services/Dockerfile
+    platform: linux/amd64
+
+    # Service configuration (must be provided via -e flag)
+    # service_name: checkout  # Example
+    # image_tag: latest       # Optional, defaults to 'latest'
+
+    # Image tag with fallback to env or default
+    final_image_tag: "{{ image_tag | default(lookup('env', service_name | upper + '_SERVICE_IMAGE_TAG') | default('latest', true), true) }}"
+
+    # Authentication
+    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+
+    # Valid service names
+    valid_services:
+      - apps
+      - checkout
+      - delivery
+      - inventory
+      - orders
+      - payments
+      - platform
+      - pricing
+
+  tasks:
+    - name: Validate service_name is provided
+      ansible.builtin.assert:
+        that:
+          - service_name is defined
+          - service_name | length > 0
+        fail_msg: >-
+          service_name is required. Usage:
+          ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
+        success_msg: "Service name provided: {{ service_name }}"
+
+    - name: Validate service_name is in valid list
+      ansible.builtin.assert:
+        that:
+          - service_name in valid_services
+        fail_msg: >-
+          Invalid service name: {{ service_name }}.
+          Valid services: {{ valid_services | join(', ') }}
+        success_msg: "Service name is valid"
+
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - ghcr_owner is defined and ghcr_owner | length > 0
+          - github_token is defined and github_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
+          via environment or -e "VAR=...".
+          Example: export SHOPANA_GHCR_OWNER=shopanaio SHOPANA_GITHUB_TOKEN=ghp_xxx
+        success_msg: "All required variables are present"
+
+    - name: Check if Docker is running
+      ansible.builtin.command:
+        cmd: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker is not running
+      ansible.builtin.fail:
+        msg: "Docker is not running locally. Please start Docker daemon."
+      when: docker_info.rc != 0
+
+    - name: Build and push block with error handling
+      block:
+        - name: Show build information
+          ansible.builtin.debug:
+            msg:
+              - "🔨 Building {{ service_name }}-service"
+              - "  Image: {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
+              - "  Platform: {{ platform }}"
+              - "  Dockerfile: {{ dockerfile_path }}"
+              - "🔐 Registry: {{ ghcr_registry }}/{{ ghcr_owner }}"
+
+        - name: Build Docker image
+          ansible.builtin.command:
+            cmd: >
+              docker build
+              --platform {{ platform }}
+              --build-arg SERVICE_NAME={{ service_name }}
+              --build-arg VERSION={{ final_image_tag }}
+              --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
+              --build-arg VCS_REF={{ lookup('pipe', 'git rev-parse --short HEAD 2>/dev/null || echo "unknown"') }}
+              -t {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
+              -f {{ dockerfile_path }}
+              .
+            chdir: "{{ local_build_dir }}"
+          changed_when: true
+
+        - name: Login and push image to GitHub Container Registry
+          ansible.builtin.shell: |
+            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            docker push {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
+          no_log: true
+          changed_when: true
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Image built and pushed successfully"
+              - ""
+              - "📦 Image: {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
+              - ""
+              - "🚀 To build another service:"
+              - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name=orders' -e 'image_tag={{ final_image_tag }}'"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Build or push failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+              - ""
+              - "💡 Common solutions:"
+              - "  • Ensure service builds locally: cd services/{{ service_name }} && yarn build"
+              - "  • Check SHOPANA_GITHUB_TOKEN has packages:write permission"
+              - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ ghcr_owner }}"
+              - "  • Ensure Docker daemon is running"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Build and push failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry
+          ansible.builtin.command:
+            cmd: docker logout {{ ghcr_registry }}
+          changed_when: false
+          ignore_errors: true
