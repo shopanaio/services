@@ -1,14 +1,14 @@
 federation_version: 2
 subgraphs:
-  core:
+  platform:
     routing_url: http://host.docker.internal:8000/api/client/graphql
     schema:
-      subgraph_url: http://host.docker.internal:8000/api/client/graphql
+      file: /schema/platform-storefront-api.graphql
   checkout:
     routing_url: http://host.docker.internal:10002/graphql
     schema:
-      subgraph_url: http://host.docker.internal:10002/graphql
+      file: /schema/checkout-storefront-api.graphql
   orders:
     routing_url: http://host.docker.internal:10003/graphql/storefront/v1
     schema:
-      subgraph_url: http://host.docker.internal:10003/graphql/storefront/v1
+      file: /schema/orders-storefront-api.graphql

@@ -10,6 +10,9 @@
     # Path to the rover image we built (use 'local' tag for local development)
     rover_image: "shopana/apollo-rover:local"
 
+    # Paths
+    schema_dir: "{{ playbook_dir }}/schema"
+
     # Admin API config
     admin_api_config_path: "{{ playbook_dir }}/../../../../apollo/admin-api/supergraph.yaml"
     admin_api_output_path: "{{ playbook_dir }}/../../images/apollo/runtime/supergraph-admin.graphql"
@@ -42,6 +45,7 @@
           docker run --rm
           -e APOLLO_ELV2_LICENSE=accept
           -v "{{ admin_api_config_path }}:/workspace/supergraph.yaml"
+          -v "{{ schema_dir }}:/schema"
           -v "{{ admin_api_output_path | dirname }}:/workspace/output"
           {{ rover_image }}
           supergraph compose
@@ -62,6 +66,7 @@
           docker run --rm
           -e APOLLO_ELV2_LICENSE=accept
           -v "{{ storefront_api_config_path }}:/workspace/supergraph.yaml"
+          -v "{{ schema_dir }}:/schema"
           -v "{{ storefront_api_output_path | dirname }}:/workspace/output"
           {{ rover_image }}
           supergraph compose

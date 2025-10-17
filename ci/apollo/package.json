@@ -1,0 +1,19 @@
+{
+  "name": "@shopana/apollo-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Apollo Federation schema export scripts",
+  "scripts": {
+    "build-schemas": "tsx scripts/build-schemas.js",
+    "build-schemas:local": "tsx scripts/build-schemas.js schema"
+  },
+  "dependencies": {
+    "@apollo/subgraph": "^2.9.3",
+    "glob": "^11.0.0",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

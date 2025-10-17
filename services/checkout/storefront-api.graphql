@@ -1,47 +1,14 @@
-directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
-
-directive @key(fields: federation__FieldSet!, resolvable: Boolean = true) on OBJECT | INTERFACE
-
-directive @requires(fields: federation__FieldSet!) on FIELD_DEFINITION
-
-directive @provides(fields: federation__FieldSet!) on FIELD_DEFINITION
-
-directive @external(reason: String) on OBJECT | FIELD_DEFINITION
-
-directive @federation__tag(name: String!) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
-
-directive @federation__extends on OBJECT | INTERFACE
-
-directive @shareable on OBJECT | FIELD_DEFINITION
-
-directive @inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
-
-directive @override(from: String!, label: String) on FIELD_DEFINITION
-
-directive @federation__composeDirective(name: String) on SCHEMA
-
-directive @federation__interfaceObject on OBJECT
-
-directive @federation__authenticated on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
-
-directive @federation__requiresScopes(scopes: [[federation__Scope!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
-
-directive @federation__policy(policies: [[federation__Policy!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@key", "@requires", "@provides", "@external", "@shareable", "@override", "@inaccessible"])
 
 scalar BigInt
 
 scalar DateTime
 
-"""
-Decimal represented as integer amount and scale internally; serialized as normalized string
-"""
 scalar Decimal
 
 scalar Email
 
-"""
-Advanced JSON scalar supporting BigInt, Date, Map, Set, RegExp, functions and other complex types
-"""
 scalar JSON
 
 interface Node {
@@ -50,10 +17,10 @@ interface Node {
 
 type Money {
   """The amount of money"""
-  amount: Decimal!
+  amount: Decimal! @shareable
 
   """The currency code"""
-  currencyCode: CurrencyCode!
+  currencyCode: CurrencyCode! @shareable
 }
 
 """All monetary calculations related to the checkout."""
@@ -98,7 +65,9 @@ type CheckoutCustomerIdentity {
 }
 
 """A checkout with multiple items."""
-type Checkout implements Node {
+type Checkout implements Node
+  @key(fields: "id")
+{
   """A globally-unique ID."""
   id: ID!
 
@@ -131,7 +100,9 @@ type Checkout implements Node {
 
   """Applied promo codes for the checkout."""
   appliedPromoCodes: [CheckoutPromoCode!]!
+}
 
+extend type Checkout {
   """Payment aggregate for this checkout."""
   payment: CheckoutPayment!
 }
@@ -153,7 +124,7 @@ input CheckoutCreateInput {
   currencyCode: CurrencyCode!
 
   """Initial items to add to the new checkout."""
-  items: [CheckoutLineInput!]!
+  items: [CheckoutLineAddInput!]!
 }
 
 type CheckoutFieldError {
@@ -188,14 +159,16 @@ type CheckoutMutation {
   """Updates the quantity of a specific checkout item."""
   checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
 
+  """
+  Replaces one checkout line with another by merging quantities and removing the source line.
+  """
+  checkoutLinesReplace(input: CheckoutLinesReplaceInput!): CheckoutLinesReplacePayload!
+
   """Removes a single item from the checkout."""
   checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
 
   """Clears all items from a checkout."""
   checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutLinesClearPayload!
-
-  """Replaces one checkout line with another by merging quantities and removing the source line."""
-  checkoutLinesReplace(input: CheckoutLinesReplaceInput!): CheckoutLinesReplacePayload!
 
   """
   Updates customer identification data associated with the checkout
@@ -252,14 +225,16 @@ type CheckoutMutation {
 
   """Removes a previously applied promo code/coupon from the checkout."""
   checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+}
 
+extend type CheckoutMutation {
   """Selects or changes the payment method for the checkout."""
   checkoutPaymentMethodUpdate(input: CheckoutPaymentMethodUpdateInput!): Checkout!
 }
 
-type Query {
-  _entities(representations: [_Any!]!): [_Entity]!
-  _service: _Service!
+type Query
+
+extend type Query {
   checkoutQuery: CheckoutQuery!
 }
 
@@ -424,7 +399,9 @@ type CheckoutPromoCode {
 }
 
 """A single item in a checkout."""
-type CheckoutLine implements Node {
+type CheckoutLine implements Node
+  @key(fields: "id")
+{
   """Global unique identifier for the checkout line."""
   id: ID!
 
@@ -479,7 +456,7 @@ type CheckoutLineCost {
 }
 
 """Input data for a single item in the checkout."""
-input CheckoutLineInput {
+input CheckoutLineAddInput {
   """Quantity of the product in the checkout."""
   quantity: Int!
 
@@ -496,16 +473,7 @@ input CheckoutLinesAddInput {
   checkoutId: ID!
 
   """List of checkout items to add."""
-  lines: [CheckoutLineInput!]!
-}
-
-"""Input data for adding an item to an existing checkout line."""
-input CheckoutLinesLineAddInput {
-  """ID of the purchasable to add."""
-  purchasableId: ID!
-
-  """Quantity to add; must be greater than 0."""
-  quantity: Int!
+  lines: [CheckoutLineAddInput!]!
 }
 
 """Input data for updating the quantity of a specific checkout item."""
@@ -544,27 +512,6 @@ input CheckoutLinesClearInput {
   checkoutId: ID!
 }
 
-"""Input data for replacing one or more checkout lines."""
-input CheckoutLinesReplaceInput {
-  """ID of the checkout."""
-  checkoutId: ID!
-  """List of replacement operations to apply."""
-  lines: [CheckoutLineReplaceInput!]!
-}
-
-"""Single replacement operation."""
-input CheckoutLineReplaceInput {
-  """Source line ID to replace (quantity will be moved from this line)."""
-  lineId: ID!
-  """Target purchasable ID to receive the quantity."""
-  purchasableId: ID!
-  """
-  Quantity to move; if not set, moves full quantity from source line.
-  Must be greater than 0 if provided.
-  """
-  quantity: Int
-}
-
 """Payload returned after adding an item to the checkout."""
 type CheckoutLinesAddPayload {
   """The updated checkout."""
@@ -576,6 +523,43 @@ type CheckoutLinesAddPayload {
 
 """Payload returned after updating a checkout item's quantity."""
 type CheckoutLinesUpdatePayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""
+Input data for replacing one or more checkout lines.
+Each replacement moves quantity from source line to target line.
+If quantity is not provided, full quantity from the source line will be moved.
+"""
+input CheckoutLinesReplaceInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of replacement operations to apply."""
+  lines: [CheckoutLineReplaceInput!]!
+}
+
+"""Single replacement operation."""
+input CheckoutLineReplaceInput {
+  """Source line ID to replace (quantity will be moved from this line)."""
+  lineId: ID!
+
+  """Target purchasable ID to receive the quantity."""
+  purchasableId: ID!
+
+  """
+  Quantity to move; if not set, moves full quantity from source line.
+  Must be greater than 0 if provided.
+  """
+  quantity: Int
+}
+
+"""Payload returned after replacing one checkout line with another."""
+type CheckoutLinesReplacePayload {
   """The updated checkout."""
   checkout: Checkout
 
@@ -595,15 +579,6 @@ type CheckoutLinesDeletePayload {
 """Payload returned after clearing all items from the checkout."""
 type CheckoutLinesClearPayload {
   """The updated (now empty) checkout."""
-  checkout: Checkout
-
-  """List of field-specific or general errors."""
-  errors: [CheckoutFieldError!]
-}
-
-"""Payload returned after replacing one checkout line with another."""
-type CheckoutLinesReplacePayload {
-  """The updated checkout."""
   checkout: Checkout
 
   """List of field-specific or general errors."""
@@ -2075,38 +2050,12 @@ enum CountryCode {
   VI
 }
 
-enum link__Purpose {
-  """
-  `SECURITY` features provide metadata necessary to securely resolve fields.
-  """
-  SECURITY
-
-  """
-  `EXECUTION` features provide metadata necessary for operation execution.
-  """
-  EXECUTION
+extend type User
+  @key(fields: "id")
+{
+  id: ID! @external
 }
 
-scalar link__Import
-
-scalar federation__FieldSet
-
-scalar federation__Scope
-
-scalar federation__Policy
-
-scalar _Any
-
-type _Service {
-  sdl: String
-}
-
-union _Entity = Checkout | CheckoutLine | User
-
-type User {
-  id: ID!
-}
-
-type Mutation {
+extend type Mutation {
   checkoutMutation: CheckoutMutation!
 }

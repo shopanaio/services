@@ -13,6 +13,7 @@
     # Apollo configuration paths
     apollo_dir: "{{ local_build_dir }}/apollo"
     runtime_dir: "{{ local_build_dir }}/ci/images/apollo/runtime"
+    schema_dir: "{{ playbook_dir }}/schema"
 
     # Image configuration with 'local' tag
     rover_app_name: shopana/apollo-rover
@@ -49,37 +50,39 @@
     - name: Build block with error handling
       block:
         - name: Check if Rover image exists
-          community.docker.docker_image_info:
-            name: "{{ rover_image_name }}"
+          ansible.builtin.command:
+            cmd: docker image inspect {{ rover_image_name }}
           register: rover_check
           ignore_errors: true
+          changed_when: false
 
         - name: Display Rover image status
           ansible.builtin.debug:
-            msg: "{{ '✅ Using existing Apollo Rover image: ' + rover_image_name if rover_check.images else '🔨 Building Apollo Rover image: ' + rover_image_name }}"
+            msg: "{{ '✅ Using existing Apollo Rover image: ' + rover_image_name if rover_check.rc == 0 else '🔨 Building Apollo Rover image: ' + rover_image_name }}"
 
         - name: Build apollo-rover image if needed
           ansible.builtin.command:
             cmd: docker build -t {{ rover_image_name }} {{ rover_build_context }}
             chdir: "{{ local_build_dir }}"
-          when: not rover_check.images
+          when: rover_check.rc != 0
           changed_when: true
 
         - name: Check if Router image exists
-          community.docker.docker_image_info:
-            name: "{{ router_image_name }}"
+          ansible.builtin.command:
+            cmd: docker image inspect {{ router_image_name }}
           register: router_check
           ignore_errors: true
+          changed_when: false
 
         - name: Display Router image status
           ansible.builtin.debug:
-            msg: "{{ '✅ Using existing Apollo Router image: ' + router_image_name if router_check.images else '🔨 Building Apollo Router image: ' + router_image_name }}"
+            msg: "{{ '✅ Using existing Apollo Router image: ' + router_image_name if router_check.rc == 0 else '🔨 Building Apollo Router image: ' + router_image_name }}"
 
         - name: Build apollo-router image if needed
           ansible.builtin.command:
             cmd: docker build -t {{ router_image_name }} {{ router_build_context }}
             chdir: "{{ local_build_dir }}"
-          when: not router_check.images
+          when: router_check.rc != 0
           changed_when: true
 
         - name: Compose Admin API supergraph schema
@@ -88,6 +91,7 @@
               docker run --rm
               -e APOLLO_ELV2_LICENSE=accept
               -v "{{ admin_api_config_path }}:/workspace/supergraph.yaml"
+              -v "{{ schema_dir }}:/schema"
               -v "{{ admin_api_output_path | dirname }}:/workspace/output"
               {{ rover_image_name }}
               supergraph compose
@@ -112,6 +116,7 @@
               docker run --rm
               -e APOLLO_ELV2_LICENSE=accept
               -v "{{ storefront_api_config_path }}:/workspace/supergraph.yaml"
+              -v "{{ schema_dir }}:/schema"
               -v "{{ storefront_api_output_path | dirname }}:/workspace/output"
               {{ rover_image_name }}
               supergraph compose
@@ -131,39 +136,37 @@
             msg: "✅ Storefront API supergraph schema composed: {{ storefront_api_output_path }}"
 
         - name: Stop existing Apollo Router services
-          community.docker.docker_compose_v2:
-            project_src: "{{ runtime_dir }}"
-            state: absent
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ runtime_dir }}"
           ignore_errors: true
+          changed_when: false
 
         - name: Start Apollo Router services with Docker Compose
-          community.docker.docker_compose_v2:
-            project_src: "{{ runtime_dir }}"
-            state: present
-            pull: never
-            recreate: always
+          ansible.builtin.command:
+            cmd: docker compose up -d --force-recreate
+            chdir: "{{ runtime_dir }}"
+          changed_when: true
 
         - name: Wait for Admin Router to be healthy
-          ansible.builtin.uri:
-            url: http://localhost:8088/health
-            method: GET
-            status_code: 200
+          ansible.builtin.command:
+            cmd: curl -f -s http://localhost:8088/health
           register: admin_health
-          until: admin_health.status == 200
+          until: admin_health.rc == 0
           retries: 30
           delay: 2
           ignore_errors: true
+          changed_when: false
 
         - name: Wait for Storefront Router to be healthy
-          ansible.builtin.uri:
-            url: http://localhost:8089/health
-            method: GET
-            status_code: 200
+          ansible.builtin.command:
+            cmd: curl -f -s http://localhost:8089/health
           register: storefront_health
-          until: storefront_health.status == 200
+          until: storefront_health.rc == 0
           retries: 30
           delay: 2
           ignore_errors: true
+          changed_when: false
 
         - name: Show success message
           ansible.builtin.debug:
@@ -194,10 +197,11 @@
               - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
 
         - name: Stop services on failure
-          community.docker.docker_compose_v2:
-            project_src: "{{ runtime_dir }}"
-            state: absent
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ runtime_dir }}"
           ignore_errors: true
+          changed_when: false
 
         - name: Fail with message
           ansible.builtin.fail:

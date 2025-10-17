@@ -16,10 +16,6 @@
     ghcr_owner: "{{ shopana_ghcr_owner }}"
     github_token: "{{ shopana_github_token }}"
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Ensure required variables are provided
       ansible.builtin.assert:

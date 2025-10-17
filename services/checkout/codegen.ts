@@ -3,7 +3,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 const config: CodegenConfig = {
   generates: {
     "./src/interfaces/gql-storefront-api/types.ts": {
-      schema: "./schema-checkout.graphql",
+      schema: "./storefront-api.graphql",
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         typesPrefix: "Api",

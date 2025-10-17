@@ -1,38 +1,679 @@
-directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@key", "@requires", "@provides", "@external", "@shareable", "@override", "@inaccessible"])
 
-directive @key(fields: federation__FieldSet!, resolvable: Boolean = true) on OBJECT | INTERFACE
+interface Node {
+  id: ID!
+}
 
-directive @requires(fields: federation__FieldSet!) on FIELD_DEFINITION
+scalar DateTime
 
-directive @provides(fields: federation__FieldSet!) on FIELD_DEFINITION
+enum WeightUnit {
+  GR
+  KG
+  LB
+  OZ
+}
 
-directive @external(reason: String) on OBJECT | FIELD_DEFINITION
+type Weight {
+  weight: Float!
+  unit: WeightUnit!
+}
 
-directive @federation__tag(name: String!) on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
-
-directive @federation__extends on OBJECT | INTERFACE
-
-directive @shareable on OBJECT | FIELD_DEFINITION
-
-directive @inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
-
-directive @override(from: String!, label: String) on FIELD_DEFINITION
-
-directive @federation__composeDirective(name: String) on SCHEMA
-
-directive @federation__interfaceObject on OBJECT
-
-directive @federation__authenticated on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
-
-directive @federation__requiresScopes(scopes: [[federation__Scope!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
-
-directive @federation__policy(policies: [[federation__Policy!]!]!) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+type CollectionMeta {
+  page: Int! @shareable
+  pageSize: Int! @shareable
+  count: Int! @shareable
+  total: Int! @shareable
+  pageCount: Int! @shareable
+}
 
 scalar Email
 
 scalar BigInt
 
 scalar JSON
+
+enum OrderStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+enum OrderCancelReason {
+  CUSTOMER
+  FRAUD
+  INVENTORY
+  STAFF
+  OTHER
+}
+
+enum OrderEventType {
+  ORDER_CREATED
+}
+
+union OrderActor = User | ApiKey
+
+type OrderCustomerIdentity {
+  customer: Customer
+  email: Email
+  phone: String
+  countryCode: CountryCode
+  data: JSON
+}
+
+type Order {
+  id: ID!
+  createdBy: OrderActor!
+  status: OrderStatus!
+  number: BigInt!
+  currencyCode: String!
+  subtotal: BigInt!
+  shippingTotal: BigInt
+  discountTotal: BigInt
+  taxTotal: BigInt
+  grandTotal: BigInt!
+  customerIdentity: OrderCustomerIdentity!
+  customerStatistic: OrderCustomerStatistic!
+  adminNote: String
+  customerNote: String
+  events: [OrderEvent!]!
+  tags: [Tag!]!
+  labels: [Label!]!
+  lines: [OrderLine!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+type OrderLine {
+  id: ID!
+  quantity: Int!
+  unitPrice: Int!
+  unitComparePrice: Int!
+  discountAmount: Int!
+  subtotalAmount: Int!
+  taxAmount: Int
+  totalAmount: Int!
+  purchasableId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type OrderDeliveryAddress {
+  id: ID!
+  address1: String!
+  address2: String
+  city: String!
+  countryCode: CountryCode!
+  provinceCode: String
+  postalCode: String
+  email: Email
+  firstName: String
+  lastName: String
+  data: JSON
+}
+
+type OrderCustomerStatistic {
+  totalRevenue: Int!
+  totalGuestOrders: Int!
+  totalAuthorizedOrders: Int!
+}
+
+type OrderEvent {
+  id: String!
+  performedBy: OrderActor!
+  eventType: OrderEventType!
+  data: JSON
+  metadata: JSON
+  createdAt: DateTime!
+}
+
+input OrderAdminNoteUpdateInput {
+  orderId: ID!
+  note: String!
+}
+
+input OrderCommentAddInput {
+  orderId: ID!
+  comment: String!
+}
+
+input OrderCancelInput {
+  orderId: ID!
+  comment: String
+  reason: OrderCancelReason!
+}
+
+input OrderCloseInput {
+  orderId: ID!
+  comment: String
+}
+
+input OrdersInput {
+  where: JSON
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type OrdersOutput {
+  data: [Order!]!
+  meta: CollectionMeta!
+}
+
+type OrderQuery {
+  orders(input: OrdersInput): OrdersOutput!
+  order(id: ID!): Order
+}
+
+type OrderMutation {
+  orderAdminNoteUpdate(input: OrderAdminNoteUpdateInput!): Boolean!
+  orderCommentAdd(input: OrderCommentAddInput!): Boolean!
+  orderCancel(input: OrderCancelInput!): Boolean!
+  orderClose(input: OrderCloseInput!): Boolean!
+}
+
+type Query
+
+extend type Query {
+  orderQuery: OrderQuery!
+}
+
+interface Purchasable {
+  """Unique identifier of the purchasable entity."""
+  id: ID!
+}
+
+type PurchasableSnapshot implements Purchasable {
+  id: ID! @shareable
+  purchasableSnapshot: JSON! @shareable
+}
+
+"""Currency codes according to ISO 4217"""
+enum CurrencyCode {
+  """2 decimals — UAE Dirham (United Arab Emirates)"""
+  AED
+
+  """2 decimals — Afghan Afghani (Afghanistan)"""
+  AFN
+
+  """2 decimals — Albanian Lek (Albania)"""
+  ALL
+
+  """2 decimals — Armenian Dram (Armenia)"""
+  AMD
+
+  """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
+  ANG
+
+  """2 decimals — Angolan Kwanza (Angola)"""
+  AOA
+
+  """2 decimals — Argentine Peso (Argentina)"""
+  ARS
+
+  """2 decimals — Australian Dollar (Australia)"""
+  AUD
+
+  """2 decimals — Aruban Florin (Aruba)"""
+  AWG
+
+  """2 decimals — Azerbaijani Manat (Azerbaijan)"""
+  AZN
+
+  """
+  2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
+  """
+  BAM
+
+  """2 decimals — Barbadian Dollar (Barbados)"""
+  BBD
+
+  """2 decimals — Bangladeshi Taka (Bangladesh)"""
+  BDT
+
+  """2 decimals — Bulgarian Lev (Bulgaria)"""
+  BGN
+
+  """3 decimals — Bahraini Dinar (Bahrain)"""
+  BHD
+
+  """0 decimals — Burundian Franc (Burundi)"""
+  BIF
+
+  """2 decimals — Bermudian Dollar (Bermuda)"""
+  BMD
+
+  """2 decimals — Brunei Dollar (Brunei)"""
+  BND
+
+  """2 decimals — Bolivian Boliviano (Bolivia)"""
+  BOB
+
+  """2 decimals — Brazilian Real (Brazil)"""
+  BRL
+
+  """2 decimals — Bahamian Dollar (Bahamas)"""
+  BSD
+
+  """2 decimals — Bhutanese Ngultrum (Bhutan)"""
+  BTN
+
+  """2 decimals — Botswana Pula (Botswana)"""
+  BWP
+
+  """2 decimals — Belarusian Ruble (Belarus)"""
+  BYN
+
+  """2 decimals — Belize Dollar (Belize)"""
+  BZD
+
+  """2 decimals — Canadian Dollar (Canada)"""
+  CAD
+
+  """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
+  CDF
+
+  """2 decimals — Swiss Franc (Switzerland)"""
+  CHF
+
+  """0 decimals — Chilean Peso (Chile)"""
+  CLP
+
+  """2 decimals — Chinese Yuan (China)"""
+  CNY
+
+  """2 decimals — Colombian Peso (Colombia)"""
+  COP
+
+  """2 decimals — Costa Rican Colon (Costa Rica)"""
+  CRC
+
+  """2 decimals — Cuban Peso (Cuba)"""
+  CUP
+
+  """2 decimals — Cape Verdean Escudo (Cape Verde)"""
+  CVE
+
+  """2 decimals — Czech Koruna (Czech Republic)"""
+  CZK
+
+  """0 decimals — Djiboutian Franc (Djibouti)"""
+  DJF
+
+  """2 decimals — Danish Krone (Denmark)"""
+  DKK
+
+  """2 decimals — Dominican Peso (Dominican Republic)"""
+  DOP
+
+  """2 decimals — Algerian Dinar (Algeria)"""
+  DZD
+
+  """2 decimals — Egyptian Pound (Egypt)"""
+  EGP
+
+  """2 decimals — Eritrean Nakfa (Eritrea)"""
+  ERN
+
+  """2 decimals — Ethiopian Birr (Ethiopia)"""
+  ETB
+
+  """2 decimals — Euro (European Union)"""
+  EUR
+
+  """2 decimals — Fijian Dollar (Fiji)"""
+  FJD
+
+  """2 decimals — Falkland Islands Pound (Falkland Islands)"""
+  FKP
+
+  """2 decimals — Faroese Króna (Faroe Islands)"""
+  FOK
+
+  """2 decimals — Pound Sterling (United Kingdom)"""
+  GBP
+
+  """2 decimals — Georgian Lari (Georgia)"""
+  GEL
+
+  """2 decimals — Guernsey Pound (Guernsey)"""
+  GGP
+
+  """2 decimals — Ghanaian Cedi (Ghana)"""
+  GHS
+
+  """2 decimals — Gibraltar Pound (Gibraltar)"""
+  GIP
+
+  """2 decimals — Gambian Dalasi (Gambia)"""
+  GMD
+
+  """0 decimals — Guinean Franc (Guinea)"""
+  GNF
+
+  """2 decimals — Guatemalan Quetzal (Guatemala)"""
+  GTQ
+
+  """2 decimals — Guyanese Dollar (Guyana)"""
+  GYD
+
+  """2 decimals — Hong Kong Dollar (Hong Kong)"""
+  HKD
+
+  """2 decimals — Honduran Lempira (Honduras)"""
+  HNL
+
+  """2 decimals — Croatian Kuna (Croatia)"""
+  HRK
+
+  """2 decimals — Haitian Gourde (Haiti)"""
+  HTG
+
+  """2 decimals — Hungarian Forint (Hungary)"""
+  HUF
+
+  """0 decimals — Indonesian Rupiah (Indonesia)"""
+  IDR
+
+  """2 decimals — Israeli New Shekel (Israel)"""
+  ILS
+
+  """2 decimals — Isle of Man Pound (Isle of Man)"""
+  IMP
+
+  """2 decimals — Indian Rupee (India)"""
+  INR
+
+  """3 decimals — Iraqi Dinar (Iraq)"""
+  IQD
+
+  """2 decimals — Iranian Rial (Iran)"""
+  IRR
+
+  """0 decimals — Icelandic Króna (Iceland)"""
+  ISK
+
+  """2 decimals — Jersey Pound (Jersey)"""
+  JEP
+
+  """2 decimals — Jamaican Dollar (Jamaica)"""
+  JMD
+
+  """3 decimals — Jordanian Dinar (Jordan)"""
+  JOD
+
+  """0 decimals — Japanese Yen (Japan)"""
+  JPY
+
+  """2 decimals — Kenyan Shilling (Kenya)"""
+  KES
+
+  """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
+  KGS
+
+  """2 decimals — Cambodian Riel (Cambodia)"""
+  KHR
+
+  """2 decimals — Comorian Franc (Comoros)"""
+  KMF
+
+  """2 decimals — North Korean Won (North Korea)"""
+  KPW
+
+  """2 decimals — South Korean Won (South Korea)"""
+  KRW
+
+  """3 decimals — Kuwaiti Dinar (Kuwait)"""
+  KWD
+
+  """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
+  KYD
+
+  """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
+  KZT
+
+  """2 decimals — Lao Kip (Laos)"""
+  LAK
+
+  """2 decimals — Lebanese Pound (Lebanon)"""
+  LBP
+
+  """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
+  LKR
+
+  """3 decimals — Liberian Dollar (Liberia)"""
+  LRD
+
+  """3 decimals — Libyan Dinar (Libya)"""
+  LYD
+
+  """2 decimals — Moroccan Dirham (Morocco)"""
+  MAD
+
+  """2 decimals — Moldovan Leu (Moldova)"""
+  MDL
+
+  """2 decimals — Malagasy Ariary (Madagascar)"""
+  MGA
+
+  """2 decimals — Macedonian Denar (North Macedonia)"""
+  MKD
+
+  """2 decimals — Burmese Kyat (Myanmar)"""
+  MMK
+
+  """2 decimals — Mongolian Tögrög (Mongolia)"""
+  MNT
+
+  """2 decimals — Macanese Pataca (Macau)"""
+  MOP
+
+  """2 decimals — Mauritanian Ouguiya (Mauritania)"""
+  MRU
+
+  """2 decimals — Mauritian Rupee (Mauritius)"""
+  MUR
+
+  """2 decimals — Maldivian Rufiyaa (Maldives)"""
+  MVR
+
+  """2 decimals — Malawian Kwacha (Malawi)"""
+  MWK
+
+  """2 decimals — Mexican Peso (Mexico)"""
+  MXN
+
+  """2 decimals — Malaysian Ringgit (Malaysia)"""
+  MYR
+
+  """2 decimals — Mozambican Metical (Mozambique)"""
+  MZN
+
+  """2 decimals — Namibian Dollar (Namibia)"""
+  NAD
+
+  """2 decimals — Nigerian Naira (Nigeria)"""
+  NGN
+
+  """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
+  NIO
+
+  """2 decimals — Norwegian Krone (Norway)"""
+  NOK
+
+  """2 decimals — Nepalese Rupee (Nepal)"""
+  NPR
+
+  """2 decimals — New Zealand Dollar (New Zealand)"""
+  NZD
+
+  """2 decimals — Omani Rial (Oman)"""
+  OMR
+
+  """2 decimals — Panamanian Balboa (Panama)"""
+  PAB
+
+  """2 decimals — Peruvian Sol (Peru)"""
+  PEN
+
+  """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
+  PGK
+
+  """2 decimals — Philippine Peso (Philippines)"""
+  PHP
+
+  """2 decimals — Pakistani Rupee (Pakistan)"""
+  PKR
+
+  """0 decimals — Polish Zloty (Poland)"""
+  PLN
+
+  """2 decimals — Paraguayan Guaraní (Paraguay)"""
+  PYG
+
+  """2 decimals — Qatari Riyal (Qatar)"""
+  QAR
+
+  """2 decimals — Romanian Leu (Romania)"""
+  RON
+
+  """2 decimals — Serbian Dinar (Serbia)"""
+  RSD
+
+  """2 decimals — Russian Ruble (Russia)"""
+  RUB
+
+  """2 decimals — Rwandan Franc (Rwanda)"""
+  RWF
+
+  """2 decimals — Saudi Riyal (Saudi Arabia)"""
+  SAR
+
+  """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
+  SBD
+
+  """2 decimals — Seychelles Rupee (Seychelles)"""
+  SCR
+
+  """2 decimals — Sudanese Pound (Sudan)"""
+  SDG
+
+  """2 decimals — Swedish Krona (Sweden)"""
+  SEK
+
+  """2 decimals — Singapore Dollar (Singapore)"""
+  SGD
+
+  """0 decimals — Saint Helena Pound (Saint Helena)"""
+  SHP
+
+  """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
+  SLE
+
+  """2 decimals — Somali Shilling (Somalia)"""
+  SOS
+
+  """2 decimals — Surinamese Dollar (Suriname)"""
+  SRD
+
+  """2 decimals — South Sudanese Pound (South Sudan)"""
+  SSP
+
+  """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
+  STN
+
+  """2 decimals — Salvadoran Colón (El Salvador)"""
+  SVC
+
+  """2 decimals — Syrian Pound (Syria)"""
+  SYP
+
+  """2 decimals — Eswatini Lilangeni (Eswatini)"""
+  SZL
+
+  """2 decimals — Thai Baht (Thailand)"""
+  THB
+
+  """2 decimals — Tajikistani Somoni (Tajikistan)"""
+  TJS
+
+  """2 decimals — Turkmenistani Manat (Turkmenistan)"""
+  TMT
+
+  """2 decimals — Tunisian Dinar (Tunisia)"""
+  TND
+
+  """2 decimals — Tongan Paʻanga (Tonga)"""
+  TOP
+
+  """2 decimals — Turkish Lira (Türkiye)"""
+  TRY
+
+  """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
+  TTD
+
+  """2 decimals — New Taiwan Dollar (Taiwan)"""
+  TWD
+
+  """0 decimals — Tanzanian Shilling (Tanzania)"""
+  TZS
+
+  """2 decimals — Ukrainian Hryvnia (Ukraine)"""
+  UAH
+
+  """2 decimals — Ugandan Shilling (Uganda)"""
+  UGX
+
+  """2 decimals — United States Dollar (United States)"""
+  USD
+
+  """2 decimals — Uruguayan Peso (Uruguay)"""
+  UYU
+
+  """2 decimals — Uzbekistan Som (Uzbekistan)"""
+  UZS
+
+  """2 decimals — Venezuelan Bolívar (Venezuela)"""
+  VES
+
+  """0 decimals — Vietnamese Dong (Vietnam)"""
+  VND
+
+  """2 decimals — Vanuatu Vatu (Vanuatu)"""
+  VUV
+
+  """2 decimals — Samoan Tala (Samoa)"""
+  WST
+
+  """2 decimals — Central African CFA Franc (CEMAC)"""
+  XAF
+
+  """0 decimals — East Caribbean Dollar (OECS)"""
+  XCD
+
+  """0 decimals — Special Drawing Rights (IMF)"""
+  XDR
+
+  """0 decimals — West African CFA Franc (UEMOA)"""
+  XOF
+
+  """0 decimals — CFP Franc (French overseas territories)"""
+  XPF
+
+  """2 decimals — Yemeni Rial (Yemen)"""
+  YER
+
+  """2 decimals — South African Rand (South Africa)"""
+  ZAR
+
+  """2 decimals — Zambian Kwacha (Zambia)"""
+  ZMW
+
+  """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
+  ZWL
+}
 
 enum CountryCode {
   """United States"""
@@ -645,723 +1286,36 @@ enum CountryCode {
   VI
 }
 
-"""Currency codes according to ISO 4217"""
-enum CurrencyCode {
-  """2 decimals — UAE Dirham (United Arab Emirates)"""
-  AED
-
-  """2 decimals — Afghan Afghani (Afghanistan)"""
-  AFN
-
-  """2 decimals — Albanian Lek (Albania)"""
-  ALL
-
-  """2 decimals — Armenian Dram (Armenia)"""
-  AMD
-
-  """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
-  ANG
-
-  """2 decimals — Angolan Kwanza (Angola)"""
-  AOA
-
-  """2 decimals — Argentine Peso (Argentina)"""
-  ARS
-
-  """2 decimals — Australian Dollar (Australia)"""
-  AUD
-
-  """2 decimals — Aruban Florin (Aruba)"""
-  AWG
-
-  """2 decimals — Azerbaijani Manat (Azerbaijan)"""
-  AZN
-
-  """
-  2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
-  """
-  BAM
-
-  """2 decimals — Barbadian Dollar (Barbados)"""
-  BBD
-
-  """2 decimals — Bangladeshi Taka (Bangladesh)"""
-  BDT
-
-  """2 decimals — Bulgarian Lev (Bulgaria)"""
-  BGN
-
-  """3 decimals — Bahraini Dinar (Bahrain)"""
-  BHD
-
-  """0 decimals — Burundian Franc (Burundi)"""
-  BIF
-
-  """2 decimals — Bermudian Dollar (Bermuda)"""
-  BMD
-
-  """2 decimals — Brunei Dollar (Brunei)"""
-  BND
-
-  """2 decimals — Bolivian Boliviano (Bolivia)"""
-  BOB
-
-  """2 decimals — Brazilian Real (Brazil)"""
-  BRL
-
-  """2 decimals — Bahamian Dollar (Bahamas)"""
-  BSD
-
-  """2 decimals — Bhutanese Ngultrum (Bhutan)"""
-  BTN
-
-  """2 decimals — Botswana Pula (Botswana)"""
-  BWP
-
-  """2 decimals — Belarusian Ruble (Belarus)"""
-  BYN
-
-  """2 decimals — Belize Dollar (Belize)"""
-  BZD
-
-  """2 decimals — Canadian Dollar (Canada)"""
-  CAD
-
-  """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
-  CDF
-
-  """2 decimals — Swiss Franc (Switzerland)"""
-  CHF
-
-  """0 decimals — Chilean Peso (Chile)"""
-  CLP
-
-  """2 decimals — Chinese Yuan (China)"""
-  CNY
-
-  """2 decimals — Colombian Peso (Colombia)"""
-  COP
-
-  """2 decimals — Costa Rican Colon (Costa Rica)"""
-  CRC
-
-  """2 decimals — Cuban Peso (Cuba)"""
-  CUP
-
-  """2 decimals — Cape Verdean Escudo (Cape Verde)"""
-  CVE
-
-  """2 decimals — Czech Koruna (Czech Republic)"""
-  CZK
-
-  """0 decimals — Djiboutian Franc (Djibouti)"""
-  DJF
-
-  """2 decimals — Danish Krone (Denmark)"""
-  DKK
-
-  """2 decimals — Dominican Peso (Dominican Republic)"""
-  DOP
-
-  """2 decimals — Algerian Dinar (Algeria)"""
-  DZD
-
-  """2 decimals — Egyptian Pound (Egypt)"""
-  EGP
-
-  """2 decimals — Eritrean Nakfa (Eritrea)"""
-  ERN
-
-  """2 decimals — Ethiopian Birr (Ethiopia)"""
-  ETB
-
-  """2 decimals — Euro (European Union)"""
-  EUR
-
-  """2 decimals — Fijian Dollar (Fiji)"""
-  FJD
-
-  """2 decimals — Falkland Islands Pound (Falkland Islands)"""
-  FKP
-
-  """2 decimals — Faroese Króna (Faroe Islands)"""
-  FOK
-
-  """2 decimals — Pound Sterling (United Kingdom)"""
-  GBP
-
-  """2 decimals — Georgian Lari (Georgia)"""
-  GEL
-
-  """2 decimals — Guernsey Pound (Guernsey)"""
-  GGP
-
-  """2 decimals — Ghanaian Cedi (Ghana)"""
-  GHS
-
-  """2 decimals — Gibraltar Pound (Gibraltar)"""
-  GIP
-
-  """2 decimals — Gambian Dalasi (Gambia)"""
-  GMD
-
-  """0 decimals — Guinean Franc (Guinea)"""
-  GNF
-
-  """2 decimals — Guatemalan Quetzal (Guatemala)"""
-  GTQ
-
-  """2 decimals — Guyanese Dollar (Guyana)"""
-  GYD
-
-  """2 decimals — Hong Kong Dollar (Hong Kong)"""
-  HKD
-
-  """2 decimals — Honduran Lempira (Honduras)"""
-  HNL
-
-  """2 decimals — Croatian Kuna (Croatia)"""
-  HRK
-
-  """2 decimals — Haitian Gourde (Haiti)"""
-  HTG
-
-  """2 decimals — Hungarian Forint (Hungary)"""
-  HUF
-
-  """0 decimals — Indonesian Rupiah (Indonesia)"""
-  IDR
-
-  """2 decimals — Israeli New Shekel (Israel)"""
-  ILS
-
-  """2 decimals — Isle of Man Pound (Isle of Man)"""
-  IMP
-
-  """2 decimals — Indian Rupee (India)"""
-  INR
-
-  """3 decimals — Iraqi Dinar (Iraq)"""
-  IQD
-
-  """2 decimals — Iranian Rial (Iran)"""
-  IRR
-
-  """0 decimals — Icelandic Króna (Iceland)"""
-  ISK
-
-  """2 decimals — Jersey Pound (Jersey)"""
-  JEP
-
-  """2 decimals — Jamaican Dollar (Jamaica)"""
-  JMD
-
-  """3 decimals — Jordanian Dinar (Jordan)"""
-  JOD
-
-  """0 decimals — Japanese Yen (Japan)"""
-  JPY
-
-  """2 decimals — Kenyan Shilling (Kenya)"""
-  KES
-
-  """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
-  KGS
-
-  """2 decimals — Cambodian Riel (Cambodia)"""
-  KHR
-
-  """2 decimals — Comorian Franc (Comoros)"""
-  KMF
-
-  """2 decimals — North Korean Won (North Korea)"""
-  KPW
-
-  """2 decimals — South Korean Won (South Korea)"""
-  KRW
-
-  """3 decimals — Kuwaiti Dinar (Kuwait)"""
-  KWD
-
-  """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
-  KYD
-
-  """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
-  KZT
-
-  """2 decimals — Lao Kip (Laos)"""
-  LAK
-
-  """2 decimals — Lebanese Pound (Lebanon)"""
-  LBP
-
-  """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
-  LKR
-
-  """3 decimals — Liberian Dollar (Liberia)"""
-  LRD
-
-  """3 decimals — Libyan Dinar (Libya)"""
-  LYD
-
-  """2 decimals — Moroccan Dirham (Morocco)"""
-  MAD
-
-  """2 decimals — Moldovan Leu (Moldova)"""
-  MDL
-
-  """2 decimals — Malagasy Ariary (Madagascar)"""
-  MGA
-
-  """2 decimals — Macedonian Denar (North Macedonia)"""
-  MKD
-
-  """2 decimals — Burmese Kyat (Myanmar)"""
-  MMK
-
-  """2 decimals — Mongolian Tögrög (Mongolia)"""
-  MNT
-
-  """2 decimals — Macanese Pataca (Macau)"""
-  MOP
-
-  """2 decimals — Mauritanian Ouguiya (Mauritania)"""
-  MRU
-
-  """2 decimals — Mauritian Rupee (Mauritius)"""
-  MUR
-
-  """2 decimals — Maldivian Rufiyaa (Maldives)"""
-  MVR
-
-  """2 decimals — Malawian Kwacha (Malawi)"""
-  MWK
-
-  """2 decimals — Mexican Peso (Mexico)"""
-  MXN
-
-  """2 decimals — Malaysian Ringgit (Malaysia)"""
-  MYR
-
-  """2 decimals — Mozambican Metical (Mozambique)"""
-  MZN
-
-  """2 decimals — Namibian Dollar (Namibia)"""
-  NAD
-
-  """2 decimals — Nigerian Naira (Nigeria)"""
-  NGN
-
-  """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
-  NIO
-
-  """2 decimals — Norwegian Krone (Norway)"""
-  NOK
-
-  """2 decimals — Nepalese Rupee (Nepal)"""
-  NPR
-
-  """2 decimals — New Zealand Dollar (New Zealand)"""
-  NZD
-
-  """2 decimals — Omani Rial (Oman)"""
-  OMR
-
-  """2 decimals — Panamanian Balboa (Panama)"""
-  PAB
-
-  """2 decimals — Peruvian Sol (Peru)"""
-  PEN
-
-  """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
-  PGK
-
-  """2 decimals — Philippine Peso (Philippines)"""
-  PHP
-
-  """2 decimals — Pakistani Rupee (Pakistan)"""
-  PKR
-
-  """0 decimals — Polish Zloty (Poland)"""
-  PLN
-
-  """2 decimals — Paraguayan Guaraní (Paraguay)"""
-  PYG
-
-  """2 decimals — Qatari Riyal (Qatar)"""
-  QAR
-
-  """2 decimals — Romanian Leu (Romania)"""
-  RON
-
-  """2 decimals — Serbian Dinar (Serbia)"""
-  RSD
-
-  """2 decimals — Russian Ruble (Russia)"""
-  RUB
-
-  """2 decimals — Rwandan Franc (Rwanda)"""
-  RWF
-
-  """2 decimals — Saudi Riyal (Saudi Arabia)"""
-  SAR
-
-  """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
-  SBD
-
-  """2 decimals — Seychelles Rupee (Seychelles)"""
-  SCR
-
-  """2 decimals — Sudanese Pound (Sudan)"""
-  SDG
-
-  """2 decimals — Swedish Krona (Sweden)"""
-  SEK
-
-  """2 decimals — Singapore Dollar (Singapore)"""
-  SGD
-
-  """0 decimals — Saint Helena Pound (Saint Helena)"""
-  SHP
-
-  """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
-  SLE
-
-  """2 decimals — Somali Shilling (Somalia)"""
-  SOS
-
-  """2 decimals — Surinamese Dollar (Suriname)"""
-  SRD
-
-  """2 decimals — South Sudanese Pound (South Sudan)"""
-  SSP
-
-  """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
-  STN
-
-  """2 decimals — Salvadoran Colón (El Salvador)"""
-  SVC
-
-  """2 decimals — Syrian Pound (Syria)"""
-  SYP
-
-  """2 decimals — Eswatini Lilangeni (Eswatini)"""
-  SZL
-
-  """2 decimals — Thai Baht (Thailand)"""
-  THB
-
-  """2 decimals — Tajikistani Somoni (Tajikistan)"""
-  TJS
-
-  """2 decimals — Turkmenistani Manat (Turkmenistan)"""
-  TMT
-
-  """2 decimals — Tunisian Dinar (Tunisia)"""
-  TND
-
-  """2 decimals — Tongan Paʻanga (Tonga)"""
-  TOP
-
-  """2 decimals — Turkish Lira (Türkiye)"""
-  TRY
-
-  """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
-  TTD
-
-  """2 decimals — New Taiwan Dollar (Taiwan)"""
-  TWD
-
-  """0 decimals — Tanzanian Shilling (Tanzania)"""
-  TZS
-
-  """2 decimals — Ukrainian Hryvnia (Ukraine)"""
-  UAH
-
-  """2 decimals — Ugandan Shilling (Uganda)"""
-  UGX
-
-  """2 decimals — United States Dollar (United States)"""
-  USD
-
-  """2 decimals — Uruguayan Peso (Uruguay)"""
-  UYU
-
-  """2 decimals — Uzbekistan Som (Uzbekistan)"""
-  UZS
-
-  """2 decimals — Venezuelan Bolívar (Venezuela)"""
-  VES
-
-  """0 decimals — Vietnamese Dong (Vietnam)"""
-  VND
-
-  """2 decimals — Vanuatu Vatu (Vanuatu)"""
-  VUV
-
-  """2 decimals — Samoan Tala (Samoa)"""
-  WST
-
-  """2 decimals — Central African CFA Franc (CEMAC)"""
-  XAF
-
-  """0 decimals — East Caribbean Dollar (OECS)"""
-  XCD
-
-  """0 decimals — Special Drawing Rights (IMF)"""
-  XDR
-
-  """0 decimals — West African CFA Franc (UEMOA)"""
-  XOF
-
-  """0 decimals — CFP Franc (French overseas territories)"""
-  XPF
-
-  """2 decimals — Yemeni Rial (Yemen)"""
-  YER
-
-  """2 decimals — South African Rand (South Africa)"""
-  ZAR
-
-  """2 decimals — Zambian Kwacha (Zambia)"""
-  ZMW
-
-  """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
-  ZWL
+extend type ApiKey
+  @key(fields: "id")
+{
+  id: ID! @external
 }
 
-enum OrderStatus {
-  DRAFT
-  ACTIVE
-  CLOSED
-  CANCELLED
+extend type User
+  @key(fields: "id")
+{
+  id: ID! @external
 }
 
-enum OrderCancelReason {
-  CUSTOMER
-  FRAUD
-  INVENTORY
-  STAFF
-  OTHER
+extend type Customer
+  @key(fields: "id")
+{
+  id: ID! @external
 }
 
-enum OrderEventType {
-  ORDER_CREATED
+extend type Label
+  @key(fields: "id")
+{
+  id: ID! @external
 }
 
-union OrderActor = User | ApiKey
-
-type OrderCustomerIdentity {
-  customer: Customer
-  email: Email
-  phone: String
-  countryCode: CountryCode
-  data: JSON
+extend type Tag
+  @key(fields: "id")
+{
+  id: ID! @external
 }
 
-type Order {
-  id: ID!
-  createdBy: OrderActor!
-  status: OrderStatus!
-  number: BigInt!
-  currencyCode: String!
-  subtotal: BigInt!
-  shippingTotal: BigInt
-  discountTotal: BigInt
-  taxTotal: BigInt
-  grandTotal: BigInt!
-  customerIdentity: OrderCustomerIdentity!
-  customerStatistic: OrderCustomerStatistic!
-  adminNote: String
-  customerNote: String
-  events: [OrderEvent!]!
-  tags: [Tag!]!
-  labels: [Label!]!
-  lines: [OrderLine!]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  deletedAt: DateTime
-}
-
-type OrderLine {
-  id: ID!
-  quantity: Int!
-  unitPrice: Int!
-  unitComparePrice: Int!
-  discountAmount: Int!
-  subtotalAmount: Int!
-  taxAmount: Int
-  totalAmount: Int!
-  purchasableId: ID!
-  purchasable: Purchasable!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type OrderDeliveryAddress {
-  id: ID!
-  address1: String!
-  address2: String
-  city: String!
-  countryCode: CountryCode!
-  provinceCode: String
-  postalCode: String
-  email: Email
-  firstName: String
-  lastName: String
-  data: JSON
-}
-
-type OrderCustomerStatistic {
-  totalRevenue: Int!
-  totalGuestOrders: Int!
-  totalAuthorizedOrders: Int!
-}
-
-type OrderEvent {
-  id: String!
-  performedBy: OrderActor!
-  eventType: OrderEventType!
-  data: JSON
-  metadata: JSON
-  createdAt: DateTime!
-}
-
-input OrderAdminNoteUpdateInput {
-  orderId: ID!
-  note: String!
-}
-
-input OrderCommentAddInput {
-  orderId: ID!
-  comment: String!
-}
-
-input OrderCancelInput {
-  orderId: ID!
-  comment: String
-  reason: OrderCancelReason!
-}
-
-input OrderCloseInput {
-  orderId: ID!
-  comment: String
-}
-
-input OrdersInput {
-  where: JSON
-  order: String
-  page: Int
-  pageSize: Int
-}
-
-type OrdersOutput {
-  data: [Order!]!
-  meta: CollectionMeta!
-}
-
-type OrderQuery {
-  orders(input: OrdersInput): OrdersOutput!
-  order(id: ID!): Order
-}
-
-type OrderMutation {
-  orderAdminNoteUpdate(input: OrderAdminNoteUpdateInput!): Boolean!
-  orderCommentAdd(input: OrderCommentAddInput!): Boolean!
-  orderCancel(input: OrderCancelInput!): Boolean!
-  orderClose(input: OrderCloseInput!): Boolean!
-}
-
-type Query {
-  _entities(representations: [_Any!]!): [_Entity]!
-  _service: _Service!
-  orderQuery: OrderQuery!
-}
-
-interface Node {
-  id: ID!
-}
-
-scalar DateTime
-
-enum WeightUnit {
-  GR
-  KG
-  LB
-  OZ
-}
-
-type Weight {
-  weight: Float!
-  unit: WeightUnit!
-}
-
-type CollectionMeta {
-  page: Int!
-  pageSize: Int!
-  count: Int!
-  total: Int!
-  pageCount: Int!
-}
-
-interface Purchasable {
-  """Unique identifier of the purchasable entity."""
-  id: ID!
-}
-
-type PurchasableSnapshot implements Purchasable {
-  id: ID!
-  snapshot: JSON!
-}
-
-enum link__Purpose {
-  """
-  `SECURITY` features provide metadata necessary to securely resolve fields.
-  """
-  SECURITY
-
-  """
-  `EXECUTION` features provide metadata necessary for operation execution.
-  """
-  EXECUTION
-}
-
-scalar link__Import
-
-scalar federation__FieldSet
-
-scalar federation__Scope
-
-scalar federation__Policy
-
-scalar _Any
-
-type _Service {
-  sdl: String
-}
-
-union _Entity = ApiKey | Customer | Label | Tag | User
-
-type Mutation {
+extend type Mutation {
   orderMutation: OrderMutation!
-}
-
-type ApiKey {
-  id: ID!
-}
-
-type User {
-  id: ID!
-}
-
-type Customer {
-  id: ID!
-}
-
-type Label {
-  id: ID!
-}
-
-type Tag {
-  id: ID!
 }

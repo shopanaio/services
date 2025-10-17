@@ -1,0 +1,43 @@
+scalar JSON
+
+type Query
+
+extend type Query {
+  appsQuery: AppsQuery!
+}
+
+type App {
+  code: String!
+  name: String!
+  meta: JSON
+}
+
+type InstalledApp {
+  id: String!
+  projectID: String!
+  appCode: String!
+  domain: String!
+  baseURL: String!
+  enabled: Boolean!
+  meta: JSON
+}
+
+type AppsQuery {
+  """Get list of available apps for installation"""
+  apps: [App!]!
+
+  """Get list of installed apps"""
+  installedApps: [InstalledApp!]!
+}
+
+type AppsMutation {
+  """Install app"""
+  install(code: String!): Boolean!
+
+  """Uninstall app"""
+  uninstall(code: String!): Boolean!
+}
+
+extend type Mutation {
+  appsMutation: AppsMutation!
+}
