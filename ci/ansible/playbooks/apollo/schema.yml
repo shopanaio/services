@@ -8,7 +8,7 @@
 
   vars:
     # Path to the rover image we built (use 'local' tag for local development)
-    rover_image: "shopana/apollo-rover:{{ lookup('env', 'APOLLO_ROVER_TAG') | default('local', true) }}"
+    rover_image: "shopana/apollo-rover:local"
 
     # Admin API config
     admin_api_config_path: "{{ playbook_dir }}/../../../../apollo/admin-api/supergraph.yaml"
@@ -17,6 +17,10 @@
     # Storefront API config
     storefront_api_config_path: "{{ playbook_dir }}/../../../../apollo/storefront-api/supergraph.yaml"
     storefront_api_output_path: "{{ playbook_dir }}/../../images/apollo/runtime/supergraph-storefront.graphql"
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Ensure Rover image exists locally

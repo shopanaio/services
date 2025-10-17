@@ -1,111 +1,122 @@
 # Services Build and Push Playbooks
 
-Ansible playbooks for building and pushing all service Docker images to GitHub Container Registry (GHCR).
+Ansible playbooks for building and pushing service Docker images to GitHub Container Registry (GHCR).
 
 ## Prerequisites
 
 1. **Docker** must be running locally
 2. **GitHub Personal Access Token** with `write:packages` permission
 3. **Environment variables** set:
+
+   **Option A: Using .env file (Recommended)**
+   ```bash
+   cd ci/ansible
+   cp env.example .env
+   vim .env  # Edit and fill in your values
+
+   # Load environment variables and run playbook
+   source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
+   ```
+
+   **Option B: Export manually**
    ```bash
    export SHOPANA_GHCR_OWNER=shopanaio          # or your org/username
    export SHOPANA_GITHUB_TOKEN=ghp_xxxxx        # GitHub PAT with packages:write
+
+   ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
    ```
 
-## Playbooks
+   > **Important:** Переменные окружения должны быть загружены **перед** запуском `ansible-playbook`.
+   > Используйте `source env.sh` для загрузки из `.env` файла.
 
-### 1. Build and Push All Services
+## Available Playbooks
 
-Builds and pushes all 8 microservices to GHCR.
+### Build Single Service
 
-**File:** `build.yml`
+Builds and pushes a single service to GHCR.
+
+**File:** `build_single.yml`
 
 **Usage:**
 ```bash
-# From ci/ansible directory
-ansible-playbook playbooks/services/build.yml
+# Option 1: Using wrapper script (easiest)
+cd ci/ansible
+./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout"
+./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
+
+# Option 2: Manual source and run
+cd ci/ansible
+source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
+source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
 ```
 
-**Services built:**
-- `apps-service`
-- `checkout-service`
-- `delivery-service`
-- `inventory-service`
-- `orders-service`
-- `payments-service`
-- `platform-service`
-- `pricing-service`
-
-### 2. Build Single Service
-
-To build just one service, use the `build_single.yml` playbook:
-
-```bash
-ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
-```
+**Available services:**
+- `apps` → `apps-service`
+- `checkout` → `checkout-service`
+- `delivery` → `delivery-service`
+- `inventory` → `inventory-service`
+- `orders` → `orders-service`
+- `payments` → `payments-service`
+- `platform` → `platform-service`
+- `pricing` → `pricing-service`
 
 ## Configuration
 
 ### Image Tags
 
-You can customize image tags using environment variables:
+Image tags can be specified in three ways (priority order):
 
-```bash
-# Set default tag for all services
-export SERVICES_IMAGE_TAG=v1.2.3
+1. **CLI parameter:** `-e "image_tag=v1.2.3"`
+2. **Service-specific environment variable:** `export CHECKOUT_SERVICE_IMAGE_TAG=v1.2.3`
+3. **Default:** `latest`
 
-# Or set individual service tags
-export CHECKOUT_SERVICE_IMAGE_TAG=v1.2.3
-export ORDERS_SERVICE_IMAGE_TAG=v1.2.4
-
-# Then run the playbook
-ansible-playbook playbooks/services/build.yml
-```
-
-### Available Tag Variables
-
-- `SERVICES_IMAGE_TAG` - Default tag for all services (default: `latest`)
-- `APPS_SERVICE_IMAGE_TAG` - Tag for apps service
-- `CHECKOUT_SERVICE_IMAGE_TAG` - Tag for checkout service
-- `DELIVERY_SERVICE_IMAGE_TAG` - Tag for delivery service
-- `INVENTORY_SERVICE_IMAGE_TAG` - Tag for inventory service
-- `ORDERS_SERVICE_IMAGE_TAG` - Tag for orders service
-- `PAYMENTS_SERVICE_IMAGE_TAG` - Tag for payments service
-- `PLATFORM_SERVICE_IMAGE_TAG` - Tag for platform service
-- `PRICING_SERVICE_IMAGE_TAG` - Tag for pricing service
+**Environment variables for individual services:**
+- `APPS_SERVICE_IMAGE_TAG`
+- `CHECKOUT_SERVICE_IMAGE_TAG`
+- `DELIVERY_SERVICE_IMAGE_TAG`
+- `INVENTORY_SERVICE_IMAGE_TAG`
+- `ORDERS_SERVICE_IMAGE_TAG`
+- `PAYMENTS_SERVICE_IMAGE_TAG`
+- `PLATFORM_SERVICE_IMAGE_TAG`
+- `PRICING_SERVICE_IMAGE_TAG`
 
 ## Examples
 
-### Build all services with default tag
+### Build a single service with default tag (latest)
 ```bash
-export SHOPANA_GHCR_OWNER=shopanaio
-export SHOPANA_GITHUB_TOKEN=ghp_xxxxx
-ansible-playbook playbooks/services/build.yml
+cd ci/ansible
+
+# Using wrapper script
+./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout"
 ```
 
-### Build all services with custom version
+### Build with custom version tag
 ```bash
-export SHOPANA_GHCR_OWNER=shopanaio
-export SHOPANA_GITHUB_TOKEN=ghp_xxxxx
-export SERVICES_IMAGE_TAG=v1.0.0
-ansible-playbook playbooks/services/build.yml
+cd ci/ansible
+
+# Using wrapper script
+./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
 ```
 
-### Build with different tags for different services
+### Build using environment variable for tag
 ```bash
-export SHOPANA_GHCR_OWNER=shopanaio
-export SHOPANA_GITHUB_TOKEN=ghp_xxxxx
-export CHECKOUT_SERVICE_IMAGE_TAG=v1.2.0
-export ORDERS_SERVICE_IMAGE_TAG=v1.2.1
-export SERVICES_IMAGE_TAG=v1.1.0  # for other services
-ansible-playbook playbooks/services/build.yml
+cd ci/ansible
+# Set variable in .env file: CHECKOUT_SERVICE_IMAGE_TAG=v1.2.0
+
+# Using wrapper script (loads .env automatically)
+./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout"
 ```
 
-### Build single service
+### Build all services sequentially
 ```bash
-export SHOPANA_GHCR_OWNER=shopanaio
-export SHOPANA_GITHUB_TOKEN=ghp_xxxxx
-ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
+cd ci/ansible
+source env.sh
+export IMAGE_TAG=v1.0.0
+
+# Build all services with the same tag
+for service in apps checkout delivery inventory orders payments platform pricing; do
+  ./ansible-run.sh playbooks/services/build_single.yml -e "service_name=$service" -e "image_tag=$IMAGE_TAG"
+done
 ```
 
 ## Image Naming Convention
@@ -132,6 +143,7 @@ Error: denied: permission_denied
 - Ensure your GitHub token has `write:packages` permission
 - Verify `SHOPANA_GHCR_OWNER` matches your GitHub username or organization
 - Check token is not expired
+- Try: `echo $SHOPANA_GITHUB_TOKEN | docker login ghcr.io -u $SHOPANA_GHCR_OWNER --password-stdin`
 
 ### Docker Not Running
 ```
@@ -148,52 +160,136 @@ Error: Service X build failed - dist directory not found
 ```
 
 **Solution:**
-- Ensure the service builds successfully locally: `cd services/X && yarn build`
+- Ensure the service builds successfully locally first:
+  ```bash
+  cd services/X
+  yarn install
+  yarn build
+  ```
 - Check for TypeScript errors in the service
-- Verify all dependencies are properly installed
+- Verify all workspace packages are built: `yarn workspaces foreach --include "packages/*" run build`
 
-### Service Not Found
+### Invalid Service Name
 ```
-Error: Service 'X' not found in services/ directory
+Error: Invalid service name: X. Valid services: apps, checkout, ...
 ```
 
 **Solution:**
-- Verify the service name is correct (use lowercase)
-- Check the service exists in `services/` directory
-- Available services: apps, checkout, delivery, inventory, orders, payments, platform, pricing
+- Use lowercase service name without `-service` suffix
+- Valid names: `apps`, `checkout`, `delivery`, `inventory`, `orders`, `payments`, `platform`, `pricing`
+- Example: use `checkout` not `checkout-service`
+
+### Missing Environment Variables
+```
+Error: Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
+```
+
+**Solution:**
+```bash
+export SHOPANA_GHCR_OWNER=shopanaio
+export SHOPANA_GITHUB_TOKEN=ghp_xxxxx
+# Verify
+echo $SHOPANA_GHCR_OWNER
+echo $SHOPANA_GITHUB_TOKEN | cut -c1-10
+```
 
 ## CI/CD Integration
 
 These playbooks can be integrated into CI/CD pipelines:
 
-### Woodpecker CI Example
+### Woodpecker CI Example (Single Service)
 ```yaml
 steps:
-  - name: build-and-push-services
+  - name: build-checkout-service
     image: ansible/ansible:latest
     environment:
       - SHOPANA_GHCR_OWNER=shopanaio
       - SHOPANA_GITHUB_TOKEN:
           from_secret: github_token
-      - SERVICES_IMAGE_TAG=${CI_COMMIT_TAG}
     commands:
       - cd ci/ansible
-      - ansible-playbook playbooks/services/build.yml
+      - ansible-playbook playbooks/services/build_single.yml
+          -e "service_name=checkout"
+          -e "image_tag=${CI_COMMIT_TAG:-latest}"
+```
+
+### Woodpecker CI Example (All Services)
+```yaml
+steps:
+  - name: build-all-services
+    image: ansible/ansible:latest
+    environment:
+      - SHOPANA_GHCR_OWNER=shopanaio
+      - SHOPANA_GITHUB_TOKEN:
+          from_secret: github_token
+    commands:
+      - cd ci/ansible
+      - |
+        for service in apps checkout delivery inventory orders payments platform pricing; do
+          ansible-playbook playbooks/services/build_single.yml \
+            -e "service_name=$service" \
+            -e "image_tag=${CI_COMMIT_TAG:-latest}"
+        done
 ```
 
 ### GitHub Actions Example
 ```yaml
-- name: Build and Push Services
+- name: Build and Push Service
   env:
     SHOPANA_GHCR_OWNER: ${{ github.repository_owner }}
     SHOPANA_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    SERVICES_IMAGE_TAG: ${{ github.ref_name }}
   run: |
     cd ci/ansible
-    ansible-playbook playbooks/services/build.yml
+    ansible-playbook playbooks/services/build_single.yml \
+      -e "service_name=checkout" \
+      -e "image_tag=${{ github.ref_name }}"
+```
+
+### GitHub Actions Matrix Example (Parallel Build)
+```yaml
+strategy:
+  matrix:
+    service: [apps, checkout, delivery, inventory, orders, payments, platform, pricing]
+steps:
+  - name: Build ${{ matrix.service }} service
+    env:
+      SHOPANA_GHCR_OWNER: ${{ github.repository_owner }}
+      SHOPANA_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      cd ci/ansible
+      ansible-playbook playbooks/services/build_single.yml \
+        -e "service_name=${{ matrix.service }}" \
+        -e "image_tag=${{ github.ref_name }}"
+```
+
+## Files Structure
+
+```
+ci/ansible/playbooks/services/
+├── build_single.yml          # Main playbook for building single service
+├── build_service_task.yml    # Reusable task file (included by other playbooks)
+└── README.md                 # This documentation
 ```
 
 ## Related Playbooks
 
 - `playbooks/apollo/build.yml` - Build Apollo Router and Rover images
-- `playbooks/woodpecker-config-service/build.yml` - Build Woodpecker Config Service
+- `playbooks/woodpecker-workflows/build.yml` - Build Woodpecker Config Service
+
+## Architecture
+
+### Build Process
+
+The service build uses a multi-stage Docker build process:
+
+1. **Dependencies Stage**: Install all workspace dependencies
+2. **Builder Stage**: Build all packages and the target service
+3. **Production Dependencies Stage**: Install only production dependencies
+4. **Runtime Stage**: Create minimal production image with built artifacts
+
+See `ci/images/services/Dockerfile` for implementation details.
+
+### Platform Support
+
+- **Platform**: `linux/amd64` (default)
+- Multi-platform builds can be enabled by modifying the `platform` variable in playbooks

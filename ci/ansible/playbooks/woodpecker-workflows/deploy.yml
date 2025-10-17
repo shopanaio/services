@@ -1,4 +1,4 @@
-# ansible-playbook playbooks/woodpecker-config-service/deploy.yml
+# ansible-playbook playbooks/woodpecker-workflows/deploy.yml
 ---
 - name: Install config-service on remote host from GHCR
   hosts: shopana
@@ -7,31 +7,31 @@
 
   vars:
     # Application configuration
-    app_name: woodpecker-config-service
-    app_dir: /opt/woodpecker-config-service
-    app_data_dir: /opt/woodpecker-config-service/data
+    app_name: woodpecker-workflows
+    app_dir: /opt/woodpecker-workflows
+    app_data_dir: /opt/woodpecker-workflows/data
     container_port: 3000
     host_http_port: 3300
 
     # GHCR configuration
-    shopana_ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
-    shopana_github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
-    config_service_image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
-    config_service_image_name: "ghcr.io/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ config_service_image_tag }}"
-    config_service_github_api_token: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN') }}"
-    config_service_public_key_signature: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_PUBLIC_KEY') }}"
+    image_tag: "{{ woodpecker_config_service_image_tag }}"
+    image_name: "ghcr.io/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ config_service_image_tag }}"
+    public_key_signature: "{{ woodpecker_config_service_public_key_signature }}"
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
           - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
-          - shopana_github_token is defined and shopana_github_token | length > 0
-          - config_service_github_api_token is defined and config_service_github_api_token | length > 0
-          - config_service_public_key_signature is defined and config_service_public_key_signature | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+          - public_key_signature is defined and public_key_signature | length > 0
         fail_msg: >-
-          Required variables missing. Provide SHOPANA_GHCR_OWNER, SHOPANA_GITHUB_TOKEN,
-          and WOODPECKER_CONFIG_SERVICE_GITHUB_API_TOKEN via environment or -e "VAR=...".
+          Required variables missing. Provide shopana_shopana_ghcr_owner, shopana_shopana_ghcr_token,
+          and woodpecker_config_service_public_key via inventory variables.
         success_msg: "All required variables are present"
 
     - name: Installation block with error handling
@@ -40,7 +40,7 @@
           ansible.builtin.debug:
             msg:
               - "🚀 Installing {{ app_name }}"
-              - "  Image: {{ config_service_image_name }}"
+              - "  Image: {{ image_name }}"
               - "  Port: {{ host_http_port }}"
               - "  Directory: {{ app_dir }}"
 
@@ -57,8 +57,8 @@
 
         - name: Login and pull Docker image from GHCR
           ansible.builtin.shell: |
-            echo "{{ shopana_github_token }}" | docker login ghcr.io -u {{ shopana_ghcr_owner }} --password-stdin
-            docker pull {{ config_service_image_name }}
+            echo "{{ shopana_ghcr_token }}" | docker login ghcr.io -u {{ shopana_ghcr_owner }} --password-stdin
+            docker pull {{ image_name }}
           no_log: true
           changed_when: true
 
@@ -69,13 +69,13 @@
             content: |
               services:
                 {{ app_name }}:
-                  image: {{ config_service_image_name }}
+                  image: {{ image_name }}
                   container_name: {{ app_name }}
                   restart: unless-stopped
                   ports:
                     - "0.0.0.0:{{ host_http_port }}:{{ container_port }}"
                   volumes:
-                    - "{{ app_dir }}/public-key.pem:/app/ci/woodpecker-config-service/public-key.pem:ro"
+                    - "{{ app_dir }}/public-key.pem:/app/ci/woodpecker-workflows/public-key.pem:ro"
                   environment:
                     - PORT={{ container_port }}
                     - LOG_LEVEL=debug
@@ -102,7 +102,7 @@
             mode: "0644"
             content: |
               -----BEGIN PUBLIC KEY-----
-              {{ config_service_public_key_signature }}
+              {{ public_key_signature }}
               -----END PUBLIC KEY-----
 
         - name: Cleanup containers on port {{ host_http_port }}
@@ -176,7 +176,7 @@
               - "✅ {{ app_name }} deployed"
               - ""
               - "🌐 Service Info:"
-              - "  Image: {{ config_service_image_name }}"
+              - "  Image: {{ image_name }}"
               - "  HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
               - "  Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
               - "  Dir: {{ app_dir }}"

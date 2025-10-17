@@ -9,26 +9,30 @@
   vars:
     # GHCR configuration
     ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+    ghcr_owner: "{{ shopana_ghcr_owner }}"
 
     # Rover configuration
     rover_app_name: apollo-rover
-    rover_image_tag: "{{ lookup('env', 'APOLLO_ROVER_IMAGE_TAG') | default('latest', true) }}"
+    rover_image_tag: "latest"
     rover_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ rover_app_name }}:{{ rover_image_tag }}"
     rover_build_context: "ci/images/apollo/rover"
 
     # Router configuration
     router_app_name: apollo-router
-    router_image_tag: "{{ lookup('env', 'APOLLO_ROUTER_IMAGE_TAG') | default('latest', true) }}"
+    router_image_tag: "latest"
     router_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ router_app_name }}:{{ router_image_tag }}"
     router_build_context: "ci/images/apollo/router"
 
     # Authentication
-    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+    github_token: "{{ shopana_github_token }}"
 
     # Build configuration
     platform: linux/amd64
     local_build_dir: "{{ playbook_dir }}/../../../../"
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Validate required variables are provided
@@ -37,7 +41,7 @@
           - ghcr_owner is defined and ghcr_owner | length > 0
           - github_token is defined and github_token | length > 0
         fail_msg: >-
-          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN.
+          Required variables missing. Provide shopana_ghcr_owner and shopana_github_token via inventory variables.
         success_msg: "All required variables are present"
 
     - name: Build and push block with error handling

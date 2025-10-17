@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/woodpecker-config-service",
+  "name": "@shopana/woodpecker-workflows",
   "version": "1.0.0",
   "main": "dist/index.js",
   "license": "MIT",

@@ -11,12 +11,16 @@
   vars:
     woodpecker_dir: /opt/woodpecker
     woodpecker_data_dir: /opt/woodpecker/data
-    # These can be overridden via environment variables or extra vars
-    woodpecker_host: "{{ lookup('env', 'WOODPECKER_HOST') | default('', true) }}"
-    woodpecker_admin: "{{ lookup('env', 'WOODPECKER_ADMIN') | default('', true) }}"
-    woodpecker_github_client: "{{ lookup('env', 'WOODPECKER_GITHUB_CLIENT') | default('', true) }}"
-    woodpecker_github_secret: "{{ lookup('env', 'WOODPECKER_GITHUB_SECRET') | default('', true) }}"
-    woodpecker_agent_secret: "{{ lookup('env', 'WOODPECKER_AGENT_SECRET') | default('', true) }}"
+    # These can be overridden via extra vars
+    wp_host: "{{ woodpecker_host | default('', true) }}"
+    wp_admin: "{{ woodpecker_admin | default('', true) }}"
+    wp_github_client: "{{ woodpecker_github_client | default('', true) }}"
+    wp_github_secret: "{{ woodpecker_github_secret | default('', true) }}"
+    wp_agent_secret: "{{ woodpecker_agent_secret | default('', true) }}"
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Verify Woodpecker directory exists
@@ -56,11 +60,11 @@
       ansible.builtin.debug:
         msg:
           - "New configuration values:"
-          - "WOODPECKER_HOST: {{ woodpecker_host if woodpecker_host else '(not changed)' }}"
-          - "WOODPECKER_ADMIN: {{ woodpecker_admin if woodpecker_admin else '(not changed)' }}"
-          - "WOODPECKER_GITHUB_CLIENT: {{ woodpecker_github_client if woodpecker_github_client else '(not changed)' }}"
-          - "WOODPECKER_GITHUB_SECRET: {{ '***' if woodpecker_github_secret else '(not changed)' }}"
-          - "WOODPECKER_AGENT_SECRET: {{ '***' if woodpecker_agent_secret else '(not changed)' }}"
+          - "WOODPECKER_HOST: {{ wp_host if wp_host else '(not changed)' }}"
+          - "WOODPECKER_ADMIN: {{ wp_admin if wp_admin else '(not changed)' }}"
+          - "WOODPECKER_GITHUB_CLIENT: {{ wp_github_client if wp_github_client else '(not changed)' }}"
+          - "WOODPECKER_GITHUB_SECRET: {{ '***' if wp_github_secret else '(not changed)' }}"
+          - "WOODPECKER_AGENT_SECRET: {{ '***' if wp_agent_secret else '(not changed)' }}"
 
     - name: Backup current .env file
       ansible.builtin.copy:
@@ -87,11 +91,11 @@
 
     - name: Set merged values (prefer provided > existing > defaults)
       ansible.builtin.set_fact:
-        merged_host: "{{ woodpecker_host | default(existing_host, true) | default('https://ci.example.com', true) }}"
-        merged_admin: "{{ woodpecker_admin | default(existing_admin, true) | default('', true) }}"
-        merged_agent_secret: "{{ woodpecker_agent_secret | default(existing_agent_secret, true) | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits'), true) }}"
-        merged_github_client: "{{ woodpecker_github_client | default(existing_github_client, true) | default('', true) }}"
-        merged_github_secret: "{{ woodpecker_github_secret | default(existing_github_secret, true) | default('', true) }}"
+        merged_host: "{{ wp_host | default(existing_host, true) | default('https://ci.example.com', true) }}"
+        merged_admin: "{{ wp_admin | default(existing_admin, true) | default('', true) }}"
+        merged_agent_secret: "{{ wp_agent_secret | default(existing_agent_secret, true) | default('', true) }}"
+        merged_github_client: "{{ wp_github_client | default(existing_github_client, true) | default('', true) }}"
+        merged_github_secret: "{{ wp_github_secret | default(existing_github_secret, true) | default('', true) }}"
       when: env_file.stat.exists
 
     - name: Update Woodpecker environment file
@@ -102,17 +106,17 @@
           # Woodpecker CI Configuration
           # Updated at: {{ ansible_date_time.iso8601 }}
           # Server URL (should be accessible from outside)
-          WOODPECKER_HOST={{ merged_host | default(woodpecker_host) | default('https://ci.example.com') }}
+          WOODPECKER_HOST={{ merged_host | default(wp_host) | default('https://ci.example.com') }}
 
           # Admin users (comma-separated list of GitHub usernames)
-          WOODPECKER_ADMIN={{ merged_admin | default(woodpecker_admin) | default('') }}
+          WOODPECKER_ADMIN={{ merged_admin | default(wp_admin) | default('') }}
 
           # Agent secret (shared between server and agents)
-          WOODPECKER_AGENT_SECRET={{ merged_agent_secret | default(woodpecker_agent_secret) | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits')) }}
+          WOODPECKER_AGENT_SECRET={{ merged_agent_secret | default(wp_agent_secret) | default('') }}
 
           # GitHub OAuth Configuration
-          WOODPECKER_GITHUB_CLIENT={{ merged_github_client | default(woodpecker_github_client) | default('') }}
-          WOODPECKER_GITHUB_SECRET={{ merged_github_secret | default(woodpecker_github_secret) | default('') }}
+          WOODPECKER_GITHUB_CLIENT={{ merged_github_client | default(wp_github_client) | default('') }}
+          WOODPECKER_GITHUB_SECRET={{ merged_github_secret | default(wp_github_secret) | default('') }}
 
     - name: Stop Woodpecker CI
       ansible.builtin.command:
@@ -150,7 +154,7 @@
           - "✅ Woodpecker CI configuration updated and restarted!"
           - ""
           - "Access Woodpecker at: http://{{ ansible_host }}:8000"
-          - "Or via configured domain: {{ merged_host | default(woodpecker_host) | default('https://ci.example.com') }}"
+          - "Or via configured domain: {{ merged_host | default(wp_host) | default('https://ci.example.com') }}"
           - ""
           - "Backup created: {{ woodpecker_dir }}/.env.backup.{{ ansible_date_time.epoch }}"
           - "Configuration file: {{ woodpecker_dir }}/.env"

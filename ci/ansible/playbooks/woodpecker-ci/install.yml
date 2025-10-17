@@ -20,11 +20,15 @@
     woodpecker_dir: /opt/woodpecker
     woodpecker_data_dir: /opt/woodpecker/data
     # These should be overridden via extra vars or ansible vault
-    woodpecker_host: "{{ lookup('env', 'WOODPECKER_HOST') | default('ci.example.com', true) }}"
-    woodpecker_admin: "{{ lookup('env', 'WOODPECKER_ADMIN') | default('', true) }}"
-    woodpecker_github_client: "{{ lookup('env', 'WOODPECKER_GITHUB_CLIENT') | default('', true) }}"
-    woodpecker_github_secret: "{{ lookup('env', 'WOODPECKER_GITHUB_SECRET') | default('', true) }}"
-    woodpecker_agent_secret: "{{ lookup('env', 'WOODPECKER_AGENT_SECRET') | default(lookup('password', '/dev/null length=32 chars=ascii_letters,digits'), true) }}"
+    wp_host: "{{ woodpecker_host | default('ci.example.com', true) }}"
+    wp_admin: "{{ woodpecker_admin | default('', true) }}"
+    wp_github_client: "{{ woodpecker_github_client | default('', true) }}"
+    wp_github_secret: "{{ woodpecker_github_secret | default('', true) }}"
+    wp_agent_secret: "{{ woodpecker_agent_secret | default('', true) }}"
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Create Woodpecker directories
@@ -103,25 +107,25 @@
         content: |
           # Woodpecker CI Configuration
           # Server URL (should be accessible from outside)
-          WOODPECKER_HOST={{ woodpecker_host }}
+          WOODPECKER_HOST={{ wp_host }}
 
           # Admin users (comma-separated list of GitHub usernames)
-          WOODPECKER_ADMIN={{ woodpecker_admin }}
+          WOODPECKER_ADMIN={{ wp_admin }}
 
           # Agent secret (shared between server and agents)
-          WOODPECKER_AGENT_SECRET={{ woodpecker_agent_secret }}
+          WOODPECKER_AGENT_SECRET={{ wp_agent_secret }}
 
           # GitHub OAuth Configuration
-          WOODPECKER_GITHUB_CLIENT={{ woodpecker_github_client }}
-          WOODPECKER_GITHUB_SECRET={{ woodpecker_github_secret }}
+          WOODPECKER_GITHUB_CLIENT={{ wp_github_client }}
+          WOODPECKER_GITHUB_SECRET={{ wp_github_secret }}
 
     - name: Display configuration info
       ansible.builtin.debug:
         msg:
           - "Woodpecker CI will be installed at: {{ woodpecker_dir }}"
           - "Data directory: {{ woodpecker_data_dir }}"
-          - "Server URL: {{ woodpecker_host }}"
-          - "Admin users: {{ woodpecker_admin if woodpecker_admin else 'Not configured' }}"
+          - "Server URL: {{ wp_host }}"
+          - "Admin users: {{ wp_admin if wp_admin else 'Not configured' }}"
           - ""
           - "Please review and update {{ woodpecker_dir }}/.env with your OAuth credentials"
           - "before starting Woodpecker CI."
@@ -160,7 +164,7 @@
 
           Press Enter when configuration is complete, or Ctrl+C to abort and configure later.
       when:
-        - woodpecker_github_client == '' or woodpecker_github_secret == ''
+        - wp_github_client == '' or wp_github_secret == ''
         - env_file.stat.exists
 
     - name: Stop and remove existing Woodpecker containers if running
@@ -221,7 +225,7 @@
           - "✅ Woodpecker CI has been deployed!"
           - ""
           - "Access Woodpecker at: http://{{ ansible_host }}"
-          - "Or via configured domain: {{ woodpecker_host }}"
+          - "Or via configured domain: {{ wp_host }}"
           - ""
           - "To view logs: cd {{ woodpecker_dir }} && docker compose logs -f"
           - "To stop: cd {{ woodpecker_dir }} && docker compose down"
@@ -231,6 +235,6 @@
           - "Data directory: {{ woodpecker_data_dir }}"
           - ""
           - "📋 For Config Service integration:"
-          - "Install config-service with: ansible-playbook playbooks/woodpecker-config-service/deploy.yml"
+          - "Install config-service with: ansible-playbook playbooks/woodpecker-workflows/deploy.yml"
           - "Then in Woodpecker UI settings, set Config Service URL to:"
           - "  http://host.docker.internal:3300"

@@ -1,6 +1,6 @@
 ## Split server and workflows and deploy via Docker Compose
 
-This guide shows how to split the build and deployment of the server (`woodpecker-config-service`) and the set of workflows into two separate Docker images and run them together using Docker Compose with a shared volume.
+This guide shows how to split the build and deployment of the server (`woodpecker-workflows`) and the set of workflows into two separate Docker images and run them together using Docker Compose with a shared volume.
 
 ### Goals
 
@@ -15,14 +15,14 @@ This guide shows how to split the build and deployment of the server (`woodpecke
   - workflows: contains only compiled workflow artifacts, no runtime.
 - Docker Compose stack:
   - `workflows-loader` copies artifacts into a named volume once.
-  - `config-service` mounts that volume at `/app/ci/woodpecker-config-service/workflows` and serves them.
+  - `config-service` mounts that volume at `/app/ci/woodpecker-workflows/workflows` and serves them.
 - Update process:
   - Changing workflows only ⇒ rebuild/pull the workflows image and re-run the loader; no server rebuild.
   - Changing server code ⇒ rebuild the server image; the workflows volume can remain unchanged.
 - Benefits:
   - Faster iteration for workflow changes, smaller runtime surface, clear separation of concerns, no Kubernetes required.
 - Local development:
-  - Bind-mount `ci/woodpecker-config-service/dist/workflows` into the server container for hot reload.
+  - Bind-mount `ci/woodpecker-workflows/dist/workflows` into the server container for hot reload.
 - Verification:
   - Use the provided compose commands to list files in the volume and view server logs.
 
@@ -36,7 +36,7 @@ This guide shows how to split the build and deployment of the server (`woodpecke
 
 ## 1) Update build (esbuild) to support targets
 
-Add target builds: `server` and `workflows`. Below is an example `ci/woodpecker-config-service/esbuild.js` with target support. If the file already exists, replace its contents with this:
+Add target builds: `server` and `workflows`. Below is an example `ci/woodpecker-workflows/esbuild.js` with target support. If the file already exists, replace its contents with this:
 
 ```javascript
 import { build } from "esbuild";
@@ -98,7 +98,7 @@ try {
 }
 ```
 
-Update scripts in `ci/woodpecker-config-service/package.json`:
+Update scripts in `ci/woodpecker-workflows/package.json`:
 
 ```json
 {
@@ -116,13 +116,13 @@ Update scripts in `ci/woodpecker-config-service/package.json`:
 
 ## 2) Multi-target Dockerfile (two images: server and workflows)
 
-Replace `ci/woodpecker-config-service/Dockerfile` with a multi-stage file that exposes two targets. Build from the `services/` root.
+Replace `ci/woodpecker-workflows/Dockerfile` with a multi-stage file that exposes two targets. Build from the `services/` root.
 
 ```dockerfile
 # Build context: services/
 # Build examples:
-#   docker build --platform linux/amd64 -t config-service:server -f ci/woodpecker-config-service/Dockerfile --target server .
-#   docker build --platform linux/amd64 -t config-service:workflows -f ci/woodpecker-config-service/Dockerfile --target workflows .
+#   docker build --platform linux/amd64 -t config-service:server -f ci/woodpecker-workflows/Dockerfile --target server .
+#   docker build --platform linux/amd64 -t config-service:workflows -f ci/woodpecker-workflows/Dockerfile --target workflows .
 
 # ---- deps (shared cache) ----
 FROM node:22 AS deps
@@ -133,27 +133,27 @@ COPY package.json yarn.lock ./
 
 # Only manifests to warm the cache
 COPY packages/woodpecker-ci-config-service/package.json packages/woodpecker-ci-config-service/package.json
-COPY ci/woodpecker-config-service/package.json ci/woodpecker-config-service/package.json
+COPY ci/woodpecker-workflows/package.json ci/woodpecker-workflows/package.json
 
 RUN yarn install --frozen-lockfile
 
 # Sources
 COPY packages/woodpecker-ci-config-service packages/woodpecker-ci-config-service
-COPY ci/woodpecker-config-service ci/woodpecker-config-service
+COPY ci/woodpecker-workflows ci/woodpecker-workflows
 
 # ---- build:server ----
 FROM deps AS build-server
-WORKDIR /app/ci/woodpecker-config-service
+WORKDIR /app/ci/woodpecker-workflows
 ENV BUILD_TARGET=server
 RUN yarn workspace @shopana/woodpecker-ci-config-service build \
-  && yarn workspace @shopana/woodpecker-config-service build
+  && yarn workspace @shopana/woodpecker-workflows build
 
 # ---- build:workflows ----
 FROM deps AS build-workflows
-WORKDIR /app/ci/woodpecker-config-service
+WORKDIR /app/ci/woodpecker-workflows
 ENV BUILD_TARGET=workflows
 RUN yarn workspace @shopana/woodpecker-ci-config-service build \
-  && yarn workspace @shopana/woodpecker-config-service build:workflows
+  && yarn workspace @shopana/woodpecker-workflows build:workflows
 
 # ---- runtime:server ----
 FROM node:22 AS server
@@ -162,26 +162,26 @@ WORKDIR /app
 # Production manifests
 COPY --from=deps /app/package.json /app/yarn.lock ./
 COPY --from=deps /app/packages/woodpecker-ci-config-service/package.json ./packages/woodpecker-ci-config-service/
-COPY --from=deps /app/ci/woodpecker-config-service/package.json ./ci/woodpecker-config-service/
+COPY --from=deps /app/ci/woodpecker-workflows/package.json ./ci/woodpecker-workflows/
 
 RUN yarn install --frozen-lockfile --production
 
 # Runtime dist
-COPY --from=build-server /app/ci/woodpecker-config-service/dist ./ci/woodpecker-config-service/dist
+COPY --from=build-server /app/ci/woodpecker-workflows/dist ./ci/woodpecker-workflows/dist
 COPY --from=build-server /app/packages/woodpecker-ci-config-service/dist ./packages/woodpecker-ci-config-service/dist
 
 # Public key
-COPY --from=deps /app/ci/woodpecker-config-service/public-key.pem ./ci/woodpecker-config-service/public-key.pem
+COPY --from=deps /app/ci/woodpecker-workflows/public-key.pem ./ci/woodpecker-workflows/public-key.pem
 
 ENV NODE_ENV=production
-WORKDIR /app/ci/woodpecker-config-service
+WORKDIR /app/ci/woodpecker-workflows
 EXPOSE 3000
 CMD ["node", "dist/index.js"]
 
 # ---- artifact:workflows ----
 FROM alpine:3.20 AS workflows
 WORKDIR /workflows
-COPY --from=build-workflows /app/ci/woodpecker-config-service/dist/workflows /workflows
+COPY --from=build-workflows /app/ci/woodpecker-workflows/dist/workflows /workflows
 CMD ["sh", "-c", "ls -la /workflows && sleep infinity"]
 ```
 
@@ -210,7 +210,7 @@ services:
       - CONFIG_SERVICE_PUBLIC_KEY_FILE=./public-key.pem
       - PORT=3000
     volumes:
-      - workflows-data:/app/ci/woodpecker-config-service/workflows
+      - workflows-data:/app/ci/woodpecker-workflows/workflows
     ports:
       - "3000:3000"
 
@@ -228,10 +228,10 @@ Run from the `services/` root.
 
 ```bash
 # Build the server image
-docker build -t config-service:server -f ci/woodpecker-config-service/Dockerfile --target server .
+docker build -t config-service:server -f ci/woodpecker-workflows/Dockerfile --target server .
 
 # Build the workflows image
-docker build -t config-service:workflows -f ci/woodpecker-config-service/Dockerfile --target workflows .
+docker build -t config-service:workflows -f ci/woodpecker-workflows/Dockerfile --target workflows .
 ```
 
 If you publish to a registry, replace tags with `REGISTRY/PROJECT/config-service:server` and `...:workflows`, then run `docker push`.
@@ -244,10 +244,10 @@ Recommended sequence:
 
 ```bash
 # 1) Populate the volume with fresh workflows (one-off)
-docker compose -f ci/woodpecker-config-service/docker-compose.yml run --rm workflows-loader
+docker compose -f ci/woodpecker-workflows/docker-compose.yml run --rm workflows-loader
 
 # 2) Start/restart the server
-docker compose -f ci/woodpecker-config-service/docker-compose.yml up -d config-service
+docker compose -f ci/woodpecker-workflows/docker-compose.yml up -d config-service
 ```
 
 Alternative (single `up`) if race conditions are acceptable: `docker compose up -d` — does not guarantee copying finishes before the server starts.
@@ -260,14 +260,14 @@ When only `workflows` change:
 
 ```bash
 # Rebuild (or pull) the workflows image
-docker build -t config-service:workflows -f ci/woodpecker-config-service/Dockerfile --target workflows .
+docker build -t config-service:workflows -f ci/woodpecker-workflows/Dockerfile --target workflows .
 # or: docker pull <registry>/config-service:workflows
 
 # Overwrite the volume contents
-docker compose -f ci/woodpecker-config-service/docker-compose.yml run --rm workflows-loader
+docker compose -f ci/woodpecker-workflows/docker-compose.yml run --rm workflows-loader
 
 # Restart the server only if it caches contents
-docker compose -f ci/woodpecker-config-service/docker-compose.yml restart config-service
+docker compose -f ci/woodpecker-workflows/docker-compose.yml restart config-service
 ```
 
 ---
@@ -278,14 +278,14 @@ For hot changes, bind-mount the local `dist/workflows` into the server container
 
 ```bash
 # Build workflows locally
-yarn workspace @shopana/woodpecker-config-service build:workflows
+yarn workspace @shopana/woodpecker-workflows build:workflows
 
 # Start the server with local dist/workflows bind-mounted
 docker run -d --name config-service \
   -e CONFIG_SERVICE_PUBLIC_KEY_FILE=./public-key.pem \
   -e PORT=3000 \
   -p 3000:3000 \
-  -v $(pwd)/ci/woodpecker-config-service/dist/workflows:/app/ci/woodpecker-config-service/workflows \
+  -v $(pwd)/ci/woodpecker-workflows/dist/workflows:/app/ci/woodpecker-workflows/workflows \
   config-service:server
 ```
 
@@ -295,15 +295,15 @@ docker run -d --name config-service \
 
 - Verify files were copied into the volume:
   ```bash
-  docker compose -f ci/woodpecker-config-service/docker-compose.yml run --rm workflows-loader sh -lc "ls -la /mounted"
+  docker compose -f ci/woodpecker-workflows/docker-compose.yml run --rm workflows-loader sh -lc "ls -la /mounted"
   ```
 - Check what the server sees:
   ```bash
-  docker compose -f ci/woodpecker-config-service/docker-compose.yml exec config-service sh -lc "ls -la /app/ci/woodpecker-config-service/workflows"
+  docker compose -f ci/woodpecker-workflows/docker-compose.yml exec config-service sh -lc "ls -la /app/ci/woodpecker-workflows/workflows"
   ```
 - Server logs:
   ```bash
-  docker compose -f ci/woodpecker-config-service/docker-compose.yml logs -f config-service
+  docker compose -f ci/woodpecker-workflows/docker-compose.yml logs -f config-service
   ```
 
 Common issues:
@@ -324,6 +324,6 @@ Common issues:
 ## 10) Cleanup
 
 ```bash
-docker compose -f ci/woodpecker-config-service/docker-compose.yml down
+docker compose -f ci/woodpecker-workflows/docker-compose.yml down
 docker volume rm $(docker volume ls -q | grep workflows-data) || true
 ```

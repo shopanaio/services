@@ -35,6 +35,10 @@
     # Docker compose
     compose_file: "{{ runtime_dir }}/docker-compose.yml"
 
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
+
   tasks:
     - name: Display deployment start message
       ansible.builtin.debug:

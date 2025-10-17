@@ -1,4 +1,4 @@
-# ansible-playbook playbooks/woodpecker-config-service/build.yml
+# ansible-playbook playbooks/woodpecker-workflows/build.yml
 ---
 - name: Build and push config-service image to GitHub Container Registry
   hosts: localhost
@@ -6,31 +6,26 @@
   become: false
   gather_facts: false
 
+  vars_files:
+    - ./vars.yml
+
   vars:
     # Application configuration
-    app_name: woodpecker-config-service
-    local_build_dir: "{{ playbook_dir }}/../../../.."
-    dockerfile_path: ci/woodpecker-config-service/Dockerfile
-
-    # GHCR configuration
-    ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
-    image_tag: "{{ lookup('env', 'WOODPECKER_CONFIG_SERVICE_IMAGE_TAG') | default('latest', true) }}"
-    image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ app_name }}:{{ image_tag }}"
-
-    # Authentication
-    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+    app_name: woodpecker-workflows
+    build_context_dir: "{{ playbook_dir }}/../../../.."
+    dockerfile_path: ci/woodpecker-workflows/Dockerfile
+    image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ woodpecker_config_service_image_tag }}"
 
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
-          - ghcr_owner is defined and ghcr_owner | length > 0
-          - github_token is defined and github_token | length > 0
+          - shopana_ghcr_registry is defined and shopana_ghcr_registry | length > 0
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
         fail_msg: >-
-          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
-          via environment or -e "VAR=...".
-          Example: export SHOPANA_GHCR_OWNER=shopanaio SHOPANA_GITHUB_TOKEN=ghp_xxx
+          Required variables missing. Provide shopana_ghcr_owner and shopana_ghcr_token
+          via inventory variables.
         success_msg: "All required variables are present"
 
     - name: Build and push block with error handling
@@ -42,7 +37,7 @@
               - "  Image: {{ image_name }}"
               - "  Platform: linux/amd64"
               - "  Dockerfile: {{ dockerfile_path }}"
-              - "🔐 Registry: {{ ghcr_registry }}/{{ ghcr_owner }}"
+              - "🔐 Registry: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}"
 
         - name: Check if Docker is running
           ansible.builtin.command:
@@ -58,21 +53,21 @@
 
         - name: Login to GitHub Container Registry
           ansible.builtin.command:
-            cmd: echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            cmd: echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
           no_log: true
           changed_when: true
           register: login_result
 
         - name: Verify login was successful
           ansible.builtin.debug:
-            msg: "✅ Login to {{ ghcr_registry }} completed successfully"
+            msg: "✅ Login to {{ shopana_ghcr_registry }} completed successfully"
 
         - name: Check GitHub token permissions (optional diagnostic)
           ansible.builtin.uri:
             url: "https://api.github.com/user"
             method: GET
             headers:
-              Authorization: "token {{ github_token }}"
+              Authorization: "token {{ shopana_ghcr_token }}"
               Accept: "application/vnd.github.v3+json"
           register: github_user_check
           failed_when: false
@@ -83,12 +78,7 @@
             msg:
               - "🔑 GitHub API Status: {{ github_user_check.status | default('Failed') }}"
               - "GitHub User: {{ github_user_check.json.login | default('Unknown') }}"
-              - "GHCR Owner: {{ ghcr_owner }}"
-              - ""
-              - "⚠️  Ensure token has 'write:packages' permission for {{ ghcr_owner }}"
-              - "💡 Set correct SHOPANA_GHCR_OWNER if needed:"
-              - "   export SHOPANA_GHCR_OWNER=philipp-sapronov  # personal"
-              - "   export SHOPANA_GHCR_OWNER=shopanaio         # org"
+              - "GHCR Owner: {{ shopana_ghcr_owner }}"
           when: github_user_check.status is defined
 
         - name: Build Docker image for linux/amd64
@@ -99,12 +89,12 @@
               -t {{ image_name }}
               -f {{ dockerfile_path }}
               .
-            chdir: "{{ local_build_dir }}"
+            chdir: "{{ build_context_dir }}"
           changed_when: true
 
         - name: Login and push image to GitHub Container Registry
           ansible.builtin.shell: |
-            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
             docker push {{ image_name }}
           no_log: true
           changed_when: true
@@ -114,15 +104,7 @@
           ansible.builtin.debug:
             msg:
               - "✅ Image built and pushed successfully"
-              - ""
               - "📦 Image: {{ image_name }}"
-              - ""
-              - "🚀 To install on server:"
-              - "  ansible-playbook wp-config-service-install.yml -e 'image_tag={{ image_tag }}'"
-              - ""
-              - "💡 To build with custom tag:"
-              - "  export WOODPECKER_CONFIG_SERVICE_IMAGE_TAG=v1.0.0"
-              - "  ansible-playbook wp-config-service-build.yml"
 
       rescue:
         - name: Show error details
@@ -134,8 +116,8 @@
               - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
               - ""
               - "💡 Common solutions:"
-              - "  • Check SHOPANA_GITHUB_TOKEN has packages:write permission"
-              - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ ghcr_owner }}"
+              - "  • Check shopana_ghcr_token has packages:write permission"
+              - "  • Verify shopana_ghcr_owner is correct: {{ shopana_ghcr_owner }}"
               - "  • Ensure Docker daemon is running"
               - "  • Verify Dockerfile exists at {{ dockerfile_path }}"
 
@@ -146,6 +128,6 @@
       always:
         - name: Logout from GitHub Container Registry
           ansible.builtin.command:
-            cmd: docker logout {{ ghcr_registry }}
+            cmd: docker logout {{ shopana_ghcr_registry }}
           changed_when: false
           ignore_errors: true

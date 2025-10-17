@@ -1,4 +1,4 @@
-# ansible-playbook playbooks/woodpecker-config-service/manage.yml -e "action=status"
+# ansible-playbook playbooks/woodpecker-workflows/manage.yml -e "action=status"
 # Available actions: start|stop|restart|status|logs|logs-follow|upgrade
 ---
 - name: Manage config-service
@@ -8,12 +8,16 @@
 
   vars:
     # Application configuration
-    app_name: woodpecker-config-service
-    app_dir: /opt/woodpecker-config-service
+    app_name: woodpecker-workflows
+    app_dir: /opt/woodpecker-workflows
 
     # Action parameters
     action: status  # Default action
     log_lines: 100  # Number of log lines to show
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Check if container exists
@@ -24,7 +28,7 @@
 
     - name: Fail if not installed
       ansible.builtin.fail:
-        msg: "{{ app_name }} container not found. Run playbooks/woodpecker-config-service/deploy.yml first."
+        msg: "{{ app_name }} container not found. Run playbooks/woodpecker-workflows/deploy.yml first."
       when: not container_check.exists
 
     - name: Start service

@@ -16,7 +16,7 @@
       --build-arg SERVICE_NAME={{ service.name }}
       --build-arg VERSION={{ service.image_tag }}
       --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
-      --build-arg VCS_REF={{ lookup('pipe', 'git rev-parse --short HEAD 2>/dev/null || echo "unknown"') }}
+      --build-arg VCS_REF=unknown
       -t {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}
       -f {{ dockerfile_path }}
       .

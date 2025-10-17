@@ -6,15 +6,19 @@
 
   vars:
     # Source directory for deployment artifacts
-    local_source_dir: "{{ lookup('pipe', 'git rev-parse --show-toplevel') }}/ci/images/apollo/runtime"
+    local_source_dir: "{{ playbook_dir }}/../../images/apollo/runtime"
 
     # Remote deployment configuration
     remote_deploy_dir: "/opt/shopana/apollo-router"
 
     # GHCR configuration for pulling images
     ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
-    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+    ghcr_owner: "{{ shopana_ghcr_owner }}"
+    github_token: "{{ shopana_github_token }}"
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Ensure required variables are provided
@@ -22,7 +26,7 @@
         that:
           - ghcr_owner is defined and ghcr_owner | length > 0
           - github_token is defined and github_token | length > 0
-        fail_msg: "Please provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN as environment variables."
+        fail_msg: "Please provide shopana_ghcr_owner and shopana_github_token via inventory variables."
       run_once: true
       delegate_to: localhost
 

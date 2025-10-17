@@ -1,4 +1,13 @@
-# ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.0.0"
+# Build and push single service image to GitHub Container Registry
+#
+# Prerequisites:
+#   - Docker must be running locally
+#   - .env file with SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN (see ci/ansible/env.example)
+#
+# Usage:
+#   ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.0.0"
+#
+# .env file is loaded automatically by pre_setup.yml
 ---
 - name: Build and push single service image to GitHub Container Registry
   hosts: localhost
@@ -9,7 +18,7 @@
   vars:
     # GHCR configuration
     ghcr_registry: ghcr.io
-    ghcr_owner: "{{ lookup('env', 'SHOPANA_GHCR_OWNER') }}"
+    ghcr_owner: "{{ shopana_ghcr_owner }}"
 
     # Build configuration
     local_build_dir: "{{ playbook_dir }}/../../../.."
@@ -20,11 +29,11 @@
     # service_name: checkout  # Example
     # image_tag: latest       # Optional, defaults to 'latest'
 
-    # Image tag with fallback to env or default
-    final_image_tag: "{{ image_tag | default(lookup('env', service_name | upper + '_SERVICE_IMAGE_TAG') | default('latest', true), true) }}"
+    # Image tag with fallback to .env, env, or default
+    final_image_tag: "{{ image_tag | default('latest', true) }}"
 
     # Authentication
-    github_token: "{{ lookup('env', 'SHOPANA_GITHUB_TOKEN') }}"
+    github_token: "{{ shopana_github_token }}"
 
     # Valid service names
     valid_services:
@@ -36,6 +45,10 @@
       - payments
       - platform
       - pricing
+
+  pre_tasks:
+    - name: Include common pre-setup tasks
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Validate service_name is provided
@@ -99,7 +112,7 @@
               --build-arg SERVICE_NAME={{ service_name }}
               --build-arg VERSION={{ final_image_tag }}
               --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
-              --build-arg VCS_REF={{ lookup('pipe', 'git rev-parse --short HEAD 2>/dev/null || echo "unknown"') }}
+              --build-arg VCS_REF=unknown
               -t {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
               -f {{ dockerfile_path }}
               .
