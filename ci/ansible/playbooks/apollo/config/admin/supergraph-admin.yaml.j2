@@ -1,14 +1,14 @@
 federation_version: 2
 subgraphs:
   platform:
-    routing_url: http://host.docker.internal:8000/api/admin/graphql
+    routing_url: {{ apollo_platform_admin_url }}
     schema:
       file: /schema/platform-admin-api.graphql
   apps:
-    routing_url: http://host.docker.internal:10001/graphql
+    routing_url: {{ apollo_apps_admin_url }}
     schema:
       file: /schema/apps-admin-api.graphql
   # orders:
-  #   routing_url: http://host.docker.internal:10003/graphql/admin/v1
+  #   routing_url: {{ apollo_orders_admin_url }}
   #   schema:
   #     file: /schema/orders-admin-api.graphql

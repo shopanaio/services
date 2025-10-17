@@ -23,10 +23,6 @@
     platform: linux/amd64
     local_build_dir: "{{ playbook_dir }}/../../../../"
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:

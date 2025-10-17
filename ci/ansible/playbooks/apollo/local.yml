@@ -1,3 +1,5 @@
+# Deploy Apollo Router services locally
+# Local variables are loaded from vars.local.yml
 # ansible-playbook playbooks/apollo/local.yml
 ---
 - name: Build and deploy Apollo Router services locally
@@ -6,14 +8,17 @@
   become: false
   gather_facts: false
 
+  vars_files:
+    - vars.local.yml
+
   vars:
     # Local build directory
     local_build_dir: "{{ playbook_dir }}/../../../../"
 
     # Apollo configuration paths
-    apollo_dir: "{{ local_build_dir }}/apollo"
-    runtime_dir: "{{ local_build_dir }}/ci/images/apollo/runtime"
+    config_dir: "{{ playbook_dir }}/config"
     schema_dir: "{{ playbook_dir }}/schema"
+    runtime_dir: "{{ playbook_dir }}/runtime"
 
     # Image configuration with 'local' tag
     rover_app_name: shopana/apollo-rover
@@ -27,18 +32,14 @@
     router_build_context: "ci/images/apollo/router"
 
     # Supergraph configuration
-    admin_api_config_path: "{{ apollo_dir }}/admin-api/supergraph.yaml"
-    admin_api_output_path: "{{ runtime_dir }}/supergraph-admin.graphql"
+    admin_api_config_path: "{{ runtime_dir }}/config/supergraph-admin.yaml"
+    admin_api_output_path: "{{ runtime_dir }}/config/supergraph-admin.graphql"
 
-    storefront_api_config_path: "{{ apollo_dir }}/storefront-api/supergraph.yaml"
-    storefront_api_output_path: "{{ runtime_dir }}/supergraph-storefront.graphql"
+    storefront_api_config_path: "{{ runtime_dir }}/config/supergraph-storefront.yaml"
+    storefront_api_output_path: "{{ runtime_dir }}/config/supergraph-storefront.graphql"
 
     # Docker compose
     compose_file: "{{ runtime_dir }}/docker-compose.yml"
-
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
     - name: Display deployment start message
@@ -49,6 +50,12 @@
 
     - name: Build block with error handling
       block:
+        - name: Export subgraph schemas
+          ansible.builtin.include_tasks: tasks/schema-export.yml
+          vars:
+            project_root: "{{ local_build_dir }}"
+            schema_output_arg: "ci/ansible/playbooks/apollo/schema"
+
         - name: Check if Rover image exists
           ansible.builtin.command:
             cmd: docker image inspect {{ rover_image_name }}
@@ -85,55 +92,44 @@
           when: router_check.rc != 0
           changed_when: true
 
-        - name: Compose Admin API supergraph schema
-          ansible.builtin.command:
-            cmd: >
-              docker run --rm
-              -e APOLLO_ELV2_LICENSE=accept
-              -v "{{ admin_api_config_path }}:/workspace/supergraph.yaml"
-              -v "{{ schema_dir }}:/schema"
-              -v "{{ admin_api_output_path | dirname }}:/workspace/output"
-              {{ rover_image_name }}
-              supergraph compose
-              --config /workspace/supergraph.yaml
-          register: admin_compose_result
-          changed_when: true
-          failed_when: admin_compose_result.rc != 0
+        - name: Create runtime directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: "0755"
+          loop:
+            - "{{ runtime_dir }}"
+            - "{{ runtime_dir }}/config"
+            - "{{ runtime_dir }}/config/schema"
 
-        - name: Save Admin API supergraph to file
+        - name: Copy schema files to runtime directory
           ansible.builtin.copy:
-            content: "{{ admin_compose_result.stdout }}"
-            dest: "{{ admin_api_output_path }}"
-          changed_when: true
+            src: "{{ schema_dir }}/"
+            dest: "{{ runtime_dir }}/config/schema/"
+            mode: "0644"
 
-        - name: Display Admin API schema status
-          ansible.builtin.debug:
-            msg: "✅ Admin API supergraph schema composed: {{ admin_api_output_path }}"
+        - name: Generate docker-compose.yml from template
+          ansible.builtin.template:
+            src: "{{ config_dir }}/docker-compose.yml.j2"
+            dest: "{{ compose_file }}"
+            mode: "0644"
 
-        - name: Compose Storefront API supergraph schema
-          ansible.builtin.command:
-            cmd: >
-              docker run --rm
-              -e APOLLO_ELV2_LICENSE=accept
-              -v "{{ storefront_api_config_path }}:/workspace/supergraph.yaml"
-              -v "{{ schema_dir }}:/schema"
-              -v "{{ storefront_api_output_path | dirname }}:/workspace/output"
-              {{ rover_image_name }}
-              supergraph compose
-              --config /workspace/supergraph.yaml
-          register: storefront_compose_result
-          changed_when: true
-          failed_when: storefront_compose_result.rc != 0
+        - name: Generate router-admin.yaml from template
+          ansible.builtin.template:
+            src: "{{ config_dir }}/admin/router-admin.yaml.j2"
+            dest: "{{ runtime_dir }}/config/router-admin.yaml"
+            mode: "0644"
 
-        - name: Save Storefront API supergraph to file
-          ansible.builtin.copy:
-            content: "{{ storefront_compose_result.stdout }}"
-            dest: "{{ storefront_api_output_path }}"
-          changed_when: true
+        - name: Generate router-storefront.yaml from template
+          ansible.builtin.template:
+            src: "{{ config_dir }}/storefront/router-storefront.yaml.j2"
+            dest: "{{ runtime_dir }}/config/router-storefront.yaml"
+            mode: "0644"
 
-        - name: Display Storefront API schema status
-          ansible.builtin.debug:
-            msg: "✅ Storefront API supergraph schema composed: {{ storefront_api_output_path }}"
+        - name: Compose supergraph schemas
+          ansible.builtin.include_tasks: tasks/schema-compose.yml
+          vars:
+            output_dir: "{{ runtime_dir }}/config"
 
         - name: Stop existing Apollo Router services
           ansible.builtin.command:
@@ -150,7 +146,7 @@
 
         - name: Wait for Admin Router to be healthy
           ansible.builtin.command:
-            cmd: curl -f -s http://localhost:8088/health
+            cmd: curl -f -s http://localhost:{{ apollo_router_admin_health_port }}/health
           register: admin_health
           until: admin_health.rc == 0
           retries: 30
@@ -160,7 +156,7 @@
 
         - name: Wait for Storefront Router to be healthy
           ansible.builtin.command:
-            cmd: curl -f -s http://localhost:8089/health
+            cmd: curl -f -s http://localhost:{{ apollo_router_storefront_health_port }}/health
           register: storefront_health
           until: storefront_health.rc == 0
           retries: 30
@@ -178,10 +174,10 @@
               - "  - {{ router_image_name }}"
               - ""
               - "🔗 Services:"
-              - "  - Admin API:      http://localhost:4000/api/admin/graphql/query"
-              - "  - Admin Health:   http://localhost:8088/health"
-              - "  - Storefront API: http://localhost:4001/api/client/graphql/query"
-              - "  - Storefront Health: http://localhost:8089/health"
+              - "  - Admin API:      http://localhost:{{ apollo_router_admin_port }}/api/admin/graphql/query"
+              - "  - Admin Health:   http://localhost:{{ apollo_router_admin_health_port }}/health"
+              - "  - Storefront API: http://localhost:{{ apollo_router_storefront_port }}/api/client/graphql/query"
+              - "  - Storefront Health: http://localhost:{{ apollo_router_storefront_health_port }}/health"
               - ""
               - "📄 Schemas:"
               - "  - {{ admin_api_output_path }}"

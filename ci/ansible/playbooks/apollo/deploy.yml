@@ -1,15 +1,22 @@
+# Deploy Apollo Router services to remote hosts
+# Variables are loaded from vars.deploy.yml
 # ansible-playbook playbooks/apollo/deploy.yml -i your_inventory_file --limit your_apollo_hosts
 ---
 - name: Deploy Apollo Router services
   hosts: shopana_ci
   become: true
 
+  vars_files:
+    - vars.deploy.yml
+
   vars:
     # Source directory for deployment artifacts
-    local_source_dir: "{{ playbook_dir }}/../../../images/apollo/runtime"
+    config_dir: "{{ playbook_dir }}/config"
+    schema_dir: "{{ playbook_dir }}/schema"
 
     # Remote deployment configuration
     remote_deploy_dir: "/opt/shopana/apollo-router"
+    remote_config_dir: "{{ remote_deploy_dir }}/config"
 
   tasks:
     - name: Ensure required variables are provided
@@ -20,24 +27,54 @@
         fail_msg: "Please provide shopana_ghcr_owner and shopana_ghcr_token via inventory variables."
       run_once: true
       delegate_to: localhost
+      become: false
 
-    - name: Create remote deployment directory
+    - name: Export subgraph schemas locally
+      block:
+        - name: Include schema export tasks
+          ansible.builtin.include_tasks: tasks/schema-export.yml
+          vars:
+            project_root: "{{ playbook_dir }}/../../../../"
+            schema_output_arg: "ci/ansible/playbooks/apollo/schema"
+      run_once: true
+      delegate_to: localhost
+      connection: local
+      become: false
+
+    - name: Create remote deployment directories
       ansible.builtin.file:
-        path: "{{ remote_deploy_dir }}"
+        path: "{{ item }}"
         state: directory
         mode: "0755"
-
-    - name: Copy deployment artifacts to remote server
-      ansible.builtin.copy:
-        src: "{{ local_source_dir }}/{{ item }}"
-        dest: "{{ remote_deploy_dir }}/{{ item }}"
-        mode: "0644"
       loop:
-        - docker-compose.yml
-        - router-admin.yaml
-        - router-storefront.yaml
-        - supergraph-admin.graphql
-        - supergraph-storefront.graphql
+        - "{{ remote_deploy_dir }}"
+        - "{{ remote_config_dir }}"
+        - "{{ remote_config_dir }}/schema"
+
+    - name: Generate docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ config_dir }}/docker-compose.yml.j2"
+        dest: "{{ remote_deploy_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Generate router-admin.yaml from template
+      ansible.builtin.template:
+        src: "{{ config_dir }}/admin/router-admin.yaml.j2"
+        dest: "{{ remote_config_dir }}/router-admin.yaml"
+        mode: "0644"
+
+    - name: Generate router-storefront.yaml from template
+      ansible.builtin.template:
+        src: "{{ config_dir }}/storefront/router-storefront.yaml.j2"
+        dest: "{{ remote_config_dir }}/router-storefront.yaml"
+        mode: "0644"
+
+    - name: Copy schema files to remote server
+      ansible.builtin.synchronize:
+        src: "{{ schema_dir }}/"
+        dest: "{{ remote_config_dir }}/schema/"
+        recursive: yes
+        delete: yes
 
     - name: Deploy block with login/logout
       block:
@@ -47,6 +84,13 @@
             username: "{{ shopana_ghcr_owner }}"
             password: "{{ shopana_ghcr_token }}"
           no_log: true
+
+        - name: Compose supergraph schemas
+          ansible.builtin.include_tasks: tasks/schema-compose.yml
+          vars:
+            config_dir: "{{ playbook_dir }}/config"
+            output_dir: "{{ remote_config_dir }}"
+            schema_dir: "{{ remote_config_dir }}/schema"
 
         - name: Pull the latest images and start services with Docker Compose
           community.docker.docker_compose_v2:
@@ -67,3 +111,4 @@
         msg: "✅ Apollo Router services deployed successfully to {{ inventory_hostname }}"
       run_once: true
       delegate_to: localhost
+      become: false

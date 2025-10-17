@@ -26,10 +26,6 @@
     wp_github_secret: "{{ woodpecker_github_secret | default('', true) }}"
     wp_agent_secret: "{{ woodpecker_agent_secret | default('', true) }}"
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Create Woodpecker directories
       ansible.builtin.file:

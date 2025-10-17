@@ -46,10 +46,6 @@
       - platform
       - pricing
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Validate service_name is provided
       ansible.builtin.assert:

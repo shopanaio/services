@@ -1,4 +1,5 @@
-# ansible-playbook playbooks/apollo/export-schemas.yml
+# Export Apollo Federation subgraph schemas
+# ansible-playbook playbooks/apollo/schema-export.yml
 ---
 - name: Export Apollo Federation subgraph schemas
   hosts: localhost
@@ -9,85 +10,21 @@
   vars:
     # Project directories
     project_root: "{{ playbook_dir }}/../../../../"
-    apollo_scripts_dir: "{{ project_root }}/ci/apollo"
-    apollo_schema_dir: "{{ playbook_dir }}/schema"
-    apollo_schema_output_arg: "ci/ansible/playbooks/apollo/schema"
+    schema_dir: "{{ playbook_dir }}/schema"
+    schema_output_arg: "ci/ansible/playbooks/apollo/schema"
 
   tasks:
-    - name: Display export start message
-      ansible.builtin.debug:
-        msg:
-          - "📦 Starting Apollo Federation subgraph schema export"
-          - "📁 Project root: {{ project_root }}"
-          - "📁 Scripts directory: {{ apollo_scripts_dir }}"
-          - "📁 Output directory: {{ apollo_schema_dir }}"
-
     - name: Export schemas block with error handling
       block:
-        - name: Ensure apollo schema output directory exists
-          ansible.builtin.file:
-            path: "{{ apollo_schema_dir }}"
-            state: directory
-            mode: "0755"
-
-        - name: Check if node_modules exists in apollo scripts directory
-          ansible.builtin.stat:
-            path: "{{ apollo_scripts_dir }}/node_modules"
-          register: apollo_node_modules
-
-        - name: Install dependencies for apollo scripts
-          ansible.builtin.command:
-            cmd: yarn install
-            chdir: "{{ apollo_scripts_dir }}"
-          when: not apollo_node_modules.stat.exists
-          changed_when: true
-
-        - name: Display export message
-          ansible.builtin.debug:
-            msg:
-              - "🚀 Exporting subgraph schemas..."
-              - "This will process all configured services"
-
-        - name: Export all subgraph schemas using tsx
-          ansible.builtin.command:
-            cmd: yarn tsx scripts/build-schemas.js {{ apollo_schema_output_arg }}
-            chdir: "{{ apollo_scripts_dir }}"
-          register: export_result
-          changed_when: true
-          failed_when: export_result.rc != 0
-
-        - name: Display export output
-          ansible.builtin.debug:
-            msg: "{{ export_result.stdout_lines }}"
-
-        - name: Find all exported schema files
-          ansible.builtin.find:
-            paths: "{{ apollo_schema_dir }}"
-            patterns: "*.graphql"
-          register: exported_schemas
-
-        - name: Display exported schemas
-          ansible.builtin.debug:
-            msg:
-              - "✅ Successfully exported {{ exported_schemas.files | length }} schema(s):"
-              - "{{ exported_schemas.files | map(attribute='path') | map('basename') | list }}"
-
-        - name: Verify all expected schemas were created
-          ansible.builtin.assert:
-            that:
-              - exported_schemas.files | length > 0
-            fail_msg: "❌ No schemas were exported!"
-            success_msg: "✅ All schemas exported successfully!"
+        - name: Export subgraph schemas
+          ansible.builtin.include_tasks: tasks/schema-export.yml
 
         - name: Show success message
           ansible.builtin.debug:
             msg:
               - "🎉 Apollo Federation subgraph schemas exported successfully!"
               - ""
-              - "📊 Exported schemas:"
-              - "{% for file in exported_schemas.files %}  - {{ file.path | basename }} ({{ (file.size / 1024) | round(2) }} KB){% endfor %}"
-              - ""
-              - "📁 Schemas location: {{ apollo_schema_dir }}"
+              - "📁 Schemas location: {{ schema_dir }}"
               - ""
               - "💡 Next steps:"
               - "  1. Update supergraph.yaml files to reference these schemas"

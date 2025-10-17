@@ -1,2 +1,5 @@
 # Generated schemas
 schema/
+
+# Runtime directory for local development (generated configs and schemas)
+runtime/

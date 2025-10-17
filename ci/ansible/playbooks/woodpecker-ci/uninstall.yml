@@ -12,10 +12,6 @@
     remove_data: true
     remove_project_dir: true
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Check if Woodpecker directory exists
       ansible.builtin.stat:

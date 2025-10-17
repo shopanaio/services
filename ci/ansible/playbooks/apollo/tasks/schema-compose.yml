@@ -1,0 +1,78 @@
+---
+# Reusable tasks for composing Apollo supergraph schemas
+# Required variables:
+#   - rover_image_name: Name of the Apollo Rover Docker image
+#   - config_dir: Directory with config templates
+#   - schema_dir: Directory with subgraph schemas
+#   - output_dir: Directory where composed schemas will be saved
+#   - apollo_* variables: Service URLs for subgraphs
+
+- name: Display compose start message
+  ansible.builtin.debug:
+    msg:
+      - "🔨 Starting Apollo supergraph composition"
+      - "Using rover image: {{ rover_image_name }}"
+
+- name: Generate Admin API supergraph config from template
+  ansible.builtin.template:
+    src: "{{ config_dir }}/admin/supergraph-admin.yaml.j2"
+    dest: "{{ output_dir }}/supergraph-admin.yaml"
+    mode: "0644"
+  changed_when: true
+
+- name: Generate Storefront API supergraph config from template
+  ansible.builtin.template:
+    src: "{{ config_dir }}/storefront/supergraph-storefront.yaml.j2"
+    dest: "{{ output_dir }}/supergraph-storefront.yaml"
+    mode: "0644"
+  changed_when: true
+
+- name: Compose Admin API supergraph schema
+  ansible.builtin.command:
+    cmd: >
+      docker run --rm
+      -e APOLLO_ELV2_LICENSE=accept
+      -v "{{ output_dir }}/supergraph-admin.yaml:/workspace/supergraph.yaml"
+      -v "{{ schema_dir }}:/schema"
+      {{ rover_image_name }}
+      supergraph compose
+      --config /workspace/supergraph.yaml
+  register: admin_compose_result
+  changed_when: true
+  failed_when: admin_compose_result.rc != 0
+
+- name: Save Admin API supergraph to file
+  ansible.builtin.copy:
+    content: "{{ admin_compose_result.stdout }}"
+    dest: "{{ output_dir }}/supergraph-admin.graphql"
+    mode: "0644"
+  changed_when: true
+
+- name: Display Admin API schema status
+  ansible.builtin.debug:
+    msg: "✅ Admin API supergraph schema composed: {{ output_dir }}/supergraph-admin.graphql"
+
+- name: Compose Storefront API supergraph schema
+  ansible.builtin.command:
+    cmd: >
+      docker run --rm
+      -e APOLLO_ELV2_LICENSE=accept
+      -v "{{ output_dir }}/supergraph-storefront.yaml:/workspace/supergraph.yaml"
+      -v "{{ schema_dir }}:/schema"
+      {{ rover_image_name }}
+      supergraph compose
+      --config /workspace/supergraph.yaml
+  register: storefront_compose_result
+  changed_when: true
+  failed_when: storefront_compose_result.rc != 0
+
+- name: Save Storefront API supergraph to file
+  ansible.builtin.copy:
+    content: "{{ storefront_compose_result.stdout }}"
+    dest: "{{ output_dir }}/supergraph-storefront.graphql"
+    mode: "0644"
+  changed_when: true
+
+- name: Display Storefront API schema status
+  ansible.builtin.debug:
+    msg: "✅ Storefront API supergraph schema composed: {{ output_dir }}/supergraph-storefront.graphql"

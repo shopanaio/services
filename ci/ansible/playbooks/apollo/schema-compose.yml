@@ -1,4 +1,5 @@
-# ansible-playbook playbooks/apollo/schema.yml
+# Compose Apollo supergraph schemas
+# ansible-playbook playbooks/apollo/schema-compose.yml
 ---
 - name: Compose Apollo supergraph schemas
   hosts: localhost
@@ -6,87 +7,68 @@
   become: false
   gather_facts: false
 
+  vars_files:
+    - vars.local.yml
+
   vars:
     # Path to the rover image we built (use 'local' tag for local development)
-    rover_image: "shopana/apollo-rover:local"
+    rover_image_name: "shopana/apollo-rover:local"
 
     # Paths
+    config_dir: "{{ playbook_dir }}/config"
     schema_dir: "{{ playbook_dir }}/schema"
-
-    # Admin API config
-    admin_api_config_path: "{{ playbook_dir }}/../../../../apollo/admin-api/supergraph.yaml"
-    admin_api_output_path: "{{ playbook_dir }}/../../images/apollo/runtime/supergraph-admin.graphql"
-
-    # Storefront API config
-    storefront_api_config_path: "{{ playbook_dir }}/../../../../apollo/storefront-api/supergraph.yaml"
-    storefront_api_output_path: "{{ playbook_dir }}/../../images/apollo/runtime/supergraph-storefront.graphql"
-
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
+    runtime_dir: "{{ playbook_dir }}/runtime"
+    output_dir: "{{ runtime_dir }}/config"
 
   tasks:
-    - name: Check if Rover image exists
-      ansible.builtin.command:
-        cmd: docker image inspect {{ rover_image }}
-      register: rover_check
-      ignore_errors: true
-      changed_when: false
+    - name: Compose block with error handling
+      block:
+        - name: Check if Rover image exists
+          ansible.builtin.command:
+            cmd: docker image inspect {{ rover_image_name }}
+          register: rover_check
+          ignore_errors: true
+          changed_when: false
 
-    - name: Fail if rover image is not found
-      ansible.builtin.fail:
-        msg: >
-          Docker image '{{ rover_image }}' not found.
-          Please build it first by running:
-          ansible-playbook playbooks/apollo/build.yml
-          or for local development: docker build -t {{ rover_image }} ci/images/apollo/rover
-      when: rover_check.rc != 0
+        - name: Fail if rover image is not found
+          ansible.builtin.fail:
+            msg: >
+              Docker image '{{ rover_image_name }}' not found.
+              Please build it first by running:
+              ansible-playbook playbooks/apollo/build.yml
+              or for local development: docker build -t {{ rover_image_name }} ci/images/apollo/rover
+          when: rover_check.rc != 0
 
-    - name: Compose Admin API supergraph
-      ansible.builtin.command:
-        cmd: >
-          docker run --rm
-          -e APOLLO_ELV2_LICENSE=accept
-          -v "{{ admin_api_config_path }}:/workspace/supergraph.yaml"
-          -v "{{ schema_dir }}:/schema"
-          -v "{{ admin_api_output_path | dirname }}:/workspace/output"
-          {{ rover_image }}
-          supergraph compose
-          --config /workspace/supergraph.yaml
-      register: admin_compose_result
-      changed_when: true
-      failed_when: admin_compose_result.rc != 0
+        - name: Ensure output directory exists
+          ansible.builtin.file:
+            path: "{{ output_dir }}"
+            state: directory
+            mode: "0755"
 
-    - name: Save Admin API supergraph to file
-      ansible.builtin.copy:
-        content: "{{ admin_compose_result.stdout }}"
-        dest: "{{ admin_api_output_path }}"
-      changed_when: true
+        - name: Copy schema files to output directory
+          ansible.builtin.copy:
+            src: "{{ schema_dir }}/"
+            dest: "{{ output_dir }}/schema/"
+            mode: "0644"
 
-    - name: Compose Storefront API supergraph
-      ansible.builtin.command:
-        cmd: >
-          docker run --rm
-          -e APOLLO_ELV2_LICENSE=accept
-          -v "{{ storefront_api_config_path }}:/workspace/supergraph.yaml"
-          -v "{{ schema_dir }}:/schema"
-          -v "{{ storefront_api_output_path | dirname }}:/workspace/output"
-          {{ rover_image }}
-          supergraph compose
-          --config /workspace/supergraph.yaml
-      register: storefront_compose_result
-      changed_when: true
-      failed_when: storefront_compose_result.rc != 0
+        - name: Compose supergraph schemas
+          ansible.builtin.include_tasks: tasks/schema-compose.yml
 
-    - name: Save Storefront API supergraph to file
-      ansible.builtin.copy:
-        content: "{{ storefront_compose_result.stdout }}"
-        dest: "{{ storefront_api_output_path }}"
-      changed_when: true
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Supergraph schemas composed successfully:"
+              - "  - {{ output_dir }}/supergraph-admin.graphql"
+              - "  - {{ output_dir }}/supergraph-storefront.graphql"
 
-    - name: Show success message
-      ansible.builtin.debug:
-        msg:
-          - "✅ Supergraph schemas composed successfully:"
-          - "  - {{ admin_api_output_path }}"
-          - "  - {{ storefront_api_output_path }}"
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Schema composition failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Schema composition failed. See error details above."

@@ -15,10 +15,6 @@
     action: status  # Default action
     log_lines: 100  # Number of log lines to show
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Check if container exists
       community.docker.docker_container_info:

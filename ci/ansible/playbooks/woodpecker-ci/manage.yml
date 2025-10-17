@@ -17,10 +17,6 @@
     woodpecker_dir: /opt/woodpecker
     action: status
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Verify Woodpecker directory exists
       ansible.builtin.stat:

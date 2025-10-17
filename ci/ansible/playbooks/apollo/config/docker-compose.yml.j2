@@ -2,11 +2,11 @@ services:
   router-admin:
     image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
     ports:
-      - "4000:4000"
-      - "8088:8088"
+      - "{{ apollo_router_admin_port }}:{{ apollo_router_admin_port }}"
+      - "{{ apollo_router_admin_health_port }}:{{ apollo_router_admin_health_port }}"
     volumes:
-      - ./router-admin.yaml:/dist/config/router.yaml:ro
-      - ./supergraph-admin.graphql:/dist/schema/supergraph.graphql:ro
+      - ./config/router-admin.yaml:/dist/config/router.yaml:ro
+      - ./config/supergraph-admin.graphql:/dist/schema/supergraph.graphql:ro
     environment:
       APOLLO_ROUTER_CONFIG_PATH: /dist/config/router.yaml
       APOLLO_ROUTER_SUPERGRAPH_PATH: /dist/schema/supergraph.graphql
@@ -20,11 +20,11 @@ services:
   router-storefront:
     image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
     ports:
-      - "4001:4001"
-      - "8089:8089"
+      - "{{ apollo_router_storefront_port }}:{{ apollo_router_storefront_port }}"
+      - "{{ apollo_router_storefront_health_port }}:{{ apollo_router_storefront_health_port }}"
     volumes:
-      - ./router-storefront.yaml:/dist/config/router.yaml:ro
-      - ./supergraph-storefront.graphql:/dist/schema/supergraph.graphql:ro
+      - ./config/router-storefront.yaml:/dist/config/router.yaml:ro
+      - ./config/supergraph-storefront.graphql:/dist/schema/supergraph.graphql:ro
     environment:
       APOLLO_ROUTER_CONFIG_PATH: /dist/config/router.yaml
       APOLLO_ROUTER_SUPERGRAPH_PATH: /dist/schema/supergraph.graphql

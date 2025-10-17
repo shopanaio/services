@@ -1,10 +1,7 @@
-# sandbox:
-#   enabled: true
-
 supergraph:
-  path: /api/admin/graphql/query
+  path: /api/client/graphql/query
   introspection: true
-  listen: 0.0.0.0:4000
+  listen: 0.0.0.0:{{ apollo_router_storefront_port }}
 
 homepage:
   enabled: true
@@ -22,4 +19,4 @@ headers:
           matching: "X*"
 
 health_check:
-  listen: 0.0.0.0:8088
+  listen: 0.0.0.0:{{ apollo_router_storefront_health_port }}

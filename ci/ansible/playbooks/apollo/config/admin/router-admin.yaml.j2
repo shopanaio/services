@@ -1,7 +1,7 @@
 supergraph:
   path: /api/admin/graphql/query
   introspection: true
-  listen: 0.0.0.0:4000
+  listen: 0.0.0.0:{{ apollo_router_admin_port }}
 
 homepage:
   enabled: true
@@ -19,4 +19,4 @@ headers:
           matching: "X*"
 
 health_check:
-  listen: 0.0.0.0:8088
+  listen: 0.0.0.0:{{ apollo_router_admin_health_port }}

@@ -18,10 +18,6 @@
     image_name: "ghcr.io/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ config_service_image_tag }}"
     public_key_signature: "{{ woodpecker_config_service_public_key_signature }}"
 
-  pre_tasks:
-    - name: Include common pre-setup tasks
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
-
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:
