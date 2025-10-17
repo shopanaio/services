@@ -7,24 +7,17 @@
   gather_facts: false
 
   vars:
-    # GHCR configuration
-    ghcr_registry: ghcr.io
-    ghcr_owner: "{{ shopana_ghcr_owner }}"
-
     # Rover configuration
     rover_app_name: apollo-rover
     rover_image_tag: "latest"
-    rover_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ rover_app_name }}:{{ rover_image_tag }}"
+    rover_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ rover_app_name }}:{{ rover_image_tag }}"
     rover_build_context: "ci/images/apollo/rover"
 
     # Router configuration
     router_app_name: apollo-router
     router_image_tag: "latest"
-    router_image_name: "{{ ghcr_registry }}/{{ ghcr_owner }}/{{ router_app_name }}:{{ router_image_tag }}"
+    router_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ router_app_name }}:{{ router_image_tag }}"
     router_build_context: "ci/images/apollo/router"
-
-    # Authentication
-    github_token: "{{ shopana_github_token }}"
 
     # Build configuration
     platform: linux/amd64
@@ -38,17 +31,17 @@
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
-          - ghcr_owner is defined and ghcr_owner | length > 0
-          - github_token is defined and github_token | length > 0
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
         fail_msg: >-
-          Required variables missing. Provide shopana_ghcr_owner and shopana_github_token via inventory variables.
+          Required variables missing. Provide shopana_shopana_ghcr_owner and shopana_shopana_ghcr_token via inventory variables.
         success_msg: "All required variables are present"
 
     - name: Build and push block with error handling
       block:
         - name: Login to GitHub Container Registry
           ansible.builtin.command:
-            cmd: echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            cmd: echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
           no_log: true
           changed_when: true
 
@@ -64,7 +57,7 @@
 
         - name: Login and push apollo-rover image
           ansible.builtin.shell: |
-            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
             docker push {{ rover_image_name }}
           no_log: true
           changed_when: true
@@ -81,7 +74,7 @@
 
         - name: Login and push apollo-router image
           ansible.builtin.shell: |
-            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
+            echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
             docker push {{ router_image_name }}
           no_log: true
           changed_when: true
@@ -109,6 +102,6 @@
       always:
         - name: Logout from GitHub Container Registry
           ansible.builtin.command:
-            cmd: docker logout {{ ghcr_registry }}
+            cmd: docker logout {{ shopana_ghcr_registry }}
           changed_when: false
           ignore_errors: true

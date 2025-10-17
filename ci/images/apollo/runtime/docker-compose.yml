@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   router-admin:
-    image: shopana/apollo-router:${APOLLO_ROUTER_TAG:-local}
+    image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
     ports:
       - "4000:4000"
       - "8088:8088"
@@ -20,7 +18,7 @@ services:
       - /dist/config/router.yaml
 
   router-storefront:
-    image: shopana/apollo-router:${APOLLO_ROUTER_TAG:-local}
+    image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
     ports:
       - "4001:4001"
       - "8089:8089"

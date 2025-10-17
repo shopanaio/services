@@ -26,18 +26,21 @@
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../../tasks/pre_setup.yml"
 
   tasks:
-    - name: Ensure Rover image exists locally
-      community.docker.docker_image_info:
-        name: "{{ rover_image }}"
-      register: rover_image_check
+    - name: Check if Rover image exists
+      ansible.builtin.command:
+        cmd: docker image inspect {{ rover_image }}
+      register: rover_check
+      ignore_errors: true
+      changed_when: false
 
     - name: Fail if rover image is not found
       ansible.builtin.fail:
         msg: >
           Docker image '{{ rover_image }}' not found.
           Please build it first by running:
-          ansible-playbook ci/ansible/playbooks/apollo/build.yml
-      when: not rover_image_check.images
+          ansible-playbook playbooks/apollo/build.yml
+          or for local development: docker build -t {{ rover_image }} ci/images/apollo/rover
+      when: rover_check.rc != 0
 
     - name: Compose Admin API supergraph
       ansible.builtin.command:

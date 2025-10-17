@@ -1,28 +1,23 @@
 # ansible-playbook playbooks/apollo/deploy.yml -i your_inventory_file --limit your_apollo_hosts
 ---
 - name: Deploy Apollo Router services
-  hosts: all # Specify your target hosts in the inventory
+  hosts: shopana_ci
   become: true
 
   vars:
     # Source directory for deployment artifacts
-    local_source_dir: "{{ playbook_dir }}/../../images/apollo/runtime"
+    local_source_dir: "{{ playbook_dir }}/../../../images/apollo/runtime"
 
     # Remote deployment configuration
     remote_deploy_dir: "/opt/shopana/apollo-router"
-
-    # GHCR configuration for pulling images
-    ghcr_registry: ghcr.io
-    ghcr_owner: "{{ shopana_ghcr_owner }}"
-    github_token: "{{ shopana_github_token }}"
 
   tasks:
     - name: Ensure required variables are provided
       ansible.builtin.assert:
         that:
-          - ghcr_owner is defined and ghcr_owner | length > 0
-          - github_token is defined and github_token | length > 0
-        fail_msg: "Please provide shopana_ghcr_owner and shopana_github_token via inventory variables."
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+        fail_msg: "Please provide shopana_ghcr_owner and shopana_ghcr_token via inventory variables."
       run_once: true
       delegate_to: localhost
 
@@ -30,13 +25,13 @@
       ansible.builtin.file:
         path: "{{ remote_deploy_dir }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
 
     - name: Copy deployment artifacts to remote server
       ansible.builtin.copy:
         src: "{{ local_source_dir }}/{{ item }}"
         dest: "{{ remote_deploy_dir }}/{{ item }}"
-        mode: '0644'
+        mode: "0644"
       loop:
         - docker-compose.yml
         - router-admin.yaml
@@ -48,9 +43,9 @@
       block:
         - name: Login to GitHub Container Registry on the remote server
           community.docker.docker_login:
-            registry: "{{ ghcr_registry }}"
-            username: "{{ ghcr_owner }}"
-            password: "{{ github_token }}"
+            registry: "{{ shopana_ghcr_registry }}"
+            username: "{{ shopana_ghcr_owner }}"
+            password: "{{ shopana_ghcr_token }}"
           no_log: true
 
         - name: Pull the latest images and start services with Docker Compose
@@ -63,7 +58,7 @@
       always:
         - name: Logout from GitHub Container Registry on the remote server
           ansible.builtin.command:
-            cmd: "docker logout {{ ghcr_registry }}"
+            cmd: "docker logout {{ shopana_ghcr_registry }}"
           changed_when: false
           ignore_errors: true
 
