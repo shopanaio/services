@@ -9,5 +9,12 @@
     "services/*",
     "ci/*"
   ],
-  "packageManager": "yarn@4.10.3"
+  "packageManager": "yarn@4.10.3",
+  "scripts": {
+    "build:packages": "node packages/esbuild.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "esbuild-plugin-file-path-extensions": "^2.1.3"
+  }
 }

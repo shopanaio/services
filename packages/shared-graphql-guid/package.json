@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "build": "node ../esbuild.js",
     "dev": "tsc -p tsconfig.json --watch",
     "clean": "rm -rf dist"
   },

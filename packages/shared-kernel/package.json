@@ -1,11 +1,12 @@
 {
   "name": "@shopana/shared-kernel",
   "version": "1.0.0",
+  "type": "module",
   "description": "Microkernel architecture with Transaction Script pattern for Shopana microservices",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "node ../esbuild.js",
     "dev": "tsc --watch"
   },
   "keywords": [

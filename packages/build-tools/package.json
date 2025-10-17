@@ -1,0 +1,34 @@
+{
+  "name": "@shopana/build-tools",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Build tools and configurations for Shopana services",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./esbuild": {
+      "import": "./dist/esbuild.js",
+      "types": "./dist/esbuild.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "keywords": [
+    "shopana",
+    "build-tools",
+    "esbuild"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.5.4"
+  },
+  "peerDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}
