@@ -18,6 +18,9 @@
     platform_arch: linux/amd64
     local_build_dir: "{{ root_dir }}"
 
+  vars_files:
+    - sandbox.vars.yml
+
   tasks:
     - name: Validate required variables are provided
       ansible.builtin.assert:

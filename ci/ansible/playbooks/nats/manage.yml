@@ -1,0 +1,113 @@
+# Manage NATS service (start/stop/restart)
+# Usage: ansible-playbook playbooks/nats/manage.yml -i hosts.ini --limit shopana_ci -e "action=restart"
+---
+- name: Manage NATS service
+  hosts: shopana_ci
+  become: true
+
+  vars:
+    app_name: nats
+    app_dir: /opt/shopana/nats
+    action: "{{ action | default('status') }}"  # status, start, stop, restart, logs
+
+  tasks:
+    - name: Validate action parameter
+      ansible.builtin.assert:
+        that:
+          - action in ['status', 'start', 'stop', 'restart', 'logs', 'health']
+        fail_msg: "Action must be one of: status, start, stop, restart, logs, health"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Check if NATS directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: nats_dir
+
+    - name: Fail if NATS is not deployed
+      ansible.builtin.fail:
+        msg: "NATS is not deployed at {{ app_dir }}. Deploy it first using: ansible-playbook playbooks/nats/deploy.yml"
+      when: not nats_dir.stat.exists
+
+    - name: Execute action - {{ action }}
+      block:
+        - name: Perform action - {{ action }}
+          ansible.builtin.command:
+            cmd: "docker compose {{ action }}"
+            chdir: "{{ app_dir }}"
+          when: action in ['start', 'stop', 'restart']
+          changed_when: action in ['start', 'stop', 'restart']
+          register: action_result
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+          when: action in ['status', 'start', 'stop', 'restart']
+
+        - name: Display container status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+          when: action in ['status', 'start', 'stop', 'restart']
+
+        - name: Show logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: logs_output
+          changed_when: false
+          when: action == 'logs'
+
+        - name: Display logs
+          ansible.builtin.debug:
+            var: logs_output.stdout_lines
+          when: action == 'logs'
+
+        - name: Check NATS health
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ nats_http_port | default(8222) }}/healthz"
+            method: GET
+            return_content: yes
+          register: health_check
+          when: action == 'health'
+          ignore_errors: true
+
+        - name: Display health status
+          ansible.builtin.debug:
+            msg:
+              - "NATS Health Status: {{ 'Healthy ✅' if health_check.status == 200 else 'Unhealthy ❌' }}"
+              - "Response: {{ health_check.content | default('No response') }}"
+          when: action == 'health'
+
+        - name: Get NATS statistics
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ nats_http_port | default(8222) }}/varz"
+            method: GET
+            return_content: yes
+          register: nats_stats
+          when: action == 'health'
+          ignore_errors: true
+
+        - name: Display NATS statistics
+          ansible.builtin.debug:
+            msg: "{{ nats_stats.json | to_nice_json }}"
+          when: action == 'health' and nats_stats.status == 200
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg: "✅ Action '{{ action }}' completed successfully"
+          when: action in ['start', 'stop', 'restart']
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Action '{{ action }}' failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Action '{{ action }}' failed. See error details above."

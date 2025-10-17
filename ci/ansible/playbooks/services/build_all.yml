@@ -1,0 +1,86 @@
+# Build and push all services to GitHub Container Registry
+#
+# Prerequisites:
+#   - Docker must be running locally
+#   - SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN environment variables
+#
+# Usage:
+#   ansible-playbook playbooks/services/build_all.yml
+#   ansible-playbook playbooks/services/build_all.yml -e "image_tag=v1.0.0"
+---
+- name: Build and push all services to GitHub Container Registry
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+
+  vars:
+    # Build configuration
+    local_build_dir: "{{ root_dir }}"
+    dockerfile_path: "{{ root_dir }}/ci/images/services/Dockerfile"
+    platform: linux/amd64
+
+    # Image tag with fallback
+    final_image_tag: "{{ image_tag | default('latest', true) }}"
+
+    # All available services
+    all_services:
+      - apps
+      - checkout
+      - delivery
+      - inventory
+      - orders
+      - payments
+      - platform
+      - pricing
+
+  tasks:
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
+          via environment or .env file.
+        success_msg: "All required variables are present"
+
+    - name: Check if Docker is running
+      ansible.builtin.command:
+        cmd: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker is not running
+      ansible.builtin.fail:
+        msg: "Docker is not running locally. Please start Docker daemon."
+      when: docker_info.rc != 0
+
+    - name: Show build information
+      ansible.builtin.debug:
+        msg:
+          - "🔨 Building ALL services"
+          - "  Services: {{ all_services | join(', ') }}"
+          - "  Image tag: {{ final_image_tag }}"
+          - "  Total: {{ all_services | length }} services"
+
+    - name: Build each service sequentially
+      ansible.builtin.include_tasks: build_service_task.yml
+      loop: "{{ all_services }}"
+      vars:
+        service:
+          name: "{{ item }}"
+          image_tag: "{{ final_image_tag }}"
+
+    - name: Show completion message
+      ansible.builtin.debug:
+        msg:
+          - "✅ All services built and pushed successfully"
+          - ""
+          - "📦 Built services:"
+          - "{% for service in all_services %}  • {{ service }}-service:{{ final_image_tag }}{% endfor %}"
+          - ""
+          - "🚀 Next steps:"
+          - "  Deploy single: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini -e 'service_name=checkout'"
+          - "  Deploy all:    ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci"

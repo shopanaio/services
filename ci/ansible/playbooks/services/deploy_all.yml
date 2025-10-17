@@ -1,0 +1,82 @@
+# Deploy all services to remote host
+#
+# Prerequisites:
+#   - Services must be built and pushed to GHCR
+#   - Host configuration in hosts.ini
+#
+# Usage:
+#   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci
+#   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci -e "image_tag=v1.0.0"
+---
+- name: Deploy all services to remote host
+  hosts: shopana_ci
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    # Image tag with fallback
+    final_image_tag: "{{ image_tag | default('latest', true) }}"
+
+    # All available services
+    all_services:
+      - apps
+      - checkout
+      - delivery
+      - inventory
+      - orders
+      - payments
+      - platform
+      - pricing
+
+    # Track deployment results
+    deployment_results: []
+
+  tasks:
+    - name: Show deployment information
+      ansible.builtin.debug:
+        msg:
+          - "🚀 Deploying ALL services to {{ ansible_host }}"
+          - "  Services: {{ all_services | join(', ') }}"
+          - "  Image tag: {{ final_image_tag }}"
+          - "  Total: {{ all_services | length }} services"
+
+    - name: Deploy each service sequentially
+      block:
+        - name: Set current service
+          ansible.builtin.set_fact:
+            current_service: "{{ item }}"
+
+        - name: Deploy {{ item }} service
+          ansible.builtin.include_tasks: deploy_service_task.yml
+          vars:
+            service_name: "{{ item }}"
+            service_image_tag: "{{ final_image_tag }}"
+
+      rescue:
+        - name: Log deployment failure for {{ item }}
+          ansible.builtin.debug:
+            msg:
+              - "❌ Deployment of {{ item }} failed!"
+              - "Continuing with remaining services..."
+
+        - name: Record failed deployment
+          ansible.builtin.set_fact:
+            deployment_results: "{{ deployment_results + [{'service': item, 'status': 'failed'}] }}"
+
+      loop: "{{ all_services }}"
+
+    - name: Show completion message
+      ansible.builtin.debug:
+        msg:
+          - "✅ All services deployment process completed"
+          - ""
+          - "📊 Deployed services:"
+          - "{% for service in all_services %}  • {{ service }}-service:{{ final_image_tag }} → http://{{ ansible_host }}:{{ lookup('vars', service + '_port', default=10000) }}{% endfor %}"
+          - ""
+          - "🔍 Check status:"
+          - "  ssh {{ ansible_host }} 'docker ps'"
+          - ""
+          - "📊 View logs:"
+          - "  ssh {{ ansible_host }} 'cd /opt/shopana/services/checkout && docker compose logs -f'"

@@ -1,0 +1,57 @@
+services:
+  nats:
+    image: nats:{{ nats_version }}-alpine
+    container_name: shopana-nats
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:{{ nats_port }}:4222"      # Client port
+      - "0.0.0.0:{{ nats_http_port }}:8222" # HTTP monitoring
+      - "0.0.0.0:{{ nats_cluster_port }}:6222" # Cluster port
+    volumes:
+      - ./config/nats-server.conf:/etc/nats/nats-server.conf:ro
+      - nats-data:/data
+      - nats-logs:/var/log/nats
+    environment:
+      # Server configuration
+      - SERVER_NAME=${NATS_SERVER_NAME}
+
+      # Authentication
+      - NATS_USER=${NATS_USER}
+      - NATS_PASSWORD=${NATS_PASSWORD}
+      - NATS_ADMIN_PASSWORD=${NATS_ADMIN_PASSWORD}
+
+      # Cluster authentication
+      - CLUSTER_USER=${NATS_CLUSTER_USER}
+      - CLUSTER_PASSWORD=${NATS_CLUSTER_PASSWORD}
+
+      # Leafnode authentication
+      - LEAFNODE_USER=${NATS_LEAFNODE_USER}
+      - LEAFNODE_PASSWORD=${NATS_LEAFNODE_PASSWORD}
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+{% if nats_enable_surveyor | default(false) %}
+
+  # NATS monitoring UI
+  nats-surveyor:
+    image: natsio/nats-surveyor:latest
+    container_name: shopana-nats-surveyor
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:{{ nats_surveyor_port }}:7777"
+    environment:
+      - NATS_SURVEYOR_SERVERS=nats://${NATS_USER}:${NATS_PASSWORD}@nats:4222
+    depends_on:
+      nats:
+        condition: service_healthy
+{% endif %}
+
+volumes:
+  nats-data:
+    driver: local
+  nats-logs:
+    driver: local

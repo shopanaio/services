@@ -16,10 +16,6 @@
   gather_facts: true
 
   vars:
-    # GHCR configuration
-    ghcr_registry: ghcr.io
-    ghcr_owner: "{{ shopana_ghcr_owner }}"
-
     # Build configuration
     local_build_dir: "{{ root_dir }}"
     dockerfile_path: "{{ root_dir }}/ci/images/services/Dockerfile"
@@ -31,9 +27,6 @@
 
     # Image tag with fallback to .env, env, or default
     final_image_tag: "{{ image_tag | default('latest', true) }}"
-
-    # Authentication
-    github_token: "{{ shopana_github_token }}"
 
     # Valid service names
     valid_services:
@@ -69,8 +62,8 @@
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
-          - ghcr_owner is defined and ghcr_owner | length > 0
-          - github_token is defined and github_token | length > 0
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
         fail_msg: >-
           Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
           via environment or -e "VAR=...".
@@ -95,10 +88,10 @@
           ansible.builtin.debug:
             msg:
               - "🔨 Building {{ service_name }}-service"
-              - "  Image: {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
+              - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
               - "  Platform: {{ platform }}"
               - "  Dockerfile: {{ dockerfile_path }}"
-              - "🔐 Registry: {{ ghcr_registry }}/{{ ghcr_owner }}"
+              - "🔐 Registry: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}"
 
         - name: Build Docker image
           ansible.builtin.command:
@@ -109,7 +102,7 @@
               --build-arg VERSION={{ final_image_tag }}
               --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
               --build-arg VCS_REF=unknown
-              -t {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
+              -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
               -f {{ dockerfile_path }}
               .
             chdir: "{{ local_build_dir }}"
@@ -117,8 +110,8 @@
 
         - name: Login and push image to GitHub Container Registry
           ansible.builtin.shell: |
-            echo "{{ github_token }}" | docker login {{ ghcr_registry }} -u {{ ghcr_owner }} --password-stdin
-            docker push {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
+            echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
+            docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
           no_log: true
           changed_when: true
 
@@ -127,7 +120,7 @@
             msg:
               - "✅ Image built and pushed successfully"
               - ""
-              - "📦 Image: {{ ghcr_registry }}/{{ ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
+              - "📦 Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
               - ""
               - "🚀 To build another service:"
               - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name=orders' -e 'image_tag={{ final_image_tag }}'"
@@ -144,7 +137,7 @@
               - "💡 Common solutions:"
               - "  • Ensure service builds locally: cd services/{{ service_name }} && yarn build"
               - "  • Check SHOPANA_GITHUB_TOKEN has packages:write permission"
-              - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ ghcr_owner }}"
+              - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ shopana_ghcr_owner }}"
               - "  • Ensure Docker daemon is running"
 
         - name: Fail with message
@@ -154,6 +147,6 @@
       always:
         - name: Logout from GitHub Container Registry
           ansible.builtin.command:
-            cmd: docker logout {{ ghcr_registry }}
+            cmd: docker logout {{ shopana_ghcr_registry }}
           changed_when: false
           ignore_errors: true

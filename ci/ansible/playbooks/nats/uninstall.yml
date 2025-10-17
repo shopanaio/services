@@ -1,0 +1,112 @@
+# Uninstall NATS service from remote host
+# WARNING: This will remove all NATS data including JetStream messages!
+# Usage: ansible-playbook playbooks/nats/uninstall.yml -i hosts.ini --limit shopana_ci
+---
+- name: Uninstall NATS service
+  hosts: shopana_ci
+  become: true
+
+  vars:
+    app_name: nats
+    app_dir: /opt/shopana/nats
+
+  tasks:
+    - name: Confirm uninstall
+      ansible.builtin.pause:
+        prompt: |
+          ⚠️  WARNING: This will completely remove NATS and all data!
+
+          This action will:
+          - Stop and remove NATS containers
+          - Delete Docker volumes (including JetStream data)
+          - Remove configuration files
+          - Delete {{ app_dir }} directory
+
+          Press ENTER to continue or Ctrl+C to cancel
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Check if NATS directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: nats_dir
+
+    - name: Uninstall block
+      block:
+        - name: Stop and remove NATS containers
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+          when: nats_dir.stat.exists
+
+        - name: Remove Docker volumes
+          ansible.builtin.command:
+            cmd: docker compose down -v
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+          when: nats_dir.stat.exists
+
+        - name: Remove NATS directory
+          ansible.builtin.file:
+            path: "{{ app_dir }}"
+            state: absent
+          when: nats_dir.stat.exists
+
+        - name: Check for remaining NATS volumes
+          ansible.builtin.command:
+            cmd: docker volume ls -q -f name=nats
+          register: nats_volumes
+          changed_when: false
+
+        - name: Display remaining volumes
+          ansible.builtin.debug:
+            msg: "Found NATS volumes: {{ nats_volumes.stdout_lines }}"
+          when: nats_volumes.stdout_lines | length > 0
+
+        - name: Remove remaining NATS volumes
+          ansible.builtin.command:
+            cmd: "docker volume rm {{ item }}"
+          loop: "{{ nats_volumes.stdout_lines }}"
+          when: nats_volumes.stdout_lines | length > 0
+          ignore_errors: true
+          changed_when: true
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ NATS service uninstalled successfully"
+              - ""
+              - "Removed:"
+              - "  • Containers"
+              - "  • Volumes (including JetStream data)"
+              - "  • Configuration files"
+              - "  • Directory: {{ app_dir }}"
+              - ""
+              - "To reinstall:"
+              - "  ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_ci"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Uninstall failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+              - ""
+              - "Manual cleanup:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose down -v'"
+              - "  ssh {{ ansible_host }} 'sudo rm -rf {{ app_dir }}'"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Uninstall failed. See error details above."
+
+      when: nats_dir.stat.exists
+
+    - name: NATS not found
+      ansible.builtin.debug:
+        msg: "NATS is not installed at {{ app_dir }}"
+      when: not nats_dir.stat.exists

@@ -1,6 +1,6 @@
-# Services Build and Push Playbooks
+# Services Build and Deploy Playbooks
 
-Ansible playbooks for building and pushing service Docker images to GitHub Container Registry (GHCR).
+Ansible playbooks for building, pushing, and deploying service Docker images to GitHub Container Registry (GHCR) and remote servers.
 
 ## Prerequisites
 
@@ -50,15 +50,87 @@ source env.sh && ansible-playbook playbooks/services/build_single.yml -e "servic
 source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
 ```
 
+### Deploy Single Service
+
+Deploys a single service to remote server using Docker Compose with secrets.
+
+**File:** `deploy_single.yml`
+
+**Usage:**
+```bash
+# Deploy with latest tag
+ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_ci -e "service_name=checkout"
+
+# Deploy with specific version
+ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_ci -e "service_name=checkout" -e "image_tag=v1.2.3"
+```
+
+**What it does:**
+- Creates deployment directory on remote server
+- Generates `.env` file from template with secrets
+- Generates `config.yml` for service configuration
+- Generates `docker-compose.yml` from template
+- Mounts `.env` and `config.yml` as Docker secrets
+- Pulls latest image from GHCR
+- Starts service with health checks
+
+**Required variables** (defined in `sandbox.vars.yml`):
+- `shopana_ghcr_owner` - GitHub Container Registry owner
+- `shopana_ghcr_token` - GitHub PAT with packages:read
+- `{service_name}_port` - Port for the service
+- `{service_name}_database_url` - Database connection URL
+
+### Build All Services
+
+Builds and pushes all services to GHCR sequentially.
+
+**File:** `build_all.yml`
+
+**Usage:**
+```bash
+# Build all with latest tag
+ansible-playbook playbooks/services/build_all.yml
+
+# Build all with specific version
+ansible-playbook playbooks/services/build_all.yml -e "image_tag=v1.2.3"
+```
+
+**Features:**
+- Validates Docker is running
+- Validates GHCR credentials
+- Builds all services sequentially
+- Shows progress and summary
+
+### Deploy All Services
+
+Deploys all services to remote server sequentially.
+
+**File:** `deploy_all.yml`
+
+**Usage:**
+```bash
+# Deploy all with latest tag
+ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci
+
+# Deploy all with specific version
+ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci -e "image_tag=v1.2.3"
+```
+
+**Features:**
+- Deploys one service at a time (sequential)
+- Continues on error (won't stop if one service fails)
+- Shows summary at the end with all service URLs
+- Each service in isolated directory
+
 **Available services:**
-- `apps` → `apps-service`
-- `checkout` → `checkout-service`
-- `delivery` → `delivery-service`
-- `inventory` → `inventory-service`
-- `orders` → `orders-service`
-- `payments` → `payments-service`
-- `platform` → `platform-service`
-- `pricing` → `pricing-service`
+- `apps` → `apps-service` (port 10001)
+- `checkout` → `checkout-service` (port 10002)
+- `delivery` → `delivery-service` (port 10004)
+- `inventory` → `inventory-service` (port 10005)
+- `orders` → `orders-service` (port 10003)
+- `payments` → `payments-service` (port 10006)
+- `platform` → `platform-service` (port 10007)
+- `pricing` → `pricing-service` (port 10008)
 
 ## Configuration
 
@@ -266,8 +338,16 @@ steps:
 
 ```
 ci/ansible/playbooks/services/
-├── build_single.yml          # Main playbook for building single service
-├── build_service_task.yml    # Reusable task file (included by other playbooks)
+├── build_single.yml          # Build and push single service to GHCR
+├── build_all.yml             # Build and push all services to GHCR
+├── build_service_task.yml    # Reusable build task (included by build_all.yml)
+├── deploy_single.yml         # Deploy single service to remote server
+├── deploy_all.yml            # Deploy all services to remote server
+├── deploy_service_task.yml   # Reusable deploy task (included by deploy_all.yml)
+├── env.j2                    # Environment variables template
+├── config.yml.j2             # Service configuration template
+├── docker-compose.yml.j2     # Docker Compose template with secrets
+├── sandbox.vars.yml          # Service configuration variables
 └── README.md                 # This documentation
 ```
 
