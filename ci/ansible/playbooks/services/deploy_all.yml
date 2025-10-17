@@ -43,29 +43,13 @@
           - "  Total: {{ all_services | length }} services"
 
     - name: Deploy each service sequentially
-      block:
-        - name: Set current service
-          ansible.builtin.set_fact:
-            current_service: "{{ item }}"
-
-        - name: Deploy {{ item }} service
-          ansible.builtin.include_tasks: deploy_service_task.yml
-          vars:
-            service_name: "{{ item }}"
-            service_image_tag: "{{ final_image_tag }}"
-
-      rescue:
-        - name: Log deployment failure for {{ item }}
-          ansible.builtin.debug:
-            msg:
-              - "❌ Deployment of {{ item }} failed!"
-              - "Continuing with remaining services..."
-
-        - name: Record failed deployment
-          ansible.builtin.set_fact:
-            deployment_results: "{{ deployment_results + [{'service': item, 'status': 'failed'}] }}"
-
+      ansible.builtin.include_tasks: deploy_service_task.yml
+      vars:
+        service_name: "{{ item }}"
+        service_image_tag: "{{ final_image_tag }}"
       loop: "{{ all_services }}"
+      ignore_errors: true
+      register: deployment_result
 
     - name: Show completion message
       ansible.builtin.debug:

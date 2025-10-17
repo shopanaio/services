@@ -35,7 +35,7 @@
             msg:
               - "🔨 Building {{ app_name }}"
               - "  Image: {{ image_name }}"
-              - "  Platform: linux/amd64"
+              - "  Platform: {{ docker_platform }}"
               - "  Dockerfile: {{ dockerfile_path }}"
               - "🔐 Registry: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}"
 
@@ -85,7 +85,7 @@
           ansible.builtin.command:
             cmd: >
               docker build
-              --platform linux/amd64
+              --platform {{ docker_platform }}
               -t {{ image_name }}
               -f {{ dockerfile_path }}
               .

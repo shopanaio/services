@@ -21,9 +21,6 @@ ping_max: {{ nats_ping_max | default(2) }}
 # Write deadline
 write_deadline: "{{ nats_write_deadline | default('10s') }}"
 
-# Max pending size for outbound messages
-max_pending_size: {{ nats_max_pending_size | default(67108864) }}  # 64MB
-
 {% if nats_enable_tls | default(false) %}
 # TLS Configuration
 tls {
@@ -33,27 +30,6 @@ tls {
   verify: true
 }
 {% endif %}
-
-# Authentication
-authorization {
-  # Default permissions for all users
-  default_permissions {
-    publish = {
-      allow = ["app.v1.>", "moleculer.>", "shopana.>"]
-    }
-    subscribe = {
-      allow = ["app.v1.>", "moleculer.>", "shopana.>", "_INBOX.>"]
-    }
-  }
-
-  # Users
-  users = [
-    {
-      user: $NATS_USER
-      password: $NATS_PASSWORD
-    }
-  ]
-}
 
 # JetStream configuration
 jetstream {
@@ -69,12 +45,12 @@ jetstream {
 }
 
 # System account for monitoring and management
-system_account: $SYS
+system_account: SYS
 
 # Accounts (for isolation between environments)
 accounts {
   # System account
-  $SYS {
+  SYS {
     users = [
       { user: admin, password: $NATS_ADMIN_PASSWORD }
     ]
@@ -84,7 +60,18 @@ accounts {
   APP {
     jetstream: enabled
     users = [
-      { user: $NATS_USER, password: $NATS_PASSWORD }
+      {
+        user: $NATS_USER
+        password: $NATS_PASSWORD
+        permissions: {
+          publish: {
+            allow: ["app.v1.>", "moleculer.>", "shopana.>"]
+          }
+          subscribe: {
+            allow: ["app.v1.>", "moleculer.>", "shopana.>", "_INBOX.>"]
+          }
+        }
+      }
     ]
   }
 }
@@ -107,6 +94,9 @@ http: 8222
 # - http://{{ ansible_host }}:{{ nats_http_port }}/subsz      - Subscription details
 # - http://{{ ansible_host }}:{{ nats_http_port }}/jsz        - JetStream stats
 # - http://{{ ansible_host }}:{{ nats_http_port }}/healthz    - Health check
+
+# Connection limits
+max_subscriptions: {{ nats_max_subscriptions | default(1000) }}
 
 {% if nats_enable_clustering | default(false) %}
 # Clustering (for high availability)
@@ -157,15 +147,3 @@ gateway {
   ]
 }
 {% endif %}
-
-# Limits
-limits {
-  # Maximum subscriptions per connection
-  max_subscriptions: {{ nats_max_subscriptions | default(1000) }}
-
-  # Maximum number of accounts
-  max_accounts: {{ nats_max_accounts | default(10) }}
-
-  # Maximum number of control line
-  max_control_line: {{ nats_max_control_line | default(4096) }}
-}

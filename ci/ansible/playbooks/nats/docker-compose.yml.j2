@@ -13,7 +13,8 @@ services:
       - nats-logs:/var/log/nats
     environment:
       # Server configuration
-      - SERVER_NAME=${NATS_SERVER_NAME}
+      - SERVER_NAME=${SERVER_NAME}
+      - SYS=${SYS}
 
       # Authentication
       - NATS_USER=${NATS_USER}
@@ -21,12 +22,12 @@ services:
       - NATS_ADMIN_PASSWORD=${NATS_ADMIN_PASSWORD}
 
       # Cluster authentication
-      - CLUSTER_USER=${NATS_CLUSTER_USER}
-      - CLUSTER_PASSWORD=${NATS_CLUSTER_PASSWORD}
+      - CLUSTER_USER=${CLUSTER_USER}
+      - CLUSTER_PASSWORD=${CLUSTER_PASSWORD}
 
       # Leafnode authentication
-      - LEAFNODE_USER=${NATS_LEAFNODE_USER}
-      - LEAFNODE_PASSWORD=${NATS_LEAFNODE_PASSWORD}
+      - LEAFNODE_USER=${LEAFNODE_USER}
+      - LEAFNODE_PASSWORD=${LEAFNODE_PASSWORD}
     command: ["-c", "/etc/nats/nats-server.conf"]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]

@@ -1,4 +1,5 @@
-# Build and push all services to GitHub Container Registry
+# Build and push all services
+# Automatically builds base image with packages first
 #
 # Prerequisites:
 #   - Docker must be running locally
@@ -7,8 +8,9 @@
 # Usage:
 #   ansible-playbook playbooks/services/build_all.yml
 #   ansible-playbook playbooks/services/build_all.yml -e "image_tag=v1.0.0"
+#   ansible-playbook playbooks/services/build_all.yml -e "skip_base_build=true"  # Skip base build if unchanged
 ---
-- name: Build and push all services to GitHub Container Registry
+- name: Build and push all services
   hosts: localhost
   connection: local
   become: false
@@ -18,10 +20,13 @@
     # Build configuration
     local_build_dir: "{{ root_dir }}"
     dockerfile_path: "{{ root_dir }}/ci/images/services/Dockerfile"
-    platform: linux/amd64
+    dockerfile_base_path: "{{ root_dir }}/ci/images/services/Dockerfile.base"
 
     # Image tag with fallback
     final_image_tag: "{{ image_tag | default('latest', true) }}"
+
+    # Skip base build flag (set to true to skip if packages unchanged)
+    skip_base_build_flag: "{{ skip_base_build | default(false, true) }}"
 
     # All available services
     all_services:
@@ -57,15 +62,67 @@
         msg: "Docker is not running locally. Please start Docker daemon."
       when: docker_info.rc != 0
 
-    - name: Show build information
+    - name: Login to GitHub Container Registry
+      ansible.builtin.shell: |
+        echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
+      no_log: true
+      changed_when: false
+
+    # ========================================================================
+    # Build base image with all shared packages first
+    # ========================================================================
+    - name: Show base image build information
       ansible.builtin.debug:
         msg:
+          - "📦 Building base image with shared packages first"
+          - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}"
+          - "  Skip: {{ skip_base_build_flag }}"
+      when: not skip_base_build_flag | bool
+
+    - name: Build base image
+      ansible.builtin.command:
+        cmd: >
+          docker build
+          --platform {{ docker_platform }}
+          --build-arg NODE_VERSION=20
+          --build-arg VERSION={{ final_image_tag }}
+          --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
+          --build-arg VCS_REF={{ lookup('env', 'GIT_COMMIT') | default('unknown', true) }}
+          -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}
+          -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:latest
+          -f {{ dockerfile_base_path }}
+          .
+        chdir: "{{ local_build_dir }}"
+      changed_when: true
+      when: not skip_base_build_flag | bool
+
+    - name: Show base image success
+      ansible.builtin.debug:
+        msg:
+          - "✅ Base image built successfully"
+          - "📦 {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}"
+      when: not skip_base_build_flag | bool
+
+    - name: Skipping base image build
+      ansible.builtin.debug:
+        msg:
+          - "⏭️  Skipping base image build (skip_base_build=true)"
+          - "   Using existing: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}"
+      when: skip_base_build_flag | bool
+
+    # ========================================================================
+    # Build all services
+    # ========================================================================
+    - name: Show services build information
+      ansible.builtin.debug:
+        msg:
+          - ""
           - "🔨 Building ALL services"
           - "  Services: {{ all_services | join(', ') }}"
           - "  Image tag: {{ final_image_tag }}"
           - "  Total: {{ all_services | length }} services"
 
-    - name: Build each service sequentially
+    - name: Build each service
       ansible.builtin.include_tasks: build_service_task.yml
       loop: "{{ all_services }}"
       vars:
@@ -76,7 +133,11 @@
     - name: Show completion message
       ansible.builtin.debug:
         msg:
-          - "✅ All services built and pushed successfully"
+          - ""
+          - "✅ All services built successfully"
+          - ""
+          - "📦 Base image:"
+          - "  • services-base:{{ final_image_tag }}"
           - ""
           - "📦 Built services:"
           - "{% for service in all_services %}  • {{ service }}-service:{{ final_image_tag }}{% endfor %}"
@@ -84,3 +145,13 @@
           - "🚀 Next steps:"
           - "  Deploy single: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini -e 'service_name=checkout'"
           - "  Deploy all:    ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci"
+          - ""
+          - "💡 Tip: If packages unchanged, skip base build next time:"
+          - "  ansible-playbook playbooks/services/build_all.yml -e 'skip_base_build=true'"
+
+  post_tasks:
+    - name: Logout from GitHub Container Registry
+      ansible.builtin.command:
+        cmd: docker logout {{ shopana_ghcr_registry }}
+      changed_when: false
+      ignore_errors: true

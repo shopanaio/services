@@ -1,6 +1,6 @@
 ---
-# Task file for building and pushing a single service
-# This file is included by build.yml for each service
+# Task for building and pushing a single service
+# This file is included by build_all.yml for each service
 
 - name: "Show build info for {{ service.name }}"
   ansible.builtin.debug:
@@ -8,15 +8,16 @@
       - "🔨 Building {{ service.name }}-service"
       - "  Tag: {{ service.image_tag }}"
 
-- name: "Build {{ service.name }}-service Docker image"
+- name: "Build {{ service.name }}-service"
   ansible.builtin.command:
     cmd: >
       docker build
-      --platform {{ platform }}
+      --platform {{ docker_platform }}
       --build-arg SERVICE_NAME={{ service.name }}
+      --build-arg BASE_IMAGE={{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ service.image_tag }}
       --build-arg VERSION={{ service.image_tag }}
       --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
-      --build-arg VCS_REF=unknown
+      --build-arg VCS_REF={{ lookup('env', 'GIT_COMMIT') | default('unknown', true) }}
       -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}
       -f {{ dockerfile_path }}
       .
@@ -24,20 +25,13 @@
   changed_when: true
   register: build_result
 
+- name: "Push {{ service.name }}-service"
+  ansible.builtin.command:
+    cmd: docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}
+  changed_when: true
+
 - name: "Show build result for {{ service.name }}"
   ansible.builtin.debug:
-    msg: "✅ {{ service.name }}-service built successfully"
-
-- name: "Login and push {{ service.name }}-service image"
-  ansible.builtin.shell: |
-    echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
-    docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}
-  no_log: true
-  changed_when: true
-  register: push_result
-
-- name: "Show push result for {{ service.name }}"
-  ansible.builtin.debug:
     msg:
-      - "✅ {{ service.name }}-service pushed successfully"
+      - "✅ {{ service.name }}-service built and pushed successfully"
       - "📦 Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service.name }}-service:{{ service.image_tag }}"

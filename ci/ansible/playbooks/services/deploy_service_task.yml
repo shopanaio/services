@@ -84,12 +84,71 @@
       ansible.builtin.pause:
         seconds: 5
 
+    - name: Check container status before waiting for port
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: compose_ps_before
+      changed_when: false
+
+    - name: Display container status before port check
+      ansible.builtin.debug:
+        msg:
+          - "Container status:"
+          - "{{ compose_ps_before.stdout }}"
+
+    - name: Get container logs to check for errors
+      ansible.builtin.command:
+        cmd: docker compose logs --tail=50
+        chdir: "{{ app_dir }}"
+      register: compose_logs
+      changed_when: false
+
+    - name: Display container logs
+      ansible.builtin.debug:
+        msg:
+          - "Container logs (last 50 lines):"
+          - "{{ compose_logs.stdout }}"
+
     - name: Wait for {{ service_name }} to listen on port {{ service_port }}
-      ansible.builtin.wait_for:
-        host: 127.0.0.1
-        port: "{{ service_port }}"
-        delay: 3
-        timeout: 60
+      block:
+        - name: Wait for port to be available
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ service_port }}"
+            delay: 3
+            timeout: 60
+      rescue:
+        - name: Get container status on failure
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps_failed
+          changed_when: false
+          ignore_errors: true
+
+        - name: Get full container logs on failure
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: compose_logs_failed
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display diagnostic information
+          ansible.builtin.debug:
+            msg:
+              - "❌ Failed to wait for {{ service_name }} on port {{ service_port }}"
+              - ""
+              - "Container status:"
+              - "{{ compose_ps_failed.stdout }}"
+              - ""
+              - "Container logs (last 100 lines):"
+              - "{{ compose_logs_failed.stdout }}"
+
+        - name: Fail with error message
+          ansible.builtin.fail:
+            msg: "{{ service_name }}-service failed to start on port {{ service_port }}"
 
     - name: Show container status for {{ service_name }}
       ansible.builtin.command:

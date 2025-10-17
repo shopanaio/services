@@ -15,7 +15,6 @@
     platform_build_context: "{{ root_dir }}/platform"
 
     # Build configuration
-    platform_arch: linux/amd64
     local_build_dir: "{{ root_dir }}"
 
   vars_files:
@@ -50,7 +49,7 @@
             msg:
               - "🔨 Building {{ platform_app_name }}"
               - "  Image: {{ platform_image_name }}"
-              - "  Platform: {{ platform_arch }}"
+              - "  Platform: {{ docker_platform }}"
               - "  Build Context: {{ platform_build_context }}"
               - "🔐 Registry: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}"
 
@@ -64,7 +63,7 @@
           ansible.builtin.command:
             cmd: >
               docker build
-              --platform {{ platform_arch }}
+              --platform {{ docker_platform }}
               --build-arg VERSION={{ platform_image_tag }}
               --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
               -t {{ platform_image_name }}

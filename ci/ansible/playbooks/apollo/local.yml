@@ -69,7 +69,7 @@
 
         - name: Build apollo-rover image if needed
           ansible.builtin.command:
-            cmd: docker build -t {{ rover_image_name }} {{ rover_build_context }}
+            cmd: docker build --platform {{ docker_platform }} -t {{ rover_image_name }} {{ rover_build_context }}
             chdir: "{{ local_build_dir }}"
           when: rover_check.rc != 0
           changed_when: true
@@ -87,7 +87,7 @@
 
         - name: Build apollo-router image if needed
           ansible.builtin.command:
-            cmd: docker build -t {{ router_image_name }} {{ router_build_context }}
+            cmd: docker build --platform {{ docker_platform }} -t {{ router_image_name }} {{ router_build_context }}
             chdir: "{{ local_build_dir }}"
           when: router_check.rc != 0
           changed_when: true

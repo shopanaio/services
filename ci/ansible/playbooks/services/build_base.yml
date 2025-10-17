@@ -1,0 +1,92 @@
+# Build base image with all shared packages
+# This should be run once when packages change
+#
+# Prerequisites:
+#   - Docker must be running locally
+#   - SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN environment variables
+#
+# Usage:
+#   ansible-playbook playbooks/services/build_base.yml
+#   ansible-playbook playbooks/services/build_base.yml -e "image_tag=v1.0.0"
+---
+- name: Build and push base image with shared packages
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+
+  vars:
+    local_build_dir: "{{ root_dir }}"
+    dockerfile_path: "{{ root_dir }}/ci/images/services/Dockerfile.base"
+    final_image_tag: "{{ image_tag | default('latest', true) }}"
+
+  tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
+          via environment or .env file.
+        success_msg: "All required variables are present"
+
+    - name: Check if Docker is running
+      ansible.builtin.command:
+        cmd: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker is not running
+      ansible.builtin.fail:
+        msg: "Docker is not running. Please start Docker daemon."
+      when: docker_info.rc != 0
+
+    - name: Login to GitHub Container Registry
+      ansible.builtin.shell: |
+        echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
+      no_log: true
+      changed_when: false
+
+    - name: Show build information
+      ansible.builtin.debug:
+        msg:
+          - "🔨 Building base image with all shared packages"
+          - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}"
+
+    - name: Build base image
+      ansible.builtin.command:
+        cmd: >
+          docker build
+          --platform {{ docker_platform }}
+          --build-arg NODE_VERSION=20
+          --build-arg VERSION={{ final_image_tag }}
+          --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
+          --build-arg VCS_REF={{ lookup('env', 'GIT_COMMIT') | default('unknown', true) }}
+          -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}
+          -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:latest
+          -f {{ dockerfile_path }}
+          .
+        chdir: "{{ local_build_dir }}"
+      changed_when: true
+      register: build_result
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Base image built successfully"
+          - ""
+          - "📦 Images:"
+          - "  • {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}"
+          - "  • {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:latest"
+          - ""
+          - "🚀 Now build services with:"
+          - "  ansible-playbook playbooks/services/build_all.yml -e 'image_tag={{ final_image_tag }}'"
+
+  post_tasks:
+    - name: Logout from GitHub Container Registry
+      ansible.builtin.command:
+        cmd: docker logout {{ shopana_ghcr_registry }}
+      changed_when: false
+      ignore_errors: true
