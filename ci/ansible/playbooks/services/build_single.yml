@@ -21,8 +21,8 @@
     ghcr_owner: "{{ shopana_ghcr_owner }}"
 
     # Build configuration
-    local_build_dir: "{{ playbook_dir }}/../../../.."
-    dockerfile_path: ci/images/services/Dockerfile
+    local_build_dir: "{{ root_dir }}"
+    dockerfile_path: "{{ root_dir }}/ci/images/services/Dockerfile"
     platform: linux/amd64
 
     # Service configuration (must be provided via -e flag)

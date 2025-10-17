@@ -9,9 +9,9 @@
 
   vars:
     # Project directories
-    project_root: "{{ playbook_dir }}/../../../../"
+    project_root: "{{ root_dir }}"
     schema_dir: "{{ playbook_dir }}/schema"
-    schema_output_arg: "ci/ansible/playbooks/apollo/schema"
+    schema_output_arg: "{{ root_dir }}/ci/ansible/playbooks/apollo/schema"
 
   tasks:
     - name: Export schemas block with error handling

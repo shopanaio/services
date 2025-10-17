@@ -12,8 +12,8 @@
   vars:
     # Application configuration
     app_name: woodpecker-workflows
-    build_context_dir: "{{ playbook_dir }}/../../../.."
-    dockerfile_path: ci/woodpecker-workflows/Dockerfile
+    build_context_dir: "{{ root_dir }}"
+    dockerfile_path: "{{ root_dir }}/ci/woodpecker-workflows/Dockerfile"
     image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ app_name }}:{{ woodpecker_config_service_image_tag }}"
 
   tasks:

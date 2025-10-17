@@ -13,7 +13,7 @@
 
   vars:
     # Local build directory
-    local_build_dir: "{{ playbook_dir }}/../../../../"
+    local_build_dir: "{{ root_dir }}"
 
     # Apollo configuration paths
     config_dir: "{{ playbook_dir }}/config"
@@ -24,12 +24,12 @@
     rover_app_name: shopana/apollo-rover
     rover_image_tag: local
     rover_image_name: "{{ rover_app_name }}:{{ rover_image_tag }}"
-    rover_build_context: "ci/images/apollo/rover"
+    rover_build_context: "{{ root_dir }}/ci/images/apollo/rover"
 
     router_app_name: shopana/apollo-router
     router_image_tag: local
     router_image_name: "{{ router_app_name }}:{{ router_image_tag }}"
-    router_build_context: "ci/images/apollo/router"
+    router_build_context: "{{ root_dir }}/ci/images/apollo/router"
 
     # Supergraph configuration
     admin_api_config_path: "{{ runtime_dir }}/config/supergraph-admin.yaml"
@@ -54,7 +54,7 @@
           ansible.builtin.include_tasks: tasks/schema-export.yml
           vars:
             project_root: "{{ local_build_dir }}"
-            schema_output_arg: "ci/ansible/playbooks/apollo/schema"
+            schema_output_arg: "{{ root_dir }}/ci/ansible/playbooks/apollo/schema"
 
         - name: Check if Rover image exists
           ansible.builtin.command:

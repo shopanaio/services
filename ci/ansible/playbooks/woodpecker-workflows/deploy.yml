@@ -101,94 +101,94 @@
               {{ public_key_signature }}
               -----END PUBLIC KEY-----
 
-        - name: Cleanup containers on port {{ host_http_port }}
-          ansible.builtin.include_tasks: ../../tasks/cleanup-port-task.yml
-          vars:
-            cleanup_port: "{{ host_http_port }}"
+    - name: Cleanup containers on port {{ host_http_port }}
+      ansible.builtin.include_tasks: "{{ root_dir }}/ci/ansible/tasks/cleanup-port-task.yml"
+      vars:
+        cleanup_port: "{{ host_http_port }}"
 
-        - name: Stop and remove existing {{ app_name }} container if running
-          ansible.builtin.command:
-            cmd: docker compose down
-            chdir: "{{ app_dir }}"
-          ignore_errors: true
-          changed_when: true
+    - name: Stop and remove existing {{ app_name }} container if running
+      ansible.builtin.command:
+        cmd: docker compose down
+        chdir: "{{ app_dir }}"
+      ignore_errors: true
+      changed_when: true
 
-        - name: Wait for port to be released
-          ansible.builtin.wait_for:
-            port: "{{ host_http_port }}"
-            state: stopped
-            timeout: 30
-          ignore_errors: true
+    - name: Wait for port to be released
+      ansible.builtin.wait_for:
+        port: "{{ host_http_port }}"
+        state: stopped
+        timeout: 30
+      ignore_errors: true
 
-        - name: Additional pause to ensure cleanup
-          ansible.builtin.pause:
-            seconds: 2
+    - name: Additional pause to ensure cleanup
+      ansible.builtin.pause:
+        seconds: 2
 
-        - name: Start {{ app_name }}
-          ansible.builtin.command:
-            cmd: docker compose up -d
-            chdir: "{{ app_dir }}"
-          changed_when: true
+    - name: Start {{ app_name }}
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ app_dir }}"
+      changed_when: true
 
-        - name: Wait a moment for container to start
-          ansible.builtin.pause:
-            seconds: 3
+    - name: Wait a moment for container to start
+      ansible.builtin.pause:
+        seconds: 3
 
-        - name: Show startup logs
-          ansible.builtin.command:
-            cmd: docker compose logs --tail=30
-            chdir: "{{ app_dir }}"
-          register: startup_logs
-          changed_when: false
+    - name: Show startup logs
+      ansible.builtin.command:
+        cmd: docker compose logs --tail=30
+        chdir: "{{ app_dir }}"
+      register: startup_logs
+      changed_when: false
 
-        - name: Display startup logs
-          ansible.builtin.debug:
-            var: startup_logs.stdout_lines
+    - name: Display startup logs
+      ansible.builtin.debug:
+        var: startup_logs.stdout_lines
 
-        - name: Wait for {{ app_name }} to listen on {{ host_http_port }}
-          ansible.builtin.wait_for:
-            host: 127.0.0.1
-            port: "{{ host_http_port }}"
-            delay: 2
-            timeout: 60
-          ignore_errors: true
+    - name: Wait for {{ app_name }} to listen on {{ host_http_port }}
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ host_http_port }}"
+        delay: 2
+        timeout: 60
+      ignore_errors: true
 
-        # No need to modify the key inside the container; it's provided via read-only volume
+    # No need to modify the key inside the container; it's provided via read-only volume
 
-        - name: Show container status
-          ansible.builtin.command:
-            cmd: docker compose ps
-            chdir: "{{ app_dir }}"
-          register: compose_ps
-          changed_when: false
+    - name: Show container status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: compose_ps
+      changed_when: false
 
-        - name: Display status
-          ansible.builtin.debug:
-            var: compose_ps.stdout_lines
+    - name: Display status
+      ansible.builtin.debug:
+        var: compose_ps.stdout_lines
 
-        - name: Show access info
-          ansible.builtin.debug:
-            msg:
-              - "✅ {{ app_name }} deployed"
-              - ""
-              - "🌐 Service Info:"
-              - "  Image: {{ image_name }}"
-              - "  HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
-              - "  Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
-              - "  Dir: {{ app_dir }}"
-              - "  Env: {{ app_dir }}/.env"
-              - ""
-              - "📊 View Logs:"
-              - "  ansible-playbook wp-config-service-logs.yml"
-              - "  ansible-playbook wp-config-service-logs.yml -e 'follow=true'"
-              - "  ansible-playbook wp-config-service-manage.yml -e 'action=logs'"
-              - ""
-              - "🔧 Manage Service:"
-              - "  ansible-playbook wp-config-service-manage.yml -e 'action=restart'"
-              - "  ansible-playbook wp-config-service-manage.yml -e 'action=status'"
-              - ""
-              - "🧹 Cleanup Port:"
-              - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
+    - name: Show access info
+      ansible.builtin.debug:
+        msg:
+          - "✅ {{ app_name }} deployed"
+          - ""
+          - "🌐 Service Info:"
+          - "  Image: {{ image_name }}"
+          - "  HTTP: http://{{ ansible_host }}:{{ host_http_port }}"
+          - "  Health: http://{{ ansible_host }}:{{ host_http_port }}/healthz"
+          - "  Dir: {{ app_dir }}"
+          - "  Env: {{ app_dir }}/.env"
+          - ""
+          - "📊 View Logs:"
+          - "  ansible-playbook wp-config-service-logs.yml"
+          - "  ansible-playbook wp-config-service-logs.yml -e 'follow=true'"
+          - "  ansible-playbook wp-config-service-manage.yml -e 'action=logs'"
+          - ""
+          - "🔧 Manage Service:"
+          - "  ansible-playbook wp-config-service-manage.yml -e 'action=restart'"
+          - "  ansible-playbook wp-config-service-manage.yml -e 'action=status'"
+          - ""
+          - "🧹 Cleanup Port:"
+          - "  ansible-playbook cleanup-port.yml -e 'cleanup_port={{ host_http_port }}'"
 
       rescue:
         - name: Show error details

@@ -36,7 +36,6 @@
               Docker image '{{ rover_image_name }}' not found.
               Please build it first by running:
               ansible-playbook playbooks/apollo/build.yml
-              or for local development: docker build -t {{ rover_image_name }} ci/images/apollo/rover
           when: rover_check.rc != 0
 
         - name: Ensure output directory exists

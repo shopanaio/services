@@ -34,8 +34,8 @@
         - name: Include schema export tasks
           ansible.builtin.include_tasks: tasks/schema-export.yml
           vars:
-            project_root: "{{ playbook_dir }}/../../../../"
-            schema_output_arg: "ci/ansible/playbooks/apollo/schema"
+            project_root: "{{ root_dir }}"
+            schema_output_arg: "{{ root_dir }}/ci/ansible/playbooks/apollo/schema"
       run_once: true
       delegate_to: localhost
       connection: local
