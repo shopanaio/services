@@ -44,38 +44,6 @@ jetstream {
   sync_interval: "{{ nats_jetstream_sync_interval | default('2m') }}"
 }
 
-# System account for monitoring and management
-system_account: SYS
-
-# Accounts (for isolation between environments)
-accounts {
-  # System account
-  SYS {
-    users = [
-      { user: admin, password: $NATS_ADMIN_PASSWORD }
-    ]
-  }
-
-  # Application account
-  APP {
-    jetstream: enabled
-    users = [
-      {
-        user: $NATS_USER
-        password: $NATS_PASSWORD
-        permissions: {
-          publish: {
-            allow: ["app.v1.>", "moleculer.>", "shopana.>"]
-          }
-          subscribe: {
-            allow: ["app.v1.>", "moleculer.>", "shopana.>", "_INBOX.>"]
-          }
-        }
-      }
-    ]
-  }
-}
-
 # Logging
 debug: {{ nats_debug | default(false) | lower }}
 trace: {{ nats_trace | default(false) | lower }}

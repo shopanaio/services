@@ -13,15 +13,27 @@ services:
     environment:
       - NODE_ENV={{ service_env | default('production') }}
       - PORT={{ service_port }}
+      - MOLECULER_TRANSPORTER={{ moleculer_transporter | default('nats://nats:4222') }}
+      - NATS_URL={{ nats_url | default('nats://nats:4222') }}
+      - DATABASE_URL={{ service_database_url }}
+      - LOG_LEVEL={{ service_log_level | default('info') }}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:{{ service_port }}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - shopana-network
 
 secrets:
   service_env:
     file: ./.env
   service_config:
     file: ./config.yml
+
+networks:
+  shopana-network:
+    name: shopana-network
+    driver: bridge
+    external: true

@@ -119,17 +119,10 @@
       changed_when: true
       when: not skip_base_build_flag | bool
 
-    - name: Push base image with both tags
-      ansible.builtin.shell: |
-        docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}
-        docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:latest
-      changed_when: true
-      when: not skip_base_build_flag | bool
-
     - name: Show base image success
       ansible.builtin.debug:
         msg:
-          - "✅ Base image built successfully"
+          - "✅ Base image built successfully (locally only)"
           - "📦 {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}"
       when: not skip_base_build_flag | bool
 
@@ -179,7 +172,7 @@
           ansible.builtin.debug:
             msg:
               - ""
-              - "✅ Image built and pushed successfully"
+              - "✅ Service image built and pushed successfully"
               - ""
               - "📦 Base image:"
               - "  • services-base:{{ final_image_tag }}"

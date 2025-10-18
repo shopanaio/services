@@ -35,6 +35,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - shopana-network
 {% if nats_enable_surveyor | default(false) %}
 
   # NATS monitoring UI
@@ -49,6 +51,8 @@ services:
     depends_on:
       nats:
         condition: service_healthy
+    networks:
+      - shopana-network
 {% endif %}
 
 volumes:
@@ -56,3 +60,8 @@ volumes:
     driver: local
   nats-logs:
     driver: local
+
+networks:
+  shopana-network:
+    name: shopana-network
+    driver: bridge

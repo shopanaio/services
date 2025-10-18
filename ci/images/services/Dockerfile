@@ -64,6 +64,9 @@ COPY --from=service-builder /app/services/${SERVICE_NAME}/package.json ./service
 # Copy built service
 COPY --from=service-builder /app/services/${SERVICE_NAME}/dist ./services/${SERVICE_NAME}/dist
 
+# Copy source files needed at runtime (e.g., GraphQL schemas)
+COPY --from=service-builder /app/services/${SERVICE_NAME}/src ./services/${SERVICE_NAME}/src
+
 # Update environment for specific service
 ENV SERVICE_NAME=${SERVICE_NAME}
 
@@ -79,6 +82,9 @@ RUN chown -R nodejs:nodejs /app
 
 USER nodejs
 
+# Set working directory to service directory so process.cwd() returns correct path
+WORKDIR /app/services/${SERVICE_NAME}
+
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
@@ -86,4 +92,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 ENTRYPOINT ["/sbin/tini", "--"]
 
-CMD node --enable-source-maps services/${SERVICE_NAME}/dist/src/index.js
+CMD node --enable-source-maps dist/src/index.js
