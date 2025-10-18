@@ -1,9 +1,8 @@
 services:
   router-admin:
     image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
-    ports:
-      - "{{ apollo_router_admin_port }}:{{ apollo_router_admin_port }}"
-      - "{{ apollo_router_admin_health_port }}:{{ apollo_router_admin_health_port }}"
+    container_name: shopana-apollo-admin
+    restart: unless-stopped
     volumes:
       - ./config/router-admin.yaml:/dist/config/router.yaml:ro
       - ./config/supergraph-admin.graphql:/dist/schema/supergraph.graphql:ro
@@ -16,12 +15,28 @@ services:
       - /dist/schema/supergraph.graphql
       - --config
       - /dist/config/router.yaml
+    networks:
+      - shopana-network
+    labels:
+      - "traefik.enable=true"
+      # GraphQL endpoint
+      - "traefik.http.routers.apollo-admin.rule=PathPrefix(`/api/admin/graphql`)"
+      - "traefik.http.routers.apollo-admin.entrypoints=web"
+      - "traefik.http.routers.apollo-admin.priority=10"
+      # Homepage
+      - "traefik.http.routers.apollo-admin-home.rule=Host(`138.199.239.105`) && PathPrefix(`/admin/router`)"
+      - "traefik.http.routers.apollo-admin-home.entrypoints=web"
+      - "traefik.http.routers.apollo-admin-home.priority=9"
+      - "traefik.http.routers.apollo-admin-home.middlewares=apollo-admin-strip"
+      # Service definition
+      - "traefik.http.services.apollo-admin.loadbalancer.server.port={{ apollo_router_admin_port }}"
+      # Middleware to strip prefix for homepage
+      - "traefik.http.middlewares.apollo-admin-strip.stripprefix.prefixes=/admin/router"
 
   router-storefront:
     image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
-    ports:
-      - "{{ apollo_router_storefront_port }}:{{ apollo_router_storefront_port }}"
-      - "{{ apollo_router_storefront_health_port }}:{{ apollo_router_storefront_health_port }}"
+    container_name: shopana-apollo-storefront
+    restart: unless-stopped
     volumes:
       - ./config/router-storefront.yaml:/dist/config/router.yaml:ro
       - ./config/supergraph-storefront.graphql:/dist/schema/supergraph.graphql:ro
@@ -34,3 +49,25 @@ services:
       - /dist/schema/supergraph.graphql
       - --config
       - /dist/config/router.yaml
+    networks:
+      - shopana-network
+    labels:
+      - "traefik.enable=true"
+      # GraphQL endpoint
+      - "traefik.http.routers.apollo-storefront.rule=PathPrefix(`/api/client/graphql`)"
+      - "traefik.http.routers.apollo-storefront.entrypoints=web"
+      - "traefik.http.routers.apollo-storefront.priority=10"
+      # Homepage
+      - "traefik.http.routers.apollo-storefront-home.rule=Host(`138.199.239.105`) && PathPrefix(`/storefront/router`)"
+      - "traefik.http.routers.apollo-storefront-home.entrypoints=web"
+      - "traefik.http.routers.apollo-storefront-home.priority=9"
+      - "traefik.http.routers.apollo-storefront-home.middlewares=apollo-storefront-strip"
+      # Service definition
+      - "traefik.http.services.apollo-storefront.loadbalancer.server.port={{ apollo_router_storefront_port }}"
+      # Middleware to strip prefix for homepage
+      - "traefik.http.middlewares.apollo-storefront-strip.stripprefix.prefixes=/storefront/router"
+
+networks:
+  shopana-network:
+    name: shopana-network
+    external: true

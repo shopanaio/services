@@ -1,0 +1,30 @@
+services:
+  traefik:
+    image: traefik:{{ traefik_version }}
+    container_name: shopana-traefik
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:{{ traefik_web_port }}:{{ traefik_web_port }}"  # HTTP (no SSL)
+      - "0.0.0.0:{{ traefik_dashboard_port }}:8080"  # Dashboard (internal port 8080)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+    environment:
+      - TZ={{ traefik_timezone }}
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - shopana-network
+    labels:
+      - "traefik.enable=false"
+
+networks:
+  shopana-network:
+    name: shopana-network
+    driver: bridge

@@ -1,8 +1,8 @@
-# Deploy Platform service to remote host
+# Deploy Casdoor authentication service to remote host
 # Variables are loaded from vars file
-# Usage: ansible-playbook playbooks/platform/deploy.yml -i hosts.ini --limit shopana_sandbox
+# Usage: ansible-playbook playbooks/casdoor/deploy.yml -i hosts.ini --limit shopana_sandbox
 ---
-- name: Deploy Platform service
+- name: Deploy Casdoor authentication service
   hosts: shopana_sandbox
   become: true
 
@@ -11,21 +11,19 @@
 
   vars:
     # Application configuration
-    app_name: platform
-    app_dir: /opt/shopana/platform
-
-    # Image configuration
-    platform_image_tag: "{{ image_tag | default('latest', true) }}"
-    platform_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/platform:{{ platform_image_tag }}"
+    app_name: casdoor
+    app_dir: /opt/shopana/casdoor
 
   tasks:
     - name: Ensure required variables are provided
       ansible.builtin.assert:
         that:
-          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
-          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
-          - platform_port is defined
-          - platform_pg_host is defined
+          - casdoor_port is defined
+          - casdoor_db_host is defined
+          - casdoor_db_name is defined
+          - casdoor_db_user is defined
+          - casdoor_db_password is defined
+          - casdoor_domain is defined
         fail_msg: "Please provide required variables via inventory or vars file."
       run_once: true
       delegate_to: localhost
@@ -34,6 +32,12 @@
     - name: Create remote deployment directory
       ansible.builtin.file:
         path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create Casdoor config directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}/config"
         state: directory
         mode: "0755"
 
@@ -49,29 +53,30 @@
         dest: "{{ app_dir }}/docker-compose.yml"
         mode: "0644"
 
-    - name: Deploy block with login/logout
+    - name: Generate app.conf from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/app.conf.j2"
+        dest: "{{ app_dir }}/config/app.conf"
+        mode: "0644"
+
+    - name: Deploy block
       block:
         - name: Show deployment information
           ansible.builtin.debug:
             msg:
               - "🚀 Deploying {{ app_name }}"
-              - "  Image: {{ platform_image_name }}"
-              - "  Port: {{ platform_port }}"
+              - "  Version: {{ casdoor_version }}"
+              - "  Internal Port: {{ casdoor_port }}"
+              - "  Traefik Path: {{ casdoor_traefik_path }}"
+              - "  Domain: {{ casdoor_domain }}"
               - "  Directory: {{ app_dir }}"
 
-        - name: Login to GitHub Container Registry on the remote server
-          community.docker.docker_login:
-            registry: "{{ shopana_ghcr_registry }}"
-            username: "{{ shopana_ghcr_owner }}"
-            password: "{{ shopana_ghcr_token }}"
-          no_log: true
-
-        - name: Cleanup containers on port {{ platform_port }}
+        - name: Cleanup containers on Casdoor port
           ansible.builtin.include_tasks: "{{ root_dir }}/ci/ansible/tasks/cleanup-port-task.yml"
           vars:
-            cleanup_port: "{{ platform_port }}"
+            cleanup_port: "{{ casdoor_port }}"
 
-        - name: Stop and remove existing platform container if running
+        - name: Stop and remove existing Casdoor container if running
           ansible.builtin.command:
             cmd: docker compose down
             chdir: "{{ app_dir }}"
@@ -80,7 +85,7 @@
 
         - name: Wait for port to be released
           ansible.builtin.wait_for:
-            port: "{{ platform_port }}"
+            port: "{{ casdoor_port }}"
             state: stopped
             timeout: 30
           ignore_errors: true
@@ -89,10 +94,9 @@
           ansible.builtin.pause:
             seconds: 2
 
-        - name: Pull the latest image and start service with Docker Compose
+        - name: Start Casdoor service with Docker Compose
           community.docker.docker_compose_v2:
             project_src: "{{ app_dir }}"
-            pull: always
             state: present
             env_files:
               - "{{ app_dir }}/.env"
@@ -112,10 +116,10 @@
           ansible.builtin.debug:
             var: startup_logs.stdout_lines
 
-        - name: Wait for platform to listen on {{ platform_port }}
+        - name: Wait for Casdoor to listen on {{ casdoor_port }}
           ansible.builtin.wait_for:
             host: 127.0.0.1
-            port: "{{ platform_port }}"
+            port: "{{ casdoor_port }}"
             delay: 3
             timeout: 60
 
@@ -133,24 +137,29 @@
         - name: Show success message
           ansible.builtin.debug:
             msg:
-              - "✅ Platform service deployed successfully"
+              - "✅ Casdoor authentication service deployed successfully"
               - ""
               - "🌐 Service Info:"
-              - "  Image: {{ platform_image_name }}"
-              - "  HTTP: http://{{ ansible_host }}:{{ platform_port }}"
-              - "  Health: http://{{ ansible_host }}:{{ platform_port }}/healthz"
+              - "  Internal Port: {{ casdoor_port }}"
+              - "  Via Traefik: http://{{ ansible_host }}{{ casdoor_traefik_path }}"
+              - "  Domain: {{ casdoor_domain }}"
               - "  Directory: {{ app_dir }}"
               - "  Environment: {{ app_dir }}/.env"
+              - "  Config: {{ app_dir }}/config/app.conf"
               - ""
               - "📊 View Logs:"
               - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"
               - ""
               - "🔧 Manage Service:"
-              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose restart'"
-              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose stop'"
+              - "  ansible-playbook playbooks/casdoor/manage.yml -e 'action=restart'"
+              - "  ansible-playbook playbooks/casdoor/manage.yml -e 'action=stop'"
+              - "  ansible-playbook playbooks/casdoor/manage.yml -e 'action=start'"
               - ""
-              - "🧹 Cleanup:"
-              - "  ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ platform_port }}'"
+              - "🔄 Update Config:"
+              - "  ansible-playbook playbooks/casdoor/update-config.yml"
+              - ""
+              - "🧹 Uninstall:"
+              - "  ansible-playbook playbooks/casdoor/uninstall.yml"
 
       rescue:
         - name: Show error details
@@ -191,18 +200,12 @@
           ansible.builtin.debug:
             msg:
               - "💡 Recovery options:"
-              - "  • Retry: ansible-playbook playbooks/platform/deploy.yml -i hosts.ini"
-              - "  • Clean port: ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ platform_port }}'"
+              - "  • Retry: ansible-playbook playbooks/casdoor/deploy.yml -i hosts.ini"
+              - "  • Clean port: ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ casdoor_port }}'"
               - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
               - "  • Check env: ssh {{ ansible_host }} 'cat {{ app_dir }}/.env'"
+              - "  • Check config: ssh {{ ansible_host }} 'cat {{ app_dir }}/config/app.conf'"
 
         - name: Fail with message
           ansible.builtin.fail:
             msg: "Deployment failed. See error details above."
-
-      always:
-        - name: Logout from GitHub Container Registry on the remote server
-          ansible.builtin.command:
-            cmd: "docker logout {{ shopana_ghcr_registry }}"
-          changed_when: false
-          ignore_errors: true

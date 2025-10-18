@@ -1,0 +1,114 @@
+# Update Traefik configuration without full restart
+# Usage: ansible-playbook playbooks/traefik/update-config.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Update Traefik configuration
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    app_name: traefik
+    app_dir: /opt/shopana/traefik
+
+  tasks:
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if not deployed
+      ansible.builtin.fail:
+        msg: "Traefik is not deployed. Run deploy.yml first."
+      when: not app_dir_stat.stat.exists
+
+    - name: Update block
+      block:
+        - name: Show update information
+          ansible.builtin.debug:
+            msg:
+              - "🔄 Updating {{ app_name }} configuration"
+              - "  Directory: {{ app_dir }}"
+
+        - name: Generate new traefik.yml from template
+          ansible.builtin.template:
+            src: "{{ playbook_dir }}/traefik.yml.j2"
+            dest: "{{ app_dir }}/config/traefik.yml"
+            mode: "0644"
+          register: traefik_config
+
+        - name: Generate new docker-compose.yml from template
+          ansible.builtin.template:
+            src: "{{ playbook_dir }}/docker-compose.yml.j2"
+            dest: "{{ app_dir }}/docker-compose.yml"
+            mode: "0644"
+          register: compose_config
+
+        - name: Check if restart is needed
+          ansible.builtin.set_fact:
+            needs_restart: "{{ traefik_config.changed or compose_config.changed }}"
+
+        - name: Show restart status
+          ansible.builtin.debug:
+            msg:
+              - "Config changed: {{ traefik_config.changed }}"
+              - "Compose changed: {{ compose_config.changed }}"
+              - "Restart needed: {{ needs_restart }}"
+
+        - name: Restart Traefik if needed (minimal downtime)
+          ansible.builtin.command:
+            cmd: docker compose up -d --no-recreate
+            chdir: "{{ app_dir }}"
+          when: not compose_config.changed
+          changed_when: true
+
+        - name: Recreate container if compose changed
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: present
+            recreate: changed
+          when: compose_config.changed
+
+        - name: Wait for Traefik to be ready
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ traefik_web_port }}"
+            delay: 2
+            timeout: 30
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Traefik configuration updated successfully"
+              - ""
+              - "🌐 Service Info:"
+              - "  Web: http://{{ ansible_host }}:{{ traefik_web_port }}"
+              - "  Dashboard: http://{{ ansible_host }}:{{ traefik_dashboard_port }}/dashboard/"
+              - ""
+              - "📝 Changes applied:"
+              - "  Config updated: {{ traefik_config.changed }}"
+              - "  Compose updated: {{ compose_config.changed }}"
+              - "  Container restarted: {{ needs_restart }}"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Update failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+
+        - name: Fail with error
+          ansible.builtin.fail:
+            msg: "Failed to update Traefik configuration"

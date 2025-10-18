@@ -1,9 +1,9 @@
 # Uninstall NATS service from remote host
 # WARNING: This will remove all NATS data including JetStream messages!
-# Usage: ansible-playbook playbooks/nats/uninstall.yml -i hosts.ini --limit shopana_ci
+# Usage: ansible-playbook playbooks/nats/uninstall.yml -i hosts.ini --limit shopana_sandbox
 ---
 - name: Uninstall NATS service
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars:
@@ -87,7 +87,7 @@
               - "  • Directory: {{ app_dir }}"
               - ""
               - "To reinstall:"
-              - "  ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_ci"
+              - "  ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_sandbox"
 
       rescue:
         - name: Show error details

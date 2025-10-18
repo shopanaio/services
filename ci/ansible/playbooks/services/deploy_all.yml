@@ -5,11 +5,11 @@
 #   - Host configuration in hosts.ini
 #
 # Usage:
-#   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci
-#   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci -e "image_tag=v1.0.0"
+#   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox
+#   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.0.0"
 ---
 - name: Deploy all services to remote host
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars_files:

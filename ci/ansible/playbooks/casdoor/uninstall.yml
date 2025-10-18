@@ -1,0 +1,74 @@
+# Uninstall Casdoor service
+# This playbook stops and removes the Casdoor service
+# Usage: ansible-playbook playbooks/casdoor/uninstall.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Uninstall Casdoor service
+  hosts: shopana_sandbox
+  become: true
+
+  vars:
+    app_name: casdoor
+    app_dir: /opt/shopana/casdoor
+
+  tasks:
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Skip if not deployed
+      ansible.builtin.debug:
+        msg: "Casdoor is not deployed. Nothing to uninstall."
+      when: not app_dir_stat.stat.exists
+
+    - name: Uninstall block
+      when: app_dir_stat.stat.exists
+      block:
+        - name: Show uninstall warning
+          ansible.builtin.debug:
+            msg:
+              - "⚠️  WARNING: Uninstalling {{ app_name }}"
+              - "  This will stop and remove the service"
+              - "  Directory: {{ app_dir }}"
+              - "  Pausing for 5 seconds... Press Ctrl+C to abort"
+
+        - name: Pause for confirmation
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: Stop and remove Casdoor containers
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: absent
+            remove_orphans: true
+          ignore_errors: true
+
+        - name: Remove Docker volumes
+          ansible.builtin.command:
+            cmd: docker compose down -v
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+
+        - name: Create backup of configuration
+          ansible.builtin.archive:
+            path: "{{ app_dir }}"
+            dest: "/tmp/casdoor-backup-{{ ansible_date_time.iso8601_basic_short }}.tar.gz"
+            format: gz
+          ignore_errors: true
+
+        - name: Remove deployment directory
+          ansible.builtin.file:
+            path: "{{ app_dir }}"
+            state: absent
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Casdoor service uninstalled successfully"
+              - ""
+              - "💾 Backup created:"
+              - "  /tmp/casdoor-backup-{{ ansible_date_time.iso8601_basic_short }}.tar.gz"
+              - ""
+              - "🔄 To reinstall:"
+              - "  ansible-playbook playbooks/casdoor/deploy.yml -i hosts.ini"

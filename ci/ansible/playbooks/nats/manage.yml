@@ -1,8 +1,8 @@
 # Manage NATS service (start/stop/restart)
-# Usage: ansible-playbook playbooks/nats/manage.yml -i hosts.ini --limit shopana_ci -e "action=restart"
+# Usage: ansible-playbook playbooks/nats/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=restart"
 ---
 - name: Manage NATS service
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars:

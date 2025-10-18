@@ -1,0 +1,54 @@
+# Create Docker network for Shopana services
+# Usage: ansible-playbook playbooks/network/setup.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Setup Docker network
+  hosts: shopana_sandbox
+  become: true
+
+  vars:
+    network_name: shopana-network
+    network_driver: bridge
+
+  tasks:
+    - name: Check if Docker network exists
+      ansible.builtin.command:
+        cmd: docker network inspect {{ network_name }}
+      register: network_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create Docker network if it doesn't exist
+      community.docker.docker_network:
+        name: "{{ network_name }}"
+        driver: "{{ network_driver }}"
+        state: present
+      when: network_check.rc != 0
+
+    - name: Show network information
+      ansible.builtin.command:
+        cmd: docker network inspect {{ network_name }}
+      register: network_info
+      changed_when: false
+
+    - name: Display network info
+      ansible.builtin.debug:
+        msg:
+          - "✅ Docker network '{{ network_name }}' is ready"
+          - ""
+          - "📊 Network Details:"
+          - "{{ network_info.stdout | from_json | json_query('[0]') }}"
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Docker network setup completed"
+          - ""
+          - "🌐 Network Info:"
+          - "  Name: {{ network_name }}"
+          - "  Driver: {{ network_driver }}"
+          - ""
+          - "📝 This network is used by:"
+          - "  • Traefik (reverse proxy)"
+          - "  • Apollo Router (admin & storefront)"
+          - "  • NATS"
+          - "  • All microservices"

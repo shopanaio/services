@@ -1,0 +1,105 @@
+# Update Casdoor configuration
+# This playbook updates configuration files and restarts the service
+# Usage: ansible-playbook playbooks/casdoor/update-config.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Update Casdoor configuration
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    app_name: casdoor
+    app_dir: /opt/shopana/casdoor
+
+  tasks:
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if directory doesn't exist
+      ansible.builtin.fail:
+        msg: "Casdoor is not deployed. Run deploy.yml first."
+      when: not app_dir_stat.stat.exists
+
+    - name: Show update information
+      ansible.builtin.debug:
+        msg:
+          - "🔄 Updating {{ app_name }} configuration"
+          - "  Directory: {{ app_dir }}"
+
+    - name: Backup current configuration
+      ansible.builtin.copy:
+        src: "{{ app_dir }}/config/app.conf"
+        dest: "{{ app_dir }}/config/app.conf.backup.{{ ansible_date_time.iso8601_basic_short }}"
+        remote_src: true
+        mode: "0644"
+      ignore_errors: true
+
+    - name: Generate new app.conf from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/app.conf.j2"
+        dest: "{{ app_dir }}/config/app.conf"
+        mode: "0644"
+
+    - name: Generate new .env from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/env.j2"
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+
+    - name: Generate new docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Restart Casdoor service
+      ansible.builtin.command:
+        cmd: docker compose restart
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    - name: Wait for service to restart
+      ansible.builtin.pause:
+        seconds: 5
+
+    - name: Show startup logs
+      ansible.builtin.command:
+        cmd: docker compose logs --tail=50
+        chdir: "{{ app_dir }}"
+      register: startup_logs
+      changed_when: false
+
+    - name: Display startup logs
+      ansible.builtin.debug:
+        var: startup_logs.stdout_lines
+
+    - name: Show container status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: compose_ps
+      changed_when: false
+
+    - name: Display status
+      ansible.builtin.debug:
+        var: compose_ps.stdout_lines
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ Casdoor configuration updated successfully"
+          - ""
+          - "📝 Updated files:"
+          - "  • {{ app_dir }}/config/app.conf"
+          - "  • {{ app_dir }}/.env"
+          - "  • {{ app_dir }}/docker-compose.yml"
+          - ""
+          - "💾 Backup location:"
+          - "  • {{ app_dir }}/config/app.conf.backup.*"
+          - ""
+          - "📊 View logs:"
+          - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"

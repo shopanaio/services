@@ -1,0 +1,98 @@
+# Manage Traefik service (start, stop, restart, status)
+# Usage:
+#   ansible-playbook playbooks/traefik/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=restart"
+#   ansible-playbook playbooks/traefik/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=stop"
+#   ansible-playbook playbooks/traefik/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=start"
+#   ansible-playbook playbooks/traefik/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=status"
+---
+- name: Manage Traefik service
+  hosts: shopana_sandbox
+  become: true
+
+  vars:
+    app_name: traefik
+    app_dir: /opt/shopana/traefik
+    action: status  # Default action: status
+
+  tasks:
+    - name: Validate action parameter
+      ansible.builtin.assert:
+        that:
+          - action in ['start', 'stop', 'restart', 'status', 'logs']
+        fail_msg: "Invalid action. Must be one of: start, stop, restart, status, logs"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if deployment directory does not exist
+      ansible.builtin.fail:
+        msg: "Traefik deployment directory {{ app_dir }} does not exist. Please deploy first."
+      when: not app_dir_stat.stat.exists
+
+    - name: Execute action - {{ action }}
+      block:
+        - name: Start Traefik service
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: present
+          when: action == 'start'
+
+        - name: Stop Traefik service
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: stopped
+          when: action == 'stop'
+
+        - name: Restart Traefik service
+          ansible.builtin.command:
+            cmd: docker compose restart
+            chdir: "{{ app_dir }}"
+          changed_when: true
+          when: action == 'restart'
+
+        - name: Get Traefik service status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_status
+          changed_when: false
+          when: action == 'status'
+
+        - name: Display service status
+          ansible.builtin.debug:
+            var: compose_status.stdout_lines
+          when: action == 'status'
+
+        - name: Get Traefik logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: compose_logs
+          changed_when: false
+          when: action == 'logs'
+
+        - name: Display logs
+          ansible.builtin.debug:
+            var: compose_logs.stdout_lines
+          when: action == 'logs'
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg: "✅ Action '{{ action }}' completed successfully for Traefik service"
+          when: action != 'status' and action != 'logs'
+
+      rescue:
+        - name: Show error message
+          ansible.builtin.debug:
+            msg:
+              - "❌ Action '{{ action }}' failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+
+        - name: Fail with error
+          ansible.builtin.fail:
+            msg: "Failed to {{ action }} Traefik service"

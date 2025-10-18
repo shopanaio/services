@@ -3,7 +3,7 @@
 # ansible-playbook playbooks/apollo/deploy.yml -i your_inventory_file --limit your_apollo_hosts
 ---
 - name: Deploy Apollo Router services
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars_files:

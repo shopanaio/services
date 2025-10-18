@@ -1,0 +1,77 @@
+# Traefik static configuration
+# Documentation: https://doc.traefik.io/traefik/
+
+global:
+  checkNewVersion: {{ traefik_check_new_version | lower }}
+  sendAnonymousUsage: {{ traefik_send_anonymous_usage | lower }}
+
+# API and Dashboard configuration
+api:
+  dashboard: {{ traefik_enable_dashboard | lower }}
+  insecure: {{ traefik_dashboard_insecure | lower }}
+
+# Ping health check
+ping:
+  entryPoint: "ping"
+
+# Entry points configuration
+entryPoints:
+  # Web entry point (HTTP only) - handles all traffic including Apollo Router
+  web:
+    address: ":{{ traefik_web_port }}"
+
+  # Ping/health check entry point
+  ping:
+    address: ":{{ traefik_ping_port }}"
+
+# Provider configuration
+providers:
+  # Docker provider
+  docker:
+    endpoint: "{{ traefik_docker_endpoint }}"
+    exposedByDefault: {{ traefik_docker_exposed_by_default | lower }}
+    network: {{ traefik_docker_network }}
+    watch: {{ traefik_docker_watch | lower }}
+{% if traefik_docker_constraints is defined and traefik_docker_constraints | length > 0 %}
+    constraints: "{{ traefik_docker_constraints }}"
+{% endif %}
+
+{% if traefik_enable_file_provider %}
+  # File provider for additional dynamic configuration
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+{% endif %}
+
+# Logging configuration
+log:
+  level: {{ traefik_log_level }}
+  format: {{ traefik_log_format }}
+{% if traefik_log_filepath is defined and traefik_log_filepath | length > 0 %}
+  filePath: {{ traefik_log_filepath }}
+{% endif %}
+
+# Access logging configuration
+accessLog:
+  format: {{ traefik_access_log_format }}
+{% if traefik_access_log_filepath is defined and traefik_access_log_filepath | length > 0 %}
+  filePath: {{ traefik_access_log_filepath }}
+{% endif %}
+  bufferingSize: {{ traefik_access_log_buffer_size }}
+  filters:
+    statusCodes:
+{% for code in traefik_access_log_status_codes %}
+      - "{{ code }}"
+{% endfor %}
+    retryAttempts: {{ traefik_access_log_retry_attempts | lower }}
+    minDuration: "{{ traefik_access_log_min_duration }}"
+
+{% if traefik_enable_metrics %}
+# Metrics configuration
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+{% endif %}

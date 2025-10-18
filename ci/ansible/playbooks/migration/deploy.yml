@@ -1,10 +1,10 @@
 # Run Migrations on remote host
 # Migrations are built locally on the host and executed once
 # Variables are loaded from vars file
-# Usage: ansible-playbook playbooks/migrations/deploy.yml -i hosts.ini --limit shopana_ci
+# Usage: ansible-playbook playbooks/migrations/deploy.yml -i hosts.ini --limit shopana_sandbox
 ---
 - name: Run Migrations
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars_files:

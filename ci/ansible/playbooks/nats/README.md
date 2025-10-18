@@ -67,13 +67,13 @@ export NATS_LEAFNODE_PASSWORD="strong_leafnode_password"
 
 ```bash
 # Deploy to sandbox environment
-ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_ci
+ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_sandbox
 
 # Deploy with specific vars file
-ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_ci -e @playbooks/nats/production.vars.yml
+ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_sandbox -e @playbooks/nats/production.vars.yml
 
 # Deploy with password from environment
-NATS_PASSWORD="secret123" ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_ci
+NATS_PASSWORD="secret123" ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_sandbox
 ```
 
 ### Management Commands

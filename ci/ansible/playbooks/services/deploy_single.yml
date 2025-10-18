@@ -1,9 +1,9 @@
 # Deploy single service to remote host
 # Variables are loaded from vars file
-# Usage: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_ci -e "service_name=checkout"
+# Usage: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout"
 ---
 - name: Deploy Service
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars_files:

@@ -1,9 +1,9 @@
 # Deploy NATS service to remote host
 # Variables are loaded from vars file
-# Usage: ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_ci
+# Usage: ansible-playbook playbooks/nats/deploy.yml -i hosts.ini --limit shopana_sandbox
 ---
 - name: Deploy NATS service
-  hosts: shopana_ci
+  hosts: shopana_sandbox
   become: true
 
   vars_files:

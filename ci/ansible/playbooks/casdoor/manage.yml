@@ -1,0 +1,142 @@
+# Manage Casdoor service (start/stop/restart/status)
+# Usage:
+#   ansible-playbook playbooks/casdoor/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=restart"
+#   ansible-playbook playbooks/casdoor/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=stop"
+#   ansible-playbook playbooks/casdoor/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=start"
+#   ansible-playbook playbooks/casdoor/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=status"
+#   ansible-playbook playbooks/casdoor/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=logs"
+---
+- name: Manage Casdoor service
+  hosts: shopana_sandbox
+  become: true
+
+  vars:
+    app_name: casdoor
+    app_dir: /opt/shopana/casdoor
+    action: "status"  # Default action
+
+  tasks:
+    - name: Validate action parameter
+      ansible.builtin.assert:
+        that:
+          - action in ['start', 'stop', 'restart', 'status', 'logs']
+        fail_msg: "Invalid action. Must be one of: start, stop, restart, status, logs"
+
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if directory doesn't exist
+      ansible.builtin.fail:
+        msg: "Casdoor is not deployed. Directory {{ app_dir }} does not exist."
+      when: not app_dir_stat.stat.exists
+
+    - name: Execute action - start
+      when: action == "start"
+      block:
+        - name: Start Casdoor service
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: present
+
+        - name: Wait for service to start
+          ansible.builtin.pause:
+            seconds: 3
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: ps_output
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: ps_output.stdout_lines
+
+    - name: Execute action - stop
+      when: action == "stop"
+      block:
+        - name: Stop Casdoor service
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: stopped
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: ps_output
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: ps_output.stdout_lines
+
+    - name: Execute action - restart
+      when: action == "restart"
+      block:
+        - name: Restart Casdoor service
+          ansible.builtin.command:
+            cmd: docker compose restart
+            chdir: "{{ app_dir }}"
+          changed_when: true
+
+        - name: Wait for service to restart
+          ansible.builtin.pause:
+            seconds: 3
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: ps_output
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: ps_output.stdout_lines
+
+    - name: Execute action - status
+      when: action == "status"
+      block:
+        - name: Get container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: ps_output
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: ps_output.stdout_lines
+
+        - name: Show service info
+          ansible.builtin.debug:
+            msg:
+              - "📊 Casdoor Service Status"
+              - "  Directory: {{ app_dir }}"
+              - ""
+              - "View logs: ansible-playbook playbooks/casdoor/manage.yml -e 'action=logs'"
+              - "Restart: ansible-playbook playbooks/casdoor/manage.yml -e 'action=restart'"
+
+    - name: Execute action - logs
+      when: action == "logs"
+      block:
+        - name: Get container logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: logs_output
+          changed_when: false
+
+        - name: Display logs
+          ansible.builtin.debug:
+            var: logs_output.stdout_lines
+
+        - name: Show follow command
+          ansible.builtin.debug:
+            msg:
+              - "To follow logs in real-time:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"

@@ -59,10 +59,10 @@ Deploys a single service to remote server using Docker Compose with secrets.
 **Usage:**
 ```bash
 # Deploy with latest tag
-ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_ci -e "service_name=checkout"
+ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout"
 
 # Deploy with specific version
-ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_ci -e "service_name=checkout" -e "image_tag=v1.2.3"
+ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout" -e "image_tag=v1.2.3"
 ```
 
 **What it does:**
@@ -110,10 +110,10 @@ Deploys all services to remote server sequentially.
 **Usage:**
 ```bash
 # Deploy all with latest tag
-ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci
+ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox
 
 # Deploy all with specific version
-ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_ci -e "image_tag=v1.2.3"
+ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.2.3"
 ```
 
 **Features:**

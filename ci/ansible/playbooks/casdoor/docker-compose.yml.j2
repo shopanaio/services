@@ -1,0 +1,35 @@
+services:
+  casdoor:
+    image: casbin/casdoor:{{ casdoor_version }}
+    container_name: shopana-casdoor
+    restart: unless-stopped
+    volumes:
+      - ./config/app.conf:/conf/app.conf:ro
+    environment:
+      RUNNING_IN_DOCKER: "true"
+    command: ["-createDatabase=true"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:{{ casdoor_port }}/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - shopana-network
+    labels:
+      - "traefik.enable=true"
+      # Main Casdoor UI
+      - "traefik.http.routers.casdoor.rule=PathPrefix(`{{ casdoor_traefik_path }}`)"
+      - "traefik.http.routers.casdoor.entrypoints=web"
+      - "traefik.http.routers.casdoor.priority=10"
+{% if casdoor_traefik_strip_prefix | default(false) %}
+      - "traefik.http.routers.casdoor.middlewares=casdoor-strip"
+      - "traefik.http.middlewares.casdoor-strip.stripprefix.prefixes={{ casdoor_traefik_path }}"
+{% endif %}
+      # Service definition
+      - "traefik.http.services.casdoor.loadbalancer.server.port={{ casdoor_port }}"
+
+networks:
+  shopana-network:
+    name: shopana-network
+    external: true

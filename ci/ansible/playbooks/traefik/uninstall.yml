@@ -1,0 +1,68 @@
+# Uninstall Traefik service
+# Usage: ansible-playbook playbooks/traefik/uninstall.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Uninstall Traefik service
+  hosts: shopana_sandbox
+  become: true
+
+  vars:
+    app_name: traefik
+    app_dir: /opt/shopana/traefik
+
+  tasks:
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Uninstall block
+      block:
+        - name: Show uninstall information
+          ansible.builtin.debug:
+            msg:
+              - "🗑️  Uninstalling {{ app_name }}"
+              - "  Directory: {{ app_dir }}"
+
+        - name: Stop and remove Traefik containers
+          ansible.builtin.command:
+            cmd: docker compose down -v
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+          when: app_dir_stat.stat.exists
+
+        - name: Remove deployment directory
+          ansible.builtin.file:
+            path: "{{ app_dir }}"
+            state: absent
+          when: app_dir_stat.stat.exists
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Traefik service uninstalled successfully"
+              - ""
+              - "📝 Cleanup completed:"
+              - "  • Docker containers removed"
+              - "  • Docker volumes removed"
+              - "  • Configuration files removed"
+              - "  • Directory {{ app_dir }} removed"
+
+      rescue:
+        - name: Show error message
+          ansible.builtin.debug:
+            msg:
+              - "❌ Uninstall failed!"
+              - "Error: {{ ansible_failed_result.msg | default('Unknown error') }}"
+
+        - name: Fail with error
+          ansible.builtin.fail:
+            msg: "Failed to uninstall Traefik service"
+      when: app_dir_stat.stat.exists
+
+    - name: Show already uninstalled message
+      ansible.builtin.debug:
+        msg:
+          - "ℹ️  Traefik service is not installed"
+          - "  Directory {{ app_dir }} does not exist"
+      when: not app_dir_stat.stat.exists
