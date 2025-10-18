@@ -16,7 +16,22 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - shopana-network
+    labels:
+      - "traefik.enable=true"
+      # REST API endpoints (file upload, tenant management)
+      - "traefik.http.routers.platform.rule=PathPrefix(`/api/admin/v1`)"
+      - "traefik.http.routers.platform.entrypoints=web"
+      - "traefik.http.routers.platform.priority=10"
+      # Service definition
+      - "traefik.http.services.platform.loadbalancer.server.port={{ platform_port }}"
 
 secrets:
   platform_env:
     file: ./.env
+
+networks:
+  shopana-network:
+    name: shopana-network
+    external: true

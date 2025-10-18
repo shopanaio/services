@@ -1,0 +1,239 @@
+# Deploy admin application to remote host with Traefik
+# Variables are loaded from sandbox.vars.yml
+# Usage: ansible-playbook playbooks/admin/deploy.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Deploy Admin Application
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - "{{ vars_file | default('sandbox.vars.yml', true) }}"
+
+  vars:
+    # Application configuration
+    app_dir: "/opt/shopana/admin"
+
+    # Image configuration
+    admin_image_tag: "{{ image_tag | default('latest', true) }}"
+    admin_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/admin:{{ admin_image_tag }}"
+
+  tasks:
+    - name: Ensure required variables are provided
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+          - admin_subdomain is defined and admin_subdomain | length > 0
+          - admin_api_url is defined
+        fail_msg: >-
+          Please provide required variables via inventory or vars file.
+          Required: shopana_ghcr_owner, shopana_ghcr_token, admin_subdomain
+        success_msg: "All required variables are present"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Create remote deployment directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Generate docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Deploy block with login/logout
+      block:
+        - name: Show deployment information
+          ansible.builtin.debug:
+            msg:
+              - "🚀 Deploying Admin Application"
+              - "  Image: {{ admin_image_name }}"
+              - "  Domain: {{ admin_subdomain }}"
+              - "  API URL: {{ admin_api_url }}"
+              - "  Directory: {{ app_dir }}"
+
+        - name: Login to GitHub Container Registry on the remote server
+          community.docker.docker_login:
+            registry: "{{ shopana_ghcr_registry }}"
+            username: "{{ shopana_ghcr_owner }}"
+            password: "{{ shopana_ghcr_token }}"
+          no_log: true
+
+        - name: Stop and remove existing admin container if running
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+
+        - name: Wait for container to stop
+          ansible.builtin.pause:
+            seconds: 3
+
+        - name: Pull the latest image and start admin with Docker Compose
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            pull: always
+            state: present
+
+        - name: Wait a moment for container to start
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: Show startup logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=50
+            chdir: "{{ app_dir }}"
+          register: startup_logs
+          changed_when: false
+
+        - name: Display startup logs
+          ansible.builtin.debug:
+            var: startup_logs.stdout_lines
+
+        - name: Check container health status
+          ansible.builtin.shell:
+            cmd: docker compose ps --format json | jq -r '.[0] | "\(.State)|\(.Health)"'
+            chdir: "{{ app_dir }}"
+          register: container_health
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display container health
+          ansible.builtin.debug:
+            msg:
+              - "Container State: {{ container_health.stdout.split('|')[0] | default('unknown') }}"
+              - "Container Health: {{ container_health.stdout.split('|')[1] | default('no healthcheck') }}"
+
+        - name: Wait for admin container to be running
+          ansible.builtin.shell:
+            cmd: docker compose ps --format json | jq -r '.[].State'
+            chdir: "{{ app_dir }}"
+          register: container_status
+          until: container_status.stdout == "running"
+          retries: 12
+          delay: 5
+          changed_when: false
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+
+        - name: Check if container is on shopana-network
+          ansible.builtin.shell:
+            cmd: docker inspect shopana-admin --format '{{"{{"}} range $key, $value := .NetworkSettings.Networks {{"}}"}}{{"{{"}} $key {{"}}"}} {{"{{"}} end {{"}}"}}'
+          register: container_networks
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display networks
+          ansible.builtin.debug:
+            msg: "Container networks: {{ container_networks.stdout }}"
+
+        - name: Check Traefik labels on container
+          ansible.builtin.shell:
+            cmd: docker inspect shopana-admin --format '{{"{{"}} range $key, $value := .Config.Labels {{"}}"}}{{"{{"}} if hasPrefix $key "traefik" {{"}}"}}{{"{{"}} $key {{"}}"}}={{"{{"}} $value {{"}}"}} {{"{{"}} println {{"}}"}}{{"{{"}} end {{"}}"}}{{"{{"}} end {{"}}"}}'
+          register: traefik_labels
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display Traefik labels
+          ansible.builtin.debug:
+            msg: "{{ traefik_labels.stdout_lines }}"
+
+        - name: Test nginx inside container
+          ansible.builtin.shell:
+            cmd: docker exec shopana-admin wget -q -O- http://localhost:80 | head -c 100
+          register: nginx_test
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display nginx test result
+          ansible.builtin.debug:
+            msg: "Nginx response (first 100 chars): {{ nginx_test.stdout | default('ERROR: ' ~ nginx_test.stderr) }}"
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Admin application deployed successfully"
+              - ""
+              - "🌐 Access Info:"
+              - "  URL: http://{{ admin_subdomain }}"
+              - "  API: {{ admin_api_url }}"
+              - "  Directory: {{ app_dir }}"
+              - ""
+              - "📊 View Logs:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"
+              - ""
+              - "🔧 Manage Service:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose restart'"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose stop'"
+              - ""
+              - "🚀 Rebuild and deploy:"
+              - "  ansible-playbook playbooks/admin/build.yml -i hosts.ini --limit shopana_sandbox"
+              - "  ansible-playbook playbooks/admin/deploy.yml -i hosts.ini --limit shopana_sandbox"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Deployment failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: error_compose_ps
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error container status
+          ansible.builtin.debug:
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
+
+        - name: Show container logs on error
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: error_logs
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error logs
+          ansible.builtin.debug:
+            var: error_logs.stdout_lines
+          when: error_logs is defined and error_logs.stdout_lines is defined
+
+        - name: Show recovery instructions
+          ansible.builtin.debug:
+            msg:
+              - "💡 Recovery options:"
+              - "  • Retry: ansible-playbook playbooks/admin/deploy.yml -i hosts.ini --limit shopana_sandbox"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
+              - "  • Rebuild: ansible-playbook playbooks/admin/build.yml -i hosts.ini --limit shopana_sandbox"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Deployment failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry on the remote server
+          ansible.builtin.command:
+            cmd: "docker logout {{ shopana_ghcr_registry }}"
+          changed_when: false
+          ignore_errors: true

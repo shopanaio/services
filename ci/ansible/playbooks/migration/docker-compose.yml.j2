@@ -4,11 +4,6 @@ services:
       context: ./build
       dockerfile: Dockerfile
     container_name: migrations
-    secrets:
-      - source: migrations_env
-        target: /.env
+    env_file:
+      - ./.env
     command: ["up"]
-
-secrets:
-  migrations_env:
-    file: ./.env

@@ -1,0 +1,27 @@
+services:
+  admin:
+    image: {{ admin_image_name }}
+    container_name: shopana-admin
+    restart: unless-stopped
+    environment:
+      - NODE_ENV={{ admin_env }}
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "{{ admin_container_port }}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - shopana-network
+    labels:
+      - "traefik.enable={{ admin_traefik_enabled | lower }}"
+      - "traefik.http.routers.admin.rule={{ admin_traefik_router_rule }}"
+      - "traefik.http.routers.admin.entrypoints={{ admin_traefik_entrypoint }}"
+      - "traefik.http.routers.admin.priority={{ admin_traefik_router_priority | default('100') }}"
+      - "traefik.http.services.admin.loadbalancer.server.port={{ admin_traefik_service_port }}"
+
+networks:
+  shopana-network:
+    name: shopana-network
+    driver: bridge
+    external: true
