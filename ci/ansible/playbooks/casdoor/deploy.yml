@@ -116,13 +116,6 @@
           ansible.builtin.debug:
             var: startup_logs.stdout_lines
 
-        - name: Wait for Casdoor to listen on {{ casdoor_port }}
-          ansible.builtin.wait_for:
-            host: 127.0.0.1
-            port: "{{ casdoor_port }}"
-            delay: 3
-            timeout: 60
-
         - name: Show container status
           ansible.builtin.command:
             cmd: docker compose ps

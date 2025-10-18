@@ -1,7 +1,9 @@
 # ansible-playbook playbooks/docker/docker-install.yml
+# ansible-playbook playbooks/docker/docker-install.yml -e "target_hosts=shopana"
+# ansible-playbook playbooks/docker/docker-install.yml -l specific-host
 ---
 - name: Install Docker on remote host
-  hosts: shopana
+  hosts: "{{ target_hosts | default('all') }}"
   become: true
   gather_facts: true
 

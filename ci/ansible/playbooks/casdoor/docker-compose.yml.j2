@@ -3,10 +3,15 @@ services:
     image: casbin/casdoor:{{ casdoor_version }}
     container_name: shopana-casdoor
     restart: unless-stopped
+{% if casdoor_expose_port | default(false) %}
+    ports:
+      - "{{ casdoor_port }}:{{ casdoor_port }}"
+{% endif %}
     volumes:
       - ./config/app.conf:/conf/app.conf:ro
     environment:
       RUNNING_IN_DOCKER: "true"
+      STATIC_BASE_URL: "{{ casdoor_static_base_url | default('') }}"
     command: ["-createDatabase=true"]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:{{ casdoor_port }}/api/health"]
@@ -18,14 +23,19 @@ services:
       - shopana-network
     labels:
       - "traefik.enable=true"
-      # Main Casdoor UI
+{% if casdoor_use_subdomain | default(false) %}
+      # Subdomain routing
+      - "traefik.http.routers.casdoor.rule=Host(`{{ casdoor_subdomain }}`)"
+{% else %}
+      # Path-based routing
       - "traefik.http.routers.casdoor.rule=PathPrefix(`{{ casdoor_traefik_path }}`)"
-      - "traefik.http.routers.casdoor.entrypoints=web"
       - "traefik.http.routers.casdoor.priority=10"
 {% if casdoor_traefik_strip_prefix | default(false) %}
       - "traefik.http.routers.casdoor.middlewares=casdoor-strip"
       - "traefik.http.middlewares.casdoor-strip.stripprefix.prefixes={{ casdoor_traefik_path }}"
 {% endif %}
+{% endif %}
+      - "traefik.http.routers.casdoor.entrypoints=web"
       # Service definition
       - "traefik.http.services.casdoor.loadbalancer.server.port={{ casdoor_port }}"
 
