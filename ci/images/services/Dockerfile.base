@@ -53,6 +53,9 @@ COPY --from=dependencies /app/yarn.lock ./yarn.lock
 COPY --from=dependencies /app/.yarnrc.yml ./.yarnrc.yml
 COPY --from=dependencies /app/.yarn ./.yarn
 
+# Copy TypeScript configuration from project root
+COPY tsconfig.json ./
+
 # Copy all shared packages source
 COPY packages ./packages
 
