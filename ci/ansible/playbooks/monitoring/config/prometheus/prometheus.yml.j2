@@ -72,6 +72,9 @@ scrape_configs:
           service: '{{ service.name }}'
           service_type: 'moleculer'
           namespace: '{{ service.namespace | default("platform") }}'
+{% if service.metrics_path is defined %}
+    metrics_path: '{{ service.metrics_path }}'
+{% endif %}
     scrape_interval: {{ moleculer_scrape_interval | default('15s') }}
     scrape_timeout: {{ moleculer_scrape_timeout | default('10s') }}
 {% endfor %}

@@ -19,6 +19,10 @@ services:
     networks:
       - shopana-network
     labels:
+      # Docker Compose labels for monitoring
+      - "com.docker.compose.project=shopana"
+      - "com.docker.compose.service=platform"
+      # Traefik configuration
       - "traefik.enable=true"
       # REST API endpoints (file upload, tenant management)
       - "traefik.http.routers.platform.rule=PathPrefix(`/api/admin/v1`)"

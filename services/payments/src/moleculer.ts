@@ -29,7 +29,7 @@ const brokerConfig = {
 
   // Heartbeat settings
   heartbeatInterval: 5,
-  heartbeatTimeout: 15,
+  heartbeatTimeout: 60,
 
   // Parameter validation
   validator: true,
