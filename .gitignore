@@ -29,3 +29,5 @@ ci/dev/repo/
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+**/*.tsbuildinfo

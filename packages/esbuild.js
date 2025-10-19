@@ -1,6 +1,13 @@
 import { build } from "esbuild";
-import { readFileSync, existsSync, readdirSync, statSync } from "fs";
-import { join, dirname, basename } from "path";
+import {
+  readFileSync,
+  existsSync,
+  readdirSync,
+  statSync,
+  rmSync,
+  mkdirSync,
+} from "fs";
+import { join, dirname, basename, relative } from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -79,12 +86,172 @@ function getEntryPoints(packageDir) {
 }
 
 /**
- * Generate TypeScript declarations for a package
+ * Get all .d.ts files recursively from a directory
  */
-async function generateDeclarations(packageDir) {
+function getDtsFiles(dir, files = []) {
+  if (!existsSync(dir)) return files;
+
+  const entries = readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      getDtsFiles(fullPath, files);
+    } else if (entry.name.endsWith(".d.ts")) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+/**
+ * Generate TypeScript declarations bundle for a package using API Extractor
+ */
+async function generateDeclarations(packageDir, entryPoints) {
   console.log(`  Generating TypeScript declarations...`);
+
+  const finalDistDir = join(packageDir, "dist");
+
   try {
+    // Step 1: Generate individual .d.ts files with tsc
     await execAsync("yarn tsc --emitDeclarationOnly", { cwd: packageDir });
+    console.log(`  ✅ TypeScript declarations generated`);
+
+    // Step 2: Bundle .d.ts files for each entry point using API Extractor
+    console.log(`  Bundling TypeScript declarations with API Extractor...`);
+
+    const { Extractor, ExtractorConfig } = await import("@microsoft/api-extractor");
+
+    const entryPointNames = Object.keys(entryPoints);
+
+    for (const entryName of entryPointNames) {
+      const srcPath = entryPoints[entryName];
+
+      // Get relative path from src directory
+      const srcDir = join(packageDir, "src");
+      const relativePathFromSrc = relative(srcDir, srcPath);
+
+      // Build path to generated .d.ts file
+      const dtsInputPath = join(
+        finalDistDir,
+        relativePathFromSrc.replace(/\.ts$/, ".d.ts")
+      );
+
+      const dtsOutputPath = join(finalDistDir, `${entryName}.d.ts`);
+
+      if (!existsSync(dtsInputPath)) {
+        console.warn(
+          `  ⚠️  Declaration file not found: ${dtsInputPath}, skipping bundle`
+        );
+        continue;
+      }
+
+      try {
+        // Create API Extractor configuration
+        const extractorConfig = ExtractorConfig.prepare({
+          configObject: {
+            projectFolder: packageDir,
+            mainEntryPointFilePath: dtsInputPath,
+            compiler: {
+              tsconfigFilePath: join(packageDir, "tsconfig.json"),
+            },
+            apiReport: {
+              enabled: false,
+            },
+            docModel: {
+              enabled: false,
+            },
+            dtsRollup: {
+              enabled: true,
+              untrimmedFilePath: dtsOutputPath,
+            },
+            tsdocMetadata: {
+              enabled: false,
+            },
+            messages: {
+              compilerMessageReporting: {
+                default: {
+                  logLevel: "warning",
+                },
+              },
+              extractorMessageReporting: {
+                default: {
+                  logLevel: "warning",
+                },
+                "ae-missing-release-tag": {
+                  logLevel: "none",
+                },
+                "ae-forgotten-export": {
+                  logLevel: "none",
+                },
+              },
+            },
+          },
+          configObjectFullPath: undefined,
+          packageJsonFullPath: join(packageDir, "package.json"),
+        });
+
+        // Run API Extractor
+        const extractorResult = Extractor.invoke(extractorConfig, {
+          localBuild: true,
+          showVerboseMessages: false,
+        });
+
+        if (extractorResult.succeeded) {
+          console.log(`  ✅ Bundled ${entryName}.d.ts`);
+        } else {
+          console.error(
+            `  ⚠️  API Extractor completed with ${extractorResult.errorCount} errors and ${extractorResult.warningCount} warnings for ${entryName}.d.ts`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `  ⚠️  Failed to bundle ${entryName}.d.ts: ${error.message}`
+        );
+        // Keep the original file if bundling fails
+      }
+    }
+
+    // Step 3: Clean up intermediate .d.ts files (keep only the bundled ones)
+    const allDtsFiles = getDtsFiles(finalDistDir);
+    const bundledFiles = entryPointNames.map((name) =>
+      join(finalDistDir, `${name}.d.ts`)
+    );
+
+    for (const dtsFile of allDtsFiles) {
+      const normalizedPath = dtsFile.replace(/\\/g, "/");
+      const isBundled = bundledFiles.some(
+        (bundled) => bundled.replace(/\\/g, "/") === normalizedPath
+      );
+
+      if (!isBundled) {
+        try {
+          rmSync(dtsFile);
+          // Also remove .d.ts.map files if they exist
+          const mapFile = `${dtsFile}.map`;
+          if (existsSync(mapFile)) {
+            rmSync(mapFile);
+          }
+        } catch (error) {
+          // Ignore errors during cleanup
+        }
+      }
+    }
+
+    // Step 4: Remove .d.ts.map files for bundled files (they're not needed after bundling)
+    for (const entryName of entryPointNames) {
+      const mapFile = join(finalDistDir, `${entryName}.d.ts.map`);
+      if (existsSync(mapFile)) {
+        try {
+          rmSync(mapFile);
+        } catch (error) {
+          // Ignore errors during cleanup
+        }
+      }
+    }
+
+    console.log(`  ✅ Declaration bundles completed`);
   } catch (error) {
     console.error(`  Failed to generate declarations: ${error.message}`);
     throw error;
@@ -131,8 +298,7 @@ async function buildPackage(packageDir) {
     console.log(`  ✅ JavaScript build completed`);
 
     // Generate TypeScript declarations
-    await generateDeclarations(packageDir);
-    console.log(`  ✅ TypeScript declarations generated`);
+    await generateDeclarations(packageDir, entryPoints);
   } catch (error) {
     console.error(`  ❌ Build failed:`, error);
     throw error;
