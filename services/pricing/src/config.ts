@@ -1,10 +1,23 @@
 import dotenv from 'dotenv';
+import { loadServiceConfig } from '@shopana/shared-service-config';
 
+// Load environment variables from .env file
 dotenv.config();
 
+/**
+ * Service configuration using centralized config system
+ */
+const serviceConfig = loadServiceConfig('pricing');
+
 export const config = {
-  port: process.env.PORT,
-  dbUrl: process.env.DATABASE_URL || 'postgres://localhost:5432/pricing',
+  /** HTTP port for health check server */
+  port: serviceConfig.port,
+
+  /** Database connection URL */
+  databaseUrl: serviceConfig.databaseUrl || '',
+
+  /** Current environment name */
+  nodeEnv: serviceConfig.environment,
 
   // Apps Service
   appsServiceUrl: process.env.APPS_SERVICE_URL,
@@ -18,5 +31,5 @@ export const config = {
   logLevel: process.env.LOG_LEVEL || 'info',
 
   // Development
-  isDevelopment: process.env.NODE_ENV === 'development',
+  isDevelopment: serviceConfig.environment === 'development',
 } as const;

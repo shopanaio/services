@@ -102,6 +102,11 @@ export async function startServer(broker: ServiceBroker) {
     return reply.send({ status: "ok", service: "order" });
   });
 
+  // Healthz endpoint for Docker health checks
+  app.get("/healthz", async (_request, reply) => {
+    return reply.send({ status: "ok", service: "order" });
+  });
+
   // Admin GraphQL route group with context middleware
   await app.register(async function (adminGraphqlInstance) {
     // Core context middleware that sets async local storage

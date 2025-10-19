@@ -77,6 +77,16 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
     });
   });
 
+  // Healthz endpoint for Docker health checks
+  app.get("/healthz", async (_request, reply) => {
+    return reply.send({
+      status: "ok",
+      service: "apps-service",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
+
   // Start server
   await app.listen({
     port: config.port,

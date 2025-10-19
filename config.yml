@@ -12,3 +12,18 @@ services:
   orders:
     port: 10003
     database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+
+  delivery:
+    port: 10004
+
+  inventory:
+    port: 10005
+
+  payments:
+    port: 10006
+
+  platform:
+    port: 10007
+
+  pricing:
+    port: 10008

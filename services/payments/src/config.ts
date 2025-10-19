@@ -7,7 +7,7 @@ dotenv.config();
 /**
  * Service configuration using centralized config system
  */
-const serviceConfig = loadServiceConfig("platform");
+const serviceConfig = loadServiceConfig("payments");
 
 export const config = {
   /** HTTP port for health check server */
@@ -19,8 +19,16 @@ export const config = {
   /** Current environment name */
   nodeEnv: serviceConfig.environment,
 
-  /** Core apps GraphQL URL */
-  coreAppsGraphqlUrl: process.env.CORE_APPS_GRAPHQL_URL,
+  /** Apps service URL */
+  appsServiceUrl: process.env.APPS_SERVICE_URL,
+
+  /** Plugin settings */
+  pluginTimeoutMs: Number(process.env.PAYMENTS_PLUGIN_TIMEOUT_MS ?? 3000),
+  pluginRetries: Number(process.env.PAYMENTS_PLUGIN_RETRIES ?? 1),
+  pluginRateLimit: Number(process.env.PAYMENTS_PLUGIN_RATELIMIT ?? 10),
+
+  /** Logging */
+  logLevel: process.env.LOG_LEVEL || "info",
 
   /** Development flag */
   isDevelopment: serviceConfig.environment === "development",

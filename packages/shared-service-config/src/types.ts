@@ -18,14 +18,20 @@ export interface ServiceConfig {
 export interface ServicesConfig {
   /** Apps service configuration */
   apps: ServiceConfig;
-  /** Broker service configuration */
-  broker: ServiceConfig;
-  /** Platform service configuration */
-  platform: ServiceConfig;
   /** Checkout service configuration */
   checkout: ServiceConfig;
   /** Orders service configuration */
   orders: ServiceConfig;
+  /** Delivery service configuration */
+  delivery: ServiceConfig;
+  /** Inventory service configuration */
+  inventory: ServiceConfig;
+  /** Payments service configuration */
+  payments: ServiceConfig;
+  /** Platform service configuration */
+  platform: ServiceConfig;
+  /** Pricing service configuration */
+  pricing: ServiceConfig;
 }
 
 /**
