@@ -94,7 +94,6 @@ apollo_router_storefront_health_port: 8089
 # Subgraph URLs
 apollo_platform_admin_url: http://platform:8000/api/admin/graphql
 apollo_apps_admin_url: http://apps:10001/graphql
-apollo_orders_admin_url: http://orders:10003/graphql/admin/v1
 apollo_platform_storefront_url: http://platform:8000/api/client/graphql
 apollo_checkout_storefront_url: http://checkout:10002/graphql
 apollo_orders_storefront_url: http://orders:10003/graphql/storefront/v1

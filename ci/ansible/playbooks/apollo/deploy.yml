@@ -7,7 +7,7 @@
   become: true
 
   vars_files:
-    - vars.deploy.yml
+    - vars/vars.deploy.yml
 
   vars:
     # Source directory for deployment artifacts
