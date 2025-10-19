@@ -20,7 +20,7 @@
     router_build_context: "{{ root_dir }}/ci/images/apollo/router"
 
     # Build configuration
-    local_build_dir: "{{ root_dir }}"
+    build_dir: "{{ root_dir }}"
 
   tasks:
     - name: Validate required variables are provided
@@ -47,14 +47,7 @@
               --platform {{ docker_platform }}
               -t {{ rover_image_name }}
               {{ rover_build_context }}
-            chdir: "{{ local_build_dir }}"
-          changed_when: true
-
-        - name: Login and push apollo-rover image
-          ansible.builtin.shell: |
-            echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
-            docker push {{ rover_image_name }}
-          no_log: true
+            chdir: "{{ build_dir }}"
           changed_when: true
 
         - name: Build apollo-router image
@@ -64,7 +57,7 @@
               --platform {{ docker_platform }}
               -t {{ router_image_name }}
               {{ router_build_context }}
-            chdir: "{{ local_build_dir }}"
+            chdir: "{{ build_dir }}"
           changed_when: true
 
         - name: Login and push apollo-router image

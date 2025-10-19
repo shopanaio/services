@@ -16,7 +16,7 @@ headers:
   all:
     request:
       - propagate:
-          matching: "X*"
+          matching: "*"
 
 health_check:
   listen: 0.0.0.0:{{ apollo_router_storefront_health_port }}
