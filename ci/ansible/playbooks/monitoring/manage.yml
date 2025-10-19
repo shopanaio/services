@@ -1,0 +1,97 @@
+# Manage Monitoring Stack
+# Usage:
+#   Start:   ansible-playbook playbooks/monitoring/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=start"
+#   Stop:    ansible-playbook playbooks/monitoring/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=stop"
+#   Restart: ansible-playbook playbooks/monitoring/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=restart"
+#   Status:  ansible-playbook playbooks/monitoring/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=status"
+#   Logs:    ansible-playbook playbooks/monitoring/manage.yml -i hosts.ini --limit shopana_sandbox -e "action=logs"
+---
+- name: Manage Monitoring Stack
+  hosts: shopana_sandbox
+  become: true
+
+  vars:
+    app_name: monitoring
+    app_dir: /opt/shopana/monitoring
+    action: status
+
+  tasks:
+    - name: Validate action parameter
+      ansible.builtin.assert:
+        that:
+          - action in ['start', 'stop', 'restart', 'status', 'logs', 'down']
+        fail_msg: "Invalid action. Must be one of: start, stop, restart, status, logs, down"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: app_dir_stat
+
+    - name: Fail if directory doesn't exist
+      ansible.builtin.fail:
+        msg: "Deployment directory {{ app_dir }} does not exist. Please run deploy.yml first."
+      when: not app_dir_stat.stat.exists
+
+    - name: Start monitoring stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        state: present
+      when: action == 'start'
+
+    - name: Stop monitoring stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        state: stopped
+      when: action == 'stop'
+
+    - name: Restart monitoring stack
+      ansible.builtin.command:
+        cmd: docker compose restart
+        chdir: "{{ app_dir }}"
+      changed_when: true
+      when: action == 'restart'
+
+    - name: Remove monitoring stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        state: absent
+      when: action == 'down'
+
+    - name: Show container status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: compose_ps
+      changed_when: false
+      when: action in ['status', 'start', 'stop', 'restart']
+
+    - name: Display status
+      ansible.builtin.debug:
+        var: compose_ps.stdout_lines
+      when: action in ['status', 'start', 'stop', 'restart']
+
+    - name: Show logs
+      ansible.builtin.command:
+        cmd: docker compose logs --tail=100
+        chdir: "{{ app_dir }}"
+      register: compose_logs
+      changed_when: false
+      when: action == 'logs'
+
+    - name: Display logs
+      ansible.builtin.debug:
+        var: compose_logs.stdout_lines
+      when: action == 'logs'
+
+    - name: Show action result
+      ansible.builtin.debug:
+        msg:
+          - "✅ Action '{{ action }}' completed successfully"
+          - ""
+          - "📋 Additional commands:"
+          - "  View logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"
+          - "  Service logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f <service>'"
+          - "  Status: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose ps'"

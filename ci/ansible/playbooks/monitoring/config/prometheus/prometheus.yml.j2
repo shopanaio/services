@@ -1,0 +1,78 @@
+# Prometheus configuration
+global:
+  scrape_interval: {{ prometheus_scrape_interval }}
+  evaluation_interval: {{ prometheus_evaluation_interval }}
+  external_labels:
+    environment: '{{ monitoring_env }}'
+    cluster: 'shopana'
+
+# Alerting configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Load rules once and periodically evaluate them
+# rule_files:
+#   - "alert.rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # cAdvisor - container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'
+
+  # Node Exporter - host metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+
+  # Docker daemon metrics (if enabled)
+{% if docker_metrics_enabled %}
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['{{ ansible_host }}:{{ docker_daemon_metrics_port }}']
+        labels:
+          service: 'docker'
+{% endif %}
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          service: 'loki'
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+
+  # Moleculer services metrics
+{% if moleculer_services is defined and moleculer_services | length > 0 %}
+{% for service in moleculer_services %}
+  - job_name: 'moleculer-{{ service.name }}'
+    static_configs:
+      - targets: ['{{ service.host }}:{{ service.metrics_port }}']
+        labels:
+          service: '{{ service.name }}'
+          service_type: 'moleculer'
+          namespace: '{{ service.namespace | default("platform") }}'
+    scrape_interval: {{ moleculer_scrape_interval | default('15s') }}
+    scrape_timeout: {{ moleculer_scrape_timeout | default('10s') }}
+{% endfor %}
+{% endif %}

@@ -35,8 +35,25 @@ const brokerConfig = {
 	// Parameter validation
 	validator: true,
 
-	// Metrics and tracing disabled for simplicity
-	metrics: false,
+	// Metrics configuration with Prometheus reporter
+	metrics: {
+		enabled: true,
+		reporter: [
+			{
+				type: "Prometheus",
+				options: {
+					port: parseInt(process.env.METRICS_PORT || "3036"),
+					path: "/metrics",
+					defaultLabels: (registry: any) => ({
+						namespace: "platform",
+						nodeID: "platform-service",
+					}),
+				},
+			},
+		],
+	},
+
+	// Tracing disabled for simplicity
 	tracing: false,
 };
 

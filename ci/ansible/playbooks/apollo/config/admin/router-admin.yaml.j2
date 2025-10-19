@@ -20,3 +20,19 @@ headers:
 
 health_check:
   listen: 0.0.0.0:{{ apollo_router_admin_health_port }}
+
+telemetry:
+  instrumentation:
+    spans:
+      mode: spec_compliant
+      default_attribute_requirement_level: required
+  exporters:
+    logging:
+      stdout:
+        enabled: true
+        format: json
+      common:
+        service_name: apollo-router-admin
+        resource:
+          "service.name": "apollo-router-admin"
+          "service.namespace": "shopana"
