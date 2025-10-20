@@ -84,9 +84,12 @@ export async function startServer(broker: ServiceBroker) {
   // GraphQL route group with context middleware
   await app.register(async function (graphqlInstance) {
     // Core context middleware that sets async local storage
+    const grpcConfig = {
+      getGrpcHost: () => config.platformGrpcHost,
+    };
     await graphqlInstance.addHook(
       "preHandler",
-      buildCoreContextMiddleware(broker)
+      buildCoreContextMiddleware(grpcConfig)
     );
 
     // GraphQL endpoint with simplified context

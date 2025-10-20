@@ -1,0 +1,16 @@
+{
+  "name": "@shopana/platform-proto",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Protocol Buffer definitions for platform gRPC services",
+  "main": "proto/context.proto",
+  "files": [
+    "proto/**/*.proto"
+  ],
+  "scripts": {},
+  "keywords": [
+    "protobuf",
+    "grpc",
+    "platform"
+  ]
+}

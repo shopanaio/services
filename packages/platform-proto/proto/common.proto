@@ -1,0 +1,102 @@
+syntax = "proto3";
+package apps.v1;
+option go_package = "portal/project/api/grpcApps/generated";
+
+import "google/protobuf/timestamp.proto";
+
+// Common enums
+enum EntityStatus {
+  ENTITY_STATUS_UNSPECIFIED = 0;
+  ENTITY_STATUS_PUBLISHED = 1;
+  ENTITY_STATUS_DRAFT = 2;
+  ENTITY_STATUS_ARCHIVED = 3;
+}
+
+enum FileDriver {
+  FILE_DRIVER_UNSPECIFIED = 0;
+  FILE_DRIVER_LOCAL = 1;
+  FILE_DRIVER_S3 = 2;
+  FILE_DRIVER_YTB = 3;
+  FILE_DRIVER_URL = 4;
+}
+
+enum WeightUnit {
+  WEIGHT_UNIT_UNSPECIFIED = 0;
+  WEIGHT_UNIT_GR = 1;
+  WEIGHT_UNIT_KG = 2;
+  WEIGHT_UNIT_LB = 3;
+  WEIGHT_UNIT_OZ = 4;
+}
+
+enum DimensionUnit {
+  DIMENSION_UNIT_UNSPECIFIED = 0;
+  DIMENSION_UNIT_MM = 1;
+  DIMENSION_UNIT_CM = 2;
+  DIMENSION_UNIT_M = 3;
+  DIMENSION_UNIT_IN = 4;
+}
+
+enum FeatureStyleType {
+  FEATURE_STYLE_TYPE_UNSPECIFIED = 0;
+  FEATURE_STYLE_TYPE_RADIO = 1;
+  FEATURE_STYLE_TYPE_DROPDOWN = 2;
+  FEATURE_STYLE_TYPE_VARIANT_COVER = 3;
+  FEATURE_STYLE_TYPE_SWATCH = 4;
+  FEATURE_STYLE_TYPE_APPAREL_SIZE = 5;
+}
+
+enum FeatureSwatchType {
+  FEATURE_SWATCH_TYPE_UNSPECIFIED = 0;
+  FEATURE_SWATCH_TYPE_COLOR = 1;
+  FEATURE_SWATCH_TYPE_COLOR_DUO = 2;
+  FEATURE_SWATCH_TYPE_IMAGE = 3;
+}
+
+enum ProductGroupPriceType {
+  PRODUCT_GROUP_PRICE_TYPE_UNSPECIFIED = 0;
+  PRODUCT_GROUP_PRICE_TYPE_FREE = 1;
+  PRODUCT_GROUP_PRICE_TYPE_BASE = 2;
+  PRODUCT_GROUP_PRICE_TYPE_BASE_ADJUST_AMOUNT = 3;
+  PRODUCT_GROUP_PRICE_TYPE_BASE_ADJUST_PERCENT = 4;
+  PRODUCT_GROUP_PRICE_TYPE_BASE_OVERRIDE = 5;
+}
+
+// Common messages
+message File {
+  string id = 1;
+  FileDriver driver = 2;
+  string name = 3;
+  string url = 4;
+  int32 size = 5;
+  string ext = 6;
+  string key = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message LocalizedString {
+  string locale = 1;
+  string value = 2;
+}
+
+message Currency {
+  string code = 1;
+  bool is_active = 2;
+  double exchange_rate = 3;
+}
+
+message Locale {
+  string code = 1;
+  bool is_active = 2;
+}
+
+message StockStatus {
+  string code = 1;
+}
+
+// Metadata для responses (request_id, timing, etc)
+message ResponseMetadata {
+  string request_id = 1;
+  int32 processing_time_ms = 2;
+  int32 total_count = 3;
+}

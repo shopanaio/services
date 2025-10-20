@@ -36,6 +36,9 @@ export const config = {
   /** Moleculer transporter configuration */
   transporter: process.env.MOLECULER_TRANSPORTER || "NATS",
 
+  /** Platform gRPC host for context service */
+  platformGrpcHost: process.env.PLATFORM_GRPC_HOST || "localhost:50051",
+
   /** Convenience flag for development checks */
   isDevelopment: serviceConfig.environment === "development",
 } as const;

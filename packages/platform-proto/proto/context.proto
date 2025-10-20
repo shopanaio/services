@@ -1,0 +1,74 @@
+syntax = "proto3";
+package apps.v1;
+option go_package = "portal/project/api/grpcApps/generated";
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// Context types
+message Project {
+  string id = 1;
+  string name = 2;
+  string locale = 3;
+  string currency = 4;
+  string timezone = 5;
+  string email = 6;
+  string phone_number = 7;
+  string country = 8;
+  repeated Locale locales = 9;
+  repeated Currency currencies = 10;
+  repeated StockStatus stock_statuses = 11;
+}
+
+message User {
+  string id = 1;
+  string tenant_id = 2;
+  string email = 3;
+  string first_name = 4;
+  string last_name = 5;
+  bool is_ready = 6;
+  bool is_verified = 7;
+  string language = 8;
+  string phone_number = 9;
+  string timezone = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message Customer {
+  string id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone = 5;
+  bool is_blocked = 6;
+  bool is_verified = 7;
+  string language = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message Context {
+  Project project = 1;
+  User tenant = 2;
+  Customer customer = 3;
+}
+
+// Request/Response
+message GetContextRequest {
+  // Headers передаются через metadata:
+  // - x-api-key (required)
+  // - authorization (optional для tenant/customer)
+  // - x-currency (optional)
+  // - content-language (optional для locale)
+}
+
+message GetContextResponse {
+  Context context = 1;
+  ResponseMetadata metadata = 2;
+}
+
+// Service
+service ContextService {
+  rpc GetContext(GetContextRequest) returns (GetContextResponse);
+}

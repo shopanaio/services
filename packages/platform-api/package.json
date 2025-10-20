@@ -11,15 +11,15 @@
   "scripts": {
     "build": "node ../esbuild.js",
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "codegen": "graphql-codegen --config codegen.ts",
     "clean": "rimraf dist"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.12.4",
+    "@grpc/proto-loader": "^0.7.15",
+    "@shopana/platform-proto": "0.0.1",
     "graphql-request": "^7.1.0"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^5.0.2",
-    "@graphql-codegen/typescript": "^4.0.8",
     "rimraf": "^5.0.0",
     "typescript": "^5.5.4"
   }

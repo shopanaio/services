@@ -1,18 +1,18 @@
 export type ForwardHeaders = Record<string, string>;
 
-export interface GraphqlRequester {
-  request<T>(args: {
-    url: string;
-    document: string;
-    variables?: Record<string, unknown>;
-    requestHeaders?: ForwardHeaders;
-  }): Promise<T>;
+/**
+ * Configuration interface for gRPC client
+ */
+export interface GrpcConfigPort {
+  /**
+   * Get the gRPC server host (e.g., "localhost:50051")
+   */
+  getGrpcHost(): string;
 }
 
-export interface CoreConfigPort {
-  getCoreAppsGraphqlUrl(): string;
-}
-
+/**
+ * Core context client interface
+ */
 export interface CoreContextClientPort {
   fetchContext(headers: ForwardHeaders): Promise<unknown>;
 }

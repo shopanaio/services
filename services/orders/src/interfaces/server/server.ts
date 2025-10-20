@@ -110,9 +110,12 @@ export async function startServer(broker: ServiceBroker) {
   // Admin GraphQL route group with context middleware
   await app.register(async function (adminGraphqlInstance) {
     // Core context middleware that sets async local storage
+    const grpcConfig = {
+      getGrpcHost: () => config.platformGrpcHost,
+    };
     await adminGraphqlInstance.addHook(
       "preHandler",
-      buildCoreContextMiddleware(broker)
+      buildCoreContextMiddleware(grpcConfig)
     );
 
     // Admin GraphQL endpoint with simplified context
@@ -136,9 +139,12 @@ export async function startServer(broker: ServiceBroker) {
   // Storefront GraphQL route group with context middleware
   await app.register(async function (storefrontGraphqlInstance) {
     // Core context middleware that sets async local storage
+    const grpcConfig = {
+      getGrpcHost: () => config.platformGrpcHost,
+    };
     await storefrontGraphqlInstance.addHook(
       "preHandler",
-      buildCoreContextMiddleware(broker)
+      buildCoreContextMiddleware(grpcConfig)
     );
 
     // Storefront GraphQL endpoint with simplified context

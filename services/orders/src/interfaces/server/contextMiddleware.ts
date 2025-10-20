@@ -1,6 +1,5 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import type { ServiceBroker } from "moleculer";
-import { type CoreCustomer, type CoreProject, type FetchContextHeaders } from "@shopana/platform-api";
+import { type CoreCustomer, type CoreProject, type FetchContextHeaders, createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
 import { setContext } from "@src/context/index.js";
 
 declare module "fastify" {
@@ -33,7 +32,12 @@ function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
   return headerIsTrue(interpolationHeader);
 }
 
-export function buildCoreContextMiddleware(broker: ServiceBroker) {
+/**
+ * Build core context middleware using gRPC client
+ */
+export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
+  const contextClient = createCoreContextClient({ config: grpcConfig });
+
   return async function coreContextMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
@@ -43,7 +47,17 @@ export function buildCoreContextMiddleware(broker: ServiceBroker) {
     }
 
     try {
-      const ctx = await broker.call<any, FetchContextHeaders>('platform.context', request.headers);
+      const headers: FetchContextHeaders = {
+        authorization: request.headers.authorization,
+        "x-api-key": request.headers["x-api-key"] as string | undefined,
+        "x-pj-key": request.headers["x-pj-key"] as string | undefined,
+        "x-trace-id": request.headers["x-trace-id"] as string | undefined,
+        "x-span-id": request.headers["x-span-id"] as string | undefined,
+        "x-correlation-id": request.headers["x-correlation-id"] as string | undefined,
+        "x-causation-id": request.headers["x-causation-id"] as string | undefined,
+      };
+
+      const ctx = await contextClient.fetchContext(headers);
       if (!ctx) {
         return reply
           .status(401)
@@ -61,7 +75,7 @@ export function buildCoreContextMiddleware(broker: ServiceBroker) {
         user: null, // TODO: Add user support if needed
       });
     } catch (error) {
-      console.error('Failed to fetch context via broker:', error);
+      console.error('Failed to fetch context via gRPC:', error);
       return reply
         .status(401)
         .send({ data: null, errors: [{ message: "Unauthorized" }] });

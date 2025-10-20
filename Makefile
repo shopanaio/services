@@ -1,7 +1,7 @@
 .SILENT:
 
-.PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:platform dev\:orders
-.PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-platform docker\:build-apps
+.PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders
+.PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps
 
 apollo\:storefront:
 	docker-compose -f apollo/docker-compose.storefront.yml up --build
@@ -39,9 +39,6 @@ dev\:pricing:
 dev\:shipping:
 	yarn workspace @shopana/delivery-service run dev
 
-dev\:platform:
-	yarn workspace @shopana/platform-service run dev
-
 dev\:orders:
 	yarn workspace @shopana/orders-service run dev
 
@@ -75,9 +72,6 @@ docker\:build-inventory:
 
 docker\:build-pricing:
 	@$(MAKE) docker:build SERVICE=pricing
-
-docker\:build-platform:
-	@$(MAKE) docker:build SERVICE=platform
 
 docker\:build-apps:
 	@$(MAKE) docker:build SERVICE=apps

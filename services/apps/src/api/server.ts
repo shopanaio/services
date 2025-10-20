@@ -47,7 +47,10 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   // GraphQL route group with simplified middleware
   await app.register(async function (graphqlInstance) {
     // Only core context middleware - no correlation middleware
-    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(broker));
+    const grpcConfig = {
+      getGrpcHost: () => config.platformGrpcHost,
+    };
+    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
 
     // GraphQL endpoint with simplified context
     await graphqlInstance.register(fastifyApollo(apollo), {

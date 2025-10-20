@@ -1,0 +1,159 @@
+syntax = "proto3";
+package apps.v1;
+option go_package = "portal/project/api/grpcApps/generated";
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// Feature/Option types
+message FeatureSwatch {
+  string id = 1;
+  optional string color1 = 2;
+  optional string color2 = 3;
+  optional File image = 4;
+  FeatureSwatchType type = 5;
+}
+
+message ProductOptionGroup {
+  string id = 1;
+  string slug = 2;
+  string title = 3;
+  FeatureStyleType feature_style_type = 4;
+}
+
+message ProductOption {
+  string title = 1;
+  string slug = 2;
+  string feature_id = 3;
+  ProductOptionGroup group = 4;
+  optional FeatureSwatch swatch = 5;
+  int32 sort_index = 6;
+}
+
+// Product Group types (для bundles/add-ons)
+message ProductGroupItem {
+  string id = 1;
+  string variant_id = 2;
+  int32 sort_index = 3;
+  ProductGroupPriceType price_type = 4;
+  optional int64 price_amount_value = 5;
+  optional double price_percentage_value = 6;
+  optional int32 max_quantity = 7;
+}
+
+message ProductGroup {
+  string id = 1;
+  string title = 2;
+  repeated ProductGroupItem items = 3;
+  bool is_required = 4;
+  bool is_multiple = 5;
+  int32 sort_index = 6;
+}
+
+// Variant
+message Variant {
+  string id = 1;
+  string slug = 2;
+  int32 price = 3;
+  optional int32 old_price = 4;
+  optional int32 cost_price = 5;
+  optional string sku = 6;
+  optional string barcode = 7;
+  int32 sort_index = 8;
+  string stock_status = 9;
+
+  // Titles
+  string title = 10;
+  repeated LocalizedString title_i18n = 11;
+
+  // Media
+  optional File cover = 12;
+  repeated File gallery = 13;
+
+  // Options/Features
+  repeated ProductOption options = 14;
+
+  // Dimensions
+  optional double weight = 15;
+  optional WeightUnit weight_unit = 16;
+  optional double width = 17;
+  optional double length = 18;
+  optional double height = 19;
+  optional DimensionUnit dimension_unit = 20;
+
+  // Timestamps
+  google.protobuf.Timestamp created_at = 21;
+  google.protobuf.Timestamp updated_at = 22;
+}
+
+// Product (Container)
+message Product {
+  string id = 1;
+  string slug = 2;
+  EntityStatus status = 3;
+
+  // Titles
+  string title = 4;
+  repeated LocalizedString title_i18n = 5;
+
+  // Content (для SEO)
+  optional string description = 6;
+  optional string excerpt = 7;
+  optional string seo_title = 8;
+  optional string seo_description = 9;
+
+  // Relations
+  optional string primary_category = 10;
+  optional bool requires_shipping = 11;
+  repeated Variant variants = 12;
+  repeated ProductGroup groups = 13;
+
+  // Timestamps
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+// Requests/Responses
+message GetVariantsRequest {
+  repeated string ids = 1;
+}
+
+message GetVariantsResponse {
+  repeated Variant variants = 1;
+  ResponseMetadata metadata = 2;
+}
+
+message GetProductsRequest {
+  repeated string ids = 1;
+}
+
+message GetProductsResponse {
+  repeated Product products = 1;
+  ResponseMetadata metadata = 2;
+}
+
+message GetVariantRequest {
+  string id = 1;
+}
+
+message GetVariantResponse {
+  Variant variant = 1;
+  ResponseMetadata metadata = 2;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+  ResponseMetadata metadata = 2;
+}
+
+// Service
+service InventoryService {
+  rpc GetVariants(GetVariantsRequest) returns (GetVariantsResponse);
+  rpc GetProducts(GetProductsRequest) returns (GetProductsResponse);
+  rpc GetVariant(GetVariantRequest) returns (GetVariantResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+}

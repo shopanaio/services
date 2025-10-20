@@ -12,4 +12,5 @@ const serviceConfig = loadServiceConfig("orders");
 export const config = {
   port: serviceConfig.port,
   databaseUrl: serviceConfig.databaseUrl || process.env.DATABASE_URL!,
+  platformGrpcHost: process.env.PLATFORM_GRPC_HOST || "localhost:50051",
 };
