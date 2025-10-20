@@ -27,10 +27,6 @@ const brokerConfig = {
   // Request timeout
   requestTimeout: 10 * 1000,
 
-  // Heartbeat settings
-  heartbeatInterval: 5,
-  heartbeatTimeout: 60,
-
   // Parameter validation
   validator: true,
 

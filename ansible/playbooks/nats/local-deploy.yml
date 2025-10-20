@@ -1,0 +1,124 @@
+# Deploy NATS service locally for development
+# Usage: ansible-playbook playbooks/nats/local-deploy.yml
+---
+- name: Deploy NATS service locally
+  hosts: localhost
+  connection: local
+  become: false
+
+  vars_files:
+    - dev.vars.yml
+
+  vars:
+    # Application configuration
+    app_name: nats
+    app_dir: "{{ playbook_dir }}/../../.local/nats"
+    root_dir: "{{ playbook_dir }}/../../.."
+
+  tasks:
+    - name: Show deployment information
+      ansible.builtin.debug:
+        msg:
+          - "🚀 Deploying NATS locally for development"
+          - "  Client Port: {{ nats_port }}"
+          - "  HTTP Port: {{ nats_http_port }}"
+          - "  Directory: {{ app_dir }}"
+
+    - name: Create local deployment directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create NATS config directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}/config"
+        state: directory
+        mode: "0755"
+
+    - name: Generate .env from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/env.j2"
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+
+    - name: Generate docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Generate nats-server.conf from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/nats-server.conf.j2"
+        dest: "{{ app_dir }}/config/nats-server.conf"
+        mode: "0644"
+
+    - name: Stop existing NATS container if running
+      ansible.builtin.command:
+        cmd: docker compose down
+        chdir: "{{ app_dir }}"
+      ignore_errors: true
+      changed_when: true
+
+    - name: Start NATS service with Docker Compose
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    - name: Wait for NATS to be ready
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ nats_port }}"
+        delay: 2
+        timeout: 30
+
+    - name: Wait for NATS HTTP monitoring
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ nats_http_port }}"
+        delay: 2
+        timeout: 30
+
+    - name: Show container status
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ app_dir }}"
+      register: compose_ps
+      changed_when: false
+
+    - name: Display status
+      ansible.builtin.debug:
+        var: compose_ps.stdout_lines
+
+    - name: Check NATS health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ nats_http_port }}/healthz"
+        method: GET
+        status_code: 200
+      register: health_check
+      ignore_errors: true
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg:
+          - "✅ NATS service deployed successfully for local development"
+          - ""
+          - "🌐 Service Info:"
+          - "  Client: nats://127.0.0.1:{{ nats_port }}"
+          - "  HTTP Monitoring: http://127.0.0.1:{{ nats_http_port }}"
+          - "  Health: http://127.0.0.1:{{ nats_http_port }}/healthz"
+          - "  Stats: http://127.0.0.1:{{ nats_http_port }}/varz"
+          - "  JetStream: http://127.0.0.1:{{ nats_http_port }}/jsz"
+          - "  Directory: {{ app_dir }}"
+          - ""
+          - "📊 View Logs:"
+          - "  cd {{ app_dir }} && docker compose logs -f"
+          - ""
+          - "🔧 Manage Service:"
+          - "  cd {{ app_dir }} && docker compose restart"
+          - "  cd {{ app_dir }} && docker compose stop"
+          - ""
+          - "🧹 Stop and cleanup:"
+          - "  cd {{ app_dir }} && docker compose down -v"

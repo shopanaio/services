@@ -1,0 +1,254 @@
+# Deploy single service to remote host
+# Variables are loaded from vars file
+# Usage: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout"
+---
+- name: Deploy Service
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    # Service configuration (must be provided via -e flag)
+    # service_name: checkout  # Example
+
+    # Application configuration
+    app_dir: "/opt/shopana/services/{{ service_name }}"
+
+    # Image configuration
+    service_image_tag: "{{ image_tag | default('latest', true) }}"
+    service_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ service_image_tag }}"
+
+    # Valid service names
+    valid_services:
+      - apps
+      - checkout
+      - delivery
+      - inventory
+      - orders
+      - payments
+      - platform
+      - pricing
+
+  tasks:
+    - name: Validate service_name is provided
+      ansible.builtin.assert:
+        that:
+          - service_name is defined
+          - service_name | length > 0
+        fail_msg: >-
+          service_name is required. Usage:
+          ansible-playbook playbooks/services/deploy_single.yml -e "service_name=checkout"
+        success_msg: "Service name provided: {{ service_name }}"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Validate service_name is in valid list
+      ansible.builtin.assert:
+        that:
+          - service_name in valid_services
+        fail_msg: >-
+          Invalid service name: {{ service_name }}.
+          Valid services: {{ valid_services | join(', ') }}
+        success_msg: "Service name is valid"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Ensure required variables are provided
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+          - service_port is defined
+          - service_database_url is defined
+        fail_msg: >-
+          Please provide required variables via inventory or vars file.
+          Required: shopana_ghcr_owner, shopana_ghcr_token, service_port, service_database_url
+        success_msg: "All required variables are present"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Create remote deployment directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Generate .env from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/env.j2"
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+
+    - name: Generate config.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/config.yml.j2"
+        dest: "{{ app_dir }}/config.yml"
+        mode: "0644"
+
+    - name: Generate docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Deploy block with login/logout
+      block:
+        - name: Show deployment information
+          ansible.builtin.debug:
+            msg:
+              - "🚀 Deploying {{ service_name }}-service"
+              - "  Image: {{ service_image_name }}"
+              - "  Port: {{ service_port }}"
+              - "  Directory: {{ app_dir }}"
+
+        - name: Login to GitHub Container Registry on the remote server
+          community.docker.docker_login:
+            registry: "{{ shopana_ghcr_registry }}"
+            username: "{{ shopana_ghcr_owner }}"
+            password: "{{ shopana_ghcr_token }}"
+          no_log: true
+
+        - name: Cleanup containers on port {{ service_port }}
+          ansible.builtin.include_tasks: "{{ root_dir }}/ansible/tasks/cleanup-port-task.yml"
+          vars:
+            cleanup_port: "{{ service_port }}"
+
+        - name: Stop and remove existing service container if running
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+
+        - name: Wait for port to be released
+          ansible.builtin.wait_for:
+            port: "{{ service_port }}"
+            state: stopped
+            timeout: 30
+          ignore_errors: true
+
+        - name: Additional pause to ensure cleanup
+          ansible.builtin.pause:
+            seconds: 2
+
+        - name: Pull the latest image and start service with Docker Compose
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            pull: always
+            state: present
+
+        - name: Wait a moment for container to start
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: Show startup logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=50
+            chdir: "{{ app_dir }}"
+          register: startup_logs
+          changed_when: false
+
+        - name: Display startup logs
+          ansible.builtin.debug:
+            var: startup_logs.stdout_lines
+
+        - name: Wait for service to listen on {{ service_port }}
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ service_port }}"
+            delay: 3
+            timeout: 60
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ {{ service_name }}-service deployed successfully"
+              - ""
+              - "🌐 Service Info:"
+              - "  Image: {{ service_image_name }}"
+              - "  HTTP: http://{{ ansible_host }}:{{ service_port }}"
+              - "  Health: http://{{ ansible_host }}:{{ service_port }}/health"
+              - "  Directory: {{ app_dir }}"
+              - "  Environment: {{ app_dir }}/.env"
+              - "  Config: {{ app_dir }}/config.yml"
+              - ""
+              - "📊 View Logs:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"
+              - ""
+              - "🔧 Manage Service:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose restart'"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose stop'"
+              - ""
+              - "🚀 Deploy another service:"
+              - "  ansible-playbook playbooks/services/deploy_single.yml -e 'service_name=orders'"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Deployment failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: error_compose_ps
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error container status
+          ansible.builtin.debug:
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
+
+        - name: Show container logs on error
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: error_logs
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error logs
+          ansible.builtin.debug:
+            var: error_logs.stdout_lines
+          when: error_logs is defined and error_logs.stdout_lines is defined
+
+        - name: Show recovery instructions
+          ansible.builtin.debug:
+            msg:
+              - "💡 Recovery options:"
+              - "  • Retry: ansible-playbook playbooks/services/deploy_single.yml -e 'service_name={{ service_name }}' -i hosts.ini"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
+              - "  • Check env: ssh {{ ansible_host }} 'cat {{ app_dir }}/.env'"
+              - "  • Check config: ssh {{ ansible_host }} 'cat {{ app_dir }}/config.yml'"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Deployment failed. See error details above."
+
+      always:
+        - name: Logout from GitHub Container Registry on the remote server
+          ansible.builtin.command:
+            cmd: "docker logout {{ shopana_ghcr_registry }}"
+          changed_when: false
+          ignore_errors: true

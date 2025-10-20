@@ -1,0 +1,204 @@
+# Deploy Casdoor authentication service to remote host
+# Variables are loaded from vars file
+# Usage: ansible-playbook playbooks/casdoor/deploy.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Deploy Casdoor authentication service
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    # Application configuration
+    app_name: casdoor
+    app_dir: /opt/shopana/casdoor
+
+  tasks:
+    - name: Ensure required variables are provided
+      ansible.builtin.assert:
+        that:
+          - casdoor_port is defined
+          - casdoor_db_host is defined
+          - casdoor_db_name is defined
+          - casdoor_db_user is defined
+          - casdoor_db_password is defined
+          - casdoor_domain is defined
+        fail_msg: "Please provide required variables via inventory or vars file."
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Create remote deployment directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create Casdoor config directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}/config"
+        state: directory
+        mode: "0755"
+
+    - name: Generate .env from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/env.j2"
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+
+    - name: Generate docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Generate app.conf from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/app.conf.j2"
+        dest: "{{ app_dir }}/config/app.conf"
+        mode: "0644"
+
+    - name: Deploy block
+      block:
+        - name: Show deployment information
+          ansible.builtin.debug:
+            msg:
+              - "🚀 Deploying {{ app_name }}"
+              - "  Version: {{ casdoor_version }}"
+              - "  Internal Port: {{ casdoor_port }}"
+              - "  Traefik Path: {{ casdoor_traefik_path }}"
+              - "  Domain: {{ casdoor_domain }}"
+              - "  Directory: {{ app_dir }}"
+
+        - name: Cleanup containers on Casdoor port
+          ansible.builtin.include_tasks: "{{ root_dir }}/ansible/tasks/cleanup-port-task.yml"
+          vars:
+            cleanup_port: "{{ casdoor_port }}"
+
+        - name: Stop and remove existing Casdoor container if running
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+
+        - name: Wait for port to be released
+          ansible.builtin.wait_for:
+            port: "{{ casdoor_port }}"
+            state: stopped
+            timeout: 30
+          ignore_errors: true
+
+        - name: Additional pause to ensure cleanup
+          ansible.builtin.pause:
+            seconds: 2
+
+        - name: Start Casdoor service with Docker Compose
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: present
+            env_files:
+              - "{{ app_dir }}/.env"
+
+        - name: Wait a moment for container to start
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: Show startup logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=50
+            chdir: "{{ app_dir }}"
+          register: startup_logs
+          changed_when: false
+
+        - name: Display startup logs
+          ansible.builtin.debug:
+            var: startup_logs.stdout_lines
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Casdoor authentication service deployed successfully"
+              - ""
+              - "🌐 Service Info:"
+              - "  Internal Port: {{ casdoor_port }}"
+              - "  Via Traefik: http://{{ ansible_host }}{{ casdoor_traefik_path }}"
+              - "  Domain: {{ casdoor_domain }}"
+              - "  Directory: {{ app_dir }}"
+              - "  Environment: {{ app_dir }}/.env"
+              - "  Config: {{ app_dir }}/config/app.conf"
+              - ""
+              - "📊 View Logs:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"
+              - ""
+              - "🔧 Manage Service:"
+              - "  ansible-playbook playbooks/casdoor/manage.yml -e 'action=restart'"
+              - "  ansible-playbook playbooks/casdoor/manage.yml -e 'action=stop'"
+              - "  ansible-playbook playbooks/casdoor/manage.yml -e 'action=start'"
+              - ""
+              - "🔄 Update Config:"
+              - "  ansible-playbook playbooks/casdoor/update-config.yml"
+              - ""
+              - "🧹 Uninstall:"
+              - "  ansible-playbook playbooks/casdoor/uninstall.yml"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Deployment failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: error_compose_ps
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error container status
+          ansible.builtin.debug:
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
+
+        - name: Show container logs on error
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: error_logs
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error logs
+          ansible.builtin.debug:
+            var: error_logs.stdout_lines
+          when: error_logs is defined and error_logs.stdout_lines is defined
+
+        - name: Show recovery instructions
+          ansible.builtin.debug:
+            msg:
+              - "💡 Recovery options:"
+              - "  • Retry: ansible-playbook playbooks/casdoor/deploy.yml -i hosts.ini"
+              - "  • Clean port: ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ casdoor_port }}'"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
+              - "  • Check env: ssh {{ ansible_host }} 'cat {{ app_dir }}/.env'"
+              - "  • Check config: ssh {{ ansible_host }} 'cat {{ app_dir }}/config/app.conf'"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Deployment failed. See error details above."

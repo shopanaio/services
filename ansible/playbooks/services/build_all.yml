@@ -1,0 +1,115 @@
+# Build and push all services
+# Automatically builds base image with packages first
+#
+# Prerequisites:
+#   - Docker must be running locally
+#   - SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN environment variables
+#
+# Usage:
+#   ansible-playbook playbooks/services/build_all.yml
+#   ansible-playbook playbooks/services/build_all.yml -e "image_tag=v1.0.0"
+#   ansible-playbook playbooks/services/build_all.yml -e "skip_base_build=true"  # Skip base build if unchanged
+---
+- name: Build and push all services
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: true
+
+  vars:
+    # Build configuration
+    local_build_dir: "{{ root_dir }}"
+    dockerfile_path: "{{ root_dir }}/Dockerfile"
+    dockerfile_base_path: "{{ root_dir }}/Dockerfile.base"
+
+    # Image tag with fallback
+    final_image_tag: "{{ image_tag | default('latest', true) }}"
+
+    # Skip base build flag (set to true to skip if packages unchanged)
+    skip_base_build_flag: "{{ skip_base_build | default(false, true) }}"
+
+    # All available services
+    all_services:
+      - apps
+      - checkout
+      - delivery
+      - inventory
+      - orders
+      - payments
+      - platform
+      - pricing
+
+  tasks:
+    - name: Validate required variables are provided
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+        fail_msg: >-
+          Required variables missing. Provide SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN
+          via environment or .env file.
+        success_msg: "All required variables are present"
+
+    - name: Check if Docker is running
+      ansible.builtin.command:
+        cmd: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker is not running
+      ansible.builtin.fail:
+        msg: "Docker is not running locally. Please start Docker daemon."
+      when: docker_info.rc != 0
+
+    - name: Login to GitHub Container Registry
+      ansible.builtin.shell: |
+        echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
+      no_log: true
+      changed_when: false
+
+    # ========================================================================
+    # Build all services
+    # ========================================================================
+    - name: Show services build information
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "🔨 Building ALL services"
+          - "  Services: {{ all_services | join(', ') }}"
+          - "  Image tag: {{ final_image_tag }}"
+          - "  Total: {{ all_services | length }} services"
+
+    - name: Build each service
+      ansible.builtin.include_tasks: build_service_task.yml
+      loop: "{{ all_services }}"
+      vars:
+        service:
+          name: "{{ item }}"
+          image_tag: "{{ final_image_tag }}"
+
+    - name: Show completion message
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "✅ All services built successfully"
+          - ""
+          - "📦 Base image:"
+          - "  • services-base:{{ final_image_tag }}"
+          - ""
+          - "📦 Built services:"
+          - "{% for service in all_services %}  • {{ service }}-service:{{ final_image_tag }}{% endfor %}"
+          - ""
+          - "🚀 Next steps:"
+          - "  Deploy single: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini -e 'service_name=checkout'"
+          - "  Deploy all:    ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox"
+          - ""
+          - "💡 Tip: If packages unchanged, skip base build next time:"
+          - "  ansible-playbook playbooks/services/build_all.yml -e 'skip_base_build=true'"
+
+  post_tasks:
+    - name: Logout from GitHub Container Registry
+      ansible.builtin.command:
+        cmd: docker logout {{ shopana_ghcr_registry }}
+      changed_when: false
+      ignore_errors: true

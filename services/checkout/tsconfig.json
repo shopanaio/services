@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ES2022",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
     "rootDir": "./",
@@ -16,7 +16,9 @@
       "@src/*": ["src/*"],
       "@domain/*": ["src/domain/*"],
       "@shopana/platform-api/*": ["../../packages/platform-api/dist/*"],
-      "@shopana/shared-service-api/*": ["../../packages/shared-service-api/dist/*"],
+      "@shopana/shared-service-api/*": [
+        "../../packages/shared-service-api/dist/*"
+      ],
       "@shopana/shared-money/*": ["../../packages/shared-money/dist/*"]
     },
     "experimentalDecorators": true,

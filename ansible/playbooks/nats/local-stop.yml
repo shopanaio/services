@@ -1,0 +1,45 @@
+# Stop local NATS service
+# Usage: ansible-playbook playbooks/nats/local-stop.yml
+---
+- name: Stop local NATS service
+  hosts: localhost
+  connection: local
+  become: false
+
+  vars:
+    app_dir: "{{ playbook_dir }}/../../.local/nats"
+
+  tasks:
+    - name: Check if deployment directory exists
+      ansible.builtin.stat:
+        path: "{{ app_dir }}"
+      register: nats_dir
+
+    - name: Stop NATS service
+      when: nats_dir.stat.exists
+      block:
+        - name: Stop and remove containers
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          changed_when: true
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ NATS service stopped"
+              - ""
+              - "To remove all data:"
+              - "  cd {{ app_dir }} && docker compose down -v"
+              - ""
+              - "To restart:"
+              - "  ansible-playbook playbooks/nats/local-deploy.yml"
+
+    - name: Show not found message
+      when: not nats_dir.stat.exists
+      ansible.builtin.debug:
+        msg:
+          - "ℹ️  NATS is not deployed locally"
+          - ""
+          - "To deploy:"
+          - "  ansible-playbook playbooks/nats/local-deploy.yml"

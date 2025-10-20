@@ -1,0 +1,205 @@
+# Deploy Traefik reverse proxy for Apollo Router
+# Variables are loaded from vars file
+# Usage: ansible-playbook playbooks/traefik/deploy.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Deploy Traefik reverse proxy
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    # Application configuration
+    app_name: traefik
+    app_dir: /opt/shopana/traefik
+
+  tasks:
+    - name: Ensure required variables are provided
+      ansible.builtin.assert:
+        that:
+          - traefik_web_port is defined
+          - traefik_dashboard_port is defined
+        fail_msg: "Please provide required variables via inventory or vars file."
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Create remote deployment directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create Traefik config directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}/config"
+        state: directory
+        mode: "0755"
+
+    - name: Generate docker-compose.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        dest: "{{ app_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Generate traefik.yml from template
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/traefik.yml.j2"
+        dest: "{{ app_dir }}/config/traefik.yml"
+        mode: "0644"
+
+    - name: Deploy block
+      block:
+        - name: Show deployment information
+          ansible.builtin.debug:
+            msg:
+              - "🚀 Deploying {{ app_name }}"
+              - "  Web Port: {{ traefik_web_port }}"
+              - "  Dashboard Port: {{ traefik_dashboard_port }}"
+              - "  Directory: {{ app_dir }}"
+
+        - name: Cleanup containers on Traefik ports
+          ansible.builtin.include_tasks: "{{ root_dir }}/ansible/tasks/cleanup-port-task.yml"
+          vars:
+            cleanup_port: "{{ item }}"
+          loop:
+            - "{{ traefik_web_port }}"
+            - "{{ traefik_dashboard_port }}"
+
+        - name: Stop and remove existing Traefik container if running
+          ansible.builtin.command:
+            cmd: docker compose down
+            chdir: "{{ app_dir }}"
+          ignore_errors: true
+          changed_when: true
+
+        - name: Wait for ports to be released
+          ansible.builtin.wait_for:
+            port: "{{ item }}"
+            state: stopped
+            timeout: 30
+          ignore_errors: true
+          loop:
+            - "{{ traefik_web_port }}"
+            - "{{ traefik_dashboard_port }}"
+
+        - name: Additional pause to ensure cleanup
+          ansible.builtin.pause:
+            seconds: 2
+
+        - name: Start Traefik service with Docker Compose
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            state: present
+
+        - name: Wait a moment for container to start
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: Show startup logs
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=50
+            chdir: "{{ app_dir }}"
+          register: startup_logs
+          changed_when: false
+
+        - name: Display startup logs
+          ansible.builtin.debug:
+            var: startup_logs.stdout_lines
+
+        - name: Wait for Traefik to listen on {{ traefik_web_port }}
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ traefik_web_port }}"
+            delay: 3
+            timeout: 60
+
+        - name: Wait for Traefik dashboard on {{ traefik_dashboard_port }}
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: "{{ traefik_dashboard_port }}"
+            delay: 3
+            timeout: 60
+
+        - name: Show container status
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: compose_ps
+          changed_when: false
+
+        - name: Display status
+          ansible.builtin.debug:
+            var: compose_ps.stdout_lines
+
+        - name: Show success message
+          ansible.builtin.debug:
+            msg:
+              - "✅ Traefik reverse proxy deployed successfully"
+              - ""
+              - "🌐 Service Info:"
+              - "  Web Entrypoint: http://{{ ansible_host }}:{{ traefik_web_port }}"
+              - "  Dashboard: http://{{ ansible_host }}:{{ traefik_dashboard_port }}/dashboard/"
+              - "  Apollo Admin: http://{{ ansible_host }}/api/admin/graphql/query"
+              - "  Apollo Storefront: http://{{ ansible_host }}/api/client/graphql/query"
+              - "  Directory: {{ app_dir }}"
+              - "  Config: {{ app_dir }}/config/traefik.yml"
+              - ""
+              - "📊 View Logs:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs -f'"
+              - ""
+              - "🔧 Manage Service:"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose restart'"
+              - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose stop'"
+              - ""
+              - "🧹 Cleanup:"
+              - "  ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ traefik_web_port }}'"
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Deployment failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "{{ app_dir }}"
+          register: error_compose_ps
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error container status
+          ansible.builtin.debug:
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
+
+        - name: Show container logs on error
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "{{ app_dir }}"
+          register: error_logs
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error logs
+          ansible.builtin.debug:
+            var: error_logs.stdout_lines
+          when: error_logs is defined and error_logs.stdout_lines is defined
+
+        - name: Show recovery instructions
+          ansible.builtin.debug:
+            msg:
+              - "💡 Recovery options:"
+              - "  • Retry: ansible-playbook playbooks/traefik/deploy.yml -i hosts.ini"
+              - "  • Clean ports: ansible-playbook playbooks/cleanup/cleanup-port.yml -e 'cleanup_port={{ traefik_web_port }}'"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose logs'"
+              - "  • Check config: ssh {{ ansible_host }} 'cat {{ app_dir }}/config/traefik.yml'"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Deployment failed. See error details above."
