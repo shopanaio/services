@@ -5,15 +5,11 @@ import {
   type CoreContext,
   type FetchContextHeaders,
 } from "@shopana/platform-api";
-import { config } from "@src/config";
-import { startHealthServer } from "@src/healthServer";
-import type { Server } from "http";
+import { config } from "./config.js";
 
 // Define extended `this` type for Moleculer service context.
 // This allows TypeScript to understand properties added by broker (logger, broker, etc.)
-type ServiceThis = Service & {
-  healthServer: Server;
-};
+type ServiceThis = Service;
 
 const PlatformService: ServiceSchema<any> = {
   name: "platform",
@@ -60,34 +56,11 @@ const PlatformService: ServiceSchema<any> = {
 
   async started() {
     this.logger.info("Platform service starting...");
-
-    try {
-      // Start health check server
-      this.healthServer = await startHealthServer(config.port);
-
-      this.logger.info("Platform service started successfully");
-    } catch (error) {
-      this.logger.error("Error during service startup:", error);
-      throw error;
-    }
+    this.logger.info("Platform service started successfully");
   },
 
   async stopped() {
     this.logger.info("Platform service stopping...");
-
-    // Close health server
-    if (this.healthServer) {
-      try {
-        this.logger.info("Closing health server...");
-        await new Promise<void>((resolve, reject) => {
-          this.healthServer.close((err?: Error) => (err ? reject(err) : resolve()));
-        });
-        this.logger.info("Health server closed successfully");
-      } catch (error) {
-        this.logger.error("Error closing health server:", error);
-      }
-    }
-
     this.logger.info("Platform service stopped successfully");
   },
 };

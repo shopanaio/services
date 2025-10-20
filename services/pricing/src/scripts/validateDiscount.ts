@@ -1,6 +1,6 @@
 import type { TransactionScript } from "@shopana/shared-kernel";
 import type { Discount } from "@shopana/plugin-sdk/pricing";
-import { getAllDiscounts } from "@src/scripts/getAllDiscounts";
+import { getAllDiscounts } from "./getAllDiscounts.js";
 
 // Parameters for discount validation
 export interface ValidateDiscountParams {

@@ -8,6 +8,7 @@ import type {
   ResolvedServiceConfig,
   ServiceConfig,
   EnvironmentConfig,
+  ResolvedOrchestratorConfig,
 } from "./types.js";
 
 /**
@@ -193,4 +194,39 @@ export function getAllServicePorts(): Record<string, number> {
   }
 
   return result;
+}
+
+/**
+ * Load orchestrator configuration
+ */
+export function loadOrchestratorConfig(): ResolvedOrchestratorConfig {
+  const environment = (process.env.NODE_ENV || "development") as Environment;
+
+  // Load configuration
+  const config = loadYamlConfig();
+
+  // Resolve environment variables
+  const resolvedConfig = resolveEnvironmentVariables(config) as ConfigStructure;
+
+  // Get orchestrator configuration with defaults
+  const orchestratorConfig = resolvedConfig.orchestrator || {
+    mode: 'standalone',
+    services: ['apps'] as ServiceName[],
+  };
+
+  // Override with environment variables if provided
+  const mode = (process.env.SERVICES_MODE as 'standalone' | 'orchestrator') || orchestratorConfig.mode;
+
+  // Allow ENV to override which services to load
+  let services = orchestratorConfig.services;
+  const envServices = process.env.ORCHESTRATOR_SERVICES;
+  if (envServices) {
+    services = envServices.split(',').map(s => s.trim()) as ServiceName[];
+  }
+
+  return {
+    mode,
+    services,
+    environment,
+  };
 }

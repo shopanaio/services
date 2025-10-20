@@ -43,16 +43,28 @@ export interface EnvironmentConfig {
 }
 
 /**
+ * Orchestrator mode configuration
+ */
+export interface OrchestratorConfig {
+  /** Operational mode */
+  mode: 'standalone' | 'orchestrator';
+  /** Services to load in orchestrator mode */
+  services: ServiceName[];
+}
+
+/**
  * Full configuration structure
  */
 export interface ConfigStructure {
   /** Services configuration */
   services: ServicesConfig;
   /** Environment-specific overrides */
-  environments: {
-    development: EnvironmentConfig;
-    production: EnvironmentConfig;
+  environments?: {
+    development?: EnvironmentConfig;
+    production?: EnvironmentConfig;
   };
+  /** Orchestrator configuration */
+  orchestrator?: OrchestratorConfig;
 }
 
 /**
@@ -79,4 +91,16 @@ export interface ResolvedServiceConfig {
   databaseUrl?: string;
   /** HTTP port */
   port: number;
+}
+
+/**
+ * Resolved orchestrator configuration
+ */
+export interface ResolvedOrchestratorConfig {
+  /** Operational mode */
+  mode: 'standalone' | 'orchestrator';
+  /** Services to load */
+  services: ServiceName[];
+  /** Current environment */
+  environment: Environment;
 }

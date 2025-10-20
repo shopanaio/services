@@ -3,7 +3,7 @@ import {
   ResilienceRunner,
 } from "@shopana/plugin-sdk";
 import type { inventory as Inventory } from "@shopana/plugin-sdk";
-import type { PluginManager as IPluginManager } from "@src/kernel/types";
+import type { PluginManager as IPluginManager } from "../../kernel/types.js";
 
 // Legacy local plugin registry is no longer used; inventory service now calls apps.execute directly.
 // Kept only to avoid breaking imports during transition if any remain.

@@ -4,14 +4,10 @@ import {
   paymentMethods,
   type GetPaymentMethodsParams,
   type GetPaymentMethodsResult,
-} from "@src/scripts/paymentMethods";
-import { startHealthServer } from "@src/healthServer";
-import type { Server } from "http";
-import { config } from "@src/config";
+} from "./scripts/paymentMethods.js";
 
 type ServiceThis = Service & {
   kernel: Kernel;
-  healthServer: Server;
 };
 
 const PaymentsService: ServiceSchema<any> = {
@@ -39,9 +35,6 @@ const PaymentsService: ServiceSchema<any> = {
       const moleculerLogger = new MoleculerLogger(this.logger);
       this.kernel = new Kernel(this.broker, moleculerLogger);
 
-      // Start health check server
-      this.healthServer = await startHealthServer(config.port);
-
       this.logger.info("Payments service started successfully");
     } catch (error) {
       this.logger.error("Error during service startup:", error);
@@ -51,20 +44,6 @@ const PaymentsService: ServiceSchema<any> = {
 
   async stopped() {
     this.logger.info("Payments service stopping...");
-
-    // Close health server
-    if (this.healthServer) {
-      try {
-        this.logger.info("Closing health server...");
-        await new Promise<void>((resolve, reject) => {
-          this.healthServer.close((err?: Error) => (err ? reject(err) : resolve()));
-        });
-        this.logger.info("Health server closed successfully");
-      } catch (error) {
-        this.logger.error("Error closing health server:", error);
-      }
-    }
-
     this.logger.info("Payments service stopped successfully");
   },
 };

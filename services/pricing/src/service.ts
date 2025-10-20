@@ -10,16 +10,12 @@ import {
   type ValidateDiscountResult,
   type EvaluateDiscountsParams,
   type EvaluateDiscountsResult,
-} from "@src/scripts/index";
-import { startHealthServer } from "@src/healthServer";
-import type { Server } from "http";
-import { config } from "@src/config";
+} from "./scripts/index.js";
 
 // Define extended `this` type for Moleculer service context.
 // This allows TypeScript to understand properties added by broker (logger, broker, etc.)
 type ServiceThis = Service & {
   kernel: Kernel;
-  healthServer: Server;
 };
 
 const PricingService: ServiceSchema<any> = {
@@ -86,9 +82,6 @@ const PricingService: ServiceSchema<any> = {
       const moleculerLogger = new MoleculerLogger(this.logger);
       this.kernel = new Kernel(this.broker, moleculerLogger);
 
-      // Start health check server
-      this.healthServer = await startHealthServer(config.port);
-
       this.logger.info("Pricing service started successfully");
     } catch (error) {
       this.logger.error("Error during service startup:", error);
@@ -98,20 +91,6 @@ const PricingService: ServiceSchema<any> = {
 
   async stopped() {
     this.logger.info("Pricing service stopping...");
-
-    // Close health server
-    if (this.healthServer) {
-      try {
-        this.logger.info("Closing health server...");
-        await new Promise<void>((resolve, reject) => {
-          this.healthServer.close((err?: Error) => (err ? reject(err) : resolve()));
-        });
-        this.logger.info("Health server closed successfully");
-      } catch (error) {
-        this.logger.error("Error closing health server:", error);
-      }
-    }
-
     this.logger.info("Pricing service stopped successfully");
   },
 };

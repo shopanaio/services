@@ -1,5 +1,5 @@
 import type { LoggerInstance } from 'moleculer';
-import type { Logger } from '@src/kernel/types';
+import type { Logger } from '../../kernel/types.js';
 
 /**
  * Moleculer logger adapter that implements the Logger interface

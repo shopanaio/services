@@ -1,5 +1,17 @@
 # Services Configuration
 
+# Orchestrator mode configuration
+orchestrator:
+  mode: orchestrator  # "standalone" | "orchestrator"
+  services:
+    - apps
+    - platform
+    - payments
+    - inventory
+    - delivery
+    # pricing - temporarily disabled due to class-validator decorator issue with ESM
+    # - pricing
+
 services:
   apps:
     port: 10001

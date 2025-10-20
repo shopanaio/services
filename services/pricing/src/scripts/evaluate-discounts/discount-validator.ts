@@ -9,7 +9,7 @@
 import type { KernelServices } from "./types.js";
 import type { EvaluateDiscountsParamsDto } from "./dto.js";
 import type { Discount } from "@shopana/plugin-sdk/pricing";
-import { validateDiscount } from "@src/scripts/validateDiscount.js";
+import { validateDiscount } from "../validateDiscount.js";
 import { Money } from "@shopana/shared-money";
 
 /**

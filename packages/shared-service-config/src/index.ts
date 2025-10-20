@@ -14,11 +14,14 @@ export type {
   Environment,
   ServiceName,
   ResolvedServiceConfig,
+  OrchestratorConfig,
+  ResolvedOrchestratorConfig,
 } from "./types.js";
 
 // Export configuration loader functions
 export {
   loadServiceConfig,
+  loadOrchestratorConfig,
   getAvailableServices,
   getServicePort,
   getAllServicePorts,
