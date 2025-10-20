@@ -1,4 +1,8 @@
-# Deploy all services to remote host
+# Deploy all services to remote host using hybrid architecture
+#
+# Architecture:
+#   - Orchestrator (one container): apps, platform, payments, inventory, delivery
+#   - Standalone containers: checkout, orders
 #
 # Prerequisites:
 #   - Services must be built and pushed to GHCR
@@ -8,7 +12,7 @@
 #   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox
 #   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.0.0"
 ---
-- name: Deploy all services to remote host
+- name: Deploy all services to remote host (hybrid architecture)
   hosts: shopana_sandbox
   become: true
 
@@ -19,48 +23,86 @@
     # Image tag with fallback
     final_image_tag: "{{ image_tag | default('latest', true) }}"
 
-    # All available services
-    all_services:
-      - apps
-      - checkout
-      - delivery
-      - inventory
-      - orders
-      - payments
-      - platform
-      - pricing
+    # Orchestrator image tag
+    orchestrator_image_tag: "{{ final_image_tag }}"
 
-    # Track deployment results
-    deployment_results: []
+    # Standalone services (checkout and orders)
+    standalone_services:
+      - checkout
+      - orders
 
   tasks:
     - name: Show deployment information
       ansible.builtin.debug:
         msg:
-          - "🚀 Deploying ALL services to {{ ansible_host }}"
-          - "  Services: {{ all_services | join(', ') }}"
+          - "🚀 Deploying ALL services to {{ ansible_host }} (Hybrid Architecture)"
+          - ""
+          - "  Orchestrator (one container):"
+          - "    • apps, platform, payments, inventory, delivery"
+          - "    • Image: orchestrator-service:{{ orchestrator_image_tag }}"
+          - "    • Port: {{ orchestrator_port }}"
+          - ""
+          - "  Standalone services:"
+          - "    • checkout → checkout-service:{{ final_image_tag }} (port {{ checkout_port }})"
+          - "    • orders → orders-service:{{ final_image_tag }} (port {{ orders_port }})"
+          - ""
           - "  Image tag: {{ final_image_tag }}"
-          - "  Total: {{ all_services | length }} services"
 
-    - name: Deploy each service sequentially
+    # ========================================================================
+    # Deploy Orchestrator
+    # ========================================================================
+    - name: Deploy orchestrator service
+      block:
+        - name: Include orchestrator deployment task
+          ansible.builtin.include_tasks: deploy_orchestrator_task.yml
+
+      rescue:
+        - name: Show orchestrator deployment error
+          ansible.builtin.debug:
+            msg:
+              - "❌ Orchestrator deployment failed"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+
+        - name: Continue with standalone services anyway
+          ansible.builtin.debug:
+            msg: "Continuing with standalone services deployment..."
+
+    # ========================================================================
+    # Deploy Standalone Services
+    # ========================================================================
+    - name: Deploy standalone services sequentially
       ansible.builtin.include_tasks: deploy_service_task.yml
       vars:
         service_name: "{{ item }}"
         service_image_tag: "{{ final_image_tag }}"
-      loop: "{{ all_services }}"
+      loop: "{{ standalone_services }}"
       ignore_errors: true
-      register: deployment_result
 
+    # ========================================================================
+    # Show Summary
+    # ========================================================================
     - name: Show completion message
       ansible.builtin.debug:
         msg:
           - "✅ All services deployment process completed"
           - ""
-          - "📊 Deployed services:"
-          - "{% for service in all_services %}  • {{ service }}-service:{{ final_image_tag }} → http://{{ ansible_host }}:{{ lookup('vars', service + '_port', default=10000) }}{% endfor %}"
+          - "🏗️  Architecture:"
+          - "  Orchestrator → http://{{ ansible_host }}:{{ orchestrator_port }}"
+          - "    • apps (GraphQL API)"
+          - "    • platform"
+          - "    • payments"
+          - "    • inventory"
+          - "    • delivery"
+          - ""
+          - "  Standalone:"
+          - "    • checkout → http://{{ ansible_host }}:{{ checkout_port }}"
+          - "    • orders → http://{{ ansible_host }}:{{ orders_port }}"
           - ""
           - "🔍 Check status:"
           - "  ssh {{ ansible_host }} 'docker ps'"
           - ""
           - "📊 View logs:"
-          - "  ssh {{ ansible_host }} 'cd /opt/shopana/services/checkout && docker compose logs -f'"
+          - "  Orchestrator: ssh {{ ansible_host }} 'cd /opt/shopana/services/orchestrator && docker compose logs -f'"
+          - "  Checkout: ssh {{ ansible_host }} 'cd /opt/shopana/services/checkout && docker compose logs -f'"
+          - "  Orders: ssh {{ ansible_host }} 'cd /opt/shopana/services/orders && docker compose logs -f'"

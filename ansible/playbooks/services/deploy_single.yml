@@ -28,7 +28,6 @@
       - inventory
       - orders
       - payments
-      - platform
       - pricing
 
   tasks:

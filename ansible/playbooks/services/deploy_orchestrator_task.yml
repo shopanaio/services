@@ -1,0 +1,148 @@
+# Reusable task for deploying orchestrator service
+# This task is included by deploy_orchestrator.yml and deploy_all.yml
+#
+# Required variables:
+#   - orchestrator_port
+#   - orchestrator_image_tag
+#   - apps_port, apps_database_url
+#   - platform_port, platform_database_url
+#   - payments_port, payments_database_url
+#   - inventory_port, inventory_database_url
+#   - delivery_port, delivery_database_url
+---
+- name: Set orchestrator directory
+  ansible.builtin.set_fact:
+    orchestrator_dir: "/opt/shopana/services/orchestrator"
+
+- name: Show deployment information
+  ansible.builtin.debug:
+    msg:
+      - "🚀 Deploying orchestrator-service"
+      - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ orchestrator_image_tag }}"
+      - "  Port: {{ orchestrator_port }}"
+      - "  Directory: {{ orchestrator_dir }}"
+      - "  Services: apps, platform, payments, inventory, delivery"
+
+- name: Create orchestrator deployment directory
+  ansible.builtin.file:
+    path: "{{ orchestrator_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Generate .env from template
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/env-orchestrator.j2"
+    dest: "{{ orchestrator_dir }}/.env"
+    mode: "0600"
+
+- name: Generate config.yml from template
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/config-orchestrator.yml.j2"
+    dest: "{{ orchestrator_dir }}/config.yml"
+    mode: "0644"
+
+- name: Generate docker-compose.yml from template
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/docker-compose-orchestrator.yml.j2"
+    dest: "{{ orchestrator_dir }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Login to GitHub Container Registry on the remote server
+  community.docker.docker_login:
+    registry: "{{ shopana_ghcr_registry }}"
+    username: "{{ shopana_ghcr_owner }}"
+    password: "{{ shopana_ghcr_token }}"
+  no_log: true
+
+- name: Cleanup containers on port {{ orchestrator_port }}
+  ansible.builtin.include_tasks: "{{ root_dir }}/ansible/tasks/cleanup-port-task.yml"
+  vars:
+    cleanup_port: "{{ orchestrator_port }}"
+
+- name: Stop and remove existing orchestrator container if running
+  ansible.builtin.command:
+    cmd: docker compose down
+    chdir: "{{ orchestrator_dir }}"
+  ignore_errors: true
+  changed_when: true
+
+- name: Wait for port to be released
+  ansible.builtin.wait_for:
+    port: "{{ orchestrator_port }}"
+    state: stopped
+    timeout: 30
+  ignore_errors: true
+
+- name: Additional pause to ensure cleanup
+  ansible.builtin.pause:
+    seconds: 2
+
+- name: Pull the latest image and start orchestrator with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ orchestrator_dir }}"
+    pull: always
+    state: present
+
+- name: Wait a moment for container to start
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: Show startup logs
+  ansible.builtin.command:
+    cmd: docker compose logs --tail=50
+    chdir: "{{ orchestrator_dir }}"
+  register: startup_logs
+  changed_when: false
+
+- name: Display startup logs
+  ansible.builtin.debug:
+    var: startup_logs.stdout_lines
+
+- name: Wait for orchestrator to listen on {{ orchestrator_port }}
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ orchestrator_port }}"
+    delay: 3
+    timeout: 60
+
+- name: Show container status
+  ansible.builtin.command:
+    cmd: docker compose ps
+    chdir: "{{ orchestrator_dir }}"
+  register: compose_ps
+  changed_when: false
+
+- name: Display status
+  ansible.builtin.debug:
+    var: compose_ps.stdout_lines
+
+- name: Show success message
+  ansible.builtin.debug:
+    msg:
+      - "✅ orchestrator-service deployed successfully"
+      - ""
+      - "🌐 Service Info:"
+      - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ orchestrator_image_tag }}"
+      - "  HTTP: http://{{ ansible_host }}:{{ orchestrator_port }}"
+      - "  Health: http://{{ ansible_host }}:{{ orchestrator_port }}/health"
+      - "  Directory: {{ orchestrator_dir }}"
+      - ""
+      - "📦 Services in orchestrator:"
+      - "  • apps (GraphQL API)"
+      - "  • platform"
+      - "  • payments"
+      - "  • inventory"
+      - "  • delivery"
+      - ""
+      - "📊 View Logs:"
+      - "  ssh {{ ansible_host }} 'cd {{ orchestrator_dir }} && docker compose logs -f'"
+      - ""
+      - "🔧 Manage Service:"
+      - "  ssh {{ ansible_host }} 'cd {{ orchestrator_dir }} && docker compose restart'"
+      - "  ssh {{ ansible_host }} 'cd {{ orchestrator_dir }} && docker compose stop'"
+
+- name: Logout from GitHub Container Registry on the remote server
+  ansible.builtin.command:
+    cmd: "docker logout {{ shopana_ghcr_registry }}"
+  changed_when: false
+  ignore_errors: true

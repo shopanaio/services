@@ -2,6 +2,23 @@
 
 Ansible playbooks for building, pushing, and deploying service Docker images to GitHub Container Registry (GHCR) and remote servers.
 
+## Architecture Overview
+
+The services use a **hybrid deployment architecture**:
+
+- **Orchestrator** (one container): Runs multiple services in a single process with in-memory communication
+  - Services: `apps`, `platform`, `payments`, `inventory`, `delivery`
+  - Port: `10001` (apps GraphQL API)
+  - Image: `orchestrator-service`
+  - Communication: In-memory (zero latency, no NATS needed)
+
+- **Standalone** (separate containers): Services that require isolation
+  - `checkout` - Port `10002`
+  - `orders` - Port `10003`
+  - Communication: Via NATS with orchestrator
+
+This architecture reduces resource usage while maintaining isolation for critical services.
+
 ## Prerequisites
 
 1. **Docker** must be running locally
@@ -31,41 +48,80 @@ Ansible playbooks for building, pushing, and deploying service Docker images to 
 
 ## Available Playbooks
 
-### Build Single Service
+### Build Orchestrator Service
 
-Builds and pushes a single service to GHCR.
+Builds and pushes the orchestrator service that runs multiple services in one container.
+
+**File:** `build_orchestrator.yml`
+
+**Usage:**
+```bash
+# Build with latest tag
+cd ansible
+source env.sh && ansible-playbook playbooks/services/build_orchestrator.yml
+
+# Build with specific version
+source env.sh && ansible-playbook playbooks/services/build_orchestrator.yml -e "image_tag=v1.2.3"
+```
+
+**What it does:**
+- Builds `apps` service as entry point (contains orchestrator logic)
+- Tags and pushes as `orchestrator-service:tag`
+- Orchestrator will load: apps, platform, payments, inventory, delivery at runtime
+
+### Deploy Orchestrator Service
+
+Deploys the orchestrator to remote server.
+
+**File:** `deploy_orchestrator.yml`
+
+**Usage:**
+```bash
+# Deploy with latest tag
+ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox
+
+# Deploy with specific version
+ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.2.3"
+```
+
+**What it does:**
+- Creates `/opt/shopana/services/orchestrator/` directory
+- Generates `config.yml` with orchestrator mode enabled
+- Generates `.env` with database URLs for all services
+- Deploys single container running multiple services
+- Exposes only port 10001 (apps GraphQL API)
+
+### Build Single Service (Standalone)
+
+Builds and pushes a standalone service to GHCR. Use this for `checkout` and `orders`.
 
 **File:** `build_single.yml`
 
 **Usage:**
 ```bash
-# Option 1: Using wrapper script (easiest)
-cd ansible
-./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout"
-./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
-
-# Option 2: Manual source and run
+# Build checkout service
 cd ansible
 source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
-source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
+
+# Build orders service with specific version
+source env.sh && ansible-playbook playbooks/services/build_single.yml -e "service_name=orders" -e "image_tag=v1.2.3"
 ```
 
-### Deploy Single Service
+**Note:** Only use this for `checkout` and `orders`. Other services are deployed via orchestrator.
 
-Deploys a single service to remote server using Docker Compose with secrets.
+### Deploy Single Service (Standalone)
+
+Deploys a standalone service to remote server. Use this for `checkout` and `orders`, or for debugging individual services.
 
 **File:** `deploy_single.yml`
 
 **Usage:**
 ```bash
-# Deploy with latest tag
+# Deploy checkout
 ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout"
 
-# Deploy with specific version
-ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout" -e "image_tag=v1.2.3"
-
-# Deploy with custom heartbeat settings
-ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout" -e "heartbeat_interval=15" -e "heartbeat_timeout=45"
+# Deploy orders with specific version
+ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=orders" -e "image_tag=v1.2.3"
 ```
 
 **What it does:**
@@ -77,42 +133,31 @@ ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopa
 - Pulls latest image from GHCR
 - Starts service with health checks
 
-**Required variables** (defined in `sandbox.vars.yml`):
-- `shopana_ghcr_owner` - GitHub Container Registry owner
-- `shopana_ghcr_token` - GitHub PAT with packages:read
-- `{service_name}_port` - Port for the service
-- `{service_name}_database_url` - Database connection URL
-
-**Optional variables** (with defaults):
-- `heartbeat_interval` - Moleculer heartbeat interval in seconds (default: 10)
-- `heartbeat_timeout` - Moleculer heartbeat timeout in seconds (default: 30)
-- `service_log_level` - Log level: debug, info, warn, error (default: info)
-- `service_env` - Node environment: development, production (default: production)
+**Note:** For services in orchestrator (apps, platform, payments, inventory, delivery), use `deploy_orchestrator.yml` instead.
 
 ### Build All Services
 
-Builds and pushes all services to GHCR sequentially.
+Builds orchestrator and standalone services.
 
-**File:** `build_all.yml`
-
-**Usage:**
+**Recommended approach:**
 ```bash
-# Build all with latest tag
-ansible-playbook playbooks/services/build_all.yml
+cd ansible
+source env.sh
 
-# Build all with specific version
-ansible-playbook playbooks/services/build_all.yml -e "image_tag=v1.2.3"
+# 1. Build base image (if packages changed)
+ansible-playbook playbooks/services/build_base.yml -e "image_tag=v1.2.3"
+
+# 2. Build orchestrator
+ansible-playbook playbooks/services/build_orchestrator.yml -e "image_tag=v1.2.3"
+
+# 3. Build standalone services
+ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
+ansible-playbook playbooks/services/build_single.yml -e "service_name=orders" -e "image_tag=v1.2.3"
 ```
-
-**Features:**
-- Validates Docker is running
-- Validates GHCR credentials
-- Builds all services sequentially
-- Shows progress and summary
 
 ### Deploy All Services
 
-Deploys all services to remote server sequentially.
+Deploys the complete hybrid architecture: orchestrator + standalone services.
 
 **File:** `deploy_all.yml`
 
@@ -125,21 +170,20 @@ ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_
 ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.2.3"
 ```
 
-**Features:**
-- Deploys one service at a time (sequential)
-- Continues on error (won't stop if one service fails)
-- Shows summary at the end with all service URLs
-- Each service in isolated directory
+**What it deploys:**
+1. **Orchestrator** (one container at `/opt/shopana/services/orchestrator/`)
+   - apps, platform, payments, inventory, delivery
+   - Port: 10001
 
-**Available services:**
-- `apps` → `apps-service` (port 10001)
-- `checkout` → `checkout-service` (port 10002)
-- `delivery` → `delivery-service` (port 10004)
-- `inventory` → `inventory-service` (port 10005)
-- `orders` → `orders-service` (port 10003)
-- `payments` → `payments-service` (port 10006)
-- `platform` → `platform-service` (port 10007)
-- `pricing` → `pricing-service` (port 10008)
+2. **Standalone services** (separate containers)
+   - checkout → Port 10002
+   - orders → Port 10003
+
+**Features:**
+- Deploys orchestrator first, then standalone services
+- Continues on error (won't stop if one component fails)
+- Shows summary with all service URLs
+- Each component in isolated directory
 
 ## Configuration
 
@@ -194,41 +238,46 @@ ansible-playbook playbooks/services/deploy_single.yml \
 
 ## Examples
 
-### Build a single service with default tag (latest)
-```bash
-cd ansible
+### Complete Build and Deploy Flow
 
-# Using wrapper script
-./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout"
-```
-
-### Build with custom version tag
-```bash
-cd ansible
-
-# Using wrapper script
-./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
-```
-
-### Build using environment variable for tag
-```bash
-cd ansible
-# Set variable in .env file: CHECKOUT_SERVICE_IMAGE_TAG=v1.2.0
-
-# Using wrapper script (loads .env automatically)
-./ansible-run.sh playbooks/services/build_single.yml -e "service_name=checkout"
-```
-
-### Build all services sequentially
 ```bash
 cd ansible
 source env.sh
-export IMAGE_TAG=v1.0.0
 
-# Build all services with the same tag
-for service in apps checkout delivery inventory orders payments platform pricing; do
-  ./ansible-run.sh playbooks/services/build_single.yml -e "service_name=$service" -e "image_tag=$IMAGE_TAG"
-done
+# 1. Build base image (if packages changed)
+ansible-playbook playbooks/services/build_base.yml -e "image_tag=v1.2.3"
+
+# 2. Build orchestrator
+ansible-playbook playbooks/services/build_orchestrator.yml -e "image_tag=v1.2.3"
+
+# 3. Build standalone services
+ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.2.3"
+ansible-playbook playbooks/services/build_single.yml -e "service_name=orders" -e "image_tag=v1.2.3"
+
+# 4. Deploy everything
+ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.2.3"
+```
+
+### Deploy Only Orchestrator
+
+```bash
+ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox
+```
+
+### Deploy Only Standalone Service
+
+```bash
+ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout"
+```
+
+### Quick Development Iteration
+
+```bash
+# Rebuild and redeploy orchestrator
+cd ansible
+source env.sh
+ansible-playbook playbooks/services/build_orchestrator.yml -e "image_tag=dev"
+ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=dev"
 ```
 
 ## Image Naming Convention
@@ -240,9 +289,42 @@ ghcr.io/{OWNER}/{SERVICE_NAME}-service:{TAG}
 ```
 
 Examples:
-- `ghcr.io/shopanaio/checkout-service:latest`
-- `ghcr.io/shopanaio/orders-service:v1.2.3`
-- `ghcr.io/shopanaio/inventory-service:dev`
+- `ghcr.io/shopanaio/orchestrator-service:latest` - Contains apps, platform, payments, inventory, delivery
+- `ghcr.io/shopanaio/checkout-service:latest` - Standalone checkout service
+- `ghcr.io/shopanaio/orders-service:v1.2.3` - Standalone orders service
+
+## Orchestrator Configuration
+
+The orchestrator mode is controlled by `config.yml` in the service root:
+
+```yaml
+orchestrator:
+  mode: orchestrator  # "standalone" | "orchestrator"
+  services:
+    - apps
+    - platform
+    - payments
+    - inventory
+    - delivery
+```
+
+This configuration is automatically generated by Ansible during deployment from `config-orchestrator.yml.j2` template.
+
+### How It Works
+
+1. **Entry Point**: `services/apps/src/index.ts` checks the mode
+2. **Orchestrator**: `services/apps/src/orchestrator.ts` loads all services dynamically
+3. **Communication**: In-memory (Moleculer with `transporter: null`)
+4. **External Communication**: Via NATS to standalone services (checkout, orders)
+
+### Environment Variables
+
+The orchestrator supports environment overrides:
+
+```bash
+SERVICES_MODE=orchestrator           # Override config.yml mode
+ORCHESTRATOR_SERVICES=apps,platform  # Override which services to load
+```
 
 ## Troubleshooting
 
@@ -287,9 +369,20 @@ Error: Invalid service name: X. Valid services: apps, checkout, ...
 ```
 
 **Solution:**
-- Use lowercase service name without `-service` suffix
-- Valid names: `apps`, `checkout`, `delivery`, `inventory`, `orders`, `payments`, `platform`, `pricing`
-- Example: use `checkout` not `checkout-service`
+- For orchestrator: Use `build_orchestrator.yml` (no service name needed)
+- For standalone: Use `build_single.yml` with `service_name=checkout` or `service_name=orders`
+- Don't try to build orchestrator services individually (apps, platform, etc.)
+
+### Orchestrator Not Starting
+```
+Error: Service X failed to load
+```
+
+**Solution:**
+- Check orchestrator logs: `ssh server 'cd /opt/shopana/services/orchestrator && docker compose logs'`
+- Verify config.yml has correct orchestrator configuration
+- Ensure all service paths in orchestrator.ts are correct
+- Check database URLs are set for all services in .env
 
 ### Missing Environment Variables
 ```
@@ -378,17 +471,22 @@ steps:
 
 ```
 ansible/playbooks/services/
-├── build_single.yml          # Build and push single service to GHCR
-├── build_all.yml             # Build and push all services to GHCR
-├── build_service_task.yml    # Reusable build task (included by build_all.yml)
-├── deploy_single.yml         # Deploy single service to remote server
-├── deploy_all.yml            # Deploy all services to remote server
-├── deploy_service_task.yml   # Reusable deploy task (included by deploy_all.yml)
-├── env.j2                    # Environment variables template
-├── config.yml.j2             # Service configuration template
-├── docker-compose.yml.j2     # Docker Compose template with secrets
-├── sandbox.vars.yml          # Service configuration variables
-└── README.md                 # This documentation
+├── build_orchestrator.yml           # Build and push orchestrator service
+├── build_single.yml                 # Build and push standalone service (checkout, orders)
+├── build_base.yml                   # Build base image with packages
+├── deploy_orchestrator.yml          # Deploy orchestrator to remote server
+├── deploy_orchestrator_task.yml     # Reusable orchestrator deploy task
+├── deploy_single.yml                # Deploy standalone service to remote server
+├── deploy_all.yml                   # Deploy orchestrator + standalone services
+├── deploy_service_task.yml          # Reusable deploy task for standalone services
+├── config-orchestrator.yml.j2       # Orchestrator configuration template
+├── config.yml.j2                    # Standalone service configuration template
+├── env-orchestrator.j2              # Orchestrator environment variables template
+├── env.j2                           # Standalone service environment variables template
+├── docker-compose-orchestrator.yml.j2  # Orchestrator Docker Compose template
+├── docker-compose.yml.j2            # Standalone service Docker Compose template
+├── sandbox.vars.yml                 # Service configuration variables
+└── README.md                        # This documentation
 ```
 
 ## Related Playbooks

@@ -1,15 +1,15 @@
-# Build and push single service image
-# Automatically builds base image with packages first
+# Build and push orchestrator service image
+# Orchestrator runs multiple services in a single container with in-memory communication
 #
 # Prerequisites:
 #   - Docker must be running locally
 #   - SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN environment variables
 #
 # Usage:
-#   ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.0.0"
-#   ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "skip_base_build=true"
+#   ansible-playbook playbooks/services/build_orchestrator.yml -e "image_tag=v1.0.0"
+#   ansible-playbook playbooks/services/build_orchestrator.yml
 ---
-- name: Build and push single service
+- name: Build and push orchestrator service
   hosts: localhost
   connection: local
   become: false
@@ -19,48 +19,14 @@
     # Build configuration
     local_build_dir: "{{ root_dir }}"
     dockerfile_path: "{{ root_dir }}/Dockerfile"
-    dockerfile_base_path: "{{ root_dir }}/Dockerfile.base"
-
-    # Service configuration (must be provided via -e flag)
-    # service_name: checkout  # Example
-    # image_tag: latest       # Optional, defaults to 'latest'
 
     # Image tag with fallback
     final_image_tag: "{{ image_tag | default('latest', true) }}"
 
-    # Skip base build flag (set to true to skip if packages unchanged)
-    skip_base_build_flag: "{{ skip_base_build | default(false, true) }}"
-
-    # Valid service names
-    valid_services:
-      - apps
-      - checkout
-      - delivery
-      - inventory
-      - orders
-      - payments
-      - pricing
+    # Service name to build (apps is the entry point for orchestrator)
+    service_name: apps
 
   tasks:
-    - name: Validate service_name is provided
-      ansible.builtin.assert:
-        that:
-          - service_name is defined
-          - service_name | length > 0
-        fail_msg: >-
-          service_name is required. Usage:
-          ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
-        success_msg: "Service name provided: {{ service_name }}"
-
-    - name: Validate service_name is in valid list
-      ansible.builtin.assert:
-        that:
-          - service_name in valid_services
-        fail_msg: >-
-          Invalid service name: {{ service_name }}.
-          Valid services: {{ valid_services | join(', ') }}
-        success_msg: "Service name is valid"
-
     - name: Validate required variables are provided
       ansible.builtin.assert:
         that:
@@ -85,20 +51,22 @@
       when: docker_info.rc != 0
 
     # ========================================================================
-    # Build service
+    # Build orchestrator
     # ========================================================================
     - name: Build and push block with error handling
       block:
-        - name: Show service build information
+        - name: Show orchestrator build information
           ansible.builtin.debug:
             msg:
               - ""
-              - "🔨 Building {{ service_name }}-service"
-              - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}"
+              - "🔨 Building orchestrator-service"
+              - "  Entry point: services/apps (orchestrator mode)"
+              - "  Services: apps, platform, payments, inventory, delivery"
+              - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ final_image_tag }}"
               - "  Dockerfile: {{ dockerfile_path }}"
               - "🔐 Registry: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}"
 
-        - name: Build service image
+        - name: Build orchestrator image
           ansible.builtin.command:
             cmd: >
               docker build
@@ -108,16 +76,16 @@
               --build-arg VERSION={{ final_image_tag }}
               --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}
               --build-arg VCS_REF={{ lookup('env', 'GIT_COMMIT') | default('unknown', true) }}
-              -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
+              -t {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ final_image_tag }}
               -f {{ dockerfile_path }}
               .
             chdir: "{{ local_build_dir }}"
           changed_when: true
 
-        - name: Push service image
+        - name: Push orchestrator image
           ansible.builtin.shell: |
               echo "{{ shopana_ghcr_token }}" | docker login {{ shopana_ghcr_registry }} -u {{ shopana_ghcr_owner }} --password-stdin
-              docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ service_name }}-service:{{ final_image_tag }}
+              docker push {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ final_image_tag }}
           no_log: true
           changed_when: true
 
@@ -125,19 +93,24 @@
           ansible.builtin.debug:
             msg:
               - ""
-              - "✅ Service image built and pushed successfully"
+              - "✅ Orchestrator image built and pushed successfully"
               - ""
-              - "📦 Base image:"
-              - "  • services-base:{{ final_image_tag }}"
+              - "📦 Image:"
+              - "  • orchestrator-service:{{ final_image_tag }}"
               - ""
-              - "📦 Service image:"
-              - "  • {{ service_name }}-service:{{ final_image_tag }}"
+              - "📦 Services included:"
+              - "  • apps (entry point, port 10001)"
+              - "  • platform"
+              - "  • payments"
+              - "  • inventory"
+              - "  • delivery"
               - ""
-              - "🚀 To build another service:"
+              - "🚀 Deploy orchestrator:"
+              - "  ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox -e 'image_tag={{ final_image_tag }}'"
+              - ""
+              - "💡 Build standalone services:"
+              - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name=checkout' -e 'image_tag={{ final_image_tag }}'"
               - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name=orders' -e 'image_tag={{ final_image_tag }}'"
-              - ""
-              - "💡 Tip: If packages unchanged, skip base build next time:"
-              - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name={{ service_name }}' -e 'skip_base_build=true'"
 
       rescue:
         - name: Show error details
@@ -149,7 +122,7 @@
               - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
               - ""
               - "💡 Common solutions:"
-              - "  • Ensure service builds locally: cd services/{{ service_name }} && yarn build"
+              - "  • Ensure apps service builds locally: cd services/apps && yarn build"
               - "  • Check SHOPANA_GITHUB_TOKEN has packages:write permission"
               - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ shopana_ghcr_owner }}"
               - "  • Ensure Docker daemon is running"

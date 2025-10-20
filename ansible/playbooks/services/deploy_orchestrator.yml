@@ -1,0 +1,89 @@
+# Deploy orchestrator service to remote host
+# Orchestrator runs multiple services in one container with in-memory communication
+#
+# Variables are loaded from vars file
+# Usage: ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox
+---
+- name: Deploy Orchestrator Service
+  hosts: shopana_sandbox
+  become: true
+
+  vars_files:
+    - sandbox.vars.yml
+
+  vars:
+    # Image configuration
+    orchestrator_image_tag: "{{ image_tag | default('latest', true) }}"
+
+  tasks:
+    - name: Ensure required variables are provided
+      ansible.builtin.assert:
+        that:
+          - shopana_ghcr_owner is defined and shopana_ghcr_owner | length > 0
+          - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
+          - orchestrator_port is defined
+          - apps_port is defined
+          - platform_port is defined
+          - payments_port is defined
+          - inventory_port is defined
+          - delivery_port is defined
+        fail_msg: >-
+          Please provide required variables via inventory or vars file.
+          Required: shopana_ghcr_owner, shopana_ghcr_token, orchestrator_port, service ports
+        success_msg: "All required variables are present"
+      run_once: true
+      delegate_to: localhost
+      become: false
+
+    - name: Deploy orchestrator block with error handling
+      block:
+        - name: Include orchestrator deployment task
+          ansible.builtin.include_tasks: deploy_orchestrator_task.yml
+
+      rescue:
+        - name: Show error details
+          ansible.builtin.debug:
+            msg:
+              - "❌ Orchestrator deployment failed!"
+              - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
+              - "Error: {{ ansible_failed_result.msg | default('No message') }}"
+              - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
+
+        - name: Show container status on error
+          ansible.builtin.command:
+            cmd: docker compose ps
+            chdir: "/opt/shopana/services/orchestrator"
+          register: error_compose_ps
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error container status
+          ansible.builtin.debug:
+            var: error_compose_ps.stdout_lines
+          when: error_compose_ps is defined
+
+        - name: Show container logs on error
+          ansible.builtin.command:
+            cmd: docker compose logs --tail=100
+            chdir: "/opt/shopana/services/orchestrator"
+          register: error_logs
+          changed_when: false
+          ignore_errors: true
+
+        - name: Display error logs
+          ansible.builtin.debug:
+            var: error_logs.stdout_lines
+          when: error_logs is defined and error_logs.stdout_lines is defined
+
+        - name: Show recovery instructions
+          ansible.builtin.debug:
+            msg:
+              - "💡 Recovery options:"
+              - "  • Retry: ansible-playbook playbooks/services/deploy_orchestrator.yml -i hosts.ini --limit shopana_sandbox"
+              - "  • Check logs: ssh {{ ansible_host }} 'cd /opt/shopana/services/orchestrator && docker compose logs'"
+              - "  • Check env: ssh {{ ansible_host }} 'cat /opt/shopana/services/orchestrator/.env'"
+              - "  • Check config: ssh {{ ansible_host }} 'cat /opt/shopana/services/orchestrator/config.yml'"
+
+        - name: Fail with message
+          ansible.builtin.fail:
+            msg: "Orchestrator deployment failed. See error details above."
