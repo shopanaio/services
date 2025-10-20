@@ -4,6 +4,7 @@ services:
     container_name: shopana-apollo-admin
     restart: unless-stopped
     ports:
+      - "0.0.0.0:{{ apollo_router_admin_port }}:{{ apollo_router_admin_port }}"
       - "0.0.0.0:{{ apollo_router_admin_metrics_port }}:{{ apollo_router_admin_metrics_port }}"
       - "0.0.0.0:{{ apollo_router_admin_health_port }}:{{ apollo_router_admin_health_port }}"
     volumes:
@@ -43,6 +44,7 @@ services:
     container_name: shopana-apollo-storefront
     restart: unless-stopped
     ports:
+      - "0.0.0.0:{{ apollo_router_storefront_port }}:{{ apollo_router_storefront_port }}"
       - "0.0.0.0:{{ apollo_router_storefront_metrics_port }}:{{ apollo_router_storefront_metrics_port }}"
       - "0.0.0.0:{{ apollo_router_storefront_health_port }}:{{ apollo_router_storefront_health_port }}"
     volumes:

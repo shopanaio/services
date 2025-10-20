@@ -7,7 +7,6 @@
   "files": [
     "proto/**/*.proto"
   ],
-  "scripts": {},
   "keywords": [
     "protobuf",
     "grpc",

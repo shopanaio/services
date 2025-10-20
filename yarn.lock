@@ -1961,6 +1961,44 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@grpc/grpc-js@npm:^1.12.4":
+  version: 1.14.0
+  resolution: "@grpc/grpc-js@npm:1.14.0"
+  dependencies:
+    "@grpc/proto-loader": "npm:^0.8.0"
+    "@js-sdsl/ordered-map": "npm:^4.4.2"
+  checksum: 10/e1f7d15dde365544591da18b4ce19df97b7f88a83292350631f27a316212ed361a42323ba131d56d515f7f676b1b1efb0ab794b1d56e784b936c490e25564269
+  languageName: node
+  linkType: hard
+
+"@grpc/proto-loader@npm:^0.7.15":
+  version: 0.7.15
+  resolution: "@grpc/proto-loader@npm:0.7.15"
+  dependencies:
+    lodash.camelcase: "npm:^4.3.0"
+    long: "npm:^5.0.0"
+    protobufjs: "npm:^7.2.5"
+    yargs: "npm:^17.7.2"
+  bin:
+    proto-loader-gen-types: build/bin/proto-loader-gen-types.js
+  checksum: 10/2e2b33ace8bc34211522751a9e654faf9ac997577a9e9291b1619b4c05d7878a74d2101c3bc43b2b2b92bca7509001678fb191d4eb100684cc2910d66f36c373
+  languageName: node
+  linkType: hard
+
+"@grpc/proto-loader@npm:^0.8.0":
+  version: 0.8.0
+  resolution: "@grpc/proto-loader@npm:0.8.0"
+  dependencies:
+    lodash.camelcase: "npm:^4.3.0"
+    long: "npm:^5.0.0"
+    protobufjs: "npm:^7.5.3"
+    yargs: "npm:^17.7.2"
+  bin:
+    proto-loader-gen-types: build/bin/proto-loader-gen-types.js
+  checksum: 10/216813bdca52cd3a84ac355ad93c2c3f54252be47327692fe666fd85baa5b1d50aa681ebc5626ab08926564fb2deae3b2ea435aa5bd883197650bbe56f2ae108
+  languageName: node
+  linkType: hard
+
 "@inquirer/external-editor@npm:^1.0.0":
   version: 1.0.2
   resolution: "@inquirer/external-editor@npm:1.0.2"
@@ -2585,6 +2623,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@js-sdsl/ordered-map@npm:^4.4.2":
+  version: 4.4.2
+  resolution: "@js-sdsl/ordered-map@npm:4.4.2"
+  checksum: 10/ac64e3f0615ecc015461c9f527f124d2edaa9e68de153c1e270c627e01e83d046522d7e872692fd57a8c514578b539afceff75831c0d8b2a9a7a347fbed35af4
+  languageName: node
+  linkType: hard
+
 "@microsoft/api-extractor-model@npm:7.31.1":
   version: 7.31.1
   resolution: "@microsoft/api-extractor-model@npm:7.31.1"
@@ -2893,9 +2938,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shopana/apollo-scripts@workspace:ci/apollo":
+"@shopana/apollo-scripts@workspace:apollo":
   version: 0.0.0-use.local
-  resolution: "@shopana/apollo-scripts@workspace:ci/apollo"
+  resolution: "@shopana/apollo-scripts@workspace:apollo"
   dependencies:
     "@apollo/subgraph": "npm:^2.9.3"
     glob: "npm:^11.0.0"
@@ -3184,40 +3229,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/platform-api@workspace:packages/platform-api"
   dependencies:
-    "@graphql-codegen/cli": "npm:^5.0.2"
-    "@graphql-codegen/typescript": "npm:^4.0.8"
+    "@grpc/grpc-js": "npm:^1.12.4"
+    "@grpc/proto-loader": "npm:^0.7.15"
+    "@shopana/platform-proto": "npm:0.0.1"
     graphql-request: "npm:^7.1.0"
     rimraf: "npm:^5.0.0"
     typescript: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
 
-"@shopana/platform-service@workspace:services/platform":
+"@shopana/platform-proto@npm:0.0.1, @shopana/platform-proto@workspace:packages/platform-proto":
   version: 0.0.0-use.local
-  resolution: "@shopana/platform-service@workspace:services/platform"
-  dependencies:
-    "@shopana/build-tools": "npm:0.0.1"
-    "@shopana/platform-api": "npm:0.0.1"
-    "@shopana/shared-service-config": "npm:0.0.1"
-    "@types/jest": "npm:^30.0.0"
-    "@types/node": "npm:^22.7.4"
-    "@types/uuid": "npm:^10.0.0"
-    ansis: "npm:^4.1.0"
-    async-retry: "npm:^1.3.3"
-    dotenv: "npm:^16.4.5"
-    esbuild: "npm:^0.24.2"
-    jest: "npm:^30.1.3"
-    moleculer: "npm:^0.14.35"
-    moleculer-repl: "npm:^0.7.4"
-    nats: "npm:^2.29.3"
-    pino: "npm:^9.3.2"
-    ts-jest: "npm:^29.4.1"
-    ts-node: "npm:^10.9.2"
-    tsconfig-paths: "npm:^4.2.0"
-    tsx: "npm:^4.19.0"
-    typescript: "npm:^5.5.4"
-    uuid: "npm:^11.1.0"
-    zod: "npm:^3.23.8"
+  resolution: "@shopana/platform-proto@workspace:packages/platform-proto"
   languageName: unknown
   linkType: soft
 
@@ -3401,9 +3424,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/woodpecker-workflows@workspace:ci/woodpecker-workflows":
+"@shopana/woodpecker-workflows@workspace:workflows":
   version: 0.0.0-use.local
-  resolution: "@shopana/woodpecker-workflows@workspace:ci/woodpecker-workflows"
+  resolution: "@shopana/woodpecker-workflows@workspace:workflows"
   dependencies:
     "@noble/ed25519": "npm:^2.1.0"
     "@shopana/woodpecker-ci-config-service": "workspace:*"
@@ -3780,6 +3803,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~7.12.0"
   checksum: 10/a497aea88a12131b03382d933690b71c131ee890232596b8d5b73f0a20c90874001800b2bfc267bd37df8285bef911729b4773426be7d2dc13ef4c760904e47d
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:>=13.7.0":
+  version: 24.8.1
+  resolution: "@types/node@npm:24.8.1"
+  dependencies:
+    undici-types: "npm:~7.14.0"
+  checksum: 10/4f944466766ca8cc0d635386e2b9b42b1948723ca0ec7d24624e80513e5816d6e96197db7c05f8f67b544a228a06a1c0598d66a5526aa4c1f5919db0d3c5bf8c
   languageName: node
   linkType: hard
 
@@ -8779,6 +8811,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.camelcase@npm:^4.3.0":
+  version: 4.3.0
+  resolution: "lodash.camelcase@npm:4.3.0"
+  checksum: 10/c301cc379310441dc73cd6cebeb91fb254bea74e6ad3027f9346fc43b4174385153df420ffa521654e502fd34c40ef69ca4e7d40ee7129a99e06f306032bfc65
+  languageName: node
+  linkType: hard
+
 "lodash.memoize@npm:^4.1.2":
   version: 4.1.2
   resolution: "lodash.memoize@npm:4.1.2"
@@ -8840,6 +8879,13 @@ __metadata:
   version: 4.0.0
   resolution: "long@npm:4.0.0"
   checksum: 10/8296e2ba7bab30f9cfabb81ebccff89c819af6a7a78b4bb5a70ea411aa764ee0532f7441381549dfa6a1a98d72abe9138bfcf99f4fa41238629849bc035b845b
+  languageName: node
+  linkType: hard
+
+"long@npm:^5.0.0":
+  version: 5.3.2
+  resolution: "long@npm:5.3.2"
+  checksum: 10/b6b55ddae56fcce2864d37119d6b02fe28f6dd6d9e44fd22705f86a9254b9321bd69e9ffe35263b4846d54aba197c64882adcb8c543f2383c1e41284b321ea64
   languageName: node
   linkType: hard
 
@@ -10275,6 +10321,26 @@ __metadata:
     kleur: "npm:^3.0.3"
     sisteransi: "npm:^1.0.5"
   checksum: 10/c52536521a4d21eff4f2f2aa4572446cad227464066365a7167e52ccf8d9839c099f9afec1aba0eed3d5a2514b3e79e0b3e7a1dc326b9acde6b75d27ed74b1a9
+  languageName: node
+  linkType: hard
+
+"protobufjs@npm:^7.2.5, protobufjs@npm:^7.5.3":
+  version: 7.5.4
+  resolution: "protobufjs@npm:7.5.4"
+  dependencies:
+    "@protobufjs/aspromise": "npm:^1.1.2"
+    "@protobufjs/base64": "npm:^1.1.2"
+    "@protobufjs/codegen": "npm:^2.0.4"
+    "@protobufjs/eventemitter": "npm:^1.1.0"
+    "@protobufjs/fetch": "npm:^1.1.0"
+    "@protobufjs/float": "npm:^1.0.2"
+    "@protobufjs/inquire": "npm:^1.1.0"
+    "@protobufjs/path": "npm:^1.1.2"
+    "@protobufjs/pool": "npm:^1.1.0"
+    "@protobufjs/utf8": "npm:^1.1.0"
+    "@types/node": "npm:>=13.7.0"
+    long: "npm:^5.0.0"
+  checksum: 10/88d677bb6f11a2ecec63fdd053dfe6d31120844d04e865efa9c8fbe0674cd077d6624ecfdf014018a20dcb114ae2a59c1b21966dd8073e920650c71370966439
   languageName: node
   linkType: hard
 
@@ -11910,6 +11976,13 @@ __metadata:
   version: 7.12.0
   resolution: "undici-types@npm:7.12.0"
   checksum: 10/4a0f927c98828f76fb0d64f356e36e5ac6e074ae4c7bec08d6de8bc36b7cf08ae27a3518fa8eb703f51c1a675241e2d07359bbce63f5575299148a270cea7e43
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.14.0":
+  version: 7.14.0
+  resolution: "undici-types@npm:7.14.0"
+  checksum: 10/0f8709b21437697af35801e33bddbe9992e0cf1771959c41850b1946f63822b825e03ce99f44bf19e4f5c3ccc5166e0be59f541565c36ce86163dc2c5870bc62
   languageName: node
   linkType: hard
 
