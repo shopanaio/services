@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import PricingService from "./service";

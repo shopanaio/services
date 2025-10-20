@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import { loadOrchestratorConfig } from "@shopana/shared-service-config";
@@ -12,9 +13,6 @@ import AppsService from "./service";
  * Services registry for dynamic loading
  */
 const SERVICES_REGISTRY = {
-  platform: {
-    path: "../../platform/src/service.ts",
-  },
   payments: {
     path: "../../payments/src/service.ts",
   },
@@ -54,14 +52,21 @@ async function startOrchestrator() {
   console.log(`🌍 Environment: ${orchestratorConfig.environment}`);
   console.log(`📦 Services to load: ${orchestratorConfig.services.join(", ")}`);
 
+  const transporterEnv =
+    process.env.ORCHESTRATOR_TRANSPORTER || process.env.MOLECULER_TRANSPORTER;
+
+  const transporterSetting =
+    transporterEnv && transporterEnv.toLowerCase() === "null"
+      ? null
+      : transporterEnv || "NATS";
+
   const broker = new ServiceBroker({
     namespace: "platform",
     nodeID: "orchestrator",
     logger: true,
     logLevel: config.logLevel as LogLevels,
 
-    // null = in-memory communication (no NATS required)
-    transporter: null,
+    transporter: transporterSetting,
 
     cacher: "Memory",
     serializer: "JSON",
@@ -70,17 +75,19 @@ async function startOrchestrator() {
 
     metrics: {
       enabled: true,
-      reporter: [{
-        type: "Prometheus",
-        options: {
-          port: parseInt(process.env.METRICS_PORT || "3030"),
-          path: "/metrics",
-          defaultLabels: () => ({
-            namespace: "platform",
-            nodeID: "orchestrator",
-          }),
+      reporter: [
+        {
+          type: "Prometheus",
+          options: {
+            port: parseInt(process.env.METRICS_PORT || "3030"),
+            path: "/metrics",
+            defaultLabels: () => ({
+              namespace: "platform",
+              nodeID: "orchestrator",
+            }),
+          },
         },
-      }],
+      ],
     },
 
     tracing: false,
@@ -98,7 +105,8 @@ async function startOrchestrator() {
         loadedServices.push("apps");
       } else {
         // Dynamically load other services
-        const serviceConfig = SERVICES_REGISTRY[serviceName as keyof typeof SERVICES_REGISTRY];
+        const serviceConfig =
+          SERVICES_REGISTRY[serviceName as keyof typeof SERVICES_REGISTRY];
         if (!serviceConfig) {
           broker.logger.warn(`⚠️  Unknown service: ${serviceName}, skipping`);
           continue;
@@ -111,7 +119,6 @@ async function startOrchestrator() {
         const serviceUrl = pathToFileURL(servicePath).href;
 
         broker.logger.debug(`Loading service from: ${servicePath}`);
-
         const ServiceModule = await import(serviceUrl);
         const ServiceDefinition = ServiceModule.default;
 
@@ -151,10 +158,18 @@ async function startOrchestrator() {
   broker.logger.info("═".repeat(60));
   broker.logger.info("🚀 Service Orchestrator started successfully");
   broker.logger.info("═".repeat(60));
-  broker.logger.info(`📡 Transport: In-memory (zero latency)`);
+  broker.logger.info(
+    `📡 Transport: ${transporterSetting ?? "In-memory (zero latency)"}`
+  );
   broker.logger.info(`🏷️  Namespace: platform`);
-  broker.logger.info(`📦 Loaded services (${loadedServices.length}): ${loadedServices.join(", ")}`);
-  broker.logger.info(`🔧 Config: ${orchestratorConfig.environment} mode from config.yml`);
+  broker.logger.info(
+    `📦 Loaded services (${loadedServices.length}): ${loadedServices.join(
+      ", "
+    )}`
+  );
+  broker.logger.info(
+    `🔧 Config: ${orchestratorConfig.environment} mode from config.yml`
+  );
   broker.logger.info("═".repeat(60));
 
   // Enable REPL for debugging in development

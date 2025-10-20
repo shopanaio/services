@@ -2,8 +2,6 @@ syntax = "proto3";
 package apps.v1;
 option go_package = "portal/project/api/grpcApps/generated";
 
-import "google/protobuf/timestamp.proto";
-
 // Common enums
 enum EntityStatus {
   ENTITY_STATUS_UNSPECIFIED = 0;
@@ -70,8 +68,8 @@ message File {
   int32 size = 5;
   string ext = 6;
   string key = 7;
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
+  string created_at = 8;  // ISO 8601 timestamp string
+  string updated_at = 9;  // ISO 8601 timestamp string
 }
 
 message LocalizedString {

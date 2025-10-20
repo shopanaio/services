@@ -3284,8 +3284,6 @@ __metadata:
     "@types/node": "npm:^22.7.4"
     "@types/uuid": "npm:^10.0.0"
     async-retry: "npm:^1.3.3"
-    class-transformer: "npm:^0.5.1"
-    class-validator: "npm:^0.14.2"
     dotenv: "npm:^16.4.5"
     esbuild: "npm:^0.24.2"
     jest: "npm:^30.1.3"
@@ -3295,7 +3293,6 @@ __metadata:
     nats: "npm:^2.29.3"
     pg: "npm:^8.16.3"
     pino: "npm:^9.3.2"
-    reflect-metadata: "npm:^0.1.14"
     ts-jest: "npm:^29.4.1"
     ts-node: "npm:^10.9.2"
     tsx: "npm:^4.19.0"
@@ -10526,13 +10523,6 @@ __metadata:
   bin:
     recursive-watch: ./bin.js
   checksum: 10/043b58414d2c982d9d018bcd7dcc3ca42a19ba5ee2bad80aa7ab43c23f72140297c4ac423341db5923da0bbcdb835af96579e8aa4f8cc296964c4e4fe8c25d2a
-  languageName: node
-  linkType: hard
-
-"reflect-metadata@npm:^0.1.14":
-  version: 0.1.14
-  resolution: "reflect-metadata@npm:0.1.14"
-  checksum: 10/fcab9c17ec3b9fea0e2f748c2129aceb57c24af6d8d13842b8a77c8c79dde727d7456ce293e76e8d7b267d1dbf93eea4c5b3c9101299a789a075824f2e40f1ee
   languageName: node
   linkType: hard
 

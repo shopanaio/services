@@ -19,8 +19,7 @@ export {
   // Validation utilities
   isValidDiscountType,
   isValidDiscount,
-  createValidated,
-  formatValidationErrors,
+  formatZodError,
   validateParams,
   // Domain classes
   CartCalculator,

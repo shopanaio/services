@@ -49,8 +49,7 @@ export {
 export {
   isValidDiscountType,
   isValidDiscount,
-  createValidated,
-  formatValidationErrors,
+  formatZodError,
   validateParams,
 } from "./validation.js";
 

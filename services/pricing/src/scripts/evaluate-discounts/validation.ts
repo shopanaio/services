@@ -2,10 +2,10 @@
  * Validation utilities and type guards for discount evaluation system
  */
 
+import { z } from "zod";
 import { DiscountType, type Discount } from "@shopana/plugin-sdk/pricing";
-import { plainToInstance } from "class-transformer";
-import { validateSync, ValidationError } from "class-validator";
-import { EvaluateDiscountsParamsDto } from "./dto.js";
+import { Money } from "@shopana/shared-money";
+import { EvaluateDiscountsParamsDto, LineItemDto, LineItemUnitDto } from "./dto.js";
 
 /**
  * Type guard for checking discount type validity
@@ -35,64 +35,98 @@ export const isValidDiscount = (discount: unknown): discount is Discount =>
   "provider" in discount;
 
 /**
- * Creates validated class instance from plain object
- * @param cls - Class constructor for creating instance
- * @param plain - Plain object for validation
- * @returns Validated class instance
- * @throws {Error} On validation errors
+ * Zod schema for Money transformation
+ * Accepts MoneySnapshot format and transforms to Money instance
  */
-export function createValidated<T>(
-  cls: new (...args: unknown[]) => T,
-  plain: unknown,
-): T {
-  const instance = plainToInstance(cls, plain);
-  const errors = validateSync(instance as object);
+const MoneySchema = z.object({
+  amount: z.string(),
+  scale: z.string(),
+  currency: z.object({
+    code: z.string(),
+    base: z.union([z.string(), z.array(z.string())]),
+    exponent: z.string(),
+  }),
+}).transform((value) => Money.fromJSON(value));
 
-  if (errors.length > 0) {
-    const messages = formatValidationErrors(errors);
-    throw new Error(`Validation failed: ${messages.join("; ")}`);
-  }
+/**
+ * Zod schema for LineItemUnit validation and transformation
+ */
+const LineItemUnitSchema = z.object({
+  id: z.string().min(1, "Unit ID cannot be empty"),
+  price: MoneySchema,
+  compareAtPrice: MoneySchema.nullable().optional(),
+  sku: z.string().nullable().optional(),
+  snapshot: z.record(z.unknown()).nullable().optional(),
+});
 
-  return instance;
+/**
+ * Zod schema for LineItem validation
+ */
+const LineItemSchema = z.object({
+  lineId: z.string().min(1, "Line ID cannot be empty"),
+  quantity: z.number().positive("Quantity must be positive"),
+  unit: LineItemUnitSchema,
+});
+
+/**
+ * Zod schema for EvaluateDiscountsParams validation
+ */
+const EvaluateDiscountsParamsSchema = z.object({
+  currency: z.string().min(1, "Currency cannot be empty"),
+  projectId: z.string().min(1, "Project ID cannot be empty"),
+  lines: z.array(LineItemSchema).min(1, "Lines cannot be empty"),
+  appliedDiscountCodes: z.array(z.string()).optional(),
+  checkoutId: z.string().optional(),
+  requestId: z.string().optional(),
+  userAgent: z.string().optional(),
+});
+
+/**
+ * Formats zod validation errors into human-readable format
+ * @param error - Zod validation error
+ * @returns Formatted error message
+ */
+export function formatZodError(error: z.ZodError): string {
+  const messages = error.errors.map((err) => {
+    const path = err.path.join(".");
+    return `${path}: ${err.message}`;
+  });
+  return messages.join("; ");
 }
 
 /**
- * Formats validation errors into human-readable format
- * @param errors - Array of validation errors
- * @param parentPath - Parent path for nested objects
- * @returns Array of formatted error messages
- */
-export function formatValidationErrors(
-  errors: ValidationError[],
-  parentPath = "",
-): string[] {
-  const messages: string[] = [];
-
-  for (const error of errors) {
-    const propertyPath = parentPath
-      ? `${parentPath}.${error.property}`
-      : error.property;
-
-    if (error.constraints) {
-      for (const constraint of Object.values(error.constraints)) {
-        messages.push(`${propertyPath}: ${constraint}`);
-      }
-    }
-
-    if (error.children && error.children.length > 0) {
-      messages.push(...formatValidationErrors(error.children, propertyPath));
-    }
-  }
-
-  return messages;
-}
-
-/**
- * Validates input parameters for discount evaluation using DTO and class-validator
+ * Validates input parameters for discount evaluation using zod
  * @param params - Parameters for validation (plain object)
  * @returns Validated and typed object
  * @throws {Error} On incorrect parameters with detailed messages
  */
 export const validateParams = (params: unknown): EvaluateDiscountsParamsDto => {
-  return createValidated(EvaluateDiscountsParamsDto, params);
+  try {
+    const validated = EvaluateDiscountsParamsSchema.parse(params);
+    // Convert validated data to DTO class instance for type compatibility
+    return {
+      currency: validated.currency,
+      projectId: validated.projectId,
+      lines: validated.lines.map((line) => ({
+        lineId: line.lineId,
+        quantity: line.quantity,
+        unit: {
+          id: line.unit.id,
+          price: line.unit.price,
+          compareAtPrice: line.unit.compareAtPrice,
+          sku: line.unit.sku,
+          snapshot: line.unit.snapshot,
+        } as LineItemUnitDto,
+      } as LineItemDto)),
+      appliedDiscountCodes: validated.appliedDiscountCodes,
+      checkoutId: validated.checkoutId,
+      requestId: validated.requestId,
+      userAgent: validated.userAgent,
+    } as EvaluateDiscountsParamsDto;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(`Validation failed: ${formatZodError(error)}`);
+    }
+    throw error;
+  }
 };

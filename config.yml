@@ -5,12 +5,10 @@ orchestrator:
   mode: orchestrator  # "standalone" | "orchestrator"
   services:
     - apps
-    - platform
     - payments
     - inventory
     - delivery
-    # pricing - temporarily disabled due to class-validator decorator issue with ESM
-    # - pricing
+    - pricing
 
 services:
   apps:
@@ -33,9 +31,6 @@ services:
 
   payments:
     port: 10006
-
-  platform:
-    port: 10007
 
   pricing:
     port: 10008

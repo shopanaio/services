@@ -8,12 +8,7 @@
         "Start Core Service",
         "Start Checkout Service",
         "Start Apps Service",
-        "Start Inventory Service",
-        "Start Pricing Service",
-        "Start Shipping Service",
-        "Start Platform Service",
         "Start Orders Service",
-        "Start Payment Service"
       ],
       "group": {
         "kind": "build",
@@ -90,90 +85,6 @@
       "problemMatcher": []
     },
     {
-      "label": "Start Inventory Service",
-      "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/inventory && echo 'Starting Inventory Service...' && yarn dev:watch",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Start Pricing Service",
-      "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/pricing && echo 'Starting Pricing Service...' && yarn dev:watch",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Start Shipping Service",
-      "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/delivery && echo 'Starting Shipping Service...' && yarn dev:watch",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "Start Platform Service",
-      "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/platform && echo 'Starting Platform Service...' && yarn dev:watch",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    },
-    {
       "label": "Start Orders Service",
       "type": "shell",
       "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/orders && echo 'Starting Orders Service...' && yarn dev:watch",
@@ -194,26 +105,5 @@
       "isBackground": true,
       "problemMatcher": []
     },
-    {
-      "label": "Start Payment Service",
-      "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/payments && echo 'Starting Payment Service...' && yarn dev:watch",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": []
-    }
   ]
 }
