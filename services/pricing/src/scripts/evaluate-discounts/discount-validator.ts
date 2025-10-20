@@ -46,8 +46,14 @@ export class DiscountValidator {
         const { conditions } = result.discount;
         if (conditions?.minAmount) {
           try {
-            // @ts-expect-error TODO: deserialize Money properly
-            const minAmount = Money.fromJSON(conditions.minAmount);
+            // Money objects may come in two forms depending on the transport:
+            // 1. Already instantiated Money objects when passed directly from plugins
+            // 2. JSON snapshots (plain objects) when serialized through RPC/broker calls
+            // We need to handle both cases to avoid "Money amount must be a bigint" errors
+            const minAmount =
+              conditions.minAmount instanceof Money
+                ? conditions.minAmount
+                : Money.fromJSON(conditions.minAmount);
             if (totalAmount.lt(minAmount)) {
               continue;
             }
