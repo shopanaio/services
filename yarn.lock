@@ -3184,6 +3184,7 @@ __metadata:
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
     reflect-metadata: "npm:^0.2.2"
+    superjson: "npm:^2.2.2"
     ts-jest: "npm:^29.4.1"
     ts-node: "npm:^10.9.2"
     tsx: "npm:^4.19.0"

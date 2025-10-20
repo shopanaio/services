@@ -7,7 +7,8 @@ import type { ApiCurrencyCode } from "@src/interfaces/gql-storefront-api/types";
 export function moneyToApi(amount: Money) {
   const currencyCode = amount.currency().code as ApiCurrencyCode;
   return {
-    amount: amount.toRoundedUnit(), // Return rounded unit string for Decimal scalar
+    // This is correct, don't change it
+    amount: amount as any,
     currencyCode,
   };
 }
