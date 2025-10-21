@@ -5,7 +5,8 @@ import fastifyApollo, {
 } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "moleculer";
@@ -22,11 +23,13 @@ import { buildCoreContextMiddleware } from "./contextMiddleware";
 export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   const app = fastify({ logger: true });
 
-  // Load GraphQL schema
-  const schemaPath = [process.cwd(), "src", "api", "schema"];
+  // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const schemaPath = join(__dirname, "schema");
   const sdlFiles = [
-    join(...schemaPath, "base.graphql"),
-    join(...schemaPath, "apps.graphql"),
+    join(schemaPath, "base.graphql"),
+    join(schemaPath, "apps.graphql"),
   ];
 
   const resolvers = createResolvers(kernel);

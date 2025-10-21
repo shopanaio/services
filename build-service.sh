@@ -11,6 +11,7 @@ if [ -z "$1" ]; then
   echo "Usage: ./build-service.sh <service-name> [tag]"
   echo ""
   echo "Available services:"
+  echo "  - orchestrator"
   echo "  - checkout"
   echo "  - orders"
   echo "  - payments"

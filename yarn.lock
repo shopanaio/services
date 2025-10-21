@@ -3141,6 +3141,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/orchestrator-service@workspace:services/orchestrator":
+  version: 0.0.0-use.local
+  resolution: "@shopana/orchestrator-service@workspace:services/orchestrator"
+  dependencies:
+    "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/shared-service-config": "npm:0.0.1"
+    "@types/node": "npm:^22.7.4"
+    dotenv: "npm:^16.4.5"
+    esbuild: "npm:^0.24.2"
+    moleculer: "npm:^0.14.35"
+    moleculer-repl: "npm:^0.7.4"
+    nats: "npm:^2.29.3"
+    reflect-metadata: "npm:^0.2.2"
+    tsconfig-paths: "npm:^4.2.0"
+    tsx: "npm:^4.19.0"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/orders-service@workspace:services/orders":
   version: 0.0.0-use.local
   resolution: "@shopana/orders-service@workspace:services/orders"

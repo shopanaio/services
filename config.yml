@@ -2,13 +2,16 @@
 
 # Orchestrator mode configuration
 orchestrator:
-  mode: orchestrator  # "standalone" | "orchestrator"
   services:
     - apps
-    - payments
-    - inventory
     - delivery
+    - inventory
+    - payments
     - pricing
+  transporter: 'NATS'  # null for in-memory, "NATS" or "nats://localhost:4222" for distributed
+  log_level: info
+  metrics_port: 3030
+  environment: development
 
 services:
   apps:

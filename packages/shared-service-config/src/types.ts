@@ -46,10 +46,16 @@ export interface EnvironmentConfig {
  * Orchestrator mode configuration
  */
 export interface OrchestratorConfig {
-  /** Operational mode */
-  mode: 'standalone' | 'orchestrator';
   /** Services to load in orchestrator mode */
   services: ServiceName[];
+  /** Transporter configuration: null for in-memory, "NATS" or NATS URL for distributed */
+  transporter?: string | null;
+  /** Log level */
+  log_level?: string;
+  /** Metrics port */
+  metrics_port?: number;
+  /** Environment */
+  environment?: string;
 }
 
 /**
@@ -97,10 +103,14 @@ export interface ResolvedServiceConfig {
  * Resolved orchestrator configuration
  */
 export interface ResolvedOrchestratorConfig {
-  /** Operational mode */
-  mode: 'standalone' | 'orchestrator';
   /** Services to load */
   services: ServiceName[];
   /** Current environment */
   environment: Environment;
+  /** Transporter configuration: null for in-memory, "NATS" or NATS URL for distributed */
+  transporter: string | null;
+  /** Log level */
+  logLevel: string;
+  /** Metrics port */
+  metricsPort: number;
 }

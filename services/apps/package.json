@@ -4,9 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx  src/index.ts",
-    "dev:orchestrator": "SERVICES_MODE=orchestrator tsx src/index.ts",
-    "dev:standalone": "SERVICES_MODE=standalone tsx src/index.ts",
+    "dev": "tsx src/index.ts",
     "dev:watch": "tsx watch src/index.ts",
     "build": "node esbuild.js",
     "start": "node dist/src/index.js",

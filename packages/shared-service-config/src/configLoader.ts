@@ -25,7 +25,9 @@ function findWorkspaceRoot(startDir: string = process.cwd()): string {
     currentDir = path.dirname(currentDir);
   }
 
-  throw new Error("Could not find config.yml in workspace. Please ensure config.yml exists in workspace root.");
+  throw new Error(
+    "Could not find config.yml in workspace. Please ensure config.yml exists in workspace root."
+  );
 }
 
 /**
@@ -63,7 +65,9 @@ function resolveEnvironmentVariables(value: any): any {
     return value.replace(/\$\{([^}]+)\}/g, (match, varName) => {
       const envValue = process.env[varName];
       if (envValue === undefined) {
-        console.warn(`Environment variable ${varName} is not set, keeping placeholder`);
+        console.warn(
+          `Environment variable ${varName} is not set, keeping placeholder`
+        );
         return match;
       }
       return envValue;
@@ -88,7 +92,10 @@ function resolveEnvironmentVariables(value: any): any {
 /**
  * Deep merge two objects
  */
-function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+function deepMerge<T extends Record<string, any>>(
+  target: T,
+  source: Partial<T>
+): T {
   const result = { ...target };
 
   for (const key in source) {
@@ -134,7 +141,9 @@ function applyEnvironmentOverrides(
 /**
  * Load configuration for a specific service
  */
-export function loadServiceConfig(serviceName: ServiceName): ResolvedServiceConfig {
+export function loadServiceConfig(
+  serviceName: ServiceName
+): ResolvedServiceConfig {
   const environment = (process.env.NODE_ENV || "development") as Environment;
 
   // Load base configuration
@@ -154,7 +163,8 @@ export function loadServiceConfig(serviceName: ServiceName): ResolvedServiceConf
 
   // Override with environment variables
   const finalPort = Number(process.env.PORT) || serviceConfig.port;
-  const finalDatabaseUrl = process.env.DATABASE_URL || serviceConfig.database_url;
+  const finalDatabaseUrl =
+    process.env.DATABASE_URL || serviceConfig.database_url;
 
   return {
     serviceName,
@@ -210,23 +220,37 @@ export function loadOrchestratorConfig(): ResolvedOrchestratorConfig {
 
   // Get orchestrator configuration with defaults
   const orchestratorConfig = resolvedConfig.orchestrator || {
-    mode: 'standalone',
-    services: ['apps'] as ServiceName[],
+    services: [],
+    transporter: null,
+    log_level: "info",
+    metrics_port: 3030,
   };
-
-  // Override with environment variables if provided
-  const mode = (process.env.SERVICES_MODE as 'standalone' | 'orchestrator') || orchestratorConfig.mode;
 
   // Allow ENV to override which services to load
   let services = orchestratorConfig.services;
   const envServices = process.env.ORCHESTRATOR_SERVICES;
   if (envServices) {
-    services = envServices.split(',').map(s => s.trim()) as ServiceName[];
+    services = envServices.split(",").map((s) => s.trim()) as ServiceName[];
   }
 
+  // Get transporter configuration
+  const transporter = process.env.ORCHESTRATOR_TRANSPORTER !== undefined
+    ? process.env.ORCHESTRATOR_TRANSPORTER
+    : (orchestratorConfig.transporter || null);
+
+  // Get log level
+  const logLevel = process.env.LOG_LEVEL || orchestratorConfig.log_level || "info";
+
+  // Get metrics port
+  const metricsPort = process.env.METRICS_PORT
+    ? Number(process.env.METRICS_PORT)
+    : (orchestratorConfig.metrics_port || 3030);
+
   return {
-    mode,
     services,
     environment,
+    transporter,
+    logLevel,
+    metricsPort,
   };
 }
