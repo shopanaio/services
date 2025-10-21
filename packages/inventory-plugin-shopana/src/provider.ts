@@ -86,8 +86,11 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
       `;
 
       // Execute request to Core Apps GraphQL API
-      const coreAppsGraphqlUrl =
-        process.env.CORE_APPS_GRAPHQL_URL || "http://localhost:4000/graphql";
+      const coreAppsGraphqlUrl = process.env.CORE_APPS_GRAPHQL_URL;
+      if (!coreAppsGraphqlUrl) {
+        throw new Error("CORE_APPS_GRAPHQL_URL is not set");
+      }
+
       const data = await gqlRequest<CoreVariantsResponse>(
         { getCoreAppsGraphqlUrl: () => coreAppsGraphqlUrl },
         query,
