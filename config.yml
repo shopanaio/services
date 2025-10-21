@@ -8,22 +8,24 @@ orchestrator:
     - inventory
     - payments
     - pricing
-  transporter: 'NATS'  # null for in-memory, "NATS" or "nats://localhost:4222" for distributed
+  transporter: "nats://nats:4222" # null for in-memory, "NATS" or "nats://localhost:4222" for distributed
   log_level: info
   metrics_port: 3030
   environment: development
 
 services:
-  apps:
-    port: 10001
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-
   checkout:
     port: 10002
+    transporter: "nats://nats:4222"
     database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
 
   orders:
     port: 10003
+    transporter: "nats://nats:4222"
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+
+  apps:
+    port: 10001
     database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
 
   delivery:

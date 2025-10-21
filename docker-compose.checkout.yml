@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  checkout-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: checkout
+        NODE_VERSION: 20
+        BASE_IMAGE: "services-base:local"
+    image: shopana/checkout-service:latest
+    container_name: shopana-checkout-service
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MOLECULER_TRANSPORTER=nats://nats:4222
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+    networks:
+      - shopana-network
+
+networks:
+  shopana-network:
+    name: shopana-network
+    external: true
