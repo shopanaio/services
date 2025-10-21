@@ -30,13 +30,9 @@
 
     # All available services
     all_services:
-      - apps
+      - orchestrator
       - checkout
-      - delivery
-      - inventory
       - orders
-      - payments
-      - pricing
 
   tasks:
     - name: Validate required variables are provided

@@ -14,11 +14,6 @@ services:
     restart: unless-stopped
     ports:
       - "10002:10002"
-    environment:
-      - NODE_ENV=production
-      - PORT=10002
-      - MOLECULER_TRANSPORTER=nats://nats:4222
-      - PLATFORM_GRPC_HOST=platform:50051
     volumes:
       - ./config.yml:/app/config.yml:ro
     networks:

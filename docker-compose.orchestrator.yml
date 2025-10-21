@@ -15,18 +15,8 @@ services:
     ports:
       - "3030:3030"
       - "10001:10001"
-      - "10004:10004"
-      - "10005:10005"
-      - "10006:10006"
-      - "10008:10008"
     environment:
-      - NODE_ENV=production
-      - NAMESPACE=platform
-      - LOGLEVEL=info
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
-      - PLATFORM_GRPC_HOST=platform:50051
       - PLATFORM_INVENTORY_GRAPHQL_URL=http://platform:8000/api/apps/graphql/query
-
     volumes:
       - ./config.yml:/app/config.yml:ro
     healthcheck:

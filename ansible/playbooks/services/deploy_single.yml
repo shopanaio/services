@@ -22,13 +22,9 @@
 
     # Valid service names
     valid_services:
-      - apps
+      - orchestrator
       - checkout
-      - delivery
-      - inventory
       - orders
-      - payments
-      - pricing
 
   tasks:
     - name: Validate service_name is provided

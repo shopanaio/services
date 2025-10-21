@@ -4,34 +4,17 @@ services:
     container_name: orchestrator-service
     restart: unless-stopped
     ports:
-      - "0.0.0.0:{{ orchestrator_metrics_port | default(3030) }}:3030"  # Metrics
-      - "0.0.0.0:{{ apps_port }}:{{ apps_port }}"           # Apps GraphQL API
+      - "0.0.0.0:{{ orchestrator_metrics_port }}:{{ orchestrator_metrics_port }}"
+      - "0.0.0.0:{{ apps_port }}:{{ apps_port }}"
     secrets:
-      - source: service_env
-        target: /.env
       - source: service_config
         target: /app/config.yml
     environment:
-      - NODE_ENV={{ service_env | default('production') }}
-      - SERVICES_MODE=orchestrator
-      - MOLECULER_TRANSPORTER={{ moleculer_transporter | default('nats://nats:4222') }}
-      - NATS_URL={{ nats_url | default('nats://nats:4222') }}
-      - LOG_LEVEL={{ service_log_level | default('info') }}
-      - HEARTBEAT_INTERVAL={{ heartbeat_interval | default('10') }}
-      - HEARTBEAT_TIMEOUT={{ heartbeat_timeout | default('30') }}
-      - PLATFORM_GRPC_HOST={{ platform_grpc_host }}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:{{ orchestrator_metrics_port | default(3030) }}/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - PLATFORM_INVENTORY_GRAPHQL_URL={{ platform_inventory_graphql_url }}
     networks:
       - shopana-network
 
 secrets:
-  service_env:
-    file: ./.env
   service_config:
     file: ./config.yml
 
