@@ -6,19 +6,15 @@ orchestrator:
   mode: orchestrator
   services:
     - apps
-    - platform
     - payments
     - inventory
     - delivery
+    - pricing
 
 services:
   apps:
     port: {{ apps_port }}
     database_url: "{{ apps_database_url }}"
-
-  platform:
-    port: {{ platform_port }}
-    database_url: "{{ platform_database_url }}"
 
   payments:
     port: {{ payments_port }}
@@ -31,3 +27,7 @@ services:
   delivery:
     port: {{ delivery_port }}
     database_url: "{{ delivery_database_url }}"
+
+  pricing:
+    port: {{ pricing_port }}
+    database_url: "{{ pricing_database_url }}"

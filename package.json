@@ -1,5 +1,5 @@
 {
-  "name": "moleculer-services",
+  "name": "@shopana/services",
   "version": "0.0.1",
   "private": true,
   "description": "Moleculer-based services for the portal",

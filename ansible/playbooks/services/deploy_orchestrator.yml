@@ -23,10 +23,10 @@
           - shopana_ghcr_token is defined and shopana_ghcr_token | length > 0
           - orchestrator_port is defined
           - apps_port is defined
-          - platform_port is defined
           - payments_port is defined
           - inventory_port is defined
           - delivery_port is defined
+          - pricing_port is defined
         fail_msg: >-
           Please provide required variables via inventory or vars file.
           Required: shopana_ghcr_owner, shopana_ghcr_token, orchestrator_port, service ports

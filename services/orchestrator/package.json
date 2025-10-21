@@ -8,6 +8,7 @@
     "dev": "tsx --tsconfig ../apps/tsconfig.json src/index.ts",
     "dev:watch": "tsx watch src/index.ts",
     "build": "node esbuild.js",
+    "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn build",
     "start": "node dist/src/index.js"
   },
   "dependencies": {

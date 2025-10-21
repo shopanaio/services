@@ -82,12 +82,17 @@ ORCHESTRATOR_SERVICES=apps,checkout,orders yarn dev
 ### Production
 
 ```bash
-# Build
+# Build all required services first
+yarn build:all
+
+# Or build orchestrator only (requires services to be pre-built)
 yarn build
 
 # Start
 yarn start
 ```
+
+**Important:** Before running the orchestrator in production mode, all dependent services must be built first. The orchestrator loads compiled JavaScript files from each service's `dist` directory.
 
 ## Architecture
 
@@ -100,15 +105,17 @@ The orchestrator uses Moleculer's service broker to:
 
 ### Service Registry
 
-Services are registered in `SERVICES_REGISTRY` with their relative paths:
+Services are registered in `SERVICES_REGISTRY` with paths to their built JavaScript files:
 
 ```typescript
 const SERVICES_REGISTRY = {
-  apps: { path: "../../apps/src/service.ts" },
-  payments: { path: "../../payments/src/service.ts" },
+  apps: { path: "../../../apps/dist/src/service.js" },
+  payments: { path: "../../../payments/dist/src/service.js" },
   // ... other services
 };
 ```
+
+The paths are relative to the orchestrator's `dist/src/index.js` file and point to the compiled output of each service.
 
 ## Monitoring
 

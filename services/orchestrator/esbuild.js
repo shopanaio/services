@@ -1,21 +1,24 @@
-import esbuild from "esbuild";
-import { buildService } from "@shopana/build-tools";
+import { build } from "esbuild";
+import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
 
-await buildService({
+// Build main entry point
+const mainOptions = {
   entryPoints: ["src/index.ts"],
-  outdir: "dist",
   platform: "node",
-  format: "esm",
-  target: "node20",
   bundle: true,
+  format: "esm",
+  outfile: "dist/src/index.js",
+  packages: "external", // 🔥 ключевая настройка
   sourcemap: true,
   minify: false,
-  external: [
-    "pg-native",
-    "better-sqlite3",
-    "mysql",
-    "mysql2",
-    "oracledb",
-    "tedious",
-  ],
-});
+  plugins: [addJsExtensionPlugin],
+};
+
+try {
+  await build(mainOptions);
+  console.log("Build completed successfully");
+} catch (error) {
+  console.error("Build failed");
+  console.error(error);
+  process.exitCode = 1;
+}

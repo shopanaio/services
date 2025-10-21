@@ -1,28 +1,59 @@
+import "dotenv/config";
+
 import { ServiceBroker, LogLevels } from "moleculer";
 import { loadOrchestratorConfig } from "@shopana/shared-service-config";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import fs from "fs/promises";
 
 /**
- * Services registry for dynamic loading
+ * Find the root directory containing package.json with workspaces
  */
-const SERVICES_REGISTRY = {
-  apps: {
-    path: "../../apps/src/service.ts",
-  },
-  payments: {
-    path: "../../payments/src/service.ts",
-  },
-  inventory: {
-    path: "../../inventory/src/service.ts",
-  },
-  pricing: {
-    path: "../../pricing/src/service.ts",
-  },
-  delivery: {
-    path: "../../delivery/src/service.ts",
-  },
-} as const;
+async function findRootDir(startDir: string): Promise<string> {
+  let currentDir = path.resolve(startDir);
+
+  while (currentDir !== path.parse(currentDir).root) {
+    const packageJsonPath = path.join(currentDir, "package.json");
+    try {
+      const pkg = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
+      if (pkg.workspaces) {
+        return currentDir;
+      }
+    } catch (e) {
+      // package.json not found or not readable, continue searching
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) break; // Reached filesystem root
+    currentDir = parentDir;
+  }
+
+  throw new Error("Could not find project root directory with workspaces");
+}
+
+/**
+ * Get the path to a service's main file
+ */
+async function getServicePath(
+  serviceName: string,
+  environment: string
+): Promise<string> {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const projectRoot = await findRootDir(currentDir);
+
+  if (environment === "development") {
+    return path.join(projectRoot, "services", serviceName, "src", "service.ts");
+  } else {
+    return path.join(
+      projectRoot,
+      "services",
+      serviceName,
+      "dist",
+      "src",
+      "service.js"
+    );
+  }
+}
 
 /**
  * Unified Service Orchestrator
@@ -46,7 +77,9 @@ async function startOrchestrator() {
 
   console.log(`🌍 Environment: ${orchestratorConfig.environment}`);
   console.log(`📦 Services to load: ${orchestratorConfig.services.join(", ")}`);
-  console.log(`🚌 Transporter: ${orchestratorConfig.transporter || "in-memory"}`);
+  console.log(
+    `🚌 Transporter: ${orchestratorConfig.transporter || "in-memory"}`
+  );
 
   const broker = new ServiceBroker({
     namespace: "platform",
@@ -86,18 +119,11 @@ async function startOrchestrator() {
   // Load services based on configuration
   for (const serviceName of orchestratorConfig.services) {
     try {
-      // Dynamically load services
-      const serviceConfig =
-        SERVICES_REGISTRY[serviceName as keyof typeof SERVICES_REGISTRY];
-      if (!serviceConfig) {
-        broker.logger.warn(`⚠️  Unknown service: ${serviceName}, skipping`);
-        continue;
-      }
-
       // Resolve absolute path for the service
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = path.dirname(__filename);
-      const servicePath = path.resolve(__dirname, serviceConfig.path);
+      const servicePath = await getServicePath(
+        serviceName,
+        orchestratorConfig.environment
+      );
       const serviceUrl = pathToFileURL(servicePath).href;
 
       broker.logger.debug(`Loading service from: ${servicePath}`);
@@ -140,7 +166,9 @@ async function startOrchestrator() {
   broker.logger.info("🚀 Service Orchestrator started successfully");
   broker.logger.info("═".repeat(60));
   broker.logger.info(
-    `📡 Transport: ${orchestratorConfig.transporter ?? "In-memory (zero latency)"}`
+    `📡 Transport: ${
+      orchestratorConfig.transporter ?? "In-memory (zero latency)"
+    }`
   );
   broker.logger.info(`🏷️  Namespace: platform`);
   broker.logger.info(

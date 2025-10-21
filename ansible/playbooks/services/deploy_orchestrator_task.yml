@@ -21,7 +21,7 @@
       - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ orchestrator_image_tag }}"
       - "  Port: {{ orchestrator_port }}"
       - "  Directory: {{ orchestrator_dir }}"
-      - "  Services: apps, platform, payments, inventory, delivery"
+      - "  Services: apps, payments, inventory, delivery, pricing"
 
 - name: Create orchestrator deployment directory
   ansible.builtin.file:
@@ -129,10 +129,10 @@
       - ""
       - "📦 Services in orchestrator:"
       - "  • apps (GraphQL API)"
-      - "  • platform"
       - "  • payments"
       - "  • inventory"
       - "  • delivery"
+      - "  • pricing"
       - ""
       - "📊 View Logs:"
       - "  ssh {{ ansible_host }} 'cd {{ orchestrator_dir }} && docker compose logs -f'"

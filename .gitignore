@@ -1,4 +1,5 @@
 .cursor/
+.windsurf/
 .vscode/!tasks.json
 .vscode/!settings.json
 .env
