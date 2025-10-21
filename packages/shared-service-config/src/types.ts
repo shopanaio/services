@@ -3,114 +3,78 @@
  */
 
 /**
- * Configuration for a single service
+ * Common variables shared across all services
  */
-export interface ServiceConfig {
-  /** HTTP port */
-  port: number;
-  /** Database URL */
-  database_url?: string;
+export interface VarsConfig {
+  /** Environment for all services */
+  environment: string;
+  /** Log level for all services */
+  log_level: string;
+  /** Moleculer transporter for services broker */
+  moleculer_transporter: string;
+  /** Platform GRPC (context) server */
+  platform_grpc_host: string;
 }
 
 /**
  * Services configuration map
  */
-export interface ServicesConfig {
-  /** Apps service configuration */
-  apps: ServiceConfig;
+export type ServicesConfig = {
+  /** Orchestrator service configuration */
+  orchestrator: {
+    services: string[];
+    metrics_port?: number;
+  };
   /** Checkout service configuration */
-  checkout: ServiceConfig;
+  checkout: {
+    storefront_graphql_port: number;
+    // admin_graphql_port: number; TODO: add admin graphql port when admin api is ready
+    metrics_port?: number;
+    database_url?: string;
+  };
   /** Orders service configuration */
-  orders: ServiceConfig;
+  orders: {
+    storefront_graphql_port: number;
+    // admin_graphql_port: number; TODO: add admin graphql port when admin api is ready
+    metrics_port?: number;
+    database_url?: string;
+  };
+  /** Apps service configuration */
+  apps: {
+    // storefront_graphql_port: number; TODO: add storefront graphql port when storefront api is ready
+    admin_graphql_port: number;
+    metrics_port?: number;
+    database_url?: string;
+  };
   /** Delivery service configuration */
-  delivery: ServiceConfig;
+  delivery: {
+    metrics_port?: number;
+  };
   /** Inventory service configuration */
-  inventory: ServiceConfig;
+  inventory: {
+    metrics_port?: number;
+  };
   /** Payments service configuration */
-  payments: ServiceConfig;
-  /** Platform service configuration */
-  platform: ServiceConfig;
+  payments: {
+    metrics_port?: number;
+  };
   /** Pricing service configuration */
-  pricing: ServiceConfig;
-}
-
-/**
- * Environment-specific overrides
- */
-export interface EnvironmentConfig {
-  /** Service-specific configuration overrides */
-  services?: Partial<ServicesConfig>;
-}
-
-/**
- * Orchestrator mode configuration
- */
-export interface OrchestratorConfig {
-  /** Services to load in orchestrator mode */
-  services: ServiceName[];
-  /** Transporter configuration: null for in-memory, "NATS" or NATS URL for distributed */
-  transporter?: string | null;
-  /** Log level */
-  log_level?: string;
-  /** Metrics port */
-  metrics_port?: number;
-  /** Environment */
-  environment?: string;
-}
+  pricing: {
+    metrics_port?: number;
+  };
+};
 
 /**
  * Full configuration structure
  */
 export interface ConfigStructure {
+  /** Common variables */
+  vars: VarsConfig;
   /** Services configuration */
   services: ServicesConfig;
-  /** Environment-specific overrides */
-  environments?: {
-    development?: EnvironmentConfig;
-    production?: EnvironmentConfig;
-  };
-  /** Orchestrator configuration */
-  orchestrator?: OrchestratorConfig;
 }
-
-/**
- * Supported environment types
- */
-export type Environment = 'development' | 'production';
 
 /**
  * Service names
  */
 export type ServiceName = keyof ServicesConfig;
-
-/**
- * Resolved configuration for a specific service
- */
-export interface ResolvedServiceConfig {
-  /** Service name */
-  serviceName: ServiceName;
-  /** Current environment */
-  environment: Environment;
-  /** Service-specific configuration */
-  service: ServiceConfig;
-  /** Database URL */
-  databaseUrl?: string;
-  /** HTTP port */
-  port: number;
-}
-
-/**
- * Resolved orchestrator configuration
- */
-export interface ResolvedOrchestratorConfig {
-  /** Services to load */
-  services: ServiceName[];
-  /** Current environment */
-  environment: Environment;
-  /** Transporter configuration: null for in-memory, "NATS" or NATS URL for distributed */
-  transporter: string | null;
-  /** Log level */
-  logLevel: string;
-  /** Metrics port */
-  metricsPort: number;
-}

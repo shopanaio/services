@@ -1,44 +1,42 @@
-import dotenv from "dotenv";
 import { loadServiceConfig } from "@shopana/shared-service-config";
 
-// Load environment variables from .env file
-dotenv.config();
-
 /**
- * Service configuration using centralized config system augmented with
- * runtime environment variables for plugin runner and Moleculer settings.
+ * Service configuration using centralized config system
  */
-const serviceConfig = loadServiceConfig("apps");
+const { config: serviceConfig, vars } = loadServiceConfig("apps");
 
 export const config = {
   /** HTTP port for GraphQL/API server */
-  port: serviceConfig.port,
+  port: serviceConfig.admin_graphql_port,
 
   /** Database connection URL */
-  databaseUrl: serviceConfig.databaseUrl || "",
+  databaseUrl: serviceConfig.database_url!,
 
   /** Current environment name */
-  nodeEnv: serviceConfig.environment,
+  environment: vars.environment,
 
   /** Mount path for GraphQL endpoint */
   graphqlPath: "/graphql",
 
   /** Application log level */
-  logLevel: process.env.LOG_LEVEL || "info",
+  logLevel: vars.log_level,
 
   /**
    * Plugin runner settings (shared for all capabilities)
    */
-  pluginTimeoutMs: Number(process.env.APPS_PLUGIN_TIMEOUT_MS ?? 3000),
-  pluginRetries: Number(process.env.APPS_PLUGIN_RETRIES ?? 1),
-  pluginRateLimit: Number(process.env.APPS_PLUGIN_RATELIMIT ?? 10),
+  pluginTimeoutMs: 3000,
+  pluginRetries: 1,
+  pluginRateLimit: 10,
 
   /** Moleculer transporter configuration */
-  transporter: process.env.MOLECULER_TRANSPORTER || "NATS",
+  transporter: vars.moleculer_transporter,
 
   /** Platform gRPC host for context service */
-  platformGrpcHost: process.env.PLATFORM_GRPC_HOST || "localhost:50051",
+  platformGrpcHost: vars.platform_grpc_host,
+
+  /** Metrics port */
+  metricsPort: serviceConfig.metrics_port,
 
   /** Convenience flag for development checks */
-  isDevelopment: serviceConfig.environment === "development",
+  isDevelopment: vars.environment === "development",
 } as const;

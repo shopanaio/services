@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import AppsService from "./service";
 import { config } from "@src/config";
@@ -38,7 +37,7 @@ const brokerConfig = {
       {
         type: "Prometheus",
         options: {
-          port: parseInt(process.env.METRICS_PORT || "3030"),
+          port: config.metricsPort,
           path: "/metrics",
           defaultLabels: (registry: any) => ({
             namespace: "platform",
@@ -87,7 +86,7 @@ broker
     broker.logger.info(`🆔 Node ID: ${brokerConfig.nodeID}`);
 
     // Enable REPL for debugging (development only)
-    if (process.env.NODE_ENV === "development") {
+    if (config.isDevelopment) {
       broker.repl();
     }
   })

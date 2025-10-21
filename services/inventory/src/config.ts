@@ -1,38 +1,38 @@
-import dotenv from "dotenv";
 import { loadServiceConfig } from "@shopana/shared-service-config";
-
-// Load environment variables from .env file
-dotenv.config();
 
 /**
  * Service configuration using centralized config system
  */
-const serviceConfig = loadServiceConfig("inventory");
+const { vars } = loadServiceConfig("inventory");
 
 export const config = {
   /** HTTP port for health check server */
-  port: serviceConfig.port,
+  port: 0,
 
   /** Database connection URL */
-  databaseUrl: serviceConfig.databaseUrl || "",
+  databaseUrl: "",
 
   /** Current environment name */
-  nodeEnv: serviceConfig.environment,
+  environment: vars.environment,
 
-  // Apps service (slots)
-  appsServiceUrl: process.env.APPS_SERVICE_URL || "http://localhost:4006",
+  /** Log level */
+  logLevel: vars.log_level,
 
-  // Plugin settings
-  pluginTimeoutMs: Number(process.env.INVENTORY_PLUGIN_TIMEOUT_MS ?? 5000),
-  pluginRetries: Number(process.env.INVENTORY_PLUGIN_RETRIES ?? 2),
-  pluginRateLimit: Number(process.env.INVENTORY_PLUGIN_RATELIMIT ?? 20),
+  /** Moleculer transporter */
+  transporter: vars.moleculer_transporter,
 
-  // Logging
-  logLevel: process.env.LOG_LEVEL || "info",
+  /** Platform gRPC host */
+  platformGrpcHost: vars.platform_grpc_host,
 
-  // Development
-  isDevelopment: serviceConfig.environment === "development",
+  /** Plugin settings */
+  pluginTimeoutMs: 5000,
+  pluginRetries: 2,
+  pluginRateLimit: 20,
 
+  /** Development flag */
+  isDevelopment: vars.environment === "development",
+
+  /** Service metadata */
   serviceName: "inventory-service",
-  serviceVersion: process.env.SERVICE_VERSION || "1.0.0",
+  serviceVersion: "1.0.0",
 } as const;

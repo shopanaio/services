@@ -1,32 +1,43 @@
 # Services Configuration
 
-# Orchestrator mode configuration
-orchestrator:
-  services:
-    - apps
-    - delivery
-    - inventory
-    - payments
-    - pricing
-  transporter: "nats://nats:4222" # null for in-memory, "NATS" or "nats://localhost:4222" for distributed
+# Common vars for services
+vars:
+  # Environment for all services
+  environment: production
+  # Log level for all services
   log_level: info
-  metrics_port: 3030
-  environment: development
+  # Moleculer transporter for services broker
+  moleculer_transporter: nats://nats:4222
+  # Platform GRPC (context) server
+  platform_grpc_host: platform:50051
 
 services:
+  orchestrator:
+    # Services included to orchestrator
+    services:
+      - apps
+      - delivery
+      - inventory
+      - payments
+      - pricing
+    metrics_port: 3030
+
   checkout:
-    port: 10002
+    storefront_graphql_port: 10002
     transporter: "nats://nats:4222"
     database_url: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+    metrics_port: 3031
 
   orders:
-    port: 10003
+    storefront_graphql_port: 10003
     transporter: "nats://nats:4222"
     database_url: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+    metrics_port: 3032
 
   apps:
-    port: 10001
+    admin_graphql_port: 10001
     database_url: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+    metrics_port: 3033
 
   delivery:
     port: 10004

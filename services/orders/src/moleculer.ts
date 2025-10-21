@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import OrderService from "./service";
 import { App } from "./ioc/container";
+import { config } from "./config";
 
 // Broker configuration for order service
 const brokerConfig = {
@@ -18,8 +18,8 @@ const brokerConfig = {
     options: {
       // Use custom pino logger with pretty formatting
       pino: {
-        level: process.env.LOG_LEVEL || "info",
-        ...(process.env.NODE_ENV === "development" && {
+        level: config.logLevel,
+        ...(config.isDevelopment && {
           transport: {
             target: "pino-pretty",
             options: {
@@ -34,11 +34,10 @@ const brokerConfig = {
       },
     },
   },
-  logLevel: "info" as LogLevels,
+  logLevel: config.logLevel as LogLevels,
 
   // Transport for communication with other services
-  // null for development, NATS for production
-  transporter: process.env.MOLECULER_TRANSPORTER || "NATS",
+  transporter: config.transporter,
 
   // Caching configuration
   cacher: "Memory",
@@ -59,7 +58,7 @@ const brokerConfig = {
       {
         type: "Prometheus",
         options: {
-          port: parseInt(process.env.METRICS_PORT || "3034"),
+          port: config.metricsPort,
           path: "/metrics",
           defaultLabels: (registry: any) => ({
             namespace: "platform",
@@ -109,7 +108,7 @@ broker
     );
 
     // Enable REPL for debugging (development only)
-    if (process.env.NODE_ENV === "development") {
+    if (config.isDevelopment) {
       broker.logger.info("REPL enabled for development debugging");
       broker.repl();
     }

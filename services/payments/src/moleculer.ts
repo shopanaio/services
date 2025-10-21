@@ -1,6 +1,6 @@
-import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import PaymentsService from "./service";
+import { config } from "./config";
 
 // Broker configuration for payments service
 const brokerConfig = {
@@ -12,11 +12,10 @@ const brokerConfig = {
 
   // Logging configuration
   logger: true,
-  logLevel: "info" as LogLevels,
+  logLevel: config.logLevel as LogLevels,
 
   // Transport for communication with other services
-  // null for development, NATS for production
-  transporter: process.env.MOLECULER_TRANSPORTER || "NATS",
+  transporter: config.transporter,
 
   // Caching configuration
   cacher: "Memory",
@@ -37,7 +36,7 @@ const brokerConfig = {
       {
         type: "Prometheus",
         options: {
-          port: parseInt(process.env.METRICS_PORT || "3035"),
+          port: config.port,
           path: "/metrics",
           defaultLabels: (registry: any) => ({
             namespace: "platform",
@@ -83,7 +82,7 @@ broker
     );
 
     // Enable REPL for debugging (development only)
-    if (process.env.NODE_ENV === "development") {
+    if (config.isDevelopment) {
       broker.logger.info("REPL enabled for development debugging");
       broker.repl();
     }

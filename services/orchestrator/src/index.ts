@@ -1,35 +1,12 @@
 import "dotenv/config";
 
 import { ServiceBroker, LogLevels } from "moleculer";
-import { loadOrchestratorConfig } from "@shopana/shared-service-config";
+import {
+  loadServiceConfig,
+  findWorkspaceRoot,
+} from "@shopana/shared-service-config";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import fs from "fs/promises";
-
-/**
- * Find the root directory containing package.json with workspaces
- */
-async function findRootDir(startDir: string): Promise<string> {
-  let currentDir = path.resolve(startDir);
-
-  while (currentDir !== path.parse(currentDir).root) {
-    const packageJsonPath = path.join(currentDir, "package.json");
-    try {
-      const pkg = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
-      if (pkg.workspaces) {
-        return currentDir;
-      }
-    } catch (e) {
-      // package.json not found or not readable, continue searching
-    }
-
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir) break; // Reached filesystem root
-    currentDir = parentDir;
-  }
-
-  throw new Error("Could not find project root directory with workspaces");
-}
 
 /**
  * Get the path to a service's main file
@@ -39,7 +16,7 @@ async function getServicePath(
   environment: string
 ): Promise<string> {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  const projectRoot = await findRootDir(currentDir);
+  const projectRoot = await findWorkspaceRoot(currentDir);
 
   if (environment === "development") {
     return path.join(projectRoot, "services", serviceName, "src", "service.ts");
@@ -73,21 +50,20 @@ async function startOrchestrator() {
   console.log("🚀 Starting Service Orchestrator...");
 
   // Load orchestrator configuration from config.yml
-  const orchestratorConfig = loadOrchestratorConfig();
+  const { vars, config: orchestratorConfig } =
+    loadServiceConfig("orchestrator");
 
-  console.log(`🌍 Environment: ${orchestratorConfig.environment}`);
+  console.log(`🌍 Environment: ${vars.environment}`);
   console.log(`📦 Services to load: ${orchestratorConfig.services.join(", ")}`);
-  console.log(
-    `🚌 Transporter: ${orchestratorConfig.transporter || "in-memory"}`
-  );
+  console.log(`🚌 Transporter: ${vars.moleculer_transporter || "in-memory"}`);
 
   const broker = new ServiceBroker({
     namespace: "platform",
     nodeID: "orchestrator",
     logger: true,
-    logLevel: orchestratorConfig.logLevel as LogLevels,
+    logLevel: vars.log_level as LogLevels,
 
-    transporter: orchestratorConfig.transporter,
+    transporter: vars.moleculer_transporter,
 
     cacher: "Memory",
     serializer: "JSON",
@@ -100,7 +76,7 @@ async function startOrchestrator() {
         {
           type: "Prometheus",
           options: {
-            port: orchestratorConfig.metricsPort,
+            port: orchestratorConfig.metrics_port,
             path: "/metrics",
             defaultLabels: () => ({
               namespace: "platform",
@@ -120,17 +96,12 @@ async function startOrchestrator() {
   for (const serviceName of orchestratorConfig.services) {
     try {
       // Resolve absolute path for the service
-      const servicePath = await getServicePath(
-        serviceName,
-        orchestratorConfig.environment
-      );
+      const servicePath = await getServicePath(serviceName, vars.environment);
       const serviceUrl = pathToFileURL(servicePath).href;
 
       broker.logger.debug(`Loading service from: ${servicePath}`);
       const ServiceModule = await import(serviceUrl);
-      const ServiceDefinition = ServiceModule.default;
-
-      broker.createService(ServiceDefinition as any);
+      broker.createService(ServiceModule.default);
       broker.logger.info(`✅ Loaded service: ${serviceName}`);
       loadedServices.push(serviceName);
     } catch (error) {
@@ -166,9 +137,7 @@ async function startOrchestrator() {
   broker.logger.info("🚀 Service Orchestrator started successfully");
   broker.logger.info("═".repeat(60));
   broker.logger.info(
-    `📡 Transport: ${
-      orchestratorConfig.transporter ?? "In-memory (zero latency)"
-    }`
+    `📡 Transport: ${vars.moleculer_transporter ?? "In-memory (zero latency)"}`
   );
   broker.logger.info(`🏷️  Namespace: platform`);
   broker.logger.info(
@@ -176,13 +145,11 @@ async function startOrchestrator() {
       ", "
     )}`
   );
-  broker.logger.info(
-    `🔧 Config: ${orchestratorConfig.environment} mode from config.yml`
-  );
+  broker.logger.info(`🔧 Config: ${vars.environment} mode from config.yml`);
   broker.logger.info("═".repeat(60));
 
   // Enable REPL for debugging in development
-  if (orchestratorConfig.environment === "development") {
+  if (vars.environment === "development") {
     broker.logger.info("🐛 REPL enabled for debugging");
     broker.repl();
   }

@@ -16,7 +16,6 @@ services:
       - "10003:10003"
     environment:
       - NODE_ENV=production
-      - PORT=10003
       - MOLECULER_TRANSPORTER=nats://nats:4222
       - PLATFORM_GRPC_HOST=platform:50051
     volumes:

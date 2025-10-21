@@ -3,31 +3,38 @@ import path from "path";
 import yaml from "js-yaml";
 import type {
   ConfigStructure,
-  Environment,
   ServiceName,
-  ResolvedServiceConfig,
-  ServiceConfig,
-  EnvironmentConfig,
-  ResolvedOrchestratorConfig,
+  ServicesConfig,
+  VarsConfig,
 } from "./types.js";
 
 /**
  * Find the workspace root by looking for config.yml
  */
-function findWorkspaceRoot(startDir: string = process.cwd()): string {
-  let currentDir = startDir;
+export function findWorkspaceRoot(startDir: string = process.cwd()): string {
+  let currentDir = path.resolve(startDir);
 
-  while (currentDir !== path.dirname(currentDir)) {
-    const configPath = path.join(currentDir, "config.yml");
-    if (fs.existsSync(configPath)) {
-      return currentDir;
+  while (currentDir !== path.parse(currentDir).root) {
+    const packageJsonPath = path.join(currentDir, "package.json");
+    try {
+      const packageJson = fs.readFileSync(packageJsonPath, "utf-8");
+      if (!packageJson) {
+        continue;
+      }
+      const pkg = JSON.parse(packageJson);
+      if (pkg.workspaces) {
+        return currentDir;
+      }
+    } catch (e) {
+      // package.json not found or not readable, continue searching
     }
-    currentDir = path.dirname(currentDir);
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) break; // Reached filesystem root
+    currentDir = parentDir;
   }
 
-  throw new Error(
-    "Could not find config.yml in workspace. Please ensure config.yml exists in workspace root."
-  );
+  throw new Error("Could not find project root directory with workspaces");
 }
 
 /**
@@ -47,6 +54,14 @@ function loadYamlConfig(): ConfigStructure {
       throw new Error("Invalid configuration file format");
     }
 
+    if (!yamlConfig.vars) {
+      throw new Error("Missing 'vars' section in config.yml");
+    }
+
+    if (!yamlConfig.services) {
+      throw new Error("Missing 'services' section in config.yml");
+    }
+
     return yamlConfig;
   } catch (error) {
     if (error instanceof Error) {
@@ -57,200 +72,25 @@ function loadYamlConfig(): ConfigStructure {
 }
 
 /**
- * Resolve environment variables in configuration values
- */
-function resolveEnvironmentVariables(value: any): any {
-  if (typeof value === "string") {
-    // Replace ${VAR_NAME} with actual environment variable values
-    return value.replace(/\$\{([^}]+)\}/g, (match, varName) => {
-      const envValue = process.env[varName];
-      if (envValue === undefined) {
-        console.warn(
-          `Environment variable ${varName} is not set, keeping placeholder`
-        );
-        return match;
-      }
-      return envValue;
-    });
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(resolveEnvironmentVariables);
-  }
-
-  if (value && typeof value === "object") {
-    const resolved: any = {};
-    for (const [key, val] of Object.entries(value)) {
-      resolved[key] = resolveEnvironmentVariables(val);
-    }
-    return resolved;
-  }
-
-  return value;
-}
-
-/**
- * Deep merge two objects
- */
-function deepMerge<T extends Record<string, any>>(
-  target: T,
-  source: Partial<T>
-): T {
-  const result = { ...target };
-
-  for (const key in source) {
-    if (source[key] !== undefined) {
-      if (
-        typeof target[key] === "object" &&
-        target[key] !== null &&
-        !Array.isArray(target[key]) &&
-        typeof source[key] === "object" &&
-        source[key] !== null &&
-        !Array.isArray(source[key])
-      ) {
-        (result as any)[key] = deepMerge(target[key], source[key]);
-      } else {
-        (result as any)[key] = source[key];
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Apply environment-specific overrides to configuration
- */
-function applyEnvironmentOverrides(
-  config: ConfigStructure,
-  environment: Environment
-): ConfigStructure {
-  const envOverrides = config.environments?.[environment];
-  if (!envOverrides || !envOverrides.services) {
-    return config;
-  }
-
-  let result = { ...config };
-
-  // Apply service-specific overrides
-  result.services = deepMerge(result.services, envOverrides.services);
-
-  return result;
-}
-
-/**
  * Load configuration for a specific service
  */
-export function loadServiceConfig(
-  serviceName: ServiceName
-): ResolvedServiceConfig {
-  const environment = (process.env.NODE_ENV || "development") as Environment;
-
-  // Load base configuration
-  const baseConfig = loadYamlConfig();
-
-  // Apply environment-specific overrides
-  const config = applyEnvironmentOverrides(baseConfig, environment);
-
-  // Resolve environment variables
-  const resolvedConfig = resolveEnvironmentVariables(config) as ConfigStructure;
+export function loadServiceConfig<T extends ServiceName>(
+  serviceName: T
+): {
+  config: ServicesConfig[T];
+  vars: VarsConfig;
+} {
+  // Load configuration
+  const config = loadYamlConfig();
 
   // Get service configuration
-  const serviceConfig = resolvedConfig.services[serviceName];
+  const serviceConfig = config.services[serviceName];
   if (!serviceConfig) {
     throw new Error(`Configuration for service "${serviceName}" not found`);
   }
 
-  // Override with environment variables
-  const finalPort = Number(process.env.PORT) || serviceConfig.port;
-  const finalDatabaseUrl =
-    process.env.DATABASE_URL || serviceConfig.database_url;
-
   return {
-    serviceName,
-    environment,
-    service: serviceConfig,
-    databaseUrl: finalDatabaseUrl,
-    port: finalPort,
-  };
-}
-
-/**
- * Get list of all available services
- */
-export function getAvailableServices(): ServiceName[] {
-  const config = loadYamlConfig();
-  return Object.keys(config.services) as ServiceName[];
-}
-
-/**
- * Get port for a specific service
- */
-export function getServicePort(serviceName: ServiceName): number {
-  const config = loadServiceConfig(serviceName);
-  return config.port;
-}
-
-/**
- * Get all services with their ports (useful for development)
- */
-export function getAllServicePorts(): Record<string, number> {
-  const services = getAvailableServices();
-  const result: Record<string, number> = {};
-
-  for (const serviceName of services) {
-    const config = loadServiceConfig(serviceName);
-    result[serviceName] = config.port;
-  }
-
-  return result;
-}
-
-/**
- * Load orchestrator configuration
- */
-export function loadOrchestratorConfig(): ResolvedOrchestratorConfig {
-  const environment = (process.env.NODE_ENV || "development") as Environment;
-
-  // Load configuration
-  const config = loadYamlConfig();
-
-  // Resolve environment variables
-  const resolvedConfig = resolveEnvironmentVariables(config) as ConfigStructure;
-
-  // Get orchestrator configuration with defaults
-  const orchestratorConfig = resolvedConfig.orchestrator || {
-    services: [],
-    transporter: null,
-    log_level: "info",
-    metrics_port: 3030,
-  };
-
-  // Allow ENV to override which services to load
-  let services = orchestratorConfig.services;
-  const envServices = process.env.ORCHESTRATOR_SERVICES;
-  if (envServices) {
-    services = envServices.split(",").map((s) => s.trim()) as ServiceName[];
-  }
-
-  // Get transporter configuration
-  const transporter = process.env.ORCHESTRATOR_TRANSPORTER !== undefined
-    ? process.env.ORCHESTRATOR_TRANSPORTER
-    : (orchestratorConfig.transporter || null);
-
-  // Get log level
-  const logLevel = process.env.LOG_LEVEL || orchestratorConfig.log_level || "info";
-
-  // Get metrics port
-  const metricsPort = process.env.METRICS_PORT
-    ? Number(process.env.METRICS_PORT)
-    : (orchestratorConfig.metrics_port || 3030);
-
-  return {
-    services,
-    environment,
-    transporter,
-    logLevel,
-    metricsPort,
+    config: config.services[serviceName],
+    vars: config.vars,
   };
 }

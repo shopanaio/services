@@ -1,35 +1,31 @@
-import dotenv from 'dotenv';
-import { loadServiceConfig } from '@shopana/shared-service-config';
-
-// Load environment variables from .env file
-dotenv.config();
+import { loadServiceConfig } from "@shopana/shared-service-config";
 
 /**
  * Service configuration using centralized config system
  */
-const serviceConfig = loadServiceConfig('delivery');
+const { vars } = loadServiceConfig("delivery");
 
 export const config = {
   /** HTTP port for health check server */
-  port: serviceConfig.port,
-
-  /** Database connection URL */
-  databaseUrl: serviceConfig.databaseUrl || '',
+  port: 0,
 
   /** Current environment name */
-  nodeEnv: serviceConfig.environment,
+  environment: vars.environment,
 
-  // Apps Service
-  appsServiceUrl: process.env.APPS_SERVICE_URL,
+  /** Log level */
+  logLevel: vars.log_level,
 
-  // Kernel settings
-  pluginTimeoutMs: Number(process.env.SHIPPING_PLUGIN_TIMEOUT_MS ?? 3000),
-  pluginRetries: Number(process.env.SHIPPING_PLUGIN_RETRIES ?? 1),
-  pluginRateLimit: Number(process.env.SHIPPING_PLUGIN_RATELIMIT ?? 10),
+  /** Moleculer transporter */
+  transporter: vars.moleculer_transporter,
 
-  // Logging
-  logLevel: process.env.LOG_LEVEL || 'info',
+  /** Platform gRPC host */
+  platformGrpcHost: vars.platform_grpc_host,
 
-  // Development
-  isDevelopment: serviceConfig.environment === 'development',
+  /** Plugin settings */
+  pluginTimeoutMs: 3000,
+  pluginRetries: 1,
+  pluginRateLimit: 10,
+
+  /** Development flag */
+  isDevelopment: vars.environment === "development",
 } as const;

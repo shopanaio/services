@@ -1,6 +1,6 @@
-import "dotenv/config";
 import { ServiceBroker, LogLevels } from "moleculer";
 import InventoryService from "./service";
+import { config } from "./config";
 
 // Broker configuration for inventory service
 const brokerConfig = {
@@ -12,11 +12,10 @@ const brokerConfig = {
 
 	// Logging configuration
 	logger: true,
-	logLevel: "info" as LogLevels,
+	logLevel: config.logLevel as LogLevels,
 
 	// Transport for communication with other services
-	// null for development, NATS for production
-	transporter: process.env.MOLECULER_TRANSPORTER || "NATS",
+	transporter: config.transporter,
 
 	// Caching configuration
 	cacher: "Memory",
@@ -37,7 +36,7 @@ const brokerConfig = {
 			{
 				type: "Prometheus",
 				options: {
-					port: parseInt(process.env.METRICS_PORT || "3033"),
+					port: config.port,
 					path: "/metrics",
 					defaultLabels: (registry: any) => ({
 						namespace: "platform",
@@ -80,7 +79,7 @@ broker.start()
 		broker.logger.info("🚀 Inventory service started successfully");
 
 		// Enable REPL for debugging (development only)
-		if (process.env.NODE_ENV === "development") {
+		if (config.isDevelopment) {
 			broker.repl();
 		}
 	})

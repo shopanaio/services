@@ -6,23 +6,7 @@
  */
 
 // Export types
-export type {
-  ServiceConfig,
-  ServicesConfig,
-  EnvironmentConfig,
-  ConfigStructure,
-  Environment,
-  ServiceName,
-  ResolvedServiceConfig,
-  OrchestratorConfig,
-  ResolvedOrchestratorConfig,
-} from "./types.js";
+export type { ServicesConfig, ConfigStructure, ServiceName } from "./types.js";
 
 // Export configuration loader functions
-export {
-  loadServiceConfig,
-  loadOrchestratorConfig,
-  getAvailableServices,
-  getServicePort,
-  getAllServicePorts,
-} from "./configLoader.js";
+export { loadServiceConfig, findWorkspaceRoot } from "./configLoader.js";
