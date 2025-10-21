@@ -1,0 +1,183 @@
+version: '3.8'
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: shopana-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+      - "6222:6222"
+    volumes:
+      - ./nats/nats-${NATS_ENV:-dev}.conf:/etc/nats/nats-server.conf:ro
+      - nats-data:/data
+      - nats-logs:/var/log/nats
+    environment:
+      - SERVER_NAME=${NATS_SERVER_NAME:-nats-dev}
+      - NATS_USER=${NATS_USER:-shopana}
+      - NATS_PASSWORD=${NATS_PASSWORD:-shopana_dev_password}
+      - NATS_ADMIN_PASSWORD=${NATS_ADMIN_PASSWORD:-admin_dev_password}
+      - CLUSTER_USER=${NATS_CLUSTER_USER:-cluster}
+      - CLUSTER_PASSWORD=${NATS_CLUSTER_PASSWORD:-cluster_password}
+      - LEAFNODE_USER=${NATS_LEAFNODE_USER:-leafnode}
+      - LEAFNODE_PASSWORD=${NATS_LEAFNODE_PASSWORD:-leafnode_password}
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - shopana-network
+
+  postgres:
+    build:
+      context: ./platform/postgres
+      dockerfile: Dockerfile
+    image: shopana/postgres:17
+    container_name: shopana-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    command:
+      - "postgres"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_line_prefix=%m [%p] %u@%d"
+      - "-c"
+      - "logging_collector=off"
+    networks:
+      - shopana-network
+
+  platform:
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    image: shopana/platform:latest
+    container_name: shopana-platform
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    environment:
+      - ENV=production
+      - PORT=4000
+      - GRPC_PORT=50051
+      - GRPC_REQUEST_TIMEOUT=30s
+      - GRPC_RATE_LIMIT=100
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=portal
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_SSL=disable
+      - CORE_APPS_GRPC_URL=platform:50051
+    networks:
+      - shopana-network
+    depends_on:
+      - nats
+      - postgres
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+      args:
+        SERVICE_NAME: orchestrator
+        NODE_VERSION: 20
+        BASE_IMAGE: "services-base:local"
+    image: shopana/orchestrator:latest
+    container_name: shopana-orchestrator
+    restart: unless-stopped
+    ports:
+      - "3030:3030"
+      - "10001:10001"
+      - "10004:10004"
+      - "10005:10005"
+      - "10006:10006"
+      - "10008:10008"
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://nats:4222
+      - NAMESPACE=platform
+      - LOGLEVEL=info
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3030/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - shopana-network
+    depends_on:
+      - nats
+      - postgres
+      - platform
+
+  checkout-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: checkout
+        NODE_VERSION: 20
+        BASE_IMAGE: "services-base:local"
+    image: shopana/checkout-service:latest
+    container_name: shopana-checkout-service
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NATS_URL=nats://nats:4222
+    networks:
+      - shopana-network
+    depends_on:
+      - orchestrator
+      - postgres
+      - nats
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: orders
+        NODE_VERSION: 20
+        BASE_IMAGE: "services-base:local"
+    image: shopana/orders-service:latest
+    container_name: shopana-orders-service
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NATS_URL=nats://nats:4222
+    networks:
+      - shopana-network
+    depends_on:
+      - orchestrator
+      - postgres
+      - nats
+
+networks:
+  shopana-network:
+    driver: bridge
+
+volumes:
+  nats-data:
+  nats-logs:
+  postgres-data:

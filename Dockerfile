@@ -7,7 +7,7 @@
 #     -t ghcr.io/OWNER/checkout-service:latest \
 #     -f Dockerfile .
 
-ARG BASE_IMAGE=ghcr.io/shopanaio/services-base:latest
+ARG BASE_IMAGE
 ARG NODE_VERSION=20
 
 # ============================================================================
