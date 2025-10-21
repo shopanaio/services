@@ -54,10 +54,10 @@
     password: "{{ shopana_ghcr_token }}"
   no_log: true
 
-- name: Cleanup containers on port {{ orchestrator_port }}
+- name: Cleanup containers on metrics port {{ orchestrator_metrics_port | default(3030) }}
   ansible.builtin.include_tasks: "{{ root_dir }}/ansible/tasks/cleanup-port-task.yml"
   vars:
-    cleanup_port: "{{ orchestrator_port }}"
+    cleanup_port: "{{ orchestrator_metrics_port | default(3030) }}"
 
 - name: Stop and remove existing orchestrator container if running
   ansible.builtin.command:
@@ -66,9 +66,9 @@
   ignore_errors: true
   changed_when: true
 
-- name: Wait for port to be released
+- name: Wait for metrics port to be released
   ansible.builtin.wait_for:
-    port: "{{ orchestrator_port }}"
+    port: "{{ orchestrator_metrics_port | default(3030) }}"
     state: stopped
     timeout: 30
   ignore_errors: true
@@ -98,10 +98,10 @@
   ansible.builtin.debug:
     var: startup_logs.stdout_lines
 
-- name: Wait for orchestrator to listen on {{ orchestrator_port }}
+- name: Wait for orchestrator metrics endpoint to be ready
   ansible.builtin.wait_for:
     host: 127.0.0.1
-    port: "{{ orchestrator_port }}"
+    port: "{{ orchestrator_metrics_port | default(3030) }}"
     delay: 3
     timeout: 60
 
@@ -123,16 +123,18 @@
       - ""
       - "🌐 Service Info:"
       - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ orchestrator_image_tag }}"
-      - "  HTTP: http://{{ ansible_host }}:{{ orchestrator_port }}"
-      - "  Health: http://{{ ansible_host }}:{{ orchestrator_port }}/health"
       - "  Directory: {{ orchestrator_dir }}"
       - ""
       - "📦 Services in orchestrator:"
-      - "  • apps (GraphQL API)"
-      - "  • payments"
-      - "  • inventory"
-      - "  • delivery"
-      - "  • pricing"
+      - "  • apps - GraphQL API: http://{{ ansible_host }}:{{ apps_port }}"
+      - "  • delivery - http://{{ ansible_host }}:{{ delivery_port }}"
+      - "  • inventory - http://{{ ansible_host }}:{{ inventory_port }}"
+      - "  • payments - http://{{ ansible_host }}:{{ payments_port }}"
+      - "  • pricing - http://{{ ansible_host }}:{{ pricing_port }}"
+      - ""
+      - "📊 Metrics & Health:"
+      - "  Health: http://{{ ansible_host }}:{{ orchestrator_metrics_port | default(3030) }}/health"
+      - "  Metrics: http://{{ ansible_host }}:{{ orchestrator_metrics_port | default(3030) }}/metrics"
       - ""
       - "📊 View Logs:"
       - "  ssh {{ ansible_host }} 'cd {{ orchestrator_dir }} && docker compose logs -f'"

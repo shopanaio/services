@@ -18,13 +18,10 @@
   vars:
     # Build configuration
     local_build_dir: "{{ root_dir }}"
-    dockerfile_path: "{{ root_dir }}/Dockerfile"
+    dockerfile_path: "{{ root_dir }}/services/orchestrator/Dockerfile"
 
     # Image tag with fallback
     final_image_tag: "{{ image_tag | default('latest', true) }}"
-
-    # Service name to build (apps is the entry point for orchestrator)
-    service_name: apps
 
   tasks:
     - name: Validate required variables are provided
@@ -71,7 +68,6 @@
             cmd: >
               docker build
               --platform {{ docker_platform }}
-              --build-arg SERVICE_NAME={{ service_name }}
               --build-arg BASE_IMAGE={{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/services-base:{{ final_image_tag }}
               --build-arg VERSION={{ final_image_tag }}
               --build-arg BUILD_DATE={{ ansible_date_time.iso8601 }}

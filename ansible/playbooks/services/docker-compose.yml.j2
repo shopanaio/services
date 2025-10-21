@@ -19,6 +19,7 @@ services:
       - LOG_LEVEL={{ service_log_level | default('info') }}
       - HEARTBEAT_INTERVAL={{ heartbeat_interval | default('10') }}
       - HEARTBEAT_TIMEOUT={{ heartbeat_timeout | default('30') }}
+      - PLATFORM_GRPC_HOST={{ platform_grpc_host }}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:{{ service_port }}/healthz"]
       interval: 30s
