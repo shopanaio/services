@@ -13,11 +13,12 @@ services:
     container_name: shopana-orders-service
     restart: unless-stopped
     ports:
-      - "3002:3000"
+      - "10003:10003"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=10003
       - MOLECULER_TRANSPORTER=nats://nats:4222
+      - PLATFORM_GRPC_HOST=platform:50051
     volumes:
       - ./config.yml:/app/config.yml:ro
     networks:

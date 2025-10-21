@@ -24,6 +24,9 @@ services:
       - NAMESPACE=platform
       - LOGLEVEL=info
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
+      - PLATFORM_GRPC_HOST=platform:50051
+      - CORE_APPS_GRAPHQL_URL=http://platform:8000/api/apps/graphql/query
+
     volumes:
       - ./config.yml:/app/config.yml:ro
     healthcheck:
