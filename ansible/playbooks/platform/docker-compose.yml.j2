@@ -5,11 +5,17 @@ services:
     restart: unless-stopped
     ports:
       - "0.0.0.0:{{ platform_port }}:{{ platform_port }}"
+      - "0.0.0.0:{{ platform_grpc_port }}:{{ platform_grpc_port }}"
     secrets:
       - source: platform_env
         target: /.env
     environment:
       - PORT={{ platform_port }}
+      - GRPC_PORT={{ platform_grpc_port }}
+      - GRPC_REQUEST_TIMEOUT={{ platform_grpc_request_timeout }}
+      - GRPC_RATE_LIMIT={{ platform_grpc_rate_limit }}
+      - GRPC_TLS_CERT_FILE={{ platform_grpc_tls_cert_file }}
+      - GRPC_TLS_KEY_FILE={{ platform_grpc_tls_key_file }}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:{{ platform_port }}/healthz"]
       interval: 30s

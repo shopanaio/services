@@ -2,13 +2,10 @@
 # This task is included by deploy_orchestrator.yml and deploy_all.yml
 #
 # Required variables:
-#   - orchestrator_port
+#   - orchestrator_metrics_port
 #   - orchestrator_image_tag
-#   - apps_port, apps_database_url
-#   - platform_port, platform_database_url
-#   - payments_port, payments_database_url
-#   - inventory_port, inventory_database_url
-#   - delivery_port, delivery_database_url
+#   - apps_port
+
 ---
 - name: Set orchestrator directory
   ansible.builtin.set_fact:
@@ -19,7 +16,7 @@
     msg:
       - "🚀 Deploying orchestrator-service"
       - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ orchestrator_image_tag }}"
-      - "  Port: {{ orchestrator_port }}"
+      - "  Metrics Port: {{ orchestrator_metrics_port }}"
       - "  Directory: {{ orchestrator_dir }}"
       - "  Services: apps, payments, inventory, delivery, pricing"
 
@@ -29,15 +26,9 @@
     state: directory
     mode: "0755"
 
-- name: Generate .env from template
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/env-orchestrator.j2"
-    dest: "{{ orchestrator_dir }}/.env"
-    mode: "0600"
-
 - name: Generate config.yml from template
   ansible.builtin.template:
-    src: "{{ playbook_dir }}/config-orchestrator.yml.j2"
+    src: "{{ playbook_dir }}/config.yml.j2"
     dest: "{{ orchestrator_dir }}/config.yml"
     mode: "0644"
 
@@ -54,10 +45,10 @@
     password: "{{ shopana_ghcr_token }}"
   no_log: true
 
-- name: Cleanup containers on metrics port {{ orchestrator_metrics_port | default(3030) }}
+- name: Cleanup containers on metrics port {{ orchestrator_metrics_port }}
   ansible.builtin.include_tasks: "{{ root_dir }}/ansible/tasks/cleanup-port-task.yml"
   vars:
-    cleanup_port: "{{ orchestrator_metrics_port | default(3030) }}"
+    cleanup_port: "{{ orchestrator_metrics_port }}"
 
 - name: Stop and remove existing orchestrator container if running
   ansible.builtin.command:
@@ -68,7 +59,7 @@
 
 - name: Wait for metrics port to be released
   ansible.builtin.wait_for:
-    port: "{{ orchestrator_metrics_port | default(3030) }}"
+    port: "{{ orchestrator_metrics_port }}"
     state: stopped
     timeout: 30
   ignore_errors: true
@@ -101,7 +92,7 @@
 - name: Wait for orchestrator metrics endpoint to be ready
   ansible.builtin.wait_for:
     host: 127.0.0.1
-    port: "{{ orchestrator_metrics_port | default(3030) }}"
+    port: "{{ orchestrator_metrics_port }}"
     delay: 3
     timeout: 60
 
@@ -130,8 +121,8 @@
       - ""
       - "🌐 Exposed endpoints:"
       - "  • Apps GraphQL API: http://{{ ansible_host }}:{{ apps_port }}"
-      - "  • Health: http://{{ ansible_host }}:{{ orchestrator_metrics_port | default(3030) }}/health"
-      - "  • Metrics: http://{{ ansible_host }}:{{ orchestrator_metrics_port | default(3030) }}/metrics"
+      - "  • Health: http://{{ ansible_host }}:{{ orchestrator_metrics_port }}/health"
+      - "  • Metrics: http://{{ ansible_host }}:{{ orchestrator_metrics_port }}/metrics"
       - ""
       - "📊 View Logs:"
       - "  ssh {{ ansible_host }} 'cd {{ orchestrator_dir }} && docker compose logs -f'"

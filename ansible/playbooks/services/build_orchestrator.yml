@@ -57,7 +57,6 @@
             msg:
               - ""
               - "🔨 Building orchestrator-service"
-              - "  Entry point: services/apps (orchestrator mode)"
               - "  Services: apps, payments, inventory, delivery, pricing"
               - "  Image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ final_image_tag }}"
               - "  Dockerfile: {{ dockerfile_path }}"
@@ -118,7 +117,6 @@
               - "{% if ansible_failed_result.stderr is defined and ansible_failed_result.stderr | length > 0 %}Stderr: {{ ansible_failed_result.stderr }}{% endif %}"
               - ""
               - "💡 Common solutions:"
-              - "  • Ensure apps service builds locally: cd services/apps && yarn build"
               - "  • Check SHOPANA_GITHUB_TOKEN has packages:write permission"
               - "  • Verify SHOPANA_GHCR_OWNER is correct: {{ shopana_ghcr_owner }}"
               - "  • Ensure Docker daemon is running"
