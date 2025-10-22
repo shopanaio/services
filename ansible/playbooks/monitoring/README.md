@@ -119,9 +119,52 @@ ansible-playbook playbooks/monitoring/uninstall.yml -i hosts.ini --limit shopana
 rate({container_name=~".+"} |= "ERROR" [5m])
 ```
 
-#### Count by Label
+#### Logs by Service
 ```logql
-sum by (compose_service) (count_over_time({container_name=~".+"}[5m]))
+# Orchestrator service logs
+{compose_service="orchestrator"}
+
+# Apps service logs
+{compose_service="apps"}
+
+# Checkout service logs
+{compose_service="checkout"}
+
+# Orders service logs
+{compose_service="orders"}
+
+# Inventory service logs
+{compose_service="inventory"}
+
+# Delivery service logs
+{compose_service="delivery"}
+
+# Payments service logs
+{compose_service="payments"}
+
+# Platform service logs
+{compose_service="platform"}
+
+# Pricing service logs
+{compose_service="pricing"}
+```
+
+#### Service Error Logs
+```logql
+# Errors in specific services
+{compose_service="orchestrator"} |= "ERROR"
+{compose_service="apps"} |= "ERROR"
+{compose_service="checkout"} |= "ERROR"
+{compose_service="orders"} |= "ERROR"
+```
+
+#### Service Log Statistics
+```logql
+# Error rate per service
+sum(count_over_time({compose_service="orchestrator"} |= "ERROR" [5m]))
+
+# Total logs per service
+sum(count_over_time({compose_service="orders"} [5m]))
 ```
 
 ### Query Builder
@@ -307,7 +350,7 @@ The monitoring stack includes automatic collection of metrics from all Moleculer
 1. **Container Metrics** - CPU, Memory, Network usage of all containers
 2. **Container Logs** - Real-time logs from all containers
 3. **Services Health** - Health checks and status of services
-4. **Moleculer Services** - Microservices-specific metrics:
+4. **Moleculer Services** - Overview metrics for all microservices:
    - Request rate per service/action
    - Average request duration
    - Error rate
@@ -315,20 +358,43 @@ The monitoring stack includes automatic collection of metrics from all Moleculer
    - Active events
    - Node count
 
+5. **Service-Specific Dashboards** - Individual dashboards for each service:
+   - **Orchestrator Service Dashboard** - Metrics and logs for orchestrator service
+   - **Apps Service Dashboard** - Metrics and logs for apps service
+   - **Checkout Service Dashboard** - Metrics and logs for checkout service
+   - **Delivery Service Dashboard** - Metrics and logs for delivery service
+   - **Inventory Service Dashboard** - Metrics and logs for inventory service
+   - **Orders Service Dashboard** - Metrics and logs for orders service
+   - **Payments Service Dashboard** - Metrics and logs for payments service
+   - **Platform Service Dashboard** - Metrics and logs for platform service
+   - **Pricing Service Dashboard** - Metrics and logs for pricing service
+
+6. **Service-Specific Logs Dashboards** - Dedicated log dashboards for each service:
+   - **Orchestrator Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Apps Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Checkout Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Delivery Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Inventory Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Orders Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Payments Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Platform Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+   - **Pricing Service - Logs Dashboard** - All logs, error logs, warning logs with statistics
+
 ### Monitored Services
 
 The following Moleculer services expose metrics on their dedicated ports:
 
-| Service    | Metrics Port | Metrics Endpoint                  |
-|------------|--------------|-----------------------------------|
-| apps       | 3030         | http://159.69.85.45:3030/metrics |
-| checkout   | 3031         | http://159.69.85.45:3031/metrics |
-| delivery   | 3032         | http://159.69.85.45:3032/metrics |
-| inventory  | 3033         | http://159.69.85.45:3033/metrics |
-| orders     | 3034         | http://159.69.85.45:3034/metrics |
-| payments   | 3035         | http://159.69.85.45:3035/metrics |
-| platform   | 3036         | http://159.69.85.45:3036/metrics |
-| pricing    | 3037         | http://159.69.85.45:3037/metrics |
+| Service     | Metrics Port | Dashboard URL | Logs Dashboard URL |
+|-------------|--------------|---------------|--------------------|
+| orchestrator| 3030         | /d/orchestrator-service/orchestrator-service-dashboard | /d/orchestrator-service-logs/orchestrator-service-logs-dashboard |
+| apps        | 3030         | /d/apps-service/apps-service-dashboard | /d/apps-service-logs/apps-service-logs-dashboard |
+| checkout    | 3031         | /d/checkout-service/checkout-service-dashboard | /d/checkout-service-logs/checkout-service-logs-dashboard |
+| delivery    | 3032         | /d/delivery-service/delivery-service-dashboard | /d/delivery-service-logs/delivery-service-logs-dashboard |
+| inventory   | 3033         | /d/inventory-service/inventory-service-dashboard | /d/inventory-service-logs/inventory-service-logs-dashboard |
+| orders      | 3034         | /d/orders-service/orders-service-dashboard | /d/orders-service-logs/orders-service-logs-dashboard |
+| payments    | 3035         | /d/payments-service/payments-service-dashboard | /d/payments-service-logs/payments-service-logs-dashboard |
+| platform    | 3036         | /d/platform-service/platform-service-dashboard | /d/platform-service-logs/platform-service-logs-dashboard |
+| pricing     | 3037         | /d/pricing-service/pricing-service-dashboard | /d/pricing-service-logs/pricing-service-logs-dashboard |
 
 ### Key Metrics
 
@@ -408,11 +474,13 @@ ansible-playbook playbooks/monitoring/deploy.yml -i hosts.ini --limit shopana_sa
 
 ## Next Steps
 
-1. Create custom Grafana dashboards for your services
-2. Set up alerting rules in Prometheus
+1. **Review and customize** the created service-specific dashboards in Grafana
+2. Set up alerting rules in Prometheus for service metrics
 3. Configure Grafana alert notifications (email, Slack, etc.)
-4. Add application-specific metrics exporters
+4. Add application-specific metrics exporters if needed
 5. Create Loki alert rules for log-based alerting
+6. Set up custom dashboards for business metrics
+7. Configure dashboard permissions and access control
 
 ## Support
 

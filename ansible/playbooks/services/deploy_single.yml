@@ -73,12 +73,6 @@
         state: directory
         mode: "0755"
 
-    - name: Generate .env from template
-      ansible.builtin.template:
-        src: "{{ playbook_dir }}/env.j2"
-        dest: "{{ app_dir }}/.env"
-        mode: "0600"
-
     - name: Generate config.yml from template
       ansible.builtin.template:
         src: "{{ playbook_dir }}/config.yml.j2"
@@ -87,7 +81,7 @@
 
     - name: Generate docker-compose.yml from template
       ansible.builtin.template:
-        src: "{{ playbook_dir }}/docker-compose.yml.j2"
+        src: "{{ playbook_dir }}/docker-compose-service.yml.j2"
         dest: "{{ app_dir }}/docker-compose.yml"
         mode: "0644"
 

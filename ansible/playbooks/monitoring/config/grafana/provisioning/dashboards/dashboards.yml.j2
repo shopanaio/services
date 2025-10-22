@@ -12,3 +12,14 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/json
       foldersFromFilesStructure: true
+
+  # Service-specific dashboards
+  - name: 'service-dashboards'
+    orgId: 1
+    folder: 'Services'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/service-json

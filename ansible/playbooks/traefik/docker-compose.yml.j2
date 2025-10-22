@@ -13,12 +13,6 @@ services:
       - TZ={{ traefik_timezone }}
     command:
       - --configFile=/etc/traefik/traefik.yml
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
     networks:
       - shopana-network
     labels:
@@ -27,4 +21,4 @@ services:
 networks:
   shopana-network:
     name: shopana-network
-    driver: bridge
+    external: true

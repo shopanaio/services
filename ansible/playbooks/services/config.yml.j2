@@ -16,12 +16,12 @@ services:
 
   apps:
     admin_graphql_port: {{ apps_port }}
-    database_url: {{ service_database_url }}
+    database_url: {{ apps_database_url }}
     metrics_port: {{ apps_metrics_port }}
 
   checkout:
     storefront_graphql_port: {{ checkout_port }}
-    database_url: {{ service_database_url }}
+    database_url: {{ checkout_database_url }}
     metrics_port: {{ checkout_metrics_port }}
 
   orders:

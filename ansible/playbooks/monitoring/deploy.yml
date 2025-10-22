@@ -46,6 +46,7 @@
         - grafana/provisioning/datasources
         - grafana/provisioning/dashboards
         - grafana/provisioning/dashboards/json
+        - grafana/provisioning/dashboards/service-json
 
     - name: Generate docker-compose.yml from template
       ansible.builtin.template:
@@ -93,6 +94,22 @@
         - container-metrics.json
         - services-health.json
         - moleculer-services.json
+
+    - name: Generate service-specific dashboards
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/config/grafana/dashboards/{{ item.name }}-service.json.j2"
+        dest: "{{ app_dir }}/config/grafana/provisioning/dashboards/service-json/{{ item.name }}-service.json"
+        mode: "0644"
+      loop: "{{ service_dashboards }}"
+      when: grafana_service_dashboards_enabled | default(true)
+
+    - name: Generate service-specific log dashboards
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/config/grafana/dashboards/{{ item.name }}-service-logs.json.j2"
+        dest: "{{ app_dir }}/config/grafana/provisioning/dashboards/json/{{ item.name }}-service-logs.json"
+        mode: "0644"
+      loop: "{{ service_dashboards }}"
+      when: grafana_service_logs_dashboards_enabled | default(true)
 
     - name: Ensure Docker network exists
       community.docker.docker_network:
