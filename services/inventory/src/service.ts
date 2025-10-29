@@ -1,5 +1,21 @@
 import { Service, ServiceSchema, Context } from "moleculer";
 import { Kernel, MoleculerLogger } from "@shopana/shared-kernel";
+import type {
+  InventoryUpdateEntry,
+  InventoryUpdateMeta,
+  InventoryUpdateTask,
+} from "@shopana/import-plugin-sdk";
+import {
+  assertInventoryUpdateTask,
+  inventoryUpdateEntrySchema,
+} from "@shopana/import-plugin-sdk";
+import { config } from "./config";
+import {
+  InventoryObjectStorage,
+  type DownloadedInventoryPayload,
+} from "./storage";
+import { gunzip as gunzipCallback } from "node:zlib";
+import { promisify } from "node:util";
 import {
   getOffers,
   GetOffersParams,
@@ -10,10 +26,91 @@ import {
 // This allows TypeScript to understand properties added by broker (logger, broker, etc.)
 type ServiceThis = Service & {
   kernel: Kernel;
+  storageGateway: InventoryObjectStorage;
 };
+
+const gunzip = promisify(gunzipCallback);
+const inventoryUpdateEntryListSchema = inventoryUpdateEntrySchema
+  .array()
+  .min(1);
+
+export async function processInventoryUpdate(
+  deps: {
+    logger: Service["logger"];
+    storageGateway: {
+      download(
+        descriptor: InventoryUpdateTask["storage"]
+      ): Promise<DownloadedInventoryPayload>;
+    };
+  },
+  task: InventoryUpdateTask
+): Promise<void> {
+  const { storage, meta } = task;
+  const payload = await deps.storageGateway.download(storage);
+  const effectiveBuffer = await decompressPayload(
+    payload.buffer,
+    meta?.compression
+  );
+  const entries = parseInventoryUpdates(effectiveBuffer);
+
+  deps.logger.info(
+    {
+      pluginCode: task.source.pluginCode,
+      integrationId: task.source.integrationId,
+      feedType: task.source.feedType,
+      issuedAt: task.issuedAt,
+      bucket: storage.bucket,
+      objectKey: storage.objectKey,
+      items: entries.length,
+    },
+    "Inventory update task received"
+  );
+}
+
+async function decompressPayload(
+  buffer: Buffer,
+  compression: InventoryUpdateMeta["compression"] | undefined
+): Promise<Buffer> {
+  if (!compression || compression === "none") {
+    return buffer;
+  }
+
+  if (compression === "gzip") {
+    return gunzip(buffer);
+  }
+
+  throw new Error(
+    `Unsupported inventory payload compression: ${compression}`
+  );
+}
+
+function parseInventoryUpdates(buffer: Buffer): InventoryUpdateEntry[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    throw new Error(
+      `Failed to parse inventory payload JSON: ${
+        error instanceof Error ? error.message : error
+      }`
+    );
+  }
+
+  return inventoryUpdateEntryListSchema.parse(parsed);
+}
 
 const InventoryService: ServiceSchema<any> = {
   name: "inventory",
+
+  events: {
+    async "inventory.update.request"(
+      this: ServiceThis,
+      payload: InventoryUpdateTask
+    ) {
+      assertInventoryUpdateTask(payload);
+      await this.handleInventoryUpdate(payload);
+    },
+  },
 
   /**
    * Service actions
@@ -40,6 +137,7 @@ const InventoryService: ServiceSchema<any> = {
       this.broker,
       new MoleculerLogger(this.logger)
     );
+    this.storageGateway = new InventoryObjectStorage(config.storage);
   },
 
   async started() {
@@ -58,6 +156,21 @@ const InventoryService: ServiceSchema<any> = {
   methods: {
     generateRequestId(): string {
       return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    },
+    /**
+     * Handles inventory update tasks emitted by import plugins.
+     */
+    async handleInventoryUpdate(
+      this: ServiceThis,
+      task: InventoryUpdateTask
+    ): Promise<void> {
+      await processInventoryUpdate(
+        {
+          logger: this.logger,
+          storageGateway: this.storageGateway,
+        },
+        task
+      );
     },
   },
 };

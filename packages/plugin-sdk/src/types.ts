@@ -9,6 +9,7 @@ export enum Domain {
   PAYMENT = 'payment',
   PRICING = 'pricing',
   INVENTORY = 'inventory',
+  IMPORT = 'import',
 }
 
 /**

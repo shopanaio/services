@@ -19,6 +19,7 @@
     "@as-integrations/fastify": "^2.1.0",
     "@event-driven-io/dumbo": "^0.13.0-alpha.6",
     "@event-driven-io/pongo": "^0.17.0-alpha.6",
+    "@shopana/import-plugin-tilda": "0.0.1",
     "@shopana/payment-plugin-bank-transfer": "0.0.1",
     "@shopana/platform-api": "0.0.1",
     "@shopana/plugin-sdk": "*",

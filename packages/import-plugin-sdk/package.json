@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/import-plugin-tilda",
+  "name": "@shopana/import-plugin-sdk",
   "version": "0.0.1",
   "type": "module",
   "main": "dist/index.js",
@@ -11,10 +11,6 @@
     },
     "./package.json": "./package.json"
   },
-  "keywords": [
-    "tilda-plugin",
-    "tilda-import-plugin"
-  ],
   "files": [
     "dist"
   ],
@@ -24,21 +20,13 @@
   "scripts": {
     "build": "node ../esbuild.js",
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
-    "test": "jest"
+    "clean": "rimraf dist"
   },
   "dependencies": {
-    "@shopana/import-plugin-sdk": "*",
-    "@shopana/platform-api": "*",
-    "@shopana/plugin-sdk": "*",
-    "csv-parse": "^5.5.3",
-    "graphql-request": "^6.1.0",
-    "minio": "^8.0.6",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
+    "rimraf": "^5.0.0",
     "typescript": "^5.5.4"
   }
 }

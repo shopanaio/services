@@ -1,19 +1,29 @@
-// Shipping plugins
-import novaposhta from "@shopana/shipping-plugin-novaposhta";
-import meestExpress from "@shopana/shipping-plugin-meest-express";
-
-// Payment plugins
 import bankTransfer from "@shopana/payment-plugin-bank-transfer";
-
-// Pricing plugins
-import simplePromo from "@shopana/pricing-plugin-simple-promo";
-// Inventory plugins
 import inventoryShopana from "@shopana/inventory-plugin-shopana";
+import tildaImport from "@shopana/import-plugin-tilda";
+import simplePromo from "@shopana/pricing-plugin-simple-promo";
+import meestExpress from "@shopana/shipping-plugin-meest-express";
+import novaposhta from "@shopana/shipping-plugin-novaposhta";
 
-export const shippingPlugins = [novaposhta, meestExpress];
+type PluginModuleLike = { plugin: unknown };
 
-export const paymentPlugins = [bankTransfer];
+export const shippingPlugins = [
+  novaposhta,
+  meestExpress,
+] satisfies ReadonlyArray<PluginModuleLike>;
 
-export const pricingPlugins = [simplePromo];
+export const paymentPlugins = [
+  bankTransfer,
+] satisfies ReadonlyArray<PluginModuleLike>;
 
-export const inventoryPlugins = [inventoryShopana];
+export const pricingPlugins = [
+  simplePromo,
+] satisfies ReadonlyArray<PluginModuleLike>;
+
+export const inventoryPlugins = [
+  inventoryShopana,
+] satisfies ReadonlyArray<PluginModuleLike>;
+
+export const importPlugins = [
+  tildaImport,
+] satisfies ReadonlyArray<PluginModuleLike>;

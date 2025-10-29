@@ -32,3 +32,5 @@ ci/dev/repo/
 .pnp.*
 
 **/*.tsbuildinfo
+
+.gocache

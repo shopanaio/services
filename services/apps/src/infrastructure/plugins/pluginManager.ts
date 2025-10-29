@@ -11,6 +11,7 @@ import {
   paymentPlugins,
   pricingPlugins,
   inventoryPlugins,
+  importPlugins,
 } from "@src/infrastructure/plugins/registry";
 import type { Logger } from "@shopana/shared-kernel";
 
@@ -32,12 +33,13 @@ export class AppsPluginManager {
       cbThreshold: 5,
       cbResetMs: 15000,
     });
-    const allModules = ([] as any[]).concat(
-      shippingPlugins as any,
-      paymentPlugins as any,
-      pricingPlugins as any,
-      inventoryPlugins as any
-    );
+    const allModules = [
+      ...shippingPlugins,
+      ...paymentPlugins,
+      ...pricingPlugins,
+      ...inventoryPlugins,
+      ...importPlugins,
+    ];
     this.corePM = new CorePluginManager<
       Record<string, unknown>,
       ShippingSDK.ProviderContext,

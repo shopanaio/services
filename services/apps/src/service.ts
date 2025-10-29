@@ -38,6 +38,7 @@ const AppsService: ServiceSchema<any> = {
             Domain.PAYMENT,
             Domain.PRICING,
             Domain.INVENTORY,
+            Domain.IMPORT,
           ],
         },
         operation: { type: "string", min: 1 },
