@@ -1,4 +1,4 @@
-extend schema
+schema
   @link(
     url: "https://specs.apollo.dev/federation/v2.7"
     import: [
@@ -10,4 +10,10 @@ extend schema
       "@override"
       "@inaccessible"
     ]
-  )
+  ) {
+  query: Query
+}
+
+type Query {
+  _dummy: String @shareable
+}

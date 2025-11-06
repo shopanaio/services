@@ -1,13 +1,28 @@
 federation_version: 2
 subgraphs:
+  # Platform monolith (legacy - being migrated)
   platform:
     routing_url: {{ apollo_platform_storefront_url }}
     schema:
       file: /schema/platform-storefront-api.graphql
+
+  # Platform microservices
+  project:
+    routing_url: {{ apollo_project_storefront_url }}
+    schema:
+      file: /schema/project-storefront-api.graphql
+
+  media:
+    routing_url: {{ apollo_media_storefront_url }}
+    schema:
+      file: /schema/media-storefront-api.graphql
+
+  # Node.js microservices
   checkout:
     routing_url: {{ apollo_checkout_storefront_url }}
     schema:
       file: /schema/checkout-storefront-api.graphql
+
   orders:
     routing_url: {{ apollo_orders_storefront_url }}
     schema:

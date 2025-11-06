@@ -36,6 +36,39 @@ const SERVICES_CONFIG = [
     schemaPath: ["project", "api", "graphql-client", "schema"],
     filePattern: "**/*.graphqls", // Platform uses .graphqls extension
   },
+  // Platform microservices (Go-based) - use .graphqls files
+  {
+    name: "project",
+    api: "admin-api",
+    outputFile: "project-admin-api.graphql",
+    basePath: "platform", // Override base path for platform microservices
+    schemaPath: ["services", "project", "graphql", "admin-api", "schema"],
+    filePattern: "**/*.graphqls",
+  },
+  {
+    name: "project",
+    api: "storefront-api",
+    outputFile: "project-storefront-api.graphql",
+    basePath: "platform", // Override base path for platform microservices
+    schemaPath: ["services", "project", "graphql", "storefront-api", "schema"],
+    filePattern: "**/*.graphqls",
+  },
+  {
+    name: "media",
+    api: "admin-api",
+    outputFile: "media-admin-api.graphql",
+    basePath: "platform", // Override base path for platform microservices
+    schemaPath: ["services", "media", "graphql", "admin-api", "schema"],
+    filePattern: "**/*.graphqls",
+  },
+  {
+    name: "media",
+    api: "storefront-api",
+    outputFile: "media-storefront-api.graphql",
+    basePath: "platform", // Override base path for platform microservices
+    schemaPath: ["services", "media", "graphql", "storefront-api", "schema"],
+    filePattern: "**/*.graphqls",
+  },
   // Node.js microservices - use .graphql files
   {
     name: "apps",
@@ -90,13 +123,21 @@ async function exportServiceSchema(config, outputDir) {
   // Get project root (1 level up from apollo)
   const projectRoot = resolve(process.cwd(), "..");
 
-  // Platform is in different directory structure than services
-  // Platform: /platform/project/api/...
-  // Services: /services/{service-name}/src/...
-  const servicePath =
-    config.name === "platform"
-      ? resolve(projectRoot, "platform")
-      : resolve(projectRoot, "services", config.name);
+  // Determine base path:
+  // - If basePath is specified, use it (e.g., "platform" for platform microservices)
+  // - Platform monolith uses "platform"
+  // - Node.js services use "services"
+  let servicePath;
+  if (config.basePath) {
+    // Custom base path (e.g., platform/services/project)
+    servicePath = resolve(projectRoot, config.basePath);
+  } else if (config.name === "platform") {
+    // Platform monolith
+    servicePath = resolve(projectRoot, "platform");
+  } else {
+    // Node.js microservices
+    servicePath = resolve(projectRoot, "services", config.name);
+  }
 
   if (!existsSync(servicePath)) {
     console.warn(`⚠️  Service directory not found: ${servicePath}`);

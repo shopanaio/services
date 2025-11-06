@@ -8,7 +8,7 @@
         "Start Core Service",
         "Start Checkout Service",
         "Start Apps Service",
-        "Start Orders Service",
+        "Start Orders Service"
       ],
       "group": {
         "kind": "build",
@@ -105,5 +105,16 @@
       "isBackground": true,
       "problemMatcher": []
     },
+    {
+      "label": "Claude (Skip Permissions)",
+      "type": "shell",
+      "command": "claude --dangerously-skip-permissions",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    }
   ]
 }
