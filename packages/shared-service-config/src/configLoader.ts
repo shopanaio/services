@@ -43,7 +43,8 @@ export function findWorkspaceRoot(startDir: string = process.cwd()): string {
 function loadYamlConfig(): ConfigStructure {
   try {
     const workspaceRoot = findWorkspaceRoot();
-    const configPath = path.join(workspaceRoot, "config.yml");
+    const configFile = process.env.CONFIG_FILE || "config.yml";
+    const configPath = path.join(workspaceRoot, configFile);
 
     console.log(`Loading configuration from: ${configPath}`);
 

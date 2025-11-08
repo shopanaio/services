@@ -1,0 +1,91 @@
+# Full Stack Development Mode
+# Полная локальная конфигурация для изолированной разработки
+# Use when: You want complete local environment, no external dependencies
+
+dev_mode: distributed
+
+infrastructure:
+  nats: true
+  postgres: true   # Local database
+  minio: true      # Local storage
+  apollo: true     # Local Apollo Router
+
+platform:
+  run_in_docker: false  # Run locally for debugging
+  build_required: false
+
+services:
+  # All GraphQL services local
+  checkout:
+    run_in_docker: false
+    active_development: true
+
+  orders:
+    run_in_docker: false
+    active_development: true
+
+  apps:
+    run_in_docker: false
+    active_development: true
+
+  # Moleculer services - mix of local and Docker
+  payments:
+    run_in_docker: true
+    active_development: false
+
+  delivery:
+    run_in_docker: true
+    active_development: false
+
+  inventory:
+    run_in_docker: false
+    active_development: true
+
+  pricing:
+    run_in_docker: true
+    active_development: false
+
+  orchestrator:
+    enabled: false
+
+database:
+  use_local: true
+  connection_string: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+  run_migrations: true
+
+storage:
+  use_local: true
+  endpoint: "http://localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "shopana-sandbox"
+
+preferences:
+  rebuild_packages: true
+  show_logs: true
+  open_browser: true
+  hot_reload: true
+  use_tmux: true  # Use tmux for managing multiple terminals
+
+ports:
+  platform: 8000
+  platform_grpc: 50051
+  nats: 4222
+  nats_http: 8222
+  postgres: 5432
+  minio: 9000
+  minio_console: 9001
+  apollo_storefront: 4000
+  apollo_admin: 4001
+  checkout: 10002
+  orders: 10003
+  apps: 10001
+  payments: 10006
+  delivery: 10004
+  inventory: 10005
+  pricing: 10008
+
+env_vars:
+  NODE_ENV: development
+  LOG_LEVEL: debug
+  PLATFORM_ENV: development

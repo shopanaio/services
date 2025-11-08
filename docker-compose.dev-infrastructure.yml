@@ -1,0 +1,127 @@
+version: '3.8'
+
+# Infrastructure services that are always needed for local development
+# These services should always run in Docker as they're not actively developed
+
+services:
+  # NATS - Message broker for service communication
+  nats:
+    image: nats:2.10-alpine
+    container_name: shopana-nats-dev
+    restart: unless-stopped
+    ports:
+      - "4222:4222"  # Client connections
+      - "8222:8222"  # HTTP management
+      - "6222:6222"  # Cluster connections
+    volumes:
+      - ./nats/nats-dev.conf:/etc/nats/nats-server.conf:ro
+      - nats-dev-data:/data
+      - nats-dev-logs:/var/log/nats
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - shopana-network
+
+  # PostgreSQL - Shared database
+  # Optional: Remove this if using Neon cloud database
+  postgres:
+    image: postgres:16-alpine
+    container_name: shopana-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: portal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shopana-network
+    profiles:
+      - local-db
+
+  # MinIO - S3-compatible object storage for development
+  # Optional: Remove if using remote MinIO
+  minio:
+    image: minio/minio:latest
+    container_name: shopana-minio-dev
+    restart: unless-stopped
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-dev-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shopana-network
+    profiles:
+      - local-storage
+
+  # Apollo Router - GraphQL Federation Gateway (Storefront)
+  apollo-router-storefront:
+    build:
+      context: ./apollo
+      dockerfile: Dockerfile.storefront
+    container_name: shopana-apollo-storefront-dev
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - APOLLO_GRAPH_REF=shopana@current
+    depends_on:
+      - nats
+    networks:
+      - shopana-network
+    profiles:
+      - apollo
+
+  # Apollo Router - GraphQL Federation Gateway (Admin)
+  apollo-router-admin:
+    build:
+      context: ./apollo
+      dockerfile: Dockerfile.admin
+    container_name: shopana-apollo-admin-dev
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=development
+      - APOLLO_GRAPH_REF=shopana-admin@current
+    depends_on:
+      - nats
+    networks:
+      - shopana-network
+    profiles:
+      - apollo
+
+volumes:
+  nats-dev-data:
+  nats-dev-logs:
+  postgres-dev-data:
+  minio-dev-data:
+
+networks:
+  shopana-network:
+    name: shopana-network
+    driver: bridge

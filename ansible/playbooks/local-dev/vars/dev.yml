@@ -1,0 +1,127 @@
+# Local Development Configuration
+# Настройка локальной разработки
+
+# Development mode selection
+# Режим разработки:
+#   - orchestrator: All services in one process (fast, simple)
+#   - distributed: Each service separate (production-like)
+#   - hybrid: Some services in Docker, some local (flexible)
+dev_mode: hybrid
+
+# Infrastructure services (always in Docker)
+# Инфраструктурные сервисы (всегда в Docker)
+infrastructure:
+  nats: true
+  postgres: true  # Set to false if using Neon cloud
+  minio: true     # Set to false if using remote MinIO
+  apollo: false   # Set to true to run Apollo Router in Docker
+
+# Platform service
+# Go монолит
+platform:
+  run_in_docker: false  # true = Docker, false = local go run
+  build_required: false # Set to true to rebuild before running
+
+# Node.js services configuration
+# Какие сервисы запускать локально, какие в Docker
+services:
+  # GraphQL Services (Apollo Federation)
+  checkout:
+    run_in_docker: false  # true = Docker, false = local yarn dev
+    active_development: true
+    description: "Checkout GraphQL API"
+
+  orders:
+    run_in_docker: false
+    active_development: true
+    description: "Orders GraphQL API with event sourcing"
+
+  apps:
+    run_in_docker: false
+    active_development: true
+    description: "Admin Apps GraphQL API"
+
+  # Moleculer Services
+  payments:
+    run_in_docker: true  # Usually not actively developed
+    active_development: false
+    description: "Payment processing service"
+
+  delivery:
+    run_in_docker: true
+    active_development: false
+    description: "Delivery integration service"
+
+  inventory:
+    run_in_docker: false
+    active_development: true
+    description: "Inventory and import management"
+
+  pricing:
+    run_in_docker: true
+    active_development: false
+    description: "Pricing and promotions engine"
+
+  # Orchestrator (alternative to running services separately)
+  orchestrator:
+    enabled: false  # true = use orchestrator mode instead of individual services
+    description: "Multi-service orchestrator (apps, delivery, inventory, payments, pricing)"
+
+# Database configuration
+database:
+  use_local: true  # true = local Docker postgres, false = Neon cloud
+  connection_string: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+  run_migrations: true
+
+# Object storage configuration
+storage:
+  use_local: true  # true = local MinIO, false = remote
+  endpoint: "http://localhost:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "shopana-sandbox"
+
+# Development preferences
+preferences:
+  # Auto-rebuild packages when starting
+  rebuild_packages: false
+
+  # Show service logs in terminal
+  show_logs: true
+
+  # Open browser windows for services
+  open_browser: false
+
+  # Enable hot reload for local services
+  hot_reload: true
+
+  # Use tmux for multiple terminal windows
+  use_tmux: false
+
+# Port configuration (override defaults if needed)
+ports:
+  platform: 8000
+  platform_grpc: 50051
+  nats: 4222
+  nats_http: 8222
+  postgres: 5432
+  minio: 9000
+  minio_console: 9001
+  apollo_storefront: 4000
+  apollo_admin: 4001
+
+  # Service ports (from config.yml)
+  checkout: 10002
+  orders: 10003
+  apps: 10001
+  payments: 10006
+  delivery: 10004
+  inventory: 10005
+  pricing: 10008
+  orchestrator: 3030
+
+# Environment variables for local development
+env_vars:
+  NODE_ENV: development
+  LOG_LEVEL: debug
+  PLATFORM_ENV: development

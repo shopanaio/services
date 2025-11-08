@@ -1,0 +1,82 @@
+# Minimal Development Mode
+# Минимальная конфигурация для быстрой разработки
+# Use when: You want fastest startup, working on specific services
+
+dev_mode: orchestrator
+
+infrastructure:
+  nats: true
+  postgres: false  # Use Neon cloud
+  minio: false     # Use remote MinIO
+  apollo: false    # Not needed for backend dev
+
+platform:
+  run_in_docker: true
+  build_required: false
+
+services:
+  # All services in orchestrator
+  checkout:
+    run_in_docker: false
+    active_development: true
+
+  orders:
+    run_in_docker: false
+    active_development: true
+
+  apps:
+    run_in_docker: false
+    active_development: false
+
+  payments:
+    run_in_docker: false
+    active_development: false
+
+  delivery:
+    run_in_docker: false
+    active_development: false
+
+  inventory:
+    run_in_docker: false
+    active_development: false
+
+  pricing:
+    run_in_docker: false
+    active_development: false
+
+  orchestrator:
+    enabled: true  # Run all moleculer services in one process
+
+database:
+  use_local: false
+  connection_string: "${NEON_DATABASE_URL}"  # Set in environment
+  run_migrations: false
+
+storage:
+  use_local: false
+  endpoint: "${S3_ENDPOINT}"
+  access_key: "${S3_ACCESS_KEY}"
+  secret_key: "${S3_SECRET_KEY}"
+  bucket: "shopana-sandbox"
+
+preferences:
+  rebuild_packages: false
+  show_logs: true
+  open_browser: false
+  hot_reload: true
+  use_tmux: false
+
+ports:
+  platform: 8000
+  platform_grpc: 50051
+  nats: 4222
+  nats_http: 8222
+  checkout: 10002
+  orders: 10003
+  apps: 10001
+  orchestrator: 3030
+
+env_vars:
+  NODE_ENV: development
+  LOG_LEVEL: info
+  PLATFORM_ENV: development

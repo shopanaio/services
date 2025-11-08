@@ -1,0 +1,90 @@
+# Production-like Development Mode
+# Режим близкий к production для тестирования
+# Use when: Testing deployment, CI/CD, integration testing
+
+dev_mode: distributed
+
+infrastructure:
+  nats: true
+  postgres: true
+  minio: true
+  apollo: true
+
+platform:
+  run_in_docker: true  # Run in Docker like production
+  build_required: true
+
+services:
+  # All services in Docker (production-like)
+  checkout:
+    run_in_docker: true
+    active_development: false
+
+  orders:
+    run_in_docker: true
+    active_development: false
+
+  apps:
+    run_in_docker: true
+    active_development: false
+
+  payments:
+    run_in_docker: true
+    active_development: false
+
+  delivery:
+    run_in_docker: true
+    active_development: false
+
+  inventory:
+    run_in_docker: true
+    active_development: false
+
+  pricing:
+    run_in_docker: true
+    active_development: false
+
+  orchestrator:
+    enabled: false
+
+database:
+  use_local: true
+  connection_string: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+  run_migrations: true
+
+storage:
+  use_local: true
+  endpoint: "http://minio:9000"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "shopana-sandbox"
+
+preferences:
+  rebuild_packages: true
+  show_logs: false  # Use docker logs instead
+  open_browser: false
+  hot_reload: false
+  use_tmux: false
+
+ports:
+  platform: 8000
+  platform_grpc: 50051
+  nats: 4222
+  nats_http: 8222
+  postgres: 5432
+  minio: 9000
+  minio_console: 9001
+  apollo_storefront: 4000
+  apollo_admin: 4001
+  checkout: 10002
+  orders: 10003
+  apps: 10001
+  payments: 10006
+  delivery: 10004
+  inventory: 10005
+  pricing: 10008
+
+env_vars:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  PLATFORM_ENV: production

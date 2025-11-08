@@ -1,0 +1,58 @@
+#!/bin/bash
+# Generated script to start Platform (Go) service
+# Generated: {{ ansible_date_time.iso8601 }}
+
+set -e
+
+cd "{{ project_root }}/platform"
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo "========================================="
+echo "Starting Platform Service (Go)"
+echo "========================================="
+
+# Check if .env exists
+if [ ! -f .env ]; then
+    echo "Warning: .env file not found in platform/"
+    echo "Creating .env from development template..."
+    cat > .env << EOF
+PLATFORM_ENV={{ env_vars.PLATFORM_ENV }}
+PLATFORM_PORT={{ ports.platform }}
+PLATFORM_DB_HOST=localhost
+PLATFORM_DB_NAME=portal
+PLATFORM_DB_USER=postgres
+PLATFORM_DB_PASSWORD=postgres
+NATS_URL=nats://localhost:{{ ports.nats }}
+LOG_LEVEL={{ env_vars.LOG_LEVEL }}
+EOF
+fi
+
+# Load environment variables
+source .env
+
+echo -e "${BLUE}Environment:${NC} $PLATFORM_ENV"
+echo -e "${BLUE}Port:${NC} $PLATFORM_PORT"
+echo -e "${BLUE}Database:${NC} $PLATFORM_DB_HOST:5432/$PLATFORM_DB_NAME"
+echo -e "${BLUE}NATS:${NC} $NATS_URL"
+echo ""
+
+{% if platform.build_required %}
+echo -e "${BLUE}Building platform...${NC}"
+go build -o main .
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓${NC} Build successful"
+    echo ""
+    echo -e "${BLUE}Starting platform...${NC}"
+    ./main
+else
+    echo "Build failed!"
+    exit 1
+fi
+{% else %}
+echo -e "${BLUE}Starting platform with go run...${NC}"
+go run .
+{% endif %}

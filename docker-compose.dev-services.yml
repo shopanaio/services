@@ -1,0 +1,268 @@
+version: '3.8'
+
+# Microservices with Docker Compose profiles
+# Use profiles to selectively run services in Docker
+# Services not in Docker will be run locally via Make/yarn
+
+services:
+  # Platform (Go monolith)
+  platform:
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    container_name: shopana-platform-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # HTTP/GraphQL
+      - "50051:50051"  # gRPC
+    environment:
+      - PLATFORM_ENV=development
+      - PLATFORM_PORT=8000
+      - PLATFORM_DB_HOST=postgres
+      - PLATFORM_DB_NAME=portal
+      - PLATFORM_DB_USER=postgres
+      - PLATFORM_DB_PASSWORD=postgres
+      - NATS_URL=nats://nats:4222
+    env_file:
+      - ./platform/.env
+    networks:
+      - shopana-network
+    profiles:
+      - platform-docker
+      - all-docker
+
+  # Checkout Service (Apollo GraphQL)
+  checkout:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: checkout
+        NODE_VERSION: 20
+    image: shopana/checkout-service:dev
+    container_name: shopana-checkout-dev
+    restart: unless-stopped
+    ports:
+      - "10002:10002"  # GraphQL
+      - "3031:3031"    # Metrics
+    environment:
+      - NODE_ENV=development
+      - STOREFRONT_GRAPHQL_PORT=10002
+      - METRICS_PORT=3031
+      - NATS_URL=nats://nats:4222
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
+      - PLATFORM_GRPC_HOST=platform:50051
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/checkout:/app/services/checkout
+    networks:
+      - shopana-network
+    profiles:
+      - checkout-docker
+      - graphql-docker
+      - all-docker
+
+  # Orders Service (Apollo GraphQL)
+  orders:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: orders
+        NODE_VERSION: 20
+    image: shopana/orders-service:dev
+    container_name: shopana-orders-dev
+    restart: unless-stopped
+    ports:
+      - "10003:10003"  # GraphQL
+      - "3032:3032"    # Metrics
+    environment:
+      - NODE_ENV=development
+      - STOREFRONT_GRAPHQL_PORT=10003
+      - METRICS_PORT=3032
+      - NATS_URL=nats://nats:4222
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
+      - PLATFORM_GRPC_HOST=platform:50051
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/orders:/app/services/orders
+    networks:
+      - shopana-network
+    profiles:
+      - orders-docker
+      - graphql-docker
+      - all-docker
+
+  # Apps Service (Apollo GraphQL - Admin)
+  apps:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: apps
+        NODE_VERSION: 20
+    image: shopana/apps-service:dev
+    container_name: shopana-apps-dev
+    restart: unless-stopped
+    ports:
+      - "10001:10001"  # GraphQL
+      - "3033:3033"    # Metrics
+    environment:
+      - NODE_ENV=development
+      - ADMIN_GRAPHQL_PORT=10001
+      - METRICS_PORT=3033
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
+      - PLATFORM_GRPC_HOST=platform:50051
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/apps:/app/services/apps
+    networks:
+      - shopana-network
+    profiles:
+      - apps-docker
+      - graphql-docker
+      - all-docker
+
+  # Payments Service (Moleculer)
+  payments:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: payments
+        NODE_VERSION: 20
+    image: shopana/payments-service:dev
+    container_name: shopana-payments-dev
+    restart: unless-stopped
+    ports:
+      - "10006:10006"
+    environment:
+      - NODE_ENV=development
+      - PORT=10006
+      - NATS_URL=nats://nats:4222
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/payments:/app/services/payments
+    networks:
+      - shopana-network
+    profiles:
+      - payments-docker
+      - moleculer-docker
+      - all-docker
+
+  # Delivery Service (Moleculer)
+  delivery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: delivery
+        NODE_VERSION: 20
+    image: shopana/delivery-service:dev
+    container_name: shopana-delivery-dev
+    restart: unless-stopped
+    ports:
+      - "10004:10004"
+    environment:
+      - NODE_ENV=development
+      - PORT=10004
+      - NATS_URL=nats://nats:4222
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/delivery:/app/services/delivery
+    networks:
+      - shopana-network
+    profiles:
+      - delivery-docker
+      - moleculer-docker
+      - all-docker
+
+  # Inventory Service (Moleculer)
+  inventory:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: inventory
+        NODE_VERSION: 20
+    image: shopana/inventory-service:dev
+    container_name: shopana-inventory-dev
+    restart: unless-stopped
+    ports:
+      - "10005:10005"
+    environment:
+      - NODE_ENV=development
+      - PORT=10005
+      - NATS_URL=nats://nats:4222
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_BUCKET=shopana-sandbox
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/inventory:/app/services/inventory
+    networks:
+      - shopana-network
+    profiles:
+      - inventory-docker
+      - moleculer-docker
+      - all-docker
+
+  # Pricing Service (Moleculer)
+  pricing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: pricing
+        NODE_VERSION: 20
+    image: shopana/pricing-service:dev
+    container_name: shopana-pricing-dev
+    restart: unless-stopped
+    ports:
+      - "10008:10008"
+    environment:
+      - NODE_ENV=development
+      - PORT=10008
+      - NATS_URL=nats://nats:4222
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/pricing:/app/services/pricing
+    networks:
+      - shopana-network
+    profiles:
+      - pricing-docker
+      - moleculer-docker
+      - all-docker
+
+  # Orchestrator (runs multiple services in one process)
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: orchestrator
+        NODE_VERSION: 20
+    image: shopana/orchestrator-service:dev
+    container_name: shopana-orchestrator-dev
+    restart: unless-stopped
+    ports:
+      - "10001:10001"  # Apps GraphQL
+      - "3030:3030"    # Metrics
+    environment:
+      - NODE_ENV=development
+      - METRICS_PORT=3030
+      - NATS_URL=nats://nats:4222
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal?schema=portal
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./services/orchestrator:/app/services/orchestrator
+    networks:
+      - shopana-network
+    profiles:
+      - orchestrator-docker
+      - all-docker
+
+networks:
+  shopana-network:
+    external: true

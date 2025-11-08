@@ -1,0 +1,61 @@
+# Services Configuration for Local Development
+# Use this config when running services locally (not in Docker)
+
+# Common vars for services
+vars:
+  # Environment for all services
+  environment: development
+  # Log level for all services
+  log_level: debug
+  # Moleculer transporter for services broker (localhost for local development)
+  moleculer_transporter: nats://localhost:4222
+  # Platform GRPC (context) server (localhost for local development)
+  platform_grpc_host: localhost:50051
+
+  # Object Storage (MinIO) configuration
+  object_storage_endpoint: http://localhost:9000
+  object_storage_access_key: minioadmin
+  object_storage_secret_key: minioadmin
+  object_storage_bucket: shopana-sandbox
+  object_storage_region: eu-central
+  object_storage_path_style: "true"
+
+services:
+  orchestrator:
+    # Services included to orchestrator
+    services:
+      - apps
+      - delivery
+      - inventory
+      - payments
+      - pricing
+    metrics_port: 3030
+
+  checkout:
+    storefront_graphql_port: 10002
+    transporter: "nats://localhost:4222"
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3031
+
+  orders:
+    storefront_graphql_port: 10003
+    transporter: "nats://localhost:4222"
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3032
+
+  apps:
+    admin_graphql_port: 10001
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3033
+
+  delivery:
+    port: 10004
+
+  inventory:
+    port: 10005
+
+  payments:
+    port: 10006
+
+  pricing:
+    port: 10008

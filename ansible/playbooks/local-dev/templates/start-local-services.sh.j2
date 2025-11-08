@@ -1,0 +1,82 @@
+#!/bin/bash
+# Generated script to start local services
+# Generated: {{ ansible_date_time.iso8601 }}
+
+set -e
+
+cd "{{ project_root }}"
+
+echo "========================================="
+echo "Starting Local Services"
+echo "========================================="
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+{% if preferences.use_tmux %}
+# Using tmux for terminal management
+SESSION="shopana-dev"
+
+# Check if tmux session exists
+if tmux has-session -t $SESSION 2>/dev/null; then
+    echo "Tmux session '$SESSION' already exists. Attaching..."
+    tmux attach-session -t $SESSION
+    exit 0
+fi
+
+# Create new tmux session
+tmux new-session -d -s $SESSION -n "services"
+
+# Create windows for each service
+{% for service in local_services %}
+tmux new-window -t $SESSION -n "{{ service }}"
+tmux send-keys -t $SESSION:{{ loop.index }} "cd {{ project_root }} && make dev:{{ service }}" C-m
+{% endfor %}
+
+echo -e "${GREEN}✓${NC} Tmux session '$SESSION' created with {{ local_services | length }} services"
+echo "Attach to session: tmux attach-session -t $SESSION"
+echo "Detach from session: Ctrl+B then D"
+echo "Switch windows: Ctrl+B then number (0-{{ local_services | length }})"
+
+{% else %}
+# Using simple background processes
+PIDS=()
+
+cleanup() {
+    echo ""
+    echo "Stopping all services..."
+    for pid in "${PIDS[@]}"; do
+        kill $pid 2>/dev/null || true
+    done
+    wait
+    echo "All services stopped"
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+{% for service in local_services %}
+echo -e "${BLUE}Starting {{ service }}...${NC}"
+make dev:{{ service }} &
+PIDS+=($!)
+sleep 2
+{% endfor %}
+
+echo ""
+echo -e "${GREEN}=========================================${NC}"
+echo -e "${GREEN}All services started!${NC}"
+echo -e "${GREEN}=========================================${NC}"
+echo ""
+echo "Services running:"
+{% for service in local_services %}
+echo "  - {{ service }}: http://localhost:{{ ports[service] }}"
+{% endfor %}
+echo ""
+echo "Press Ctrl+C to stop all services"
+echo ""
+
+# Wait for all background processes
+wait
+{% endif %}

@@ -1,0 +1,53 @@
+---
+# Stop Local Development Environment
+# Usage: ansible-playbook ansible/playbooks/local-dev/dev-down.yml
+
+- name: Stop Shopana Local Development Environment
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    project_root: "{{ playbook_dir }}/../../../"
+    docker_compose_dir: "{{ project_root }}"
+
+  tasks:
+    - name: Stop all Docker Compose services
+      block:
+        - name: Stop infrastructure services
+          command: >
+            docker-compose
+            -f {{ docker_compose_dir }}/docker-compose.dev-infrastructure.yml
+            down
+          args:
+            chdir: "{{ docker_compose_dir }}"
+          ignore_errors: yes
+
+        - name: Stop application services
+          command: >
+            docker-compose
+            -f {{ docker_compose_dir }}/docker-compose.dev-services.yml
+            down
+          args:
+            chdir: "{{ docker_compose_dir }}"
+          ignore_errors: yes
+
+        - name: Display status
+          debug:
+            msg: "All Docker services stopped"
+
+    - name: Reminder for local services
+      debug:
+        msg: |
+          ========================================
+          Docker services stopped.
+
+          Don't forget to stop local services:
+          - Press Ctrl+C in terminals running local services
+          - Or use: pkill -f "yarn workspace.*dev"
+          - Or use: pkill -f "go run"
+
+          To stop and remove all data (databases, volumes):
+          docker-compose -f docker-compose.dev-infrastructure.yml down -v
+          docker-compose -f docker-compose.dev-services.yml down -v
+          ========================================

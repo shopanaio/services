@@ -1,6 +1,6 @@
 syntax = "proto3";
 package apps.v1;
-option go_package = "portal/project/api/grpcApps/generated";
+option go_package = "portal/monolith/api/grpcApps/generated";
 
 // Common enums
 enum EntityStatus {

@@ -159,6 +159,15 @@ async function exportServiceSchema(config, outputDir) {
       return false;
     }
 
+    // Include centralized shared enums from platform/contracts/graphql/common
+    const contractsDir = resolve(projectRoot, "platform", "contracts", "graphql", "common");
+    const contractsFiles = await findGraphQLFiles(contractsDir, "*.graphqls");
+
+    if (contractsFiles.length > 0) {
+      console.log(`   📦 Including ${contractsFiles.length} centralized enum(s) from contracts/graphql/common`);
+      schemaFiles.push(...contractsFiles);
+    }
+
     console.log(
       `   Found ${schemaFiles.length} schema file(s) (recursive scan):`
     );

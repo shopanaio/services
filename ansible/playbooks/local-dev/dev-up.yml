@@ -1,0 +1,294 @@
+---
+# Local Development Environment Setup
+# Ansible playbook to start local development environment
+# Usage: ansible-playbook ansible/playbooks/local-dev/dev-up.yml
+
+- name: Setup Shopana Local Development Environment
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  vars_files:
+    - vars/dev.yml
+
+  vars:
+    project_root: "{{ playbook_dir }}/../../../"
+    docker_compose_dir: "{{ project_root }}"
+
+  tasks:
+    - name: Display development mode
+      debug:
+        msg: "Starting development environment in {{ dev_mode }} mode"
+
+    - name: Check if Docker is running
+      command: docker info
+      register: docker_check
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if Docker is not running
+      fail:
+        msg: "Docker is not running. Please start Docker Desktop and try again."
+      when: docker_check.rc != 0
+
+    # ==========================================
+    # Network Setup
+    # ==========================================
+    - name: Create Docker network if not exists
+      command: docker network create shopana-network
+      register: network_result
+      failed_when: false
+      changed_when: network_result.rc == 0
+
+    # ==========================================
+    # Infrastructure Services
+    # ==========================================
+    - name: Start infrastructure services
+      block:
+        - name: Build list of infrastructure profiles
+          set_fact:
+            infra_profiles: []
+
+        - name: Add local-db profile if postgres enabled
+          set_fact:
+            infra_profiles: "{{ infra_profiles + ['local-db'] }}"
+          when: infrastructure.postgres
+
+        - name: Add local-storage profile if minio enabled
+          set_fact:
+            infra_profiles: "{{ infra_profiles + ['local-storage'] }}"
+          when: infrastructure.minio
+
+        - name: Add apollo profile if enabled
+          set_fact:
+            infra_profiles: "{{ infra_profiles + ['apollo'] }}"
+          when: infrastructure.apollo
+
+        - name: Display infrastructure profiles
+          debug:
+            msg: "Starting infrastructure with profiles: {{ infra_profiles | join(', ') }}"
+
+        - name: Start infrastructure services with docker-compose
+          command: >
+            docker-compose
+            -f {{ docker_compose_dir }}/docker-compose.dev-infrastructure.yml
+            {% for profile in infra_profiles %}--profile {{ profile }} {% endfor %}
+            up -d
+          args:
+            chdir: "{{ docker_compose_dir }}"
+          when: infrastructure.nats
+
+        - name: Wait for NATS to be ready
+          wait_for:
+            host: localhost
+            port: "{{ ports.nats }}"
+            timeout: 30
+          when: infrastructure.nats
+
+        - name: Wait for PostgreSQL to be ready
+          wait_for:
+            host: localhost
+            port: "{{ ports.postgres }}"
+            timeout: 30
+          when: infrastructure.postgres
+
+        - name: Display infrastructure status
+          debug:
+            msg: "Infrastructure services started successfully"
+
+    # ==========================================
+    # Database Migrations
+    # ==========================================
+    - name: Run database migrations
+      block:
+        - name: Check if migrations exist
+          stat:
+            path: "{{ project_root }}/platform/migrations"
+          register: migrations_dir
+
+        - name: Display migration info
+          debug:
+            msg: "Running database migrations from {{ project_root }}/platform/migrations"
+          when: migrations_dir.stat.exists
+
+        # In production, you'd run: ansible-playbook migration/deploy.yml
+        # For now, we just note that migrations should be run manually
+        - name: Reminder about migrations
+          debug:
+            msg: "Remember to run migrations if needed: cd platform && goose postgres '{{ database.connection_string }}' up"
+          when: database.run_migrations and migrations_dir.stat.exists
+      when: infrastructure.postgres
+
+    # ==========================================
+    # Build Shared Packages
+    # ==========================================
+    - name: Build shared packages
+      block:
+        - name: Check if packages need building
+          stat:
+            path: "{{ project_root }}/packages"
+          register: packages_dir
+
+        - name: Build all shared packages
+          command: make build:packages
+          args:
+            chdir: "{{ project_root }}"
+          when: packages_dir.stat.exists and preferences.rebuild_packages
+
+        - name: Display package build status
+          debug:
+            msg: "Shared packages built successfully"
+          when: packages_dir.stat.exists and preferences.rebuild_packages
+
+    # ==========================================
+    # Docker Services
+    # ==========================================
+    - name: Start services in Docker
+      block:
+        - name: Build list of Docker service profiles
+          set_fact:
+            service_profiles: []
+
+        - name: Add platform-docker profile
+          set_fact:
+            service_profiles: "{{ service_profiles + ['platform-docker'] }}"
+          when: platform.run_in_docker
+
+        - name: Add service Docker profiles
+          set_fact:
+            service_profiles: "{{ service_profiles + [item.key + '-docker'] }}"
+          loop: "{{ services | dict2items }}"
+          when: item.value.run_in_docker | default(false)
+
+        - name: Add orchestrator profile if enabled
+          set_fact:
+            service_profiles: "{{ service_profiles + ['orchestrator-docker'] }}"
+          when: services.orchestrator.enabled | default(false)
+
+        - name: Display service profiles
+          debug:
+            msg: "Starting services in Docker: {{ service_profiles | join(', ') }}"
+          when: service_profiles | length > 0
+
+        - name: Start services with docker-compose
+          command: >
+            docker-compose
+            -f {{ docker_compose_dir }}/docker-compose.dev-services.yml
+            {% for profile in service_profiles %}--profile {{ profile }} {% endfor %}
+            up -d --build
+          args:
+            chdir: "{{ docker_compose_dir }}"
+          when: service_profiles | length > 0
+
+    # ==========================================
+    # Local Services
+    # ==========================================
+    - name: Prepare local services
+      block:
+        - name: Create list of local services
+          set_fact:
+            local_services: []
+
+        - name: Add services to local list
+          set_fact:
+            local_services: "{{ local_services + [item.key] }}"
+          loop: "{{ services | dict2items }}"
+          when:
+            - not item.value.run_in_docker | default(false)
+            - item.key != 'orchestrator'
+            - not services.orchestrator.enabled | default(false)
+
+        - name: Display local services
+          debug:
+            msg: "Services to run locally: {{ local_services | join(', ') }}"
+          when: local_services | length > 0
+
+        - name: Create start script for local services
+          template:
+            src: start-local-services.sh.j2
+            dest: "{{ project_root }}/dev-start-services.sh"
+            mode: '0755'
+          when: local_services | length > 0
+
+    # ==========================================
+    # Platform Service (Go)
+    # ==========================================
+    - name: Prepare Platform service
+      block:
+        - name: Build platform if required
+          command: go build -o main .
+          args:
+            chdir: "{{ project_root }}/platform"
+          when: platform.build_required and not platform.run_in_docker
+
+        - name: Create platform start script
+          template:
+            src: start-platform.sh.j2
+            dest: "{{ project_root }}/dev-start-platform.sh"
+            mode: '0755'
+          when: not platform.run_in_docker
+
+    # ==========================================
+    # Summary
+    # ==========================================
+    - name: Display environment summary
+      debug:
+        msg: |
+          ========================================
+          Development Environment Ready!
+          ========================================
+
+          Infrastructure Services (Docker):
+          {% if infrastructure.nats %}  ✓ NATS: localhost:{{ ports.nats }} (HTTP: {{ ports.nats_http }}){% endif %}
+          {% if infrastructure.postgres %}  ✓ PostgreSQL: localhost:{{ ports.postgres }}{% endif %}
+          {% if infrastructure.minio %}  ✓ MinIO: localhost:{{ ports.minio }} (Console: {{ ports.minio_console }}){% endif %}
+          {% if infrastructure.apollo %}  ✓ Apollo Router: Storefront {{ ports.apollo_storefront }}, Admin {{ ports.apollo_admin }}{% endif %}
+
+          Services in Docker:
+          {% for key, value in services.items() if value.run_in_docker | default(false) %}  ✓ {{ key }}: localhost:{{ ports[key] }}{% endfor %}
+          {% if platform.run_in_docker %}  ✓ platform: localhost:{{ ports.platform }}{% endif %}
+
+          Services to start locally:
+          {% for service in local_services | default([]) %}  → {{ service }}: Run 'make dev:{{ service }}' or use ./dev-start-services.sh{% endfor %}
+          {% if not platform.run_in_docker %}  → platform: Run './dev-start-platform.sh' or 'cd platform && go run .'{% endif %}
+
+          Next Steps:
+          {% if local_services | default([]) | length > 0 %}  1. Start local services: ./dev-start-services.sh{% endif %}
+          {% if not platform.run_in_docker %}  2. Start platform: ./dev-start-platform.sh{% endif %}
+          3. Check service health:
+             - NATS: curl http://localhost:{{ ports.nats_http }}/healthz
+             - Services: docker-compose -f docker-compose.dev-services.yml ps
+
+          Useful Commands:
+          - View logs: docker-compose -f docker-compose.dev-infrastructure.yml logs -f
+          - Stop all: ansible-playbook ansible/playbooks/local-dev/dev-down.yml
+          - Restart service: docker-compose -f docker-compose.dev-services.yml restart <service>
+
+          Configuration: ansible/playbooks/local-dev/vars/dev.yml
+          ========================================
+
+    - name: Save environment info to file
+      copy:
+        content: |
+          # Shopana Development Environment
+          # Generated: {{ ansible_date_time.iso8601 }}
+
+          MODE={{ dev_mode }}
+
+          # Infrastructure
+          NATS_URL=nats://localhost:{{ ports.nats }}
+          {% if infrastructure.postgres %}DATABASE_URL={{ database.connection_string }}{% endif %}
+          {% if infrastructure.minio %}S3_ENDPOINT=http://localhost:{{ ports.minio }}{% endif %}
+
+          # Platform
+          PLATFORM_URL=http://localhost:{{ ports.platform }}
+          PLATFORM_GRPC_HOST=localhost:{{ ports.platform_grpc }}
+
+          # Service Ports
+          {% for key, value in ports.items() %}{{ key | upper }}_PORT={{ value }}
+          {% endfor %}
+        dest: "{{ project_root }}/.env.dev"
+
+    - name: Display success message
+      debug:
+        msg: "✓ Development environment is ready! Check .env.dev for connection details."

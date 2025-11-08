@@ -1,6 +1,6 @@
 services:
   router-admin:
-    image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
+    image: {{ router_image_name }}
     container_name: shopana-apollo-admin
     restart: unless-stopped
     ports:
@@ -33,7 +33,7 @@ services:
       - "traefik.http.services.apollo-admin.loadbalancer.server.port={{ apollo_router_admin_port }}"
 
   router-storefront:
-    image: ghcr.io/shopanaio/apollo-router:${APOLLO_ROUTER_TAG:-latest}
+    image: {{ router_image_name }}
     container_name: shopana-apollo-storefront
     restart: unless-stopped
     ports:
