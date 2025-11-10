@@ -148,10 +148,12 @@ async function startOrchestrator() {
   broker.logger.info(`🔧 Config: ${vars.environment} mode from config.yml`);
   broker.logger.info("═".repeat(60));
 
-  // Enable REPL for debugging in development
-  if (vars.environment === "development") {
+  // Enable REPL for debugging in development (only if stdin is a TTY)
+  if (vars.environment === "development" && process.stdin.isTTY) {
     broker.logger.info("🐛 REPL enabled for debugging");
     broker.repl();
+  } else if (vars.environment === "development") {
+    broker.logger.info("🐛 REPL disabled (no TTY detected)");
   }
 }
 

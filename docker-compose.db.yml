@@ -1,0 +1,30 @@
+version: "3.8"
+
+# Start theses services for local development
+
+services:
+  postgres:
+    build:
+      context: postgres
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    networks:
+      - shopana-network
+    command:
+      - "postgres"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_line_prefix=%m [%p] %u@%d"
+      - "-c"
+      - "logging_collector=off"
+
+networks:
+  shopana-network:
+    name: shopana-network
+    external: true

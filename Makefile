@@ -1,14 +1,24 @@
 .SILENT:
 
-.PHONY: apollo\:storefront apollo\:admin build\:packages dev dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:orchestrator dev\:platform dev\:platform-project dev\:platform-media
+.PHONY: apollo\:start apollo\:stop apollo\:build build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:orchestrator dev\:platform dev\:platform-project dev\:platform-media
 .PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps docker\:build-orchestrator
-.PHONY: dev\:up dev\:down dev\:status dev\:logs dev\:minimal dev\:fullstack dev\:production-like
+.PHONY: dev\:nats dev\:nats\:stop dev\:db dev\:db\:stop dev\:s3 dev\:s3\:stop dev\:help
 
-apollo\:storefront:
-	docker-compose -f apollo/docker-compose.storefront.yml up --build
+# ============================================
+# Apollo Federation Gateway
+# ============================================
 
-apollo\:admin:
-	docker-compose -f apollo/docker-compose.admin.yml up --build
+apollo\:start:
+	@echo "Starting Apollo Federation Gateway..."
+	@ansible-playbook ansible/playbooks/apollo/local.yml
+
+apollo\:stop:
+	@echo "Stopping Apollo Federation Gateway..."
+	@cd ansible/playbooks/apollo/runtime && docker compose down
+
+apollo\:build:
+	@echo "Building Apollo Router schemas..."
+	@cd apollo && tsx scripts/build-schemas.js
 
 build\:packages:
 	@echo "Building all packages dynamically..."
@@ -46,20 +56,6 @@ dev\:orders:
 dev\:orchestrator:
 	@scripts/kill-port.sh 3030 2>/dev/null || true
 	CONFIG_FILE=config.dev.yml yarn workspace @shopana/orchestrator-service run dev
-
-# Start ALL services together (Orchestrator + Platform)
-dev:
-	@echo "Starting all services together..."
-	@./scripts/dev-start-all.sh
-
-# Start ALL NEW services (Orchestrator + New Platform microservices)
-dev\:new:
-	@echo "Starting all NEW services (no Casdoor needed)..."
-	@./scripts/dev-start-new-services.sh
-
-# Auto-start ALL services in one terminal (Orchestrator in tmux + Platform)
-dev\:auto:
-	@./scripts/dev-start-all-auto.sh
 
 # Platform (Go) commands - use .env.dev for local development
 dev\:platform:
@@ -112,100 +108,100 @@ docker\:build-orchestrator:
 	@$(MAKE) docker:build SERVICE=orchestrator
 
 # ============================================
-# Local Development Environment Management
+# Infrastructure Services (Individual)
 # ============================================
 
-# Default development mode
-PRESET ?= dev
+# Start NATS message broker
+dev\:nats:
+	@echo "Starting NATS service..."
+	@docker network create shopana-network 2>/dev/null || true
+	@docker-compose -f docker-compose.dev-infrastructure.yml up -d nats
+	@echo "NATS is running on:"
+	@echo "  Client: localhost:4222"
+	@echo "  HTTP:   localhost:8222"
 
-dev\:up:
-	@echo "Starting development environment (preset: $(PRESET))..."
-	@if [ ! -f ansible/playbooks/local-dev/vars/$(PRESET).yml ] && [ "$(PRESET)" != "dev" ]; then \
-		echo "Error: Preset '$(PRESET)' not found. Available presets:"; \
-		echo "  - dev (default/custom)"; \
-		echo "  - preset-minimal"; \
-		echo "  - preset-fullstack"; \
-		echo "  - preset-production-like"; \
-		exit 1; \
-	fi
-	@if [ "$(PRESET)" = "dev" ]; then \
-		ansible-playbook ansible/playbooks/local-dev/dev-up.yml; \
-	else \
-		ansible-playbook ansible/playbooks/local-dev/dev-up.yml -e @ansible/playbooks/local-dev/vars/$(PRESET).yml; \
-	fi
+dev\:nats\:stop:
+	@echo "Stopping NATS service..."
+	@docker-compose -f docker-compose.dev-infrastructure.yml stop nats
+	@docker-compose -f docker-compose.dev-infrastructure.yml rm -f nats
 
-dev\:down:
-	@echo "Stopping development environment..."
-	@ansible-playbook ansible/playbooks/local-dev/dev-down.yml
+# Start PostgreSQL database
+dev\:db:
+	@echo "Starting PostgreSQL service..."
+	@docker network create shopana-network 2>/dev/null || true
+	@docker-compose -f docker-compose.dev-infrastructure.yml --profile local-db up -d postgres
+	@echo "PostgreSQL is running on localhost:5432"
+	@echo "  User: postgres"
+	@echo "  Password: postgres"
+	@echo "  Database: portal"
 
-dev\:status:
-	@echo "Development Environment Status"
-	@echo "======================================"
-	@echo ""
-	@echo "Infrastructure Services:"
-	@docker-compose -f docker-compose.dev-infrastructure.yml ps
-	@echo ""
-	@echo "Application Services:"
-	@docker-compose -f docker-compose.dev-services.yml ps
-	@echo ""
-	@echo "Environment info: cat .env.dev"
+dev\:db\:stop:
+	@echo "Stopping PostgreSQL service..."
+	@docker-compose -f docker-compose.dev-infrastructure.yml --profile local-db stop postgres
+	@docker-compose -f docker-compose.dev-infrastructure.yml --profile local-db rm -f postgres
 
-dev\:logs:
-	@echo "Following logs for all Docker services..."
-	@echo "Press Ctrl+C to stop"
-	@docker-compose -f docker-compose.dev-infrastructure.yml logs -f & \
-	docker-compose -f docker-compose.dev-services.yml logs -f
+# Start MinIO (S3-compatible storage)
+dev\:s3:
+	@echo "Starting MinIO (S3) service..."
+	@docker network create shopana-network 2>/dev/null || true
+	@docker-compose -f docker-compose.dev-infrastructure.yml --profile local-storage up -d minio
+	@echo "MinIO is running on:"
+	@echo "  API:     localhost:9000"
+	@echo "  Console: localhost:9001"
+	@echo "  User: minioadmin"
+	@echo "  Password: minioadmin"
 
-dev\:minimal:
-	@echo "Starting minimal development environment..."
-	@$(MAKE) dev:up PRESET=preset-minimal
+dev\:s3\:stop:
+	@echo "Stopping MinIO service..."
+	@docker-compose -f docker-compose.dev-infrastructure.yml --profile local-storage stop minio
+	@docker-compose -f docker-compose.dev-infrastructure.yml --profile local-storage rm -f minio
 
-dev\:fullstack:
-	@echo "Starting full-stack development environment..."
-	@$(MAKE) dev:up PRESET=preset-fullstack
-
-dev\:production-like:
-	@echo "Starting production-like development environment..."
-	@$(MAKE) dev:up PRESET=preset-production-like
+# ============================================
+# Help
+# ============================================
 
 dev\:help:
-	@echo "Development Environment Commands"
+	@echo "Development Commands"
 	@echo "======================================"
 	@echo ""
-	@echo "🚀 Quick Start:"
-	@echo "  make dev                 - Start ALL services (Orchestrator + Platform)"
+	@echo "Apollo Federation Gateway:"
+	@echo "  make apollo:start        - Start Apollo Federation Gateway (Admin + Storefront)"
+	@echo "  make apollo:stop         - Stop Apollo Federation Gateway"
+	@echo "  make apollo:build        - Build/export all subgraph schemas"
 	@echo ""
-	@echo "Environment Management:"
-	@echo "  make dev:up              - Start development environment (default config)"
-	@echo "  make dev:up PRESET=...   - Start with specific preset"
-	@echo "  make dev:down            - Stop development environment"
-	@echo "  make dev:status          - Show status of all services"
-	@echo "  make dev:logs            - Follow logs from all services"
+	@echo "Infrastructure Services:"
+	@echo "  make dev:nats            - Start NATS message broker"
+	@echo "  make dev:nats:stop       - Stop NATS"
+	@echo "  make dev:db              - Start PostgreSQL database"
+	@echo "  make dev:db:stop         - Stop PostgreSQL"
+	@echo "  make dev:s3              - Start MinIO (S3-compatible storage)"
+	@echo "  make dev:s3:stop         - Stop MinIO"
 	@echo ""
-	@echo "Quick Presets:"
-	@echo "  make dev:minimal         - Minimal (orchestrator mode, cloud DB)"
-	@echo "  make dev:fullstack       - Full local stack (all infrastructure local)"
-	@echo "  make dev:production-like - Production-like (all in Docker)"
+	@echo "Application Services:"
+	@echo "  make dev:checkout        - Run checkout service"
+	@echo "  make dev:orders          - Run orders service"
+	@echo "  make dev:apps            - Run apps service"
+	@echo "  make dev:inventory       - Run inventory service"
+	@echo "  make dev:pricing         - Run pricing service"
+	@echo "  make dev:shipping        - Run delivery service"
+	@echo "  make dev:orchestrator    - Run orchestrator service"
 	@echo ""
-	@echo "Individual Service Commands:"
-	@echo "  make dev:checkout        - Run checkout service locally"
-	@echo "  make dev:orders          - Run orders service locally"
-	@echo "  make dev:apps            - Run apps service locally"
-	@echo "  make dev:inventory       - Run inventory service locally"
-	@echo "  make dev:pricing         - Run pricing service locally"
-	@echo "  make dev:shipping        - Run delivery service locally"
-	@echo "  make dev:orchestrator    - Run orchestrator locally"
+	@echo "Platform Services (Go):"
+	@echo "  make dev:platform        - Run Platform monolith"
+	@echo "  make dev:platform-project - Run Project service"
+	@echo "  make dev:platform-media  - Run Media service"
 	@echo ""
-	@echo "Configuration:"
-	@echo "  Edit: ansible/playbooks/local-dev/vars/dev.yml"
-	@echo "  Presets: ansible/playbooks/local-dev/vars/preset-*.yml"
+	@echo "Build Commands:"
+	@echo "  make build:packages      - Build all packages"
 	@echo ""
 	@echo "Examples:"
-	@echo "  # Start with custom config"
-	@echo "  make dev:up"
+	@echo "  # Start infrastructure"
+	@echo "  make dev:nats"
+	@echo "  make dev:db"
+	@echo "  make dev:s3"
 	@echo ""
-	@echo "  # Start minimal environment"
-	@echo "  make dev:minimal"
+	@echo "  # Start Apollo Federation"
+	@echo "  make apollo:start"
 	@echo ""
-	@echo "  # Stop everything"
-	@echo "  make dev:down"
+	@echo "  # Start a service"
+	@echo "  make dev:orchestrator"

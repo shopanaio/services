@@ -36,39 +36,6 @@ const SERVICES_CONFIG = [
     schemaPath: ["project", "api", "graphql-client", "schema"],
     filePattern: "**/*.graphqls", // Platform uses .graphqls extension
   },
-  // Platform microservices (Go-based) - use .graphqls files
-  {
-    name: "project",
-    api: "admin-api",
-    outputFile: "project-admin-api.graphql",
-    basePath: "platform", // Override base path for platform microservices
-    schemaPath: ["services", "project", "graphql", "admin-api", "schema"],
-    filePattern: "**/*.graphqls",
-  },
-  {
-    name: "project",
-    api: "storefront-api",
-    outputFile: "project-storefront-api.graphql",
-    basePath: "platform", // Override base path for platform microservices
-    schemaPath: ["services", "project", "graphql", "storefront-api", "schema"],
-    filePattern: "**/*.graphqls",
-  },
-  {
-    name: "media",
-    api: "admin-api",
-    outputFile: "media-admin-api.graphql",
-    basePath: "platform", // Override base path for platform microservices
-    schemaPath: ["services", "media", "graphql", "admin-api", "schema"],
-    filePattern: "**/*.graphqls",
-  },
-  {
-    name: "media",
-    api: "storefront-api",
-    outputFile: "media-storefront-api.graphql",
-    basePath: "platform", // Override base path for platform microservices
-    schemaPath: ["services", "media", "graphql", "storefront-api", "schema"],
-    filePattern: "**/*.graphqls",
-  },
   // Node.js microservices - use .graphql files
   {
     name: "apps",

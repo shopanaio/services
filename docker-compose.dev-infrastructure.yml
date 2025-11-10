@@ -30,7 +30,8 @@ services:
   # PostgreSQL - Shared database
   # Optional: Remove this if using Neon cloud database
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: postgres
     container_name: shopana-postgres-dev
     restart: unless-stopped
     ports:
@@ -51,6 +52,14 @@ services:
       - shopana-network
     profiles:
       - local-db
+    command:
+      - "postgres"
+      - "-c"
+      - "log_statement=all"
+      - "-c"
+      - "log_line_prefix=%m [%p] %u@%d"
+      - "-c"
+      - "logging_collector=off"
 
   # MinIO - S3-compatible object storage for development
   # Optional: Remove if using remote MinIO
