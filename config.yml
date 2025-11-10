@@ -6,10 +6,10 @@ vars:
   environment: production
   # Log level for all services
   log_level: info
-  # Moleculer transporter for services broker
-  moleculer_transporter: nats://nats:4222
-  # Platform GRPC (context) server
-  platform_grpc_host: platform:50051
+  # Moleculer transporter for services broker (use localhost for local dev)
+  moleculer_transporter: nats://localhost:4222
+  # Platform GRPC (context) server (use localhost for local dev)
+  platform_grpc_host: localhost:50051
 
 services:
   orchestrator:
@@ -24,19 +24,19 @@ services:
 
   checkout:
     storefront_graphql_port: 10002
-    transporter: "nats://nats:4222"
-    database_url: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+    transporter: "nats://localhost:4222"
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
     metrics_port: 3031
 
   orders:
     storefront_graphql_port: 10003
-    transporter: "nats://nats:4222"
-    database_url: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+    transporter: "nats://localhost:4222"
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
     metrics_port: 3032
 
   apps:
     admin_graphql_port: 10001
-    database_url: "postgresql://postgres:postgres@postgres:5432/portal?schema=portal"
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
     metrics_port: 3033
 
   delivery:

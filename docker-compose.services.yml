@@ -4,10 +4,11 @@ services:
   checkout-service:
     build:
       context: .
-      dockerfile: services/Dockerfile
+      dockerfile: Dockerfile
       args:
         SERVICE_NAME: checkout
         NODE_VERSION: 20
+        BASE_IMAGE: shopana/base:latest
     image: shopana/checkout-service:latest
     container_name: shopana-checkout-service
     restart: unless-stopped
@@ -16,6 +17,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
@@ -34,6 +38,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
@@ -52,6 +59,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
@@ -70,6 +80,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
@@ -88,6 +101,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
@@ -106,6 +122,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
@@ -124,6 +143,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - NATS_URL=nats://shopana-nats:4222
     networks:
       - shopana-network
 
