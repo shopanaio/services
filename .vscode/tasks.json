@@ -3,12 +3,11 @@
   "tasks": [
     {
       "label": "Start All Dev Services",
-      "dependsOrder": "parallel",
+      "dependsOrder": "sequence",
       "dependsOn": [
-        "Start Core Service",
-        "Start Checkout Service",
-        "Start Apps Service",
-        "Start Orders Service"
+        "Start Infrastructure",
+        "Start Platform Service",
+        "Start Orchestrator"
       ],
       "group": {
         "kind": "build",
@@ -22,9 +21,9 @@
       }
     },
     {
-      "label": "Start Core Service",
+      "label": "Start Infrastructure",
       "type": "shell",
-      "command": "cd platform && echo 'Starting Core Service...' && make start",
+      "command": "make infra-up",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -39,13 +38,12 @@
         "focus": false,
         "panel": "dedicated"
       },
-      "isBackground": true,
       "problemMatcher": []
     },
     {
-      "label": "Start Checkout Service",
+      "label": "Start Platform Service",
       "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/checkout && echo 'Starting Checkout Service...' && yarn dev:watch",
+      "command": "cd platform && echo 'Starting Platform Service...' && make start",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -61,12 +59,21 @@
         "panel": "dedicated"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting Platform Service",
+          "endsPattern": "starting HTTP server|Fiber v2"
+        }
+      }
     },
     {
-      "label": "Start Apps Service",
+      "label": "Start Orchestrator",
       "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/apps && echo 'Starting Apps Service...' && yarn dev:watch",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && echo 'Starting Orchestrator with all services...' && make dev:orchestrator",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -82,12 +89,21 @@
         "panel": "dedicated"
       },
       "isBackground": true,
-      "problemMatcher": []
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting Orchestrator",
+          "endsPattern": "Service Orchestrator started successfully|ServiceBroker.*started successfully"
+        }
+      }
     },
     {
-      "label": "Start Orders Service",
+      "label": "Stop All Services",
       "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && cd services/orders && echo 'Starting Orders Service...' && yarn dev:watch",
+      "command": "make down",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -102,7 +118,6 @@
         "focus": false,
         "panel": "dedicated"
       },
-      "isBackground": true,
       "problemMatcher": []
     },
     {

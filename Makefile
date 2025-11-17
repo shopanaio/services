@@ -2,7 +2,7 @@
 
 .PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:orchestrator
 .PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps docker\:build-orchestrator
-.PHONY: network network-create db-up db-down nats-up nats-down platform-up platform-down services-up services-down infra-up infra-down up down logs status
+.PHONY: network network-create db-up db-down nats-up nats-down platform-up platform-down services-up services-down infra-up infra-down up down logs status clean
 
 apollo\:storefront:
 	docker-compose -f apollo/docker-compose.storefront.yml up --build
@@ -156,11 +156,11 @@ services-build:
 	@echo "Building Services..."
 	@docker-compose -f docker-compose.services.yml build
 
-# Infrastructure (DB + NATS)
-infra-up: network db-up nats-up
+# Infrastructure (DB only, NATS not needed for orchestrator with in-memory transport)
+infra-up: network db-up
 	@echo "Infrastructure is ready"
 
-infra-down: nats-down db-down
+infra-down: db-down
 	@echo "Infrastructure stopped"
 
 # Full stack management
@@ -169,15 +169,12 @@ up: infra-up platform-up services-up
 	@echo ""
 	@echo "Services:"
 	@echo "  - PostgreSQL: localhost:5432"
-	@echo "  - NATS: localhost:4222 (HTTP: localhost:8222)"
 	@echo "  - Platform: localhost:8000 (gRPC: localhost:50051)"
-	@echo "  - Checkout Service: localhost:3001"
-	@echo "  - Orders Service: localhost:3002"
-	@echo "  - Payments Service: localhost:3003"
-	@echo "  - Delivery Service: localhost:3004"
-	@echo "  - Inventory Service: localhost:3005"
-	@echo "  - Pricing Service: localhost:3006"
-	@echo "  - Apps Service: localhost:3008"
+	@echo "  - Orchestrator Services (in-memory):"
+	@echo "    - Apps: localhost:10001/graphql"
+	@echo "    - Checkout: localhost:10002/graphql"
+	@echo "    - Orders: localhost:10003/graphql"
+	@echo "    - Metrics: localhost:3030/metrics"
 
 down: services-down platform-down infra-down
 	@echo "Full stack stopped"
@@ -190,10 +187,7 @@ status:
 logs:
 	@echo "=== Recent logs from all containers ==="
 	@docker logs postgres --tail 20 2>&1 | head -20 || true
-	@docker logs shopana-nats --tail 20 2>&1 | head -20 || true
 	@docker logs shopana-platform --tail 20 2>&1 | head -20 || true
-	@docker logs shopana-checkout-service --tail 20 2>&1 | head -20 || true
-	@docker logs shopana-orders-service --tail 20 2>&1 | head -20 || true
 
 # Restart commands
 restart: down up
@@ -203,3 +197,15 @@ restart-platform: platform-down platform-up
 restart-services: services-down services-up
 
 restart-infra: infra-down infra-up
+
+# Clean - kill all processes on application ports
+clean:
+	@echo "Killing processes on application ports..."
+	@for port in 8000 50051 3030 3031 3032 3033 10001 10002 10003 10004 10005 10006 10008; do \
+		pid=$$(lsof -ti tcp:$$port 2>/dev/null); \
+		if [ -n "$$pid" ]; then \
+			echo "Killing process on port $$port (PID: $$pid)"; \
+			kill -9 $$pid 2>/dev/null || true; \
+		fi; \
+	done
+	@echo "All application processes killed"

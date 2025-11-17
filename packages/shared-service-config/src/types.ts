@@ -53,6 +53,14 @@ export type ServicesConfig = {
   /** Inventory service configuration */
   inventory: {
     metrics_port?: number;
+    object_storage_endpoint?: string;
+    object_storage_access_key?: string;
+    object_storage_secret_key?: string;
+    object_storage_bucket?: string;
+    object_storage_region?: string;
+    object_storage_prefix?: string;
+    object_storage_path_style?: string;
+    object_storage_session_token?: string;
   };
   /** Payments service configuration */
   payments: {

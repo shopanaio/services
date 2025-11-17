@@ -43,8 +43,6 @@ async function getServicePath(
  * - ORCHESTRATOR_TRANSPORTER: "null" for in-memory, "NATS" for distributed
  * - LOG_LEVEL: logging level
  * - METRICS_PORT: Prometheus metrics port
- *
- * Note: checkout and orders services always run standalone
  */
 async function startOrchestrator() {
   console.log("🚀 Starting Service Orchestrator...");

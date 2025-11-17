@@ -5,7 +5,8 @@ import fastifyApollo, {
 } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "moleculer";
@@ -40,20 +41,11 @@ export async function startServer(broker: ServiceBroker) {
   });
 
   // Load GraphQL schemas for both Admin and Storefront APIs
-  const adminSchemaPath = [
-    process.cwd(),
-    "src",
-    "interfaces",
-    "gql-admin-api",
-    "schema",
-  ];
-  const storefrontSchemaPath = [
-    process.cwd(),
-    "src",
-    "interfaces",
-    "gql-storefront-api",
-    "schema",
-  ];
+  // Use import.meta.url to get the current file's directory, works when run from orchestrator
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  // Schemas are copied to dist during build, located relative to this file
+  const adminSchemaPath = join(currentDir, "interfaces", "gql-admin-api", "schema");
+  const storefrontSchemaPath = join(currentDir, "interfaces", "gql-storefront-api", "schema");
 
   const schemaFiles = [
     "base.graphql",
@@ -65,7 +57,7 @@ export async function startServer(broker: ServiceBroker) {
 
   // Admin API schemas and modules
   const adminSchemas = schemaFiles.map((file) =>
-    join(...adminSchemaPath, file)
+    join(adminSchemaPath, file)
   );
   const adminModules = adminSchemas.map((p) => ({
     typeDefs: gql(readFileSync(p, "utf-8")),
@@ -74,7 +66,7 @@ export async function startServer(broker: ServiceBroker) {
 
   // Storefront API schemas and modules
   const storefrontSchemas = schemaFiles.map((file) =>
-    join(...storefrontSchemaPath, file)
+    join(storefrontSchemaPath, file)
   );
   const storefrontModules = storefrontSchemas.map((p) => ({
     typeDefs: gql(readFileSync(p, "utf-8")),

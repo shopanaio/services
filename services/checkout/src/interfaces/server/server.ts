@@ -5,7 +5,8 @@ import fastifyApollo, {
 } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "moleculer";
@@ -39,22 +40,19 @@ export async function startServer(broker: ServiceBroker) {
   });
 
   // Load GraphQL schema
-  const schemaPath = [
-    process.cwd(),
-    "src",
-    "interfaces",
-    "gql-storefront-api",
-    "schema",
-  ];
+  // Use import.meta.url to get the current file's directory, works when run from orchestrator
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  // Schemas are copied to dist during build, located relative to this file
+  const schemaPath = join(currentDir, "interfaces", "gql-storefront-api", "schema");
   const storefrontSchemas = [
-    join(...schemaPath, "parent.graphql"),
-    join(...schemaPath, "base.graphql"),
-    join(...schemaPath, "checkout.graphql"),
-    join(...schemaPath, "checkoutLine.graphql"),
-    join(...schemaPath, "checkoutDelivery.graphql"),
-    join(...schemaPath, "checkoutPayment.graphql"),
-    join(...schemaPath, "currency.graphql"),
-    join(...schemaPath, "country.graphql"),
+    join(schemaPath, "parent.graphql"),
+    join(schemaPath, "base.graphql"),
+    join(schemaPath, "checkout.graphql"),
+    join(schemaPath, "checkoutLine.graphql"),
+    join(schemaPath, "checkoutDelivery.graphql"),
+    join(schemaPath, "checkoutPayment.graphql"),
+    join(schemaPath, "currency.graphql"),
+    join(schemaPath, "country.graphql"),
   ];
 
   const modules = storefrontSchemas.map((p) => ({

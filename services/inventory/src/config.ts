@@ -3,21 +3,25 @@ import { loadServiceConfig } from "@shopana/shared-service-config";
 /**
  * Service configuration using centralized config system
  */
-const { vars } = loadServiceConfig("inventory");
+const { config: serviceConfig, vars } = loadServiceConfig("inventory");
 
 const normalizedVars = vars as Record<string, string | undefined>;
+const normalizedConfig = serviceConfig as Record<string, string | undefined>;
 
-const readOptionalConfig = (key: string): string | undefined => {
-  const value = normalizedVars[key];
-  if (!value) {
+const readOptionalConfig = (key: string, source: 'vars' | 'config' = 'vars'): string | undefined => {
+  const record = source === 'vars' ? normalizedVars : normalizedConfig;
+  const value = record[key];
+  if (value === undefined || value === null) {
     return undefined;
   }
-  const trimmed = value.trim();
+  // Convert to string if needed
+  const stringValue = typeof value === 'string' ? value : String(value);
+  const trimmed = stringValue.trim();
   return trimmed.length ? trimmed : undefined;
 };
 
-const readRequiredConfig = (key: string): string => {
-  const value = readOptionalConfig(key);
+const readRequiredConfig = (key: string, source: 'vars' | 'config' = 'vars'): string => {
+  const value = readOptionalConfig(key, source);
   if (!value) {
     throw new Error(
       `Missing required configuration value for key: ${key}`
@@ -43,10 +47,6 @@ const parseOptionalBoolean = (
   );
 };
 
-const environment = readRequiredConfig("environment");
-const logLevel = readRequiredConfig("log_level");
-const transporter = readRequiredConfig("moleculer_transporter");
-
 export const config = {
   /** HTTP port for health check server */
   port: 0,
@@ -55,13 +55,13 @@ export const config = {
   databaseUrl: "",
 
   /** Current environment name */
-  environment,
+  environment: readRequiredConfig("environment"),
 
   /** Log level */
-  logLevel,
+  logLevel: readRequiredConfig("log_level"),
 
   /** Moleculer transporter */
-  transporter,
+  transporter: vars.moleculer_transporter,
 
   /** Platform gRPC host */
   platformGrpcHost: readOptionalConfig("platform_grpc_host"),
@@ -72,7 +72,7 @@ export const config = {
   pluginRateLimit: 20,
 
   /** Development flag */
-  isDevelopment: environment === "development",
+  isDevelopment: readRequiredConfig("environment") === "development",
 
   /** Service metadata */
   serviceName: "inventory-service",
@@ -80,15 +80,15 @@ export const config = {
 
   /** Object storage configuration for inventory payloads */
   storage: {
-    endpoint: readRequiredConfig("object_storage_endpoint"),
-    accessKey: readRequiredConfig("object_storage_access_key"),
-    secretKey: readRequiredConfig("object_storage_secret_key"),
-    bucket: readRequiredConfig("object_storage_bucket"),
-    region: readOptionalConfig("object_storage_region"),
-    prefix: readOptionalConfig("object_storage_prefix"),
+    endpoint: readRequiredConfig("object_storage_endpoint", "config"),
+    accessKey: readRequiredConfig("object_storage_access_key", "config"),
+    secretKey: readRequiredConfig("object_storage_secret_key", "config"),
+    bucket: readRequiredConfig("object_storage_bucket", "config"),
+    region: readOptionalConfig("object_storage_region", "config"),
+    prefix: readOptionalConfig("object_storage_prefix", "config"),
     pathStyle: parseOptionalBoolean(
-      readOptionalConfig("object_storage_path_style")
+      readOptionalConfig("object_storage_path_style", "config")
     ),
-    sessionToken: readOptionalConfig("object_storage_session_token"),
+    sessionToken: readOptionalConfig("object_storage_session_token", "config"),
   },
 } as const;
