@@ -62,6 +62,46 @@
       "problemMatcher": []
     },
     {
+      "label": "Start Local Infrastructure",
+      "type": "shell",
+      "command": "make infra-up",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🗄️ Run Platform Migrations",
+      "type": "shell",
+      "command": "cd platform && echo '🗄️ Running Platform Migrations...' && make db:migrate && echo '✅ Migrations completed'",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Start Platform",
       "type": "shell",
       "command": "cd platform && echo 'Starting Platform Service...' && make start",
