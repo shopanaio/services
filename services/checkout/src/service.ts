@@ -50,8 +50,8 @@ const CheckoutService: ServiceSchema<any> = {
   created() {
     this.logger.info("Checkout service initializing...");
 
-    // Initialize the App container
-    this.app = App.getInstance();
+    // Initialize the App container with broker
+    this.app = App.create(this.broker);
 
     this.logger.info("Checkout service created successfully");
   },

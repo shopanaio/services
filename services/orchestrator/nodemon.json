@@ -1,0 +1,24 @@
+{
+  "watch": [
+    "src",
+    "../apps/src",
+    "../checkout/src",
+    "../delivery/src",
+    "../inventory/src",
+    "../orders/src",
+    "../payments/src",
+    "../pricing/src",
+    "../../packages/shared-kernel/src",
+    "../../packages/shared-service-config"
+  ],
+  "ext": "ts,js,json",
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/dist/**",
+    "**/node_modules/**"
+  ],
+  "exec": "tsx --tsconfig tsconfig.json src/nest-orchestrator.ts",
+  "legacyWatch": true,
+  "delay": 1000
+}

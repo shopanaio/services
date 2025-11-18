@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "entryFile": "nest-orchestrator",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "builder": "swc",
+    "typeCheck": false,
+    "tsConfigPath": "tsconfig.json",
+    "watchAssets": true,
+    "assets": [],
+    "webpack": false
+  }
+}
