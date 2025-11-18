@@ -238,9 +238,38 @@ export class NestBroker {
       throw new Error(`Action ${action} has invalid definition`);
     }
 
+    // FIXME: Temporary workaround for serialization compatibility
+    //
+    // Problem: When migrating from message broker (NATS) to NestJS Orchestrator, we discovered
+    // that services were passing class instances (like Money) directly between each other.
+    //
+    // - With NATS: Data was automatically serialized via JSON.stringify() when sent through
+    //   the message broker, which automatically called .toJSON() methods on objects
+    //
+    // - With NestBroker: Data is passed by reference (in-process calls), so class instances
+    //   remain as classes. When these reach validation (zod schemas), they fail because
+    //   validators expect plain objects, not class instances with methods.
+    //
+    // Current solution: Simulate message broker behavior by serializing/deserializing all
+    // parameters. This calls .toJSON() on any objects that have it (like Money class).
+    //
+    // TODO: Proper fix would be to update service interfaces to explicitly serialize
+    // domain objects before passing them between services. Services should be responsible
+    // for converting their domain models (Money, etc.) to DTOs/plain objects before
+    // calling other services. This would make the contract explicit and avoid this
+    // performance overhead of JSON serialize/deserialize on every call.
+    //
+    // Related: Money class in @shopana/shared-money has toJSON() method
+    const serializedParams = params ? JSON.parse(JSON.stringify(params, (_key, value) => {
+      if (value && typeof value === 'object' && typeof value.toJSON === 'function') {
+        return value.toJSON();
+      }
+      return value;
+    })) : params;
+
     const handler = this.extractActionHandler(actionDef);
     const ctx: NestedContext = {
-      params,
+      params: serializedParams,
       meta: opts?.meta ?? {},
       broker: this,
       service: registered.instance,
