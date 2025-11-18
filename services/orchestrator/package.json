@@ -5,13 +5,19 @@
   "type": "module",
   "description": "Service orchestrator for running multiple services in a single process",
   "scripts": {
-    "dev": "tsx --tsconfig ../apps/tsconfig.json src/index.ts",
-    "dev:watch": "tsx watch src/index.ts",
+    "dev": "tsx --tsconfig tsconfig.json src/nest-orchestrator.ts",
+    "dev:watch": "tsx watch --tsconfig tsconfig.json src/nest-orchestrator.ts",
+    "dev:moleculer": "tsx --tsconfig tsconfig.json src/index.ts",
     "build": "node esbuild.js",
     "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn build",
-    "start": "node dist/src/index.js"
+    "start": "node dist/src/nest-orchestrator.js",
+    "start:moleculer": "node dist/src/index.js"
   },
   "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-fastify": "^10.0.0",
+    "@shopana/shared-kernel": "1.0.0",
     "@shopana/shared-service-config": "0.0.1",
     "dotenv": "^16.4.5",
     "moleculer": "^0.14.35",

@@ -1,13 +1,13 @@
 import { build } from "esbuild";
 import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
 
-// Build main entry point
+// Build main entry points
 const mainOptions = {
-  entryPoints: ["src/index.ts"],
+  entryPoints: ["src/index.ts", "src/nest-orchestrator.ts"],
   platform: "node",
   bundle: true,
   format: "esm",
-  outfile: "dist/src/index.js",
+  outdir: "dist/src",
   packages: "external", // 🔥 ключевая настройка
   sourcemap: true,
   minify: false,

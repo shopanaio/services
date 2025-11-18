@@ -1,3 +1,61 @@
 {
-  "terminal.integrated.defaultLocation": "panel"
+  "terminal.integrated.defaultLocation": "panel",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.git/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.git": true,
+    "**/yarn.lock": true
+  },
+  "files.associations": {
+    "*.yml": "yaml",
+    "docker-compose*.yml": "yaml"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "debug.console.fontSize": 14,
+  "debug.console.lineHeight": 20,
+  "terminal.integrated.fontSize": 13,
+  "terminal.integrated.lineHeight": 1.2,
+  "cSpell.words": [
+    "minioadmin",
+    "isready",
+    "psql",
+    "shopana",
+    "nestjs",
+    "moleculer",
+    "orchestrator",
+    "checkout",
+    "inventorit",
+    "storefront",
+    "dumbo",
+    "knex",
+    "fastify",
+    "graphql",
+    "esbuild",
+    "vitest"
+  ]
 }

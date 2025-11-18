@@ -1,4 +1,4 @@
-import type { ServiceBroker } from "moleculer";
+import type { BrokerLike } from "../broker";
 import { deserializeCheckout } from "@shopana/checkout-sdk";
 import type { Checkout, CheckoutDto } from "@shopana/checkout-sdk";
 
@@ -7,9 +7,9 @@ export interface CheckoutApiClient {
 }
 
 export class CheckoutClient implements CheckoutApiClient {
-  private readonly broker: ServiceBroker;
+  private readonly broker: BrokerLike;
 
-  constructor(broker: ServiceBroker) {
+  constructor(broker: BrokerLike) {
     this.broker = broker;
   }
 

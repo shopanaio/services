@@ -160,7 +160,7 @@ const AppsService: ServiceSchema<any> = {
       this.logger.info("GraphQL server started successfully");
     } catch (error) {
       this.logger.error("Error during service startup:", error);
-      this.broker.stop();
+      await this.broker.stop("Service startup failed");
     }
   },
 

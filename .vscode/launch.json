@@ -1,0 +1,109 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "🐛 Debug NestJS Orchestrator",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "workspace",
+        "@shopana/orchestrator-service",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "CONFIG_FILE": "config.local.yml"
+      },
+      "cwd": "${workspaceFolder}",
+      "outputCapture": "std",
+      "presentation": {
+        "hidden": false,
+        "group": "debug",
+        "order": 1
+      }
+    },
+    {
+      "name": "🐛 Debug Orchestrator (Moleculer)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "workspace",
+        "@shopana/orchestrator-service",
+        "dev:moleculer"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "cwd": "${workspaceFolder}",
+      "outputCapture": "std",
+      "presentation": {
+        "hidden": false,
+        "group": "debug",
+        "order": 2
+      }
+    },
+    {
+      "name": "🐛 Attach to NestJS Orchestrator",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "restart": true,
+      "presentation": {
+        "hidden": false,
+        "group": "debug",
+        "order": 3
+      }
+    },
+    {
+      "name": "🧪 Debug Current Test File",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": [
+        "run",
+        "${relativeFile}"
+      ],
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "cwd": "${workspaceFolder}",
+      "presentation": {
+        "hidden": false,
+        "group": "test",
+        "order": 1
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "🚀 Start & Debug Local Dev",
+      "configurations": [
+        "🐛 Debug NestJS Orchestrator"
+      ],
+      "preLaunchTask": "Start Local Infrastructure",
+      "presentation": {
+        "hidden": false,
+        "group": "",
+        "order": 1
+      }
+    }
+  ]
+}

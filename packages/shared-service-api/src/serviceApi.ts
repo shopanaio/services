@@ -1,4 +1,4 @@
-import type { ServiceBroker } from "moleculer";
+import type { Broker } from "./broker";
 import { PaymentClient } from "./payment/client";
 import { PricingClient } from "./pricing/client";
 import { ShippingClient } from "./shipping/client";
@@ -24,9 +24,9 @@ export class ServiceApi {
 
   /**
    * Create a new aggregated API instance for the provided broker.
-   * @param broker - Moleculer service broker used for transport.
+   * @param broker - Moleculer or NestJS broker used for transport.
    */
-  constructor(broker: ServiceBroker) {
+  constructor(broker: Broker) {
     this.checkout = new CheckoutClient(broker);
     this.payment = new PaymentClient(broker);
     this.pricing = new PricingClient(broker);
@@ -37,9 +37,9 @@ export class ServiceApi {
 
 /**
  * Factory helper to create {@link ServiceApi}.
- * @param broker - Moleculer service broker
+ * @param broker - Moleculer or NestJS orchestrator broker
  */
-export function createServiceApi(broker: ServiceBroker): ServiceApi {
+export function createServiceApi(broker: Broker): ServiceApi {
   return new ServiceApi(broker);
 }
 

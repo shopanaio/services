@@ -1,4 +1,4 @@
-import type { ServiceBroker } from "moleculer";
+import type { BrokerLike } from "../broker";
 import type {
   ShippingApiClient,
   GetAllMethodsResponse,
@@ -12,9 +12,9 @@ import type { ShippingMethod } from "@shopana/plugin-sdk/shipping";
 import type { PaymentMethod } from "@shopana/plugin-sdk/payment";
 
 export class ShippingClient implements ShippingApiClient {
-  private readonly broker: ServiceBroker;
+  private readonly broker: BrokerLike;
 
-  constructor(broker: ServiceBroker) {
+  constructor(broker: BrokerLike) {
     this.broker = broker;
   }
 

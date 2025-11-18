@@ -13,6 +13,8 @@ export type {
 } from './shipping';
 export * from './types';
 
+export type { Broker, BrokerLike } from './broker';
+
 export type { Checkout, CheckoutDto } from '@shopana/checkout-sdk';
 export type { Discount, DiscountType } from '@shopana/plugin-sdk/pricing';
 export type { PaymentMethod } from '@shopana/plugin-sdk/payment';

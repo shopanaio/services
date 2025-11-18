@@ -16,3 +16,4 @@ export {
   type ScriptResult,
   KernelError,
 } from './types';
+export * from './nestjs';

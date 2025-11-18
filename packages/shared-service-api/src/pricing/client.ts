@@ -1,4 +1,4 @@
-import type { ServiceBroker } from "moleculer";
+import type { BrokerLike } from "../broker";
 import type {
   PricingApiClient,
   GetAllDiscountsResponse,
@@ -9,17 +9,17 @@ import type {
 import type { Discount } from "@shopana/plugin-sdk/pricing";
 
 export class PricingClient implements PricingApiClient {
-  private readonly broker: ServiceBroker;
+  private readonly broker: BrokerLike;
 
-  constructor(broker: ServiceBroker) {
+  constructor(broker: BrokerLike) {
     this.broker = broker;
   }
 
   /** @inheritdoc */
   async getProjectDiscounts(): Promise<Discount[]> {
-    const data = await this.broker.call<GetAllDiscountsResponse>(
+    const data = (await this.broker.call(
       "pricing.getProjectDiscounts"
-    );
+    )) as GetAllDiscountsResponse;
     return data.discounts ?? [];
   }
 
@@ -28,10 +28,10 @@ export class PricingClient implements PricingApiClient {
     code: string;
     provider?: string;
   }): Promise<ValidateDiscountResponse> {
-    return await this.broker.call<ValidateDiscountResponse, {}>(
+    return (await this.broker.call(
       "pricing.validateDiscount",
       input
-    );
+    )) as ValidateDiscountResponse;
   }
 
   /** @inheritdoc */
@@ -39,7 +39,7 @@ export class PricingClient implements PricingApiClient {
     input: PricingEvaluateDiscountsInput
   ): Promise<PricingEvaluateDiscountsResult> {
     try {
-      return (await this.broker.call<PricingEvaluateDiscountsResult, {}>(
+      return (await this.broker.call(
         "pricing.evaluateDiscounts",
         input
       )) as PricingEvaluateDiscountsResult;

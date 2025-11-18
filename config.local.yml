@@ -1,0 +1,59 @@
+# Local Development Configuration
+# Use this for local development with NestJS orchestrator
+
+# Common vars for services
+vars:
+  # Environment for all services (development enables tsx watch, REPL, etc.)
+  environment: development
+  # Log level for all services
+  log_level: debug
+  # Moleculer transporter for services broker (null for in-memory - best for local dev)
+  moleculer_transporter: null
+  # Platform GRPC (context) server (use localhost for local dev)
+  platform_grpc_host: localhost:50051
+
+services:
+  orchestrator:
+    # Services included to orchestrator
+    services:
+      - apps
+      - checkout
+      - delivery
+      - inventory
+      - orders
+      - payments
+      - pricing
+    metrics_port: 3030
+
+  checkout:
+    storefront_graphql_port: 10002
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3031
+
+  orders:
+    storefront_graphql_port: 10003
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3032
+
+  apps:
+    admin_graphql_port: 10001
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3033
+
+  delivery:
+    port: 10004
+
+  inventory:
+    port: 10005
+    object_storage_endpoint: http://localhost:9000
+    object_storage_access_key: minioadmin
+    object_storage_secret_key: minioadmin
+    object_storage_bucket: inventory
+    object_storage_region: us-east-1
+    object_storage_path_style: true
+
+  payments:
+    port: 10006
+
+  pricing:
+    port: 10008

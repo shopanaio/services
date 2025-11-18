@@ -94,7 +94,7 @@ network-create:
 # Database management
 db-up:
 	@echo "Starting PostgreSQL..."
-	@docker-compose -f platform/docker-compose.db.yml up -d
+	@docker-compose -f platform/docker-compose.db.yml up -d --remove-orphans
 	@echo "Waiting for PostgreSQL to be ready..."
 	@sleep 3
 	@docker exec postgres pg_isready -U postgres || (echo "PostgreSQL is not ready yet, waiting..." && sleep 3)
@@ -125,7 +125,7 @@ nats-logs:
 # Platform management
 platform-up:
 	@echo "Starting Platform..."
-	@docker-compose -f platform/docker-compose.platform.yml up -d
+	@docker-compose -f platform/docker-compose.platform.yml up -d --remove-orphans
 	@echo "Platform is starting..."
 
 platform-down:

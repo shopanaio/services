@@ -2,12 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Start All Dev Services",
+      "label": "🚀 Start Local Dev (NestJS)",
       "dependsOrder": "sequence",
       "dependsOn": [
-        "Start Infrastructure",
-        "Start Platform Service",
-        "Start Orchestrator"
+        "Clean Ports",
+        "Start Local Infrastructure",
+        "Start Platform",
+        "Start NestJS Orchestrator"
       ],
       "group": {
         "kind": "build",
@@ -18,7 +19,27 @@
         "reveal": "always",
         "focus": false,
         "panel": "dedicated"
-      }
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean Ports",
+      "type": "shell",
+      "command": "lsof -ti:10001,10002,10003,3030,8000,50051 | xargs kill -9 2>/dev/null || true",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
     },
     {
       "label": "Start Infrastructure",
@@ -41,7 +62,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Start Platform Service",
+      "label": "Start Platform",
       "type": "shell",
       "command": "cd platform && echo 'Starting Platform Service...' && make start",
       "options": {
@@ -71,22 +92,27 @@
       }
     },
     {
-      "label": "Start Orchestrator",
+      "label": "Start NestJS Orchestrator",
       "type": "shell",
-      "command": "source ~/.nvm/nvm.sh && nvm use 22 && echo 'Starting Orchestrator with all services...' && make dev:orchestrator",
+      "command": "export CONFIG_FILE=config.local.yml && source ~/.nvm/nvm.sh && nvm use 22 && echo '🚀 Starting NestJS Orchestrator...' && yarn workspace @shopana/orchestrator-service dev",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
           "executable": "/bin/zsh",
           "args": ["-c"]
+        },
+        "env": {
+          "NODE_ENV": "development",
+          "CONFIG_FILE": "config.local.yml"
         }
       },
       "group": "build",
       "presentation": {
         "echo": true,
         "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false
       },
       "isBackground": true,
       "problemMatcher": {
@@ -95,15 +121,15 @@
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "Starting Orchestrator",
-          "endsPattern": "Service Orchestrator started successfully|ServiceBroker.*started successfully"
+          "beginsPattern": "Creating NestJS Orchestrator|Starting NestJS Orchestrator",
+          "endsPattern": "NestJS Orchestrator started successfully|All services initialized"
         }
       }
     },
     {
-      "label": "Stop All Services",
+      "label": "🔨 Build All Packages",
       "type": "shell",
-      "command": "make down",
+      "command": "yarn workspace @shopana/shared-kernel build && yarn workspace @shopana/shared-service-api build && yarn workspace @shopana/shared-service-config build && yarn workspace @shopana/orchestrator-service build && echo '✅ All packages built'",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
