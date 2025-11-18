@@ -12,6 +12,7 @@ export const order = async (
   _parent: ApiOrderQuery,
   args: ApiOrderQueryOrderArgs
 ) => {
-  const read = await App.getInstance().orderReadRepository.findById(args.id);
+  const app = App.getInstance();
+  const read = await app.orderReadRepository.findById(args.id);
   return read ? mapOrderReadToApi(read) : null;
 };

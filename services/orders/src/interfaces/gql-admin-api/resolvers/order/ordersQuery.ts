@@ -13,7 +13,8 @@ export const orders = async (
   args: ApiOrderQueryOrdersArgs
 ) => {
   // TODO: Implement proper pagination and filtering
-  const orderReadRepository = App.getInstance().orderReadRepository;
+  const app = App.getInstance();
+  const orderReadRepository = app.orderReadRepository;
 
   const input = args.input || {};
   const page = (input as any).page || 1;
