@@ -210,18 +210,22 @@ export const orderCreateProjection =
       // Insert delivery groups with references to addresses and recipients
       const groups = event.data.deliveryGroups || [];
       if (groups.length > 0) {
+        const deliveryGroupMappings =
+          projectionContext?.deliveryGroupMappings ?? [];
         const mappings = new Map(
-          projectionContext?.deliveryGroupMappings.map((m) => [
+          deliveryGroupMappings.map((m) => [
             m.deliveryGroupId,
             { addressId: m.addressId, recipientId: m.recipientId },
-          ]) ?? []
+          ])
         );
 
+        const selectedDeliveryMethods =
+          projectionContext?.selectedDeliveryMethods ?? [];
         const selectedMethods = new Map(
-          projectionContext?.selectedDeliveryMethods.map((m) => [
+          selectedDeliveryMethods.map((m) => [
             m.deliveryGroupId,
             { code: m.code, provider: m.provider },
-          ]) ?? []
+          ])
         );
 
         const groupRows = groups.map((g) => {
