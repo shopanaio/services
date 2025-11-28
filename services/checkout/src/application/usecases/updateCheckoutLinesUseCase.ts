@@ -84,7 +84,7 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
 
     // Update lines with current product data
     const checkoutLines: CheckoutLineItemState[] = updatedLines.map((line) => {
-      const offer = offers.get(line.unit.id);
+      const offer = offers.get(line.lineId);
       if (!offer?.isAvailable) {
         throw new Error(`Product not found in inventory`);
       }

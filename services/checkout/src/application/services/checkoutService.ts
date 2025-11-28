@@ -41,7 +41,7 @@ export class CheckoutService {
 
   /**
    * Get offers from inventory with nested children support.
-   * Returns offers array (not map) to preserve children structure.
+   * Returns Map by lineId for easy lookup, preserving children in each offer.
    */
   async getOffers(input: {
     apiKey: string;
@@ -49,13 +49,21 @@ export class CheckoutService {
     projectId: string;
     items: GetOffersItem[];
   }): Promise<{
-    offers: InventoryOffer[];
+    offers: Map<string, InventoryOffer>;
   }> {
-    const offers = await this.inventory.getOffers({
+    const offersArray = await this.inventory.getOffers({
       ...input,
       projectId: input.projectId,
       apiKey: input.apiKey,
     });
+
+    const offers = new Map<string, InventoryOffer>();
+    for (const offer of offersArray) {
+      const lineId = (offer.providerPayload as { lineId?: string })?.lineId;
+      if (lineId) {
+        offers.set(lineId, offer);
+      }
+    }
     return { offers };
   }
 

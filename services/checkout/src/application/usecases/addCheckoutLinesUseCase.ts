@@ -8,7 +8,6 @@ import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
 import { CheckoutLineItemState, ChildPriceType } from "@src/domain/checkout/types";
 import type { GetOffersItem, GetOffersChildItem } from "@src/application/services/checkoutService";
-import type { InventoryOffer } from "@shopana/shared-service-api";
 
 export interface AddCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
@@ -160,19 +159,10 @@ export class AddCheckoutLinesUseCase extends UseCase<
       items: inventoryItems,
     });
 
-    // Build offers map by lineId for easy lookup
-    const offersByLineId = new Map<string, InventoryOffer>();
-    for (const offer of offers) {
-      const lineId = (offer.providerPayload as { lineId?: string })?.lineId;
-      if (lineId) {
-        offersByLineId.set(lineId, offer);
-      }
-    }
-
     const newLines: CheckoutLineItemState[] = [];
 
     for (const line of addedLines) {
-      const offer = offersByLineId.get(line.lineId);
+      const offer = offers.get(line.lineId);
       if (!offer) {
         throw new Error(`Product ${line.purchasableId} not found in inventory`);
       }
