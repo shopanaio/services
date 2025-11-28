@@ -12,6 +12,7 @@ import type {
   CheckoutDeliveryGroup,
   CheckoutPromoCode,
   CheckoutPaymentMethod,
+  CheckoutTagRow,
 } from "@src/application/read/checkoutReadRepository";
 import { PaymentFlow } from "@shopana/plugin-sdk/payment";
 
@@ -265,5 +266,26 @@ export class CheckoutReadRepository implements CheckoutReadPort {
     const result = await this.execute.query<any>(rawSql(q));
     if (result.rows.length === 0) return null;
     return { code: result.rows[0].code, provider: result.rows[0].provider };
+  }
+
+  async findTags(checkoutId: string): Promise<CheckoutTagRow[]> {
+    const q = knex
+      .withSchema("platform")
+      .table("checkout_tags")
+      .select(
+        "id",
+        "checkout_id",
+        "project_id",
+        "slug",
+        "is_unique",
+        "created_at",
+        "updated_at"
+      )
+      .where({ checkout_id: checkoutId })
+      .orderBy("created_at", "asc")
+      .toString();
+
+    const result = await this.execute.query<CheckoutTagRow>(rawSql(q));
+    return result.rows;
   }
 }

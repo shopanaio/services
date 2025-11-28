@@ -7,6 +7,8 @@ import {
   Min,
   IsArray,
   ValidateNested,
+  Matches,
+  IsBoolean,
 } from "class-validator";
 import { IsISO4217 } from "@src/application/validation/decorators";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
@@ -56,6 +58,26 @@ export class CheckoutLineInputDto {
   // AI: Share a snapshot with inventory.
   @Type(() => PurchasableSnapshotInputDto)
   purchasableSnapshot?: PurchasableSnapshotInputDto;
+
+  @Expose()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9]+$/, {
+    message: "tagSlug must be alphanumeric (a-zA-Z0-9)",
+  })
+  tagSlug?: string;
+}
+
+export class CheckoutTagDto {
+  @Expose()
+  @IsString()
+  @Matches(/^[a-zA-Z0-9]+$/, {
+    message: "slug must be alphanumeric (a-zA-Z0-9)",
+  })
+  slug!: string;
+
+  @Expose()
+  @IsBoolean()
+  isUnique!: boolean;
 }
 
 export class CreateCheckoutDto {
@@ -88,4 +110,11 @@ export class CreateCheckoutDto {
   @ValidateNested({ each: true })
   @Type(() => CheckoutLineInputDto)
   items!: CheckoutLineInputDto[];
+
+  @Expose()
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CheckoutTagDto)
+  tags?: CheckoutTagDto[];
 }

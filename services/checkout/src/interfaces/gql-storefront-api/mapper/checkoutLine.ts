@@ -20,6 +20,16 @@ export function mapCheckoutLineReadToApi(
       GlobalIdEntity.ProductVariant
     ),
     purchasableSnapshot: read.unit.snapshot,
+    tag: read.tag
+      ? {
+          __typename: "CheckoutTag" as const,
+          id: encodeGlobalIdByType(read.tag.id, GlobalIdEntity.CheckoutTag),
+          slug: read.tag.slug,
+          unique: read.tag.isUnique,
+          createdAt: read.tag.createdAt.toISOString(),
+          updatedAt: read.tag.updatedAt.toISOString(),
+        }
+      : null,
     cost: {
       compareAtUnitPrice: moneyToApi(read.unit.compareAtPrice ?? Money.zero()),
       unitPrice: moneyToApi(read.unit.price),

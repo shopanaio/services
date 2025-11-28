@@ -12,6 +12,11 @@ import { PaymentFlow } from "@shopana/plugin-sdk/payment";
 export type CheckoutLineItemState = {
   lineId: string;
   quantity: number;
+  tag: {
+    id: string;
+    slug: string;
+    isUnique: boolean;
+  } | null;
   unit: {
     id: string;
     price: Money;
@@ -114,6 +119,13 @@ export type CheckoutState = {
   taxTotal: Money;
   shippingTotal: Money;
   linesRecord: Record<string, CheckoutLineItemState>;
+  tagsRecord: Record<string, {
+    id: string;
+    slug: string;
+    isUnique: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
   appliedDiscounts: Array<AppliedDiscountSnapshot>;
   payment: {
     methods: Array<{
@@ -166,6 +178,7 @@ export const checkoutInitialState = (): CheckoutState => ({
   taxTotal: Money.zero(),
   shippingTotal: Money.zero(),
   linesRecord: {},
+  tagsRecord: {},
   appliedDiscounts: [],
   payment: null,
 });

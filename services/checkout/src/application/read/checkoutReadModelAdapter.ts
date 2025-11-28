@@ -1,6 +1,6 @@
 import { CheckoutState, CheckoutLineItemState, CheckoutDeliveryGroup as DomainCheckoutDeliveryGroup, CheckoutDeliveryAddress as DomainCheckoutDeliveryAddress, CheckoutDeliveryMethod as DomainCheckoutDeliveryMethod } from "@src/domain/checkout/types";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
-import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod } from "./checkoutReadRepository";
+import { CheckoutReadView, CheckoutDeliveryGroup, CheckoutPromoCode, CheckoutDeliveryAddress, CheckoutDeliveryMethod, CheckoutTag } from "./checkoutReadRepository";
 import { CheckoutLineItemReadView } from "./checkoutLineItemsReadRepository";
 import { DeliveryMethodType, ShippingPaymentModel } from "@shopana/plugin-sdk/shipping";
 import { DiscountType } from "@shopana/plugin-sdk/pricing";
@@ -49,6 +49,7 @@ export class CheckoutReadModelAdapter {
       taxTotal: readView.taxTotal,
       shippingTotal: readView.shippingTotal,
       linesRecord: this.mapLineItemsToLinesRecord(readView.lineItems),
+      tagsRecord: this.mapTagsToRecord(readView.tags),
       appliedDiscounts: this.mapPromoCodesToAppliedDiscounts(readView.appliedPromoCodes),
       payment: this.mapPaymentAggregate(readView),
     };
@@ -64,6 +65,13 @@ export class CheckoutReadModelAdapter {
       linesRecord[item.id] = {
         lineId: item.id,
         quantity: item.quantity,
+        tag: item.tag
+          ? {
+              id: item.tag.id,
+              slug: item.tag.slug,
+              isUnique: item.tag.isUnique,
+            }
+          : null,
         unit: {
           id: item.unit.id,
           price: item.unit.price,
@@ -77,6 +85,22 @@ export class CheckoutReadModelAdapter {
     }
 
     return linesRecord;
+  }
+
+  /**
+   * Converts checkout tags to slug-indexed record
+   */
+  private static mapTagsToRecord(tags: CheckoutTag[]): CheckoutState["tagsRecord"] {
+    return tags.reduce<CheckoutState["tagsRecord"]>((acc, tag) => {
+      acc[tag.slug] = {
+        id: tag.id,
+        slug: tag.slug,
+        isUnique: tag.isUnique,
+        createdAt: tag.createdAt,
+        updatedAt: tag.updatedAt,
+      };
+      return acc;
+    }, {});
   }
 
   /**

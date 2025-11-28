@@ -18,6 +18,9 @@ export { UpdateCheckoutLinesUseCase } from "./updateCheckoutLinesUseCase";
 export { DeleteCheckoutLinesUseCase } from "./removeCheckoutLinesUseCase";
 export { ClearCheckoutLinesUseCase } from "./clearCheckoutLinesUseCase";
 export { ReplaceCheckoutLinesUseCase } from "./replaceCheckoutLinesUseCase";
+export { CreateCheckoutTagUseCase } from "./createCheckoutTagUseCase";
+export { UpdateCheckoutTagUseCase } from "./updateCheckoutTagUseCase";
+export { DeleteCheckoutTagUseCase } from "./deleteCheckoutTagUseCase";
 
 // Customer use cases
 export { UpdateCustomerIdentityUseCase } from "./updateCustomerIdentityUseCase";
@@ -55,6 +58,9 @@ export type {
   CheckoutDeliveryGroupAddressUpdateInput,
   CheckoutPromoCodeAddInput,
   CheckoutPromoCodeRemoveInput,
+  CheckoutTagCreateInput,
+  CheckoutTagUpdateInput,
+  CheckoutTagDeleteInput,
 } from "@src/application/checkout/types";
 
 // DTOs

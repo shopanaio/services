@@ -110,6 +110,7 @@ export interface CheckoutReadPort {
     checkoutId: string
     // AI: this should be typed with the correct interface
   ): Promise<{ code: string; provider: string } | null>;
+  findTags(checkoutId: string): Promise<CheckoutTagRow[]>;
 }
 
 export type CheckoutDeliveryAddress = {
@@ -170,6 +171,26 @@ export type CheckoutDeliveryMethod = {
   customerInput: Record<string, unknown> | null;
 };
 
+export type CheckoutTagRow = {
+  id: string;
+  checkout_id: string;
+  project_id: string;
+  slug: string;
+  is_unique: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export type CheckoutTag = {
+  id: string;
+  checkoutId: string;
+  projectId: string;
+  slug: string;
+  isUnique: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type CheckoutReadView = {
   id: string;
   projectId: string;
@@ -209,6 +230,7 @@ export type CheckoutReadView = {
     selectedMethod: { code: string; provider: string } | null;
     payableAmount: Money; // currently equals grandTotal minus carrier direct if applicable (not available yet)
   } | null;
+  tags: CheckoutTag[];
   // Aggregated data
   lineItems: CheckoutLineItemReadView[];
   totalQuantity: number;
@@ -236,6 +258,7 @@ export class CheckoutReadRepository {
       lineItems,
       paymentMethods,
       selectedPayment,
+      tags,
     ] = await Promise.all([
       this.port.findById(id),
       this.port.findAppliedPromoCodes(id),
@@ -245,6 +268,7 @@ export class CheckoutReadRepository {
       this.lineItemsReadRepository.findByCheckoutId(id),
       this.port.findPaymentMethods(id),
       this.port.findSelectedPaymentMethod(id),
+      this.port.findTags(id),
     ]);
 
     if (!row) return null;
@@ -366,6 +390,17 @@ export class CheckoutReadRepository {
           : null,
         payableAmount: Money.fromMinor(row.grand_total, row.currency_code),
       },
+      tags: tags.map(
+        (tag): CheckoutTag => ({
+          id: tag.id,
+          checkoutId: tag.checkout_id,
+          projectId: tag.project_id,
+          slug: tag.slug,
+          isUnique: tag.is_unique,
+          createdAt: tag.created_at,
+          updatedAt: tag.updated_at,
+        })
+      ),
     };
   }
 

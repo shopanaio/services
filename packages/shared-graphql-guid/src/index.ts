@@ -87,6 +87,7 @@ export enum GlobalIdEntity {
   CheckoutLine = "CheckoutLine",
   CheckoutDeliveryGroup = "CheckoutDeliveryGroup",
   CheckoutDeliveryAddress = "CheckoutDeliveryAddress",
+  CheckoutTag = "CheckoutTag",
   CheckoutNotification = "CheckoutNotification",
   Order = "Order",
   OrderLine = "OrderLine",

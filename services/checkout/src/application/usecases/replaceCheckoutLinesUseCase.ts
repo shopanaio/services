@@ -143,7 +143,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
 
     const dto: CheckoutLinesUpdatedDto = {
       data: {
-        checkoutLines,
+        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
       },

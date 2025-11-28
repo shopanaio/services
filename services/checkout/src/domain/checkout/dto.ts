@@ -52,6 +52,11 @@ export type CheckoutCreatedPayload = Readonly<{
     constraints: Record<string, unknown> | null;
     customerInput?: Record<string, unknown> | null;
   }>;
+  tags: Array<{
+    id: string;
+    slug: string;
+    isUnique: boolean;
+  }>;
 }>;
 
 export type CheckoutCreatedDto = Readonly<{
@@ -72,6 +77,7 @@ export type CheckoutUnit = Readonly<{
 export type CheckoutLinesAddedLine = Readonly<{
   lineId: string;
   quantity: number;
+  tagId: string | null;
   unit: CheckoutUnit;
 }>;
 
@@ -120,6 +126,39 @@ export type CheckoutLinesClearedPayload = Readonly<{
 
 export type CheckoutLinesClearedDto = Readonly<{
   data: CheckoutLinesClearedPayload;
+  metadata: CheckoutMetadataDto;
+}>;
+
+export type CheckoutTagCreatedPayload = Readonly<{
+  tag: {
+    id: string;
+    slug: string;
+    isUnique: boolean;
+  };
+}>;
+
+export type CheckoutTagCreatedDto = Readonly<{
+  data: CheckoutTagCreatedPayload;
+  metadata: CheckoutMetadataDto;
+}>;
+
+export type CheckoutTagUpdatedPayload = Readonly<{
+  tagId: string;
+  slug?: string;
+  isUnique?: boolean;
+}>;
+
+export type CheckoutTagUpdatedDto = Readonly<{
+  data: CheckoutTagUpdatedPayload;
+  metadata: CheckoutMetadataDto;
+}>;
+
+export type CheckoutTagDeletedPayload = Readonly<{
+  tagId: string;
+}>;
+
+export type CheckoutTagDeletedDto = Readonly<{
+  data: CheckoutTagDeletedPayload;
   metadata: CheckoutMetadataDto;
 }>;
 

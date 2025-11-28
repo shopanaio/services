@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "@shopana/novaposhta-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "-p", "@shopana/novaposhta-mcp-server", "novaposhta-mcp"]
+    }
+  }
+}

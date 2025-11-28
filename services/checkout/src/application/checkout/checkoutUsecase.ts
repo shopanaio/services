@@ -25,6 +25,9 @@ import {
 import { ReplaceCheckoutLinesUseCase } from "@src/application/usecases/replaceCheckoutLinesUseCase";
 import { UpdateDeliveryGroupRecipientUseCase } from "@src/application/usecases/updateDeliveryGroupRecipientUseCase";
 import { RemoveDeliveryGroupRecipientUseCase } from "@src/application/usecases/removeDeliveryGroupRecipientUseCase";
+import { CreateCheckoutTagUseCase } from "@src/application/usecases/createCheckoutTagUseCase";
+import { UpdateCheckoutTagUseCase } from "@src/application/usecases/updateCheckoutTagUseCase";
+import { DeleteCheckoutTagUseCase } from "@src/application/usecases/deleteCheckoutTagUseCase";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
@@ -56,6 +59,9 @@ export class CheckoutUsecase {
   public readonly updateDeliveryGroupRecipient: UpdateDeliveryGroupRecipientUseCase;
   public readonly removeDeliveryGroupRecipient: RemoveDeliveryGroupRecipientUseCase;
   public readonly replaceCheckoutLines: ReplaceCheckoutLinesUseCase;
+  public readonly createCheckoutTag: CreateCheckoutTagUseCase;
+  public readonly updateCheckoutTag: UpdateCheckoutTagUseCase;
+  public readonly deleteCheckoutTag: DeleteCheckoutTagUseCase;
 
   constructor(deps: {
     logger?: Logger;
@@ -127,5 +133,8 @@ export class CheckoutUsecase {
     this.removeDeliveryGroupRecipient = new RemoveDeliveryGroupRecipientUseCase(
       baseDeps
     );
+    this.createCheckoutTag = new CreateCheckoutTagUseCase(baseDeps);
+    this.updateCheckoutTag = new UpdateCheckoutTagUseCase(baseDeps);
+    this.deleteCheckoutTag = new DeleteCheckoutTagUseCase(baseDeps);
   }
 }

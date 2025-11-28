@@ -209,3 +209,15 @@ clean:
 		fi; \
 	done
 	@echo "All application processes killed"
+
+# Clean - kill all processes on application ports
+clean-platform:
+	@echo "Killing processes on application ports..."
+	@for port in 8000 50051; do \
+		pid=$$(lsof -ti tcp:$$port 2>/dev/null); \
+		if [ -n "$$pid" ]; then \
+			echo "Killing process on port $$port (PID: $$pid)"; \
+			kill -9 $$pid 2>/dev/null || true; \
+		fi; \
+	done
+	@echo "All application processes killed"

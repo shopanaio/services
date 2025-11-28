@@ -22,29 +22,35 @@ export class CheckoutLineItemsReadRepositoryPort
   ): Promise<CheckoutLineItemReadPortRow[]> {
     const q = knex
       .withSchema("platform")
-      .table("checkout_line_items")
+      .table("checkout_line_items as cli")
+      .leftJoin("checkout_tags as ct", "ct.id", "cli.tag_id")
       .select(
-        "id",
-        "project_id",
-        "checkout_id",
-        "quantity",
-        "unit_id",
-        "unit_title",
-        "unit_price",
-        "unit_compare_at_price",
-        "unit_sku",
-        "unit_image_url",
-        "unit_snapshot",
-        "subtotal_amount",
-        "discount_amount",
-        "tax_amount",
-        "total_amount",
-        "metadata",
-        "created_at",
-        "updated_at",
-        "deleted_at"
+        "cli.id",
+        "cli.project_id",
+        "cli.checkout_id",
+        "cli.quantity",
+        "cli.unit_id",
+        "cli.unit_title",
+        "cli.unit_price",
+        "cli.unit_compare_at_price",
+        "cli.unit_sku",
+        "cli.unit_image_url",
+        "cli.unit_snapshot",
+        "cli.subtotal_amount",
+        "cli.discount_amount",
+        "cli.tax_amount",
+        "cli.total_amount",
+        "cli.metadata",
+        "cli.created_at",
+        "cli.updated_at",
+        "cli.deleted_at",
+        knex.raw("ct.id as tag_id"),
+        knex.raw("ct.slug as tag_slug"),
+        knex.raw("ct.is_unique as tag_is_unique"),
+        knex.raw("ct.created_at as tag_created_at"),
+        knex.raw("ct.updated_at as tag_updated_at")
       )
-      .where({ checkout_id: checkoutId })
+      .where({ "cli.checkout_id": checkoutId })
       .orderBy("id", "asc")
       .toString();
 

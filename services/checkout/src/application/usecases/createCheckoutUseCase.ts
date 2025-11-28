@@ -29,6 +29,12 @@ export class CreateCheckoutUseCase extends UseCase<
     const context = { apiKey, project, customer, user };
 
     const id = uuidv7();
+    const tags = (businessInput.tags ?? []).map((tag) => ({
+      id: uuidv7(),
+      slug: tag.slug,
+      isUnique: tag.isUnique,
+    }));
+
     const dto: CheckoutCreatedDto = {
       data: {
         currencyCode: businessInput.currencyCode,
@@ -44,6 +50,7 @@ export class CreateCheckoutUseCase extends UseCase<
           id,
           businessInput.currencyCode
         ),
+        tags,
       },
       metadata: this.createMetadataDto(id, context),
     };

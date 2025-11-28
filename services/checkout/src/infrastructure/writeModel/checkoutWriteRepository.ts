@@ -22,6 +22,9 @@ import type {
   CheckoutPaymentMethodUpdatedDto,
   CheckoutDeliveryGroupRecipientUpdatedDto,
   CheckoutDeliveryGroupRecipientClearedDto,
+  CheckoutTagCreatedDto,
+  CheckoutTagUpdatedDto,
+  CheckoutTagDeletedDto,
 } from "@src/domain/checkout/dto";
 
 /**
@@ -242,7 +245,95 @@ export class CheckoutWriteRepository {
       statements.push(insertPaymentMethodsSql);
     }
 
+    const tags = input.data.tags ?? [];
+    if (tags.length > 0) {
+      const insertTagsSql = knex
+        .withSchema("platform")
+        .table("checkout_tags")
+        .insert(
+          tags.map((tag) => ({
+            id: tag.id,
+            checkout_id: input.metadata.aggregateId,
+            project_id: input.metadata.projectId as any,
+            slug: tag.slug,
+            is_unique: tag.isUnique,
+            created_at: input.metadata.now,
+            updated_at: input.metadata.now,
+          }))
+        )
+        .toString();
+      statements.push(insertTagsSql);
+    }
+
     await this.run(statements);
+  }
+
+  /**
+   * Inserts a checkout tag row.
+   */
+  async createCheckoutTag(input: CheckoutTagCreatedDto): Promise<void> {
+    const q = knex
+      .withSchema("platform")
+      .table("checkout_tags")
+      .insert({
+        id: input.data.tag.id,
+        checkout_id: input.metadata.aggregateId,
+        project_id: input.metadata.projectId as any,
+        slug: input.data.tag.slug,
+        is_unique: input.data.tag.isUnique,
+        created_at: input.metadata.now,
+        updated_at: input.metadata.now,
+      })
+      .toString();
+
+    await this.run([q]);
+  }
+
+  /**
+   * Updates slug or uniqueness flag of a checkout tag.
+   */
+  async updateCheckoutTag(input: CheckoutTagUpdatedDto): Promise<void> {
+    const updateFields: Record<string, unknown> = {
+      updated_at: knex.fn.now(),
+    };
+
+    if (input.data.slug != null) {
+      updateFields.slug = input.data.slug;
+    }
+    if (input.data.isUnique != null) {
+      updateFields.is_unique = input.data.isUnique;
+    }
+
+    const q = knex
+      .withSchema("platform")
+      .table("checkout_tags")
+      .where({
+        id: input.data.tagId,
+        checkout_id: input.metadata.aggregateId,
+        project_id: input.metadata.projectId as any,
+      })
+      .update(updateFields)
+      .toString();
+
+    await this.run([q]);
+  }
+
+  /**
+   * Deletes a checkout tag. Line item references will be nulled via FK.
+   */
+  async deleteCheckoutTag(input: CheckoutTagDeletedDto): Promise<void> {
+    const q = knex
+      .withSchema("platform")
+      .table("checkout_tags")
+      .where({
+        id: input.data.tagId,
+        checkout_id: input.metadata.aggregateId,
+        project_id: input.metadata.projectId as any,
+      })
+      .delete()
+      .toString();
+
+    await this.run([q]);
   }
 
   /**
@@ -782,6 +873,7 @@ export class CheckoutWriteRepository {
           id: l.lineId,
           project_id: projectId as any,
           checkout_id: checkoutId,
+          tag_id: l.tagId,
           quantity: l.quantity,
           subtotal_amount: this.toBigintSql(cost?.subtotal ?? null),
           discount_amount: this.toBigintSql(cost?.discount ?? null),

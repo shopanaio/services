@@ -4,6 +4,11 @@ export type CheckoutLineItemReadPortRow = {
   id: string;
   project_id: string;
   checkout_id: string;
+  tag_id: string | null;
+  tag_slug: string | null;
+  tag_is_unique: boolean | null;
+  tag_created_at: Date | null;
+  tag_updated_at: Date | null;
   quantity: number;
   unit_id: string;
   unit_title: string;
@@ -31,6 +36,13 @@ export type CheckoutLineItemReadView = {
   projectId: string;
   checkoutId: string;
   quantity: number;
+  tag: {
+    id: string;
+    slug: string;
+    isUnique: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
   unit: {
     id: string;
     title: string;
@@ -68,6 +80,15 @@ export class CheckoutLineItemsReadRepository {
       projectId: row.project_id,
       checkoutId: row.checkout_id,
       quantity: row.quantity,
+      tag: row.tag_id
+        ? {
+            id: row.tag_id,
+            slug: row.tag_slug ?? "",
+            isUnique: row.tag_is_unique ?? false,
+            createdAt: row.tag_created_at ?? new Date(0),
+            updatedAt: row.tag_updated_at ?? new Date(0),
+          }
+        : null,
       unit: {
         id: row.unit_id,
         title: row.unit_title,

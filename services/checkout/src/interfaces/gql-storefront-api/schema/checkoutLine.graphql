@@ -44,6 +44,10 @@ type CheckoutLine implements Node @key(fields: "id") {
   Purchasable snapshot data at the time of adding to checkout.
   """
   purchasableSnapshot: JSON!
+  """
+  Optional tag assigned to this checkout line.
+  """
+  tag: CheckoutTag
 }
 
 """
@@ -97,6 +101,10 @@ input CheckoutLineAddInput {
   ID of the purchasable snapshot to add or update.
   """
   purchasableSnapshot: PurchasableSnapshotInput
+  """
+  Optional tag slug to associate with this line.
+  """
+  tagSlug: String
 }
 
 """

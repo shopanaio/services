@@ -44,7 +44,7 @@ export class RemovePromoCodeUseCase extends UseCase<
 
     const dto: CheckoutPromoCodeRemovedDto = {
       data: {
-        checkoutLines,
+        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
         appliedDiscounts: newAppliedDiscounts,

@@ -123,6 +123,36 @@ type Checkout implements Node @key(fields: "id") {
   Applied promo codes for the checkout.
   """
   appliedPromoCodes: [CheckoutPromoCode!]!
+  """
+  Tags that can be used to organize checkout lines.
+  """
+  tags: [CheckoutTag!]!
+}
+
+"""
+A tag that can be attached to checkout lines.
+"""
+type CheckoutTag implements Node @key(fields: "id") {
+  """
+  Global identifier of the tag.
+  """
+  id: ID!
+  """
+  Slug identifier (a-zA-Z0-9).
+  """
+  slug: String!
+  """
+  Whether the tag enforces uniqueness for checkout lines.
+  """
+  unique: Boolean!
+  """
+  Tag creation timestamp.
+  """
+  createdAt: DateTime!
+  """
+  Last update timestamp.
+  """
+  updatedAt: DateTime!
 }
 
 """
@@ -149,6 +179,10 @@ input CheckoutCreateInput {
   Initial items to add to the new checkout.
   """
   items: [CheckoutLineAddInput!]!
+  """
+  Optional tag definitions to initialize for this checkout.
+  """
+  tags: [CheckoutTagInput!]
 }
 
 type CheckoutFieldError {
@@ -303,6 +337,21 @@ type CheckoutMutation {
   Removes a previously applied promo code/coupon from the checkout.
   """
   checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+
+  """
+  Creates a new checkout tag.
+  """
+  checkoutTagCreate(input: CheckoutTagCreateInput!): Checkout!
+
+  """
+  Updates a checkout tag.
+  """
+  checkoutTagUpdate(input: CheckoutTagUpdateInput!): Checkout!
+
+  """
+  Deletes a checkout tag.
+  """
+  checkoutTagDelete(input: CheckoutTagDeleteInput!): Checkout!
 }
 
 extend type Query {
@@ -435,6 +484,70 @@ input CheckoutPromoCodeRemoveInput {
   Text code of the coupon/promo code to be cancelled.
   """
   code: String!
+}
+
+"""
+Tag definition used when initializing or mutating checkout tags.
+"""
+input CheckoutTagInput {
+  """
+  Slug identifier consisting of alphanumeric characters.
+  """
+  slug: String!
+  """
+  Whether this tag enforces uniqueness for checkout lines.
+  """
+  unique: Boolean!
+}
+
+"""
+Input payload for checkoutTagCreate mutation.
+"""
+input CheckoutTagCreateInput {
+  """
+  Checkout identifier.
+  """
+  checkoutId: ID!
+  """
+  Tag configuration.
+  """
+  tag: CheckoutTagInput!
+}
+
+"""
+Input payload for checkoutTagUpdate mutation.
+"""
+input CheckoutTagUpdateInput {
+  """
+  Checkout identifier.
+  """
+  checkoutId: ID!
+  """
+  Tag identifier (global ID).
+  """
+  tagId: ID!
+  """
+  New slug, if tag needs to be renamed.
+  """
+  slug: String
+  """
+  Updated uniqueness flag.
+  """
+  unique: Boolean
+}
+
+"""
+Input payload for checkoutTagDelete mutation.
+"""
+input CheckoutTagDeleteInput {
+  """
+  Checkout identifier.
+  """
+  checkoutId: ID!
+  """
+  Tag identifier (global ID).
+  """
+  tagId: ID!
 }
 
 """

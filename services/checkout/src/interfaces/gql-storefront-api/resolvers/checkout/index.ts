@@ -22,6 +22,9 @@ export { checkoutDeliveryRecipientsRemove } from "./checkoutDeliveryRecipientsRe
 export { checkoutPromoCodeAdd } from "./checkoutPromoCodeAdd";
 export { checkoutPromoCodeRemove } from "./checkoutPromoCodeRemove";
 export { checkoutPaymentMethodUpdate } from "./checkoutPaymentMethodUpdate";
+export { checkoutTagCreate } from "./checkoutTagCreate";
+export { checkoutTagUpdate } from "./checkoutTagUpdate";
+export { checkoutTagDelete } from "./checkoutTagDelete";
 
 // CheckoutDeliveryGroup resolvers
 export {

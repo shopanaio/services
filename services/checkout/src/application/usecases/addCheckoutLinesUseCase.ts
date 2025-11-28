@@ -35,26 +35,69 @@ export class AddCheckoutLinesUseCase extends UseCase<
     this.validateCurrencyCode(state);
 
     const existingLines = Object.values(state.linesRecord ?? {});
+    const tagRecordBySlug = state.tagsRecord ?? {};
 
-    // Aggregate duplicates by productId and sum quantity
-    const addedLines: {
+    type IncomingLine = {
       lineId: string;
       quantity: number;
       purchasableId: string;
-    }[] = [];
+      tag: CheckoutLineItemState["tag"];
+    };
 
-    businessInput.lines.forEach((line) => {
-      // Find existing line by purchasableId
-      const existingLine = addedLines.find(
-        (l) => l.purchasableId === line.purchasableId
-      );
+    const aggregatedLines = new Map<string, IncomingLine>();
 
-      if (existingLine) {
-        // If existing line exists, sum the quantity
-        existingLine.quantity += line.quantity;
-      } else {
-        addedLines.push({ lineId: uuidv7(), ...line });
+    for (const line of businessInput.lines) {
+      const tagSlug = line.tagSlug ?? null;
+      let tag: CheckoutLineItemState["tag"] = null;
+
+      if (tagSlug) {
+        const tagRecord = tagRecordBySlug[tagSlug];
+        if (!tagRecord) {
+          throw new Error(`Tag ${tagSlug} is not defined for this checkout`);
+        }
+
+        tag = {
+          id: tagRecord.id,
+          slug: tagRecord.slug,
+          isUnique: tagRecord.isUnique,
+        };
       }
+
+      const key = AddCheckoutLinesUseCase.makeAggregationKey(
+        line.purchasableId,
+        tag
+      );
+      const existing = aggregatedLines.get(key);
+
+      if (existing) {
+        if (tag?.isUnique) {
+          throw new Error(
+            `Tag ${tag.slug} is unique and can be used only once per request`
+          );
+        }
+        existing.quantity += line.quantity;
+        continue;
+      }
+
+      aggregatedLines.set(key, {
+        lineId: uuidv7(),
+        quantity: line.quantity,
+        purchasableId: line.purchasableId,
+        tag,
+      });
+    }
+
+    const addedLines = Array.from(aggregatedLines.values());
+    const uniqueTags = new Set(
+      addedLines
+        .filter((line) => line.tag?.isUnique)
+        .map((line) => line.tag!.slug)
+    );
+
+    const preservedLines = existingLines.filter((line) => {
+      const slug = line.tag?.slug;
+      if (!slug) return true;
+      return !uniqueTags.has(slug);
     });
 
     // Get product information from inventory
@@ -65,7 +108,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       projectId: ctx.project.id,
       items: [
         ...addedLines,
-        ...existingLines.map((l) => ({
+        ...preservedLines.map((l) => ({
           lineId: l.lineId,
           purchasableId: l.unit.id,
           quantity: l.quantity,
@@ -82,6 +125,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       return {
         lineId: l.lineId,
         quantity: l.quantity,
+        tag: l.tag,
         unit: {
           id: l.purchasableId,
           title: offer.purchasableSnapshot?.title ?? "",
@@ -97,7 +141,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
       };
     });
 
-    const checkoutLines = [...existingLines, ...newLines];
+    const checkoutLines = [...preservedLines, ...newLines];
     const computed = await this.checkoutService.computeTotals({
       projectId: context.project.id,
       checkoutLines,
@@ -107,7 +151,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
 
     const dto: CheckoutLinesAddedDto = {
       data: {
-        checkoutLines,
+        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
       },
@@ -117,5 +161,20 @@ export class AddCheckoutLinesUseCase extends UseCase<
     await this.checkoutWriteRepository.applyCheckoutLines(dto);
 
     return input.checkoutId;
+  }
+
+  private static makeAggregationKey(
+    purchasableId: string,
+    tag: CheckoutLineItemState["tag"]
+  ): string {
+    if (!tag) {
+      return `purchasable:${purchasableId}`;
+    }
+
+    if (tag.isUnique) {
+      return `unique:${tag.slug}`;
+    }
+
+    return `tagged:${purchasableId}:${tag.slug}`;
   }
 }

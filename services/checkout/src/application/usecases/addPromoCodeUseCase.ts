@@ -68,7 +68,7 @@ export class AddPromoCodeUseCase extends UseCase<
 
     const dto: CheckoutPromoCodeAddedDto = {
       data: {
-        checkoutLines,
+        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
         appliedDiscounts: newAppliedDiscounts,

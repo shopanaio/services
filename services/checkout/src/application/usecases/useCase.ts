@@ -1,10 +1,11 @@
 import type { Logger } from "pino";
 import { type CheckoutContext } from "@src/context/index.js";
-import type { CheckoutState } from "@src/domain/checkout/types";
+import type { CheckoutState, CheckoutLineItemState } from "@src/domain/checkout/types";
 import type { ShippingApiClient, PaymentApiClient, PricingApiClient, InventoryApiClient } from "@shopana/shared-service-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
 import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
+import type { CheckoutLinesAddedLine } from "@src/domain/checkout/dto";
 
 /**
  * Dependencies required for use case execution.
@@ -154,4 +155,18 @@ export abstract class UseCase<TInput = any, TOutput = any> {
    * ```
    */
   // Domain aggregate reconstruction is removed; use read model methods directly in concrete use cases.
+
+  /**
+   * Maps checkout line state to DTO payload expected by write repository.
+   */
+  protected mapLinesToDtoLines(
+    lines: CheckoutLineItemState[]
+  ): CheckoutLinesAddedLine[] {
+    return lines.map((line) => ({
+      lineId: line.lineId,
+      quantity: line.quantity,
+      tagId: line.tag?.id ?? null,
+      unit: line.unit,
+    }));
+  }
 }

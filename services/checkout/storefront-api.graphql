@@ -100,6 +100,29 @@ type Checkout implements Node
 
   """Applied promo codes for the checkout."""
   appliedPromoCodes: [CheckoutPromoCode!]!
+
+  """Tags available for this checkout."""
+  tags: [CheckoutTag!]!
+}
+
+"""Tag entity that can be assigned to checkout lines."""
+type CheckoutTag implements Node
+  @key(fields: "id")
+{
+  """A globally-unique ID."""
+  id: ID!
+
+  """Slug identifier (alphanumeric)."""
+  slug: String!
+
+  """Whether the tag enforces uniqueness."""
+  unique: Boolean!
+
+  """Creation timestamp."""
+  createdAt: DateTime!
+
+  """Last update timestamp."""
+  updatedAt: DateTime!
 }
 
 extend type Checkout {
@@ -125,6 +148,9 @@ input CheckoutCreateInput {
 
   """Initial items to add to the new checkout."""
   items: [CheckoutLineAddInput!]!
+
+  """Optional tag definitions available to this checkout."""
+  tags: [CheckoutTagInput!]
 }
 
 type CheckoutFieldError {
@@ -225,6 +251,15 @@ type CheckoutMutation {
 
   """Removes a previously applied promo code/coupon from the checkout."""
   checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+
+  """Creates a new checkout tag."""
+  checkoutTagCreate(input: CheckoutTagCreateInput!): Checkout!
+
+  """Updates an existing checkout tag."""
+  checkoutTagUpdate(input: CheckoutTagUpdateInput!): Checkout!
+
+  """Deletes a checkout tag."""
+  checkoutTagDelete(input: CheckoutTagDeleteInput!): Checkout!
 }
 
 extend type CheckoutMutation {
@@ -326,6 +361,48 @@ input CheckoutPromoCodeRemoveInput {
 
   """Text code of the coupon/promo code to be cancelled."""
   code: String!
+}
+
+"""Reusable tag payload."""
+input CheckoutTagInput {
+  """Slug identifier consisting of alphanumeric characters."""
+  slug: String!
+
+  """Whether the tag enforces uniqueness for checkout lines."""
+  unique: Boolean!
+}
+
+"""Input for creating a checkout tag."""
+input CheckoutTagCreateInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Tag payload."""
+  tag: CheckoutTagInput!
+}
+
+"""Input for updating a checkout tag."""
+input CheckoutTagUpdateInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Tag identifier (global ID)."""
+  tagId: ID!
+
+  """New slug if renaming the tag."""
+  slug: String
+
+  """Updated uniqueness flag."""
+  unique: Boolean
+}
+
+"""Input for deleting a checkout tag."""
+input CheckoutTagDeleteInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Tag identifier (global ID)."""
+  tagId: ID!
 }
 
 """
@@ -430,6 +507,9 @@ type CheckoutLine implements Node
 
   """Purchasable snapshot data at the time of adding to checkout."""
   purchasableSnapshot: JSON!
+
+  """Optional tag assigned to this line."""
+  tag: CheckoutTag
 }
 
 """Detailed breakdown of costs for a checkout line item"""
@@ -465,6 +545,9 @@ input CheckoutLineAddInput {
 
   """ID of the purchasable snapshot to add or update."""
   purchasableSnapshot: PurchasableSnapshotInput
+
+  """Optional tag slug to associate with this line."""
+  tagSlug: String
 }
 
 """Input data for adding an item to an existing checkout."""

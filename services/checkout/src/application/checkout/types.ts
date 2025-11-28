@@ -9,7 +9,13 @@ export type CreateCheckoutInput = {
   externalSource?: string | null;
   externalId?: string | null;
   localeCode?: string | null;
+  tags?: CheckoutTagInput[];
 } & CheckoutContext;
+
+export type CheckoutTagInput = {
+  slug: string;
+  isUnique: boolean;
+};
 
 export type CheckoutLinesAddInput = {
   checkoutId: string;
@@ -22,6 +28,7 @@ export type CheckoutLinesAddInput = {
       sku?: string | null;
       data?: Record<string, unknown>;
     } | null;
+    tagSlug?: string | null;
   }>;
 } & CheckoutContext;
 
@@ -49,6 +56,23 @@ export type CheckoutLinesReplaceInput = {
     purchasableId: string; // target purchasable id
     quantity?: number; // if not provided, move full quantity from source line
   }>;
+} & CheckoutContext;
+
+export type CheckoutTagCreateInput = {
+  checkoutId: string;
+  tag: CheckoutTagInput;
+} & CheckoutContext;
+
+export type CheckoutTagUpdateInput = {
+  checkoutId: string;
+  tagId: string;
+  slug?: string;
+  isUnique?: boolean;
+} & CheckoutContext;
+
+export type CheckoutTagDeleteInput = {
+  checkoutId: string;
+  tagId: string;
 } & CheckoutContext;
 
 // New types for extended functionality

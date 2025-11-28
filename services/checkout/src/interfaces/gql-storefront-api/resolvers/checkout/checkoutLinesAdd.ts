@@ -26,6 +26,7 @@ export const checkoutLinesAdd = async (
       quantity: line.quantity,
       purchasableId: line.purchasableId, // Already decoded by validator
       purchasableSnapshot: line.purchasableSnapshot ?? null,
+      tagSlug: line.tagSlug ?? null,
     }));
 
     const updatedCheckoutId = await checkoutUsecase.addCheckoutLines.execute({

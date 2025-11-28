@@ -21,6 +21,25 @@
       "problemMatcher": []
     },
     {
+      "label": "Clean Platform",
+      "type": "shell",
+      "command": "lsof -ti:8000,50051 | xargs kill -9 2>/dev/null || true",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Start Infrastructure",
       "type": "shell",
       "command": "make infra-up",

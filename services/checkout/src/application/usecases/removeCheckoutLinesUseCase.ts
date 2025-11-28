@@ -100,7 +100,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
 
     const dto: CheckoutLinesDeletedDto = {
       data: {
-        checkoutLines,
+        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
         checkoutLinesCost: computed.checkoutLinesCost,
         checkoutCost: computed.checkoutCost,
       },

@@ -67,6 +67,14 @@ export function mapCheckoutReadToApi(read: CheckoutReadView): ApiCheckout {
       provider: promo.provider,
       conditions: promo.conditions,
     })),
+    tags: read.tags.map((tag) => ({
+      __typename: "CheckoutTag" as const,
+      id: encodeGlobalIdByType(tag.id, GlobalIdEntity.CheckoutTag),
+      slug: tag.slug,
+      unique: tag.isUnique,
+      createdAt: tag.createdAt.toISOString(),
+      updatedAt: tag.updatedAt.toISOString(),
+    })),
     deliveryGroups: read.deliveryGroups.map((group) => {
       const deliveryAddress = read.deliveryAddresses.find(
         (address) => address.deliveryGroupId === group.id
