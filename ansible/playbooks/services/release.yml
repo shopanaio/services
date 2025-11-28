@@ -58,7 +58,15 @@
     - name: Update version in package.json
       ansible.builtin.shell: |
         cd "{{ root_dir }}"
-        jq '.version = "{{ new_version }}"' package.json > package.json.tmp && mv package.json.tmp package.json
+        python3 -c "
+        import json
+        with open('package.json', 'r') as f:
+            data = json.load(f)
+        data['version'] = '{{ new_version }}'
+        with open('package.json', 'w') as f:
+            json.dump(data, f, indent=2)
+            f.write('\n')
+        "
       changed_when: true
 
     - name: Check for uncommitted changes
