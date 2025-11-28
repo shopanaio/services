@@ -10,6 +10,25 @@ import type { InventoryApiClient, InventoryOffer } from "@shopana/shared-service
 // Re-export types for backward compatibility
 export type { CheckoutLineItemCost, CheckoutCost };
 
+/**
+ * Child item input for bundled products
+ */
+export type GetOffersChildItem = {
+  lineId: string;
+  purchasableId: string;
+  quantity: number;
+};
+
+/**
+ * Item input for getting offers (supports nested children)
+ */
+export type GetOffersItem = {
+  lineId: string;
+  purchasableId: string;
+  quantity: number;
+  children?: GetOffersChildItem[];
+};
+
 export class CheckoutService {
   private readonly costService: CheckoutCostService;
 
@@ -20,27 +39,24 @@ export class CheckoutService {
     this.costService = new CheckoutCostService(pricingApi);
   }
 
+  /**
+   * Get offers from inventory with nested children support.
+   * Returns offers array (not map) to preserve children structure.
+   */
   async getOffers(input: {
     apiKey: string;
     currency: string;
     projectId: string;
-    items: Array<{
-      lineId: string;
-      purchasableId: string;
-      quantity: number;
-    }>;
+    items: GetOffersItem[];
   }): Promise<{
-    offers: Map<string, InventoryOffer>;
+    offers: InventoryOffer[];
   }> {
     const offers = await this.inventory.getOffers({
       ...input,
       projectId: input.projectId,
       apiKey: input.apiKey,
     });
-    const map: Map<string, InventoryOffer> = new Map(
-      offers.map((offer) => [offer.purchasableId, offer]),
-    );
-    return { offers: map };
+    return { offers };
   }
 
   async computeTotals(input: {

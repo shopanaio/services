@@ -138,6 +138,7 @@ type CheckoutLineCost {
 
 """
 Input data for a child item in a bundle.
+Price configuration is automatically taken from ProductGroup in the database.
 """
 input CheckoutChildLineInput {
   """
@@ -147,6 +148,7 @@ input CheckoutChildLineInput {
 
   """
   ID of the purchasable for child item.
+  Must be a variant that exists in parent product's groups.
   """
   purchasableId: ID!
 
@@ -154,23 +156,6 @@ input CheckoutChildLineInput {
   Snapshot data for child purchasable.
   """
   purchasableSnapshot: PurchasableSnapshotInput
-
-  """
-  Price adjustment type for this child. Defaults to BASE if not specified.
-  """
-  priceType: ChildPriceType
-
-  """
-  Amount for DISCOUNT_AMOUNT, MARKUP_AMOUNT or OVERRIDE (in minor units).
-  Must be positive.
-  """
-  priceAmount: Int
-
-  """
-  Percentage for DISCOUNT_PERCENT or MARKUP_PERCENT.
-  Must be positive (e.g., 10 for 10%).
-  """
-  pricePercent: Float
 }
 
 """

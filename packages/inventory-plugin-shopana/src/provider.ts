@@ -8,6 +8,28 @@ import { configSchema } from "./index";
 type Config = z.infer<typeof configSchema>;
 
 /**
+ * Maps ProductGroupPriceType from GraphQL to ChildPriceType
+ */
+function mapPriceType(
+  priceType: string
+): Inventory.ChildPriceType {
+  switch (priceType) {
+    case "FREE":
+      return "FREE";
+    case "BASE":
+      return "BASE";
+    case "BASE_ADJUST_AMOUNT":
+      return "DISCOUNT_AMOUNT";
+    case "BASE_ADJUST_PERCENT":
+      return "DISCOUNT_PERCENT";
+    case "BASE_OVERRIDE":
+      return "OVERRIDE";
+    default:
+      return "BASE";
+  }
+}
+
+/**
  * Applies price configuration to calculate the final price
  * @param originalPrice - Original price in minor units
  * @param config - Price configuration to apply
@@ -49,13 +71,46 @@ function applyPriceConfig(
 }
 
 /**
+ * Product group item from GraphQL
+ */
+interface CoreProductGroupItem {
+  id: string;
+  variant: {
+    id: string;
+    price: number;
+    oldPrice?: number | null;
+    stockStatus: string;
+    title: string;
+    sku?: string | null;
+    cover?: { url: string; id: string } | null;
+  };
+  sortIndex: number;
+  priceType: string;
+  priceAmountValue?: number | null;
+  pricePercentageValue?: number | null;
+  maxQuantity?: number | null;
+}
+
+/**
+ * Product group from GraphQL
+ */
+interface CoreProductGroup {
+  id: string;
+  title: string;
+  items: CoreProductGroupItem[];
+  isRequired: boolean;
+  isMultiple: boolean;
+  sortIndex: number;
+}
+
+/**
  * Product variant data type from Core Apps GraphQL API
  */
 interface CoreVariant {
   id: string;
   price: number;
   oldPrice?: number | null;
-  stockStatus: "IN_STOCK" | "OUT_OF_STOCK";
+  stockStatus: string;
   title: string;
   sku?: string | null;
   cover?: {
@@ -63,9 +118,8 @@ interface CoreVariant {
     id: string;
   } | null;
   product?: {
-    productType?: {
-      isPhysical?: boolean;
-    };
+    id: string;
+    groups: CoreProductGroup[];
   };
 }
 
@@ -106,25 +160,86 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
     }
 
     try {
-      // Extract variant IDs for the request
-      const variantIds = input.items.map((item) => item.purchasableId);
+      // Check if any items have children - need to fetch groups
+      const hasChildren = input.items.some(
+        (item) => item.children && item.children.length > 0
+      );
 
-      // GraphQL query to fetch variant data
-      const query = gql`
-        query Variants($ids: [ID!]!) {
-          variants(ids: $ids) {
-            id
-            price
-            oldPrice
-            stockStatus
-            title
-            sku
-            cover {
-              url
-            }
+      // Collect all variant IDs (parents + children)
+      const allVariantIds = new Set<string>();
+      for (const item of input.items) {
+        allVariantIds.add(item.purchasableId);
+        if (item.children) {
+          for (const child of item.children) {
+            allVariantIds.add(child.purchasableId);
           }
         }
-      `;
+      }
+
+      // GraphQL query - include groups if we have children
+      const query = hasChildren
+        ? gql`
+            query Variants($ids: [ID!]!) {
+              variants(ids: $ids) {
+                id
+                price
+                oldPrice
+                stockStatus
+                title
+                sku
+                cover {
+                  url
+                  id
+                }
+                product {
+                  id
+                  groups {
+                    id
+                    title
+                    isRequired
+                    isMultiple
+                    sortIndex
+                    items {
+                      id
+                      variant {
+                        id
+                        price
+                        oldPrice
+                        stockStatus
+                        title
+                        sku
+                        cover {
+                          url
+                          id
+                        }
+                      }
+                      sortIndex
+                      priceType
+                      priceAmountValue
+                      pricePercentageValue
+                      maxQuantity
+                    }
+                  }
+                }
+              }
+            }
+          `
+        : gql`
+            query Variants($ids: [ID!]!) {
+              variants(ids: $ids) {
+                id
+                price
+                oldPrice
+                stockStatus
+                title
+                sku
+                cover {
+                  url
+                  id
+                }
+              }
+            }
+          `;
 
       // Execute request to Core Apps GraphQL API
       const coreAppsGraphqlUrl = process.env.PLATFORM_INVENTORY_GRAPHQL_URL;
@@ -135,7 +250,7 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
       const data = await gqlRequest<CoreVariantsResponse>(
         { getCoreAppsGraphqlUrl: () => coreAppsGraphqlUrl },
         query,
-        { ids: variantIds },
+        { ids: Array.from(allVariantIds) },
         {
           "x-api-key": input.apiKey!,
           "x-currency": input.currency!,
@@ -150,7 +265,7 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
       // Transform data to InventoryOffer format
       const offers: Inventory.InventoryOffer[] = input.items
         .map((item) => {
-          const { purchasableId, lineId, quantity, priceConfig } = item;
+          const { purchasableId, lineId, quantity } = item;
           const variant = variantById.get(purchasableId);
 
           if (!variant) {
@@ -158,55 +273,23 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
             return null;
           }
 
-          const isAvailable = variant.stockStatus !== "OUT_OF_STOCK";
+          // Build base offer for parent
+          const parentOffer = this.buildOffer(variant, lineId, quantity);
 
-          // Determine payment mode based on product status
-          const paymentMode =
-            variant.stockStatus === "IN_STOCK"
-              ? inventory.PaymentMode.IMMEDIATE
-              : inventory.PaymentMode.DEFERRED;
+          // Process children if present
+          if (item.children && item.children.length > 0) {
+            const childOffers = this.processChildren(
+              item.children,
+              variant,
+              variantById
+            );
+            return {
+              ...parentOffer,
+              children: childOffers,
+            };
+          }
 
-          // Consider product physical by default for safety
-          const isPhysical = variant.product?.productType?.isPhysical ?? true;
-
-          // Create product data snapshot
-          const purchasableSnapshot: Inventory.PurchasableSnapshot = {
-            title: variant.title,
-            sku: variant.sku || null,
-            imageUrl: variant.cover?.url || null,
-            data: {
-              variantId: variant.id,
-              stockStatus: variant.stockStatus,
-              coverId: variant.cover?.id || null,
-            },
-          };
-
-          // Calculate final price based on price config (for child items)
-          const originalPrice = variant.price;
-          const finalPrice = priceConfig
-            ? applyPriceConfig(originalPrice, priceConfig)
-            : originalPrice;
-
-          const offer: Inventory.InventoryOffer = {
-            purchasableId,
-            unitPrice: finalPrice,
-            unitOriginalPrice: originalPrice,
-            unitCompareAtPrice: variant.oldPrice || null,
-            isAvailable,
-            isPhysical,
-            paymentMode,
-            purchasableSnapshot,
-            providerPayload: {
-              provider: "shopana",
-              lineId,
-              quantity,
-              stockStatus: variant.stockStatus,
-              requestedAt: new Date().toISOString(),
-            },
-            appliedPriceConfig: priceConfig,
-          };
-
-          return offer;
+          return parentOffer;
         })
         .filter((offer): offer is Inventory.InventoryOffer => offer !== null);
 
@@ -223,9 +306,152 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
       });
 
       // Return empty array in case of error
-      // In a real application, could throw error or return fallback data
       return [];
     }
+  }
+
+  /**
+   * Build a single offer from variant data
+   */
+  private buildOffer(
+    variant: CoreVariant | CoreProductGroupItem["variant"],
+    lineId: string,
+    quantity: number,
+    priceConfig?: Inventory.ChildPriceConfigInput,
+    groupInfo?: {
+      groupId: string;
+      groupItemId: string;
+      maxQuantity?: number;
+    }
+  ): Inventory.InventoryOffer {
+    const isAvailable = variant.stockStatus !== "OUT_OF_STOCK";
+    const paymentMode =
+      variant.stockStatus === "IN_STOCK"
+        ? inventory.PaymentMode.IMMEDIATE
+        : inventory.PaymentMode.DEFERRED;
+
+    const purchasableSnapshot: Inventory.PurchasableSnapshot = {
+      title: variant.title,
+      sku: variant.sku || null,
+      imageUrl: variant.cover?.url || null,
+      data: {
+        variantId: variant.id,
+        stockStatus: variant.stockStatus,
+        coverId: variant.cover?.id || null,
+      },
+    };
+
+    const originalPrice = variant.price;
+    const finalPrice = priceConfig
+      ? applyPriceConfig(originalPrice, priceConfig)
+      : originalPrice;
+
+    // Check maxQuantity validation
+    let validationError: string | undefined;
+    if (groupInfo?.maxQuantity && quantity > groupInfo.maxQuantity) {
+      validationError = `Quantity ${quantity} exceeds max allowed ${groupInfo.maxQuantity}`;
+    }
+
+    return {
+      purchasableId: variant.id,
+      unitPrice: finalPrice,
+      unitOriginalPrice: originalPrice,
+      unitCompareAtPrice: variant.oldPrice || null,
+      isAvailable,
+      isPhysical: true,
+      paymentMode,
+      purchasableSnapshot,
+      providerPayload: {
+        provider: "shopana",
+        lineId,
+        quantity,
+        stockStatus: variant.stockStatus,
+        requestedAt: new Date().toISOString(),
+      },
+      appliedPriceConfig: priceConfig,
+      groupId: groupInfo?.groupId,
+      groupItemId: groupInfo?.groupItemId,
+      maxQuantity: groupInfo?.maxQuantity,
+      validationError,
+    };
+  }
+
+  /**
+   * Process children items - validate against groups and apply price config from DB
+   */
+  private processChildren(
+    children: ReadonlyArray<Inventory.GetOffersChildInput>,
+    parentVariant: CoreVariant,
+    variantById: Map<string, CoreVariant>
+  ): Inventory.InventoryOffer[] {
+    const groups = parentVariant.product?.groups ?? [];
+
+    // Build map: childVariantId -> ProductGroupItem
+    const groupItemByVariantId = new Map<string, {
+      groupId: string;
+      item: CoreProductGroupItem;
+    }>();
+
+    for (const group of groups) {
+      for (const item of group.items) {
+        groupItemByVariantId.set(item.variant.id, {
+          groupId: group.id,
+          item,
+        });
+      }
+    }
+
+    return children.map((child) => {
+      const { purchasableId, lineId, quantity } = child;
+
+      // Find child in parent's groups
+      const groupData = groupItemByVariantId.get(purchasableId);
+
+      if (!groupData) {
+        // Child not found in any group - validation error
+        this.ctx.logger.warn("Child variant not found in parent groups", {
+          childId: purchasableId,
+          parentId: parentVariant.id,
+        });
+
+        // Try to get variant data from map for basic offer
+        const childVariant = variantById.get(purchasableId);
+        if (!childVariant) {
+          return {
+            purchasableId,
+            unitPrice: 0,
+            unitOriginalPrice: 0,
+            isAvailable: false,
+            isPhysical: true,
+            paymentMode: inventory.PaymentMode.IMMEDIATE,
+            validationError: `Variant ${purchasableId} not found in parent product groups`,
+          };
+        }
+
+        return this.buildOffer(childVariant, lineId, quantity, undefined, undefined);
+      }
+
+      // Get price config from ProductGroupItem
+      const { groupId, item } = groupData;
+      const priceConfig: Inventory.ChildPriceConfigInput = {
+        type: mapPriceType(item.priceType),
+        amount: item.priceAmountValue ?? undefined,
+        percent: item.pricePercentageValue ?? undefined,
+      };
+
+      // Use variant data from group item (already fetched with groups)
+      return this.buildOffer(
+        item.variant,
+        lineId,
+        quantity,
+        priceConfig,
+        {
+          groupId,
+          groupItemId: item.id,
+          maxQuantity: item.maxQuantity ?? undefined,
+        }
+      );
+    });
   }
 
   /**
@@ -237,17 +463,14 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
     this.ctx.logger.info("Returning mock inventory offers");
 
     return input.items.map((item) => {
-      const { purchasableId, lineId, quantity, priceConfig } = item;
+      const { purchasableId, lineId, quantity, children } = item;
       const originalPrice = 1000; // $10.00 in minor units
-      const finalPrice = priceConfig
-        ? applyPriceConfig(originalPrice, priceConfig)
-        : originalPrice;
 
-      return {
+      const baseOffer: Inventory.InventoryOffer = {
         purchasableId,
-        unitPrice: finalPrice,
+        unitPrice: originalPrice,
         unitOriginalPrice: originalPrice,
-        unitCompareAtPrice: 1500, // $15.00 in minor units
+        unitCompareAtPrice: 1500,
         isAvailable: true,
         isPhysical: true,
         paymentMode: inventory.PaymentMode.IMMEDIATE,
@@ -255,9 +478,7 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
           title: `Mock Product ${purchasableId}`,
           sku: `MOCK-${purchasableId}`,
           imageUrl: null,
-          data: {
-            mockMode: true,
-          },
+          data: { mockMode: true },
         },
         providerPayload: {
           provider: "shopana",
@@ -266,8 +487,51 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
           quantity,
           requestedAt: new Date().toISOString(),
         },
-        appliedPriceConfig: priceConfig,
       };
+
+      // Process mock children
+      if (children && children.length > 0) {
+        const childOffers = children.map((child, index) => {
+          const childPrice = 500; // $5.00
+          const mockPriceConfig: Inventory.ChildPriceConfigInput = {
+            type: index === 0 ? "FREE" : "DISCOUNT_PERCENT",
+            percent: index === 0 ? undefined : 10,
+          };
+          const finalPrice = applyPriceConfig(childPrice, mockPriceConfig);
+
+          return {
+            purchasableId: child.purchasableId,
+            unitPrice: finalPrice,
+            unitOriginalPrice: childPrice,
+            isAvailable: true,
+            isPhysical: true,
+            paymentMode: inventory.PaymentMode.IMMEDIATE,
+            purchasableSnapshot: {
+              title: `Mock Child ${child.purchasableId}`,
+              sku: `MOCK-CHILD-${child.purchasableId}`,
+              imageUrl: null,
+              data: { mockMode: true },
+            },
+            providerPayload: {
+              provider: "shopana",
+              mode: "mock",
+              lineId: child.lineId,
+              quantity: child.quantity,
+            },
+            appliedPriceConfig: mockPriceConfig,
+            groupId: "mock-group-1",
+            groupItemId: `mock-item-${index}`,
+            maxQuantity: 5,
+          };
+        });
+
+        return {
+          ...baseOffer,
+          children: childOffers,
+        };
+      }
+
+      return baseOffer;
     });
   }
 }

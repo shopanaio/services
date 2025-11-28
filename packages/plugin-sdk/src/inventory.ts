@@ -76,6 +76,24 @@ export type InventoryOffer = Readonly<{
   providerPayload?: Record<string, unknown>;
   /** Applied price adjustment info (for child items) */
   appliedPriceConfig?: ChildPriceConfigInput;
+  /** Child offers for bundled items (validated against product groups) */
+  children?: ReadonlyArray<InventoryOffer>;
+  /** Group info for child items */
+  groupId?: string;
+  groupItemId?: string;
+  maxQuantity?: number;
+  /** Validation error if child is not in parent's group or exceeds maxQuantity */
+  validationError?: string;
+}>;
+
+/**
+ * Child item input for bundled products
+ * @public
+ */
+export type GetOffersChildInput = Readonly<{
+  lineId: string;
+  purchasableId: string;
+  quantity: number;
 }>;
 
 /**
@@ -86,10 +104,8 @@ export type GetOffersItemInput = Readonly<{
   lineId: string;
   purchasableId: string;
   quantity: number;
-  /** Parent line ID for bundled/child items */
-  parentLineId?: string;
-  /** Price configuration for child items */
-  priceConfig?: ChildPriceConfigInput;
+  /** Child items for bundles - will be validated against product groups */
+  children?: ReadonlyArray<GetOffersChildInput>;
 }>;
 
 /**

@@ -2,21 +2,13 @@ import {
   UseCase,
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
-import type { CheckoutLinesAddInput, CheckoutChildLineInput } from "@src/application/checkout/types";
+import type { CheckoutLinesAddInput } from "@src/application/checkout/types";
 import type { CheckoutLinesAddedDto } from "@src/domain/checkout/dto";
 import { Money } from "@shopana/shared-money";
 import { v7 as uuidv7 } from "uuid";
 import { CheckoutLineItemState, ChildPriceType } from "@src/domain/checkout/types";
-
-/**
- * Local type for price config input (matches plugin-sdk ChildPriceConfigInput)
- * TODO: Remove after plugin-sdk rebuild and use imported type
- */
-type ChildPriceConfigInput = {
-  type: string;
-  amount?: number;
-  percent?: number;
-};
+import type { GetOffersItem, GetOffersChildItem } from "@src/application/services/checkoutService";
+import type { InventoryOffer } from "@shopana/shared-service-api";
 
 export interface AddCheckoutLinesUseCaseDependencies
   extends UseCaseDependencies {}
@@ -34,6 +26,7 @@ export class AddCheckoutLinesUseCase extends UseCase<
    * Duplicates by purchasable id in request are summed up.
    * Even if a line with such purchasable id already exists, we add a new line.
    * Supports parent/child relationships for bundles.
+   * Children are validated against product groups and prices come from DB.
    */
   async execute(input: CheckoutLinesAddInput): Promise<string> {
     const { apiKey, project, customer, user, ...businessInput } = input;
@@ -57,7 +50,6 @@ export class AddCheckoutLinesUseCase extends UseCase<
         lineId: string;
         purchasableId: string;
         quantity: number;
-        priceConfig: ChildPriceConfigInput | undefined;
       }>;
     };
 
@@ -96,16 +88,12 @@ export class AddCheckoutLinesUseCase extends UseCase<
         continue;
       }
 
-      // Process children if present
-      const children = line.children?.map((child) => {
-        this.validatePriceConfig(child);
-        return {
-          lineId: uuidv7(),
-          purchasableId: child.purchasableId,
-          quantity: child.quantity,
-          priceConfig: this.buildPriceConfig(child),
-        };
-      });
+      // Process children - no priceConfig from client, it comes from DB
+      const children = line.children?.map((child) => ({
+        lineId: uuidv7(),
+        purchasableId: child.purchasableId,
+        quantity: child.quantity,
+      }));
 
       aggregatedLines.set(key, {
         lineId: uuidv7(),
@@ -129,41 +117,38 @@ export class AddCheckoutLinesUseCase extends UseCase<
       return !uniqueTags.has(slug);
     });
 
-    // Build items list including children
-    const inventoryItems: Array<{
-      lineId: string;
-      purchasableId: string;
-      quantity: number;
-      parentLineId?: string;
-      priceConfig?: ChildPriceConfigInput;
-    }> = [];
+    // Build nested items structure for inventory
+    const inventoryItems: GetOffersItem[] = [];
 
-    // Add parent lines
+    // Add new lines with nested children
     for (const line of addedLines) {
-      inventoryItems.push({
+      const item: GetOffersItem = {
         lineId: line.lineId,
         purchasableId: line.purchasableId,
         quantity: line.quantity,
-      });
-      // Add children with parent reference
-      for (const child of line.children ?? []) {
-        inventoryItems.push({
+      };
+
+      if (line.children && line.children.length > 0) {
+        item.children = line.children.map((child): GetOffersChildItem => ({
           lineId: child.lineId,
           purchasableId: child.purchasableId,
           quantity: child.quantity,
-          parentLineId: line.lineId,
-          priceConfig: child.priceConfig,
-        });
+        }));
       }
+
+      inventoryItems.push(item);
     }
 
-    // Add preserved lines
+    // Add preserved lines (without children - they are already saved)
     for (const l of preservedLines) {
-      inventoryItems.push({
-        lineId: l.lineId,
-        purchasableId: l.unit.id,
-        quantity: l.quantity,
-      });
+      if (!l.parentLineId) {
+        // Only add parent lines, children will be handled separately
+        inventoryItems.push({
+          lineId: l.lineId,
+          purchasableId: l.unit.id,
+          quantity: l.quantity,
+        });
+      }
     }
 
     // Get product information from inventory
@@ -175,12 +160,24 @@ export class AddCheckoutLinesUseCase extends UseCase<
       items: inventoryItems,
     });
 
+    // Build offers map by lineId for easy lookup
+    const offersByLineId = new Map<string, InventoryOffer>();
+    for (const offer of offers) {
+      const lineId = (offer.providerPayload as { lineId?: string })?.lineId;
+      if (lineId) {
+        offersByLineId.set(lineId, offer);
+      }
+    }
+
     const newLines: CheckoutLineItemState[] = [];
 
     for (const line of addedLines) {
-      const offer = offers.get(line.purchasableId);
-      if (!offer?.isAvailable) {
-        throw new Error(`Product not found in inventory`);
+      const offer = offersByLineId.get(line.lineId);
+      if (!offer) {
+        throw new Error(`Product ${line.purchasableId} not found in inventory`);
+      }
+      if (!offer.isAvailable) {
+        throw new Error(`Product ${line.purchasableId} is not available`);
       }
 
       const originalPrice = Money.fromMinor(BigInt(offer.unitOriginalPrice ?? offer.unitPrice));
@@ -207,41 +204,57 @@ export class AddCheckoutLinesUseCase extends UseCase<
         },
       });
 
-      // Create child lines
-      for (const child of line.children ?? []) {
-        const childOffer = offers.get(child.purchasableId);
-        if (!childOffer?.isAvailable) {
-          throw new Error(`Child product not found in inventory`);
-        }
+      // Create child lines from offer.children (prices come from inventory/DB)
+      if (offer.children && line.children) {
+        for (let i = 0; i < line.children.length; i++) {
+          const childInput = line.children[i];
+          const childOffer = offer.children[i];
 
-        const childOriginalPrice = Money.fromMinor(BigInt(childOffer.unitOriginalPrice ?? childOffer.unitPrice));
+          if (!childOffer) {
+            throw new Error(`Child product ${childInput.purchasableId} not found in inventory response`);
+          }
 
-        newLines.push({
-          lineId: child.lineId,
-          parentLineId: line.lineId,
-          priceConfig: child.priceConfig
+          // Check for validation errors from inventory
+          if (childOffer.validationError) {
+            throw new Error(`Validation error for ${childInput.purchasableId}: ${childOffer.validationError}`);
+          }
+
+          if (!childOffer.isAvailable) {
+            throw new Error(`Child product ${childInput.purchasableId} is not available`);
+          }
+
+          const childOriginalPrice = Money.fromMinor(BigInt(childOffer.unitOriginalPrice ?? childOffer.unitPrice));
+
+          // Get priceConfig from offer (comes from DB via inventory)
+          const priceConfig = childOffer.appliedPriceConfig
             ? {
-                type: child.priceConfig.type as ChildPriceType,
-                amount: child.priceConfig.amount,
-                percent: child.priceConfig.percent,
+                type: childOffer.appliedPriceConfig.type as ChildPriceType,
+                amount: childOffer.appliedPriceConfig.amount,
+                percent: childOffer.appliedPriceConfig.percent,
               }
-            : null,
-          quantity: child.quantity,
-          tag: null, // Children don't have tags
-          unit: {
-            id: child.purchasableId,
-            title: childOffer.purchasableSnapshot?.title ?? "",
-            sku: childOffer.purchasableSnapshot?.sku ?? null,
-            price: Money.fromMinor(BigInt(childOffer.unitPrice)),
-            originalPrice: childOriginalPrice,
-            compareAtPrice:
-              childOffer.unitCompareAtPrice != null
-                ? Money.fromMinor(BigInt(childOffer.unitCompareAtPrice))
-                : null,
-            imageUrl: childOffer.purchasableSnapshot?.imageUrl ?? null,
-            snapshot: childOffer.purchasableSnapshot?.data ?? null,
-          },
-        });
+            : null;
+
+          newLines.push({
+            lineId: childInput.lineId,
+            parentLineId: line.lineId,
+            priceConfig,
+            quantity: childInput.quantity,
+            tag: null, // Children don't have tags
+            unit: {
+              id: childInput.purchasableId,
+              title: childOffer.purchasableSnapshot?.title ?? "",
+              sku: childOffer.purchasableSnapshot?.sku ?? null,
+              price: Money.fromMinor(BigInt(childOffer.unitPrice)),
+              originalPrice: childOriginalPrice,
+              compareAtPrice:
+                childOffer.unitCompareAtPrice != null
+                  ? Money.fromMinor(BigInt(childOffer.unitCompareAtPrice))
+                  : null,
+              imageUrl: childOffer.purchasableSnapshot?.imageUrl ?? null,
+              snapshot: childOffer.purchasableSnapshot?.data ?? null,
+            },
+          });
+        }
       }
     }
 
@@ -265,34 +278,6 @@ export class AddCheckoutLinesUseCase extends UseCase<
     await this.checkoutWriteRepository.applyCheckoutLines(dto);
 
     return input.checkoutId;
-  }
-
-  /**
-   * Validates price config values are positive
-   */
-  private validatePriceConfig(child: CheckoutChildLineInput): void {
-    if (child.priceAmount != null && child.priceAmount < 0) {
-      throw new Error("priceAmount must be positive");
-    }
-    if (child.pricePercent != null && child.pricePercent < 0) {
-      throw new Error("pricePercent must be positive");
-    }
-  }
-
-  /**
-   * Builds ChildPriceConfigInput from child line input
-   */
-  private buildPriceConfig(
-    child: CheckoutChildLineInput
-  ): ChildPriceConfigInput | undefined {
-    if (!child.priceType) {
-      return undefined;
-    }
-    return {
-      type: child.priceType,
-      amount: child.priceAmount ?? undefined,
-      percent: child.pricePercent ?? undefined,
-    };
   }
 
   private static makeAggregationKey(
