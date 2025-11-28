@@ -1,0 +1,118 @@
+# Release orchestrator service
+# Bumps version, commits, tags, creates release branch and pushes
+#
+# Usage:
+#   ansible-playbook playbooks/services/release.yml
+#   ansible-playbook playbooks/services/release.yml -e "bump_type=minor"
+#   ansible-playbook playbooks/services/release.yml -e "bump_type=major"
+#
+# Bump types: patch (default), minor, major
+---
+- name: Release orchestrator service
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+
+  vars:
+    bump_type: patch
+    root_dir: "{{ playbook_dir }}/../../.."
+    package_json_path: "{{ root_dir }}/package.json"
+
+  tasks:
+    - name: Read current package.json
+      ansible.builtin.slurp:
+        src: "{{ package_json_path }}"
+      register: package_json_content
+
+    - name: Parse package.json
+      ansible.builtin.set_fact:
+        package_data: "{{ package_json_content.content | b64decode | from_json }}"
+
+    - name: Extract current version
+      ansible.builtin.set_fact:
+        current_version: "{{ package_data.version }}"
+
+    - name: Parse version components
+      ansible.builtin.set_fact:
+        version_parts: "{{ current_version.split('.') }}"
+
+    - name: Calculate new version
+      ansible.builtin.set_fact:
+        new_version: >-
+          {%- if bump_type == 'major' -%}
+            {{ (version_parts[0] | int) + 1 }}.0.0
+          {%- elif bump_type == 'minor' -%}
+            {{ version_parts[0] }}.{{ (version_parts[1] | int) + 1 }}.0
+          {%- else -%}
+            {{ version_parts[0] }}.{{ version_parts[1] }}.{{ (version_parts[2] | int) + 1 }}
+          {%- endif -%}
+
+    - name: Show version bump info
+      ansible.builtin.debug:
+        msg:
+          - "Current version: {{ current_version }}"
+          - "Bump type: {{ bump_type }}"
+          - "New version: {{ new_version }}"
+
+    - name: Update version in package.json
+      ansible.builtin.shell: |
+        cd "{{ root_dir }}"
+        jq '.version = "{{ new_version }}"' package.json > package.json.tmp && mv package.json.tmp package.json
+      changed_when: true
+
+    - name: Check for uncommitted changes
+      ansible.builtin.command:
+        cmd: git status --porcelain
+        chdir: "{{ root_dir }}"
+      register: git_status
+      changed_when: false
+
+    - name: Commit version bump
+      ansible.builtin.shell: |
+        cd "{{ root_dir }}"
+        git add package.json
+        git commit -m "chore(release): v{{ new_version }}"
+      when: git_status.stdout | length > 0
+      changed_when: true
+
+    - name: Create git tag
+      ansible.builtin.command:
+        cmd: git tag -a "v{{ new_version }}" -m "Release v{{ new_version }}"
+        chdir: "{{ root_dir }}"
+      changed_when: true
+
+    - name: Create release branch
+      ansible.builtin.command:
+        cmd: git checkout -b "release/v{{ new_version }}"
+        chdir: "{{ root_dir }}"
+      changed_when: true
+
+    - name: Push release branch
+      ansible.builtin.command:
+        cmd: git push -u origin "release/v{{ new_version }}"
+        chdir: "{{ root_dir }}"
+      changed_when: true
+
+    - name: Push tag
+      ansible.builtin.command:
+        cmd: git push origin "v{{ new_version }}"
+        chdir: "{{ root_dir }}"
+      changed_when: true
+
+    - name: Show success message
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "Release v{{ new_version }} created successfully!"
+          - ""
+          - "Created:"
+          - "  - Commit: chore(release): v{{ new_version }}"
+          - "  - Tag: v{{ new_version }}"
+          - "  - Branch: release/v{{ new_version }}"
+          - ""
+          - "GitHub Actions will now build and push:"
+          - "  - ghcr.io/{{ lookup('env', 'GITHUB_REPOSITORY_OWNER') | default('shopanaio', true) }}/orchestrator-service:v{{ new_version }}"
+          - ""
+          - "To return to main branch:"
+          - "  git checkout main"

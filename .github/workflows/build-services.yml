@@ -1,74 +1,19 @@
-name: Build Changed Services
+name: Build Orchestrator Service
 
 on:
   push:
     branches:
-      - main
-    paths:
-      - 'services/**'
-      - 'packages/**'
-      - '.github/workflows/build-services.yml'
+      - 'release/*'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}
 
 jobs:
-  detect-changes:
-    name: Detect Changed Services
+  build-orchestrator:
+    name: Build Orchestrator
     runs-on: ubuntu-latest
-    outputs:
-      services: ${{ steps.filter.outputs.changes }}
-      checkout: ${{ steps.filter.outputs.checkout }}
-      orders: ${{ steps.filter.outputs.orders }}
-      payments: ${{ steps.filter.outputs.payments }}
-      delivery: ${{ steps.filter.outputs.delivery }}
-      inventory: ${{ steps.filter.outputs.inventory }}
-      pricing: ${{ steps.filter.outputs.pricing }}
-      platform: ${{ steps.filter.outputs.platform }}
-      apps: ${{ steps.filter.outputs.apps }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Detect changed services
-        uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            checkout:
-              - 'services/checkout/**'
-              - 'packages/**'
-            orders:
-              - 'services/orders/**'
-              - 'packages/**'
-            payments:
-              - 'services/payments/**'
-              - 'packages/**'
-            delivery:
-              - 'services/delivery/**'
-              - 'packages/**'
-            inventory:
-              - 'services/inventory/**'
-              - 'packages/**'
-            pricing:
-              - 'services/pricing/**'
-              - 'packages/**'
-            platform:
-              - 'services/platform/**'
-              - 'packages/**'
-            apps:
-              - 'services/apps/**'
-              - 'packages/**'
-
-  build-service:
-    name: Build ${{ matrix.service }}
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs[matrix.service] == 'true' }}
-    strategy:
-      matrix:
-        service: [checkout, orders, payments, delivery, inventory, pricing, platform, apps]
     permissions:
       contents: read
       packages: write
@@ -84,34 +29,41 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.WOODPECKER_GITHUB_TOKEN }}
-        env:
-          DOCKER_BUILDKIT: 1
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from branch name
+        id: version
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          VERSION="${BRANCH_NAME#release/}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Branch: $BRANCH_NAME, Version: $VERSION"
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}-service
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/orchestrator-service
           tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=sha,prefix=${{ steps.version.outputs.version }}-
+            type=raw,value=latest
           labels: |
-            org.opencontainers.image.title=${{ matrix.service }}-service
-            org.opencontainers.image.description=Shopana ${{ matrix.service }} service
+            org.opencontainers.image.title=orchestrator-service
+            org.opencontainers.image.description=Shopana orchestrator service
             org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./services/Dockerfile
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            SERVICE_NAME=${{ matrix.service }}
+            SERVICE_NAME=orchestrator
             NODE_VERSION=20
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -119,7 +71,9 @@ jobs:
 
       - name: Generate build summary
         run: |
-          echo "### ✅ Successfully built ${{ matrix.service }}-service" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Successfully built orchestrator-service" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Package URL:** https://github.com/${{ github.repository_owner }}?tab=packages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -130,5 +84,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Pull command:**" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}-service:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/orchestrator-service:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
