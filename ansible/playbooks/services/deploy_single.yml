@@ -1,6 +1,6 @@
 # Deploy single service to remote host
 # Variables are loaded from vars file
-# Usage: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=checkout"
+# Usage: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini --limit shopana_sandbox -e "service_name=orchestrator"
 ---
 - name: Deploy Service
   hosts: shopana_sandbox
@@ -23,8 +23,6 @@
     # Valid service names
     valid_services:
       - orchestrator
-      - checkout
-      - orders
 
   tasks:
     - name: Validate service_name is provided
@@ -34,7 +32,7 @@
           - service_name | length > 0
         fail_msg: >-
           service_name is required. Usage:
-          ansible-playbook playbooks/services/deploy_single.yml -e "service_name=checkout"
+          ansible-playbook playbooks/services/deploy_single.yml -e "service_name=orchestrator"
         success_msg: "Service name provided: {{ service_name }}"
       run_once: true
       delegate_to: localhost
@@ -184,8 +182,8 @@
               - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose restart'"
               - "  ssh {{ ansible_host }} 'cd {{ app_dir }} && docker compose stop'"
               - ""
-              - "🚀 Deploy another service:"
-              - "  ansible-playbook playbooks/services/deploy_single.yml -e 'service_name=orders'"
+              - "🚀 Deploy all services:"
+              - "  ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox"
 
       rescue:
         - name: Show error details

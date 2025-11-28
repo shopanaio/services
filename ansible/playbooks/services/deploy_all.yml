@@ -1,8 +1,7 @@
-# Deploy all services to remote host using hybrid architecture
+# Deploy all services to remote host
 #
 # Architecture:
-#   - Orchestrator (one container): apps, platform, payments, inventory, delivery
-#   - Standalone containers: checkout, orders
+#   - Orchestrator (one container): all services (apps, checkout, orders, payments, inventory, delivery, pricing)
 #
 # Prerequisites:
 #   - Services must be built and pushed to GHCR
@@ -12,7 +11,7 @@
 #   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox
 #   ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox -e "image_tag=v1.0.0"
 ---
-- name: Deploy all services to remote host (hybrid architecture)
+- name: Deploy all services to remote host
   hosts: shopana_sandbox
   become: true
 
@@ -26,25 +25,16 @@
     # Orchestrator image tag
     orchestrator_image_tag: "{{ final_image_tag }}"
 
-    # Standalone services (checkout and orders)
-    standalone_services:
-      - checkout
-      - orders
-
   tasks:
     - name: Show deployment information
       ansible.builtin.debug:
         msg:
-          - "🚀 Deploying ALL services to {{ ansible_host }} (Hybrid Architecture)"
+          - "🚀 Deploying ALL services to {{ ansible_host }}"
           - ""
           - "  Orchestrator (one container):"
-          - "    • apps, delivery, inventory, payments, pricing"
+          - "    • apps, checkout, orders, delivery, inventory, payments, pricing"
           - "    • Image: orchestrator-service:{{ orchestrator_image_tag }}"
           - "    • Metrics port: {{ orchestrator_metrics_port | default(3030) }}"
-          - ""
-          - "  Standalone services:"
-          - "    • checkout → checkout-service:{{ final_image_tag }} (port {{ checkout_port }})"
-          - "    • orders → orders-service:{{ final_image_tag }} (port {{ orders_port }})"
           - ""
           - "  Image tag: {{ final_image_tag }}"
 
@@ -64,20 +54,9 @@
               - "Task: {{ ansible_failed_task.name | default('Unknown') }}"
               - "Error: {{ ansible_failed_result.msg | default('No message') }}"
 
-        - name: Continue with standalone services anyway
-          ansible.builtin.debug:
-            msg: "Continuing with standalone services deployment..."
-
-    # ========================================================================
-    # Deploy Standalone Services
-    # ========================================================================
-    - name: Deploy standalone services sequentially
-      ansible.builtin.include_tasks: deploy_service_task.yml
-      vars:
-        service_name: "{{ item }}"
-        service_image_tag: "{{ final_image_tag }}"
-      loop: "{{ standalone_services }}"
-      ignore_errors: true
+        - name: Fail deployment
+          ansible.builtin.fail:
+            msg: "Orchestrator deployment failed. See error details above."
 
     # ========================================================================
     # Show Summary
@@ -89,18 +68,12 @@
           - ""
           - "🏗️  Architecture:"
           - "  Orchestrator (one container - configured via config.yml):"
-          - "    • Services: apps, delivery, inventory, payments, pricing"
+          - "    • Services: apps, checkout, orders, delivery, inventory, payments, pricing"
           - "    • Apps GraphQL API → http://{{ ansible_host }}:{{ apps_port }}"
           - "    • Metrics/Health → http://{{ ansible_host }}:{{ orchestrator_metrics_port | default(3030) }}"
-          - ""
-          - "  Standalone services:"
-          - "    • checkout → http://{{ ansible_host }}:{{ checkout_port }}"
-          - "    • orders → http://{{ ansible_host }}:{{ orders_port }}"
           - ""
           - "🔍 Check status:"
           - "  ssh {{ ansible_host }} 'docker ps'"
           - ""
           - "📊 View logs:"
           - "  Orchestrator: ssh {{ ansible_host }} 'cd /opt/shopana/services/orchestrator && docker compose logs -f'"
-          - "  Checkout: ssh {{ ansible_host }} 'cd /opt/shopana/services/checkout && docker compose logs -f'"
-          - "  Orders: ssh {{ ansible_host }} 'cd /opt/shopana/services/orders && docker compose logs -f'"

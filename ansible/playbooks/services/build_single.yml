@@ -6,8 +6,8 @@
 #   - SHOPANA_GHCR_OWNER and SHOPANA_GITHUB_TOKEN environment variables
 #
 # Usage:
-#   ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "image_tag=v1.0.0"
-#   ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout" -e "skip_base_build=true"
+#   ansible-playbook playbooks/services/build_single.yml -e "service_name=orchestrator" -e "image_tag=v1.0.0"
+#   ansible-playbook playbooks/services/build_single.yml -e "service_name=orchestrator" -e "skip_base_build=true"
 ---
 - name: Build and push single service
   hosts: localhost
@@ -33,13 +33,7 @@
 
     # Valid service names
     valid_services:
-      - apps
-      - checkout
-      - delivery
-      - inventory
-      - orders
-      - payments
-      - pricing
+      - orchestrator
 
   tasks:
     - name: Validate service_name is provided
@@ -49,7 +43,7 @@
           - service_name | length > 0
         fail_msg: >-
           service_name is required. Usage:
-          ansible-playbook playbooks/services/build_single.yml -e "service_name=checkout"
+          ansible-playbook playbooks/services/build_single.yml -e "service_name=orchestrator"
         success_msg: "Service name provided: {{ service_name }}"
 
     - name: Validate service_name is in valid list
@@ -133,8 +127,8 @@
               - "📦 Service image:"
               - "  • {{ service_name }}-service:{{ final_image_tag }}"
               - ""
-              - "🚀 To build another service:"
-              - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name=orders' -e 'image_tag={{ final_image_tag }}'"
+              - "🚀 To deploy:"
+              - "  ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox"
               - ""
               - "💡 Tip: If packages unchanged, skip base build next time:"
               - "  ansible-playbook playbooks/services/build_single.yml -e 'service_name={{ service_name }}' -e 'skip_base_build=true'"

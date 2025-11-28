@@ -250,7 +250,7 @@
               - ""
               - "📚 Useful LogQL queries:"
               - "  All logs: {container_name=~\".+\"}"
-              - "  By service: {compose_service=\"orders\"}"
+              - "  By service: {compose_service=\"orchestrator\"}"
               - "  By project: {compose_project=\"shopana\"}"
               - "  Errors only: {container_name=~\".+\"} |= \"ERROR\""
               - "  Last 5m: {container_name=~\".+\"} [5m]"

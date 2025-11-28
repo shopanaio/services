@@ -31,8 +31,6 @@
     # All available services
     all_services:
       - orchestrator
-      - checkout
-      - orders
 
   tasks:
     - name: Validate required variables are provided
@@ -96,8 +94,7 @@
           - "{% for service in all_services %}  • {{ service }}-service:{{ final_image_tag }}{% endfor %}"
           - ""
           - "🚀 Next steps:"
-          - "  Deploy single: ansible-playbook playbooks/services/deploy_single.yml -i hosts.ini -e 'service_name=checkout'"
-          - "  Deploy all:    ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox"
+          - "  Deploy: ansible-playbook playbooks/services/deploy_all.yml -i hosts.ini --limit shopana_sandbox"
           - ""
           - "💡 Tip: If packages unchanged, skip base build next time:"
           - "  ansible-playbook playbooks/services/build_all.yml -e 'skip_base_build=true'"

@@ -50,5 +50,4 @@
           - "📝 This network is used by:"
           - "  • Traefik (reverse proxy)"
           - "  • Apollo Router (admin & storefront)"
-          - "  • NATS"
           - "  • All microservices"
