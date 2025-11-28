@@ -39,6 +39,26 @@ export class PurchasableSnapshotInputDto {
 }
 
 /**
+ * DTO for child line input in bundles.
+ */
+export class CheckoutChildLineInputDto {
+  @Expose()
+  @IsGlobalId({ message: "Invalid purchasable ID format" })
+  purchasableId!: string;
+
+  @Expose()
+  @IsInt()
+  @Min(1)
+  quantity!: number;
+
+  @Expose()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PurchasableSnapshotInputDto)
+  purchasableSnapshot?: PurchasableSnapshotInputDto;
+}
+
+/**
  * DTO for checkoutCreate API. Class-validator runs here to guard API inputs.
  * Domain invariants are additionally enforced in the decider/validator.
  */
@@ -65,6 +85,13 @@ export class CheckoutLineInputDto {
     message: "tagSlug must be alphanumeric (a-zA-Z0-9)",
   })
   tagSlug?: string;
+
+  @Expose()
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CheckoutChildLineInputDto)
+  children?: CheckoutChildLineInputDto[];
 }
 
 export class CheckoutTagDto {

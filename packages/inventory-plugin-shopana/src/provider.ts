@@ -414,21 +414,17 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
           parentId: parentVariant.id,
         });
 
-        // Try to get variant data from map for basic offer
-        const childVariant = variantById.get(purchasableId);
-        if (!childVariant) {
-          return {
-            purchasableId,
-            unitPrice: 0,
-            unitOriginalPrice: 0,
-            isAvailable: false,
-            isPhysical: true,
-            paymentMode: inventory.PaymentMode.IMMEDIATE,
-            validationError: `Variant ${purchasableId} not found in parent product groups`,
-          };
-        }
-
-        return this.buildOffer(childVariant, lineId, quantity, undefined, undefined);
+        // Return validation error regardless of whether variant exists
+        // The variant must be in parent's ProductGroup to be added as a child
+        return {
+          purchasableId,
+          unitPrice: 0,
+          unitOriginalPrice: 0,
+          isAvailable: false,
+          isPhysical: true,
+          paymentMode: inventory.PaymentMode.IMMEDIATE,
+          validationError: `Variant ${purchasableId} not found in parent product groups`,
+        };
       }
 
       // Get price config from ProductGroupItem

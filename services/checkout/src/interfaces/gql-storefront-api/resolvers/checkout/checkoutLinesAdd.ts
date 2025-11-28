@@ -27,6 +27,11 @@ export const checkoutLinesAdd = async (
       purchasableId: line.purchasableId, // Already decoded by validator
       purchasableSnapshot: line.purchasableSnapshot ?? null,
       tagSlug: line.tagSlug ?? null,
+      children: line.children?.map((child) => ({
+        purchasableId: child.purchasableId,
+        quantity: child.quantity,
+        purchasableSnapshot: child.purchasableSnapshot ?? null,
+      })) ?? null,
     }));
 
     const updatedCheckoutId = await checkoutUsecase.addCheckoutLines.execute({

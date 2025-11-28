@@ -61,9 +61,20 @@ export class CheckoutReadModelAdapter {
   private static mapLineItemsToLinesRecord(lineItems: CheckoutLineItemReadView[]): Record<string, CheckoutLineItemState> {
     const linesRecord: Record<string, CheckoutLineItemState> = {};
 
+    // Flatten hierarchy: lineItems contains root items with children
+    const allItems: CheckoutLineItemReadView[] = [];
     for (const item of lineItems) {
+      allItems.push(item);
+      if (item.children) {
+        allItems.push(...item.children);
+      }
+    }
+
+    for (const item of allItems) {
       linesRecord[item.id] = {
         lineId: item.id,
+        parentLineId: item.parentLineId,
+        priceConfig: item.priceConfig,
         quantity: item.quantity,
         tag: item.tag
           ? {
@@ -75,6 +86,7 @@ export class CheckoutReadModelAdapter {
         unit: {
           id: item.unit.id,
           price: item.unit.price,
+          originalPrice: item.unit.originalPrice,
           compareAtPrice: item.unit.compareAtPrice,
           title: item.unit.title,
           imageUrl: item.unit.imageUrl,
