@@ -38,7 +38,10 @@ export const checkoutCreate = async (
       localeCode: dto.localeCode ?? null,
       salesChannel: dto.externalSource ?? null,
       externalSource: dto.externalSource ?? null,
-      tags: dto.tags ?? [],
+      tags: (dto.tags ?? []).map((tag) => ({
+        slug: tag.slug,
+        isUnique: tag.unique,
+      })),
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,

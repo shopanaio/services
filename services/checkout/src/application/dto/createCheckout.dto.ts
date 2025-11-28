@@ -77,7 +77,7 @@ export class CheckoutTagDto {
 
   @Expose()
   @IsBoolean()
-  isUnique!: boolean;
+  unique!: boolean;
 }
 
 export class CreateCheckoutDto {
