@@ -1,4 +1,45 @@
 """
+Price adjustment type for child items in a bundle.
+Values are always positive - the type determines the operation.
+"""
+enum ChildPriceType {
+  """Item is free (price = 0)"""
+  FREE
+
+  """Use original price without adjustments"""
+  BASE
+
+  """Subtract fixed amount from original price"""
+  DISCOUNT_AMOUNT
+
+  """Subtract percentage from original price"""
+  DISCOUNT_PERCENT
+
+  """Add fixed amount to original price"""
+  MARKUP_AMOUNT
+
+  """Add percentage to original price"""
+  MARKUP_PERCENT
+
+  """Override with fixed price"""
+  OVERRIDE
+}
+
+"""
+Price adjustment configuration applied to a child line item.
+"""
+type CheckoutLinePriceConfig {
+  """Type of price adjustment."""
+  type: ChildPriceType!
+
+  """Amount in minor units (always positive). Used for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE."""
+  amount: Int
+
+  """Percentage (always positive). Used for DISCOUNT_PERCENT, MARKUP_PERCENT."""
+  percent: Float
+}
+
+"""
 A single item in a checkout.
 """
 type CheckoutLine implements Node @key(fields: "id") {
@@ -33,9 +74,19 @@ type CheckoutLine implements Node @key(fields: "id") {
   cost: CheckoutLineCost!
 
   """
+  Original price before any adjustments (e.g., child price config).
+  """
+  originalPrice: Money!
+
+  """
+  Price adjustment applied to this line (for child items in bundles).
+  """
+  priceConfig: CheckoutLinePriceConfig
+
+  """
   A list of components that make up this checkout line, such as individual products in a bundle.
   """
-  children: [CheckoutLine]!
+  children: [CheckoutLine!]!
   """
   ID of the purchasable.
   """
@@ -86,6 +137,43 @@ type CheckoutLineCost {
 }
 
 """
+Input data for a child item in a bundle.
+"""
+input CheckoutChildLineInput {
+  """
+  Quantity of the child item.
+  """
+  quantity: Int!
+
+  """
+  ID of the purchasable for child item.
+  """
+  purchasableId: ID!
+
+  """
+  Snapshot data for child purchasable.
+  """
+  purchasableSnapshot: PurchasableSnapshotInput
+
+  """
+  Price adjustment type for this child. Defaults to BASE if not specified.
+  """
+  priceType: ChildPriceType
+
+  """
+  Amount for DISCOUNT_AMOUNT, MARKUP_AMOUNT or OVERRIDE (in minor units).
+  Must be positive.
+  """
+  priceAmount: Int
+
+  """
+  Percentage for DISCOUNT_PERCENT or MARKUP_PERCENT.
+  Must be positive (e.g., 10 for 10%).
+  """
+  pricePercent: Float
+}
+
+"""
 Input data for a single item in the checkout.
 """
 input CheckoutLineAddInput {
@@ -105,6 +193,10 @@ input CheckoutLineAddInput {
   Optional tag slug to associate with this line.
   """
   tagSlug: String
+  """
+  Child items for this line. If provided, this line becomes a parent.
+  """
+  children: [CheckoutChildLineInput!]
 }
 
 """

@@ -31,24 +31,38 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
     // Updated lines without duplicates
     const normalized: Record<string, number> = {};
     for (const u of businessInput.lines) {
-      if (!state.linesRecord?.[u.lineId]) {
+      const line = state.linesRecord?.[u.lineId];
+      if (!line) {
         throw new Error(`Line ${u.lineId} does not exist`);
+      }
+      // Block direct updates of child lines
+      if (line.parentLineId) {
+        throw new Error(
+          `Cannot update child line ${u.lineId} directly. Update the parent line instead.`
+        );
       }
       normalized[u.lineId] = u.quantity;
     }
 
     // Determine removed lines (quantity = 0)
-    const removedLineIds: string[] = [];
+    const removedLineIds = new Set<string>();
     for (const [lineId, quantity] of Object.entries(normalized)) {
       if (quantity === 0) {
-        removedLineIds.push(lineId);
+        removedLineIds.add(lineId);
+      }
+    }
+
+    // Cascade delete: if a parent is removed, also remove its children
+    const existingLines = Object.values(state.linesRecord ?? {});
+    for (const line of existingLines) {
+      if (line.parentLineId && removedLineIds.has(line.parentLineId)) {
+        removedLineIds.add(line.lineId);
       }
     }
 
     // Create updated lines (excluding removed ones)
-    const existingLines = Object.values(state.linesRecord ?? {});
     const updatedLines: CheckoutLineItemState[] = existingLines
-      .filter((line) => !removedLineIds.includes(line.lineId))
+      .filter((line) => !removedLineIds.has(line.lineId))
       .map((line) => {
         const newQuantity = normalized[line.lineId];
         return newQuantity !== undefined

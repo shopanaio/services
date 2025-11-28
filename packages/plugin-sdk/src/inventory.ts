@@ -22,6 +22,32 @@ export enum PaymentMode {
 }
 
 /**
+ * Price adjustment type for child items in a bundle.
+ * Values are always positive - the type determines the operation.
+ * @public
+ */
+export type ChildPriceType =
+  | 'FREE'
+  | 'BASE'
+  | 'DISCOUNT_AMOUNT'
+  | 'DISCOUNT_PERCENT'
+  | 'MARKUP_AMOUNT'
+  | 'MARKUP_PERCENT'
+  | 'OVERRIDE';
+
+/**
+ * Price configuration for child items
+ * @public
+ */
+export type ChildPriceConfigInput = Readonly<{
+  type: ChildPriceType;
+  /** Amount in minor units, for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE (always positive) */
+  amount?: number;
+  /** Percentage for DISCOUNT_PERCENT, MARKUP_PERCENT (e.g., 10 for 10%, always positive) */
+  percent?: number;
+}>;
+
+/**
  * Purchasable snapshot for data persistence
  * @public
  */
@@ -38,13 +64,32 @@ export type PurchasableSnapshot = Readonly<{
  */
 export type InventoryOffer = Readonly<{
   purchasableId: string;
-  unitPrice: number; // minor units
+  /** Final adjusted price in minor units */
+  unitPrice: number;
+  /** Original price before any adjustments in minor units */
+  unitOriginalPrice: number;
   unitCompareAtPrice?: number | null; // minor units
   isAvailable: boolean;
   isPhysical: boolean;
   paymentMode: PaymentMode;
   purchasableSnapshot?: PurchasableSnapshot;
   providerPayload?: Record<string, unknown>;
+  /** Applied price adjustment info (for child items) */
+  appliedPriceConfig?: ChildPriceConfigInput;
+}>;
+
+/**
+ * Item input for getting offers
+ * @public
+ */
+export type GetOffersItemInput = Readonly<{
+  lineId: string;
+  purchasableId: string;
+  quantity: number;
+  /** Parent line ID for bundled/child items */
+  parentLineId?: string;
+  /** Price configuration for child items */
+  priceConfig?: ChildPriceConfigInput;
 }>;
 
 /**
@@ -52,11 +97,7 @@ export type InventoryOffer = Readonly<{
  * @public
  */
 export type GetOffersInput = Readonly<{
-  items: ReadonlyArray<{
-    lineId: string;
-    purchasableId: string;
-    quantity: number;
-  }>;
+  items: ReadonlyArray<GetOffersItemInput>;
   projectId?: string;
   apiKey?: string;
   currency?: string;

@@ -8,6 +8,47 @@ import { configSchema } from "./index";
 type Config = z.infer<typeof configSchema>;
 
 /**
+ * Applies price configuration to calculate the final price
+ * @param originalPrice - Original price in minor units
+ * @param config - Price configuration to apply
+ * @returns Final price in minor units (never negative)
+ */
+function applyPriceConfig(
+  originalPrice: number,
+  config: Inventory.ChildPriceConfigInput
+): number {
+  switch (config.type) {
+    case "FREE":
+      return 0;
+
+    case "BASE":
+      return originalPrice;
+
+    case "DISCOUNT_AMOUNT":
+      return Math.max(0, originalPrice - (config.amount ?? 0));
+
+    case "DISCOUNT_PERCENT": {
+      const percent = config.percent ?? 0;
+      return Math.max(0, Math.floor((originalPrice * (100 - percent)) / 100));
+    }
+
+    case "MARKUP_AMOUNT":
+      return originalPrice + (config.amount ?? 0);
+
+    case "MARKUP_PERCENT": {
+      const percent = config.percent ?? 0;
+      return Math.floor((originalPrice * (100 + percent)) / 100);
+    }
+
+    case "OVERRIDE":
+      return config.amount ?? originalPrice;
+
+    default:
+      return originalPrice;
+  }
+}
+
+/**
  * Product variant data type from Core Apps GraphQL API
  */
 interface CoreVariant {
@@ -108,7 +149,8 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
 
       // Transform data to InventoryOffer format
       const offers: Inventory.InventoryOffer[] = input.items
-        .map(({ purchasableId, lineId, quantity }) => {
+        .map((item) => {
+          const { purchasableId, lineId, quantity, priceConfig } = item;
           const variant = variantById.get(purchasableId);
 
           if (!variant) {
@@ -139,9 +181,16 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
             },
           };
 
+          // Calculate final price based on price config (for child items)
+          const originalPrice = variant.price;
+          const finalPrice = priceConfig
+            ? applyPriceConfig(originalPrice, priceConfig)
+            : originalPrice;
+
           const offer: Inventory.InventoryOffer = {
             purchasableId,
-            unitPrice: variant.price,
+            unitPrice: finalPrice,
+            unitOriginalPrice: originalPrice,
             unitCompareAtPrice: variant.oldPrice || null,
             isAvailable,
             isPhysical,
@@ -154,6 +203,7 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
               stockStatus: variant.stockStatus,
               requestedAt: new Date().toISOString(),
             },
+            appliedPriceConfig: priceConfig,
           };
 
           return offer;
@@ -186,28 +236,38 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
   ): Inventory.InventoryOffer[] {
     this.ctx.logger.info("Returning mock inventory offers");
 
-    return input.items.map(({ purchasableId, lineId, quantity }) => ({
-      purchasableId,
-      unitPrice: 1000, // $10.00 in minor units
-      unitCompareAtPrice: 1500, // $15.00 in minor units
-      isAvailable: true,
-      isPhysical: true,
-      paymentMode: inventory.PaymentMode.IMMEDIATE,
-      purchasableSnapshot: {
-        title: `Mock Product ${purchasableId}`,
-        sku: `MOCK-${purchasableId}`,
-        imageUrl: null,
-        data: {
-          mockMode: true,
+    return input.items.map((item) => {
+      const { purchasableId, lineId, quantity, priceConfig } = item;
+      const originalPrice = 1000; // $10.00 in minor units
+      const finalPrice = priceConfig
+        ? applyPriceConfig(originalPrice, priceConfig)
+        : originalPrice;
+
+      return {
+        purchasableId,
+        unitPrice: finalPrice,
+        unitOriginalPrice: originalPrice,
+        unitCompareAtPrice: 1500, // $15.00 in minor units
+        isAvailable: true,
+        isPhysical: true,
+        paymentMode: inventory.PaymentMode.IMMEDIATE,
+        purchasableSnapshot: {
+          title: `Mock Product ${purchasableId}`,
+          sku: `MOCK-${purchasableId}`,
+          imageUrl: null,
+          data: {
+            mockMode: true,
+          },
         },
-      },
-      providerPayload: {
-        provider: "shopana",
-        mode: "mock",
-        lineId,
-        quantity,
-        requestedAt: new Date().toISOString(),
-      },
-    }));
+        providerPayload: {
+          provider: "shopana",
+          mode: "mock",
+          lineId,
+          quantity,
+          requestedAt: new Date().toISOString(),
+        },
+        appliedPriceConfig: priceConfig,
+      };
+    });
   }
 }

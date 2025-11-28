@@ -1,4 +1,5 @@
 import type { CheckoutContext } from "@src/context/index.js";
+import { ChildPriceType } from "@src/domain/checkout/types";
 
 export type { CheckoutContext };
 
@@ -17,6 +18,26 @@ export type CheckoutTagInput = {
   isUnique: boolean;
 };
 
+/**
+ * Input for a child item in a bundle
+ */
+export type CheckoutChildLineInput = {
+  purchasableId: string;
+  quantity: number;
+  purchasableSnapshot?: {
+    title: string;
+    imageUrl?: string | null;
+    sku?: string | null;
+    data?: Record<string, unknown>;
+  } | null;
+  /** Price adjustment type for this child. Defaults to BASE if not specified. */
+  priceType?: ChildPriceType | null;
+  /** Amount in minor units for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE (always positive) */
+  priceAmount?: number | null;
+  /** Percentage for DISCOUNT_PERCENT, MARKUP_PERCENT (always positive) */
+  pricePercent?: number | null;
+};
+
 export type CheckoutLinesAddInput = {
   checkoutId: string;
   lines: Array<{
@@ -29,6 +50,8 @@ export type CheckoutLinesAddInput = {
       data?: Record<string, unknown>;
     } | null;
     tagSlug?: string | null;
+    /** Child items for this line. If provided, this line becomes a parent. */
+    children?: CheckoutChildLineInput[] | null;
   }>;
 } & CheckoutContext;
 

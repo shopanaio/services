@@ -164,6 +164,10 @@ export abstract class UseCase<TInput = any, TOutput = any> {
   ): CheckoutLinesAddedLine[] {
     return lines.map((line) => ({
       lineId: line.lineId,
+      parentLineId: line.parentLineId ?? null,
+      priceType: line.priceConfig?.type ?? null,
+      priceAmount: line.priceConfig?.amount ?? null,
+      pricePercent: line.priceConfig?.percent ?? null,
       quantity: line.quantity,
       tagId: line.tag?.id ?? null,
       unit: line.unit,

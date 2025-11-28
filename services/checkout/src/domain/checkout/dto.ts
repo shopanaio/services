@@ -9,6 +9,7 @@ import type {
 } from "@src/domain/checkout/cost";
 import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
 import { PaymentFlow } from "@shopana/plugin-sdk/payment";
+import { ChildPriceType } from "./types";
 
 type CheckoutMetadataDto = {
   apiKey: string;
@@ -67,6 +68,8 @@ export type CheckoutCreatedDto = Readonly<{
 export type CheckoutUnit = Readonly<{
   id: string;
   price: Money;
+  /** Original price before any adjustments */
+  originalPrice: Money;
   compareAtPrice: Money | null;
   title: string;
   imageUrl: string | null;
@@ -76,6 +79,14 @@ export type CheckoutUnit = Readonly<{
 
 export type CheckoutLinesAddedLine = Readonly<{
   lineId: string;
+  /** Parent line ID for child items (null for parent/standalone items) */
+  parentLineId: string | null;
+  /** Price adjustment type for child items */
+  priceType: ChildPriceType | null;
+  /** Amount in minor units for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE (always positive) */
+  priceAmount: number | null;
+  /** Percentage for DISCOUNT_PERCENT, MARKUP_PERCENT (always positive) */
+  pricePercent: number | null;
   quantity: number;
   tagId: string | null;
   unit: CheckoutUnit;

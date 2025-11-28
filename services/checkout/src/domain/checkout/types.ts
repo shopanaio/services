@@ -7,10 +7,46 @@ import { AppliedDiscountSnapshot } from "./discount";
 import { PaymentFlow } from "@shopana/plugin-sdk/payment";
 
 /**
+ * Price adjustment type for child items in a bundle.
+ * Values are always positive - the type determines the operation.
+ */
+export enum ChildPriceType {
+  /** Item is free (price = 0) */
+  FREE = "FREE",
+  /** Use original price without adjustments */
+  BASE = "BASE",
+  /** Subtract fixed amount from original price */
+  DISCOUNT_AMOUNT = "DISCOUNT_AMOUNT",
+  /** Subtract percentage from original price */
+  DISCOUNT_PERCENT = "DISCOUNT_PERCENT",
+  /** Add fixed amount to original price */
+  MARKUP_AMOUNT = "MARKUP_AMOUNT",
+  /** Add percentage to original price */
+  MARKUP_PERCENT = "MARKUP_PERCENT",
+  /** Override with fixed price */
+  OVERRIDE = "OVERRIDE",
+}
+
+/**
+ * Price configuration for child items
+ */
+export type ChildPriceConfig = {
+  type: ChildPriceType;
+  /** Amount in minor units, for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE (always positive) */
+  amount?: number;
+  /** Percentage for DISCOUNT_PERCENT, MARKUP_PERCENT (e.g., 10 for 10%, always positive) */
+  percent?: number;
+};
+
+/**
  * Checkout line item state representation
  */
 export type CheckoutLineItemState = {
   lineId: string;
+  /** Parent line ID for child items (null for parent/standalone items) */
+  parentLineId: string | null;
+  /** Price configuration for child items (null for parent/standalone items) */
+  priceConfig: ChildPriceConfig | null;
   quantity: number;
   tag: {
     id: string;
@@ -20,6 +56,8 @@ export type CheckoutLineItemState = {
   unit: {
     id: string;
     price: Money;
+    /** Original price before any adjustments */
+    originalPrice: Money;
     compareAtPrice: Money | null;
     title: string;
     imageUrl: string | null;

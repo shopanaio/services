@@ -821,11 +821,17 @@ export class CheckoutWriteRepository {
     data: {
       checkoutLines: Array<{
         lineId: string;
+        parentLineId?: string | null;
+        priceType?: string | null;
+        priceAmount?: number | null;
+        pricePercent?: number | null;
         quantity: number;
+        tagId?: string | null;
         unit: {
           id: string;
           title: string;
           price: Money;
+          originalPrice?: Money;
           compareAtPrice: Money | null;
           sku: string | null;
           imageUrl: string | null;
@@ -873,15 +879,23 @@ export class CheckoutWriteRepository {
           id: l.lineId,
           project_id: projectId as any,
           checkout_id: checkoutId,
-          tag_id: l.tagId,
+          parent_line_item_id: l.parentLineId ?? null,
+          tag_id: l.tagId ?? null,
           quantity: l.quantity,
+          // Price config fields
+          price_type: l.priceType ?? null,
+          price_amount: l.priceAmount ?? null,
+          price_percent: l.pricePercent ?? null,
+          // Cost fields
           subtotal_amount: this.toBigintSql(cost?.subtotal ?? null),
           discount_amount: this.toBigintSql(cost?.discount ?? null),
           tax_amount: this.toBigintSql(cost?.tax ?? null),
           total_amount: this.toBigintSql(cost?.total ?? null),
+          // Unit fields
           unit_id: l.unit.id,
           unit_title: l.unit.title,
           unit_price: this.toBigintSql(unitPrice),
+          unit_original_price: this.toBigintSql(l.unit.originalPrice ?? unitPrice),
           unit_compare_at_price: this.toBigintSql(l.unit.compareAtPrice),
           unit_sku: l.unit.sku,
           unit_image_url: l.unit.imageUrl,

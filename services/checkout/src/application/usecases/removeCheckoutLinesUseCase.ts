@@ -34,10 +34,19 @@ export class DeleteCheckoutLinesUseCase extends UseCase<
       }
     }
 
-    // Remaining lines after deletion
     const existingLines = Object.values(state.linesRecord ?? {});
+    const lineIdsToDelete = new Set(businessInput.lineIds);
+
+    // Cascade delete: if a parent is deleted, also delete its children
+    for (const line of existingLines) {
+      if (line.parentLineId && lineIdsToDelete.has(line.parentLineId)) {
+        lineIdsToDelete.add(line.lineId);
+      }
+    }
+
+    // Remaining lines after deletion
     const remainingLines = existingLines.filter(
-      (line) => !businessInput.lineIds.includes(line.lineId)
+      (line) => !lineIdsToDelete.has(line.lineId)
     );
 
     let checkoutLines: CheckoutLineItemState[] = [];

@@ -77,6 +77,7 @@ export class CheckoutCostService {
     // Checkout-level discounts are applied without distribution across items
     const checkoutCost = this.calculateCheckoutCostWithDiscounts(
       baseLineItems,
+      input.checkoutLines,
       discountsResult.aggregatedDiscounts
     );
     const checkoutLinesCost = this.buildLinesCostMap(baseLineItems);
@@ -197,9 +198,8 @@ export class CheckoutCostService {
   /**
    * Calculates the total discount amount for a given amount and list of discounts.
    *
-   * Supports percentage discounts. For each discount, the amount is calculated
-   * and summed with others. In the future, it may be extended to support
-   * fixed discounts and other types.
+   * Supports both percentage and fixed discounts. For each discount, the amount is calculated
+   * and summed with others.
    *
    * @param amount - Base amount to which discounts are applied
    * @param discounts - List of discounts to apply
@@ -208,18 +208,28 @@ export class CheckoutCostService {
    */
   private calculateDiscountAmount(amount: Money, discounts: Discount[]): Money {
     return discounts.reduce((total, discount) => {
-      if (discount.type === DiscountType.PERCENTAGE) {
-        if (typeof discount.value !== "number") {
-          throw new Error("Percentage discount value must be a number");
+      switch (discount.type) {
+        case DiscountType.PERCENTAGE: {
+          if (typeof discount.value !== "number") {
+            throw new Error("Percentage discount value must be a number");
+          }
+          const amountMinor = amount.amountMinor();
+          const discountMinor = (amountMinor * BigInt(discount.value)) / 100n;
+          return total.add(
+            Money.fromMinor(discountMinor, amount.currency().code)
+          );
         }
-
-        const amountMinor = amount.amountMinor();
-        const discountMinor = (amountMinor * BigInt(discount.value)) / 100n;
-        return total.add(
-          Money.fromMinor(discountMinor, amount.currency().code)
-        );
+        case DiscountType.FIXED: {
+          if (typeof discount.value !== "number") {
+            throw new Error("Fixed discount value must be a number");
+          }
+          return total.add(
+            Money.fromMinor(BigInt(discount.value), amount.currency().code)
+          );
+        }
+        default:
+          return total;
       }
-      return total;
     }, Money.zero());
   }
 
@@ -227,24 +237,32 @@ export class CheckoutCostService {
    * Calculates the final cart cost with checkout-level discounts applied.
    *
    * Simplified logic without distributing discounts across items:
-   * 1. Calculates subtotal of all items
+   * 1. Calculates subtotal of all items (parents + children)
    * 2. Applies checkout-level discounts to the total amount
    * 3. Returns final cost indicators
    *
+   * Note: Total quantity counts only parent items (children are part of parent bundles).
+   * Children prices are already adjusted by their priceConfig.
+   *
    * @param lineItems - Base items without discounts
+   * @param checkoutLines - Original checkout lines for parent/child detection
    * @param aggregatedDiscounts - Aggregated discounts from pricing service
    * @returns Final cart cost indicators
    * @private
    */
   private calculateCheckoutCostWithDiscounts(
     lineItems: CheckoutLineItemCost[],
+    checkoutLines: CheckoutLineItemState[],
     aggregatedDiscounts: Discount[]
   ): CheckoutCost {
     const subtotal = lineItems.reduce(
       (total, line) => total.add(line.subtotal),
       Money.zero()
     );
-    const totalQuantity = lineItems.reduce(
+
+    // Count quantity only for parent items (children are part of parent)
+    const parentLines = checkoutLines.filter((line) => !line.parentLineId);
+    const totalQuantity = parentLines.reduce(
       (total, line) => total + line.quantity,
       0
     );
