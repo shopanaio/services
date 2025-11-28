@@ -195,7 +195,15 @@ export class AddCheckoutLinesUseCase extends UseCase<
       });
 
       // Create child lines from offer.children (prices come from inventory/DB)
-      if (offer.children && line.children) {
+      if (line.children && line.children.length > 0) {
+        // If line has children but offer doesn't, something went wrong in inventory
+        if (!offer.children || offer.children.length === 0) {
+          throw new Error(
+            `Children requested for ${line.purchasableId} but inventory returned no children. ` +
+            `This may indicate that children were not passed to inventory or groups were not fetched.`
+          );
+        }
+
         for (let i = 0; i < line.children.length; i++) {
           const childInput = line.children[i];
           const childOffer = offer.children[i];

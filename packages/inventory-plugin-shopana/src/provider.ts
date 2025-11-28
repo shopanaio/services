@@ -386,6 +386,20 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
   ): Inventory.InventoryOffer[] {
     const groups = parentVariant.product?.groups ?? [];
 
+    // DEBUG: Log groups and parent info
+    this.ctx.logger.info("processChildren called", {
+      parentId: parentVariant.id,
+      groupsCount: groups.length,
+      childrenCount: children.length,
+      groups: groups.map((g) => ({
+        id: g.id,
+        title: g.title,
+        itemsCount: g.items.length,
+        variantIds: g.items.map((it) => it.variant.id),
+      })),
+      childrenPurchasableIds: children.map((c) => c.purchasableId),
+    });
+
     // Build map: childVariantId -> ProductGroupItem
     const groupItemByVariantId = new Map<string, {
       groupId: string;
