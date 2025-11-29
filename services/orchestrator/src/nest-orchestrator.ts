@@ -42,26 +42,32 @@ async function createOrchestratorModule() {
   for (const serviceName of orchestratorConfig.services) {
     try {
       const servicePath = await getServicePath(serviceName, vars.environment);
-      const serviceTsconfigPath = path.join(path.dirname(servicePath), '../tsconfig.json');
-
       console.log(`📥 Loading service: ${serviceName} from ${servicePath}`);
 
-      // Register tsconfig paths for this service
-      const { register } = await import('tsx/esm/api');
-      const unregister = register({
-        tsconfig: serviceTsconfigPath
-      });
+      const serviceUrl = pathToFileURL(servicePath).href;
+      let ServiceModule: Record<string, unknown>;
 
-      try {
-        const serviceUrl = pathToFileURL(servicePath).href;
-        const ServiceModule = await import(serviceUrl);
-        const schema = ServiceModule.default ?? ServiceModule;
+      if (vars.environment === 'development') {
+        // In development, use tsx for TypeScript support
+        const serviceTsconfigPath = path.join(path.dirname(servicePath), '../tsconfig.json');
+        const { register } = await import('tsx/esm/api');
+        const unregister = register({
+          tsconfig: serviceTsconfigPath
+        });
 
-        serviceAdapters.push(createNestServiceAdapter(schema));
-        console.log(`✅ Created adapter for: ${serviceName}`);
-      } finally {
-        unregister();
+        try {
+          ServiceModule = await import(serviceUrl);
+        } finally {
+          unregister();
+        }
+      } else {
+        // In production, import compiled JS directly
+        ServiceModule = await import(serviceUrl);
       }
+
+      const schema = ServiceModule.default ?? ServiceModule;
+      serviceAdapters.push(createNestServiceAdapter(schema));
+      console.log(`✅ Created adapter for: ${serviceName}`);
     } catch (error) {
       console.error(`❌ Failed to load service ${serviceName}:`, error);
       throw error;
