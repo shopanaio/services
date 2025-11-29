@@ -14,7 +14,12 @@ services:
     environment:
       - PLATFORM_INVENTORY_GRAPHQL_URL={{ platform_inventory_graphql_url }}
     networks:
-      - shopana-network
+      shopana-network:
+        aliases:
+          - orchestrator
+          - apps
+          - checkout
+          - orders
 
 secrets:
   service_config:
