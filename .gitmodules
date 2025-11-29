@@ -1,9 +1,9 @@
 [submodule "platform"]
 	path = platform
-	url = git@github.com:shopana-io/platform.git
+	url = git@github.com:shopanaio/platform.git
 [submodule "e2e"]
 	path = e2e
-	url = git@github.com:shopana-io/e2e.git
+	url = git@github.com:shopanaio/e2e.git
 [submodule "storefront"]
 	path = storefront
 	url = git@github.com:shopanaio/storefront.git
