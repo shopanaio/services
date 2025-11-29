@@ -3,7 +3,7 @@ name: Build Orchestrator Service
 on:
   push:
     branches:
-      - 'release/*'
+      - "release/*"
   workflow_dispatch:
 
 env:
@@ -31,7 +31,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.RFW_TOKEN }}
 
       - name: Extract version from branch name
         id: version
@@ -79,7 +79,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.RFW_TOKEN }}
 
       - name: Extract version from branch name
         id: version
