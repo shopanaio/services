@@ -7,11 +7,9 @@ vars:
 services:
   orchestrator:
     services:
-      - apps
-      - delivery
-      - inventory
-      - payments
-      - pricing
+{% for service in orchestrator_services %}
+      - {{ service }}
+{% endfor %}
     metrics_port: {{ orchestrator_metrics_port }}
 
   apps:

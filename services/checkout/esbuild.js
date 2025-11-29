@@ -49,7 +49,8 @@ try {
 
   for (const file of schemaFiles) {
     const src = `src/interfaces/gql-storefront-api/schema/${file}`;
-    const dest = `dist/src/interfaces/gql-storefront-api/schema/${file}`;
+    // Copy to dist/gql-storefront-api/schema/ (relative to bundled service.js at dist/src/)
+    const dest = `dist/gql-storefront-api/schema/${file}`;
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(src, dest);
   }

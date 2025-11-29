@@ -54,14 +54,16 @@ try {
 
   for (const file of adminSchemaFiles) {
     const src = `src/interfaces/gql-admin-api/schema/${file}`;
-    const dest = `dist/src/interfaces/gql-admin-api/schema/${file}`;
+    // Copy to dist/gql-admin-api/schema/ (relative to bundled service.js at dist/src/)
+    const dest = `dist/gql-admin-api/schema/${file}`;
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(src, dest);
   }
 
   for (const file of storefrontSchemaFiles) {
     const src = `src/interfaces/gql-storefront-api/schema/${file}`;
-    const dest = `dist/src/interfaces/gql-storefront-api/schema/${file}`;
+    // Copy to dist/gql-storefront-api/schema/ (relative to bundled service.js at dist/src/)
+    const dest = `dist/gql-storefront-api/schema/${file}`;
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(src, dest);
   }
