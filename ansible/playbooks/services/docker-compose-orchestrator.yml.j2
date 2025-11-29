@@ -1,11 +1,13 @@
 services:
   orchestrator:
-    image: {{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/orchestrator-service:{{ orchestrator_image_tag }}
+    image: {{ orchestrator_image_name }}
     container_name: orchestrator-service
     restart: unless-stopped
     ports:
       - "0.0.0.0:{{ orchestrator_metrics_port }}:{{ orchestrator_metrics_port }}"
       - "0.0.0.0:{{ apps_port }}:{{ apps_port }}"
+      - "0.0.0.0:{{ checkout_port }}:{{ checkout_port }}"
+      - "0.0.0.0:{{ orders_port }}:{{ orders_port }}"
     secrets:
       - source: service_config
         target: /app/config.yml
