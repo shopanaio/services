@@ -3,6 +3,7 @@ import type {
   DeliveryMethodType,
   ShippingPaymentModel,
 } from "@shopana/plugin-sdk/shipping";
+import type { ChildPriceType } from "./types";
 
 export type CheckoutCostDto = Readonly<{
   subtotalAmount: MoneySnapshot;
@@ -46,18 +47,6 @@ export type CheckoutLineCostDto = Readonly<{
   taxAmount: MoneySnapshot;
   totalAmount: MoneySnapshot;
 }>;
-
-/**
- * Price adjustment type for child items in a bundle.
- */
-export type ChildPriceType =
-  | "FREE"
-  | "BASE"
-  | "DISCOUNT_AMOUNT"
-  | "DISCOUNT_PERCENT"
-  | "MARKUP_AMOUNT"
-  | "MARKUP_PERCENT"
-  | "OVERRIDE";
 
 /**
  * Price configuration for child items
