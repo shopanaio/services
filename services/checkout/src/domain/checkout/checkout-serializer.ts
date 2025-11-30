@@ -5,7 +5,7 @@ import type {
   CheckoutLineItemState,
   CheckoutDeliveryMethod,
 } from "./types";
-import type { CheckoutDto } from "@shopana/checkout-sdk";
+import type { CheckoutDto, CheckoutLineDto } from "@shopana/checkout-sdk";
 import { Money } from "@shopana/shared-money";
 
 /**
@@ -14,10 +14,11 @@ import { Money } from "@shopana/shared-money";
 export class CheckoutSerializer {
   toJSON(id: string, state: CheckoutState): CheckoutDto {
     const currency = state.currencyCode || "USD";
-    const lineDtos = Object.values(state.linesRecord ?? {}).map((line) =>
-      this.serializeLine(line, currency)
-    );
-    const lineDtosById = new Map(lineDtos.map((line) => [line.id, line]));
+
+    // Build hierarchical line structure from flat linesRecord
+    const lineDtos = this.buildHierarchicalLines(state.linesRecord ?? {}, currency);
+    const allLineDtos = this.flattenLines(lineDtos);
+    const lineDtosById = new Map(allLineDtos.map((line) => [line.id, line]));
 
     const deliveryGroupDtos = (state.deliveryGroups ?? []).map((group) =>
       this.serializeDeliveryGroup(group, lineDtosById)
@@ -77,10 +78,55 @@ export class CheckoutSerializer {
     };
   }
 
+  /**
+   * Build hierarchical line structure from flat linesRecord
+   * Parent lines will have their children nested
+   */
+  private buildHierarchicalLines(
+    linesRecord: Record<string, CheckoutLineItemState>,
+    fallbackCurrency: string
+  ): CheckoutLineDto[] {
+    const lines = Object.values(linesRecord);
+
+    // Find parent lines (no parentLineId)
+    const parentLines = lines.filter((line) => !line.parentLineId);
+
+    // Build children map by parentLineId
+    const childrenByParent = new Map<string, CheckoutLineItemState[]>();
+    for (const line of lines) {
+      if (line.parentLineId) {
+        const children = childrenByParent.get(line.parentLineId) ?? [];
+        children.push(line);
+        childrenByParent.set(line.parentLineId, children);
+      }
+    }
+
+    // Serialize parent lines with their children
+    return parentLines.map((parent) => {
+      const children = childrenByParent.get(parent.lineId) ?? [];
+      return this.serializeLine(parent, fallbackCurrency, children);
+    });
+  }
+
+  /**
+   * Flatten hierarchical lines for lookup
+   */
+  private flattenLines(lines: CheckoutLineDto[]): CheckoutLineDto[] {
+    const result: CheckoutLineDto[] = [];
+    for (const line of lines) {
+      result.push(line);
+      if (line.children.length > 0) {
+        result.push(...this.flattenLines(line.children));
+      }
+    }
+    return result;
+  }
+
   private serializeLine(
     line: CheckoutLineItemState,
-    fallbackCurrency: string
-  ): CheckoutDto["lines"][number] {
+    fallbackCurrency: string,
+    children: CheckoutLineItemState[] = []
+  ): CheckoutLineDto {
     const unitPriceSnapshot = line.unit.price.toJSON();
     const currencyCode = unitPriceSnapshot.currency.code || fallbackCurrency;
     const subtotal = line.unit.price.multiply(line.quantity);
@@ -104,9 +150,27 @@ export class CheckoutSerializer {
         taxAmount: zeroSnapshot,
         totalAmount: total.toJSON(),
       },
-      children: [],
+      children: children.map((child) =>
+        this.serializeLine(child, fallbackCurrency)
+      ),
       purchasableId: line.unit.id,
       purchasable: line.unit.snapshot ?? null,
+      originalPrice: line.unit.originalPrice?.toJSON() ?? null,
+      priceConfig: line.priceConfig
+        ? {
+            type: line.priceConfig.type,
+            amount: line.priceConfig.amount ?? null,
+            percent: line.priceConfig.percent ?? null,
+          }
+        : null,
+      tag: line.tag
+        ? {
+            id: line.tag.id,
+            slug: line.tag.slug,
+            isUnique: line.tag.isUnique,
+          }
+        : null,
+      parentLineId: line.parentLineId ?? null,
     };
   }
 

@@ -69,19 +69,8 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     );
 
     // Build order business data (independent from audit snapshot)
-    const orderLines = checkoutAggregate.lines.map((l) => ({
-      lineId: l.id, // use checkout line id as initial order line id
-      quantity: l.quantity,
-      unit: {
-        id: l.purchasableId,
-        price: l.cost.unitPrice,
-        compareAtPrice: l.cost.compareAtUnitPrice ?? null,
-        title: l.title,
-        sku: l.sku ?? null,
-        imageUrl: l.imageSrc ?? null,
-        snapshot: (l.purchasable as Record<string, unknown> | null) ?? null,
-      } satisfies OrderUnitSnapshot,
-    }));
+    // Flatten hierarchical lines (parent + children) into a flat array
+    const orderLines = this.flattenCheckoutLines(checkoutAggregate.lines);
 
     const deliveryAddressRefs = this.populateProjectionContext(
       id,
@@ -351,5 +340,60 @@ export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
     if (!aggregate.lines || aggregate.lines.length === 0) {
       throw new Error("Checkout has no lines to create an order");
     }
+  }
+
+  /**
+   * Flattens hierarchical checkout lines (parent + children) into a flat array for order lines.
+   * Parent lines are included first, followed by their children with parentLineId set.
+   */
+  private flattenCheckoutLines(
+    lines: Checkout["lines"],
+    parentLineId: string | null = null
+  ): Array<{
+    lineId: string;
+    quantity: number;
+    unit: OrderUnitSnapshot;
+    tag: { id: string; slug: string; isUnique: boolean } | null;
+    parentLineId: string | null;
+  }> {
+    const result: Array<{
+      lineId: string;
+      quantity: number;
+      unit: OrderUnitSnapshot;
+      tag: { id: string; slug: string; isUnique: boolean } | null;
+      parentLineId: string | null;
+    }> = [];
+
+    for (const line of lines) {
+      // Add the current line
+      result.push({
+        lineId: line.id,
+        quantity: line.quantity,
+        unit: {
+          id: line.purchasableId,
+          price: line.cost.unitPrice,
+          compareAtPrice: line.cost.compareAtUnitPrice ?? null,
+          title: line.title,
+          sku: line.sku ?? null,
+          imageUrl: line.imageSrc ?? null,
+          snapshot: (line.purchasable as Record<string, unknown> | null) ?? null,
+        } satisfies OrderUnitSnapshot,
+        tag: line.tag
+          ? {
+              id: line.tag.id,
+              slug: line.tag.slug,
+              isUnique: line.tag.isUnique,
+            }
+          : null,
+        parentLineId,
+      });
+
+      // Recursively add children with current line as parent
+      if (line.children && line.children.length > 0) {
+        result.push(...this.flattenCheckoutLines(line.children, line.id));
+      }
+    }
+
+    return result;
   }
 }

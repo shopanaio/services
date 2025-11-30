@@ -2,7 +2,7 @@ import type { CreateEventType } from "@event-driven-io/emmett";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import { Money } from "@shopana/shared-money";
-import type { OrderUnitSnapshot, AppliedDiscount } from "@src/domain/order/evolve";
+import type { OrderUnitSnapshot, AppliedDiscount, OrderLineTag } from "@src/domain/order/evolve";
 
 export const OrderEventTypes = {
   OrderCreated: "order.created",
@@ -34,6 +34,10 @@ export type OrderCreatedPayload = Readonly<{
     lineId: string;
     quantity: number;
     unit: OrderUnitSnapshot;
+    /** Tag associated with this line (from checkout) */
+    tag: OrderLineTag | null;
+    /** Parent line ID for child items in bundles */
+    parentLineId: string | null;
   }>;
   deliveryGroups: ReadonlyArray<{
     id: string;

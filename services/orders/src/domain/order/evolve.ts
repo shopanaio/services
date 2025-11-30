@@ -24,12 +24,25 @@ export type OrderUnitSnapshot = Readonly<{
 }>;
 
 /**
+ * Tag associated with an order line (from checkout).
+ */
+export type OrderLineTag = Readonly<{
+  id: string;
+  slug: string;
+  isUnique: boolean;
+}>;
+
+/**
  * Domain state for a single order line item.
  */
 export type OrderLineItemState = Readonly<{
   lineId: string;
   quantity: number;
   unit: OrderUnitSnapshot;
+  /** Tag associated with this line (from checkout) */
+  tag: OrderLineTag | null;
+  /** Parent line ID for child items in bundles */
+  parentLineId: string | null;
 }>;
 
 /**
@@ -217,6 +230,8 @@ export const orderEvolve = (
           lineId: line.lineId,
           quantity: line.quantity,
           unit: line.unit,
+          tag: line.tag ?? null,
+          parentLineId: line.parentLineId ?? null,
         };
       }
 

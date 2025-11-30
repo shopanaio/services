@@ -9,6 +9,8 @@ import type {
   CheckoutDeliveryProvider,
   CheckoutLine,
   CheckoutLineCost,
+  CheckoutLinePriceConfig,
+  CheckoutLineTag,
   CheckoutNotification,
   CheckoutPromoCode,
   DeliveryCost,
@@ -20,6 +22,8 @@ import type {
   CheckoutDeliveryProviderDto,
   CheckoutDto,
   CheckoutLineDto,
+  CheckoutLinePriceConfigDto,
+  CheckoutLineTagDto,
   CheckoutNotificationDto,
   CheckoutPromoCodeDto,
   DeliveryCostDto,
@@ -42,6 +46,28 @@ const deserializeLineCost = (dto: CheckoutLineDto["cost"]): CheckoutLineCost => 
   totalAmount: Money.fromJSON(dto.totalAmount),
 });
 
+const deserializePriceConfig = (
+  dto: CheckoutLinePriceConfigDto | null | undefined
+): CheckoutLinePriceConfig | null => {
+  if (!dto) return null;
+  return {
+    type: dto.type,
+    amount: dto.amount,
+    percent: dto.percent,
+  };
+};
+
+const deserializeLineTag = (
+  dto: CheckoutLineTagDto | null | undefined
+): CheckoutLineTag | null => {
+  if (!dto) return null;
+  return {
+    id: dto.id,
+    slug: dto.slug,
+    isUnique: dto.isUnique,
+  };
+};
+
 const deserializeLine = (dto: CheckoutLineDto): CheckoutLine => ({
   id: dto.id,
   title: dto.title,
@@ -52,6 +78,10 @@ const deserializeLine = (dto: CheckoutLineDto): CheckoutLine => ({
   children: dto.children.map(deserializeLine),
   purchasableId: dto.purchasableId,
   purchasable: dto.purchasable ?? null,
+  originalPrice: dto.originalPrice ? Money.fromJSON(dto.originalPrice) : null,
+  priceConfig: deserializePriceConfig(dto.priceConfig),
+  tag: deserializeLineTag(dto.tag),
+  parentLineId: dto.parentLineId ?? null,
 });
 
 const deserializeDeliveryProvider = (

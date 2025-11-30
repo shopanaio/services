@@ -47,6 +47,36 @@ export type CheckoutLineCostDto = Readonly<{
   totalAmount: MoneySnapshot;
 }>;
 
+/**
+ * Price adjustment type for child items in a bundle.
+ */
+export type ChildPriceType =
+  | "FREE"
+  | "BASE"
+  | "DISCOUNT_AMOUNT"
+  | "DISCOUNT_PERCENT"
+  | "MARKUP_AMOUNT"
+  | "MARKUP_PERCENT"
+  | "OVERRIDE";
+
+/**
+ * Price configuration for child items
+ */
+export type CheckoutLinePriceConfigDto = Readonly<{
+  type: ChildPriceType;
+  amount: number | null;
+  percent: number | null;
+}>;
+
+/**
+ * Tag associated with a checkout line
+ */
+export type CheckoutLineTagDto = Readonly<{
+  id: string;
+  slug: string;
+  isUnique: boolean;
+}>;
+
 export type CheckoutLineDto = Readonly<{
   id: string;
   title: string;
@@ -57,6 +87,14 @@ export type CheckoutLineDto = Readonly<{
   children: CheckoutLineDto[];
   purchasableId: string;
   purchasable?: unknown | null;
+  /** Original price before bundle adjustments */
+  originalPrice?: MoneySnapshot | null;
+  /** Price configuration for child items in bundles */
+  priceConfig?: CheckoutLinePriceConfigDto | null;
+  /** Tag associated with this line */
+  tag?: CheckoutLineTagDto | null;
+  /** Parent line ID for child items */
+  parentLineId?: string | null;
 }>;
 
 export type CheckoutDeliveryProviderDto = Readonly<{
