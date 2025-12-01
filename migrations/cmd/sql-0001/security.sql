@@ -1,0 +1,1 @@
+-- Indices are already covered by UNIQUE constraints on users table; no extra indexes required here

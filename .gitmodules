@@ -4,9 +4,6 @@
 [submodule "e2e"]
 	path = e2e
 	url = git@github.com:shopanaio/e2e.git
-[submodule "storefront"]
-	path = storefront
-	url = git@github.com:shopanaio/storefront.git
 [submodule "admin"]
 	path = admin
 	url = git@github.com:shopanaio/admin.git
