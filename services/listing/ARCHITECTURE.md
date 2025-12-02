@@ -357,6 +357,413 @@ Total: ~51ms (vs ~95ms sequential)
 
 ---
 
+## Tech Stack
+
+- **Runtime**: Node.js
+- **Database**: PostgreSQL + Knex.js (query builder)
+- **Search**: Typesense
+- **Ranking**: Metarank
+- **Cache + Queue**: Redis + BullMQ
+- **API**: GraphQL (Apollo Federation)
+- **HTTP**: Fastify
+
+---
+
+## GraphQL Federation
+
+Listing service exposes categories and product IDs. Full product data is resolved via Federation from Inventory service.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Apollo Gateway                              │
+│                    (Admin / Storefront API)                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          ▼                     ▼                     ▼
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│ Listing Service │   │Inventory Service│   │  Other Services │
+│                 │   │                 │   │                 │
+│ • Categories    │   │ • Product       │   │ • Orders        │
+│ • Search        │   │ • Variant       │   │ • Users         │
+│ • Facets        │   │ • Pricing       │   │ • ...           │
+│ • Product IDs   │   │ • Stock         │   │                 │
+│   (references)  │   │ • Images        │   │                 │
+└─────────────────┘   └─────────────────┘   └─────────────────┘
+```
+
+### Schema (Listing Service)
+
+```graphql
+# listing/schema.graphql
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@external", "@requires", "@shareable"])
+
+# =============================================================
+# Product reference (resolved by Inventory service)
+# =============================================================
+
+type Product @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+# =============================================================
+# Category
+# =============================================================
+
+type Category @key(fields: "id") {
+  id: ID!
+  slug: String!
+  parentId: ID
+  parent: Category
+  children: [Category!]!
+
+  # Listing with filters
+  products(
+    filter: ProductFilterInput
+    sort: ProductSortInput
+    pagination: PaginationInput
+  ): ProductListingResult!
+}
+
+# =============================================================
+# Search & Listing
+# =============================================================
+
+type Query {
+  # Search products across all categories
+  searchProducts(input: SearchProductsInput!): ProductListingResult!
+
+  # Get category by ID or slug
+  category(id: ID, slug: String): Category
+
+  # Get category tree
+  categories(parentId: ID): [Category!]!
+}
+
+# =============================================================
+# Inputs
+# =============================================================
+
+input SearchProductsInput {
+  query: String
+  locale: Locale!
+  categoryIds: [ID!]
+  tagIds: [ID!]
+  features: [String!]      # ["brand:nike", "material:leather"]
+  options: [String!]       # ["color:red", "size:xl"]
+  minPrice: Int
+  maxPrice: Int
+  inStock: Boolean
+  sort: ProductSortInput
+  pagination: PaginationInput
+}
+
+input ProductFilterInput {
+  tagIds: [ID!]
+  features: [String!]
+  options: [String!]
+  minPrice: Int
+  maxPrice: Int
+  inStock: Boolean
+}
+
+input ProductSortInput {
+  field: ProductSortField!
+  direction: SortDirection!
+}
+
+enum ProductSortField {
+  RELEVANCE
+  PRICE
+  POPULARITY
+  NEWEST
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+input PaginationInput {
+  limit: Int = 50
+  offset: Int = 0
+}
+
+enum Locale {
+  UK
+  EN
+  RU
+}
+
+# =============================================================
+# Results
+# =============================================================
+
+type ProductListingResult {
+  # Product IDs (resolved to full Product by Inventory via Federation)
+  products: [Product!]!
+
+  # Facet counts for filters UI
+  facets: Facets!
+
+  # Total count (for pagination)
+  total: Int!
+}
+
+type Facets {
+  tags: [FacetCount!]!
+  features: [FacetCount!]!
+  options: [FacetCount!]!
+  categories: [FacetCount!]!
+  priceRanges: [PriceRangeFacet!]!
+}
+
+type FacetCount {
+  value: String!
+  label: String
+  count: Int!
+}
+
+type PriceRangeFacet {
+  min: Int!
+  max: Int!
+  count: Int!
+}
+```
+
+### Resolvers
+
+```typescript
+// graphql/resolvers.ts
+
+import { Resolvers } from './generated/types';
+import { ListingService } from '../listing.service';
+import { Kernel } from '../kernel';
+
+export function createResolvers(kernel: Kernel): Resolvers {
+  const listingService = new ListingService(kernel);
+
+  return {
+    Query: {
+      searchProducts: async (_, { input }, ctx) => {
+        const result = await listingService.search({
+          projectId: ctx.projectId,
+          locale: input.locale.toLowerCase(),
+          query: input.query,
+          userId: ctx.userId,
+          sessionId: ctx.sessionId,
+          categoryIds: input.categoryIds,
+          tagIds: input.tagIds,
+          features: input.features,
+          options: input.options,
+          minPrice: input.minPrice,
+          maxPrice: input.maxPrice,
+          inStock: input.inStock,
+          sortBy: mapSort(input.sort),
+          limit: input.pagination?.limit ?? 50,
+          offset: input.pagination?.offset ?? 0,
+        });
+
+        return {
+          // Return product references (Federation resolves full data)
+          products: result.productIds.map(id => ({ __typename: 'Product', id })),
+          facets: result.facets,
+          total: result.total,
+        };
+      },
+
+      category: async (_, { id, slug }, ctx) => {
+        return kernel.db('category')
+          .where('project_id', ctx.projectId)
+          .where(builder => {
+            if (id) builder.where('id', id);
+            if (slug) builder.where('slug', slug);
+          })
+          .whereNull('deleted_at')
+          .first();
+      },
+
+      categories: async (_, { parentId }, ctx) => {
+        return kernel.db('category')
+          .where('project_id', ctx.projectId)
+          .where('parent_id', parentId ?? null)
+          .whereNull('deleted_at')
+          .orderBy('sort_order');
+      },
+    },
+
+    Category: {
+      parent: async (category, _, ctx) => {
+        if (!category.parent_id) return null;
+        return kernel.db('category')
+          .where('id', category.parent_id)
+          .first();
+      },
+
+      children: async (category, _, ctx) => {
+        return kernel.db('category')
+          .where('parent_id', category.id)
+          .whereNull('deleted_at')
+          .orderBy('sort_order');
+      },
+
+      products: async (category, { filter, sort, pagination }, ctx) => {
+        const result = await listingService.search({
+          projectId: ctx.projectId,
+          locale: ctx.locale,
+          categoryIds: [category.id],
+          tagIds: filter?.tagIds,
+          features: filter?.features,
+          options: filter?.options,
+          minPrice: filter?.minPrice,
+          maxPrice: filter?.maxPrice,
+          inStock: filter?.inStock,
+          sortBy: mapSort(sort),
+          limit: pagination?.limit ?? 50,
+          offset: pagination?.offset ?? 0,
+        });
+
+        return {
+          products: result.productIds.map(id => ({ __typename: 'Product', id })),
+          facets: result.facets,
+          total: result.total,
+        };
+      },
+    },
+
+    // Federation: resolve Product references
+    Product: {
+      __resolveReference: (ref) => {
+        // Return reference as-is, Inventory service will resolve
+        return { id: ref.id };
+      },
+    },
+  };
+}
+
+function mapSort(sort?: { field: string; direction: string }): string | undefined {
+  if (!sort) return 'recommended';
+
+  const field = sort.field.toLowerCase();
+  const dir = sort.direction.toLowerCase();
+
+  if (field === 'relevance') return 'relevance';
+  if (field === 'price') return dir === 'asc' ? 'price_asc' : 'price_desc';
+  if (field === 'popularity') return 'popularity';
+  if (field === 'newest') return 'newest';
+
+  return 'recommended';
+}
+```
+
+### Apollo Server Setup
+
+```typescript
+// graphql/server.ts
+
+import { ApolloServer } from '@apollo/server';
+import { buildSubgraphSchema } from '@apollo/subgraph';
+import { fastifyApolloDrainPlugin } from '@as-integrations/fastify';
+import { gql } from 'graphql-tag';
+import { readFileSync } from 'fs';
+import { createResolvers } from './resolvers';
+import { Kernel } from '../kernel';
+
+export async function createGraphQLServer(kernel: Kernel, app: FastifyInstance) {
+  const typeDefs = gql(readFileSync('./schema.graphql', 'utf-8'));
+  const resolvers = createResolvers(kernel);
+
+  const server = new ApolloServer({
+    schema: buildSubgraphSchema({ typeDefs, resolvers }),
+    plugins: [fastifyApolloDrainPlugin(app)],
+  });
+
+  await server.start();
+
+  return server;
+}
+```
+
+### Example Queries
+
+**Storefront: Search with facets**
+```graphql
+query SearchProducts($input: SearchProductsInput!) {
+  searchProducts(input: $input) {
+    products {
+      id
+      # These fields resolved by Inventory service via Federation:
+      title
+      slug
+      images { url }
+      price { amount currency }
+      inStock
+    }
+    facets {
+      tags { value label count }
+      features { value count }
+      options { value count }
+      priceRanges { min max count }
+    }
+    total
+  }
+}
+```
+
+**Storefront: Category page**
+```graphql
+query CategoryPage($slug: String!, $filter: ProductFilterInput, $pagination: PaginationInput) {
+  category(slug: $slug) {
+    id
+    slug
+    children { id slug }
+
+    products(filter: $filter, pagination: $pagination) {
+      products {
+        id
+        title
+        price { amount }
+      }
+      facets {
+        options { value count }
+      }
+      total
+    }
+  }
+}
+```
+
+**Admin: Manage categories**
+```graphql
+# Admin mutations would be in a separate admin schema
+mutation CreateCategory($input: CreateCategoryInput!) {
+  createCategory(input: $input) {
+    id
+    slug
+  }
+}
+```
+
+### Federation Flow
+
+```
+1. Client → Gateway: searchProducts(query: "nike")
+
+2. Gateway → Listing:
+   searchProducts returns { products: [{ id: "p1" }, { id: "p2" }], facets, total }
+
+3. Gateway → Inventory (Federation):
+   Resolves Product entities by IDs
+   Returns full product data (title, images, price, etc.)
+
+4. Gateway → Client:
+   Merged response with full product data + facets
+```
+
+---
+
 ## Node.js Implementation
 
 ### Types
@@ -455,14 +862,72 @@ export interface MetarankRankResponse {
 }
 ```
 
+### Kernel (Dependency Container)
+
+```typescript
+// kernel/index.ts
+
+import Knex from 'knex';
+import { Redis } from 'ioredis';
+import { Queue } from 'bullmq';
+import Typesense from 'typesense';
+import pino from 'pino';
+
+export interface Kernel {
+  db: Knex;
+  redis: Redis;
+  syncQueue: Queue;
+  typesense: Typesense.Client;
+  metarankUrl: string;
+  metarankModel: string;
+  logger: pino.Logger;
+}
+
+export async function createKernel(): Promise<Kernel> {
+  const db = Knex({
+    client: 'pg',
+    connection: process.env.DATABASE_URL,
+    pool: { min: 2, max: 20 },
+  });
+
+  const redis = new Redis(process.env.REDIS_URL);
+
+  const typesense = new Typesense.Client({
+    nodes: [{
+      host: process.env.TYPESENSE_HOST ?? 'localhost',
+      port: 8108,
+      protocol: 'http'
+    }],
+    apiKey: process.env.TYPESENSE_API_KEY!,
+  });
+
+  return {
+    db,
+    redis,
+    syncQueue: new Queue('sync', { connection: redis }),
+    typesense,
+    metarankUrl: process.env.METARANK_URL ?? 'http://localhost:8080',
+    metarankModel: process.env.METARANK_MODEL ?? 'xgboost',
+    logger: pino(),
+  };
+}
+
+export async function destroyKernel(kernel: Kernel): Promise<void> {
+  await kernel.syncQueue.close();
+  await kernel.redis.quit();
+  await kernel.db.destroy();
+}
+```
+
 ### Listing Service
 
 ```typescript
 // listing.service.ts
 
-import { Pool } from 'pg';
+import { Knex } from 'knex';
 import Typesense from 'typesense';
 import axios from 'axios';
+import { Kernel } from './kernel';
 import {
   SearchRequest,
   SearchResponse,
@@ -474,12 +939,17 @@ import {
 } from './types';
 
 export class ListingService {
-  constructor(
-    private db: Pool,
-    private typesense: Typesense.Client,
-    private metarankUrl: string,      // e.g., 'http://metarank:8080'
-    private metarankModel: string     // e.g., 'xgboost'
-  ) {}
+  private db: Knex;
+  private typesense: Typesense.Client;
+  private metarankUrl: string;
+  private metarankModel: string;
+
+  constructor(kernel: Kernel) {
+    this.db = kernel.db;
+    this.typesense = kernel.typesense;
+    this.metarankUrl = kernel.metarankUrl;
+    this.metarankModel = kernel.metarankModel;
+  }
 
   async search(req: SearchRequest): Promise<SearchResponse> {
     const limit = req.limit ?? 50;
@@ -558,90 +1028,72 @@ export class ListingService {
   }
 
   // ===========================================================
-  // PostgreSQL: Facet Filtering
+  // PostgreSQL: Facet Filtering (Knex)
   // ===========================================================
 
   private async queryPostgres(
     req: SearchRequest
   ): Promise<{ productIds: string[] }> {
-    const conditions: string[] = ['project_id = $1'];
-    const params: any[] = [req.projectId];
-    let paramIndex = 2;
+    let query = this.db('product_search_index')
+      .select('product_id')
+      .where('project_id', req.projectId);
 
-    // Category filter (ANY)
+    // Category filter (ANY - overlap)
     if (req.categoryIds?.length) {
-      conditions.push(`category_ids && $${paramIndex}`);
-      params.push(req.categoryIds);
-      paramIndex++;
+      query = query.whereRaw('category_ids && ?::uuid[]', [req.categoryIds]);
     }
 
-    // Tag filter (ANY)
+    // Tag filter (ANY - overlap)
     if (req.tagIds?.length) {
-      conditions.push(`tag_ids && $${paramIndex}`);
-      params.push(req.tagIds);
-      paramIndex++;
+      query = query.whereRaw('tag_ids && ?::uuid[]', [req.tagIds]);
     }
 
-    // Feature filter (ALL)
+    // Feature filter (ALL - contains)
     if (req.features?.length) {
-      conditions.push(`feature_slugs @> $${paramIndex}`);
-      params.push(req.features);
-      paramIndex++;
+      query = query.whereRaw('feature_slugs @> ?::text[]', [req.features]);
     }
 
-    // Option filter (ANY)
+    // Option filter (ANY - overlap)
     if (req.options?.length) {
-      conditions.push(`option_slugs && $${paramIndex}`);
-      params.push(req.options);
-      paramIndex++;
+      query = query.whereRaw('option_slugs && ?::text[]', [req.options]);
     }
 
     // Price range
     if (req.minPrice !== undefined) {
-      conditions.push(`min_price_minor >= $${paramIndex}`);
-      params.push(req.minPrice);
-      paramIndex++;
+      query = query.where('min_price_minor', '>=', req.minPrice);
     }
     if (req.maxPrice !== undefined) {
-      conditions.push(`max_price_minor <= $${paramIndex}`);
-      params.push(req.maxPrice);
-      paramIndex++;
+      query = query.where('min_price_minor', '<=', req.maxPrice);
     }
 
     // Stock filter
     if (req.inStock === true) {
-      conditions.push('in_stock = true');
+      query = query.where('in_stock', true);
     }
 
-    // Build ORDER BY
-    let orderBy = 'popularity_score DESC';
-    switch (req.sortBy) {
+    // ORDER BY
+    const [orderCol, orderDir] = this.getOrderBy(req.sortBy);
+    query = query.orderByRaw(`${orderCol} ${orderDir} NULLS LAST`);
+    query = query.limit(10000);
+
+    const rows = await query;
+    return {
+      productIds: rows.map((r: any) => r.product_id),
+    };
+  }
+
+  private getOrderBy(sortBy?: string): [string, string] {
+    switch (sortBy) {
       case 'price_asc':
-        orderBy = 'min_price_minor ASC NULLS LAST';
-        break;
+        return ['min_price_minor', 'ASC'];
       case 'price_desc':
-        orderBy = 'min_price_minor DESC NULLS LAST';
-        break;
+        return ['min_price_minor', 'DESC'];
       case 'newest':
-        orderBy = 'published_at DESC NULLS LAST';
-        break;
+        return ['published_at', 'DESC'];
       case 'popularity':
       default:
-        orderBy = 'popularity_score DESC';
+        return ['popularity_score', 'DESC'];
     }
-
-    const query = `
-      SELECT product_id
-      FROM product_search_index
-      WHERE ${conditions.join(' AND ')}
-      ORDER BY ${orderBy}
-      LIMIT 10000
-    `;
-
-    const result = await this.db.query(query, params);
-    return {
-      productIds: result.rows.map((r) => r.product_id),
-    };
   }
 
   // ===========================================================
@@ -707,38 +1159,36 @@ export class ListingService {
     productIds: string[],
     column: string
   ): Promise<{ value: string; count: number }[]> {
-    const query = `
+    const rows = await this.db.raw(`
       SELECT value, count(*)::int as count
       FROM product_search_index, unnest(${column}) AS value
-      WHERE project_id = $1 AND product_id = ANY($2)
+      WHERE project_id = ? AND product_id = ANY(?)
       GROUP BY value
       ORDER BY count DESC
       LIMIT 100
-    `;
+    `, [projectId, productIds]);
 
-    const result = await this.db.query(query, [projectId, productIds]);
-    return result.rows;
+    return rows.rows;
   }
 
   private async countPriceRanges(
     projectId: string,
     productIds: string[]
   ): Promise<{ min: number; max: number; count: number }[]> {
-    const query = `
+    const rows = await this.db.raw(`
       SELECT
         floor(min_price_minor / 100000) * 100000 as range_min,
         floor(min_price_minor / 100000) * 100000 + 99999 as range_max,
         count(*)::int as count
       FROM product_search_index
-      WHERE project_id = $1
-        AND product_id = ANY($2)
+      WHERE project_id = ?
+        AND product_id = ANY(?)
         AND min_price_minor IS NOT NULL
       GROUP BY range_min, range_max
       ORDER BY range_min
-    `;
+    `, [projectId, productIds]);
 
-    const result = await this.db.query(query, [projectId, productIds]);
-    return result.rows.map((r) => ({
+    return rows.rows.map((r: any) => ({
       min: r.range_min,
       max: r.range_max,
       count: r.count,
@@ -887,12 +1337,13 @@ export class ListingService {
 ```typescript
 // sync.service.ts
 
-import { Pool } from 'pg';
+import { Knex } from 'knex';
 import Typesense from 'typesense';
+import { Kernel } from './kernel';
 
 interface ProductText {
-  productId: string;
-  projectId: string;
+  product_id: string;
+  project_id: string;
   locale: string;
   title: string;
   description?: string;
@@ -900,18 +1351,20 @@ interface ProductText {
 }
 
 export class SyncService {
-  constructor(
-    private db: Pool,
-    private typesense: Typesense.Client
-  ) {}
+  private db: Knex;
+  private typesense: Typesense.Client;
+
+  constructor(kernel: Kernel) {
+    this.db = kernel.db;
+    this.typesense = kernel.typesense;
+  }
 
   // ===========================================================
   // Sync Product to Search Index (PostgreSQL)
   // ===========================================================
 
   async syncProductIndex(productId: string): Promise<void> {
-    await this.db.query(
-      `
+    await this.db.raw(`
       INSERT INTO product_search_index (
         project_id, product_id,
         min_price_minor, max_price_minor,
@@ -994,7 +1447,7 @@ export class SyncService {
         now()
 
       FROM product p
-      WHERE p.id = $1 AND p.deleted_at IS NULL
+      WHERE p.id = ? AND p.deleted_at IS NULL
 
       ON CONFLICT (product_id) DO UPDATE SET
         min_price_minor = EXCLUDED.min_price_minor,
@@ -1008,9 +1461,7 @@ export class SyncService {
         popularity_score = EXCLUDED.popularity_score,
         published_at = EXCLUDED.published_at,
         updated_at = now()
-      `,
-      [productId]
-    );
+    `, [productId]);
   }
 
   // ===========================================================
@@ -1018,23 +1469,20 @@ export class SyncService {
   // ===========================================================
 
   async syncProductText(productId: string): Promise<void> {
-    const result = await this.db.query<ProductText>(
-      `
-      SELECT
-        pt.product_id,
-        p.project_id,
-        pt.locale,
-        pt.title,
-        pt.description,
-        pt.keywords
-      FROM product_translations pt
-      JOIN product p ON p.id = pt.product_id
-      WHERE pt.product_id = $1 AND p.deleted_at IS NULL
-      `,
-      [productId]
-    );
+    const texts = await this.db('product_translations as pt')
+      .join('product as p', 'p.id', 'pt.product_id')
+      .select(
+        'pt.product_id',
+        'p.project_id',
+        'pt.locale',
+        'pt.title',
+        'pt.description',
+        'pt.keywords'
+      )
+      .where('pt.product_id', productId)
+      .whereNull('p.deleted_at') as ProductText[];
 
-    if (result.rows.length === 0) {
+    if (texts.length === 0) {
       // Product deleted - remove from Typesense
       try {
         await this.typesense.collections('products').documents(productId).delete();
@@ -1044,8 +1492,7 @@ export class SyncService {
       return;
     }
 
-    const texts = result.rows;
-    const projectId = texts[0].projectId;
+    const projectId = texts[0].project_id;
 
     // Build document with all locales
     const doc: Record<string, any> = {
@@ -1083,9 +1530,7 @@ export class SyncService {
 
   async deleteProduct(productId: string): Promise<void> {
     await Promise.all([
-      this.db.query('DELETE FROM product_search_index WHERE product_id = $1', [
-        productId,
-      ]),
+      this.db('product_search_index').where('product_id', productId).delete(),
       this.typesense
         .collections('products')
         .documents(productId)
@@ -1102,18 +1547,17 @@ export class SyncService {
     let offset = 0;
 
     while (true) {
-      const result = await this.db.query(
-        `SELECT id FROM product
-         WHERE project_id = $1 AND deleted_at IS NULL
-         ORDER BY id LIMIT $2 OFFSET $3`,
-        [projectId, batchSize, offset]
-      );
+      const rows = await this.db('product')
+        .select('id')
+        .where('project_id', projectId)
+        .whereNull('deleted_at')
+        .orderBy('id')
+        .limit(batchSize)
+        .offset(offset);
 
-      if (result.rows.length === 0) break;
+      if (rows.length === 0) break;
 
-      await Promise.all(
-        result.rows.map((row) => this.syncProduct(row.id))
-      );
+      await Promise.all(rows.map((row) => this.syncProduct(row.id)));
 
       offset += batchSize;
       console.log(`Synced ${offset} products...`);
@@ -1249,6 +1693,240 @@ export class SyncWorker {
   }
 }
 ```
+
+---
+
+## Job Queue (BullMQ + Redis)
+
+For reliable event processing with retries, use BullMQ with your existing Redis.
+
+### Queue Setup
+
+```typescript
+// queue/sync.queue.ts
+
+import { Queue, Worker, Job } from 'bullmq';
+import { Kernel } from '../kernel';
+import { SyncService } from '../sync.service';
+
+// Job types
+interface SyncProductJob {
+  productId: string;
+}
+
+interface SyncAllJob {
+  projectId: string;
+}
+
+type SyncJobData = SyncProductJob | SyncAllJob;
+
+export function createSyncQueue(kernel: Kernel): Queue<SyncJobData> {
+  return new Queue('sync', {
+    connection: kernel.redis,
+    defaultJobOptions: {
+      removeOnComplete: { count: 1000 },
+      removeOnFail: { count: 5000 },
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+    },
+  });
+}
+
+export function startSyncWorker(kernel: Kernel): Worker<SyncJobData> {
+  const syncService = new SyncService(kernel);
+
+  const worker = new Worker<SyncJobData>(
+    'sync',
+    async (job: Job<SyncJobData>) => {
+      kernel.logger.info({ jobId: job.id, name: job.name }, 'processing job');
+
+      switch (job.name) {
+        case 'sync-product':
+          await syncService.syncProduct((job.data as SyncProductJob).productId);
+          break;
+
+        case 'delete-product':
+          await syncService.deleteProduct((job.data as SyncProductJob).productId);
+          break;
+
+        case 'sync-all':
+          await syncService.syncAllProducts((job.data as SyncAllJob).projectId);
+          break;
+      }
+    },
+    {
+      connection: kernel.redis,
+      concurrency: 10,
+    }
+  );
+
+  worker.on('completed', (job) => {
+    kernel.logger.debug({ jobId: job.id }, 'job completed');
+  });
+
+  worker.on('failed', (job, err) => {
+    kernel.logger.error({ jobId: job?.id, err: err.message }, 'job failed');
+  });
+
+  return worker;
+}
+```
+
+### Adding Jobs
+
+```typescript
+// inventory/scripts/update-product.ts
+
+export async function updateProduct(
+  kernel: Kernel,
+  productId: string,
+  data: UpdateProductData
+): Promise<void> {
+  // Update in database
+  await kernel.db('product').where('id', productId).update(data);
+
+  // Add to sync queue with deduplication
+  await kernel.syncQueue.add(
+    'sync-product',
+    { productId },
+    {
+      jobId: `sync:${productId}`,  // Deduplication key
+      delay: 500,                   // Debounce: wait 500ms
+    }
+  );
+}
+```
+
+### Queue Patterns
+
+```typescript
+// Deduplicate: same product won't be synced twice
+await queue.add('sync-product', { productId }, {
+  jobId: `sync:${productId}`,
+});
+
+// Debounce: wait 500ms before processing
+await queue.add('sync-product', { productId }, {
+  jobId: `sync:${productId}`,
+  delay: 500,
+});
+
+// Priority: urgent sync
+await queue.add('sync-product', { productId }, {
+  priority: 1,  // 1 = highest
+});
+
+// Batch add
+await queue.addBulk([
+  { name: 'sync-product', data: { productId: '1' } },
+  { name: 'sync-product', data: { productId: '2' } },
+  { name: 'sync-product', data: { productId: '3' } },
+]);
+
+// Scheduled job (cron)
+await queue.add('sync-all', { projectId }, {
+  repeat: { cron: '0 3 * * *' },  // Every night at 3:00
+});
+```
+
+### Rate Limiting
+
+```typescript
+const worker = new Worker('sync', processor, {
+  connection: kernel.redis,
+  concurrency: 10,
+  limiter: {
+    max: 100,       // Max 100 jobs
+    duration: 1000, // Per second
+  },
+});
+```
+
+### Dashboard (Optional)
+
+```typescript
+// admin/queues.ts
+
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { FastifyAdapter } from '@bull-board/fastify';
+
+export function setupQueueDashboard(app: FastifyInstance, kernel: Kernel) {
+  const serverAdapter = new FastifyAdapter();
+
+  createBullBoard({
+    queues: [new BullMQAdapter(kernel.syncQueue)],
+    serverAdapter,
+  });
+
+  serverAdapter.setBasePath('/admin/queues');
+  app.register(serverAdapter.registerPlugin(), { prefix: '/admin/queues' });
+}
+```
+
+### Alternative: pg-boss (PostgreSQL only)
+
+If you prefer not to use Redis for queues:
+
+```typescript
+import PgBoss from 'pg-boss';
+
+const boss = new PgBoss(process.env.DATABASE_URL);
+await boss.start();
+
+// Add job
+await boss.send('sync-product', { productId }, {
+  singletonKey: productId,  // Deduplication
+  retryLimit: 5,
+});
+
+// Worker
+await boss.work('sync-product', { teamConcurrency: 10 }, async (job) => {
+  await syncService.syncProduct(job.data.productId);
+});
+```
+
+### Alternative: SQLite (Single process)
+
+For simple single-process deployments:
+
+```typescript
+import BetterQueue from 'better-queue';
+import SqliteStore from 'better-queue-sqlite';
+
+const queue = new BetterQueue(
+  async (task, done) => {
+    try {
+      await syncService.syncProduct(task.productId);
+      done(null, task);
+    } catch (err) {
+      done(err);
+    }
+  },
+  {
+    store: new SqliteStore({ path: './data/queue.sqlite' }),
+    concurrent: 10,
+    maxRetries: 5,
+  }
+);
+
+queue.push({ productId: '123' });
+```
+
+### Queue Options Comparison
+
+| Feature | BullMQ (Redis) | pg-boss (PostgreSQL) | SQLite |
+|---------|---------------|---------------------|--------|
+| Persistence | ✅ | ✅ | ✅ |
+| Distributed | ✅ | ✅ | ❌ Single process |
+| Dashboard | ✅ Bull Board | ❌ | ❌ |
+| Cron jobs | ✅ | ✅ | ❌ |
+| Rate limiting | ✅ | ✅ | ❌ |
+| Deduplication | ✅ jobId | ✅ singletonKey | ❌ Manual |
+| Extra infra | Redis | None | None |
 
 ---
 
