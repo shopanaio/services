@@ -298,6 +298,306 @@ Total: ~51ms (vs ~95ms sequential)
 
 ---
 
+## Incremental Recall with Stop Condition
+
+### Problem
+
+Typesense returns only the first N candidates sorted by BM25. After intersection with PostgreSQL filters, we may end up with too few results, even though relevant products exist further down the Typesense ranking.
+
+Example: User searches "nike red women" with filters. Typesense returns 2000 candidates, but only 50 pass PostgreSQL filters. Meanwhile, 500 more matching products exist at positions 2001-10000.
+
+### Solution
+
+Incrementally fetch pages from Typesense until we have enough results or hit a stop condition.
+
+### Goal
+
+- Retrieve at least `offset + limit` products after filtering
+- Preserve correct BM25 ranking order
+- Predictable execution time (50-120ms)
+- No infinite loops or DDoS on Typesense
+
+### Algorithm Parameters
+
+```typescript
+interface IncrementalRecallConfig {
+  target: number;           // offset + limit (how many results needed)
+  perPage: number;          // candidates per Typesense page (500-2000)
+  maxPages: number;         // max pages to fetch (5-10)
+  timeout: number;          // safety timeout in ms (50-100)
+  stopEarlyFactor: number;  // density threshold (0.1-0.2)
+}
+```
+
+### Algorithm Steps
+
+#### Step 0: Prepare
+
+```typescript
+const pgSet = new Set(await queryPostgres(filters)); // Get all matching IDs from PostgreSQL
+const matched: TypesenseHit[] = [];
+let page = 1;
+let candidateCount = 0;
+const startTime = Date.now();
+```
+
+#### Step 1: Load First Page
+
+```typescript
+const tsResult = await typesense.search({ page: 1, per_page: perPage });
+candidateCount += tsResult.hits.length;
+const intersected = tsResult.hits.filter(hit => pgSet.has(hit.id));
+matched.push(...intersected);
+```
+
+Check stop conditions.
+
+#### Step 2: Main Loop
+
+```typescript
+while (!shouldStop()) {
+  page++;
+  const tsResult = await typesense.search({ page, per_page: perPage });
+
+  if (tsResult.hits.length === 0) break; // Typesense exhausted
+
+  candidateCount += tsResult.hits.length;
+  const intersected = tsResult.hits.filter(hit => pgSet.has(hit.id));
+  matched.push(...intersected);
+}
+```
+
+### Stop Conditions
+
+The loop stops when ANY of these conditions is met:
+
+#### 1. Enough Results
+
+```typescript
+if (matched.length >= target) STOP;
+```
+
+#### 2. Typesense Exhausted
+
+```typescript
+if (hits.length < perPage) STOP; // Reached end of results
+```
+
+#### 3. Max Pages Reached
+
+```typescript
+if (page >= maxPages) STOP;
+```
+
+#### 4. Timeout Safety
+
+```typescript
+if (Date.now() - startTime > timeout) STOP;
+```
+
+#### 5. Adaptive Early Stop
+
+If intersection density is high (many results per page), we can stop early:
+
+```typescript
+// If this page yielded lots of results, we likely have enough diversity
+if (intersected.length >= perPage * stopEarlyFactor) {
+  // High density - can stop if we have enough
+  if (matched.length >= target * 1.5) STOP;
+}
+// If density is low, keep fetching more pages
+```
+
+### Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Incremental Recall Flow                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   PostgreSQL                    Typesense                                │
+│   ┌──────────────────┐         ┌──────────────────────────────────────┐ │
+│   │ Get all matching │         │ Page 1: hits[0..999]     ──────┐     │ │
+│   │ product IDs      │         │ Page 2: hits[1000..1999] ──────┼──┐  │ │
+│   │                  │         │ Page 3: hits[2000..2999] ──────┼──┼─┐│ │
+│   │ → pgSet (5000)   │         │ ...                            │  │ ││ │
+│   └────────┬─────────┘         └────────────────────────────────┼──┼─┼┘ │
+│            │                                                    │  │ │  │
+│            └────────────────────────┬───────────────────────────┘  │ │  │
+│                                     ▼                              │ │  │
+│                              ┌─────────────┐                       │ │  │
+│                              │ Intersect 1 │ ◄─────────────────────┘ │  │
+│                              └──────┬──────┘                         │  │
+│                                     │ matched += 80                  │  │
+│                                     │                                │  │
+│                                     │ matched.length < target?       │  │
+│                                     │ YES → fetch next page          │  │
+│                                     ▼                                │  │
+│                              ┌─────────────┐                         │  │
+│                              │ Intersect 2 │ ◄───────────────────────┘  │
+│                              └──────┬──────┘                            │
+│                                     │ matched += 65                     │
+│                                     │                                   │
+│                                     │ matched.length >= target?         │
+│                                     │ YES → STOP                        │
+│                                     ▼                                   │
+│                              ┌─────────────┐                            │
+│                              │ Result: 145 │                            │
+│                              │ (sorted by  │                            │
+│                              │  BM25 rank) │                            │
+│                              └─────────────┘                            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### TypeScript Implementation
+
+```typescript
+interface IncrementalRecallResult {
+  hits: TypesenseHit[];
+  metrics: {
+    pagesLoaded: number;
+    candidatesTotal: number;
+    intersectionTotal: number;
+    timeMs: number;
+  };
+}
+
+async function incrementalRecall(
+  req: SearchRequest,
+  pgSet: Set<string>,
+  config: IncrementalRecallConfig
+): Promise<IncrementalRecallResult> {
+  const { target, perPage, maxPages, timeout, stopEarlyFactor } = config;
+
+  const matched: TypesenseHit[] = [];
+  let page = 0;
+  let candidateCount = 0;
+  const startTime = Date.now();
+
+  const queryBy = [`title_${req.locale}`, `description_${req.locale}`, 'keywords'].join(',');
+
+  while (true) {
+    page++;
+
+    // Fetch next page from Typesense
+    const tsResult = await typesense.collections('products').documents().search({
+      q: req.query!,
+      query_by: queryBy,
+      filter_by: `project_id:${req.projectId}`,
+      page,
+      per_page: perPage,
+      prefix: false,
+    });
+
+    const hits = (tsResult.hits ?? []).map(hit => ({
+      id: hit.document.id as string,
+      score: hit.text_match_info?.score ?? 0,
+    }));
+
+    candidateCount += hits.length;
+
+    // Intersect with PostgreSQL set
+    const intersected = hits.filter(hit => pgSet.has(hit.id));
+    matched.push(...intersected);
+
+    // Calculate density for adaptive stopping
+    const density = hits.length > 0 ? intersected.length / hits.length : 0;
+
+    // Stop Condition 1: Enough results
+    if (matched.length >= target) break;
+
+    // Stop Condition 2: Typesense exhausted
+    if (hits.length < perPage) break;
+
+    // Stop Condition 3: Max pages
+    if (page >= maxPages) break;
+
+    // Stop Condition 4: Timeout
+    if (Date.now() - startTime > timeout) break;
+
+    // Stop Condition 5: High density + buffer
+    if (density >= stopEarlyFactor && matched.length >= target * 1.5) break;
+  }
+
+  return {
+    hits: matched,
+    metrics: {
+      pagesLoaded: page,
+      candidatesTotal: candidateCount,
+      intersectionTotal: matched.length,
+      timeMs: Date.now() - startTime,
+    },
+  };
+}
+```
+
+### Integration with ListingService
+
+```typescript
+// In ListingService.search()
+
+private async queryTypesenseIncremental(
+  req: SearchRequest,
+  pgSet: Set<string>,
+  target: number
+): Promise<{ hits: TypesenseHit[] }> {
+  const config: IncrementalRecallConfig = {
+    target,
+    perPage: 1000,
+    maxPages: 10,
+    timeout: 100,
+    stopEarlyFactor: 0.15,
+  };
+
+  const result = await this.incrementalRecall(req, pgSet, config);
+
+  // Log metrics for monitoring
+  this.logger.info({
+    query: req.query,
+    pages: result.metrics.pagesLoaded,
+    candidates: result.metrics.candidatesTotal,
+    matched: result.metrics.intersectionTotal,
+    timeMs: result.metrics.timeMs,
+  }, 'incremental_recall_complete');
+
+  return { hits: result.hits };
+}
+```
+
+### Metrics
+
+```typescript
+// Prometheus metrics
+listing_recall_pages_total              // Total pages loaded
+listing_recall_candidates_total         // Total Typesense candidates
+listing_recall_intersection_total       // Matched after intersection
+listing_recall_duration_ms              // Time spent in recall phase
+listing_recall_density                  // Intersection/candidates ratio
+listing_recall_stop_reason{reason}      // Why loop stopped (enough/exhausted/timeout/pages/density)
+```
+
+### Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| No lost results | Relevant products beyond first page are found |
+| Bounded latency | Timeout and page limits prevent slow queries |
+| Predictable load | Max candidates = perPage × maxPages |
+| ML-friendly | Sufficient candidate diversity for Metarank |
+| Observable | Metrics show recall behavior |
+
+### Recommended Configuration
+
+| Catalog Size | perPage | maxPages | timeout | stopEarlyFactor |
+|--------------|---------|----------|---------|-----------------|
+| < 10k | 500 | 5 | 50ms | 0.2 |
+| 10k-100k | 1000 | 8 | 80ms | 0.15 |
+| 100k-1M | 2000 | 10 | 100ms | 0.1 |
+| > 1M | 2000 | 10 | 100ms | 0.1 + Redis cache |
+
+---
+
 ## Sorting Strategy
 
 | `sortBy` | Metarank | Typesense | PostgreSQL ORDER BY | Description |
