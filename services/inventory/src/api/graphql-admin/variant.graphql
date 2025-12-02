@@ -92,43 +92,6 @@ type VariantEdge {
 }
 
 """
-Input for filtering variants.
-"""
-input VariantFilterInput {
-  """Filter by product ID."""
-  productId: ID
-
-  """Filter by SKU (partial match)."""
-  sku: String
-
-  """Filter by external system."""
-  externalSystem: String
-
-  """Filter by in-stock status."""
-  inStock: Boolean
-
-  """Filter by creation date range."""
-  createdAt: DateTimeRangeInput
-
-  """Include soft-deleted variants."""
-  includeDeleted: Boolean
-}
-
-"""
-Input for ordering variants.
-"""
-input VariantOrderByInput {
-  """Order by creation date."""
-  createdAt: SortOrder
-
-  """Order by update date."""
-  updatedAt: SortOrder
-
-  """Order by SKU."""
-  sku: SortOrder
-}
-
-"""
 Input for creating a variant.
 """
 input VariantInput {

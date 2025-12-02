@@ -41,8 +41,6 @@ type InventoryQuery {
     after: String
     last: Int
     before: String
-    filter: ProductFilterInput
-    orderBy: ProductOrderByInput
   ): ProductConnection!
 
   """Get a variant by ID"""
@@ -54,8 +52,6 @@ type InventoryQuery {
     after: String
     last: Int
     before: String
-    filter: VariantFilterInput
-    orderBy: VariantOrderByInput
   ): VariantConnection!
 
   """Get a warehouse by ID"""

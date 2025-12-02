@@ -66,37 +66,6 @@ type ProductEdge {
 }
 
 """
-Input for filtering products.
-"""
-input ProductFilterInput {
-  """Filter by publication status."""
-  isPublished: Boolean
-
-  """Filter by creation date range."""
-  createdAt: DateTimeRangeInput
-
-  """Filter by update date range."""
-  updatedAt: DateTimeRangeInput
-
-  """Include soft-deleted products."""
-  includeDeleted: Boolean
-}
-
-"""
-Input for ordering products.
-"""
-input ProductOrderByInput {
-  """Order by creation date."""
-  createdAt: SortOrder
-
-  """Order by update date."""
-  updatedAt: SortOrder
-
-  """Order by publication date."""
-  publishedAt: SortOrder
-}
-
-"""
 Input for creating a product.
 """
 input ProductCreateInput {
@@ -181,23 +150,3 @@ type ProductUnpublishPayload {
   userErrors: [GenericUserError!]!
 }
 
-# ---- Common Input Types ----
-
-"""
-Input for date/time range filtering.
-"""
-input DateTimeRangeInput {
-  """Start of the range (inclusive)."""
-  from: DateTime
-
-  """End of the range (inclusive)."""
-  to: DateTime
-}
-
-"""
-Sort order enum.
-"""
-enum SortOrder {
-  ASC
-  DESC
-}
