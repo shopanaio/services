@@ -1,0 +1,242 @@
+# ---- Product Option Types ----
+
+"""
+Display type for product options in the UI.
+"""
+enum OptionDisplayType {
+  DROPDOWN
+  SWATCH
+  BUTTONS
+}
+
+"""
+Type of visual swatch for option values.
+"""
+enum SwatchType {
+  COLOR
+  GRADIENT
+  IMAGE
+}
+
+"""
+A product option defines a configurable aspect of a product, such as Size or Color.
+"""
+type ProductOption implements Node @key(fields: "id") {
+  """The globally unique ID of the option."""
+  id: ID!
+
+  """The URL-friendly identifier for this option."""
+  slug: String!
+
+  """The display type for UI rendering."""
+  displayType: OptionDisplayType!
+
+  """The available values for this option."""
+  values: [ProductOptionValue!]!
+}
+
+"""
+A value for a product option, such as "Red" for Color or "Large" for Size.
+"""
+type ProductOptionValue implements Node @key(fields: "id") {
+  """The globally unique ID of the option value."""
+  id: ID!
+
+  """The URL-friendly identifier for this value."""
+  slug: String!
+
+  """The visual swatch for this value (if applicable)."""
+  swatch: ProductOptionSwatch
+}
+
+"""
+A visual swatch for representing an option value.
+"""
+type ProductOptionSwatch implements Node @key(fields: "id") {
+  """The globally unique ID of the swatch."""
+  id: ID!
+
+  """The type of swatch."""
+  swatchType: SwatchType!
+
+  """The primary color (hex code or color name)."""
+  colorOne: String
+
+  """The secondary color for gradients."""
+  colorTwo: String
+
+  """The image for image-based swatches."""
+  image: Image
+
+  """Additional metadata for the swatch."""
+  metadata: JSON
+}
+
+"""
+Represents a selected option for a variant.
+"""
+type SelectedOption {
+  """The option ID."""
+  optionId: ID!
+
+  """The selected value ID."""
+  optionValueId: ID!
+}
+
+"""
+Input for selecting an option value for a variant.
+"""
+input SelectedOptionInput {
+  """The ID of the option."""
+  optionId: ID!
+
+  """The ID of the option value."""
+  optionValueId: ID!
+}
+
+# ---- Option Mutations ----
+# Adding/removing options automatically creates/deletes variant combinations
+
+"""
+Input for creating/updating a swatch.
+"""
+input ProductOptionSwatchInput {
+  """The type of swatch."""
+  swatchType: SwatchType!
+
+  """The primary color (hex code or color name)."""
+  colorOne: String
+
+  """The secondary color for gradients."""
+  colorTwo: String
+
+  """The image ID for image-based swatches."""
+  imageId: ID
+
+  """Additional metadata."""
+  metadata: JSON
+}
+
+"""
+Input for creating an option value.
+"""
+input ProductOptionValueCreateInput {
+  """The URL-friendly slug for the value."""
+  slug: String!
+
+  """The swatch for this value."""
+  swatch: ProductOptionSwatchInput
+}
+
+"""
+Input for creating an option on a product.
+"""
+input ProductOptionCreateInput {
+  """The ID of the product (optional when creating with product)."""
+  productId: ID
+
+  """The URL-friendly slug for the option."""
+  slug: String!
+
+  """The display type for UI rendering."""
+  displayType: OptionDisplayType!
+
+  """The values for this option."""
+  values: [ProductOptionValueCreateInput!]!
+}
+
+"""
+Payload for option create. Returns the product with new variants.
+"""
+type ProductOptionCreatePayload {
+  """The product with updated options and variants."""
+  product: Product
+
+  """The created option."""
+  option: ProductOption
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating an existing option value.
+"""
+input ProductOptionValueUpdateInput {
+  """The ID of the value to update."""
+  id: ID!
+
+  """The new slug for the value."""
+  slug: String
+
+  """The swatch for this value."""
+  swatch: ProductOptionSwatchInput
+}
+
+"""
+Input for nested value operations in option update.
+"""
+input ProductOptionValuesInput {
+  """Values to create."""
+  create: [ProductOptionValueCreateInput!]
+
+  """Values to update."""
+  update: [ProductOptionValueUpdateInput!]
+
+  """IDs of values to delete."""
+  delete: [ID!]
+}
+
+"""
+Input for updating an option.
+"""
+input ProductOptionUpdateInput {
+  """The ID of the option to update."""
+  id: ID!
+
+  """The new slug for the option."""
+  slug: String
+
+  """The new display type."""
+  displayType: OptionDisplayType
+
+  """Nested value operations."""
+  values: ProductOptionValuesInput
+}
+
+"""
+Payload for option update.
+"""
+type ProductOptionUpdatePayload {
+  """The product with updated options and variants."""
+  product: Product
+
+  """The updated option."""
+  option: ProductOption
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting an option from a product.
+"""
+input ProductOptionDeleteInput {
+  """The ID of the option to delete."""
+  id: ID!
+}
+
+"""
+Payload for option delete.
+"""
+type ProductOptionDeletePayload {
+  """The product with updated options and variants."""
+  product: Product
+
+  """The ID of the deleted option."""
+  deletedOptionId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+

@@ -1,0 +1,32 @@
+enum SwatchDisplayType {
+  COLOR
+  COLOR_DUO
+  IMAGE
+}
+
+type Swatch {
+  """
+  Object identifier (Internal).
+  """
+  iid: Uuid!
+
+  """
+  Global unique identifier for the address.
+  """
+  id: ID!
+
+  """
+  The primary color in HEX format, e.g., "#ff0000".
+  """
+  color: String!
+
+  """
+  An optional secondary color (e.g., for gradients).
+  """
+  color2: String
+
+  """
+  The type of swatch.
+  """
+  displayType: SwatchDisplayType!
+}

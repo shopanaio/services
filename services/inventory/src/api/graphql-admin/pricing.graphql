@@ -1,0 +1,173 @@
+# ---- Pricing Types ----
+
+"""
+Supported currency codes.
+"""
+enum CurrencyCode {
+  UAH
+  USD
+  EUR
+}
+
+"""
+Represents a price for a variant.
+"""
+type VariantPrice implements Node {
+  """The globally unique ID of the price record."""
+  id: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units (cents, kopecks, etc.)."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (strikethrough price)."""
+  compareAtMinor: BigInt
+
+  """When this price became effective."""
+  effectiveFrom: DateTime!
+
+  """When this price stopped being effective (null if current)."""
+  effectiveTo: DateTime
+
+  """When this price record was created."""
+  recordedAt: DateTime!
+
+  """Whether this is the current active price."""
+  isCurrent: Boolean!
+}
+
+"""
+A connection to a list of VariantPrice items.
+"""
+type VariantPriceConnection {
+  """A list of edges."""
+  edges: [VariantPriceEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of price records."""
+  totalCount: Int!
+}
+
+"""
+An edge in a VariantPrice connection.
+"""
+type VariantPriceEdge {
+  """The item at the end of the edge."""
+  node: VariantPrice!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Represents the cost of a variant.
+"""
+type VariantCost implements Node {
+  """The globally unique ID of the cost record."""
+  id: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The unit cost in minor units."""
+  unitCostMinor: BigInt!
+
+  """When this cost became effective."""
+  effectiveFrom: DateTime!
+
+  """When this cost stopped being effective (null if current)."""
+  effectiveTo: DateTime
+
+  """When this cost record was created."""
+  recordedAt: DateTime!
+
+  """Whether this is the current active cost."""
+  isCurrent: Boolean!
+}
+
+"""
+A connection to a list of VariantCost items.
+"""
+type VariantCostConnection {
+  """A list of edges."""
+  edges: [VariantCostEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of cost records."""
+  totalCount: Int!
+}
+
+"""
+An edge in a VariantCost connection.
+"""
+type VariantCostEdge {
+  """The item at the end of the edge."""
+  node: VariantCost!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ---- Variant Pricing Mutations ----
+
+"""
+Input for setting a price on a variant.
+"""
+input VariantSetPricingInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The price amount in minor units."""
+  amountMinor: BigInt!
+
+  """The compare-at price in minor units (optional)."""
+  compareAtMinor: BigInt
+}
+
+"""
+Payload for variant pricing set.
+"""
+type VariantSetPricingPayload {
+  """The created/updated price."""
+  price: VariantPrice
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Variant Cost Mutations ----
+
+"""
+Input for setting a cost on a variant.
+"""
+input VariantSetCostInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The currency code."""
+  currency: CurrencyCode!
+
+  """The unit cost in minor units."""
+  unitCostMinor: BigInt!
+}
+
+"""
+Payload for variant cost set.
+"""
+type VariantSetCostPayload {
+  """The created/updated cost."""
+  cost: VariantCost
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+

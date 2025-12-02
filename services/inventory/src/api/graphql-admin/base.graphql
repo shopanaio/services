@@ -1,0 +1,106 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+scalar DateTime
+scalar Email
+scalar BigInt
+scalar JSON
+
+extend type Query {
+  inventoryQuery: InventoryQuery!
+}
+
+extend type Mutation {
+  inventoryMutation: InventoryMutation!
+}
+
+type InventoryQuery {
+  """Get a node by its global ID"""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs"""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Get a product by ID"""
+  product(id: ID!): Product
+
+  """Get products with Relay-style pagination"""
+  products(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    filter: ProductFilterInput
+    orderBy: ProductOrderByInput
+  ): ProductConnection!
+
+  """Get a variant by ID"""
+  variant(id: ID!): Variant
+
+  """Get variants with Relay-style pagination"""
+  variants(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    filter: VariantFilterInput
+    orderBy: VariantOrderByInput
+  ): VariantConnection!
+
+  """Get a warehouse by ID"""
+  warehouse(id: ID!): Warehouse
+
+  """Get all warehouses"""
+  warehouses(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): WarehouseConnection!
+}
+
+type InventoryMutation {
+  # Product mutations
+  productCreate(input: ProductCreateInput!): ProductCreatePayload!
+  productDelete(input: ProductDeleteInput!): ProductDeletePayload!
+  productPublish(input: ProductPublishInput!): ProductPublishPayload!
+  productUnpublish(input: ProductUnpublishInput!): ProductUnpublishPayload!
+
+  # Variant mutations
+  variantCreate(input: VariantCreateInput!): VariantCreatePayload!
+  variantDelete(input: VariantDeleteInput!): VariantDeletePayload!
+  variantSetSku(input: VariantSetSkuInput!): VariantSetSkuPayload!
+  variantSetDimensions(input: VariantSetDimensionsInput!): VariantSetDimensionsPayload!
+  variantSetWeight(input: VariantSetWeightInput!): VariantSetWeightPayload!
+  variantSetPricing(input: VariantSetPricingInput!): VariantSetPricingPayload!
+  variantSetCost(input: VariantSetCostInput!): VariantSetCostPayload!
+
+  # Option mutations (creates/deletes variants automatically)
+  productOptionCreate(input: ProductOptionCreateInput!): ProductOptionCreatePayload!
+  productOptionUpdate(input: ProductOptionUpdateInput!): ProductOptionUpdatePayload!
+  productOptionDelete(input: ProductOptionDeleteInput!): ProductOptionDeletePayload!
+
+  # Feature mutations
+  productFeatureCreate(input: ProductFeatureCreateInput!): ProductFeatureCreatePayload!
+  productFeatureUpdate(input: ProductFeatureUpdateInput!): ProductFeatureUpdatePayload!
+  productFeatureDelete(input: ProductFeatureDeleteInput!): ProductFeatureDeletePayload!
+
+  # Warehouse mutations
+  warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
+  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
+  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
+
+  # Stock mutations
+  variantSetStock(input: VariantSetStockInput!): VariantSetStockPayload!
+}

@@ -1,0 +1,223 @@
+# ---- Stock & Warehouse Types ----
+
+"""
+A warehouse represents a physical location where inventory is stored.
+"""
+type Warehouse implements Node @key(fields: "id") {
+  """The globally unique ID of the warehouse."""
+  id: ID!
+
+  """The unique code identifying this warehouse."""
+  code: String!
+
+  """The display name of the warehouse."""
+  name: String!
+
+  """Whether this is the default warehouse for the project."""
+  isDefault: Boolean!
+
+  """The date and time when the warehouse was created."""
+  createdAt: DateTime!
+
+  """The date and time when the warehouse was last updated."""
+  updatedAt: DateTime!
+
+  """Stock levels for all variants in this warehouse."""
+  stock(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    filter: WarehouseStockFilterInput
+  ): WarehouseStockConnection!
+
+  """Total number of variants stocked in this warehouse."""
+  variantsCount: Int!
+}
+
+"""
+A connection to a list of Warehouse items.
+"""
+type WarehouseConnection {
+  """A list of edges."""
+  edges: [WarehouseEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of warehouses."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Warehouse connection.
+"""
+type WarehouseEdge {
+  """The item at the end of the edge."""
+  node: Warehouse!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Represents stock level for a variant in a specific warehouse.
+"""
+type WarehouseStock implements Node {
+  """The globally unique ID of the stock record."""
+  id: ID!
+
+  """The warehouse where this stock is located."""
+  warehouse: Warehouse!
+
+  """The variant this stock record is for."""
+  variant: Variant!
+
+  """The quantity currently on hand."""
+  quantityOnHand: Int!
+
+  """The date and time when the stock was created."""
+  createdAt: DateTime!
+
+  """The date and time when the stock was last updated."""
+  updatedAt: DateTime!
+}
+
+"""
+A connection to a list of WarehouseStock items.
+"""
+type WarehouseStockConnection {
+  """A list of edges."""
+  edges: [WarehouseStockEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of stock records."""
+  totalCount: Int!
+}
+
+"""
+An edge in a WarehouseStock connection.
+"""
+type WarehouseStockEdge {
+  """The item at the end of the edge."""
+  node: WarehouseStock!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Input for filtering warehouse stock.
+"""
+input WarehouseStockFilterInput {
+  """Filter by variant ID."""
+  variantId: ID
+
+  """Filter by in-stock status (quantity > 0)."""
+  inStock: Boolean
+
+  """Filter by minimum quantity."""
+  minQuantity: Int
+
+  """Filter by maximum quantity."""
+  maxQuantity: Int
+}
+
+"""
+Input for creating a warehouse.
+"""
+input WarehouseCreateInput {
+  """The unique code for the warehouse."""
+  code: String!
+
+  """The display name for the warehouse."""
+  name: String!
+
+  """Whether this should be the default warehouse."""
+  isDefault: Boolean
+}
+
+"""
+Payload for warehouse creation.
+"""
+type WarehouseCreatePayload {
+  """The created warehouse."""
+  warehouse: Warehouse
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating a warehouse.
+"""
+input WarehouseUpdateInput {
+  """The ID of the warehouse to update."""
+  id: ID!
+
+  """The new code for the warehouse."""
+  code: String
+
+  """The new name for the warehouse."""
+  name: String
+
+  """Whether this should be the default warehouse."""
+  isDefault: Boolean
+}
+
+"""
+Payload for warehouse update.
+"""
+type WarehouseUpdatePayload {
+  """The updated warehouse."""
+  warehouse: Warehouse
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a warehouse.
+"""
+input WarehouseDeleteInput {
+  """The ID of the warehouse to delete."""
+  id: ID!
+}
+
+"""
+Payload for warehouse deletion.
+"""
+type WarehouseDeletePayload {
+  """The ID of the deleted warehouse."""
+  deletedWarehouseId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for setting stock on a variant.
+"""
+input VariantSetStockInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The warehouse ID."""
+  warehouseId: ID!
+
+  """The quantity to set."""
+  quantity: Int!
+}
+
+"""
+Payload for variant stock set.
+"""
+type VariantSetStockPayload {
+  """The updated stock record."""
+  stock: WarehouseStock
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

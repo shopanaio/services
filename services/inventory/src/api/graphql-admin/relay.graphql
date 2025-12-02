@@ -1,0 +1,47 @@
+"""
+The Node interface is implemented by all types that have a globally unique ID.
+"""
+interface Node {
+  """The globally unique ID of the object."""
+  id: ID!
+}
+
+"""
+Information about pagination in a connection.
+"""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: String
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: String
+}
+
+"""
+A generic user error interface for mutation responses.
+"""
+interface UserError {
+  """The error message."""
+  message: String!
+
+  """The path to the input field that caused the error."""
+  field: [String!]
+
+  """An error code for programmatic handling."""
+  code: String
+}
+
+"""
+A generic user error type for mutation responses.
+"""
+type GenericUserError implements UserError {
+  message: String!
+  field: [String!]
+  code: String
+}

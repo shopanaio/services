@@ -1,0 +1,140 @@
+# ---- Product Feature Types ----
+
+"""
+A product feature represents a searchable attribute of a product (e.g., Material, Brand).
+"""
+type ProductFeature implements Node @key(fields: "id") {
+  """The globally unique ID of the feature."""
+  id: ID!
+
+  """The URL-friendly identifier for this feature."""
+  slug: String!
+
+  """The available values for this feature."""
+  values: [ProductFeatureValue!]!
+}
+
+"""
+A value for a product feature.
+"""
+type ProductFeatureValue implements Node @key(fields: "id") {
+  """The globally unique ID of the feature value."""
+  id: ID!
+
+  """The URL-friendly identifier for this value."""
+  slug: String!
+}
+
+# ---- Feature Mutations ----
+
+"""
+Input for creating a feature value.
+"""
+input ProductFeatureValueCreateInput {
+  """The URL-friendly slug for the value."""
+  slug: String!
+}
+
+"""
+Input for creating a feature on a product.
+"""
+input ProductFeatureCreateInput {
+  """The ID of the product."""
+  productId: ID!
+
+  """The URL-friendly slug for the feature."""
+  slug: String!
+
+  """The values for this feature."""
+  values: [ProductFeatureValueCreateInput!]!
+}
+
+"""
+Payload for feature create.
+"""
+type ProductFeatureCreatePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The created feature."""
+  feature: ProductFeature
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating an existing feature value.
+"""
+input ProductFeatureValueUpdateInput {
+  """The ID of the value to update."""
+  id: ID!
+
+  """The new slug for the value."""
+  slug: String
+}
+
+"""
+Input for nested value operations in feature update.
+"""
+input ProductFeatureValuesInput {
+  """Values to create."""
+  create: [ProductFeatureValueCreateInput!]
+
+  """Values to update."""
+  update: [ProductFeatureValueUpdateInput!]
+
+  """IDs of values to delete."""
+  delete: [ID!]
+}
+
+"""
+Input for updating a feature.
+"""
+input ProductFeatureUpdateInput {
+  """The ID of the feature to update."""
+  id: ID!
+
+  """The new slug for the feature."""
+  slug: String
+
+  """Nested value operations."""
+  values: ProductFeatureValuesInput
+}
+
+"""
+Payload for feature update.
+"""
+type ProductFeatureUpdatePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The updated feature."""
+  feature: ProductFeature
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a feature from a product.
+"""
+input ProductFeatureDeleteInput {
+  """The ID of the feature to delete."""
+  id: ID!
+}
+
+"""
+Payload for feature delete.
+"""
+type ProductFeatureDeletePayload {
+  """The product with updated features."""
+  product: Product
+
+  """The ID of the deleted feature."""
+  deletedFeatureId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+

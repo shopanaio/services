@@ -1,0 +1,266 @@
+# ---- Variant Types ----
+
+"""
+A variant represents a specific version of a product, such as a size or color.
+"""
+type Variant implements Node @key(fields: "id") {
+  """The globally unique ID of the variant."""
+  id: ID!
+
+  """The product this variant belongs to."""
+  product: Product!
+
+  """The SKU (Stock Keeping Unit) of the variant."""
+  sku: String
+
+  """The external system identifier for integration purposes."""
+  externalSystem: String
+
+  """The external ID in the external system."""
+  externalId: String
+
+  """The date and time when the variant was created."""
+  createdAt: DateTime!
+
+  """The date and time when the variant was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the variant was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """Current price for this variant."""
+  price: VariantPrice
+
+  """Price history for this variant."""
+  priceHistory(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): VariantPriceConnection!
+
+  """Current cost for this variant."""
+  cost: VariantCost
+
+  """Cost history for this variant."""
+  costHistory(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): VariantCostConnection!
+
+  """The selected option values for this variant."""
+  selectedOptions: [SelectedOption!]!
+
+  """Physical dimensions of this variant."""
+  dimensions: VariantDimensions
+
+  """Physical weight of this variant."""
+  weight: VariantWeight
+
+  """Stock levels for this variant across warehouses."""
+  stock: [WarehouseStock!]!
+
+  """Whether the variant is in stock (has quantity > 0 in any warehouse)."""
+  inStock: Boolean!
+}
+
+"""
+A connection to a list of Variant items.
+"""
+type VariantConnection {
+  """A list of edges."""
+  edges: [VariantEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of variants."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Variant connection.
+"""
+type VariantEdge {
+  """The item at the end of the edge."""
+  node: Variant!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Input for filtering variants.
+"""
+input VariantFilterInput {
+  """Filter by product ID."""
+  productId: ID
+
+  """Filter by SKU (partial match)."""
+  sku: String
+
+  """Filter by external system."""
+  externalSystem: String
+
+  """Filter by in-stock status."""
+  inStock: Boolean
+
+  """Filter by creation date range."""
+  createdAt: DateTimeRangeInput
+
+  """Include soft-deleted variants."""
+  includeDeleted: Boolean
+}
+
+"""
+Input for ordering variants.
+"""
+input VariantOrderByInput {
+  """Order by creation date."""
+  createdAt: SortOrder
+
+  """Order by update date."""
+  updatedAt: SortOrder
+
+  """Order by SKU."""
+  sku: SortOrder
+}
+
+"""
+Input for creating a variant.
+"""
+input VariantInput {
+  """The SKU for the variant."""
+  sku: String
+
+  """External system identifier."""
+  externalSystem: String
+
+  """External ID in the external system."""
+  externalId: String
+
+  """Selected option values for the variant."""
+  options: [SelectedOptionInput!]
+
+  """Physical dimensions."""
+  dimensions: DimensionsInput
+
+  """Physical weight."""
+  weight: WeightInput
+}
+
+"""
+Input for creating a variant with a product ID.
+"""
+input VariantCreateInput {
+  """The ID of the product to add the variant to."""
+  productId: ID!
+
+  """The variant data."""
+  variant: VariantInput!
+}
+
+"""
+Payload for variant creation.
+"""
+type VariantCreatePayload {
+  """The created variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for setting variant SKU.
+"""
+input VariantSetSkuInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The new SKU value."""
+  sku: String!
+}
+
+"""
+Payload for variant SKU set.
+"""
+type VariantSetSkuPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for setting variant dimensions.
+"""
+input VariantSetDimensionsInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The dimensions to set."""
+  dimensions: DimensionsInput!
+}
+
+"""
+Payload for variant dimensions set.
+"""
+type VariantSetDimensionsPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for setting variant weight.
+"""
+input VariantSetWeightInput {
+  """The ID of the variant."""
+  variantId: ID!
+
+  """The weight to set."""
+  weight: WeightInput!
+}
+
+"""
+Payload for variant weight set.
+"""
+type VariantSetWeightPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a variant.
+"""
+input VariantDeleteInput {
+  """The ID of the variant to delete."""
+  id: ID!
+
+  """Whether to permanently delete the variant (hard delete)."""
+  permanent: Boolean
+}
+
+"""
+Payload for variant deletion.
+"""
+type VariantDeletePayload {
+  """The ID of the deleted variant."""
+  deletedVariantId: ID
+
+  """The product the variant belonged to."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+

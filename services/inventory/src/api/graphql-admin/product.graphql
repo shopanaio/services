@@ -1,0 +1,203 @@
+# ---- Product Types ----
+
+"""
+A product represents an item that can be sold.
+"""
+type Product implements Node @key(fields: "id") {
+  """The globally unique ID of the product."""
+  id: ID!
+
+  """The date and time when the product was published, or null if unpublished."""
+  publishedAt: DateTime
+
+  """Whether the product is currently published."""
+  isPublished: Boolean!
+
+  """The date and time when the product was created."""
+  createdAt: DateTime!
+
+  """The date and time when the product was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the product was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """The variants of this product."""
+  variants(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): VariantConnection!
+
+  """The options available for this product."""
+  options: [ProductOption!]!
+
+  """The features of this product."""
+  features: [ProductFeature!]!
+
+  """The total number of variants for this product."""
+  variantsCount: Int!
+}
+
+"""
+A connection to a list of Product items.
+"""
+type ProductConnection {
+  """A list of edges."""
+  edges: [ProductEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of products."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Product connection.
+"""
+type ProductEdge {
+  """The item at the end of the edge."""
+  node: Product!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+"""
+Input for filtering products.
+"""
+input ProductFilterInput {
+  """Filter by publication status."""
+  isPublished: Boolean
+
+  """Filter by creation date range."""
+  createdAt: DateTimeRangeInput
+
+  """Filter by update date range."""
+  updatedAt: DateTimeRangeInput
+
+  """Include soft-deleted products."""
+  includeDeleted: Boolean
+}
+
+"""
+Input for ordering products.
+"""
+input ProductOrderByInput {
+  """Order by creation date."""
+  createdAt: SortOrder
+
+  """Order by update date."""
+  updatedAt: SortOrder
+
+  """Order by publication date."""
+  publishedAt: SortOrder
+}
+
+"""
+Input for creating a product.
+"""
+input ProductCreateInput {
+  """Initial variants to create with the product."""
+  variants: [VariantInput!]
+
+  """Initial options to create with the product."""
+  options: [ProductOptionCreateInput!]
+
+  """Whether to publish the product immediately."""
+  publish: Boolean
+}
+
+"""
+Payload for product creation.
+"""
+type ProductCreatePayload {
+  """The created product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a product.
+"""
+input ProductDeleteInput {
+  """The ID of the product to delete."""
+  id: ID!
+
+  """Whether to permanently delete the product (hard delete)."""
+  permanent: Boolean
+}
+
+"""
+Payload for product deletion.
+"""
+type ProductDeletePayload {
+  """The ID of the deleted product."""
+  deletedProductId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for publishing a product.
+"""
+input ProductPublishInput {
+  """The ID of the product to publish."""
+  id: ID!
+}
+
+"""
+Payload for product publish.
+"""
+type ProductPublishPayload {
+  """The published product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for unpublishing a product.
+"""
+input ProductUnpublishInput {
+  """The ID of the product to unpublish."""
+  id: ID!
+}
+
+"""
+Payload for product unpublish.
+"""
+type ProductUnpublishPayload {
+  """The unpublished product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Common Input Types ----
+
+"""
+Input for date/time range filtering.
+"""
+input DateTimeRangeInput {
+  """Start of the range (inclusive)."""
+  from: DateTime
+
+  """End of the range (inclusive)."""
+  to: DateTime
+}
+
+"""
+Sort order enum.
+"""
+enum SortOrder {
+  ASC
+  DESC
+}
