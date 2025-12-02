@@ -1507,3 +1507,514 @@ CREATE INDEX idx_filter_config_category ON filter_config(category_id);
 CREATE INDEX idx_filter_config_group ON filter_config(filter_group_id);
 CREATE INDEX idx_filter_value_sort_config ON filter_value_sort(filter_config_id);
 ```
+
+---
+
+## Future: AI-Powered Filter Configuration
+
+When products are added or modified, an AI agent can automatically analyze the data and suggest or apply optimal filter configurations.
+
+### Use Cases
+
+| Trigger | AI Action |
+|---------|-----------|
+| New product added | Detect new attributes, suggest adding filters |
+| Bulk import completed | Analyze patterns, auto-configure filters for category |
+| New category created | Suggest filter groups based on similar categories |
+| Attribute values change | Suggest display mode, sorting order |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Product Change Event                                 │
+│                                                                              │
+│   • Product created/updated                                                  │
+│   • Bulk import completed                                                    │
+│   • Category products changed                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Event Queue (BullMQ)                               │
+│                                                                              │
+│   Job: analyze_filters                                                       │
+│   Payload: { projectId, categoryId, trigger: 'product_update' }             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        AI Filter Analyzer Worker                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   1. Discover available attributes (features, options, tags)                 │
+│   2. Analyze patterns:                                                       │
+│      • Value distribution (few values → radio, many → checkbox + search)    │
+│      • Value types (colors → swatch, sizes → grid)                          │
+│      • Semantic grouping (brand/material → characteristics)                  │
+│   3. Compare with existing config                                            │
+│   4. Generate recommendations                                                │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              LLM Analysis                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   Prompt:                                                                    │
+│   """                                                                        │
+│   Analyze these product attributes for an e-commerce category "Footwear":   │
+│                                                                              │
+│   Features:                                                                  │
+│   - brand: 12 values (Nike, Adidas, Puma, ...)                              │
+│   - material: 5 values (Leather, Textile, Synthetic, ...)                   │
+│   - gender: 3 values (Men, Women, Unisex)                                   │
+│   - season: 4 values (Summer, Winter, Spring, Autumn)                       │
+│                                                                              │
+│   Options:                                                                   │
+│   - color: 8 values (Black, White, Red, Blue, ...)                          │
+│   - size: 15 values (36, 37, 38, ..., 45)                                   │
+│                                                                              │
+│   Suggest:                                                                   │
+│   1. Filter groups with names                                                │
+│   2. Which filters to include in each group                                  │
+│   3. Display mode for each filter                                            │
+│   4. Sorting strategy for values                                             │
+│   5. Which filters should be collapsed by default                            │
+│   """                                                                        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AI Recommendations                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   {                                                                          │
+│     "groups": [                                                              │
+│       {                                                                      │
+│         "slug": "characteristics",                                           │
+│         "name": { "en": "Characteristics", "uk": "Characteristics" },       │
+│         "filters": [                                                         │
+│           {                                                                  │
+│             "type": "feature",                                               │
+│             "slug": "brand",                                                 │
+│             "displayMode": "checkbox",                                       │
+│             "isSearchable": true,                                            │
+│             "reasoning": "12 values is too many for radio, searchable helps"│
+│           },                                                                 │
+│           {                                                                  │
+│             "type": "feature",                                               │
+│             "slug": "gender",                                                │
+│             "displayMode": "radio",                                          │
+│             "reasoning": "Only 3 mutually exclusive values"                  │
+│           }                                                                  │
+│         ]                                                                    │
+│       },                                                                     │
+│       {                                                                      │
+│         "slug": "variants",                                                  │
+│         "name": { "en": "Variants", "uk": "Variants" },                     │
+│         "filters": [                                                         │
+│           {                                                                  │
+│             "type": "option",                                                │
+│             "slug": "color",                                                 │
+│             "displayMode": "color_swatch",                                   │
+│             "reasoning": "Color values detected, visual selection preferred" │
+│           },                                                                 │
+│           {                                                                  │
+│             "type": "option",                                                │
+│             "slug": "size",                                                  │
+│             "displayMode": "size_grid",                                      │
+│             "valueSort": "custom",                                           │
+│             "customOrder": ["36","37","38","39","40","41","42","43","44","45"],
+│             "reasoning": "Numeric sizes should be sorted naturally"          │
+│           }                                                                  │
+│         ]                                                                    │
+│       }                                                                      │
+│     ],                                                                       │
+│     "confidence": 0.92,                                                      │
+│     "newAttributes": ["season"],                                             │
+│     "suggestions": [                                                         │
+│       "Consider adding 'season' filter - 45 products have this attribute"   │
+│     ]                                                                        │
+│   }                                                                          │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+          ┌─────────────────┐             ┌─────────────────┐
+          │   Auto-Apply    │             │  Notify Admin   │
+          │  (high conf.)   │             │  (low conf.)    │
+          └─────────────────┘             └─────────────────┘
+```
+
+### AI Decision Matrix
+
+| Attribute Type | Value Count | Detected Pattern | Recommended Display |
+|----------------|-------------|------------------|---------------------|
+| Any | 2-4 | Mutually exclusive | `radio` |
+| Any | 5-10 | Multi-select | `checkbox` |
+| Any | 10+ | Multi-select | `checkbox` + `isSearchable` |
+| Option | * | Color names/hex | `color_swatch` |
+| Option | * | Size patterns (S/M/L, 36-45) | `size_grid` + custom sort |
+| Feature | * | Price-related | `range` |
+| Any | * | Boolean (yes/no) | `radio` or `checkbox` |
+
+### Semantic Grouping Rules
+
+```typescript
+const SEMANTIC_GROUPS = {
+  characteristics: {
+    keywords: ['brand', 'manufacturer', 'material', 'gender', 'age', 'season', 'style'],
+    name: { en: 'Characteristics', uk: 'Characteristics' },
+  },
+  variants: {
+    keywords: ['color', 'colour', 'size', 'length', 'width', 'weight'],
+    name: { en: 'Variants', uk: 'Variants' },
+  },
+  technical: {
+    keywords: ['power', 'voltage', 'capacity', 'speed', 'resolution', 'memory'],
+    name: { en: 'Technical Specs', uk: 'Technical Specs' },
+  },
+  pricing: {
+    keywords: ['price', 'discount', 'sale'],
+    name: { en: 'Price', uk: 'Price' },
+  },
+};
+```
+
+### Worker Implementation
+
+```typescript
+// workers/filter-analyzer.worker.ts
+
+import { Worker, Job } from 'bullmq';
+import { OpenAI } from 'openai';
+
+interface AnalyzeFiltersJob {
+  projectId: string;
+  categoryId: string | null;
+  trigger: 'product_update' | 'bulk_import' | 'manual';
+  autoApply: boolean;
+}
+
+class FilterAnalyzerWorker {
+  private openai: OpenAI;
+  private discoveryService: FilterDiscoveryService;
+  private configService: FilterConfigService;
+
+  async process(job: Job<AnalyzeFiltersJob>) {
+    const { projectId, categoryId, trigger, autoApply } = job.data;
+
+    // 1. Discover current attributes
+    const discovered = await this.discoveryService.discoverFilters(
+      projectId,
+      categoryId
+    );
+
+    // 2. Get existing config
+    const existingConfig = await this.configService.getFilterConfig(
+      projectId,
+      categoryId,
+      'en'
+    );
+
+    // 3. Skip if no new attributes
+    const newAttributes = this.findNewAttributes(discovered, existingConfig);
+    if (newAttributes.length === 0 && existingConfig.length > 0) {
+      return { status: 'no_changes' };
+    }
+
+    // 4. Build prompt for LLM
+    const prompt = this.buildAnalysisPrompt(discovered, existingConfig);
+
+    // 5. Get AI recommendations
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an e-commerce filter configuration expert.
+            Analyze product attributes and suggest optimal filter setup.
+            Consider UX best practices for e-commerce filtering.
+            Return valid JSON matching the FilterRecommendation schema.`
+        },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+    });
+
+    const recommendations = JSON.parse(
+      response.choices[0].message.content!
+    ) as FilterRecommendations;
+
+    // 6. Apply or notify
+    if (autoApply && recommendations.confidence > 0.85) {
+      await this.applyRecommendations(projectId, categoryId, recommendations);
+      return { status: 'applied', recommendations };
+    } else {
+      await this.notifyAdmin(projectId, categoryId, recommendations);
+      return { status: 'pending_review', recommendations };
+    }
+  }
+
+  private buildAnalysisPrompt(
+    discovered: DiscoveredFilters,
+    existing: FilterGroupConfig[]
+  ): string {
+    return `
+Analyze these product attributes for filter configuration:
+
+## Available Attributes
+
+### Features (product characteristics)
+${discovered.features.map(f =>
+  `- ${f.slug}: ${f.valueCount} values (${f.sampleValues.slice(0, 5).join(', ')})`
+).join('\n')}
+
+### Options (variant attributes)
+${discovered.options.map(o =>
+  `- ${o.slug}: ${o.valueCount} values (${o.sampleValues.slice(0, 5).join(', ')})`
+).join('\n')}
+
+### Other
+- Tags: ${discovered.tags.length} available
+- Price range: ${discovered.price ? `${discovered.price.minPrice} - ${discovered.price.maxPrice}` : 'N/A'}
+- Stock filter: ${discovered.stock ? 'Available' : 'N/A'}
+
+## Existing Configuration
+${existing.length > 0 ? JSON.stringify(existing, null, 2) : 'No existing configuration'}
+
+## Task
+Suggest optimal filter configuration:
+1. Group filters logically (characteristics, variants, price, etc.)
+2. Choose display mode for each filter (checkbox, radio, color_swatch, size_grid, range)
+3. Determine if filter needs search (for 10+ values)
+4. Suggest value sorting (count_desc, alpha_asc, custom for sizes)
+5. Identify new attributes not yet configured
+
+Return JSON with schema:
+{
+  "groups": [{
+    "slug": "string",
+    "name": { "en": "string", "uk": "string" },
+    "sortOrder": number,
+    "filters": [{
+      "type": "feature|option|tag|price|stock",
+      "slug": "string|null",
+      "displayMode": "checkbox|radio|color_swatch|size_grid|range",
+      "isSearchable": boolean,
+      "isCollapsed": boolean,
+      "valueSort": "count_desc|alpha_asc|custom",
+      "customOrder": ["string"] | null,
+      "reasoning": "string"
+    }]
+  }],
+  "confidence": number (0-1),
+  "newAttributes": ["string"],
+  "suggestions": ["string"]
+}
+`;
+  }
+
+  private async applyRecommendations(
+    projectId: string,
+    categoryId: string | null,
+    recommendations: FilterRecommendations
+  ): Promise<void> {
+    for (const group of recommendations.groups) {
+      // Create or update group
+      const groupId = await this.configService.upsertFilterGroup({
+        projectId,
+        categoryId,
+        slug: group.slug,
+        sortOrder: group.sortOrder,
+        translations: [
+          { locale: 'en', name: group.name.en },
+          { locale: 'uk', name: group.name.uk },
+        ],
+      });
+
+      // Create filters in group
+      for (const filter of group.filters) {
+        await this.configService.upsertFilterConfig({
+          projectId,
+          categoryId,
+          filterGroupId: groupId,
+          filterType: filter.type,
+          filterSlug: filter.slug,
+          displayMode: filter.displayMode,
+          isSearchable: filter.isSearchable,
+          isCollapsed: filter.isCollapsed,
+          valueSort: filter.valueSort,
+        });
+
+        // Apply custom sort if provided
+        if (filter.customOrder) {
+          await this.configService.setFilterValueOrder(
+            filter.id,
+            filter.customOrder.map((slug, i) => ({
+              valueSlug: slug,
+              sortOrder: i,
+              isHidden: false,
+            }))
+          );
+        }
+      }
+    }
+  }
+
+  private async notifyAdmin(
+    projectId: string,
+    categoryId: string | null,
+    recommendations: FilterRecommendations
+  ): Promise<void> {
+    // Store pending recommendation
+    await this.db('filter_recommendations').insert({
+      project_id: projectId,
+      category_id: categoryId,
+      recommendations: JSON.stringify(recommendations),
+      status: 'pending',
+      created_at: new Date(),
+    });
+
+    // Send notification (email, in-app, webhook)
+    await this.notificationService.send({
+      type: 'filter_recommendation',
+      projectId,
+      categoryId,
+      message: `AI suggests ${recommendations.groups.length} filter groups ` +
+               `with ${recommendations.newAttributes.length} new attributes`,
+      actionUrl: `/admin/categories/${categoryId}/filters?review=true`,
+    });
+  }
+}
+```
+
+### Trigger Events
+
+```typescript
+// Trigger analysis on product changes
+async function onProductUpdated(productId: string) {
+  const product = await db('product').where('id', productId).first();
+
+  // Get all categories this product belongs to
+  const categories = await db('category_item')
+    .where('product_id', productId)
+    .pluck('category_id');
+
+  // Queue analysis for each category
+  for (const categoryId of categories) {
+    await filterAnalyzerQueue.add('analyze', {
+      projectId: product.project_id,
+      categoryId,
+      trigger: 'product_update',
+      autoApply: false,  // Always review for single product changes
+    });
+  }
+}
+
+// Trigger analysis on bulk import
+async function onBulkImportCompleted(
+  projectId: string,
+  importedProductIds: string[]
+) {
+  // Get affected categories
+  const categories = await db('category_item')
+    .whereIn('product_id', importedProductIds)
+    .distinct('category_id')
+    .pluck('category_id');
+
+  for (const categoryId of categories) {
+    await filterAnalyzerQueue.add('analyze', {
+      projectId,
+      categoryId,
+      trigger: 'bulk_import',
+      autoApply: true,  // Auto-apply for bulk imports (high confidence)
+    }, {
+      delay: 5000,  // Wait for all products to sync
+      jobId: `analyze:${projectId}:${categoryId}`,  // Dedupe
+    });
+  }
+}
+```
+
+### Admin Review UI
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🤖 AI Filter Recommendations                                    [Dismiss] │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Category: Footwear                          Confidence: 92%                 │
+│                                                                              │
+│  Suggested Changes:                                                          │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ ✚ Add filter group "Characteristics"                                   │ │
+│  │   └─ brand (checkbox, searchable)                                      │ │
+│  │   └─ material (checkbox)                                               │ │
+│  │   └─ gender (radio) — "Only 3 mutually exclusive values"              │ │
+│  │                                                                        │ │
+│  │ ✚ Add filter group "Variants"                                          │ │
+│  │   └─ color (color_swatch) — "Color values detected"                   │ │
+│  │   └─ size (size_grid, custom sort) — "Numeric sizes"                  │ │
+│  │                                                                        │ │
+│  │ 💡 New attribute detected: "season" (45 products)                      │ │
+│  │    Consider adding to Characteristics group                            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│                              [Apply All]  [Review & Edit]  [Dismiss]         │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration
+
+```typescript
+// config/filter-ai.ts
+
+export const FILTER_AI_CONFIG = {
+  // Minimum confidence to auto-apply
+  autoApplyThreshold: 0.85,
+
+  // Triggers that allow auto-apply
+  autoApplyTriggers: ['bulk_import', 'category_created'],
+
+  // Triggers that require review
+  reviewRequiredTriggers: ['product_update', 'manual'],
+
+  // Debounce product updates (ms)
+  analysisDebounce: 5000,
+
+  // Model settings
+  model: 'gpt-4o-mini',
+  temperature: 0.3,
+
+  // Rate limits
+  maxAnalysesPerHour: 100,
+  maxAnalysesPerCategory: 1,  // Dedupe within window
+};
+```
+
+### Database: Pending Recommendations
+
+```sql
+CREATE TABLE filter_recommendations (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    category_id uuid REFERENCES category(id) ON DELETE CASCADE,
+    recommendations jsonb NOT NULL,
+    status varchar(32) NOT NULL DEFAULT 'pending',  -- pending, applied, dismissed
+    created_at timestamptz NOT NULL DEFAULT now(),
+    reviewed_at timestamptz,
+    reviewed_by uuid REFERENCES users(id)
+);
+
+CREATE INDEX idx_filter_recommendations_project ON filter_recommendations(project_id);
+CREATE INDEX idx_filter_recommendations_status ON filter_recommendations(status)
+  WHERE status = 'pending';
+```
