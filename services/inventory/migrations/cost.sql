@@ -1,4 +1,4 @@
--- Cost history for product variants
+c -- Cost history for product variants
 -- Stores cost validity intervals and current cost per variant
 CREATE TABLE
   product_variant_cost_history (

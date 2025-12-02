@@ -1,3 +1,5 @@
+CREATE TYPE currency AS ENUM ('UAH', 'USD', 'EUR');
+
 -- Price history: interval records in cents; linked by variant_id (UUID)
 -- Indexes optimized for time-based queries and current prices
 -- Price history table for product variants

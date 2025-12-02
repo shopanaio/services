@@ -4,7 +4,7 @@ CREATE TABLE
 		id uuid PRIMARY KEY,
 		color_one varchar(32),
 		color_two varchar(32),
-		image_id uuid REFERENCES files (id) ON DELETE SET NULL,
+		image_id uuid,
 		swatch_type varchar(32) NOT NULL,
 		-- Data for external systems when swatch_type is EXTERNAL
 		metadata jsonb
