@@ -1,0 +1,148 @@
+import { eq, and, inArray, asc } from "drizzle-orm";
+import type { Database } from "../infrastructure/db/database";
+import {
+  variantMedia,
+  type VariantMedia,
+  type NewVariantMedia,
+} from "./models";
+
+export class MediaRepository {
+  constructor(private readonly db: Database) {}
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Variant Media
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get all media for a variant, ordered by sortIndex
+   */
+  async getVariantMedia(variantId: string): Promise<VariantMedia[]> {
+    return this.db
+      .select()
+      .from(variantMedia)
+      .where(eq(variantMedia.variantId, variantId))
+      .orderBy(asc(variantMedia.sortIndex));
+  }
+
+  /**
+   * Get media for multiple variants (batch)
+   */
+  async getVariantMediaBatch(
+    variantIds: string[]
+  ): Promise<Map<string, VariantMedia[]>> {
+    if (variantIds.length === 0) return new Map();
+
+    const results = await this.db
+      .select()
+      .from(variantMedia)
+      .where(inArray(variantMedia.variantId, variantIds))
+      .orderBy(asc(variantMedia.sortIndex));
+
+    const map = new Map<string, VariantMedia[]>();
+    for (const row of results) {
+      const existing = map.get(row.variantId) ?? [];
+      existing.push(row);
+      map.set(row.variantId, existing);
+    }
+    return map;
+  }
+
+  /**
+   * Add media to variant
+   */
+  async addVariantMedia(data: NewVariantMedia): Promise<VariantMedia> {
+    const result = await this.db
+      .insert(variantMedia)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [variantMedia.variantId, variantMedia.fileId],
+        set: { sortIndex: data.sortIndex },
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  /**
+   * Set all media for a variant (replaces existing)
+   */
+  async setVariantMedia(
+    projectId: string,
+    variantId: string,
+    fileIds: string[]
+  ): Promise<VariantMedia[]> {
+    // Delete existing
+    await this.db
+      .delete(variantMedia)
+      .where(eq(variantMedia.variantId, variantId));
+
+    if (fileIds.length === 0) return [];
+
+    // Insert new with sort order
+    const values: NewVariantMedia[] = fileIds.map((fileId, index) => ({
+      projectId,
+      variantId,
+      fileId,
+      sortIndex: index,
+    }));
+
+    return this.db.insert(variantMedia).values(values).returning();
+  }
+
+  /**
+   * Remove specific media from variant
+   */
+  async removeVariantMedia(variantId: string, fileId: string): Promise<void> {
+    await this.db
+      .delete(variantMedia)
+      .where(
+        and(
+          eq(variantMedia.variantId, variantId),
+          eq(variantMedia.fileId, fileId)
+        )
+      );
+  }
+
+  /**
+   * Remove all media from variant
+   */
+  async removeAllVariantMedia(variantId: string): Promise<void> {
+    await this.db
+      .delete(variantMedia)
+      .where(eq(variantMedia.variantId, variantId));
+  }
+
+  /**
+   * Reorder media for variant
+   */
+  async reorderVariantMedia(
+    variantId: string,
+    fileIds: string[]
+  ): Promise<void> {
+    // Update sort indices based on new order
+    for (let i = 0; i < fileIds.length; i++) {
+      await this.db
+        .update(variantMedia)
+        .set({ sortIndex: i })
+        .where(
+          and(
+            eq(variantMedia.variantId, variantId),
+            eq(variantMedia.fileId, fileIds[i])
+          )
+        );
+    }
+  }
+
+  /**
+   * Find all variants using a specific file
+   * Useful for Media service callbacks (e.g., file deleted)
+   */
+  async findVariantsByFileId(fileId: string): Promise<string[]> {
+    const results = await this.db
+      .select({ variantId: variantMedia.variantId })
+      .from(variantMedia)
+      .where(eq(variantMedia.fileId, fileId));
+
+    return results.map((r) => r.variantId);
+  }
+}

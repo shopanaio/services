@@ -8,6 +8,8 @@ import { FeatureRepository } from "./FeatureRepository";
 import { PhysicalRepository } from "./PhysicalRepository";
 import { StockRepository } from "./StockRepository";
 import { WarehouseRepository } from "./WarehouseRepository";
+import { TranslationRepository } from "./TranslationRepository";
+import { MediaRepository } from "./MediaRepository";
 
 export class Repository {
   public readonly product: ProductRepository;
@@ -19,6 +21,8 @@ export class Repository {
   public readonly physical: PhysicalRepository;
   public readonly stock: StockRepository;
   public readonly warehouse: WarehouseRepository;
+  public readonly translation: TranslationRepository;
+  public readonly media: MediaRepository;
 
   private readonly db: Database;
 
@@ -34,6 +38,8 @@ export class Repository {
     this.physical = new PhysicalRepository(this.db);
     this.stock = new StockRepository(this.db);
     this.warehouse = new WarehouseRepository(this.db);
+    this.translation = new TranslationRepository(this.db);
+    this.media = new MediaRepository(this.db);
   }
 
   async close(): Promise<void> {

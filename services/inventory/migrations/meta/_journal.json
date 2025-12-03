@@ -8,6 +8,13 @@
       "when": 1764701495971,
       "tag": "0000_worthless_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764786745760,
+      "tag": "0001_short_silvermane",
+      "breakpoints": true
     }
   ]
 }
