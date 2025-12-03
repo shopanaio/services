@@ -3,7 +3,7 @@ import { loadServiceConfig } from "@shopana/shared-service-config";
 /**
  * Service configuration using centralized config system
  */
-const { config: serviceConfig, vars } = loadServiceConfig("inventory");
+const { config: serviceConfig, vars } = loadServiceConfig("media");
 
 const normalizedVars = vars as Record<string, string | undefined>;
 const normalizedConfig = serviceConfig as Record<string, string | undefined>;
@@ -14,7 +14,6 @@ const readOptionalConfig = (key: string, source: 'vars' | 'config' = 'vars'): st
   if (value === undefined || value === null) {
     return undefined;
   }
-  // Convert to string if needed
   const stringValue = typeof value === 'string' ? value : String(value);
   const trimmed = stringValue.trim();
   return trimmed.length ? trimmed : undefined;
@@ -54,9 +53,6 @@ export const config = {
   /** Metrics port */
   metricsPort: serviceConfig.metrics_port,
 
-  /** Database connection URL */
-  databaseUrl: "",
-
   /** Current environment name */
   environment: readRequiredConfig("environment"),
 
@@ -69,19 +65,17 @@ export const config = {
   /** Platform gRPC host */
   platformGrpcHost: readOptionalConfig("platform_grpc_host"),
 
-  /** Plugin settings */
-  pluginTimeoutMs: 5000,
-  pluginRetries: 2,
-  pluginRateLimit: 20,
-
   /** Development flag */
   isDevelopment: readRequiredConfig("environment") === "development",
 
   /** Service metadata */
-  serviceName: "inventory-service",
+  serviceName: "media-service",
   serviceVersion: "1.0.0",
 
-  /** Object storage configuration for inventory payloads */
+  /** GraphQL endpoint path */
+  graphqlPath: "/graphql/admin",
+
+  /** Object storage configuration */
   storage: {
     endpoint: readRequiredConfig("object_storage_endpoint", "config"),
     accessKey: readRequiredConfig("object_storage_access_key", "config"),

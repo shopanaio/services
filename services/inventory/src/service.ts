@@ -1,5 +1,6 @@
 import { Service, ServiceSchema, Context } from "moleculer";
 import { Kernel, MoleculerLogger } from "@shopana/shared-kernel";
+import type { FastifyInstance } from "fastify";
 import type {
   InventoryUpdateEntry,
   InventoryUpdateMeta,
@@ -9,11 +10,12 @@ import {
   assertInventoryUpdateTask,
   inventoryUpdateEntrySchema,
 } from "@shopana/import-plugin-sdk";
-import { config } from "./config";
+import { config } from "./config.js";
 import {
   InventoryObjectStorage,
   type DownloadedInventoryPayload,
-} from "./storage";
+} from "./storage.js";
+import { createApolloServer } from "./api/graphql-admin/server.js";
 import { gunzip as gunzipCallback } from "node:zlib";
 import { promisify } from "node:util";
 import {
@@ -27,6 +29,7 @@ import {
 type ServiceThis = Service & {
   kernel: Kernel;
   storageGateway: InventoryObjectStorage;
+  graphqlServer: FastifyInstance | null;
 };
 
 const gunzip = promisify(gunzipCallback);
@@ -138,15 +141,46 @@ const InventoryService: ServiceSchema<any> = {
       new MoleculerLogger(this.logger)
     );
     this.storageGateway = new InventoryObjectStorage(config.storage);
+    this.graphqlServer = null;
   },
 
   async started() {
     this.logger.info("Inventory service starting...");
+
+    // Start GraphQL server
+    const serverConfig = {
+      port: config.port,
+      grpcHost: config.platformGrpcHost,
+    };
+
+    this.graphqlServer = await createApolloServer(serverConfig);
+
+    try {
+      const address = await this.graphqlServer.listen({
+        port: config.port,
+        host: "0.0.0.0",
+      });
+      this.logger.info(`Inventory GraphQL Admin API running at ${address}/graphql/admin`);
+    } catch (err) {
+      this.logger.error("Failed to start GraphQL server:", err);
+      throw err;
+    }
+
     this.logger.info("Inventory service started successfully");
   },
 
   async stopped() {
     this.logger.info("Inventory service stopping...");
+
+    if (this.graphqlServer) {
+      try {
+        await this.graphqlServer.close();
+        this.logger.info("GraphQL server closed");
+      } catch (error) {
+        this.logger.error("Error closing GraphQL server:", error);
+      }
+    }
+
     this.logger.info("Inventory service stopped successfully");
   },
 

@@ -1,8 +1,6 @@
 # ---- Media Types ----
 
-"""
-A file reference from the Media service (federated entity).
-"""
+# A file reference from the Media service (federated entity).
 extend type File @key(fields: "id") {
   id: ID! @external
 }

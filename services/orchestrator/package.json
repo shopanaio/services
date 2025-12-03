@@ -11,7 +11,7 @@
     "dev:moleculer": "tsx --tsconfig tsconfig.json src/index.ts",
     "build": "node esbuild.js",
     "build:nest": "nest build",
-    "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn build",
+    "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/media-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn build",
     "start": "node dist/src/nest-orchestrator.js",
     "start:dev": "nest start --debug --watch",
     "start:moleculer": "node dist/src/index.js"

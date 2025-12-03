@@ -38,15 +38,7 @@ try {
   const schemaFiles = [
     "relay.graphql",
     "base.graphql",
-    "physical.graphql",
-    "pricing.graphql",
-    "stock.graphql",
-    "options.graphql",
-    "features.graphql",
-    "media.graphql",
-    "parent.graphql",
-    "variant.graphql",
-    "product.graphql",
+    "file.graphql",
   ];
 
   for (const file of schemaFiles) {

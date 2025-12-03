@@ -20,6 +20,7 @@ services:
       - checkout
       - delivery
       - inventory
+      - media
       - orders
       - payments
       - pricing
@@ -44,13 +45,24 @@ services:
     port: 10004
 
   inventory:
-    port: 10005
+    admin_graphql_port: 10005
     object_storage_endpoint: http://localhost:9000
     object_storage_access_key: minioadmin
     object_storage_secret_key: minioadmin
     object_storage_bucket: inventory
     object_storage_region: us-east-1
     object_storage_path_style: true
+    metrics_port: 3034
+
+  media:
+    admin_graphql_port: 10007
+    object_storage_endpoint: http://localhost:9000
+    object_storage_access_key: minioadmin
+    object_storage_secret_key: minioadmin
+    object_storage_bucket: media
+    object_storage_region: us-east-1
+    object_storage_path_style: true
+    metrics_port: 3035
 
   payments:
     port: 10006

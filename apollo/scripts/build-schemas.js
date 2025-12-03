@@ -26,7 +26,7 @@ const SERVICES_CONFIG = [
     name: "platform",
     api: "admin-api",
     outputFile: "platform-admin-api.graphql",
-    schemaPath: ["project", "api", "graphql-core", "schema"],
+    schemaPath: ["project", "api", "graphql-admin", "schema"],
     filePattern: "**/*.graphqls", // Platform uses .graphqls extension
   },
   {
@@ -42,6 +42,20 @@ const SERVICES_CONFIG = [
     api: "admin-api",
     outputFile: "apps-admin-api.graphql",
     schemaPath: ["src", "api", "schema"],
+    filePattern: "**/*.graphql",
+  },
+  {
+    name: "inventory",
+    api: "admin-api",
+    outputFile: "inventory-admin-api.graphql",
+    schemaPath: ["src", "api", "graphql-admin"],
+    filePattern: "**/*.graphql",
+  },
+  {
+    name: "media",
+    api: "admin-api",
+    outputFile: "media-admin-api.graphql",
+    schemaPath: ["src", "api", "graphql-admin"],
     filePattern: "**/*.graphql",
   },
   {

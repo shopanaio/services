@@ -36,7 +36,7 @@ const brokerConfig = {
 			{
 				type: "Prometheus",
 				options: {
-					port: config.port,
+					port: config.metricsPort,
 					path: "/metrics",
 					defaultLabels: (registry: any) => ({
 						namespace: "platform",

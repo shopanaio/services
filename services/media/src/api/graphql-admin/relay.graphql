@@ -9,7 +9,7 @@ interface Node {
 """
 Information about pagination in a connection.
 """
-type PageInfo {
+type PageInfo @shareable {
   """When paginating forwards, are there more items?"""
   hasNextPage: Boolean!
 
@@ -40,7 +40,7 @@ interface UserError {
 """
 A generic user error type for mutation responses.
 """
-type GenericUserError implements UserError {
+type GenericUserError implements UserError @shareable {
   message: String!
   field: [String!]
   code: String
