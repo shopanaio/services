@@ -1,6 +1,34 @@
 # ---- Product Types ----
 
 """
+Product description in multiple formats.
+"""
+type Description {
+  """Plain text description."""
+  text: String!
+
+  """HTML description."""
+  html: String!
+
+  """EditorJS JSON description."""
+  json: JSON!
+}
+
+"""
+Input for product description (all fields required).
+"""
+input DescriptionInput {
+  """Plain text description."""
+  text: String!
+
+  """HTML description."""
+  html: String!
+
+  """EditorJS JSON description."""
+  json: JSON!
+}
+
+"""
 A product represents an item that can be sold.
 """
 type Product implements Node @key(fields: "id") {
@@ -38,6 +66,21 @@ type Product implements Node @key(fields: "id") {
 
   """The total number of variants for this product."""
   variantsCount: Int!
+
+  """Product title."""
+  title: String!
+
+  """Product description."""
+  description: Description
+
+  """Short excerpt."""
+  excerpt: String
+
+  """SEO title."""
+  seoTitle: String
+
+  """SEO description."""
+  seoDescription: String
 }
 
 """
@@ -69,6 +112,21 @@ type ProductEdge {
 Input for creating a product.
 """
 input ProductCreateInput {
+  """Product title."""
+  title: String!
+
+  """Product description."""
+  description: DescriptionInput
+
+  """Short excerpt."""
+  excerpt: String
+
+  """SEO title."""
+  seoTitle: String
+
+  """SEO description."""
+  seoDescription: String
+
   """Initial variants to create with the product."""
   variants: [VariantInput!]
 
@@ -77,6 +135,40 @@ input ProductCreateInput {
 
   """Whether to publish the product immediately."""
   publish: Boolean
+}
+
+"""
+Input for updating a product.
+"""
+input ProductUpdateInput {
+  """The product ID."""
+  id: ID!
+
+  """Product title."""
+  title: String
+
+  """Product description."""
+  description: DescriptionInput
+
+  """Short excerpt."""
+  excerpt: String
+
+  """SEO title."""
+  seoTitle: String
+
+  """SEO description."""
+  seoDescription: String
+}
+
+"""
+Payload for product update.
+"""
+type ProductUpdatePayload {
+  """The updated product."""
+  product: Product
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
 }
 
 """

@@ -10,6 +10,9 @@ type ProductFeature implements Node @key(fields: "id") {
   """The URL-friendly identifier for this feature."""
   slug: String!
 
+  """Display name."""
+  name: String!
+
   """The available values for this feature."""
   values: [ProductFeatureValue!]!
 }
@@ -23,6 +26,9 @@ type ProductFeatureValue implements Node @key(fields: "id") {
 
   """The URL-friendly identifier for this value."""
   slug: String!
+
+  """Display name."""
+  name: String!
 }
 
 # ---- Feature Mutations ----
@@ -33,6 +39,9 @@ Input for creating a feature value.
 input ProductFeatureValueCreateInput {
   """The URL-friendly slug for the value."""
   slug: String!
+
+  """Display name."""
+  name: String!
 }
 
 """
@@ -44,6 +53,9 @@ input ProductFeatureCreateInput {
 
   """The URL-friendly slug for the feature."""
   slug: String!
+
+  """Display name."""
+  name: String!
 
   """The values for this feature."""
   values: [ProductFeatureValueCreateInput!]!
@@ -72,6 +84,9 @@ input ProductFeatureValueUpdateInput {
 
   """The new slug for the value."""
   slug: String
+
+  """Display name."""
+  name: String
 }
 
 """
@@ -97,6 +112,9 @@ input ProductFeatureUpdateInput {
 
   """The new slug for the feature."""
   slug: String
+
+  """Display name."""
+  name: String
 
   """Nested value operations."""
   values: ProductFeatureValuesInput

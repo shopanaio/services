@@ -64,6 +64,12 @@ type Variant implements Node @key(fields: "id") {
 
   """Whether the variant is in stock (has quantity > 0 in any warehouse)."""
   inStock: Boolean!
+
+  """Variant title."""
+  title: String
+
+  """Media attached to this variant (images, videos)."""
+  media: [VariantMediaItem!]!
 }
 
 """
@@ -95,6 +101,9 @@ type VariantEdge {
 Input for creating a variant.
 """
 input VariantInput {
+  """Variant title."""
+  title: String
+
   """The SKU for the variant."""
   sku: String
 

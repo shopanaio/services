@@ -69,6 +69,7 @@ type InventoryQuery {
 type InventoryMutation {
   # Product mutations
   productCreate(input: ProductCreateInput!): ProductCreatePayload!
+  productUpdate(input: ProductUpdateInput!): ProductUpdatePayload!
   productDelete(input: ProductDeleteInput!): ProductDeletePayload!
   productPublish(input: ProductPublishInput!): ProductPublishPayload!
   productUnpublish(input: ProductUnpublishInput!): ProductUnpublishPayload!
@@ -99,4 +100,7 @@ type InventoryMutation {
 
   # Stock mutations
   variantSetStock(input: VariantSetStockInput!): VariantSetStockPayload!
+
+  # Media mutations
+  variantSetMedia(input: VariantSetMediaInput!): VariantSetMediaPayload!
 }

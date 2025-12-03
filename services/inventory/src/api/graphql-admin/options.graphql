@@ -28,6 +28,9 @@ type ProductOption implements Node @key(fields: "id") {
   """The URL-friendly identifier for this option."""
   slug: String!
 
+  """Display name."""
+  name: String!
+
   """The display type for UI rendering."""
   displayType: OptionDisplayType!
 
@@ -44,6 +47,9 @@ type ProductOptionValue implements Node @key(fields: "id") {
 
   """The URL-friendly identifier for this value."""
   slug: String!
+
+  """Display name."""
+  name: String!
 
   """The visual swatch for this value (if applicable)."""
   swatch: ProductOptionSwatch
@@ -65,8 +71,8 @@ type ProductOptionSwatch implements Node @key(fields: "id") {
   """The secondary color for gradients."""
   colorTwo: String
 
-  """The image for image-based swatches."""
-  image: Image
+  """The file for image-based swatches."""
+  file: File
 
   """Additional metadata for the swatch."""
   metadata: JSON
@@ -110,8 +116,8 @@ input ProductOptionSwatchInput {
   """The secondary color for gradients."""
   colorTwo: String
 
-  """The image ID for image-based swatches."""
-  imageId: ID
+  """The file ID for image-based swatches."""
+  fileId: ID
 
   """Additional metadata."""
   metadata: JSON
@@ -123,6 +129,9 @@ Input for creating an option value.
 input ProductOptionValueCreateInput {
   """The URL-friendly slug for the value."""
   slug: String!
+
+  """Display name."""
+  name: String!
 
   """The swatch for this value."""
   swatch: ProductOptionSwatchInput
@@ -137,6 +146,9 @@ input ProductOptionCreateInput {
 
   """The URL-friendly slug for the option."""
   slug: String!
+
+  """Display name."""
+  name: String!
 
   """The display type for UI rendering."""
   displayType: OptionDisplayType!
@@ -169,6 +181,9 @@ input ProductOptionValueUpdateInput {
   """The new slug for the value."""
   slug: String
 
+  """Display name."""
+  name: String
+
   """The swatch for this value."""
   swatch: ProductOptionSwatchInput
 }
@@ -196,6 +211,9 @@ input ProductOptionUpdateInput {
 
   """The new slug for the option."""
   slug: String
+
+  """Display name."""
+  name: String
 
   """The new display type."""
   displayType: OptionDisplayType

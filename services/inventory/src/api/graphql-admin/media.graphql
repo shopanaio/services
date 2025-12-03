@@ -1,0 +1,43 @@
+# ---- Media Types ----
+
+"""
+A file reference from the Media service (federated entity).
+"""
+extend type File @key(fields: "id") {
+  id: ID! @external
+}
+
+"""
+Media attached to a variant with sort order.
+"""
+type VariantMediaItem {
+  """The file from the Media service."""
+  file: File!
+
+  """Sort order index (lower = first)."""
+  sortIndex: Int!
+}
+
+# ---- Media Mutation Inputs ----
+
+"""
+Input for setting variant media (replaces all existing media).
+"""
+input VariantSetMediaInput {
+  """The variant ID."""
+  variantId: ID!
+
+  """File IDs in desired order (first = primary). Empty array clears all media."""
+  fileIds: [ID!]!
+}
+
+"""
+Payload for variant set media.
+"""
+type VariantSetMediaPayload {
+  """The updated variant."""
+  variant: Variant
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

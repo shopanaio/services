@@ -17,12 +17,18 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
     "@shopana/import-plugin-sdk": "*",
     "@shopana/inventory-plugin-shopana": "*",
     "@shopana/plugin-sdk": "*",
     "@shopana/shared-kernel": "*",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",
+    "fastify": "^5.1.0",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
     "minio": "^8.0.6",
     "moleculer": "^0.14.35",
     "moleculer-repl": "^0.7.4",

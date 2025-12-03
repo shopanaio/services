@@ -7,7 +7,3 @@ extend type User @key(fields: "id") {
 extend type ApiKey @key(fields: "id") {
   id: ID! @external
 }
-
-extend type Image @key(fields: "id") {
-  id: ID! @external
-}
