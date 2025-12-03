@@ -1,0 +1,313 @@
+# ---- File Types ----
+
+"""
+Provider type for files.
+"""
+enum FileProvider {
+  """File stored in S3"""
+  S3
+  """YouTube video"""
+  YOUTUBE
+  """Vimeo video"""
+  VIMEO
+  """External URL"""
+  URL
+  """Local file storage"""
+  LOCAL
+}
+
+"""
+Image/video dimensions.
+"""
+type MediaDimensions {
+  """Width in pixels."""
+  width: Int!
+
+  """Height in pixels."""
+  height: Int!
+}
+
+"""
+S3-specific file data.
+"""
+type S3ObjectData {
+  """The bucket ID where this file is stored."""
+  bucketId: ID!
+
+  """S3 object key (path within bucket)."""
+  objectKey: String!
+
+  """Content hash (SHA-256) for deduplication."""
+  contentHash: String
+
+  """ETag from S3."""
+  etag: String
+
+  """Storage class (STANDARD, GLACIER, etc)."""
+  storageClass: String!
+}
+
+"""
+External media data (YouTube, Vimeo, etc).
+"""
+type ExternalMediaData {
+  """External ID (YouTube video ID, Vimeo ID, etc)."""
+  externalId: String!
+
+  """Provider-specific metadata."""
+  providerMeta: JSON
+}
+
+"""
+A file represents a stored media asset.
+"""
+type File implements Node @key(fields: "id") {
+  """The globally unique ID of the file."""
+  id: ID!
+
+  """Provider type (s3, youtube, vimeo, url, local)."""
+  provider: FileProvider!
+
+  """Public URL to access file."""
+  url: String!
+
+  """MIME type."""
+  mimeType: String
+
+  """File extension."""
+  ext: String
+
+  """Size in bytes (0 for external providers)."""
+  sizeBytes: BigInt!
+
+  """Original filename from upload."""
+  originalName: String
+
+  """Image/video dimensions (null if not applicable)."""
+  dimensions: MediaDimensions
+
+  """Duration in milliseconds (for video/audio)."""
+  durationMs: Int
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Source URL (for files uploaded from URL)."""
+  sourceUrl: String
+
+  """Whether the file has been processed."""
+  isProcessed: Boolean!
+
+  """Additional metadata."""
+  meta: JSON
+
+  """The date and time when the file was created."""
+  createdAt: DateTime!
+
+  """The date and time when the file was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the file was deleted (soft delete)."""
+  deletedAt: DateTime
+
+  """S3-specific data (only for S3 provider)."""
+  s3Data: S3ObjectData
+
+  """External media data (for YouTube, Vimeo, etc)."""
+  externalData: ExternalMediaData
+}
+
+"""
+A connection to a list of File items.
+"""
+type FileConnection {
+  """A list of edges."""
+  edges: [FileEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of files."""
+  totalCount: Int!
+}
+
+"""
+An edge in a File connection.
+"""
+type FileEdge {
+  """The item at the end of the edge."""
+  node: File!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ---- File Mutation Inputs ----
+
+"""
+Input for uploading a file (direct S3 upload result).
+"""
+input FileUploadInput {
+  """S3 object key."""
+  objectKey: String!
+
+  """Bucket ID."""
+  bucketId: ID!
+
+  """MIME type."""
+  mimeType: String
+
+  """File extension."""
+  ext: String
+
+  """Size in bytes."""
+  sizeBytes: BigInt!
+
+  """Original filename."""
+  originalName: String
+
+  """Image width in pixels."""
+  width: Int
+
+  """Image height in pixels."""
+  height: Int
+
+  """Duration in milliseconds."""
+  durationMs: Int
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Content hash (SHA-256)."""
+  contentHash: String
+
+  """ETag from S3."""
+  etag: String
+
+  """Idempotency key for deduplication."""
+  idempotencyKey: String
+}
+
+"""
+Input for uploading a file from URL.
+"""
+input FileUploadFromUrlInput {
+  """URL to fetch the file from."""
+  sourceUrl: String!
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Idempotency key for deduplication."""
+  idempotencyKey: String
+}
+
+"""
+Input for creating an external media file (YouTube, Vimeo, etc).
+"""
+input FileCreateExternalInput {
+  """Provider type."""
+  provider: FileProvider!
+
+  """External ID (YouTube video ID, Vimeo ID, etc)."""
+  externalId: String!
+
+  """Public URL to access the media."""
+  url: String!
+
+  """Thumbnail URL."""
+  thumbnailUrl: String
+
+  """Title/name of the media."""
+  originalName: String
+
+  """Image width in pixels."""
+  width: Int
+
+  """Image height in pixels."""
+  height: Int
+
+  """Duration in milliseconds."""
+  durationMs: Int
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Provider-specific metadata."""
+  providerMeta: JSON
+
+  """Idempotency key for deduplication."""
+  idempotencyKey: String
+}
+
+"""
+Payload for file upload.
+"""
+type FileUploadPayload {
+  """The uploaded file."""
+  file: File
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for external file creation.
+"""
+type FileCreateExternalPayload {
+  """The created file."""
+  file: File
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating a file.
+"""
+input FileUpdateInput {
+  """The file ID."""
+  id: ID!
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Original name."""
+  originalName: String
+
+  """Additional metadata."""
+  meta: JSON
+}
+
+"""
+Payload for file update.
+"""
+type FileUpdatePayload {
+  """The updated file."""
+  file: File
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a file.
+"""
+input FileDeleteInput {
+  """The ID of the file to delete."""
+  id: ID!
+
+  """Whether to permanently delete the file (hard delete)."""
+  permanent: Boolean
+}
+
+"""
+Payload for file deletion.
+"""
+type FileDeletePayload {
+  """The ID of the deleted file."""
+  deletedFileId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

@@ -1,0 +1,55 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+scalar DateTime
+scalar BigInt
+scalar JSON
+
+extend type Query {
+  mediaQuery: MediaQuery!
+}
+
+extend type Mutation {
+  mediaMutation: MediaMutation!
+}
+
+type MediaQuery {
+  """Get a node by its global ID"""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs"""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Get a file by ID"""
+  file(id: ID!): File
+
+  """Get files with Relay-style pagination"""
+  files(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): FileConnection!
+
+}
+
+type MediaMutation {
+  # File mutations
+  fileUpload(input: FileUploadInput!): FileUploadPayload!
+  fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
+  fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
+  fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
+  fileDelete(input: FileDeleteInput!): FileDeletePayload!
+
+}

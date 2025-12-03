@@ -1,0 +1,34 @@
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "../../repositories/models";
+
+type DrizzleDatabase = PostgresJsDatabase<typeof schema>;
+
+let client: ReturnType<typeof postgres> | null = null;
+let database: DrizzleDatabase | null = null;
+
+export type Database = DrizzleDatabase;
+
+export function initDatabase(connectionString: string): Database {
+  if (database) {
+    return database;
+  }
+  client = postgres(connectionString);
+  database = drizzle(client, { schema });
+  return database;
+}
+
+export function getDatabase(): Database {
+  if (!database) {
+    throw new Error("Database not initialized. Call initDatabase() first.");
+  }
+  return database;
+}
+
+export async function closeDatabaseConnection(): Promise<void> {
+  if (client) {
+    await client.end();
+    client = null;
+    database = null;
+  }
+}
