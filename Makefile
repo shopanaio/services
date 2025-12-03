@@ -2,7 +2,7 @@
 
 .PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:orchestrator
 .PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps docker\:build-orchestrator
-.PHONY: network network-create db-up db-down nats-up nats-down platform-up platform-down services-up services-down infra-up infra-down up down logs status clean
+.PHONY: network network-create db-up db-down nats-up nats-down rabbitmq-up rabbitmq-down platform-up platform-down services-up services-down infra-up infra-down up down logs status clean
 
 apollo\:storefront:
 	docker-compose -f apollo/docker-compose.storefront.yml up --build
@@ -122,6 +122,22 @@ nats-down:
 nats-logs:
 	@docker-compose -f docker-compose.nats.yml logs -f
 
+# RabbitMQ management
+rabbitmq-up:
+	@echo "Starting RabbitMQ..."
+	@docker-compose -f docker-compose.rabbitmq.yml up -d
+	@echo "Waiting for RabbitMQ to be ready..."
+	@sleep 5
+	@docker exec shopana-rabbitmq rabbitmq-diagnostics -q ping && echo "RabbitMQ is ready" || echo "RabbitMQ healthcheck failed, but container is running"
+	@echo "RabbitMQ Management UI: http://localhost:15672 (rabbitmq/rabbitmq)"
+
+rabbitmq-down:
+	@echo "Stopping RabbitMQ..."
+	@docker-compose -f docker-compose.rabbitmq.yml down
+
+rabbitmq-logs:
+	@docker-compose -f docker-compose.rabbitmq.yml logs -f
+
 # Platform management
 platform-up:
 	@echo "Starting Platform..."
@@ -156,11 +172,11 @@ services-build:
 	@echo "Building Services..."
 	@docker-compose -f docker-compose.services.yml build
 
-# Infrastructure (DB only, NATS not needed for orchestrator with in-memory transport)
-infra-up: network db-up
+# Infrastructure
+infra-up: network db-up rabbitmq-up
 	@echo "Infrastructure is ready"
 
-infra-down: db-down
+infra-down: rabbitmq-down db-down
 	@echo "Infrastructure stopped"
 
 # Full stack management

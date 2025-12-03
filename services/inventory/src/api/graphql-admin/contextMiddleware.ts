@@ -1,0 +1,98 @@
+import type { FastifyRequest, FastifyReply } from "fastify";
+import type { CoreProject, CoreUser } from "@shopana/platform-api";
+import { createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
+import { setContext } from "../../context/index.js";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    project: CoreProject;
+    user: CoreUser;
+  }
+}
+
+function headerIsTrue(value: unknown): boolean {
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  if (typeof value === "boolean") return value === true;
+  return false;
+}
+
+/**
+ * Checks if request is a GraphQL introspection query
+ */
+function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
+  const isGraphqlPath =
+    typeof request.url === "string" && request.url.startsWith("/graphql");
+  if (!isGraphqlPath) return false;
+
+  if (request.headers["user-agent"]?.includes("rover")) {
+    return true;
+  }
+
+  const interpolationHeader =
+    request.headers["x-interpolation"] ?? request.headers["X-Interpolation"];
+  return headerIsTrue(interpolationHeader);
+}
+
+/**
+ * Build admin context middleware using gRPC client
+ * Requires slug and authorization headers for admin API
+ */
+export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
+  const contextClient = createCoreContextClient({ config: grpcConfig });
+
+  return async function adminContextMiddleware(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    if (isGraphqlIntrospectionRequest(request)) {
+      return;
+    }
+
+    try {
+      const slug = request.headers["x-shopana-slug"] as string | undefined;
+      const authorization = request.headers.authorization;
+
+      if (!slug) {
+        return reply
+          .status(400)
+          .send({ data: null, errors: [{ message: "Missing x-shopana-slug header" }] });
+      }
+
+      if (!authorization) {
+        return reply
+          .status(401)
+          .send({ data: null, errors: [{ message: "Missing authorization header" }] });
+      }
+
+      const ctx = await contextClient.fetchContext({
+        authorization,
+        "x-shopana-slug": slug,
+        "x-trace-id": request.headers["x-trace-id"] as string | undefined,
+        "x-span-id": request.headers["x-span-id"] as string | undefined,
+        "x-correlation-id": request.headers["x-correlation-id"] as string | undefined,
+        "x-causation-id": request.headers["x-causation-id"] as string | undefined,
+      });
+
+      if (!ctx || !ctx.project || !ctx.user) {
+        return reply
+          .status(401)
+          .send({ data: null, errors: [{ message: "Unauthorized" }] });
+      }
+
+      request.project = ctx.project;
+      request.user = ctx.user;
+
+      // Set context in async local storage
+      setContext({
+        slug,
+        project: ctx.project,
+        user: ctx.user,
+      });
+    } catch (error) {
+      console.error("Failed to fetch admin context via gRPC:", error);
+      return reply
+        .status(401)
+        .send({ data: null, errors: [{ message: "Unauthorized" }] });
+    }
+  };
+}

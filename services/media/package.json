@@ -17,6 +17,7 @@
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
+    "@shopana/platform-api": "0.0.1",
     "@shopana/shared-kernel": "*",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",
@@ -29,6 +30,7 @@
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
     "postgres": "^3.4.7",
+    "rabbitmq-client": "^4.6.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

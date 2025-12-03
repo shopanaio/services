@@ -9,13 +9,16 @@ import { gql } from "graphql-tag";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { resolvers } from "./resolvers/index.js";
+import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+import { getContext, type InventoryContext } from "../../context/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export interface GraphQLContext {
-  // Add your context properties here
-  // e.g., userId?: string;
-  // db?: DatabaseConnection;
+  requestId: string;
+  slug: string;
+  project: InventoryContext["project"];
+  user: InventoryContext["user"];
 }
 
 function loadTypeDefs() {
@@ -42,14 +45,35 @@ function loadTypeDefs() {
   return typeDefs;
 }
 
-export async function createApolloServer() {
+export interface ServerConfig {
+  port?: number;
+  grpcHost?: string;
+}
+
+export async function createApolloServer(config: ServerConfig = {}) {
+  const isDevelopment = process.env.NODE_ENV === "development";
+
   const fastify = Fastify({
-    logger: true,
+    logger: isDevelopment
+      ? {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "SYS:HH:MM:ss.l",
+              ignore: "pid,hostname,reqId,responseTime",
+              messageFormat: "[FASTIFY] {msg}",
+              levelFirst: true,
+            },
+          },
+        }
+      : true,
   });
 
   const typeDefs = loadTypeDefs();
 
   const server = new ApolloServer<GraphQLContext>({
+    introspection: true,
     schema: buildSubgraphSchema({
       typeDefs,
       resolvers,
@@ -59,25 +83,50 @@ export async function createApolloServer() {
 
   await server.start();
 
-  await fastify.register(fastifyApollo(server), {
-    context: async (request, reply): Promise<GraphQLContext> => {
-      // Build your context here
-      // You can access request headers, etc.
-      return {
-        // userId: request.headers['x-user-id'],
-      };
-    },
+  // Health check endpoints
+  fastify.get("/", async (_request, reply) => {
+    return reply.send({ status: "ok", service: "inventory" });
+  });
+
+  fastify.get("/healthz", async (_request, reply) => {
+    return reply.send({ status: "ok", service: "inventory" });
+  });
+
+  // GraphQL route group with context middleware
+  await fastify.register(async function (graphqlInstance) {
+    // Admin context middleware that sets async local storage
+    const grpcConfig = {
+      getGrpcHost: () => config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
+    };
+    await graphqlInstance.addHook(
+      "preHandler",
+      buildAdminContextMiddleware(grpcConfig)
+    );
+
+    // GraphQL endpoint with context from async local storage
+    await graphqlInstance.register(fastifyApollo(server), {
+      path: "/graphql",
+      context: async (request, _reply): Promise<GraphQLContext> => {
+        const ctx = getContext();
+        return {
+          requestId: request.id as string,
+          slug: ctx.slug,
+          project: ctx.project,
+          user: ctx.user,
+        };
+      },
+    });
   });
 
   return fastify;
 }
 
 export async function startServer(port = 4001) {
-  const fastify = await createApolloServer();
+  const fastify = await createApolloServer({ port });
 
   try {
     const address = await fastify.listen({ port, host: "0.0.0.0" });
-    console.log(`GraphQL Admin API running at ${address}/graphql`);
+    console.log(`Inventory GraphQL Admin API running at ${address}/graphql`);
     return fastify;
   } catch (err) {
     fastify.log.error(err);
