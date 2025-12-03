@@ -1,23 +1,26 @@
 import type { Resolvers } from "../generated/types.js";
 
-export const resolvers: Resolvers = {
-  // Scalars
-  DateTime: {},
-  Email: {},
-  BigInt: {},
-  JSON: {},
+// TODO: Use DataLoader for batching and caching database queries to avoid N+1 problem
+// Create loaders in context (server.ts) and access via ctx.loaders
+// Example:
+//   const productLoader = new DataLoader((ids) => batchGetProducts(ids));
+//   const variantLoader = new DataLoader((ids) => batchGetVariants(ids));
+//   const variantsByProductLoader = new DataLoader((productIds) => batchGetVariantsByProductIds(productIds));
 
-  // Root Query
+// TODO: Use @upstash/redis for caching complete Product and Variant objects
+// Products and Variants should be cached as complete JSON objects in Redis
+// Cache keys: product:{id}, variant:{id}
+// Invalidate cache on mutations (create, update, delete)
+
+export const resolvers: Resolvers = {
   Query: {
     inventoryQuery: () => ({}),
   },
 
-  // Root Mutation
   Mutation: {
     inventoryMutation: () => ({}),
   },
 
-  // InventoryQuery resolvers
   InventoryQuery: {
     node: async (_parent, { id }, _ctx) => {
       throw new Error("Not implemented");
@@ -45,9 +48,7 @@ export const resolvers: Resolvers = {
     },
   },
 
-  // InventoryMutation resolvers
   InventoryMutation: {
-    // Product mutations
     productCreate: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -63,8 +64,6 @@ export const resolvers: Resolvers = {
     productUnpublish: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
-
-    // Variant mutations
     variantCreate: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -86,8 +85,6 @@ export const resolvers: Resolvers = {
     variantSetCost: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
-
-    // Option mutations
     productOptionCreate: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -97,8 +94,6 @@ export const resolvers: Resolvers = {
     productOptionDelete: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
-
-    // Feature mutations
     productFeatureCreate: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -108,8 +103,6 @@ export const resolvers: Resolvers = {
     productFeatureDelete: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
-
-    // Warehouse mutations
     warehouseCreate: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -119,19 +112,15 @@ export const resolvers: Resolvers = {
     warehouseDelete: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
-
-    // Stock mutations
     variantSetStock: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
-
-    // Media mutations
     variantSetMedia: async (_parent, { input }, _ctx) => {
       throw new Error("Not implemented");
     },
   },
 
-  // Type resolvers
+  // Federation entities
   Product: {
     __resolveReference: async (reference, _ctx) => {
       throw new Error("Not implemented");
@@ -146,9 +135,6 @@ export const resolvers: Resolvers = {
       throw new Error("Not implemented");
     },
     variantsCount: async (parent, _args, _ctx) => {
-      throw new Error("Not implemented");
-    },
-    description: (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
   },
@@ -175,12 +161,6 @@ export const resolvers: Resolvers = {
     selectedOptions: async (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
-    dimensions: (parent, _args, _ctx) => {
-      throw new Error("Not implemented");
-    },
-    weight: (parent, _args, _ctx) => {
-      throw new Error("Not implemented");
-    },
     stock: async (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -192,52 +172,32 @@ export const resolvers: Resolvers = {
     },
   },
 
+  // Nested types with relations
   ProductOption: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
     values: async (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
   },
 
   ProductOptionValue: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
     swatch: async (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
   },
 
   ProductOptionSwatch: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
     file: async (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
   },
 
   ProductFeature: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
     values: async (parent, _args, _ctx) => {
       throw new Error("Not implemented");
     },
   },
 
-  ProductFeatureValue: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
-  },
-
   Warehouse: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
     stock: async (parent, args, _ctx) => {
       throw new Error("Not implemented");
     },
@@ -255,74 +215,22 @@ export const resolvers: Resolvers = {
     },
   },
 
-  VariantPrice: {},
-
-  VariantCost: {},
-
-  // Connection types
-  ProductConnection: {},
-  ProductEdge: {},
-  VariantConnection: {},
-  VariantEdge: {},
-  WarehouseConnection: {},
-  WarehouseEdge: {},
-  WarehouseStockConnection: {},
-  WarehouseStockEdge: {},
-  VariantPriceConnection: {},
-  VariantPriceEdge: {},
-  VariantCostConnection: {},
-  VariantCostEdge: {},
-
-  // Payload types
-  ProductCreatePayload: {},
-  ProductUpdatePayload: {},
-  ProductDeletePayload: {},
-  ProductPublishPayload: {},
-  ProductUnpublishPayload: {},
-  VariantCreatePayload: {},
-  VariantDeletePayload: {},
-  VariantSetSkuPayload: {},
-  VariantSetDimensionsPayload: {},
-  VariantSetWeightPayload: {},
-  VariantSetPricingPayload: {},
-  VariantSetCostPayload: {},
-  ProductOptionCreatePayload: {},
-  ProductOptionUpdatePayload: {},
-  ProductOptionDeletePayload: {},
-  ProductFeatureCreatePayload: {},
-  ProductFeatureUpdatePayload: {},
-  ProductFeatureDeletePayload: {},
-  WarehouseCreatePayload: {},
-  WarehouseUpdatePayload: {},
-  WarehouseDeletePayload: {},
-  VariantSetStockPayload: {},
-  VariantSetMediaPayload: {},
-
-  // Other types
-  PageInfo: {},
-  GenericUserError: {},
-  Description: {},
-  VariantDimensions: {},
-  VariantWeight: {},
-  SelectedOption: {},
-  VariantMediaItem: {},
-
-  // Federation entity resolvers
-  User: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
+  // Interface resolvers
+  Node: {
+    __resolveType: (obj) => {
+      if ("variants" in obj) return "Product";
+      if ("productId" in obj) return "Variant";
+      if ("displayType" in obj) return "ProductOption";
+      if ("swatchType" in obj) return "ProductOptionSwatch";
+      if ("quantityOnHand" in obj) return "WarehouseStock";
+      if ("code" in obj) return "Warehouse";
+      if ("amountMinor" in obj) return "VariantPrice";
+      if ("unitCostMinor" in obj) return "VariantCost";
+      return null;
     },
   },
 
-  ApiKey: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
-  },
-
-  File: {
-    __resolveReference: async (reference, _ctx) => {
-      throw new Error("Not implemented");
-    },
+  UserError: {
+    __resolveType: () => "GenericUserError",
   },
 };

@@ -1,11 +1,8 @@
-import { GraphQLResolveInfo, GraphQLScalarType } from "graphql";
-import { GraphQLContext } from "../server.js";
+import type { GraphQLResolveInfo } from "graphql";
+import type { GraphQLContext } from "../server.js";
 
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
-export type Exact<T extends { [key: string]: unknown }> = {
-  [K in keyof T]: T[K];
-};
 
 export type Scalars = {
   ID: { input: string; output: string };
@@ -40,823 +37,399 @@ export enum CurrencyCode {
 
 // Input types
 export type DescriptionInput = {
-  text: Scalars["String"]["input"];
-  html: Scalars["String"]["input"];
-  json: Scalars["JSON"]["input"];
+  text: string;
+  html: string;
+  json: Record<string, unknown>;
 };
 
 export type ProductCreateInput = {
-  title: Scalars["String"]["input"];
+  title: string;
   description?: InputMaybe<DescriptionInput>;
-  excerpt?: InputMaybe<Scalars["String"]["input"]>;
-  seoTitle?: InputMaybe<Scalars["String"]["input"]>;
-  seoDescription?: InputMaybe<Scalars["String"]["input"]>;
+  excerpt?: InputMaybe<string>;
+  seoTitle?: InputMaybe<string>;
+  seoDescription?: InputMaybe<string>;
   variants?: InputMaybe<VariantInput[]>;
   options?: InputMaybe<ProductOptionCreateInput[]>;
-  publish?: InputMaybe<Scalars["Boolean"]["input"]>;
+  publish?: InputMaybe<boolean>;
 };
 
 export type ProductUpdateInput = {
-  id: Scalars["ID"]["input"];
-  title?: InputMaybe<Scalars["String"]["input"]>;
+  id: string;
+  title?: InputMaybe<string>;
   description?: InputMaybe<DescriptionInput>;
-  excerpt?: InputMaybe<Scalars["String"]["input"]>;
-  seoTitle?: InputMaybe<Scalars["String"]["input"]>;
-  seoDescription?: InputMaybe<Scalars["String"]["input"]>;
+  excerpt?: InputMaybe<string>;
+  seoTitle?: InputMaybe<string>;
+  seoDescription?: InputMaybe<string>;
 };
 
 export type ProductDeleteInput = {
-  id: Scalars["ID"]["input"];
-  permanent?: InputMaybe<Scalars["Boolean"]["input"]>;
+  id: string;
+  permanent?: InputMaybe<boolean>;
 };
 
 export type ProductPublishInput = {
-  id: Scalars["ID"]["input"];
+  id: string;
 };
 
 export type ProductUnpublishInput = {
-  id: Scalars["ID"]["input"];
+  id: string;
 };
 
 export type VariantInput = {
-  title?: InputMaybe<Scalars["String"]["input"]>;
-  sku?: InputMaybe<Scalars["String"]["input"]>;
-  externalSystem?: InputMaybe<Scalars["String"]["input"]>;
-  externalId?: InputMaybe<Scalars["String"]["input"]>;
+  title?: InputMaybe<string>;
+  sku?: InputMaybe<string>;
+  externalSystem?: InputMaybe<string>;
+  externalId?: InputMaybe<string>;
   options?: InputMaybe<SelectedOptionInput[]>;
   dimensions?: InputMaybe<DimensionsInput>;
   weight?: InputMaybe<WeightInput>;
 };
 
 export type VariantCreateInput = {
-  productId: Scalars["ID"]["input"];
+  productId: string;
   variant: VariantInput;
 };
 
 export type VariantDeleteInput = {
-  id: Scalars["ID"]["input"];
-  permanent?: InputMaybe<Scalars["Boolean"]["input"]>;
+  id: string;
+  permanent?: InputMaybe<boolean>;
 };
 
 export type VariantSetSkuInput = {
-  variantId: Scalars["ID"]["input"];
-  sku: Scalars["String"]["input"];
+  variantId: string;
+  sku: string;
 };
 
 export type VariantSetDimensionsInput = {
-  variantId: Scalars["ID"]["input"];
+  variantId: string;
   dimensions: DimensionsInput;
 };
 
 export type VariantSetWeightInput = {
-  variantId: Scalars["ID"]["input"];
+  variantId: string;
   weight: WeightInput;
 };
 
 export type VariantSetPricingInput = {
-  variantId: Scalars["ID"]["input"];
+  variantId: string;
   currency: CurrencyCode;
-  amountMinor: Scalars["BigInt"]["input"];
-  compareAtMinor?: InputMaybe<Scalars["BigInt"]["input"]>;
+  amountMinor: bigint;
+  compareAtMinor?: InputMaybe<bigint>;
 };
 
 export type VariantSetCostInput = {
-  variantId: Scalars["ID"]["input"];
+  variantId: string;
   currency: CurrencyCode;
-  unitCostMinor: Scalars["BigInt"]["input"];
+  unitCostMinor: bigint;
 };
 
 export type VariantSetStockInput = {
-  variantId: Scalars["ID"]["input"];
-  warehouseId: Scalars["ID"]["input"];
-  quantity: Scalars["Int"]["input"];
+  variantId: string;
+  warehouseId: string;
+  quantity: number;
 };
 
 export type VariantSetMediaInput = {
-  variantId: Scalars["ID"]["input"];
-  fileIds: Scalars["ID"]["input"][];
+  variantId: string;
+  fileIds: string[];
 };
 
 export type DimensionsInput = {
-  width: Scalars["Int"]["input"];
-  length: Scalars["Int"]["input"];
-  height: Scalars["Int"]["input"];
+  width: number;
+  length: number;
+  height: number;
 };
 
 export type WeightInput = {
-  value: Scalars["Int"]["input"];
+  value: number;
 };
 
 export type SelectedOptionInput = {
-  optionId: Scalars["ID"]["input"];
-  optionValueId: Scalars["ID"]["input"];
+  optionId: string;
+  optionValueId: string;
 };
 
 export type ProductOptionSwatchInput = {
   swatchType: SwatchType;
-  colorOne?: InputMaybe<Scalars["String"]["input"]>;
-  colorTwo?: InputMaybe<Scalars["String"]["input"]>;
-  fileId?: InputMaybe<Scalars["ID"]["input"]>;
-  metadata?: InputMaybe<Scalars["JSON"]["input"]>;
+  colorOne?: InputMaybe<string>;
+  colorTwo?: InputMaybe<string>;
+  fileId?: InputMaybe<string>;
+  metadata?: InputMaybe<Record<string, unknown>>;
 };
 
 export type ProductOptionValueCreateInput = {
-  slug: Scalars["String"]["input"];
-  name: Scalars["String"]["input"];
+  slug: string;
+  name: string;
   swatch?: InputMaybe<ProductOptionSwatchInput>;
 };
 
 export type ProductOptionCreateInput = {
-  productId?: InputMaybe<Scalars["ID"]["input"]>;
-  slug: Scalars["String"]["input"];
-  name: Scalars["String"]["input"];
+  productId?: InputMaybe<string>;
+  slug: string;
+  name: string;
   displayType: OptionDisplayType;
   values: ProductOptionValueCreateInput[];
 };
 
 export type ProductOptionValueUpdateInput = {
-  id: Scalars["ID"]["input"];
-  slug?: InputMaybe<Scalars["String"]["input"]>;
-  name?: InputMaybe<Scalars["String"]["input"]>;
+  id: string;
+  slug?: InputMaybe<string>;
+  name?: InputMaybe<string>;
   swatch?: InputMaybe<ProductOptionSwatchInput>;
 };
 
 export type ProductOptionValuesInput = {
   create?: InputMaybe<ProductOptionValueCreateInput[]>;
   update?: InputMaybe<ProductOptionValueUpdateInput[]>;
-  delete?: InputMaybe<Scalars["ID"]["input"][]>;
+  delete?: InputMaybe<string[]>;
 };
 
 export type ProductOptionUpdateInput = {
-  id: Scalars["ID"]["input"];
-  slug?: InputMaybe<Scalars["String"]["input"]>;
-  name?: InputMaybe<Scalars["String"]["input"]>;
+  id: string;
+  slug?: InputMaybe<string>;
+  name?: InputMaybe<string>;
   displayType?: InputMaybe<OptionDisplayType>;
   values?: InputMaybe<ProductOptionValuesInput>;
 };
 
 export type ProductOptionDeleteInput = {
-  id: Scalars["ID"]["input"];
+  id: string;
 };
 
 export type ProductFeatureValueCreateInput = {
-  slug: Scalars["String"]["input"];
-  name: Scalars["String"]["input"];
+  slug: string;
+  name: string;
 };
 
 export type ProductFeatureCreateInput = {
-  productId: Scalars["ID"]["input"];
-  slug: Scalars["String"]["input"];
-  name: Scalars["String"]["input"];
+  productId: string;
+  slug: string;
+  name: string;
   values: ProductFeatureValueCreateInput[];
 };
 
 export type ProductFeatureValueUpdateInput = {
-  id: Scalars["ID"]["input"];
-  slug?: InputMaybe<Scalars["String"]["input"]>;
-  name?: InputMaybe<Scalars["String"]["input"]>;
+  id: string;
+  slug?: InputMaybe<string>;
+  name?: InputMaybe<string>;
 };
 
 export type ProductFeatureValuesInput = {
   create?: InputMaybe<ProductFeatureValueCreateInput[]>;
   update?: InputMaybe<ProductFeatureValueUpdateInput[]>;
-  delete?: InputMaybe<Scalars["ID"]["input"][]>;
+  delete?: InputMaybe<string[]>;
 };
 
 export type ProductFeatureUpdateInput = {
-  id: Scalars["ID"]["input"];
-  slug?: InputMaybe<Scalars["String"]["input"]>;
-  name?: InputMaybe<Scalars["String"]["input"]>;
+  id: string;
+  slug?: InputMaybe<string>;
+  name?: InputMaybe<string>;
   values?: InputMaybe<ProductFeatureValuesInput>;
 };
 
 export type ProductFeatureDeleteInput = {
-  id: Scalars["ID"]["input"];
+  id: string;
 };
 
 export type WarehouseCreateInput = {
-  code: Scalars["String"]["input"];
-  name: Scalars["String"]["input"];
-  isDefault?: InputMaybe<Scalars["Boolean"]["input"]>;
+  code: string;
+  name: string;
+  isDefault?: InputMaybe<boolean>;
 };
 
 export type WarehouseUpdateInput = {
-  id: Scalars["ID"]["input"];
-  code?: InputMaybe<Scalars["String"]["input"]>;
-  name?: InputMaybe<Scalars["String"]["input"]>;
-  isDefault?: InputMaybe<Scalars["Boolean"]["input"]>;
+  id: string;
+  code?: InputMaybe<string>;
+  name?: InputMaybe<string>;
+  isDefault?: InputMaybe<boolean>;
 };
 
 export type WarehouseDeleteInput = {
-  id: Scalars["ID"]["input"];
+  id: string;
 };
 
-// Pagination args
 export type PaginationArgs = {
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
+  first?: InputMaybe<number>;
+  after?: InputMaybe<string>;
+  last?: InputMaybe<number>;
+  before?: InputMaybe<string>;
 };
 
-// Model types (simplified - expand as needed)
-export type ProductModel = {
-  id: string;
-  publishedAt?: Date | null;
-  isPublished: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date | null;
-  title: string;
-  descriptionText?: string | null;
-  descriptionHtml?: string | null;
-  descriptionJson?: Record<string, unknown> | null;
-  excerpt?: string | null;
-  seoTitle?: string | null;
-  seoDescription?: string | null;
-};
-
-export type VariantModel = {
-  id: string;
-  productId: string;
-  sku?: string | null;
-  title?: string | null;
-  externalSystem?: string | null;
-  externalId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date | null;
-  width?: number | null;
-  length?: number | null;
-  height?: number | null;
-  weight?: number | null;
-};
-
-export type ProductOptionModel = {
-  id: string;
-  productId: string;
-  slug: string;
-  name: string;
-  displayType: OptionDisplayType;
-};
-
-export type ProductOptionValueModel = {
-  id: string;
-  optionId: string;
-  slug: string;
-  name: string;
-};
-
-export type ProductOptionSwatchModel = {
-  id: string;
-  optionValueId: string;
-  swatchType: SwatchType;
-  colorOne?: string | null;
-  colorTwo?: string | null;
-  fileId?: string | null;
-  metadata?: Record<string, unknown> | null;
-};
-
-export type ProductFeatureModel = {
-  id: string;
-  productId: string;
-  slug: string;
-  name: string;
-};
-
-export type ProductFeatureValueModel = {
-  id: string;
-  featureId: string;
-  slug: string;
-  name: string;
-};
-
-export type WarehouseModel = {
-  id: string;
-  code: string;
-  name: string;
-  isDefault: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type WarehouseStockModel = {
-  id: string;
-  warehouseId: string;
-  variantId: string;
-  quantityOnHand: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type VariantPriceModel = {
-  id: string;
-  variantId: string;
-  currency: CurrencyCode;
-  amountMinor: bigint;
-  compareAtMinor?: bigint | null;
-  effectiveFrom: Date;
-  effectiveTo?: Date | null;
-  recordedAt: Date;
-  isCurrent: boolean;
-};
-
-export type VariantCostModel = {
-  id: string;
-  variantId: string;
-  currency: CurrencyCode;
-  unitCostMinor: bigint;
-  effectiveFrom: Date;
-  effectiveTo?: Date | null;
-  recordedAt: Date;
-  isCurrent: boolean;
-};
-
-// Generic resolver type helper
-export type ResolverFn<TResult, TParent, TContext, TArgs> = (
+// Resolver fn helper
+type ResolverFn<TResult, TParent, TArgs> = (
   parent: TParent,
   args: TArgs,
-  context: TContext,
+  context: GraphQLContext,
   info: GraphQLResolveInfo
 ) => Promise<TResult> | TResult;
 
-// Resolver types
-export type Resolvers<ContextType = GraphQLContext> = {
-  // Scalars
-  DateTime?: GraphQLScalarType;
-  Email?: GraphQLScalarType;
-  BigInt?: GraphQLScalarType;
-  JSON?: GraphQLScalarType;
-
-  // Root types
+// Resolvers type
+export type Resolvers = {
   Query?: {
-    inventoryQuery?: ResolverFn<
-      Record<string, unknown>,
-      Record<string, unknown>,
-      ContextType,
-      Record<string, unknown>
-    >;
+    inventoryQuery?: ResolverFn<unknown, unknown, unknown>;
   };
 
   Mutation?: {
-    inventoryMutation?: ResolverFn<
-      Record<string, unknown>,
-      Record<string, unknown>,
-      ContextType,
-      Record<string, unknown>
-    >;
+    inventoryMutation?: ResolverFn<unknown, unknown, unknown>;
   };
 
   InventoryQuery?: {
-    node?: ResolverFn<unknown, unknown, ContextType, { id: string }>;
-    nodes?: ResolverFn<unknown[], unknown, ContextType, { ids: string[] }>;
-    product?: ResolverFn<
-      ProductModel | null,
-      unknown,
-      ContextType,
-      { id: string }
-    >;
-    products?: ResolverFn<unknown, unknown, ContextType, PaginationArgs>;
-    variant?: ResolverFn<
-      VariantModel | null,
-      unknown,
-      ContextType,
-      { id: string }
-    >;
-    variants?: ResolverFn<unknown, unknown, ContextType, PaginationArgs>;
-    warehouse?: ResolverFn<
-      WarehouseModel | null,
-      unknown,
-      ContextType,
-      { id: string }
-    >;
-    warehouses?: ResolverFn<unknown, unknown, ContextType, PaginationArgs>;
+    node?: ResolverFn<unknown, unknown, { id: string }>;
+    nodes?: ResolverFn<unknown[], unknown, { ids: string[] }>;
+    product?: ResolverFn<unknown, unknown, { id: string }>;
+    products?: ResolverFn<unknown, unknown, PaginationArgs>;
+    variant?: ResolverFn<unknown, unknown, { id: string }>;
+    variants?: ResolverFn<unknown, unknown, PaginationArgs>;
+    warehouse?: ResolverFn<unknown, unknown, { id: string }>;
+    warehouses?: ResolverFn<unknown, unknown, PaginationArgs>;
   };
 
   InventoryMutation?: {
-    productCreate?: ResolverFn<
-      unknown,
-      unknown,
-      ContextType,
-      { input: ProductCreateInput }
-    >;
-    productUpdate?: ResolverFn<
-      unknown,
-      unknown,
-      ContextType,
-      { input: ProductUpdateInput }
-    >;
-    productDelete?: ResolverFn<
-      unknown,
-      unknown,
-      ContextType,
-      { input: ProductDeleteInput }
-    >;
+    productCreate?: ResolverFn<unknown, unknown, { input: ProductCreateInput }>;
+    productUpdate?: ResolverFn<unknown, unknown, { input: ProductUpdateInput }>;
+    productDelete?: ResolverFn<unknown, unknown, { input: ProductDeleteInput }>;
     productPublish?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductPublishInput }
     >;
     productUnpublish?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductUnpublishInput }
     >;
-    variantCreate?: ResolverFn<
-      unknown,
-      unknown,
-      ContextType,
-      { input: VariantCreateInput }
-    >;
-    variantDelete?: ResolverFn<
-      unknown,
-      unknown,
-      ContextType,
-      { input: VariantDeleteInput }
-    >;
-    variantSetSku?: ResolverFn<
-      unknown,
-      unknown,
-      ContextType,
-      { input: VariantSetSkuInput }
-    >;
+    variantCreate?: ResolverFn<unknown, unknown, { input: VariantCreateInput }>;
+    variantDelete?: ResolverFn<unknown, unknown, { input: VariantDeleteInput }>;
+    variantSetSku?: ResolverFn<unknown, unknown, { input: VariantSetSkuInput }>;
     variantSetDimensions?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: VariantSetDimensionsInput }
     >;
     variantSetWeight?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: VariantSetWeightInput }
     >;
     variantSetPricing?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: VariantSetPricingInput }
     >;
     variantSetCost?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: VariantSetCostInput }
     >;
     productOptionCreate?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductOptionCreateInput }
     >;
     productOptionUpdate?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductOptionUpdateInput }
     >;
     productOptionDelete?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductOptionDeleteInput }
     >;
     productFeatureCreate?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductFeatureCreateInput }
     >;
     productFeatureUpdate?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductFeatureUpdateInput }
     >;
     productFeatureDelete?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: ProductFeatureDeleteInput }
     >;
     warehouseCreate?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: WarehouseCreateInput }
     >;
     warehouseUpdate?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: WarehouseUpdateInput }
     >;
     warehouseDelete?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: WarehouseDeleteInput }
     >;
     variantSetStock?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: VariantSetStockInput }
     >;
     variantSetMedia?: ResolverFn<
       unknown,
       unknown,
-      ContextType,
       { input: VariantSetMediaInput }
     >;
   };
 
   Product?: {
-    __resolveReference?: ResolverFn<
-      ProductModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    variants?: ResolverFn<unknown, ProductModel, ContextType, PaginationArgs>;
-    options?: ResolverFn<
-      ProductOptionModel[],
-      ProductModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    features?: ResolverFn<
-      ProductFeatureModel[],
-      ProductModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    variantsCount?: ResolverFn<
-      number,
-      ProductModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    description?: ResolverFn<
-      unknown,
-      ProductModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    __resolveReference?: ResolverFn<unknown, { id: string }, unknown>;
+    variants?: ResolverFn<unknown, unknown, PaginationArgs>;
+    options?: ResolverFn<unknown[], unknown, unknown>;
+    features?: ResolverFn<unknown[], unknown, unknown>;
+    variantsCount?: ResolverFn<number, unknown, unknown>;
   };
 
   Variant?: {
-    __resolveReference?: ResolverFn<
-      VariantModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    product?: ResolverFn<
-      ProductModel,
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    price?: ResolverFn<
-      VariantPriceModel | null,
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    priceHistory?: ResolverFn<
-      unknown,
-      VariantModel,
-      ContextType,
-      PaginationArgs
-    >;
-    cost?: ResolverFn<
-      VariantCostModel | null,
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    costHistory?: ResolverFn<
-      unknown,
-      VariantModel,
-      ContextType,
-      PaginationArgs
-    >;
-    selectedOptions?: ResolverFn<
-      unknown[],
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    dimensions?: ResolverFn<
-      unknown,
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    weight?: ResolverFn<
-      unknown,
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    stock?: ResolverFn<
-      WarehouseStockModel[],
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    inStock?: ResolverFn<
-      boolean,
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    media?: ResolverFn<
-      unknown[],
-      VariantModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    __resolveReference?: ResolverFn<unknown, { id: string }, unknown>;
+    product?: ResolverFn<unknown, unknown, unknown>;
+    price?: ResolverFn<unknown, unknown, unknown>;
+    priceHistory?: ResolverFn<unknown, unknown, PaginationArgs>;
+    cost?: ResolverFn<unknown, unknown, unknown>;
+    costHistory?: ResolverFn<unknown, unknown, PaginationArgs>;
+    selectedOptions?: ResolverFn<unknown[], unknown, unknown>;
+    stock?: ResolverFn<unknown[], unknown, unknown>;
+    inStock?: ResolverFn<boolean, unknown, unknown>;
+    media?: ResolverFn<unknown[], unknown, unknown>;
   };
 
   ProductOption?: {
-    __resolveReference?: ResolverFn<
-      ProductOptionModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    values?: ResolverFn<
-      ProductOptionValueModel[],
-      ProductOptionModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    values?: ResolverFn<unknown[], unknown, unknown>;
   };
 
   ProductOptionValue?: {
-    __resolveReference?: ResolverFn<
-      ProductOptionValueModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    swatch?: ResolverFn<
-      ProductOptionSwatchModel | null,
-      ProductOptionValueModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    swatch?: ResolverFn<unknown, unknown, unknown>;
   };
 
   ProductOptionSwatch?: {
-    __resolveReference?: ResolverFn<
-      ProductOptionSwatchModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    file?: ResolverFn<
-      unknown,
-      ProductOptionSwatchModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    file?: ResolverFn<unknown, unknown, unknown>;
   };
 
   ProductFeature?: {
-    __resolveReference?: ResolverFn<
-      ProductFeatureModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    values?: ResolverFn<
-      ProductFeatureValueModel[],
-      ProductFeatureModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-  };
-
-  ProductFeatureValue?: {
-    __resolveReference?: ResolverFn<
-      ProductFeatureValueModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
+    values?: ResolverFn<unknown[], unknown, unknown>;
   };
 
   Warehouse?: {
-    __resolveReference?: ResolverFn<
-      WarehouseModel | null,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-    stock?: ResolverFn<unknown, WarehouseModel, ContextType, PaginationArgs>;
-    variantsCount?: ResolverFn<
-      number,
-      WarehouseModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    stock?: ResolverFn<unknown, unknown, PaginationArgs>;
+    variantsCount?: ResolverFn<number, unknown, unknown>;
   };
 
   WarehouseStock?: {
-    warehouse?: ResolverFn<
-      WarehouseModel,
-      WarehouseStockModel,
-      ContextType,
-      Record<string, unknown>
-    >;
-    variant?: ResolverFn<
-      VariantModel,
-      WarehouseStockModel,
-      ContextType,
-      Record<string, unknown>
-    >;
+    warehouse?: ResolverFn<unknown, unknown, unknown>;
+    variant?: ResolverFn<unknown, unknown, unknown>;
   };
 
-  VariantPrice?: Record<string, unknown>;
-  VariantCost?: Record<string, unknown>;
-
-  // Connection types
-  ProductConnection?: Record<string, unknown>;
-  ProductEdge?: Record<string, unknown>;
-  VariantConnection?: Record<string, unknown>;
-  VariantEdge?: Record<string, unknown>;
-  WarehouseConnection?: Record<string, unknown>;
-  WarehouseEdge?: Record<string, unknown>;
-  WarehouseStockConnection?: Record<string, unknown>;
-  WarehouseStockEdge?: Record<string, unknown>;
-  VariantPriceConnection?: Record<string, unknown>;
-  VariantPriceEdge?: Record<string, unknown>;
-  VariantCostConnection?: Record<string, unknown>;
-  VariantCostEdge?: Record<string, unknown>;
-
-  // Payload types
-  ProductCreatePayload?: Record<string, unknown>;
-  ProductUpdatePayload?: Record<string, unknown>;
-  ProductDeletePayload?: Record<string, unknown>;
-  ProductPublishPayload?: Record<string, unknown>;
-  ProductUnpublishPayload?: Record<string, unknown>;
-  VariantCreatePayload?: Record<string, unknown>;
-  VariantDeletePayload?: Record<string, unknown>;
-  VariantSetSkuPayload?: Record<string, unknown>;
-  VariantSetDimensionsPayload?: Record<string, unknown>;
-  VariantSetWeightPayload?: Record<string, unknown>;
-  VariantSetPricingPayload?: Record<string, unknown>;
-  VariantSetCostPayload?: Record<string, unknown>;
-  ProductOptionCreatePayload?: Record<string, unknown>;
-  ProductOptionUpdatePayload?: Record<string, unknown>;
-  ProductOptionDeletePayload?: Record<string, unknown>;
-  ProductFeatureCreatePayload?: Record<string, unknown>;
-  ProductFeatureUpdatePayload?: Record<string, unknown>;
-  ProductFeatureDeletePayload?: Record<string, unknown>;
-  WarehouseCreatePayload?: Record<string, unknown>;
-  WarehouseUpdatePayload?: Record<string, unknown>;
-  WarehouseDeletePayload?: Record<string, unknown>;
-  VariantSetStockPayload?: Record<string, unknown>;
-  VariantSetMediaPayload?: Record<string, unknown>;
-
-  // Other types
-  PageInfo?: Record<string, unknown>;
-  GenericUserError?: Record<string, unknown>;
-  Description?: Record<string, unknown>;
-  VariantDimensions?: Record<string, unknown>;
-  VariantWeight?: Record<string, unknown>;
-  SelectedOption?: Record<string, unknown>;
-  VariantMediaItem?: Record<string, unknown>;
-
-  // Federation entities (external)
-  User?: {
-    __resolveReference?: ResolverFn<
-      unknown,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
+  Node?: {
+    __resolveType?: (obj: unknown) => string | null;
   };
-  ApiKey?: {
-    __resolveReference?: ResolverFn<
-      unknown,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
-  };
-  File?: {
-    __resolveReference?: ResolverFn<
-      unknown,
-      { id: string },
-      ContextType,
-      Record<string, unknown>
-    >;
+
+  UserError?: {
+    __resolveType?: (obj: unknown) => string;
   };
 };
