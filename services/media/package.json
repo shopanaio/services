@@ -22,7 +22,7 @@
     "@shopana/shared-service-config": "*",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.44.7",
-    "fastify": "^5.1.0",
+    "fastify": "^4.28.1",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "minio": "^8.0.6",
