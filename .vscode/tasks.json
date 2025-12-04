@@ -145,9 +145,9 @@
       }
     },
     {
-      "label": "🔨 Build All Packages",
+      "label": "🔨 Build All Services",
       "type": "shell",
-      "command": "yarn workspace @shopana/shared-kernel build && yarn workspace @shopana/shared-service-api build && yarn workspace @shopana/shared-service-config build && yarn workspace @shopana/orchestrator-service build && echo '✅ All packages built'",
+      "command": "yarn workspace @shopana/orchestrator-service build:all && echo '✅ All services built'",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
