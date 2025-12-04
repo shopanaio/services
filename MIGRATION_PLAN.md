@@ -7,9 +7,10 @@
 - NestJS используется только как DI-контейнер и модульная платформа (никаких контроллеров/роутеров в рамках миграции).
 - Каждый сервис получает собственный экземпляр `ServiceBroker` через `BrokerModule.forFeature({ serviceName })`, поэтому очереди RabbitMQ и логи изолированы на уровне сервиса.
 - In-memory RPC обслуживается единым `ActionRegistry` (singleton в процессе orchestrator'a). Все `register` заносятся в общий реестр, а любой `broker.call` читает из того же реестра, что повторяет поведение Moleculer.
+- `ServiceBroker` сам неймспейсит действия, очереди и DLX по `serviceName`, поэтому коллизии невозможны даже при опечатках.
 - `emit`/`on` и `broadcast`/`onBroadcast` идут через RabbitMQ (`@golevelup/nestjs-rabbitmq`). RabbitMQ можно отключить: брокер будет логировать предупреждение, но RPC продолжит работать.
 - `nest build` для сервисов, `tsc` для библиотек (`shared-kernel`).
-- Оркестратор создаёт `NestApplicationContext`, импортируя корневой `BrokerModule.forRootAsync` и модули сервисов. Для отладки отдельного сервиса поднимаем отдельный `NestApplicationContext`, где импортируем `BrokerModule.forRootAsync` + `BrokerModule.forFeature`.
+- Оркестратор создаёт `NestApplicationContext`, импортируя корневой `BrokerModule.forRoot` (конфиг резолвим до запуска) и модули сервисов. Для отладки отдельного сервиса поднимаем отдельный `NestApplicationContext`, где импортируем `BrokerModule.forRoot` + `BrokerModule.forFeature`.
 - Один `ServiceBroker` покрывает и in-memory RPC, и RabbitMQ события. Отдельных InMemoryBroker больше нет.
 
 ## Целевая структура
@@ -115,10 +116,10 @@ export class ActionRegistry {
 
 1. Каждый сервис создаёт свой `ServiceBroker` и передаёт уникальный `serviceName`.
 2. Конструктор принимает `ActionRegistry`, `ServiceBrokerOptions` и `AmqpConnection | null` (через отдельный токен `BROKER_AMQP`).
-3. Все `register` записываются в `ActionRegistry` и параллельно в локальный `Set`, чтобы очистить их при `onModuleDestroy`.
-4. `call` запрашивает обработчик из `ActionRegistry`, увеличивает счётчик `inFlight` и исполняет обработчик синхронно.
-5. События RabbitMQ такие же, как ранее, но префиксы очередей используют конкретный `serviceName`, а Dead Letter Exchange закреплён за `shopana.dlx`.
-6. `onModuleDestroy` отменяет подписки, ждёт завершение in-flight операций (до 30 секунд), затем удаляет локальные actions и закрывает `managedConnection`.
+3. `register` автоматически добавляет `serviceName` как префикс, если разработчик передал относительное имя (`getPaymentMethods`). Все квалифицированные имена записываются в `ActionRegistry` и локальный `Set`, чтобы очистить их при `onModuleDestroy`.
+4. `call` требует полностью квалифицированные имена (`inventory.getStock`). Метод валидирует строку, запрашивает обработчик из `ActionRegistry`, увеличивает счётчик `inFlight` и исполняет обработчик синхронно.
+5. События RabbitMQ такие же, как ранее, но префиксы очередей используют конкретный `serviceName`, Dead Letter Exchange закреплён за `shopana.dlx`, а имена очередей/ключей унифицированы через `serviceName`.
+6. `onModuleDestroy` отменяет подписки, ждёт завершение in-flight операций (до 30 секунд), затем удаляет локальные actions. Соединение закрывает глобальный `BrokerAmqpLifecycle`, зарегистрированный в корневом `BrokerModule`.
 
 ```typescript
 import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
@@ -159,16 +160,18 @@ export class ServiceBroker implements OnModuleDestroy {
     action: string,
     handler: ActionHandler<TParams, TResult>,
   ): void {
-    this.registry.register(action, handler as ActionHandler);
-    this.localActions.add(action);
-    this.logger.debug(`Registered action: ${action}`);
+    const qualifiedAction = this.qualifyAction(action);
+    this.registry.register(qualifiedAction, handler as ActionHandler);
+    this.localActions.add(qualifiedAction);
+    this.logger.debug(`Registered action: ${qualifiedAction}`);
   }
 
   async call<TResult = unknown, TParams = unknown>(
     action: string,
     params?: TParams,
   ): Promise<TResult> {
-    const handler = this.registry.resolve<TParams, TResult>(action);
+    const qualifiedAction = this.assertFullyQualified(action);
+    const handler = this.registry.resolve<TParams, TResult>(qualifiedAction);
 
     this.inFlight++;
     try {
@@ -303,8 +306,18 @@ export class ServiceBroker implements OnModuleDestroy {
       this.registry.deregister(action);
     }
     this.localActions.clear();
+  }
 
-    await this.amqp?.managedConnection.close();
+  private qualifyAction(action: string): string {
+    return action.includes('.') ? action : `${this.options.serviceName}.${action}`;
+  }
+
+  private assertFullyQualified(action: string): string {
+    if (!action.includes('.')) {
+      throw new Error(`Action "${action}" must include service prefix`);
+    }
+
+    return action;
   }
 }
 ```
@@ -316,18 +329,31 @@ export class ServiceBroker implements OnModuleDestroy {
 Требования:
 
 1. Глобальный модуль отвечает за `ActionRegistry`, подключение RabbitMQ и экспорт токенов.
-2. `BrokerModule.forRootAsync()` получает конфигурацию (URL RabbitMQ, prefetch) и импортирует `RabbitMQModule` только если URL задан.
+2. Основной путь — `BrokerModule.forRoot(options)`, который принимает уже готовую конфигурацию и синхронно решает, импортировать ли `RabbitMQModule` или stub-модуль. `forRootAsync` остаётся thin-обёрткой: она вызывает `options.useFactory`, ждёт конфиг снаружи (например, в orchestrator'e), потом делегирует в `forRoot`.
 3. `BrokerModule.forFeature({ serviceName })` регистрирует `SERVICE_BROKER` в модуле сервиса, создавая новый экземпляр `ServiceBroker`.
-4. Для локальных сценариев без RabbitMQ возвращается `BROKER_AMQP = null`: события логируются, RPC работает.
+4. Для локальных сценариев без RabbitMQ возвращается `BROKER_AMQP = null`: события логируются, RPC работает, `BrokerAmqpLifecycle` ничего не закрывает.
 5. Dead-letter инфраструктура: создаём exchanges `shopana.events`, `shopana.broadcast`, `shopana.dlx` и очередь `shopana.dlx.retry` (TTL + маршрутизация обратно в `shopana.events`). Это прописываем в плейбуках `ansible` или `docker-compose`.
 
 ```typescript
-import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider, Injectable, OnApplicationShutdown, Inject, Optional } from '@nestjs/common';
 import { RabbitMQModule, AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { ActionRegistry } from './ActionRegistry';
 import { ServiceBroker, ServiceBrokerOptions } from './ServiceBroker';
 
 export const BROKER_AMQP = Symbol('BROKER_AMQP');
+
+@Injectable()
+class BrokerAmqpLifecycle implements OnApplicationShutdown {
+  constructor(
+    @Optional()
+    @Inject(BROKER_AMQP)
+    private readonly amqp: AmqpConnection | null,
+  ) {}
+
+  async onApplicationShutdown(): Promise<void> {
+    await this.amqp?.managedConnection.close();
+  }
+}
 
 export interface BrokerModuleOptions {
   rabbitmqUrl?: string;
@@ -344,46 +370,43 @@ export interface BrokerFeatureOptions extends ServiceBrokerOptions {}
 @Global()
 @Module({})
 export class BrokerModule {
-  static forRootAsync(options: BrokerModuleAsyncOptions): DynamicModule {
-    const asyncProvider: Provider = {
-      provide: 'BROKER_MODULE_OPTIONS',
-      useFactory: options.useFactory,
-      inject: options.inject ?? [],
+  static forRoot(options: BrokerModuleOptions): DynamicModule {
+    const rabbitStub: DynamicModule = {
+      module: class BrokerRabbitStub {},
+      providers: [
+        {
+          provide: AmqpConnection,
+          useValue: null,
+        },
+      ],
+      exports: [AmqpConnection],
     };
 
-    const rabbitImport = RabbitMQModule.forRootAsync(RabbitMQModule, {
-      inject: ['BROKER_MODULE_OPTIONS'],
-      useFactory: async (cfg: BrokerModuleOptions) =>
-        cfg.rabbitmqUrl
-          ? {
-              uri: cfg.rabbitmqUrl,
-              connectionInitOptions: { wait: true },
-              exchanges: [
-                { name: 'shopana.events', type: 'topic', options: { durable: true } },
-                { name: 'shopana.broadcast', type: 'topic', options: { durable: true } },
-                { name: 'shopana.dlx', type: 'topic', options: { durable: true } },
-              ],
-              channels: {
-                default: { prefetchCount: cfg.prefetch ?? 20 },
-              },
-            }
-          : {
-              uri: undefined,
-            },
-    });
+    const rabbitModule = options.rabbitmqUrl
+      ? RabbitMQModule.forRoot(RabbitMQModule, {
+          uri: options.rabbitmqUrl,
+          connectionInitOptions: { wait: true },
+          exchanges: [
+            { name: 'shopana.events', type: 'topic', options: { durable: true } },
+            { name: 'shopana.broadcast', type: 'topic', options: { durable: true } },
+            { name: 'shopana.dlx', type: 'topic', options: { durable: true } },
+          ],
+          channels: {
+            default: { prefetchCount: options.prefetch ?? 20 },
+          },
+        })
+      : rabbitStub;
 
     return {
       module: BrokerModule,
-      imports: [rabbitImport],
+      imports: [rabbitModule],
       providers: [
-        asyncProvider,
         ActionRegistry,
         {
           provide: BROKER_AMQP,
-          useFactory: (amqp?: AmqpConnection, cfg?: BrokerModuleOptions) =>
-            cfg?.rabbitmqUrl ? amqp ?? null : null,
-          inject: [AmqpConnection, 'BROKER_MODULE_OPTIONS'],
+          useExisting: AmqpConnection,
         },
+        BrokerAmqpLifecycle,
       ],
       exports: [ActionRegistry, BROKER_AMQP],
     };
@@ -406,7 +429,7 @@ export class BrokerModule {
 }
 ```
 
-> Для окружений без DI-конфигурации можно добавить упрощённый `BrokerModule.forRoot` (с синхронными настройками), но основным остаётся `forRootAsync` — он читает URL RabbitMQ из `@shopana/shared-service-config`.
+> Async-вариант строится через `ConfigurableModuleBuilder`: `forRootAsync` ждёт `useFactory`, после чего возвращает результат `BrokerModule.forRoot(resolvedOptions)`. Это позволяет принимать конфиг хоть из `@shopana/shared-service-config`, но не инициировать `RabbitMQModule`, пока URL не известен. Во всех сервисах и в orchestrator'e используем именно `forRoot`, чтобы решения о RabbitMQ принимались детерминированно.
 
 ### 1.4 Kernel и экспорты
 
@@ -426,9 +449,10 @@ export class BrokerModule {
 
 1. Создать Nest-модуль (`xxx.module.ts`), который импортирует `BrokerModule.forFeature({ serviceName: 'xxx' })` и объявляет `xxx.service.ts`.
 2. В сервисе инжектируем `SERVICE_BROKER`, создаём `Kernel` и в `onModuleInit` регистрируем actions через `broker.register`.
-3. Если нужны события — `await broker.on(...)` и `await broker.onBroadcast(...)` (возвращают промисы).
-4. HTTP/GraphQL сервера поднимаем вручную, сохраняем хэндлы и закрываем в `onModuleDestroy`.
-5. Старые файлы Moleculer (`service.ts`, `esbuild.js`, `loader.js`) удаляем.
+3. `broker.register` принимает относительные имена (`'getPaymentMethods'`), а `broker.call` вне сервиса всегда использует полностью квалифицированные строки (`'payments.getPaymentMethods'`).
+4. Если нужны события — `await broker.on(...)` и `await broker.onBroadcast(...)` (возвращают промисы).
+5. HTTP/GraphQL сервера поднимаем вручную, сохраняем хэндлы и закрываем в `onModuleDestroy`.
+6. Старые файлы Moleculer (`service.ts`, `esbuild.js`, `loader.js`) удаляем.
 
 ### Пример: payments
 
@@ -458,7 +482,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     this.kernel = new Kernel(this.broker, this.logger);
 
-    this.broker.register('payments.getPaymentMethods', (params) =>
+    this.broker.register('getPaymentMethods', (params) =>
       this.kernel.executeScript(paymentMethods, params),
     );
 
@@ -485,12 +509,12 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
 ## Фаза 3. Orchestrator
 
 1. `services/orchestrator/src/orchestrator.module.ts`:
-   - Импортирует `ConfigModule` (если надо), `BrokerModule.forRootAsync` (получает `rabbitmqUrl`, `prefetch` из `@shopana/shared-service-config`), затем `PaymentsModule`, `InventoryModule`, `MediaModule`, `AppsModule` и т.д.
-   - Порядок: сначала `BrokerModule.forRootAsync`, потом сервисные модули.
+   - Импортирует `ConfigModule` (если надо), синхронно резолвит брокерный конфиг (`await sharedServiceConfig.load()` в bootstrap'e) и передаёт его в `BrokerModule.forRoot({ rabbitmqUrl, prefetch })`, затем подключает `PaymentsModule`, `InventoryModule`, `MediaModule`, `AppsModule` и т.д.
+   - Порядок: сначала `BrokerModule.forRoot`, потом сервисные модули. Если где-то необходим lazy-подход, допустимо использовать `forRootAsync`, но он внутри просто вызывает `forRoot` после `await useFactory`.
 2. `services/orchestrator/src/main.ts`:
    - `NestFactory.createApplicationContext(OrchestratorModule, { logger: ... })`.
    - Перехватывает `SIGTERM`/`SIGINT` → `await app.close()`.
-   - В dev-режиме можно запускать отдельный сервис через его модуль (импортируя `BrokerModule.forRootAsync` + конкретный `BrokerModule.forFeature`) для изолированного тестирования.
+   - В dev-режиме можно запускать отдельный сервис через его модуль (импортируя `BrokerModule.forRoot` с локальными настройками + конкретный `BrokerModule.forFeature`) для изолированного тестирования.
 3. RabbitMQ инфраструктура:
    - Через `docker-compose.rabbitmq.yml` и ansible добавить декларацию очередей `shopana.events.*`, `shopana.broadcast.*`, DLX `shopana.dlx`, очередь `shopana.dlx.retry` с TTL=10 секунд и маршрутизацией `events.*`.
    - Проверить политики повторов (`x-dead-letter-exchange`, `x-message-ttl`), чтобы сообщения корректно перекидывались между очередями.
@@ -511,11 +535,14 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
 
 ## Тестирование
 
+- `yarn workspace @shopana/shared-kernel test` — unit-тесты на `ActionRegistry`, `ServiceBroker` и `BrokerAmqpLifecycle`. Покрываем сценарии: авто-префикс `register`, отказ `call` без префикса, корректное снятие подписок, очистка `localActions` и ожидание in-flight операций.
 - `yarn workspaces foreach -A --topological run build` — убедиться, что `shared-kernel` собирается `tsc`, а сервисы — `nest build`.
 - `yarn workspace @shopana/orchestrator-service start` — запуск orchestrator'a с новым BrokerModule.
+- Мини-интеграционный тест модуля: поднять `TestingModule` с `BrokerModule.forRoot({ rabbitmqUrl: undefined })` → убедиться, что DI даёт `BROKER_AMQP = null` и `isHealthy()` возвращает `true`; аналогичный тест с реальным URL проверяет биндинг `AmqpConnection`.
 - Проверить in-memory RPC:
   1. Зарегистрировать два действия с разными сервисами → `broker.call` из другого модуля должен видеть их через `ActionRegistry`.
-  2. Попробовать зарегистрировать дубликат — ожидаем ошибку (unit-тест на `ActionRegistry`).
+  2. Передать действие без префикса при регистрации → брокер допишет `serviceName.` автоматически, а `ActionRegistry` по-прежнему застрахован от коллизий.
+  3. Попробовать зарегистрировать дубликат — ожидаем ошибку (unit-тест на `ActionRegistry`).
 - Проверить события RabbitMQ:
   1. `broker.emit('inventory.update.request', payload)` — очередь `shopana.events.inventory.inventory.update.request` получает одно сообщение.
   2. `broker.broadcast('cache.invalidate', payload)` — все сервисы, подписанные через `onBroadcast`, получают событие.
