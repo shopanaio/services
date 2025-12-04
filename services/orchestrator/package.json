@@ -6,12 +6,9 @@
   "description": "Service orchestrator for running multiple services in a single process",
   "scripts": {
     "dev": "node --experimental-specifier-resolution=node --loader ts-node/esm --loader ./loader.mjs src/main.ts",
-    "dev:legacy": "nodemon",
     "build": "nest build && node -e \"const fs=require('fs'),p=require('path');const fix=d=>{fs.readdirSync(d).forEach(f=>{const fp=p.join(d,f);fs.statSync(fp).isDirectory()?fix(fp):f.endsWith('.js')&&fs.writeFileSync(fp,fs.readFileSync(fp,'utf8').replace(/from ['\\\"](\\.\\.\\/|\\.\\/)([^'\\\"]+)['\\\"]/g,(m,pre,path)=>path.endsWith('.js')?m:\\`from '\\${pre}\\${path}.js'\\`))})}; fix('./dist')\"",
-    "build:legacy": "node esbuild.js",
     "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/media-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn build",
-    "start": "node dist/main.js",
-    "start:dev": "yarn build && node --watch dist/main.js"
+    "start": "node dist/main.js"
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^5.5.0",
@@ -34,15 +31,10 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
-    "@shopana/build-tools": "0.0.1",
     "@swc/cli": "^0.7.9",
     "@swc/core": "^1.15.2",
     "@types/node": "^22.7.4",
-    "esbuild": "^0.24.2",
-    "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.5.4"
   }
 }
