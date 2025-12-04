@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/delivery.module.ts"
+    ".": {
+      "import": "./dist/delivery.module.js",
+      "default": "./src/delivery.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

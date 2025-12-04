@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/pricing.module.ts"
+    ".": {
+      "import": "./dist/pricing.module.js",
+      "default": "./src/pricing.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

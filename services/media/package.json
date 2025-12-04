@@ -5,7 +5,10 @@
   "type": "module",
   "main": "dist/index.js",
   "exports": {
-    ".": "./src/media.module.ts"
+    ".": {
+      "import": "./dist/media.module.js",
+      "default": "./src/media.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

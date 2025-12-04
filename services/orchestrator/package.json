@@ -6,8 +6,8 @@
   "description": "Service orchestrator for running multiple services in a single process",
   "scripts": {
     "dev": "node --experimental-specifier-resolution=node --loader ts-node/esm --loader ./loader.mjs src/main.ts",
-    "build": "nest build && node -e \"const fs=require('fs'),p=require('path');const fix=d=>{fs.readdirSync(d).forEach(f=>{const fp=p.join(d,f);fs.statSync(fp).isDirectory()?fix(fp):f.endsWith('.js')&&fs.writeFileSync(fp,fs.readFileSync(fp,'utf8').replace(/from ['\\\"](\\.\\.\\/|\\.\\/)([^'\\\"]+)['\\\"]/g,(m,pre,path)=>path.endsWith('.js')?m:\\`from '\\${pre}\\${path}.js'\\`))})}; fix('./dist')\"",
-    "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/media-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn build",
+    "build": "npx nest build && node -e \"const fs=require('fs'),p=require('path');const fix=d=>{fs.readdirSync(d).forEach(f=>{const fp=p.join(d,f);fs.statSync(fp).isDirectory()?fix(fp):f.endsWith('.js')&&fs.writeFileSync(fp,fs.readFileSync(fp,'utf8').replace(/from ['\\\"](\\.\\.\\/|\\.\\/)([^'\\\"]+)['\\\"]/g,(m,pre,path)=>path.endsWith('.js')?m:\\`from '\\${pre}\\${path}.js'\\`))})}; fix('./dist')\"",
+    "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/media-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn workspace @shopana/checkout-service build && yarn workspace @shopana/orders-service build && yarn build",
     "start": "node dist/main.js"
   },
   "dependencies": {

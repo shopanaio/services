@@ -3,26 +3,13 @@ import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
 import { copyFileSync, mkdirSync } from "fs";
 import { dirname } from "path";
 
-// Build main entry point
-const mainOptions = {
-  entryPoints: ["src/index.ts"],
+// Build module entry point for orchestrator
+const moduleOptions = {
+  entryPoints: ["src/apps.module.ts"],
   platform: "node",
   bundle: true,
   format: "esm",
-  outfile: "dist/src/index.js",
-  packages: "external", // 🔥 ключевая настройка
-  sourcemap: true,
-  minify: false,
-  plugins: [addJsExtensionPlugin],
-};
-
-// Build service entry point for orchestrator
-const serviceOptions = {
-  entryPoints: ["src/service.ts"],
-  platform: "node",
-  bundle: true,
-  format: "esm",
-  outfile: "dist/src/service.js",
+  outfile: "dist/apps.module.js",
   packages: "external",
   sourcemap: true,
   minify: false,
@@ -30,18 +17,14 @@ const serviceOptions = {
 };
 
 try {
-  await build(mainOptions);
-  await build(serviceOptions);
+  await build(moduleOptions);
   
-  // Copy GraphQL schema files to dist/src/schema (relative to bundled service.js location)
-  const schemaFiles = [
-    { src: "src/api/schema/base.graphql", dest: "dist/src/schema/base.graphql" },
-    { src: "src/api/schema/apps.graphql", dest: "dist/src/schema/apps.graphql" },
-  ];
-  
+  // Copy GraphQL schema files to dist/schema (server.ts uses join(__dirname, "schema"))
+  const schemaFiles = ["base.graphql", "apps.graphql"];
+
+  mkdirSync("dist/schema", { recursive: true });
   for (const file of schemaFiles) {
-    mkdirSync(dirname(file.dest), { recursive: true });
-    copyFileSync(file.src, file.dest);
+    copyFileSync(`src/api/schema/${file}`, `dist/schema/${file}`);
   }
   
   console.log("Build completed successfully");

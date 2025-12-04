@@ -1,26 +1,15 @@
 import { build } from "esbuild";
 import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
+import { copyFileSync, mkdirSync } from "fs";
+import { dirname } from "path";
 
-// Build main entry point
-const mainOptions = {
-  entryPoints: ["src/index.ts"],
+// Build module entry point for orchestrator
+const moduleOptions = {
+  entryPoints: ["src/checkout.module.ts"],
   platform: "node",
   bundle: true,
   format: "esm",
-  outfile: "dist/src/index.js",
-  packages: "external",
-  sourcemap: true,
-  minify: false,
-  plugins: [addJsExtensionPlugin],
-};
-
-// Build service entry point for orchestrator
-const serviceOptions = {
-  entryPoints: ["src/service.ts"],
-  platform: "node",
-  bundle: true,
-  format: "esm",
-  outfile: "dist/src/service.js",
+  outfile: "dist/checkout.module.js",
   packages: "external",
   sourcemap: true,
   minify: false,
@@ -28,15 +17,10 @@ const serviceOptions = {
 };
 
 try {
-  await build(mainOptions);
-  await build(serviceOptions);
+  await build(moduleOptions);
 
-  // Copy GraphQL schema files to dist/src/interfaces/gql-storefront-api/schema
-  // (relative to bundled service.js location at dist/src/service.js)
-  const { copyFileSync, mkdirSync } = await import("fs");
-  const { dirname } = await import("path");
-
-  const schemaFiles = [
+  // Copy GraphQL schema files to dist/schema (same pattern as orders service)
+  const storefrontSchemaFiles = [
     "parent.graphql",
     "base.graphql",
     "checkout.graphql",
@@ -47,12 +31,9 @@ try {
     "country.graphql",
   ];
 
-  for (const file of schemaFiles) {
-    const src = `src/interfaces/gql-storefront-api/schema/${file}`;
-    // Copy to dist/gql-storefront-api/schema/ (relative to bundled service.js at dist/src/)
-    const dest = `dist/gql-storefront-api/schema/${file}`;
-    mkdirSync(dirname(dest), { recursive: true });
-    copyFileSync(src, dest);
+  mkdirSync("dist/schema", { recursive: true });
+  for (const file of storefrontSchemaFiles) {
+    copyFileSync(`src/interfaces/gql-storefront-api/schema/${file}`, `dist/schema/${file}`);
   }
 
   console.log("Build completed successfully");

@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/checkout.module.ts"
+    ".": {
+      "import": "./dist/checkout.module.js",
+      "default": "./src/checkout.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

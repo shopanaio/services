@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/payments.module.ts"
+    ".": {
+      "import": "./dist/payments.module.js",
+      "default": "./src/payments.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

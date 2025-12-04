@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/orders.module.ts"
+    ".": {
+      "import": "./dist/orders.module.js",
+      "default": "./src/orders.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

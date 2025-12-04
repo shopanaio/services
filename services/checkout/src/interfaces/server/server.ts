@@ -42,8 +42,8 @@ export async function startServer(broker: ServiceBroker) {
   // Load GraphQL schema
   // Use import.meta.url to get the current file's directory, works when run from orchestrator
   const currentDir = dirname(fileURLToPath(import.meta.url));
-  // Schemas are located relative to this file
-  const schemaPath = join(currentDir, "..", "gql-storefront-api", "schema");
+  // In prod: currentDir = dist/, schemaPath = dist/schema (copied by esbuild)
+  const schemaPath = join(currentDir, "schema");
   const storefrontSchemas = [
     join(schemaPath, "parent.graphql"),
     join(schemaPath, "base.graphql"),

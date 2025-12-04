@@ -5,7 +5,10 @@
   "type": "module",
   "main": "dist/index.js",
   "exports": {
-    ".": "./src/inventory.module.ts"
+    ".": {
+      "import": "./dist/inventory.module.js",
+      "default": "./src/inventory.module.ts"
+    }
   },
   "scripts": {
     "dev": "tsx src/index.ts",

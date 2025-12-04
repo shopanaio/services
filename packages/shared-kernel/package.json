@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Microkernel architecture with Transaction Script pattern for Shopana microservices",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
   },
   "scripts": {
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",

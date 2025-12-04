@@ -1,26 +1,13 @@
 import { build } from "esbuild";
 import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
 
-// Build main entry point
-const mainOptions = {
-  entryPoints: ["src/index.ts"],
+// Build module entry point for orchestrator
+const moduleOptions = {
+  entryPoints: ["src/pricing.module.ts"],
   platform: "node",
   bundle: true,
   format: "esm",
-  outfile: "dist/src/index.js",
-  packages: "external",
-  sourcemap: true,
-  minify: false,
-  plugins: [addJsExtensionPlugin],
-};
-
-// Build service entry point for orchestrator
-const serviceOptions = {
-  entryPoints: ["src/service.ts"],
-  platform: "node",
-  bundle: true,
-  format: "esm",
-  outfile: "dist/src/service.js",
+  outfile: "dist/pricing.module.js",
   packages: "external",
   sourcemap: true,
   minify: false,
@@ -28,8 +15,7 @@ const serviceOptions = {
 };
 
 try {
-  await build(mainOptions);
-  await build(serviceOptions);
+  await build(moduleOptions);
   console.log("Build completed successfully");
 } catch (error) {
   console.error("Build failed");
