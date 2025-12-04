@@ -43,7 +43,6 @@
     "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
     "knex": "^3.1.0",
-    "nats": "^2.29.3",
     "pg": "^8.16.3",
     "pino": "^9.3.2",
     "reflect-metadata": "^0.2.2",

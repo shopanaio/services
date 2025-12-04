@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import type { InventoryUpdateTask } from '@shopana/import-plugin-sdk';
 import { assertInventoryUpdateTask } from '@shopana/import-plugin-sdk';
 import { getOffers, type GetOffersParams, type GetOffersResult } from './scripts/getOffers';
-import { processInventoryUpdate } from './service';
+import { processInventoryUpdate } from './processInventoryUpdate';
 import { config } from './config';
 import { InventoryObjectStorage } from './storage';
 import { createApolloServer } from './api/graphql-admin/server';

@@ -9,7 +9,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
-import type { ServiceBroker } from "moleculer";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
 import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";

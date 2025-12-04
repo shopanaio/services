@@ -1,4 +1,4 @@
-import type { ServiceBroker } from "moleculer";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
 import { fileURLToPath } from "url";

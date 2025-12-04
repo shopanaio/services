@@ -9,7 +9,7 @@ import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/applic
 import { createServiceApi } from "@shopana/shared-service-api";
 import type { ServiceApi } from "@shopana/shared-service-api";
 import { CheckoutService } from "@src/application/services/checkoutService";
-import type { ServiceBroker } from "moleculer";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
 
 export class App {

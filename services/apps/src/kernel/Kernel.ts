@@ -1,4 +1,4 @@
-import { Kernel as BaseKernel, MoleculerLogger } from "@shopana/shared-kernel";
+import { Kernel as BaseKernel } from "@shopana/shared-kernel";
 import type { AppsKernelServices, SlotsRepository } from "./types";
 import type { Logger } from "@shopana/shared-kernel";
 
@@ -30,4 +30,3 @@ export type {
   TransactionScript,
 } from "./types";
 export { KernelError } from "./types";
-export { MoleculerLogger };

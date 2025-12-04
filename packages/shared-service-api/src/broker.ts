@@ -1,19 +1,18 @@
-import type { CallingOptions, ServiceBroker } from 'moleculer';
-import type { NestBroker } from '@shopana/shared-kernel';
+import type { ServiceBroker } from '@shopana/shared-kernel';
 
 /**
- * Options that are compatible with Moleculer and Nest brokers.
+ * Options for broker calls.
  */
-export type BrokerCallOptions = CallingOptions | { meta?: Record<string, unknown> };
+export type BrokerCallOptions = { meta?: Record<string, unknown> };
 
 /**
- * Public broker surface shared between Moleculer and Nest orchestrators.
+ * Public broker interface for service communication.
  */
 export interface BrokerLike {
   call(action: string, params?: unknown, opts?: BrokerCallOptions): Promise<unknown>;
 }
 
 /**
- * Union type that helps consumers express either of the two supported brokers.
+ * Broker type alias for ServiceBroker.
  */
-export type Broker = ServiceBroker | NestBroker;
+export type Broker = ServiceBroker;

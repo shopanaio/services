@@ -22,6 +22,11 @@
     },
     "typeRoots": ["../../node_modules/@types"]
   },
+  "ts-node": {
+    "esm": true,
+    "swc": true,
+    "experimentalSpecifierResolution": "node"
+  },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

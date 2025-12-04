@@ -13,7 +13,7 @@ import { OrderReadRepository as AppOrderReadRepository } from "@src/application/
 import { createServiceApi } from "@shopana/shared-service-api";
 import type { ServiceApi } from "@shopana/shared-service-api";
 import { OrderService } from "@src/application/services/orderService";
-import type { ServiceBroker } from "moleculer";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
 import { OrderNumberRepository } from "@src/infrastructure/orderNumber/orderNumberRepository";
 

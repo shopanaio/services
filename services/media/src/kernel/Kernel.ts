@@ -1,4 +1,4 @@
-import { Kernel as BaseKernel, MoleculerLogger } from "@shopana/shared-kernel";
+import { Kernel as BaseKernel } from "@shopana/shared-kernel";
 import type { MediaKernelServices } from "./types";
 import type { Logger } from "@shopana/shared-kernel";
 import type { Repository } from "../repositories";
@@ -12,6 +12,5 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
   }
 }
 
-export { MoleculerLogger };
 export type { MediaKernelServices, ScriptContext, TransactionScript } from "./types";
 export { KernelError } from "./types";

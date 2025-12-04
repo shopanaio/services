@@ -31,7 +31,6 @@
     "@golevelup/nestjs-rabbitmq": "^4.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
-    "moleculer": "^0.14.34",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   }

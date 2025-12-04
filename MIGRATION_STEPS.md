@@ -71,9 +71,9 @@
 - [x] Создать `payments.service.ts`
 - [x] Action: `getPaymentMethods`
 - [x] Добавить в `OrchestratorModule`
-- [ ] Удалить `service.ts`, `moleculer.ts`
+- [x] Удалить `service.ts`, `moleculer.ts`
 
-**Done:** Payments модуль создан и добавлен в orchestrator
+**Done:** Payments модуль создан, Moleculer файлы удалены
 
 ---
 
@@ -85,9 +85,9 @@
 - [x] Event: `inventory.update.request` → `@RabbitSubscribe`
 - [x] GraphQL server (Fastify + Apollo)
 - [x] Добавить в `OrchestratorModule`
-- [ ] Удалить `service.ts`, `moleculer.ts`
+- [x] Удалить `service.ts`, `moleculer.ts`
 
-**Done:** Inventory модуль с events и GraphQL создан
+**Done:** Inventory модуль с events и GraphQL создан, Moleculer файлы удалены
 
 ---
 
@@ -97,9 +97,9 @@
 - [x] Создать `apps.service.ts`
 - [x] Action: `execute`
 - [x] Добавить в `OrchestratorModule`
-- [ ] Удалить `service.ts`, `moleculer.ts`
+- [x] Удалить `service.ts`, `moleculer.ts`
 
-**Done:** Apps модуль с pluginManager создан
+**Done:** Apps модуль с pluginManager создан, Moleculer файлы удалены
 
 ---
 
@@ -109,9 +109,9 @@
 - [x] Создать `media.service.ts`
 - [x] GraphQL server
 - [x] Добавить в `OrchestratorModule`
-- [ ] Удалить `service.ts`, `moleculer.ts`
+- [x] Удалить `service.ts`, `moleculer.ts`
 
-**Done:** Media модуль с GraphQL создан
+**Done:** Media модуль с GraphQL создан, Moleculer файлы удалены
 
 ---
 
@@ -122,36 +122,36 @@
 ### Checkout ✅
 - [x] `checkout.module.ts`, `checkout.service.ts`
 - [x] Actions: `getById`, `getCheckoutById`
-- [ ] Удалить Moleculer файлы
+- [x] Удалить Moleculer файлы
 
 ### Delivery ✅
 - [x] `delivery.module.ts`, `delivery.service.ts`
 - [x] Actions: `shippingMethods`, `createDeliveryGroups`
-- [ ] Удалить Moleculer файлы
+- [x] Удалить Moleculer файлы
 
 ### Orders ✅
 - [x] `orders.module.ts`, `orders.service.ts`
 - [x] Actions: `createOrder`, `getOrderById`
-- [ ] Удалить Moleculer файлы
+- [x] Удалить Moleculer файлы
 
 ### Pricing ✅
 - [x] `pricing.module.ts`, `pricing.service.ts`
 - [x] Actions: `getAllDiscounts`, `validateDiscount`, `evaluateDiscounts`
-- [ ] Удалить Moleculer файлы
+- [x] Удалить Moleculer файлы
 
-**Done:** Все сервисы мигрированы на NestJS
+**Done:** Все сервисы мигрированы на NestJS, Moleculer файлы удалены
 
 ---
 
-## Этап 8: Очистка
+## Этап 8: Очистка ✅
 
-- [ ] Удалить `MoleculerLogger`
-- [ ] Удалить `nestjs/NestBroker`
-- [ ] Удалить `nestjs/ServiceSchemaAdapter`
-- [ ] Удалить `moleculer`, `@types/moleculer`, `moleculer-repl`, `nats`
+- [x] Удалить `MoleculerLogger`
+- [x] Удалить `nestjs/NestBroker`
+- [x] Удалить `nestjs/ServiceSchemaAdapter`
+- [x] Удалить `moleculer`, `@types/moleculer`, `moleculer-repl`, `nats`
 - [ ] Обновить CI/CD, Dockerfile
 
-**Done:** Нет Moleculer в коде
+**Done:** Moleculer полностью удалён из кода и зависимостей
 
 ---
 
