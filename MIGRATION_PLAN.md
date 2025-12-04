@@ -5,6 +5,7 @@
 - Переходим от Moleculer ServiceSchema к NestJS-модулям, сохраняя существующий программный интерфейс (`broker.call`, `broker.emit`, `Kernel`).
 - Yarn 4 workspaces остаются единственным пакетом менеджером.
 - NestJS используется только как DI-контейнер и модульная платформа (никаких контроллеров/роутеров в рамках миграции).
+- Архитектура — модульный монолит: все сервисы крутятся в одном процессе orchestrator'а, индивидуальные деплойменты/запуск сервисов отдельно не планируются.
 - Глобальные зависимости (`ActionRegistry`, AMQP, lifecycle) живут в `BrokerCoreModule.forRoot`, а per-service инстансы `ServiceBroker` выдаёт `BrokerModule.forFeature({ serviceName })`, поэтому очереди RabbitMQ и логи изолированы на уровне сервиса.
 - In-memory RPC обслуживается единым `ActionRegistry` (singleton в процессе orchestrator'a). Все `register` заносятся в общий реестр, а любой `broker.call` читает из того же реестра, что повторяет поведение Moleculer.
 - `ServiceBroker` сам неймспейсит действия, очереди и DLX по `serviceName`, поэтому коллизии невозможны даже при опечатках.
