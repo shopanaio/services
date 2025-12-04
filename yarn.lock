@@ -4197,6 +4197,8 @@ __metadata:
     typescript: "npm:^5.5.4"
   peerDependencies:
     esbuild: ^0.24.2
+  bin:
+    fix-esm-imports: ./dist/fix-esm-imports.js
   languageName: unknown
   linkType: soft
 
@@ -4413,6 +4415,7 @@ __metadata:
     "@nestjs/core": "npm:^10.0.0"
     "@nestjs/platform-fastify": "npm:^10.0.0"
     "@shopana/apps-service": "npm:0.0.1"
+    "@shopana/build-tools": "npm:0.0.1"
     "@shopana/checkout-service": "npm:0.0.1"
     "@shopana/delivery-service": "npm:0.0.1"
     "@shopana/inventory-service": "npm:0.0.1"
