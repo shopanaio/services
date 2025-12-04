@@ -9,6 +9,12 @@ import { processInventoryUpdate } from './processInventoryUpdate';
 import { config } from './config';
 import { InventoryObjectStorage } from './storage';
 import { createApolloServer } from './api/graphql-admin/server';
+import type { ProductUpdatedEvent, StockChangedEvent } from './inventory.events';
+
+export interface EmitTestEventParams {
+  eventType: 'product.updated' | 'stock.changed';
+  payload: ProductUpdatedEvent | StockChangedEvent;
+}
 
 @Injectable()
 export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
@@ -27,6 +33,30 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
       'getOffers',
       (params) => this.kernel.executeScript(getOffers, params!),
     );
+
+    // Test action: emit events via RabbitMQ
+    this.broker.register<EmitTestEventParams, { success: boolean; message: string }>(
+      'emitTestEvent',
+      async (params) => {
+        if (!params) {
+          return { success: false, message: 'Missing params' };
+        }
+
+        await this.broker.emit(params.eventType, params.payload);
+        this.logger.log(`Emitted test event: ${params.eventType}`);
+        return { success: true, message: `Event ${params.eventType} emitted` };
+      },
+    );
+
+    // Quick test action to verify RabbitMQ is working
+    this.broker.register('pingRabbit', async () => {
+      const health = this.broker.getHealth();
+      if (health.connected) {
+        await this.broker.emit('inventory.ping', { timestamp: new Date().toISOString() });
+        return { status: 'ok', message: 'RabbitMQ connected, ping event emitted' };
+      }
+      return { status: 'disconnected', message: 'RabbitMQ not connected' };
+    });
 
     const serverConfig = { port: config.port, grpcHost: config.platformGrpcHost };
     this.graphqlServer = await createApolloServer(serverConfig);
