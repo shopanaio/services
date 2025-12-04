@@ -1,12 +1,10 @@
-/**
- * @shopana/shared-kernel
- *
- * Microkernel architecture package for Shopana microservices.
- * Implements Transaction Script pattern with minimal dependencies.
- */
-
 export { Kernel } from './Kernel';
 export { MoleculerLogger } from './MoleculerLogger';
+export { ActionRegistry, type ActionHandler } from './broker/ActionRegistry';
+export { ServiceBroker, type ServiceBrokerOptions } from './broker/ServiceBroker';
+export { BrokerCoreModule } from './broker/BrokerCoreModule';
+export { BrokerModule, type BrokerFeatureOptions } from './broker/BrokerModule';
+export { SERVICE_BROKER, BROKER_AMQP } from './broker/tokens';
 export {
   type Logger,
   type BaseKernelServices,
