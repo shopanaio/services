@@ -6,62 +6,62 @@
 
 ---
 
-## Этап 1: Shared Kernel
+## Этап 1: Shared Kernel ✅
 
 ### 1.1 ActionRegistry
-- [ ] Создать `packages/shared-kernel/src/broker/ActionRegistry.ts`
-- [ ] Методы: `register`, `deregister`, `resolve`, `list`
-- [ ] Защита от дублирования actions
-- [ ] Unit-тесты
+- [x] Создать `packages/shared-kernel/src/broker/ActionRegistry.ts`
+- [x] Методы: `register`, `deregister`, `resolve`, `list`
+- [x] Защита от дублирования actions
+- [x] Unit-тесты
 
 ### 1.2 Tokens
-- [ ] Создать `packages/shared-kernel/src/broker/tokens.ts`
-- [ ] Токены: `SERVICE_BROKER`, `BROKER_AMQP`
+- [x] Создать `packages/shared-kernel/src/broker/tokens.ts`
+- [x] Токены: `SERVICE_BROKER`, `BROKER_AMQP`
 
 ### 1.3 ServiceBroker
-- [ ] Создать `packages/shared-kernel/src/broker/ServiceBroker.ts`
-- [ ] `register` с авто-префиксом `serviceName`
-- [ ] `call` с валидацией qualified имён
-- [ ] `emit` и `broadcast` для RabbitMQ
-- [ ] `onModuleDestroy` с ожиданием in-flight
-- [ ] `isHealthy`, `getHealth`
-- [ ] Unit-тесты
+- [x] Создать `packages/shared-kernel/src/broker/ServiceBroker.ts`
+- [x] `register` с авто-префиксом `serviceName`
+- [x] `call` с валидацией qualified имён
+- [x] `emit` и `broadcast` для RabbitMQ
+- [x] `onModuleDestroy` с ожиданием in-flight
+- [x] `isHealthy`, `getHealth`
+- [x] Unit-тесты
 
 ### 1.4 BrokerCoreModule
-- [ ] Создать `packages/shared-kernel/src/broker/BrokerCoreModule.ts`
-- [ ] `forRoot` с опциональным RabbitMQ
-- [ ] Авто-создание exchanges: `shopana.events`, `shopana.broadcast`, `shopana.dlx`
-- [ ] `BrokerAmqpLifecycle` для graceful shutdown
-- [ ] Stub для работы без RabbitMQ
+- [x] Создать `packages/shared-kernel/src/broker/BrokerCoreModule.ts`
+- [x] `forRoot` с опциональным RabbitMQ
+- [x] Авто-создание exchanges: `shopana.events`, `shopana.broadcast`, `shopana.dlx`
+- [x] `BrokerAmqpLifecycle` для graceful shutdown
+- [x] Stub для работы без RabbitMQ
 
 ### 1.5 BrokerModule
-- [ ] Создать `packages/shared-kernel/src/broker/BrokerModule.ts`
-- [ ] `forFeature({ serviceName })`
+- [x] Создать `packages/shared-kernel/src/broker/BrokerModule.ts`
+- [x] `forFeature({ serviceName })`
 
 ### 1.6 Экспорты и зависимости
-- [ ] Обновить `packages/shared-kernel/src/index.ts`
-- [ ] Добавить `@golevelup/nestjs-rabbitmq`, `@nestjs/common`
-- [ ] Настроить `tsconfig.json` для импорта как source
+- [x] Обновить `packages/shared-kernel/src/index.ts`
+- [x] Добавить `@golevelup/nestjs-rabbitmq`, `@nestjs/common`
+- [x] Настроить `tsconfig.json` для импорта как source
 
-**Done:** Shared kernel импортируется в сервисы, unit-тесты проходят
+**Done:** Shared kernel импортируется в сервисы, unit-тесты проходят ✅
 
 ---
 
-## Этап 2: Orchestrator
+## Этап 2: Orchestrator ✅
 
 ### 2.1 Модуль
-- [ ] Создать `services/orchestrator/src/orchestrator.module.ts`
-- [ ] Импортировать `BrokerCoreModule.forRoot`
+- [x] Создать `services/orchestrator/src/orchestrator.module.ts`
+- [x] Импортировать `BrokerCoreModule.forRoot`
 
 ### 2.2 Bootstrap
-- [ ] Создать `services/orchestrator/src/main.ts`
-- [ ] `NestFactory.createApplicationContext`
-- [ ] Обработка `SIGTERM`/`SIGINT`
+- [x] Создать `services/orchestrator/src/main.ts`
+- [x] `NestFactory.createApplicationContext`
+- [x] Обработка `SIGTERM`/`SIGINT`
 
 ### 2.3 Package.json
-- [ ] Скрипты: `build`, `dev`, `start`
+- [x] Скрипты: `build`, `dev`, `start`
 
-**Done:** Orchestrator запускается, exchanges создаются автоматически
+**Done:** Orchestrator запускается, exchanges создаются автоматически ✅
 
 ---
 
