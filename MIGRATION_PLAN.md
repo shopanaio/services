@@ -10,7 +10,7 @@
 - In-memory RPC обслуживается единым `ActionRegistry` (singleton в процессе orchestrator'a). Все `register` заносятся в общий реестр, а любой `broker.call` читает из того же реестра, что повторяет поведение Moleculer.
 - `ServiceBroker` сам неймспейсит действия, очереди и DLX по `serviceName`, поэтому коллизии невозможны даже при опечатках.
 - События RabbitMQ публикуются через `ServiceBroker.emit/broadcast`, а обработчики оформляются `@RabbitSubscribe`/`@RabbitHandler` из `@golevelup/nestjs-rabbitmq`. RabbitMQ можно отключить: брокер будет логировать предупреждение, но RPC продолжит работать.
-- `nest build` для сервисов, `tsc` для библиотек (`shared-kernel`).
+- `nest build` для сервисов. `shared-kernel` не билдится отдельно — импортируется как source code (TypeScript) и компилируется вместе с сервисами.
 - Оркестратор создаёт `NestApplicationContext`, импортируя `BrokerCoreModule.forRoot` (конфиг резолвим до запуска) и модули сервисов. Для отладки отдельного сервиса поднимаем отдельный `NestApplicationContext`, где импортируем `BrokerCoreModule.forRoot` + `BrokerModule.forFeature`.
 - Один `ServiceBroker` покрывает и in-memory RPC, и RabbitMQ события. Отдельных InMemoryBroker больше нет.
 
@@ -417,7 +417,7 @@ export class BrokerModule {
 - `packages/shared-kernel/src/broker/tokens.ts` экспортирует `SERVICE_BROKER`, `BROKER_AMQP`, связанные типы.
 - `packages/shared-kernel/src/index.ts` экспортирует `ActionRegistry`, `ServiceBroker`, `BrokerCoreModule`, `BrokerModule`, `Kernel`, `SERVICE_BROKER`, `ServiceBrokerOptions`.
 - `package.json` (`shared-kernel`):
-  - `build`: `tsc -p tsconfig.build.json`.
+  - Без отдельного `build` скрипта — код компилируется вместе с сервисами.
   - `dependencies`: `@golevelup/nestjs-rabbitmq`, `@nestjs/common`.
   - `devDependencies`: `typescript`, `@types/node`.
 
@@ -529,7 +529,7 @@ export class PaymentsService implements OnModuleInit, OnModuleDestroy {
 ## Тестирование
 
 - `yarn workspace @shopana/shared-kernel test` — unit-тесты на `ActionRegistry`, `ServiceBroker` и `BrokerAmqpLifecycle`. Покрываем сценарии: авто-префикс `register`, отказ `call` без префикса, ожидание in-flight операций без RabbitMQ, корректная очистка `localActions`.
-- `yarn workspaces foreach -A --topological run build` — убедиться, что `shared-kernel` собирается `tsc`, а сервисы — `nest build`.
+- `yarn workspaces foreach -A --topological run build` — убедиться, что сервисы собираются через `nest build` (включая `shared-kernel` как source).
 - `yarn workspace @shopana/orchestrator-service start` — запуск orchestrator'a с `BrokerCoreModule` + сервисными модулями на `BrokerModule.forFeature`.
 - Мини-интеграционный тест модуля: поднять `TestingModule` с `BrokerCoreModule.forRoot({ rabbitmqUrl: undefined })` → убедиться, что DI даёт `BROKER_AMQP = null` и `isHealthy()` возвращает `true`; аналогичный тест с реальным URL проверяет биндинг `AmqpConnection`.
 - Проверить in-memory RPC:
