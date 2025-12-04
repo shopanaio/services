@@ -4,6 +4,9 @@
   "description": "Inventory microservice with microkernel + transaction script architecture",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./src/inventory.module.ts"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:watch": "tsx watch src/index.ts",

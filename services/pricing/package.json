@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/pricing.module.ts"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:watch": "tsx watch src/index.ts",

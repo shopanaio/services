@@ -65,75 +65,81 @@
 
 ---
 
-## Этап 3: Payments
+## Этап 3: Payments ✅
 
-- [ ] Создать `payments.module.ts`
-- [ ] Создать `payments.service.ts`
-- [ ] Action: `getPaymentMethods`
-- [ ] Добавить в `OrchestratorModule`
+- [x] Создать `payments.module.ts`
+- [x] Создать `payments.service.ts`
+- [x] Action: `getPaymentMethods`
+- [x] Добавить в `OrchestratorModule`
 - [ ] Удалить `service.ts`, `moleculer.ts`
 
-**Note:** Только RPC, событий нет
+**Done:** Payments модуль создан и добавлен в orchestrator
 
 ---
 
-## Этап 4: Inventory
+## Этап 4: Inventory ✅
 
-- [ ] Создать `inventory.module.ts`
-- [ ] Создать `inventory.service.ts`
-- [ ] Action: `getOffers`
-- [ ] Event: `inventory.update.request` → `@RabbitSubscribe`
-- [ ] GraphQL server (Fastify + Apollo)
-- [ ] Добавить в `OrchestratorModule`
+- [x] Создать `inventory.module.ts`
+- [x] Создать `inventory.service.ts`
+- [x] Action: `getOffers`
+- [x] Event: `inventory.update.request` → `@RabbitSubscribe`
+- [x] GraphQL server (Fastify + Apollo)
+- [x] Добавить в `OrchestratorModule`
 - [ ] Удалить `service.ts`, `moleculer.ts`
 
-**Note:** Единственный сервис с событиями
+**Done:** Inventory модуль с events и GraphQL создан
 
 ---
 
-## Этап 5: Apps
+## Этап 5: Apps ✅
 
-- [ ] Создать `apps.module.ts`
-- [ ] Создать `apps.service.ts`
-- [ ] Перенести actions
-- [ ] Добавить в `OrchestratorModule`
+- [x] Создать `apps.module.ts`
+- [x] Создать `apps.service.ts`
+- [x] Action: `execute`
+- [x] Добавить в `OrchestratorModule`
 - [ ] Удалить `service.ts`, `moleculer.ts`
 
-**Note:** Только RPC
+**Done:** Apps модуль с pluginManager создан
 
 ---
 
-## Этап 6: Media
+## Этап 6: Media ✅
 
-- [ ] Создать `media.module.ts`
-- [ ] Создать `media.service.ts`
-- [ ] Перенести actions
-- [ ] Добавить в `OrchestratorModule`
+- [x] Создать `media.module.ts`
+- [x] Создать `media.service.ts`
+- [x] GraphQL server
+- [x] Добавить в `OrchestratorModule`
 - [ ] Удалить `service.ts`, `moleculer.ts`
 
-**Note:** Только RPC
+**Done:** Media модуль с GraphQL создан
 
 ---
 
-## Этап 7: Остальные сервисы
+## Этап 7: Остальные сервисы ✅
 
 Для каждого — только RPC, событий нет:
 
-### Checkout
-- [ ] `checkout.module.ts`, `checkout.service.ts`
+### Checkout ✅
+- [x] `checkout.module.ts`, `checkout.service.ts`
+- [x] Actions: `getById`, `getCheckoutById`
 - [ ] Удалить Moleculer файлы
 
-### Delivery
-- [ ] `delivery.module.ts`, `delivery.service.ts`
+### Delivery ✅
+- [x] `delivery.module.ts`, `delivery.service.ts`
+- [x] Actions: `shippingMethods`, `createDeliveryGroups`
 - [ ] Удалить Moleculer файлы
 
-### Orders
-- [ ] `orders.module.ts`, `orders.service.ts`
+### Orders ✅
+- [x] `orders.module.ts`, `orders.service.ts`
+- [x] Actions: `createOrder`, `getOrderById`
 - [ ] Удалить Moleculer файлы
 
-### Pricing
-- [ ] `pricing.module.ts`, `pricing.service.ts`
+### Pricing ✅
+- [x] `pricing.module.ts`, `pricing.service.ts`
+- [x] Actions: `getAllDiscounts`, `validateDiscount`, `evaluateDiscounts`
 - [ ] Удалить Moleculer файлы
+
+**Done:** Все сервисы мигрированы на NestJS
 
 ---
 

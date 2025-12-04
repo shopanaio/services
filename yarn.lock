@@ -1794,7 +1794,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@golevelup/nestjs-discovery@npm:^4.0.0":
+"@golevelup/nestjs-discovery@npm:^4.0.0, @golevelup/nestjs-discovery@npm:^4.0.3":
   version: 4.0.3
   resolution: "@golevelup/nestjs-discovery@npm:4.0.3"
   dependencies:
@@ -1834,6 +1834,23 @@ __metadata:
     reflect-metadata: ^0.1.0
     rxjs: ^7.x
   checksum: 10/e025df16a9ad122ff93c181054302b1694c511444dfe482130137c23a38275fbdb85137f5d8b2c6fb0a7731442d333fcd1f00f7719365ea5c00c1e5d413e96d3
+  languageName: node
+  linkType: hard
+
+"@golevelup/nestjs-rabbitmq@npm:^5.5.0":
+  version: 5.7.0
+  resolution: "@golevelup/nestjs-rabbitmq@npm:5.7.0"
+  dependencies:
+    "@golevelup/nestjs-discovery": "npm:^4.0.3"
+    amqp-connection-manager: "npm:^4.1.14"
+    amqplib: "npm:^0.10.5"
+    lodash: "npm:^4.17.21"
+  peerDependencies:
+    "@nestjs/common": ^10.x || ^11.0.0
+    "@nestjs/core": ^10.x || ^11.0.0
+    reflect-metadata: ^0.2.2
+    rxjs: ^7.x
+  checksum: 10/51066a7cd9b43379133e8be7b90e6afed1f3f8d93f382f9b151a28cbfc9272e341d0750db130267f701e9820f8d2c6c8405f19248f3c92ceca26a552ca29f93b
   languageName: node
   linkType: hard
 
@@ -4125,7 +4142,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/apps-service@workspace:services/apps":
+"@shopana/apps-service@npm:0.0.1, @shopana/apps-service@workspace:services/apps":
   version: 0.0.0-use.local
   resolution: "@shopana/apps-service@workspace:services/apps"
   dependencies:
@@ -4198,7 +4215,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/checkout-service@workspace:services/checkout":
+"@shopana/checkout-service@npm:0.0.1, @shopana/checkout-service@workspace:services/checkout":
   version: 0.0.0-use.local
   resolution: "@shopana/checkout-service@workspace:services/checkout"
   dependencies:
@@ -4252,7 +4269,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/delivery-service@workspace:services/delivery":
+"@shopana/delivery-service@npm:0.0.1, @shopana/delivery-service@workspace:services/delivery":
   version: 0.0.0-use.local
   resolution: "@shopana/delivery-service@workspace:services/delivery"
   dependencies:
@@ -4322,7 +4339,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/inventory-service@workspace:services/inventory":
+"@shopana/inventory-service@npm:0.0.1, @shopana/inventory-service@workspace:services/inventory":
   version: 0.0.0-use.local
   resolution: "@shopana/inventory-service@workspace:services/inventory"
   dependencies:
@@ -4363,7 +4380,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/media-service@workspace:services/media":
+"@shopana/media-service@npm:0.0.1, @shopana/media-service@workspace:services/media":
   version: 0.0.0-use.local
   resolution: "@shopana/media-service@workspace:services/media"
   dependencies:
@@ -4404,11 +4421,20 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/orchestrator-service@workspace:services/orchestrator"
   dependencies:
+    "@golevelup/nestjs-rabbitmq": "npm:^5.5.0"
     "@nestjs/cli": "npm:^11.0.10"
     "@nestjs/common": "npm:^10.0.0"
     "@nestjs/core": "npm:^10.0.0"
     "@nestjs/platform-fastify": "npm:^10.0.0"
+    "@shopana/apps-service": "npm:0.0.1"
     "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/checkout-service": "npm:0.0.1"
+    "@shopana/delivery-service": "npm:0.0.1"
+    "@shopana/inventory-service": "npm:0.0.1"
+    "@shopana/media-service": "npm:0.0.1"
+    "@shopana/orders-service": "npm:0.0.1"
+    "@shopana/payments-service": "npm:0.0.1"
+    "@shopana/pricing-service": "npm:0.0.1"
     "@shopana/shared-kernel": "npm:1.0.0"
     "@shopana/shared-service-config": "npm:0.0.1"
     "@swc/cli": "npm:^0.7.9"
@@ -4428,7 +4454,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/orders-service@workspace:services/orders":
+"@shopana/orders-service@npm:0.0.1, @shopana/orders-service@workspace:services/orders":
   version: 0.0.0-use.local
   resolution: "@shopana/orders-service@workspace:services/orders"
   dependencies:
@@ -4493,7 +4519,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/payments-service@workspace:services/payments":
+"@shopana/payments-service@npm:0.0.1, @shopana/payments-service@workspace:services/payments":
   version: 0.0.0-use.local
   resolution: "@shopana/payments-service@workspace:services/payments"
   dependencies:
@@ -4559,7 +4585,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/pricing-service@workspace:services/pricing":
+"@shopana/pricing-service@npm:0.0.1, @shopana/pricing-service@workspace:services/pricing":
   version: 0.0.0-use.local
   resolution: "@shopana/pricing-service@workspace:services/pricing"
   dependencies:
@@ -6180,6 +6206,27 @@ __metadata:
   peerDependencies:
     amqplib: "*"
   checksum: 10/f82c3f4d73a7abcf958987423f580eb6ed37e063e345bd9d3c0860199708eeacdc6579f9139bd49857eb6dee1e68f339f68f7708ed6cbce3a96e17e648128faa
+  languageName: node
+  linkType: hard
+
+"amqp-connection-manager@npm:^4.1.14":
+  version: 4.1.15
+  resolution: "amqp-connection-manager@npm:4.1.15"
+  dependencies:
+    promise-breaker: "npm:^6.0.0"
+  peerDependencies:
+    amqplib: "*"
+  checksum: 10/4c84884156cbdc10a07884996f9789eb4a658117c06336e4806660d43e66b330b009d8cd08719eb95bb0543454846d9ccbde13af8b596a7f9cb2854881fdda50
+  languageName: node
+  linkType: hard
+
+"amqplib@npm:^0.10.5":
+  version: 0.10.9
+  resolution: "amqplib@npm:0.10.9"
+  dependencies:
+    buffer-more-ints: "npm:~1.0.0"
+    url-parse: "npm:~1.5.10"
+  checksum: 10/99f8cb123cd92903b314e2c829cee080c1d86e702c827624ff7dca4422af23d57301b193441796c0f52ad3544f177484cfe18be25f5d039f80ec7322eedcea5b
   languageName: node
   linkType: hard
 
@@ -13292,6 +13339,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"promise-breaker@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "promise-breaker@npm:6.0.0"
+  checksum: 10/6f7ad5e55d3f434dc1e02907c3294dc4a44f9962d9af9de186095c75c8f76d11feeb927e96ec9e177fcc9209690defb5c64eeac4767e7c3dd4f120e9d14fb0c8
+  languageName: node
+  linkType: hard
+
 "promise-retry@npm:^2.0.1":
   version: 2.0.1
   resolution: "promise-retry@npm:2.0.1"
@@ -15606,7 +15660,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"url-parse@npm:~1.5.1":
+"url-parse@npm:~1.5.1, url-parse@npm:~1.5.10":
   version: 1.5.10
   resolution: "url-parse@npm:1.5.10"
   dependencies:

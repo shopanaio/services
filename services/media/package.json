@@ -4,6 +4,9 @@
   "description": "Media microservice for file and media management",
   "type": "module",
   "main": "dist/index.js",
+  "exports": {
+    ".": "./src/media.module.ts"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:watch": "tsx watch src/index.ts",

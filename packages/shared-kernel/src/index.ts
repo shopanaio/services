@@ -1,5 +1,6 @@
 export { Kernel } from './Kernel';
 export { MoleculerLogger } from './MoleculerLogger';
+export { NestLogger } from './NestLogger';
 export { ActionRegistry, type ActionHandler } from './broker/ActionRegistry';
 export { ServiceBroker, type ServiceBrokerOptions } from './broker/ServiceBroker';
 export { BrokerCoreModule, type BrokerCoreModuleOptions } from './broker/BrokerCoreModule';
