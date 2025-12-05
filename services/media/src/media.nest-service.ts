@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import type { FastifyInstance } from 'fastify';
 import { config } from './config';
-import { createApolloServer } from './api/graphql-admin/server';
+import { startServer } from './api/graphql-admin/server';
 
 @Injectable()
 export class MediaNestService implements OnModuleInit, OnModuleDestroy {
@@ -9,9 +9,8 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
   private fastify: FastifyInstance | null = null;
 
   async onModuleInit() {
-    this.fastify = await createApolloServer({ port: config.port, grpcHost: config.platformGrpcHost });
-    const address = await this.fastify.listen({ port: config.port, host: '0.0.0.0' });
-    this.logger.log(`Media GraphQL Admin API running at ${address}${config.graphqlPath}`);
+    this.fastify = await startServer({ port: config.port, grpcHost: config.platformGrpcHost });
+    this.logger.log(`Media GraphQL Admin API running at http://localhost:${config.port}${config.graphqlPath}`);
   }
 
   async onModuleDestroy() {

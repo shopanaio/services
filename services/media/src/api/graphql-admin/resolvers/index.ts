@@ -17,7 +17,26 @@ export const resolvers: Resolvers = {
       throw new Error("Not implemented");
     },
     file: async (_parent, { id }, _ctx) => {
-      throw new Error("Not implemented");
+      // Simple mock return for testing
+      return {
+        id,
+        provider: "S3",
+        url: `https://cdn.example.com/files/${id}`,
+        mimeType: "image/png",
+        ext: "png",
+        sizeBytes: "1024",
+        originalName: "test-file.png",
+        width: 800,
+        height: 600,
+        durationMs: null,
+        altText: "Test file",
+        sourceUrl: null,
+        isProcessed: true,
+        meta: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        deletedAt: null,
+      };
     },
     files: async (_parent, args, _ctx) => {
       throw new Error("Not implemented");

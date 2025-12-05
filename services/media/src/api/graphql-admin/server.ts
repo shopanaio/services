@@ -6,11 +6,11 @@ import fastifyApollo, {
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
-import { join, dirname } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { resolvers } from "./resolvers/index.js";
-import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import type { MediaContext } from "../../context/index.js";
+import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+import { resolvers } from "./resolvers/index.js";
 
 export interface GraphQLContext {
   requestId: string;
@@ -51,11 +51,7 @@ export async function startServer(config: ServerConfig) {
   // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
-  const schemaFiles = [
-    "relay.graphql",
-    "base.graphql",
-    "file.graphql",
-  ];
+  const schemaFiles = ["relay.graphql", "base.graphql", "file.graphql"];
 
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(readFileSync(join(__dirname, file), "utf-8")),
@@ -73,13 +69,15 @@ export async function startServer(config: ServerConfig) {
 
   // Admin context middleware
   const grpcConfig = {
-    getGrpcHost: () => config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
+    getGrpcHost: () =>
+      config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
   };
   app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
-    path: "/graphql",
+    path: "/graphql/admin",
+
     context: async (request, _reply): Promise<GraphQLContext> => {
       // For introspection, return minimal context
       const isIntrospection =

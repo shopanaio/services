@@ -82,20 +82,20 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
           | undefined,
       });
 
-      if (!ctx || !ctx.project || !ctx.user) {
+      if (!ctx || !ctx.project || !ctx.tenant) {
         return reply
           .status(401)
           .send({ data: null, errors: [{ message: "Unauthorized" }] });
       }
 
       request.project = ctx.project;
-      request.user = ctx.user;
+      request.user = ctx.tenant;
 
       // Set context in async local storage
       setContext({
         slug,
         project: ctx.project,
-        user: ctx.user,
+        user: ctx.tenant,
       });
     } catch (error) {
       console.error("Failed to fetch admin context via gRPC:", error);
