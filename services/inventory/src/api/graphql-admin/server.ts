@@ -10,7 +10,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { resolvers } from "./resolvers/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
-import { getContext, type InventoryContext } from "../../context/index.js";
+import type { InventoryContext } from "../../context/index.js";
 
 export interface GraphQLContext {
   requestId: string;
@@ -103,12 +103,11 @@ export async function startServer(config: ServerConfig) {
         };
       }
 
-      const ctx = getContext();
       return {
         requestId: request.id as string,
-        slug: ctx.slug,
-        project: ctx.project,
-        user: ctx.user,
+        slug: request.headers["x-pj-key"] as string,
+        project: request.project,
+        user: request.user,
       };
     },
   });
