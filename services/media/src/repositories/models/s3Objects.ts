@@ -1,15 +1,15 @@
 import {
-  pgTable,
   uuid,
   varchar,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { mediaSchema } from "./schema";
 import { files } from "./files";
 import { buckets } from "./buckets";
 
-export const s3Objects = pgTable(
+export const s3Objects = mediaSchema.table(
   "s3_objects",
   {
     fileId: uuid("file_id")

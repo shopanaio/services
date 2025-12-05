@@ -1,5 +1,4 @@
 import {
-  pgTable,
   uuid,
   varchar,
   bigint,
@@ -7,9 +6,10 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { mediaSchema } from "./schema";
 import { buckets } from "./buckets";
 
-export const uploadSessions = pgTable(
+export const uploadSessions = mediaSchema.table(
   "upload_sessions",
   {
     id: uuid("id").primaryKey(),

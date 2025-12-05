@@ -1,5 +1,4 @@
 import {
-  pgTable,
   uuid,
   varchar,
   jsonb,
@@ -7,9 +6,10 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { mediaSchema } from "./schema";
 import { buckets } from "./buckets";
 
-export const bucketRotationLog = pgTable(
+export const bucketRotationLog = mediaSchema.table(
   "bucket_rotation_log",
   {
     id: uuid("id").primaryKey(),

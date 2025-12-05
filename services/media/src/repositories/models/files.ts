@@ -1,5 +1,4 @@
 import {
-  pgTable,
   uuid,
   varchar,
   text,
@@ -12,8 +11,9 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { mediaSchema } from "./schema";
 
-export const files = pgTable(
+export const files = mediaSchema.table(
   "files",
   {
     id: uuid("id").primaryKey(),

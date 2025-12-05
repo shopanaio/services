@@ -1,13 +1,13 @@
 import {
-  pgTable,
   uuid,
   varchar,
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
+import { mediaSchema } from "./schema";
 import { files } from "./files";
 
-export const externalMedia = pgTable(
+export const externalMedia = mediaSchema.table(
   "external_media",
   {
     fileId: uuid("file_id")

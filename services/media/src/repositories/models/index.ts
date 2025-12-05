@@ -1,3 +1,6 @@
+// Schema
+export * from "./schema";
+
 // S3 Buckets
 export * from "./buckets";
 

@@ -9,6 +9,7 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
+import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
@@ -26,14 +27,20 @@ export interface GraphQLContext {
 export interface ServerConfig {
   port: number;
   grpcHost?: string;
+  databaseUrl: string;
 }
 
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
  */
-export async function startServer(config: ServerConfig) {
+export async function startServer(serverConfig: ServerConfig) {
   const isDevelopment = process.env.NODE_ENV === "development";
+
+  // Run migrations on startup
+  console.log("[media] Running database migrations...");
+  await runMigrations(serverConfig.databaseUrl);
+  console.log("[media] Database migrations completed");
 
   const app = fastify({
     logger: isDevelopment
@@ -74,7 +81,7 @@ export async function startServer(config: ServerConfig) {
   // Admin context middleware
   const grpcConfig = {
     getGrpcHost: () =>
-      config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
+      serverConfig.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
   };
   app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
 
@@ -126,12 +133,12 @@ export async function startServer(config: ServerConfig) {
 
   // Start server
   await app.listen({
-    port: config.port,
+    port: serverConfig.port,
     host: "0.0.0.0",
   });
 
   app.log.info(
-    `Media GraphQL Admin API ready at http://localhost:${config.port}/graphql`
+    `Media GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
   );
 
   return app;
