@@ -66,36 +66,42 @@ export class BucketRepository {
   }
 
   /**
-   * Get or create a default bucket for the project using config values.
-   * If an active bucket exists, returns it.
-   * If no active bucket, creates one from config and marks old ones as archived.
+   * Find bucket by name (global, not per-project).
+   */
+  async findByBucketName(bucketName: string): Promise<Bucket | null> {
+    const result = await this.db
+      .select()
+      .from(buckets)
+      .where(
+        and(
+          eq(buckets.bucketName, bucketName),
+          eq(buckets.status, "active"),
+          isNull(buckets.deletedAt)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Get or create a default bucket using config values.
+   * Buckets are global (shared across projects).
+   * If bucket with config name exists, returns it.
+   * If not, creates one from config.
    */
   async getOrCreateDefault(projectId: string): Promise<Bucket> {
-    // Try to find existing active bucket
-    const existing = await this.findActive(projectId);
+    const bucketName = config.storage.bucket;
+
+    // Try to find existing bucket by name (global)
+    const existing = await this.findByBucketName(bucketName);
     if (existing) {
       return existing;
     }
 
-    // Archive any existing buckets for this project
-    await this.db
-      .update(buckets)
-      .set({
-        status: "archived",
-        archivedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(buckets.projectId, projectId),
-          eq(buckets.status, "active"),
-          isNull(buckets.deletedAt)
-        )
-      );
-
     // Create new bucket from config
     return this.create(projectId, {
-      bucketName: config.storage.bucket,
+      bucketName,
       region: config.storage.region ?? "us-east-1",
       endpointUrl: config.storage.endpoint,
       status: "active",

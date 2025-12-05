@@ -30,12 +30,9 @@ export const buckets = mediaSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex("idx_buckets_active_per_project")
-      .on(table.projectId)
-      .where(sql`status = 'active' AND deleted_at IS NULL`),
     index("idx_buckets_project_id").on(table.projectId),
     index("idx_buckets_status")
-      .on(table.projectId, table.status)
+      .on(table.status)
       .where(sql`deleted_at IS NULL`),
   ]
 );

@@ -8,6 +8,13 @@
       "when": 1764971408606,
       "tag": "0000_clean_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764978475822,
+      "tag": "0001_mushy_franklin_richards",
+      "breakpoints": true
     }
   ]
 }
