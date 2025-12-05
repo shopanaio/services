@@ -1,6 +1,9 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
 import type { CoreProject, CoreUser } from "@shopana/platform-api";
-import { createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
+import {
+  createCoreContextClient,
+  type GrpcConfigPort,
+} from "@shopana/platform-api";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { setContext } from "../../context/index.js";
 
 declare module "fastify" {
@@ -9,6 +12,7 @@ declare module "fastify" {
     user: CoreUser;
   }
 }
+//
 
 function headerIsTrue(value: unknown): boolean {
   if (typeof value === "string") return value.toLowerCase() === "true";
@@ -49,19 +53,21 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
     }
 
     try {
-      const slug = request.headers["x-shopana-slug"] as string | undefined;
+      const slug = request.headers["x-pj-key"] as string | undefined;
       const authorization = request.headers.authorization;
 
       if (!slug) {
-        return reply
-          .status(400)
-          .send({ data: null, errors: [{ message: "Missing x-shopana-slug header" }] });
+        return reply.status(400).send({
+          data: null,
+          errors: [{ message: "Missing x-shopana-slug header" }],
+        });
       }
 
       if (!authorization) {
-        return reply
-          .status(401)
-          .send({ data: null, errors: [{ message: "Missing authorization header" }] });
+        return reply.status(401).send({
+          data: null,
+          errors: [{ message: "Missing authorization header" }],
+        });
       }
 
       const ctx = await contextClient.fetchContext({
@@ -69,8 +75,12 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
         "x-shopana-slug": slug,
         "x-trace-id": request.headers["x-trace-id"] as string | undefined,
         "x-span-id": request.headers["x-span-id"] as string | undefined,
-        "x-correlation-id": request.headers["x-correlation-id"] as string | undefined,
-        "x-causation-id": request.headers["x-causation-id"] as string | undefined,
+        "x-correlation-id": request.headers["x-correlation-id"] as
+          | string
+          | undefined,
+        "x-causation-id": request.headers["x-causation-id"] as
+          | string
+          | undefined,
       });
 
       if (!ctx || !ctx.project || !ctx.user) {

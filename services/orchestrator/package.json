@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Service orchestrator for running multiple services in a single process",
   "scripts": {
-    "dev": "node --experimental-specifier-resolution=node --loader ts-node/esm --loader ./loader.mjs src/main.ts",
+    "dev": "nodemon",
     "build": "node esbuild.js",
     "build:all": "yarn workspace @shopana/apps-service build && yarn workspace @shopana/payments-service build && yarn workspace @shopana/inventory-service build && yarn workspace @shopana/media-service build && yarn workspace @shopana/pricing-service build && yarn workspace @shopana/delivery-service build && yarn workspace @shopana/checkout-service build && yarn workspace @shopana/orders-service build && yarn build",
     "start": "node dist/main.js"
@@ -33,7 +33,9 @@
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^22.7.4",
     "esbuild": "^0.24.2",
+    "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.4"
   }
 }

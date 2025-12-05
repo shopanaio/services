@@ -18,7 +18,7 @@
     "**/dist/**",
     "**/node_modules/**"
   ],
-  "exec": "tsx --tsconfig tsconfig.json src/nest-orchestrator.ts",
+  "exec": "tsx --tsconfig tsconfig.json src/main.ts",
   "legacyWatch": true,
   "delay": 1000
 }

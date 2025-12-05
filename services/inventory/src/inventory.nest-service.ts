@@ -8,7 +8,7 @@ import { getOffers, type GetOffersParams, type GetOffersResult } from './scripts
 import { processInventoryUpdate } from './processInventoryUpdate';
 import { config } from './config';
 import { InventoryObjectStorage } from './storage';
-import { createApolloServer } from './api/graphql-admin/server';
+import { startServer } from './api/graphql-admin/server';
 import type { ProductUpdatedEvent, StockChangedEvent } from './inventory.events';
 
 export interface EmitTestEventParams {
@@ -58,11 +58,11 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
       return { status: 'disconnected', message: 'RabbitMQ not connected' };
     });
 
-    const serverConfig = { port: config.port, grpcHost: config.platformGrpcHost };
-    this.graphqlServer = await createApolloServer(serverConfig);
+    this.graphqlServer = await startServer({
+      port: config.port,
+      grpcHost: config.platformGrpcHost,
+    });
 
-    const address = await this.graphqlServer.listen({ port: config.port, host: '0.0.0.0' });
-    this.logger.log(`Inventory GraphQL Admin API running at ${address}/graphql/admin`);
     this.logger.log('Inventory service started');
   }
 
