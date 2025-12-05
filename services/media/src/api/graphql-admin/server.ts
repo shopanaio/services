@@ -3,16 +3,14 @@ import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
 } from "@as-integrations/fastify";
-import Fastify from "fastify";
+import fastify from "fastify";
 import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { resolvers } from "./resolvers/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
-import { getContext, type MediaContext } from "../../context/index.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import type { MediaContext } from "../../context/index.js";
 
 export interface GraphQLContext {
   requestId: string;
@@ -21,31 +19,19 @@ export interface GraphQLContext {
   user: MediaContext["user"];
 }
 
-function loadTypeDefs() {
-  const schemaDir = __dirname;
-  const files = [
-    "relay.graphql",
-    "base.graphql",
-    "file.graphql",
-  ];
-
-  const typeDefs = files.map((file) => {
-    const content = readFileSync(join(schemaDir, file), "utf-8");
-    return gql(content);
-  });
-
-  return typeDefs;
-}
-
 export interface ServerConfig {
-  port?: number;
+  port: number;
   grpcHost?: string;
 }
 
-export async function createApolloServer(config: ServerConfig = {}) {
+/**
+ * Create and start GraphQL-only server
+ * Uses admin context middleware that sets async local storage context
+ */
+export async function startServer(config: ServerConfig) {
   const isDevelopment = process.env.NODE_ENV === "development";
 
-  const fastify = Fastify({
+  const app = fastify({
     logger: isDevelopment
       ? {
           transport: {
@@ -62,71 +48,80 @@ export async function createApolloServer(config: ServerConfig = {}) {
       : true,
   });
 
-  const typeDefs = loadTypeDefs();
+  // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const schemaFiles = [
+    "relay.graphql",
+    "base.graphql",
+    "file.graphql",
+  ];
 
-  const server = new ApolloServer<GraphQLContext>({
+  const modules = schemaFiles.map((file) => ({
+    typeDefs: gql(readFileSync(join(__dirname, file), "utf-8")),
+    resolvers,
+  }));
+
+  // Create Apollo Server
+  const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
-    schema: buildSubgraphSchema({
-      typeDefs,
-      resolvers,
-    }),
-    plugins: [fastifyApolloDrainPlugin(fastify)],
+    schema: buildSubgraphSchema(modules),
+    plugins: [fastifyApolloDrainPlugin(app)],
   });
 
-  await server.start();
+  await apollo.start();
 
-  // Health check endpoints
-  fastify.get("/", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "media" });
-  });
+  // Admin context middleware
+  const grpcConfig = {
+    getGrpcHost: () => config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
+  };
+  app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
 
-  fastify.get("/healthz", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "media" });
-  });
+  // GraphQL endpoint
+  await app.register(fastifyApollo(apollo), {
+    path: "/graphql",
+    context: async (request, _reply): Promise<GraphQLContext> => {
+      // For introspection, return minimal context
+      const isIntrospection =
+        request.headers["x-interpolation"] === "true" ||
+        request.headers["user-agent"]?.includes("rover");
 
-  // GraphQL route group with context middleware
-  await fastify.register(async function (graphqlInstance) {
-    // Admin context middleware that sets async local storage
-    const grpcConfig = {
-      getGrpcHost: () => config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
-    };
-    await graphqlInstance.addHook(
-      "preHandler",
-      buildAdminContextMiddleware(grpcConfig)
-    );
-
-    // GraphQL endpoint with context from async local storage
-    await graphqlInstance.register(fastifyApollo(server), {
-      path: "/graphql",
-      context: async (request, _reply): Promise<GraphQLContext> => {
-        const ctx = getContext();
+      if (isIntrospection) {
         return {
           requestId: request.id as string,
-          slug: ctx.slug,
-          project: ctx.project,
-          user: ctx.user,
+          slug: "",
+          project: null as any,
+          user: null as any,
         };
-      },
-    });
+      }
+
+      return {
+        requestId: request.id as string,
+        slug: request.headers["x-pj-key"] as string,
+        project: request.project,
+        user: request.user,
+      };
+    },
   });
 
-  return fastify;
-}
+  // Health check endpoints
+  app.get("/", async (_request, reply) => {
+    return reply.send({ status: "ok", service: "media" });
+  });
 
-export async function startServer(port = 4002) {
-  const fastify = await createApolloServer({ port });
+  app.get("/healthz", async (_request, reply) => {
+    return reply.send({ status: "ok", service: "media" });
+  });
 
-  try {
-    const address = await fastify.listen({ port, host: "0.0.0.0" });
-    console.log(`Media GraphQL Admin API running at ${address}/graphql`);
-    return fastify;
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-}
+  // Start server
+  await app.listen({
+    port: config.port,
+    host: "0.0.0.0",
+  });
 
-// Run if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  startServer();
+  app.log.info(
+    `Media GraphQL Admin API ready at http://localhost:${config.port}/graphql`
+  );
+
+  return app;
 }
