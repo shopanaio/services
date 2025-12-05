@@ -13,6 +13,7 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
       port: config.port,
       grpcHost: config.platformGrpcHost,
       databaseUrl: config.databaseUrl,
+      migrationsPath: config.migrationsPath,
     });
     this.logger.log(`Media GraphQL Admin API running at http://localhost:${config.port}${config.graphqlPath}`);
   }

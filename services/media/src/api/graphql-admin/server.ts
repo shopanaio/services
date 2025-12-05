@@ -28,6 +28,7 @@ export interface ServerConfig {
   port: number;
   grpcHost?: string;
   databaseUrl: string;
+  migrationsPath: string;
 }
 
 /**
@@ -39,7 +40,7 @@ export async function startServer(serverConfig: ServerConfig) {
 
   // Run migrations on startup
   console.log("[media] Running database migrations...");
-  await runMigrations(serverConfig.databaseUrl);
+  await runMigrations(serverConfig.databaseUrl, serverConfig.migrationsPath);
   console.log("[media] Database migrations completed");
 
   const app = fastify({

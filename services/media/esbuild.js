@@ -1,7 +1,6 @@
 import { build } from "esbuild";
 import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
-import { copyFileSync, mkdirSync } from "fs";
-import { dirname } from "path";
+import { copyFileSync, mkdirSync, readdirSync, cpSync } from "fs";
 
 // Build module entry point for orchestrator
 const moduleOptions = {
@@ -32,6 +31,9 @@ try {
     const dest = `dist/${file}`;
     copyFileSync(src, dest);
   }
+
+  // Copy migrations folder to dist/
+  cpSync("migrations", "dist/migrations", { recursive: true });
 
   console.log("Build completed successfully");
 } catch (error) {

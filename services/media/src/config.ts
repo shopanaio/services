@@ -1,4 +1,8 @@
 import { loadServiceConfig } from "@shopana/shared-service-config";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Service configuration using centralized config system
@@ -77,6 +81,9 @@ export const config = {
 
   /** GraphQL endpoint path */
   graphqlPath: "/graphql/admin",
+
+  /** Migrations folder path (from dist/media.module.js -> ./migrations) */
+  migrationsPath: join(__dirname, "migrations"),
 
   /** Object storage configuration */
   storage: {
