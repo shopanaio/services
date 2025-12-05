@@ -10,6 +10,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
 import { getServices } from "./services.js";
 import { createDataLoaders, type DataLoaders } from "./dataloaders.js";
@@ -65,7 +66,7 @@ export async function startServer(config: ServerConfig) {
   const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [fastifyApolloDrainPlugin(app), mediaContextPlugin()],
   });
 
   await apollo.start();
