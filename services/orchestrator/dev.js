@@ -19,7 +19,7 @@ let orchestratorProcess = null;
 let restartTimeout = null;
 
 async function buildService(service) {
-  if (rebuilding.get(service)) return;
+  if (rebuilding.get(service)) return false;
   rebuilding.set(service, true);
 
   console.log(`🔨 ${service}`);
@@ -36,7 +36,7 @@ async function buildService(service) {
       } else {
         console.log(`✗ ${service}`);
       }
-      resolve();
+      resolve(true);
     });
   });
 }
@@ -55,7 +55,16 @@ function startOrchestrator() {
 
 function scheduleRestart() {
   if (restartTimeout) clearTimeout(restartTimeout);
-  restartTimeout = setTimeout(startOrchestrator, 500);
+  restartTimeout = setTimeout(() => {
+    // Don't restart if any build is in progress
+    for (const [, building] of rebuilding) {
+      if (building) {
+        scheduleRestart();
+        return;
+      }
+    }
+    startOrchestrator();
+  }, 500);
 }
 
 // Initial build
@@ -74,8 +83,8 @@ for (const service of services) {
     if (!filename || filename.endsWith('.test.ts') || filename.endsWith('.spec.ts')) return;
     if (!/\.(ts|js|json)$/.test(filename)) return;
 
-    await buildService(service);
-    scheduleRestart();
+    const built = await buildService(service);
+    if (built) scheduleRestart();
   });
 }
 
