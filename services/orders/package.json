@@ -10,8 +10,6 @@
     }
   },
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "dev:watch": "tsx watch src/index.ts",
     "build": "node esbuild.js",
     "start": "node dist/src/index.js",
     "codegen": "node bin/graphql/script.js",

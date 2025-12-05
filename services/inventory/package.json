@@ -11,10 +11,7 @@
     }
   },
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "dev:watch": "tsx watch src/index.ts",
     "build": "node esbuild.js",
-    "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "start": "node dist/src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
