@@ -56,6 +56,7 @@ services:
 
   media:
     admin_graphql_port: 10007
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
     object_storage_endpoint: http://localhost:9000
     object_storage_access_key: minioadmin
     object_storage_secret_key: minioadmin
