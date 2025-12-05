@@ -1,18 +1,19 @@
-import type { GraphQLContext } from "../server.js";
-import { getServices } from "../services.js";
-import {
-  fileUpload,
-  fileUploadFromUrl,
-  fileCreateExternal,
-  fileUpdate,
-  fileDelete,
-} from "../../../scripts/index.js";
-import type { File } from "../../../repositories/models/index.js";
 import {
   encodeGlobalIdByType,
-  parseGlobalId,
   GlobalIdEntity,
+  parseGlobalId,
 } from "@shopana/shared-graphql-guid";
+import type { File } from "../../../repositories/models/index.js";
+import {
+  bucketCreate,
+  fileCreateExternal,
+  fileDelete,
+  fileUpdate,
+  fileUpload,
+  fileUploadFromUrl,
+} from "../../../scripts/index.js";
+import type { GraphQLContext } from "../server.js";
+import { getServices } from "../services.js";
 
 // ---- Global ID utilities ----
 
@@ -22,7 +23,9 @@ function encodeGlobalId(type: NodeType, id: string): string {
   return encodeGlobalIdByType(id, GlobalIdEntity[type]);
 }
 
-function decodeGlobalId(globalId: string): { type: NodeType; id: string } | null {
+function decodeGlobalId(
+  globalId: string
+): { type: NodeType; id: string } | null {
   try {
     const parsed = parseGlobalId(globalId);
     if (parsed.typeName === GlobalIdEntity.File) {
@@ -110,11 +113,16 @@ export const resolvers = {
       }
 
       // Batch fetch files
-      const files = await services.repository.file.findByIds(projectId, fileIds);
+      const files = await services.repository.file.findByIds(
+        projectId,
+        fileIds
+      );
       const fileMap = new Map(files.map((f) => [f.id, f]));
 
       // Build result array preserving order
-      const result: (Record<string, unknown> | null)[] = new Array(ids.length).fill(null);
+      const result: (Record<string, unknown> | null)[] = new Array(
+        ids.length
+      ).fill(null);
 
       for (const [fileId, index] of idIndexMap) {
         const file = fileMap.get(fileId);
@@ -179,6 +187,60 @@ export const resolvers = {
   },
 
   MediaMutation: {
+    /**
+     * Create a bucket
+     */
+    bucketCreate: async (
+      _parent: unknown,
+      {
+        input,
+      }: {
+        input: {
+          bucketName: string;
+          region?: string;
+          status?: string;
+          priority?: number;
+          endpointUrl?: string;
+        };
+      },
+      ctx: GraphQLContext
+    ) => {
+      const services = getServices();
+
+      const result = await bucketCreate(
+        {
+          bucketName: input.bucketName,
+          region: input.region,
+          status: input.status,
+          priority: input.priority,
+          endpointUrl: input.endpointUrl,
+        },
+        services
+      );
+
+      if (result.bucket) {
+        const bucket = await services.repository.bucket.findById(
+          ctx.project.id,
+          result.bucket.id
+        );
+        return {
+          bucket: bucket
+            ? {
+                ...bucket,
+                createdAt: bucket.createdAt.toISOString(),
+                updatedAt: bucket.updatedAt.toISOString(),
+              }
+            : null,
+          userErrors: result.userErrors,
+        };
+      }
+
+      return {
+        bucket: null,
+        userErrors: result.userErrors,
+      };
+    },
+
     /**
      * Upload a file (register an already-uploaded S3 object)
      */
@@ -479,9 +541,7 @@ export const resolvers = {
     /**
      * Resolve dimensions from width/height fields
      */
-    dimensions: (
-      parent: { width?: number | null; height?: number | null }
-    ) => {
+    dimensions: (parent: { width?: number | null; height?: number | null }) => {
       if (parent.width && parent.height) {
         return { width: parent.width, height: parent.height };
       }

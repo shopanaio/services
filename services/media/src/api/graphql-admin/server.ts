@@ -63,7 +63,7 @@ export async function startServer(serverConfig: ServerConfig) {
   // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
-  const schemaFiles = ["relay.graphql", "base.graphql", "file.graphql"];
+  const schemaFiles = ["relay.graphql", "base.graphql", "bucket.graphql", "file.graphql"];
 
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(readFileSync(join(__dirname, file), "utf-8")),

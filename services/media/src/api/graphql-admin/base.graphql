@@ -45,6 +45,9 @@ type MediaQuery {
 }
 
 type MediaMutation {
+  # Bucket mutations
+  bucketCreate(input: BucketCreateInput!): BucketCreatePayload!
+
   # File mutations
   fileUpload(input: FileUploadInput!): FileUploadPayload!
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!

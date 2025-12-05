@@ -2,7 +2,7 @@
 
 .PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:orchestrator
 .PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps docker\:build-orchestrator
-.PHONY: network network-create db-up db-down nats-up nats-down rabbitmq-up rabbitmq-down platform-up platform-down services-up services-down infra-up infra-down up down logs status clean
+.PHONY: network network-create db-up db-down nats-up nats-down rabbitmq-up rabbitmq-down minio-up minio-down platform-up platform-down services-up services-down infra-up infra-down up down logs status clean
 
 apollo\:storefront:
 	docker-compose -f apollo/docker-compose.storefront.yml up --build
@@ -138,6 +138,23 @@ rabbitmq-down:
 rabbitmq-logs:
 	@docker-compose -f docker-compose.rabbitmq.yml logs -f
 
+# MinIO management (S3-compatible object storage)
+minio-up:
+	@echo "Starting MinIO..."
+	@docker-compose -f docker-compose.minio.yml up -d
+	@echo "Waiting for MinIO to be ready..."
+	@sleep 3
+	@docker exec shopana-minio mc ready local && echo "MinIO is ready" || echo "MinIO is starting..."
+	@echo "MinIO Console: http://localhost:9001 (minioadmin/minioadmin)"
+	@echo "S3 Endpoint: http://localhost:9000"
+
+minio-down:
+	@echo "Stopping MinIO..."
+	@docker-compose -f docker-compose.minio.yml down
+
+minio-logs:
+	@docker-compose -f docker-compose.minio.yml logs -f
+
 # Platform management
 platform-up:
 	@echo "Starting Platform..."
@@ -173,10 +190,10 @@ services-build:
 	@docker-compose -f docker-compose.services.yml build
 
 # Infrastructure
-infra-up: network db-up rabbitmq-up
+infra-up: network db-up rabbitmq-up minio-up
 	@echo "Infrastructure is ready"
 
-infra-down: rabbitmq-down db-down
+infra-down: minio-down rabbitmq-down db-down
 	@echo "Infrastructure stopped"
 
 # Full stack management
@@ -185,6 +202,7 @@ up: infra-up platform-up services-up
 	@echo ""
 	@echo "Services:"
 	@echo "  - PostgreSQL: localhost:5432"
+	@echo "  - MinIO S3: localhost:9000 (Console: localhost:9001)"
 	@echo "  - Platform: localhost:8000 (gRPC: localhost:50051)"
 	@echo "  - Orchestrator Services (in-memory):"
 	@echo "    - Apps: localhost:10001/graphql"

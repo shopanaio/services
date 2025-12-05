@@ -22,6 +22,7 @@ try {
   const schemaFiles = [
     "relay.graphql",
     "base.graphql",
+    "bucket.graphql",
     "file.graphql",
   ];
 

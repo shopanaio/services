@@ -1,0 +1,63 @@
+# ---- Bucket Types ----
+
+"""
+A bucket represents an S3 storage bucket for a project.
+"""
+type Bucket {
+  """The globally unique ID of the bucket."""
+  id: ID!
+
+  """S3 bucket name."""
+  bucketName: String!
+
+  """AWS region."""
+  region: String!
+
+  """Bucket status (active, archived, etc)."""
+  status: String!
+
+  """Priority for bucket selection."""
+  priority: Int!
+
+  """Custom endpoint URL (for S3-compatible storage)."""
+  endpointUrl: String
+
+  """The date and time when the bucket was created."""
+  createdAt: DateTime!
+
+  """The date and time when the bucket was last updated."""
+  updatedAt: DateTime!
+}
+
+# ---- Bucket Mutation Inputs ----
+
+"""
+Input for creating a bucket.
+"""
+input BucketCreateInput {
+  """S3 bucket name (must be unique)."""
+  bucketName: String!
+
+  """AWS region (default: us-east-1)."""
+  region: String
+
+  """Bucket status (default: active)."""
+  status: String
+
+  """Priority for bucket selection (default: 0)."""
+  priority: Int
+
+  """Custom endpoint URL (for S3-compatible storage)."""
+  endpointUrl: String
+}
+
+"""
+Payload for bucket creation.
+"""
+type BucketCreatePayload {
+  """The created bucket."""
+  bucket: Bucket
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
