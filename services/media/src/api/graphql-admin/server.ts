@@ -11,12 +11,15 @@ import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
+import { getServices } from "./services.js";
+import { createDataLoaders, type DataLoaders } from "./dataloaders.js";
 
 export interface GraphQLContext {
   requestId: string;
   slug: string;
   project: MediaContext["project"];
   user: MediaContext["user"];
+  loaders: DataLoaders | null;
 }
 
 export interface ServerConfig {
@@ -90,14 +93,23 @@ export async function startServer(config: ServerConfig) {
           slug: "",
           project: null as any,
           user: null as any,
+          loaders: null,
         };
       }
+
+      // Create DataLoaders for this request
+      const services = getServices();
+      const loaders = createDataLoaders(
+        request.project.id,
+        services.repository
+      );
 
       return {
         requestId: request.id as string,
         slug: request.headers["x-pj-key"] as string,
         project: request.project,
         user: request.user,
+        loaders,
       };
     },
   });

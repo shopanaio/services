@@ -5,8 +5,8 @@ import { loadServiceConfig } from "@shopana/shared-service-config";
  */
 const { config: serviceConfig, vars } = loadServiceConfig("media");
 
-const normalizedVars = vars as Record<string, string | undefined>;
-const normalizedConfig = serviceConfig as Record<string, string | undefined>;
+const normalizedVars = vars as unknown as Record<string, string | undefined>;
+const normalizedConfig = serviceConfig as unknown as Record<string, string | undefined>;
 
 const readOptionalConfig = (key: string, source: 'vars' | 'config' = 'vars'): string | undefined => {
   const record = source === 'vars' ? normalizedVars : normalizedConfig;
@@ -47,6 +47,9 @@ const parseOptionalBoolean = (
 };
 
 export const config = {
+  /** Database connection string */
+  databaseUrl: readRequiredConfig("database_url", "config"),
+
   /** HTTP port for GraphQL/API server */
   port: serviceConfig.admin_graphql_port,
 

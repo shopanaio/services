@@ -95,6 +95,7 @@ export enum GlobalIdEntity {
   User = "User",
   Customer = "Customer",
   ProductVariant = "ProductVariant",
+  File = "File",
 }
 
 /**
