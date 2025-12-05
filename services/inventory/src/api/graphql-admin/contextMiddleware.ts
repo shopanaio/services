@@ -56,6 +56,10 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
       const slug = request.headers["x-pj-key"] as string | undefined;
       const authorization = request.headers.authorization;
 
+      console.log("=== MIDDLEWARE DEBUG ===");
+      console.log("x-pj-key:", slug);
+      console.log("authorization:", authorization ? "present" : "missing");
+
       if (!slug) {
         return reply.status(400).send({
           data: null,
@@ -72,7 +76,7 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
 
       const ctx = await contextClient.fetchContext({
         authorization,
-        "x-shopana-slug": slug,
+        "x-pj-key": slug,
         "x-trace-id": request.headers["x-trace-id"] as string | undefined,
         "x-span-id": request.headers["x-span-id"] as string | undefined,
         "x-correlation-id": request.headers["x-correlation-id"] as
