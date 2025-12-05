@@ -74,6 +74,12 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
         });
       }
 
+      console.log("=== GRPC CALL DEBUG ===");
+      console.log("Calling fetchContext with headers:", {
+        authorization: authorization ? "Bearer ..." : "missing",
+        "x-pj-key": slug,
+      });
+
       const ctx = await contextClient.fetchContext({
         authorization,
         "x-pj-key": slug,
@@ -87,20 +93,25 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
           | undefined,
       });
 
-      if (!ctx || !ctx.project || !ctx.user) {
+      console.log("=== GRPC RESPONSE ===");
+      console.log("ctx:", ctx);
+      console.log("ctx?.project:", ctx?.project);
+      console.log("ctx?.tenant:", ctx?.tenant);
+
+      if (!ctx || !ctx.project || !ctx.tenant) {
         return reply
           .status(401)
           .send({ data: null, errors: [{ message: "Unauthorized" }] });
       }
 
       request.project = ctx.project;
-      request.user = ctx.user;
+      request.user = ctx.tenant;
 
       // Set context in async local storage
       setContext({
         slug,
         project: ctx.project,
-        user: ctx.user,
+        user: ctx.tenant,
       });
     } catch (error) {
       console.error("Failed to fetch admin context via gRPC:", error);
