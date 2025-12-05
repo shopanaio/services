@@ -29,7 +29,6 @@ try {
     "options.graphql",
     "features.graphql",
     "media.graphql",
-    "parent.graphql",
     "variant.graphql",
     "product.graphql",
   ];

@@ -57,6 +57,32 @@ export function getBucketName(): string {
 }
 
 /**
+ * Ensures the configured S3 bucket exists, creates it if not.
+ * Returns true if bucket was created, false if it already existed.
+ */
+export async function ensureBucketExists(): Promise<boolean> {
+  const client = getS3Client();
+  const bucketName = getBucketName();
+  const region = config.storage.region ?? "us-east-1";
+
+  try {
+    const exists = await client.bucketExists(bucketName);
+    if (exists) {
+      return false;
+    }
+
+    await client.makeBucket(bucketName, region);
+    return true;
+  } catch (error) {
+    // If bucket already exists (race condition), that's fine
+    if ((error as any)?.code === "BucketAlreadyOwnedByYou") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
  * Builds the public URL for an S3 object
  */
 export function buildPublicUrl(objectKey: string): string {

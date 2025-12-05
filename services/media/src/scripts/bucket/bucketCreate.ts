@@ -1,5 +1,5 @@
-import type { TransactionScript } from "../../kernel/types.js";
 import { getContext } from "../../context/index.js";
+import type { TransactionScript } from "../../kernel/types.js";
 
 export interface BucketCreateParams {
   readonly bucketName: string;
@@ -35,7 +35,10 @@ export const bucketCreate: TransactionScript<
       endpointUrl: params.endpointUrl,
     });
 
-    logger.info({ bucketId: bucket.id }, "bucketCreate: completed successfully");
+    logger.info(
+      { bucketId: bucket.id },
+      "bucketCreate: completed successfully"
+    );
 
     return {
       bucket: { id: bucket.id },
@@ -45,7 +48,9 @@ export const bucketCreate: TransactionScript<
     logger.error({ error, params }, "bucketCreate failed");
     return {
       bucket: undefined,
-      userErrors: [{ message: "Failed to create bucket", code: "INTERNAL_ERROR" }],
+      userErrors: [
+        { message: "Failed to create bucket", code: "INTERNAL_ERROR" },
+      ],
     };
   }
 };

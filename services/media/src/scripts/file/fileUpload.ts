@@ -4,7 +4,7 @@ import { buildPublicUrl } from "../../infrastructure/s3/index.js";
 
 export interface FileUploadParams {
   readonly objectKey: string;
-  readonly bucketId: string;
+  readonly bucketId?: string;
   readonly mimeType?: string;
   readonly ext?: string;
   readonly sizeBytes: number;
@@ -67,10 +67,18 @@ export const fileUpload: TransactionScript<
       }
     }
 
-    // 2. Generate public URL for the file
+    // 2. Get or create bucket
+    let bucketId = params.bucketId;
+    if (!bucketId) {
+      const bucket = await repository.bucket.getOrCreateDefault(projectId);
+      bucketId = bucket.id;
+      logger.info({ bucketId }, "fileUpload: using default bucket");
+    }
+
+    // 3. Generate public URL for the file
     const url = buildPublicUrl(params.objectKey);
 
-    // 3. Create record in `files` table
+    // 4. Create record in `files` table
     const file = await repository.file.create(projectId, {
       provider: "S3",
       url,
@@ -86,10 +94,10 @@ export const fileUpload: TransactionScript<
       isProcessed: false,
     });
 
-    // 4. Create record in `s3Objects` table
+    // 5. Create record in `s3Objects` table
     await repository.s3Object.create(projectId, {
       fileId: file.id,
-      bucketId: params.bucketId,
+      bucketId,
       objectKey: params.objectKey,
       contentHash: params.contentHash ?? null,
       etag: params.etag ?? null,

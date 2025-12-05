@@ -60,7 +60,6 @@ export async function startServer(config: ServerConfig) {
     "options.graphql",
     "features.graphql",
     "media.graphql",
-    "parent.graphql",
     "variant.graphql",
     "product.graphql",
   ];

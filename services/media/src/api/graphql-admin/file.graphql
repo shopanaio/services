@@ -151,8 +151,8 @@ input FileUploadInput {
   """S3 object key."""
   objectKey: String!
 
-  """Bucket ID."""
-  bucketId: ID!
+  """Bucket ID. If not provided, uses the active bucket for the project."""
+  bucketId: ID
 
   """MIME type."""
   mimeType: String

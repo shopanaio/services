@@ -10,6 +10,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
+import { ensureBucketExists, getBucketName } from "../../infrastructure/s3/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
@@ -42,6 +43,20 @@ export async function startServer(serverConfig: ServerConfig) {
   console.log("[media] Running database migrations...");
   await runMigrations(serverConfig.databaseUrl, serverConfig.migrationsPath);
   console.log("[media] Database migrations completed");
+
+  // Ensure S3 bucket exists
+  console.log(`[media] Checking S3 bucket '${getBucketName()}'...`);
+  try {
+    const created = await ensureBucketExists();
+    if (created) {
+      console.log(`[media] S3 bucket '${getBucketName()}' created`);
+    } else {
+      console.log(`[media] S3 bucket '${getBucketName()}' already exists`);
+    }
+  } catch (error) {
+    console.error(`[media] Failed to ensure S3 bucket exists:`, error);
+    // Don't fail startup - bucket might be managed externally
+  }
 
   const app = fastify({
     logger: isDevelopment
