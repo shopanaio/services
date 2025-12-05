@@ -13,7 +13,9 @@ export function initDatabase(connectionString: string): Database {
   if (database) {
     return database;
   }
-  client = postgres(connectionString);
+  // Remove schema parameter if present (not supported by postgres.js)
+  const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, '');
+  client = postgres(cleanUrl);
   database = drizzle(client, { schema });
   return database;
 }
