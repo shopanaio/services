@@ -2,6 +2,7 @@ import type { TransactionScript } from "../../kernel/types.js";
 import { getContext } from "../../context/index.js";
 import { config } from "../../config.js";
 import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
+import { analyzeMedia } from "../../infrastructure/media/index.js";
 import crypto from "node:crypto";
 import path from "node:path";
 
@@ -17,23 +18,6 @@ export interface FileUploadFromUrlResult {
   };
   userErrors: Array<{ message: string; field?: string[]; code?: string }>;
 }
-
-// Supported content types and their extensions
-const CONTENT_TYPE_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/webp": "webp",
-  "image/svg+xml": "svg",
-  "image/avif": "avif",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "video/quicktime": "mov",
-  "audio/mpeg": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "application/pdf": "pdf",
-};
 
 /**
  * Creates a file record by downloading content from a URL and uploading to S3.
@@ -58,21 +42,22 @@ export const fileUploadFromUrl: TransactionScript<
   try {
     logger.info({ params, projectId }, "fileUploadFromUrl: starting");
 
-    // Validate URL
-    let url: URL;
-    try {
-      url = new URL(params.sourceUrl);
-    } catch {
-      return {
-        file: undefined,
-        userErrors: [
-          {
-            message: "Invalid URL format",
-            field: ["sourceUrl"],
-            code: "INVALID_URL",
-          },
-        ],
-      };
+    // Validate URL format (skip for data URLs)
+    if (!params.sourceUrl.startsWith("data:")) {
+      try {
+        new URL(params.sourceUrl);
+      } catch {
+        return {
+          file: undefined,
+          userErrors: [
+            {
+              message: "Invalid URL format",
+              field: ["sourceUrl"],
+              code: "INVALID_URL",
+            },
+          ],
+        };
+      }
     }
 
     // 1. Check idempotency key
@@ -94,21 +79,27 @@ export const fileUploadFromUrl: TransactionScript<
       }
     }
 
-    // 2. Check for existing file by source URL (deduplication)
-    const existingByUrl = await repository.file.findBySourceUrl(
-      projectId,
-      params.sourceUrl
-    );
+    // Check if this is a data URL (base64 encoded)
+    const isDataUrl = params.sourceUrl.startsWith("data:");
 
-    if (existingByUrl) {
-      logger.info(
-        { fileId: existingByUrl.id, sourceUrl: params.sourceUrl },
-        "fileUploadFromUrl: returning existing file by source URL"
+    // 2. Check for existing file by source URL (deduplication)
+    // Skip for data URLs as they are unique uploads
+    if (!isDataUrl) {
+      const existingByUrl = await repository.file.findBySourceUrl(
+        projectId,
+        params.sourceUrl
       );
-      return {
-        file: { id: existingByUrl.id },
-        userErrors: [],
-      };
+
+      if (existingByUrl) {
+        logger.info(
+          { fileId: existingByUrl.id, sourceUrl: params.sourceUrl },
+          "fileUploadFromUrl: returning existing file by source URL"
+        );
+        return {
+          file: { id: existingByUrl.id },
+          userErrors: [],
+        };
+      }
     }
 
     // 3. Fetch file from URL
@@ -128,11 +119,22 @@ export const fileUploadFromUrl: TransactionScript<
 
     const { buffer, contentType, contentLength, originalName } = fetchResult;
 
-    // 4. Generate object key and upload to S3
-    const ext = getExtensionFromContentType(contentType) ??
-                getExtensionFromUrl(params.sourceUrl) ??
-                "bin";
-    const objectKey = generateObjectKey(projectId, ext);
+    // 4. Analyze file to get real MIME type and metadata
+    const metadata = await analyzeMedia(buffer, contentType);
+
+    logger.info(
+      {
+        detectedMime: metadata.mimeType,
+        fetchedMime: contentType,
+        width: metadata.width,
+        height: metadata.height,
+        isAnimated: metadata.isAnimated,
+      },
+      "fileUploadFromUrl: analyzed file"
+    );
+
+    // 5. Generate object key and upload to S3
+    const objectKey = generateObjectKey(projectId, metadata.ext);
     const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     // Get or create bucket (need UUID, not bucket name)
@@ -149,7 +151,7 @@ export const fileUploadFromUrl: TransactionScript<
       buffer,
       buffer.length,
       {
-        "Content-Type": contentType,
+        "Content-Type": metadata.mimeType,
         "x-amz-meta-source-url": params.sourceUrl,
         "x-amz-meta-content-hash": contentHash,
       }
@@ -160,25 +162,28 @@ export const fileUploadFromUrl: TransactionScript<
       "fileUploadFromUrl: uploaded to S3"
     );
 
-    // 5. Build public URL
+    // 6. Build public URL
     const publicUrl = buildPublicUrl(objectKey);
 
-    // 6. Create record in `files` table
-    // TODO: Get image dimensions for images using sharp or similar
+    // 7. Create record in `files` table with detected metadata
     const file = await repository.file.create(projectId, {
       provider: "S3",
       url: publicUrl,
-      mimeType: contentType,
-      ext,
+      mimeType: metadata.mimeType,
+      ext: metadata.ext,
       sizeBytes: contentLength,
       originalName: originalName ?? null,
+      width: metadata.width ?? null,
+      height: metadata.height ?? null,
+      durationMs: metadata.durationMs ?? null,
       altText: params.altText ?? null,
-      sourceUrl: params.sourceUrl,
+      // Don't store data URLs (too large), only regular URLs
+      sourceUrl: isDataUrl ? null : params.sourceUrl,
       idempotencyKey: params.idempotencyKey ?? null,
-      isProcessed: false,
+      isProcessed: true, // Mark as processed since we extracted metadata
     });
 
-    // 7. Create record in `s3Objects` table
+    // 8. Create record in `s3Objects` table
     await repository.s3Object.create(projectId, {
       fileId: file.id,
       bucketId: bucket.id,
@@ -217,12 +222,52 @@ interface FetchError {
 }
 
 /**
+ * Parses a data URL and returns its content
+ */
+function parseDataUrl(dataUrl: string): FetchResult | FetchError {
+  // Format: data:[<mediatype>][;base64],<data>
+  const match = dataUrl.match(/^data:([^;,]+)?(?:;base64)?,(.*)$/);
+  if (!match) {
+    return {
+      success: false,
+      error: "Invalid data URL format",
+    };
+  }
+
+  const contentType = match[1] || "application/octet-stream";
+  const base64Data = match[2];
+
+  try {
+    const buffer = Buffer.from(base64Data, "base64");
+    return {
+      success: true,
+      buffer,
+      contentType,
+      contentLength: buffer.length,
+      originalName: null,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: "Failed to decode base64 data",
+    };
+  }
+}
+
+/**
  * Fetches a file from URL and returns its content
+ * Supports both HTTP(S) URLs and data URLs (base64)
  */
 async function fetchFileFromUrl(
   url: string,
   logger: any
 ): Promise<FetchResult | FetchError> {
+  // Handle data URLs
+  if (url.startsWith("data:")) {
+    logger.info("fetchFileFromUrl: processing data URL");
+    return parseDataUrl(url);
+  }
+
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -290,24 +335,4 @@ function generateObjectKey(projectId: string, ext: string): string {
   const random = crypto.randomBytes(8).toString("hex");
   const prefix = config.storage.prefix ? `${config.storage.prefix}/` : "";
   return `${prefix}${projectId}/${timestamp}-${random}.${ext}`;
-}
-
-/**
- * Gets file extension from content type
- */
-function getExtensionFromContentType(contentType: string): string | null {
-  return CONTENT_TYPE_TO_EXT[contentType.toLowerCase()] ?? null;
-}
-
-/**
- * Gets file extension from URL path
- */
-function getExtensionFromUrl(url: string): string | null {
-  try {
-    const urlPath = new URL(url).pathname;
-    const ext = path.extname(urlPath).slice(1).toLowerCase();
-    return ext || null;
-  } catch {
-    return null;
-  }
 }

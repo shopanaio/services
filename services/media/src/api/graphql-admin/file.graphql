@@ -145,6 +145,37 @@ type FileEdge {
 # ---- File Mutation Inputs ----
 
 """
+Input for preparing a file upload (get presigned URL).
+"""
+input FileUploadPrepareInput {
+  """Original filename."""
+  filename: String!
+
+  """MIME type (for validation)."""
+  mimeType: String
+
+  """Size in bytes (for validation)."""
+  sizeBytes: BigInt
+}
+
+"""
+Payload for file upload preparation.
+"""
+type FileUploadPreparePayload {
+  """Presigned URL for uploading the file directly to S3."""
+  uploadUrl: String
+
+  """Object key to use when confirming upload via fileUpload mutation."""
+  objectKey: String
+
+  """URL expiry time in seconds."""
+  expiresIn: Int
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
 Input for uploading a file (direct S3 upload result).
 """
 input FileUploadInput {
@@ -194,6 +225,20 @@ Input for uploading a file from URL.
 input FileUploadFromUrlInput {
   """URL to fetch the file from."""
   sourceUrl: String!
+
+  """Alt text for accessibility."""
+  altText: String
+
+  """Idempotency key for deduplication."""
+  idempotencyKey: String
+}
+
+"""
+Input for uploading a file via multipart form data.
+"""
+input FileUploadMultipartInput {
+  """The file to upload."""
+  file: Upload!
 
   """Alt text for accessibility."""
   altText: String

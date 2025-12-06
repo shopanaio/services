@@ -103,3 +103,19 @@ export function buildPublicUrl(objectKey: string): string {
     }
   }
 }
+
+/**
+ * Generates a presigned URL for uploading an object to S3
+ * @param objectKey - The key (path) where the object will be stored
+ * @param expirySeconds - URL expiry time in seconds (default: 3600 = 1 hour)
+ * @returns Presigned PUT URL
+ */
+export async function getPresignedPutUrl(
+  objectKey: string,
+  expirySeconds: number = 3600
+): Promise<string> {
+  const client = getS3Client();
+  const bucketName = getBucketName();
+
+  return client.presignedPutObject(bucketName, objectKey, expirySeconds);
+}

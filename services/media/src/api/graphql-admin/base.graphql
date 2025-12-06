@@ -15,6 +15,7 @@ extend schema
 scalar DateTime
 scalar BigInt
 scalar JSON
+scalar Upload
 
 extend type Query {
   mediaQuery: MediaQuery!
@@ -49,8 +50,10 @@ type MediaMutation {
   bucketCreate(input: BucketCreateInput!): BucketCreatePayload!
 
   # File mutations
+  fileUploadPrepare(input: FileUploadPrepareInput!): FileUploadPreparePayload!
   fileUpload(input: FileUploadInput!): FileUploadPayload!
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
+  fileUploadMultipart(input: FileUploadMultipartInput!): FileUploadPayload!
   fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
   fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
   fileDelete(input: FileDeleteInput!): FileDeletePayload!
