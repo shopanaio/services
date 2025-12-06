@@ -1,5 +1,6 @@
-export { productCreate, type ProductCreateParams, type ProductCreateResult } from "./productCreate.js";
-export { productUpdate, type ProductUpdateParams, type ProductUpdateResult } from "./productUpdate.js";
-export { productDelete, type ProductDeleteParams, type ProductDeleteResult } from "./productDelete.js";
-export { productPublish, type ProductPublishParams, type ProductPublishResult } from "./productPublish.js";
-export { productUnpublish, type ProductUnpublishParams, type ProductUnpublishResult } from "./productUnpublish.js";
+// Product scripts
+export { ProductCreateScript, type ProductCreateParams, type ProductCreateResult, type DescriptionInput, type FeatureInput, type OptionInput, type ProductWithVariants } from "./ProductCreateScript.js";
+export { ProductUpdateScript, type ProductUpdateParams, type ProductUpdateResult, type FeaturesInput, type FeatureUpdateInput, type OptionsInput, type OptionUpdateInput } from "./ProductUpdateScript.js";
+export { ProductDeleteScript, type ProductDeleteParams, type ProductDeleteResult } from "./ProductDeleteScript.js";
+export { ProductPublishScript, type ProductPublishParams, type ProductPublishResult } from "./ProductPublishScript.js";
+export { ProductUnpublishScript, type ProductUnpublishParams, type ProductUnpublishResult } from "./ProductUnpublishScript.js";

@@ -1,8 +1,8 @@
 import type { Resolvers } from "../../generated/types.js";
 import {
-  productFeatureCreate,
-  productFeatureUpdate,
-  productFeatureDelete,
+  FeatureCreateScript,
+  FeatureUpdateScript,
+  FeatureDeleteScript,
 } from "../../../../scripts/feature/index.js";
 import { noDatabaseError } from "../utils.js";
 
@@ -13,7 +13,7 @@ export const featureMutationResolvers: Resolvers = {
         return noDatabaseError({ feature: null });
       }
 
-      const result = await ctx.kernel.executeScript(productFeatureCreate, {
+      const result = await ctx.kernel.runScript(FeatureCreateScript, {
         productId: input.productId,
         slug: input.slug,
         name: input.name,
@@ -34,10 +34,10 @@ export const featureMutationResolvers: Resolvers = {
         return noDatabaseError({ feature: null });
       }
 
-      const result = await ctx.kernel.executeScript(productFeatureUpdate, {
+      const result = await ctx.kernel.runScript(FeatureUpdateScript, {
         id: input.id,
-        slug: input.slug,
-        name: input.name,
+        slug: input.slug ?? undefined,
+        name: input.name ?? undefined,
         values: input.values
           ? {
               create: input.values.create?.map((v) => ({
@@ -46,10 +46,10 @@ export const featureMutationResolvers: Resolvers = {
               })),
               update: input.values.update?.map((v) => ({
                 id: v.id,
-                slug: v.slug,
-                name: v.name,
+                slug: v.slug ?? undefined,
+                name: v.name ?? undefined,
               })),
-              delete: input.values.delete,
+              delete: input.values.delete ?? undefined,
             }
           : undefined,
       });
@@ -65,7 +65,7 @@ export const featureMutationResolvers: Resolvers = {
         return noDatabaseError({ deletedFeatureId: null });
       }
 
-      const result = await ctx.kernel.executeScript(productFeatureDelete, {
+      const result = await ctx.kernel.runScript(FeatureDeleteScript, {
         id: input.id,
       });
 

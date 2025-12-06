@@ -1,8 +1,8 @@
 import type { Resolvers } from "../../generated/types.js";
 import {
-  productOptionCreate,
-  productOptionUpdate,
-  productOptionDelete,
+  OptionCreateScript,
+  OptionUpdateScript,
+  OptionDeleteScript,
 } from "../../../../scripts/option/index.js";
 import { noDatabaseError } from "../utils.js";
 
@@ -22,7 +22,7 @@ export const optionMutationResolvers: Resolvers = {
         };
       }
 
-      const result = await ctx.kernel.executeScript(productOptionCreate, {
+      const result = await ctx.kernel.runScript(OptionCreateScript, {
         productId: input.productId,
         slug: input.slug,
         name: input.name,
@@ -33,9 +33,9 @@ export const optionMutationResolvers: Resolvers = {
           swatch: v.swatch
             ? {
                 swatchType: v.swatch.swatchType,
-                colorOne: v.swatch.colorOne,
-                colorTwo: v.swatch.colorTwo,
-                fileId: v.swatch.fileId,
+                colorOne: v.swatch.colorOne ?? undefined,
+                colorTwo: v.swatch.colorTwo ?? undefined,
+                fileId: v.swatch.fileId ?? undefined,
                 metadata: v.swatch.metadata,
               }
             : undefined,
@@ -53,11 +53,11 @@ export const optionMutationResolvers: Resolvers = {
         return noDatabaseError({ option: null });
       }
 
-      const result = await ctx.kernel.executeScript(productOptionUpdate, {
+      const result = await ctx.kernel.runScript(OptionUpdateScript, {
         id: input.id,
-        slug: input.slug,
-        name: input.name,
-        displayType: input.displayType,
+        slug: input.slug ?? undefined,
+        name: input.name ?? undefined,
+        displayType: input.displayType ?? undefined,
         values: input.values
           ? {
               create: input.values.create?.map((v) => ({
@@ -66,30 +66,30 @@ export const optionMutationResolvers: Resolvers = {
                 swatch: v.swatch
                   ? {
                       swatchType: v.swatch.swatchType,
-                      colorOne: v.swatch.colorOne,
-                      colorTwo: v.swatch.colorTwo,
-                      fileId: v.swatch.fileId,
+                      colorOne: v.swatch.colorOne ?? undefined,
+                      colorTwo: v.swatch.colorTwo ?? undefined,
+                      fileId: v.swatch.fileId ?? undefined,
                       metadata: v.swatch.metadata,
                     }
                   : undefined,
               })),
               update: input.values.update?.map((v) => ({
                 id: v.id,
-                slug: v.slug,
-                name: v.name,
+                slug: v.slug ?? undefined,
+                name: v.name ?? undefined,
                 swatch: v.swatch === null
                   ? null
                   : v.swatch
                     ? {
                         swatchType: v.swatch.swatchType,
-                        colorOne: v.swatch.colorOne,
-                        colorTwo: v.swatch.colorTwo,
-                        fileId: v.swatch.fileId,
+                        colorOne: v.swatch.colorOne ?? undefined,
+                        colorTwo: v.swatch.colorTwo ?? undefined,
+                        fileId: v.swatch.fileId ?? undefined,
                         metadata: v.swatch.metadata,
                       }
                     : undefined,
               })),
-              delete: input.values.delete,
+              delete: input.values.delete ?? undefined,
             }
           : undefined,
       });
@@ -105,7 +105,7 @@ export const optionMutationResolvers: Resolvers = {
         return noDatabaseError({ deletedOptionId: null });
       }
 
-      const result = await ctx.kernel.executeScript(productOptionDelete, {
+      const result = await ctx.kernel.runScript(OptionDeleteScript, {
         id: input.id,
       });
 

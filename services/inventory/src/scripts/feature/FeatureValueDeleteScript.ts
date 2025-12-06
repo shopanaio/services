@@ -1,0 +1,40 @@
+import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+
+export interface FeatureValueDeleteParams {
+  readonly id: string;
+}
+
+export interface FeatureValueDeleteResult {
+  deletedId?: string;
+  userErrors: UserError[];
+}
+
+export class FeatureValueDeleteScript extends BaseScript<
+  FeatureValueDeleteParams,
+  FeatureValueDeleteResult
+> {
+  protected async execute(params: FeatureValueDeleteParams): Promise<FeatureValueDeleteResult> {
+    const { id } = params;
+
+    // 1. Check value exists
+    const existingValue = await this.repository.feature.findValueById(id);
+    if (!existingValue) {
+      return {
+        deletedId: undefined,
+        userErrors: [{ message: "Feature value not found", field: ["id"], code: "NOT_FOUND" }],
+      };
+    }
+
+    // 2. Delete value
+    await this.repository.feature.deleteValue(id);
+
+    return { deletedId: id, userErrors: [] };
+  }
+
+  protected handleError(_error: unknown): FeatureValueDeleteResult {
+    return {
+      deletedId: undefined,
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+    };
+  }
+}
