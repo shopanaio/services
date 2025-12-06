@@ -9,8 +9,6 @@ import {
   fileCreateExternal,
   fileDelete,
   fileUpdate,
-  fileUpload,
-  fileUploadPrepare,
   fileUploadFromUrl,
   fileUploadMultipart,
 } from "../../../scripts/index.js";
@@ -191,41 +189,6 @@ export const resolvers = {
 
   MediaMutation: {
     /**
-     * Prepare a file upload (get presigned URL for direct S3 upload)
-     */
-    fileUploadPrepare: async (
-      _parent: unknown,
-      {
-        input,
-      }: {
-        input: {
-          filename: string;
-          mimeType?: string;
-          sizeBytes?: string;
-        };
-      },
-      _ctx: GraphQLContext
-    ) => {
-      const services = getServices();
-
-      const result = await fileUploadPrepare(
-        {
-          filename: input.filename,
-          mimeType: input.mimeType,
-          sizeBytes: input.sizeBytes ? parseInt(input.sizeBytes, 10) : undefined,
-        },
-        services
-      );
-
-      return {
-        uploadUrl: result.uploadUrl ?? null,
-        objectKey: result.objectKey ?? null,
-        expiresIn: result.expiresIn ?? null,
-        userErrors: result.userErrors,
-      };
-    },
-
-    /**
      * Create a bucket
      */
     bucketCreate: async (
@@ -280,7 +243,7 @@ export const resolvers = {
     },
 
     /**
-     * Upload a file (register an already-uploaded S3 object)
+     * Upload a file via multipart form data (main upload method)
      */
     fileUpload: async (
       _parent: unknown,
@@ -288,18 +251,8 @@ export const resolvers = {
         input,
       }: {
         input: {
-          objectKey: string;
-          bucketId: string;
-          mimeType?: string;
-          ext?: string;
-          sizeBytes: string;
-          originalName?: string;
-          width?: number;
-          height?: number;
-          durationMs?: number;
+          file: Promise<FileUpload>;
           altText?: string;
-          contentHash?: string;
-          etag?: string;
           idempotencyKey?: string;
         };
       },
@@ -307,20 +260,10 @@ export const resolvers = {
     ) => {
       const services = getServices();
 
-      const result = await fileUpload(
+      const result = await fileUploadMultipart(
         {
-          objectKey: input.objectKey,
-          bucketId: input.bucketId,
-          mimeType: input.mimeType,
-          ext: input.ext,
-          sizeBytes: parseInt(input.sizeBytes, 10),
-          originalName: input.originalName,
-          width: input.width,
-          height: input.height,
-          durationMs: input.durationMs,
+          file: input.file,
           altText: input.altText,
-          contentHash: input.contentHash,
-          etag: input.etag,
           idempotencyKey: input.idempotencyKey,
         },
         services
@@ -364,50 +307,6 @@ export const resolvers = {
       const result = await fileUploadFromUrl(
         {
           sourceUrl: input.sourceUrl,
-          altText: input.altText,
-          idempotencyKey: input.idempotencyKey,
-        },
-        services
-      );
-
-      if (result.file) {
-        const file = await services.repository.file.findById(
-          ctx.project.id,
-          result.file.id
-        );
-        return {
-          file: file ? dbFileToGraphQL(file) : null,
-          userErrors: result.userErrors,
-        };
-      }
-
-      return {
-        file: null,
-        userErrors: result.userErrors,
-      };
-    },
-
-    /**
-     * Upload a file via multipart form data
-     */
-    fileUploadMultipart: async (
-      _parent: unknown,
-      {
-        input,
-      }: {
-        input: {
-          file: Promise<FileUpload>;
-          altText?: string;
-          idempotencyKey?: string;
-        };
-      },
-      ctx: GraphQLContext
-    ) => {
-      const services = getServices();
-
-      const result = await fileUploadMultipart(
-        {
-          file: input.file,
           altText: input.altText,
           idempotencyKey: input.idempotencyKey,
         },

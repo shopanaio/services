@@ -50,10 +50,8 @@ type MediaMutation {
   bucketCreate(input: BucketCreateInput!): BucketCreatePayload!
 
   # File mutations
-  fileUploadPrepare(input: FileUploadPrepareInput!): FileUploadPreparePayload!
-  fileUpload(input: FileUploadInput!): FileUploadPayload!
+  fileUpload(input: FileUploadMultipartInput!): FileUploadPayload!
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
-  fileUploadMultipart(input: FileUploadMultipartInput!): FileUploadPayload!
   fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
   fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
   fileDelete(input: FileDeleteInput!): FileDeletePayload!

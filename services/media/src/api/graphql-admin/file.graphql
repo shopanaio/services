@@ -145,75 +145,14 @@ type FileEdge {
 # ---- File Mutation Inputs ----
 
 """
-Input for preparing a file upload (get presigned URL).
+Input for uploading a file via multipart form data.
 """
-input FileUploadPrepareInput {
-  """Original filename."""
-  filename: String!
-
-  """MIME type (for validation)."""
-  mimeType: String
-
-  """Size in bytes (for validation)."""
-  sizeBytes: BigInt
-}
-
-"""
-Payload for file upload preparation.
-"""
-type FileUploadPreparePayload {
-  """Presigned URL for uploading the file directly to S3."""
-  uploadUrl: String
-
-  """Object key to use when confirming upload via fileUpload mutation."""
-  objectKey: String
-
-  """URL expiry time in seconds."""
-  expiresIn: Int
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Input for uploading a file (direct S3 upload result).
-"""
-input FileUploadInput {
-  """S3 object key."""
-  objectKey: String!
-
-  """Bucket ID. If not provided, uses the active bucket for the project."""
-  bucketId: ID
-
-  """MIME type."""
-  mimeType: String
-
-  """File extension."""
-  ext: String
-
-  """Size in bytes."""
-  sizeBytes: BigInt!
-
-  """Original filename."""
-  originalName: String
-
-  """Image width in pixels."""
-  width: Int
-
-  """Image height in pixels."""
-  height: Int
-
-  """Duration in milliseconds."""
-  durationMs: Int
+input FileUploadMultipartInput {
+  """The file to upload."""
+  file: Upload!
 
   """Alt text for accessibility."""
   altText: String
-
-  """Content hash (SHA-256)."""
-  contentHash: String
-
-  """ETag from S3."""
-  etag: String
 
   """Idempotency key for deduplication."""
   idempotencyKey: String
@@ -225,20 +164,6 @@ Input for uploading a file from URL.
 input FileUploadFromUrlInput {
   """URL to fetch the file from."""
   sourceUrl: String!
-
-  """Alt text for accessibility."""
-  altText: String
-
-  """Idempotency key for deduplication."""
-  idempotencyKey: String
-}
-
-"""
-Input for uploading a file via multipart form data.
-"""
-input FileUploadMultipartInput {
-  """The file to upload."""
-  file: Upload!
 
   """Alt text for accessibility."""
   altText: String
