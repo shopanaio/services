@@ -1,13 +1,33 @@
 import type { Resolvers } from "../../generated/types.js";
 import {
+  variantCreate,
   variantSetDimensions,
   variantSetWeight,
+  variantSetPricing,
+  variantSetCost,
 } from "../../../../scripts/variant/index.js";
 
 export const variantMutationResolvers: Resolvers = {
   InventoryMutation: {
-    variantCreate: async () => {
-      throw new Error("Not implemented");
+    variantCreate: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          variant: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantCreate, {
+        productId: input.productId,
+        sku: input.variant?.sku ?? undefined,
+      });
+
+      return {
+        variant: result.variant ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
     variantDelete: async () => {
@@ -66,12 +86,49 @@ export const variantMutationResolvers: Resolvers = {
       };
     },
 
-    variantSetPricing: async () => {
-      throw new Error("Not implemented");
+    variantSetPricing: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          price: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantSetPricing, {
+        variantId: input.variantId,
+        currency: input.currency,
+        amountMinor: Number(input.amountMinor),
+        compareAtMinor: input.compareAtMinor ? Number(input.compareAtMinor) : undefined,
+      });
+
+      return {
+        price: result.price ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
-    variantSetCost: async () => {
-      throw new Error("Not implemented");
+    variantSetCost: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          cost: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantSetCost, {
+        variantId: input.variantId,
+        currency: input.currency,
+        unitCostMinor: Number(input.unitCostMinor),
+      });
+
+      return {
+        cost: result.cost ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
     variantSetStock: async () => {

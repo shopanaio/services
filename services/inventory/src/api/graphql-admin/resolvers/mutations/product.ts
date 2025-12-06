@@ -1,26 +1,29 @@
 import type { Resolvers } from "../../generated/types.js";
+import { productCreate } from "../../../../scripts/product/index.js";
 import {
   dummyProducts,
   dummyVariants,
-  createDummyProduct,
-  createDummyVariant,
 } from "../dummy.js";
 
 export const productMutationResolvers: Resolvers = {
   InventoryMutation: {
-    productCreate: async (_parent, { input }) => {
-      const product = createDummyProduct(input);
-      dummyProducts.set(product.id, product);
-
-      const variantInputs = input.variants ?? [{}];
-      for (const variantInput of variantInputs) {
-        const variant = createDummyVariant(product.id, variantInput);
-        dummyVariants.set(variant.id, variant);
+    productCreate: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          product: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
       }
 
+      const result = await ctx.kernel.executeScript(productCreate, {
+        publish: input.publish ?? undefined,
+      });
+
       return {
-        product,
-        userErrors: [],
+        product: result.product ?? null,
+        userErrors: result.userErrors,
       };
     },
 

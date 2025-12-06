@@ -1,30 +1,16 @@
 import type { TransactionScript } from "../../kernel/types.js";
+import type { Product, Variant } from "../../repositories/models/index.js";
 
 export interface ProductCreateParams {
-  readonly title: string;
-  readonly description?: {
-    text: string;
-    html: string;
-    json: Record<string, unknown>;
-  };
-  readonly excerpt?: string;
-  readonly seoTitle?: string;
-  readonly seoDescription?: string;
-  readonly variants?: Array<{
-    sku?: string;
-    price?: number;
-  }>;
-  readonly options?: Array<{
-    name: string;
-    values: string[];
-  }>;
   readonly publish?: boolean;
 }
 
+export interface ProductWithVariants extends Product {
+  _variants?: Variant[];
+}
+
 export interface ProductCreateResult {
-  product?: {
-    id: string;
-  };
+  product?: ProductWithVariants;
   userErrors: Array<{ message: string; field?: string[]; code?: string }>;
 }
 
@@ -32,14 +18,30 @@ export const productCreate: TransactionScript<
   ProductCreateParams,
   ProductCreateResult
 > = async (params, services) => {
-  const { logger } = services;
+  const { logger, repository } = services;
 
   try {
-    logger.info({ params }, "productCreate: not implemented");
+    const { publish } = params;
+
+    // 1. Create product
+    const product = await repository.product.create({
+      publishedAt: publish ? new Date() : null,
+    });
+
+    // 2. Create default variant
+    const defaultVariant = await repository.variant.create(product.id, {});
+
+    logger.info({ productId: product.id }, "Product created successfully");
+
+    // Return product with _variants for resolver
+    const productWithVariants: ProductWithVariants = {
+      ...product,
+      _variants: [defaultVariant],
+    };
 
     return {
-      product: undefined,
-      userErrors: [{ message: "Not implemented", code: "NOT_IMPLEMENTED" }],
+      product: productWithVariants,
+      userErrors: [],
     };
   } catch (error) {
     logger.error({ error }, "productCreate failed");

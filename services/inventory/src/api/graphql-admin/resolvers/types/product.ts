@@ -7,13 +7,23 @@ export const productTypeResolvers: Resolvers = {
       return dummyProducts.get(reference.id) ?? null;
     },
 
+    // Return title from parent if available, otherwise empty string
+    // TODO: Load from translations table when implemented
+    title: (parent) => {
+      return (parent as any).title ?? "";
+    },
+
     variants: async (parent, args) => {
       const productId = (parent as DummyProduct).id;
-      const variants = Array.from(dummyVariants.values()).filter(
-        (v) => v.productId === productId
-      );
+
+      // Use _variants from productCreate script if available, else fallback to dummy
+      const parentWithVariants = parent as any;
+      const variants = parentWithVariants._variants
+        ? parentWithVariants._variants
+        : Array.from(dummyVariants.values()).filter((v) => v.productId === productId);
+
       const first = args.first ?? 10;
-      const edges = variants.slice(0, first).map((variant) => ({
+      const edges = variants.slice(0, first).map((variant: any) => ({
         node: variant,
         cursor: Buffer.from(variant.id).toString("base64"),
       }));
@@ -38,6 +48,10 @@ export const productTypeResolvers: Resolvers = {
     },
 
     variantsCount: async (parent) => {
+      const parentWithVariants = parent as any;
+      if (parentWithVariants._variants) {
+        return parentWithVariants._variants.length;
+      }
       const productId = (parent as DummyProduct).id;
       return Array.from(dummyVariants.values()).filter(
         (v) => v.productId === productId
