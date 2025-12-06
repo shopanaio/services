@@ -1,13 +1,12 @@
 import { eq, and, inArray, asc } from "drizzle-orm";
-import type { Database } from "../infrastructure/db/database";
+import { BaseRepository } from "./BaseRepository.js";
 import {
   variantMedia,
   type VariantMedia,
   type NewVariantMedia,
 } from "./models";
 
-export class MediaRepository {
-  constructor(private readonly db: Database) {}
+export class MediaRepository extends BaseRepository {
 
   // ─────────────────────────────────────────────────────────────────────────
   // Variant Media
@@ -20,7 +19,12 @@ export class MediaRepository {
     return this.db
       .select()
       .from(variantMedia)
-      .where(eq(variantMedia.variantId, variantId))
+      .where(
+        and(
+          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.variantId, variantId)
+        )
+      )
       .orderBy(asc(variantMedia.sortIndex));
   }
 
@@ -35,7 +39,12 @@ export class MediaRepository {
     const results = await this.db
       .select()
       .from(variantMedia)
-      .where(inArray(variantMedia.variantId, variantIds))
+      .where(
+        and(
+          eq(variantMedia.projectId, this.projectId),
+          inArray(variantMedia.variantId, variantIds)
+        )
+      )
       .orderBy(asc(variantMedia.sortIndex));
 
     const map = new Map<string, VariantMedia[]>();
@@ -50,13 +59,24 @@ export class MediaRepository {
   /**
    * Add media to variant
    */
-  async addVariantMedia(data: NewVariantMedia): Promise<VariantMedia> {
+  async addVariantMedia(
+    variantId: string,
+    fileId: string,
+    sortIndex: number
+  ): Promise<VariantMedia> {
+    const data: NewVariantMedia = {
+      projectId: this.projectId,
+      variantId,
+      fileId,
+      sortIndex,
+    };
+
     const result = await this.db
       .insert(variantMedia)
       .values(data)
       .onConflictDoUpdate({
         target: [variantMedia.variantId, variantMedia.fileId],
-        set: { sortIndex: data.sortIndex },
+        set: { sortIndex },
       })
       .returning();
 
@@ -67,20 +87,24 @@ export class MediaRepository {
    * Set all media for a variant (replaces existing)
    */
   async setVariantMedia(
-    projectId: string,
     variantId: string,
     fileIds: string[]
   ): Promise<VariantMedia[]> {
     // Delete existing
     await this.db
       .delete(variantMedia)
-      .where(eq(variantMedia.variantId, variantId));
+      .where(
+        and(
+          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.variantId, variantId)
+        )
+      );
 
     if (fileIds.length === 0) return [];
 
     // Insert new with sort order
     const values: NewVariantMedia[] = fileIds.map((fileId, index) => ({
-      projectId,
+      projectId: this.projectId,
       variantId,
       fileId,
       sortIndex: index,
@@ -97,6 +121,7 @@ export class MediaRepository {
       .delete(variantMedia)
       .where(
         and(
+          eq(variantMedia.projectId, this.projectId),
           eq(variantMedia.variantId, variantId),
           eq(variantMedia.fileId, fileId)
         )
@@ -109,7 +134,12 @@ export class MediaRepository {
   async removeAllVariantMedia(variantId: string): Promise<void> {
     await this.db
       .delete(variantMedia)
-      .where(eq(variantMedia.variantId, variantId));
+      .where(
+        and(
+          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.variantId, variantId)
+        )
+      );
   }
 
   /**
@@ -126,6 +156,7 @@ export class MediaRepository {
         .set({ sortIndex: i })
         .where(
           and(
+            eq(variantMedia.projectId, this.projectId),
             eq(variantMedia.variantId, variantId),
             eq(variantMedia.fileId, fileIds[i])
           )

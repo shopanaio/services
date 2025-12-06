@@ -5,6 +5,8 @@ import {
   variantSetWeight,
   variantSetPricing,
   variantSetCost,
+  variantSetStock,
+  variantSetMedia,
 } from "../../../../scripts/variant/index.js";
 
 export const variantMutationResolvers: Resolvers = {
@@ -131,12 +133,47 @@ export const variantMutationResolvers: Resolvers = {
       };
     },
 
-    variantSetStock: async () => {
-      throw new Error("Not implemented");
+    variantSetStock: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          stock: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantSetStock, {
+        variantId: input.variantId,
+        warehouseId: input.warehouseId,
+        quantity: input.quantity,
+      });
+
+      return {
+        stock: result.stock ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
-    variantSetMedia: async () => {
-      throw new Error("Not implemented");
+    variantSetMedia: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          variant: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantSetMedia, {
+        variantId: input.variantId,
+        fileIds: input.fileIds,
+      });
+
+      return {
+        variant: result.variant ?? null,
+        userErrors: result.userErrors,
+      };
     },
   },
 };

@@ -5,6 +5,19 @@ import { warehouses, type Warehouse, type NewWarehouse } from "./models";
 
 export class WarehouseRepository extends BaseRepository {
   /**
+   * Check if warehouse exists by ID
+   */
+  async exists(id: string): Promise<boolean> {
+    const result = await this.db
+      .select({ id: warehouses.id })
+      .from(warehouses)
+      .where(and(eq(warehouses.projectId, this.projectId), eq(warehouses.id, id)))
+      .limit(1);
+
+    return result.length > 0;
+  }
+
+  /**
    * Find warehouse by ID
    */
   async findById(id: string): Promise<Warehouse | null> {
