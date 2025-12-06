@@ -1,9 +1,5 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { FeatureUpdateParams, FeatureUpdateResult, FeatureValuesInput } from "./dto/index.js";
-import { FeatureValueCreateScript } from "./FeatureValueCreateScript.js";
-import { FeatureValueUpdateScript } from "./FeatureValueUpdateScript.js";
-import { FeatureValueDeleteScript } from "./FeatureValueDeleteScript.js";
-import type { UserError } from "../../kernel/BaseScript.js";
 
 export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, FeatureUpdateResult> {
   protected async execute(params: FeatureUpdateParams): Promise<FeatureUpdateResult> {
@@ -74,23 +70,33 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     // Delete values
     if (values.delete?.length) {
       for (const valueId of values.delete) {
-        const result = await this.executeScript(FeatureValueDeleteScript, { id: valueId });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
+        const existingValue = await this.repository.feature.findValueById(valueId);
+        if (!existingValue) {
+          return [{ message: "Feature value not found", field: ["values", "delete"], code: "NOT_FOUND" }];
         }
+        await this.repository.feature.deleteValue(valueId);
       }
     }
 
     // Update existing values
     if (values.update?.length) {
       for (const valueUpdate of values.update) {
-        const result = await this.executeScript(FeatureValueUpdateScript, {
-          id: valueUpdate.id,
-          slug: valueUpdate.slug,
-          name: valueUpdate.name,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
+        const existingValue = await this.repository.feature.findValueById(valueUpdate.id);
+        if (!existingValue) {
+          return [{ message: "Feature value not found", field: ["values", "update"], code: "NOT_FOUND" }];
+        }
+
+        if (valueUpdate.slug !== undefined) {
+          await this.repository.feature.updateValue(valueUpdate.id, { slug: valueUpdate.slug });
+        }
+
+        if (valueUpdate.name !== undefined) {
+          await this.repository.translation.upsertFeatureValueTranslation({
+            projectId: this.getProjectId(),
+            featureValueId: valueUpdate.id,
+            locale: this.getLocale(),
+            name: valueUpdate.name,
+          });
         }
       }
     }
@@ -103,15 +109,17 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         : 0;
 
       for (const valueInput of values.create) {
-        const result = await this.executeScript(FeatureValueCreateScript, {
-          featureId,
+        const featureValue = await this.repository.feature.createValue(featureId, {
           slug: valueInput.slug,
-          name: valueInput.name,
           sortIndex: sortIndex++,
         });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
+
+        await this.repository.translation.upsertFeatureValueTranslation({
+          projectId: this.getProjectId(),
+          featureValueId: featureValue.id,
+          locale: this.getLocale(),
+          name: valueInput.name,
+        });
       }
     }
 

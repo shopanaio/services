@@ -6,22 +6,6 @@ export type {
   FeatureResultBase,
 } from "./shared.js";
 
-// Feature Value DTOs
-export type {
-  FeatureValueCreateParams,
-  FeatureValueCreateResult,
-} from "./FeatureValueCreateDto.js";
-
-export type {
-  FeatureValueUpdateParams,
-  FeatureValueUpdateResult,
-} from "./FeatureValueUpdateDto.js";
-
-export type {
-  FeatureValueDeleteParams,
-  FeatureValueDeleteResult,
-} from "./FeatureValueDeleteDto.js";
-
 // Feature DTOs
 export type {
   FeatureCreateParams,

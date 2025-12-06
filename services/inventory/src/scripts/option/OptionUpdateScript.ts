@@ -1,9 +1,5 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type { OptionUpdateParams, OptionUpdateResult, OptionValuesInput } from "./dto/index.js";
-import { OptionValueCreateScript } from "./OptionValueCreateScript.js";
-import { OptionValueUpdateScript } from "./OptionValueUpdateScript.js";
-import { OptionValueDeleteScript } from "./OptionValueDeleteScript.js";
-import type { UserError } from "../../kernel/BaseScript.js";
+import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import type { OptionUpdateParams, OptionUpdateResult, OptionValuesInput, OptionSwatchInput } from "./dto/index.js";
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
@@ -78,24 +74,48 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     // Delete values
     if (values.delete?.length) {
       for (const valueId of values.delete) {
-        const result = await this.executeScript(OptionValueDeleteScript, { id: valueId });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
+        const existingValue = await this.repository.option.findValueById(valueId);
+        if (!existingValue) {
+          return [{ message: "Option value not found", field: ["values", "delete"], code: "NOT_FOUND" }];
         }
+        await this.repository.option.deleteValue(valueId);
       }
     }
 
     // Update existing values
     if (values.update?.length) {
       for (const valueUpdate of values.update) {
-        const result = await this.executeScript(OptionValueUpdateScript, {
-          id: valueUpdate.id,
-          slug: valueUpdate.slug,
-          name: valueUpdate.name,
-          swatch: valueUpdate.swatch,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
+        const existingValue = await this.repository.option.findValueById(valueUpdate.id);
+        if (!existingValue) {
+          return [{ message: "Option value not found", field: ["values", "update"], code: "NOT_FOUND" }];
+        }
+
+        const updateData: { slug?: string; swatchId?: string | null } = {};
+
+        if (valueUpdate.slug !== undefined) {
+          updateData.slug = valueUpdate.slug;
+        }
+
+        if (valueUpdate.swatch !== undefined) {
+          if (valueUpdate.swatch === null) {
+            updateData.swatchId = null;
+          } else {
+            const swatchId = await this.createSwatch(valueUpdate.swatch);
+            updateData.swatchId = swatchId;
+          }
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await this.repository.option.updateValue(valueUpdate.id, updateData);
+        }
+
+        if (valueUpdate.name !== undefined) {
+          await this.repository.translation.upsertOptionValueTranslation({
+            projectId: this.getProjectId(),
+            optionValueId: valueUpdate.id,
+            locale: this.getLocale(),
+            name: valueUpdate.name,
+          });
         }
       }
     }
@@ -108,20 +128,38 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         : 0;
 
       for (const valueInput of values.create) {
-        const result = await this.executeScript(OptionValueCreateScript, {
-          optionId,
-          slug: valueInput.slug,
-          name: valueInput.name,
-          sortIndex: sortIndex++,
-          swatch: valueInput.swatch,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
+        let swatchId: string | null = null;
+        if (valueInput.swatch) {
+          swatchId = await this.createSwatch(valueInput.swatch);
         }
+
+        const optionValue = await this.repository.option.createValue(optionId, {
+          slug: valueInput.slug,
+          sortIndex: sortIndex++,
+          swatchId,
+        });
+
+        await this.repository.translation.upsertOptionValueTranslation({
+          projectId: this.getProjectId(),
+          optionValueId: optionValue.id,
+          locale: this.getLocale(),
+          name: valueInput.name,
+        });
       }
     }
 
     return [];
+  }
+
+  private async createSwatch(swatch: OptionSwatchInput): Promise<string> {
+    const created = await this.repository.option.createSwatch({
+      swatchType: swatch.swatchType,
+      colorOne: swatch.colorOne ?? null,
+      colorTwo: swatch.colorTwo ?? null,
+      imageId: swatch.fileId ?? null,
+      metadata: swatch.metadata ?? null,
+    });
+    return created.id;
   }
 
   protected handleError(_error: unknown): OptionUpdateResult {

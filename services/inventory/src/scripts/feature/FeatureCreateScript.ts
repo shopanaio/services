@@ -1,6 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { FeatureCreateParams, FeatureCreateResult } from "./dto/index.js";
-import { FeatureValueCreateScript } from "./FeatureValueCreateScript.js";
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
@@ -39,19 +38,20 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       name,
     });
 
-    // 5. Create values using FeatureValueCreateScript
+    // 5. Create values
     for (let i = 0; i < values.length; i++) {
       const valueInput = values[i];
-      const result = await this.executeScript(FeatureValueCreateScript, {
-        featureId: feature.id,
+      const featureValue = await this.repository.feature.createValue(feature.id, {
         slug: valueInput.slug,
-        name: valueInput.name,
         sortIndex: i,
       });
 
-      if (result.userErrors.length > 0) {
-        return { feature: undefined, userErrors: result.userErrors };
-      }
+      await this.repository.translation.upsertFeatureValueTranslation({
+        projectId: this.getProjectId(),
+        featureValueId: featureValue.id,
+        locale: this.getLocale(),
+        name: valueInput.name,
+      });
     }
 
     this.logger.info(

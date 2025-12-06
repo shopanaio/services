@@ -1,6 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { OptionCreateParams, OptionCreateResult } from "./dto/index.js";
-import { OptionValueCreateScript } from "./OptionValueCreateScript.js";
+import type { OptionCreateParams, OptionCreateResult, OptionSwatchInput } from "./dto/index.js";
 
 export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCreateResult> {
   protected async execute(params: OptionCreateParams): Promise<OptionCreateResult> {
@@ -42,20 +41,27 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
       name,
     });
 
-    // 5. Create values using OptionValueCreateScript
+    // 5. Create values
     for (let i = 0; i < values.length; i++) {
       const valueInput = values[i];
-      const result = await this.executeScript(OptionValueCreateScript, {
-        optionId: option.id,
+
+      let swatchId: string | null = null;
+      if (valueInput.swatch) {
+        swatchId = await this.createSwatch(valueInput.swatch);
+      }
+
+      const optionValue = await this.repository.option.createValue(option.id, {
         slug: valueInput.slug,
-        name: valueInput.name,
         sortIndex: i,
-        swatch: valueInput.swatch,
+        swatchId,
       });
 
-      if (result.userErrors.length > 0) {
-        return { option: undefined, userErrors: result.userErrors };
-      }
+      await this.repository.translation.upsertOptionValueTranslation({
+        projectId: this.getProjectId(),
+        optionValueId: optionValue.id,
+        locale: this.getLocale(),
+        name: valueInput.name,
+      });
     }
 
     this.logger.info(
@@ -64,6 +70,17 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
     );
 
     return { option, userErrors: [] };
+  }
+
+  private async createSwatch(swatch: OptionSwatchInput): Promise<string> {
+    const created = await this.repository.option.createSwatch({
+      swatchType: swatch.swatchType,
+      colorOne: swatch.colorOne ?? null,
+      colorTwo: swatch.colorTwo ?? null,
+      imageId: swatch.fileId ?? null,
+      metadata: swatch.metadata ?? null,
+    });
+    return created.id;
   }
 
   protected handleError(_error: unknown): OptionCreateResult {
