@@ -1,3 +1,4 @@
+import { TransactionManager } from "@shopana/shared-kernel";
 import { initDatabase, closeDatabaseConnection, type Database } from "../infrastructure/db/database";
 import { ProductRepository } from "./ProductRepository";
 import { VariantRepository } from "./VariantRepository";
@@ -26,20 +27,24 @@ export class Repository {
 
   private readonly db: Database;
 
+  /** Transaction Manager — used by Kernel to wrap scripts in transactions */
+  public readonly txManager: TransactionManager<Database>;
+
   constructor(connectionString: string) {
     this.db = initDatabase(connectionString);
+    this.txManager = new TransactionManager(this.db);
 
-    this.product = new ProductRepository(this.db);
-    this.variant = new VariantRepository(this.db);
-    this.pricing = new PricingRepository(this.db);
-    this.cost = new CostRepository(this.db);
-    this.option = new OptionRepository(this.db);
-    this.feature = new FeatureRepository(this.db);
-    this.physical = new PhysicalRepository(this.db);
-    this.stock = new StockRepository(this.db);
-    this.warehouse = new WarehouseRepository(this.db);
-    this.translation = new TranslationRepository(this.db);
-    this.media = new MediaRepository(this.db);
+    this.product = new ProductRepository(this.db, this.txManager);
+    this.variant = new VariantRepository(this.db, this.txManager);
+    this.pricing = new PricingRepository(this.db, this.txManager);
+    this.cost = new CostRepository(this.db, this.txManager);
+    this.option = new OptionRepository(this.db, this.txManager);
+    this.feature = new FeatureRepository(this.db, this.txManager);
+    this.physical = new PhysicalRepository(this.db, this.txManager);
+    this.stock = new StockRepository(this.db, this.txManager);
+    this.warehouse = new WarehouseRepository(this.db, this.txManager);
+    this.translation = new TranslationRepository(this.db, this.txManager);
+    this.media = new MediaRepository(this.db, this.txManager);
   }
 
   async close(): Promise<void> {

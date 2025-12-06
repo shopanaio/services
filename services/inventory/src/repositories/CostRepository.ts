@@ -15,7 +15,7 @@ export class CostRepository extends BaseRepository {
    * Sets effectiveTo = NOW() on the active record (where effectiveTo IS NULL)
    */
   async closeCurrent(variantId: string, currency: Currency): Promise<void> {
-    await this.db
+    await this.connection
       .update(productVariantCostHistory)
       .set({ effectiveTo: new Date() })
       .where(
@@ -53,7 +53,7 @@ export class CostRepository extends BaseRepository {
       recordedAt: now,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(productVariantCostHistory)
       .values(newCost)
       .returning();

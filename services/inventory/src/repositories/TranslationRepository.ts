@@ -1,4 +1,5 @@
 import { eq, and, inArray } from "drizzle-orm";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database";
 import {
   productTranslation,
@@ -25,7 +26,17 @@ import {
 } from "./models";
 
 export class TranslationRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>
+  ) {}
+
+  /**
+   * Get active connection (transaction if in tx, otherwise db)
+   */
+  private get connection(): Database {
+    return this.txManager.getConnection() as Database;
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Product Translations
@@ -35,7 +46,7 @@ export class TranslationRepository {
     productId: string,
     locale: string
   ): Promise<ProductTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productTranslation)
       .where(
@@ -50,7 +61,7 @@ export class TranslationRepository {
   }
 
   async getProductTranslations(productId: string): Promise<ProductTranslation[]> {
-    return this.db
+    return this.connection
       .select()
       .from(productTranslation)
       .where(eq(productTranslation.productId, productId));
@@ -62,7 +73,7 @@ export class TranslationRepository {
   ): Promise<Map<string, ProductTranslation>> {
     if (productIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productTranslation)
       .where(
@@ -78,7 +89,7 @@ export class TranslationRepository {
   async upsertProductTranslation(
     data: NewProductTranslation
   ): Promise<ProductTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(productTranslation)
       .values(data)
       .onConflictDoUpdate({
@@ -103,7 +114,7 @@ export class TranslationRepository {
   ): Promise<ProductTranslation[]> {
     if (translations.length === 0) return [];
 
-    return this.db
+    return this.connection
       .insert(productTranslation)
       .values(translations)
       .onConflictDoUpdate({
@@ -125,7 +136,7 @@ export class TranslationRepository {
     productId: string,
     locale: string
   ): Promise<void> {
-    await this.db
+    await this.connection
       .delete(productTranslation)
       .where(
         and(
@@ -143,7 +154,7 @@ export class TranslationRepository {
     variantId: string,
     locale: string
   ): Promise<VariantTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(variantTranslation)
       .where(
@@ -160,7 +171,7 @@ export class TranslationRepository {
   async upsertVariantTranslation(
     data: NewVariantTranslation
   ): Promise<VariantTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(variantTranslation)
       .values(data)
       .onConflictDoUpdate({
@@ -180,7 +191,7 @@ export class TranslationRepository {
     optionId: string,
     locale: string
   ): Promise<ProductOptionTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productOptionTranslation)
       .where(
@@ -200,7 +211,7 @@ export class TranslationRepository {
   ): Promise<Map<string, ProductOptionTranslation>> {
     if (optionIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productOptionTranslation)
       .where(
@@ -216,7 +227,7 @@ export class TranslationRepository {
   async upsertOptionTranslation(
     data: NewProductOptionTranslation
   ): Promise<ProductOptionTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(productOptionTranslation)
       .values(data)
       .onConflictDoUpdate({
@@ -236,7 +247,7 @@ export class TranslationRepository {
     optionValueId: string,
     locale: string
   ): Promise<ProductOptionValueTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productOptionValueTranslation)
       .where(
@@ -256,7 +267,7 @@ export class TranslationRepository {
   ): Promise<Map<string, ProductOptionValueTranslation>> {
     if (optionValueIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productOptionValueTranslation)
       .where(
@@ -272,7 +283,7 @@ export class TranslationRepository {
   async upsertOptionValueTranslation(
     data: NewProductOptionValueTranslation
   ): Promise<ProductOptionValueTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(productOptionValueTranslation)
       .values(data)
       .onConflictDoUpdate({
@@ -295,7 +306,7 @@ export class TranslationRepository {
     featureId: string,
     locale: string
   ): Promise<ProductFeatureTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productFeatureTranslation)
       .where(
@@ -315,7 +326,7 @@ export class TranslationRepository {
   ): Promise<Map<string, ProductFeatureTranslation>> {
     if (featureIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productFeatureTranslation)
       .where(
@@ -331,7 +342,7 @@ export class TranslationRepository {
   async upsertFeatureTranslation(
     data: NewProductFeatureTranslation
   ): Promise<ProductFeatureTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(productFeatureTranslation)
       .values(data)
       .onConflictDoUpdate({
@@ -351,7 +362,7 @@ export class TranslationRepository {
     featureValueId: string,
     locale: string
   ): Promise<ProductFeatureValueTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productFeatureValueTranslation)
       .where(
@@ -371,7 +382,7 @@ export class TranslationRepository {
   ): Promise<Map<string, ProductFeatureValueTranslation>> {
     if (featureValueIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productFeatureValueTranslation)
       .where(
@@ -387,7 +398,7 @@ export class TranslationRepository {
   async upsertFeatureValueTranslation(
     data: NewProductFeatureValueTranslation
   ): Promise<ProductFeatureValueTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(productFeatureValueTranslation)
       .values(data)
       .onConflictDoUpdate({
@@ -410,7 +421,7 @@ export class TranslationRepository {
     warehouseId: string,
     locale: string
   ): Promise<WarehouseTranslation | undefined> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(warehouseTranslation)
       .where(
@@ -427,7 +438,7 @@ export class TranslationRepository {
   async upsertWarehouseTranslation(
     data: NewWarehouseTranslation
   ): Promise<WarehouseTranslation> {
-    const result = await this.db
+    const result = await this.connection
       .insert(warehouseTranslation)
       .values(data)
       .onConflictDoUpdate({

@@ -14,6 +14,7 @@ import type {
  * - Broker for inter-service communication (calls to apps.execute, etc.)
  * - Logging infrastructure
  * - Script context support for request tracking
+ * - Automatic transaction management (if repository with txManager is provided)
  *
  * The kernel acts as a dependency injection container and executor
  * for transaction scripts, following the Transaction Script pattern.
@@ -46,7 +47,14 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
   }
 
   /**
-   * Execute a transaction script with error handling and context support
+   * Execute a transaction script with automatic transaction management
+   *
+   * If services contain a repository with txManager, the script will be
+   * wrapped in a database transaction:
+   * - On success: automatic COMMIT
+   * - On error: automatic ROLLBACK + error logged + error rethrown
+   *
+   * Nested calls reuse the existing transaction (no new transaction created).
    *
    * @param script - The transaction script to execute
    * @param params - Parameters for the script
@@ -75,32 +83,65 @@ export class Kernel<TServices extends BaseKernelServices = BaseKernelServices> {
       "Executing transaction script"
     );
 
-    try {
-      const result = await script(params, this.services, fullContext);
+    // Get txManager from services (if repository exists)
+    const txManager = (this.services as any).repository?.txManager;
 
-      this.services.logger.debug(
-        {
-          script: script.name,
-          context: fullContext,
-          duration: Date.now() - fullContext.startTime,
-        },
-        "Transaction script completed"
-      );
+    const execute = async (): Promise<TResult> => {
+      try {
+        const result = await script(params, this.services, fullContext);
 
-      return result;
-    } catch (error) {
-      this.services.logger.error(
-        {
-          script: script.name,
-          context: fullContext,
-          error: error instanceof Error ? error.message : String(error),
-          duration: Date.now() - fullContext.startTime,
-        },
-        "Transaction script failed"
-      );
+        this.services.logger.debug(
+          {
+            script: script.name,
+            context: fullContext,
+            duration: Date.now() - fullContext.startTime,
+          },
+          "Transaction script completed"
+        );
 
-      throw error;
+        return result;
+      } catch (error) {
+        this.services.logger.error(
+          {
+            script: script.name,
+            context: fullContext,
+            error: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - fullContext.startTime,
+          },
+          "Transaction script failed"
+        );
+
+        throw error;
+      }
+    };
+
+    // If txManager exists, wrap in transaction
+    // On success: COMMIT, on error: ROLLBACK + log + throw
+    if (txManager) {
+      return txManager.run(execute);
     }
+
+    // Fallback: execute without transaction
+    return execute();
+  }
+
+  /**
+   * Execute a transaction script WITHOUT transaction wrapper
+   * Use for read-only operations or when transaction is not needed
+   */
+  async executeScriptReadOnly<TParams, TResult>(
+    script: TransactionScript<TParams, TResult, TServices>,
+    params: TParams,
+    context: Partial<ScriptContext> = {}
+  ): Promise<TResult> {
+    const fullContext: ScriptContext = {
+      requestId: context.requestId || this.generateRequestId(),
+      projectId: context.projectId,
+      startTime: Date.now(),
+      metadata: context.metadata,
+    };
+
+    return script(params, this.services, fullContext);
   }
 
   /**

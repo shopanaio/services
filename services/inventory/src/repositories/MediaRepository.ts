@@ -16,7 +16,7 @@ export class MediaRepository extends BaseRepository {
    * Get all media for a variant, ordered by sortIndex
    */
   async getVariantMedia(variantId: string): Promise<VariantMedia[]> {
-    return this.db
+    return this.connection
       .select()
       .from(variantMedia)
       .where(
@@ -36,7 +36,7 @@ export class MediaRepository extends BaseRepository {
   ): Promise<Map<string, VariantMedia[]>> {
     if (variantIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(variantMedia)
       .where(
@@ -71,7 +71,7 @@ export class MediaRepository extends BaseRepository {
       sortIndex,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(variantMedia)
       .values(data)
       .onConflictDoUpdate({
@@ -91,7 +91,7 @@ export class MediaRepository extends BaseRepository {
     fileIds: string[]
   ): Promise<VariantMedia[]> {
     // Delete existing
-    await this.db
+    await this.connection
       .delete(variantMedia)
       .where(
         and(
@@ -110,14 +110,14 @@ export class MediaRepository extends BaseRepository {
       sortIndex: index,
     }));
 
-    return this.db.insert(variantMedia).values(values).returning();
+    return this.connection.insert(variantMedia).values(values).returning();
   }
 
   /**
    * Remove specific media from variant
    */
   async removeVariantMedia(variantId: string, fileId: string): Promise<void> {
-    await this.db
+    await this.connection
       .delete(variantMedia)
       .where(
         and(
@@ -132,7 +132,7 @@ export class MediaRepository extends BaseRepository {
    * Remove all media from variant
    */
   async removeAllVariantMedia(variantId: string): Promise<void> {
-    await this.db
+    await this.connection
       .delete(variantMedia)
       .where(
         and(
@@ -151,7 +151,7 @@ export class MediaRepository extends BaseRepository {
   ): Promise<void> {
     // Update sort indices based on new order
     for (let i = 0; i < fileIds.length; i++) {
-      await this.db
+      await this.connection
         .update(variantMedia)
         .set({ sortIndex: i })
         .where(
@@ -169,7 +169,7 @@ export class MediaRepository extends BaseRepository {
    * Useful for Media service callbacks (e.g., file deleted)
    */
   async findVariantsByFileId(fileId: string): Promise<string[]> {
-    const results = await this.db
+    const results = await this.connection
       .select({ variantId: variantMedia.variantId })
       .from(variantMedia)
       .where(eq(variantMedia.fileId, fileId));

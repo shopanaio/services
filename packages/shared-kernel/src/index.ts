@@ -1,5 +1,6 @@
 export { Kernel } from './Kernel';
 export { NestLogger } from './NestLogger';
+export { TransactionManager, type TransactionalDatabase } from './TransactionManager';
 export { ActionRegistry, type ActionHandler } from './broker/ActionRegistry';
 export { ServiceBroker, type ServiceBrokerOptions } from './broker/ServiceBroker';
 export { BrokerCoreModule, type BrokerCoreModuleOptions } from './broker/BrokerCoreModule';

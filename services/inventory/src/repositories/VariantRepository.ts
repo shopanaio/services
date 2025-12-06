@@ -8,7 +8,7 @@ export class VariantRepository extends BaseRepository {
    * Check if variant exists by ID
    */
   async exists(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .select({ id: variant.id })
       .from(variant)
       .where(
@@ -27,7 +27,7 @@ export class VariantRepository extends BaseRepository {
    * Find variant by ID
    */
   async findById(id: string): Promise<Variant | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(variant)
       .where(
@@ -46,7 +46,7 @@ export class VariantRepository extends BaseRepository {
    * Find variant by SKU
    */
   async findBySku(sku: string): Promise<Variant | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(variant)
       .where(
@@ -65,7 +65,7 @@ export class VariantRepository extends BaseRepository {
    * Find variants by product ID
    */
   async findByProductId(productId: string): Promise<Variant[]> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(variant)
       .where(
@@ -105,7 +105,7 @@ export class VariantRepository extends BaseRepository {
       deletedAt: null,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(variant)
       .values(newVariant)
       .returning();
@@ -132,7 +132,7 @@ export class VariantRepository extends BaseRepository {
     if (data.externalSystem !== undefined) updateData.externalSystem = data.externalSystem;
     if (data.externalId !== undefined) updateData.externalId = data.externalId;
 
-    const result = await this.db
+    const result = await this.connection
       .update(variant)
       .set(updateData)
       .where(
@@ -150,7 +150,7 @@ export class VariantRepository extends BaseRepository {
    * Soft delete variant (set deletedAt timestamp)
    */
   async softDelete(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .update(variant)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(
@@ -169,7 +169,7 @@ export class VariantRepository extends BaseRepository {
    * Hard delete variant (permanent deletion)
    */
   async hardDelete(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(variant)
       .where(
         and(

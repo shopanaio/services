@@ -15,7 +15,7 @@ export class StockRepository extends BaseRepository {
   ): Promise<WarehouseStock> {
     const now = new Date();
 
-    const result = await this.db
+    const result = await this.connection
       .insert(warehouseStock)
       .values({
         projectId: this.projectId,
@@ -42,7 +42,7 @@ export class StockRepository extends BaseRepository {
    * Get stock by variant ID
    */
   async getByVariantId(variantId: string): Promise<WarehouseStock[]> {
-    return await this.db
+    return await this.connection
       .select()
       .from(warehouseStock)
       .where(
@@ -62,7 +62,7 @@ export class StockRepository extends BaseRepository {
       return new Map();
     }
 
-    const stocks = await this.db
+    const stocks = await this.connection
       .select()
       .from(warehouseStock)
       .where(
@@ -93,7 +93,7 @@ export class StockRepository extends BaseRepository {
    * Delete all stock entries for a variant
    */
   async deleteByVariantId(variantId: string): Promise<number> {
-    const result = await this.db
+    const result = await this.connection
       .delete(warehouseStock)
       .where(
         and(
@@ -110,7 +110,7 @@ export class StockRepository extends BaseRepository {
    * Delete stock entry for a specific variant-warehouse combination
    */
   async delete(variantId: string, warehouseId: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(warehouseStock)
       .where(
         and(

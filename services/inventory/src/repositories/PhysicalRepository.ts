@@ -25,7 +25,7 @@ export class PhysicalRepository extends BaseRepository {
       displayUnit: "mm",
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(itemDimensions)
       .values(newDimensions)
       .onConflictDoUpdate({
@@ -55,7 +55,7 @@ export class PhysicalRepository extends BaseRepository {
       displayUnit: "g",
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(itemWeight)
       .values(newWeight)
       .onConflictDoUpdate({

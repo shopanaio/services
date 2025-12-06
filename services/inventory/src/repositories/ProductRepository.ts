@@ -8,7 +8,7 @@ export class ProductRepository extends BaseRepository {
    * Check if product exists by ID
    */
   async exists(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .select({ id: product.id })
       .from(product)
       .where(
@@ -27,7 +27,7 @@ export class ProductRepository extends BaseRepository {
    * Find product by ID
    */
   async findById(id: string): Promise<Product | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(product)
       .where(
@@ -58,7 +58,7 @@ export class ProductRepository extends BaseRepository {
       deletedAt: null,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(product)
       .values(newProduct)
       .returning();
@@ -70,7 +70,7 @@ export class ProductRepository extends BaseRepository {
    * Touch product (update updatedAt timestamp)
    */
   async touch(id: string): Promise<void> {
-    await this.db
+    await this.connection
       .update(product)
       .set({ updatedAt: new Date() })
       .where(
@@ -94,7 +94,7 @@ export class ProductRepository extends BaseRepository {
 
     if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt;
 
-    const result = await this.db
+    const result = await this.connection
       .update(product)
       .set(updateData)
       .where(
@@ -112,7 +112,7 @@ export class ProductRepository extends BaseRepository {
    * Soft delete product (set deletedAt timestamp)
    */
   async softDelete(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .update(product)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(
@@ -131,7 +131,7 @@ export class ProductRepository extends BaseRepository {
    * Hard delete product (permanent deletion, CASCADE will delete variants)
    */
   async hardDelete(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(product)
       .where(
         and(
@@ -149,7 +149,7 @@ export class ProductRepository extends BaseRepository {
    */
   async publish(id: string): Promise<Product | null> {
     const now = new Date();
-    const result = await this.db
+    const result = await this.connection
       .update(product)
       .set({ publishedAt: now, updatedAt: now })
       .where(
@@ -168,7 +168,7 @@ export class ProductRepository extends BaseRepository {
    * Unpublish product (set publishedAt to null)
    */
   async unpublish(id: string): Promise<Product | null> {
-    const result = await this.db
+    const result = await this.connection
       .update(product)
       .set({ publishedAt: null, updatedAt: new Date() })
       .where(

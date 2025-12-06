@@ -19,7 +19,7 @@ export class FeatureRepository extends BaseRepository {
    * Find feature by ID
    */
   async findById(id: string): Promise<ProductFeature | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productFeature)
       .where(
@@ -37,7 +37,7 @@ export class FeatureRepository extends BaseRepository {
    * Find feature by slug for a product
    */
   async findBySlug(productId: string, slug: string): Promise<ProductFeature | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productFeature)
       .where(
@@ -56,7 +56,7 @@ export class FeatureRepository extends BaseRepository {
    * Find features by product ID
    */
   async findByProductId(productId: string): Promise<ProductFeature[]> {
-    return this.db
+    return this.connection
       .select()
       .from(productFeature)
       .where(
@@ -73,7 +73,7 @@ export class FeatureRepository extends BaseRepository {
   async findByProductIds(productIds: string[]): Promise<Map<string, ProductFeature[]>> {
     if (productIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productFeature)
       .where(
@@ -105,7 +105,7 @@ export class FeatureRepository extends BaseRepository {
       slug: data.slug,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(productFeature)
       .values(newFeature)
       .returning();
@@ -125,7 +125,7 @@ export class FeatureRepository extends BaseRepository {
       return this.findById(id);
     }
 
-    const result = await this.db
+    const result = await this.connection
       .update(productFeature)
       .set(updateData)
       .where(
@@ -143,7 +143,7 @@ export class FeatureRepository extends BaseRepository {
    * Delete a feature (CASCADE will delete values, translations)
    */
   async delete(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(productFeature)
       .where(
         and(
@@ -164,7 +164,7 @@ export class FeatureRepository extends BaseRepository {
    * Find value by ID
    */
   async findValueById(id: string): Promise<ProductFeatureValue | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productFeatureValue)
       .where(
@@ -182,7 +182,7 @@ export class FeatureRepository extends BaseRepository {
    * Find values by feature ID
    */
   async findValuesByFeatureId(featureId: string): Promise<ProductFeatureValue[]> {
-    return this.db
+    return this.connection
       .select()
       .from(productFeatureValue)
       .where(
@@ -202,7 +202,7 @@ export class FeatureRepository extends BaseRepository {
   ): Promise<Map<string, ProductFeatureValue[]>> {
     if (featureIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productFeatureValue)
       .where(
@@ -239,7 +239,7 @@ export class FeatureRepository extends BaseRepository {
       sortIndex: data.sortIndex,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(productFeatureValue)
       .values(newValue)
       .returning();
@@ -263,7 +263,7 @@ export class FeatureRepository extends BaseRepository {
       return this.findValueById(id);
     }
 
-    const result = await this.db
+    const result = await this.connection
       .update(productFeatureValue)
       .set(updateData)
       .where(
@@ -281,7 +281,7 @@ export class FeatureRepository extends BaseRepository {
    * Delete a feature value
    */
   async deleteValue(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(productFeatureValue)
       .where(
         and(

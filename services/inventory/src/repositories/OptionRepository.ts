@@ -25,7 +25,7 @@ export class OptionRepository extends BaseRepository {
    * Find option by ID
    */
   async findById(id: string): Promise<ProductOption | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productOption)
       .where(
@@ -40,7 +40,7 @@ export class OptionRepository extends BaseRepository {
    * Find option by slug for a product
    */
   async findBySlug(productId: string, slug: string): Promise<ProductOption | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productOption)
       .where(
@@ -59,7 +59,7 @@ export class OptionRepository extends BaseRepository {
    * Find options by product ID
    */
   async findByProductId(productId: string): Promise<ProductOption[]> {
-    return this.db
+    return this.connection
       .select()
       .from(productOption)
       .where(
@@ -76,7 +76,7 @@ export class OptionRepository extends BaseRepository {
   async findByProductIds(productIds: string[]): Promise<Map<string, ProductOption[]>> {
     if (productIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productOption)
       .where(
@@ -112,7 +112,7 @@ export class OptionRepository extends BaseRepository {
       displayType: data.displayType,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(productOption)
       .values(newOption)
       .returning();
@@ -136,7 +136,7 @@ export class OptionRepository extends BaseRepository {
       return this.findById(id);
     }
 
-    const result = await this.db
+    const result = await this.connection
       .update(productOption)
       .set(updateData)
       .where(
@@ -151,7 +151,7 @@ export class OptionRepository extends BaseRepository {
    * Delete an option (CASCADE will delete values, swatches, variant links)
    */
   async delete(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(productOption)
       .where(
         and(eq(productOption.projectId, this.projectId), eq(productOption.id, id))
@@ -169,7 +169,7 @@ export class OptionRepository extends BaseRepository {
    * Find value by ID
    */
   async findValueById(id: string): Promise<ProductOptionValue | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productOptionValue)
       .where(
@@ -187,7 +187,7 @@ export class OptionRepository extends BaseRepository {
    * Find values by option ID
    */
   async findValuesByOptionId(optionId: string): Promise<ProductOptionValue[]> {
-    return this.db
+    return this.connection
       .select()
       .from(productOptionValue)
       .where(
@@ -207,7 +207,7 @@ export class OptionRepository extends BaseRepository {
   ): Promise<Map<string, ProductOptionValue[]>> {
     if (optionIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productOptionValue)
       .where(
@@ -245,7 +245,7 @@ export class OptionRepository extends BaseRepository {
       swatchId: data.swatchId ?? null,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(productOptionValue)
       .values(newValue)
       .returning();
@@ -270,7 +270,7 @@ export class OptionRepository extends BaseRepository {
       return this.findValueById(id);
     }
 
-    const result = await this.db
+    const result = await this.connection
       .update(productOptionValue)
       .set(updateData)
       .where(
@@ -288,7 +288,7 @@ export class OptionRepository extends BaseRepository {
    * Delete an option value
    */
   async deleteValue(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(productOptionValue)
       .where(
         and(
@@ -327,7 +327,7 @@ export class OptionRepository extends BaseRepository {
       metadata: data.metadata ?? null,
     };
 
-    const result = await this.db
+    const result = await this.connection
       .insert(productOptionSwatch)
       .values(newSwatch)
       .returning();
@@ -360,7 +360,7 @@ export class OptionRepository extends BaseRepository {
       return this.findSwatchById(id);
     }
 
-    const result = await this.db
+    const result = await this.connection
       .update(productOptionSwatch)
       .set(updateData)
       .where(
@@ -378,7 +378,7 @@ export class OptionRepository extends BaseRepository {
    * Find swatch by ID
    */
   async findSwatchById(id: string): Promise<ProductOptionSwatch | null> {
-    const result = await this.db
+    const result = await this.connection
       .select()
       .from(productOptionSwatch)
       .where(
@@ -396,7 +396,7 @@ export class OptionRepository extends BaseRepository {
    * Delete a swatch
    */
   async deleteSwatch(id: string): Promise<boolean> {
-    const result = await this.db
+    const result = await this.connection
       .delete(productOptionSwatch)
       .where(
         and(
@@ -428,7 +428,7 @@ export class OptionRepository extends BaseRepository {
       optionValueId,
     };
 
-    await this.db
+    await this.connection
       .insert(productOptionVariantLink)
       .values(newLink)
       .onConflictDoUpdate({
@@ -441,7 +441,7 @@ export class OptionRepository extends BaseRepository {
    * Unlink variant from option
    */
   async unlinkVariant(variantId: string, optionId: string): Promise<void> {
-    await this.db
+    await this.connection
       .delete(productOptionVariantLink)
       .where(
         and(
@@ -456,7 +456,7 @@ export class OptionRepository extends BaseRepository {
    * Clear all option links for a variant
    */
   async clearVariantLinks(variantId: string): Promise<void> {
-    await this.db
+    await this.connection
       .delete(productOptionVariantLink)
       .where(
         and(
@@ -474,7 +474,7 @@ export class OptionRepository extends BaseRepository {
   ): Promise<Map<string, ProductOptionVariantLink[]>> {
     if (variantIds.length === 0) return new Map();
 
-    const results = await this.db
+    const results = await this.connection
       .select()
       .from(productOptionVariantLink)
       .where(
