@@ -21,7 +21,6 @@
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
-    "@fastify/multipart": "^9.3.0",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-graphql-guid": "*",
     "@shopana/shared-kernel": "*",

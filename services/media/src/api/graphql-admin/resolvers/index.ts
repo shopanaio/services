@@ -3,6 +3,7 @@ import {
   GlobalIdEntity,
   parseGlobalId,
 } from "@shopana/shared-graphql-guid";
+import { GraphQLUpload, type FileUpload } from "graphql-upload-minimal";
 import type { File } from "../../../repositories/models/index.js";
 import {
   bucketCreate,
@@ -12,7 +13,6 @@ import {
   fileUploadFromUrl,
   fileUploadMultipart,
 } from "../../../scripts/index.js";
-import { GraphQLUpload, type FileUpload } from "graphql-upload-minimal";
 import type { GraphQLContext } from "../server.js";
 import { getServices } from "../services.js";
 
