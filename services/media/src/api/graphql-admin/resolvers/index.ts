@@ -156,35 +156,6 @@ export const resolvers = {
 
       return file ? dbFileToGraphQL(file) : null;
     },
-
-    /**
-     * Get files with Relay-style cursor pagination
-     */
-    files: async (
-      _parent: unknown,
-      args: {
-        first?: number;
-        after?: string;
-        last?: number;
-        before?: string;
-      },
-      ctx: GraphQLContext
-    ) => {
-      const services = getServices();
-      const connection = await services.repository.file.findAll(
-        ctx.project.id,
-        args
-      );
-
-      return {
-        edges: connection.edges.map((edge) => ({
-          node: dbFileToGraphQL(edge.node),
-          cursor: edge.cursor,
-        })),
-        pageInfo: connection.pageInfo,
-        totalCount: connection.totalCount,
-      };
-    },
   },
 
   MediaMutation: {

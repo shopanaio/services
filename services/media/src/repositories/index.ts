@@ -15,11 +15,6 @@ export type { BucketRotationLogRepository } from "./BucketRotationLogRepository"
 // FileRepository types
 export type {
   FileProvider,
-  FileFilter,
-  FindAllOptions,
-  PageInfo,
-  FileEdge,
-  FileConnection,
   CreateFileInput,
   UpdateFileInput,
 } from "./FileRepository";

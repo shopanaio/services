@@ -1,43 +1,10 @@
-import { eq, and, isNull, inArray, desc, asc, sql, count } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
 import { files, type File, type NewFile } from "./models";
 
 // ---- Types ----
 
 export type FileProvider = "S3" | "YOUTUBE" | "VIMEO" | "URL" | "LOCAL";
-
-export interface FileFilter {
-  provider?: FileProvider;
-  mimeType?: string;
-  isProcessed?: boolean;
-  includeDeleted?: boolean;
-}
-
-export interface FindAllOptions {
-  first?: number;
-  after?: string;
-  last?: number;
-  before?: string;
-  filter?: FileFilter;
-}
-
-export interface PageInfo {
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-  startCursor: string | null;
-  endCursor: string | null;
-}
-
-export interface FileEdge {
-  node: File;
-  cursor: string;
-}
-
-export interface FileConnection {
-  edges: FileEdge[];
-  pageInfo: PageInfo;
-  totalCount: number;
-}
 
 export interface CreateFileInput {
   id?: string;
@@ -62,24 +29,6 @@ export interface UpdateFileInput {
   originalName?: string | null;
   meta?: Record<string, unknown> | null;
   isProcessed?: boolean;
-}
-
-// ---- Cursor utilities ----
-
-function encodeCursor(id: string, createdAt: Date): string {
-  return Buffer.from(JSON.stringify({ id, createdAt: createdAt.toISOString() })).toString("base64");
-}
-
-function decodeCursor(cursor: string): { id: string; createdAt: Date } | null {
-  try {
-    const decoded = JSON.parse(Buffer.from(cursor, "base64").toString("utf8"));
-    return {
-      id: decoded.id,
-      createdAt: new Date(decoded.createdAt),
-    };
-  } catch {
-    return null;
-  }
 }
 
 // ---- Repository ----
@@ -126,117 +75,6 @@ export class FileRepository {
           isNull(files.deletedAt)
         )
       );
-  }
-
-  /**
-   * Find all files with Relay-style cursor pagination
-   */
-  async findAll(projectId: string, options: FindAllOptions = {}): Promise<FileConnection> {
-    const { first, after, last, before, filter } = options;
-
-    // Build base conditions
-    const conditions = [eq(files.projectId, projectId)];
-
-    // Include/exclude deleted
-    if (!filter?.includeDeleted) {
-      conditions.push(isNull(files.deletedAt));
-    }
-
-    // Apply filters
-    if (filter?.provider) {
-      conditions.push(eq(files.provider, filter.provider));
-    }
-    if (filter?.mimeType) {
-      conditions.push(eq(files.mimeType, filter.mimeType));
-    }
-    if (filter?.isProcessed !== undefined) {
-      conditions.push(eq(files.isProcessed, filter.isProcessed));
-    }
-
-    // Get total count
-    const countResult = await this.db
-      .select({ count: count() })
-      .from(files)
-      .where(and(...conditions));
-    const totalCount = countResult[0]?.count ?? 0;
-
-    // Determine pagination direction and limit
-    const isForward = first !== undefined || (!last && !before);
-    const limit = first ?? last ?? 20;
-
-    // Apply cursor conditions
-    if (after) {
-      const cursor = decodeCursor(after);
-      if (cursor) {
-        // Forward pagination: get items after this cursor (older items)
-        conditions.push(
-          sql`(${files.createdAt}, ${files.id}) < (${cursor.createdAt}, ${cursor.id})`
-        );
-      }
-    }
-    if (before) {
-      const cursor = decodeCursor(before);
-      if (cursor) {
-        // Backward pagination: get items before this cursor (newer items)
-        conditions.push(
-          sql`(${files.createdAt}, ${files.id}) > (${cursor.createdAt}, ${cursor.id})`
-        );
-      }
-    }
-
-    // Execute query
-    let result: File[];
-    if (isForward) {
-      result = await this.db
-        .select()
-        .from(files)
-        .where(and(...conditions))
-        .orderBy(desc(files.createdAt), desc(files.id))
-        .limit(limit + 1); // Fetch one extra to check hasNextPage
-    } else {
-      result = await this.db
-        .select()
-        .from(files)
-        .where(and(...conditions))
-        .orderBy(asc(files.createdAt), asc(files.id))
-        .limit(limit + 1);
-
-      // Reverse the result to maintain consistent order
-      result = result.reverse();
-    }
-
-    // Determine if there are more pages
-    const hasExtraItem = result.length > limit;
-    if (hasExtraItem) {
-      if (isForward) {
-        result = result.slice(0, limit);
-      } else {
-        result = result.slice(1);
-      }
-    }
-
-    // Build edges
-    const edges: FileEdge[] = result.map((file) => ({
-      node: file,
-      cursor: encodeCursor(file.id, file.createdAt),
-    }));
-
-    // Determine page info
-    const hasNextPage = isForward ? hasExtraItem : !!before;
-    const hasPreviousPage = isForward ? !!after : hasExtraItem;
-    const startCursor = edges.length > 0 ? edges[0].cursor : null;
-    const endCursor = edges.length > 0 ? edges[edges.length - 1].cursor : null;
-
-    return {
-      edges,
-      pageInfo: {
-        hasNextPage,
-        hasPreviousPage,
-        startCursor,
-        endCursor,
-      },
-      totalCount,
-    };
   }
 
   // ---- Write methods ----

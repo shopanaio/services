@@ -26,23 +26,20 @@ extend type Mutation {
 }
 
 type MediaQuery {
-  """Get a node by its global ID"""
+  """
+  Get a node by its global ID
+  """
   node(id: ID!): Node
 
-  """Get multiple nodes by their global IDs"""
+  """
+  Get multiple nodes by their global IDs
+  """
   nodes(ids: [ID!]!): [Node]!
 
-  """Get a file by ID"""
+  """
+  Get a file by ID
+  """
   file(id: ID!): File
-
-  """Get files with Relay-style pagination"""
-  files(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): FileConnection!
-
 }
 
 type MediaMutation {
@@ -52,8 +49,9 @@ type MediaMutation {
   # File mutations
   fileUpload(input: FileUploadMultipartInput!): FileUploadPayload!
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
-  fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
+  fileCreateExternal(
+    input: FileCreateExternalInput!
+  ): FileCreateExternalPayload!
   fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
   fileDelete(input: FileDeleteInput!): FileDeletePayload!
-
 }

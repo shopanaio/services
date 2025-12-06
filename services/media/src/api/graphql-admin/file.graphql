@@ -117,31 +117,6 @@ type File implements Node @key(fields: "id") {
   externalData: ExternalMediaData
 }
 
-"""
-A connection to a list of File items.
-"""
-type FileConnection {
-  """A list of edges."""
-  edges: [FileEdge!]!
-
-  """Information to aid in pagination."""
-  pageInfo: PageInfo!
-
-  """The total number of files."""
-  totalCount: Int!
-}
-
-"""
-An edge in a File connection.
-"""
-type FileEdge {
-  """The item at the end of the edge."""
-  node: File!
-
-  """A cursor for use in pagination."""
-  cursor: String!
-}
-
 # ---- File Mutation Inputs ----
 
 """
