@@ -4,17 +4,13 @@ import {
   productOptionUpdate,
   productOptionDelete,
 } from "../../../../scripts/option/index.js";
+import { noDatabaseError } from "../utils.js";
 
 export const optionMutationResolvers: Resolvers = {
   InventoryMutation: {
     productOptionCreate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          option: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ option: null });
       }
 
       if (!input.productId) {
@@ -54,12 +50,7 @@ export const optionMutationResolvers: Resolvers = {
 
     productOptionUpdate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          option: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ option: null });
       }
 
       const result = await ctx.kernel.executeScript(productOptionUpdate, {
@@ -111,12 +102,7 @@ export const optionMutationResolvers: Resolvers = {
 
     productOptionDelete: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          deletedOptionId: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ deletedOptionId: null });
       }
 
       const result = await ctx.kernel.executeScript(productOptionDelete, {

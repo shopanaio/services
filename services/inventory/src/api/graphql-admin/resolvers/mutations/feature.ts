@@ -4,17 +4,13 @@ import {
   productFeatureUpdate,
   productFeatureDelete,
 } from "../../../../scripts/feature/index.js";
+import { noDatabaseError } from "../utils.js";
 
 export const featureMutationResolvers: Resolvers = {
   InventoryMutation: {
     productFeatureCreate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          feature: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ feature: null });
       }
 
       const result = await ctx.kernel.executeScript(productFeatureCreate, {
@@ -35,12 +31,7 @@ export const featureMutationResolvers: Resolvers = {
 
     productFeatureUpdate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          feature: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ feature: null });
       }
 
       const result = await ctx.kernel.executeScript(productFeatureUpdate, {
@@ -71,12 +62,7 @@ export const featureMutationResolvers: Resolvers = {
 
     productFeatureDelete: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          deletedFeatureId: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ deletedFeatureId: null });
       }
 
       const result = await ctx.kernel.executeScript(productFeatureDelete, {

@@ -11,17 +11,13 @@ import {
   variantSetMedia,
 } from "../../../../scripts/variant/index.js";
 import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { noDatabaseError } from "../utils.js";
 
 export const variantMutationResolvers: Resolvers = {
   InventoryMutation: {
     variantCreate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          variant: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantCreate, {
@@ -37,12 +33,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantDelete: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          deletedVariantId: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ deletedVariantId: null });
       }
 
       const result = await ctx.kernel.executeScript(variantDelete, {
@@ -58,12 +49,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetSku: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          variant: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetSku, {
@@ -79,12 +65,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetDimensions: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          variant: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetDimensions, {
@@ -104,12 +85,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetWeight: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          variant: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetWeight, {
@@ -127,12 +103,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetPricing: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          price: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ price: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetPricing, {
@@ -150,12 +121,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetCost: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          cost: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ cost: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetCost, {
@@ -172,12 +138,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetStock: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          stock: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ stock: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetStock, {
@@ -194,12 +155,7 @@ export const variantMutationResolvers: Resolvers = {
 
     variantSetMedia: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          variant: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ variant: null });
       }
 
       // Decode Global IDs to UUIDs

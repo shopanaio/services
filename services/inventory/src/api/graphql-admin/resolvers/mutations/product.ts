@@ -6,17 +6,13 @@ import {
   productPublish,
   productUnpublish,
 } from "../../../../scripts/product/index.js";
+import { noDatabaseError } from "../utils.js";
 
 export const productMutationResolvers: Resolvers = {
   InventoryMutation: {
     productCreate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          product: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ product: null });
       }
 
       const result = await ctx.kernel.executeScript(productCreate, {
@@ -31,12 +27,7 @@ export const productMutationResolvers: Resolvers = {
 
     productUpdate: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          product: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ product: null });
       }
 
       const result = await ctx.kernel.executeScript(productUpdate, {
@@ -62,12 +53,7 @@ export const productMutationResolvers: Resolvers = {
 
     productDelete: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          deletedProductId: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ deletedProductId: null });
       }
 
       const result = await ctx.kernel.executeScript(productDelete, {
@@ -83,12 +69,7 @@ export const productMutationResolvers: Resolvers = {
 
     productPublish: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          product: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ product: null });
       }
 
       const result = await ctx.kernel.executeScript(productPublish, {
@@ -103,12 +84,7 @@ export const productMutationResolvers: Resolvers = {
 
     productUnpublish: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return {
-          product: null,
-          userErrors: [
-            { message: "Database not configured", code: "NO_DATABASE" },
-          ],
-        };
+        return noDatabaseError({ product: null });
       }
 
       const result = await ctx.kernel.executeScript(productUnpublish, {
