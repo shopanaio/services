@@ -177,13 +177,3 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type {
-  ProductUpdateParams,
-  ProductUpdateResult,
-  FeaturesInput,
-  FeatureUpdateInput,
-  OptionsInput,
-  OptionUpdateInput,
-} from "./dto/index.js";

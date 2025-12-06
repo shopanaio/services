@@ -125,12 +125,3 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type {
-  FeatureUpdateParams,
-  FeatureUpdateResult,
-  FeatureValuesInput,
-  FeatureValueInput,
-  FeatureValueUpdateInput,
-} from "./dto/index.js";

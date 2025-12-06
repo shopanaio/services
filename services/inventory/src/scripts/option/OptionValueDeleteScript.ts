@@ -30,6 +30,3 @@ export class OptionValueDeleteScript extends BaseScript<
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { OptionValueDeleteParams, OptionValueDeleteResult } from "./dto/index.js";

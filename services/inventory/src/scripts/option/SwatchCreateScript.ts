@@ -23,6 +23,3 @@ export class SwatchCreateScript extends BaseScript<SwatchCreateParams, SwatchCre
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { SwatchCreateParams, SwatchCreateResult } from "./dto/index.js";

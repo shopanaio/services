@@ -76,6 +76,3 @@ export class OptionValueUpdateScript extends BaseScript<
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { OptionValueUpdateParams, OptionValueUpdateResult } from "./dto/index.js";

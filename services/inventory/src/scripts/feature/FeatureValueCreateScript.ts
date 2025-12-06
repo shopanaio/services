@@ -50,6 +50,3 @@ export class FeatureValueCreateScript extends BaseScript<
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { FeatureValueCreateParams, FeatureValueCreateResult } from "./dto/index.js";

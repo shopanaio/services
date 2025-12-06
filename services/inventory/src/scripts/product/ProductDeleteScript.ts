@@ -41,6 +41,3 @@ export class ProductDeleteScript extends BaseScript<ProductDeleteParams, Product
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { ProductDeleteParams, ProductDeleteResult } from "./dto/index.js";

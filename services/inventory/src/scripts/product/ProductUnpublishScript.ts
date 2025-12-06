@@ -43,6 +43,3 @@ export class ProductUnpublishScript extends BaseScript<ProductUnpublishParams, P
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { ProductUnpublishParams, ProductUnpublishResult } from "./dto/index.js";

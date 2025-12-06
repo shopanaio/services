@@ -70,6 +70,3 @@ export class OptionValueCreateScript extends BaseScript<
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { OptionValueCreateParams, OptionValueCreateResult, OptionSwatchInput } from "./dto/index.js";

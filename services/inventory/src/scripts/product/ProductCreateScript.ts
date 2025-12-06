@@ -95,13 +95,3 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type {
-  ProductCreateParams,
-  ProductCreateResult,
-  DescriptionInput,
-  FeatureInput,
-  OptionInput,
-  ProductWithVariants,
-} from "./dto/index.js";

@@ -69,6 +69,3 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { FeatureCreateParams, FeatureCreateResult, FeatureValueInput } from "./dto/index.js";

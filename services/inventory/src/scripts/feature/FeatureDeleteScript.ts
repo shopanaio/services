@@ -35,6 +35,3 @@ export class FeatureDeleteScript extends BaseScript<FeatureDeleteParams, Feature
     };
   }
 }
-
-// Re-export types for backwards compatibility
-export type { FeatureDeleteParams, FeatureDeleteResult } from "./dto/index.js";
