@@ -222,6 +222,11 @@ export class FileRepository {
    * Find a file by source URL (for deduplication of URL uploads)
    */
   async findBySourceUrl(projectId: string, sourceUrl: string): Promise<File | null> {
+    // Empty strings are not valid for deduplication
+    if (!sourceUrl) {
+      return null;
+    }
+
     const result = await this.db
       .select()
       .from(files)

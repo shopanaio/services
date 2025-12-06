@@ -1,7 +1,6 @@
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import type { Database } from "../infrastructure/db/database";
 import { buckets, type Bucket, type NewBucket } from "./models";
-import { config } from "../config.js";
 
 export interface CreateBucketInput {
   id?: string;
@@ -85,27 +84,14 @@ export class BucketRepository {
   }
 
   /**
-   * Get or create a default bucket using config values.
-   * Buckets are global (shared across projects).
-   * If bucket with config name exists, returns it.
-   * If not, creates one from config.
+   * Get the default bucket by name.
+   * Bucket must be created at service startup.
    */
-  async getOrCreateDefault(projectId: string): Promise<Bucket> {
-    const bucketName = config.storage.bucket;
-
-    // Try to find existing bucket by name (global)
-    const existing = await this.findByBucketName(bucketName);
-    if (existing) {
-      return existing;
+  async getDefault(bucketName: string): Promise<Bucket> {
+    const bucket = await this.findByBucketName(bucketName);
+    if (!bucket) {
+      throw new Error(`Default bucket not found: ${bucketName}. Ensure it is created at service startup.`);
     }
-
-    // Create new bucket from config
-    return this.create(projectId, {
-      bucketName,
-      region: config.storage.region ?? "us-east-1",
-      endpointUrl: config.storage.endpoint,
-      status: "active",
-      priority: 0,
-    });
+    return bucket;
   }
 }

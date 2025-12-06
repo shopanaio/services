@@ -107,12 +107,12 @@ export const fileUploadMultipart: TransactionScript<
     const objectKey = generateObjectKey(projectId, metadata.ext);
     const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
-    // Get or create bucket
-    const bucket = await repository.bucket.getOrCreateDefault(projectId);
-
     // Initialize S3 client
     const s3Client = getS3Client();
     const bucketName = getBucketName();
+
+    // Get bucket record
+    const bucket = await repository.bucket.getDefault(bucketName);
 
     // Upload to S3
     const uploadResult = await s3Client.putObject(
