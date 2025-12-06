@@ -27,16 +27,14 @@ export const productMutationResolvers: Resolvers = {
         excerpt: input.excerpt ?? undefined,
         seoTitle: input.seoTitle ?? undefined,
         seoDescription: input.seoDescription ?? undefined,
-        features: input.features
-          ? input.features.map((f) => ({
-              slug: f.slug,
-              name: f.name,
-              values: f.values.map((v) => ({
-                slug: v.slug,
-                name: v.name,
-              })),
-            }))
-          : undefined,
+        features: input.features?.map((f) => ({
+          slug: f.slug,
+          name: f.name,
+          values: f.values.map((v) => ({
+            slug: v.slug,
+            name: v.name,
+          })),
+        })),
         publish: input.publish ?? undefined,
       });
 

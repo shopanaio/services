@@ -218,7 +218,7 @@ export class CheckoutSerializer {
       firstName: address.firstName ?? null,
       lastName: address.lastName ?? null,
       phone: address.phone ?? null,
-      data: address.data ?? undefined,
+      data: address.data,
     };
   }
 

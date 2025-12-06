@@ -25,8 +25,8 @@ export const checkoutTagUpdate = async (
     await checkoutUsecase.updateCheckoutTag.execute({
       checkoutId: dto.checkoutId,
       tagId: dto.tagId,
-      slug: dto.slug ?? undefined,
-      isUnique: dto.unique ?? undefined,
+      slug: dto.slug,
+      isUnique: dto.unique,
       apiKey: ctx.apiKey,
       project: ctx.project,
       customer: ctx.customer,

@@ -445,8 +445,8 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
       const { groupId, item } = groupData;
       const priceConfig: Inventory.ChildPriceConfigInput = {
         type: mapPriceType(item.priceType),
-        amount: item.priceAmountValue ?? undefined,
-        percent: item.pricePercentageValue ?? undefined,
+        amount: item.priceAmountValue,
+        percent: item.pricePercentageValue,
       };
 
       // Use variant data from group item (already fetched with groups)
@@ -458,7 +458,7 @@ export class ShopanaInventoryProvider implements Inventory.InventoryProvider {
         {
           groupId,
           groupItemId: item.id,
-          maxQuantity: item.maxQuantity ?? undefined,
+          maxQuantity: item.maxQuantity,
         }
       );
     });

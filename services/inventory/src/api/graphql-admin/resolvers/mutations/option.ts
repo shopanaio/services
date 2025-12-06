@@ -33,10 +33,10 @@ export const optionMutationResolvers: Resolvers = {
           swatch: v.swatch
             ? {
                 swatchType: v.swatch.swatchType,
-                colorOne: v.swatch.colorOne ?? undefined,
-                colorTwo: v.swatch.colorTwo ?? undefined,
-                fileId: v.swatch.fileId ?? undefined,
-                metadata: v.swatch.metadata ?? undefined,
+                colorOne: v.swatch.colorOne,
+                colorTwo: v.swatch.colorTwo,
+                fileId: v.swatch.fileId,
+                metadata: v.swatch.metadata,
               }
             : undefined,
         })),
@@ -55,9 +55,9 @@ export const optionMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.executeScript(productOptionUpdate, {
         id: input.id,
-        slug: input.slug ?? undefined,
-        name: input.name ?? undefined,
-        displayType: input.displayType ?? undefined,
+        slug: input.slug,
+        name: input.name,
+        displayType: input.displayType,
         values: input.values
           ? {
               create: input.values.create?.map((v) => ({
@@ -66,30 +66,30 @@ export const optionMutationResolvers: Resolvers = {
                 swatch: v.swatch
                   ? {
                       swatchType: v.swatch.swatchType,
-                      colorOne: v.swatch.colorOne ?? undefined,
-                      colorTwo: v.swatch.colorTwo ?? undefined,
-                      fileId: v.swatch.fileId ?? undefined,
-                      metadata: v.swatch.metadata ?? undefined,
+                      colorOne: v.swatch.colorOne,
+                      colorTwo: v.swatch.colorTwo,
+                      fileId: v.swatch.fileId,
+                      metadata: v.swatch.metadata,
                     }
                   : undefined,
               })),
               update: input.values.update?.map((v) => ({
                 id: v.id,
-                slug: v.slug ?? undefined,
-                name: v.name ?? undefined,
+                slug: v.slug,
+                name: v.name,
                 swatch: v.swatch === null
                   ? null
                   : v.swatch
                     ? {
                         swatchType: v.swatch.swatchType,
-                        colorOne: v.swatch.colorOne ?? undefined,
-                        colorTwo: v.swatch.colorTwo ?? undefined,
-                        fileId: v.swatch.fileId ?? undefined,
-                        metadata: v.swatch.metadata ?? undefined,
+                        colorOne: v.swatch.colorOne,
+                        colorTwo: v.swatch.colorTwo,
+                        fileId: v.swatch.fileId,
+                        metadata: v.swatch.metadata,
                       }
                     : undefined,
               })),
-              delete: input.values.delete ?? undefined,
+              delete: input.values.delete,
             }
           : undefined,
       });

@@ -16,7 +16,7 @@ export const warehouseMutationResolvers: Resolvers = {
       const result = await ctx.kernel.executeScript(warehouseCreate, {
         code: input.code,
         name: input.name,
-        isDefault: input.isDefault ?? undefined,
+        isDefault: input.isDefault,
       });
 
       return {
@@ -32,9 +32,9 @@ export const warehouseMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.executeScript(warehouseUpdate, {
         id: input.id,
-        code: input.code ?? undefined,
-        name: input.name ?? undefined,
-        isDefault: input.isDefault ?? undefined,
+        code: input.code,
+        name: input.name,
+        isDefault: input.isDefault,
       });
 
       return {

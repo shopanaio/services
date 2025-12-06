@@ -22,7 +22,7 @@ export const variantMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.executeScript(variantCreate, {
         productId: input.productId,
-        sku: input.variant?.sku ?? undefined,
+        sku: input.variant?.sku,
       });
 
       return {
@@ -38,7 +38,7 @@ export const variantMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.executeScript(variantDelete, {
         id: input.id,
-        permanent: input.permanent ?? undefined,
+        permanent: input.permanent,
       });
 
       return {

@@ -68,10 +68,12 @@ export const productCreate: TransactionScript<
         productId: product.id,
         locale,
         title,
-        description: description ?? undefined,
-        excerpt: excerpt ?? undefined,
-        seoTitle: seoTitle ?? undefined,
-        seoDescription: seoDescription ?? undefined,
+        descriptionText: description?.text,
+        descriptionHtml: description?.html,
+        descriptionJson: description?.json,
+        excerpt,
+        seoTitle,
+        seoDescription,
       });
     }
 
