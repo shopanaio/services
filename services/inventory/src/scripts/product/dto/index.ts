@@ -13,12 +13,6 @@ export type {
 
 // Product Update DTOs
 export type {
-  FeatureInput as FeatureCreateInput,
-  FeatureUpdateInput,
-  FeaturesInput,
-  OptionInput as OptionCreateInput,
-  OptionUpdateInput,
-  OptionsInput,
   ProductUpdateParams,
   ProductUpdateResult,
 } from "./ProductUpdateDto.js";

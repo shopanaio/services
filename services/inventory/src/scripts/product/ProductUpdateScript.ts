@@ -1,16 +1,9 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { ProductUpdateParams, ProductUpdateResult, FeaturesInput, OptionsInput } from "./dto/index.js";
-import { FeatureCreateScript } from "../feature/FeatureCreateScript.js";
-import { FeatureUpdateScript } from "../feature/FeatureUpdateScript.js";
-import { FeatureDeleteScript } from "../feature/FeatureDeleteScript.js";
-import { OptionCreateScript } from "../option/OptionCreateScript.js";
-import { OptionUpdateScript } from "../option/OptionUpdateScript.js";
-import { OptionDeleteScript } from "../option/OptionDeleteScript.js";
-import type { UserError } from "../../kernel/BaseScript.js";
+import type { ProductUpdateParams, ProductUpdateResult } from "./dto/index.js";
 
 export class ProductUpdateScript extends BaseScript<ProductUpdateParams, ProductUpdateResult> {
   protected async execute(params: ProductUpdateParams): Promise<ProductUpdateResult> {
-    const { id, title, description, excerpt, seoTitle, seoDescription, features, options } = params;
+    const { id, title, description, excerpt, seoTitle, seoDescription } = params;
 
     // 1. Check if product exists
     const existingProduct = await this.repository.product.findById(id);
@@ -47,127 +40,15 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
       });
     }
 
-    // 3. Handle features updates
-    if (features) {
-      const errors = await this.processFeaturesUpdate(id, features);
-      if (errors.length > 0) {
-        return { product: undefined, userErrors: errors };
-      }
-    }
-
-    // 4. Handle options updates
-    if (options) {
-      const errors = await this.processOptionsUpdate(id, options);
-      if (errors.length > 0) {
-        return { product: undefined, userErrors: errors };
-      }
-    }
-
-    // 5. Touch product to update updatedAt
+    // 3. Touch product to update updatedAt
     await this.repository.product.touch(id);
 
-    // 6. Fetch updated product
+    // 4. Fetch updated product
     const product = await this.repository.product.findById(id);
 
     this.logger.info({ productId: id }, "Product updated");
 
     return { product: product ?? undefined, userErrors: [] };
-  }
-
-  private async processFeaturesUpdate(
-    productId: string,
-    features: FeaturesInput
-  ): Promise<UserError[]> {
-    // Delete features
-    if (features.delete?.length) {
-      for (const featureId of features.delete) {
-        const result = await this.executeScript(FeatureDeleteScript, { id: featureId });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
-      }
-    }
-
-    // Update existing features
-    if (features.update?.length) {
-      for (const featureUpdate of features.update) {
-        const result = await this.executeScript(FeatureUpdateScript, {
-          id: featureUpdate.id,
-          slug: featureUpdate.slug,
-          name: featureUpdate.name,
-          values: featureUpdate.values,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
-      }
-    }
-
-    // Create new features
-    if (features.create?.length) {
-      for (const featureInput of features.create) {
-        const result = await this.executeScript(FeatureCreateScript, {
-          productId,
-          slug: featureInput.slug,
-          name: featureInput.name,
-          values: featureInput.values,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
-      }
-    }
-
-    return [];
-  }
-
-  private async processOptionsUpdate(
-    productId: string,
-    options: OptionsInput
-  ): Promise<UserError[]> {
-    // Delete options
-    if (options.delete?.length) {
-      for (const optionId of options.delete) {
-        const result = await this.executeScript(OptionDeleteScript, { id: optionId });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
-      }
-    }
-
-    // Update existing options
-    if (options.update?.length) {
-      for (const optionUpdate of options.update) {
-        const result = await this.executeScript(OptionUpdateScript, {
-          id: optionUpdate.id,
-          slug: optionUpdate.slug,
-          name: optionUpdate.name,
-          displayType: optionUpdate.displayType,
-          values: optionUpdate.values,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
-      }
-    }
-
-    // Create new options
-    if (options.create?.length) {
-      for (const optionInput of options.create) {
-        const result = await this.executeScript(OptionCreateScript, {
-          productId,
-          slug: optionInput.slug,
-          name: optionInput.name,
-          displayType: optionInput.displayType,
-          values: optionInput.values,
-        });
-        if (result.userErrors.length > 0) {
-          return result.userErrors;
-        }
-      }
-    }
-
-    return [];
   }
 
   protected handleError(_error: unknown): ProductUpdateResult {
