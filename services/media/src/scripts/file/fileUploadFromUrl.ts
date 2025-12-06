@@ -135,6 +135,9 @@ export const fileUploadFromUrl: TransactionScript<
     const objectKey = generateObjectKey(projectId, ext);
     const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
+    // Get or create bucket (need UUID, not bucket name)
+    const bucket = await repository.bucket.getOrCreateDefault(projectId);
+
     // Initialize S3 client
     const s3Client = getS3Client();
     const bucketName = getBucketName();
@@ -178,7 +181,7 @@ export const fileUploadFromUrl: TransactionScript<
     // 7. Create record in `s3Objects` table
     await repository.s3Object.create(projectId, {
       fileId: file.id,
-      bucketId: bucketName,
+      bucketId: bucket.id,
       objectKey,
       contentHash,
       etag: uploadResult.etag,
