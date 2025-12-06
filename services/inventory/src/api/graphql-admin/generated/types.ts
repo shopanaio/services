@@ -722,6 +722,8 @@ export type ProductUpdateInput = {
   description?: InputMaybe<DescriptionInput>;
   /** Short excerpt. */
   excerpt?: InputMaybe<Scalars['String']['input']>;
+  /** The URL-friendly handle for the product. */
+  handle?: InputMaybe<Scalars['String']['input']>;
   /** The product ID. */
   id: Scalars['ID']['input'];
   /** SEO description. */

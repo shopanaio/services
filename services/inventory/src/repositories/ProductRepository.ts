@@ -86,12 +86,13 @@ export class ProductRepository extends BaseRepository {
    */
   async update(
     id: string,
-    data: { publishedAt?: Date | null }
+    data: { handle?: string | null; publishedAt?: Date | null }
   ): Promise<Product | null> {
     const updateData: Partial<NewProduct> = {
       updatedAt: new Date(),
     };
 
+    if (data.handle !== undefined) updateData.handle = data.handle;
     if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt;
 
     const result = await this.connection

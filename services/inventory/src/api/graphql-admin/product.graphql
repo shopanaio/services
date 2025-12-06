@@ -132,6 +132,9 @@ input ProductUpdateInput {
   """The product ID."""
   id: ID!
 
+  """The URL-friendly handle for the product."""
+  handle: String
+
   """Product title."""
   title: String
 

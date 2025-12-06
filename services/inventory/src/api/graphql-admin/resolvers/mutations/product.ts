@@ -30,6 +30,7 @@ export const productMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.runScript(ProductUpdateScript, {
         id: input.id,
+        handle: input.handle ?? undefined,
         title: input.title ?? undefined,
         description: input.description
           ? {

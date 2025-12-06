@@ -3,7 +3,7 @@ import type { ProductUpdateParams, ProductUpdateResult } from "./dto/index.js";
 
 export class ProductUpdateScript extends BaseScript<ProductUpdateParams, ProductUpdateResult> {
   protected async execute(params: ProductUpdateParams): Promise<ProductUpdateResult> {
-    const { id, title, description, excerpt, seoTitle, seoDescription } = params;
+    const { id, handle, title, description, excerpt, seoTitle, seoDescription } = params;
 
     // 1. Check if product exists
     const existingProduct = await this.repository.product.findById(id);
@@ -40,8 +40,12 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
       });
     }
 
-    // 3. Touch product to update updatedAt
-    await this.repository.product.touch(id);
+    // 3. Update product handle or touch to update updatedAt
+    if (handle !== undefined) {
+      await this.repository.product.update(id, { handle });
+    } else {
+      await this.repository.product.touch(id);
+    }
 
     // 4. Fetch updated product
     const product = await this.repository.product.findById(id);
