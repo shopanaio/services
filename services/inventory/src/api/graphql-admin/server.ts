@@ -6,21 +6,21 @@ import fastifyApollo, {
 import fastify from "fastify";
 import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
-import { join, dirname } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { resolvers } from "./resolvers/index.js";
-import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import type { InventoryContext } from "../../context/index.js";
-import { Repository } from "../../repositories/Repository.js";
-import { Kernel } from "../../kernel/Kernel.js";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
+import { Kernel } from "../../kernel/Kernel.js";
+import { Repository } from "../../repositories/Repository.js";
+import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+import { inventoryContextPlugin } from "./inventoryContextPlugin.js";
+import { resolvers } from "./resolvers/index.js";
 
 export interface GraphQLContext {
   requestId: string;
-  slug: string;
-  project: InventoryContext["project"];
-  user: InventoryContext["user"];
   kernel: Kernel;
+  /** Internal context for plugin - use getContext() in resolvers */
+  _inventoryContext: InventoryContext | null;
 }
 
 export interface ServerConfig {
@@ -62,7 +62,9 @@ export async function startServer(config: ServerConfig) {
     kernel = new Kernel(repository, consoleLogger, null);
     console.log("[INVENTORY] Database connected, Kernel initialized");
   } else {
-    console.warn("[INVENTORY] No DATABASE_URL configured, running without database");
+    console.warn(
+      "[INVENTORY] No DATABASE_URL configured, running without database"
+    );
   }
 
   const app = fastify({
@@ -107,20 +109,21 @@ export async function startServer(config: ServerConfig) {
   const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [fastifyApolloDrainPlugin(app), inventoryContextPlugin()],
   });
 
   await apollo.start();
 
   // Admin context middleware
   const grpcConfig = {
-    getGrpcHost: () => config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
+    getGrpcHost: () =>
+      config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
   };
   app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
-    path: "/graphql",
+    path: "/graphql/admin",
     context: async (request, _reply): Promise<GraphQLContext> => {
       // For introspection, return minimal context
       const isIntrospection =
@@ -130,19 +133,19 @@ export async function startServer(config: ServerConfig) {
       if (isIntrospection) {
         return {
           requestId: request.id as string,
-          slug: "",
-          project: null as any,
-          user: null as any,
-          kernel: kernel as any,
+          kernel: kernel as Kernel,
+          _inventoryContext: null,
         };
       }
 
       return {
         requestId: request.id as string,
-        slug: request.headers["x-pj-key"] as string,
-        project: request.project,
-        user: request.user,
         kernel: kernel as Kernel,
+        _inventoryContext: {
+          slug: request.headers["x-pj-key"] as string,
+          project: request.project,
+          user: request.user,
+        },
       };
     },
   });
