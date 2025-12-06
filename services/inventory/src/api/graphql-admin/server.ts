@@ -11,18 +11,30 @@ import { fileURLToPath } from "url";
 import { resolvers } from "./resolvers/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import type { InventoryContext } from "../../context/index.js";
+import { Repository } from "../../repositories/Repository.js";
+import { Kernel } from "../../kernel/Kernel.js";
 
 export interface GraphQLContext {
   requestId: string;
   slug: string;
   project: InventoryContext["project"];
   user: InventoryContext["user"];
+  kernel: Kernel;
 }
 
 export interface ServerConfig {
   port: number;
   grpcHost?: string;
+  databaseUrl?: string;
 }
+
+// Simple console logger for Kernel
+const consoleLogger = {
+  info: (...args: any[]) => console.log("[INFO]", ...args),
+  warn: (...args: any[]) => console.warn("[WARN]", ...args),
+  error: (...args: any[]) => console.error("[ERROR]", ...args),
+  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
+};
 
 /**
  * Create and start GraphQL-only server
@@ -30,6 +42,19 @@ export interface ServerConfig {
  */
 export async function startServer(config: ServerConfig) {
   const isDevelopment = process.env.NODE_ENV === "development";
+
+  // Initialize Repository and Kernel
+  const databaseUrl = config.databaseUrl || process.env.DATABASE_URL || "";
+  let repository: Repository | null = null;
+  let kernel: Kernel | null = null;
+
+  if (databaseUrl) {
+    repository = new Repository(databaseUrl);
+    kernel = new Kernel(repository, consoleLogger, null);
+    console.log("[INVENTORY] Database connected, Kernel initialized");
+  } else {
+    console.warn("[INVENTORY] No DATABASE_URL configured, running without database");
+  }
 
   const app = fastify({
     logger: isDevelopment
@@ -99,6 +124,7 @@ export async function startServer(config: ServerConfig) {
           slug: "",
           project: null as any,
           user: null as any,
+          kernel: kernel as any,
         };
       }
 
@@ -107,6 +133,7 @@ export async function startServer(config: ServerConfig) {
         slug: request.headers["x-pj-key"] as string,
         project: request.project,
         user: request.user,
+        kernel: kernel as Kernel,
       };
     },
   });

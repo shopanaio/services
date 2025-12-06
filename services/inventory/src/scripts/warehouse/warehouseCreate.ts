@@ -1,15 +1,14 @@
 import type { TransactionScript } from "../../kernel/types.js";
+import type { Warehouse } from "../../repositories/models/index.js";
 
 export interface WarehouseCreateParams {
+  readonly code: string;
   readonly name: string;
-  readonly address?: string;
   readonly isDefault?: boolean;
 }
 
 export interface WarehouseCreateResult {
-  warehouse?: {
-    id: string;
-  };
+  warehouse?: Warehouse;
   userErrors: Array<{ message: string; field?: string[]; code?: string }>;
 }
 
@@ -17,14 +16,43 @@ export const warehouseCreate: TransactionScript<
   WarehouseCreateParams,
   WarehouseCreateResult
 > = async (params, services) => {
-  const { logger } = services;
+  const { logger, repository } = services;
 
   try {
-    logger.info({ params }, "warehouseCreate: not implemented");
+    const { code, name, isDefault } = params;
+
+    // 1. Check if code is unique for this project
+    const existing = await repository.warehouse.findByCode(code);
+    if (existing) {
+      return {
+        warehouse: undefined,
+        userErrors: [
+          {
+            message: `Warehouse with code "${code}" already exists`,
+            field: ["code"],
+            code: "CODE_ALREADY_EXISTS",
+          },
+        ],
+      };
+    }
+
+    // 2. If isDefault=true, clear existing default
+    if (isDefault) {
+      await repository.warehouse.clearDefault();
+    }
+
+    // 3. Create warehouse
+    const warehouse = await repository.warehouse.create({
+      code,
+      name,
+      isDefault: isDefault ?? false,
+    });
+
+    logger.info({ warehouseId: warehouse.id }, "Warehouse created successfully");
 
     return {
-      warehouse: undefined,
-      userErrors: [{ message: "Not implemented", code: "NOT_IMPLEMENTED" }],
+      warehouse,
+      userErrors: [],
     };
   } catch (error) {
     logger.error({ error }, "warehouseCreate failed");

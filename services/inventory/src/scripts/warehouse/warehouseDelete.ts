@@ -13,14 +13,46 @@ export const warehouseDelete: TransactionScript<
   WarehouseDeleteParams,
   WarehouseDeleteResult
 > = async (params, services) => {
-  const { logger } = services;
+  const { logger, repository } = services;
 
   try {
-    logger.info({ params }, "warehouseDelete: not implemented");
+    const { id } = params;
+
+    // 1. Check if warehouse exists
+    const existing = await repository.warehouse.findById(id);
+    if (!existing) {
+      return {
+        deletedWarehouseId: undefined,
+        userErrors: [
+          {
+            message: "Warehouse not found",
+            field: ["id"],
+            code: "NOT_FOUND",
+          },
+        ],
+      };
+    }
+
+    // 2. Delete warehouse (CASCADE will delete warehouse_stock)
+    const deleted = await repository.warehouse.delete(id);
+
+    if (!deleted) {
+      return {
+        deletedWarehouseId: undefined,
+        userErrors: [
+          {
+            message: "Failed to delete warehouse",
+            code: "DELETE_FAILED",
+          },
+        ],
+      };
+    }
+
+    logger.info({ warehouseId: id }, "Warehouse deleted successfully");
 
     return {
-      deletedWarehouseId: undefined,
-      userErrors: [{ message: "Not implemented", code: "NOT_IMPLEMENTED" }],
+      deletedWarehouseId: id,
+      userErrors: [],
     };
   } catch (error) {
     logger.error({ error }, "warehouseDelete failed");
