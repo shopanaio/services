@@ -1,6 +1,6 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "../../repositories/models";
+import * as schema from "../../repositories/models/index.js";
 
 type DrizzleDatabase = PostgresJsDatabase<typeof schema>;
 
@@ -13,7 +13,9 @@ export function initDatabase(connectionString: string): Database {
   if (database) {
     return database;
   }
-  client = postgres(connectionString);
+  // postgres.js doesn't support schema parameter in connection string
+  const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
+  client = postgres(cleanUrl);
   database = drizzle(client, { schema });
   return database;
 }

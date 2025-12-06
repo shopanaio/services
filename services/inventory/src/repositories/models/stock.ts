@@ -1,5 +1,4 @@
 import {
-  pgTable,
   uuid,
   varchar,
   text,
@@ -13,9 +12,10 @@ import {
   foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { inventorySchema } from "./schema";
 import { variant } from "./products";
 
-export const warehouses = pgTable(
+export const warehouses = inventorySchema.table(
   "warehouses",
   {
     projectId: uuid("project_id").notNull(),
@@ -32,17 +32,14 @@ export const warehouses = pgTable(
   },
   (table) => [
     unique("warehouses_project_id_code_key").on(table.projectId, table.code),
+    unique("warehouses_project_id_id_unique").on(table.projectId, table.id),
     uniqueIndex("idx_warehouses_default_unique")
       .on(table.projectId)
       .where(sql`is_default = true`),
-    uniqueIndex("idx_warehouses_project_id_id_unique").on(
-      table.projectId,
-      table.id
-    ),
   ]
 );
 
-export const warehouseStock = pgTable(
+export const warehouseStock = inventorySchema.table(
   "warehouse_stock",
   {
     projectId: uuid("project_id").notNull(),

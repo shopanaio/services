@@ -1,3 +1,6 @@
+// Schema
+export * from "./schema";
+
 // Products & Variants
 export * from "./products";
 

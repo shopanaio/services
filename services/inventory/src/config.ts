@@ -1,4 +1,8 @@
 import { loadServiceConfig } from "@shopana/shared-service-config";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Service configuration using centralized config system
@@ -55,7 +59,10 @@ export const config = {
   metricsPort: serviceConfig.metrics_port,
 
   /** Database connection URL */
-  databaseUrl: "",
+  databaseUrl: readRequiredConfig("database_url", "config"),
+
+  /** Migrations folder path (from dist -> ./migrations) */
+  migrationsPath: join(__dirname, "migrations"),
 
   /** Current environment name */
   environment: readRequiredConfig("environment"),

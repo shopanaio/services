@@ -46,6 +46,7 @@ services:
 
   inventory:
     admin_graphql_port: 10005
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal"
     object_storage_endpoint: http://localhost:9000
     object_storage_access_key: minioadmin
     object_storage_secret_key: minioadmin

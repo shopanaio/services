@@ -1,5 +1,4 @@
 import {
-  pgTable,
   uuid,
   varchar,
   text,
@@ -8,8 +7,9 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { inventorySchema } from "./schema";
 
-export const product = pgTable(
+export const product = inventorySchema.table(
   "product",
   {
     projectId: uuid("project_id").notNull(),
@@ -33,7 +33,7 @@ export const product = pgTable(
   ]
 );
 
-export const variant = pgTable(
+export const variant = inventorySchema.table(
   "variant",
   {
     projectId: uuid("project_id").notNull(),

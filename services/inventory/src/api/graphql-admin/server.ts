@@ -13,6 +13,7 @@ import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import type { InventoryContext } from "../../context/index.js";
 import { Repository } from "../../repositories/Repository.js";
 import { Kernel } from "../../kernel/Kernel.js";
+import { runMigrations } from "../../infrastructure/db/migrate.js";
 
 export interface GraphQLContext {
   requestId: string;
@@ -26,6 +27,7 @@ export interface ServerConfig {
   port: number;
   grpcHost?: string;
   databaseUrl?: string;
+  migrationsPath?: string;
 }
 
 // Simple console logger for Kernel
@@ -49,6 +51,13 @@ export async function startServer(config: ServerConfig) {
   let kernel: Kernel | null = null;
 
   if (databaseUrl) {
+    // Run migrations before initializing the database
+    if (config.migrationsPath) {
+      console.log("[INVENTORY] Running database migrations...");
+      await runMigrations(databaseUrl, config.migrationsPath);
+      console.log("[INVENTORY] Database migrations completed");
+    }
+
     repository = new Repository(databaseUrl);
     kernel = new Kernel(repository, consoleLogger, null);
     console.log("[INVENTORY] Database connected, Kernel initialized");

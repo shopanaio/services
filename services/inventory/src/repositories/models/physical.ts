@@ -1,15 +1,14 @@
 import {
-  pgTable,
-  pgEnum,
   uuid,
   integer,
   index,
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { inventorySchema } from "./schema";
 import { variant } from "./products";
 
-export const dimensionUnitEnum = pgEnum("dimension_unit", [
+export const dimensionUnitEnum = inventorySchema.enum("dimension_unit", [
   "mm",
   "cm",
   "m",
@@ -18,9 +17,9 @@ export const dimensionUnitEnum = pgEnum("dimension_unit", [
   "yd",
 ]);
 
-export const weightUnitEnum = pgEnum("weight_unit", ["g", "kg", "lb", "oz"]);
+export const weightUnitEnum = inventorySchema.enum("weight_unit", ["g", "kg", "lb", "oz"]);
 
-export const itemDimensions = pgTable(
+export const itemDimensions = inventorySchema.table(
   "item_dimensions",
   {
     variantId: uuid("variant_id")
@@ -42,7 +41,7 @@ export const itemDimensions = pgTable(
   ]
 );
 
-export const itemWeight = pgTable(
+export const itemWeight = inventorySchema.table(
   "item_weight",
   {
     variantId: uuid("variant_id")

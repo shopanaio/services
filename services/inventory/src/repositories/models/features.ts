@@ -1,14 +1,8 @@
-import {
-  pgTable,
-  uuid,
-  varchar,
-  integer,
-  index,
-  unique,
-} from "drizzle-orm/pg-core";
+import { index, integer, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { product } from "./products";
+import { inventorySchema } from "./schema";
 
-export const productFeature = pgTable(
+export const productFeature = inventorySchema.table(
   "product_feature",
   {
     id: uuid("id").primaryKey(),
@@ -19,12 +13,15 @@ export const productFeature = pgTable(
     slug: varchar("slug", { length: 255 }).notNull(),
   },
   (table) => [
-    unique("product_feature_product_id_slug_key").on(table.productId, table.slug),
+    unique("product_feature_product_id_slug_key").on(
+      table.productId,
+      table.slug
+    ),
     index("idx_product_feature_product_id").on(table.productId),
   ]
 );
 
-export const productFeatureValue = pgTable(
+export const productFeatureValue = inventorySchema.table(
   "product_feature_value",
   {
     id: uuid("id").primaryKey(),

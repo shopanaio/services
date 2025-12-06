@@ -1,7 +1,4 @@
 import {
-  pgTable,
-  pgEnum,
-  pgView,
   uuid,
   bigint,
   timestamp,
@@ -10,11 +7,12 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { inventorySchema } from "./schema";
 import { variant } from "./products";
 
-export const currencyEnum = pgEnum("currency", ["UAH", "USD", "EUR"]);
+export const currencyEnum = inventorySchema.enum("currency", ["UAH", "USD", "EUR"]);
 
-export const itemPricing = pgTable(
+export const itemPricing = inventorySchema.table(
   "item_pricing",
   {
     projectId: uuid("project_id").notNull(),
@@ -62,7 +60,7 @@ export const itemPricing = pgTable(
 );
 
 // View: current prices (effective_to IS NULL)
-export const variantPricesCurrent = pgView("variant_prices_current").as((qb) =>
+export const variantPricesCurrent = inventorySchema.view("variant_prices_current").as((qb) =>
   qb
     .select({
       id: itemPricing.id,

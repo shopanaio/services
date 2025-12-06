@@ -1,6 +1,4 @@
 import {
-  pgTable,
-  pgView,
   uuid,
   bigint,
   timestamp,
@@ -9,10 +7,11 @@ import {
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { inventorySchema } from "./schema";
 import { variant } from "./products";
 import { currencyEnum } from "./pricing";
 
-export const productVariantCostHistory = pgTable(
+export const productVariantCostHistory = inventorySchema.table(
   "product_variant_cost_history",
   {
     projectId: uuid("project_id").notNull(),
@@ -64,7 +63,7 @@ export const productVariantCostHistory = pgTable(
 );
 
 // View: current costs (effective_to IS NULL)
-export const variantCostsCurrent = pgView("variant_costs_current").as((qb) =>
+export const variantCostsCurrent = inventorySchema.view("variant_costs_current").as((qb) =>
   qb
     .select({
       id: productVariantCostHistory.id,

@@ -1,5 +1,4 @@
 import {
-  pgTable,
   uuid,
   varchar,
   text,
@@ -7,6 +6,7 @@ import {
   primaryKey,
   index,
 } from "drizzle-orm/pg-core";
+import { inventorySchema } from "./schema";
 import { product, variant } from "./products";
 import { productOption, productOptionValue } from "./options";
 import { productFeature, productFeatureValue } from "./features";
@@ -18,7 +18,7 @@ import { warehouses } from "./stock";
 // Main product content: title, description, SEO fields
 // Each product can have translations in multiple locales (uk, en, ru, etc.)
 
-export const productTranslation = pgTable(
+export const productTranslation = inventorySchema.table(
   "product_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -58,7 +58,7 @@ export const productTranslation = pgTable(
 // Optional: only if variants have distinct names beyond option combinations
 // Example: "iPhone 15 Pro 256GB Space Black" vs auto-generated from options
 
-export const variantTranslation = pgTable(
+export const variantTranslation = inventorySchema.table(
   "variant_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -81,7 +81,7 @@ export const variantTranslation = pgTable(
 // Translates option names: "Color" → "Колір" / "Цвет"
 // slug remains invariant (used for filtering), name is displayed
 
-export const productOptionTranslation = pgTable(
+export const productOptionTranslation = inventorySchema.table(
   "product_option_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -104,7 +104,7 @@ export const productOptionTranslation = pgTable(
 // Translates option values: "Red" → "Червоний" / "Красный"
 // slug remains invariant for filtering (e.g., "red")
 
-export const productOptionValueTranslation = pgTable(
+export const productOptionValueTranslation = inventorySchema.table(
   "product_option_value_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -126,7 +126,7 @@ export const productOptionValueTranslation = pgTable(
 // ─────────────────────────────────────────────────────────────────────────────
 // Translates feature names: "Brand" → "Бренд", "Material" → "Матеріал"
 
-export const productFeatureTranslation = pgTable(
+export const productFeatureTranslation = inventorySchema.table(
   "product_feature_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -148,7 +148,7 @@ export const productFeatureTranslation = pgTable(
 // ─────────────────────────────────────────────────────────────────────────────
 // Translates feature values: "Leather" → "Шкіра" / "Кожа"
 
-export const productFeatureValueTranslation = pgTable(
+export const productFeatureValueTranslation = inventorySchema.table(
   "product_feature_value_translation",
   {
     projectId: uuid("project_id").notNull(),
@@ -170,7 +170,7 @@ export const productFeatureValueTranslation = pgTable(
 // ─────────────────────────────────────────────────────────────────────────────
 // Translates warehouse display names
 
-export const warehouseTranslation = pgTable(
+export const warehouseTranslation = inventorySchema.table(
   "warehouse_translation",
   {
     projectId: uuid("project_id").notNull(),
