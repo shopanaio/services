@@ -1,26 +1,6 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductOptionValue } from "../../repositories/models/index.js";
-import { SwatchCreateScript, type SwatchCreateParams } from "./SwatchCreateScript.js";
-
-export interface OptionSwatchInput {
-  readonly swatchType: string;
-  readonly colorOne?: string;
-  readonly colorTwo?: string;
-  readonly fileId?: string;
-  readonly metadata?: unknown;
-}
-
-export interface OptionValueUpdateParams {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-  readonly swatch?: OptionSwatchInput | null;
-}
-
-export interface OptionValueUpdateResult {
-  optionValue?: ProductOptionValue;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { OptionValueUpdateParams, OptionValueUpdateResult } from "./dto/index.js";
+import { SwatchCreateScript } from "./SwatchCreateScript.js";
 
 export class OptionValueUpdateScript extends BaseScript<
   OptionValueUpdateParams,
@@ -96,3 +76,6 @@ export class OptionValueUpdateScript extends BaseScript<
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { OptionValueUpdateParams, OptionValueUpdateResult } from "./dto/index.js";

@@ -1,73 +1,12 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { Product } from "../../repositories/models/index.js";
-import { FeatureCreateScript, type FeatureValueInput } from "../feature/FeatureCreateScript.js";
-import { FeatureUpdateScript, type FeatureValuesInput } from "../feature/FeatureUpdateScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { ProductUpdateParams, ProductUpdateResult, FeaturesInput, OptionsInput } from "./dto/index.js";
+import { FeatureCreateScript } from "../feature/FeatureCreateScript.js";
+import { FeatureUpdateScript } from "../feature/FeatureUpdateScript.js";
 import { FeatureDeleteScript } from "../feature/FeatureDeleteScript.js";
-import { OptionCreateScript, type OptionValueInput } from "../option/OptionCreateScript.js";
-import { OptionUpdateScript, type OptionValuesInput } from "../option/OptionUpdateScript.js";
+import { OptionCreateScript } from "../option/OptionCreateScript.js";
+import { OptionUpdateScript } from "../option/OptionUpdateScript.js";
 import { OptionDeleteScript } from "../option/OptionDeleteScript.js";
-
-export interface DescriptionInput {
-  readonly text: string;
-  readonly html: string;
-  readonly json: Record<string, unknown>;
-}
-
-export interface FeatureInput {
-  readonly slug: string;
-  readonly name: string;
-  readonly values: FeatureValueInput[];
-}
-
-export interface FeatureUpdateInput {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-  readonly values?: FeatureValuesInput;
-}
-
-export interface FeaturesInput {
-  readonly create?: FeatureInput[];
-  readonly update?: FeatureUpdateInput[];
-  readonly delete?: string[];
-}
-
-export interface OptionInput {
-  readonly slug: string;
-  readonly name: string;
-  readonly displayType: string;
-  readonly values: OptionValueInput[];
-}
-
-export interface OptionUpdateInput {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-  readonly displayType?: string;
-  readonly values?: OptionValuesInput;
-}
-
-export interface OptionsInput {
-  readonly create?: OptionInput[];
-  readonly update?: OptionUpdateInput[];
-  readonly delete?: string[];
-}
-
-export interface ProductUpdateParams {
-  readonly id: string;
-  readonly title?: string;
-  readonly description?: DescriptionInput;
-  readonly excerpt?: string;
-  readonly seoTitle?: string;
-  readonly seoDescription?: string;
-  readonly features?: FeaturesInput;
-  readonly options?: OptionsInput;
-}
-
-export interface ProductUpdateResult {
-  product?: Product;
-  userErrors: UserError[];
-}
+import type { UserError } from "../../kernel/BaseScript.js";
 
 export class ProductUpdateScript extends BaseScript<ProductUpdateParams, ProductUpdateResult> {
   protected async execute(params: ProductUpdateParams): Promise<ProductUpdateResult> {
@@ -238,3 +177,13 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type {
+  ProductUpdateParams,
+  ProductUpdateResult,
+  FeaturesInput,
+  FeatureUpdateInput,
+  OptionsInput,
+  OptionUpdateInput,
+} from "./dto/index.js";

@@ -1,14 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-
-export interface ProductDeleteParams {
-  readonly id: string;
-  readonly permanent?: boolean;
-}
-
-export interface ProductDeleteResult {
-  deletedProductId?: string;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { ProductDeleteParams, ProductDeleteResult } from "./dto/index.js";
 
 export class ProductDeleteScript extends BaseScript<ProductDeleteParams, ProductDeleteResult> {
   protected async execute(params: ProductDeleteParams): Promise<ProductDeleteResult> {
@@ -50,3 +41,6 @@ export class ProductDeleteScript extends BaseScript<ProductDeleteParams, Product
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { ProductDeleteParams, ProductDeleteResult } from "./dto/index.js";

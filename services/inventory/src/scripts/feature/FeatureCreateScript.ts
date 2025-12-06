@@ -1,23 +1,6 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductFeature } from "../../repositories/models/index.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { FeatureCreateParams, FeatureCreateResult } from "./dto/index.js";
 import { FeatureValueCreateScript } from "./FeatureValueCreateScript.js";
-
-export interface FeatureValueInput {
-  readonly slug: string;
-  readonly name: string;
-}
-
-export interface FeatureCreateParams {
-  readonly productId: string;
-  readonly slug: string;
-  readonly name: string;
-  readonly values: FeatureValueInput[];
-}
-
-export interface FeatureCreateResult {
-  feature?: ProductFeature;
-  userErrors: UserError[];
-}
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
@@ -86,3 +69,6 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { FeatureCreateParams, FeatureCreateResult, FeatureValueInput } from "./dto/index.js";

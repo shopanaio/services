@@ -1,25 +1,6 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductOption } from "../../repositories/models/index.js";
-import { OptionValueCreateScript, type OptionSwatchInput } from "./OptionValueCreateScript.js";
-
-export interface OptionValueInput {
-  readonly slug: string;
-  readonly name: string;
-  readonly swatch?: OptionSwatchInput;
-}
-
-export interface OptionCreateParams {
-  readonly productId: string;
-  readonly slug: string;
-  readonly name: string;
-  readonly displayType: string;
-  readonly values: OptionValueInput[];
-}
-
-export interface OptionCreateResult {
-  option?: ProductOption;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { OptionCreateParams, OptionCreateResult } from "./dto/index.js";
+import { OptionValueCreateScript } from "./OptionValueCreateScript.js";
 
 export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCreateResult> {
   protected async execute(params: OptionCreateParams): Promise<OptionCreateResult> {
@@ -92,3 +73,6 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { OptionCreateParams, OptionCreateResult, OptionValueInput } from "./dto/index.js";

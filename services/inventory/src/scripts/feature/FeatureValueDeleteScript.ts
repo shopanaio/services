@@ -1,13 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-
-export interface FeatureValueDeleteParams {
-  readonly id: string;
-}
-
-export interface FeatureValueDeleteResult {
-  deletedId?: string;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { FeatureValueDeleteParams, FeatureValueDeleteResult } from "./dto/index.js";
 
 export class FeatureValueDeleteScript extends BaseScript<
   FeatureValueDeleteParams,
@@ -38,3 +30,6 @@ export class FeatureValueDeleteScript extends BaseScript<
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { FeatureValueDeleteParams, FeatureValueDeleteResult } from "./dto/index.js";

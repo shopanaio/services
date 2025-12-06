@@ -1,46 +1,7 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { Product, Variant } from "../../repositories/models/index.js";
-import { FeatureCreateScript, type FeatureValueInput } from "../feature/FeatureCreateScript.js";
-import { OptionCreateScript, type OptionValueInput } from "../option/OptionCreateScript.js";
-
-export interface DescriptionInput {
-  readonly text: string;
-  readonly html: string;
-  readonly json: Record<string, unknown>;
-}
-
-export interface FeatureInput {
-  readonly slug: string;
-  readonly name: string;
-  readonly values: FeatureValueInput[];
-}
-
-export interface OptionInput {
-  readonly slug: string;
-  readonly name: string;
-  readonly displayType: string;
-  readonly values: OptionValueInput[];
-}
-
-export interface ProductCreateParams {
-  readonly title?: string;
-  readonly description?: DescriptionInput;
-  readonly excerpt?: string;
-  readonly seoTitle?: string;
-  readonly seoDescription?: string;
-  readonly features?: FeatureInput[];
-  readonly options?: OptionInput[];
-  readonly publish?: boolean;
-}
-
-export interface ProductWithVariants extends Product {
-  _variants?: Variant[];
-}
-
-export interface ProductCreateResult {
-  product?: ProductWithVariants;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { ProductCreateParams, ProductCreateResult } from "./dto/index.js";
+import { FeatureCreateScript } from "../feature/FeatureCreateScript.js";
+import { OptionCreateScript } from "../option/OptionCreateScript.js";
 
 export class ProductCreateScript extends BaseScript<ProductCreateParams, ProductCreateResult> {
   protected async execute(params: ProductCreateParams): Promise<ProductCreateResult> {
@@ -134,3 +95,13 @@ export class ProductCreateScript extends BaseScript<ProductCreateParams, Product
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type {
+  ProductCreateParams,
+  ProductCreateResult,
+  DescriptionInput,
+  FeatureInput,
+  OptionInput,
+  ProductWithVariants,
+} from "./dto/index.js";

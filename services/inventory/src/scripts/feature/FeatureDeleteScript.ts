@@ -1,13 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-
-export interface FeatureDeleteParams {
-  readonly id: string;
-}
-
-export interface FeatureDeleteResult {
-  deletedFeatureId?: string;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { FeatureDeleteParams, FeatureDeleteResult } from "./dto/index.js";
 
 export class FeatureDeleteScript extends BaseScript<FeatureDeleteParams, FeatureDeleteResult> {
   protected async execute(params: FeatureDeleteParams): Promise<FeatureDeleteResult> {
@@ -43,3 +35,6 @@ export class FeatureDeleteScript extends BaseScript<FeatureDeleteParams, Feature
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { FeatureDeleteParams, FeatureDeleteResult } from "./dto/index.js";

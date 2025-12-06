@@ -1,14 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { Product } from "../../repositories/models/index.js";
-
-export interface ProductUnpublishParams {
-  readonly id: string;
-}
-
-export interface ProductUnpublishResult {
-  product?: Product;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { ProductUnpublishParams, ProductUnpublishResult } from "./dto/index.js";
 
 export class ProductUnpublishScript extends BaseScript<ProductUnpublishParams, ProductUnpublishResult> {
   protected async execute(params: ProductUnpublishParams): Promise<ProductUnpublishResult> {
@@ -52,3 +43,6 @@ export class ProductUnpublishScript extends BaseScript<ProductUnpublishParams, P
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { ProductUnpublishParams, ProductUnpublishResult } from "./dto/index.js";

@@ -1,13 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-
-export interface OptionValueDeleteParams {
-  readonly id: string;
-}
-
-export interface OptionValueDeleteResult {
-  deletedId?: string;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { OptionValueDeleteParams, OptionValueDeleteResult } from "./dto/index.js";
 
 export class OptionValueDeleteScript extends BaseScript<
   OptionValueDeleteParams,
@@ -38,3 +30,6 @@ export class OptionValueDeleteScript extends BaseScript<
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { OptionValueDeleteParams, OptionValueDeleteResult } from "./dto/index.js";

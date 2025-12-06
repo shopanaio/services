@@ -1,16 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductFeatureValue } from "../../repositories/models/index.js";
-
-export interface FeatureValueUpdateParams {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-}
-
-export interface FeatureValueUpdateResult {
-  featureValue?: ProductFeatureValue;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { FeatureValueUpdateParams, FeatureValueUpdateResult } from "./dto/index.js";
 
 export class FeatureValueUpdateScript extends BaseScript<
   FeatureValueUpdateParams,
@@ -56,3 +45,6 @@ export class FeatureValueUpdateScript extends BaseScript<
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { FeatureValueUpdateParams, FeatureValueUpdateResult } from "./dto/index.js";

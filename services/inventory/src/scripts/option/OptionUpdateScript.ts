@@ -1,40 +1,9 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductOption } from "../../repositories/models/index.js";
-import { OptionValueCreateScript, type OptionSwatchInput } from "./OptionValueCreateScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { OptionUpdateParams, OptionUpdateResult, OptionValuesInput } from "./dto/index.js";
+import { OptionValueCreateScript } from "./OptionValueCreateScript.js";
 import { OptionValueUpdateScript } from "./OptionValueUpdateScript.js";
 import { OptionValueDeleteScript } from "./OptionValueDeleteScript.js";
-
-export interface OptionValueInput {
-  readonly slug: string;
-  readonly name: string;
-  readonly swatch?: OptionSwatchInput;
-}
-
-export interface OptionValueUpdateInput {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-  readonly swatch?: OptionSwatchInput | null;
-}
-
-export interface OptionValuesInput {
-  readonly create?: OptionValueInput[];
-  readonly update?: OptionValueUpdateInput[];
-  readonly delete?: string[];
-}
-
-export interface OptionUpdateParams {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-  readonly displayType?: string;
-  readonly values?: OptionValuesInput;
-}
-
-export interface OptionUpdateResult {
-  option?: ProductOption;
-  userErrors: UserError[];
-}
+import type { UserError } from "../../kernel/BaseScript.js";
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
@@ -162,3 +131,12 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type {
+  OptionUpdateParams,
+  OptionUpdateResult,
+  OptionValuesInput,
+  OptionValueInput,
+  OptionValueUpdateInput,
+} from "./dto/index.js";

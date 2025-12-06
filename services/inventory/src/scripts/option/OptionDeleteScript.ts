@@ -1,13 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-
-export interface OptionDeleteParams {
-  readonly id: string;
-}
-
-export interface OptionDeleteResult {
-  deletedOptionId?: string;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { OptionDeleteParams, OptionDeleteResult } from "./dto/index.js";
 
 export class OptionDeleteScript extends BaseScript<OptionDeleteParams, OptionDeleteResult> {
   protected async execute(params: OptionDeleteParams): Promise<OptionDeleteResult> {
@@ -43,3 +35,6 @@ export class OptionDeleteScript extends BaseScript<OptionDeleteParams, OptionDel
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { OptionDeleteParams, OptionDeleteResult } from "./dto/index.js";

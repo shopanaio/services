@@ -1,37 +1,9 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductFeature } from "../../repositories/models/index.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { FeatureUpdateParams, FeatureUpdateResult, FeatureValuesInput } from "./dto/index.js";
 import { FeatureValueCreateScript } from "./FeatureValueCreateScript.js";
 import { FeatureValueUpdateScript } from "./FeatureValueUpdateScript.js";
 import { FeatureValueDeleteScript } from "./FeatureValueDeleteScript.js";
-
-export interface FeatureValueInput {
-  readonly slug: string;
-  readonly name: string;
-}
-
-export interface FeatureValueUpdateInput {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-}
-
-export interface FeatureValuesInput {
-  readonly create?: FeatureValueInput[];
-  readonly update?: FeatureValueUpdateInput[];
-  readonly delete?: string[];
-}
-
-export interface FeatureUpdateParams {
-  readonly id: string;
-  readonly slug?: string;
-  readonly name?: string;
-  readonly values?: FeatureValuesInput;
-}
-
-export interface FeatureUpdateResult {
-  feature?: ProductFeature;
-  userErrors: UserError[];
-}
+import type { UserError } from "../../kernel/BaseScript.js";
 
 export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, FeatureUpdateResult> {
   protected async execute(params: FeatureUpdateParams): Promise<FeatureUpdateResult> {
@@ -153,3 +125,12 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type {
+  FeatureUpdateParams,
+  FeatureUpdateResult,
+  FeatureValuesInput,
+  FeatureValueInput,
+  FeatureValueUpdateInput,
+} from "./dto/index.js";

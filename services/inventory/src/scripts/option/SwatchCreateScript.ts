@@ -1,18 +1,5 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import type { ProductOptionSwatch } from "../../repositories/models/index.js";
-
-export interface SwatchCreateParams {
-  readonly swatchType: string;
-  readonly colorOne?: string;
-  readonly colorTwo?: string;
-  readonly fileId?: string;
-  readonly metadata?: unknown;
-}
-
-export interface SwatchCreateResult {
-  swatch?: ProductOptionSwatch;
-  userErrors: UserError[];
-}
+import { BaseScript } from "../../kernel/BaseScript.js";
+import type { SwatchCreateParams, SwatchCreateResult } from "./dto/index.js";
 
 export class SwatchCreateScript extends BaseScript<SwatchCreateParams, SwatchCreateResult> {
   protected async execute(params: SwatchCreateParams): Promise<SwatchCreateResult> {
@@ -36,3 +23,6 @@ export class SwatchCreateScript extends BaseScript<SwatchCreateParams, SwatchCre
     };
   }
 }
+
+// Re-export types for backwards compatibility
+export type { SwatchCreateParams, SwatchCreateResult } from "./dto/index.js";
