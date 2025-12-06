@@ -35,6 +35,9 @@ type Product implements Node @key(fields: "id") {
   """The globally unique ID of the product."""
   id: ID!
 
+  """The URL-friendly handle for the product."""
+  handle: String
+
   """The date and time when the product was published, or null if unpublished."""
   publishedAt: DateTime
 
@@ -120,38 +123,6 @@ input ProductFeatureInput {
 
   """The values for this feature."""
   values: [ProductFeatureValueCreateInput!]!
-}
-
-"""
-Input for creating a product.
-"""
-input ProductCreateInput {
-  """Product title."""
-  title: String!
-
-  """Product description."""
-  description: DescriptionInput
-
-  """Short excerpt."""
-  excerpt: String
-
-  """SEO title."""
-  seoTitle: String
-
-  """SEO description."""
-  seoDescription: String
-
-  """Initial variants to create with the product."""
-  variants: [VariantInput!]
-
-  """Initial options to create with the product."""
-  options: [ProductOptionCreateInput!]
-
-  """Initial features to create with the product."""
-  features: [ProductFeatureInput!]
-
-  """Whether to publish the product immediately."""
-  publish: Boolean
 }
 
 """

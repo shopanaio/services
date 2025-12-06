@@ -10,51 +10,12 @@ import { noDatabaseError } from "../utils.js";
 
 export const productMutationResolvers: Resolvers = {
   InventoryMutation: {
-    productCreate: async (_parent, { input }, ctx) => {
+    productCreate: async (_parent, _args, ctx) => {
       if (!ctx.kernel) {
         return noDatabaseError({ product: null });
       }
 
-      const result = await ctx.kernel.runScript(ProductCreateScript, {
-        title: input.title ?? undefined,
-        description: input.description
-          ? {
-              text: input.description.text,
-              html: input.description.html,
-              json: input.description.json as Record<string, unknown>,
-            }
-          : undefined,
-        excerpt: input.excerpt ?? undefined,
-        seoTitle: input.seoTitle ?? undefined,
-        seoDescription: input.seoDescription ?? undefined,
-        features: input.features?.map((f) => ({
-          slug: f.slug,
-          name: f.name,
-          values: f.values.map((v) => ({
-            slug: v.slug,
-            name: v.name,
-          })),
-        })),
-        options: input.options?.map((o) => ({
-          slug: o.slug,
-          name: o.name,
-          displayType: o.displayType,
-          values: o.values.map((v) => ({
-            slug: v.slug,
-            name: v.name,
-            swatch: v.swatch
-              ? {
-                  swatchType: v.swatch.swatchType,
-                  colorOne: v.swatch.colorOne ?? undefined,
-                  colorTwo: v.swatch.colorTwo ?? undefined,
-                  fileId: v.swatch.fileId ?? undefined,
-                  metadata: v.swatch.metadata,
-                }
-              : undefined,
-          })),
-        })),
-        publish: input.publish ?? undefined,
-      });
+      const result = await ctx.kernel.runScript(ProductCreateScript, {});
 
       return {
         product: result.product ?? null,

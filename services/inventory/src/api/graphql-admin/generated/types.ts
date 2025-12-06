@@ -102,11 +102,6 @@ export type InventoryMutation = {
 };
 
 
-export type InventoryMutationProductCreateArgs = {
-  input: ProductCreateInput;
-};
-
-
 export type InventoryMutationProductDeleteArgs = {
   input: ProductDeleteInput;
 };
@@ -329,6 +324,8 @@ export type Product = Node & {
   excerpt?: Maybe<Scalars['String']['output']>;
   /** The features of this product. */
   features: Array<ProductFeature>;
+  /** The URL-friendly handle for the product. */
+  handle?: Maybe<Scalars['String']['output']>;
   /** The globally unique ID of the product. */
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
@@ -369,28 +366,6 @@ export type ProductConnection = {
   pageInfo: PageInfo;
   /** The total number of products. */
   totalCount: Scalars['Int']['output'];
-};
-
-/** Input for creating a product. */
-export type ProductCreateInput = {
-  /** Product description. */
-  description?: InputMaybe<DescriptionInput>;
-  /** Short excerpt. */
-  excerpt?: InputMaybe<Scalars['String']['input']>;
-  /** Initial features to create with the product. */
-  features?: InputMaybe<Array<ProductFeatureInput>>;
-  /** Initial options to create with the product. */
-  options?: InputMaybe<Array<ProductOptionCreateInput>>;
-  /** Whether to publish the product immediately. */
-  publish?: InputMaybe<Scalars['Boolean']['input']>;
-  /** SEO description. */
-  seoDescription?: InputMaybe<Scalars['String']['input']>;
-  /** SEO title. */
-  seoTitle?: InputMaybe<Scalars['String']['input']>;
-  /** Product title. */
-  title: Scalars['String']['input'];
-  /** Initial variants to create with the product. */
-  variants?: InputMaybe<Array<VariantInput>>;
 };
 
 /** Payload for product creation. */
@@ -822,10 +797,14 @@ export type Variant = Node & {
   externalId?: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
   externalSystem?: Maybe<Scalars['String']['output']>;
+  /** The URL-friendly handle for the variant (generated from options). */
+  handle: Scalars['String']['output'];
   /** The globally unique ID of the variant. */
   id: Scalars['ID']['output'];
   /** Whether the variant is in stock (has quantity > 0 in any warehouse). */
   inStock: Scalars['Boolean']['output'];
+  /** Whether this is the default variant for the product. */
+  isDefault: Scalars['Boolean']['output'];
   /** Media attached to this variant (images, videos). */
   media: Array<VariantMediaItem>;
   /** Current price for this variant. */
@@ -1432,7 +1411,6 @@ export type ResolversTypes = ResolversObject<{
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Product: ResolverTypeWrapper<Product>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
-  ProductCreateInput: ProductCreateInput;
   ProductCreatePayload: ResolverTypeWrapper<ProductCreatePayload>;
   ProductDeleteInput: ProductDeleteInput;
   ProductDeletePayload: ResolverTypeWrapper<ProductDeletePayload>;
@@ -1541,7 +1519,6 @@ export type ResolversParentTypes = ResolversObject<{
   Boolean: Scalars['Boolean']['output'];
   Product: Product;
   ProductConnection: ProductConnection;
-  ProductCreateInput: ProductCreateInput;
   ProductCreatePayload: ProductCreatePayload;
   ProductDeleteInput: ProductDeleteInput;
   ProductDeletePayload: ProductDeletePayload;
@@ -1660,7 +1637,7 @@ export type GenericUserErrorResolvers<ContextType = GraphQLContext, ParentType e
 }>;
 
 export type InventoryMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
-  productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductCreateArgs, 'input'>>;
+  productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductDeleteArgs, 'input'>>;
   productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureCreateArgs, 'input'>>;
   productFeatureDelete?: Resolver<ResolversTypes['ProductFeatureDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureDeleteArgs, 'input'>>;
@@ -1726,6 +1703,7 @@ export type ProductResolvers<ContextType = GraphQLContext, ParentType extends Re
   description?: Resolver<Maybe<ResolversTypes['Description']>, ParentType, ContextType>;
   excerpt?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  handle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   options?: Resolver<Array<ResolversTypes['ProductOption']>, ParentType, ContextType>;
@@ -1897,8 +1875,10 @@ export type VariantResolvers<ContextType = GraphQLContext, ParentType extends Re
   dimensions?: Resolver<Maybe<ResolversTypes['VariantDimensions']>, ParentType, ContextType>;
   externalId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   externalSystem?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   inStock?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['VariantMediaItem']>, ParentType, ContextType>;
   price?: Resolver<Maybe<ResolversTypes['VariantPrice']>, ParentType, ContextType>;
   priceHistory?: Resolver<ResolversTypes['VariantPriceConnection'], ParentType, ContextType, Partial<VariantPriceHistoryArgs>>;

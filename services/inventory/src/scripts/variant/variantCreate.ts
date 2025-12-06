@@ -3,6 +3,7 @@ import type { Variant } from "../../repositories/models/index.js";
 
 export interface VariantCreateParams {
   readonly productId: string;
+  readonly handle: string;
   readonly sku?: string | null;
 }
 
@@ -18,7 +19,7 @@ export const variantCreate: TransactionScript<
   const { logger, repository } = services;
 
   try {
-    const { productId, sku } = params;
+    const { productId, handle, sku } = params;
 
     // 1. Check if product exists
     const productExists = await repository.product.exists(productId);
@@ -54,6 +55,7 @@ export const variantCreate: TransactionScript<
 
     // 3. Create variant
     const variant = await repository.variant.create(productId, {
+      handle,
       sku: sku ?? null,
     });
 

@@ -85,10 +85,12 @@ export class VariantRepository extends BaseRepository {
   async create(
     productId: string,
     data: {
+      isDefault?: boolean;
+      handle: string;
       sku?: string | null;
       externalSystem?: string | null;
       externalId?: string | null;
-    } = {}
+    }
   ): Promise<Variant> {
     const id = randomUUID();
     const now = new Date();
@@ -97,6 +99,8 @@ export class VariantRepository extends BaseRepository {
       projectId: this.projectId,
       productId,
       id,
+      isDefault: data.isDefault ?? false,
+      handle: data.handle,
       sku: data.sku ?? null,
       externalSystem: data.externalSystem ?? null,
       externalId: data.externalId ?? null,

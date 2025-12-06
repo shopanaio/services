@@ -10,6 +10,12 @@ type Variant implements Node @key(fields: "id") {
   """The product this variant belongs to."""
   product: Product!
 
+  """Whether this is the default variant for the product."""
+  isDefault: Boolean!
+
+  """The URL-friendly handle for the variant (generated from options)."""
+  handle: String!
+
   """The SKU (Stock Keeping Unit) of the variant."""
   sku: String
 

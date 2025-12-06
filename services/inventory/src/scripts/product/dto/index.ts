@@ -7,8 +7,6 @@ export type {
 
 // Product Create DTOs
 export type {
-  FeatureInput,
-  OptionInput,
   ProductCreateParams,
   ProductCreateResult,
 } from "./ProductCreateDto.js";
