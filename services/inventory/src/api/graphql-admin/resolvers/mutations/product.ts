@@ -16,6 +16,27 @@ export const productMutationResolvers: Resolvers = {
       }
 
       const result = await ctx.kernel.executeScript(productCreate, {
+        title: input.title,
+        description: input.description
+          ? {
+              text: input.description.text,
+              html: input.description.html,
+              json: input.description.json as Record<string, unknown>,
+            }
+          : undefined,
+        excerpt: input.excerpt ?? undefined,
+        seoTitle: input.seoTitle ?? undefined,
+        seoDescription: input.seoDescription ?? undefined,
+        features: input.features
+          ? input.features.map((f) => ({
+              slug: f.slug,
+              name: f.name,
+              values: f.values.map((v) => ({
+                slug: v.slug,
+                name: v.name,
+              })),
+            }))
+          : undefined,
         publish: input.publish ?? undefined,
       });
 

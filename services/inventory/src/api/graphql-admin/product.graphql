@@ -109,6 +109,20 @@ type ProductEdge {
 }
 
 """
+Input for creating a feature during product creation.
+"""
+input ProductFeatureInput {
+  """The URL-friendly slug for the feature."""
+  slug: String!
+
+  """Display name."""
+  name: String!
+
+  """The values for this feature."""
+  values: [ProductFeatureValueCreateInput!]!
+}
+
+"""
 Input for creating a product.
 """
 input ProductCreateInput {
@@ -132,6 +146,9 @@ input ProductCreateInput {
 
   """Initial options to create with the product."""
   options: [ProductOptionCreateInput!]
+
+  """Initial features to create with the product."""
+  features: [ProductFeatureInput!]
 
   """Whether to publish the product immediately."""
   publish: Boolean
