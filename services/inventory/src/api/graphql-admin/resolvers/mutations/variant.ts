@@ -1,6 +1,8 @@
 import type { Resolvers } from "../../generated/types.js";
 import {
   variantCreate,
+  variantDelete,
+  variantSetSku,
   variantSetDimensions,
   variantSetWeight,
   variantSetPricing,
@@ -8,6 +10,7 @@ import {
   variantSetStock,
   variantSetMedia,
 } from "../../../../scripts/variant/index.js";
+import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export const variantMutationResolvers: Resolvers = {
   InventoryMutation: {
@@ -32,12 +35,46 @@ export const variantMutationResolvers: Resolvers = {
       };
     },
 
-    variantDelete: async () => {
-      throw new Error("Not implemented");
+    variantDelete: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          deletedVariantId: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantDelete, {
+        id: input.id,
+        permanent: input.permanent ?? undefined,
+      });
+
+      return {
+        deletedVariantId: result.deletedVariantId ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
-    variantSetSku: async () => {
-      throw new Error("Not implemented");
+    variantSetSku: async (_parent, { input }, ctx) => {
+      if (!ctx.kernel) {
+        return {
+          variant: null,
+          userErrors: [
+            { message: "Database not configured", code: "NO_DATABASE" },
+          ],
+        };
+      }
+
+      const result = await ctx.kernel.executeScript(variantSetSku, {
+        variantId: input.variantId,
+        sku: input.sku,
+      });
+
+      return {
+        variant: result.variant ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
     variantSetDimensions: async (_parent, { input }, ctx) => {
@@ -165,9 +202,14 @@ export const variantMutationResolvers: Resolvers = {
         };
       }
 
+      // Decode Global IDs to UUIDs
+      const fileIds = input.fileIds.map((fileId) =>
+        decodeGlobalIdByType(fileId, GlobalIdEntity.File)
+      );
+
       const result = await ctx.kernel.executeScript(variantSetMedia, {
         variantId: input.variantId,
-        fileIds: input.fileIds,
+        fileIds,
       });
 
       return {

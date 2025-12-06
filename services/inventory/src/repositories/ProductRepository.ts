@@ -80,4 +80,106 @@ export class ProductRepository extends BaseRepository {
         )
       );
   }
+
+  /**
+   * Update product
+   */
+  async update(
+    id: string,
+    data: { publishedAt?: Date | null }
+  ): Promise<Product | null> {
+    const updateData: Partial<NewProduct> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.publishedAt !== undefined) updateData.publishedAt = data.publishedAt;
+
+    const result = await this.db
+      .update(product)
+      .set(updateData)
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          eq(product.id, id)
+        )
+      )
+      .returning();
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Soft delete product (set deletedAt timestamp)
+   */
+  async softDelete(id: string): Promise<boolean> {
+    const result = await this.db
+      .update(product)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          eq(product.id, id),
+          isNull(product.deletedAt)
+        )
+      )
+      .returning({ id: product.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Hard delete product (permanent deletion, CASCADE will delete variants)
+   */
+  async hardDelete(id: string): Promise<boolean> {
+    const result = await this.db
+      .delete(product)
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          eq(product.id, id)
+        )
+      )
+      .returning({ id: product.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Publish product (set publishedAt to now)
+   */
+  async publish(id: string): Promise<Product | null> {
+    const now = new Date();
+    const result = await this.db
+      .update(product)
+      .set({ publishedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          eq(product.id, id),
+          isNull(product.deletedAt)
+        )
+      )
+      .returning();
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Unpublish product (set publishedAt to null)
+   */
+  async unpublish(id: string): Promise<Product | null> {
+    const result = await this.db
+      .update(product)
+      .set({ publishedAt: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          eq(product.id, id),
+          isNull(product.deletedAt)
+        )
+      )
+      .returning();
+
+    return result[0] ?? null;
+  }
 }

@@ -145,4 +145,40 @@ export class VariantRepository extends BaseRepository {
 
     return result[0] ?? null;
   }
+
+  /**
+   * Soft delete variant (set deletedAt timestamp)
+   */
+  async softDelete(id: string): Promise<boolean> {
+    const result = await this.db
+      .update(variant)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(
+        and(
+          eq(variant.projectId, this.projectId),
+          eq(variant.id, id),
+          isNull(variant.deletedAt)
+        )
+      )
+      .returning({ id: variant.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Hard delete variant (permanent deletion)
+   */
+  async hardDelete(id: string): Promise<boolean> {
+    const result = await this.db
+      .delete(variant)
+      .where(
+        and(
+          eq(variant.projectId, this.projectId),
+          eq(variant.id, id)
+        )
+      )
+      .returning({ id: variant.id });
+
+    return result.length > 0;
+  }
 }

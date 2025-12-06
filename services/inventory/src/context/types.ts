@@ -11,4 +11,6 @@ export interface InventoryContext {
   project: CoreProject;
   /** Authenticated user for admin API */
   user: CoreUser;
+  /** Current locale for translations (default: 'uk') */
+  locale?: string;
 }
