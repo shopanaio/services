@@ -36,6 +36,60 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
 };
 
 /**
+ * JOIN type keywords for SQL generation
+ */
+const JOIN_KEYWORDS = {
+  left: "LEFT JOIN",
+  right: "RIGHT JOIN",
+  inner: "INNER JOIN",
+  full: "FULL JOIN",
+} as const;
+
+/**
+ * Build a JOIN SQL clause with the specified type
+ */
+function buildJoinSql(
+  joinType: "left" | "right" | "inner" | "full",
+  targetTable: Table,
+  targetAlias: string,
+  onCondition: SQL
+): SQL {
+  const keyword = JOIN_KEYWORDS[joinType];
+  return sql`${sql.raw(keyword)} ${targetTable} AS ${sql.identifier(targetAlias)} ON ${onCondition}`;
+}
+
+/**
+ * Query type that supports all join methods
+ */
+type JoinableQuery = {
+  leftJoin: (table: SQL, on: SQL) => JoinableQuery;
+  rightJoin: (table: SQL, on: SQL) => JoinableQuery;
+  innerJoin: (table: SQL, on: SQL) => JoinableQuery;
+  fullJoin: (table: SQL, on: SQL) => JoinableQuery;
+};
+
+/**
+ * Apply a join to a query using the appropriate method based on join type
+ */
+function applyJoinByType<Q extends JoinableQuery>(
+  query: Q,
+  joinType: "left" | "right" | "inner" | "full",
+  tableSql: SQL,
+  onCondition: SQL
+): Q {
+  switch (joinType) {
+    case "left":
+      return query.leftJoin(tableSql, onCondition) as Q;
+    case "right":
+      return query.rightJoin(tableSql, onCondition) as Q;
+    case "inner":
+      return query.innerJoin(tableSql, onCondition) as Q;
+    case "full":
+      return query.fullJoin(tableSql, onCondition) as Q;
+  }
+}
+
+/**
  * Query builder for Drizzle tables with GraphQL-style filtering
  * Supports joins and automatic JOIN generation (like goqutil)
  *
@@ -381,9 +435,13 @@ export class QueryBuilder<T extends Table, F extends string = string> {
         ? conditionParts[0]
         : sql.join(conditionParts, sql` AND `);
 
-      joinSqls.push(
-        sql`LEFT JOIN ${join.targetTable} AS ${sql.identifier(join.targetAlias)} ON ${conditionSql}`
+      const joinSql = buildJoinSql(
+        join.type,
+        join.targetTable,
+        join.targetAlias,
+        conditionSql
       );
+      joinSqls.push(joinSql);
     }
 
     return joinSqls;
@@ -395,14 +453,6 @@ export class QueryBuilder<T extends Table, F extends string = string> {
   private getColumn(table: Table, name: string): Column | undefined {
     const columns = (table as PgTable)["_"]["columns"];
     return columns[name as keyof typeof columns] as Column | undefined;
-  }
-
-  /**
-   * Get table name from table object
-   */
-  private getTableName(table: Table): string {
-    const pgTable = table as PgTable;
-    return pgTable["_"]["name"];
   }
 
   /**
@@ -579,9 +629,13 @@ export class QueryBuilder<T extends Table, F extends string = string> {
         ? onConditions[0]
         : sql.join(onConditions, sql` AND `);
 
-      joinParts.push(
-        sql`LEFT JOIN ${join.targetTable} AS ${sql.identifier(join.targetAlias)} ON ${onCondition}`
+      const joinSql = buildJoinSql(
+        join.type,
+        join.targetTable,
+        join.targetAlias,
+        onCondition
       );
+      joinParts.push(joinSql);
     }
 
     const joinsSql = joinParts.length > 0
@@ -678,10 +732,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
         ? onConditions[0]
         : sql.join(onConditions, sql` AND `);
 
-      query = query.leftJoin(
-        sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`,
-        onCondition
-      );
+      const tableSql = sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`;
+      query = applyJoinByType(query, join.type, tableSql, onCondition);
     }
 
     // Apply where
@@ -710,6 +762,9 @@ type SelectQuery<T extends Table> = Promise<T["$inferSelect"][]> & {
   limit: (n: number) => SelectQuery<T>;
   offset: (n: number) => SelectQuery<T>;
   leftJoin: (table: SQL, on: SQL) => SelectQuery<T>;
+  rightJoin: (table: SQL, on: SQL) => SelectQuery<T>;
+  innerJoin: (table: SQL, on: SQL) => SelectQuery<T>;
+  fullJoin: (table: SQL, on: SQL) => SelectQuery<T>;
 };
 
 /**
@@ -764,7 +819,7 @@ export function createQueryBuilder<T extends Table, F extends string>(
  * const result = await query.where(where);
  * ```
  */
-export function applyJoins<Q extends { leftJoin: (...args: unknown[]) => Q }>(
+export function applyJoins<Q extends JoinableQuery>(
   query: Q,
   joins: JoinInfo[]
 ): Q {
@@ -780,11 +835,8 @@ export function applyJoins<Q extends { leftJoin: (...args: unknown[]) => Q }>(
       ? conditions[0]
       : sql.join(conditions, sql` AND `);
 
-    // Apply left join with alias
-    result = result.leftJoin(
-      sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`,
-      onCondition
-    ) as Q;
+    const tableSql = sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`;
+    result = applyJoinByType(result, join.type, tableSql, onCondition) as Q;
   }
 
   return result;
