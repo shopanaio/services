@@ -7,8 +7,9 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { aliasedTable } from "drizzle-orm";
 import { createQueryBuilder, buildJoinConditions } from "./builder.js";
-import { createSchema, tablePrefix, type JoinInfo } from "./schema.js";
+import { createSchema, tablePrefix, type JoinInfo, type AliasedTable } from "./schema.js";
 
 // Test tables
 const users = pgTable("users", {
@@ -404,7 +405,8 @@ describe("QueryBuilder", () => {
 
       const joins = qb.getJoins();
       expect(joins).toHaveLength(1);
-      expect(joins[0].targetAlias).toBe("t1_translations");
+      expect(joins[0].sourceTable).toBeDefined();
+      expect(joins[0].targetTable).toBeDefined();
       expect(joins[0].type).toBe("left");
       expect(joins[0].conditions).toEqual([
         { sourceCol: "id", targetCol: "entity_id" },
@@ -501,12 +503,15 @@ describe("buildJoinConditions", () => {
   });
 
   it("should build join conditions from JoinInfo array", () => {
+    // Create aliased tables for the test
+    const sourceAliased = aliasedTable(products, "t0_products");
+    const targetAliased = aliasedTable(translations, "t1_translations");
+
     const joins: JoinInfo[] = [
       {
         type: "left",
-        sourceAlias: "t0_products",
-        targetTable: translations,
-        targetAlias: "t1_translations",
+        sourceTable: sourceAliased as AliasedTable,
+        targetTable: targetAliased as AliasedTable,
         conditions: [{ sourceCol: "id", targetCol: "entity_id" }],
       },
     ];
@@ -518,12 +523,15 @@ describe("buildJoinConditions", () => {
   });
 
   it("should handle multiple conditions (composite join)", () => {
+    // Create aliased tables for the test
+    const sourceAliased = aliasedTable(products, "t0_products");
+    const targetAliased = aliasedTable(translations, "t1_translations");
+
     const joins: JoinInfo[] = [
       {
         type: "inner",
-        sourceAlias: "t0_products",
-        targetTable: translations,
-        targetAlias: "t1_translations",
+        sourceTable: sourceAliased as AliasedTable,
+        targetTable: targetAliased as AliasedTable,
         conditions: [
           { sourceCol: "id", targetCol: "entity_id" },
           { sourceCol: "field_type", targetCol: "field" },

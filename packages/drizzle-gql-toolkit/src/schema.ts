@@ -1,5 +1,10 @@
-import type { Table } from "drizzle-orm";
+import type { Table, Column } from "drizzle-orm";
 import type { FieldsDef, InferFieldsDef, SchemaWithFields } from "./types.js";
+
+/**
+ * Aliased table type - a table with columns accessible by name
+ */
+export type AliasedTable = Table & Record<string, Column>;
 
 /**
  * Join type
@@ -176,9 +181,8 @@ export function createSchema<
  */
 export type JoinInfo = {
   type: JoinType;
-  sourceAlias: string;
-  targetTable: Table;
-  targetAlias: string;
+  sourceTable: AliasedTable;
+  targetTable: AliasedTable;
   conditions: Array<{
     sourceCol: string;
     targetCol: string;

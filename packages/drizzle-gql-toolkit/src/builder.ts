@@ -1,19 +1,23 @@
 import {
+  Table,
   and,
   or,
   asc,
   desc,
+  eq,
   sql,
+  aliasedTable,
+  getTableColumns,
   type SQL,
-  type Table,
   type Column,
 } from "drizzle-orm";
-import { buildOperatorConditionWithAlias, isFilterObject } from "./operators.js";
+import { buildOperatorCondition, isFilterObject } from "./operators.js";
 import {
   ObjectSchema,
   tablePrefix,
   type JoinInfo,
   type FieldConfig,
+  type AliasedTable,
 } from "./schema.js";
 import type {
   WhereInputV3,
@@ -47,16 +51,30 @@ const JOIN_KEYWORDS = {
 } as const;
 
 /**
- * Build a JOIN SQL clause with the specified type
+ * Render aliased table reference as `"schema"."table" AS "alias"`
+ */
+function formatAliasedTableReference(targetAliased: AliasedTable): SQL {
+  const alias = targetAliased[Table.Symbol.Name];
+  const originalName =
+    targetAliased[Table.Symbol.OriginalName] ?? targetAliased[Table.Symbol.Name];
+  const schemaName = targetAliased[Table.Symbol.Schema];
+  const tableIdentifier = schemaName
+    ? sql`${sql.identifier(schemaName)}.${sql.identifier(originalName)}`
+    : sql`${sql.identifier(originalName)}`;
+  return sql`${tableIdentifier} AS ${sql.identifier(alias)}`;
+}
+
+/**
+ * Build a JOIN SQL clause with the specified type using aliased table
  */
 function buildJoinSql(
   joinType: "left" | "right" | "inner" | "full",
-  targetTable: Table,
-  targetAlias: string,
+  targetAliased: AliasedTable,
   onCondition: SQL
 ): SQL {
   const keyword = JOIN_KEYWORDS[joinType];
-  return sql`${sql.raw(keyword)} ${targetTable} AS ${sql.identifier(targetAlias)} ON ${onCondition}`;
+  const tableSql = formatAliasedTableReference(targetAliased);
+  return sql`${sql.raw(keyword)} ${tableSql} ON ${onCondition}`;
 }
 
 /**
@@ -165,6 +183,7 @@ export class QueryBuilder<
 > {
   private config: Required<QueryBuilderConfig>;
   private joins: Map<string, JoinInfo> = new Map();
+  private aliasedTables: Map<string, AliasedTable> = new Map();
 
   constructor(
     private schema: ObjectSchema<T, F, Fields>,
@@ -174,16 +193,52 @@ export class QueryBuilder<
   }
 
   /**
+   * Get or create an aliased table for the given table and alias
+   */
+  private getOrCreateAliasedTable(table: Table, alias: string): AliasedTable {
+    const existing = this.aliasedTables.get(alias);
+    if (existing) {
+      return existing;
+    }
+    const aliased = aliasedTable(table, alias) as AliasedTable;
+    this.aliasedTables.set(alias, aliased);
+    return aliased;
+  }
+
+  /**
+   * Get column from aliased table by name
+   */
+  private getAliasedColumn(aliased: AliasedTable, columnName: string): Column {
+    const direct = aliased[columnName as keyof typeof aliased];
+    if (direct && typeof direct === "object") {
+      return direct as Column;
+    }
+    const columns = getTableColumns(aliased);
+    for (const column of Object.values(columns)) {
+      if ((column as Column).name === columnName) {
+        return column as Column;
+      }
+    }
+    const alias = aliased[Table.Symbol.Name];
+    return sql`${sql.identifier(alias)}.${sql.identifier(columnName)}` as unknown as Column;
+  }
+
+  /**
    * Build WHERE clause from filter input
    * Returns undefined if no conditions, allowing easy spreading
    */
   where(input: WhereInputV3 | undefined | null): SQL | undefined {
-    // Reset joins for new query
+    // Reset joins and aliased tables for new query
     this.joins.clear();
+    this.aliasedTables.clear();
 
     if (!input || Object.keys(input).length === 0) {
       return undefined;
     }
+
+    // Create aliased table for the main schema
+    const mainAlias = tablePrefix(this.schema.tableName, 0);
+    this.getOrCreateAliasedTable(this.schema.table, mainAlias);
 
     const conditions = this.buildWhereConditions(input, this.schema, 0);
     if (conditions.length === 0) {
@@ -203,6 +258,7 @@ export class QueryBuilder<
   ): SQL[] {
     const conditions: SQL[] = [];
     const tableAlias = tablePrefix(schema.tableName, depth);
+    const aliased = this.getOrCreateAliasedTable(schema.table, tableAlias);
 
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) {
@@ -244,7 +300,8 @@ export class QueryBuilder<
       const fieldConfig = schema.getField(key);
       if (!fieldConfig) {
         // Try direct column access if no schema field
-        const fieldConditions = this.buildFieldConditionsWithAlias(tableAlias, key, value);
+        const column = this.getAliasedColumn(aliased, key);
+        const fieldConditions = this.buildFieldConditions(column, value);
         conditions.push(...fieldConditions);
         continue;
       }
@@ -265,20 +322,14 @@ export class QueryBuilder<
           conditions.push(...childConditions);
         } else {
           // Filter operators on join field without nested path - apply to current table column
-          const fieldConditions = this.buildFieldConditionsWithAlias(
-            tableAlias,
-            fieldConfig.column,
-            value
-          );
+          const column = this.getAliasedColumn(aliased, fieldConfig.column);
+          const fieldConditions = this.buildFieldConditions(column, value);
           conditions.push(...fieldConditions);
         }
       } else {
         // Regular field
-        const fieldConditions = this.buildFieldConditionsWithAlias(
-          tableAlias,
-          fieldConfig.column,
-          value
-        );
+        const column = this.getAliasedColumn(aliased, fieldConfig.column);
+        const fieldConditions = this.buildFieldConditions(column, value);
         conditions.push(...fieldConditions);
       }
     }
@@ -320,12 +371,11 @@ export class QueryBuilder<
   }
 
   /**
-   * Build field conditions from filter value using table alias
-   * Produces SQL like: "t0_products"."id" = $1
+   * Build field conditions from filter value using Column
+   * Uses Drizzle's built-in operators for type-safe queries
    */
-  private buildFieldConditionsWithAlias(
-    tableAlias: string,
-    columnName: string,
+  private buildFieldConditions(
+    column: Column,
     value: unknown
   ): SQL[] {
     const conditions: SQL[] = [];
@@ -333,15 +383,14 @@ export class QueryBuilder<
     if (isFilterObject(value)) {
       // Process each operator
       for (const [opKey, opVal] of Object.entries(value)) {
-        const condition = buildOperatorConditionWithAlias(tableAlias, columnName, opKey, opVal);
+        const condition = buildOperatorCondition(column, opKey, opVal);
         if (condition) {
           conditions.push(condition);
         }
       }
     } else {
       // Direct value - treat as $eq
-      const aliasedColumn = sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
-      conditions.push(sql`${aliasedColumn} = ${value}`);
+      conditions.push(eq(column, value));
     }
 
     return conditions;
@@ -351,16 +400,16 @@ export class QueryBuilder<
    * Register a join to the collection
    */
   private registerJoin(
-    sourceAlias: string,
+    sourceAliasName: string,
     targetTable: Table,
-    targetAlias: string,
+    targetAliasName: string,
     sourceCol: string,
     targetCol: string,
     type?: "left" | "right" | "inner" | "full",
     composite?: Array<{ field: string; column: string }>
   ): void {
     // Skip if already joined with this alias
-    if (this.joins.has(targetAlias)) {
+    if (this.joins.has(targetAliasName)) {
       return;
     }
 
@@ -374,11 +423,19 @@ export class QueryBuilder<
       }
     }
 
-    this.joins.set(targetAlias, {
+    // Get source aliased table (should already exist)
+    const sourceTable = this.aliasedTables.get(sourceAliasName);
+    if (!sourceTable) {
+      throw new Error(`Source aliased table not found: ${sourceAliasName}`);
+    }
+
+    // Create target aliased table
+    const targetAliased = this.getOrCreateAliasedTable(targetTable, targetAliasName);
+
+    this.joins.set(targetAliasName, {
       type: type ?? "left",
-      sourceAlias,
-      targetTable,
-      targetAlias,
+      sourceTable,
+      targetTable: targetAliased,
       conditions,
     });
   }
@@ -401,7 +458,11 @@ export class QueryBuilder<
 
     const join = fieldConfig.join;
     const childSchema = join.schema();
+    const sourceAlias = tablePrefix(schema.tableName, depth);
     const childAlias = tablePrefix(childSchema.tableName, depth + 1);
+
+    // Ensure source aliased table exists
+    this.getOrCreateAliasedTable(schema.table, sourceAlias);
 
     // Get join column from child schema
     const joinFieldConfig = childSchema.getField(join.column);
@@ -409,7 +470,7 @@ export class QueryBuilder<
 
     // Register JOIN
     this.registerJoin(
-      tablePrefix(schema.tableName, depth),
+      sourceAlias,
       childSchema.table,
       childAlias,
       fieldConfig.column,
@@ -438,18 +499,19 @@ export class QueryBuilder<
     const joinClauses: SQL[] = [];
 
     for (const join of this.joins.values()) {
-      const conditionParts = join.conditions.map((c) =>
-        sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
-      );
+      const conditionParts = join.conditions.map((c) => {
+        const sourceCol = this.getAliasedColumn(join.sourceTable, c.sourceCol);
+        const targetCol = this.getAliasedColumn(join.targetTable, c.targetCol);
+        return eq(sourceCol, targetCol);
+      });
 
       const conditionSql = conditionParts.length === 1
         ? conditionParts[0]
-        : sql.join(conditionParts, sql` AND `);
+        : and(...conditionParts)!;
 
       const joinSql = buildJoinSql(
         join.type,
         join.targetTable,
-        join.targetAlias,
         conditionSql
       );
       joinClauses.push(joinSql);
@@ -632,6 +694,9 @@ export class QueryBuilder<
     const { where, limit, offset } = this.fromInput(input);
     const tableAlias = tablePrefix(this.schema.tableName, 0);
 
+    // Ensure main aliased table exists for SELECT/ORDER collection
+    const mainAliased = this.getOrCreateAliasedTable(this.schema.table, tableAlias);
+
     // Collect joins from SELECT fields
     if (input?.select) {
       for (const field of input.select as string[]) {
@@ -651,24 +716,25 @@ export class QueryBuilder<
       }
     }
 
-    // Build FROM clause with alias
-    const fromSql = sql`${this.schema.table} AS ${sql.identifier(tableAlias)}`;
+    // Build FROM clause with aliased table
+    const fromSql = formatAliasedTableReference(mainAliased);
 
-    // Build JOIN clauses
+    // Build JOIN clauses using aliased tables
     const joinParts: SQL[] = [];
     for (const join of this.joins.values()) {
-      const onConditions = join.conditions.map((c) =>
-        sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
-      );
+      const conditionParts = join.conditions.map((c) => {
+        const sourceCol = this.getAliasedColumn(join.sourceTable, c.sourceCol);
+        const targetCol = this.getAliasedColumn(join.targetTable, c.targetCol);
+        return eq(sourceCol, targetCol);
+      });
 
-      const onCondition = onConditions.length === 1
-        ? onConditions[0]
-        : sql.join(onConditions, sql` AND `);
+      const onCondition = conditionParts.length === 1
+        ? conditionParts[0]
+        : and(...conditionParts)!;
 
       const joinSql = buildJoinSql(
         join.type,
         join.targetTable,
-        join.targetAlias,
         onCondition
       );
       joinParts.push(joinSql);
@@ -970,24 +1036,26 @@ export class QueryBuilder<
     const { where, joins, limit, offset } = this.fromInput(input);
     const mainAlias = tablePrefix(this.schema.tableName, 0);
 
-    // Build FROM clause with alias
-    const fromSql = sql`${this.schema.table} AS ${sql.identifier(mainAlias)}`;
+    // Build FROM clause with aliased table
+    const mainAliased = this.getOrCreateAliasedTable(this.schema.table, mainAlias);
+    const fromSql = formatAliasedTableReference(mainAliased);
 
-    // Build JOIN clauses with aliased ON conditions
+    // Build JOIN clauses using aliased tables
     const joinParts: SQL[] = [];
     for (const join of joins) {
-      const onConditions = join.conditions.map((c) =>
-        sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
-      );
+      const conditionParts = join.conditions.map((c) => {
+        const sourceCol = this.getAliasedColumn(join.sourceTable, c.sourceCol);
+        const targetCol = this.getAliasedColumn(join.targetTable, c.targetCol);
+        return eq(sourceCol, targetCol);
+      });
 
-      const onCondition = onConditions.length === 1
-        ? onConditions[0]
-        : sql.join(onConditions, sql` AND `);
+      const onCondition = conditionParts.length === 1
+        ? conditionParts[0]
+        : and(...conditionParts)!;
 
       const joinSql = buildJoinSql(
         join.type,
         join.targetTable,
-        join.targetAlias,
         onCondition
       );
       joinParts.push(joinSql);
@@ -1009,8 +1077,9 @@ export class QueryBuilder<
       }
     }
 
-    // Build full query with raw SQL
-    const fullQuery = sql`SELECT ${sql.identifier(mainAlias)}.* FROM ${fromSql}${joinsSql}${whereSql}${orderSql} LIMIT ${limit} OFFSET ${offset}`;
+    // Build full query with raw SQL - use aliased table for SELECT
+    const selectTarget = sql`${sql.identifier(mainAlias)}.*`;
+    const fullQuery = sql`SELECT ${selectTarget} FROM ${fromSql}${joinsSql}${whereSql}${orderSql} LIMIT ${limit} OFFSET ${offset}`;
 
     const result = await db.execute(fullQuery);
 
@@ -1101,16 +1170,18 @@ export function applyJoins<Q extends JoinableQuery>(
   let result = query;
 
   for (const join of joins) {
-    // Build join condition
-    const conditions = join.conditions.map((c) =>
-      sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
-    );
+    // Build join condition using aliased table columns
+    const conditionParts = join.conditions.map((c) => {
+      const sourceCol = join.sourceTable[c.sourceCol] as Column;
+      const targetCol = join.targetTable[c.targetCol] as Column;
+      return eq(sourceCol, targetCol);
+    });
 
-    const onCondition = conditions.length === 1
-      ? conditions[0]
-      : sql.join(conditions, sql` AND `);
+    const onCondition = conditionParts.length === 1
+      ? conditionParts[0]
+      : and(...conditionParts)!;
 
-    const tableSql = sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`;
+    const tableSql = formatAliasedTableReference(join.targetTable);
     result = applyJoinByType(result, join.type, tableSql, onCondition) as Q;
   }
 
@@ -1129,13 +1200,15 @@ export function applyJoins<Q extends JoinableQuery>(
  */
 export function buildJoinConditions(joins: JoinInfo[]): Array<{ table: SQL; on: SQL }> {
   return joins.map((join) => {
-    const conditions = join.conditions.map((c) =>
-      sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
-    );
+    const conditionParts = join.conditions.map((c) => {
+      const sourceCol = join.sourceTable[c.sourceCol] as Column;
+      const targetCol = join.targetTable[c.targetCol] as Column;
+      return eq(sourceCol, targetCol);
+    });
 
     return {
-      table: sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`,
-      on: conditions.length === 1 ? conditions[0] : sql.join(conditions, sql` AND `),
+      table: formatAliasedTableReference(join.targetTable),
+      on: conditionParts.length === 1 ? conditionParts[0] : and(...conditionParts)!,
     };
   });
 }
