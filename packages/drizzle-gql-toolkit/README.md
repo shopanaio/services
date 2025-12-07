@@ -7,6 +7,7 @@ Type-safe query builder for Drizzle ORM with GraphQL-style filtering. Build comp
 - **Type-safe filters** — Full autocomplete for nested paths like `items.product.category.slug`
 - **Automatic joins** — JOINs are added only when nested fields are used in where/order/select
 - **GraphQL-style operators** — `$eq`, `$in`, `$iLike`, `$and`, `$or`, etc.
+- **Cursor pagination** — Relay-style seek/keyset pagination with filter change detection
 - **Configurable limits** — `maxLimit`, `defaultLimit`, `maxJoinDepth` protection
 - **Zero runtime overhead** — Types are compile-time only
 
@@ -167,6 +168,107 @@ qb.buildSelectSql({
 });
 ```
 
+## Cursor-Based Pagination
+
+Relay-style cursor pagination (seek/keyset method).
+
+### Example
+
+```ts
+import { createSchema, createCursorQueryBuilder } from "@shopana/drizzle-gql-toolkit";
+
+// 1. Схема (как обычно)
+const productSchema = createSchema({
+  table: products,
+  tableName: "products",
+  fields: {
+    id: { column: "id" },
+    title: { column: "title" },
+    price: { column: "price" },
+    createdAt: { column: "created_at" },
+  },
+});
+
+// 2. Создаём cursor query builder
+const productQB = createCursorQueryBuilder(productSchema, {
+  cursorType: "product",
+  tieBreaker: "id",
+  defaultSortField: "createdAt",
+  getId: (row) => row.id,
+  getValue: (row, field) => row[field as keyof typeof row],
+});
+
+// 3. Query — возвращает Connection сразу
+async function getProducts(db, input) {
+  return productQB.query(db, {
+    first: input.first,
+    after: input.after,
+    where: { price: { $gte: 100 } },
+    order: ["price:desc"],
+  });
+}
+// → { edges: [{ cursor, node }], pageInfo: { hasNextPage, ... }, filtersChanged }
+```
+
+### Config
+
+```ts
+createCursorQueryBuilder(schema, {
+  cursorType: "product",           // тип курсора (для валидации)
+  tieBreaker: "id",                // уникальное поле для стабильной сортировки
+  defaultSortField: "createdAt",   // сортировка по умолчанию
+  getId: (row) => row.id,          // как получить ID
+  getValue: (row, field) => row[field], // как получить значение поля
+  mapResult: (row) => row,         // опционально: трансформация результата
+});
+```
+
+### Input
+
+```ts
+qb.query(db, {
+  // Пагинация (Relay)
+  first: 10,              // или last: 10
+  after: "cursor...",     // или before: "cursor..."
+
+  // Фильтры и сортировка (стандартный toolkit формат)
+  where: { status: { $eq: "ACTIVE" } },
+  order: ["createdAt:desc", "title:asc"],
+  select: ["id", "title", "price"],
+
+  // Опционально: для детекции смены фильтров
+  filters: { status: "ACTIVE" },
+});
+```
+
+### Output
+
+```ts
+{
+  edges: [
+    { cursor: "eyJ0eXBlIjoi...", node: { id: "1", title: "..." } },
+    { cursor: "eyJ0eXBlIjoi...", node: { id: "2", title: "..." } },
+  ],
+  pageInfo: {
+    hasNextPage: true,
+    hasPreviousPage: false,
+    startCursor: "eyJ0eXBlIjoi...",
+    endCursor: "eyJ0eXBlIjoi...",
+  },
+  filtersChanged: false,  // true если cursor был сброшен из-за смены фильтров
+}
+```
+
+### Backward Pagination
+
+```ts
+// Последние 5 элементов
+qb.query(db, { last: 5 });
+
+// 5 элементов до cursor
+qb.query(db, { last: 5, before: cursor });
+```
+
 ## Error Handling
 
 ```ts
@@ -175,6 +277,7 @@ import {
   InvalidFilterError,
   JoinDepthExceededError,
   UnknownFieldError,
+  InvalidCursorError,
 } from "@shopana/drizzle-gql-toolkit";
 
 try {
