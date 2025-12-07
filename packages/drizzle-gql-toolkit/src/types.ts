@@ -177,10 +177,8 @@ export type Input<T extends Table> = {
   offset?: number;
   /** Limit for pagination */
   limit?: number;
-  /** Single order field (e.g., "createdAt:desc") */
-  order?: string;
-  /** Multiple order fields */
-  multiOrder?: string[];
+  /** Order fields (e.g., ["createdAt:desc", "name:asc"]) */
+  order?: string[];
   /** Fields to select */
   select?: ColumnNames<T>[];
   /** Where filters */
@@ -209,10 +207,8 @@ export type SchemaInput<T extends Table, F extends string> = {
   offset?: number;
   /** Limit for pagination */
   limit?: number;
-  /** Single order field (e.g., "createdAt:desc") */
-  order?: `${F}:${"asc" | "desc"}` | F;
-  /** Multiple order fields */
-  multiOrder?: (`${F}:${"asc" | "desc"}` | F)[];
+  /** Order fields (e.g., ["createdAt:desc", "name:asc"]) */
+  order?: (`${F}:${"asc" | "desc"}` | F)[];
   /** Fields to select */
   select?: F[];
   /** Where filters */
@@ -226,8 +222,7 @@ export type SchemaInput<T extends Table, F extends string> = {
 export type InputG<T extends Table, W = WhereInput<T>> = {
   offset?: number;
   limit?: number;
-  order?: string;
-  multiOrder?: string[];
+  order?: string[];
   select?: ColumnNames<T>[];
   where?: W;
 };
@@ -358,7 +353,7 @@ export type NestedWhereInput<T extends FieldsDef> = {
  * // Use in resolver
  * async orders(input: NestedSchemaInput<typeof orders, OrderFields>) {
  *   // input.order will autocomplete to:
- *   // "id:asc" | "items.product.price:desc" | "items.product.category.slug:asc" | ...
+ *   // ["id:asc", "items.product.price:desc", "items.product.category.slug:asc", ...]
  * }
  * ```
  */
@@ -367,10 +362,8 @@ export type NestedSchemaInput<T extends Table, Fields extends FieldsDef> = {
   offset?: number;
   /** Limit for pagination */
   limit?: number;
-  /** Single order field with nested path support */
-  order?: OrderPath<NestedPaths<Fields>>;
-  /** Multiple order fields with nested path support */
-  multiOrder?: OrderPath<NestedPaths<Fields>>[];
+  /** Order fields with nested path support (e.g., ["createdAt:desc", "items.product.price:asc"]) */
+  order?: OrderPath<NestedPaths<Fields>>[];
   /** Fields to select with nested path support */
   select?: NestedPaths<Fields>[];
   /** Where filters with nested structure */

@@ -1644,7 +1644,7 @@ describe("Complex SQL Snapshot Tests", () => {
         where: {
           status: { $eq: "completed" },
         },
-        order: "totalAmount:desc",
+        order: ["totalAmount:desc"],
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
@@ -1660,7 +1660,7 @@ describe("Complex SQL Snapshot Tests", () => {
         where: {
           status: { $in: ["pending", "completed"] },
         },
-        multiOrder: ["status:asc", "totalAmount:desc", "createdAt:desc"],
+        order: ["status:asc", "totalAmount:desc", "createdAt:desc"],
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
@@ -1676,7 +1676,7 @@ describe("Complex SQL Snapshot Tests", () => {
           status: { $eq: "pending" },
           items: { quantity: { $gte: 1 } },
         },
-        order: "items.quantity:desc",
+        order: ["items.quantity:desc"],
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
@@ -1691,7 +1691,7 @@ describe("Complex SQL Snapshot Tests", () => {
         where: {
           items: { productPublished: { $eq: true } },
         },
-        order: "items.productPrice:desc",
+        order: ["items.productPrice:desc"],
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
@@ -1706,7 +1706,7 @@ describe("Complex SQL Snapshot Tests", () => {
         where: {
           items: { product: { categoryVisible: { $eq: true } } },
         },
-        order: "items.product.categorySlug:asc",
+        order: ["items.product.categorySlug:asc"],
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
@@ -1721,7 +1721,7 @@ describe("Complex SQL Snapshot Tests", () => {
         where: {
           items: { product: { category: { translatedLocale: { $eq: "en" } } } },
         },
-        order: "items.product.category.translatedName:asc",
+        order: ["items.product.category.translatedName:asc"],
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
@@ -1737,7 +1737,7 @@ describe("Complex SQL Snapshot Tests", () => {
           status: { $neq: "cancelled" },
           items: { product: { categoryVisible: { $eq: true } } },
         },
-        multiOrder: [
+        order: [
           "items.product.categorySlug:asc",
           "items.product.price:desc",
           "items.quantity:desc",
@@ -1764,7 +1764,7 @@ describe("Complex SQL Snapshot Tests", () => {
             { items: { product: { category: { translatedLocale: { $eq: "en" } } } } },
           ],
         },
-        multiOrder: [
+        order: [
           "items.product.category.translatedName:asc",
           "items.product.category.slug:asc",
           "items.product.price:desc",
@@ -1812,7 +1812,7 @@ describe("Complex SQL Snapshot Tests", () => {
             },
           ],
         },
-        multiOrder: [
+        order: [
           "items.product.category.translatedName:asc",
           "items.product.category.slug:asc",
           "items.product.sku:asc",
@@ -1969,7 +1969,7 @@ describe("Complex SQL Snapshot Tests", () => {
           "items.product.category.slug",
           "items.product.category.translatedName",
         ],
-        multiOrder: [
+        order: [
           "items.product.category.translatedName:asc",
           "items.product.price:desc",
           "totalAmount:desc",
@@ -2016,7 +2016,7 @@ describe("Complex SQL Snapshot Tests", () => {
           // t4
           "items.product.category.translatedName", "items.product.category.translatedLocale",
         ],
-        multiOrder: [
+        order: [
           "items.product.category.translatedName:asc",
           "items.product.category.slug:asc",
           "items.product.price:desc",

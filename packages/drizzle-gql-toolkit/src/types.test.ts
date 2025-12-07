@@ -144,7 +144,7 @@ const _validUserInput: UserInput = {
   select: ["id", "name"],
   limit: 10,
   offset: 0,
-  order: "name:asc",
+  order: ["name:asc"],
 };
 
 // ============================================================================
@@ -652,8 +652,7 @@ type OrderInput = NestedSchemaInput<typeof orders, OrderFieldsDef>;
 const _validOrderInput: OrderInput = {
   limit: 10,
   offset: 0,
-  order: "items.product.price:desc",
-  multiOrder: ["createdAt:desc", "items.product.category.slug:asc"],
+  order: ["createdAt:desc", "items.product.category.slug:asc"],
   select: ["id", "status", "items.product.sku", "items.product.category.translation.name"],
   where: {
     status: { $eq: "completed" },
@@ -697,7 +696,7 @@ const _complexNestedWhere: NestedWhereInput<OrderFieldsDef> = {
 describe("Nested path types", () => {
   it("should allow nested paths in input objects", () => {
     const input: OrderInput = {
-      order: "items.product.price:desc",
+      order: ["items.product.price:desc"],
       select: ["id", "items.product.sku"],
       where: {
         items: {
@@ -708,7 +707,7 @@ describe("Nested path types", () => {
       },
     };
 
-    expect(input.order).toBe("items.product.price:desc");
+    expect(input.order).toEqual(["items.product.price:desc"]);
     expect(input.select).toEqual(["id", "items.product.sku"]);
   });
 

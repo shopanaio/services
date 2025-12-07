@@ -643,13 +643,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
     // Build ORDER BY clause
     let orderSql = sql``;
-    if (input?.multiOrder && input.multiOrder.length > 0) {
-      const orderBySql = this.buildOrderBySqlWithJoins(input.multiOrder);
-      if (orderBySql) {
-        orderSql = sql` ORDER BY ${orderBySql}`;
-      }
-    } else if (input?.order) {
-      const orderBySql = this.buildOrderBySqlWithJoins([input.order]);
+    if (input?.order && input.order.length > 0) {
+      const orderBySql = this.buildOrderBySqlWithJoins(input.order);
       if (orderBySql) {
         orderSql = sql` ORDER BY ${orderBySql}`;
       }
@@ -858,10 +853,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
     // Build order by
     let orderBy: SQL[] = [];
-    if (input.multiOrder && input.multiOrder.length > 0) {
-      orderBy = this.parseMultiOrder(input.multiOrder);
-    } else if (input.order) {
-      orderBy = this.parseOrder(input.order);
+    if (input.order && input.order.length > 0) {
+      orderBy = this.parseMultiOrder(input.order);
     }
 
     // Build pagination
@@ -990,13 +983,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
     // Build ORDER BY clause with aliases
     let orderSql = sql``;
-    if (input?.multiOrder && input.multiOrder.length > 0) {
-      const orderBySql = this.buildMultiOrderSqlWithAlias(input.multiOrder, mainAlias);
-      if (orderBySql) {
-        orderSql = sql` ORDER BY ${orderBySql}`;
-      }
-    } else if (input?.order) {
-      const orderBySql = this.buildParsedOrderSqlWithAlias(input.order, mainAlias);
+    if (input?.order && input.order.length > 0) {
+      const orderBySql = this.buildMultiOrderSqlWithAlias(input.order, mainAlias);
       if (orderBySql) {
         orderSql = sql` ORDER BY ${orderBySql}`;
       }

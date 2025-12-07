@@ -95,7 +95,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await qb.query(db as any, {
         limit: 2,
         offset: 1,
-        order: "name:asc",
+        order: ["name:asc"],
       });
 
       expect(result).toHaveLength(2);
@@ -349,7 +349,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        order: "name:asc",
+        order: ["name:asc"],
       });
 
       expect(result.map((u) => u.name)).toEqual(["Alice", "Bob", "Charlie"]);
@@ -360,20 +360,20 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        order: "age:desc",
+        order: ["age:desc"],
       });
 
       expect(result.map((u) => u.age)).toEqual([35, 30, 25]);
     });
 
-    it("should handle multiOrder", async () => {
+    it("should handle multiple order fields", async () => {
       const db = getDb();
       await db.insert(users).values({ name: "Alice", age: 50 }); // Second Alice
 
       const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        multiOrder: ["name:asc", "age:desc"],
+        order: ["name:asc", "age:desc"],
       });
 
       // Both Alices first, then Bob, then Charlie
@@ -462,7 +462,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
         where: { age: { $gte: 22 } },
-        order: "age:asc",
+        order: ["age:asc"],
         limit: 3,
         offset: 1,
       });
@@ -974,7 +974,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        order: "age:asc",
+        order: ["age:asc"],
       });
 
       // ASC order: 25, 35, then nulls (PostgreSQL default is NULLS LAST for ASC)
@@ -991,7 +991,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        order: "age:desc",
+        order: ["age:desc"],
       });
 
       // DESC order: PostgreSQL default is NULLS FIRST for DESC
@@ -1308,7 +1308,7 @@ describe("SQL Integration Tests with PGlite", () => {
           title: { $iLike: "%phone%" },
           price: { $gte: 800 },
         },
-        order: "price:desc",
+        order: ["price:desc"],
         limit: 2,
         offset: 0,
       });
@@ -1339,7 +1339,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
         where: { title: { $iLike: "%phone%" } },
-        order: "handle:asc",
+        order: ["handle:asc"],
         limit: 2,
         offset: 1,
       });
@@ -1350,7 +1350,7 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result[1].handle).toBe("c-phone");
     });
 
-    it("should handle multiOrder with join and pagination", async () => {
+    it("should handle multiple order fields with join and pagination", async () => {
       const db = getDb();
 
       const [p1] = await db.insert(products).values({ handle: "phone", price: 999 }).returning();
@@ -1367,7 +1367,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
         where: { price: { $gt: 0 } },
-        multiOrder: ["handle:asc", "price:desc"],
+        order: ["handle:asc", "price:desc"],
         limit: 10,
       });
 
@@ -1411,7 +1411,7 @@ describe("SQL Integration Tests with PGlite", () => {
       await expect(
         qb.query(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          order: "nonExistentField:asc" as any,
+          order: ["nonExistentField:asc"] as any,
         })
       ).rejects.toThrow(/column.*does not exist/);
     });
@@ -1429,7 +1429,7 @@ describe("SQL Integration Tests with PGlite", () => {
       await expect(
         qb.query(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          order: "invalid:::format" as any,
+          order: ["invalid:::format"] as any,
         })
       ).rejects.toThrow(/column.*does not exist/);
     });
