@@ -16,8 +16,6 @@ export type Join = {
   schema: () => ObjectSchema<Table, string>;
   /** Field name in target schema to join on */
   column: string;
-  /** Self-referencing join */
-  self?: boolean;
   /** Composite key fields */
   composite?: Array<{
     field: string;
