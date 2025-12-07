@@ -18,7 +18,6 @@ import {
   type FieldConfig,
 } from "./schema.js";
 import type {
-  WhereInput,
   WhereInputV3,
   OrderByInput,
   OrderInput,
@@ -141,7 +140,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
    * Build WHERE clause from filter input
    * Returns undefined if no conditions, allowing easy spreading
    */
-  where(input: WhereInput<T> | WhereInputV3 | undefined | null): SQL | undefined {
+  where(input: WhereInputV3 | undefined | null): SQL | undefined {
     // Reset joins for new query
     this.joins.clear();
 
@@ -166,7 +165,6 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     depth: number
   ): SQL[] {
     const conditions: SQL[] = [];
-    const tableAlias = tablePrefix(schema.tableName, depth);
 
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) {
@@ -210,7 +208,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
         // Try direct column access if no schema field
         const column = this.getColumn(schema.table, key);
         if (column) {
-          const fieldConditions = this.buildFieldConditions(column, tableAlias, value);
+          const fieldConditions = this.buildFieldConditions(column, value);
           conditions.push(...fieldConditions);
         }
         continue;
@@ -246,7 +244,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
           // Filter without lift - apply to current table column
           const column = this.getColumn(schema.table, fieldConfig.column);
           if (column) {
-            const fieldConditions = this.buildFieldConditions(column, tableAlias, value);
+            const fieldConditions = this.buildFieldConditions(column, value);
             conditions.push(...fieldConditions);
           }
         }
@@ -254,7 +252,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
         // Regular field
         const column = this.getColumn(schema.table, fieldConfig.column);
         if (column) {
-          const fieldConditions = this.buildFieldConditions(column, tableAlias, value);
+          const fieldConditions = this.buildFieldConditions(column, value);
           conditions.push(...fieldConditions);
         }
       }
@@ -301,7 +299,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       const columnName = selectFieldConfig?.column ?? selectField;
       const column = this.getColumn(childSchema.table, columnName);
       if (column) {
-        const fieldConditions = this.buildFieldConditions(column, childAlias, filterValue);
+        const fieldConditions = this.buildFieldConditions(column, filterValue);
         conditions.push(...fieldConditions);
       }
     }
@@ -354,11 +352,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
   /**
    * Build field conditions from filter value
    */
-  private buildFieldConditions(
-    column: Column,
-    _tableAlias: string,
-    value: unknown
-  ): SQL[] {
+  private buildFieldConditions(column: Column, value: unknown): SQL[] {
     const conditions: SQL[] = [];
 
     if (isFilterObject(value)) {
@@ -424,7 +418,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
    * Build SQL for joins (for manual query building)
    */
   buildJoinsSql(): SQL[] {
-    const joinSqls: SQL[] = [];
+    const joinClauses: SQL[] = [];
 
     for (const join of this.joins.values()) {
       const conditionParts = join.conditions.map((c) =>
@@ -441,10 +435,10 @@ export class QueryBuilder<T extends Table, F extends string = string> {
         join.targetAlias,
         conditionSql
       );
-      joinSqls.push(joinSql);
+      joinClauses.push(joinSql);
     }
 
-    return joinSqls;
+    return joinClauses;
   }
 
   /**
