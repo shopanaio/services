@@ -44,12 +44,11 @@ const productsWithTranslationsSchema = createSchema({
     id: { column: "id" },
     handle: { column: "handle" },
     price: { column: "price" },
-    title: {
+    translation: {
       column: "id",
       join: {
         schema: () => translationsSchema,
         column: "entityId",
-        select: ["value"],
       },
     },
   },
@@ -410,7 +409,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $iLike: "%phone%" } },
+        where: { translation: { value: { $iLike: "%phone%" } } },
       });
 
       expect(result).toHaveLength(1);
@@ -422,7 +421,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $eq: "Gaming Laptop" } },
+        where: { translation: { value: { $eq: "Gaming Laptop" } } },
       });
 
       expect(result).toHaveLength(1);
@@ -436,7 +435,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await qb.query(db as any, {
         where: {
           price: { $gt: 500 },
-          title: { $iLike: "%laptop%" },
+          translation: { value: { $iLike: "%laptop%" } },
         },
       });
 
@@ -665,13 +664,12 @@ describe("SQL Integration Tests with PGlite", () => {
           id: { column: "id" },
           handle: { column: "handle" },
           price: { column: "price" },
-          title: {
+          translation: {
             column: "id",
             join: {
               type: "inner",
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
@@ -695,7 +693,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithInnerJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $iLike: "%" } },
+        where: { translation: { value: { $iLike: "%" } } },
       });
 
       // INNER JOIN should return only product with translation
@@ -733,7 +731,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $notLike: "%Phone%" } },
+        where: { translation: { value: { $notLike: "%Phone%" } } },
       });
 
       expect(result).toHaveLength(2);
@@ -745,7 +743,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $notILike: "%phone%" } },
+        where: { translation: { value: { $notILike: "%phone%" } } },
       });
 
       expect(result).toHaveLength(2);
@@ -757,7 +755,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $in: ["Smart Phone", "Gaming Laptop"] } },
+        where: { translation: { value: { $in: ["Smart Phone", "Gaming Laptop"] } } },
       });
 
       expect(result).toHaveLength(2);
@@ -769,7 +767,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $notIn: ["Smart Phone", "Gaming Laptop"] } },
+        where: { translation: { value: { $notIn: ["Smart Phone", "Gaming Laptop"] } } },
       });
 
       expect(result).toHaveLength(1);
@@ -1016,13 +1014,12 @@ describe("SQL Integration Tests with PGlite", () => {
           id: { column: "id" },
           handle: { column: "handle" },
           price: { column: "price" },
-          title: {
+          translation: {
             column: "id",
             join: {
               type: "right",
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
@@ -1050,7 +1047,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithRightJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $iLike: "%" } },
+        where: { translation: { value: { $iLike: "%" } } },
       });
 
       expect(result).toHaveLength(2);
@@ -1073,13 +1070,12 @@ describe("SQL Integration Tests with PGlite", () => {
           id: { column: "id" },
           handle: { column: "handle" },
           price: { column: "price" },
-          title: {
+          translation: {
             column: "id",
             join: {
               type: "full",
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
@@ -1112,7 +1108,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await qb.query(db as any, {
         where: {
           $or: [
-            { title: { $iLike: "%" } },
+            { translation: { value: { $iLike: "%" } } },
             { price: { $gte: 0 } },
           ],
         },
@@ -1138,12 +1134,11 @@ describe("SQL Integration Tests with PGlite", () => {
           id: { column: "id" },
           handle: { column: "handle" },
           price: { column: "price" },
-          title: {
+          translation: {
             column: "id",
             join: {
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
               composite: [{ field: "handle", column: "field" }],
             },
           },
@@ -1165,7 +1160,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithCompositeJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $eq: "Correct Title" } },
+        where: { translation: { value: { $eq: "Correct Title" } } },
       });
 
       expect(result).toHaveLength(1);
@@ -1185,20 +1180,11 @@ describe("SQL Integration Tests with PGlite", () => {
           id: { column: "id" },
           handle: { column: "handle" },
           price: { column: "price" },
-          title: {
+          translation: {
             column: "id",
             join: {
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
-            },
-          },
-          searchTitle: {
-            column: "id",
-            join: {
-              schema: () => translationsSchema,
-              column: "entityId",
-              select: ["searchValue"],
             },
           },
         },
@@ -1221,8 +1207,10 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
         where: {
-          title: { $iLike: "%phone%" },
-          searchTitle: { $iLike: "%mobile%" },
+          translation: {
+            value: { $iLike: "%phone%" },
+            searchValue: { $iLike: "%mobile%" },
+          },
         },
       });
 
@@ -1270,7 +1258,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       const selectSql = qb.buildSelectSql({
-        where: { title: { $iLike: "%phone%" } },
+        where: { translation: { value: { $iLike: "%phone%" } } },
         limit: 10,
       });
 
@@ -1305,7 +1293,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
         where: {
-          title: { $iLike: "%phone%" },
+          translation: { value: { $iLike: "%phone%" } },
           price: { $gte: 800 },
         },
         order: ["price:desc"],
@@ -1338,7 +1326,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $iLike: "%phone%" } },
+        where: { translation: { value: { $iLike: "%phone%" } } },
         order: ["handle:asc"],
         limit: 2,
         offset: 1,

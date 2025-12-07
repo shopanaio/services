@@ -40,12 +40,11 @@ const productsWithTranslationsSchema = createSchema({
     id: { column: "id" },
     handle: { column: "handle" },
     price: { column: "price" },
-    title: {
+    translation: {
       column: "id",
       join: {
         schema: () => translationsSchema,
         column: "entityId",
-        select: ["value"],
       },
     },
   },
@@ -274,11 +273,11 @@ describe("SQL Snapshot Tests", () => {
 
   describe("JOIN queries", () => {
     it("should generate all JOIN types (LEFT, INNER, RIGHT, FULL)", () => {
-      // LEFT JOIN (default)
+      // LEFT JOIN (default) - join added via nested path
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       expect(toSqlString(qb.buildSelectSql({
-        select: ["id", "handle", "price", "title"],
-        where: { title: { $iLike: "%phone%" } },
+        select: ["id", "handle", "price", "translation.value"],
+        where: { translation: { value: { $iLike: "%phone%" } } },
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
         Params: ["%phone%",20,0]"
@@ -291,20 +290,19 @@ describe("SQL Snapshot Tests", () => {
         fields: {
           id: { column: "id" },
           handle: { column: "handle" },
-          title: {
+          translation: {
             column: "id",
             join: {
               type: "inner",
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
       });
       expect(toSqlString(createQueryBuilder(innerJoinSchema).buildSelectSql({
-        select: ["id", "handle", "title"],
-        where: { title: { $eq: "Test" } },
+        select: ["id", "handle", "translation.value"],
+        where: { translation: { value: { $eq: "Test" } } },
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" INNER JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
         Params: ["Test",20,0]"
@@ -316,20 +314,19 @@ describe("SQL Snapshot Tests", () => {
         tableName: "products",
         fields: {
           id: { column: "id" },
-          title: {
+          translation: {
             column: "id",
             join: {
               type: "right",
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
       });
       expect(toSqlString(createQueryBuilder(rightJoinSchema).buildSelectSql({
-        select: ["id", "title"],
-        where: { title: { $iLike: "%" } },
+        select: ["id", "translation.value"],
+        where: { translation: { value: { $iLike: "%" } } },
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_products"."id", "t1_translations"."value" FROM "products" AS "t0_products" RIGHT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
         Params: ["%",20,0]"
@@ -341,20 +338,19 @@ describe("SQL Snapshot Tests", () => {
         tableName: "products",
         fields: {
           id: { column: "id" },
-          title: {
+          translation: {
             column: "id",
             join: {
               type: "full",
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
       });
       expect(toSqlString(createQueryBuilder(fullJoinSchema).buildSelectSql({
-        select: ["id", "title"],
-        where: { title: { $iLike: "%" } },
+        select: ["id", "translation.value"],
+        where: { translation: { value: { $iLike: "%" } } },
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_products"."id", "t1_translations"."value" FROM "products" AS "t0_products" FULL JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
         Params: ["%",20,0]"
@@ -368,12 +364,11 @@ describe("SQL Snapshot Tests", () => {
         fields: {
           id: { column: "id" },
           handle: { column: "handle" },
-          title: {
+          translation: {
             column: "id",
             join: {
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
               composite: [{ field: "handle", column: "field" }],
             },
           },
@@ -381,8 +376,8 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(createQueryBuilder(compositeJoinSchema).buildSelectSql({
-        select: ["id", "handle", "title"],
-        where: { title: { $eq: "Test" } },
+        select: ["id", "handle", "translation.value"],
+        where: { translation: { value: { $eq: "Test" } } },
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" AND "t0_products"."handle" = "t1_translations"."field"WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
         Params: ["Test",20,0]"
@@ -401,7 +396,6 @@ describe("SQL Snapshot Tests", () => {
             join: {
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value", "searchValue"],
             },
           },
         },
@@ -409,7 +403,7 @@ describe("SQL Snapshot Tests", () => {
 
       const qb = createQueryBuilder(multiSelectJoinSchema);
 
-      // Select nested paths
+      // Select nested paths - join added automatically
       expect(toSqlString(qb.buildSelectSql({
         select: ["id", "handle", "translation.value", "translation.searchValue"],
       }))).toMatchInlineSnapshot(`
@@ -417,7 +411,7 @@ describe("SQL Snapshot Tests", () => {
         Params: [20,0]"
       `);
 
-      // Order by nested paths
+      // Order by nested paths - join added automatically
       expect(toSqlString(qb.buildSelectSql({
         select: ["id", "handle"],
         order: ["translation.value:asc", "translation.searchValue:desc"],
@@ -426,22 +420,37 @@ describe("SQL Snapshot Tests", () => {
         Params: [20,0]"
       `);
 
-      // Backward compatible (no nested path - uses first select field)
+      // No nested path - join field reference still triggers join to allow selection
+      // (the join table column is the column specified in the field config)
       expect(toSqlString(qb.buildSelectSql({
         select: ["id", "handle", "translation"],
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."id" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" LIMIT $1 OFFSET $2
         Params: [20,0]"
+      `);
+    });
+
+    it("should NOT add join when no nested fields used in where/order/select", () => {
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // Only using fields from main table - no join needed
+      expect(toSqlString(qb.buildSelectSql({
+        select: ["id", "handle", "price"],
+        where: {
+          price: { $gt: 100 },
+        },
+      }))).toMatchInlineSnapshot(`
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price" FROM "products" AS "t0_products" WHERE "t0_products"."price" > $1 LIMIT $2 OFFSET $3
+        Params: [100,20,0]"
       `);
     });
 
     it("should generate JOIN combined with regular field filter", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       expect(toSqlString(qb.buildSelectSql({
-        select: ["id", "handle", "price", "title"],
+        select: ["id", "handle", "price", "translation.value"],
         where: {
           price: { $gt: 100 },
-          title: { $iLike: "%phone%" },
+          translation: { value: { $iLike: "%phone%" } },
         },
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."price" > $1 and "t1_translations"."value" ILIKE $2) LIMIT $3 OFFSET $4
@@ -454,10 +463,10 @@ describe("SQL Snapshot Tests", () => {
     it("should generate query with all components", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       expect(toSqlString(qb.buildSelectSql({
-        select: ["id", "handle", "price", "title"],
+        select: ["id", "handle", "price", "translation.value"],
         where: {
           $or: [
-            { title: { $iLike: "%phone%" } },
+            { translation: { value: { $iLike: "%phone%" } } },
             { price: { $gt: 1000 } },
           ],
         },

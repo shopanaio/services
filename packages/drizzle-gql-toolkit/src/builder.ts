@@ -90,6 +90,13 @@ function applyJoinByType<Q extends JoinableQuery>(
  * Query builder for Drizzle tables with GraphQL-style filtering
  * Supports joins and automatic JOIN generation (like goqutil)
  *
+ * Joins are automatically added when nested fields are used in:
+ * - where (e.g., { translation: { value: { $iLike: "%test%" } } })
+ * - order (e.g., ["translation.value:asc"])
+ * - select (e.g., ["translation.value"])
+ *
+ * If no nested fields are referenced, no join is performed.
+ *
  * @example
  * ```ts
  * const translationSchema = createSchema({
@@ -106,20 +113,25 @@ function applyJoinByType<Q extends JoinableQuery>(
  *   tableName: "product",
  *   fields: {
  *     id: { column: "id" },
- *     title: {
+ *     translation: {
  *       column: "id",
  *       join: {
  *         schema: () => translationSchema,
  *         column: "entityId",
- *         select: ["value"],
  *       }
  *     }
  *   }
  * });
  *
  * const qb = createQueryBuilder(productSchema);
+ * // Join added because nested field translation.value is used:
  * const { where, joins } = qb.fromInput({
- *   where: { title: { $iLike: "%test%" } }
+ *   where: { translation: { value: { $iLike: "%test%" } } }
+ * });
+ *
+ * // No join added because no nested fields used:
+ * const result2 = qb.fromInput({
+ *   where: { id: { $eq: "123" } }
  * });
  * ```
  */
@@ -213,22 +225,10 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       // Check if value is a filter object (all keys start with $)
       const isFilter = isFilterObject(value);
 
-      // Handle join with select
+      // Handle join field
       if (fieldConfig.join) {
-        const join = fieldConfig.join;
-        const hasSelect = join.select && join.select.length > 0;
-
-        if (isFilter && hasSelect) {
-          // Filter on field with select - apply to child table fields
-          const childConditions = this.buildJoinFilterConditions(
-            fieldConfig,
-            schema,
-            depth,
-            value as Record<string, unknown>
-          );
-          conditions.push(...childConditions);
-        } else if (!isFilter) {
-          // Nested object - recurse into join
+        if (!isFilter) {
+          // Nested object - recurse into join (this adds the join automatically)
           const childConditions = this.buildNestedJoinConditions(
             fieldConfig,
             schema,
@@ -237,7 +237,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
           );
           conditions.push(...childConditions);
         } else {
-          // Filter without lift - apply to current table column
+          // Filter operators on join field without nested path - apply to current table column
           const fieldConditions = this.buildFieldConditionsWithAlias(
             tableAlias,
             fieldConfig.column,
@@ -260,51 +260,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
   }
 
   /**
-   * Build conditions for a join with select
-   */
-  private buildJoinFilterConditions(
-    fieldConfig: FieldConfig,
-    parentSchema: ObjectSchema,
-    depth: number,
-    filterValue: Record<string, unknown>
-  ): SQL[] {
-    const join = fieldConfig.join!;
-    const childSchema = join.schema();
-    const childAlias = tablePrefix(childSchema.tableName, depth + 1);
-
-    // Get join column from child schema
-    const joinFieldConfig = childSchema.getField(join.column);
-    const joinColumnName = joinFieldConfig?.column ?? join.column;
-
-    // Register JOIN
-    this.registerJoin(
-      tablePrefix(parentSchema.tableName, depth),
-      childSchema.table,
-      childAlias,
-      fieldConfig.column,
-      joinColumnName,
-      join.type,
-      join.composite
-    );
-
-    // Build conditions for each select field using child alias
-    const conditions: SQL[] = [];
-    const selectFields = join.select || [];
-
-    for (const selectField of selectFields) {
-      // Get field config from child schema to resolve column name
-      const selectFieldConfig = childSchema.getField(selectField);
-      const columnName = selectFieldConfig?.column ?? selectField;
-      // Use childAlias for WHERE conditions
-      const fieldConditions = this.buildFieldConditionsWithAlias(childAlias, columnName, filterValue);
-      conditions.push(...fieldConditions);
-    }
-
-    return conditions;
-  }
-
-  /**
    * Build conditions for nested join (non-filter object)
+   * Automatically registers the join when nested fields are accessed
    */
   private buildNestedJoinConditions(
     fieldConfig: FieldConfig,
@@ -320,7 +277,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     const joinFieldConfig = childSchema.getField(join.column);
     const joinColumnName = joinFieldConfig?.column ?? join.column;
 
-    // Register JOIN
+    // Register JOIN - this is only called when nested fields are accessed
     this.registerJoin(
       tablePrefix(parentSchema.tableName, depth),
       childSchema.table,
@@ -331,18 +288,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       join.composite
     );
 
-    // If select is defined, wrap the nested input
-    let childWhere: WhereInputV3;
-    if (join.select && join.select.length > 0) {
-      childWhere = {};
-      for (const selectField of join.select) {
-        childWhere[selectField] = nestedInput;
-      }
-    } else {
-      childWhere = nestedInput;
-    }
-
-    return this.buildWhereConditions(childWhere, childSchema, depth + 1);
+    // Process nested input directly in child schema
+    return this.buildWhereConditions(nestedInput, childSchema, depth + 1);
   }
 
   /**
@@ -446,11 +393,6 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
     // If there are more parts, continue collecting joins recursively
     if (rest.length > 0) {
-      // Check if next part is in join.select (doesn't require further recursion)
-      if (join.select && join.select.includes(rest[0])) {
-        return; // Field from join.select, no more joins needed
-      }
-      // Otherwise recurse into child schema
       this.collectJoinsFromFieldPath(rest, childSchema, depth + 1);
     }
   }
@@ -773,38 +715,14 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     }
 
     if (fieldConfig.join && rest.length > 0) {
+      // Recurse into child schema for nested path
       const childSchema = fieldConfig.join.schema();
-      const childAlias = tablePrefix(childSchema.tableName, depth + 1);
-
-      // Check if rest[0] is in join.select array - if so, resolve that field from joined table
-      if (fieldConfig.join.select && fieldConfig.join.select.includes(rest[0])) {
-        const selectFieldName = rest[0];
-        const selectFieldConfig = childSchema.getField(selectFieldName);
-        const selectColumnName = selectFieldConfig?.column ?? selectFieldName;
-        return sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)}`;
-      }
-
-      // Otherwise recurse into child schema
       return this.resolveSelectField(rest, childSchema, depth + 1);
     }
 
     // Field on current table
     const tableAlias = tablePrefix(schema.tableName, depth);
     const columnName = fieldConfig.column;
-
-    if (fieldConfig.join && fieldConfig.join.select && fieldConfig.join.select.length > 0) {
-      // Field with select but no nested path - use first select field (backward compat)
-      const childSchema = fieldConfig.join.schema();
-      const childAlias = tablePrefix(childSchema.tableName, depth + 1);
-      const selectField = fieldConfig.join.select[0];
-      const selectFieldConfig = childSchema.getField(selectField);
-      const selectColumnName = selectFieldConfig?.column ?? selectField;
-      const columnSql = sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)}`;
-      if (fieldConfig.alias) {
-        return sql`${columnSql} AS ${sql.identifier(fieldConfig.alias)}`;
-      }
-      return columnSql;
-    }
 
     // Simple field - only use alias if explicitly specified in schema
     const columnSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
@@ -872,36 +790,14 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     }
 
     if (fieldConfig.join && rest.length > 0) {
+      // Recurse into child schema for nested path
       const childSchema = fieldConfig.join.schema();
-      const childAlias = tablePrefix(childSchema.tableName, depth + 1);
-      const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
-
-      // Check if rest[0] is in join.select array - if so, resolve that field from joined table
-      if (fieldConfig.join.select && fieldConfig.join.select.includes(rest[0])) {
-        const selectFieldName = rest[0];
-        const selectFieldConfig = childSchema.getField(selectFieldName);
-        const selectColumnName = selectFieldConfig?.column ?? selectFieldName;
-        return sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)} ${dirSql}`;
-      }
-
-      // Otherwise recurse into child schema
       return this.resolveOrderField(rest, childSchema, depth + 1, direction);
     }
 
-    // Field on current table (possibly with join for select)
+    // Field on current table
     const tableAlias = tablePrefix(schema.tableName, depth);
     const columnName = fieldConfig.column;
-
-    if (fieldConfig.join && fieldConfig.join.select && fieldConfig.join.select.length > 0) {
-      // Field with select but no nested path - use first select field (backward compat)
-      const childSchema = fieldConfig.join.schema();
-      const childAlias = tablePrefix(childSchema.tableName, depth + 1);
-      const selectField = fieldConfig.join.select[0];
-      const selectFieldConfig = childSchema.getField(selectField);
-      const selectColumnName = selectFieldConfig?.column ?? selectField;
-      const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
-      return sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)} ${dirSql}`;
-    }
 
     const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
     return sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)} ${dirSql}`;
@@ -1120,21 +1016,21 @@ export function createQueryBuilder<T extends Table, F extends string>(
  *   tableName: "product",
  *   fields: {
  *     id: { column: "id" },
- *     title: {
+ *     translation: {
  *       column: "id",
  *       join: {
  *         type: "left",
  *         schema: () => translationSchema,
  *         column: "entityId",
- *         select: ["value"],
  *       }
  *     }
  *   }
  * });
  *
  * const qb = createQueryBuilder(productSchema);
+ * // Join added because nested field translation.value is used:
  * const { where, joins } = qb.fromInput({
- *   where: { title: { $iLike: "%test%" } }
+ *   where: { translation: { value: { $iLike: "%test%" } } }
  * });
  *
  * // Apply joins to query

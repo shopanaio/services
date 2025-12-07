@@ -84,24 +84,22 @@ describe("ObjectSchema", () => {
       tableName: "products",
       fields: {
         id: { column: "id" },
-        title: {
+        translation: {
           column: "id",
           join: {
             schema: () => translationsSchema,
             column: "entityId",
-            select: ["value"],
           },
         },
       },
     });
 
     expect(schema.hasJoin("id")).toBe(false);
-    expect(schema.hasJoin("title")).toBe(true);
+    expect(schema.hasJoin("translation")).toBe(true);
 
-    const join = schema.getJoin("title");
+    const join = schema.getJoin("translation");
     expect(join).toBeDefined();
     expect(join!.column).toBe("entityId");
-    expect(join!.select).toEqual(["value"]);
     expect(join!.schema()).toBe(translationsSchema);
   });
 
@@ -111,6 +109,7 @@ describe("ObjectSchema", () => {
       tableName: "translations",
       fields: {
         entityId: { column: "entity_id" },
+        value: { column: "value" },
       },
     });
 
@@ -118,7 +117,7 @@ describe("ObjectSchema", () => {
       table: products,
       tableName: "products",
       fields: {
-        title: {
+        translation: {
           column: "id",
           join: {
             schema: () => translationsSchema,
@@ -128,7 +127,7 @@ describe("ObjectSchema", () => {
       },
     });
 
-    expect(schema.getJoinSchema("title")).toBe(translationsSchema);
+    expect(schema.getJoinSchema("translation")).toBe(translationsSchema);
   });
 
   it("should store default fields and order", () => {
@@ -374,7 +373,7 @@ describe("QueryBuilder", () => {
       expect(qb.getJoins()).toEqual([]);
     });
 
-    it("should collect joins after where clause with join filter", () => {
+    it("should collect joins after where clause with nested filter", () => {
       const translationsSchema = createSchema({
         table: translations,
         tableName: "translations",
@@ -389,19 +388,19 @@ describe("QueryBuilder", () => {
         tableName: "products",
         fields: {
           id: { column: "id" },
-          title: {
+          translation: {
             column: "id",
             join: {
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
       });
 
       const qb = createQueryBuilder(schema);
-      qb.where({ title: { $iLike: "%test%" } });
+      // Using nested path adds the join
+      qb.where({ translation: { value: { $iLike: "%test%" } } });
 
       const joins = qb.getJoins();
       expect(joins).toHaveLength(1);
@@ -410,6 +409,39 @@ describe("QueryBuilder", () => {
       expect(joins[0].conditions).toEqual([
         { sourceCol: "id", targetCol: "entity_id" },
       ]);
+    });
+
+    it("should NOT collect joins when no nested fields are used", () => {
+      const translationsSchema = createSchema({
+        table: translations,
+        tableName: "translations",
+        fields: {
+          entityId: { column: "entity_id" },
+          value: { column: "value" },
+        },
+      });
+
+      const schema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          translation: {
+            column: "id",
+            join: {
+              schema: () => translationsSchema,
+              column: "entityId",
+            },
+          },
+        },
+      });
+
+      const qb = createQueryBuilder(schema);
+      // No nested path - no join
+      qb.where({ id: { $eq: "123" } });
+
+      const joins = qb.getJoins();
+      expect(joins).toHaveLength(0);
     });
   });
 
@@ -440,19 +472,19 @@ describe("QueryBuilder", () => {
         tableName: "products",
         fields: {
           id: { column: "id" },
-          title: {
+          translation: {
             column: "id",
             join: {
               schema: () => translationsSchema,
               column: "entityId",
-              select: ["value"],
             },
           },
         },
       });
 
       const qb = createQueryBuilder(schema);
-      qb.where({ title: { $iLike: "%test%" } });
+      // Using nested path adds the join
+      qb.where({ translation: { value: { $iLike: "%test%" } } });
 
       const joinsSql = qb.buildJoinsSql();
       expect(joinsSql).toHaveLength(1);

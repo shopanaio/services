@@ -15,11 +15,6 @@ export type Join = {
   schema: () => ObjectSchema<Table, string>;
   /** Field name in target schema to join on */
   column: string;
-  /**
-   * Select: array of field names in target schema to apply filters to
-   * When filtering on this field, the filter will be applied to all select fields
-   */
-  select?: string[];
   /** Self-referencing join */
   self?: boolean;
   /** Composite key fields */
@@ -133,17 +128,23 @@ export class ObjectSchema<T extends Table = Table, F extends string = string> {
  *   fields: {
  *     id: { column: "id" },
  *     handle: { column: "handle" },
- *     title: {
+ *     translation: {
  *       column: "id",
  *       join: {
  *         type: "left",
  *         schema: () => translationSchema,
  *         column: "entityId",
- *         select: ["value", "searchValue"],
  *       }
  *     }
  *   }
  * });
+ *
+ * // Query with nested fields - join is added automatically:
+ * // qb.buildSelectSql({
+ * //   select: ["id", "handle", "translation.value"],
+ * //   where: { translation: { value: { $iLike: "%test%" } } },
+ * //   order: ["translation.value:asc"]
+ * // })
  * ```
  */
 export function createSchema<T extends Table, F extends string>(
