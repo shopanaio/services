@@ -92,9 +92,14 @@ describe("SQL Integration Tests with PGlite", () => {
 
       const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, { limit: 2, offset: 1 });
+      const result = await qb.query(db as any, {
+        limit: 2,
+        offset: 1,
+        order: "name:asc",
+      });
 
       expect(result).toHaveLength(2);
+      expect(result.map((u) => u.name)).toEqual(["User2", "User3"]);
     });
   });
 
@@ -1048,9 +1053,13 @@ describe("SQL Integration Tests with PGlite", () => {
         where: { title: { $iLike: "%" } },
       });
 
-      // RIGHT JOIN returns all translations, even orphans
-      // But we select from products, so orphan translations return NULL product fields
-      expect(result.length).toBeGreaterThanOrEqual(1);
+      expect(result).toHaveLength(2);
+      expect(result.some((p) => p.handle === "phone")).toBe(true);
+      const rawRows = result as Array<{ handle: string | null; price: number | null }>;
+      const orphanRow = rawRows.find(
+        (row) => row.handle === null && row.price === null
+      );
+      expect(orphanRow).toBeDefined();
     });
 
     it("should use FULL JOIN", async () => {
@@ -1101,11 +1110,19 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithFullJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { title: { $iLike: "%" } },
+        where: {
+          $or: [
+            { title: { $iLike: "%" } },
+            { price: { $gte: 0 } },
+          ],
+        },
       });
 
-      // FULL JOIN should return matches
-      expect(result.length).toBeGreaterThanOrEqual(1);
+      expect(result).toHaveLength(3);
+      const rawRows = result as Array<{ handle: string | null; price: number | null }>;
+      expect(rawRows.some((row) => row.handle === "orphan-product")).toBe(true);
+      expect(rawRows.some((row) => row.handle === "phone")).toBe(true);
+      expect(rawRows.some((row) => row.handle === null && row.price === null)).toBe(true);
     });
   });
 
