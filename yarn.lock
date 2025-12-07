@@ -3930,6 +3930,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/drizzle-gql-toolkit@workspace:packages/drizzle-gql-toolkit":
+  version: 0.0.0-use.local
+  resolution: "@shopana/drizzle-gql-toolkit@workspace:packages/drizzle-gql-toolkit"
+  dependencies:
+    "@jest/globals": "npm:^29.7.0"
+    "@types/node": "npm:^20.12.7"
+    drizzle-orm: "npm:^0.30.0"
+    jest: "npm:^29.7.0"
+    ts-jest: "npm:^29.1.2"
+    typescript: "npm:^5.4.5"
+  peerDependencies:
+    drizzle-orm: ">=0.30.0"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/import-plugin-sdk@npm:*, @shopana/import-plugin-sdk@workspace:packages/import-plugin-sdk":
   version: 0.0.0-use.local
   resolution: "@shopana/import-plugin-sdk@workspace:packages/import-plugin-sdk"
@@ -6769,6 +6784,90 @@ __metadata:
   bin:
     drizzle-kit: bin.cjs
   checksum: 10/98a6dddb7a3ccc695b498560195cfe057dc4958da9c1dec9e88505cc32b9925276b50c2f30bf804d2f2e816c755a6f2fd0ba8b1c036ef004627d8c0b2d8dccce
+  languageName: node
+  linkType: hard
+
+"drizzle-orm@npm:^0.30.0":
+  version: 0.30.10
+  resolution: "drizzle-orm@npm:0.30.10"
+  peerDependencies:
+    "@aws-sdk/client-rds-data": ">=3"
+    "@cloudflare/workers-types": ">=3"
+    "@electric-sql/pglite": ">=0.1.1"
+    "@libsql/client": "*"
+    "@neondatabase/serverless": ">=0.1"
+    "@op-engineering/op-sqlite": ">=2"
+    "@opentelemetry/api": ^1.4.1
+    "@planetscale/database": ">=1"
+    "@types/better-sqlite3": "*"
+    "@types/pg": "*"
+    "@types/react": ">=18"
+    "@types/sql.js": "*"
+    "@vercel/postgres": ">=0.8.0"
+    "@xata.io/client": "*"
+    better-sqlite3: ">=7"
+    bun-types: "*"
+    expo-sqlite: ">=13.2.0"
+    knex: "*"
+    kysely: "*"
+    mysql2: ">=2"
+    pg: ">=8"
+    postgres: ">=3"
+    react: ">=18"
+    sql.js: ">=1"
+    sqlite3: ">=5"
+  peerDependenciesMeta:
+    "@aws-sdk/client-rds-data":
+      optional: true
+    "@cloudflare/workers-types":
+      optional: true
+    "@electric-sql/pglite":
+      optional: true
+    "@libsql/client":
+      optional: true
+    "@neondatabase/serverless":
+      optional: true
+    "@op-engineering/op-sqlite":
+      optional: true
+    "@opentelemetry/api":
+      optional: true
+    "@planetscale/database":
+      optional: true
+    "@types/better-sqlite3":
+      optional: true
+    "@types/pg":
+      optional: true
+    "@types/react":
+      optional: true
+    "@types/sql.js":
+      optional: true
+    "@vercel/postgres":
+      optional: true
+    "@xata.io/client":
+      optional: true
+    better-sqlite3:
+      optional: true
+    bun-types:
+      optional: true
+    expo-sqlite:
+      optional: true
+    knex:
+      optional: true
+    kysely:
+      optional: true
+    mysql2:
+      optional: true
+    pg:
+      optional: true
+    postgres:
+      optional: true
+    react:
+      optional: true
+    sql.js:
+      optional: true
+    sqlite3:
+      optional: true
+  checksum: 10/a44a908930d5485abe3cd3332cf29f9100a4f17383d128fc42130ead46d01a57bd681f855fd3b8d6b7638da8163029199b756c256acb327132dbac896bb1e3cc
   languageName: node
   linkType: hard
 

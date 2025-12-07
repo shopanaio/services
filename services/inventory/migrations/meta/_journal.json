@@ -15,6 +15,13 @@
       "when": 1765060859235,
       "tag": "0001_dizzy_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765127400000,
+      "tag": "0002_protect_default_variant",
+      "breakpoints": true
     }
   ]
 }
