@@ -1,5 +1,6 @@
 import type { Resolvers } from "../generated/types.js";
-import { dummyProducts, dummyVariants } from "./dummy.js";
+import { dummyVariants } from "./dummy.js";
+import { requireKernel } from "./utils.js";
 
 export const queryResolvers: Resolvers = {
   Query: {
@@ -7,9 +8,10 @@ export const queryResolvers: Resolvers = {
   },
 
   InventoryQuery: {
-    node: async (_parent, { id }) => {
-      const product = dummyProducts.get(id);
-      if (product) return product;
+    node: async (_parent, { id }, ctx) => {
+      const kernel = requireKernel(ctx);
+      const product = await kernel.services.repository.productQuery.getOne(id);
+      if (product) return { ...product, __typename: "Product" as const };
 
       const variant = dummyVariants.get(id);
       if (variant) return variant;
@@ -17,38 +19,51 @@ export const queryResolvers: Resolvers = {
       return null;
     },
 
-    nodes: async (_parent, { ids }) => {
-      return ids.map((id) => {
-        const product = dummyProducts.get(id);
-        if (product) return product;
-        const variant = dummyVariants.get(id);
-        if (variant) return variant;
-        return null;
-      });
-    },
+    nodes: async (_parent, { ids }, ctx) => {
+      const kernel = requireKernel(ctx);
+      return Promise.all(
+        ids.map(async (id) => {
+          const product = await kernel.services.repository.productQuery.getOne(id);
+          if (product) return { ...product, __typename: "Product" as const };
 
-    product: async (_parent, { id }) => {
-      return dummyProducts.get(id) ?? null;
-    },
+          const variant = dummyVariants.get(id);
+          if (variant) return variant;
 
-    products: async (_parent, args) => {
-      const products = Array.from(dummyProducts.values()).filter(
-        (p) => !p.deletedAt
+          return null;
+        })
       );
+    },
+
+    product: async (_parent, { id }, ctx) => {
+      const kernel = requireKernel(ctx);
+      return kernel.services.repository.productQuery.getOne(id);
+    },
+
+    products: async (_parent, args, ctx) => {
+      const kernel = requireKernel(ctx);
       const first = args.first ?? 10;
-      const edges = products.slice(0, first).map((product) => ({
+
+      const products = await kernel.services.repository.productQuery.getMany({
+        limit: first + 1,
+      });
+
+      const hasNextPage = products.length > first;
+      const resultProducts = hasNextPage ? products.slice(0, first) : products;
+
+      const edges = resultProducts.map((product) => ({
         node: product,
         cursor: Buffer.from(product.id).toString("base64"),
       }));
+
       return {
         edges,
         pageInfo: {
-          hasNextPage: products.length > first,
+          hasNextPage,
           hasPreviousPage: false,
           startCursor: edges[0]?.cursor ?? null,
           endCursor: edges[edges.length - 1]?.cursor ?? null,
         },
-        totalCount: products.length,
+        totalCount: resultProducts.length,
       };
     },
 

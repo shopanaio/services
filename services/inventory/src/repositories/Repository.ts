@@ -11,6 +11,7 @@ import { StockRepository } from "./StockRepository";
 import { WarehouseRepository } from "./WarehouseRepository";
 import { TranslationRepository } from "./TranslationRepository";
 import { MediaRepository } from "./MediaRepository";
+import { ProductQueryRepository } from "./ProductQueryRepository";
 
 export class Repository {
   public readonly product: ProductRepository;
@@ -24,6 +25,7 @@ export class Repository {
   public readonly warehouse: WarehouseRepository;
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
+  public readonly productQuery: ProductQueryRepository;
 
   private readonly db: Database;
 
@@ -45,6 +47,7 @@ export class Repository {
     this.warehouse = new WarehouseRepository(this.db, this.txManager);
     this.translation = new TranslationRepository(this.db, this.txManager);
     this.media = new MediaRepository(this.db, this.txManager);
+    this.productQuery = new ProductQueryRepository(this.db, this.txManager);
   }
 
   async close(): Promise<void> {

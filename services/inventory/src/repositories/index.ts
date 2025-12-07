@@ -16,3 +16,7 @@ export type { StockRepository } from "./StockRepository";
 export type { WarehouseRepository } from "./WarehouseRepository";
 export type { TranslationRepository } from "./TranslationRepository";
 export type { MediaRepository } from "./MediaRepository";
+
+// Query repositories
+export { ProductQueryRepository } from "./ProductQueryRepository";
+export { VariantQueryRepository } from "./VariantQueryRepository";

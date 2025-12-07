@@ -1,10 +1,13 @@
 import type { Resolvers } from "../../generated/types.js";
-import { dummyProducts, dummyVariants, type DummyProduct } from "../dummy.js";
+import type { GraphQLContext } from "../../server.js";
+import { dummyVariants } from "../dummy.js";
+import { requireKernel } from "../utils.js";
 
 export const productTypeResolvers: Resolvers = {
   Product: {
-    __resolveReference: async (reference) => {
-      return dummyProducts.get(reference.id) ?? null;
+    __resolveReference: async (reference, ctx: GraphQLContext) => {
+      const kernel = requireKernel(ctx);
+      return kernel.services.repository.productQuery.getOne(reference.id);
     },
 
     // Return title from parent if available, otherwise empty string
@@ -13,8 +16,12 @@ export const productTypeResolvers: Resolvers = {
       return (parent as any).title ?? "";
     },
 
+    isPublished: (parent) => {
+      return (parent as any).publishedAt != null;
+    },
+
     variants: async (parent, args) => {
-      const productId = (parent as DummyProduct).id;
+      const productId = (parent as { id: string }).id;
 
       // Use _variants from productCreate script if available, else fallback to dummy
       const parentWithVariants = parent as any;
@@ -52,7 +59,7 @@ export const productTypeResolvers: Resolvers = {
       if (parentWithVariants._variants) {
         return parentWithVariants._variants.length;
       }
-      const productId = (parent as DummyProduct).id;
+      const productId = (parent as { id: string }).id;
       return Array.from(dummyVariants.values()).filter(
         (v) => v.productId === productId
       ).length;
