@@ -5,6 +5,7 @@ import {
   users,
   products,
   translations,
+  events,
   clearTables,
 } from "./test/setup.js";
 import { createQueryBuilder } from "./builder.js";
@@ -49,6 +50,38 @@ const productsWithTranslationsSchema = createSchema({
       join: {
         schema: () => translationsSchema,
         column: "entityId",
+      },
+    },
+  },
+});
+
+// Schema for qualified table (analytics.events)
+const eventsSchema = createSchema({
+  table: events,
+  tableName: "events",
+  fields: {
+    id: { column: "id" },
+    userId: { column: "user_id" },
+    eventType: { column: "event_type" },
+    payload: { column: "payload" },
+    createdAt: { column: "created_at" },
+  },
+});
+
+// Schema with join to qualified table (users -> analytics.events)
+const usersWithEventsSchema = createSchema({
+  table: users,
+  tableName: "users",
+  fields: {
+    id: { column: "id" },
+    name: { column: "name" },
+    age: { column: "age" },
+    isActive: { column: "is_active" },
+    events: {
+      column: "id",
+      join: {
+        schema: () => eventsSchema,
+        column: "userId",
       },
     },
   },
@@ -1529,6 +1562,97 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // null input returns all with default pagination
       expect(result).toHaveLength(2);
+    });
+  });
+
+  describe("Qualified tables (pgSchema)", () => {
+    it("should query qualified table directly", async () => {
+      const db = getDb();
+
+      // Insert user first
+      const [user] = await db
+        .insert(users)
+        .values({ name: "Alice", age: 25 })
+        .returning();
+
+      // Insert events into analytics.events (qualified table)
+      await db.insert(events).values([
+        { userId: user.id, eventType: "login", payload: '{"ip": "127.0.0.1"}' },
+        { userId: user.id, eventType: "purchase", payload: '{"amount": 100}' },
+      ]);
+
+      const qb = createQueryBuilder(eventsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { eventType: { $eq: "login" } },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].event_type).toBe("login");
+    });
+
+    it("should join from public table to qualified table", async () => {
+      const db = getDb();
+
+      // Insert users
+      const [alice] = await db
+        .insert(users)
+        .values({ name: "Alice", age: 25, isActive: true })
+        .returning();
+      const [bob] = await db
+        .insert(users)
+        .values({ name: "Bob", age: 30, isActive: true })
+        .returning();
+
+      // Insert events into analytics.events
+      await db.insert(events).values([
+        { userId: alice.id, eventType: "login", payload: null },
+        { userId: alice.id, eventType: "purchase", payload: '{"amount": 50}' },
+        { userId: bob.id, eventType: "login", payload: null },
+      ]);
+
+      const qb = createQueryBuilder(usersWithEventsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          events: { eventType: { $eq: "purchase" } },
+        },
+      });
+
+      // Only Alice has a purchase event
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
+    });
+
+    it("should filter qualified table with multiple conditions through join", async () => {
+      const db = getDb();
+
+      const [alice] = await db
+        .insert(users)
+        .values({ name: "Alice", age: 25, isActive: true })
+        .returning();
+      const [bob] = await db
+        .insert(users)
+        .values({ name: "Bob", age: 30, isActive: false })
+        .returning();
+
+      await db.insert(events).values([
+        { userId: alice.id, eventType: "purchase", payload: '{"amount": 100}' },
+        { userId: bob.id, eventType: "purchase", payload: '{"amount": 200}' },
+      ]);
+
+      const qb = createQueryBuilder(usersWithEventsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          isActive: { $eq: true },
+          events: { eventType: { $eq: "purchase" } },
+        },
+      });
+
+      // Only Alice is active and has purchase
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
     });
   });
 });

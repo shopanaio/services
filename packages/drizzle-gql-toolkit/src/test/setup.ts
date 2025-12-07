@@ -3,12 +3,16 @@ import { drizzle, PgliteDatabase } from "drizzle-orm/pglite";
 import { beforeAll, afterAll, beforeEach } from "vitest";
 import {
   pgTable,
+  pgSchema,
   text,
   integer,
   boolean,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+
+// Qualified schema for testing
+export const analyticsSchema = pgSchema("analytics");
 
 // Test schema tables
 export const users = pgTable("users", {
@@ -34,11 +38,21 @@ export const translations = pgTable("translations", {
   searchValue: text("search_value"),
 });
 
+// Qualified table in "analytics" schema
+export const events = analyticsSchema.table("events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  eventType: text("event_type").notNull(),
+  payload: text("payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Schema object for drizzle-kit
 export const schema = {
   users,
   products,
   translations,
+  events,
 };
 
 // Global database instance
@@ -88,6 +102,16 @@ export async function setupTestDb() {
       value TEXT,
       search_value TEXT
     );
+
+    CREATE SCHEMA IF NOT EXISTS analytics;
+
+    CREATE TABLE IF NOT EXISTS analytics.events (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL,
+      event_type TEXT NOT NULL,
+      payload TEXT,
+      created_at TIMESTAMP DEFAULT now()
+    );
   `);
 
   return { db, client };
@@ -107,6 +131,7 @@ export async function clearTables() {
     TRUNCATE TABLE users CASCADE;
     TRUNCATE TABLE products CASCADE;
     TRUNCATE TABLE translations CASCADE;
+    TRUNCATE TABLE analytics.events CASCADE;
   `);
 }
 

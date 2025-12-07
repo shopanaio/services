@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { users, products, translations } from "./test/setup.js";
+import { users, products, translations, events } from "./test/setup.js";
 import { createQueryBuilder } from "./builder.js";
 import { createSchema } from "./schema.js";
 
@@ -45,6 +45,38 @@ const productsWithTranslationsSchema = createSchema({
       join: {
         schema: () => translationsSchema,
         column: "entityId",
+      },
+    },
+  },
+});
+
+// Schema for qualified table (analytics.events)
+const eventsSchema = createSchema({
+  table: events,
+  tableName: "events",
+  fields: {
+    id: { column: "id" },
+    userId: { column: "user_id" },
+    eventType: { column: "event_type" },
+    payload: { column: "payload" },
+    createdAt: { column: "created_at" },
+  },
+});
+
+// Schema with join to qualified table (users -> analytics.events)
+const usersWithEventsSchema = createSchema({
+  table: users,
+  tableName: "users",
+  fields: {
+    id: { column: "id" },
+    name: { column: "name" },
+    age: { column: "age" },
+    isActive: { column: "is_active" },
+    events: {
+      column: "id",
+      join: {
+        schema: () => eventsSchema,
+        column: "userId",
       },
     },
   },
@@ -508,6 +540,59 @@ describe("SQL Snapshot Tests", () => {
       }))).toMatchInlineSnapshot(`
         "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age" FROM "users" AS "t0_users" WHERE "t0_users"."age" = $1 LIMIT $2 OFFSET $3
         Params: [25,20,0]"
+      `);
+    });
+  });
+
+  describe("Qualified tables (pgSchema)", () => {
+    it("should generate SELECT with schema-qualified table name", () => {
+      const qb = createQueryBuilder(eventsSchema);
+
+      expect(toSqlString(qb.buildSelectSql({
+        select: ["id", "eventType", "payload"],
+        where: { eventType: { $eq: "login" } },
+      }))).toMatchInlineSnapshot(`
+        "SQL: SELECT "t0_events"."id", "t0_events"."event_type", "t0_events"."payload" FROM "analytics"."events" AS "t0_events" WHERE "t0_events"."event_type" = $1 LIMIT $2 OFFSET $3
+        Params: ["login",20,0]"
+      `);
+    });
+
+    it("should generate JOIN from public table to qualified table", () => {
+      const qb = createQueryBuilder(usersWithEventsSchema);
+
+      expect(toSqlString(qb.buildSelectSql({
+        select: ["id", "name", "events.eventType"],
+        where: {
+          events: { eventType: { $eq: "purchase" } },
+        },
+      }))).toMatchInlineSnapshot(`
+        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t1_events"."event_type" FROM "users" AS "t0_users" LEFT JOIN "analytics"."events" AS "t1_events" ON "t0_users"."id" = "t1_events"."user_id" WHERE "t1_events"."event_type" = $1 LIMIT $2 OFFSET $3
+        Params: ["purchase",20,0]"
+      `);
+    });
+
+    it("should generate complex query with qualified table join", () => {
+      const qb = createQueryBuilder(usersWithEventsSchema);
+
+      expect(toSqlString(qb.buildSelectSql({
+        select: ["id", "name", "age", "isActive"],
+        where: {
+          $and: [
+            { isActive: { $eq: true } },
+            { age: { $gte: 18 } },
+            {
+              $or: [
+                { events: { eventType: { $eq: "purchase" } } },
+                { events: { eventType: { $eq: "subscription" } } },
+              ],
+            },
+          ],
+        },
+        order: ["events.createdAt:desc"],
+        limit: 50,
+      }))).toMatchInlineSnapshot(`
+        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" FROM "users" AS "t0_users" LEFT JOIN "analytics"."events" AS "t1_events" ON "t0_users"."id" = "t1_events"."user_id" WHERE ("t0_users"."is_active" = $1 and "t0_users"."age" >= $2 and ("t1_events"."event_type" = $3 or "t1_events"."event_type" = $4)) ORDER BY "t1_events"."created_at" DESC LIMIT $5 OFFSET $6
+        Params: [true,18,"purchase","subscription",50,0]"
       `);
     });
   });
