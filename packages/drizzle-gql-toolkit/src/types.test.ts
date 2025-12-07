@@ -494,7 +494,7 @@ const _validProductInput: ProductInput = {
 // Runtime tests (Jest)
 // ============================================================================
 
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect } from "vitest";
 
 describe("Type inference", () => {
   it("should infer table type from schema", () => {
