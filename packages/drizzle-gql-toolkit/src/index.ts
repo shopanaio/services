@@ -5,6 +5,7 @@ export type {
   IsColumnNullable,
   WhereInput,
   WhereInputV3,
+  SchemaWhereInput,
   FilterValue,
   FilterOperators,
   OrderDirection,
@@ -18,6 +19,7 @@ export type {
   QueryInput,
   Input,
   InputG,
+  SchemaInput,
   QueryBuilderConfig,
   GetColumn,
 } from "./types.js";

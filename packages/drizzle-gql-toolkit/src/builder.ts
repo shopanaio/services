@@ -27,7 +27,7 @@ import type {
   QueryBuilderConfig,
   ResolvedPagination,
   PaginationInput,
-  Input,
+  SchemaInput,
 } from "./types.js";
 
 const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
@@ -72,12 +72,12 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
  * });
  * ```
  */
-export class QueryBuilder<T extends Table> {
+export class QueryBuilder<T extends Table, F extends string = string> {
   private config: Required<QueryBuilderConfig>;
   private joins: Map<string, JoinInfo> = new Map();
 
   constructor(
-    private schema: ObjectSchema<T>,
+    private schema: ObjectSchema<T, F>,
     config?: QueryBuilderConfig
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -561,7 +561,7 @@ export class QueryBuilder<T extends Table> {
    * const result = await db.execute(querySql);
    * ```
    */
-  buildSelectSql(input: Input<T> | undefined | null): SQL {
+  buildSelectSql(input: SchemaInput<T, F> | undefined | null): SQL {
     const { where, limit, offset } = this.fromInput(input);
     const tableAlias = tablePrefix(this.schema.tableName, 0);
 
@@ -599,7 +599,7 @@ export class QueryBuilder<T extends Table> {
    * Process full Input object (analogous to goqutil.SetInput)
    * Returns all query components including joins
    */
-  fromInput(input: Input<T> | undefined | null): {
+  fromInput(input: SchemaInput<T, F> | undefined | null): {
     where: SQL | undefined;
     joins: JoinInfo[];
     orderBy: SQL[];
@@ -646,32 +646,28 @@ export class QueryBuilder<T extends Table> {
 
   /**
    * Build a complete Drizzle query ready for execution
+   * Returns typed results based on the table schema
    *
    * @example
    * ```ts
    * const qb = createQueryBuilder(productSchema);
    *
-   * // Get ready query
-   * const query = qb.query(db, {
+   * // Get ready query - results are typed as Product[]
+   * const results = await qb.query(db, {
    *   where: { title: { $iLike: "%phone%" } },
-   *   select: ["id", "handle"],
    *   limit: 20,
    * });
-   *
-   * // Execute
-   * const results = await query;
    * ```
    */
-  query<DB extends { select: (selection?: Record<string, Column>) => { from: (table: Table) => DrizzleQuery } }>(
-    db: DB,
-    input?: Input<T> | null
-  ): DrizzleQuery {
-    const { where, joins, orderBy, limit, offset, select } = this.fromInput(input);
+  query(
+    db: { select: () => { from: (table: T) => SelectQuery<T> } },
+    input?: SchemaInput<T, F> | null
+  ): SelectQuery<T> {
+    const { where, joins, orderBy, limit, offset } = this.fromInput(input);
 
-    // Start query
-    let query: DrizzleQuery = select
-      ? db.select(select).from(this.schema.table)
-      : db.select().from(this.schema.table);
+    // Start query - always select all columns for proper typing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let query: any = db.select().from(this.schema.table);
 
     // Apply joins
     for (const join of joins) {
@@ -701,29 +697,28 @@ export class QueryBuilder<T extends Table> {
     // Apply pagination
     query = query.limit(limit).offset(offset);
 
-    return query;
+    return query as SelectQuery<T>;
   }
 }
 
 /**
- * Drizzle query type for chaining
+ * Drizzle select query with proper result typing
  */
-type DrizzleQuery = {
-  leftJoin: (table: SQL, on: SQL) => DrizzleQuery;
-  where: (condition: SQL) => DrizzleQuery;
-  orderBy: (...orders: SQL[]) => DrizzleQuery;
-  limit: (n: number) => DrizzleQuery;
-  offset: (n: number) => DrizzleQuery;
-  then: Promise<unknown>["then"];
+type SelectQuery<T extends Table> = Promise<T["$inferSelect"][]> & {
+  where: (condition: SQL) => SelectQuery<T>;
+  orderBy: (...orders: SQL[]) => SelectQuery<T>;
+  limit: (n: number) => SelectQuery<T>;
+  offset: (n: number) => SelectQuery<T>;
+  leftJoin: (table: SQL, on: SQL) => SelectQuery<T>;
 };
 
 /**
  * Create a new query builder from schema
  */
-export function createQueryBuilder<T extends Table>(
-  schema: ObjectSchema<T>,
+export function createQueryBuilder<T extends Table, F extends string>(
+  schema: ObjectSchema<T, F>,
   config?: QueryBuilderConfig
-): QueryBuilder<T> {
+): QueryBuilder<T, F> {
   return new QueryBuilder(schema, config);
 }
 

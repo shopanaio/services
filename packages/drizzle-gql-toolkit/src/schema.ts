@@ -1,5 +1,4 @@
 import type { Table } from "drizzle-orm";
-import type { ColumnNames } from "./types.js";
 
 /**
  * Join type
@@ -13,7 +12,7 @@ export type Join = {
   /** Join type (default: 'left') */
   type?: JoinType;
   /** Target schema for the join (lazy reference to avoid circular dependencies) */
-  schema: () => ObjectSchema;
+  schema: () => ObjectSchema<Table, string>;
   /** Field name in target schema to join on */
   column: string;
   /**
@@ -43,35 +42,39 @@ export type FieldConfig = {
 };
 
 /**
- * Schema configuration
+ * Schema configuration with typed fields
  */
-export type SchemaConfig<T extends Table> = {
+export type SchemaConfig<T extends Table, F extends string = string> = {
   /** Source table */
   table: T;
   /** Table name (for aliasing) */
   tableName: string;
   /** Field configurations */
-  fields: Record<string, FieldConfig>;
+  fields: Record<F, FieldConfig>;
   /** Default fields to select */
-  defaultFields?: string[];
+  defaultFields?: F[];
   /** Default order */
-  defaultOrder?: string[];
+  defaultOrder?: F[];
 };
 
 /**
  * Object schema for query building (matches goqutil.ObjectSchema)
+ * @template T - Drizzle table type
+ * @template F - Field names (union of string literals)
  */
-export class ObjectSchema<T extends Table = Table> {
+export class ObjectSchema<T extends Table = Table, F extends string = string> {
   readonly table: T;
   readonly tableName: string;
   readonly fields: Map<string, FieldConfig>;
-  readonly defaultFields: string[];
-  readonly defaultOrder: string[];
+  readonly fieldNames: F[];
+  readonly defaultFields: F[];
+  readonly defaultOrder: F[];
 
-  constructor(config: SchemaConfig<T>) {
+  constructor(config: SchemaConfig<T, F>) {
     this.table = config.table;
     this.tableName = config.tableName;
     this.fields = new Map(Object.entries(config.fields));
+    this.fieldNames = Object.keys(config.fields) as F[];
     this.defaultFields = config.defaultFields ?? [];
     this.defaultOrder = config.defaultOrder ?? [];
   }
@@ -101,7 +104,7 @@ export class ObjectSchema<T extends Table = Table> {
   /**
    * Get the target schema for a join
    */
-  getJoinSchema(name: string): ObjectSchema | undefined {
+  getJoinSchema(name: string): ObjectSchema<Table, string> | undefined {
     const join = this.getJoin(name);
     if (!join) return undefined;
 
@@ -110,7 +113,7 @@ export class ObjectSchema<T extends Table = Table> {
 }
 
 /**
- * Create an object schema
+ * Create an object schema with typed field names
  *
  * @example
  * ```ts
@@ -143,9 +146,9 @@ export class ObjectSchema<T extends Table = Table> {
  * });
  * ```
  */
-export function createSchema<T extends Table>(
-  config: SchemaConfig<T>
-): ObjectSchema<T> {
+export function createSchema<T extends Table, F extends string>(
+  config: SchemaConfig<T, F>
+): ObjectSchema<T, F> {
   return new ObjectSchema(config);
 }
 

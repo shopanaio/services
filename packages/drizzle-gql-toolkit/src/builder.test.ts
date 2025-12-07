@@ -135,7 +135,11 @@ describe("ObjectSchema", () => {
     const schema = createSchema({
       table: users,
       tableName: "users",
-      fields: { id: { column: "id" } },
+      fields: {
+        id: { column: "id" },
+        name: { column: "name" },
+        createdAt: { column: "created_at" },
+      },
       defaultFields: ["id", "name"],
       defaultOrder: ["createdAt"],
     });

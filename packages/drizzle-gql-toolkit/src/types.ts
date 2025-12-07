@@ -50,14 +50,25 @@ export type WhereInputV3 = {
 };
 
 /**
- * Typed WhereInput for a table
- * Provides autocomplete for column names while allowing dynamic filters
+ * Typed WhereInput for a table (based on table columns)
+ * @deprecated Use SchemaWhereInput for schema-based filtering
  */
 export type WhereInput<T extends Table> = {
   [K in ColumnNames<T>]?: FilterValue;
 } & {
   $and?: WhereInput<T>[];
   $or?: WhereInput<T>[];
+};
+
+/**
+ * Schema-based WhereInput
+ * Provides autocomplete for schema field names (including virtual join fields)
+ */
+export type SchemaWhereInput<F extends string> = {
+  [K in F]?: FilterValue;
+} & {
+  $and?: SchemaWhereInput<F>[];
+  $or?: SchemaWhereInput<F>[];
 };
 
 /**
@@ -158,23 +169,8 @@ export type QueryInput<T extends Table> = {
 };
 
 /**
- * Input type matching goqutil.Input structure
- * Used for API/GraphQL input parsing
- *
- * @example
- * ```ts
- * // GraphQL resolver
- * async products(input: Input<typeof product>) {
- *   const qb = createQueryBuilder(product);
- *   const { where, orderBy, limit, offset } = qb.fromInput(input);
- *   return db.select()
- *     .from(product)
- *     .where(where)
- *     .orderBy(...orderBy)
- *     .limit(limit)
- *     .offset(offset);
- * }
- * ```
+ * Input type matching goqutil.Input structure (table-based)
+ * @deprecated Use SchemaInput for schema-based input
  */
 export type Input<T extends Table> = {
   /** Offset for pagination */
@@ -189,6 +185,38 @@ export type Input<T extends Table> = {
   select?: ColumnNames<T>[];
   /** Where filters */
   where?: WhereInput<T>;
+};
+
+/**
+ * Schema-based Input type
+ * Used for API/GraphQL input parsing with full schema field support
+ *
+ * @template T - Drizzle table type
+ * @template F - Schema field names (union of string literals)
+ *
+ * @example
+ * ```ts
+ * // GraphQL resolver with typed schema fields
+ * async products(input: SchemaInput<typeof product, "id" | "handle" | "title">) {
+ *   const qb = createQueryBuilder(productSchema);
+ *   const { where, orderBy, limit, offset } = qb.fromInput(input);
+ *   return qb.query(db, input);
+ * }
+ * ```
+ */
+export type SchemaInput<T extends Table, F extends string> = {
+  /** Offset for pagination */
+  offset?: number;
+  /** Limit for pagination */
+  limit?: number;
+  /** Single order field (e.g., "createdAt:desc") */
+  order?: `${F}:${"asc" | "desc"}` | F;
+  /** Multiple order fields */
+  multiOrder?: (`${F}:${"asc" | "desc"}` | F)[];
+  /** Fields to select */
+  select?: F[];
+  /** Where filters */
+  where?: SchemaWhereInput<F>;
 };
 
 /**
