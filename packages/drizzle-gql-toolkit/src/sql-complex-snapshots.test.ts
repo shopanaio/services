@@ -970,6 +970,7 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           qb.buildSelectSql({
             select: ["id", "sku", "price", "stock", "isPublished"],
+
             where: {
               $and: [
                 { id: { $neq: "00000000-0000-0000-0000-000000000000" } },
