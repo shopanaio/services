@@ -41,7 +41,16 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
  *
  * @example
  * ```ts
- * const schema = createSchema({
+ * const translationSchema = createSchema({
+ *   table: translation,
+ *   tableName: "translation",
+ *   fields: {
+ *     entityId: { column: "entity_id" },
+ *     value: { column: "value" },
+ *   }
+ * });
+ *
+ * const productSchema = createSchema({
  *   table: product,
  *   tableName: "product",
  *   fields: {
@@ -49,7 +58,7 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
  *     title: {
  *       column: "id",
  *       join: {
- *         table: () => translation,
+ *         schema: () => translationSchema,
  *         column: "entityId",
  *         select: ["value"],
  *       }
@@ -57,7 +66,7 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
  *   }
  * });
  *
- * const qb = createQueryBuilder(schema);
+ * const qb = createQueryBuilder(productSchema);
  * const { where, joins } = qb.fromInput({
  *   where: { title: { $iLike: "%test%" } }
  * });
@@ -210,21 +219,20 @@ export class QueryBuilder<T extends Table> {
     filterValue: Record<string, unknown>
   ): SQL[] {
     const join = fieldConfig.join!;
-    const childTable = typeof join.table === "function"
-      ? join.table()
-      : join.table;
+    const childSchema = join.schema();
+    const childAlias = tablePrefix(childSchema.tableName, depth + 1);
 
-    // Create child schema (simplified - just using table directly)
-    const childTableName = this.getTableName(childTable);
-    const childAlias = tablePrefix(childTableName, depth + 1);
+    // Get join column from child schema
+    const joinFieldConfig = childSchema.getField(join.column);
+    const joinColumnName = joinFieldConfig?.column ?? join.column;
 
     // Register JOIN
     this.registerJoin(
       tablePrefix(parentSchema.tableName, depth),
-      childTable,
+      childSchema.table,
       childAlias,
       fieldConfig.column,
-      join.column as string,
+      joinColumnName,
       join.type,
       join.composite
     );
@@ -234,7 +242,10 @@ export class QueryBuilder<T extends Table> {
     const selectFields = join.select || [];
 
     for (const selectField of selectFields) {
-      const column = this.getColumn(childTable, selectField as string);
+      // Get field config from child schema to resolve column name
+      const selectFieldConfig = childSchema.getField(selectField);
+      const columnName = selectFieldConfig?.column ?? selectField;
+      const column = this.getColumn(childSchema.table, columnName);
       if (column) {
         const fieldConditions = this.buildFieldConditions(column, childAlias, filterValue);
         conditions.push(...fieldConditions);
@@ -254,20 +265,20 @@ export class QueryBuilder<T extends Table> {
     nestedInput: WhereInputV3
   ): SQL[] {
     const join = fieldConfig.join!;
-    const childTable = typeof join.table === "function"
-      ? join.table()
-      : join.table;
+    const childSchema = join.schema();
+    const childAlias = tablePrefix(childSchema.tableName, depth + 1);
 
-    const childTableName = this.getTableName(childTable);
-    const childAlias = tablePrefix(childTableName, depth + 1);
+    // Get join column from child schema
+    const joinFieldConfig = childSchema.getField(join.column);
+    const joinColumnName = joinFieldConfig?.column ?? join.column;
 
     // Register JOIN
     this.registerJoin(
       tablePrefix(parentSchema.tableName, depth),
-      childTable,
+      childSchema.table,
       childAlias,
       fieldConfig.column,
-      join.column as string,
+      joinColumnName,
       join.type,
       join.composite
     );
@@ -277,18 +288,11 @@ export class QueryBuilder<T extends Table> {
     if (join.select && join.select.length > 0) {
       childWhere = {};
       for (const selectField of join.select) {
-        childWhere[selectField as string] = nestedInput;
+        childWhere[selectField] = nestedInput;
       }
     } else {
       childWhere = nestedInput;
     }
-
-    // Create a simple schema for child table
-    const childSchema = new ObjectSchema({
-      table: childTable,
-      tableName: childTableName,
-      fields: this.inferFieldsFromTable(childTable),
-    });
 
     return this.buildWhereConditions(childWhere, childSchema, depth + 1);
   }
@@ -399,20 +403,6 @@ export class QueryBuilder<T extends Table> {
   private getTableName(table: Table): string {
     const pgTable = table as PgTable;
     return pgTable["_"]["name"];
-  }
-
-  /**
-   * Infer field configs from table columns
-   */
-  private inferFieldsFromTable(table: Table): Record<string, FieldConfig> {
-    const columns = (table as PgTable)["_"]["columns"];
-    const fields: Record<string, FieldConfig> = {};
-
-    for (const [name] of Object.entries(columns)) {
-      fields[name] = { column: name };
-    }
-
-    return fields;
   }
 
   /**
@@ -670,7 +660,16 @@ export function createQueryBuilder<T extends Table>(
  *
  * @example
  * ```ts
- * const schema = createSchema({
+ * const translationSchema = createSchema({
+ *   table: translation,
+ *   tableName: "translation",
+ *   fields: {
+ *     entityId: { column: "entity_id" },
+ *     value: { column: "value" },
+ *   }
+ * });
+ *
+ * const productSchema = createSchema({
  *   table: product,
  *   tableName: "product",
  *   fields: {
@@ -679,7 +678,7 @@ export function createQueryBuilder<T extends Table>(
  *       column: "id",
  *       join: {
  *         type: "left",
- *         table: () => translation,
+ *         schema: () => translationSchema,
  *         column: "entityId",
  *         select: ["value"],
  *       }
@@ -687,7 +686,7 @@ export function createQueryBuilder<T extends Table>(
  *   }
  * });
  *
- * const qb = createQueryBuilder(schema);
+ * const qb = createQueryBuilder(productSchema);
  * const { where, joins } = qb.fromInput({
  *   where: { title: { $iLike: "%test%" } }
  * });

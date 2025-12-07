@@ -9,18 +9,18 @@ export type JoinType = "left" | "right" | "inner" | "full";
 /**
  * Join configuration for a field
  */
-export type Join<T extends Table = Table> = {
+export type Join = {
   /** Join type (default: 'left') */
   type?: JoinType;
-  /** Target table for the join */
-  table: T | (() => T);
-  /** Column in target table to join on */
-  column: ColumnNames<T>;
+  /** Target schema for the join (lazy reference to avoid circular dependencies) */
+  schema: () => ObjectSchema;
+  /** Field name in target schema to join on */
+  column: string;
   /**
-   * Select: array of fields in target table to apply filters to
+   * Select: array of field names in target schema to apply filters to
    * When filtering on this field, the filter will be applied to all select fields
    */
-  select?: ColumnNames<T>[];
+  select?: string[];
   /** Self-referencing join */
   self?: boolean;
   /** Composite key fields */
@@ -33,13 +33,13 @@ export type Join<T extends Table = Table> = {
 /**
  * Field configuration in schema
  */
-export type FieldConfig<T extends Table = Table> = {
+export type FieldConfig = {
   /** Column name in the table */
   column: string;
   /** Alias for select */
   as?: string;
   /** Join configuration */
-  join?: Join<T>;
+  join?: Join;
 };
 
 /**
@@ -99,13 +99,13 @@ export class ObjectSchema<T extends Table = Table> {
   }
 
   /**
-   * Get the target table for a join (resolves lazy references)
+   * Get the target schema for a join
    */
-  getJoinTable(name: string): Table | undefined {
+  getJoinSchema(name: string): ObjectSchema | undefined {
     const join = this.getJoin(name);
     if (!join) return undefined;
 
-    return typeof join.table === "function" ? join.table() : join.table;
+    return join.schema();
   }
 }
 
@@ -114,6 +114,16 @@ export class ObjectSchema<T extends Table = Table> {
  *
  * @example
  * ```ts
+ * const translationSchema = createSchema({
+ *   table: translation,
+ *   tableName: "translation",
+ *   fields: {
+ *     entityId: { column: "entity_id" },
+ *     value: { column: "value" },
+ *     searchValue: { column: "search_value" },
+ *   }
+ * });
+ *
  * const productSchema = createSchema({
  *   table: product,
  *   tableName: "product",
@@ -124,7 +134,7 @@ export class ObjectSchema<T extends Table = Table> {
  *       column: "id",
  *       join: {
  *         type: "left",
- *         table: () => translation,
+ *         schema: () => translationSchema,
  *         column: "entityId",
  *         select: ["value", "searchValue"],
  *       }

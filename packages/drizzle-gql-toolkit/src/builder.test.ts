@@ -70,6 +70,15 @@ describe("ObjectSchema", () => {
   });
 
   it("should detect joins", () => {
+    const translationsSchema = createSchema({
+      table: translations,
+      tableName: "translations",
+      fields: {
+        entityId: { column: "entity_id" },
+        value: { column: "value" },
+      },
+    });
+
     const schema = createSchema({
       table: products,
       tableName: "products",
@@ -78,7 +87,7 @@ describe("ObjectSchema", () => {
         title: {
           column: "id",
           join: {
-            table: translations,
+            schema: () => translationsSchema,
             column: "entityId",
             select: ["value"],
           },
@@ -88,14 +97,23 @@ describe("ObjectSchema", () => {
 
     expect(schema.hasJoin("id")).toBe(false);
     expect(schema.hasJoin("title")).toBe(true);
-    expect(schema.getJoin("title")).toEqual({
-      table: translations,
-      column: "entityId",
-      select: ["value"],
-    });
+
+    const join = schema.getJoin("title");
+    expect(join).toBeDefined();
+    expect(join!.column).toBe("entityId");
+    expect(join!.select).toEqual(["value"]);
+    expect(join!.schema()).toBe(translationsSchema);
   });
 
-  it("should resolve lazy table references", () => {
+  it("should resolve schema references", () => {
+    const translationsSchema = createSchema({
+      table: translations,
+      tableName: "translations",
+      fields: {
+        entityId: { column: "entity_id" },
+      },
+    });
+
     const schema = createSchema({
       table: products,
       tableName: "products",
@@ -103,14 +121,14 @@ describe("ObjectSchema", () => {
         title: {
           column: "id",
           join: {
-            table: () => translations,
+            schema: () => translationsSchema,
             column: "entityId",
           },
         },
       },
     });
 
-    expect(schema.getJoinTable("title")).toBe(translations);
+    expect(schema.getJoinSchema("title")).toBe(translationsSchema);
   });
 
   it("should store default fields and order", () => {
