@@ -371,7 +371,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" WHERE ((("t0_users"."name" = $1 and "t0_users"."age" = $2) or ("t0_users"."name" = $3 and "t0_users"."age" = $4)) and "t0_users"."is_active" = $5) LIMIT $6 OFFSET $7
+        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" FROM "users" AS "t0_users" WHERE ((("t0_users"."name" = $1 and "t0_users"."age" = $2) or ("t0_users"."name" = $3 and "t0_users"."age" = $4)) and "t0_users"."is_active" = $5) LIMIT $6 OFFSET $7
         Params: ["Alice",25,"Bob",30,true,20,0]"
       `);
     });
@@ -388,7 +388,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" WHERE ("t0_users"."name" = $1 and "t0_users"."age" >= $2 and "t0_users"."is_active" = $3) LIMIT $4 OFFSET $5
+        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" FROM "users" AS "t0_users" WHERE ("t0_users"."name" = $1 and "t0_users"."age" >= $2 and "t0_users"."is_active" = $3) LIMIT $4 OFFSET $5
         Params: ["Alice",20,true,20,0]"
       `);
     });

@@ -737,10 +737,9 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       return columnSql;
     }
 
-    // Simple field - use field name as alias if different from column
+    // Simple field - only use alias if explicitly specified in schema
     const columnSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
-    const alias = fieldConfig.alias ?? (columnName !== fieldName ? fieldName : undefined);
-    return alias ? sql`${columnSql} AS ${sql.identifier(alias)}` : columnSql;
+    return fieldConfig.alias ? sql`${columnSql} AS ${sql.identifier(fieldConfig.alias)}` : columnSql;
   }
 
   /**

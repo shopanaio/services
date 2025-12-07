@@ -211,12 +211,13 @@ const categoriesWithTranslationsSchema = createSchema({
   fields: {
     id: { column: "id" },
     slug: { column: "slug" },
-    parentId: { column: "parent_id" },
+    parentId: { column: "parent_id", alias: "parentId" },
     sortOrder: { column: "sort_order" },
-    isVisible: { column: "is_visible" },
+    isVisible: { column: "is_visible", alias: "isVisible" },
     // Category name from translations
     name: {
       column: "id",
+      alias: "name",
       join: {
         schema: () => translationsSchema,
         column: "entityId",
@@ -248,7 +249,7 @@ const ordersWithUserAndItemsSchema = createSchema({
   fields: {
     id: { column: "id" },
     status: { column: "status" },
-    totalAmount: { column: "total_amount" },
+    totalAmount: { column: "total_amount", alias: "totalAmount" },
     currency: { column: "currency" },
     createdAt: { column: "created_at" },
     // Join to user
@@ -612,7 +613,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."email", "t0_users"."name", "t0_users"."role", "t0_users"."is_active" AS "isActive", "t1_orders"."status" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"WHERE ("t1_orders"."status" = $1 and "t0_users"."is_active" = $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_users"."id", "t0_users"."email", "t0_users"."name", "t0_users"."role", "t0_users"."is_active", "t1_orders"."status" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"WHERE ("t1_orders"."status" = $1 and "t0_users"."is_active" = $2) LIMIT $3 OFFSET $4
         Params: ["completed",true,50,0]"
       `);
     });
@@ -670,7 +671,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published" AS "isPublished", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" AND "t0_products"."sku" = "t1_translations"."field"WHERE ("t1_translations"."value" ILIKE $1 and "t0_products"."is_published" = $2 and "t0_products"."deleted_at" IS NULL) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" AND "t0_products"."sku" = "t1_translations"."field"WHERE ("t1_translations"."value" ILIKE $1 and "t0_products"."is_published" = $2 and "t0_products"."deleted_at" IS NULL) LIMIT $3 OFFSET $4
         Params: ["%smartphone%",true,20,0]"
       `);
     });
@@ -730,7 +731,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_categories"."id", "t0_categories"."slug", "t0_categories"."parent_id" AS "parentId", "t0_categories"."is_visible" AS "isVisible", "t1_translations"."value" FROM "categories" AS "t0_categories" LEFT JOIN "translations" AS "t1_translations" ON "t0_categories"."id" = "t1_translations"."entity_id"WHERE ("t1_translations"."value" ILIKE $1 and "t0_categories"."is_visible" = $2 and "t0_categories"."parent_id" IS NOT NULL) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_categories"."id", "t0_categories"."slug", "t0_categories"."parent_id" AS "parentId", "t0_categories"."is_visible" AS "isVisible", "t1_translations"."value" AS "name" FROM "categories" AS "t0_categories" LEFT JOIN "translations" AS "t1_translations" ON "t0_categories"."id" = "t1_translations"."entity_id"WHERE ("t1_translations"."value" ILIKE $1 and "t0_categories"."is_visible" = $2 and "t0_categories"."parent_id" IS NOT NULL) LIMIT $3 OFFSET $4
         Params: ["%electronics%",true,20,0]"
       `);
     });
@@ -755,7 +756,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_categories"."id", "t0_categories"."slug", "t0_categories"."parent_id" AS "parentId", "t0_categories"."is_visible" AS "isVisible", "t1_translations"."value" FROM "categories" AS "t0_categories" LEFT JOIN "translations" AS "t1_translations" ON "t0_categories"."id" = "t1_translations"."entity_id"WHERE ("t0_categories"."parent_id" IS NULL and "t0_categories"."is_visible" = $1 and ("t1_translations"."value" ILIKE $2 or "t1_translations"."value" ILIKE $3 or "t0_categories"."slug" IN ($4, $5, $6))) LIMIT $7 OFFSET $8
+        "SQL: SELECT "t0_categories"."id", "t0_categories"."slug", "t0_categories"."parent_id" AS "parentId", "t0_categories"."is_visible" AS "isVisible", "t1_translations"."value" AS "name" FROM "categories" AS "t0_categories" LEFT JOIN "translations" AS "t1_translations" ON "t0_categories"."id" = "t1_translations"."entity_id"WHERE ("t0_categories"."parent_id" IS NULL and "t0_categories"."is_visible" = $1 and ("t1_translations"."value" ILIKE $2 or "t1_translations"."value" ILIKE $3 or "t0_categories"."slug" IN ($4, $5, $6))) LIMIT $7 OFFSET $8
         Params: [true,"%home%","%garden%","featured","bestsellers","new-arrivals",20,0]"
       `);
     });
@@ -862,7 +863,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published" AS "isPublished", "t1_categories"."slug" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id"WHERE ("t1_categories"."slug" IN ($1, $2, $3) and "t0_products"."is_published" = $4 and "t0_products"."deleted_at" IS NULL) LIMIT $5 OFFSET $6
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published", "t1_categories"."slug" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id"WHERE ("t1_categories"."slug" IN ($1, $2, $3) and "t0_products"."is_published" = $4 and "t0_products"."deleted_at" IS NULL) LIMIT $5 OFFSET $6
         Params: ["electronics","computers","phones",true,20,0]"
       `);
     });
@@ -885,7 +886,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published" AS "isPublished", "t1_translations"."value", "t1_categories"."is_visible" FROM "products" AS "t0_products" LEFT JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t1_categories"."is_visible" = $1 and "t1_translations"."value" ILIKE $2 and "t0_products"."price" >= $3 and "t0_products"."price" <= $4 and "t0_products"."stock" > $5 and "t0_products"."is_published" = $6 and "t0_products"."deleted_at" IS NULL) LIMIT $7 OFFSET $8
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published", "t1_translations"."value", "t1_categories"."is_visible" FROM "products" AS "t0_products" LEFT JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t1_categories"."is_visible" = $1 and "t1_translations"."value" ILIKE $2 and "t0_products"."price" >= $3 and "t0_products"."price" <= $4 and "t0_products"."stock" > $5 and "t0_products"."is_published" = $6 and "t0_products"."deleted_at" IS NULL) LIMIT $7 OFFSET $8
         Params: [true,"%gaming%",100,2000,0,true,20,0]"
       `);
     });
@@ -928,7 +929,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published" AS "isPublished", "t1_translations"."value", "t1_categories"."slug" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."deleted_at" IS NULL and "t0_products"."is_published" = $1 and (("t1_categories"."slug" = $2 and "t0_products"."price" >= $3 and "t1_translations"."value" ILIKE $4) or ("t1_categories"."slug" = $5 and "t0_products"."price" <= $6 and "t1_translations"."value" NOT ILIKE $7) or ("t1_categories"."slug" IN ($8, $9) and "t0_products"."stock" >= $10))) LIMIT $11 OFFSET $12
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published", "t1_translations"."value", "t1_categories"."slug" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."deleted_at" IS NULL and "t0_products"."is_published" = $1 and (("t1_categories"."slug" = $2 and "t0_products"."price" >= $3 and "t1_translations"."value" ILIKE $4) or ("t1_categories"."slug" = $5 and "t0_products"."price" <= $6 and "t1_translations"."value" NOT ILIKE $7) or ("t1_categories"."slug" IN ($8, $9) and "t0_products"."stock" >= $10))) LIMIT $11 OFFSET $12
         Params: [true,"laptops",500,"%pro%","phones",1000,"%refurbished%","accessories","peripherals",10,50,0]"
       `);
     });
@@ -958,7 +959,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published" AS "isPublished", "t1_translations"."value", "t1_categories"."slug", "t1_categories"."is_visible" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id"WHERE ("t0_products"."is_published" = $1 and "t0_products"."deleted_at" IS NULL and "t0_products"."price" >= $2 and "t0_products"."price" <= $3 and "t0_products"."stock" > $4 and "t0_products"."sku" LIKE $5 and "t1_translations"."value" ILIKE $6 and "t1_categories"."slug" NOT IN ($7, $8, $9) and "t1_categories"."is_visible" = $10) LIMIT $11 OFFSET $12
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published", "t1_translations"."value", "t1_categories"."slug", "t1_categories"."is_visible" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id"WHERE ("t0_products"."is_published" = $1 and "t0_products"."deleted_at" IS NULL and "t0_products"."price" >= $2 and "t0_products"."price" <= $3 and "t0_products"."stock" > $4 and "t0_products"."sku" LIKE $5 and "t1_translations"."value" ILIKE $6 and "t1_categories"."slug" NOT IN ($7, $8, $9) and "t1_categories"."is_visible" = $10) LIMIT $11 OFFSET $12
         Params: [true,10,10000,0,"PRD-%","%search term%","archived","hidden","test",true,100,0]"
       `);
     });
@@ -988,7 +989,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published" AS "isPublished", "t1_translations"."value", "t1_categories"."slug", "t1_categories"."is_visible" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."id" <> $1 and "t0_products"."sku" LIKE $2 and "t0_products"."sku" NOT LIKE $3 and "t0_products"."price" > $4 and "t0_products"."price" < $5 and "t0_products"."stock" >= $6 and "t0_products"."stock" <= $7 and "t0_products"."is_published" = $8 and "t0_products"."deleted_at" IS NULL and "t1_categories"."slug" IN ($9, $10, $11, $12, $13) and "t1_categories"."is_visible" IS NOT NULL and "t1_translations"."value" ILIKE $14) LIMIT $15 OFFSET $16
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."price", "t0_products"."stock", "t0_products"."is_published", "t1_translations"."value", "t1_categories"."slug", "t1_categories"."is_visible" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."id" <> $1 and "t0_products"."sku" LIKE $2 and "t0_products"."sku" NOT LIKE $3 and "t0_products"."price" > $4 and "t0_products"."price" < $5 and "t0_products"."stock" >= $6 and "t0_products"."stock" <= $7 and "t0_products"."is_published" = $8 and "t0_products"."deleted_at" IS NULL and "t1_categories"."slug" IN ($9, $10, $11, $12, $13) and "t1_categories"."is_visible" IS NOT NULL and "t1_translations"."value" ILIKE $14) LIMIT $15 OFFSET $16
         Params: ["00000000-0000-0000-0000-000000000000","%","TEST-%",0,999999,0,10000,true,"a","b","c","d","e","%keyword%",20,0]"
       `);
     });
@@ -1036,7 +1037,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."email", "t0_users"."name", "t0_users"."role", "t0_users"."is_active" AS "isActive", "t1_orders"."status", "t1_orders"."total_amount" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"WHERE (("t0_users"."role" = $1 and ("t0_users"."email" ILIKE $2 or "t0_users"."email" ILIKE $3)) or ("t0_users"."role" = $4 and (("t1_orders"."status" = $5 and "t1_orders"."total_amount" >= $6) or ("t0_users"."is_active" = $7 and "t0_users"."name" IS NOT NULL)))) LIMIT $8 OFFSET $9
+        "SQL: SELECT "t0_users"."id", "t0_users"."email", "t0_users"."name", "t0_users"."role", "t0_users"."is_active", "t1_orders"."status", "t1_orders"."total_amount" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"WHERE (("t0_users"."role" = $1 and ("t0_users"."email" ILIKE $2 or "t0_users"."email" ILIKE $3)) or ("t0_users"."role" = $4 and (("t1_orders"."status" = $5 and "t1_orders"."total_amount" >= $6) or ("t0_users"."is_active" = $7 and "t0_users"."name" IS NOT NULL)))) LIMIT $8 OFFSET $9
         Params: ["admin","%@company.com","%@corp.com","manager","completed",1000,true,20,0]"
       `);
     });
@@ -1054,7 +1055,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" WHERE ("t0_products"."sku" IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) and "t0_products"."is_published" = $21) LIMIT $22 OFFSET $23
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."is_published" FROM "products" AS "t0_products" WHERE ("t0_products"."sku" IN ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) and "t0_products"."is_published" = $21) LIMIT $22 OFFSET $23
         Params: ["SKU-0000","SKU-0001","SKU-0002","SKU-0003","SKU-0004","SKU-0005","SKU-0006","SKU-0007","SKU-0008","SKU-0009","SKU-0010","SKU-0011","SKU-0012","SKU-0013","SKU-0014","SKU-0015","SKU-0016","SKU-0017","SKU-0018","SKU-0019",true,20,0]"
       `);
     });
@@ -1071,7 +1072,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" WHERE "t0_products"."is_published" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id", "t0_products"."sku", "t0_products"."is_published" FROM "products" AS "t0_products" WHERE "t0_products"."is_published" = $1 LIMIT $2 OFFSET $3
         Params: [true,1000,99000]"
       `);
     });
@@ -1095,7 +1096,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE ("t0_orders"."status" = $1 and "t2_products"."sku" LIKE $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE ("t0_orders"."status" = $1 and "t2_products"."sku" LIKE $2) LIMIT $3 OFFSET $4
         Params: ["pending","PHONE-%",20,0]"
       `);
     });
@@ -1115,7 +1116,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE ("t0_orders"."total_amount" >= $1 and "t2_products"."price" >= $2 and "t2_products"."price" <= $3 and "t2_products"."is_published" = $4) LIMIT $5 OFFSET $6
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE ("t0_orders"."total_amount" >= $1 and "t2_products"."price" >= $2 and "t2_products"."price" <= $3 and "t2_products"."is_published" = $4) LIMIT $5 OFFSET $6
         Params: [100,50,500,true,20,0]"
       `);
     });
@@ -1140,7 +1141,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t1_users"."email" FROM "orders" AS "t0_orders" LEFT JOIN "users" AS "t1_users" ON "t0_orders"."user_id" = "t1_users"."id" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE ("t1_users"."email" ILIKE $1 and "t0_orders"."status" IN ($2, $3) and ("t2_products"."sku" LIKE $4 or "t2_products"."sku" LIKE $5)) LIMIT $6 OFFSET $7
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t1_users"."email" FROM "orders" AS "t0_orders" LEFT JOIN "users" AS "t1_users" ON "t0_orders"."user_id" = "t1_users"."id" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE ("t1_users"."email" ILIKE $1 and "t0_orders"."status" IN ($2, $3) and ("t2_products"."sku" LIKE $4 or "t2_products"."sku" LIKE $5)) LIMIT $6 OFFSET $7
         Params: ["%@company.com","pending","processing","LAPTOP-%","PHONE-%",50,0]"
       `);
     });
@@ -1170,7 +1171,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE (("t0_orders"."status" = $1 and "t2_products"."sku" ILIKE $2 and "t2_products"."price" >= $3) or ("t0_orders"."status" = $4 and "t2_products"."is_published" = $5 and "t0_orders"."currency" = $6)) LIMIT $7 OFFSET $8
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"WHERE (("t0_orders"."status" = $1 and "t2_products"."sku" ILIKE $2 and "t2_products"."price" >= $3) or ("t0_orders"."status" = $4 and "t2_products"."is_published" = $5 and "t0_orders"."currency" = $6)) LIMIT $7 OFFSET $8
         Params: ["completed","%premium%",1000,"pending",true,"USD",20,0]"
       `);
     });
@@ -1192,7 +1193,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE ("t0_orders"."status" = $1 and "t3_categories"."slug" IN ($2, $3)) LIMIT $4 OFFSET $5
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE ("t0_orders"."status" = $1 and "t3_categories"."slug" IN ($2, $3)) LIMIT $4 OFFSET $5
         Params: ["completed","electronics","computers",20,0]"
       `);
     });
@@ -1211,7 +1212,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE ("t0_orders"."total_amount" >= $1 and "t3_categories"."is_visible" = $2 and "t3_categories"."slug" NOT IN ($3, $4)) LIMIT $5 OFFSET $6
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE ("t0_orders"."total_amount" >= $1 and "t3_categories"."is_visible" = $2 and "t3_categories"."slug" NOT IN ($3, $4)) LIMIT $5 OFFSET $6
         Params: [500,true,"hidden","archived",20,0]"
       `);
     });
@@ -1246,7 +1247,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE (("t0_orders"."status" = $1 and "t1_order_items"."quantity" >= $2) or ("t2_products"."sku" LIKE $3 and "t2_products"."price" >= $4) or ("t3_categories"."slug" = $5 and "t3_categories"."is_visible" = $6)) LIMIT $7 OFFSET $8
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE (("t0_orders"."status" = $1 and "t1_order_items"."quantity" >= $2) or ("t2_products"."sku" LIKE $3 and "t2_products"."price" >= $4) or ("t3_categories"."slug" = $5 and "t3_categories"."is_visible" = $6)) LIMIT $7 OFFSET $8
         Params: ["processing",5,"VIP-%",1000,"premium",true,100,0]"
       `);
     });
@@ -1281,7 +1282,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE ("t0_orders"."status" <> $1 and "t0_orders"."currency" IN ($2, $3) and (("t1_order_items"."quantity" >= $4 and "t1_order_items"."unit_price" <= $5 and "t2_products"."stock" > $6) or ("t2_products"."is_published" = $7 and "t3_categories"."slug" ILIKE $8))) LIMIT $9 OFFSET $10
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"WHERE ("t0_orders"."status" <> $1 and "t0_orders"."currency" IN ($2, $3) and (("t1_order_items"."quantity" >= $4 and "t1_order_items"."unit_price" <= $5 and "t2_products"."stock" > $6) or ("t2_products"."is_published" = $7 and "t3_categories"."slug" ILIKE $8))) LIMIT $9 OFFSET $10
         Params: ["cancelled","USD","EUR",10,100,0,true,"%sale%",20,0]"
       `);
     });
@@ -1305,7 +1306,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" = $1 and "t4_translations"."value" ILIKE $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" = $1 and "t4_translations"."value" ILIKE $2) LIMIT $3 OFFSET $4
         Params: ["completed","%Electronics%",20,0]"
       `);
     });
@@ -1324,7 +1325,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t4_translations"."locale" = $1 and "t4_translations"."value" NOT ILIKE $2 and "t3_categories"."is_visible" = $3) LIMIT $4 OFFSET $5
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t4_translations"."locale" = $1 and "t4_translations"."value" NOT ILIKE $2 and "t3_categories"."is_visible" = $3) LIMIT $4 OFFSET $5
         Params: ["en","%test%",true,20,0]"
       `);
     });
@@ -1359,7 +1360,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE (("t0_orders"."status" = $1 and "t0_orders"."total_amount" >= $2 and "t1_order_items"."quantity" >= $3 and "t2_products"."price" >= $4 and "t3_categories"."slug" = $5 and "t4_translations"."value" ILIKE $6) or ("t0_orders"."status" IN ($7, $8) and "t3_categories"."is_visible" = $9 and "t4_translations"."locale" IN ($10, $11, $12))) LIMIT $13 OFFSET $14
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE (("t0_orders"."status" = $1 and "t0_orders"."total_amount" >= $2 and "t1_order_items"."quantity" >= $3 and "t2_products"."price" >= $4 and "t3_categories"."slug" = $5 and "t4_translations"."value" ILIKE $6) or ("t0_orders"."status" IN ($7, $8) and "t3_categories"."is_visible" = $9 and "t4_translations"."locale" IN ($10, $11, $12))) LIMIT $13 OFFSET $14
         Params: ["completed",1000,2,100,"premium","%luxury%","pending","processing",true,"en","de","fr",50,100]"
       `);
     });
@@ -1393,7 +1394,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."id" <> $1 and "t0_orders"."status" NOT IN ($2, $3) and "t0_orders"."currency" = $4 and "t0_orders"."total_amount" >= $5 and "t1_order_items"."quantity" >= $6 and "t1_order_items"."unit_price" > $7 and "t2_products"."sku" NOT LIKE $8 and "t2_products"."is_published" = $9 and "t2_products"."deleted_at" IS NULL and "t3_categories"."is_visible" = $10 and "t3_categories"."slug" NOT IN ($11, $12) and "t4_translations"."locale" = $13 and "t4_translations"."value" IS NOT NULL) LIMIT $14 OFFSET $15
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."id" <> $1 and "t0_orders"."status" NOT IN ($2, $3) and "t0_orders"."currency" = $4 and "t0_orders"."total_amount" >= $5 and "t1_order_items"."quantity" >= $6 and "t1_order_items"."unit_price" > $7 and "t2_products"."sku" NOT LIKE $8 and "t2_products"."is_published" = $9 and "t2_products"."deleted_at" IS NULL and "t3_categories"."is_visible" = $10 and "t3_categories"."slug" NOT IN ($11, $12) and "t4_translations"."locale" = $13 and "t4_translations"."value" IS NOT NULL) LIMIT $14 OFFSET $15
         Params: ["00000000-0000-0000-0000-000000000000","cancelled","refunded","USD",100,1,0,"TEST-%",true,true,"hidden","draft","en",20,0]"
       `);
     });
@@ -1443,7 +1444,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE (("t0_orders"."status" = $1 and "t0_orders"."total_amount" >= $2 and ("t4_translations"."value" ILIKE $3 or "t4_translations"."value" ILIKE $4)) or ("t0_orders"."status" = $5 and "t3_categories"."is_visible" = $6 and ("t4_translations"."locale" = $7 or "t4_translations"."locale" = $8)) or ("t3_categories"."slug" IN ($9, $10) and "t4_translations"."value" NOT ILIKE $11)) LIMIT $12 OFFSET $13
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE (("t0_orders"."status" = $1 and "t0_orders"."total_amount" >= $2 and ("t4_translations"."value" ILIKE $3 or "t4_translations"."value" ILIKE $4)) or ("t0_orders"."status" = $5 and "t3_categories"."is_visible" = $6 and ("t4_translations"."locale" = $7 or "t4_translations"."locale" = $8)) or ("t3_categories"."slug" IN ($9, $10) and "t4_translations"."value" NOT ILIKE $11)) LIMIT $12 OFFSET $13
         Params: ["completed",5000,"%premium%","%luxury%","pending",true,"en","de","featured","bestseller","%test%",100,0]"
       `);
     });
@@ -1625,7 +1626,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."id" <> $1 and "t0_orders"."status" NOT IN ($2, $3, $4) and "t0_orders"."currency" IN ($5, $6, $7, $8) and "t0_orders"."total_amount" >= $9 and "t0_orders"."total_amount" <= $10 and (("t0_orders"."status" = $11 and "t0_orders"."total_amount" >= $12 and "t1_order_items"."quantity" >= $13 and "t1_order_items"."unit_price" >= $14 and "t2_products"."is_published" = $15 and "t2_products"."deleted_at" IS NULL and "t2_products"."stock" > $16 and ("t2_products"."sku" LIKE $17 or "t2_products"."sku" LIKE $18 or "t2_products"."sku" LIKE $19) and "t3_categories"."is_visible" = $20 and ("t3_categories"."slug" = $21 or "t3_categories"."slug" = $22 or "t3_categories"."slug" = $23) and (("t4_translations"."locale" = $24 and ("t4_translations"."value" ILIKE $25 or "t4_translations"."value" ILIKE $26 or "t4_translations"."value" ILIKE $27)) or ("t4_translations"."locale" = $28 and "t4_translations"."value" ILIKE $29) or ("t4_translations"."locale" = $30 and "t4_translations"."value" ILIKE $31))) or ("t0_orders"."status" IN ($32, $33) and "t0_orders"."total_amount" >= $34 and "t0_orders"."total_amount" <= $35 and "t1_order_items"."quantity" >= $36 and "t2_products"."price" <= $37 and "t2_products"."is_published" = $38 and "t2_products"."sku" NOT LIKE $39 and "t2_products"."sku" NOT LIKE $40 and "t3_categories"."is_visible" = $41 and "t3_categories"."slug" NOT IN ($42, $43, $44, $45) and "t4_translations"."value" IS NOT NULL and ("t4_translations"."value" ILIKE $46 or "t4_translations"."value" ILIKE $47 or "t4_translations"."value" ILIKE $48 or "t4_translations"."value" ILIKE $49)) or ("t0_orders"."total_amount" >= $50 and "t1_order_items"."unit_price" >= $51 and "t2_products"."price" >= $52 and ("t2_products"."sku" LIKE $53 or "t2_products"."sku" LIKE $54 or "t2_products"."sku" LIKE $55 or "t2_products"."sku" LIKE $56) and "t3_categories"."slug" IN ($57, $58, $59, $60) and "t4_translations"."locale" IN ($61, $62, $63, $64) and ("t4_translations"."value" ILIKE $65 or "t4_translations"."value" ILIKE $66 or "t4_translations"."value" ILIKE $67 or "t4_translations"."value" ILIKE $68 or "t4_translations"."value" ILIKE $69 or "t4_translations"."value" ILIKE $70)) or ("t0_orders"."status" = $71 and "t1_order_items"."quantity" <= $72 and "t2_products"."stock" >= $73 and "t2_products"."is_published" = $74 and "t2_products"."deleted_at" IS NULL and "t3_categories"."slug" IN ($75, $76, $77, $78) and "t3_categories"."is_visible" = $79 and "t4_translations"."value" NOT ILIKE $80 and "t4_translations"."locale" <> $81)) and "t4_translations"."value" NOT ILIKE $82 and "t3_categories"."slug" <> $83) LIMIT $84 OFFSET $85
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."id" <> $1 and "t0_orders"."status" NOT IN ($2, $3, $4) and "t0_orders"."currency" IN ($5, $6, $7, $8) and "t0_orders"."total_amount" >= $9 and "t0_orders"."total_amount" <= $10 and (("t0_orders"."status" = $11 and "t0_orders"."total_amount" >= $12 and "t1_order_items"."quantity" >= $13 and "t1_order_items"."unit_price" >= $14 and "t2_products"."is_published" = $15 and "t2_products"."deleted_at" IS NULL and "t2_products"."stock" > $16 and ("t2_products"."sku" LIKE $17 or "t2_products"."sku" LIKE $18 or "t2_products"."sku" LIKE $19) and "t3_categories"."is_visible" = $20 and ("t3_categories"."slug" = $21 or "t3_categories"."slug" = $22 or "t3_categories"."slug" = $23) and (("t4_translations"."locale" = $24 and ("t4_translations"."value" ILIKE $25 or "t4_translations"."value" ILIKE $26 or "t4_translations"."value" ILIKE $27)) or ("t4_translations"."locale" = $28 and "t4_translations"."value" ILIKE $29) or ("t4_translations"."locale" = $30 and "t4_translations"."value" ILIKE $31))) or ("t0_orders"."status" IN ($32, $33) and "t0_orders"."total_amount" >= $34 and "t0_orders"."total_amount" <= $35 and "t1_order_items"."quantity" >= $36 and "t2_products"."price" <= $37 and "t2_products"."is_published" = $38 and "t2_products"."sku" NOT LIKE $39 and "t2_products"."sku" NOT LIKE $40 and "t3_categories"."is_visible" = $41 and "t3_categories"."slug" NOT IN ($42, $43, $44, $45) and "t4_translations"."value" IS NOT NULL and ("t4_translations"."value" ILIKE $46 or "t4_translations"."value" ILIKE $47 or "t4_translations"."value" ILIKE $48 or "t4_translations"."value" ILIKE $49)) or ("t0_orders"."total_amount" >= $50 and "t1_order_items"."unit_price" >= $51 and "t2_products"."price" >= $52 and ("t2_products"."sku" LIKE $53 or "t2_products"."sku" LIKE $54 or "t2_products"."sku" LIKE $55 or "t2_products"."sku" LIKE $56) and "t3_categories"."slug" IN ($57, $58, $59, $60) and "t4_translations"."locale" IN ($61, $62, $63, $64) and ("t4_translations"."value" ILIKE $65 or "t4_translations"."value" ILIKE $66 or "t4_translations"."value" ILIKE $67 or "t4_translations"."value" ILIKE $68 or "t4_translations"."value" ILIKE $69 or "t4_translations"."value" ILIKE $70)) or ("t0_orders"."status" = $71 and "t1_order_items"."quantity" <= $72 and "t2_products"."stock" >= $73 and "t2_products"."is_published" = $74 and "t2_products"."deleted_at" IS NULL and "t3_categories"."slug" IN ($75, $76, $77, $78) and "t3_categories"."is_visible" = $79 and "t4_translations"."value" NOT ILIKE $80 and "t4_translations"."locale" <> $81)) and "t4_translations"."value" NOT ILIKE $82 and "t3_categories"."slug" <> $83) LIMIT $84 OFFSET $85
         Params: ["00000000-0000-0000-0000-000000000000","cancelled","refunded","failed","USD","EUR","GBP","JPY",50,100000,"completed",5000,1,100,true,0,"ELEC-%","COMP-%","PHONE-%",true,"electronics","computers","smartphones","en","%premium%","%professional%","%enterprise%","de","%profi%","fr","%professionnel%","pending","processing",100,2000,3,500,true,"TEST-%","SAMPLE-%",true,"archived","hidden","draft","test","%sale%","%discount%","%offer%","%deal%",10000,500,1000,"LUX-%","PREM-%","VIP-%","GOLD-%","luxury","premium","exclusive","limited-edition","en","fr","it","jp","%luxury%","%exclusive%","%limited%","%collector%","%luxe%","%prestige%","shipped",5,10,true,"new-arrivals","just-in","trending","featured",true,"%coming soon%","test","%deprecated%","discontinued",500,0]"
       `);
     });
@@ -1647,7 +1648,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" = $1 ORDER BY "t0_orders"."total_amount" DESC LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" = $1 ORDER BY "t0_orders"."total_amount" DESC LIMIT $2 OFFSET $3
         Params: ["completed",20,0]"
       `);
     });
@@ -1663,7 +1664,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" IN ($1, $2) ORDER BY "t0_orders"."status" ASC, "t0_orders"."total_amount" DESC, "t0_orders"."created_at" DESC LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."created_at" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" IN ($1, $2) ORDER BY "t0_orders"."status" ASC, "t0_orders"."total_amount" DESC, "t0_orders"."created_at" DESC LIMIT $3 OFFSET $4
         Params: ["pending","completed",20,0]"
       `);
     });
@@ -1848,7 +1849,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" = $1 LIMIT $2 OFFSET $3
         Params: ["completed",20,0]"
       `);
     });
@@ -1863,7 +1864,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t1_order_items"."quantity", "t1_order_items"."unit_price" AS "unitPrice" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"WHERE "t1_order_items"."quantity" >= $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t1_order_items"."quantity", "t1_order_items"."unit_price" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"WHERE "t1_order_items"."quantity" >= $1 LIMIT $2 OFFSET $3
         Params: [1,20,0]"
       `);
     });
@@ -1941,7 +1942,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t1_order_items"."quantity", "t1_order_items"."unit_price" AS "unitPrice", "t2_products"."sku", "t2_products"."price", "t3_categories"."slug", "t3_categories"."is_visible" AS "isVisible", "t4_translations"."value", "t4_translations"."locale" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" = $1 and "t4_translations"."locale" = $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t1_order_items"."quantity", "t1_order_items"."unit_price", "t2_products"."sku", "t2_products"."price", "t3_categories"."slug", "t3_categories"."is_visible", "t4_translations"."value", "t4_translations"."locale" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" = $1 and "t4_translations"."locale" = $2) LIMIT $3 OFFSET $4
         Params: ["completed","en",20,0]"
       `);
     });
@@ -1977,7 +1978,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t1_order_items"."quantity", "t2_products"."sku", "t2_products"."price", "t3_categories"."slug", "t4_translations"."value" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" IN ($1, $2) and "t1_order_items"."quantity" >= $3 and "t2_products"."is_published" = $4 and "t3_categories"."is_visible" = $5 and "t4_translations"."locale" = $6) ORDER BY "t4_translations"."value" ASC, "t2_products"."price" DESC, "t0_orders"."total_amount" DESC LIMIT $7 OFFSET $8
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t1_order_items"."quantity", "t2_products"."sku", "t2_products"."price", "t3_categories"."slug", "t4_translations"."value" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" IN ($1, $2) and "t1_order_items"."quantity" >= $3 and "t2_products"."is_published" = $4 and "t3_categories"."is_visible" = $5 and "t4_translations"."locale" = $6) ORDER BY "t4_translations"."value" ASC, "t2_products"."price" DESC, "t0_orders"."total_amount" DESC LIMIT $7 OFFSET $8
         Params: ["completed","shipped",1,true,true,"en",100,0]"
       `);
     });
@@ -2028,7 +2029,7 @@ describe("Complex SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency", "t0_orders"."created_at" AS "createdAt", "t1_order_items"."quantity", "t1_order_items"."unit_price" AS "unitPrice", "t2_products"."sku", "t2_products"."price", "t2_products"."stock", "t3_categories"."slug", "t3_categories"."is_visible" AS "isVisible", "t4_translations"."value", "t4_translations"."locale" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" NOT IN ($1, $2) and "t0_orders"."currency" IN ($3, $4) and "t0_orders"."total_amount" >= $5 and "t1_order_items"."quantity" >= $6 and "t2_products"."is_published" = $7 and "t2_products"."deleted_at" IS NULL and "t3_categories"."is_visible" = $8 and "t4_translations"."locale" IN ($9, $10) and "t4_translations"."value" ILIKE $11) ORDER BY "t4_translations"."value" ASC, "t3_categories"."slug" ASC, "t2_products"."price" DESC, "t1_order_items"."quantity" DESC, "t0_orders"."total_amount" DESC, "t0_orders"."created_at" DESC LIMIT $12 OFFSET $13
+        "SQL: SELECT "t0_orders"."id", "t0_orders"."status", "t0_orders"."total_amount", "t0_orders"."currency", "t0_orders"."created_at", "t1_order_items"."quantity", "t1_order_items"."unit_price", "t2_products"."sku", "t2_products"."price", "t2_products"."stock", "t3_categories"."slug", "t3_categories"."is_visible", "t4_translations"."value", "t4_translations"."locale" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"WHERE ("t0_orders"."status" NOT IN ($1, $2) and "t0_orders"."currency" IN ($3, $4) and "t0_orders"."total_amount" >= $5 and "t1_order_items"."quantity" >= $6 and "t2_products"."is_published" = $7 and "t2_products"."deleted_at" IS NULL and "t3_categories"."is_visible" = $8 and "t4_translations"."locale" IN ($9, $10) and "t4_translations"."value" ILIKE $11) ORDER BY "t4_translations"."value" ASC, "t3_categories"."slug" ASC, "t2_products"."price" DESC, "t1_order_items"."quantity" DESC, "t0_orders"."total_amount" DESC, "t0_orders"."created_at" DESC LIMIT $12 OFFSET $13
         Params: ["cancelled","refunded","USD","EUR",100,1,true,true,"en","de","%electronics%",250,50]"
       `);
     });
