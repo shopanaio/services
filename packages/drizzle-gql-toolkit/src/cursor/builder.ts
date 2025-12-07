@@ -25,21 +25,17 @@ import {
 // ============ Types ============
 
 export type CursorQueryBuilderConfig<
-  S extends ObjectSchema<Table, string, FieldsDef, unknown>,
-  Row = S["__types"]
+  Fields extends FieldsDef,
+  Types,
 > = {
   /** Cursor type identifier (e.g., "product", "category") */
   cursorType: string;
   /** Tie-breaker field for stable sorting (usually "id") */
-  tieBreaker: NestedPaths<S["__fields"]>;
+  tieBreaker: NestedPaths<Fields>;
   /** Default sort field when none specified */
-  defaultSortField: NestedPaths<S["__fields"]>;
-  /** Extract ID from row */
-  getId: (row: Row) => string;
-  /** Extract field value from row */
-  getValue: (row: Row, field: string) => unknown;
+  defaultSortField: NestedPaths<Fields>;
   /** Optional: transform row before returning in Connection */
-  mapResult?: (row: Row) => unknown;
+  mapResult?: (row: Types) => unknown;
   /** QueryBuilder config (maxLimit, defaultLimit, etc.) */
   queryConfig?: QueryBuilderConfig;
 };
@@ -71,15 +67,16 @@ export type CursorQueryResult<T> = Connection<T> & {
 // ============ Builder ============
 
 export function createCursorQueryBuilder<
-  S extends ObjectSchema<Table, string, FieldsDef, unknown>,
-  Row = S["__types"],
-  Result = Row
+  T extends Table,
+  F extends string,
+  Fields extends FieldsDef,
+  Types = T["$inferSelect"],
+  Result = Types
 >(
-  schema: S,
-  config: CursorQueryBuilderConfig<S, Row>
+  schema: ObjectSchema<T, F, Fields, Types>,
+  config: CursorQueryBuilderConfig<Fields, Types>
 ) {
-  type Fields = S["__fields"];
-  type FieldPath = NestedPaths<Fields>;
+  type Row = Types;
 
   const qb = createQueryBuilder(schema, config.queryConfig);
 
@@ -213,8 +210,6 @@ export function createCursorQueryBuilder<
           cursorType: config.cursorType,
           sortParams,
           tieBreaker: config.tieBreaker as string,
-          getId: config.getId,
-          getValue: config.getValue,
         })
       );
 

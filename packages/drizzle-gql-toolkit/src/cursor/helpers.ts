@@ -155,3 +155,34 @@ export function hashFilters(filters: Record<string, unknown> | undefined): strin
   const tail = encoded.slice(-8);
   return `${head}${tail}`;
 }
+
+/**
+ * Get a value from a nested object using dot notation path.
+ *
+ * @example
+ * ```ts
+ * const row = { id: "1", category: { name: "Electronics" } };
+ * getNestedValue(row, "id"); // "1"
+ * getNestedValue(row, "category.name"); // "Electronics"
+ * ```
+ */
+export function getNestedValue(obj: unknown, path: string): unknown {
+  if (obj === null || obj === undefined) {
+    return undefined;
+  }
+
+  const segments = path.split(".");
+  let current: unknown = obj;
+
+  for (const segment of segments) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+    if (typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return current;
+}

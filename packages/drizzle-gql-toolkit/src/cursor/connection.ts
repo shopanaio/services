@@ -1,7 +1,7 @@
 import { encode } from "./cursor.js";
 import type { SeekValue } from "./cursor.js";
 import type { SortParam } from "./helpers.js";
-import { buildTieBreakerSeekValue, tieBreakerOrder } from "./helpers.js";
+import { buildTieBreakerSeekValue, tieBreakerOrder, getNestedValue } from "./helpers.js";
 
 export type PageInfo = {
   hasNextPage: boolean;
@@ -175,33 +175,31 @@ export function makeConnection<T extends CursorNode, K>(
   };
 }
 
-export type CreateCursorNodeOptions<Row> = {
-  row: Row;
+export type CreateCursorNodeOptions = {
+  row: unknown;
   cursorType: string;
   sortParams: SortParam[];
   tieBreaker: string;
-  getId: (row: Row) => string;
-  getValue: (row: Row, field: string) => unknown;
 };
 
 /** @internal */
-export function createCursorNode<Row>(options: CreateCursorNodeOptions<Row>): CursorNode {
-  const { row, cursorType, sortParams, tieBreaker, getId, getValue } = options;
+export function createCursorNode(options: CreateCursorNodeOptions): CursorNode {
+  const { row, cursorType, sortParams, tieBreaker } = options;
   const tieBreakerDir = tieBreakerOrder(sortParams);
 
   return {
-    getId: () => getId(row),
+    getId: () => String(getNestedValue(row, tieBreaker) ?? ""),
     getCursorType: () => cursorType,
     getSeekValues: () => {
       const values: SeekValue[] = sortParams.map((param) => ({
         field: param.field,
-        value: getValue(row, param.field),
+        value: getNestedValue(row, param.field),
         order: param.order,
       }));
 
       values.push(
         buildTieBreakerSeekValue({
-          value: getValue(row, tieBreaker),
+          value: getNestedValue(row, tieBreaker),
           tieBreaker,
           sortParams,
           order: tieBreakerDir,
