@@ -104,10 +104,19 @@ export class SqlRenderer<
       return sql`${sql.identifier(defaultAlias)}.*`;
     }
 
+    // Check for duplicate field aliases
+    const usedAliases = new Set<string>();
+    for (const field of fields) {
+      if (usedAliases.has(field)) {
+        throw new Error(`Duplicate field "${field}" in select`);
+      }
+      usedAliases.add(field);
+    }
+
     const selectParts: SQL[] = [];
     for (const field of fields) {
       const parts = field.split(".");
-      const resolved = this.resolveSelectField(parts, schema, depth);
+      const resolved = this.resolveSelectField(parts, field, schema, depth);
       if (resolved) {
         selectParts.push(resolved);
       }
@@ -122,6 +131,7 @@ export class SqlRenderer<
 
   private resolveSelectField(
     parts: string[],
+    fieldAlias: string,
     schema: ObjectSchema,
     depth: number
   ): SQL | undefined {
@@ -135,18 +145,17 @@ export class SqlRenderer<
     this.joinCollector.getOrCreateAliasedTable(schema.table, tableAlias);
 
     if (!fieldConfig) {
-      return sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldName)}`;
+      const columnSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldName)}`;
+      return sql`${columnSql} AS ${sql.identifier(fieldAlias)}`;
     }
 
     if (fieldConfig.join && rest.length > 0) {
       const childSchema = fieldConfig.join.schema();
-      return this.resolveSelectField(rest, childSchema, depth + 1);
+      return this.resolveSelectField(rest, fieldAlias, childSchema, depth + 1);
     }
 
     const columnSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldConfig.column)}`;
-    return fieldConfig.alias
-      ? sql`${columnSql} AS ${sql.identifier(fieldConfig.alias)}`
-      : columnSql;
+    return sql`${columnSql} AS ${sql.identifier(fieldAlias)}`;
   }
 
   private buildJoinClauses(joins: JoinInfo[]): SQL[] {

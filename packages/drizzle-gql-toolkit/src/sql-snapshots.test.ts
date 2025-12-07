@@ -99,7 +99,7 @@ describe("SQL Snapshot Tests", () => {
       expect(toSqlString(qb.buildSelectSql({
         select: ["id", "name", "age"],
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
 
@@ -109,7 +109,7 @@ describe("SQL Snapshot Tests", () => {
         limit: 50,
         offset: 10,
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
         Params: [50,10]"
       `);
     });
@@ -124,7 +124,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $eq: "Alice" } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" = $1 LIMIT $2 OFFSET $3
         Params: ["Alice",20,0]"
       `);
 
@@ -133,7 +133,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $neq: "Alice" } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" <> $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" <> $1 LIMIT $2 OFFSET $3
         Params: ["Alice",20,0]"
       `);
 
@@ -142,7 +142,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "age"],
         where: { age: { $gt: 30 } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."age" FROM "users" AS "t0_users" WHERE "t0_users"."age" > $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."age" AS "age" FROM "users" AS "t0_users" WHERE "t0_users"."age" > $1 LIMIT $2 OFFSET $3
         Params: [30,20,0]"
       `);
 
@@ -150,7 +150,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "age"],
         where: { age: { $gte: 20, $lte: 40 } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."age" FROM "users" AS "t0_users" WHERE ("t0_users"."age" >= $1 and "t0_users"."age" <= $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."age" AS "age" FROM "users" AS "t0_users" WHERE ("t0_users"."age" >= $1 and "t0_users"."age" <= $2) LIMIT $3 OFFSET $4
         Params: [20,40,20,0]"
       `);
     });
@@ -162,7 +162,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $in: ["Alice", "Bob", "Charlie"] } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" in ($1, $2, $3) LIMIT $4 OFFSET $5
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" in ($1, $2, $3) LIMIT $4 OFFSET $5
         Params: ["Alice","Bob","Charlie",20,0]"
       `);
 
@@ -170,7 +170,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $notIn: ["Alice", "Bob"] } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" not in ($1, $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" not in ($1, $2) LIMIT $3 OFFSET $4
         Params: ["Alice","Bob",20,0]"
       `);
     });
@@ -182,7 +182,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $like: "A%" } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" like $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" like $1 LIMIT $2 OFFSET $3
         Params: ["A%",20,0]"
       `);
 
@@ -190,7 +190,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $iLike: "%alice%" } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" ilike $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" ilike $1 LIMIT $2 OFFSET $3
         Params: ["%alice%",20,0]"
       `);
 
@@ -198,7 +198,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: { $notLike: "A%", $notILike: "%test%" } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE ("t0_users"."name" not like $1 and "t0_users"."name" not ilike $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE ("t0_users"."name" not like $1 and "t0_users"."name" not ilike $2) LIMIT $3 OFFSET $4
         Params: ["A%","%test%",20,0]"
       `);
     });
@@ -210,7 +210,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "age"],
         where: { age: { $is: null } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."age" FROM "users" AS "t0_users" WHERE "t0_users"."age" is null LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."age" AS "age" FROM "users" AS "t0_users" WHERE "t0_users"."age" is null LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
 
@@ -218,7 +218,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "age"],
         where: { age: { $isNot: null } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."age" FROM "users" AS "t0_users" WHERE "t0_users"."age" is not null LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."age" AS "age" FROM "users" AS "t0_users" WHERE "t0_users"."age" is not null LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
     });
@@ -229,7 +229,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         where: { name: "Alice" },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE "t0_users"."name" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."name" = $1 LIMIT $2 OFFSET $3
         Params: ["Alice",20,0]"
       `);
     });
@@ -249,7 +249,7 @@ describe("SQL Snapshot Tests", () => {
           ],
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age" FROM "users" AS "t0_users" WHERE ("t0_users"."age" >= $1 and "t0_users"."age" <= $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age" FROM "users" AS "t0_users" WHERE ("t0_users"."age" >= $1 and "t0_users"."age" <= $2) LIMIT $3 OFFSET $4
         Params: [20,40,20,0]"
       `);
 
@@ -263,7 +263,7 @@ describe("SQL Snapshot Tests", () => {
           ],
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" WHERE ("t0_users"."name" = $1 or "t0_users"."name" = $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE ("t0_users"."name" = $1 or "t0_users"."name" = $2) LIMIT $3 OFFSET $4
         Params: ["Alice","Bob",20,0]"
       `);
 
@@ -276,7 +276,7 @@ describe("SQL Snapshot Tests", () => {
           isActive: { $eq: true },
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" FROM "users" AS "t0_users" WHERE ("t0_users"."name" = $1 and "t0_users"."age" >= $2 and "t0_users"."is_active" = $3) LIMIT $4 OFFSET $5
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" WHERE ("t0_users"."name" = $1 and "t0_users"."age" >= $2 and "t0_users"."is_active" = $3) LIMIT $4 OFFSET $5
         Params: ["Alice",20,true,20,0]"
       `);
     });
@@ -297,7 +297,7 @@ describe("SQL Snapshot Tests", () => {
           ],
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" FROM "users" AS "t0_users" WHERE ((("t0_users"."name" = $1 and "t0_users"."age" = $2) or ("t0_users"."name" = $3 and "t0_users"."age" = $4)) and "t0_users"."is_active" = $5) LIMIT $6 OFFSET $7
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" WHERE ((("t0_users"."name" = $1 and "t0_users"."age" = $2) or ("t0_users"."name" = $3 and "t0_users"."age" = $4)) and "t0_users"."is_active" = $5) LIMIT $6 OFFSET $7
         Params: ["Alice",25,"Bob",30,true,20,0]"
       `);
     });
@@ -311,7 +311,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "handle", "price", "translation.value"],
         where: { translation: { value: { $iLike: "%phone%" } } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" ilike $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" ilike $1 LIMIT $2 OFFSET $3
         Params: ["%phone%",20,0]"
       `);
 
@@ -336,7 +336,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "handle", "translation.value"],
         where: { translation: { value: { $eq: "Test" } } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" INNER JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" INNER JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
         Params: ["Test",20,0]"
       `);
 
@@ -360,7 +360,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "translation.value"],
         where: { translation: { value: { $iLike: "%" } } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t1_translations"."value" FROM "products" AS "t0_products" RIGHT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" ilike $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id" AS "id", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" RIGHT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" ilike $1 LIMIT $2 OFFSET $3
         Params: ["%",20,0]"
       `);
 
@@ -384,7 +384,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "translation.value"],
         where: { translation: { value: { $iLike: "%" } } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t1_translations"."value" FROM "products" AS "t0_products" FULL JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" ilike $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id" AS "id", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" FULL JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE "t1_translations"."value" ilike $1 LIMIT $2 OFFSET $3
         Params: ["%",20,0]"
       `);
     });
@@ -411,7 +411,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "handle", "translation.value"],
         where: { translation: { value: { $eq: "Test" } } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON ("t0_products"."id" = "t1_translations"."entity_id" and "t0_products"."handle" = "t1_translations"."field") WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON ("t0_products"."id" = "t1_translations"."entity_id" and "t0_products"."handle" = "t1_translations"."field") WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
         Params: ["Test",20,0]"
       `);
     });
@@ -439,7 +439,7 @@ describe("SQL Snapshot Tests", () => {
       expect(toSqlString(qb.buildSelectSql({
         select: ["id", "handle", "translation.value", "translation.searchValue"],
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value", "t1_translations"."search_value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t1_translations"."value" AS "translation.value", "t1_translations"."search_value" AS "translation.searchValue" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
 
@@ -448,7 +448,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "handle"],
         order: ["translation.value:asc", "translation.searchValue:desc"],
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" ORDER BY "t1_translations"."value" ASC, "t1_translations"."search_value" DESC LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" ORDER BY "t1_translations"."value" ASC, "t1_translations"."search_value" DESC LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
 
@@ -457,7 +457,7 @@ describe("SQL Snapshot Tests", () => {
       expect(toSqlString(qb.buildSelectSql({
         select: ["id", "handle", "translation"],
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."id" FROM "products" AS "t0_products" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."id" AS "translation" FROM "products" AS "t0_products" LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
     });
@@ -471,7 +471,7 @@ describe("SQL Snapshot Tests", () => {
           price: { $gt: 100 },
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price" FROM "products" AS "t0_products" WHERE "t0_products"."price" > $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" WHERE "t0_products"."price" > $1 LIMIT $2 OFFSET $3
         Params: [100,20,0]"
       `);
     });
@@ -485,7 +485,7 @@ describe("SQL Snapshot Tests", () => {
           translation: { value: { $iLike: "%phone%" } },
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t0_products"."price" > $1 and "t1_translations"."value" ilike $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t0_products"."price" > $1 and "t1_translations"."value" ilike $2) LIMIT $3 OFFSET $4
         Params: [100,"%phone%",20,0]"
       `);
     });
@@ -505,7 +505,7 @@ describe("SQL Snapshot Tests", () => {
         limit: 50,
         offset: 25,
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t1_translations"."value" ilike $1 or "t0_products"."price" > $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t1_translations"."value" ilike $1 or "t0_products"."price" > $2) LIMIT $3 OFFSET $4
         Params: ["%phone%",1000,50,25]"
       `);
     });
@@ -516,7 +516,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name"],
         limit: 1000,
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
         Params: [10,0]"
       `);
     });
@@ -529,7 +529,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name", "age"],
         where: {},
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age" FROM "users" AS "t0_users" LIMIT $1 OFFSET $2
         Params: [20,0]"
       `);
 
@@ -538,7 +538,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "name", "age"],
         where: { name: undefined, age: { $eq: 25 } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age" FROM "users" AS "t0_users" WHERE "t0_users"."age" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age" FROM "users" AS "t0_users" WHERE "t0_users"."age" = $1 LIMIT $2 OFFSET $3
         Params: [25,20,0]"
       `);
     });
@@ -552,7 +552,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "eventType", "payload"],
         where: { eventType: { $eq: "login" } },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_events"."id", "t0_events"."event_type", "t0_events"."payload" FROM "analytics"."events" AS "t0_events" WHERE "t0_events"."event_type" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_events"."id" AS "id", "t0_events"."event_type" AS "eventType", "t0_events"."payload" AS "payload" FROM "analytics"."events" AS "t0_events" WHERE "t0_events"."event_type" = $1 LIMIT $2 OFFSET $3
         Params: ["login",20,0]"
       `);
     });
@@ -566,7 +566,7 @@ describe("SQL Snapshot Tests", () => {
           events: { eventType: { $eq: "purchase" } },
         },
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t1_events"."event_type" FROM "users" AS "t0_users" LEFT JOIN "analytics"."events" AS "t1_events" ON "t0_users"."id" = "t1_events"."user_id" WHERE "t1_events"."event_type" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t1_events"."event_type" AS "events.eventType" FROM "users" AS "t0_users" LEFT JOIN "analytics"."events" AS "t1_events" ON "t0_users"."id" = "t1_events"."user_id" WHERE "t1_events"."event_type" = $1 LIMIT $2 OFFSET $3
         Params: ["purchase",20,0]"
       `);
     });
@@ -591,7 +591,7 @@ describe("SQL Snapshot Tests", () => {
         order: ["events.createdAt:desc"],
         limit: 50,
       }))).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id", "t0_users"."name", "t0_users"."age", "t0_users"."is_active" FROM "users" AS "t0_users" LEFT JOIN "analytics"."events" AS "t1_events" ON "t0_users"."id" = "t1_events"."user_id" WHERE ("t0_users"."is_active" = $1 and "t0_users"."age" >= $2 and ("t1_events"."event_type" = $3 or "t1_events"."event_type" = $4)) ORDER BY "t1_events"."created_at" DESC LIMIT $5 OFFSET $6
+        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."name" AS "name", "t0_users"."age" AS "age", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" LEFT JOIN "analytics"."events" AS "t1_events" ON "t0_users"."id" = "t1_events"."user_id" WHERE ("t0_users"."is_active" = $1 and "t0_users"."age" >= $2 and ("t1_events"."event_type" = $3 or "t1_events"."event_type" = $4)) ORDER BY "t1_events"."created_at" DESC LIMIT $5 OFFSET $6
         Params: [true,18,"purchase","subscription",50,0]"
       `);
     });

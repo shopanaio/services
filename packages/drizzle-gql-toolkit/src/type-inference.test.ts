@@ -90,7 +90,7 @@ describe("Type Inference", () => {
       expectTypeOf<OrderTypes["total"]>().toEqualTypeOf<number | null>();
     });
 
-    it("should use alias as result key when defined", () => {
+    it("should use field key as result key (like Drizzle)", () => {
       // Table with snake_case columns
       const categories = pgTable("categories", {
         id: uuid("id").primaryKey(),
@@ -98,20 +98,20 @@ describe("Type Inference", () => {
         is_visible: integer("is_visible"),
       });
 
-      // Schema with aliases
+      // Schema with camelCase keys mapping to snake_case columns
       const categorySchema = createSchema({
         table: categories,
         tableName: "categories",
         fields: {
           id: { column: "id" },
-          parentId: { column: "parent_id", alias: "parentId" },
-          isVisible: { column: "is_visible", alias: "isVisible" },
+          parentId: { column: "parent_id" },
+          isVisible: { column: "is_visible" },
         },
       });
 
       type CatTypes = typeof categorySchema["__types"];
 
-      // Keys should be alias (not column name)
+      // Keys should be the field key (not column name)
       expectTypeOf<CatTypes["id"]>().toEqualTypeOf<string>();
       expectTypeOf<CatTypes["parentId"]>().toEqualTypeOf<string | null>();
       expectTypeOf<CatTypes["isVisible"]>().toEqualTypeOf<number | null>();

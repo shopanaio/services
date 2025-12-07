@@ -26,6 +26,7 @@ export type {
   InferFieldsDef,
   ExtractFields,
   TypedSchemaInput,
+  TypedSchemaResult,
 } from "./types.js";
 
 // Schema

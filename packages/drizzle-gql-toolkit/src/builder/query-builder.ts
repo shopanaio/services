@@ -105,7 +105,7 @@ export class QueryBuilder<
    * Use querySelect() for typed results based on select fields.
    */
   async query(
-    db: DrizzleExecutor<T>,
+    db: DrizzleExecutor,
     input?: TypedInput<Fields> | null
   ): Promise<Types[]> {
     const { sql } = this.buildRawQuery(input);
@@ -134,7 +134,7 @@ export class QueryBuilder<
    * ```
    */
   async querySelect<const Select extends readonly NestedPaths<Fields>[]>(
-    db: DrizzleExecutor<T>,
+    db: DrizzleExecutor,
     input: Omit<TypedInput<Fields>, "select"> & { select: Select }
   ): Promise<InferSelectResultFlat<Types, Select>[]> {
     const { sql } = this.buildRawQuery(input as unknown as TypedInput<Fields>);

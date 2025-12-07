@@ -119,10 +119,11 @@ export type QueryBuilderConfig = {
 };
 
 /**
- * Minimal executor interface compatible with drizzle databases
+ * Minimal executor interface compatible with drizzle databases.
+ * Returns unknown because different drivers return different types.
  */
-export interface DrizzleExecutor<T extends Table = Table> {
-  execute<TResult = T["$inferSelect"]>(query: SQL): Promise<TResult[]>;
+export interface DrizzleExecutor {
+  execute(query: SQL): Promise<unknown>;
 }
 
 /**
@@ -138,28 +139,9 @@ export type GetColumn<
 // =============================================================================
 
 /**
- * Get the result key for a field config.
- * Uses alias if defined, otherwise uses the SQL column name.
- */
-type GetResultKey<F> = F extends { alias: infer A extends string }
-  ? A
-  : F extends { column: infer C extends string }
-    ? C
-    : never;
-
-/**
- * Get the column type from a table for a field config.
- */
-type GetColumnType<T extends Table, F> = F extends { column: infer C extends string }
-  ? C extends keyof T["$inferSelect"]
-    ? T["$inferSelect"][C]
-    : unknown
-  : unknown;
-
-/**
  * Infer field types from schema configuration.
- * Result keys are: alias (if defined) or column name (SQL column).
- * Types are inferred from the Drizzle table column types.
+ * Result keys match the field keys in the schema (like Drizzle).
+ * Types are inferred from the Drizzle table using the field key.
  *
  * @example
  * ```ts
@@ -167,23 +149,25 @@ type GetColumnType<T extends Table, F> = F extends { column: infer C extends str
  *   table: orders,
  *   fields: {
  *     id: { column: "id" },
- *     parentId: { column: "parent_id", alias: "parentId" },
+ *     parentId: { column: "parent_id" },
  *     status: { column: "status" },
  *   }
  * });
- * // SQL: SELECT "id", "parent_id" AS "parentId", "status"
+ * // SQL: SELECT "id" AS "id", "parent_id" AS "parentId", "status" AS "status"
  * // InferFieldTypes → { id: string; parentId: string; status: string }
  * ```
  */
 export type InferFieldTypes<
   T extends Table,
-  Config extends Record<string, { column: string; alias?: string; join?: { schema: () => SchemaWithTypes<Table, unknown> } }>
+  Config extends Record<string, { column: string; join?: { schema: () => SchemaWithTypes<Table, unknown> } }>
 > = {
-  [K in keyof Config & string as GetResultKey<Config[K]>]: Config[K] extends { join: { schema: () => infer S } }
+  [K in keyof Config & string]: Config[K] extends { join: { schema: () => infer S } }
     ? S extends SchemaWithTypes<infer _JoinTable, infer JoinTypes>
       ? JoinTypes
       : unknown
-    : GetColumnType<T, Config[K]>;
+    : K extends keyof T["$inferSelect"]
+      ? T["$inferSelect"][K]
+      : unknown;
 };
 
 /**
@@ -459,3 +443,16 @@ export type TypedSchemaInput<S extends SchemaWithFields> =
         where?: NestedWhereInput<Fields>;
       }
     : never;
+
+/**
+ * Extract result type from a schema.
+ *
+ * @example
+ * ```ts
+ * const schema = createSchema({ table: products, ... });
+ * type Product = TypedSchemaResult<typeof schema>;
+ * // { id: string; name: string; price: number; ... }
+ * ```
+ */
+export type TypedSchemaResult<S extends SchemaWithTypes> =
+  S extends SchemaWithTypes<infer _T, infer Types> ? Types : never;
