@@ -35,8 +35,8 @@ export type Join = {
 export type FieldConfig = {
   /** Column name in the table */
   column: string;
-  /** Alias for select */
-  as?: string;
+  /** Optional select alias */
+  alias?: string;
   /** Join configuration */
   join?: Join;
 };

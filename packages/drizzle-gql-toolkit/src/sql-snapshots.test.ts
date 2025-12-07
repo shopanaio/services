@@ -403,7 +403,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
         Params: ["%phone%",20,0]"
       `);
     });
@@ -434,7 +434,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" INNER JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" INNER JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
         Params: ["Test",20,0]"
       `);
     });
@@ -465,7 +465,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" RIGHT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" RIGHT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
         Params: ["%",20,0]"
       `);
     });
@@ -496,7 +496,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" FULL JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" FULL JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE "t1_translations"."value" ILIKE $1 LIMIT $2 OFFSET $3
         Params: ["%",20,0]"
       `);
     });
@@ -527,7 +527,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" AND "t0_products"."handle" = "t1_translations"."field"WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" AND "t0_products"."handle" = "t1_translations"."field"WHERE "t1_translations"."value" = $1 LIMIT $2 OFFSET $3
         Params: ["Test",20,0]"
       `);
     });
@@ -543,7 +543,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."price" > $1 and "t1_translations"."value" ILIKE $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t0_products"."price" > $1 and "t1_translations"."value" ILIKE $2) LIMIT $3 OFFSET $4
         Params: [100,"%phone%",20,0]"
       `);
     });
@@ -584,7 +584,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value" AS "title", "t1_translations"."search_value" AS "searchTitle" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t1_translations"."value" ILIKE $1 and "t1_translations"."search_value" ILIKE $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t1_translations"."value", "t1_translations"."search_value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t1_translations"."value" ILIKE $1 and "t1_translations"."search_value" ILIKE $2) LIMIT $3 OFFSET $4
         Params: ["%phone%","%mobile%",20,0]"
       `);
     });
@@ -606,7 +606,7 @@ describe("SQL Snapshot Tests", () => {
       });
 
       expect(toSqlString(sqlObj)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" AS "title" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t1_translations"."value" ILIKE $1 or "t0_products"."price" > $2) LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_products"."id", "t0_products"."handle", "t0_products"."price", "t1_translations"."value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"WHERE ("t1_translations"."value" ILIKE $1 or "t0_products"."price" > $2) LIMIT $3 OFFSET $4
         Params: ["%phone%",1000,50,25]"
       `);
     });

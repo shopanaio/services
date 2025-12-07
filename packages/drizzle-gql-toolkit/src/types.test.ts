@@ -560,14 +560,14 @@ describe("Type inference", () => {
       tableName: "users",
       fields: {
         id: { column: "id" },
-        userName: { column: "name", as: "user_name" },
+        userName: { column: "name", alias: "user_name" },
       },
     });
 
     expect(schema.getField("id")).toEqual({ column: "id" });
     expect(schema.getField("userName")).toEqual({
       column: "name",
-      as: "user_name",
+      alias: "user_name",
     });
     expect(schema.getField("nonexistent")).toBeUndefined();
   });

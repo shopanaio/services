@@ -708,8 +708,9 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     if (!fieldConfig) {
       // Direct column on current table
       const tableAlias = tablePrefix(schema.tableName, depth);
-      const alias = parts.length > 1 ? parts.join("_") : fieldName;
-      return sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldName)} AS ${sql.identifier(alias)}`;
+      const columnSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldName)}`;
+      const alias = parts.length > 1 ? parts.join("_") : undefined;
+      return alias ? sql`${columnSql} AS ${sql.identifier(alias)}` : columnSql;
     }
 
     if (fieldConfig.join && rest.length > 0) {
@@ -729,14 +730,17 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       const selectField = fieldConfig.join.select[0];
       const selectFieldConfig = childSchema.getField(selectField);
       const selectColumnName = selectFieldConfig?.column ?? selectField;
-      return sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)} AS ${sql.identifier(fieldName)}`;
+      const columnSql = sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)}`;
+      if (fieldConfig.alias) {
+        return sql`${columnSql} AS ${sql.identifier(fieldConfig.alias)}`;
+      }
+      return columnSql;
     }
 
     // Simple field - use field name as alias if different from column
-    if (columnName !== fieldName) {
-      return sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)} AS ${sql.identifier(fieldName)}`;
-    }
-    return sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
+    const columnSql = sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
+    const alias = fieldConfig.alias ?? (columnName !== fieldName ? fieldName : undefined);
+    return alias ? sql`${columnSql} AS ${sql.identifier(alias)}` : columnSql;
   }
 
   /**
