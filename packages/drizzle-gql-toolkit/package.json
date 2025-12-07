@@ -1,31 +1,56 @@
 {
   "name": "@shopana/drizzle-gql-toolkit",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Dynamic query builder for Drizzle ORM with GraphQL-style filtering",
+  "description": "Type-safe query builder for Drizzle ORM with GraphQL-style filtering, automatic joins, and nested paths",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
       "types": "./dist/index.d.ts",
-      "default": "./src/index.ts"
+      "import": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "keywords": [
     "drizzle",
+    "drizzle-orm",
     "orm",
     "graphql",
     "query-builder",
-    "filtering"
+    "filtering",
+    "sql",
+    "typescript",
+    "type-safe",
+    "joins",
+    "pagination"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Shopana.io",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shopanaio/services.git",
+    "directory": "packages/drizzle-gql-toolkit"
+  },
+  "homepage": "https://github.com/shopanaio/services/tree/main/packages/drizzle-gql-toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/shopanaio/services/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "peerDependencies": {
     "drizzle-orm": ">=0.30.0"
   },
