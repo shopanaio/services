@@ -54,7 +54,7 @@ export type WhereInputV3 = {
  * @deprecated Use SchemaWhereInput for schema-based filtering
  */
 export type WhereInput<T extends Table> = {
-  [K in ColumnNames<T>]?: FilterValue;
+  [K in ColumnNames<T>]?: NestedFilterValue;
 } & {
   $and?: WhereInput<T>[];
   $or?: WhereInput<T>[];
@@ -63,37 +63,33 @@ export type WhereInput<T extends Table> = {
 /**
  * Schema-based WhereInput
  * Provides autocomplete for schema field names (including virtual join fields)
+ * Supports nested objects for join fields
  */
 export type SchemaWhereInput<F extends string> = {
-  [K in F]?: FilterValue;
+  [K in F]?: NestedFilterValue;
 } & {
   $and?: SchemaWhereInput<F>[];
   $or?: SchemaWhereInput<F>[];
 };
 
 /**
- * Filter value can be:
- * - A direct value (shorthand for $eq)
- * - An object with operators { $eq: value, $gt: value, ... }
- * - A nested object for relations
+ * Scalar value types supported in filters
  */
-export type FilterValue =
-  | unknown
-  | FilterOperators
-  | { [key: string]: FilterValue };
+export type ScalarValue = string | number | boolean | null | Date;
 
 /**
- * Filter operators
+ * Filter operators with proper typing
+ * All comparison operators accept ScalarValue for flexibility
  */
-export type FilterOperators = {
-  $eq?: unknown;
-  $neq?: unknown;
-  $gt?: unknown;
-  $gte?: unknown;
-  $lt?: unknown;
-  $lte?: unknown;
-  $in?: unknown[];
-  $notIn?: unknown[];
+export type FilterOperators<T = ScalarValue> = {
+  $eq?: T;
+  $neq?: T;
+  $gt?: T;
+  $gte?: T;
+  $lt?: T;
+  $lte?: T;
+  $in?: T[];
+  $notIn?: T[];
   $like?: string;
   $iLike?: string;
   $notLike?: string;
@@ -101,6 +97,22 @@ export type FilterOperators = {
   $is?: null;
   $isNot?: null;
 };
+
+/**
+ * Filter value can be:
+ * - A direct scalar value (shorthand for $eq)
+ * - An object with operators { $eq: value, $gt: value, ... }
+ */
+export type FilterValue = ScalarValue | FilterOperators;
+
+/**
+ * Nested filter value - includes support for nested objects (join fields)
+ * Used in SchemaWhereInput where we don't know which fields are joins
+ */
+export type NestedFilterValue =
+  | ScalarValue
+  | FilterOperators
+  | { [key: string]: NestedFilterValue };
 
 /**
  * Order direction
@@ -207,10 +219,10 @@ export type SchemaInput<T extends Table, F extends string> = {
   offset?: number;
   /** Limit for pagination */
   limit?: number;
-  /** Order fields (e.g., ["createdAt:desc", "name:asc"]) */
-  order?: (`${F}:${"asc" | "desc"}` | F)[];
-  /** Fields to select */
-  select?: F[];
+  /** Order fields (e.g., ["createdAt:desc", "items.price:asc"]) - supports nested paths */
+  order?: (`${F}:${"asc" | "desc"}` | F | (string & {}))[];
+  /** Fields to select - supports nested paths like "items.product.sku" */
+  select?: (F | (string & {}))[];
   /** Where filters */
   where?: SchemaWhereInput<F>;
 };
