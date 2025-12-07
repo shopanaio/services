@@ -37,7 +37,7 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
 
 /**
  * Query builder for Drizzle tables with GraphQL-style filtering
- * Supports relations and automatic JOIN generation (like goqutil)
+ * Supports joins and automatic JOIN generation (like goqutil)
  *
  * @example
  * ```ts
@@ -48,10 +48,10 @@ const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
  *     id: { column: "id" },
  *     title: {
  *       column: "id",
- *       relation: {
+ *       join: {
  *         table: () => translation,
- *         on: "entityId",
- *         lift: ["value"],
+ *         column: "entityId",
+ *         select: ["value"],
  *       }
  *     }
  *   }
@@ -156,14 +156,14 @@ export class QueryBuilder<T extends Table> {
       // Check if value is a filter object (all keys start with $)
       const isFilter = isFilterObject(value);
 
-      // Handle relation with lift
-      if (fieldConfig.relation) {
-        const relation = fieldConfig.relation;
-        const hasLift = relation.lift && relation.lift.length > 0;
+      // Handle join with select
+      if (fieldConfig.join) {
+        const join = fieldConfig.join;
+        const hasSelect = join.select && join.select.length > 0;
 
-        if (isFilter && hasLift) {
-          // Filter on field with lift - apply to child table fields
-          const childConditions = this.buildRelationConditions(
+        if (isFilter && hasSelect) {
+          // Filter on field with select - apply to child table fields
+          const childConditions = this.buildJoinFilterConditions(
             fieldConfig,
             schema,
             depth,
@@ -171,8 +171,8 @@ export class QueryBuilder<T extends Table> {
           );
           conditions.push(...childConditions);
         } else if (!isFilter) {
-          // Nested object - recurse into relation
-          const childConditions = this.buildNestedRelationConditions(
+          // Nested object - recurse into join
+          const childConditions = this.buildNestedJoinConditions(
             fieldConfig,
             schema,
             depth,
@@ -201,39 +201,40 @@ export class QueryBuilder<T extends Table> {
   }
 
   /**
-   * Build conditions for a relation with lift
+   * Build conditions for a join with select
    */
-  private buildRelationConditions(
+  private buildJoinFilterConditions(
     fieldConfig: FieldConfig,
     parentSchema: ObjectSchema,
     depth: number,
     filterValue: Record<string, unknown>
   ): SQL[] {
-    const relation = fieldConfig.relation!;
-    const childTable = typeof relation.table === "function"
-      ? relation.table()
-      : relation.table;
+    const join = fieldConfig.join!;
+    const childTable = typeof join.table === "function"
+      ? join.table()
+      : join.table;
 
     // Create child schema (simplified - just using table directly)
     const childTableName = this.getTableName(childTable);
     const childAlias = tablePrefix(childTableName, depth + 1);
 
     // Register JOIN
-    this.addJoin(
+    this.registerJoin(
       tablePrefix(parentSchema.tableName, depth),
       childTable,
       childAlias,
       fieldConfig.column,
-      relation.on as string,
-      relation.composite
+      join.column as string,
+      join.type,
+      join.composite
     );
 
-    // Build conditions for each lift field
+    // Build conditions for each select field
     const conditions: SQL[] = [];
-    const liftFields = relation.lift || [];
+    const selectFields = join.select || [];
 
-    for (const liftField of liftFields) {
-      const column = this.getColumn(childTable, liftField as string);
+    for (const selectField of selectFields) {
+      const column = this.getColumn(childTable, selectField as string);
       if (column) {
         const fieldConditions = this.buildFieldConditions(column, childAlias, filterValue);
         conditions.push(...fieldConditions);
@@ -244,38 +245,39 @@ export class QueryBuilder<T extends Table> {
   }
 
   /**
-   * Build conditions for nested relation (non-filter object)
+   * Build conditions for nested join (non-filter object)
    */
-  private buildNestedRelationConditions(
+  private buildNestedJoinConditions(
     fieldConfig: FieldConfig,
     parentSchema: ObjectSchema,
     depth: number,
     nestedInput: WhereInputV3
   ): SQL[] {
-    const relation = fieldConfig.relation!;
-    const childTable = typeof relation.table === "function"
-      ? relation.table()
-      : relation.table;
+    const join = fieldConfig.join!;
+    const childTable = typeof join.table === "function"
+      ? join.table()
+      : join.table;
 
     const childTableName = this.getTableName(childTable);
     const childAlias = tablePrefix(childTableName, depth + 1);
 
     // Register JOIN
-    this.addJoin(
+    this.registerJoin(
       tablePrefix(parentSchema.tableName, depth),
       childTable,
       childAlias,
       fieldConfig.column,
-      relation.on as string,
-      relation.composite
+      join.column as string,
+      join.type,
+      join.composite
     );
 
-    // If lift is defined, wrap the nested input
+    // If select is defined, wrap the nested input
     let childWhere: WhereInputV3;
-    if (relation.lift && relation.lift.length > 0) {
+    if (join.select && join.select.length > 0) {
       childWhere = {};
-      for (const liftField of relation.lift) {
-        childWhere[liftField as string] = nestedInput;
+      for (const selectField of join.select) {
+        childWhere[selectField as string] = nestedInput;
       }
     } else {
       childWhere = nestedInput;
@@ -318,15 +320,16 @@ export class QueryBuilder<T extends Table> {
   }
 
   /**
-   * Add a join to the collection
+   * Register a join to the collection
    */
-  private addJoin(
+  private registerJoin(
     sourceAlias: string,
     targetTable: Table,
     targetAlias: string,
     sourceCol: string,
     targetCol: string,
-    composite?: Array<{ field: string; on: string }>
+    type?: "left" | "right" | "inner" | "full",
+    composite?: Array<{ field: string; column: string }>
   ): void {
     // Skip if already joined with this alias
     if (this.joins.has(targetAlias)) {
@@ -339,12 +342,12 @@ export class QueryBuilder<T extends Table> {
 
     if (composite) {
       for (const c of composite) {
-        conditions.push({ sourceCol: c.field, targetCol: c.on });
+        conditions.push({ sourceCol: c.field, targetCol: c.column });
       }
     }
 
     this.joins.set(targetAlias, {
-      type: "left",
+      type: type ?? "left",
       sourceAlias,
       targetTable,
       targetAlias,
@@ -674,10 +677,11 @@ export function createQueryBuilder<T extends Table>(
  *     id: { column: "id" },
  *     title: {
  *       column: "id",
- *       relation: {
+ *       join: {
+ *         type: "left",
  *         table: () => translation,
- *         on: "entityId",
- *         lift: ["value"],
+ *         column: "entityId",
+ *         select: ["value"],
  *       }
  *     }
  *   }

@@ -69,7 +69,7 @@ describe("ObjectSchema", () => {
     expect(schema.getField("unknown")).toBeUndefined();
   });
 
-  it("should detect relations", () => {
+  it("should detect joins", () => {
     const schema = createSchema({
       table: products,
       tableName: "products",
@@ -77,21 +77,21 @@ describe("ObjectSchema", () => {
         id: { column: "id" },
         title: {
           column: "id",
-          relation: {
+          join: {
             table: translations,
-            on: "entityId",
-            lift: ["value"],
+            column: "entityId",
+            select: ["value"],
           },
         },
       },
     });
 
-    expect(schema.hasRelation("id")).toBe(false);
-    expect(schema.hasRelation("title")).toBe(true);
-    expect(schema.getRelation("title")).toEqual({
+    expect(schema.hasJoin("id")).toBe(false);
+    expect(schema.hasJoin("title")).toBe(true);
+    expect(schema.getJoin("title")).toEqual({
       table: translations,
-      on: "entityId",
-      lift: ["value"],
+      column: "entityId",
+      select: ["value"],
     });
   });
 
@@ -102,15 +102,15 @@ describe("ObjectSchema", () => {
       fields: {
         title: {
           column: "id",
-          relation: {
+          join: {
             table: () => translations,
-            on: "entityId",
+            column: "entityId",
           },
         },
       },
     });
 
-    expect(schema.getRelationTable("title")).toBe(translations);
+    expect(schema.getJoinTable("title")).toBe(translations);
   });
 
   it("should store default fields and order", () => {

@@ -2,24 +2,31 @@ import type { Table } from "drizzle-orm";
 import type { ColumnNames } from "./types.js";
 
 /**
- * Relation configuration for a field
+ * Join type
  */
-export type Relation<T extends Table = Table> = {
-  /** Target table for the relation */
+export type JoinType = "left" | "right" | "inner" | "full";
+
+/**
+ * Join configuration for a field
+ */
+export type Join<T extends Table = Table> = {
+  /** Join type (default: 'left') */
+  type?: JoinType;
+  /** Target table for the join */
   table: T | (() => T);
   /** Column in target table to join on */
-  on: ColumnNames<T>;
+  column: ColumnNames<T>;
   /**
-   * Lift: array of fields in target table to apply filters to
-   * When filtering on this field, the filter will be applied to all lift fields
+   * Select: array of fields in target table to apply filters to
+   * When filtering on this field, the filter will be applied to all select fields
    */
-  lift?: ColumnNames<T>[];
-  /** Self-referencing relation */
+  select?: ColumnNames<T>[];
+  /** Self-referencing join */
   self?: boolean;
   /** Composite key fields */
   composite?: Array<{
     field: string;
-    on: string;
+    column: string;
   }>;
 };
 
@@ -31,8 +38,8 @@ export type FieldConfig<T extends Table = Table> = {
   column: string;
   /** Alias for select */
   as?: string;
-  /** Relation configuration */
-  relation?: Relation<T>;
+  /** Join configuration */
+  join?: Join<T>;
 };
 
 /**
@@ -77,30 +84,28 @@ export class ObjectSchema<T extends Table = Table> {
   }
 
   /**
-   * Check if field has a relation
+   * Check if field has a join
    */
-  hasRelation(name: string): boolean {
+  hasJoin(name: string): boolean {
     const field = this.fields.get(name);
-    return field?.relation !== undefined;
+    return field?.join !== undefined;
   }
 
   /**
-   * Get relation for a field
+   * Get join for a field
    */
-  getRelation(name: string): Relation | undefined {
-    return this.fields.get(name)?.relation;
+  getJoin(name: string): Join | undefined {
+    return this.fields.get(name)?.join;
   }
 
   /**
-   * Get the target table for a relation (resolves lazy references)
+   * Get the target table for a join (resolves lazy references)
    */
-  getRelationTable(name: string): Table | undefined {
-    const relation = this.getRelation(name);
-    if (!relation) return undefined;
+  getJoinTable(name: string): Table | undefined {
+    const join = this.getJoin(name);
+    if (!join) return undefined;
 
-    return typeof relation.table === "function"
-      ? relation.table()
-      : relation.table;
+    return typeof join.table === "function" ? join.table() : join.table;
   }
 }
 
@@ -117,10 +122,11 @@ export class ObjectSchema<T extends Table = Table> {
  *     handle: { column: "handle" },
  *     title: {
  *       column: "id",
- *       relation: {
+ *       join: {
+ *         type: "left",
  *         table: () => translation,
- *         on: "entityId",
- *         lift: ["value", "searchValue"],
+ *         column: "entityId",
+ *         select: ["value", "searchValue"],
  *       }
  *     }
  *   }
@@ -137,7 +143,7 @@ export function createSchema<T extends Table>(
  * Join information collected during query building
  */
 export type JoinInfo = {
-  type: "left" | "inner";
+  type: JoinType;
   sourceAlias: string;
   targetTable: Table;
   targetAlias: string;
