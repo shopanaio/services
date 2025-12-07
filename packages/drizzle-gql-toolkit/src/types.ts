@@ -288,6 +288,57 @@ export type FieldsDef = {
 };
 
 /**
+ * Marker type for ObjectSchema to enable recursive field inference.
+ * Used internally by InferFieldsDef.
+ */
+export type SchemaWithFields<Fields extends FieldsDef = FieldsDef> = {
+  readonly __fields: Fields;
+};
+
+/**
+ * Infer FieldsDef from a schema fields configuration.
+ * Recursively extracts nested field structures from join schemas.
+ *
+ * @example
+ * ```ts
+ * const productSchema = createSchema({
+ *   fields: {
+ *     id: { column: "id" },
+ *     title: { column: "title" },
+ *   }
+ * });
+ * // InferFieldsDef => { id: true, title: true }
+ *
+ * const orderItemSchema = createSchema({
+ *   fields: {
+ *     quantity: { column: "quantity" },
+ *     product: {
+ *       column: "product_id",
+ *       join: { schema: () => productSchema, column: "id" }
+ *     }
+ *   }
+ * });
+ * // InferFieldsDef => { quantity: true, product: { id: true, title: true } }
+ * ```
+ */
+export type InferFieldsDef<Config> = {
+  [K in keyof Config & string]: Config[K] extends {
+    join: { schema: () => infer S };
+  }
+    ? S extends SchemaWithFields<infer Nested>
+      ? Nested
+      : true
+    : true;
+};
+
+/**
+ * Extract FieldsDef from an ObjectSchema type
+ */
+export type ExtractFields<S> = S extends SchemaWithFields<infer Fields>
+  ? Fields
+  : FieldsDef;
+
+/**
  * Recursively generate all nested paths from a FieldsDef structure.
  * Produces union of all possible paths like "items.product.category.slug"
  *
@@ -381,3 +432,45 @@ export type NestedSchemaInput<T extends Table, Fields extends FieldsDef> = {
   /** Where filters with nested structure */
   where?: NestedWhereInput<Fields>;
 };
+
+/**
+ * Typed schema input that extracts FieldsDef from ObjectSchema.
+ * Provides full autocomplete for nested paths in select/order/where.
+ *
+ * @example
+ * ```ts
+ * const orderSchema = createSchema({
+ *   table: orders,
+ *   tableName: "orders",
+ *   fields: {
+ *     id: { column: "id" },
+ *     items: {
+ *       column: "id",
+ *       join: { schema: () => orderItemsSchema, column: "orderId" }
+ *     }
+ *   }
+ * });
+ *
+ * // Full autocomplete for nested paths:
+ * const input: TypedSchemaInput<typeof orderSchema> = {
+ *   select: ["id", "items.product.title"],  // ✓ autocomplete
+ *   order: ["items.product.price:desc"],     // ✓ autocomplete
+ *   where: { items: { product: { title: { $iLike: "%phone%" } } } }
+ * };
+ * ```
+ */
+export type TypedSchemaInput<S extends SchemaWithFields> =
+  S extends SchemaWithFields<infer Fields>
+    ? {
+        /** Offset for pagination */
+        offset?: number;
+        /** Limit for pagination */
+        limit?: number;
+        /** Order fields with nested path support */
+        order?: OrderPath<NestedPaths<Fields>>[];
+        /** Fields to select with nested path support */
+        select?: NestedPaths<Fields>[];
+        /** Where filters with nested structure */
+        where?: NestedWhereInput<Fields>;
+      }
+    : never;

@@ -25,6 +25,10 @@ import type {
   ResolvedPagination,
   PaginationInput,
   SchemaInput,
+  FieldsDef,
+  NestedPaths,
+  OrderPath,
+  NestedWhereInput,
 } from "./types.js";
 
 const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
@@ -87,6 +91,23 @@ function applyJoinByType<Q extends JoinableQuery>(
 }
 
 /**
+ * Typed input for QueryBuilder methods.
+ * Provides full autocomplete for nested paths in select/order/where.
+ */
+export type TypedInput<Fields extends FieldsDef> = {
+  /** Offset for pagination */
+  offset?: number;
+  /** Limit for pagination */
+  limit?: number;
+  /** Order fields with nested path support */
+  order?: OrderPath<NestedPaths<Fields>>[];
+  /** Fields to select with nested path support */
+  select?: NestedPaths<Fields>[];
+  /** Where filters with nested structure */
+  where?: NestedWhereInput<Fields>;
+};
+
+/**
  * Query builder for Drizzle tables with GraphQL-style filtering
  * Supports joins and automatic JOIN generation (like goqutil)
  *
@@ -96,6 +117,10 @@ function applyJoinByType<Q extends JoinableQuery>(
  * - select (e.g., ["translation.value"])
  *
  * If no nested fields are referenced, no join is performed.
+ *
+ * @template T - Drizzle table type
+ * @template F - Field names (union of string literals)
+ * @template Fields - Nested fields structure for type-safe path access
  *
  * @example
  * ```ts
@@ -124,23 +149,25 @@ function applyJoinByType<Q extends JoinableQuery>(
  * });
  *
  * const qb = createQueryBuilder(productSchema);
- * // Join added because nested field translation.value is used:
- * const { where, joins } = qb.fromInput({
- *   where: { translation: { value: { $iLike: "%test%" } } }
- * });
  *
- * // No join added because no nested fields used:
- * const result2 = qb.fromInput({
- *   where: { id: { $eq: "123" } }
+ * // Full autocomplete for nested paths:
+ * qb.buildSelectSql({
+ *   select: ["id", "translation.value"],  // ✓ autocomplete
+ *   order: ["translation.value:desc"],     // ✓ autocomplete
+ *   where: { translation: { value: { $iLike: "%test%" } } }
  * });
  * ```
  */
-export class QueryBuilder<T extends Table, F extends string = string> {
+export class QueryBuilder<
+  T extends Table,
+  F extends string = string,
+  Fields extends FieldsDef = FieldsDef,
+> {
   private config: Required<QueryBuilderConfig>;
   private joins: Map<string, JoinInfo> = new Map();
 
   constructor(
-    private schema: ObjectSchema<T, F>,
+    private schema: ObjectSchema<T, F, Fields>,
     config?: QueryBuilderConfig
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -588,14 +615,20 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
   /**
    * Build a raw SQL query with all components (for complex queries with joins)
+   * Supports full autocomplete for nested paths in select/order/where.
    *
    * @example
    * ```ts
-   * const { sql: querySql, params } = qb.toRawQuery(input);
-   * const result = await db.execute(querySql);
+   * const qb = createQueryBuilder(productSchema);
+   * const sql = qb.buildSelectSql({
+   *   select: ["id", "translation.value"],  // ✓ autocomplete
+   *   order: ["translation.value:desc"],     // ✓ autocomplete
+   *   where: { translation: { value: { $iLike: "%test%" } } }
+   * });
+   * const result = await db.execute(sql);
    * ```
    */
-  buildSelectSql(input: SchemaInput<T, F> | undefined | null): SQL {
+  buildSelectSql(input: TypedInput<Fields> | undefined | null): SQL {
     const { where, limit, offset } = this.fromInput(input);
     const tableAlias = tablePrefix(this.schema.tableName, 0);
 
@@ -611,7 +644,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     if (input?.order) {
       for (const order of input.order) {
         // Remove :asc/:desc suffix
-        const fieldPath = order.replace(/:(asc|desc)$/i, "");
+        const orderStr = order as string;
+        const fieldPath = orderStr.replace(/:(asc|desc)$/i, "");
         const parts = fieldPath.split(".");
         this.collectJoinsFromFieldPath(parts, this.schema, 0);
       }
@@ -805,9 +839,10 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
   /**
    * Process full Input object (analogous to goqutil.SetInput)
-   * Returns all query components including joins
+   * Returns all query components including joins.
+   * Supports full autocomplete for nested paths.
    */
-  fromInput(input: SchemaInput<T, F> | undefined | null): {
+  fromInput(input: TypedInput<Fields> | undefined | null): {
     where: SQL | undefined;
     joins: JoinInfo[];
     orderBy: SQL[];
@@ -909,7 +944,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
   /**
    * Build a complete Drizzle query ready for execution
-   * Returns typed results based on the table schema
+   * Returns typed results based on the table schema.
+   * Supports full autocomplete for nested paths.
    *
    * Uses raw SQL with proper table aliases for all queries.
    *
@@ -918,8 +954,10 @@ export class QueryBuilder<T extends Table, F extends string = string> {
    * const qb = createQueryBuilder(productSchema);
    *
    * // Get ready query - results are typed as Product[]
+   * // Full autocomplete for nested paths:
    * const results = await qb.query(db, {
-   *   where: { title: { $iLike: "%phone%" } },
+   *   select: ["id", "translation.value"],
+   *   where: { translation: { value: { $iLike: "%phone%" } } },
    *   limit: 20,
    * });
    * ```
@@ -927,7 +965,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
   async query(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     db: { execute: (query: SQL) => Promise<any> },
-    input?: SchemaInput<T, F> | null
+    input?: TypedInput<Fields> | null
   ): Promise<T["$inferSelect"][]> {
     const { where, joins, limit, offset } = this.fromInput(input);
     const mainAlias = tablePrefix(this.schema.tableName, 0);
@@ -988,12 +1026,29 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 }
 
 /**
- * Create a new query builder from schema
+ * Create a new query builder from schema.
+ * Automatically infers nested field types for full autocomplete support.
+ *
+ * @example
+ * ```ts
+ * const qb = createQueryBuilder(productSchema);
+ *
+ * // Full autocomplete for nested paths:
+ * qb.buildSelectSql({
+ *   select: ["id", "translation.value"],  // ✓ autocomplete
+ *   order: ["translation.value:desc"],     // ✓ autocomplete
+ *   where: { translation: { value: { $iLike: "%test%" } } }
+ * });
+ * ```
  */
-export function createQueryBuilder<T extends Table, F extends string>(
-  schema: ObjectSchema<T, F>,
+export function createQueryBuilder<
+  T extends Table,
+  F extends string,
+  Fields extends FieldsDef,
+>(
+  schema: ObjectSchema<T, F, Fields>,
   config?: QueryBuilderConfig
-): QueryBuilder<T, F> {
+): QueryBuilder<T, F, Fields> {
   return new QueryBuilder(schema, config);
 }
 

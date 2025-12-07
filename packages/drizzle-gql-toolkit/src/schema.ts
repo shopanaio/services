@@ -1,4 +1,5 @@
 import type { Table } from "drizzle-orm";
+import type { FieldsDef, InferFieldsDef, SchemaWithFields } from "./types.js";
 
 /**
  * Join type
@@ -56,14 +57,26 @@ export type SchemaConfig<T extends Table, F extends string = string> = {
  * Object schema for query building (matches goqutil.ObjectSchema)
  * @template T - Drizzle table type
  * @template F - Field names (union of string literals)
+ * @template Fields - Nested fields structure for type-safe path access
  */
-export class ObjectSchema<T extends Table = Table, F extends string = string> {
+export class ObjectSchema<
+  T extends Table = Table,
+  F extends string = string,
+  Fields extends FieldsDef = FieldsDef,
+> implements SchemaWithFields<Fields>
+{
   readonly table: T;
   readonly tableName: string;
   readonly fields: Map<string, FieldConfig>;
   readonly fieldNames: F[];
   readonly defaultFields: F[];
   readonly defaultOrder: F[];
+
+  /**
+   * Type-level field structure for nested path inference.
+   * This property exists only at the type level and is not used at runtime.
+   */
+  declare readonly __fields: Fields;
 
   constructor(config: SchemaConfig<T, F>) {
     this.table = config.table;
@@ -108,7 +121,10 @@ export class ObjectSchema<T extends Table = Table, F extends string = string> {
 }
 
 /**
- * Create an object schema with typed field names
+ * Create an object schema with typed field names and nested path support.
+ *
+ * The schema automatically infers nested field structures from join configurations,
+ * enabling full autocomplete for nested paths like "items.product.title".
  *
  * @example
  * ```ts
@@ -140,6 +156,7 @@ export class ObjectSchema<T extends Table = Table, F extends string = string> {
  * });
  *
  * // Query with nested fields - join is added automatically:
+ * // Full autocomplete for "translation.value", "translation.searchValue", etc.
  * // qb.buildSelectSql({
  * //   select: ["id", "handle", "translation.value"],
  * //   where: { translation: { value: { $iLike: "%test%" } } },
@@ -147,10 +164,13 @@ export class ObjectSchema<T extends Table = Table, F extends string = string> {
  * // })
  * ```
  */
-export function createSchema<T extends Table, F extends string>(
-  config: SchemaConfig<T, F>
-): ObjectSchema<T, F> {
-  return new ObjectSchema(config);
+export function createSchema<
+  T extends Table,
+  const Config extends Record<string, FieldConfig>,
+>(
+  config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config }
+): ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>> {
+  return new ObjectSchema(config as SchemaConfig<T, keyof Config & string>);
 }
 
 /**

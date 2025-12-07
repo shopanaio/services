@@ -28,6 +28,11 @@ export type {
   OrderPath,
   NestedWhereInput,
   NestedSchemaInput,
+  // Auto-inferred nested types
+  SchemaWithFields,
+  InferFieldsDef,
+  ExtractFields,
+  TypedSchemaInput,
 } from "./types.js";
 
 // Schema
@@ -48,6 +53,7 @@ export {
   createQueryBuilder,
   applyJoins,
   buildJoinConditions,
+  type TypedInput,
 } from "./builder.js";
 
 // Operators
