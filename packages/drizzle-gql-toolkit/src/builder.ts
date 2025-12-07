@@ -639,11 +639,83 @@ export class QueryBuilder<T extends Table> {
     });
 
     // Build selection
-    const select = this.select(input.fields);
+    const selection = this.select(input.select);
 
-    return { where, joins, orderBy, limit, offset, select };
+    return { where, joins, orderBy, limit, offset, select: selection };
+  }
+
+  /**
+   * Build a complete Drizzle query ready for execution
+   *
+   * @example
+   * ```ts
+   * const qb = createQueryBuilder(productSchema);
+   *
+   * // Get ready query
+   * const query = qb.query(db, {
+   *   where: { title: { $iLike: "%phone%" } },
+   *   select: ["id", "handle"],
+   *   limit: 20,
+   * });
+   *
+   * // Execute
+   * const results = await query;
+   * ```
+   */
+  query<DB extends { select: (selection?: Record<string, Column>) => { from: (table: Table) => DrizzleQuery } }>(
+    db: DB,
+    input?: Input<T> | null
+  ): DrizzleQuery {
+    const { where, joins, orderBy, limit, offset, select } = this.fromInput(input);
+
+    // Start query
+    let query: DrizzleQuery = select
+      ? db.select(select).from(this.schema.table)
+      : db.select().from(this.schema.table);
+
+    // Apply joins
+    for (const join of joins) {
+      const onConditions = join.conditions.map((c) =>
+        sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
+      );
+      const onCondition = onConditions.length === 1
+        ? onConditions[0]
+        : sql.join(onConditions, sql` AND `);
+
+      query = query.leftJoin(
+        sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`,
+        onCondition
+      );
+    }
+
+    // Apply where
+    if (where) {
+      query = query.where(where);
+    }
+
+    // Apply order by
+    if (orderBy.length > 0) {
+      query = query.orderBy(...orderBy);
+    }
+
+    // Apply pagination
+    query = query.limit(limit).offset(offset);
+
+    return query;
   }
 }
+
+/**
+ * Drizzle query type for chaining
+ */
+type DrizzleQuery = {
+  leftJoin: (table: SQL, on: SQL) => DrizzleQuery;
+  where: (condition: SQL) => DrizzleQuery;
+  orderBy: (...orders: SQL[]) => DrizzleQuery;
+  limit: (n: number) => DrizzleQuery;
+  offset: (n: number) => DrizzleQuery;
+  then: Promise<unknown>["then"];
+};
 
 /**
  * Create a new query builder from schema

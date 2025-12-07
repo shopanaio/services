@@ -186,7 +186,7 @@ export type Input<T extends Table> = {
   /** Multiple order fields */
   multiOrder?: string[];
   /** Fields to select */
-  fields?: ColumnNames<T>[];
+  select?: ColumnNames<T>[];
   /** Where filters */
   where?: WhereInput<T>;
 };
@@ -200,7 +200,7 @@ export type InputG<T extends Table, W = WhereInput<T>> = {
   limit?: number;
   order?: string;
   multiOrder?: string[];
-  fields?: ColumnNames<T>[];
+  select?: ColumnNames<T>[];
   where?: W;
 };
 
