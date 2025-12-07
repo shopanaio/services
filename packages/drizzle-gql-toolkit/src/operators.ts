@@ -13,6 +13,7 @@ import {
   notInArray,
   isNull,
   isNotNull,
+  sql,
   type SQL,
   type Column,
 } from "drizzle-orm";
@@ -155,4 +156,103 @@ export function isFilterObject(obj: unknown): obj is Record<string, unknown> {
 
   const keys = Object.keys(obj);
   return keys.length > 0 && keys.every((k) => k.startsWith("$"));
+}
+
+/**
+ * Build SQL condition from operator and value using table alias
+ * Produces SQL like: "t1_translations"."value" ILIKE $1
+ *
+ * This is used for JOIN queries where columns must be referenced
+ * with their table alias to avoid ambiguity.
+ */
+export function buildOperatorConditionWithAlias(
+  tableAlias: string,
+  columnName: string,
+  operator: string,
+  value: unknown
+): SQL | null {
+  // Build aliased column reference: "alias"."column"
+  const aliasedColumn = sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
+
+  // Normalize operator (remove $ prefix and lowercase)
+  const op = operator.startsWith("$")
+    ? operator.slice(1).toLowerCase()
+    : operator.toLowerCase();
+
+  switch (op) {
+    case "eq":
+      return sql`${aliasedColumn} = ${value}`;
+
+    case "neq":
+    case "noteq":
+      return sql`${aliasedColumn} <> ${value}`;
+
+    case "gt":
+      return sql`${aliasedColumn} > ${value}`;
+
+    case "gte":
+      return sql`${aliasedColumn} >= ${value}`;
+
+    case "lt":
+      return sql`${aliasedColumn} < ${value}`;
+
+    case "lte":
+      return sql`${aliasedColumn} <= ${value}`;
+
+    case "in":
+      if (Array.isArray(value) && value.length > 0) {
+        return sql`${aliasedColumn} IN ${value}`;
+      }
+      return null;
+
+    case "notin":
+    case "nin":
+      if (Array.isArray(value) && value.length > 0) {
+        return sql`${aliasedColumn} NOT IN ${value}`;
+      }
+      return null;
+
+    case "like":
+      if (typeof value === "string") {
+        return sql`${aliasedColumn} LIKE ${value}`;
+      }
+      return null;
+
+    case "ilike":
+      if (typeof value === "string") {
+        return sql`${aliasedColumn} ILIKE ${value}`;
+      }
+      return null;
+
+    case "notlike":
+    case "nlike":
+      if (typeof value === "string") {
+        return sql`${aliasedColumn} NOT LIKE ${value}`;
+      }
+      return null;
+
+    case "notilike":
+    case "nilike":
+      if (typeof value === "string") {
+        return sql`${aliasedColumn} NOT ILIKE ${value}`;
+      }
+      return null;
+
+    case "is":
+      // $is: null -> IS NULL
+      if (value === null) {
+        return sql`${aliasedColumn} IS NULL`;
+      }
+      return null;
+
+    case "isnot":
+      // $isNot: null -> IS NOT NULL
+      if (value === null) {
+        return sql`${aliasedColumn} IS NOT NULL`;
+      }
+      return null;
+
+    default:
+      return null;
+  }
 }

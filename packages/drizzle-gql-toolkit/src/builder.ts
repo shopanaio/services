@@ -4,12 +4,11 @@ import {
   asc,
   desc,
   sql,
-  eq,
   type SQL,
   type Table,
   type Column,
 } from "drizzle-orm";
-import { buildOperatorCondition, isFilterObject } from "./operators.js";
+import { buildOperatorConditionWithAlias, isFilterObject } from "./operators.js";
 import {
   ObjectSchema,
   tablePrefix,
@@ -164,6 +163,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     depth: number
   ): SQL[] {
     const conditions: SQL[] = [];
+    const tableAlias = tablePrefix(schema.tableName, depth);
 
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) {
@@ -205,11 +205,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       const fieldConfig = schema.getField(key);
       if (!fieldConfig) {
         // Try direct column access if no schema field
-        const column = this.getColumn(schema.table, key);
-        if (column) {
-          const fieldConditions = this.buildFieldConditions(column, value);
-          conditions.push(...fieldConditions);
-        }
+        const fieldConditions = this.buildFieldConditionsWithAlias(tableAlias, key, value);
+        conditions.push(...fieldConditions);
         continue;
       }
 
@@ -241,19 +238,21 @@ export class QueryBuilder<T extends Table, F extends string = string> {
           conditions.push(...childConditions);
         } else {
           // Filter without lift - apply to current table column
-          const column = this.getColumn(schema.table, fieldConfig.column);
-          if (column) {
-            const fieldConditions = this.buildFieldConditions(column, value);
-            conditions.push(...fieldConditions);
-          }
+          const fieldConditions = this.buildFieldConditionsWithAlias(
+            tableAlias,
+            fieldConfig.column,
+            value
+          );
+          conditions.push(...fieldConditions);
         }
       } else {
         // Regular field
-        const column = this.getColumn(schema.table, fieldConfig.column);
-        if (column) {
-          const fieldConditions = this.buildFieldConditions(column, value);
-          conditions.push(...fieldConditions);
-        }
+        const fieldConditions = this.buildFieldConditionsWithAlias(
+          tableAlias,
+          fieldConfig.column,
+          value
+        );
+        conditions.push(...fieldConditions);
       }
     }
 
@@ -288,7 +287,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       join.composite
     );
 
-    // Build conditions for each select field
+    // Build conditions for each select field using child alias
     const conditions: SQL[] = [];
     const selectFields = join.select || [];
 
@@ -296,11 +295,9 @@ export class QueryBuilder<T extends Table, F extends string = string> {
       // Get field config from child schema to resolve column name
       const selectFieldConfig = childSchema.getField(selectField);
       const columnName = selectFieldConfig?.column ?? selectField;
-      const column = this.getColumn(childSchema.table, columnName);
-      if (column) {
-        const fieldConditions = this.buildFieldConditions(column, filterValue);
-        conditions.push(...fieldConditions);
-      }
+      // Use childAlias for WHERE conditions
+      const fieldConditions = this.buildFieldConditionsWithAlias(childAlias, columnName, filterValue);
+      conditions.push(...fieldConditions);
     }
 
     return conditions;
@@ -349,22 +346,28 @@ export class QueryBuilder<T extends Table, F extends string = string> {
   }
 
   /**
-   * Build field conditions from filter value
+   * Build field conditions from filter value using table alias
+   * Produces SQL like: "t0_products"."id" = $1
    */
-  private buildFieldConditions(column: Column, value: unknown): SQL[] {
+  private buildFieldConditionsWithAlias(
+    tableAlias: string,
+    columnName: string,
+    value: unknown
+  ): SQL[] {
     const conditions: SQL[] = [];
 
     if (isFilterObject(value)) {
       // Process each operator
       for (const [opKey, opVal] of Object.entries(value)) {
-        const condition = buildOperatorCondition(column, opKey, opVal);
+        const condition = buildOperatorConditionWithAlias(tableAlias, columnName, opKey, opVal);
         if (condition) {
           conditions.push(condition);
         }
       }
     } else {
       // Direct value - treat as $eq
-      conditions.push(eq(column, value));
+      const aliasedColumn = sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
+      conditions.push(sql`${aliasedColumn} = ${value}`);
     }
 
     return conditions;
@@ -445,7 +448,7 @@ export class QueryBuilder<T extends Table, F extends string = string> {
    */
   private getColumn(table: Table, name: string): Column | undefined {
     // Access column directly as property on the table object
-    return (table as Record<string, Column | unknown>)[name] as Column | undefined;
+    return (table as unknown as Record<string, Column | unknown>)[name] as Column | undefined;
   }
 
   /**
@@ -692,8 +695,67 @@ export class QueryBuilder<T extends Table, F extends string = string> {
   }
 
   /**
+   * Build ORDER BY SQL from parsed order string with aliased columns
+   */
+  private buildParsedOrderSqlWithAlias(
+    order: string | undefined | null,
+    tableAlias: string
+  ): SQL | undefined {
+    if (!order) return undefined;
+
+    let field: string;
+    let direction: OrderDirection = "asc";
+
+    // Try "field:direction" format
+    const colonMatch = order.match(/^(.+):(asc|desc)$/i);
+    if (colonMatch) {
+      field = colonMatch[1];
+      direction = colonMatch[2].toLowerCase() as OrderDirection;
+    } else {
+      // Try "fieldASC" / "fieldDESC" format
+      const suffixMatch = order.match(/^(.+?)(ASC|DESC)$/);
+      if (suffixMatch) {
+        field = suffixMatch[1];
+        direction = suffixMatch[2].toLowerCase() as OrderDirection;
+      } else {
+        // Default: field name with asc
+        field = order;
+      }
+    }
+
+    const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
+    return sql`${sql.identifier(tableAlias)}.${sql.identifier(field)} ${dirSql}`;
+  }
+
+  /**
+   * Build ORDER BY SQL from multiple order strings with aliased columns
+   */
+  private buildMultiOrderSqlWithAlias(
+    orders: string[] | undefined | null,
+    tableAlias: string
+  ): SQL | undefined {
+    if (!orders || orders.length === 0) return undefined;
+
+    const orderParts: SQL[] = [];
+    for (const order of orders) {
+      const orderSql = this.buildParsedOrderSqlWithAlias(order, tableAlias);
+      if (orderSql) {
+        orderParts.push(orderSql);
+      }
+    }
+
+    if (orderParts.length === 0) {
+      return undefined;
+    }
+
+    return sql.join(orderParts, sql`, `);
+  }
+
+  /**
    * Build a complete Drizzle query ready for execution
    * Returns typed results based on the table schema
+   *
+   * Uses raw SQL with proper table aliases for all queries.
    *
    * @example
    * ```ts
@@ -706,66 +768,73 @@ export class QueryBuilder<T extends Table, F extends string = string> {
    * });
    * ```
    */
-  query(
-    db: { select: () => { from: (table: T) => SelectQuery<T> } },
-    input?: SchemaInput<T, F> | null
-  ): SelectQuery<T> {
-    const { where, joins, orderBy, limit, offset } = this.fromInput(input);
-
-    // Start query - always select all columns for proper typing
+  async query(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query: any = db.select().from(this.schema.table);
+    db: { execute: (query: SQL) => Promise<any> },
+    input?: SchemaInput<T, F> | null
+  ): Promise<T["$inferSelect"][]> {
+    const { where, joins, limit, offset } = this.fromInput(input);
+    const mainAlias = tablePrefix(this.schema.tableName, 0);
 
-    // Apply joins
+    // Build FROM clause with alias
+    const fromSql = sql`${this.schema.table} AS ${sql.identifier(mainAlias)}`;
+
+    // Build JOIN clauses with aliased ON conditions
+    const joinParts: SQL[] = [];
     for (const join of joins) {
-      // Get the source column from the main table (no alias needed)
-      const sourceColumn = this.getColumn(this.schema.table, join.conditions[0].sourceCol);
-      if (!sourceColumn) continue;
+      const onConditions = join.conditions.map((c) =>
+        sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
+      );
 
-      // Build ON conditions - source uses direct column reference, target uses alias
-      const onConditions = join.conditions.map((c) => {
-        const srcCol = this.getColumn(this.schema.table, c.sourceCol);
-        if (!srcCol) return sql`1=1`; // Fallback, shouldn't happen
-        return sql`${srcCol} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`;
-      });
       const onCondition = onConditions.length === 1
         ? onConditions[0]
         : sql.join(onConditions, sql` AND `);
 
-      const tableSql = sql`${join.targetTable} AS ${sql.identifier(join.targetAlias)}`;
-      query = applyJoinByType(query, join.type, tableSql, onCondition);
+      const joinSql = buildJoinSql(
+        join.type,
+        join.targetTable,
+        join.targetAlias,
+        onCondition
+      );
+      joinParts.push(joinSql);
     }
 
-    // Apply where
-    if (where) {
-      query = query.where(where);
+    const joinsSql = joinParts.length > 0
+      ? sql` ${sql.join(joinParts, sql` `)}`
+      : sql``;
+
+    // Build WHERE clause
+    const whereSql = where ? sql` WHERE ${where}` : sql``;
+
+    // Build ORDER BY clause with aliases
+    let orderSql = sql``;
+    if (input?.multiOrder && input.multiOrder.length > 0) {
+      const orderBySql = this.buildMultiOrderSqlWithAlias(input.multiOrder, mainAlias);
+      if (orderBySql) {
+        orderSql = sql` ORDER BY ${orderBySql}`;
+      }
+    } else if (input?.order) {
+      const orderBySql = this.buildParsedOrderSqlWithAlias(input.order, mainAlias);
+      if (orderBySql) {
+        orderSql = sql` ORDER BY ${orderBySql}`;
+      }
     }
 
-    // Apply order by
-    if (orderBy.length > 0) {
-      query = query.orderBy(...orderBy);
+    // Build full query with raw SQL
+    const fullQuery = sql`SELECT ${sql.identifier(mainAlias)}.* FROM ${fromSql}${joinsSql}${whereSql}${orderSql} LIMIT ${limit} OFFSET ${offset}`;
+
+    const result = await db.execute(fullQuery);
+
+    // Handle different result formats from db.execute
+    if (Array.isArray(result)) {
+      return result as T["$inferSelect"][];
     }
-
-    // Apply pagination
-    query = query.limit(limit).offset(offset);
-
-    return query as SelectQuery<T>;
+    if (result && typeof result === "object" && "rows" in result) {
+      return (result as { rows: T["$inferSelect"][] }).rows;
+    }
+    return [];
   }
 }
-
-/**
- * Drizzle select query with proper result typing
- */
-type SelectQuery<T extends Table> = Promise<T["$inferSelect"][]> & {
-  where: (condition: SQL) => SelectQuery<T>;
-  orderBy: (...orders: SQL[]) => SelectQuery<T>;
-  limit: (n: number) => SelectQuery<T>;
-  offset: (n: number) => SelectQuery<T>;
-  leftJoin: (table: SQL, on: SQL) => SelectQuery<T>;
-  rightJoin: (table: SQL, on: SQL) => SelectQuery<T>;
-  innerJoin: (table: SQL, on: SQL) => SelectQuery<T>;
-  fullJoin: (table: SQL, on: SQL) => SelectQuery<T>;
-};
 
 /**
  * Create a new query builder from schema

@@ -11,6 +11,7 @@ import { createQueryBuilder } from "./builder.js";
 import { createSchema } from "./schema.js";
 
 // Create schemas using the shared table definitions from setup.ts
+// Note: column names must match the actual PostgreSQL column names (snake_case)
 const usersSchema = createSchema({
   table: users,
   tableName: "users",
@@ -18,8 +19,8 @@ const usersSchema = createSchema({
     id: { column: "id" },
     name: { column: "name" },
     age: { column: "age" },
-    isActive: { column: "isActive" },
-    createdAt: { column: "createdAt" },
+    isActive: { column: "is_active" },
+    createdAt: { column: "created_at" },
   },
 });
 
@@ -378,9 +379,7 @@ describe("SQL Integration Tests with PGlite", () => {
     });
   });
 
-  // NOTE: JOIN queries require aliased column references in WHERE clauses
-  // which needs more complex SQL generation. Skipping for now.
-  describe.skip("JOIN queries (needs aliased WHERE columns)", () => {
+  describe("JOIN queries", () => {
     beforeEach(async () => {
       const db = getDb();
 
