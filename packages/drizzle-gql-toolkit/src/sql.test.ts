@@ -481,4 +481,294 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result).toHaveLength(1);
     });
   });
+
+  describe("Additional WHERE clause operators", () => {
+    beforeEach(async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25, isActive: true },
+        { name: "Bob", age: 30, isActive: false },
+        { name: "Charlie", age: 35, isActive: true },
+        { name: "Diana", age: 40, isActive: false },
+      ]);
+    });
+
+    it("should filter with $notLike operator", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { name: { $notLike: "A%" } },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.every((u) => !u.name.startsWith("A"))).toBe(true);
+    });
+
+    it("should filter with $notILike operator (case-insensitive)", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { name: { $notILike: "a%" } },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.every((u) => !u.name.toLowerCase().startsWith("a"))).toBe(true);
+    });
+
+    it("should apply multiple operators on same field (range query)", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { age: { $gte: 25, $lte: 35 } },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.every((u) => u.age! >= 25 && u.age! <= 35)).toBe(true);
+    });
+
+    it("should filter boolean field with $eq true", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { isActive: { $eq: true } },
+      });
+
+      expect(result).toHaveLength(2);
+      // Raw SQL returns snake_case column name
+      expect(result.every((u) => (u as Record<string, unknown>).is_active === true)).toBe(true);
+    });
+
+    it("should filter boolean field with $eq false", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { isActive: { $eq: false } },
+      });
+
+      expect(result).toHaveLength(2);
+      // Raw SQL returns snake_case column name
+      expect(result.every((u) => (u as Record<string, unknown>).is_active === false)).toBe(true);
+    });
+
+    it("should handle empty $notIn array gracefully", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { name: { $notIn: [] } },
+      });
+
+      // Empty $notIn should be ignored, return all users
+      expect(result).toHaveLength(4);
+    });
+  });
+
+  describe("Deeply nested logical operators", () => {
+    beforeEach(async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25, isActive: true },
+        { name: "Bob", age: 30, isActive: false },
+        { name: "Charlie", age: 35, isActive: true },
+        { name: "Diana", age: 40, isActive: false },
+        { name: "Eve", age: 28, isActive: true },
+      ]);
+    });
+
+    it("should handle deeply nested $and inside $or inside $and", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          $and: [
+            {
+              $or: [
+                { $and: [{ name: { $eq: "Alice" } }, { age: { $eq: 25 } }] },
+                { $and: [{ name: { $eq: "Charlie" } }, { age: { $eq: 35 } }] },
+              ],
+            },
+            { isActive: { $eq: true } },
+          ],
+        },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
+    });
+
+    it("should handle $or with multiple $and branches", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          $or: [
+            { $and: [{ age: { $lt: 30 } }, { isActive: { $eq: true } }] },
+            { $and: [{ age: { $gt: 35 } }, { isActive: { $eq: false } }] },
+          ],
+        },
+      });
+
+      // Alice (25, active), Eve (28, active), Diana (40, inactive)
+      expect(result).toHaveLength(3);
+      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Diana", "Eve"]);
+    });
+  });
+
+  describe("JOIN with different types", () => {
+    it("should return products without translations using LEFT JOIN (null handling)", async () => {
+      const db = getDb();
+
+      // Insert product WITHOUT translation
+      await db.insert(products).values({ handle: "orphan-product", price: 500 });
+
+      // Insert product WITH translation
+      const [productWithTranslation] = await db
+        .insert(products)
+        .values({ handle: "product-with-title", price: 999 })
+        .returning();
+
+      await db.insert(translations).values({
+        entityId: productWithTranslation.id,
+        field: "title",
+        value: "Product Title",
+      });
+
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {});
+
+      // LEFT JOIN should return both products
+      expect(result).toHaveLength(2);
+      expect(result.map((p) => p.handle).sort()).toEqual(["orphan-product", "product-with-title"]);
+    });
+
+    it("should filter with INNER JOIN returning only matching records", async () => {
+      const db = getDb();
+
+      // Create schema with INNER JOIN
+      const productsWithInnerJoinSchema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          handle: { column: "handle" },
+          price: { column: "price" },
+          title: {
+            column: "id",
+            join: {
+              type: "inner",
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+            },
+          },
+        },
+      });
+
+      // Insert product WITHOUT translation
+      await db.insert(products).values({ handle: "orphan-product", price: 500 });
+
+      // Insert product WITH translation
+      const [productWithTranslation] = await db
+        .insert(products)
+        .values({ handle: "product-with-title", price: 999 })
+        .returning();
+
+      await db.insert(translations).values({
+        entityId: productWithTranslation.id,
+        field: "title",
+        value: "Product Title",
+      });
+
+      const qb = createQueryBuilder(productsWithInnerJoinSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $iLike: "%" } },
+      });
+
+      // INNER JOIN should return only product with translation
+      expect(result).toHaveLength(1);
+      expect(result[0].handle).toBe("product-with-title");
+    });
+  });
+
+  describe("JOIN filter operators", () => {
+    beforeEach(async () => {
+      const db = getDb();
+
+      const [product1] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 999 })
+        .returning();
+      const [product2] = await db
+        .insert(products)
+        .values({ handle: "laptop", price: 1999 })
+        .returning();
+      const [product3] = await db
+        .insert(products)
+        .values({ handle: "tablet", price: 599 })
+        .returning();
+
+      await db.insert(translations).values([
+        { entityId: product1.id, field: "title", value: "Smart Phone" },
+        { entityId: product2.id, field: "title", value: "Gaming Laptop" },
+        { entityId: product3.id, field: "title", value: "Android Tablet" },
+      ]);
+    });
+
+    it("should filter through join with $notLike", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $notLike: "%Phone%" } },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((p) => p.handle).sort()).toEqual(["laptop", "tablet"]);
+    });
+
+    it("should filter through join with $notILike", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $notILike: "%phone%" } },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((p) => p.handle).sort()).toEqual(["laptop", "tablet"]);
+    });
+
+    it("should filter through join with $in", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $in: ["Smart Phone", "Gaming Laptop"] } },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((p) => p.handle).sort()).toEqual(["laptop", "phone"]);
+    });
+
+    it("should filter through join with $notIn", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $notIn: ["Smart Phone", "Gaming Laptop"] } },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].handle).toBe("tablet");
+    });
+  });
 });

@@ -3,6 +3,7 @@ import { pgTable, text, integer } from "drizzle-orm/pg-core";
 import {
   OPERATORS,
   buildOperatorCondition,
+  buildOperatorConditionWithAlias,
   isOperator,
   isLogicalOperator,
   isFilterObject,
@@ -223,6 +224,138 @@ describe("buildOperatorCondition", () => {
     it("should handle uppercase operators", () => {
       const result = buildOperatorCondition(column, "$EQ", 25);
       expect(result).not.toBeNull();
+    });
+  });
+});
+
+describe("buildOperatorConditionWithAlias", () => {
+  const tableAlias = "t0_users";
+  const columnName = "age";
+
+  describe("equality operators", () => {
+    it("should build $eq condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$eq", 25);
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $neq condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$neq", 25);
+      expect(result).not.toBeNull();
+    });
+  });
+
+  describe("comparison operators", () => {
+    it("should build $gt condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$gt", 18);
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $gte condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$gte", 18);
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $lt condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$lt", 30);
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $lte condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$lte", 30);
+      expect(result).not.toBeNull();
+    });
+  });
+
+  describe("array operators", () => {
+    it("should build $in condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$in", [1, 2, 3]);
+      expect(result).not.toBeNull();
+    });
+
+    it("should return null for empty $in array", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$in", []);
+      expect(result).toBeNull();
+    });
+
+    it("should build $notIn condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$notIn", [1, 2, 3]);
+      expect(result).not.toBeNull();
+    });
+
+    it("should return null for empty $notIn array", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$notIn", []);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("string operators", () => {
+    const nameColumn = "name";
+
+    it("should build $like condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, nameColumn, "$like", "%test%");
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $iLike condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, nameColumn, "$iLike", "%test%");
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $notLike condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, nameColumn, "$notLike", "%test%");
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $notILike condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, nameColumn, "$notILike", "%test%");
+      expect(result).not.toBeNull();
+    });
+
+    it("should return null for non-string like values", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, nameColumn, "$like", 123);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("null operators", () => {
+    it("should build $is null condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$is", null);
+      expect(result).not.toBeNull();
+    });
+
+    it("should build $isNot null condition with alias", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$isNot", null);
+      expect(result).not.toBeNull();
+    });
+
+    it("should return null for non-null $is value", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$is", "something");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("unknown operators", () => {
+    it("should return null for unknown operators", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$unknown", 1);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("operator normalization", () => {
+    it("should handle operators without $ prefix", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "eq", 25);
+      expect(result).not.toBeNull();
+    });
+
+    it("should handle uppercase operators", () => {
+      const result = buildOperatorConditionWithAlias(tableAlias, columnName, "$EQ", 25);
+      expect(result).not.toBeNull();
+    });
+
+    it("should handle alias variations like nin, nlike, nilike", () => {
+      expect(buildOperatorConditionWithAlias(tableAlias, columnName, "nin", [1, 2])).not.toBeNull();
+      expect(buildOperatorConditionWithAlias(tableAlias, "name", "nlike", "%test%")).not.toBeNull();
+      expect(buildOperatorConditionWithAlias(tableAlias, "name", "nilike", "%test%")).not.toBeNull();
     });
   });
 });

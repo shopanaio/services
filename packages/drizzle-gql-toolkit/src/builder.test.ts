@@ -7,8 +7,8 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { createQueryBuilder } from "./builder.js";
-import { createSchema, tablePrefix } from "./schema.js";
+import { createQueryBuilder, buildJoinConditions } from "./builder.js";
+import { createSchema, tablePrefix, type JoinInfo } from "./schema.js";
 
 // Test tables
 const users = pgTable("users", {
@@ -373,5 +373,135 @@ describe("QueryBuilder", () => {
       const qb = createQueryBuilder(schema);
       expect(qb.getJoins()).toEqual([]);
     });
+
+    it("should collect joins after where clause with join filter", () => {
+      const translationsSchema = createSchema({
+        table: translations,
+        tableName: "translations",
+        fields: {
+          entityId: { column: "entity_id" },
+          value: { column: "value" },
+        },
+      });
+
+      const schema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          title: {
+            column: "id",
+            join: {
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+            },
+          },
+        },
+      });
+
+      const qb = createQueryBuilder(schema);
+      qb.where({ title: { $iLike: "%test%" } });
+
+      const joins = qb.getJoins();
+      expect(joins).toHaveLength(1);
+      expect(joins[0].targetAlias).toBe("t1_translations");
+      expect(joins[0].type).toBe("left");
+      expect(joins[0].conditions).toEqual([
+        { sourceCol: "id", targetCol: "entity_id" },
+      ]);
+    });
+  });
+
+  describe("buildJoinsSql", () => {
+    it("should return empty array when no joins", () => {
+      const schema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: { id: { column: "id" } },
+      });
+
+      const qb = createQueryBuilder(schema);
+      expect(qb.buildJoinsSql()).toEqual([]);
+    });
+
+    it("should build join SQL after collecting joins", () => {
+      const translationsSchema = createSchema({
+        table: translations,
+        tableName: "translations",
+        fields: {
+          entityId: { column: "entity_id" },
+          value: { column: "value" },
+        },
+      });
+
+      const schema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          title: {
+            column: "id",
+            join: {
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+            },
+          },
+        },
+      });
+
+      const qb = createQueryBuilder(schema);
+      qb.where({ title: { $iLike: "%test%" } });
+
+      const joinsSql = qb.buildJoinsSql();
+      expect(joinsSql).toHaveLength(1);
+      // Just verify it returns SQL objects
+      expect(joinsSql[0]).toBeDefined();
+    });
+  });
+});
+
+describe("buildJoinConditions", () => {
+  it("should return empty array for empty joins", () => {
+    const result = buildJoinConditions([]);
+    expect(result).toEqual([]);
+  });
+
+  it("should build join conditions from JoinInfo array", () => {
+    const joins: JoinInfo[] = [
+      {
+        type: "left",
+        sourceAlias: "t0_products",
+        targetTable: translations,
+        targetAlias: "t1_translations",
+        conditions: [{ sourceCol: "id", targetCol: "entity_id" }],
+      },
+    ];
+
+    const result = buildJoinConditions(joins);
+    expect(result).toHaveLength(1);
+    expect(result[0].table).toBeDefined();
+    expect(result[0].on).toBeDefined();
+  });
+
+  it("should handle multiple conditions (composite join)", () => {
+    const joins: JoinInfo[] = [
+      {
+        type: "inner",
+        sourceAlias: "t0_products",
+        targetTable: translations,
+        targetAlias: "t1_translations",
+        conditions: [
+          { sourceCol: "id", targetCol: "entity_id" },
+          { sourceCol: "field_type", targetCol: "field" },
+        ],
+      },
+    ];
+
+    const result = buildJoinConditions(joins);
+    expect(result).toHaveLength(1);
+    // Multiple conditions should be joined with AND
+    expect(result[0].on).toBeDefined();
   });
 });
