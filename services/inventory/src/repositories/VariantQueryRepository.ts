@@ -60,4 +60,26 @@ export class VariantQueryRepository extends BaseRepository {
 
     return results[0] ?? null;
   }
+
+  async getByProductId(productId: string, input?: Omit<QueryInput, "where">) {
+    return this.qb.query(this.connection, {
+      ...input,
+      where: {
+        productId,
+        projectId: this.projectId,
+        deletedAt: { $is: null },
+      },
+    });
+  }
+
+  async countByProductId(productId: string): Promise<number> {
+    const results = await this.qb.query(this.connection, {
+      where: {
+        productId,
+        projectId: this.projectId,
+        deletedAt: { $is: null },
+      },
+    });
+    return results.length;
+  }
 }

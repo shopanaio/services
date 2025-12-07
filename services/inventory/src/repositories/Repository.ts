@@ -12,6 +12,7 @@ import { WarehouseRepository } from "./WarehouseRepository";
 import { TranslationRepository } from "./TranslationRepository";
 import { MediaRepository } from "./MediaRepository";
 import { ProductQueryRepository } from "./ProductQueryRepository";
+import { VariantQueryRepository } from "./VariantQueryRepository";
 
 export class Repository {
   public readonly product: ProductRepository;
@@ -26,6 +27,7 @@ export class Repository {
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
   public readonly productQuery: ProductQueryRepository;
+  public readonly variantQuery: VariantQueryRepository;
 
   private readonly db: Database;
 
@@ -48,6 +50,7 @@ export class Repository {
     this.translation = new TranslationRepository(this.db, this.txManager);
     this.media = new MediaRepository(this.db, this.txManager);
     this.productQuery = new ProductQueryRepository(this.db, this.txManager);
+    this.variantQuery = new VariantQueryRepository(this.db, this.txManager);
   }
 
   async close(): Promise<void> {

@@ -36,6 +36,8 @@ export class ProductQueryRepository extends BaseRepository {
   async getMany(input?: QueryInput): Promise<QueryResult[]> {
     return this.qb.query(this.connection, {
       ...input,
+      // Default order by createdAt desc, id desc for stable pagination
+      order: input?.order ?? ["createdAt:desc", "id:desc"],
       where: {
         ...input?.where,
         projectId: this.projectId,
