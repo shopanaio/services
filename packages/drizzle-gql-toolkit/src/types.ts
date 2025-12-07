@@ -249,3 +249,130 @@ export type GetColumn<
   T extends Table,
   K extends ColumnNames<T>,
 > = T["_"]["columns"][K];
+
+// =============================================================================
+// NESTED PATH TYPES - For type-safe nested field access
+// =============================================================================
+
+/**
+ * Field structure definition for nested paths type generation.
+ * Use `true` for leaf fields, nested object for join relations.
+ *
+ * @example
+ * ```ts
+ * type OrderFieldsDef = {
+ *   id: true;
+ *   status: true;
+ *   items: {
+ *     quantity: true;
+ *     product: {
+ *       sku: true;
+ *       price: true;
+ *       category: {
+ *         slug: true;
+ *       }
+ *     }
+ *   }
+ * };
+ * ```
+ */
+export type FieldsDef = {
+  [key: string]: true | FieldsDef;
+};
+
+/**
+ * Recursively generate all nested paths from a FieldsDef structure.
+ * Produces union of all possible paths like "items.product.category.slug"
+ *
+ * @example
+ * ```ts
+ * type Paths = NestedPaths<{
+ *   id: true;
+ *   items: { quantity: true; product: { sku: true } }
+ * }>;
+ * // Result: "id" | "items" | "items.quantity" | "items.product" | "items.product.sku"
+ * ```
+ */
+export type NestedPaths<T extends FieldsDef, Prefix extends string = ""> = {
+  [K in keyof T & string]: T[K] extends true
+    ? Prefix extends ""
+      ? K
+      : `${Prefix}.${K}`
+    : T[K] extends FieldsDef
+      ?
+          | (Prefix extends "" ? K : `${Prefix}.${K}`)
+          | NestedPaths<T[K], Prefix extends "" ? K : `${Prefix}.${K}`>
+      : never;
+}[keyof T & string];
+
+/**
+ * Generate ORDER BY paths with direction suffix.
+ *
+ * @example
+ * ```ts
+ * type OrderPaths = OrderPath<"id" | "items.product.price">;
+ * // Result: "id" | "id:asc" | "id:desc" | "items.product.price" | "items.product.price:asc" | "items.product.price:desc"
+ * ```
+ */
+export type OrderPath<F extends string> = F | `${F}:${"asc" | "desc"}`;
+
+/**
+ * Nested WhereInput with proper type inference for nested paths.
+ * Supports dot notation paths with proper operator support.
+ */
+export type NestedWhereInput<T extends FieldsDef> = {
+  [K in keyof T & string]?: T[K] extends true
+    ? FilterValue
+    : T[K] extends FieldsDef
+      ? NestedWhereInput<T[K]>
+      : never;
+} & {
+  $and?: NestedWhereInput<T>[];
+  $or?: NestedWhereInput<T>[];
+};
+
+/**
+ * Schema-based Input type with full nested path support.
+ * Provides autocomplete for nested order/select paths.
+ *
+ * @template T - Drizzle table type
+ * @template Fields - FieldsDef structure defining nested schema
+ *
+ * @example
+ * ```ts
+ * // Define field structure
+ * type OrderFields = {
+ *   id: true;
+ *   status: true;
+ *   createdAt: true;
+ *   items: {
+ *     quantity: true;
+ *     product: {
+ *       sku: true;
+ *       price: true;
+ *       category: { slug: true }
+ *     }
+ *   }
+ * };
+ *
+ * // Use in resolver
+ * async orders(input: NestedSchemaInput<typeof orders, OrderFields>) {
+ *   // input.order will autocomplete to:
+ *   // "id:asc" | "items.product.price:desc" | "items.product.category.slug:asc" | ...
+ * }
+ * ```
+ */
+export type NestedSchemaInput<T extends Table, Fields extends FieldsDef> = {
+  /** Offset for pagination */
+  offset?: number;
+  /** Limit for pagination */
+  limit?: number;
+  /** Single order field with nested path support */
+  order?: OrderPath<NestedPaths<Fields>>;
+  /** Multiple order fields with nested path support */
+  multiOrder?: OrderPath<NestedPaths<Fields>>[];
+  /** Fields to select with nested path support */
+  select?: NestedPaths<Fields>[];
+  /** Where filters with nested structure */
+  where?: NestedWhereInput<Fields>;
+};

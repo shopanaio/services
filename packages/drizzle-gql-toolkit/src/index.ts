@@ -22,6 +22,12 @@ export type {
   SchemaInput,
   QueryBuilderConfig,
   GetColumn,
+  // Nested path types
+  FieldsDef,
+  NestedPaths,
+  OrderPath,
+  NestedWhereInput,
+  NestedSchemaInput,
 } from "./types.js";
 
 // Schema

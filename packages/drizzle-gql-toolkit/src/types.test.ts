@@ -583,3 +583,152 @@ describe("Compile-time type checks", () => {
     expect(true).toBe(true);
   });
 });
+
+// ============================================================================
+// Nested Path Types Tests
+// ============================================================================
+
+import type {
+  FieldsDef,
+  NestedPaths,
+  OrderPath,
+  NestedWhereInput,
+  NestedSchemaInput,
+} from "./types.js";
+
+// Define a 4-level nested structure for orders
+type OrderFieldsDef = {
+  id: true;
+  userId: true;
+  status: true;
+  totalAmount: true;
+  currency: true;
+  createdAt: true;
+  items: {
+    id: true;
+    quantity: true;
+    unitPrice: true;
+    product: {
+      id: true;
+      sku: true;
+      price: true;
+      category: {
+        id: true;
+        slug: true;
+        isVisible: true;
+        translation: {
+          name: true;
+          description: true;
+        };
+      };
+    };
+  };
+};
+
+// Test: NestedPaths generates all paths
+type AllOrderPaths = NestedPaths<OrderFieldsDef>;
+
+// Verify specific paths exist
+type _TestTopLevel = Expect<Equal<"id" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel1 = Expect<Equal<"items" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel1Nested = Expect<Equal<"items.quantity" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel2 = Expect<Equal<"items.product" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel2Nested = Expect<Equal<"items.product.sku" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel3 = Expect<Equal<"items.product.category" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel3Nested = Expect<Equal<"items.product.category.slug" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel4 = Expect<Equal<"items.product.category.translation" extends AllOrderPaths ? true : false, true>>;
+type _TestLevel4Nested = Expect<Equal<"items.product.category.translation.name" extends AllOrderPaths ? true : false, true>>;
+
+// Test: OrderPath generates direction suffixes
+type OrderPaths = OrderPath<"id" | "items.product.price">;
+type _TestOrderAsc = Expect<Equal<"id:asc" extends OrderPaths ? true : false, true>>;
+type _TestOrderDesc = Expect<Equal<"items.product.price:desc" extends OrderPaths ? true : false, true>>;
+type _TestOrderPlain = Expect<Equal<"id" extends OrderPaths ? true : false, true>>;
+
+// Test: NestedSchemaInput works with nested structure
+type OrderInput = NestedSchemaInput<typeof orders, OrderFieldsDef>;
+
+// These should compile without errors
+const _validOrderInput: OrderInput = {
+  limit: 10,
+  offset: 0,
+  order: "items.product.price:desc",
+  multiOrder: ["createdAt:desc", "items.product.category.slug:asc"],
+  select: ["id", "status", "items.product.sku", "items.product.category.translation.name"],
+  where: {
+    status: { $eq: "completed" },
+    items: {
+      quantity: { $gte: 1 },
+      product: {
+        price: { $lte: 100 },
+        category: {
+          isVisible: true,
+          translation: {
+            name: { $like: "%electronics%" },
+          },
+        },
+      },
+    },
+  },
+};
+
+// Test: NestedWhereInput allows $and/$or at any level
+const _complexNestedWhere: NestedWhereInput<OrderFieldsDef> = {
+  $and: [
+    { status: { $eq: "completed" } },
+    {
+      $or: [
+        { totalAmount: { $gte: 100 } },
+        {
+          items: {
+            product: {
+              category: {
+                slug: { $in: ["sale", "clearance"] },
+              },
+            },
+          },
+        },
+      ],
+    },
+  ],
+};
+
+// Runtime test to verify types work
+describe("Nested path types", () => {
+  it("should allow nested paths in input objects", () => {
+    const input: OrderInput = {
+      order: "items.product.price:desc",
+      select: ["id", "items.product.sku"],
+      where: {
+        items: {
+          product: {
+            price: { $gte: 0 },
+          },
+        },
+      },
+    };
+
+    expect(input.order).toBe("items.product.price:desc");
+    expect(input.select).toEqual(["id", "items.product.sku"]);
+  });
+
+  it("should allow 4-level deep nested where conditions", () => {
+    const input: OrderInput = {
+      where: {
+        items: {
+          product: {
+            category: {
+              translation: {
+                name: { $like: "%test%" },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    expect(input.where?.items?.product?.category?.translation?.name).toEqual({
+      $like: "%test%",
+    });
+  });
+});

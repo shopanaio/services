@@ -641,8 +641,187 @@ export class QueryBuilder<T extends Table, F extends string = string> {
     // Build WHERE clause
     const whereSql = where ? sql`WHERE ${where}` : sql``;
 
+    // Build ORDER BY clause
+    let orderSql = sql``;
+    if (input?.multiOrder && input.multiOrder.length > 0) {
+      const orderBySql = this.buildOrderBySqlWithJoins(input.multiOrder);
+      if (orderBySql) {
+        orderSql = sql` ORDER BY ${orderBySql}`;
+      }
+    } else if (input?.order) {
+      const orderBySql = this.buildOrderBySqlWithJoins([input.order]);
+      if (orderBySql) {
+        orderSql = sql` ORDER BY ${orderBySql}`;
+      }
+    }
+
+    // Build SELECT clause with nested field support
+    const selectSql = this.buildSelectFieldsSql(input?.select as string[] | undefined, tableAlias);
+
     // Build full query
-    return sql`SELECT ${sql.identifier(tableAlias)}.* FROM ${fromSql} ${joinsSql} ${whereSql} LIMIT ${limit} OFFSET ${offset}`;
+    return sql`SELECT ${selectSql} FROM ${fromSql} ${joinsSql}${whereSql}${orderSql} LIMIT ${limit} OFFSET ${offset}`;
+  }
+
+  /**
+   * Build SELECT fields SQL supporting nested fields (e.g., "items.product.price")
+   * Returns "t0.*" if no fields specified, otherwise returns comma-separated field list
+   */
+  private buildSelectFieldsSql(
+    fields: string[] | undefined,
+    defaultTableAlias: string
+  ): SQL {
+    if (!fields || fields.length === 0) {
+      return sql`${sql.identifier(defaultTableAlias)}.*`;
+    }
+
+    const selectParts: SQL[] = [];
+
+    for (const field of fields) {
+      const parts = field.split(".");
+      const fieldSql = this.resolveSelectField(parts, this.schema, 0);
+      if (fieldSql) {
+        selectParts.push(fieldSql);
+      }
+    }
+
+    if (selectParts.length === 0) {
+      return sql`${sql.identifier(defaultTableAlias)}.*`;
+    }
+
+    return sql.join(selectParts, sql`, `);
+  }
+
+  /**
+   * Resolve select field path to SQL with correct table alias
+   * Returns "alias"."column" AS "fieldPath"
+   */
+  private resolveSelectField(
+    parts: string[],
+    schema: ObjectSchema,
+    depth: number
+  ): SQL | undefined {
+    if (parts.length === 0) return undefined;
+
+    const [fieldName, ...rest] = parts;
+    const fieldConfig = schema.getField(fieldName);
+
+    if (!fieldConfig) {
+      // Direct column on current table
+      const tableAlias = tablePrefix(schema.tableName, depth);
+      const alias = parts.length > 1 ? parts.join("_") : fieldName;
+      return sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldName)} AS ${sql.identifier(alias)}`;
+    }
+
+    if (fieldConfig.join && rest.length > 0) {
+      // Nested field - recurse into join
+      const childSchema = fieldConfig.join.schema();
+      return this.resolveSelectField(rest, childSchema, depth + 1);
+    }
+
+    // Field on current table
+    const tableAlias = tablePrefix(schema.tableName, depth);
+    const columnName = fieldConfig.column;
+
+    if (fieldConfig.join && fieldConfig.join.select && fieldConfig.join.select.length > 0) {
+      // Field with select - use child table alias and first select field
+      const childSchema = fieldConfig.join.schema();
+      const childAlias = tablePrefix(childSchema.tableName, depth + 1);
+      const selectField = fieldConfig.join.select[0];
+      const selectFieldConfig = childSchema.getField(selectField);
+      const selectColumnName = selectFieldConfig?.column ?? selectField;
+      return sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)} AS ${sql.identifier(fieldName)}`;
+    }
+
+    // Simple field - use field name as alias if different from column
+    if (columnName !== fieldName) {
+      return sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)} AS ${sql.identifier(fieldName)}`;
+    }
+    return sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)}`;
+  }
+
+  /**
+   * Build ORDER BY SQL supporting nested fields (e.g., "items.product.price:desc")
+   */
+  private buildOrderBySqlWithJoins(orders: string[]): SQL | undefined {
+    if (!orders || orders.length === 0) return undefined;
+
+    const orderParts: SQL[] = [];
+
+    for (const order of orders) {
+      // Parse "field:direction" format
+      let fieldPath: string;
+      let direction: OrderDirection = "asc";
+
+      const colonMatch = order.match(/^(.+):(asc|desc)$/i);
+      if (colonMatch) {
+        fieldPath = colonMatch[1];
+        direction = colonMatch[2].toLowerCase() as OrderDirection;
+      } else {
+        const suffixMatch = order.match(/^(.+?)(ASC|DESC)$/);
+        if (suffixMatch) {
+          fieldPath = suffixMatch[1];
+          direction = suffixMatch[2].toLowerCase() as OrderDirection;
+        } else {
+          fieldPath = order;
+        }
+      }
+
+      // Parse nested path (e.g., "items.product.category.slug")
+      const parts = fieldPath.split(".");
+      const orderSql = this.resolveOrderField(parts, this.schema, 0, direction);
+      if (orderSql) {
+        orderParts.push(orderSql);
+      }
+    }
+
+    if (orderParts.length === 0) return undefined;
+    return sql.join(orderParts, sql`, `);
+  }
+
+  /**
+   * Resolve order field path to SQL with correct table alias
+   */
+  private resolveOrderField(
+    parts: string[],
+    schema: ObjectSchema,
+    depth: number,
+    direction: OrderDirection
+  ): SQL | undefined {
+    if (parts.length === 0) return undefined;
+
+    const [fieldName, ...rest] = parts;
+    const fieldConfig = schema.getField(fieldName);
+
+    if (!fieldConfig) {
+      // Direct column on current table
+      const tableAlias = tablePrefix(schema.tableName, depth);
+      const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
+      return sql`${sql.identifier(tableAlias)}.${sql.identifier(fieldName)} ${dirSql}`;
+    }
+
+    if (fieldConfig.join && rest.length > 0) {
+      // Nested field - recurse into join
+      const childSchema = fieldConfig.join.schema();
+      return this.resolveOrderField(rest, childSchema, depth + 1, direction);
+    }
+
+    // Field on current table (possibly with join for select)
+    const tableAlias = tablePrefix(schema.tableName, depth);
+    const columnName = fieldConfig.column;
+
+    if (fieldConfig.join && fieldConfig.join.select && fieldConfig.join.select.length > 0) {
+      // Field with select - use child table alias and first select field
+      const childSchema = fieldConfig.join.schema();
+      const childAlias = tablePrefix(childSchema.tableName, depth + 1);
+      const selectField = fieldConfig.join.select[0];
+      const selectFieldConfig = childSchema.getField(selectField);
+      const selectColumnName = selectFieldConfig?.column ?? selectField;
+      const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
+      return sql`${sql.identifier(childAlias)}.${sql.identifier(selectColumnName)} ${dirSql}`;
+    }
+
+    const dirSql = direction === "desc" ? sql`DESC` : sql`ASC`;
+    return sql`${sql.identifier(tableAlias)}.${sql.identifier(columnName)} ${dirSql}`;
   }
 
   /**
