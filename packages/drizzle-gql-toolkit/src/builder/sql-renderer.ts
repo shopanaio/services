@@ -1,4 +1,4 @@
-import { Table, and, eq, sql, type SQL } from "drizzle-orm";
+import { and, eq, sql, type SQL, type Table } from "drizzle-orm";
 import {
   ObjectSchema,
   tablePrefix,
@@ -15,6 +15,13 @@ const JOIN_KEYWORDS = {
   full: "FULL JOIN",
 } as const;
 
+// Drizzle ORM symbols for accessing table metadata
+const TableSymbols = {
+  Name: Symbol.for("drizzle:Name"),
+  OriginalName: Symbol.for("drizzle:OriginalName"),
+  Schema: Symbol.for("drizzle:Schema"),
+} as const;
+
 const ALIASED_TABLE_SQL_CACHE = new WeakMap<AliasedTable, SQL>();
 
 export function formatAliasedTableReference(targetAliased: AliasedTable): SQL {
@@ -23,11 +30,10 @@ export function formatAliasedTableReference(targetAliased: AliasedTable): SQL {
     return cached;
   }
 
-  const alias = targetAliased[Table.Symbol.Name];
-  const originalName =
-    targetAliased[Table.Symbol.OriginalName] ??
-    targetAliased[Table.Symbol.Name];
-  const schemaName = targetAliased[Table.Symbol.Schema];
+  const tableAny = targetAliased as unknown as Record<symbol, string | undefined>;
+  const alias = tableAny[TableSymbols.Name] ?? "";
+  const originalName = tableAny[TableSymbols.OriginalName] ?? alias;
+  const schemaName = tableAny[TableSymbols.Schema];
 
   const tableIdentifier = schemaName
     ? sql`${sql.identifier(schemaName)}.${sql.identifier(originalName)}`
@@ -159,7 +165,8 @@ export class SqlRenderer<
 
       const onCondition = conditionParts.length === 1
         ? conditionParts[0]
-        : and(...conditionParts);
+        // and() returns undefined only for empty arrays, but we know length > 1 here
+        : and(...conditionParts)!;
 
       clauses.push(buildJoinSql(join.type, join.targetTable, onCondition));
     }

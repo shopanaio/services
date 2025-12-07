@@ -99,11 +99,13 @@ export class WhereBuilder<
           if (nestedConditions.length === 1) {
             orConditions.push(nestedConditions[0]);
           } else if (nestedConditions.length > 1) {
-            orConditions.push(and(...nestedConditions));
+            // and() returns undefined only for empty arrays, but we know length > 1 here
+            orConditions.push(and(...nestedConditions)!);
           }
         }
         if (orConditions.length > 0) {
-          conditions.push(or(...orConditions));
+          // or() returns undefined only for empty arrays, but we know length > 0 here
+          conditions.push(or(...orConditions)!);
         }
         continue;
       }

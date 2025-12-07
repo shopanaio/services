@@ -58,7 +58,8 @@ export function applyJoins<Q extends JoinableQuery>(
 
     const onCondition = conditionParts.length === 1
       ? conditionParts[0]
-      : and(...conditionParts);
+      // and() returns undefined only for empty arrays, but we know length > 1 here
+      : and(...conditionParts)!;
 
     const tableSql = formatAliasedTableReference(join.targetTable);
     result = applyJoinByType(result, join.type, tableSql, onCondition);
@@ -79,7 +80,8 @@ export function buildJoinConditions(
 
     const onCondition = conditionParts.length === 1
       ? conditionParts[0]
-      : and(...conditionParts);
+      // and() returns undefined only for empty arrays, but we know length > 1 here
+      : and(...conditionParts)!;
 
     return {
       table: formatAliasedTableReference(join.targetTable),

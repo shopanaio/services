@@ -383,8 +383,8 @@ describe("buildJoinConditions", () => {
     const joins: JoinInfo[] = [
       {
         type: "left",
-        sourceTable: sourceAliased as AliasedTable,
-        targetTable: targetAliased as AliasedTable,
+        sourceTable: sourceAliased as unknown as AliasedTable,
+        targetTable: targetAliased as unknown as AliasedTable,
         conditions: [{ sourceCol: "id", targetCol: "entity_id" }],
       },
     ];
@@ -403,8 +403,8 @@ describe("buildJoinConditions", () => {
     const joins: JoinInfo[] = [
       {
         type: "inner",
-        sourceTable: sourceAliased as AliasedTable,
-        targetTable: targetAliased as AliasedTable,
+        sourceTable: sourceAliased as unknown as AliasedTable,
+        targetTable: targetAliased as unknown as AliasedTable,
         conditions: [
           { sourceCol: "id", targetCol: "entity_id" },
           { sourceCol: "field_type", targetCol: "field" },

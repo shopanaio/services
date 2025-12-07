@@ -14,10 +14,20 @@ import { OrderBuilder } from "./order-builder.js";
 import { SqlRenderer } from "./sql-renderer.js";
 import { WhereBuilder, type WhereResult } from "./where-builder.js";
 
-const DEFAULT_CONFIG: Required<QueryBuilderConfig> = {
+type ResolvedConfig = {
+  maxLimit: number;
+  defaultLimit: number;
+  maxJoinDepth: number;
+  debug: boolean;
+  logger: ((message: string, data?: unknown) => void) | undefined;
+};
+
+const DEFAULT_CONFIG: ResolvedConfig = {
   maxLimit: 100,
   defaultLimit: 20,
   maxJoinDepth: 5,
+  debug: false,
+  logger: undefined,
 };
 
 export type TypedInput<Fields extends FieldsDef> = {
@@ -46,7 +56,7 @@ export class QueryBuilder<
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
 > {
-  private readonly config: Required<QueryBuilderConfig>;
+  private readonly config: ResolvedConfig;
 
   constructor(
     private readonly schema: ObjectSchema<T, F, Fields>,
