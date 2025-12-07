@@ -13,6 +13,7 @@ import {
   notInArray,
   isNull,
   isNotNull,
+  sql,
   type SQL,
   type Column,
 } from "drizzle-orm";
@@ -38,6 +39,59 @@ export const OPERATORS = {
 } as const;
 
 export type OperatorKey = keyof typeof OPERATORS;
+
+type OperatorHandler = (column: Column, value: unknown) => SQL | null;
+
+const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
+  eq: (column, value) => eq(column, value),
+  neq: (column, value) => ne(column, value),
+  noteq: (column, value) => ne(column, value),
+  gt: (column, value) => gt(column, value),
+  gte: (column, value) => gte(column, value),
+  lt: (column, value) => lt(column, value),
+  lte: (column, value) => lte(column, value),
+  in: (column, value) => {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+    if (value.length === 0) {
+      return sql`FALSE`;
+    }
+    return inArray(column, value);
+  },
+  notin: (column, value) => {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+    if (value.length === 0) {
+      return sql`TRUE`;
+    }
+    return notInArray(column, value);
+  },
+  nin: (column, value) => {
+    if (!Array.isArray(value)) {
+      return null;
+    }
+    if (value.length === 0) {
+      return sql`TRUE`;
+    }
+    return notInArray(column, value);
+  },
+  like: (column, value) =>
+    typeof value === "string" ? like(column, value) : null,
+  ilike: (column, value) =>
+    typeof value === "string" ? ilike(column, value) : null,
+  notlike: (column, value) =>
+    typeof value === "string" ? notLike(column, value) : null,
+  nlike: (column, value) =>
+    typeof value === "string" ? notLike(column, value) : null,
+  notilike: (column, value) =>
+    typeof value === "string" ? notIlike(column, value) : null,
+  nilike: (column, value) =>
+    typeof value === "string" ? notIlike(column, value) : null,
+  is: (column, value) => (value === null ? isNull(column) : null),
+  isnot: (column, value) => (value === null ? isNotNull(column) : null),
+} as const;
 
 /**
  * Check if a key is an operator (starts with $)
@@ -67,82 +121,8 @@ export function buildOperatorCondition(
     ? operator.slice(1).toLowerCase()
     : operator.toLowerCase();
 
-  switch (op) {
-    case "eq":
-      return eq(column, value);
-
-    case "neq":
-    case "noteq":
-      return ne(column, value);
-
-    case "gt":
-      return gt(column, value);
-
-    case "gte":
-      return gte(column, value);
-
-    case "lt":
-      return lt(column, value);
-
-    case "lte":
-      return lte(column, value);
-
-    case "in":
-      if (Array.isArray(value) && value.length > 0) {
-        return inArray(column, value);
-      }
-      return null;
-
-    case "notin":
-    case "nin":
-      if (Array.isArray(value) && value.length > 0) {
-        return notInArray(column, value);
-      }
-      return null;
-
-    case "like":
-      if (typeof value === "string") {
-        return like(column, value);
-      }
-      return null;
-
-    case "ilike":
-      if (typeof value === "string") {
-        return ilike(column, value);
-      }
-      return null;
-
-    case "notlike":
-    case "nlike":
-      if (typeof value === "string") {
-        return notLike(column, value);
-      }
-      return null;
-
-    case "notilike":
-    case "nilike":
-      if (typeof value === "string") {
-        return notIlike(column, value);
-      }
-      return null;
-
-    case "is":
-      // $is: null -> IS NULL
-      if (value === null) {
-        return isNull(column);
-      }
-      return null;
-
-    case "isnot":
-      // $isNot: null -> IS NOT NULL
-      if (value === null) {
-        return isNotNull(column);
-      }
-      return null;
-
-    default:
-      return null;
-  }
+  const handler = OPERATOR_HANDLERS[op];
+  return handler ? handler(column, value) : null;
 }
 
 /**
@@ -157,3 +137,42 @@ export function isFilterObject(obj: unknown): obj is Record<string, unknown> {
   return keys.length > 0 && keys.every((k) => k.startsWith("$"));
 }
 
+export function validateFilterValue(
+  operator: string,
+  value: unknown
+): { valid: boolean; reason?: string } {
+  const op = operator.startsWith("$")
+    ? operator.slice(1).toLowerCase()
+    : operator.toLowerCase();
+
+  switch (op) {
+    case "like":
+    case "ilike":
+    case "notlike":
+    case "nlike":
+    case "notilike":
+    case "nilike":
+      if (typeof value !== "string") {
+        return { valid: false, reason: "Expected string value" };
+      }
+      if (value.length > 1000) {
+        return { valid: false, reason: "Pattern is too long" };
+      }
+      return { valid: true };
+    case "in":
+    case "notin":
+    case "nin":
+      if (!Array.isArray(value)) {
+        return { valid: false, reason: "Expected array value" };
+      }
+      return { valid: true };
+    case "is":
+    case "isnot":
+      if (value !== null) {
+        return { valid: false, reason: "Only null is supported" };
+      }
+      return { valid: true };
+    default:
+      return { valid: true };
+  }
+}

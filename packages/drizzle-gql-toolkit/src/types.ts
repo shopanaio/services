@@ -1,4 +1,4 @@
-import type { Table } from "drizzle-orm";
+import type { SQL, Table } from "drizzle-orm";
 
 /**
  * Extract column names from a Drizzle table
@@ -20,57 +20,6 @@ export type IsColumnNullable<
   T extends Table,
   K extends ColumnNames<T>,
 > = T["_"]["columns"][K]["_"]["notNull"] extends true ? false : true;
-
-/**
- * WhereInputV3 - Dynamic filter format matching goqutil.WhereInputV3
- *
- * Format:
- * ```json
- * {
- *   "$and": [ {...}, {...} ],
- *   "$or":  [ {...}, {...} ],
- *   "field": { "$eq": 1, "$gt": 2 },
- *   "field2": "value",  // shorthand for { "$eq": "value" }
- *   "relation": {
- *     "nestedField": { "$eq": "value" }
- *   }
- * }
- * ```
- *
- * Supported operators:
- * - $eq, $neq - equality
- * - $gt, $gte, $lt, $lte - comparison
- * - $in, $notIn - array membership
- * - $like, $iLike, $notLike, $notILike - pattern matching
- * - $is, $isNot - null checks
- * - $and, $or - logical operators
- */
-export type WhereInputV3 = {
-  [key: string]: unknown;
-};
-
-/**
- * Typed WhereInput for a table (based on table columns)
- * @deprecated Use SchemaWhereInput for schema-based filtering
- */
-export type WhereInput<T extends Table> = {
-  [K in ColumnNames<T>]?: NestedFilterValue;
-} & {
-  $and?: WhereInput<T>[];
-  $or?: WhereInput<T>[];
-};
-
-/**
- * Schema-based WhereInput
- * Provides autocomplete for schema field names (including virtual join fields)
- * Supports nested objects for join fields
- */
-export type SchemaWhereInput<F extends string> = {
-  [K in F]?: NestedFilterValue;
-} & {
-  $and?: SchemaWhereInput<F>[];
-  $or?: SchemaWhereInput<F>[];
-};
 
 /**
  * Scalar value types supported in filters
@@ -99,20 +48,9 @@ export type FilterOperators<T = ScalarValue> = {
 };
 
 /**
- * Filter value can be:
- * - A direct scalar value (shorthand for $eq)
- * - An object with operators { $eq: value, $gt: value, ... }
+ * Filter value can be scalar or operator object
  */
 export type FilterValue = ScalarValue | FilterOperators;
-
-/**
- * Nested filter value - includes support for nested objects (join fields)
- * Used in SchemaWhereInput where we don't know which fields are joins
- */
-export type NestedFilterValue =
-  | ScalarValue
-  | FilterOperators
-  | { [key: string]: NestedFilterValue };
 
 /**
  * Order direction
@@ -165,81 +103,6 @@ export type ResolvedPagination = {
 };
 
 /**
- * Selection input - which columns to select
- */
-export type SelectionInput<T extends Table> = ColumnNames<T>[];
-
-/**
- * Full query input combining all options
- * Analogous to goqutil.QueryInput
- */
-export type QueryInput<T extends Table> = {
-  where?: WhereInput<T>;
-  orderBy?: OrderByInput<T> | OrderInput<T>;
-  pagination?: PaginationInput;
-  select?: SelectionInput<T>;
-};
-
-/**
- * Input type matching goqutil.Input structure (table-based)
- * @deprecated Use SchemaInput for schema-based input
- */
-export type Input<T extends Table> = {
-  /** Offset for pagination */
-  offset?: number;
-  /** Limit for pagination */
-  limit?: number;
-  /** Order fields (e.g., ["createdAt:desc", "name:asc"]) */
-  order?: string[];
-  /** Fields to select */
-  select?: ColumnNames<T>[];
-  /** Where filters */
-  where?: WhereInput<T>;
-};
-
-/**
- * Schema-based Input type
- * Used for API/GraphQL input parsing with full schema field support
- *
- * @template T - Drizzle table type
- * @template F - Schema field names (union of string literals)
- *
- * @example
- * ```ts
- * // GraphQL resolver with typed schema fields
- * async products(input: SchemaInput<typeof product, "id" | "handle" | "title">) {
- *   const qb = createQueryBuilder(productSchema);
- *   const { where, orderBy, limit, offset } = qb.fromInput(input);
- *   return qb.query(db, input);
- * }
- * ```
- */
-export type SchemaInput<T extends Table, F extends string> = {
-  /** Offset for pagination */
-  offset?: number;
-  /** Limit for pagination */
-  limit?: number;
-  /** Order fields (e.g., ["createdAt:desc", "items.price:asc"]) - supports nested paths */
-  order?: (`${F}:${"asc" | "desc"}` | F | (string & {}))[];
-  /** Fields to select - supports nested paths like "items.product.sku" */
-  select?: (F | (string & {}))[];
-  /** Where filters */
-  where?: SchemaWhereInput<F>;
-};
-
-/**
- * Generic Input type for custom where types
- * Analogous to goqutil.InputG[T]
- */
-export type InputG<T extends Table, W = WhereInput<T>> = {
-  offset?: number;
-  limit?: number;
-  order?: string[];
-  select?: ColumnNames<T>[];
-  where?: W;
-};
-
-/**
  * Query builder configuration
  */
 export type QueryBuilderConfig = {
@@ -247,7 +110,20 @@ export type QueryBuilderConfig = {
   maxLimit?: number;
   /** Default limit when none specified */
   defaultLimit?: number;
+  /** Maximum depth for auto-generated joins */
+  maxJoinDepth?: number;
+  /** Enable verbose logging */
+  debug?: boolean;
+  /** Custom logger for debug output */
+  logger?: (message: string, data?: unknown) => void;
 };
+
+/**
+ * Minimal executor interface compatible with drizzle databases
+ */
+export interface DrizzleExecutor<T extends Table = Table> {
+  execute<TResult = T["$inferSelect"]>(query: SQL): Promise<TResult[]>;
+}
 
 /**
  * Helper type to get column from table by name

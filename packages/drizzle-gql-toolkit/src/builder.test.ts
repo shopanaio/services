@@ -160,9 +160,9 @@ describe("QueryBuilder", () => {
 
       const qb = createQueryBuilder(schema);
 
-      expect(qb.where(null)).toBeUndefined();
-      expect(qb.where(undefined)).toBeUndefined();
-      expect(qb.where({})).toBeUndefined();
+      expect(qb.where(null)).toEqual({ sql: undefined, joins: [] });
+      expect(qb.where(undefined)).toEqual({ sql: undefined, joins: [] });
+      expect(qb.where({})).toEqual({ sql: undefined, joins: [] });
     });
   });
 
@@ -179,53 +179,7 @@ describe("QueryBuilder", () => {
       const qb = createQueryBuilder(schema);
       const where = qb.where({ name: { $eq: "Alice" } });
 
-      expect(where).toBeDefined();
-    });
-  });
-
-  describe("orderBy", () => {
-    it("should return empty array for null/undefined", () => {
-      const schema = createSchema({
-        table: users,
-        tableName: "users",
-        fields: { name: { column: "name" } },
-      });
-
-      const qb = createQueryBuilder(schema);
-
-      expect(qb.orderBy(null)).toEqual([]);
-      expect(qb.orderBy(undefined)).toEqual([]);
-    });
-  });
-
-  describe("parseOrder", () => {
-    it("should return empty for null/undefined", () => {
-      const schema = createSchema({
-        table: users,
-        tableName: "users",
-        fields: { name: { column: "name" } },
-      });
-
-      const qb = createQueryBuilder(schema);
-
-      expect(qb.parseOrder(null)).toEqual([]);
-      expect(qb.parseOrder(undefined)).toEqual([]);
-    });
-  });
-
-  describe("parseMultiOrder", () => {
-    it("should return empty for null/undefined/empty array", () => {
-      const schema = createSchema({
-        table: users,
-        tableName: "users",
-        fields: { name: { column: "name" } },
-      });
-
-      const qb = createQueryBuilder(schema);
-
-      expect(qb.parseMultiOrder(null)).toEqual([]);
-      expect(qb.parseMultiOrder(undefined)).toEqual([]);
-      expect(qb.parseMultiOrder([])).toEqual([]);
+      expect(where.sql).toBeDefined();
     });
   });
 
@@ -298,22 +252,6 @@ describe("QueryBuilder", () => {
     });
   });
 
-  describe("select", () => {
-    it("should return undefined for empty selection", () => {
-      const schema = createSchema({
-        table: users,
-        tableName: "users",
-        fields: { name: { column: "name" } },
-      });
-
-      const qb = createQueryBuilder(schema);
-
-      expect(qb.select(null)).toBeUndefined();
-      expect(qb.select(undefined)).toBeUndefined();
-      expect(qb.select([])).toBeUndefined();
-    });
-  });
-
   describe("fromInput", () => {
     it("should return defaults for null input", () => {
       const schema = createSchema({
@@ -327,10 +265,9 @@ describe("QueryBuilder", () => {
 
       expect(result.where).toBeUndefined();
       expect(result.joins).toEqual([]);
-      expect(result.orderBy).toEqual([]);
+      expect(result.orderSql).toBeUndefined();
       expect(result.limit).toBe(20);
       expect(result.offset).toBe(0);
-      expect(result.select).toBeUndefined();
     });
 
     it("should return defaults for undefined input", () => {
@@ -362,19 +299,8 @@ describe("QueryBuilder", () => {
     });
   });
 
-  describe("getJoins", () => {
-    it("should return empty array initially", () => {
-      const schema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: { id: { column: "id" } },
-      });
-
-      const qb = createQueryBuilder(schema);
-      expect(qb.getJoins()).toEqual([]);
-    });
-
-    it("should collect joins after where clause with nested filter", () => {
+  describe("join collection", () => {
+    it("should collect joins when nested filters are used", () => {
       const translationsSchema = createSchema({
         table: translations,
         tableName: "translations",
@@ -400,20 +326,15 @@ describe("QueryBuilder", () => {
       });
 
       const qb = createQueryBuilder(schema);
-      // Using nested path adds the join
-      qb.where({ translation: { value: { $iLike: "%test%" } } });
+      const whereResult = qb.where({ translation: { value: { $iLike: "%test%" } } });
 
-      const joins = qb.getJoins();
-      expect(joins).toHaveLength(1);
-      expect(joins[0].sourceTable).toBeDefined();
-      expect(joins[0].targetTable).toBeDefined();
-      expect(joins[0].type).toBe("left");
-      expect(joins[0].conditions).toEqual([
+      expect(whereResult.joins).toHaveLength(1);
+      expect(whereResult.joins[0].conditions).toEqual([
         { sourceCol: "id", targetCol: "entity_id" },
       ]);
     });
 
-    it("should NOT collect joins when no nested fields are used", () => {
+    it("should not collect joins without nested filters", () => {
       const translationsSchema = createSchema({
         table: translations,
         tableName: "translations",
@@ -439,61 +360,13 @@ describe("QueryBuilder", () => {
       });
 
       const qb = createQueryBuilder(schema);
-      // No nested path - no join
-      qb.where({ id: { $eq: "123" } });
+      const whereResult = qb.where({ id: { $eq: "123" } });
 
-      const joins = qb.getJoins();
-      expect(joins).toHaveLength(0);
+      expect(whereResult.joins).toHaveLength(0);
     });
   });
 
-  describe("buildJoinsSql", () => {
-    it("should return empty array when no joins", () => {
-      const schema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: { id: { column: "id" } },
-      });
-
-      const qb = createQueryBuilder(schema);
-      expect(qb.buildJoinsSql()).toEqual([]);
-    });
-
-    it("should build join SQL after collecting joins", () => {
-      const translationsSchema = createSchema({
-        table: translations,
-        tableName: "translations",
-        fields: {
-          entityId: { column: "entity_id" },
-          value: { column: "value" },
-        },
-      });
-
-      const schema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: {
-          id: { column: "id" },
-          translation: {
-            column: "id",
-            join: {
-              schema: () => translationsSchema,
-              column: "entityId",
-            },
-          },
-        },
-      });
-
-      const qb = createQueryBuilder(schema);
-      // Using nested path adds the join
-      qb.where({ translation: { value: { $iLike: "%test%" } } });
-
-      const joinsSql = qb.buildJoinsSql();
-      expect(joinsSql).toHaveLength(1);
-      // Just verify it returns SQL objects
-      expect(joinsSql[0]).toBeDefined();
-    });
-  });
+  // Deprecated APIs removed in refactor; pagination tests kept below.
 });
 
 describe("buildJoinConditions", () => {

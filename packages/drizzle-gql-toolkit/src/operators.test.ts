@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { pgTable, text, integer } from "drizzle-orm/pg-core";
+import {
+  PgDialect,
+  pgTable,
+  text,
+  integer,
+  boolean,
+} from "drizzle-orm/pg-core";
 import {
   OPERATORS,
   buildOperatorCondition,
@@ -9,9 +15,12 @@ import {
 } from "./operators.js";
 
 const testTable = pgTable("test", {
+  id: integer("id").primaryKey(),
   name: text("name"),
   age: integer("age"),
+  isActive: boolean("is_active"),
 });
+const dialect = new PgDialect();
 
 describe("OPERATORS", () => {
   it("should have all expected operators", () => {
@@ -135,14 +144,23 @@ describe("buildOperatorCondition", () => {
       expect(result).not.toBeNull();
     });
 
-    it("should return null for empty $in array", () => {
+    it("should return FALSE for empty $in array", () => {
       const result = buildOperatorCondition(column, "$in", []);
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      const query = dialect.sqlToQuery(result!);
+      expect(query.sql.trim()).toBe("FALSE");
     });
 
     it("should build $notIn condition", () => {
       const result = buildOperatorCondition(column, "$notIn", [1, 2, 3]);
       expect(result).not.toBeNull();
+    });
+
+    it("should return TRUE for empty $notIn array", () => {
+      const result = buildOperatorCondition(column, "$notIn", []);
+      expect(result).not.toBeNull();
+      const query = dialect.sqlToQuery(result!);
+      expect(query.sql.trim()).toBe("TRUE");
     });
 
     it("should handle nin alias", () => {
@@ -226,4 +244,3 @@ describe("buildOperatorCondition", () => {
     });
   });
 });
-

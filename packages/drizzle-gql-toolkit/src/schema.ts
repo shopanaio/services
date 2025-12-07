@@ -1,5 +1,6 @@
 import type { Table, Column } from "drizzle-orm";
 import type { FieldsDef, InferFieldsDef, SchemaWithFields } from "./types.js";
+import { UnknownFieldError } from "./errors.js";
 
 /**
  * Aliased table type - a table with columns accessible by name
@@ -74,6 +75,8 @@ export class ObjectSchema<
   readonly fieldNames: F[];
   readonly defaultFields: F[];
   readonly defaultOrder: F[];
+  readonly cacheKey: string;
+  private readonly pathCache = new Map<string, FieldConfig[]>();
 
   /**
    * Type-level field structure for nested path inference.
@@ -81,13 +84,14 @@ export class ObjectSchema<
    */
   declare readonly __fields: Fields;
 
-  constructor(config: SchemaConfig<T, F>) {
+  constructor(config: SchemaConfig<T, F>, cacheKey: string) {
     this.table = config.table;
     this.tableName = config.tableName;
     this.fields = new Map(Object.entries(config.fields));
     this.fieldNames = Object.keys(config.fields) as F[];
     this.defaultFields = config.defaultFields ?? [];
     this.defaultOrder = config.defaultOrder ?? [];
+    this.cacheKey = cacheKey;
   }
 
   /**
@@ -121,6 +125,58 @@ export class ObjectSchema<
 
     return join.schema();
   }
+
+  resolveFieldPath(path: string): FieldConfig[] {
+    const cached = this.pathCache.get(path);
+    if (cached) {
+      return cached;
+    }
+
+    const segments = path.split(".");
+    const configs: FieldConfig[] = [];
+    let currentSchema: ObjectSchema = this;
+
+    for (const segment of segments) {
+      const field = currentSchema.getField(segment);
+      if (!field) {
+        throw new UnknownFieldError(segment);
+      }
+
+      configs.push(field);
+
+      if (field.join) {
+        currentSchema = field.join.schema();
+      }
+    }
+
+    this.pathCache.set(path, configs);
+    return configs;
+  }
+}
+
+const schemaCache = new WeakMap<Table, Map<string, ObjectSchema>>();
+
+function getSchemaCacheKey(
+  fields: Record<string, FieldConfig>,
+  tableName: string
+): string {
+  const normalized = Object.entries(fields)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, field]) => {
+      if (!field.join) {
+        return `${name}:${field.column}:field`;
+      }
+      const targetSchema = field.join.schema();
+      const compositeKey = field.join.composite
+        ? field.join.composite
+            .map((c) => `${c.field}:${c.column}`)
+            .sort()
+            .join("|")
+        : "";
+      const targetKey = targetSchema.cacheKey ?? targetSchema.tableName;
+      return `${name}:${field.column}:join:${field.join.type ?? "left"}:${field.join.column}:${targetKey}:${compositeKey}`;
+    });
+  return `${tableName}|${normalized.join(",")}`;
 }
 
 /**
@@ -173,7 +229,24 @@ export function createSchema<
 >(
   config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config }
 ): ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>> {
-  return new ObjectSchema(config as SchemaConfig<T, keyof Config & string>);
+  let cacheForTable = schemaCache.get(config.table);
+  if (!cacheForTable) {
+    cacheForTable = new Map();
+    schemaCache.set(config.table, cacheForTable);
+  }
+
+  const cacheKey = getSchemaCacheKey(config.fields, config.tableName);
+  const cached = cacheForTable.get(cacheKey);
+  if (cached) {
+    return cached as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>>;
+  }
+
+  const schema = new ObjectSchema(
+    config as SchemaConfig<T, keyof Config & string>,
+    cacheKey
+  );
+  cacheForTable.set(cacheKey, schema);
+  return schema as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>>;
 }
 
 /**

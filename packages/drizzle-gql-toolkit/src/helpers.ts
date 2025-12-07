@@ -1,6 +1,6 @@
 import { and, isNull, eq, type SQL, type Table, type Column } from "drizzle-orm";
 import type { PgTable } from "drizzle-orm/pg-core";
-import type { ColumnNames, WhereInput } from "./types.js";
+import type { ColumnNames } from "./types.js";
 
 /**
  * Common filter for soft-deletable entities
@@ -10,7 +10,7 @@ import type { ColumnNames, WhereInput } from "./types.js";
  * ```ts
  * const where = and(
  *   notDeleted(product.deletedAt),
- *   qb.where({ status: { $eq: "active" } })
+ *   qb.where({ status: { $eq: "active" } }).sql
  * );
  * ```
  */
@@ -28,7 +28,7 @@ export function notDeleted(deletedAtColumn: Column): SQL {
  * const where = and(
  *   scopedWhere,
  *   notDeleted(product.deletedAt),
- *   qb.where(input)
+ *   qb.where(input).sql
  * );
  * ```
  */
@@ -44,7 +44,7 @@ export function withProjectScope(projectIdColumn: Column, projectId: string): SQ
  * const where = combineAnd(
  *   withProjectScope(product.projectId, projectId),
  *   notDeleted(product.deletedAt),
- *   qb.where(input) // may be undefined
+ *   qb.where(input).sql // may be undefined
  * );
  * ```
  */
@@ -67,7 +67,7 @@ export function combineAnd(
  *   includeDeleted: false,
  * });
  *
- * await db.select().from(product).where(and(filters, qb.where(input)));
+ * await db.select().from(product).where(and(filters, qb.where(input).sql));
  * ```
  */
 export type DefaultFiltersOptions<T extends Table> = {

@@ -470,19 +470,17 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((u) => u.age)).toEqual([23, 24, 25]);
     });
 
-    it("should handle empty $in array gracefully", async () => {
+    it("should treat empty $in array as always false", async () => {
       const db = getDb();
       await db.insert(users).values({ name: "Alice", age: 25 });
 
       const qb = createQueryBuilder(usersSchema);
-      // Empty $in should be ignored
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
         where: { name: { $in: [] } },
       });
 
-      // Should return all users because empty $in is ignored
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(0);
     });
   });
 
@@ -1383,7 +1381,7 @@ describe("SQL Integration Tests with PGlite", () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           where: { unknownField: { $eq: "value" } } as any,
         })
-      ).rejects.toThrow(/column.*does not exist/);
+      ).rejects.toThrow(/Unknown field "unknownField"/);
     });
 
     it("should throw SQL error on non-existent order field", async () => {
@@ -1401,7 +1399,7 @@ describe("SQL Integration Tests with PGlite", () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           order: ["nonExistentField:asc"] as any,
         })
-      ).rejects.toThrow(/column.*does not exist/);
+      ).rejects.toThrow(/Unknown field "nonExistentField"/);
     });
 
     it("should throw SQL error on invalid order format", async () => {
@@ -1419,7 +1417,7 @@ describe("SQL Integration Tests with PGlite", () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           order: ["invalid:::format"] as any,
         })
-      ).rejects.toThrow(/column.*does not exist/);
+      ).rejects.toThrow(/Unknown field "invalid:::format"/);
     });
 
     it("should handle empty where object", async () => {

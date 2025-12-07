@@ -3,9 +3,6 @@ export type {
   ColumnNames,
   ColumnDataType,
   IsColumnNullable,
-  WhereInput,
-  WhereInputV3,
-  SchemaWhereInput,
   FilterValue,
   FilterOperators,
   OrderDirection,
@@ -15,12 +12,8 @@ export type {
   OrderByInput,
   PaginationInput,
   ResolvedPagination,
-  SelectionInput,
-  QueryInput,
-  Input,
-  InputG,
-  SchemaInput,
   QueryBuilderConfig,
+  DrizzleExecutor,
   GetColumn,
   // Nested path types
   FieldsDef,
@@ -54,7 +47,15 @@ export {
   applyJoins,
   buildJoinConditions,
   type TypedInput,
+  type WhereResult,
 } from "./builder.js";
+
+export {
+  QueryBuilderError,
+  InvalidFilterError,
+  JoinDepthExceededError,
+  UnknownFieldError,
+} from "./errors.js";
 
 // Operators
 export {
@@ -63,6 +64,7 @@ export {
   isOperator,
   isLogicalOperator,
   isFilterObject,
+  validateFilterValue,
   type OperatorKey,
 } from "./operators.js";
 

@@ -1,0 +1,89 @@
+import { and, eq, type SQL, type Column, type Table } from "drizzle-orm";
+import type { FieldsDef, QueryBuilderConfig } from "../types.js";
+import { ObjectSchema, type JoinInfo } from "../schema.js";
+import { formatAliasedTableReference } from "./sql-renderer.js";
+import { QueryBuilder, type TypedInput } from "./query-builder.js";
+export type { WhereResult } from "./where-builder.js";
+
+type JoinableQuery = {
+  leftJoin: (table: SQL, on: SQL) => JoinableQuery;
+  rightJoin: (table: SQL, on: SQL) => JoinableQuery;
+  innerJoin: (table: SQL, on: SQL) => JoinableQuery;
+  fullJoin: (table: SQL, on: SQL) => JoinableQuery;
+};
+
+function applyJoinByType<Q extends JoinableQuery>(
+  query: Q,
+  joinType: JoinInfo["type"],
+  tableSql: SQL,
+  onCondition: SQL
+): Q {
+  switch (joinType) {
+    case "left":
+      return query.leftJoin(tableSql, onCondition) as Q;
+    case "right":
+      return query.rightJoin(tableSql, onCondition) as Q;
+    case "inner":
+      return query.innerJoin(tableSql, onCondition) as Q;
+    case "full":
+      return query.fullJoin(tableSql, onCondition) as Q;
+  }
+}
+
+export function createQueryBuilder<
+  T extends Table,
+  F extends string,
+  Fields extends FieldsDef,
+>(
+  schema: ObjectSchema<T, F, Fields>,
+  config?: QueryBuilderConfig
+): QueryBuilder<T, F, Fields> {
+  return new QueryBuilder(schema, config);
+}
+
+export { QueryBuilder, TypedInput };
+
+export function applyJoins<Q extends JoinableQuery>(
+  query: Q,
+  joins: JoinInfo[]
+): Q {
+  let result = query;
+
+  for (const join of joins) {
+    const conditionParts = join.conditions.map((condition) => {
+      const sourceCol = join.sourceTable[condition.sourceCol] as Column;
+      const targetCol = join.targetTable[condition.targetCol] as Column;
+      return eq(sourceCol, targetCol);
+    });
+
+    const onCondition = conditionParts.length === 1
+      ? conditionParts[0]
+      : and(...conditionParts);
+
+    const tableSql = formatAliasedTableReference(join.targetTable);
+    result = applyJoinByType(result, join.type, tableSql, onCondition);
+  }
+
+  return result;
+}
+
+export function buildJoinConditions(
+  joins: JoinInfo[]
+): Array<{ table: SQL; on: SQL }> {
+  return joins.map((join) => {
+    const conditionParts = join.conditions.map((condition) => {
+      const sourceCol = join.sourceTable[condition.sourceCol] as Column;
+      const targetCol = join.targetTable[condition.targetCol] as Column;
+      return eq(sourceCol, targetCol);
+    });
+
+    const onCondition = conditionParts.length === 1
+      ? conditionParts[0]
+      : and(...conditionParts);
+
+    return {
+      table: formatAliasedTableReference(join.targetTable),
+      on: onCondition,
+    };
+  });
+}
