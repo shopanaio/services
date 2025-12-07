@@ -283,5 +283,8 @@ export type JoinInfo = {
  * Generate table alias with depth prefix (matches goqutil.TPrefix)
  */
 export function tablePrefix(tableName: string, depth: number): string {
-  return `t${depth}_${tableName}`;
+  // Replace dots with underscores to avoid invalid SQL identifiers
+  // (e.g., "inventory.product" -> "inventory_product")
+  const safeName = tableName.replace(/\./g, "_");
+  return `t${depth}_${safeName}`;
 }

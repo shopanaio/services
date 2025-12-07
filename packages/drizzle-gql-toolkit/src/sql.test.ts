@@ -577,9 +577,8 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(2);
-      // Raw SQL returns snake_case column name
       expect(
-        result.every((u) => (u as Record<string, unknown>).is_active === true)
+        result.every((u) => (u as Record<string, unknown>).isActive === true)
       ).toBe(true);
     });
 
@@ -592,9 +591,8 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(2);
-      // Raw SQL returns snake_case column name
       expect(
-        result.every((u) => (u as Record<string, unknown>).is_active === false)
+        result.every((u) => (u as Record<string, unknown>).isActive === false)
       ).toBe(true);
     });
 
@@ -1588,7 +1586,7 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(1);
-      expect(result[0].event_type).toBe("login");
+      expect(result[0].eventType).toBe("login");
     });
 
     it("should join from public table to qualified table", async () => {

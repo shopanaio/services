@@ -100,13 +100,14 @@ export class SqlRenderer<
     schema: ObjectSchema,
     depth: number
   ): SQL {
-    if (!fields || fields.length === 0) {
-      return sql`${sql.identifier(defaultAlias)}.*`;
-    }
+    // When no fields specified, select all schema fields with proper aliases
+    const fieldsToSelect = fields && fields.length > 0
+      ? fields
+      : schema.fieldNames.filter((f) => !schema.hasJoin(f));
 
     // Check for duplicate field aliases
     const usedAliases = new Set<string>();
-    for (const field of fields) {
+    for (const field of fieldsToSelect) {
       if (usedAliases.has(field)) {
         throw new Error(`Duplicate field "${field}" in select`);
       }
@@ -114,16 +115,12 @@ export class SqlRenderer<
     }
 
     const selectParts: SQL[] = [];
-    for (const field of fields) {
+    for (const field of fieldsToSelect) {
       const parts = field.split(".");
       const resolved = this.resolveSelectField(parts, field, schema, depth);
       if (resolved) {
         selectParts.push(resolved);
       }
-    }
-
-    if (selectParts.length === 0) {
-      return sql`${sql.identifier(defaultAlias)}.*`;
     }
 
     return sql.join(selectParts, sql`, `);

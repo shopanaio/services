@@ -795,7 +795,7 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders".* FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" WHERE ("t0_orders"."status" = $1 and "t1_order_items"."quantity" >= $2) ORDER BY "t1_order_items"."quantity" DESC LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" WHERE ("t0_orders"."status" = $1 and "t1_order_items"."quantity" >= $2) ORDER BY "t1_order_items"."quantity" DESC LIMIT $3 OFFSET $4
         Params: ["pending",1,20,0]"
       `);
 
@@ -808,7 +808,7 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders".* FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" WHERE "t2_products"."is_published" = $1 ORDER BY "t2_products"."price" DESC LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" WHERE "t2_products"."is_published" = $1 ORDER BY "t2_products"."price" DESC LIMIT $2 OFFSET $3
         Params: [true,20,0]"
       `);
 
@@ -823,7 +823,7 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders".* FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE "t3_categories"."is_visible" = $1 ORDER BY "t3_categories"."slug" ASC LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE "t3_categories"."is_visible" = $1 ORDER BY "t3_categories"."slug" ASC LIMIT $2 OFFSET $3
         Params: [true,20,0]"
       `);
 
@@ -842,7 +842,7 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders".* FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id" WHERE "t4_translations"."locale" = $1 ORDER BY "t4_translations"."value" ASC LIMIT $2 OFFSET $3
+        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id" WHERE "t4_translations"."locale" = $1 ORDER BY "t4_translations"."value" ASC LIMIT $2 OFFSET $3
         Params: ["en",20,0]"
       `);
 
@@ -863,7 +863,7 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders".* FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE ("t0_orders"."status" <> $1 and "t3_categories"."is_visible" = $2) ORDER BY "t3_categories"."slug" ASC, "t2_products"."price" DESC, "t1_order_items"."quantity" DESC, "t0_orders"."total_amount" DESC LIMIT $3 OFFSET $4
+        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE ("t0_orders"."status" <> $1 and "t3_categories"."is_visible" = $2) ORDER BY "t3_categories"."slug" ASC, "t2_products"."price" DESC, "t1_order_items"."quantity" DESC, "t0_orders"."total_amount" DESC LIMIT $3 OFFSET $4
         Params: ["cancelled",true,20,0]"
       `);
     });
