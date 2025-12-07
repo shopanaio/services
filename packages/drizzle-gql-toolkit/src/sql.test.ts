@@ -29,10 +29,10 @@ const translationsSchema = createSchema({
   tableName: "translations",
   fields: {
     id: { column: "id" },
-    entityId: { column: "entity_id" },  // SQL column name, not JS property
+    entityId: { column: "entity_id" }, // SQL column name, not JS property
     field: { column: "field" },
     value: { column: "value" },
-    searchValue: { column: "search_value" },  // SQL column name
+    searchValue: { column: "search_value" }, // SQL column name
   },
 });
 
@@ -75,7 +75,11 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await qb.query(db as any, {});
 
       expect(result).toHaveLength(3);
-      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Bob", "Charlie"]);
+      expect(result.map((u) => u.name).sort()).toEqual([
+        "Alice",
+        "Bob",
+        "Charlie",
+      ]);
     });
 
     it("should apply limit and offset", async () => {
@@ -120,7 +124,6 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await qb.query(db as any, {
         where: { name: { $eq: "Alice" } },
       });
-
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
@@ -144,7 +147,6 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await qb.query(db as any, {
         where: { age: { $gt: 30 } },
       });
-
       expect(result).toHaveLength(2);
       expect(result.every((u) => u.age! > 30)).toBe(true);
     });
@@ -516,7 +518,9 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(3);
-      expect(result.every((u) => !u.name.toLowerCase().startsWith("a"))).toBe(true);
+      expect(result.every((u) => !u.name.toLowerCase().startsWith("a"))).toBe(
+        true
+      );
     });
 
     it("should apply multiple operators on same field (range query)", async () => {
@@ -541,7 +545,9 @@ describe("SQL Integration Tests with PGlite", () => {
 
       expect(result).toHaveLength(2);
       // Raw SQL returns snake_case column name
-      expect(result.every((u) => (u as Record<string, unknown>).is_active === true)).toBe(true);
+      expect(
+        result.every((u) => (u as Record<string, unknown>).is_active === true)
+      ).toBe(true);
     });
 
     it("should filter boolean field with $eq false", async () => {
@@ -554,7 +560,9 @@ describe("SQL Integration Tests with PGlite", () => {
 
       expect(result).toHaveLength(2);
       // Raw SQL returns snake_case column name
-      expect(result.every((u) => (u as Record<string, unknown>).is_active === false)).toBe(true);
+      expect(
+        result.every((u) => (u as Record<string, unknown>).is_active === false)
+      ).toBe(true);
     });
 
     it("should handle empty $notIn array gracefully", async () => {
@@ -619,7 +627,11 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // Alice (25, active), Eve (28, active), Diana (40, inactive)
       expect(result).toHaveLength(3);
-      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Diana", "Eve"]);
+      expect(result.map((u) => u.name).sort()).toEqual([
+        "Alice",
+        "Diana",
+        "Eve",
+      ]);
     });
   });
 
@@ -628,7 +640,9 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert product WITHOUT translation
-      await db.insert(products).values({ handle: "orphan-product", price: 500 });
+      await db
+        .insert(products)
+        .values({ handle: "orphan-product", price: 500 });
 
       // Insert product WITH translation
       const [productWithTranslation] = await db
@@ -648,7 +662,10 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // LEFT JOIN should return both products
       expect(result).toHaveLength(2);
-      expect(result.map((p) => p.handle).sort()).toEqual(["orphan-product", "product-with-title"]);
+      expect(result.map((p) => p.handle).sort()).toEqual([
+        "orphan-product",
+        "product-with-title",
+      ]);
     });
 
     it("should filter with INNER JOIN returning only matching records", async () => {
@@ -674,7 +691,9 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       // Insert product WITHOUT translation
-      await db.insert(products).values({ handle: "orphan-product", price: 500 });
+      await db
+        .insert(products)
+        .values({ handle: "orphan-product", price: 500 });
 
       // Insert product WITH translation
       const [productWithTranslation] = await db
@@ -753,7 +772,9 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { translation: { value: { $in: ["Smart Phone", "Gaming Laptop"] } } },
+        where: {
+          translation: { value: { $in: ["Smart Phone", "Gaming Laptop"] } },
+        },
       });
 
       expect(result).toHaveLength(2);
@@ -765,7 +786,9 @@ describe("SQL Integration Tests with PGlite", () => {
       const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await qb.query(db as any, {
-        where: { translation: { value: { $notIn: ["Smart Phone", "Gaming Laptop"] } } },
+        where: {
+          translation: { value: { $notIn: ["Smart Phone", "Gaming Laptop"] } },
+        },
       });
 
       expect(result).toHaveLength(1);
@@ -1050,7 +1073,10 @@ describe("SQL Integration Tests with PGlite", () => {
 
       expect(result).toHaveLength(2);
       expect(result.some((p) => p.handle === "phone")).toBe(true);
-      const rawRows = result as Array<{ handle: string | null; price: number | null }>;
+      const rawRows = result as Array<{
+        handle: string | null;
+        price: number | null;
+      }>;
       const orphanRow = rawRows.find(
         (row) => row.handle === null && row.price === null
       );
@@ -1080,7 +1106,9 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       // Insert orphan product (no translation)
-      await db.insert(products).values({ handle: "orphan-product", price: 500 });
+      await db
+        .insert(products)
+        .values({ handle: "orphan-product", price: 500 });
 
       // Insert orphan translation (no matching product)
       await db.insert(translations).values({
@@ -1113,10 +1141,15 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       expect(result).toHaveLength(3);
-      const rawRows = result as Array<{ handle: string | null; price: number | null }>;
+      const rawRows = result as Array<{
+        handle: string | null;
+        price: number | null;
+      }>;
       expect(rawRows.some((row) => row.handle === "orphan-product")).toBe(true);
       expect(rawRows.some((row) => row.handle === "phone")).toBe(true);
-      expect(rawRows.some((row) => row.handle === null && row.price === null)).toBe(true);
+      expect(
+        rawRows.some((row) => row.handle === null && row.price === null)
+      ).toBe(true);
     });
   });
 
@@ -1274,10 +1307,22 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db.insert(products).values({ handle: "phone1", price: 999 }).returning();
-      const [p2] = await db.insert(products).values({ handle: "phone2", price: 899 }).returning();
-      const [p3] = await db.insert(products).values({ handle: "phone3", price: 799 }).returning();
-      const [p4] = await db.insert(products).values({ handle: "laptop", price: 1999 }).returning();
+      const [p1] = await db
+        .insert(products)
+        .values({ handle: "phone1", price: 999 })
+        .returning();
+      const [p2] = await db
+        .insert(products)
+        .values({ handle: "phone2", price: 899 })
+        .returning();
+      const [p3] = await db
+        .insert(products)
+        .values({ handle: "phone3", price: 799 })
+        .returning();
+      const [p4] = await db
+        .insert(products)
+        .values({ handle: "laptop", price: 1999 })
+        .returning();
 
       // Insert translations
       await db.insert(translations).values([
@@ -1311,9 +1356,18 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       // Insert products
-      const [p1] = await db.insert(products).values({ handle: "a-phone", price: 999 }).returning();
-      const [p2] = await db.insert(products).values({ handle: "b-phone", price: 899 }).returning();
-      const [p3] = await db.insert(products).values({ handle: "c-phone", price: 799 }).returning();
+      const [p1] = await db
+        .insert(products)
+        .values({ handle: "a-phone", price: 999 })
+        .returning();
+      const [p2] = await db
+        .insert(products)
+        .values({ handle: "b-phone", price: 899 })
+        .returning();
+      const [p3] = await db
+        .insert(products)
+        .values({ handle: "c-phone", price: 799 })
+        .returning();
 
       await db.insert(translations).values([
         { entityId: p1.id, field: "title", value: "Phone A" },
@@ -1339,9 +1393,18 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should handle multiple order fields with join and pagination", async () => {
       const db = getDb();
 
-      const [p1] = await db.insert(products).values({ handle: "phone", price: 999 }).returning();
-      const [p2] = await db.insert(products).values({ handle: "phone", price: 899 }).returning();
-      const [p3] = await db.insert(products).values({ handle: "tablet", price: 599 }).returning();
+      const [p1] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 999 })
+        .returning();
+      const [p2] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 899 })
+        .returning();
+      const [p3] = await db
+        .insert(products)
+        .values({ handle: "tablet", price: 599 })
+        .returning();
 
       await db.insert(translations).values([
         { entityId: p1.id, field: "title", value: "Phone Pro" },

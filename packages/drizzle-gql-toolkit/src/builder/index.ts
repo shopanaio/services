@@ -34,10 +34,11 @@ export function createQueryBuilder<
   T extends Table,
   F extends string,
   Fields extends FieldsDef,
+  Types = T["$inferSelect"],
 >(
-  schema: ObjectSchema<T, F, Fields>,
+  schema: ObjectSchema<T, F, Fields, Types>,
   config?: QueryBuilderConfig
-): QueryBuilder<T, F, Fields> {
+): QueryBuilder<T, F, Fields, Types> {
   return new QueryBuilder(schema, config);
 }
 

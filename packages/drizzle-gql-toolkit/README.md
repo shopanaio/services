@@ -117,8 +117,34 @@ qb.fromInput(input): { where, joins, limit, offset, orderSql }
 // Build WHERE clause only
 qb.where(input): { sql, joins }
 
-// Execute query directly
-await qb.query(db, input): Promise<T[]>
+// Execute query with typed results
+await qb.query(db, input): Promise<Types[]>
+
+// Execute with typed select fields
+await qb.querySelect(db, { select: ["id", "status"] as const })
+```
+
+## Type-Safe Results
+
+Result types are inferred from schema field definitions. Use `alias` to map snake_case SQL columns to camelCase:
+
+```ts
+const orderSchema = createSchema({
+  table: orders,
+  tableName: "orders",
+  fields: {
+    id: { column: "id" },
+    // alias maps "total_amount" → "totalAmount" in results
+    totalAmount: { column: "total_amount", alias: "totalAmount" },
+    createdAt: { column: "created_at", alias: "createdAt" },
+  },
+});
+
+const qb = createQueryBuilder(orderSchema);
+
+// SQL: SELECT "id", "total_amount" AS "totalAmount", "created_at" AS "createdAt"
+const result = await qb.query(db);
+// result type: { id: string; totalAmount: number; createdAt: Date }[]
 ```
 
 ## Nested Joins

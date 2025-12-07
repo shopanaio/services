@@ -1,5 +1,11 @@
 import type { Table, Column } from "drizzle-orm";
-import type { FieldsDef, InferFieldsDef, SchemaWithFields } from "./types.js";
+import type {
+  FieldsDef,
+  InferFieldsDef,
+  InferFieldTypes,
+  SchemaWithFields,
+  SchemaWithTypes,
+} from "./types.js";
 import { UnknownFieldError } from "./errors.js";
 
 /**
@@ -62,12 +68,14 @@ export type SchemaConfig<T extends Table, F extends string = string> = {
  * @template T - Drizzle table type
  * @template F - Field names (union of string literals)
  * @template Fields - Nested fields structure for type-safe path access
+ * @template Types - Inferred field types from table columns
  */
 export class ObjectSchema<
   T extends Table = Table,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
-> implements SchemaWithFields<Fields>
+  Types = T["$inferSelect"],
+> implements SchemaWithFields<Fields>, SchemaWithTypes<T, Types>
 {
   readonly table: T;
   readonly tableName: string;
@@ -83,6 +91,16 @@ export class ObjectSchema<
    * This property exists only at the type level and is not used at runtime.
    */
   declare readonly __fields: Fields;
+
+  /**
+   * Type-level table reference for type inference.
+   */
+  declare readonly __table: T;
+
+  /**
+   * Type-level field types mapping for result inference.
+   */
+  declare readonly __types: Types;
 
   constructor(config: SchemaConfig<T, F>, cacheKey: string) {
     this.table = config.table;
@@ -134,7 +152,8 @@ export class ObjectSchema<
 
     const segments = path.split(".");
     const configs: FieldConfig[] = [];
-    let currentSchema: ObjectSchema = this;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let currentSchema: ObjectSchema<any, any, any, any> = this;
 
     for (const segment of segments) {
       const field = currentSchema.getField(segment);
@@ -228,7 +247,7 @@ export function createSchema<
   const Config extends Record<string, FieldConfig>,
 >(
   config: Omit<SchemaConfig<T, string>, "fields"> & { fields: Config }
-): ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>> {
+): ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>, InferFieldTypes<T, Config>> {
   let cacheForTable = schemaCache.get(config.table);
   if (!cacheForTable) {
     cacheForTable = new Map();
@@ -238,7 +257,7 @@ export function createSchema<
   const cacheKey = getSchemaCacheKey(config.fields, config.tableName);
   const cached = cacheForTable.get(cacheKey);
   if (cached) {
-    return cached as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>>;
+    return cached as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>, InferFieldTypes<T, Config>>;
   }
 
   const schema = new ObjectSchema(
@@ -246,7 +265,7 @@ export function createSchema<
     cacheKey
   );
   cacheForTable.set(cacheKey, schema);
-  return schema as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>>;
+  return schema as ObjectSchema<T, keyof Config & string, InferFieldsDef<Config>, InferFieldTypes<T, Config>>;
 }
 
 /**

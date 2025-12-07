@@ -134,6 +134,115 @@ export type GetColumn<
 > = T["_"]["columns"][K];
 
 // =============================================================================
+// FIELD TYPE INFERENCE - Extract column types from Drizzle tables
+// =============================================================================
+
+/**
+ * Get the result key for a field config.
+ * Uses alias if defined, otherwise uses the SQL column name.
+ */
+type GetResultKey<F> = F extends { alias: infer A extends string }
+  ? A
+  : F extends { column: infer C extends string }
+    ? C
+    : never;
+
+/**
+ * Get the column type from a table for a field config.
+ */
+type GetColumnType<T extends Table, F> = F extends { column: infer C extends string }
+  ? C extends keyof T["$inferSelect"]
+    ? T["$inferSelect"][C]
+    : unknown
+  : unknown;
+
+/**
+ * Infer field types from schema configuration.
+ * Result keys are: alias (if defined) or column name (SQL column).
+ * Types are inferred from the Drizzle table column types.
+ *
+ * @example
+ * ```ts
+ * const schema = createSchema({
+ *   table: orders,
+ *   fields: {
+ *     id: { column: "id" },
+ *     parentId: { column: "parent_id", alias: "parentId" },
+ *     status: { column: "status" },
+ *   }
+ * });
+ * // SQL: SELECT "id", "parent_id" AS "parentId", "status"
+ * // InferFieldTypes → { id: string; parentId: string; status: string }
+ * ```
+ */
+export type InferFieldTypes<
+  T extends Table,
+  Config extends Record<string, { column: string; alias?: string; join?: { schema: () => SchemaWithTypes<Table, unknown> } }>
+> = {
+  [K in keyof Config & string as GetResultKey<Config[K]>]: Config[K] extends { join: { schema: () => infer S } }
+    ? S extends SchemaWithTypes<infer _JoinTable, infer JoinTypes>
+      ? JoinTypes
+      : unknown
+    : GetColumnType<T, Config[K]>;
+};
+
+/**
+ * Marker type for ObjectSchema to enable type inference.
+ */
+export type SchemaWithTypes<T extends Table = Table, Types = unknown> = {
+  readonly __table: T;
+  readonly __types: Types;
+};
+
+/**
+ * Resolve type for a nested path like "items.product.name"
+ */
+export type ResolvePathType<Types, Path extends string> =
+  Path extends `${infer Head}.${infer Tail}`
+    ? Head extends keyof Types
+      ? Types[Head] extends object
+        ? ResolvePathType<Types[Head], Tail>
+        : unknown
+      : unknown
+    : Path extends keyof Types
+      ? Types[Path]
+      : unknown;
+
+/**
+ * Build result type from select paths
+ *
+ * @example
+ * ```ts
+ * type Result = InferSelectResult<Types, ["id", "items.product.name"]>;
+ * // → { id: string; "items.product.name": string }
+ * ```
+ */
+export type InferSelectResult<
+  Types,
+  Select extends readonly string[]
+> = {
+  [K in Select[number]]: ResolvePathType<Types, K>;
+};
+
+/**
+ * Get the last segment of a path for use as default alias
+ */
+export type LastSegment<Path extends string> =
+  Path extends `${string}.${infer Rest}`
+    ? LastSegment<Rest>
+    : Path;
+
+/**
+ * Build result type with last segment as key (cleaner output)
+ */
+export type InferSelectResultFlat<
+  Types,
+  Select extends readonly string[]
+> = {
+  [K in Select[number] as LastSegment<K>]: ResolvePathType<Types, K>;
+};
+
+// =============================================================================
 // NESTED PATH TYPES - For type-safe nested field access
 // =============================================================================
 

@@ -27,7 +27,8 @@ export class WhereBuilder<
   Fields extends FieldsDef,
 > {
   constructor(
-    private readonly schema: ObjectSchema<Table, string, Fields>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private readonly schema: ObjectSchema<Table, string, Fields, any>,
     private readonly joinCollector: JoinCollector,
     private readonly maxDepth: number
   ) {}

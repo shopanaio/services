@@ -8,6 +8,8 @@ import type {
   OrderPath,
   DrizzleExecutor,
   QueryBuilderConfig,
+  ResolvePathType,
+  InferSelectResultFlat,
 } from "../types.js";
 import { JoinCollector } from "./join-collector.js";
 import { OrderBuilder } from "./order-builder.js";
@@ -55,11 +57,12 @@ export class QueryBuilder<
   T extends Table,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
+  Types = T["$inferSelect"],
 > {
   private readonly config: ResolvedConfig;
 
   constructor(
-    private readonly schema: ObjectSchema<T, F, Fields>,
+    private readonly schema: ObjectSchema<T, F, Fields, Types>,
     config?: QueryBuilderConfig
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -97,18 +100,51 @@ export class QueryBuilder<
     return sql;
   }
 
+  /**
+   * Execute query and return results with full table type.
+   * Use querySelect() for typed results based on select fields.
+   */
   async query(
     db: DrizzleExecutor<T>,
     input?: TypedInput<Fields> | null
-  ): Promise<T["$inferSelect"][]> {
+  ): Promise<Types[]> {
     const { sql } = this.buildRawQuery(input);
     this.log("executingQuery", { input });
     const result = await db.execute(sql);
     if (Array.isArray(result)) {
-      return result;
+      return result as Types[];
     }
     if (result && typeof result === "object" && "rows" in result) {
-      return (result as { rows: T["$inferSelect"][] }).rows;
+      return (result as { rows: Types[] }).rows;
+    }
+    return [];
+  }
+
+  /**
+   * Execute query with typed result based on select fields.
+   * Returns only the selected fields with proper types.
+   *
+   * @example
+   * ```ts
+   * const result = await qb.querySelect(db, {
+   *   select: ["id", "items.product.title"] as const,
+   *   where: { status: "active" }
+   * });
+   * // result type: { id: string; title: string }[]
+   * ```
+   */
+  async querySelect<const Select extends readonly NestedPaths<Fields>[]>(
+    db: DrizzleExecutor<T>,
+    input: Omit<TypedInput<Fields>, "select"> & { select: Select }
+  ): Promise<InferSelectResultFlat<Types, Select>[]> {
+    const { sql } = this.buildRawQuery(input as unknown as TypedInput<Fields>);
+    this.log("executingQuery", { input });
+    const result = await db.execute(sql);
+    if (Array.isArray(result)) {
+      return result as InferSelectResultFlat<Types, Select>[];
+    }
+    if (result && typeof result === "object" && "rows" in result) {
+      return (result as { rows: InferSelectResultFlat<Types, Select>[] }).rows;
     }
     return [];
   }
@@ -163,7 +199,8 @@ export class QueryBuilder<
       for (const field of input.select as string[]) {
         joinCollector.collectJoinsForFieldPath(
           field,
-          this.schema,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.schema as any,
           0,
           this.config.maxJoinDepth
         );
