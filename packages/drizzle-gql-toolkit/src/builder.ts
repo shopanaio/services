@@ -9,7 +9,6 @@ import {
   type Table,
   type Column,
 } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
 import { buildOperatorCondition, isFilterObject } from "./operators.js";
 import {
   ObjectSchema,
@@ -445,8 +444,8 @@ export class QueryBuilder<T extends Table, F extends string = string> {
    * Get a column from a table by name
    */
   private getColumn(table: Table, name: string): Column | undefined {
-    const columns = (table as PgTable)["_"]["columns"];
-    return columns[name as keyof typeof columns] as Column | undefined;
+    // Access column directly as property on the table object
+    return (table as Record<string, Column | unknown>)[name] as Column | undefined;
   }
 
   /**
@@ -719,9 +718,16 @@ export class QueryBuilder<T extends Table, F extends string = string> {
 
     // Apply joins
     for (const join of joins) {
-      const onConditions = join.conditions.map((c) =>
-        sql`${sql.identifier(join.sourceAlias)}.${sql.identifier(c.sourceCol)} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`
-      );
+      // Get the source column from the main table (no alias needed)
+      const sourceColumn = this.getColumn(this.schema.table, join.conditions[0].sourceCol);
+      if (!sourceColumn) continue;
+
+      // Build ON conditions - source uses direct column reference, target uses alias
+      const onConditions = join.conditions.map((c) => {
+        const srcCol = this.getColumn(this.schema.table, c.sourceCol);
+        if (!srcCol) return sql`1=1`; // Fallback, shouldn't happen
+        return sql`${srcCol} = ${sql.identifier(join.targetAlias)}.${sql.identifier(c.targetCol)}`;
+      });
       const onCondition = onConditions.length === 1
         ? onConditions[0]
         : sql.join(onConditions, sql` AND `);
