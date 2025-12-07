@@ -771,4 +771,698 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result[0].handle).toBe("tablet");
     });
   });
+
+  describe("Direct value equality (without operator)", () => {
+    beforeEach(async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25, isActive: true },
+        { name: "Bob", age: 30, isActive: false },
+        { name: "Charlie", age: 35, isActive: true },
+      ]);
+    });
+
+    it("should filter with direct value (implicit $eq)", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { name: "Alice" },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
+    });
+
+    it("should filter with direct numeric value", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { age: 30 },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Bob");
+    });
+
+    it("should combine direct values with operators", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          name: "Alice",
+          age: { $gte: 20 },
+        },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
+    });
+  });
+
+  describe("UUID filtering", () => {
+    it("should filter by UUID with $eq", async () => {
+      const db = getDb();
+
+      const [user1] = await db
+        .insert(users)
+        .values({ name: "Alice", age: 25 })
+        .returning();
+      await db.insert(users).values({ name: "Bob", age: 30 });
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { id: { $eq: user1.id } },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
+    });
+
+    it("should filter by UUID with $in", async () => {
+      const db = getDb();
+
+      const [user1] = await db
+        .insert(users)
+        .values({ name: "Alice", age: 25 })
+        .returning();
+      const [user2] = await db
+        .insert(users)
+        .values({ name: "Bob", age: 30 })
+        .returning();
+      await db.insert(users).values({ name: "Charlie", age: 35 });
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { id: { $in: [user1.id, user2.id] } },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Bob"]);
+    });
+
+    it("should filter by UUID with $neq", async () => {
+      const db = getDb();
+
+      const [user1] = await db
+        .insert(users)
+        .values({ name: "Alice", age: 25 })
+        .returning();
+      await db.insert(users).values({ name: "Bob", age: 30 });
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { id: { $neq: user1.id } },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Bob");
+    });
+  });
+
+  describe("Timestamp filtering", () => {
+    it("should filter by createdAt with $gte", async () => {
+      const db = getDb();
+
+      const pastDate = new Date("2020-01-01");
+      const futureDate = new Date("2030-01-01");
+
+      // Insert with default now() timestamp
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { createdAt: { $gte: pastDate } },
+      });
+
+      // Both users should be found (created now, after 2020)
+      expect(result).toHaveLength(2);
+    });
+
+    it("should filter by createdAt with $lt", async () => {
+      const db = getDb();
+
+      const futureDate = new Date("2030-01-01");
+
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { createdAt: { $lt: futureDate } },
+      });
+
+      // Both users should be found (created now, before 2030)
+      expect(result).toHaveLength(2);
+    });
+
+    it("should combine timestamp with other filters", async () => {
+      const db = getDb();
+
+      const pastDate = new Date("2020-01-01");
+
+      await db.insert(users).values([
+        { name: "Alice", age: 25, isActive: true },
+        { name: "Bob", age: 30, isActive: false },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          createdAt: { $gte: pastDate },
+          isActive: { $eq: true },
+        },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
+    });
+  });
+
+  describe("ORDER BY with NULLS positioning", () => {
+    beforeEach(async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: null },
+        { name: "Charlie", age: 35 },
+        { name: "Diana", age: null },
+      ]);
+    });
+
+    it("should order ASC with NULLS LAST (PostgreSQL default)", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        order: "age:asc",
+      });
+
+      // ASC order: 25, 35, then nulls (PostgreSQL default is NULLS LAST for ASC)
+      expect(result).toHaveLength(4);
+      expect(result[0].age).toBe(25);
+      expect(result[1].age).toBe(35);
+      expect(result[2].age).toBeNull();
+      expect(result[3].age).toBeNull();
+    });
+
+    it("should order DESC with NULLS FIRST (PostgreSQL default)", async () => {
+      const db = getDb();
+      const qb = createQueryBuilder(usersSchema);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        order: "age:desc",
+      });
+
+      // DESC order: PostgreSQL default is NULLS FIRST for DESC
+      // So: nulls first, then 35, 25
+      expect(result).toHaveLength(4);
+      expect(result[0].age).toBeNull();
+      expect(result[1].age).toBeNull();
+      expect(result[2].age).toBe(35);
+      expect(result[3].age).toBe(25);
+    });
+  });
+
+  describe("RIGHT JOIN and FULL JOIN", () => {
+    it("should use RIGHT JOIN", async () => {
+      const db = getDb();
+
+      // Create schema with RIGHT JOIN
+      const productsWithRightJoinSchema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          handle: { column: "handle" },
+          price: { column: "price" },
+          title: {
+            column: "id",
+            join: {
+              type: "right",
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+            },
+          },
+        },
+      });
+
+      // Insert orphan translation (no matching product)
+      await db.insert(translations).values({
+        entityId: "00000000-0000-0000-0000-000000000001",
+        field: "title",
+        value: "Orphan Translation",
+      });
+
+      // Insert product with translation
+      const [product] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 999 })
+        .returning();
+
+      await db.insert(translations).values({
+        entityId: product.id,
+        field: "title",
+        value: "Phone Title",
+      });
+
+      const qb = createQueryBuilder(productsWithRightJoinSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $iLike: "%" } },
+      });
+
+      // RIGHT JOIN returns all translations, even orphans
+      // But we select from products, so orphan translations return NULL product fields
+      expect(result.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should use FULL JOIN", async () => {
+      const db = getDb();
+
+      // Create schema with FULL JOIN
+      const productsWithFullJoinSchema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          handle: { column: "handle" },
+          price: { column: "price" },
+          title: {
+            column: "id",
+            join: {
+              type: "full",
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+            },
+          },
+        },
+      });
+
+      // Insert orphan product (no translation)
+      await db.insert(products).values({ handle: "orphan-product", price: 500 });
+
+      // Insert orphan translation (no matching product)
+      await db.insert(translations).values({
+        entityId: "00000000-0000-0000-0000-000000000002",
+        field: "title",
+        value: "Orphan Translation",
+      });
+
+      // Insert product with translation
+      const [product] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 999 })
+        .returning();
+
+      await db.insert(translations).values({
+        entityId: product.id,
+        field: "title",
+        value: "Phone Title",
+      });
+
+      const qb = createQueryBuilder(productsWithFullJoinSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $iLike: "%" } },
+      });
+
+      // FULL JOIN should return matches
+      expect(result.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe("Composite JOIN", () => {
+    it("should join on multiple columns (composite key)", async () => {
+      const db = getDb();
+
+      // Create schema with composite join (entity_id + field)
+      const productsWithCompositeJoinSchema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          handle: { column: "handle" },
+          price: { column: "price" },
+          title: {
+            column: "id",
+            join: {
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+              composite: [{ field: "handle", column: "field" }],
+            },
+          },
+        },
+      });
+
+      // Insert product
+      const [product] = await db
+        .insert(products)
+        .values({ handle: "title", price: 999 })
+        .returning();
+
+      // Insert translations - only one matches composite key (entity_id + field="title")
+      await db.insert(translations).values([
+        { entityId: product.id, field: "title", value: "Correct Title" },
+        { entityId: product.id, field: "description", value: "Wrong Field" },
+      ]);
+
+      const qb = createQueryBuilder(productsWithCompositeJoinSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $eq: "Correct Title" } },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].handle).toBe("title");
+    });
+  });
+
+  describe("Multiple JOINs in single query", () => {
+    it("should handle schema with multiple join fields", async () => {
+      const db = getDb();
+
+      // Create schema with two different join fields
+      const productsWithMultipleJoinsSchema = createSchema({
+        table: products,
+        tableName: "products",
+        fields: {
+          id: { column: "id" },
+          handle: { column: "handle" },
+          price: { column: "price" },
+          title: {
+            column: "id",
+            join: {
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["value"],
+            },
+          },
+          searchTitle: {
+            column: "id",
+            join: {
+              schema: () => translationsSchema,
+              column: "entityId",
+              select: ["searchValue"],
+            },
+          },
+        },
+      });
+
+      // Insert product with translations
+      const [product] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 999 })
+        .returning();
+
+      await db.insert(translations).values({
+        entityId: product.id,
+        field: "title",
+        value: "Smart Phone",
+        searchValue: "smartphone mobile",
+      });
+
+      const qb = createQueryBuilder(productsWithMultipleJoinsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          title: { $iLike: "%phone%" },
+          searchTitle: { $iLike: "%mobile%" },
+        },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].handle).toBe("phone");
+    });
+  });
+
+  describe("buildSelectSql integration", () => {
+    it("should build valid SQL with all components", async () => {
+      const db = getDb();
+
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      const selectSql = qb.buildSelectSql({
+        where: { age: { $gte: 20 } },
+        limit: 10,
+        offset: 0,
+      });
+
+      // Execute the built SQL
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (db as any).execute(selectSql);
+
+      expect(result.rows || result).toHaveLength(2);
+    });
+
+    it("should build SQL with JOIN", async () => {
+      const db = getDb();
+
+      const [product] = await db
+        .insert(products)
+        .values({ handle: "phone", price: 999 })
+        .returning();
+
+      await db.insert(translations).values({
+        entityId: product.id,
+        field: "title",
+        value: "Smart Phone",
+      });
+
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      const selectSql = qb.buildSelectSql({
+        where: { title: { $iLike: "%phone%" } },
+        limit: 10,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (db as any).execute(selectSql);
+
+      const rows = result.rows || result;
+      expect(rows).toHaveLength(1);
+      expect(rows[0].handle).toBe("phone");
+    });
+  });
+
+  describe("Combined all parameters", () => {
+    it("should handle where + join + order + limit + offset together", async () => {
+      const db = getDb();
+
+      // Insert products
+      const [p1] = await db.insert(products).values({ handle: "phone1", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "phone2", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "phone3", price: 799 }).returning();
+      const [p4] = await db.insert(products).values({ handle: "laptop", price: 1999 }).returning();
+
+      // Insert translations
+      await db.insert(translations).values([
+        { entityId: p1.id, field: "title", value: "Smart Phone Pro" },
+        { entityId: p2.id, field: "title", value: "Smart Phone Basic" },
+        { entityId: p3.id, field: "title", value: "Smart Phone Mini" },
+        { entityId: p4.id, field: "title", value: "Gaming Laptop" },
+      ]);
+
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {
+          title: { $iLike: "%phone%" },
+          price: { $gte: 800 },
+        },
+        order: "price:desc",
+        limit: 2,
+        offset: 0,
+      });
+
+      // Should get phone1 (999) and phone2 (899), ordered by price desc
+      expect(result).toHaveLength(2);
+      expect(result[0].handle).toBe("phone1");
+      expect(result[0].price).toBe(999);
+      expect(result[1].handle).toBe("phone2");
+      expect(result[1].price).toBe(899);
+    });
+
+    it("should handle all parameters with pagination offset", async () => {
+      const db = getDb();
+
+      // Insert products
+      const [p1] = await db.insert(products).values({ handle: "a-phone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "b-phone", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "c-phone", price: 799 }).returning();
+
+      await db.insert(translations).values([
+        { entityId: p1.id, field: "title", value: "Phone A" },
+        { entityId: p2.id, field: "title", value: "Phone B" },
+        { entityId: p3.id, field: "title", value: "Phone C" },
+      ]);
+
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { title: { $iLike: "%phone%" } },
+        order: "handle:asc",
+        limit: 2,
+        offset: 1,
+      });
+
+      // Skip first (a-phone), get next 2 (b-phone, c-phone)
+      expect(result).toHaveLength(2);
+      expect(result[0].handle).toBe("b-phone");
+      expect(result[1].handle).toBe("c-phone");
+    });
+
+    it("should handle multiOrder with join and pagination", async () => {
+      const db = getDb();
+
+      const [p1] = await db.insert(products).values({ handle: "phone", price: 999 }).returning();
+      const [p2] = await db.insert(products).values({ handle: "phone", price: 899 }).returning();
+      const [p3] = await db.insert(products).values({ handle: "tablet", price: 599 }).returning();
+
+      await db.insert(translations).values([
+        { entityId: p1.id, field: "title", value: "Phone Pro" },
+        { entityId: p2.id, field: "title", value: "Phone Basic" },
+        { entityId: p3.id, field: "title", value: "Tablet" },
+      ]);
+
+      const qb = createQueryBuilder(productsWithTranslationsSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { price: { $gt: 0 } },
+        multiOrder: ["handle:asc", "price:desc"],
+        limit: 10,
+      });
+
+      // phone (999), phone (899), tablet (599)
+      expect(result).toHaveLength(3);
+      expect(result[0].handle).toBe("phone");
+      expect(result[0].price).toBe(999);
+      expect(result[1].handle).toBe("phone");
+      expect(result[1].price).toBe(899);
+      expect(result[2].handle).toBe("tablet");
+    });
+  });
+
+  describe("Edge cases and error handling", () => {
+    it("should throw SQL error on unknown field in where clause", async () => {
+      const db = getDb();
+      await db.insert(users).values({ name: "Alice", age: 25 });
+
+      const qb = createQueryBuilder(usersSchema);
+
+      // Unknown field causes SQL error - this is expected behavior
+      // The implementation passes unknown fields directly to SQL
+      await expect(
+        qb.query(db as any, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          where: { unknownField: { $eq: "value" } } as any,
+        })
+      ).rejects.toThrow(/column.*does not exist/);
+    });
+
+    it("should throw SQL error on non-existent order field", async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+
+      // Non-existent field in order causes SQL error
+      await expect(
+        qb.query(db as any, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          order: "nonExistentField:asc" as any,
+        })
+      ).rejects.toThrow(/column.*does not exist/);
+    });
+
+    it("should throw SQL error on invalid order format", async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+
+      // Invalid format is treated as field name, causing SQL error
+      await expect(
+        qb.query(db as any, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          order: "invalid:::format" as any,
+        })
+      ).rejects.toThrow(/column.*does not exist/);
+    });
+
+    it("should handle empty where object", async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: {},
+      });
+
+      expect(result).toHaveLength(2);
+    });
+
+    it("should handle undefined values in where clause", async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, {
+        where: { name: undefined, age: { $eq: 25 } },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Alice");
+    });
+
+    it("should handle null input gracefully", async () => {
+      const db = getDb();
+      await db.insert(users).values([
+        { name: "Alice", age: 25 },
+        { name: "Bob", age: 30 },
+      ]);
+
+      const qb = createQueryBuilder(usersSchema);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await qb.query(db as any, null);
+
+      // null input returns all with default pagination
+      expect(result).toHaveLength(2);
+    });
+  });
 });
