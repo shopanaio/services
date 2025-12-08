@@ -1,10 +1,24 @@
-// ============ Main API ============
+// ============ Base Cursor Pagination ============
 export {
-  createCursorQueryBuilder,
-  type CursorQueryBuilderConfig,
-  type CursorQueryInput,
-  type CursorQueryResult,
-} from "./builder.js";
+  createBaseCursorBuilder,
+  type BaseCursorBuilderConfig,
+  type BaseCursorInput,
+  type BaseCursorResult,
+  type BaseCursorSqlMeta,
+  type CursorDirection,
+} from "./base-builder.js";
+
+// ============ Relay Connection ============
+export {
+  createRelayBuilder,
+  createCursorQueryBuilder, // deprecated alias
+  type RelayBuilderConfig,
+  type RelayInput,
+  type RelayResult,
+  type CursorQueryBuilderConfig, // deprecated alias
+  type CursorQueryInput, // deprecated alias
+  type CursorQueryResult, // deprecated alias
+} from "./relay-builder.js";
 
 // ============ Connection Types ============
 export type { Connection, Edge, PageInfo } from "./connection.js";

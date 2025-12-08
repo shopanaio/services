@@ -6,7 +6,7 @@ import type {
   NestedWhereInput,
   OrderPath,
 } from "../types.js";
-import { createCursorQueryBuilder } from "../cursor/builder.js";
+import { createCursorQueryBuilder } from "../cursor/relay-builder.js";
 import type { Connection } from "../cursor/connection.js";
 import { FluentQueryBuilder } from "./fluent-query-builder.js";
 import type { FluentFieldsDef, ToFieldsDef, PaginationQuerySnapshot } from "./fluent-types.js";

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
-import { createCursorQueryBuilder } from "./builder.js";
+import { createCursorQueryBuilder } from "./relay-builder.js";
 import { encode, decode } from "./cursor.js";
 import { createQuery, field, createPaginationQuery } from "../builder.js";
 import { createSchema } from "../schema.js";

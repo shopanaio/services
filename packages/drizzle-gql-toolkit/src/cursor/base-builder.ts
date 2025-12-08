@@ -10,21 +10,18 @@ import type {
 } from "../types.js";
 import { createQueryBuilder } from "../builder.js";
 import type { CursorParams } from "./cursor.js";
-import { decode, InvalidCursorError } from "./cursor.js";
+import { encode, decode, InvalidCursorError } from "./cursor.js";
 import type { SortParam } from "./helpers.js";
-import { hashFilters, tieBreakerOrder, invertOrder } from "./helpers.js";
+import { hashFilters, tieBreakerOrder, invertOrder, getNestedValue } from "./helpers.js";
 import { parseSort, validateCursorOrder } from "./sort.js";
 import { buildCursorWhereInput } from "./where.js";
-import {
-  makeConnection,
-  createCursorNode,
-  type Connection,
-  type CursorNode,
-} from "./connection.js";
+import type { SeekValue } from "./cursor.js";
 
 // ============ Types ============
 
-export type CursorQueryBuilderConfig<
+export type CursorDirection = "forward" | "backward";
+
+export type BaseCursorBuilderConfig<
   Fields extends FieldsDef,
   Types,
 > = {
@@ -32,21 +29,19 @@ export type CursorQueryBuilderConfig<
   cursorType: string;
   /** Tie-breaker field for stable sorting (usually "id") */
   tieBreaker: NestedPaths<Fields>;
-  /** Optional: transform row before returning in Connection */
+  /** Optional: transform row before returning */
   mapResult?: (row: Types) => unknown;
   /** QueryBuilder config (maxLimit, defaultLimit, etc.) */
   queryConfig?: QueryBuilderConfig;
 };
 
-export type CursorQueryInput<F extends FieldsDef> = {
-  /** Number of items to fetch (forward pagination) */
-  first?: number;
-  /** Cursor to start after (forward pagination) */
-  after?: string;
-  /** Number of items to fetch (backward pagination) */
-  last?: number;
-  /** Cursor to start before (backward pagination) */
-  before?: string;
+export type BaseCursorInput<F extends FieldsDef> = {
+  /** Cursor to continue from (opaque string) */
+  cursor?: string;
+  /** Number of items to fetch */
+  limit: number;
+  /** Pagination direction */
+  direction: CursorDirection;
   /** Filter conditions */
   where?: NestedWhereInput<F>;
   /** Sort order */
@@ -57,14 +52,71 @@ export type CursorQueryInput<F extends FieldsDef> = {
   filters?: Record<string, unknown>;
 };
 
-export type CursorQueryResult<T> = Connection<T> & {
+export type BaseCursorResult<T> = {
+  /** Fetched items (already in correct order) */
+  items: T[];
+  /** Cursor for each item (same order as items) */
+  cursors: string[];
+  /** True if there are more items in this direction */
+  hasMore: boolean;
+  /** Cursor for first item (null if empty) */
+  startCursor: string | null;
+  /** Cursor for last item (null if empty) */
+  endCursor: string | null;
   /** True if cursor was ignored due to filter change */
   filtersChanged: boolean;
+  /** Sort params used for this query */
+  sortParams: SortParam[];
+  /** Filters hash */
+  filtersHash: string;
 };
+
+/** @internal - Metadata returned alongside SQL for debugging/testing */
+export type BaseCursorSqlMeta = {
+  direction: CursorDirection;
+  limit: number;
+  filtersHash: string;
+  filtersChanged: boolean;
+  hasCursor: boolean;
+  invertOrder: boolean;
+  sortParams: SortParam[];
+};
+
+// ============ Internal Helpers ============
+
+function buildSeekValuesFromRow(
+  row: unknown,
+  sortParams: SortParam[],
+  tieBreaker: string,
+  cursorType: string,
+  filtersHash: string
+): { cursor: string; seekValues: SeekValue[] } {
+  const tieBreakerDir = tieBreakerOrder(sortParams);
+
+  const seekValues: SeekValue[] = sortParams.map((param) => ({
+    field: param.field,
+    value: getNestedValue(row, param.field),
+    order: param.order,
+  }));
+
+  seekValues.push({
+    field: tieBreaker,
+    value: getNestedValue(row, tieBreaker),
+    order: tieBreakerDir,
+  });
+
+  const cursor = encode({
+    type: cursorType,
+    filtersHash,
+    seek: seekValues,
+  });
+
+  return { cursor, seekValues };
+}
 
 // ============ Builder ============
 
-export function createCursorQueryBuilder<
+export function createBaseCursorBuilder<
   T extends Table,
   F extends string,
   Fields extends FieldsDef,
@@ -72,19 +124,17 @@ export function createCursorQueryBuilder<
   Result = Types
 >(
   schema: ObjectSchema<T, F, Fields, Types>,
-  config: CursorQueryBuilderConfig<Fields, Types>
+  config: BaseCursorBuilderConfig<Fields, Types>
 ) {
   type Row = Types;
 
   const qb = createQueryBuilder(schema, config.queryConfig);
-
   const mapResult = config.mapResult ?? ((row: Row) => row as unknown as Result);
 
   function parseSortOrder(order: string[] | undefined): SortParam[] {
     if (!order || order.length === 0) {
       return parseSort(undefined, config.tieBreaker as string);
     }
-    // Join array to string format expected by parseSort
     return parseSort(order.join(","), config.tieBreaker as string);
   }
 
@@ -117,29 +167,14 @@ export function createCursorQueryBuilder<
   }
 
   /**
-   * Prepares query components from cursor input.
-   * Shared between query() and buildSql().
+   * Prepares query components from base cursor input.
    */
-  function prepareQuery(input: CursorQueryInput<Fields>) {
-    // Validate pagination params
-    const hasFirst = typeof input.first === "number";
-    const hasLast = typeof input.last === "number";
-
-    if (hasFirst && hasLast) {
-      throw new InvalidCursorError("Cannot specify both 'first' and 'last'");
-    }
-    if (!hasFirst && !hasLast) {
-      throw new InvalidCursorError("Either 'first' or 'last' must be provided");
+  function prepareQuery(input: BaseCursorInput<Fields>) {
+    if (input.limit <= 0) {
+      throw new InvalidCursorError("limit must be greater than 0");
     }
 
-    const isForward = hasFirst;
-    const limit = isForward ? input.first! : input.last!;
-
-    if (limit <= 0) {
-      throw new InvalidCursorError(
-        `${isForward ? "first" : "last"} must be greater than 0`
-      );
-    }
+    const isForward = input.direction === "forward";
 
     // Parse sort
     const sortParams = parseSortOrder(input.order as string[] | undefined);
@@ -149,26 +184,19 @@ export function createCursorQueryBuilder<
     let cursor: CursorParams | null = null;
     let filtersChanged = false;
 
-    if (isForward && input.after) {
-      cursor = decode(input.after);
+    if (input.cursor) {
+      cursor = decode(input.cursor);
       if (cursor.type !== config.cursorType) {
         throw new InvalidCursorError(
           `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
         );
       }
-    } else if (!isForward && input.before) {
-      cursor = decode(input.before);
-      if (cursor.type !== config.cursorType) {
-        throw new InvalidCursorError(
-          `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
-        );
-      }
-    }
 
-    // Check filters hash
-    if (cursor && cursor.filtersHash !== filtersHash) {
-      cursor = null;
-      filtersChanged = true;
+      // Check filters hash
+      if (cursor.filtersHash !== filtersHash) {
+        cursor = null;
+        filtersChanged = true;
+      }
     }
 
     // Validate cursor order matches current sort
@@ -184,15 +212,15 @@ export function createCursorQueryBuilder<
     // Merge WHERE conditions
     const where = mergeWhere(input.where, cursorWhere);
 
-    // Determine if order needs inversion (last without before)
-    const invertOrderFlag = !isForward && !input.before;
+    // Determine if order needs inversion (backward without cursor = get last N)
+    const invertOrderFlag = !isForward && !input.cursor;
 
     // Build ORDER
     const order = buildOrderPath(sortParams, invertOrderFlag);
 
     return {
       isForward,
-      limit,
+      limit: input.limit,
       sortParams,
       filtersHash,
       cursor,
@@ -206,9 +234,8 @@ export function createCursorQueryBuilder<
   return {
     /**
      * Get SQL without executing - useful for testing and debugging.
-     * Returns the SQL that would be executed by query().
      */
-    getSql(input: CursorQueryInput<Fields>) {
+    getSql(input: BaseCursorInput<Fields>): { sql: unknown; meta: BaseCursorSqlMeta } {
       const prepared = prepareQuery(input);
 
       const sql = qb.buildSelectSql({
@@ -221,7 +248,7 @@ export function createCursorQueryBuilder<
       return {
         sql,
         meta: {
-          isForward: prepared.isForward,
+          direction: input.direction,
           limit: prepared.limit,
           filtersHash: prepared.filtersHash,
           filtersChanged: prepared.filtersChanged,
@@ -233,12 +260,12 @@ export function createCursorQueryBuilder<
     },
 
     /**
-     * Execute cursor-paginated query and return Connection
+     * Execute cursor-paginated query and return simple result.
      */
     async query(
       db: DrizzleExecutor,
-      input: CursorQueryInput<Fields>
-    ): Promise<CursorQueryResult<Result>> {
+      input: BaseCursorInput<Fields>
+    ): Promise<BaseCursorResult<Result>> {
       const prepared = prepareQuery(input);
 
       // Execute query with limit + 1 for hasMore detection
@@ -249,43 +276,51 @@ export function createCursorQueryBuilder<
         select: input.select as string[],
       } as never) as Row[];
 
-      // Build cursor nodes
-      const nodes: CursorNode[] = rows.map((row) =>
-        createCursorNode({
-          row,
-          cursorType: config.cursorType,
-          sortParams: prepared.sortParams,
-          tieBreaker: config.tieBreaker as string,
-        })
-      );
+      // Check if we have more items
+      const hasMore = rows.length > prepared.limit;
 
-      // Build connection
-      const connection = makeConnection({
-        nodes,
-        mapper: (node) => {
-          const row = rows[nodes.indexOf(node)];
-          return mapResult(row) as Result;
-        },
-        paging: {
-          first: input.first,
-          after: input.after,
-          last: input.last,
-          before: input.before,
-        },
-        filtersHash: prepared.filtersHash,
-        sortParams: prepared.sortParams,
-        tieBreaker: config.tieBreaker as string,
-        invertOrder: prepared.invertOrderFlag,
-      });
+      // Trim to requested limit
+      let items = hasMore ? rows.slice(0, prepared.limit) : rows;
+
+      // Reverse if order was inverted (backward without cursor)
+      if (prepared.invertOrderFlag) {
+        items = [...items].reverse();
+      }
+
+      // Map results and build cursors for each item
+      const mappedItems: Result[] = [];
+      const cursors: string[] = [];
+
+      for (const row of items) {
+        mappedItems.push(mapResult(row) as Result);
+        cursors.push(
+          buildSeekValuesFromRow(
+            row,
+            prepared.sortParams,
+            config.tieBreaker as string,
+            config.cursorType,
+            prepared.filtersHash
+          ).cursor
+        );
+      }
+
+      const startCursor = cursors.length > 0 ? cursors[0] : null;
+      const endCursor = cursors.length > 0 ? cursors[cursors.length - 1] : null;
 
       return {
-        ...connection,
+        items: mappedItems,
+        cursors,
+        hasMore,
+        startCursor,
+        endCursor,
         filtersChanged: prepared.filtersChanged,
+        sortParams: prepared.sortParams,
+        filtersHash: prepared.filtersHash,
       };
     },
 
     /**
-     * Get the underlying QueryBuilder for advanced use cases (e.g., count)
+     * Get the underlying QueryBuilder for advanced use cases (e.g., count).
      */
     getQueryBuilder() {
       return qb;

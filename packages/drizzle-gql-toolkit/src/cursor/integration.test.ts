@@ -6,7 +6,7 @@ import {
   translations,
   clearTables,
 } from "../test/setup.js";
-import { createCursorQueryBuilder } from "./builder.js";
+import { createCursorQueryBuilder } from "./relay-builder.js";
 import { createSchema } from "../schema.js";
 import { decode } from "./cursor.js";
 
