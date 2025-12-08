@@ -419,7 +419,7 @@ describe("FluentQueryBuilder joins", () => {
     const sql = productsWithTranslation.getSql({
       where: {
         translation: {
-          value: { $iLike: "%test%" },
+          value: { $containsi: "test" },
         },
       },
       limit: 10,

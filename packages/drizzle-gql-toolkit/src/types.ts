@@ -39,12 +39,19 @@ export type FilterOperators<T = ScalarValue> = {
   $lte?: T;
   $in?: T[];
   $notIn?: T[];
-  $like?: string;
-  $iLike?: string;
-  $notLike?: string;
-  $notILike?: string;
   $is?: null;
   $isNot?: null;
+  // String operators (auto-wrap with wildcards)
+  $contains?: string;
+  $notContains?: string;
+  $containsi?: string;
+  $notContainsi?: string;
+  $startsWith?: string;
+  $startsWithi?: string;
+  $endsWith?: string;
+  $endsWithi?: string;
+  // Range operator
+  $between?: [T, T];
 };
 
 /**
@@ -356,6 +363,7 @@ export type NestedWhereInput<T extends FieldsDef> = {
 } & {
   $and?: NestedWhereInput<T>[];
   $or?: NestedWhereInput<T>[];
+  $not?: NestedWhereInput<T>;
 };
 
 /**

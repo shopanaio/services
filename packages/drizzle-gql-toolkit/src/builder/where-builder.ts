@@ -1,4 +1,4 @@
-import { and, eq, or, type SQL, type Column, type Table } from "drizzle-orm";
+import { and, eq, or, not, type SQL, type Column, type Table } from "drizzle-orm";
 import {
   buildOperatorCondition,
   isFilterObject,
@@ -107,6 +107,21 @@ export class WhereBuilder<
         if (orConditions.length > 0) {
           // or() returns undefined only for empty arrays, but we know length > 0 here
           conditions.push(or(...orConditions)!);
+        }
+        continue;
+      }
+
+      if (key === "$not" && rawValue !== null && typeof rawValue === "object" && !Array.isArray(rawValue)) {
+        const nestedConditions = this.buildWhereConditions(
+          rawValue as NestedWhereInput<FieldsDef>,
+          schema,
+          depth
+        );
+        if (nestedConditions.length === 1) {
+          conditions.push(not(nestedConditions[0]));
+        } else if (nestedConditions.length > 1) {
+          // Negate the AND of all nested conditions
+          conditions.push(not(and(...nestedConditions)!));
         }
         continue;
       }

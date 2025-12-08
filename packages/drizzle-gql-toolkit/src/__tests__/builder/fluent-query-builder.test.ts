@@ -709,7 +709,7 @@ describe("Type inference for nested paths", () => {
         id: "test",
         address: {
           city: "New York",
-          country: { $like: "US%" },
+          country: { $startsWith: "US" },
         },
       },
       limit: 10,

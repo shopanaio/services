@@ -787,8 +787,8 @@ describe("createPaginationQuery (fluent API)", () => {
             { price: { $gte: 25, $lte: 200 } },
             {
               $or: [
-                { handle: { $iLike: "%premium%" } },
-                { handle: { $iLike: "%sale%" } },
+                { handle: { $containsi: "premium" } },
+                { handle: { $containsi: "sale" } },
               ],
             },
           ],
@@ -1212,7 +1212,7 @@ describe("createPaginationQuery (fluent API)", () => {
         first: 10,
         after: cursor,
         where: {
-          translation: { searchValue: { $iLike: "%laptop%" } },
+          translation: { searchValue: { $containsi: "laptop" } },
         },
         order: ["price:desc"],
         select: ["id", "price", "translation.value"],

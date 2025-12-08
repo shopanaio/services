@@ -219,10 +219,10 @@ describe("SQL Snapshot Tests", () => {
       `);
     });
 
-    it("should generate string operators ($like, $iLike, $notLike, $notILike)", () => {
+    it("should generate string operators ($startsWith, $containsi, $notContains)", () => {
       expect(toSqlString(usersQuery.getSql({
         select: ["id", "name"],
-        where: { name: { $like: "A%" } },
+        where: { name: { $startsWith: "A" } },
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -240,7 +240,7 @@ describe("SQL Snapshot Tests", () => {
 
       expect(toSqlString(usersQuery.getSql({
         select: ["id", "name"],
-        where: { name: { $iLike: "%alice%" } },
+        where: { name: { $containsi: "alice" } },
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -258,7 +258,7 @@ describe("SQL Snapshot Tests", () => {
 
       expect(toSqlString(usersQuery.getSql({
         select: ["id", "name"],
-        where: { name: { $notLike: "A%", $notILike: "%test%" } },
+        where: { name: { $notContains: "A", $notContainsi: "test" } },
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_users"."id" AS "id",
@@ -274,7 +274,7 @@ describe("SQL Snapshot Tests", () => {
           $3
         OFFSET
           $4
-        -- Params: ["A%","%test%",20,0]"
+        -- Params: ["%A%","%test%",20,0]"
       `);
     });
 
@@ -474,7 +474,7 @@ describe("SQL Snapshot Tests", () => {
       // LEFT JOIN (default) - join added via nested path
       expect(toSqlString(productsWithTranslationsQuery.getSql({
         select: ["id", "handle", "price", "translation.value"],
-        where: { translation: { value: { $iLike: "%phone%" } } },
+        where: { translation: { value: { $containsi: "phone" } } },
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -526,7 +526,7 @@ describe("SQL Snapshot Tests", () => {
       });
       expect(toSqlString(rightJoinQuery.getSql({
         select: ["id", "translation.value"],
-        where: { translation: { value: { $iLike: "%" } } },
+        where: { translation: { value: { $startsWithi: "" } } },
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -550,7 +550,7 @@ describe("SQL Snapshot Tests", () => {
       });
       expect(toSqlString(fullJoinQuery.getSql({
         select: ["id", "translation.value"],
-        where: { translation: { value: { $iLike: "%" } } },
+        where: { translation: { value: { $startsWithi: "" } } },
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -663,7 +663,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "handle", "price", "translation.value"],
         where: {
           price: { $gt: 100 },
-          translation: { value: { $iLike: "%phone%" } },
+          translation: { value: { $containsi: "phone" } },
         },
       }))).toMatchInlineSnapshot(`
         "SELECT
@@ -694,7 +694,7 @@ describe("SQL Snapshot Tests", () => {
         select: ["id", "handle", "price", "translation.value"],
         where: {
           $or: [
-            { translation: { value: { $iLike: "%phone%" } } },
+            { translation: { value: { $containsi: "phone" } } },
             { price: { $gt: 1000 } },
           ],
         },

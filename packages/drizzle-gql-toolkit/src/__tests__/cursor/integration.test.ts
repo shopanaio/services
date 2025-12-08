@@ -772,7 +772,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Filter for phones only
       const page1 = await qb.query(db as never, {
         first: 2,
-        where: { translation: { searchValue: { $iLike: "%phone%" } } },
+        where: { translation: { searchValue: { $containsi: "phone" } } },
         order: ["price:asc"],
         select: ["id", "handle", "price"],
       });
@@ -785,7 +785,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        where: { translation: { searchValue: { $iLike: "%phone%" } } },
+        where: { translation: { searchValue: { $containsi: "phone" } } },
         order: ["price:asc"],
         select: ["id", "handle", "price"],
       });

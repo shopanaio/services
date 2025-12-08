@@ -429,7 +429,7 @@ describe("Complex SQL Snapshot Tests", () => {
           productsWithTranslationsQuery.getSql({
             select: ["id", "sku", "price", "stock", "isPublished"],
             where: {
-              translation: { value: { $iLike: "%smartphone%" } },
+              translation: { value: { $containsi: "smartphone" } },
               isPublished: { $eq: true },
               deletedAt: { $is: null },
             },
@@ -465,7 +465,7 @@ describe("Complex SQL Snapshot Tests", () => {
           categoriesWithTranslationsQuery.getSql({
             select: ["id", "slug", "parentId", "isVisible"],
             where: {
-              translation: { value: { $iLike: "%electronics%" } },
+              translation: { value: { $containsi: "electronics" } },
               isVisible: { $eq: true },
               parentId: { $isNot: null },
             },
@@ -500,7 +500,7 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersWithUserAndItemsQuery.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
-              user: { email: { $iLike: "%@gmail.com" } },
+              user: { email: { $endsWithi: "@gmail.com" } },
               items: { quantity: { $gte: 5 } },
               status: { $in: ["pending", "processing", "shipped"] },
             },
@@ -575,7 +575,7 @@ describe("Complex SQL Snapshot Tests", () => {
           usersWithOrdersQuery.getSql({
             select: ["id", "email", "name"],
             where: {
-              email: { $iLike: "%@gmail.com" },
+              email: { $endsWithi: "@gmail.com" },
             },
           })
         )
@@ -605,7 +605,7 @@ describe("Complex SQL Snapshot Tests", () => {
             select: ["id", "status", "totalAmount", "currency"],
             where: {
               status: { $eq: "pending" },
-              items: { product: { sku: { $like: "PHONE-%" } } },
+              items: { product: { sku: { $startsWith: "PHONE-" } } },
             },
           })
         )
@@ -638,12 +638,12 @@ describe("Complex SQL Snapshot Tests", () => {
             select: ["id", "status", "totalAmount"],
             where: {
               $and: [
-                { user: { email: { $iLike: "%@company.com" } } },
+                { user: { email: { $endsWithi: "@company.com" } } },
                 { status: { $in: ["pending", "processing"] } },
                 {
                   $or: [
-                    { items: { product: { sku: { $like: "LAPTOP-%" } } } },
-                    { items: { product: { sku: { $like: "PHONE-%" } } } },
+                    { items: { product: { sku: { $startsWith: "LAPTOP-" } } } },
+                    { items: { product: { sku: { $startsWith: "PHONE-" } } } },
                   ],
                 },
               ],
@@ -731,7 +731,7 @@ describe("Complex SQL Snapshot Tests", () => {
                 },
                 {
                   $and: [
-                    { items: { product: { sku: { $like: "VIP-%" } } } },
+                    { items: { product: { sku: { $startsWith: "VIP-" } } } },
                     { items: { product: { price: { $gte: 1000 } } } },
                   ],
                 },
@@ -798,7 +798,7 @@ describe("Complex SQL Snapshot Tests", () => {
               items: {
                 product: {
                   category: {
-                    translation: { value: { $iLike: "%Electronics%" } },
+                    translation: { value: { $containsi: "Electronics" } },
                   },
                 },
               },
@@ -847,7 +847,7 @@ describe("Complex SQL Snapshot Tests", () => {
                   items: {
                     product: {
                       category: {
-                        translation: { value: { $notILike: "%test%" } },
+                        translation: { value: { $notContainsi: "test" } },
                       },
                     },
                   },
@@ -1300,8 +1300,8 @@ describe("Complex SQL Snapshot Tests", () => {
             where: {
               $and: [
                 { id: { $neq: "00000000-0000-0000-0000-000000000000" } },
-                { sku: { $like: "%" } },
-                { sku: { $notLike: "TEST-%" } },
+                { sku: { $startsWith: "" } },
+                { sku: { $notContains: "TEST-" } },
                 { price: { $gt: 0 } },
                 { price: { $lt: 999999 } },
                 { stock: { $gte: 0 } },
@@ -1310,7 +1310,7 @@ describe("Complex SQL Snapshot Tests", () => {
                 { deletedAt: { $is: null } },
                 { category: { slug: { $in: ["a", "b", "c", "d", "e"] } } },
                 { category: { isVisible: { $isNot: null } } },
-                { translation: { value: { $iLike: "%keyword%" } } },
+                { translation: { value: { $containsi: "keyword" } } },
               ],
             },
           })
@@ -1345,7 +1345,7 @@ describe("Complex SQL Snapshot Tests", () => {
           $15
         OFFSET
           $16
-        -- Params: ["00000000-0000-0000-0000-000000000000","%","TEST-%",0,999999,0,10000,true,"a","b","c","d","e","%keyword%",20,0]"
+        -- Params: ["00000000-0000-0000-0000-000000000000","%","%TEST-%",0,999999,0,10000,true,"a","b","c","d","e","%keyword%",20,0]"
       `);
     });
 
@@ -1389,8 +1389,8 @@ describe("Complex SQL Snapshot Tests", () => {
                     { role: { $eq: "admin" } },
                     {
                       $or: [
-                        { email: { $iLike: "%@company.com" } },
-                        { email: { $iLike: "%@corp.com" } },
+                        { email: { $endsWithi: "@company.com" } },
+                        { email: { $endsWithi: "@corp.com" } },
                       ],
                     },
                   ],
