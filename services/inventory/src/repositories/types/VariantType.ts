@@ -2,6 +2,7 @@ import { BaseType } from "@shopana/type-executor";
 import type { Variant } from "../models/index.js";
 import type {
   VariantPrice,
+  VariantCost,
   VariantDimensions,
   VariantWeight,
   WarehouseStock,
@@ -9,6 +10,7 @@ import type {
   VariantMediaItem,
 } from "../../domain/index.js";
 import type { ProductTypeContext } from "./context.js";
+import type { VariantPriceHistoryArgs, VariantCostHistoryArgs } from "./args.js";
 
 /**
  * Variant type - resolves Variant domain interface
@@ -92,9 +94,66 @@ export class VariantType extends BaseType<string, Variant | null> {
     };
   }
 
-  cost() {
+  /**
+   * Returns price history for this variant
+   * @param args - Pagination arguments (first, last, after, before)
+   */
+  async priceHistory(args?: VariantPriceHistoryArgs): Promise<VariantPrice[]> {
+    const ctx = this.ctx<ProductTypeContext>();
+    const allPrices = await ctx.loaders.variantPricing.load(this.value);
+
+    // Filter by currency if specified
+    let filtered = ctx.currency
+      ? allPrices.filter((p) => p.currency === ctx.currency)
+      : allPrices;
+
+    // Apply pagination
+    const { first, last, after, before } = args ?? {};
+
+    if (after) {
+      const afterIndex = filtered.findIndex((p) => p.id === after);
+      if (afterIndex !== -1) {
+        filtered = filtered.slice(afterIndex + 1);
+      }
+    }
+
+    if (before) {
+      const beforeIndex = filtered.findIndex((p) => p.id === before);
+      if (beforeIndex !== -1) {
+        filtered = filtered.slice(0, beforeIndex);
+      }
+    }
+
+    if (first !== undefined) {
+      filtered = filtered.slice(0, first);
+    } else if (last !== undefined) {
+      filtered = filtered.slice(-last);
+    }
+
+    return filtered.map((p) => ({
+      id: p.id,
+      currency: p.currency as "UAH" | "USD" | "EUR",
+      amountMinor: p.amountMinor,
+      compareAtMinor: p.compareAtMinor,
+      effectiveFrom: p.effectiveFrom,
+      effectiveTo: p.effectiveTo,
+      recordedAt: p.recordedAt,
+      isCurrent: p.effectiveTo === null,
+    }));
+  }
+
+  cost(): VariantCost | null {
     // Cost loader not implemented yet
     return null;
+  }
+
+  /**
+   * Returns cost history for this variant
+   * @param args - Pagination arguments (first, last, after, before)
+   */
+  async costHistory(_args?: VariantCostHistoryArgs): Promise<VariantCost[]> {
+    // Cost loader not implemented yet
+    return [];
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {

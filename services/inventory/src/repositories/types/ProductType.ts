@@ -2,6 +2,7 @@ import { BaseType } from "@shopana/type-executor";
 import type { Product } from "../models/index.js";
 import type { Description } from "../../domain/types/product.js";
 import type { ProductTypeContext } from "./context.js";
+import type { ProductVariantsArgs } from "./args.js";
 import { VariantType } from "./VariantType.js";
 import { OptionType } from "./OptionType.js";
 import { FeatureType } from "./FeatureType.js";
@@ -89,10 +90,40 @@ export class ProductType extends BaseType<string, Product | null> {
 
   /**
    * Returns variant IDs for this product
+   * @param args - Pagination arguments (first, last, after, before)
    */
-  async variants(): Promise<string[]> {
+  async variants(args?: ProductVariantsArgs): Promise<string[]> {
     const ctx = this.ctx<ProductTypeContext>();
-    return ctx.loaders.variantIds.load(this.value);
+    const allIds = await ctx.loaders.variantIds.load(this.value);
+
+    // Apply pagination
+    const { first, last, after, before } = args ?? {};
+
+    let result = allIds;
+
+    // Handle cursor-based pagination
+    if (after) {
+      const afterIndex = result.indexOf(after);
+      if (afterIndex !== -1) {
+        result = result.slice(afterIndex + 1);
+      }
+    }
+
+    if (before) {
+      const beforeIndex = result.indexOf(before);
+      if (beforeIndex !== -1) {
+        result = result.slice(0, beforeIndex);
+      }
+    }
+
+    // Apply limit
+    if (first !== undefined) {
+      result = result.slice(0, first);
+    } else if (last !== undefined) {
+      result = result.slice(-last);
+    }
+
+    return result;
   }
 
   /**

@@ -1,6 +1,9 @@
 // Context and loaders
 export * from "./context.js";
 
+// Argument types
+export * from "./args.js";
+
 // Product type
 export { ProductType } from "./ProductType.js";
 
