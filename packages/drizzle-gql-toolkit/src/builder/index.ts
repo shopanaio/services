@@ -31,6 +31,7 @@ export type {
   FluentFieldsDef,
   ExecuteOptions,
   QuerySnapshot,
+  PaginationQuerySnapshot,
   ToFieldsDef,
   FluentQueryBuilderLike,
 } from "./fluent-types.js";

@@ -60,6 +60,7 @@ export {
   type JoinDefinition,
   type FieldBuilder,
   type PaginationQueryConfig,
+  type PaginationQuerySnapshot,
   type PaginationResult,
   type FluentQueryConfig,
   type FluentFieldsDef,

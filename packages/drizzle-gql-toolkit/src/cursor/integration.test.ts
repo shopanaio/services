@@ -59,7 +59,6 @@ function createProductsQb() {
   return createCursorQueryBuilder(productsSchema, {
     cursorType: "product",
     tieBreaker: "id",
-    defaultSortField: "id",
   });
 }
 
@@ -67,7 +66,6 @@ function createProductsWithJoinQb() {
   return createCursorQueryBuilder(productsWithTranslationsSchema, {
     cursorType: "product",
     tieBreaker: "id",
-    defaultSortField: "id",
   });
 }
 

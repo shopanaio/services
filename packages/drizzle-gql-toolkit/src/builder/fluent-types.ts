@@ -118,5 +118,14 @@ export type QuerySnapshot<Fields extends FieldsDef = FieldsDef> = {
   config: FluentQueryConfig<Fields>;
 };
 
+/**
+ * Pagination query snapshot - current pagination configuration state
+ */
+export type PaginationQuerySnapshot<Fields extends FieldsDef = FieldsDef> = {
+  name: string;
+  tieBreaker: string;
+  querySnapshot: QuerySnapshot<Fields>;
+};
+
 // Re-export types from main types.ts for convenience
 export type { FieldsDef, NestedPaths, NestedWhereInput, OrderPath, FilterValue };

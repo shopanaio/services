@@ -32,8 +32,6 @@ export type CursorQueryBuilderConfig<
   cursorType: string;
   /** Tie-breaker field for stable sorting (usually "id") */
   tieBreaker: NestedPaths<Fields>;
-  /** Default sort field when none specified */
-  defaultSortField: NestedPaths<Fields>;
   /** Optional: transform row before returning in Connection */
   mapResult?: (row: Types) => unknown;
   /** QueryBuilder config (maxLimit, defaultLimit, etc.) */
@@ -84,10 +82,10 @@ export function createCursorQueryBuilder<
 
   function parseSortOrder(order: string[] | undefined): SortParam[] {
     if (!order || order.length === 0) {
-      return parseSort(undefined, config.defaultSortField as string);
+      return parseSort(undefined, config.tieBreaker as string);
     }
     // Join array to string format expected by parseSort
-    return parseSort(order.join(","), config.defaultSortField as string);
+    return parseSort(order.join(","), config.tieBreaker as string);
   }
 
   function buildOrderPath(sortParams: SortParam[], invert: boolean): string[] {

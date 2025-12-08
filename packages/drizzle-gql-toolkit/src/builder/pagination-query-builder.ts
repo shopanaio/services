@@ -9,7 +9,7 @@ import type {
 import { createCursorQueryBuilder } from "../cursor/builder.js";
 import type { Connection } from "../cursor/connection.js";
 import { FluentQueryBuilder } from "./fluent-query-builder.js";
-import type { FluentFieldsDef, ToFieldsDef } from "./fluent-types.js";
+import type { FluentFieldsDef, ToFieldsDef, PaginationQuerySnapshot } from "./fluent-types.js";
 
 /**
  * Pagination query builder configuration
@@ -17,10 +17,8 @@ import type { FluentFieldsDef, ToFieldsDef } from "./fluent-types.js";
 export type PaginationQueryConfig = {
   /** Cursor type identifier (defaults to table name) */
   name?: string;
-  /** Tie-breaker field for stable sorting (defaults to "id") */
+  /** Tie-breaker field for stable sorting (defaults to "id", throws if field doesn't exist) */
   tieBreaker?: string;
-  /** Default sort field (defaults to tieBreaker) */
-  defaultSortField?: string;
 };
 
 /**
@@ -84,16 +82,24 @@ export class PaginationQueryBuilder<
   private readonly queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
-  private readonly defaultSortField: string;
 
   constructor(
     queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
     config?: PaginationQueryConfig
   ) {
+    const snapshot = queryBuilder.getSnapshot();
+    const tieBreaker = config?.tieBreaker ?? "id";
+
+    if (!snapshot.fields.includes(tieBreaker)) {
+      throw new Error(
+        `Tie-breaker field '${tieBreaker}' not found in schema. ` +
+        `Available fields: ${snapshot.fields.join(", ")}`
+      );
+    }
+
     this.queryBuilder = queryBuilder;
     this.cursorType = config?.name ?? queryBuilder.getTableName();
-    this.tieBreaker = config?.tieBreaker ?? "id";
-    this.defaultSortField = config?.defaultSortField ?? this.tieBreaker;
+    this.tieBreaker = tieBreaker;
   }
 
   /**
@@ -116,17 +122,22 @@ export class PaginationQueryBuilder<
     const snapshot = this.queryBuilder.getSnapshot();
 
     // Build cursor query builder using the underlying schema
+    // Only pass queryConfig values if they're defined to avoid overriding defaults
+    const queryConfig: { maxLimit?: number; defaultLimit?: number } = {};
+    if (snapshot.config.maxLimit !== undefined) {
+      queryConfig.maxLimit = snapshot.config.maxLimit;
+    }
+    if (snapshot.config.defaultLimit !== undefined) {
+      queryConfig.defaultLimit = snapshot.config.defaultLimit;
+    }
+
     const cursorQb = createCursorQueryBuilder(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       schema as any,
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        defaultSortField: this.defaultSortField as never,
-        queryConfig: {
-          maxLimit: snapshot.config.maxLimit,
-          defaultLimit: snapshot.config.defaultLimit,
-        },
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
       }
     );
 
@@ -184,17 +195,22 @@ export class PaginationQueryBuilder<
     const schema = this.queryBuilder.getSchema();
     const snapshot = this.queryBuilder.getSnapshot();
 
+    // Only pass queryConfig values if they're defined to avoid overriding defaults
+    const queryConfig: { maxLimit?: number; defaultLimit?: number } = {};
+    if (snapshot.config.maxLimit !== undefined) {
+      queryConfig.maxLimit = snapshot.config.maxLimit;
+    }
+    if (snapshot.config.defaultLimit !== undefined) {
+      queryConfig.defaultLimit = snapshot.config.defaultLimit;
+    }
+
     const cursorQb = createCursorQueryBuilder(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       schema as any,
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        defaultSortField: this.defaultSortField as never,
-        queryConfig: {
-          maxLimit: snapshot.config.maxLimit,
-          defaultLimit: snapshot.config.defaultLimit,
-        },
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
       }
     );
 
@@ -249,13 +265,23 @@ export class PaginationQueryBuilder<
   }
 
   /**
+   * Get snapshot of current configuration state
+   */
+  getSnapshot(): PaginationQuerySnapshot<InferredFields> {
+    return {
+      name: this.cursorType,
+      tieBreaker: this.tieBreaker,
+      querySnapshot: this.queryBuilder.getSnapshot(),
+    };
+  }
+
+  /**
    * Get configuration
    */
   getConfig(): PaginationQueryConfig {
     return {
       name: this.cursorType,
       tieBreaker: this.tieBreaker,
-      defaultSortField: this.defaultSortField,
     };
   }
 }

@@ -5,6 +5,7 @@ import { format } from "sql-formatter";
 import { createCursorQueryBuilder } from "./builder.js";
 import { encode, decode } from "./cursor.js";
 import { createQuery, field, createPaginationQuery } from "../builder.js";
+import { createSchema } from "../schema.js";
 import { products, translations } from "../test/setup.js";
 import { hashFilters } from "./helpers.js";
 import type { DrizzleExecutor } from "../types.js";
@@ -51,7 +52,6 @@ const createProductsPagination = () =>
   createPaginationQuery(productsQuery, {
     name: "product",
     tieBreaker: "id",
-    defaultSortField: "id",
   });
 
 // ============ Validation Tests ============
@@ -1146,7 +1146,6 @@ describe("createPaginationQuery (fluent API)", () => {
       createPaginationQuery(productsWithTranslationsQuery, {
         name: "product",
         tieBreaker: "id",
-        defaultSortField: "id",
       });
 
     it("cursor on joined field builds correct seek", () => {
@@ -1274,7 +1273,6 @@ describe("createPaginationQuery (fluent API)", () => {
       expect(config).toEqual({
         name: "product",
         tieBreaker: "id",
-        defaultSortField: "id",
       });
     });
   });
@@ -1285,8 +1283,6 @@ describe("createPaginationQuery (fluent API)", () => {
 
 describe("createCursorQueryBuilder (legacy API)", () => {
   // For backward compatibility testing with ObjectSchema API
-  const { createSchema } = require("../schema.js");
-
   const productsSchema = createSchema({
     table: products,
     tableName: "products",
@@ -1302,7 +1298,6 @@ describe("createCursorQueryBuilder (legacy API)", () => {
     createCursorQueryBuilder(productsSchema, {
       cursorType: "product",
       tieBreaker: "id",
-      defaultSortField: "id",
     });
 
   describe("mapResult transformation", () => {
@@ -1311,7 +1306,6 @@ describe("createCursorQueryBuilder (legacy API)", () => {
       const qb = createCursorQueryBuilder(productsSchema, {
         cursorType: "product",
         tieBreaker: "id",
-        defaultSortField: "id",
         mapResult: (row) => {
           const typedRow = row as { id: string; handle?: string };
           mappedIds.push(typedRow.id);
