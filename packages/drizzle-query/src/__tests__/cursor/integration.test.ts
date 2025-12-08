@@ -6,7 +6,7 @@ import {
   translations,
   clearTables,
 } from "../test/setup.js";
-import { createCursorQueryBuilder } from "../../cursor/relay-builder.js";
+import { createRelayBuilder } from "../../cursor/relay-builder.js";
 import { createSchema } from "../../schema.js";
 import { decode } from "../../cursor/cursor.js";
 
@@ -56,14 +56,14 @@ const productsWithTranslationsSchema = createSchema({
 // ============ Helper Functions ============
 
 function createProductsQb() {
-  return createCursorQueryBuilder(productsSchema, {
+  return createRelayBuilder(productsSchema, {
     cursorType: "product",
     tieBreaker: "id",
   });
 }
 
 function createProductsWithJoinQb() {
-  return createCursorQueryBuilder(productsWithTranslationsSchema, {
+  return createRelayBuilder(productsWithTranslationsSchema, {
     cursorType: "product",
     tieBreaker: "id",
   });

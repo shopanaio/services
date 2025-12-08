@@ -1,4 +1,14 @@
-// ============ Base Cursor Pagination ============
+// ============ Cursor Query (high-level API) ============
+export {
+  createCursorQuery,
+  CursorQueryBuilder,
+  type CursorQueryConfig,
+  type CursorQueryInput,
+  type CursorQueryResult,
+  type CursorQuerySnapshot,
+} from "../builder/pagination-query-builder.js";
+
+// ============ Base Cursor Pagination (low-level API) ============
 export {
   createBaseCursorBuilder,
   type BaseCursorBuilderConfig,

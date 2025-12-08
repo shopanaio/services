@@ -1,21 +1,11 @@
-// ============ Relay Connection Builder ============
+// ============ Relay Query (high-level API) ============
 export {
-  createRelayBuilder,
-  createCursorQueryBuilder, // deprecated alias
-  type RelayBuilderConfig,
-  type RelayInput,
-  type RelayResult,
-  type CursorQueryBuilderConfig, // deprecated alias
-  type CursorQueryInput, // deprecated alias
-  type CursorQueryResult, // deprecated alias
-} from "../cursor/relay-builder.js";
-
-// ============ Fluent Pagination Query Builder ============
-export {
-  createPaginationQuery,
-  PaginationQueryBuilder,
-  type PaginationQueryConfig,
-  type PaginationResult,
+  createRelayQuery,
+  RelayQueryBuilder,
+  type RelayQueryConfig,
+  type RelayQueryInput,
+  type RelayQueryResult,
+  type RelayQuerySnapshot,
 } from "../builder/pagination-query-builder.js";
 
 // ============ Connection Types ============

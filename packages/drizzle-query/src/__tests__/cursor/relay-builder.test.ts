@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
-import { createCursorQueryBuilder } from "../../cursor/relay-builder.js";
+import { createRelayBuilder } from "../../cursor/relay-builder.js";
 import { encode, decode } from "../../cursor/cursor.js";
 import { createQuery, field } from "../../builder/index.js";
-import { createPaginationQuery } from "../../relay/index.js";
+import { createRelayQuery } from "../../relay/index.js";
 import { createSchema } from "../../schema.js";
 import { products, translations } from "../test/setup.js";
 import { hashFilters } from "../../cursor/helpers.js";
@@ -50,14 +50,14 @@ const productsWithTranslationsQuery = createQuery(products, {
 });
 
 const createProductsPagination = () =>
-  createPaginationQuery(productsQuery, {
+  createRelayQuery(productsQuery, {
     name: "product",
     tieBreaker: "id",
   });
 
 // ============ Validation Tests ============
 
-describe("createPaginationQuery (fluent API)", () => {
+describe("createRelayQuery (fluent API)", () => {
   describe("validation", () => {
     it("throws when both first and last are provided", () => {
       const qb = createProductsPagination();
@@ -1144,7 +1144,7 @@ describe("createPaginationQuery (fluent API)", () => {
 
   describe("cursor with joins", () => {
     const createJoinedPagination = () =>
-      createPaginationQuery(productsWithTranslationsQuery, {
+      createRelayQuery(productsWithTranslationsQuery, {
         name: "product",
         tieBreaker: "id",
       });
@@ -1279,10 +1279,10 @@ describe("createPaginationQuery (fluent API)", () => {
   });
 });
 
-// ============ Lower-Level createCursorQueryBuilder Tests ============
+// ============ Lower-Level createRelayBuilder Tests ============
 // These tests use the lower-level API with ObjectSchema
 
-describe("createCursorQueryBuilder (legacy API)", () => {
+describe("createRelayBuilder (legacy API)", () => {
   // For backward compatibility testing with ObjectSchema API
   const productsSchema = createSchema({
     table: products,
@@ -1296,7 +1296,7 @@ describe("createCursorQueryBuilder (legacy API)", () => {
   });
 
   const createProductsQb = () =>
-    createCursorQueryBuilder(productsSchema, {
+    createRelayBuilder(productsSchema, {
       cursorType: "product",
       tieBreaker: "id",
     });
@@ -1304,7 +1304,7 @@ describe("createCursorQueryBuilder (legacy API)", () => {
   describe("mapResult transformation", () => {
     it("applies mapResult transformation before returning nodes", async () => {
       const mappedIds: string[] = [];
-      const qb = createCursorQueryBuilder(productsSchema, {
+      const qb = createRelayBuilder(productsSchema, {
         cursorType: "product",
         tieBreaker: "id",
         mapResult: (row) => {

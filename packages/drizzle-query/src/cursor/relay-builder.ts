@@ -25,14 +25,6 @@ export type RelayBuilderConfig<
   Types,
 > = BaseCursorBuilderConfig<Fields, Types>;
 
-/**
- * @deprecated Use RelayBuilderConfig instead
- */
-export type CursorQueryBuilderConfig<
-  Fields extends FieldsDef,
-  Types,
-> = RelayBuilderConfig<Fields, Types>;
-
 export type RelayInput<F extends FieldsDef> = {
   /** Number of items to fetch (forward pagination) */
   first?: number;
@@ -52,20 +44,10 @@ export type RelayInput<F extends FieldsDef> = {
   filters?: Record<string, unknown>;
 };
 
-/**
- * @deprecated Use RelayInput instead
- */
-export type CursorQueryInput<F extends FieldsDef> = RelayInput<F>;
-
 export type RelayResult<T> = Connection<T> & {
   /** True if cursor was ignored due to filter change */
   filtersChanged: boolean;
 };
-
-/**
- * @deprecated Use RelayResult instead
- */
-export type CursorQueryResult<T> = RelayResult<T>;
 
 // ============ Internal Helpers ============
 
@@ -212,8 +194,3 @@ export function createRelayBuilder<
     },
   };
 }
-
-/**
- * @deprecated Use createRelayBuilder instead
- */
-export const createCursorQueryBuilder = createRelayBuilder;

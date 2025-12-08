@@ -15,7 +15,7 @@ import {
   field,
   MaxLimitExceededError,
 } from "../../builder/index.js";
-import { createPaginationQuery } from "../../relay/index.js";
+import { createRelayQuery } from "../../relay/index.js";
 
 // Dialect for SQL serialization
 const dialect = new PgDialect();
@@ -480,7 +480,7 @@ describe("FluentQueryBuilder with joins", () => {
 // =============================================================================
 
 // TODO: Fix circular dependency issue with cursor/builder.ts
-describe.skip("createPaginationQuery", () => {
+describe.skip("createRelayQuery", () => {
   const usersQuery = createQuery(users, {
     id: field(users.id),
     name: field(users.name),
@@ -490,7 +490,7 @@ describe.skip("createPaginationQuery", () => {
     .maxLimit(100);
 
   it("should create pagination query from fluent query", () => {
-    const pagination = createPaginationQuery(usersQuery, {
+    const pagination = createRelayQuery(usersQuery, {
       name: "user",
       tieBreaker: "id",
     });
@@ -501,13 +501,13 @@ describe.skip("createPaginationQuery", () => {
   });
 
   it("should use table name as default cursor type", () => {
-    const pagination = createPaginationQuery(usersQuery);
+    const pagination = createRelayQuery(usersQuery);
     const config = pagination.getConfig();
     expect(config.name).toBe("users");
   });
 
   it("should execute forward pagination", async () => {
-    const pagination = createPaginationQuery(usersQuery, {
+    const pagination = createRelayQuery(usersQuery, {
       name: "user",
     });
 
@@ -520,7 +520,7 @@ describe.skip("createPaginationQuery", () => {
   });
 
   it("should execute with cursor", async () => {
-    const pagination = createPaginationQuery(usersQuery, {
+    const pagination = createRelayQuery(usersQuery, {
       name: "user",
     });
 
@@ -547,7 +547,7 @@ describe.skip("createPaginationQuery", () => {
       .defaultWhere({ name: "Alice" })
       .maxLimit(50);
 
-    const pagination = createPaginationQuery(query);
+    const pagination = createRelayQuery(query);
     const result = await pagination.execute(db, { first: 10 });
 
     // Should only return Alice due to defaultWhere

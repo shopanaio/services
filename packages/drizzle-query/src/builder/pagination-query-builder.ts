@@ -6,15 +6,24 @@ import type {
   NestedWhereInput,
   OrderPath,
 } from "../types.js";
-import { createCursorQueryBuilder } from "../cursor/relay-builder.js";
+import { createRelayBuilder } from "../cursor/relay-builder.js";
+import {
+  createBaseCursorBuilder,
+  type BaseCursorResult,
+  type CursorDirection,
+} from "../cursor/base-builder.js";
 import type { Connection } from "../cursor/connection.js";
 import { FluentQueryBuilder } from "./fluent-query-builder.js";
-import type { FluentFieldsDef, ToFieldsDef, PaginationQuerySnapshot } from "./fluent-types.js";
+import type { FluentFieldsDef, ToFieldsDef } from "./fluent-types.js";
+
+// ============================================================================
+// Relay Query
+// ============================================================================
 
 /**
- * Pagination query builder configuration
+ * Relay query builder configuration
  */
-export type PaginationQueryConfig = {
+export type RelayQueryConfig = {
   /** Cursor type identifier (defaults to table name) */
   name?: string;
   /** Tie-breaker field for stable sorting (defaults to "id", throws if field doesn't exist) */
@@ -22,9 +31,9 @@ export type PaginationQueryConfig = {
 };
 
 /**
- * Pagination query input with type-safe fields
+ * Relay query input with type-safe fields (first/after, last/before)
  */
-export type PaginationInput<InferredFields extends FieldsDef> = {
+export type RelayQueryInput<InferredFields extends FieldsDef> = {
   /** Number of items to fetch (forward pagination) */
   first?: number;
   /** Cursor to start after (forward pagination) */
@@ -44,36 +53,48 @@ export type PaginationInput<InferredFields extends FieldsDef> = {
 };
 
 /**
- * Pagination query result
+ * Relay query result (Connection + filtersChanged)
  */
-export type PaginationResult<T> = Connection<T> & {
+export type RelayQueryResult<T> = Connection<T> & {
   /** True if cursor was ignored due to filter change */
   filtersChanged: boolean;
 };
 
 /**
- * Pagination Query Builder
+ * Relay query snapshot for debugging/inspection
+ */
+export type RelayQuerySnapshot<InferredFields extends FieldsDef> = {
+  name: string;
+  tieBreaker: string;
+  querySnapshot: {
+    tableName: string;
+    fields: (keyof InferredFields & string)[];
+    config: Record<string, unknown>;
+  };
+};
+
+/**
+ * Relay Query Builder
  *
- * Wraps FluentQueryBuilder with cursor-based pagination support.
+ * Wraps FluentQueryBuilder with Relay-style cursor pagination.
+ * Uses first/after for forward pagination and last/before for backward pagination.
  *
  * @example
  * ```ts
- * const productsPagination = createPaginationQuery(productsQuery, {
- *   name: "product",
+ * const productsPagination = createRelayQuery(productsQuery, {
  *   tieBreaker: "id",
  * });
  *
  * const result = await productsPagination.execute(db, {
  *   first: 10,
  *   where: { status: "active" },
- *   order: ["createdAt:desc"],
  * });
  *
  * console.log(result.edges);
  * console.log(result.pageInfo);
  * ```
  */
-export class PaginationQueryBuilder<
+export class RelayQueryBuilder<
   T extends Table,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
@@ -85,7 +106,7 @@ export class PaginationQueryBuilder<
 
   constructor(
     queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
-    config?: PaginationQueryConfig
+    config?: RelayQueryConfig
   ) {
     const snapshot = queryBuilder.getSnapshot();
     const tieBreaker = config?.tieBreaker ?? "id";
@@ -103,7 +124,7 @@ export class PaginationQueryBuilder<
   }
 
   /**
-   * Execute paginated query
+   * Execute Relay-paginated query
    *
    * @example
    * ```ts
@@ -116,13 +137,11 @@ export class PaginationQueryBuilder<
    */
   async execute(
     db: DrizzleExecutor,
-    input: PaginationInput<InferredFields>
-  ): Promise<PaginationResult<Types>> {
+    input: RelayQueryInput<InferredFields>
+  ): Promise<RelayQueryResult<Types>> {
     const schema = this.queryBuilder.getSchema();
     const snapshot = this.queryBuilder.getSnapshot();
 
-    // Build cursor query builder using the underlying schema
-    // Only pass queryConfig values if they're defined to avoid overriding defaults
     const queryConfig: { maxLimit?: number; defaultLimit?: number } = {};
     if (snapshot.config.maxLimit !== undefined) {
       queryConfig.maxLimit = snapshot.config.maxLimit;
@@ -131,7 +150,7 @@ export class PaginationQueryBuilder<
       queryConfig.defaultLimit = snapshot.config.defaultLimit;
     }
 
-    const cursorQb = createCursorQueryBuilder(
+    const cursorQb = createRelayBuilder(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       schema as any,
       {
@@ -185,17 +204,16 @@ export class PaginationQueryBuilder<
       filters: input.filters,
     });
 
-    return result as unknown as PaginationResult<Types>;
+    return result as unknown as RelayQueryResult<Types>;
   }
 
   /**
    * Get SQL without executing
    */
-  getSql(input: PaginationInput<InferredFields>) {
+  getSql(input: RelayQueryInput<InferredFields>) {
     const schema = this.queryBuilder.getSchema();
     const snapshot = this.queryBuilder.getSnapshot();
 
-    // Only pass queryConfig values if they're defined to avoid overriding defaults
     const queryConfig: { maxLimit?: number; defaultLimit?: number } = {};
     if (snapshot.config.maxLimit !== undefined) {
       queryConfig.maxLimit = snapshot.config.maxLimit;
@@ -204,7 +222,7 @@ export class PaginationQueryBuilder<
       queryConfig.defaultLimit = snapshot.config.defaultLimit;
     }
 
-    const cursorQb = createCursorQueryBuilder(
+    const cursorQb = createRelayBuilder(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       schema as any,
       {
@@ -214,7 +232,6 @@ export class PaginationQueryBuilder<
       }
     );
 
-    // Apply same merging logic as execute()
     let where = input.where;
     if (!where && snapshot.config.defaultWhere) {
       where = snapshot.config.defaultWhere;
@@ -267,7 +284,7 @@ export class PaginationQueryBuilder<
   /**
    * Get snapshot of current configuration state
    */
-  getSnapshot(): PaginationQuerySnapshot<InferredFields> {
+  getSnapshot(): RelayQuerySnapshot<InferredFields> {
     return {
       name: this.cursorType,
       tieBreaker: this.tieBreaker,
@@ -278,7 +295,7 @@ export class PaginationQueryBuilder<
   /**
    * Get configuration
    */
-  getConfig(): PaginationQueryConfig {
+  getConfig(): RelayQueryConfig {
     return {
       name: this.cursorType,
       tieBreaker: this.tieBreaker,
@@ -287,34 +304,357 @@ export class PaginationQueryBuilder<
 }
 
 /**
- * Create a pagination query builder from a FluentQueryBuilder
+ * Create a Relay-style cursor pagination query from a FluentQueryBuilder
+ *
+ * Uses first/after for forward pagination and last/before for backward pagination.
+ * Returns edges with cursors and pageInfo (Relay Connection spec).
  *
  * @example
  * ```ts
- * const productsQuery = createQuery(products, {
- *   id: field("id"),
- *   name: field("name"),
- *   price: field("price"),
- * })
- *   .defaultOrder("id:asc")
+ * const productsQuery = createQuery(products)
+ *   .defaultOrder("createdAt:desc")
  *   .maxLimit(100);
  *
- * const productsPagination = createPaginationQuery(productsQuery, {
- *   name: "product",
+ * const productsPagination = createRelayQuery(productsQuery, {
  *   tieBreaker: "id",
  * });
  *
- * const result = await productsPagination.execute(db, { first: 10 });
+ * // Forward pagination
+ * const page1 = await productsPagination.execute(db, { first: 10 });
+ * const page2 = await productsPagination.execute(db, {
+ *   first: 10,
+ *   after: page1.pageInfo.endCursor,
+ * });
  * ```
  */
-export function createPaginationQuery<
+export function createRelayQuery<
   T extends Table,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
   Types = T["$inferSelect"],
 >(
   queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
-  config?: PaginationQueryConfig
-): PaginationQueryBuilder<T, Fields, InferredFields, Types> {
-  return new PaginationQueryBuilder(queryBuilder, config);
+  config?: RelayQueryConfig
+): RelayQueryBuilder<T, Fields, InferredFields, Types> {
+  return new RelayQueryBuilder(queryBuilder, config);
 }
+
+// ============================================================================
+// Cursor Query (base cursor pagination)
+// ============================================================================
+
+/**
+ * Cursor query builder configuration
+ */
+export type CursorQueryConfig = {
+  /** Cursor type identifier (defaults to table name) */
+  name?: string;
+  /** Tie-breaker field for stable sorting (defaults to "id", throws if field doesn't exist) */
+  tieBreaker?: string;
+};
+
+/**
+ * Cursor query input with type-safe fields
+ */
+export type CursorQueryInput<InferredFields extends FieldsDef> = {
+  /** Number of items to fetch */
+  limit: number;
+  /** Pagination direction */
+  direction: CursorDirection;
+  /** Cursor to continue from (opaque string) */
+  cursor?: string;
+  /** Filter conditions */
+  where?: NestedWhereInput<InferredFields>;
+  /** Sort order (e.g., ["createdAt:desc"]) */
+  order?: OrderPath<NestedPaths<InferredFields>>[];
+  /** Fields to select */
+  select?: NestedPaths<InferredFields>[];
+  /** Current filters for hash comparison */
+  filters?: Record<string, unknown>;
+};
+
+/**
+ * Cursor query result
+ */
+export type CursorQueryResult<T> = BaseCursorResult<T>;
+
+/**
+ * Cursor query snapshot for debugging/inspection
+ */
+export type CursorQuerySnapshot<InferredFields extends FieldsDef> = {
+  name: string;
+  tieBreaker: string;
+  querySnapshot: {
+    tableName: string;
+    fields: (keyof InferredFields & string)[];
+    config: Record<string, unknown>;
+  };
+};
+
+/**
+ * Cursor Query Builder
+ *
+ * Wraps FluentQueryBuilder with base cursor pagination support.
+ * Uses limit/direction/cursor instead of Relay's first/after, last/before.
+ *
+ * @example
+ * ```ts
+ * const productsCursor = createCursorQuery(productsQuery, {
+ *   tieBreaker: "id",
+ * });
+ *
+ * const result = await productsCursor.execute(db, {
+ *   limit: 10,
+ *   direction: "forward",
+ * });
+ *
+ * console.log(result.items);
+ * console.log(result.hasMore);
+ * ```
+ */
+export class CursorQueryBuilder<
+  T extends Table,
+  Fields extends FluentFieldsDef,
+  InferredFields extends FieldsDef = ToFieldsDef<Fields>,
+  Types = T["$inferSelect"],
+> {
+  private readonly queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>;
+  private readonly cursorType: string;
+  private readonly tieBreaker: string;
+
+  constructor(
+    queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
+    config?: CursorQueryConfig
+  ) {
+    const snapshot = queryBuilder.getSnapshot();
+    const tieBreaker = config?.tieBreaker ?? "id";
+
+    if (!snapshot.fields.includes(tieBreaker)) {
+      throw new Error(
+        `Tie-breaker field '${tieBreaker}' not found in schema. ` +
+        `Available fields: ${snapshot.fields.join(", ")}`
+      );
+    }
+
+    this.queryBuilder = queryBuilder;
+    this.cursorType = config?.name ?? queryBuilder.getTableName();
+    this.tieBreaker = tieBreaker;
+  }
+
+  /**
+   * Execute cursor-paginated query
+   *
+   * @example
+   * ```ts
+   * const result = await cursor.execute(db, {
+   *   limit: 10,
+   *   direction: "forward",
+   *   cursor: previousCursor,
+   *   where: { status: "active" },
+   * });
+   * ```
+   */
+  async execute(
+    db: DrizzleExecutor,
+    input: CursorQueryInput<InferredFields>
+  ): Promise<CursorQueryResult<Types>> {
+    const schema = this.queryBuilder.getSchema();
+    const snapshot = this.queryBuilder.getSnapshot();
+
+    const queryConfig: { maxLimit?: number; defaultLimit?: number } = {};
+    if (snapshot.config.maxLimit !== undefined) {
+      queryConfig.maxLimit = snapshot.config.maxLimit;
+    }
+    if (snapshot.config.defaultLimit !== undefined) {
+      queryConfig.defaultLimit = snapshot.config.defaultLimit;
+    }
+
+    const cursorQb = createBaseCursorBuilder(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      schema as any,
+      {
+        cursorType: this.cursorType,
+        tieBreaker: this.tieBreaker as never,
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+      }
+    );
+
+    let where = input.where;
+    if (!where && snapshot.config.defaultWhere) {
+      where = snapshot.config.defaultWhere;
+    }
+
+    let order = input.order;
+    if (!order && snapshot.config.defaultOrder) {
+      order = [snapshot.config.defaultOrder];
+    }
+
+    let select: string[] | undefined = input.select
+      ? (input.select as string[])
+      : snapshot.config.defaultSelect
+        ? (snapshot.config.defaultSelect as string[])
+        : undefined;
+
+    if (select) {
+      if (snapshot.config.include) {
+        const selectSet = new Set(select);
+        for (const field of snapshot.config.include as string[]) {
+          selectSet.add(field);
+        }
+        select = Array.from(selectSet);
+      }
+      if (snapshot.config.exclude) {
+        const excludeSet = new Set(snapshot.config.exclude as string[]);
+        select = select.filter((f) => !excludeSet.has(f));
+      }
+    }
+
+    const result = await cursorQb.query(db, {
+      limit: input.limit,
+      direction: input.direction,
+      cursor: input.cursor,
+      where: where as NestedWhereInput<FieldsDef>,
+      order: order as never,
+      select: select as never,
+      filters: input.filters,
+    });
+
+    return result as unknown as CursorQueryResult<Types>;
+  }
+
+  /**
+   * Get SQL without executing
+   */
+  getSql(input: CursorQueryInput<InferredFields>) {
+    const schema = this.queryBuilder.getSchema();
+    const snapshot = this.queryBuilder.getSnapshot();
+
+    const queryConfig: { maxLimit?: number; defaultLimit?: number } = {};
+    if (snapshot.config.maxLimit !== undefined) {
+      queryConfig.maxLimit = snapshot.config.maxLimit;
+    }
+    if (snapshot.config.defaultLimit !== undefined) {
+      queryConfig.defaultLimit = snapshot.config.defaultLimit;
+    }
+
+    const cursorQb = createBaseCursorBuilder(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      schema as any,
+      {
+        cursorType: this.cursorType,
+        tieBreaker: this.tieBreaker as never,
+        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+      }
+    );
+
+    let where = input.where;
+    if (!where && snapshot.config.defaultWhere) {
+      where = snapshot.config.defaultWhere;
+    }
+
+    let order = input.order;
+    if (!order && snapshot.config.defaultOrder) {
+      order = [snapshot.config.defaultOrder];
+    }
+
+    let select: string[] | undefined = input.select
+      ? (input.select as string[])
+      : snapshot.config.defaultSelect
+        ? (snapshot.config.defaultSelect as string[])
+        : undefined;
+
+    if (select) {
+      if (snapshot.config.include) {
+        const selectSet = new Set(select);
+        for (const field of snapshot.config.include as string[]) {
+          selectSet.add(field);
+        }
+        select = Array.from(selectSet);
+      }
+      if (snapshot.config.exclude) {
+        const excludeSet = new Set(snapshot.config.exclude as string[]);
+        select = select.filter((f) => !excludeSet.has(f));
+      }
+    }
+
+    return cursorQb.getSql({
+      limit: input.limit,
+      direction: input.direction,
+      cursor: input.cursor,
+      where: where as NestedWhereInput<FieldsDef>,
+      order: order as never,
+      select: select as never,
+      filters: input.filters,
+    });
+  }
+
+  /**
+   * Get the underlying FluentQueryBuilder
+   */
+  getQueryBuilder(): FluentQueryBuilder<T, Fields, InferredFields, Types> {
+    return this.queryBuilder;
+  }
+
+  /**
+   * Get snapshot of current configuration state
+   */
+  getSnapshot(): CursorQuerySnapshot<InferredFields> {
+    return {
+      name: this.cursorType,
+      tieBreaker: this.tieBreaker,
+      querySnapshot: this.queryBuilder.getSnapshot(),
+    };
+  }
+
+  /**
+   * Get configuration
+   */
+  getConfig(): CursorQueryConfig {
+    return {
+      name: this.cursorType,
+      tieBreaker: this.tieBreaker,
+    };
+  }
+}
+
+/**
+ * Create a base cursor pagination query from a FluentQueryBuilder
+ *
+ * Uses limit/direction/cursor for pagination.
+ * Returns items array with hasMore flag (simpler than Relay Connection).
+ *
+ * @example
+ * ```ts
+ * const productsQuery = createQuery(products)
+ *   .defaultOrder("createdAt:desc")
+ *   .maxLimit(100);
+ *
+ * const productsCursor = createCursorQuery(productsQuery, {
+ *   tieBreaker: "id",
+ * });
+ *
+ * // Forward pagination
+ * const page1 = await productsCursor.execute(db, {
+ *   limit: 10,
+ *   direction: "forward",
+ * });
+ *
+ * const page2 = await productsCursor.execute(db, {
+ *   limit: 10,
+ *   direction: "forward",
+ *   cursor: page1.endCursor,
+ * });
+ * ```
+ */
+export function createCursorQuery<
+  T extends Table,
+  Fields extends FluentFieldsDef,
+  InferredFields extends FieldsDef = ToFieldsDef<Fields>,
+  Types = T["$inferSelect"],
+>(
+  queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
+  config?: CursorQueryConfig
+): CursorQueryBuilder<T, Fields, InferredFields, Types> {
+  return new CursorQueryBuilder(queryBuilder, config);
+}
+
