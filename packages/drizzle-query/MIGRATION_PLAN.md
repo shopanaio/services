@@ -53,7 +53,7 @@ import {
   leftJoin,
   innerJoin,
   field,
-} from "@shopana/drizzle-gql-toolkit/builder";
+} from "@shopana/drizzle-query/builder";
 
 // Fluent Query Builder
 const usersQuery = createQuery(users, {

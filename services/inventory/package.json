@@ -24,7 +24,7 @@
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
-    "@shopana/drizzle-gql-toolkit": "*",
+    "@shopana/drizzle-query": "*",
     "@shopana/import-plugin-sdk": "*",
     "@shopana/inventory-plugin-shopana": "*",
     "@shopana/platform-api": "0.0.1",

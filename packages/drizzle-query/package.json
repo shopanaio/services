@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/drizzle-gql-toolkit",
+  "name": "@shopana/drizzle-query",
   "version": "0.1.0",
   "type": "module",
   "description": "Type-safe query builder for Drizzle ORM with GraphQL-style filtering, automatic joins, and nested paths",
@@ -50,9 +50,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shopanaio/services.git",
-    "directory": "packages/drizzle-gql-toolkit"
+    "directory": "packages/drizzle-query"
   },
-  "homepage": "https://github.com/shopanaio/services/tree/main/packages/drizzle-gql-toolkit#readme",
+  "homepage": "https://github.com/shopanaio/services/tree/main/packages/drizzle-query#readme",
   "bugs": {
     "url": "https://github.com/shopanaio/services/issues"
   },

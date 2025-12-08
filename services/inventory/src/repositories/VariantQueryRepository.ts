@@ -4,7 +4,7 @@ import {
   type TypedSchemaInput,
   type TypedSchemaResult,
   type QueryBuilderConfig,
-} from "@shopana/drizzle-gql-toolkit";
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "./BaseRepository.js";
 import { variant } from "./models/index.js";
 

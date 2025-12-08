@@ -4252,9 +4252,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/drizzle-gql-toolkit@npm:*, @shopana/drizzle-gql-toolkit@workspace:packages/drizzle-gql-toolkit":
+"@shopana/drizzle-query@npm:*, @shopana/drizzle-query@workspace:packages/drizzle-query":
   version: 0.0.0-use.local
-  resolution: "@shopana/drizzle-gql-toolkit@workspace:packages/drizzle-gql-toolkit"
+  resolution: "@shopana/drizzle-query@workspace:packages/drizzle-query"
   dependencies:
     "@electric-sql/pglite": "npm:^0.2.15"
     "@types/node": "npm:^20.12.7"
@@ -4319,7 +4319,7 @@ __metadata:
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@shopana/build-tools": "npm:0.0.1"
-    "@shopana/drizzle-gql-toolkit": "npm:*"
+    "@shopana/drizzle-query": "npm:*"
     "@shopana/import-plugin-sdk": "npm:*"
     "@shopana/inventory-plugin-shopana": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
