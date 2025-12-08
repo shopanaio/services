@@ -5,6 +5,40 @@ import { formatAliasedTableReference } from "./sql-renderer.js";
 import { QueryBuilder, type TypedInput } from "./query-builder.js";
 export type { WhereResult } from "./where-builder.js";
 
+// =============================================================================
+// NEW FLUENT API
+// =============================================================================
+
+// Fluent Query Builder
+export { createQuery, FluentQueryBuilder, MaxLimitExceededError } from "./fluent-query-builder.js";
+
+// Pagination Query Builder
+export {
+  createPaginationQuery,
+  PaginationQueryBuilder,
+  type PaginationQueryConfig,
+  type PaginationInput,
+  type PaginationResult,
+} from "./pagination-query-builder.js";
+
+// Helpers
+export { field } from "./helpers.js";
+export type { FieldDefinition, JoinDefinition, FieldBuilder, JoinTarget } from "./helpers.js";
+
+// Types
+export type {
+  FluentQueryConfig,
+  FluentFieldsDef,
+  ExecuteOptions,
+  QuerySnapshot,
+  ToFieldsDef,
+  FluentQueryBuilderLike,
+} from "./fluent-types.js";
+
+// =============================================================================
+// EXISTING API (kept for backward compatibility)
+// =============================================================================
+
 type JoinableQuery = {
   leftJoin: (table: SQL, on: SQL) => JoinableQuery;
   rightJoin: (table: SQL, on: SQL) => JoinableQuery;
