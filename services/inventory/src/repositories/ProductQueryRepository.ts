@@ -1,43 +1,20 @@
-import {
-  createSchema,
-  createQueryBuilder,
-  type TypedSchemaInput,
-  type TypedSchemaResult,
-  type QueryBuilderConfig,
-} from "@shopana/drizzle-query";
+import { createQuery } from "@shopana/drizzle-query";
 import { BaseRepository } from "./BaseRepository.js";
-import { product } from "./models/index.js";
+import { product, type Product } from "./models/index.js";
 
-const productSchema = createSchema({
-  table: product,
-  tableName: "inventory.product",
-  fields: {
-    id: { column: "id" },
-    projectId: { column: "project_id" },
-    handle: { column: "handle" },
-    publishedAt: { column: "published_at" },
-    createdAt: { column: "created_at" },
-    updatedAt: { column: "updated_at" },
-    deletedAt: { column: "deleted_at" },
-  },
-});
-
-type QueryInput = TypedSchemaInput<typeof productSchema>;
-type QueryResult = TypedSchemaResult<typeof productSchema>;
-
-const defaultConfig: QueryBuilderConfig = {
-  maxLimit: 100,
-  defaultLimit: 20,
-};
+const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
 export class ProductQueryRepository extends BaseRepository {
-  private readonly qb = createQueryBuilder(productSchema, defaultConfig);
-
-  async getMany(input?: QueryInput): Promise<QueryResult[]> {
-    return this.qb.query(this.connection, {
+  async getMany(input?: {
+    where?: Record<string, unknown>;
+    order?: string[];
+    limit?: number;
+    offset?: number;
+  }): Promise<Product[]> {
+    return productQuery.execute(this.connection, {
       ...input,
       // Default order by createdAt desc, id desc for stable pagination
-      order: input?.order ?? ["createdAt:desc", "id:desc"],
+      order: (input?.order as never) ?? ["createdAt:desc", "id:desc"],
       where: {
         ...input?.where,
         projectId: this.projectId,
@@ -46,8 +23,8 @@ export class ProductQueryRepository extends BaseRepository {
     });
   }
 
-  async getOne(id: string): Promise<QueryResult | null> {
-    const results = await this.qb.query(this.connection, {
+  async getOne(id: string): Promise<Product | null> {
+    const results = await productQuery.execute(this.connection, {
       where: {
         id,
         projectId: this.projectId,
