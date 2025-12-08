@@ -8,83 +8,49 @@ import {
   events,
   clearTables,
 } from "./test/setup.js";
-import { createQueryBuilder } from "./builder.js";
-import { createSchema } from "./schema.js";
+import { createQuery, field } from "./index.js";
 
-// Create schemas using the shared table definitions from setup.ts
-// Note: column names must match the actual PostgreSQL column names (snake_case)
-const usersSchema = createSchema({
-  table: users,
-  tableName: "users",
-  fields: {
-    id: { column: "id" },
-    name: { column: "name" },
-    age: { column: "age" },
-    isActive: { column: "is_active" },
-    createdAt: { column: "created_at" },
-  },
+// Create queries using the shared table definitions from setup.ts
+const usersQuery = createQuery(users, {
+  id: field(users.id),
+  name: field(users.name),
+  age: field(users.age),
+  isActive: field(users.isActive),
+  createdAt: field(users.createdAt),
 });
 
-const translationsSchema = createSchema({
-  table: translations,
-  tableName: "translations",
-  fields: {
-    id: { column: "id" },
-    entityId: { column: "entity_id" }, // SQL column name, not JS property
-    field: { column: "field" },
-    value: { column: "value" },
-    searchValue: { column: "search_value" }, // SQL column name
-  },
+const translationsQuery = createQuery(translations, {
+  id: field(translations.id),
+  entityId: field(translations.entityId),
+  field: field(translations.field),
+  value: field(translations.value),
+  searchValue: field(translations.searchValue),
 });
 
-// Schema with join for testing
-const productsWithTranslationsSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    handle: { column: "handle" },
-    price: { column: "price" },
-    translation: {
-      column: "id",
-      join: {
-        schema: () => translationsSchema,
-        column: "entityId",
-      },
-    },
-  },
+// Query with join for testing
+const productsWithTranslationsQuery = createQuery(products, {
+  id: field(products.id),
+  handle: field(products.handle),
+  price: field(products.price),
+  translation: field(products.id).leftJoin(translationsQuery, translations.entityId),
 });
 
-// Schema for qualified table (analytics.events)
-const eventsSchema = createSchema({
-  table: events,
-  tableName: "events",
-  fields: {
-    id: { column: "id" },
-    userId: { column: "user_id" },
-    eventType: { column: "event_type" },
-    payload: { column: "payload" },
-    createdAt: { column: "created_at" },
-  },
+// Query for qualified table (analytics.events)
+const eventsQuery = createQuery(events, {
+  id: field(events.id),
+  userId: field(events.userId),
+  eventType: field(events.eventType),
+  payload: field(events.payload),
+  createdAt: field(events.createdAt),
 });
 
-// Schema with join to qualified table (users -> analytics.events)
-const usersWithEventsSchema = createSchema({
-  table: users,
-  tableName: "users",
-  fields: {
-    id: { column: "id" },
-    name: { column: "name" },
-    age: { column: "age" },
-    isActive: { column: "is_active" },
-    events: {
-      column: "id",
-      join: {
-        schema: () => eventsSchema,
-        column: "userId",
-      },
-    },
-  },
+// Query with join to qualified table (users -> analytics.events)
+const usersWithEventsQuery = createQuery(users, {
+  id: field(users.id),
+  name: field(users.name),
+  age: field(users.age),
+  isActive: field(users.isActive),
+  events: field(users.id).leftJoin(eventsQuery, events.userId),
 });
 
 describe("SQL Integration Tests with PGlite", () => {
@@ -103,9 +69,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Charlie", age: 35, isActive: true },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {});
+      const result = await usersQuery.execute(db as any, {});
 
       expect(result).toHaveLength(3);
       expect(result.map((u) => u.name).sort()).toEqual([
@@ -126,9 +91,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "User5", age: 24 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         limit: 2,
         offset: 1,
         order: ["name:asc"],
@@ -152,9 +116,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $eq operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $eq: "Alice" } },
       });
       expect(result).toHaveLength(1);
@@ -163,9 +126,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $neq operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $neq: "Alice" } },
       });
 
@@ -175,9 +137,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $gt operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $gt: 30 } },
       });
       expect(result).toHaveLength(2);
@@ -186,9 +147,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $gte operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $gte: 30 } },
       });
 
@@ -198,9 +158,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $lt operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $lt: 30 } },
       });
 
@@ -210,9 +169,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $lte operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $lte: 30 } },
       });
 
@@ -222,9 +180,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $in operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $in: ["Alice", "Charlie"] } },
       });
 
@@ -234,9 +191,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $notIn operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $notIn: ["Alice", "Charlie"] } },
       });
 
@@ -246,9 +202,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $like operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $like: "A%" } },
       });
 
@@ -258,9 +213,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $iLike operator (case-insensitive)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $iLike: "a%" } },
       });
 
@@ -272,9 +226,8 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       await db.insert(users).values({ name: "NoAge", age: null });
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $is: null } },
       });
 
@@ -286,9 +239,8 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       await db.insert(users).values({ name: "NoAge", age: null });
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $isNot: null } },
       });
 
@@ -309,9 +261,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should combine conditions with $and", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           $and: [{ age: { $gte: 25 } }, { age: { $lte: 30 } }],
         },
@@ -323,9 +274,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should combine conditions with $or", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           $or: [{ name: { $eq: "Alice" } }, { name: { $eq: "Charlie" } }],
         },
@@ -337,9 +287,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should handle nested $and and $or", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           $or: [
             { $and: [{ name: { $eq: "Alice" } }, { isActive: { $eq: true } }] },
@@ -354,9 +303,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should handle multiple field conditions (implicit AND)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           age: { $gte: 25 },
           isActive: { $eq: true },
@@ -380,9 +328,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should order by field ascending", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         order: ["name:asc"],
       });
 
@@ -391,9 +338,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should order by field descending", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         order: ["age:desc"],
       });
 
@@ -404,9 +350,8 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       await db.insert(users).values({ name: "Alice", age: 50 }); // Second Alice
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         order: ["name:asc", "age:desc"],
       });
 
@@ -441,9 +386,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter through join with $iLike", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { translation: { value: { $iLike: "%phone%" } } },
       });
 
@@ -453,9 +397,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter through join with $eq", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { translation: { value: { $eq: "Gaming Laptop" } } },
       });
 
@@ -465,9 +408,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should combine join filter with regular field filter", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
           price: { $gt: 500 },
           translation: { value: { $iLike: "%laptop%" } },
@@ -492,9 +434,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "User6", age: 26 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $gte: 22 } },
         order: ["age:asc"],
         limit: 3,
@@ -509,9 +450,8 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       await db.insert(users).values({ name: "Alice", age: 25 });
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $in: [] } },
       });
 
@@ -532,9 +472,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $notLike operator", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $notLike: "A%" } },
       });
 
@@ -544,9 +483,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with $notILike operator (case-insensitive)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $notILike: "a%" } },
       });
 
@@ -558,9 +496,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should apply multiple operators on same field (range query)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: { $gte: 25, $lte: 35 } },
       });
 
@@ -570,9 +507,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter boolean field with $eq true", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { isActive: { $eq: true } },
       });
 
@@ -584,9 +520,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter boolean field with $eq false", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { isActive: { $eq: false } },
       });
 
@@ -598,9 +533,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should handle empty $notIn array gracefully", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: { $notIn: [] } },
       });
 
@@ -623,9 +557,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should handle deeply nested $and inside $or inside $and", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           $and: [
             {
@@ -645,9 +578,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should handle $or with multiple $and branches", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           $or: [
             { $and: [{ age: { $lt: 30 } }, { isActive: { $eq: true } }] },
@@ -687,9 +619,8 @@ describe("SQL Integration Tests with PGlite", () => {
         value: "Product Title",
       });
 
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {});
+      const result = await productsWithTranslationsQuery.execute(db as any, {});
 
       // LEFT JOIN should return both products
       expect(result).toHaveLength(2);
@@ -702,23 +633,12 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should filter with INNER JOIN returning only matching records", async () => {
       const db = getDb();
 
-      // Create schema with INNER JOIN
-      const productsWithInnerJoinSchema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: {
-          id: { column: "id" },
-          handle: { column: "handle" },
-          price: { column: "price" },
-          translation: {
-            column: "id",
-            join: {
-              type: "inner",
-              schema: () => translationsSchema,
-              column: "entityId",
-            },
-          },
-        },
+      // Create query with INNER JOIN
+      const productsWithInnerJoinQuery = createQuery(products, {
+        id: field(products.id),
+        handle: field(products.handle),
+        price: field(products.price),
+        translation: field(products.id).innerJoin(translationsQuery, translations.entityId),
       });
 
       // Insert product WITHOUT translation
@@ -738,9 +658,8 @@ describe("SQL Integration Tests with PGlite", () => {
         value: "Product Title",
       });
 
-      const qb = createQueryBuilder(productsWithInnerJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithInnerJoinQuery.execute(db as any, {
         where: { translation: { value: { $iLike: "%" } } },
       });
 
@@ -776,9 +695,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter through join with $notLike", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { translation: { value: { $notLike: "%Phone%" } } },
       });
 
@@ -788,9 +706,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter through join with $notILike", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { translation: { value: { $notILike: "%phone%" } } },
       });
 
@@ -800,9 +717,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter through join with $in", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
           translation: { value: { $in: ["Smart Phone", "Gaming Laptop"] } },
         },
@@ -814,9 +730,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter through join with $notIn", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
           translation: { value: { $notIn: ["Smart Phone", "Gaming Laptop"] } },
         },
@@ -839,9 +754,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with direct value (implicit $eq)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: "Alice" },
       });
 
@@ -851,9 +765,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should filter with direct numeric value", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { age: 30 },
       });
 
@@ -863,9 +776,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should combine direct values with operators", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           name: "Alice",
           age: { $gte: 20 },
@@ -887,9 +799,8 @@ describe("SQL Integration Tests with PGlite", () => {
         .returning();
       await db.insert(users).values({ name: "Bob", age: 30 });
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { id: { $eq: user1.id } },
       });
 
@@ -910,9 +821,8 @@ describe("SQL Integration Tests with PGlite", () => {
         .returning();
       await db.insert(users).values({ name: "Charlie", age: 35 });
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { id: { $in: [user1.id, user2.id] } },
       });
 
@@ -929,9 +839,8 @@ describe("SQL Integration Tests with PGlite", () => {
         .returning();
       await db.insert(users).values({ name: "Bob", age: 30 });
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { id: { $neq: user1.id } },
       });
 
@@ -945,7 +854,6 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
 
       const pastDate = new Date("2020-01-01");
-      const futureDate = new Date("2030-01-01");
 
       // Insert with default now() timestamp
       await db.insert(users).values([
@@ -953,9 +861,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { createdAt: { $gte: pastDate } },
       });
 
@@ -973,9 +880,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { createdAt: { $lt: futureDate } },
       });
 
@@ -993,9 +899,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30, isActive: false },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {
           createdAt: { $gte: pastDate },
           isActive: { $eq: true },
@@ -1020,10 +925,9 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should order ASC with NULLS LAST (PostgreSQL default)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         order: ["age:asc"],
       });
 
@@ -1037,10 +941,9 @@ describe("SQL Integration Tests with PGlite", () => {
 
     it("should order DESC with NULLS FIRST (PostgreSQL default)", async () => {
       const db = getDb();
-      const qb = createQueryBuilder(usersSchema);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         order: ["age:desc"],
       });
 
@@ -1058,23 +961,12 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should use RIGHT JOIN", async () => {
       const db = getDb();
 
-      // Create schema with RIGHT JOIN
-      const productsWithRightJoinSchema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: {
-          id: { column: "id" },
-          handle: { column: "handle" },
-          price: { column: "price" },
-          translation: {
-            column: "id",
-            join: {
-              type: "right",
-              schema: () => translationsSchema,
-              column: "entityId",
-            },
-          },
-        },
+      // Create query with RIGHT JOIN
+      const productsWithRightJoinQuery = createQuery(products, {
+        id: field(products.id),
+        handle: field(products.handle),
+        price: field(products.price),
+        translation: field(products.id).rightJoin(translationsQuery, translations.entityId),
       });
 
       // Insert orphan translation (no matching product)
@@ -1096,9 +988,8 @@ describe("SQL Integration Tests with PGlite", () => {
         value: "Phone Title",
       });
 
-      const qb = createQueryBuilder(productsWithRightJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithRightJoinQuery.execute(db as any, {
         where: { translation: { value: { $iLike: "%" } } },
       });
 
@@ -1117,23 +1008,12 @@ describe("SQL Integration Tests with PGlite", () => {
     it("should use FULL JOIN", async () => {
       const db = getDb();
 
-      // Create schema with FULL JOIN
-      const productsWithFullJoinSchema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: {
-          id: { column: "id" },
-          handle: { column: "handle" },
-          price: { column: "price" },
-          translation: {
-            column: "id",
-            join: {
-              type: "full",
-              schema: () => translationsSchema,
-              column: "entityId",
-            },
-          },
-        },
+      // Create query with FULL JOIN
+      const productsWithFullJoinQuery = createQuery(products, {
+        id: field(products.id),
+        handle: field(products.handle),
+        price: field(products.price),
+        translation: field(products.id).fullJoin(translationsQuery, translations.entityId),
       });
 
       // Insert orphan product (no translation)
@@ -1160,9 +1040,8 @@ describe("SQL Integration Tests with PGlite", () => {
         value: "Phone Title",
       });
 
-      const qb = createQueryBuilder(productsWithFullJoinSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithFullJoinQuery.execute(db as any, {
         where: {
           $or: [
             { translation: { value: { $iLike: "%" } } },
@@ -1184,72 +1063,16 @@ describe("SQL Integration Tests with PGlite", () => {
     });
   });
 
-  describe("Composite JOIN", () => {
-    it("should join on multiple columns (composite key)", async () => {
-      const db = getDb();
-
-      // Create schema with composite join (entity_id + field)
-      const productsWithCompositeJoinSchema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: {
-          id: { column: "id" },
-          handle: { column: "handle" },
-          price: { column: "price" },
-          translation: {
-            column: "id",
-            join: {
-              schema: () => translationsSchema,
-              column: "entityId",
-              composite: [{ field: "handle", column: "field" }],
-            },
-          },
-        },
-      });
-
-      // Insert product
-      const [product] = await db
-        .insert(products)
-        .values({ handle: "title", price: 999 })
-        .returning();
-
-      // Insert translations - only one matches composite key (entity_id + field="title")
-      await db.insert(translations).values([
-        { entityId: product.id, field: "title", value: "Correct Title" },
-        { entityId: product.id, field: "description", value: "Wrong Field" },
-      ]);
-
-      const qb = createQueryBuilder(productsWithCompositeJoinSchema);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
-        where: { translation: { value: { $eq: "Correct Title" } } },
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].handle).toBe("title");
-    });
-  });
-
   describe("Multiple JOINs in single query", () => {
-    it("should handle schema with multiple join fields", async () => {
+    it("should handle query with multiple join fields", async () => {
       const db = getDb();
 
-      // Create schema with two different join fields
-      const productsWithMultipleJoinsSchema = createSchema({
-        table: products,
-        tableName: "products",
-        fields: {
-          id: { column: "id" },
-          handle: { column: "handle" },
-          price: { column: "price" },
-          translation: {
-            column: "id",
-            join: {
-              schema: () => translationsSchema,
-              column: "entityId",
-            },
-          },
-        },
+      // Create query with multiple join
+      const productsWithMultipleJoinsQuery = createQuery(products, {
+        id: field(products.id),
+        handle: field(products.handle),
+        price: field(products.price),
+        translation: field(products.id).leftJoin(translationsQuery, translations.entityId),
       });
 
       // Insert product with translations
@@ -1265,9 +1088,8 @@ describe("SQL Integration Tests with PGlite", () => {
         searchValue: "smartphone mobile",
       });
 
-      const qb = createQueryBuilder(productsWithMultipleJoinsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithMultipleJoinsQuery.execute(db as any, {
         where: {
           translation: {
             value: { $iLike: "%phone%" },
@@ -1290,8 +1112,7 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
-      const selectSql = qb.buildSelectSql({
+      const selectSql = usersQuery.getSql({
         where: { age: { $gte: 20 } },
         limit: 10,
         offset: 0,
@@ -1318,8 +1139,7 @@ describe("SQL Integration Tests with PGlite", () => {
         value: "Smart Phone",
       });
 
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
-      const selectSql = qb.buildSelectSql({
+      const selectSql = productsWithTranslationsQuery.getSql({
         where: { translation: { value: { $iLike: "%phone%" } } },
         limit: 10,
       });
@@ -1363,9 +1183,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { entityId: p4.id, field: "title", value: "Gaming Laptop" },
       ]);
 
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
           translation: { value: { $iLike: "%phone%" } },
           price: { $gte: 800 },
@@ -1406,9 +1225,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { entityId: p3.id, field: "title", value: "Phone C" },
       ]);
 
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { translation: { value: { $iLike: "%phone%" } } },
         order: ["handle:asc"],
         limit: 2,
@@ -1443,9 +1261,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { entityId: p3.id, field: "title", value: "Tablet" },
       ]);
 
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { price: { $gt: 0 } },
         order: ["handle:asc", "price:desc"],
         limit: 10,
@@ -1466,12 +1283,10 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       await db.insert(users).values({ name: "Alice", age: 25 });
 
-      const qb = createQueryBuilder(usersSchema);
-
       // Unknown field causes SQL error - this is expected behavior
       // The implementation passes unknown fields directly to SQL
       await expect(
-        qb.query(db as any, {
+        usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           where: { unknownField: { $eq: "value" } } as any,
         })
@@ -1485,11 +1300,9 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
-
       // Non-existent field in order causes SQL error
       await expect(
-        qb.query(db as any, {
+        usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           order: ["nonExistentField:asc"] as any,
         })
@@ -1503,11 +1316,9 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
-
       // Invalid format is treated as field name, causing SQL error
       await expect(
-        qb.query(db as any, {
+        usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           order: ["invalid:::format"] as any,
         })
@@ -1521,9 +1332,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: {},
       });
 
@@ -1537,9 +1347,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersQuery.execute(db as any, {
         where: { name: undefined, age: { $eq: 25 } },
       });
 
@@ -1554,9 +1363,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { name: "Bob", age: 30 },
       ]);
 
-      const qb = createQueryBuilder(usersSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, null);
+      const result = await usersQuery.execute(db as any, null as any);
 
       // null input returns all with default pagination
       expect(result).toHaveLength(2);
@@ -1579,9 +1387,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { userId: user.id, eventType: "purchase", payload: '{"amount": 100}' },
       ]);
 
-      const qb = createQueryBuilder(eventsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await eventsQuery.execute(db as any, {
         where: { eventType: { $eq: "login" } },
       });
 
@@ -1609,9 +1416,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { userId: bob.id, eventType: "login", payload: null },
       ]);
 
-      const qb = createQueryBuilder(usersWithEventsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersWithEventsQuery.execute(db as any, {
         where: {
           events: { eventType: { $eq: "purchase" } },
         },
@@ -1639,9 +1445,8 @@ describe("SQL Integration Tests with PGlite", () => {
         { userId: bob.id, eventType: "purchase", payload: '{"amount": 200}' },
       ]);
 
-      const qb = createQueryBuilder(usersWithEventsSchema);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await qb.query(db as any, {
+      const result = await usersWithEventsQuery.execute(db as any, {
         where: {
           isActive: { $eq: true },
           events: { eventType: { $eq: "purchase" } },

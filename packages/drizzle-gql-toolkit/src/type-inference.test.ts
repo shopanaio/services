@@ -4,7 +4,7 @@
  */
 import { describe, it, expectTypeOf } from "vitest";
 import { pgTable, text, uuid, integer } from "drizzle-orm/pg-core";
-import { createSchema, createQueryBuilder } from "./index.js";
+import { createQuery, field } from "./index.js";
 import type { ResolvePathType, InferSelectResultFlat } from "./types.js";
 
 // Test tables
@@ -29,50 +29,31 @@ const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
 });
 
-// Create schemas
-const userSchema = createSchema({
-  table: users,
-  tableName: "users",
-  fields: {
-    id: { column: "id" },
-    name: { column: "name" },
-    email: { column: "email" },
-    age: { column: "age" },
-  },
+// Create queries using fluent API
+const userQuery = createQuery(users, {
+  id: field(users.id),
+  name: field(users.name),
+  email: field(users.email),
+  age: field(users.age),
 });
 
-const orderItemSchema = createSchema({
-  table: orderItems,
-  tableName: "order_items",
-  fields: {
-    id: { column: "id" },
-    productName: { column: "product_name" },
-    quantity: { column: "quantity" },
-  },
+const orderItemQuery = createQuery(orderItems, {
+  id: field(orderItems.id),
+  productName: field(orderItems.productName),
+  quantity: field(orderItems.quantity),
 });
 
-const orderSchema = createSchema({
-  table: orders,
-  tableName: "orders",
-  fields: {
-    id: { column: "id" },
-    status: { column: "status" },
-    total: { column: "total" },
-    items: {
-      column: "id",
-      join: {
-        type: "left",
-        schema: () => orderItemSchema,
-        column: "orderId",
-      },
-    },
-  },
+const orderQuery = createQuery(orders, {
+  id: field(orders.id),
+  status: field(orders.status),
+  total: field(orders.total),
+  items: field(orders.id).leftJoin(orderItemQuery, orderItems.orderId),
 });
 
 describe("Type Inference", () => {
   describe("InferFieldTypes", () => {
     it("should infer types from table columns", () => {
-      type UserTypes = typeof userSchema["__types"];
+      type UserTypes = typeof userQuery["__types"];
 
       // Basic field types
       expectTypeOf<UserTypes["id"]>().toEqualTypeOf<string>();
@@ -82,7 +63,7 @@ describe("Type Inference", () => {
     });
 
     it("should infer nested types from joins", () => {
-      type OrderTypes = typeof orderSchema["__types"];
+      type OrderTypes = typeof orderQuery["__types"];
 
       // Root fields
       expectTypeOf<OrderTypes["id"]>().toEqualTypeOf<string>();
@@ -98,18 +79,14 @@ describe("Type Inference", () => {
         is_visible: integer("is_visible"),
       });
 
-      // Schema with camelCase keys mapping to snake_case columns
-      const categorySchema = createSchema({
-        table: categories,
-        tableName: "categories",
-        fields: {
-          id: { column: "id" },
-          parentId: { column: "parent_id" },
-          isVisible: { column: "is_visible" },
-        },
+      // Query with camelCase keys mapping to snake_case columns
+      const categoryQuery = createQuery(categories, {
+        id: field(categories.id),
+        parentId: field(categories.parent_id),
+        isVisible: field(categories.is_visible),
       });
 
-      type CatTypes = typeof categorySchema["__types"];
+      type CatTypes = typeof categoryQuery["__types"];
 
       // Keys should be the field key (not column name)
       expectTypeOf<CatTypes["id"]>().toEqualTypeOf<string>();
@@ -120,7 +97,7 @@ describe("Type Inference", () => {
 
   describe("ResolvePathType", () => {
     it("should resolve simple paths", () => {
-      type UserTypes = typeof userSchema["__types"];
+      type UserTypes = typeof userQuery["__types"];
 
       type IdType = ResolvePathType<UserTypes, "id">;
       type NameType = ResolvePathType<UserTypes, "name">;
@@ -134,7 +111,7 @@ describe("Type Inference", () => {
 
   describe("InferSelectResultFlat", () => {
     it("should create result type from select paths", () => {
-      type UserTypes = typeof userSchema["__types"];
+      type UserTypes = typeof userQuery["__types"];
       type SelectPaths = readonly ["id", "name"];
 
       type Result = InferSelectResultFlat<UserTypes, SelectPaths>;
@@ -146,13 +123,11 @@ describe("Type Inference", () => {
     });
   });
 
-  describe("QueryBuilder.query()", () => {
+  describe("FluentQueryBuilder.execute()", () => {
     it("should return typed results", () => {
-      const qb = createQueryBuilder(userSchema);
-
-      // query() returns full Types
-      type QueryResult = Awaited<ReturnType<typeof qb.query>>;
-      type SingleResult = QueryResult[number];
+      // execute() returns full Types
+      type ExecuteResult = Awaited<ReturnType<typeof userQuery.execute>>;
+      type SingleResult = ExecuteResult[number];
 
       expectTypeOf<SingleResult["id"]>().toEqualTypeOf<string>();
       expectTypeOf<SingleResult["name"]>().toEqualTypeOf<string>();

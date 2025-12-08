@@ -49,6 +49,24 @@ export {
   buildJoinConditions,
   type TypedInput,
   type WhereResult,
+  // Fluent API
+  createQuery,
+  FluentQueryBuilder,
+  MaxLimitExceededError,
+  field,
+  createPaginationQuery,
+  PaginationQueryBuilder,
+  type FieldDefinition,
+  type JoinDefinition,
+  type FieldBuilder,
+  type PaginationQueryConfig,
+  type PaginationResult,
+  type FluentQueryConfig,
+  type FluentFieldsDef,
+  type ExecuteOptions,
+  type QuerySnapshot,
+  type ToFieldsDef,
+  type FluentQueryBuilderLike,
 } from "./builder.js";
 
 export {

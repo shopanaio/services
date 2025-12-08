@@ -10,14 +10,19 @@ import {
   uuid,
   numeric,
 } from "drizzle-orm/pg-core";
-import { createQueryBuilder } from "./builder.js";
-import { createSchema } from "./schema.js";
+import { format } from "sql-formatter";
+import { createQuery, field } from "./index.js";
 
 const dialect = new PgDialect();
 
 function toSqlString(sqlObj: SQL): string {
   const query = dialect.sqlToQuery(sqlObj);
-  return `SQL: ${query.sql}\nParams: ${JSON.stringify(query.params)}`;
+  const formatted = format(query.sql, {
+    language: "postgresql",
+    tabWidth: 2,
+    keywordCase: "upper",
+  });
+  return `${formatted}\n-- Params: ${JSON.stringify(query.params)}`;
 }
 
 // =============================================================================
@@ -81,361 +86,247 @@ const orderItems = pgTable("order_items", {
 });
 
 // =============================================================================
-// SCHEMA DEFINITIONS
+// QUERY DEFINITIONS (Fluent API)
 // =============================================================================
 
-const ordersSchema = createSchema({
-  table: orders,
-  tableName: "orders",
-  fields: {
-    id: { column: "id" },
-    userId: { column: "user_id" },
-    status: { column: "status" },
-    totalAmount: { column: "total_amount" },
-    currency: { column: "currency" },
-    createdAt: { column: "created_at" },
-    completedAt: { column: "completed_at" },
-  },
+const ordersQuery = createQuery(orders, {
+  id: field(orders.id),
+  userId: field(orders.userId),
+  status: field(orders.status),
+  totalAmount: field(orders.totalAmount),
+  currency: field(orders.currency),
+  createdAt: field(orders.createdAt),
+  completedAt: field(orders.completedAt),
 });
 
-const usersSchema = createSchema({
-  table: users,
-  tableName: "users",
-  fields: {
-    id: { column: "id" },
-    email: { column: "email" },
-    name: { column: "name" },
-    role: { column: "role" },
-    isActive: { column: "is_active" },
-    createdAt: { column: "created_at" },
-  },
+const usersQuery = createQuery(users, {
+  id: field(users.id),
+  email: field(users.email),
+  name: field(users.name),
+  role: field(users.role),
+  isActive: field(users.isActive),
+  createdAt: field(users.createdAt),
 });
 
-const translationsSchema = createSchema({
-  table: translations,
-  tableName: "translations",
-  fields: {
-    id: { column: "id" },
-    entityType: { column: "entity_type" },
-    entityId: { column: "entity_id" },
-    locale: { column: "locale" },
-    field: { column: "field" },
-    value: { column: "value" },
-    searchValue: { column: "search_value" },
-  },
+const translationsQuery = createQuery(translations, {
+  id: field(translations.id),
+  entityType: field(translations.entityType),
+  entityId: field(translations.entityId),
+  locale: field(translations.locale),
+  field: field(translations.field),
+  value: field(translations.value),
+  searchValue: field(translations.searchValue),
 });
 
-const categoriesSchema = createSchema({
-  table: categories,
-  tableName: "categories",
-  fields: {
-    id: { column: "id" },
-    slug: { column: "slug" },
-    parentId: { column: "parent_id" },
-    sortOrder: { column: "sort_order" },
-    isVisible: { column: "is_visible" },
-  },
+const categoriesQuery = createQuery(categories, {
+  id: field(categories.id),
+  slug: field(categories.slug),
+  parentId: field(categories.parentId),
+  sortOrder: field(categories.sortOrder),
+  isVisible: field(categories.isVisible),
 });
 
-const orderItemsSchema = createSchema({
-  table: orderItems,
-  tableName: "order_items",
-  fields: {
-    id: { column: "id" },
-    orderId: { column: "order_id" },
-    productId: { column: "product_id" },
-    quantity: { column: "quantity" },
-    unitPrice: { column: "unit_price" },
-  },
+const orderItemsQuery = createQuery(orderItems, {
+  id: field(orderItems.id),
+  orderId: field(orderItems.orderId),
+  productId: field(orderItems.productId),
+  quantity: field(orderItems.quantity),
+  unitPrice: field(orderItems.unitPrice),
 });
 
-const productsSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    sku: { column: "sku" },
-    categoryId: { column: "category_id" },
-    price: { column: "price" },
-    stock: { column: "stock" },
-    isPublished: { column: "is_published" },
-    deletedAt: { column: "deleted_at" },
-    createdAt: { column: "created_at" },
-  },
+const productsQuery = createQuery(products, {
+  id: field(products.id),
+  sku: field(products.sku),
+  categoryId: field(products.categoryId),
+  price: field(products.price),
+  stock: field(products.stock),
+  isPublished: field(products.isPublished),
+  deletedAt: field(products.deletedAt),
+  createdAt: field(products.createdAt),
 });
 
-// Schema with join: Users -> Orders
-const usersWithOrdersSchema = createSchema({
-  table: users,
-  tableName: "users",
-  fields: {
-    id: { column: "id" },
-    email: { column: "email" },
-    name: { column: "name" },
-    role: { column: "role" },
-    isActive: { column: "is_active" },
-    orders: {
-      column: "id",
-      join: { schema: () => ordersSchema, column: "userId" },
-    },
-  },
+// Query with join: Users -> Orders
+const usersWithOrdersQuery = createQuery(users, {
+  id: field(users.id),
+  email: field(users.email),
+  name: field(users.name),
+  role: field(users.role),
+  isActive: field(users.isActive),
+  orders: field(users.id).leftJoin(ordersQuery, orders.userId),
 });
 
-// Schema with composite join: Products -> Translations
-const productsWithTranslationsSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    sku: { column: "sku" },
-    categoryId: { column: "category_id" },
-    price: { column: "price" },
-    stock: { column: "stock" },
-    isPublished: { column: "is_published" },
-    deletedAt: { column: "deleted_at" },
-    translation: {
-      column: "id",
-      join: {
-        schema: () => translationsSchema,
-        column: "entityId",
-        composite: [{ field: "sku", column: "field" }],
-      },
-    },
-  },
+// Query with composite join: Products -> Translations
+const productsWithTranslationsQuery = createQuery(products, {
+  id: field(products.id),
+  sku: field(products.sku),
+  categoryId: field(products.categoryId),
+  price: field(products.price),
+  stock: field(products.stock),
+  isPublished: field(products.isPublished),
+  deletedAt: field(products.deletedAt),
+  translation: field(products.id).leftJoin(
+    translationsQuery,
+    translations.entityId
+  ),
 });
 
-// Schema with camelCase keys: Categories -> Translations
-const categoriesWithTranslationsSchema = createSchema({
-  table: categories,
-  tableName: "categories",
-  fields: {
-    id: { column: "id" },
-    slug: { column: "slug" },
-    parentId: { column: "parent_id" },
-    sortOrder: { column: "sort_order" },
-    isVisible: { column: "is_visible" },
-    translation: {
-      column: "id",
-      join: { schema: () => translationsSchema, column: "entityId" },
-    },
-  },
+// Query with camelCase keys: Categories -> Translations
+const categoriesWithTranslationsQuery = createQuery(categories, {
+  id: field(categories.id),
+  slug: field(categories.slug),
+  parentId: field(categories.parentId),
+  sortOrder: field(categories.sortOrder),
+  isVisible: field(categories.isVisible),
+  translation: field(categories.id).leftJoin(
+    translationsQuery,
+    translations.entityId
+  ),
 });
 
-// Schema with multiple joins: Orders -> Users + OrderItems
-const ordersWithUserAndItemsSchema = createSchema({
-  table: orders,
-  tableName: "orders",
-  fields: {
-    id: { column: "id" },
-    status: { column: "status" },
-    totalAmount: { column: "total_amount" },
-    currency: { column: "currency" },
-    createdAt: { column: "created_at" },
-    user: {
-      column: "user_id",
-      join: { schema: () => usersSchema, column: "id" },
-    },
-    items: {
-      column: "id",
-      join: { schema: () => orderItemsSchema, column: "orderId" },
-    },
-  },
+// Query with multiple joins: Orders -> Users + OrderItems
+const ordersWithUserAndItemsQuery = createQuery(orders, {
+  id: field(orders.id),
+  status: field(orders.status),
+  totalAmount: field(orders.totalAmount),
+  currency: field(orders.currency),
+  createdAt: field(orders.createdAt),
+  user: field(orders.userId).leftJoin(usersQuery, users.id),
+  items: field(orders.id).leftJoin(orderItemsQuery, orderItems.orderId),
 });
 
-// Schema with chain joins: Products -> Translations + Categories
-const productsFullSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    sku: { column: "sku" },
-    price: { column: "price" },
-    stock: { column: "stock" },
-    isPublished: { column: "is_published" },
-    deletedAt: { column: "deleted_at" },
-    createdAt: { column: "created_at" },
-    translation: {
-      column: "id",
-      join: { schema: () => translationsSchema, column: "entityId" },
-    },
-    category: {
-      column: "category_id",
-      join: { type: "inner", schema: () => categoriesSchema, column: "id" },
-    },
-  },
+// Query with chain joins: Products -> Translations + Categories
+const productsFullQuery = createQuery(products, {
+  id: field(products.id),
+  sku: field(products.sku),
+  price: field(products.price),
+  stock: field(products.stock),
+  isPublished: field(products.isPublished),
+  deletedAt: field(products.deletedAt),
+  createdAt: field(products.createdAt),
+  translation: field(products.id).leftJoin(
+    translationsQuery,
+    translations.entityId
+  ),
+  category: field(products.categoryId).innerJoin(
+    categoriesQuery,
+    categories.id
+  ),
 });
 
 // Nested Level 2: OrderItems -> Products
-const orderItemsWithProductSchema = createSchema({
-  table: orderItems,
-  tableName: "order_items",
-  fields: {
-    id: { column: "id" },
-    orderId: { column: "order_id" },
-    productId: { column: "product_id" },
-    quantity: { column: "quantity" },
-    unitPrice: { column: "unit_price" },
-    product: {
-      column: "product_id",
-      join: { schema: () => productsSchema, column: "id" },
-    },
-  },
+const orderItemsWithProductQuery = createQuery(orderItems, {
+  id: field(orderItems.id),
+  orderId: field(orderItems.orderId),
+  productId: field(orderItems.productId),
+  quantity: field(orderItems.quantity),
+  unitPrice: field(orderItems.unitPrice),
+  product: field(orderItems.productId).leftJoin(productsQuery, products.id),
 });
 
-// Nested Level 2 Schema: Orders -> OrderItems -> Products
-const ordersNestedLevel2Schema = createSchema({
-  table: orders,
-  tableName: "orders",
-  fields: {
-    id: { column: "id" },
-    userId: { column: "user_id" },
-    status: { column: "status" },
-    totalAmount: { column: "total_amount" },
-    currency: { column: "currency" },
-    createdAt: { column: "created_at" },
-    user: {
-      column: "user_id",
-      join: { schema: () => usersSchema, column: "id" },
-    },
-    items: {
-      column: "id",
-      join: { schema: () => orderItemsWithProductSchema, column: "orderId" },
-    },
-  },
+// Nested Level 2 Query: Orders -> OrderItems -> Products
+const ordersNestedLevel2Query = createQuery(orders, {
+  id: field(orders.id),
+  userId: field(orders.userId),
+  status: field(orders.status),
+  totalAmount: field(orders.totalAmount),
+  currency: field(orders.currency),
+  createdAt: field(orders.createdAt),
+  user: field(orders.userId).leftJoin(usersQuery, users.id),
+  items: field(orders.id).leftJoin(
+    orderItemsWithProductQuery,
+    orderItems.orderId
+  ),
 });
 
 // Products -> Categories (for nested Level 3)
-const productsWithCategorySchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    sku: { column: "sku" },
-    categoryId: { column: "category_id" },
-    price: { column: "price" },
-    stock: { column: "stock" },
-    isPublished: { column: "is_published" },
-    deletedAt: { column: "deleted_at" },
-    category: {
-      column: "category_id",
-      join: { schema: () => categoriesSchema, column: "id" },
-    },
-  },
+const productsWithCategoryQuery = createQuery(products, {
+  id: field(products.id),
+  sku: field(products.sku),
+  categoryId: field(products.categoryId),
+  price: field(products.price),
+  stock: field(products.stock),
+  isPublished: field(products.isPublished),
+  deletedAt: field(products.deletedAt),
+  category: field(products.categoryId).leftJoin(categoriesQuery, categories.id),
 });
 
 // OrderItems -> Products -> Categories
-const orderItemsWithProductCategorySchema = createSchema({
-  table: orderItems,
-  tableName: "order_items",
-  fields: {
-    id: { column: "id" },
-    orderId: { column: "order_id" },
-    productId: { column: "product_id" },
-    quantity: { column: "quantity" },
-    unitPrice: { column: "unit_price" },
-    product: {
-      column: "product_id",
-      join: { schema: () => productsWithCategorySchema, column: "id" },
-    },
-  },
+const orderItemsWithProductCategoryQuery = createQuery(orderItems, {
+  id: field(orderItems.id),
+  orderId: field(orderItems.orderId),
+  productId: field(orderItems.productId),
+  quantity: field(orderItems.quantity),
+  unitPrice: field(orderItems.unitPrice),
+  product: field(orderItems.productId).leftJoin(
+    productsWithCategoryQuery,
+    products.id
+  ),
 });
 
-// Nested Level 3 Schema: Orders -> OrderItems -> Products -> Categories
-const ordersNestedLevel3Schema = createSchema({
-  table: orders,
-  tableName: "orders",
-  fields: {
-    id: { column: "id" },
-    userId: { column: "user_id" },
-    status: { column: "status" },
-    totalAmount: { column: "total_amount" },
-    currency: { column: "currency" },
-    createdAt: { column: "created_at" },
-    items: {
-      column: "id",
-      join: {
-        schema: () => orderItemsWithProductCategorySchema,
-        column: "orderId",
-      },
-    },
-  },
+// Nested Level 3 Query: Orders -> OrderItems -> Products -> Categories
+const ordersNestedLevel3Query = createQuery(orders, {
+  id: field(orders.id),
+  userId: field(orders.userId),
+  status: field(orders.status),
+  totalAmount: field(orders.totalAmount),
+  currency: field(orders.currency),
+  createdAt: field(orders.createdAt),
+  items: field(orders.id).leftJoin(
+    orderItemsWithProductCategoryQuery,
+    orderItems.orderId
+  ),
 });
 
 // Categories -> Translations (for nested Level 4)
-const categoriesWithTranslationsNestedSchema = createSchema({
-  table: categories,
-  tableName: "categories",
-  fields: {
-    id: { column: "id" },
-    slug: { column: "slug" },
-    parentId: { column: "parent_id" },
-    sortOrder: { column: "sort_order" },
-    isVisible: { column: "is_visible" },
-    translation: {
-      column: "id",
-      join: { schema: () => translationsSchema, column: "entityId" },
-    },
-  },
+const categoriesWithTranslationsNestedQuery = createQuery(categories, {
+  id: field(categories.id),
+  slug: field(categories.slug),
+  parentId: field(categories.parentId),
+  sortOrder: field(categories.sortOrder),
+  isVisible: field(categories.isVisible),
+  translation: field(categories.id).leftJoin(
+    translationsQuery,
+    translations.entityId
+  ),
 });
 
 // Products -> Categories -> Translations
-const productsWithCategoryTranslationsSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    sku: { column: "sku" },
-    categoryId: { column: "category_id" },
-    price: { column: "price" },
-    stock: { column: "stock" },
-    isPublished: { column: "is_published" },
-    deletedAt: { column: "deleted_at" },
-    category: {
-      column: "category_id",
-      join: {
-        schema: () => categoriesWithTranslationsNestedSchema,
-        column: "id",
-      },
-    },
-  },
+const productsWithCategoryTranslationsQuery = createQuery(products, {
+  id: field(products.id),
+  sku: field(products.sku),
+  categoryId: field(products.categoryId),
+  price: field(products.price),
+  stock: field(products.stock),
+  isPublished: field(products.isPublished),
+  deletedAt: field(products.deletedAt),
+  category: field(products.categoryId).leftJoin(
+    categoriesWithTranslationsNestedQuery,
+    categories.id
+  ),
 });
 
 // OrderItems -> Products -> Categories -> Translations
-const orderItemsLevel4Schema = createSchema({
-  table: orderItems,
-  tableName: "order_items",
-  fields: {
-    id: { column: "id" },
-    orderId: { column: "order_id" },
-    productId: { column: "product_id" },
-    quantity: { column: "quantity" },
-    unitPrice: { column: "unit_price" },
-    product: {
-      column: "product_id",
-      join: {
-        schema: () => productsWithCategoryTranslationsSchema,
-        column: "id",
-      },
-    },
-  },
+const orderItemsLevel4Query = createQuery(orderItems, {
+  id: field(orderItems.id),
+  orderId: field(orderItems.orderId),
+  productId: field(orderItems.productId),
+  quantity: field(orderItems.quantity),
+  unitPrice: field(orderItems.unitPrice),
+  product: field(orderItems.productId).leftJoin(
+    productsWithCategoryTranslationsQuery,
+    products.id
+  ),
 });
 
-// Nested Level 4 Schema: Orders -> OrderItems -> Products -> Categories -> Translations
-const ordersNestedLevel4Schema = createSchema({
-  table: orders,
-  tableName: "orders",
-  fields: {
-    id: { column: "id" },
-    userId: { column: "user_id" },
-    status: { column: "status" },
-    totalAmount: { column: "total_amount" },
-    currency: { column: "currency" },
-    createdAt: { column: "created_at" },
-    items: {
-      column: "id",
-      join: { schema: () => orderItemsLevel4Schema, column: "orderId" },
-    },
-  },
+// Nested Level 4 Query: Orders -> OrderItems -> Products -> Categories -> Translations
+const ordersNestedLevel4Query = createQuery(orders, {
+  id: field(orders.id),
+  userId: field(orders.userId),
+  status: field(orders.status),
+  totalAmount: field(orders.totalAmount),
+  currency: field(orders.currency),
+  createdAt: field(orders.createdAt),
+  items: field(orders.id).leftJoin(orderItemsLevel4Query, orderItems.orderId),
 });
 
 // =============================================================================
@@ -445,12 +336,10 @@ const ordersNestedLevel4Schema = createSchema({
 describe("Complex SQL Snapshot Tests", () => {
   describe("Single-level joins", () => {
     it("should filter users by order status and total (Users -> Orders)", () => {
-      const qb = createQueryBuilder(usersWithOrdersSchema);
-
       // Simple join filter using nested path
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          usersWithOrdersQuery.getSql({
             select: ["id", "email", "name", "role", "isActive"],
             where: {
               orders: { status: { $eq: "completed" } },
@@ -460,14 +349,31 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."email" AS "email", "t0_users"."name" AS "name", "t0_users"."role" AS "role", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id" WHERE ("t1_orders"."status" = $1 and "t0_users"."is_active" = $2) LIMIT $3 OFFSET $4
-        Params: ["completed",true,50,0]"
+        "SELECT
+          "t0_users"."id" AS "id",
+          "t0_users"."email" AS "email",
+          "t0_users"."name" AS "name",
+          "t0_users"."role" AS "role",
+          "t0_users"."is_active" AS "isActive"
+        FROM
+          "users" AS "t0_users"
+          LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"
+        WHERE
+          (
+            "t1_orders"."status" = $1
+            AND "t0_users"."is_active" = $2
+          )
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["completed",true,50,0]"
       `);
 
       // Complex OR with join fields using nested paths
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          usersWithOrdersQuery.getSql({
             select: ["id", "email", "name", "role"],
             where: {
               $or: [
@@ -490,17 +396,37 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."email" AS "email", "t0_users"."name" AS "name", "t0_users"."role" AS "role" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id" WHERE (("t1_orders"."status" = $1 and "t1_orders"."total_amount" >= $2) or ("t1_orders"."status" = $3 and "t0_users"."role" = $4)) LIMIT $5 OFFSET $6
-        Params: ["completed",500,"pending","vip",100,50]"
+        "SELECT
+          "t0_users"."id" AS "id",
+          "t0_users"."email" AS "email",
+          "t0_users"."name" AS "name",
+          "t0_users"."role" AS "role"
+        FROM
+          "users" AS "t0_users"
+          LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"
+        WHERE
+          (
+            (
+              "t1_orders"."status" = $1
+              AND "t1_orders"."total_amount" >= $2
+            )
+            OR (
+              "t1_orders"."status" = $3
+              AND "t0_users"."role" = $4
+            )
+          )
+        LIMIT
+          $5
+        OFFSET
+          $6
+        -- Params: ["completed",500,"pending","vip",100,50]"
       `);
     });
 
-    it("should filter products with composite join and translations", () => {
-      const qb = createQueryBuilder(productsWithTranslationsSchema);
-
+    it("should filter products with translations", () => {
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          productsWithTranslationsQuery.getSql({
             select: ["id", "sku", "price", "stock", "isPublished"],
             where: {
               translation: { value: { $iLike: "%smartphone%" } },
@@ -510,16 +436,33 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."sku" AS "sku", "t0_products"."price" AS "price", "t0_products"."stock" AS "stock", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON ("t0_products"."id" = "t1_translations"."entity_id" and "t0_products"."sku" = "t1_translations"."field") WHERE ("t1_translations"."value" ilike $1 and "t0_products"."is_published" = $2 and "t0_products"."deleted_at" is null) LIMIT $3 OFFSET $4
-        Params: ["%smartphone%",true,20,0]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."sku" AS "sku",
+          "t0_products"."price" AS "price",
+          "t0_products"."stock" AS "stock",
+          "t0_products"."is_published" AS "isPublished"
+        FROM
+          "products" AS "t0_products"
+          LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"
+        WHERE
+          (
+            "t1_translations"."value" ILIKE $1
+            AND "t0_products"."is_published" = $2
+            AND "t0_products"."deleted_at" IS NULL
+          )
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["%smartphone%",true,20,0]"
       `);
     });
 
     it("should filter categories with translation fields", () => {
-      const qb = createQueryBuilder(categoriesWithTranslationsSchema);
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          categoriesWithTranslationsQuery.getSql({
             select: ["id", "slug", "parentId", "isVisible"],
             where: {
               translation: { value: { $iLike: "%electronics%" } },
@@ -529,16 +472,32 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_categories"."id" AS "id", "t0_categories"."slug" AS "slug", "t0_categories"."parent_id" AS "parentId", "t0_categories"."is_visible" AS "isVisible" FROM "categories" AS "t0_categories" LEFT JOIN "translations" AS "t1_translations" ON "t0_categories"."id" = "t1_translations"."entity_id" WHERE ("t1_translations"."value" ilike $1 and "t0_categories"."is_visible" = $2 and "t0_categories"."parent_id" is not null) LIMIT $3 OFFSET $4
-        Params: ["%electronics%",true,20,0]"
+        "SELECT
+          "t0_categories"."id" AS "id",
+          "t0_categories"."slug" AS "slug",
+          "t0_categories"."parent_id" AS "parentId",
+          "t0_categories"."is_visible" AS "isVisible"
+        FROM
+          "categories" AS "t0_categories"
+          LEFT JOIN "translations" AS "t1_translations" ON "t0_categories"."id" = "t1_translations"."entity_id"
+        WHERE
+          (
+            "t1_translations"."value" ILIKE $1
+            AND "t0_categories"."is_visible" = $2
+            AND "t0_categories"."parent_id" IS NOT NULL
+          )
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["%electronics%",true,20,0]"
       `);
     });
 
     it("should filter orders with multiple joins (users + items)", () => {
-      const qb = createQueryBuilder(ordersWithUserAndItemsSchema);
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersWithUserAndItemsQuery.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
               user: { email: { $iLike: "%@gmail.com" } },
@@ -548,16 +507,33 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency" FROM "orders" AS "t0_orders" LEFT JOIN "users" AS "t1_users" ON "t0_orders"."user_id" = "t1_users"."id" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" WHERE ("t1_users"."email" ilike $1 and "t1_order_items"."quantity" >= $2 and "t0_orders"."status" in ($3, $4, $5)) LIMIT $6 OFFSET $7
-        Params: ["%@gmail.com",5,"pending","processing","shipped",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "users" AS "t1_users" ON "t0_orders"."user_id" = "t1_users"."id"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+        WHERE
+          (
+            "t1_users"."email" ILIKE $1
+            AND "t1_order_items"."quantity" >= $2
+            AND "t0_orders"."status" IN ($3, $4, $5)
+          )
+        LIMIT
+          $6
+        OFFSET
+          $7
+        -- Params: ["%@gmail.com",5,"pending","processing","shipped",20,0]"
       `);
     });
 
     it("should filter products with chain joins (translations + categories)", () => {
-      const qb = createQueryBuilder(productsFullSchema);
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          productsFullQuery.getSql({
             select: ["id", "sku", "price", "stock", "isPublished"],
             where: {
               category: {
@@ -569,17 +545,34 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."sku" AS "sku", "t0_products"."price" AS "price", "t0_products"."stock" AS "stock", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" WHERE ("t1_categories"."slug" in ($1, $2, $3) and "t0_products"."is_published" = $4 and "t0_products"."deleted_at" is null) LIMIT $5 OFFSET $6
-        Params: ["electronics","computers","phones",true,20,0]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."sku" AS "sku",
+          "t0_products"."price" AS "price",
+          "t0_products"."stock" AS "stock",
+          "t0_products"."is_published" AS "isPublished"
+        FROM
+          "products" AS "t0_products"
+          INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id"
+        WHERE
+          (
+            "t1_categories"."slug" IN ($1, $2, $3)
+            AND "t0_products"."is_published" = $4
+            AND "t0_products"."deleted_at" IS NULL
+          )
+        LIMIT
+          $5
+        OFFSET
+          $6
+        -- Params: ["electronics","computers","phones",true,20,0]"
       `);
     });
 
     it("should NOT add join when no nested fields used", () => {
-      const qb = createQueryBuilder(usersWithOrdersSchema);
       // Only using main table fields - no join needed
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          usersWithOrdersQuery.getSql({
             select: ["id", "email", "name"],
             where: {
               email: { $iLike: "%@gmail.com" },
@@ -587,19 +580,28 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."email" AS "email", "t0_users"."name" AS "name" FROM "users" AS "t0_users" WHERE "t0_users"."email" ilike $1 LIMIT $2 OFFSET $3
-        Params: ["%@gmail.com",20,0]"
+        "SELECT
+          "t0_users"."id" AS "id",
+          "t0_users"."email" AS "email",
+          "t0_users"."name" AS "name"
+        FROM
+          "users" AS "t0_users"
+        WHERE
+          "t0_users"."email" ILIKE $1
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: ["%@gmail.com",20,0]"
       `);
     });
   });
 
   describe("Nested joins (2-4 levels)", () => {
     it("should filter by nested t2 field (Orders -> OrderItems -> Products)", () => {
-      const qb = createQueryBuilder(ordersNestedLevel2Schema);
-
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
               status: { $eq: "pending" },
@@ -608,14 +610,31 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" WHERE ("t0_orders"."status" = $1 and "t2_products"."sku" like $2) LIMIT $3 OFFSET $4
-        Params: ["pending","PHONE-%",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+        WHERE
+          (
+            "t0_orders"."status" = $1
+            AND "t2_products"."sku" LIKE $2
+          )
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["pending","PHONE-%",20,0]"
       `);
 
       // Combine direct join and nested join
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount"],
             where: {
               $and: [
@@ -633,17 +652,36 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount" FROM "orders" AS "t0_orders" LEFT JOIN "users" AS "t1_users" ON "t0_orders"."user_id" = "t1_users"."id" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" WHERE ("t1_users"."email" ilike $1 and "t0_orders"."status" in ($2, $3) and ("t2_products"."sku" like $4 or "t2_products"."sku" like $5)) LIMIT $6 OFFSET $7
-        Params: ["%@company.com","pending","processing","LAPTOP-%","PHONE-%",50,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "users" AS "t1_users" ON "t0_orders"."user_id" = "t1_users"."id"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+        WHERE
+          (
+            "t1_users"."email" ILIKE $1
+            AND "t0_orders"."status" IN ($2, $3)
+            AND (
+              "t2_products"."sku" LIKE $4
+              OR "t2_products"."sku" LIKE $5
+            )
+          )
+        LIMIT
+          $6
+        OFFSET
+          $7
+        -- Params: ["%@company.com","pending","processing","LAPTOP-%","PHONE-%",50,0]"
       `);
     });
 
     it("should filter by nested t3 field (Orders -> OrderItems -> Products -> Categories)", () => {
-      const qb = createQueryBuilder(ordersNestedLevel3Schema);
-
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersNestedLevel3Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
               status: { $eq: "completed" },
@@ -656,14 +694,32 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE ("t0_orders"."status" = $1 and "t3_categories"."slug" in ($2, $3)) LIMIT $4 OFFSET $5
-        Params: ["completed","electronics","computers",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+        WHERE
+          (
+            "t0_orders"."status" = $1
+            AND "t3_categories"."slug" IN ($2, $3)
+          )
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: ["completed","electronics","computers",20,0]"
       `);
 
       // Combine t1, t2, t3 conditions
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersNestedLevel3Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
               $or: [
@@ -699,17 +755,43 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE (("t0_orders"."status" = $1 and "t1_order_items"."quantity" >= $2) or ("t2_products"."sku" like $3 and "t2_products"."price" >= $4) or ("t3_categories"."slug" = $5 and "t3_categories"."is_visible" = $6)) LIMIT $7 OFFSET $8
-        Params: ["processing",5,"VIP-%",1000,"premium",true,100,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+        WHERE
+          (
+            (
+              "t0_orders"."status" = $1
+              AND "t1_order_items"."quantity" >= $2
+            )
+            OR (
+              "t2_products"."sku" LIKE $3
+              AND "t2_products"."price" >= $4
+            )
+            OR (
+              "t3_categories"."slug" = $5
+              AND "t3_categories"."is_visible" = $6
+            )
+          )
+        LIMIT
+          $7
+        OFFSET
+          $8
+        -- Params: ["processing",5,"VIP-%",1000,"premium",true,100,0]"
       `);
     });
 
     it("should filter by nested t4 field (Orders -> OrderItems -> Products -> Categories -> Translations)", () => {
-      const qb = createQueryBuilder(ordersNestedLevel4Schema);
-
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersNestedLevel4Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
               status: { $eq: "completed" },
@@ -724,14 +806,33 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id" WHERE ("t0_orders"."status" = $1 and "t4_translations"."value" ilike $2) LIMIT $3 OFFSET $4
-        Params: ["completed","%Electronics%",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+          LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"
+        WHERE
+          (
+            "t0_orders"."status" = $1
+            AND "t4_translations"."value" ILIKE $2
+          )
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["completed","%Electronics%",20,0]"
       `);
 
       // Full 4-level conditions
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          ordersNestedLevel4Query.getSql({
             select: ["id", "status", "totalAmount"],
             where: {
               $and: [
@@ -761,8 +862,27 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id" WHERE ("t4_translations"."locale" = $1 and "t4_translations"."value" not ilike $2 and "t3_categories"."is_visible" = $3) LIMIT $4 OFFSET $5
-        Params: ["en","%test%",true,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+          LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"
+        WHERE
+          (
+            "t4_translations"."locale" = $1
+            AND "t4_translations"."value" NOT ILIKE $2
+            AND "t3_categories"."is_visible" = $3
+          )
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: ["en","%test%",true,20,0]"
       `);
     });
   });
@@ -772,21 +892,35 @@ describe("Complex SQL Snapshot Tests", () => {
       // Order by t0 field - no join needed
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel2Schema).buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: { status: { $eq: "completed" } },
             order: ["totalAmount:desc"],
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency" FROM "orders" AS "t0_orders" WHERE "t0_orders"."status" = $1 ORDER BY "t0_orders"."total_amount" DESC LIMIT $2 OFFSET $3
-        Params: ["completed",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency"
+        FROM
+          "orders" AS "t0_orders"
+        WHERE
+          "t0_orders"."status" = $1
+        ORDER BY
+          "t0_orders"."total_amount" DESC
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: ["completed",20,0]"
       `);
 
       // Order by t1 field - join added via order
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel2Schema).buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             where: {
               status: { $eq: "pending" },
               items: { quantity: { $gte: 1 } },
@@ -795,27 +929,65 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" WHERE ("t0_orders"."status" = $1 and "t1_order_items"."quantity" >= $2) ORDER BY "t1_order_items"."quantity" DESC LIMIT $3 OFFSET $4
-        Params: ["pending",1,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."user_id" AS "userId",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency",
+          "t0_orders"."created_at" AS "createdAt"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+        WHERE
+          (
+            "t0_orders"."status" = $1
+            AND "t1_order_items"."quantity" >= $2
+          )
+        ORDER BY
+          "t1_order_items"."quantity" DESC
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["pending",1,20,0]"
       `);
 
       // Order by t2 field - joins added via nested where and order
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel2Schema).buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             where: { items: { product: { isPublished: { $eq: true } } } },
             order: ["items.product.price:desc"],
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" WHERE "t2_products"."is_published" = $1 ORDER BY "t2_products"."price" DESC LIMIT $2 OFFSET $3
-        Params: [true,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."user_id" AS "userId",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency",
+          "t0_orders"."created_at" AS "createdAt"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+        WHERE
+          "t2_products"."is_published" = $1
+        ORDER BY
+          "t2_products"."price" DESC
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: [true,20,0]"
       `);
 
       // Order by t3 field
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel3Schema).buildSelectSql({
+          ordersNestedLevel3Query.getSql({
             where: {
               items: { product: { category: { isVisible: { $eq: true } } } },
             },
@@ -823,14 +995,33 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE "t3_categories"."is_visible" = $1 ORDER BY "t3_categories"."slug" ASC LIMIT $2 OFFSET $3
-        Params: [true,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."user_id" AS "userId",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency",
+          "t0_orders"."created_at" AS "createdAt"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+        WHERE
+          "t3_categories"."is_visible" = $1
+        ORDER BY
+          "t3_categories"."slug" ASC
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: [true,20,0]"
       `);
 
       // Order by t4 field
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel4Schema).buildSelectSql({
+          ordersNestedLevel4Query.getSql({
             where: {
               items: {
                 product: {
@@ -842,14 +1033,34 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id" WHERE "t4_translations"."locale" = $1 ORDER BY "t4_translations"."value" ASC LIMIT $2 OFFSET $3
-        Params: ["en",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."user_id" AS "userId",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency",
+          "t0_orders"."created_at" AS "createdAt"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+          LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"
+        WHERE
+          "t4_translations"."locale" = $1
+        ORDER BY
+          "t4_translations"."value" ASC
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: ["en",20,0]"
       `);
 
       // Multiple fields across levels
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel3Schema).buildSelectSql({
+          ordersNestedLevel3Query.getSql({
             where: {
               status: { $neq: "cancelled" },
               items: { product: { category: { isVisible: { $eq: true } } } },
@@ -863,8 +1074,33 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."user_id" AS "userId", "t0_orders"."status" AS "status", "t0_orders"."total_amount" AS "totalAmount", "t0_orders"."currency" AS "currency", "t0_orders"."created_at" AS "createdAt" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE ("t0_orders"."status" <> $1 and "t3_categories"."is_visible" = $2) ORDER BY "t3_categories"."slug" ASC, "t2_products"."price" DESC, "t1_order_items"."quantity" DESC, "t0_orders"."total_amount" DESC LIMIT $3 OFFSET $4
-        Params: ["cancelled",true,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."user_id" AS "userId",
+          "t0_orders"."status" AS "status",
+          "t0_orders"."total_amount" AS "totalAmount",
+          "t0_orders"."currency" AS "currency",
+          "t0_orders"."created_at" AS "createdAt"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+        WHERE
+          (
+            "t0_orders"."status" <> $1
+            AND "t3_categories"."is_visible" = $2
+          )
+        ORDER BY
+          "t3_categories"."slug" ASC,
+          "t2_products"."price" DESC,
+          "t1_order_items"."quantity" DESC,
+          "t0_orders"."total_amount" DESC
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["cancelled",true,20,0]"
       `);
     });
   });
@@ -874,33 +1110,59 @@ describe("Complex SQL Snapshot Tests", () => {
       // Select t0, t1 fields - join added via select
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel2Schema).buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             where: { items: { quantity: { $gte: 1 } } },
             select: ["id", "status", "items.quantity", "items.unitPrice"],
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t1_order_items"."quantity" AS "items.quantity", "t1_order_items"."unit_price" AS "items.unitPrice" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" WHERE "t1_order_items"."quantity" >= $1 LIMIT $2 OFFSET $3
-        Params: [1,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t1_order_items"."quantity" AS "items.quantity",
+          "t1_order_items"."unit_price" AS "items.unitPrice"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+        WHERE
+          "t1_order_items"."quantity" >= $1
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: [1,20,0]"
       `);
 
       // Select t2 fields
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel2Schema).buildSelectSql({
+          ordersNestedLevel2Query.getSql({
             where: { items: { product: { isPublished: { $eq: true } } } },
             select: ["id", "items.product.sku", "items.product.price"],
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t2_products"."sku" AS "items.product.sku", "t2_products"."price" AS "items.product.price" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" WHERE "t2_products"."is_published" = $1 LIMIT $2 OFFSET $3
-        Params: [true,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t2_products"."sku" AS "items.product.sku",
+          "t2_products"."price" AS "items.product.price"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+        WHERE
+          "t2_products"."is_published" = $1
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: [true,20,0]"
       `);
 
       // Select t3 fields
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel3Schema).buildSelectSql({
+          ordersNestedLevel3Query.getSql({
             where: {
               items: { product: { category: { isVisible: { $eq: true } } } },
             },
@@ -913,14 +1175,29 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t3_categories"."slug" AS "items.product.category.slug", "t3_categories"."is_visible" AS "items.product.category.isVisible" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" WHERE "t3_categories"."is_visible" = $1 LIMIT $2 OFFSET $3
-        Params: [true,20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t3_categories"."slug" AS "items.product.category.slug",
+          "t3_categories"."is_visible" AS "items.product.category.isVisible"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+        WHERE
+          "t3_categories"."is_visible" = $1
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: [true,20,0]"
       `);
 
       // Select t4 fields
       expect(
         toSqlString(
-          createQueryBuilder(ordersNestedLevel4Schema).buildSelectSql({
+          ordersNestedLevel4Query.getSql({
             where: {
               items: {
                 product: {
@@ -937,15 +1214,30 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_orders"."id" AS "id", "t0_orders"."status" AS "status", "t4_translations"."value" AS "items.product.category.translation.value", "t4_translations"."locale" AS "items.product.category.translation.locale" FROM "orders" AS "t0_orders" LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id" LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id" LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id" LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id" WHERE "t4_translations"."locale" = $1 LIMIT $2 OFFSET $3
-        Params: ["en",20,0]"
+        "SELECT
+          "t0_orders"."id" AS "id",
+          "t0_orders"."status" AS "status",
+          "t4_translations"."value" AS "items.product.category.translation.value",
+          "t4_translations"."locale" AS "items.product.category.translation.locale"
+        FROM
+          "orders" AS "t0_orders"
+          LEFT JOIN "order_items" AS "t1_order_items" ON "t0_orders"."id" = "t1_order_items"."order_id"
+          LEFT JOIN "products" AS "t2_products" ON "t1_order_items"."product_id" = "t2_products"."id"
+          LEFT JOIN "categories" AS "t3_categories" ON "t2_products"."category_id" = "t3_categories"."id"
+          LEFT JOIN "translations" AS "t4_translations" ON "t3_categories"."id" = "t4_translations"."entity_id"
+        WHERE
+          "t4_translations"."locale" = $1
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: ["en",20,0]"
       `);
     });
   });
 
   describe("Edge cases", () => {
     it("should handle large IN clause", () => {
-      const qb = createQueryBuilder(productsFullSchema);
       const productSkus = Array.from(
         { length: 20 },
         (_, i) => `SKU-${String(i).padStart(4, "0")}`
@@ -953,22 +1245,56 @@ describe("Complex SQL Snapshot Tests", () => {
 
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          productsFullQuery.getSql({
             select: ["id", "sku", "isPublished"],
             where: { sku: { $in: productSkus }, isPublished: { $eq: true } },
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."sku" AS "sku", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" WHERE ("t0_products"."sku" in ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) and "t0_products"."is_published" = $21) LIMIT $22 OFFSET $23
-        Params: ["SKU-0000","SKU-0001","SKU-0002","SKU-0003","SKU-0004","SKU-0005","SKU-0006","SKU-0007","SKU-0008","SKU-0009","SKU-0010","SKU-0011","SKU-0012","SKU-0013","SKU-0014","SKU-0015","SKU-0016","SKU-0017","SKU-0018","SKU-0019",true,20,0]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."sku" AS "sku",
+          "t0_products"."is_published" AS "isPublished"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."sku" IN (
+              $1,
+              $2,
+              $3,
+              $4,
+              $5,
+              $6,
+              $7,
+              $8,
+              $9,
+              $10,
+              $11,
+              $12,
+              $13,
+              $14,
+              $15,
+              $16,
+              $17,
+              $18,
+              $19,
+              $20
+            )
+            AND "t0_products"."is_published" = $21
+          )
+        LIMIT
+          $22
+        OFFSET
+          $23
+        -- Params: ["SKU-0000","SKU-0001","SKU-0002","SKU-0003","SKU-0004","SKU-0005","SKU-0006","SKU-0007","SKU-0008","SKU-0009","SKU-0010","SKU-0011","SKU-0012","SKU-0013","SKU-0014","SKU-0015","SKU-0016","SKU-0017","SKU-0018","SKU-0019",true,20,0]"
       `);
     });
 
     it("should handle 10+ conditions with mixed operators and nested paths", () => {
-      const qb = createQueryBuilder(productsFullSchema);
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          productsFullQuery.getSql({
             select: ["id", "sku", "price", "stock", "isPublished"],
 
             where: {
@@ -990,16 +1316,44 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."sku" AS "sku", "t0_products"."price" AS "price", "t0_products"."stock" AS "stock", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t0_products"."id" <> $1 and "t0_products"."sku" like $2 and "t0_products"."sku" not like $3 and "t0_products"."price" > $4 and "t0_products"."price" < $5 and "t0_products"."stock" >= $6 and "t0_products"."stock" <= $7 and "t0_products"."is_published" = $8 and "t0_products"."deleted_at" is null and "t1_categories"."slug" in ($9, $10, $11, $12, $13) and "t1_categories"."is_visible" is not null and "t1_translations"."value" ilike $14) LIMIT $15 OFFSET $16
-        Params: ["00000000-0000-0000-0000-000000000000","%","TEST-%",0,999999,0,10000,true,"a","b","c","d","e","%keyword%",20,0]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."sku" AS "sku",
+          "t0_products"."price" AS "price",
+          "t0_products"."stock" AS "stock",
+          "t0_products"."is_published" AS "isPublished"
+        FROM
+          "products" AS "t0_products"
+          INNER JOIN "categories" AS "t1_categories" ON "t0_products"."category_id" = "t1_categories"."id"
+          LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"
+        WHERE
+          (
+            "t0_products"."id" <> $1
+            AND "t0_products"."sku" LIKE $2
+            AND "t0_products"."sku" NOT LIKE $3
+            AND "t0_products"."price" > $4
+            AND "t0_products"."price" < $5
+            AND "t0_products"."stock" >= $6
+            AND "t0_products"."stock" <= $7
+            AND "t0_products"."is_published" = $8
+            AND "t0_products"."deleted_at" IS NULL
+            AND "t1_categories"."slug" IN ($9, $10, $11, $12, $13)
+            AND "t1_categories"."is_visible" IS NOT NULL
+            AND "t1_translations"."value" ILIKE $14
+          )
+        LIMIT
+          $15
+        OFFSET
+          $16
+        -- Params: ["00000000-0000-0000-0000-000000000000","%","TEST-%",0,999999,0,10000,true,"a","b","c","d","e","%keyword%",20,0]"
       `);
     });
 
     it("should handle maxLimit and pagination without joins", () => {
-      const qb = createQueryBuilder(productsFullSchema, { maxLimit: 1000 });
+      const limitedQuery = productsFullQuery.maxLimit(1000);
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          limitedQuery.getSql({
             select: ["id", "sku", "isPublished"],
             where: { isPublished: { $eq: true } },
             limit: 1000,
@@ -1007,16 +1361,26 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."sku" AS "sku", "t0_products"."is_published" AS "isPublished" FROM "products" AS "t0_products" WHERE "t0_products"."is_published" = $1 LIMIT $2 OFFSET $3
-        Params: [true,1000,99000]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."sku" AS "sku",
+          "t0_products"."is_published" AS "isPublished"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          "t0_products"."is_published" = $1
+        LIMIT
+          $2
+        OFFSET
+          $3
+        -- Params: [true,1000,99000]"
       `);
     });
 
     it("should handle deeply nested OR/AND (4+ levels) with nested paths", () => {
-      const qb = createQueryBuilder(usersWithOrdersSchema);
       expect(
         toSqlString(
-          qb.buildSelectSql({
+          usersWithOrdersQuery.getSql({
             select: ["id", "email", "name", "role", "isActive"],
             where: {
               $or: [
@@ -1057,8 +1421,43 @@ describe("Complex SQL Snapshot Tests", () => {
           })
         )
       ).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_users"."id" AS "id", "t0_users"."email" AS "email", "t0_users"."name" AS "name", "t0_users"."role" AS "role", "t0_users"."is_active" AS "isActive" FROM "users" AS "t0_users" LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id" WHERE (("t0_users"."role" = $1 and ("t0_users"."email" ilike $2 or "t0_users"."email" ilike $3)) or ("t0_users"."role" = $4 and (("t1_orders"."status" = $5 and "t1_orders"."total_amount" >= $6) or ("t0_users"."is_active" = $7 and "t0_users"."name" is not null)))) LIMIT $8 OFFSET $9
-        Params: ["admin","%@company.com","%@corp.com","manager","completed",1000,true,20,0]"
+        "SELECT
+          "t0_users"."id" AS "id",
+          "t0_users"."email" AS "email",
+          "t0_users"."name" AS "name",
+          "t0_users"."role" AS "role",
+          "t0_users"."is_active" AS "isActive"
+        FROM
+          "users" AS "t0_users"
+          LEFT JOIN "orders" AS "t1_orders" ON "t0_users"."id" = "t1_orders"."user_id"
+        WHERE
+          (
+            (
+              "t0_users"."role" = $1
+              AND (
+                "t0_users"."email" ILIKE $2
+                OR "t0_users"."email" ILIKE $3
+              )
+            )
+            OR (
+              "t0_users"."role" = $4
+              AND (
+                (
+                  "t1_orders"."status" = $5
+                  AND "t1_orders"."total_amount" >= $6
+                )
+                OR (
+                  "t0_users"."is_active" = $7
+                  AND "t0_users"."name" IS NOT NULL
+                )
+              )
+            )
+          )
+        LIMIT
+          $8
+        OFFSET
+          $9
+        -- Params: ["admin","%@company.com","%@corp.com","manager","completed",1000,true,20,0]"
       `);
     });
   });

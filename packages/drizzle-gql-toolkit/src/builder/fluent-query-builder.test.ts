@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import {
-  pgTable,
-  text,
-  integer,
-  timestamp,
-  uuid,
-  PgDialect,
-} from "drizzle-orm/pg-core";
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import type { SQL } from "drizzle-orm";
 import {
-  createQuery,
+  integer,
+  PgDialect,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
   createPaginationQuery,
+  createQuery,
   field,
   MaxLimitExceededError,
 } from "./index.js";
@@ -532,7 +532,7 @@ describe.skip("createPaginationQuery", () => {
     const cursor = page1.pageInfo.endCursor;
     const page2 = await pagination.execute(db, {
       first: 1,
-      after: cursor,
+      after: cursor!,
     });
 
     expect(page2.edges).toHaveLength(1);

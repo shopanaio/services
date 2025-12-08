@@ -4,7 +4,7 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
 import { createCursorQueryBuilder } from "./builder.js";
 import { encode, decode } from "./cursor.js";
-import { createSchema } from "../schema.js";
+import { createQuery, field, createPaginationQuery } from "../builder.js";
 import { products, translations } from "../test/setup.js";
 import { hashFilters } from "./helpers.js";
 import type { DrizzleExecutor } from "../types.js";
@@ -23,85 +23,68 @@ function toSqlString(sqlObj: SQL): string {
   return `${formatted}\n-- Params: ${JSON.stringify(query.params)}`;
 }
 
-const productsSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    handle: { column: "handle" },
-    price: { column: "price" },
-    deletedAt: { column: "deleted_at" },
-  },
+// Create queries using fluent API
+const productsQuery = createQuery(products, {
+  id: field(products.id),
+  handle: field(products.handle),
+  price: field(products.price),
+  deletedAt: field(products.deletedAt),
 });
 
-const translationsSchema = createSchema({
-  table: translations,
-  tableName: "translations",
-  fields: {
-    id: { column: "id" },
-    entityId: { column: "entity_id" },
-    field: { column: "field" },
-    value: { column: "value" },
-    searchValue: { column: "search_value" },
-  },
+const translationsQuery = createQuery(translations, {
+  id: field(translations.id),
+  entityId: field(translations.entityId),
+  field: field(translations.field),
+  value: field(translations.value),
+  searchValue: field(translations.searchValue),
 });
 
-const productsWithTranslationsSchema = createSchema({
-  table: products,
-  tableName: "products",
-  fields: {
-    id: { column: "id" },
-    handle: { column: "handle" },
-    price: { column: "price" },
-    deletedAt: { column: "deleted_at" },
-    translation: {
-      column: "id",
-      join: {
-        schema: () => translationsSchema,
-        column: "entityId",
-      },
-    },
-  },
+const productsWithTranslationsQuery = createQuery(products, {
+  id: field(products.id),
+  handle: field(products.handle),
+  price: field(products.price),
+  deletedAt: field(products.deletedAt),
+  translation: field(products.id).leftJoin(translationsQuery, translations.entityId),
 });
 
-const createProductsQb = () =>
-  createCursorQueryBuilder(productsSchema, {
-    cursorType: "product",
+const createProductsPagination = () =>
+  createPaginationQuery(productsQuery, {
+    name: "product",
     tieBreaker: "id",
     defaultSortField: "id",
   });
 
 // ============ Validation Tests ============
 
-describe("createCursorQueryBuilder", () => {
+describe("createPaginationQuery (fluent API)", () => {
   describe("validation", () => {
     it("throws when both first and last are provided", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       expect(() => qb.getSql({ first: 10, last: 5 })).toThrow(
         "Cannot specify both 'first' and 'last'"
       );
     });
 
     it("throws when neither first nor last is provided", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       expect(() => qb.getSql({})).toThrow(
         "Either 'first' or 'last' must be provided"
       );
     });
 
     it("throws when first is not positive", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       expect(() => qb.getSql({ first: 0 })).toThrow("first must be greater than 0");
       expect(() => qb.getSql({ first: -1 })).toThrow("first must be greater than 0");
     });
 
     it("throws when last is not positive", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       expect(() => qb.getSql({ last: 0 })).toThrow("last must be greater than 0");
     });
 
     it("throws on invalid cursor type", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const wrongTypeCursor = encode({
         type: "category",
         filtersHash: "",
@@ -114,7 +97,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("ignores before cursor when first is used (first takes precedence)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -138,7 +121,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("ignores after cursor when last is used (last takes precedence)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -162,7 +145,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("handles single item request (first: 1)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         first: 1,
@@ -175,7 +158,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("handles single item request (last: 1)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         last: 1,
@@ -192,7 +175,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("cursor seek conditions", () => {
     it("forward pagination (first) with cursor builds correct WHERE", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // Default sort is id:desc, so cursor needs: [sort field] + [tie-breaker]
@@ -240,7 +223,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("forward pagination with two-field cursor (price DESC, id DESC)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // order: ["price:desc"] + tie-breaker (id follows price direction = desc)
@@ -287,7 +270,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("forward pagination with ASC sort uses $gt operator", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // order: ["handle:asc"] + tie-breaker (id follows handle direction = asc)
@@ -334,7 +317,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("forward pagination with mixed ASC/DESC sort (handle ASC, price DESC)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // order: ["handle:asc", "price:desc"] + tie-breaker (id follows LAST sort field = desc)
@@ -389,7 +372,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("backward pagination (last + before) inverts comparison operators", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -439,7 +422,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("backward pagination without cursor inverts ORDER BY", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         last: 10,
@@ -470,7 +453,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("backward pagination (last + before) with ASC sort uses $lt operator", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -519,7 +502,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("backward pagination (last + before) with mixed ASC/DESC sort", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -576,7 +559,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("backward pagination without cursor with ASC sort inverts to DESC", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         last: 10,
@@ -606,7 +589,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("backward pagination without cursor with mixed sort inverts all directions", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         last: 10,
@@ -641,7 +624,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("filtersHash validation", () => {
     it("ignores cursor when filters change", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       // Cursor created with different filters (status: active)
       // Default sort is id:desc, so cursor needs sort field + tie-breaker
@@ -682,7 +665,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("uses cursor when filters match", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filters = { status: "active" };
       const filtersHash = hashFilters(filters);
 
@@ -733,7 +716,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("user filters combined with cursor", () => {
     it("merges user WHERE with cursor seek condition", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -783,7 +766,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("complex user filter with cursor", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -852,7 +835,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("tie-breaker handling", () => {
     it("adds tie-breaker to sort when not present", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         first: 10,
@@ -881,7 +864,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("tie-breaker direction follows last sort field direction", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql } = qb.getSql({
         first: 10,
@@ -914,7 +897,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("first page without cursor", () => {
     it("forward pagination without cursor - no seek WHERE", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         first: 10,
@@ -944,7 +927,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("uses default sort field when no order specified", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         first: 10,
@@ -976,7 +959,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("limit calculation", () => {
     it("requests limit + 1 for hasNextPage detection", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         first: 10,
@@ -990,7 +973,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("last also requests limit + 1", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
 
       const { sql, meta } = qb.getSql({
         last: 5,
@@ -1007,7 +990,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("cursor order mismatch", () => {
     it("throws when cursor sort order differs from query order", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // Cursor was created with price:desc
@@ -1032,7 +1015,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("throws when cursor direction differs from query direction", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // Cursor was created with price:desc
@@ -1057,7 +1040,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("throws when cursor has wrong number of seek values", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       // Cursor has 3 seek values (for two-field sort)
@@ -1087,7 +1070,7 @@ describe("createCursorQueryBuilder", () => {
 
   describe("null values in cursor", () => {
     it("handles null value in cursor seek field", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -1133,7 +1116,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("handles undefined value in cursor (treated as null)", () => {
-      const qb = createProductsQb();
+      const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -1159,15 +1142,15 @@ describe("createCursorQueryBuilder", () => {
   // ============ With Joins ============
 
   describe("cursor with joins", () => {
-    const createJoinedQb = () =>
-      createCursorQueryBuilder(productsWithTranslationsSchema, {
-        cursorType: "product",
+    const createJoinedPagination = () =>
+      createPaginationQuery(productsWithTranslationsQuery, {
+        name: "product",
         tieBreaker: "id",
         defaultSortField: "id",
       });
 
     it("cursor on joined field builds correct seek", () => {
-      const qb = createJoinedQb();
+      const qb = createJoinedPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -1213,7 +1196,7 @@ describe("createCursorQueryBuilder", () => {
     });
 
     it("filter on joined field with cursor", () => {
-      const qb = createJoinedQb();
+      const qb = createJoinedPagination();
       const filtersHash = hashFilters(undefined);
 
       const cursor = encode({
@@ -1266,7 +1249,63 @@ describe("createCursorQueryBuilder", () => {
     });
   });
 
-  describe("advanced usage hooks", () => {
+  describe("advanced usage", () => {
+    it("exposes the underlying FluentQueryBuilder through getQueryBuilder", () => {
+      const qb = createProductsPagination();
+      const queryBuilder = qb.getQueryBuilder();
+
+      expect(queryBuilder).toBe(qb.getQueryBuilder());
+
+      const sql = queryBuilder.getSql({
+        select: ["id"],
+        limit: 5,
+        order: ["id:asc"],
+      });
+
+      const sqlString = toSqlString(sql);
+      expect(sqlString).toContain("LIMIT\n  $1");
+      expect(sqlString).toContain("-- Params: [5,0]");
+    });
+
+    it("returns configuration through getConfig", () => {
+      const qb = createProductsPagination();
+      const config = qb.getConfig();
+
+      expect(config).toEqual({
+        name: "product",
+        tieBreaker: "id",
+        defaultSortField: "id",
+      });
+    });
+  });
+});
+
+// ============ Lower-Level createCursorQueryBuilder Tests ============
+// These tests use the lower-level API with ObjectSchema
+
+describe("createCursorQueryBuilder (legacy API)", () => {
+  // For backward compatibility testing with ObjectSchema API
+  const { createSchema } = require("../schema.js");
+
+  const productsSchema = createSchema({
+    table: products,
+    tableName: "products",
+    fields: {
+      id: { column: "id" },
+      handle: { column: "handle" },
+      price: { column: "price" },
+      deletedAt: { column: "deleted_at" },
+    },
+  });
+
+  const createProductsQb = () =>
+    createCursorQueryBuilder(productsSchema, {
+      cursorType: "product",
+      tieBreaker: "id",
+      defaultSortField: "id",
+    });
+
+  describe("mapResult transformation", () => {
     it("applies mapResult transformation before returning nodes", async () => {
       const mappedIds: string[] = [];
       const qb = createCursorQueryBuilder(productsSchema, {
@@ -1303,7 +1342,9 @@ describe("createCursorQueryBuilder", () => {
       expect(mappedIds).toEqual(["prod_1"]);
       expect(result.pageInfo.hasNextPage).toBe(true);
     });
+  });
 
+  describe("getQueryBuilder access", () => {
     it("exposes the underlying QueryBuilder through getQueryBuilder", () => {
       const qb = createProductsQb();
       const queryBuilder = qb.getQueryBuilder();
