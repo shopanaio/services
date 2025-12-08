@@ -227,15 +227,15 @@ export class FluentQueryBuilder<
   }
 
   /**
-   * Build SQL query without executing
+   * Get SQL query without executing
    *
    * @example
    * ```ts
-   * const sql = query.buildSql({ limit: 10 });
+   * const sql = query.getSql({ limit: 10 });
    * console.log(sql.toQuery());
    * ```
    */
-  buildSql(options?: ExecuteOptions<InferredFields>): SQL {
+  getSql(options?: ExecuteOptions<InferredFields>): SQL {
     const resolvedOptions = this.resolveOptions(options);
     const qb = this.getQueryBuilder();
 

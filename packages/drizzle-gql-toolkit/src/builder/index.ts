@@ -23,7 +23,7 @@ export {
 
 // Helpers
 export { field } from "./helpers.js";
-export type { FieldDefinition, JoinDefinition, FieldBuilder, JoinTarget } from "./helpers.js";
+export type { FieldDefinition, JoinDefinition, FieldBuilder } from "./helpers.js";
 
 // Types
 export type {

@@ -1,3 +1,4 @@
+import type { Column } from "drizzle-orm";
 import type {
   JoinType,
   FluentFieldsDef,
@@ -38,22 +39,6 @@ export type JoinDefinition<TFields extends FluentFieldsDef = FluentFieldsDef> = 
 };
 
 /**
- * Join target - can be a direct schema or a function (for circular references)
- */
-export type JoinTarget<TFields extends FluentFieldsDef> =
-  | FluentQueryBuilderLike<TFields>
-  | (() => FluentQueryBuilderLike<TFields>);
-
-/**
- * Normalize join target to always be a function
- */
-function normalizeJoinTarget<TFields extends FluentFieldsDef>(
-  target: JoinTarget<TFields>
-): () => FluentQueryBuilderLike<TFields> {
-  return typeof target === "function" ? target : () => target;
-}
-
-/**
  * Field builder with fluent join methods
  */
 export interface FieldBuilder extends SimpleFieldDefinition {
@@ -62,16 +47,12 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    *
    * @example
    * ```ts
-   * // Direct schema (simple case):
-   * address: field("addressId").leftJoin(addressSchema, "userId")
-   *
-   * // Function (for circular references):
-   * manager: field("managerId").leftJoin(() => usersSchema, "id")
+   * address: field(users.addressId).leftJoin(addressSchema, addresses.userId)
    * ```
    */
   leftJoin<TFields extends FluentFieldsDef>(
-    target: JoinTarget<TFields>,
-    column: string
+    target: FluentQueryBuilderLike<TFields>,
+    column: Column
   ): JoinFieldDefinition<TFields>;
 
   /**
@@ -79,12 +60,12 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    *
    * @example
    * ```ts
-   * orders: field("id").innerJoin(ordersSchema, "userId")
+   * orders: field(users.id).innerJoin(ordersSchema, orders.userId)
    * ```
    */
   innerJoin<TFields extends FluentFieldsDef>(
-    target: JoinTarget<TFields>,
-    column: string
+    target: FluentQueryBuilderLike<TFields>,
+    column: Column
   ): JoinFieldDefinition<TFields>;
 
   /**
@@ -92,12 +73,12 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    *
    * @example
    * ```ts
-   * user: field("userId").rightJoin(usersSchema, "id")
+   * user: field(orders.userId).rightJoin(usersSchema, users.id)
    * ```
    */
   rightJoin<TFields extends FluentFieldsDef>(
-    target: JoinTarget<TFields>,
-    column: string
+    target: FluentQueryBuilderLike<TFields>,
+    column: Column
   ): JoinFieldDefinition<TFields>;
 
   /**
@@ -105,77 +86,73 @@ export interface FieldBuilder extends SimpleFieldDefinition {
    *
    * @example
    * ```ts
-   * related: field("relatedId").fullJoin(relatedSchema, "id")
+   * related: field(items.relatedId).fullJoin(relatedSchema, related.id)
    * ```
    */
   fullJoin<TFields extends FluentFieldsDef>(
-    target: JoinTarget<TFields>,
-    column: string
+    target: FluentQueryBuilderLike<TFields>,
+    column: Column
   ): JoinFieldDefinition<TFields>;
 }
 
 /**
- * Create a field definition for a column with optional fluent join methods
+ * Create a field definition from a Drizzle column
  *
  * @example
  * ```ts
  * // Simple field:
  * const usersQuery = createQuery(users, {
- *   id: field("id"),
- *   name: field("name"),
+ *   id: field(users.id),
+ *   name: field(users.name),
  * });
  *
- * // With join (direct schema):
+ * // With join:
  * const usersQuery = createQuery(users, {
- *   id: field("id"),
- *   address: field("addressId").leftJoin(addressSchema, "userId"),
- * });
- *
- * // With join (function for circular refs):
- * const usersQuery = createQuery(users, {
- *   id: field("id"),
- *   manager: field("managerId").leftJoin(() => usersQuery, "id"),
+ *   id: field(users.id),
+ *   address: field(users.addressId).leftJoin(addressSchema, addresses.userId),
  * });
  * ```
  */
-export function field(column: string): FieldBuilder {
+export function field(column: Column): FieldBuilder {
+  const columnName = column.name;
+
   return {
-    column,
+    column: columnName,
     join: undefined,
     leftJoin<TFields extends FluentFieldsDef>(
-      target: JoinTarget<TFields>,
-      joinColumn: string
+      target: FluentQueryBuilderLike<TFields>,
+      joinColumn: Column
     ): JoinFieldDefinition<TFields> {
       return {
-        column,
-        join: { type: "left", target: normalizeJoinTarget(target), column: joinColumn },
+        column: columnName,
+        join: { type: "left", target: () => target, column: joinColumn.name },
       };
     },
     innerJoin<TFields extends FluentFieldsDef>(
-      target: JoinTarget<TFields>,
-      joinColumn: string
+      target: FluentQueryBuilderLike<TFields>,
+      joinColumn: Column
     ): JoinFieldDefinition<TFields> {
       return {
-        column,
-        join: { type: "inner", target: normalizeJoinTarget(target), column: joinColumn },
+        column: columnName,
+        join: { type: "inner", target: () => target, column: joinColumn.name },
       };
     },
     rightJoin<TFields extends FluentFieldsDef>(
-      target: JoinTarget<TFields>,
-      joinColumn: string
+      target: FluentQueryBuilderLike<TFields>,
+      joinColumn: Column
     ): JoinFieldDefinition<TFields> {
       return {
-        column,
-        join: { type: "right", target: normalizeJoinTarget(target), column: joinColumn },
+        column: columnName,
+        join: { type: "right", target: () => target, column: joinColumn.name },
       };
     },
     fullJoin<TFields extends FluentFieldsDef>(
-      target: JoinTarget<TFields>,
-      joinColumn: string
+      target: FluentQueryBuilderLike<TFields>,
+      joinColumn: Column
     ): JoinFieldDefinition<TFields> {
       return {
-        column,
-        join: { type: "full", target: normalizeJoinTarget(target), column: joinColumn },
+        column: columnName,
+        join: { type: "full", target: () => target, column: joinColumn.name },
       };
     },
   };

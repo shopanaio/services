@@ -121,9 +121,9 @@ afterAll(async () => {
 describe("createQuery", () => {
   it("should create a basic query builder", () => {
     const usersQuery = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      email: field("email"),
+      id: field(users.id),
+      name: field(users.name),
+      email: field(users.email),
     });
 
     const snapshot = usersQuery.getSnapshot();
@@ -133,8 +133,8 @@ describe("createQuery", () => {
 
   it("should support chaining configuration methods", () => {
     const usersQuery = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     })
       .defaultOrder("id:asc")
       .defaultLimit(10)
@@ -148,8 +148,8 @@ describe("createQuery", () => {
 
   it("should be immutable (each method returns new instance)", () => {
     const query1 = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     });
 
     const query2 = query1.defaultLimit(10);
@@ -169,8 +169,8 @@ describe("createQuery", () => {
 describe("FluentQueryBuilder configuration", () => {
   it("defaultOrder should set default order", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     }).defaultOrder("name:desc");
 
     expect(query.getSnapshot().config.defaultOrder).toBe("name:desc");
@@ -178,9 +178,9 @@ describe("FluentQueryBuilder configuration", () => {
 
   it("defaultSelect should set default fields", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      email: field("email"),
+      id: field(users.id),
+      name: field(users.name),
+      email: field(users.email),
     }).defaultSelect(["id", "name"]);
 
     expect(query.getSnapshot().config.defaultSelect).toEqual(["id", "name"]);
@@ -188,8 +188,8 @@ describe("FluentQueryBuilder configuration", () => {
 
   it("include should set always-included fields", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     }).include(["id"]);
 
     expect(query.getSnapshot().config.include).toEqual(["id"]);
@@ -197,8 +197,8 @@ describe("FluentQueryBuilder configuration", () => {
 
   it("exclude should set always-excluded fields", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      email: field("email"),
+      id: field(users.id),
+      email: field(users.email),
     }).exclude(["email"]);
 
     expect(query.getSnapshot().config.exclude).toEqual(["email"]);
@@ -206,8 +206,8 @@ describe("FluentQueryBuilder configuration", () => {
 
   it("defaultWhere should set default filter conditions", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      deletedAt: field("deleted_at"),
+      id: field(users.id),
+      deletedAt: field(users.deletedAt),
     }).defaultWhere({ deletedAt: null });
 
     expect(query.getSnapshot().config.defaultWhere).toEqual({
@@ -222,10 +222,10 @@ describe("FluentQueryBuilder configuration", () => {
 
 describe("FluentQueryBuilder execution", () => {
   const usersQuery = createQuery(users, {
-    id: field("id"),
-    name: field("name"),
-    email: field("email"),
-    age: field("age"),
+    id: field(users.id),
+    name: field(users.name),
+    email: field(users.email),
+    age: field(users.age),
   });
 
   it("should execute basic query", async () => {
@@ -313,7 +313,7 @@ describe("FluentQueryBuilder execution", () => {
 describe("FluentQueryBuilder maxLimit", () => {
   it("should throw MaxLimitExceededError when limit exceeds maxLimit", async () => {
     const query = createQuery(users, {
-      id: field("id"),
+      id: field(users.id),
     }).maxLimit(10);
 
     await expect(query.execute(db, { limit: 20 })).rejects.toThrow(
@@ -323,7 +323,7 @@ describe("FluentQueryBuilder maxLimit", () => {
 
   it("should allow limit equal to maxLimit", async () => {
     const query = createQuery(users, {
-      id: field("id"),
+      id: field(users.id),
     }).maxLimit(10);
 
     const results = await query.execute(db, { limit: 10 });
@@ -332,7 +332,7 @@ describe("FluentQueryBuilder maxLimit", () => {
 
   it("should allow limit less than maxLimit", async () => {
     const query = createQuery(users, {
-      id: field("id"),
+      id: field(users.id),
     }).maxLimit(100);
 
     const results = await query.execute(db, { limit: 5 });
@@ -347,14 +347,14 @@ describe("FluentQueryBuilder maxLimit", () => {
 describe("FluentQueryBuilder include/exclude", () => {
   it("should add included fields to select", async () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      email: field("email"),
+      id: field(users.id),
+      name: field(users.name),
+      email: field(users.email),
     })
       .defaultSelect(["name"])
       .include(["id"]);
 
-    const sql = query.buildSql({ limit: 10 });
+    const sql = query.getSql({ limit: 10 });
     const sqlString = toSqlString(sql);
 
     // Both "name" and "id" should be selected
@@ -364,14 +364,14 @@ describe("FluentQueryBuilder include/exclude", () => {
 
   it("should remove excluded fields from select", async () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      email: field("email"),
+      id: field(users.id),
+      name: field(users.name),
+      email: field(users.email),
     })
       .defaultSelect(["id", "name", "email"])
       .exclude(["email"]);
 
-    const sql = query.buildSql({ limit: 10 });
+    const sql = query.getSql({ limit: 10 });
     const sqlString = toSqlString(sql);
 
     expect(sqlString).toContain('"id"');
@@ -388,26 +388,26 @@ describe("FluentQueryBuilder include/exclude", () => {
 describe("FluentQueryBuilder with joins", () => {
   // Create address query first (no dependencies)
   const addressesQuery = createQuery(addresses, {
-    id: field("id"),
-    userId: field("user_id"),
-    city: field("city"),
-    country: field("country"),
-    zipCode: field("zip_code"),
+    id: field(addresses.id),
+    userId: field(addresses.userId),
+    city: field(addresses.city),
+    country: field(addresses.country),
+    zipCode: field(addresses.zipCode),
   });
 
   // Create orders query (no dependencies)
   const ordersQuery = createQuery(orders, {
-    id: field("id"),
-    userId: field("user_id"),
-    total: field("total"),
-    status: field("status"),
+    id: field(orders.id),
+    userId: field(orders.userId),
+    total: field(orders.total),
+    status: field(orders.status),
   });
 
   it("should create query with left join", () => {
     const usersWithAddress = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      address: field("id").leftJoin(addressesQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      address: field(users.id).leftJoin(addressesQuery, addresses.userId),
     });
 
     const snapshot = usersWithAddress.getSnapshot();
@@ -416,9 +416,9 @@ describe("FluentQueryBuilder with joins", () => {
 
   it("should create query with inner join", () => {
     const usersWithOrders = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      orders: field("id").innerJoin(ordersQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      orders: field(users.id).innerJoin(ordersQuery, orders.userId),
     });
 
     const snapshot = usersWithOrders.getSnapshot();
@@ -427,12 +427,12 @@ describe("FluentQueryBuilder with joins", () => {
 
   it("should build SQL with join", () => {
     const usersWithAddress = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      address: field("id").leftJoin(addressesQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      address: field(users.id).leftJoin(addressesQuery, addresses.userId),
     });
 
-    const sql = usersWithAddress.buildSql({
+    const sql = usersWithAddress.getSql({
       select: ["id", "name", "address.city"],
       limit: 10,
     });
@@ -450,9 +450,9 @@ describe("FluentQueryBuilder with joins", () => {
 // TODO: Fix circular dependency issue with cursor/builder.ts
 describe.skip("createPaginationQuery", () => {
   const usersQuery = createQuery(users, {
-    id: field("id"),
-    name: field("name"),
-    email: field("email"),
+    id: field(users.id),
+    name: field(users.name),
+    email: field(users.email),
   })
     .defaultOrder("id:asc")
     .maxLimit(100);
@@ -509,8 +509,8 @@ describe.skip("createPaginationQuery", () => {
 
   it("should inherit config from fluent query", async () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     })
       .defaultWhere({ name: "Alice" })
       .maxLimit(50);
@@ -531,11 +531,11 @@ describe.skip("createPaginationQuery", () => {
 describe("FluentQueryBuilder SQL generation", () => {
   it("should build valid SQL", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     });
 
-    const sql = query.buildSql({ limit: 10 });
+    const sql = query.getSql({ limit: 10 });
     const sqlString = toSqlString(sql);
 
     expect(sqlString).toContain("SELECT");
@@ -545,11 +545,11 @@ describe("FluentQueryBuilder SQL generation", () => {
 
   it("should include WHERE clause when filter provided", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     });
 
-    const sql = query.buildSql({
+    const sql = query.getSql({
       where: { name: "test" },
       limit: 10,
     });
@@ -560,11 +560,11 @@ describe("FluentQueryBuilder SQL generation", () => {
 
   it("should include ORDER BY clause when order provided", () => {
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
+      id: field(users.id),
+      name: field(users.name),
     });
 
-    const sql = query.buildSql({
+    const sql = query.getSql({
       order: ["name:desc"],
       limit: 10,
     });
@@ -583,12 +583,12 @@ describe("Complex usage example", () => {
   it("should work with complete fluent chain", async () => {
     // Build a complex query with all options
     const query = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      email: field("email"),
-      age: field("age"),
-      createdAt: field("created_at"),
-      deletedAt: field("deleted_at"),
+      id: field(users.id),
+      name: field(users.name),
+      email: field(users.email),
+      age: field(users.age),
+      createdAt: field(users.createdAt),
+      deletedAt: field(users.deletedAt),
     })
       .defaultOrder("createdAt:desc")
       .defaultSelect(["id", "name", "email"])
@@ -622,19 +622,19 @@ describe("Complex usage example", () => {
 describe("Type inference for nested paths", () => {
   // Create address query first (no dependencies)
   const addressesQuery = createQuery(addresses, {
-    id: field("id"),
-    userId: field("user_id"),
-    city: field("city"),
-    country: field("country"),
-    zipCode: field("zip_code"),
+    id: field(addresses.id),
+    userId: field(addresses.userId),
+    city: field(addresses.city),
+    country: field(addresses.country),
+    zipCode: field(addresses.zipCode),
   });
 
   it("should support fluent API for joins with direct schema", () => {
     // New fluent API syntax with direct schema
     const usersWithAddress = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      address: field("id").leftJoin(addressesQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      address: field(users.id).leftJoin(addressesQuery, addresses.userId),
     });
 
     // Type assertion: nested paths should work
@@ -646,24 +646,11 @@ describe("Type inference for nested paths", () => {
     expect(_validSelect.select).toContain("address.city");
   });
 
-  it("should support fluent API for joins with function (circular refs)", () => {
-    // Create a self-referential query using function for circular reference
-    const employeesQuery = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      // Using function to support circular reference
-      manager: field("id").leftJoin(() => employeesQuery, "id"),
-    });
-
-    const snapshot = employeesQuery.getSnapshot();
-    expect(snapshot.fields).toContain("manager");
-  });
-
   it("should infer nested paths correctly for joins", () => {
     const usersWithAddress = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      address: field("id").leftJoin(addressesQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      address: field(users.id).leftJoin(addressesQuery, addresses.userId),
     });
 
     // Type assertion: These should compile without errors
@@ -704,12 +691,12 @@ describe("Type inference for nested paths", () => {
 
   it("should build SQL with nested select paths", () => {
     const usersWithAddress = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      address: field("id").leftJoin(addressesQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      address: field(users.id).leftJoin(addressesQuery, addresses.userId),
     });
 
-    const sql = usersWithAddress.buildSql({
+    const sql = usersWithAddress.getSql({
       select: ["id", "name", "address.city", "address.country"],
       limit: 10,
     });
@@ -721,12 +708,12 @@ describe("Type inference for nested paths", () => {
 
   it("should build SQL with nested where conditions", () => {
     const usersWithAddress = createQuery(users, {
-      id: field("id"),
-      name: field("name"),
-      address: field("id").leftJoin(addressesQuery, "userId"),
+      id: field(users.id),
+      name: field(users.name),
+      address: field(users.id).leftJoin(addressesQuery, addresses.userId),
     });
 
-    const sql = usersWithAddress.buildSql({
+    const sql = usersWithAddress.getSql({
       where: {
         address: {
           city: "New York",
