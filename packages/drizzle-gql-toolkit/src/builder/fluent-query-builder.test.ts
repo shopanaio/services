@@ -119,7 +119,32 @@ afterAll(async () => {
 // =============================================================================
 
 describe("createQuery", () => {
-  it("should create a basic query builder", () => {
+  it("should create query builder without fields (use all table columns)", () => {
+    const usersQuery = createQuery(users);
+
+    const snapshot = usersQuery.getSnapshot();
+    expect(snapshot.tableName).toBe("users");
+    // Should include all columns from the table
+    expect(snapshot.fields).toContain("id");
+    expect(snapshot.fields).toContain("name");
+    expect(snapshot.fields).toContain("email");
+    expect(snapshot.fields).toContain("age");
+    expect(snapshot.fields).toContain("createdAt");
+    expect(snapshot.fields).toContain("deletedAt");
+  });
+
+  it("should execute query without fields definition", async () => {
+    const usersQuery = createQuery(users).defaultLimit(10);
+
+    const results = await usersQuery.execute(db, {
+      where: { name: "Alice" },
+    });
+
+    expect(results.length).toBe(1);
+    expect(results[0].name).toBe("Alice");
+  });
+
+  it("should create a basic query builder with explicit fields", () => {
     const usersQuery = createQuery(users, {
       id: field(users.id),
       name: field(users.name),
@@ -264,6 +289,13 @@ describe("FluentQueryBuilder execution", () => {
     expect(results[0].name).toBe("Alice");
     expect(results[1].name).toBe("Bob");
     expect(results[2].name).toBe("Charlie");
+  });
+
+  it("should execute without options", async () => {
+    const query = usersQuery.defaultLimit(10);
+    const results = await query.execute(db);
+
+    expect(results.length).toBe(3);
   });
 
   it("should use defaultLimit when limit not provided", async () => {

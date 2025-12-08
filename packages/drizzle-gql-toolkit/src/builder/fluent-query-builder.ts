@@ -9,7 +9,7 @@ import type {
   QueryBuilderConfig,
 } from "../types.js";
 import { QueryBuilder } from "./query-builder.js";
-import type { FieldDefinition, JoinDefinition } from "./helpers.js";
+import type { FieldDefinition, JoinDefinition, FieldBuilder, JoinFieldDefinition } from "./helpers.js";
 import type {
   FluentFieldsDef,
   ToFieldsDef,
@@ -414,33 +414,112 @@ export class FluentQueryBuilder<
 const DrizzleTableName = Symbol.for("drizzle:Name");
 
 /**
- * Create a fluent query builder with full type inference
+ * Drizzle ORM symbol for accessing columns
+ */
+const DrizzleColumns = Symbol.for("drizzle:Columns");
+
+/**
+ * Type to infer FluentFieldsDef from a Drizzle table's columns
+ */
+type InferFieldsFromTable<T extends Table> = {
+  [K in keyof T["_"]["columns"] & string]: FieldBuilder;
+};
+
+/**
+ * Type to infer FieldsDef from a Drizzle table (all columns as `true`)
+ */
+type InferFieldsDefFromTable<T extends Table> = {
+  [K in keyof T["_"]["columns"] & string]: true;
+};
+
+/**
+ * Create field definitions from table columns
+ */
+function createFieldsFromTable<T extends Table>(table: T): InferFieldsFromTable<T> {
+  const tableAny = table as unknown as Record<symbol, Record<string, { name: string }> | undefined>;
+  const columns = tableAny[DrizzleColumns];
+
+  if (!columns) {
+    return {} as InferFieldsFromTable<T>;
+  }
+
+  const fields: Record<string, FieldBuilder> = {};
+  for (const [key, column] of Object.entries(columns)) {
+    fields[key] = {
+      column: column.name,
+      join: undefined,
+      leftJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "left", target: () => target, column: joinColumn.name },
+        };
+      },
+      innerJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "inner", target: () => target, column: joinColumn.name },
+        };
+      },
+      rightJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "right", target: () => target, column: joinColumn.name },
+        };
+      },
+      fullJoin<TFields extends FluentFieldsDef>(
+        target: FluentQueryBuilderLike<TFields>,
+        joinColumn: { name: string }
+      ): JoinFieldDefinition<TFields> {
+        return {
+          column: column.name,
+          join: { type: "full", target: () => target, column: joinColumn.name },
+        };
+      },
+    };
+  }
+
+  return fields as InferFieldsFromTable<T>;
+}
+
+/**
+ * Create a fluent query builder with all table columns
  *
  * @example
  * ```ts
- * import { createQuery, field, leftJoin } from "@shopana/drizzle-gql-toolkit/builder";
+ * // Use all columns from the table automatically
+ * const usersQuery = createQuery(users);
  *
- * const addressQuery = createQuery(addresses, {
- *   id: field("id"),
- *   city: field("city"),
- *   country: field("country"),
- * });
- *
+ * // Equivalent to:
  * const usersQuery = createQuery(users, {
- *   id: field("id"),
- *   name: field("name"),
- *   address: field("id", leftJoin(() => addressQuery, "userId")),
- * })
- *   .defaultOrder("id:asc")
- *   .defaultSelect(["id", "name"])
- *   .maxLimit(100)
- *   .defaultLimit(20);
+ *   id: field(users.id),
+ *   name: field(users.name),
+ *   email: field(users.email),
+ *   // ... all columns
+ * });
+ * ```
+ */
+export function createQuery<T extends Table>(
+  table: T
+): FluentQueryBuilder<T, InferFieldsFromTable<T>, InferFieldsDefFromTable<T>, T["$inferSelect"]>;
+
+/**
+ * Create a fluent query builder with custom field definitions
  *
- * // Full autocomplete for select, order, where
- * const result = await usersQuery.execute(db, {
- *   select: ["id", "name", "address.city"],
- *   order: ["name:asc"],
- *   where: { name: "test" },
+ * @example
+ * ```ts
+ * const usersQuery = createQuery(users, {
+ *   id: field(users.id),
+ *   name: field(users.name),
+ *   address: field(users.id).leftJoin(addressQuery, addresses.userId),
  * });
  * ```
  */
@@ -450,10 +529,25 @@ export function createQuery<
 >(
   table: T,
   fields: Fields
-): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]> {
+): FluentQueryBuilder<T, Fields, ToFieldsDef<Fields>, T["$inferSelect"]>;
+
+export function createQuery<
+  T extends Table,
+  const Fields extends FluentFieldsDef,
+>(
+  table: T,
+  fields?: Fields
+): FluentQueryBuilder<T, Fields | InferFieldsFromTable<T>, ToFieldsDef<Fields> | InferFieldsDefFromTable<T>, T["$inferSelect"]> {
   // Extract table name from Drizzle table
   const tableAny = table as unknown as Record<symbol, string | undefined>;
   const tableName = tableAny[DrizzleTableName] ?? "unknown";
 
-  return new FluentQueryBuilder(table, tableName, fields);
+  // If fields not provided, create from table columns
+  const resolvedFields = fields ?? createFieldsFromTable(table);
+
+  return new FluentQueryBuilder(
+    table,
+    tableName,
+    resolvedFields as Fields | InferFieldsFromTable<T>
+  ) as FluentQueryBuilder<T, Fields | InferFieldsFromTable<T>, ToFieldsDef<Fields> | InferFieldsDefFromTable<T>, T["$inferSelect"]>;
 }
