@@ -1,41 +1,39 @@
 import { BaseType } from "@shopana/type-executor";
+import type { ProductOption } from "../models/index.js";
 import type { OptionDisplayType } from "../../domain/index.js";
 import type { ProductTypeContext } from "./context.js";
 import { OptionValueType } from "./OptionValueType.js";
 
 /**
  * Option type - resolves Option domain interface
- * Accepts option ID, loads all data via loaders
+ * Accepts option ID, loads data lazily via loaders
  */
-export class OptionType extends BaseType<string> {
+export class OptionType extends BaseType<string, ProductOption | null> {
   static fields = {
     values: () => OptionValueType,
   };
+
+  protected async loadData() {
+    return this.ctx<ProductTypeContext>().loaders.productOption.load(this.value);
+  }
 
   id() {
     return this.value;
   }
 
   async slug() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const option = await ctx.loaders.productOption.load(this.value);
-    return option?.slug ?? "";
+    return (await this.data)?.slug ?? "";
   }
 
   async name() {
     const ctx = this.ctx<ProductTypeContext>();
     const translation = await ctx.loaders.optionTranslation.load(this.value);
     if (translation?.name) return translation.name;
-
-    // Fallback to slug
-    const option = await ctx.loaders.productOption.load(this.value);
-    return option?.slug ?? "";
+    return (await this.data)?.slug ?? "";
   }
 
   async displayType(): Promise<OptionDisplayType> {
-    const ctx = this.ctx<ProductTypeContext>();
-    const option = await ctx.loaders.productOption.load(this.value);
-    return (option?.displayType as OptionDisplayType) ?? "DROPDOWN";
+    return ((await this.data)?.displayType as OptionDisplayType) ?? "DROPDOWN";
   }
 
   /**

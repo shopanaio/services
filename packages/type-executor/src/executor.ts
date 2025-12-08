@@ -13,7 +13,7 @@ export class Executor {
    * and recursively resolving nested types.
    *
    * @param Type - The TypeClass to use for resolution
-   * @param value - The raw value to resolve
+   * @param value - The raw value to resolve (typically an ID)
    * @returns The fully resolved object with all fields
    */
   async resolve<T>(Type: TypeClass<T>, value: T): Promise<Record<string, unknown>> {
@@ -21,6 +21,7 @@ export class Executor {
     const fields = (Type as { fields?: Record<string, () => TypeClass> }).fields || {};
     const result: Record<string, unknown> = {};
 
+    // Data is loaded lazily when resolvers access this.data
     const methods = this.getResolverMethods(instance);
 
     await Promise.all(
@@ -77,15 +78,16 @@ export class Executor {
 
   /**
    * Gets all resolver methods from a type instance.
-   * Excludes the constructor and non-function properties.
+   * Excludes constructor, loadData, and internal methods.
    *
    * @param instance - The type instance to extract methods from
    * @returns Array of method names
    */
   private getResolverMethods(instance: object): string[] {
+    const excluded = new Set(["constructor", "loadData", "data", "get", "ctx"]);
     const proto = Object.getPrototypeOf(instance);
     return Object.getOwnPropertyNames(proto).filter(
-      (key) => key !== "constructor" && typeof proto[key] === "function"
+      (key) => !excluded.has(key) && typeof proto[key] === "function"
     );
   }
 }

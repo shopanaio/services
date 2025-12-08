@@ -245,7 +245,8 @@ export class ProductType {
 }
 
 /**
- * Full product type with categories and related products
+ * Full product type with categories and related products.
+ * Uses BaseType so that complex resolvers can rely on shared helpers like ctx() and data().
  */
 export class ProductFullType extends BaseType<Product> {
   static fields = {
@@ -255,39 +256,46 @@ export class ProductFullType extends BaseType<Product> {
     related: () => ProductCardType,
   };
 
-  id() {
-    return this.get("id");
+  async id() {
+    const data = await this.data;
+    return data.id;
   }
 
-  title() {
+  async title() {
     const { locale } = this.ctx<ProductContext>();
-    return this.value.translations[locale]?.title ?? this.get("title");
+    const data = await this.data;
+    return data.translations[locale]?.title ?? data.title;
   }
 
-  description() {
+  async description() {
     const { locale } = this.ctx<ProductContext>();
-    return this.value.translations[locale]?.description ?? this.get("description");
+    const data = await this.data;
+    return data.translations[locale]?.description ?? data.description;
   }
 
   async variants() {
-    return this.ctx<ProductContext>().loaders.variants.load(this.get("id"));
+    const data = await this.data;
+    return this.ctx<ProductContext>().loaders.variants.load(data.id);
   }
 
   async attributes() {
-    return this.ctx<ProductContext>().loaders.attributes.load(this.get("id"));
+    const data = await this.data;
+    return this.ctx<ProductContext>().loaders.attributes.load(data.id);
   }
 
   async categories() {
-    return this.ctx<ProductContext>().loaders.categories.load(this.get("id"));
+    const data = await this.data;
+    return this.ctx<ProductContext>().loaders.categories.load(data.id);
   }
 
   async related() {
-    return this.ctx<ProductContext>().loaders.related.load(this.get("id"));
+    const data = await this.data;
+    return this.ctx<ProductContext>().loaders.related.load(data.id);
   }
 }
 
 /**
- * Variant with full details
+ * Variant with full details, using BaseType for convenience.
  */
 export class VariantFullType extends BaseType<Variant> {
   static fields = {
@@ -295,49 +303,57 @@ export class VariantFullType extends BaseType<Variant> {
     prices: () => PriceType,
   };
 
-  id() {
-    return this.get("id");
+  async id() {
+    const data = await this.data;
+    return data.id;
   }
 
-  sku() {
-    return this.get("sku");
+  async sku() {
+    const data = await this.data;
+    return data.sku;
   }
 
   async images() {
     const { loaders } = this.ctx<ProductContext>();
-    return loaders.images.load(this.get("id"));
+    const data = await this.data;
+    return loaders.images.load(data.id);
   }
 
   async prices() {
     const { loaders } = this.ctx<ProductContext>();
-    return loaders.prices.load(this.get("id"));
+    const data = await this.data;
+    return loaders.prices.load(data.id);
   }
 }
 
 /**
- * Minimal product for cards/lists
+ * Minimal product for cards/lists, with helpers from BaseType.
  */
 export class ProductCardType extends BaseType<Product> {
   static fields = {
     primaryImage: () => ImageType,
   };
 
-  id() {
-    return this.get("id");
+  async id() {
+    const data = await this.data;
+    return data.id;
   }
 
-  title() {
+  async title() {
     const { locale } = this.ctx<ProductContext>();
-    return this.value.translations[locale]?.title ?? this.get("title");
+    const data = await this.data;
+    return data.translations[locale]?.title ?? data.title;
   }
 
-  slug() {
-    return this.get("slug");
+  async slug() {
+    const data = await this.data;
+    return data.slug;
   }
 
   async primaryImage() {
     const { loaders } = this.ctx<ProductContext>();
-    const variants = await loaders.variants.load(this.get("id"));
+    const data = await this.data;
+    const variants = await loaders.variants.load(data.id);
     if (!variants[0]) return null;
     const images = await loaders.images.load(variants[0].id);
     return images.find((i) => i.isPrimary) || images[0] || null;
@@ -345,7 +361,8 @@ export class ProductCardType extends BaseType<Product> {
 
   async minPrice() {
     const { loaders } = this.ctx<ProductContext>();
-    const variants = await loaders.variants.load(this.get("id"));
+    const data = await this.data;
+    const variants = await loaders.variants.load(data.id);
     if (variants.length === 0) return null;
     const prices = await Promise.all(variants.map((v) => loaders.prices.load(v.id)));
     const allPrices = prices.flat();

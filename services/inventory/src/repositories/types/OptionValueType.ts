@@ -1,35 +1,34 @@
 import { BaseType } from "@shopana/type-executor";
+import type { ProductOptionValue } from "../models/index.js";
 import type { ProductOptionSwatch } from "../../domain/index.js";
 import type { ProductTypeContext } from "./context.js";
 
 /**
  * Option value type - resolves ProductOptionValue domain interface
- * Accepts option value ID, loads all data via loaders
+ * Accepts option value ID, loads data lazily via loaders
  */
-export class OptionValueType extends BaseType<string> {
+export class OptionValueType extends BaseType<string, ProductOptionValue | null> {
+  protected async loadData() {
+    return this.ctx<ProductTypeContext>().loaders.optionValue.load(this.value);
+  }
+
   id() {
     return this.value;
   }
 
   async slug() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const optionValue = await ctx.loaders.optionValue.load(this.value);
-    return optionValue?.slug ?? "";
+    return (await this.data)?.slug ?? "";
   }
 
   async name() {
     const ctx = this.ctx<ProductTypeContext>();
     const translation = await ctx.loaders.optionValueTranslation.load(this.value);
     if (translation?.name) return translation.name;
-
-    // Fallback to slug
-    const optionValue = await ctx.loaders.optionValue.load(this.value);
-    return optionValue?.slug ?? "";
+    return (await this.data)?.slug ?? "";
   }
 
-  async swatch(): Promise<ProductOptionSwatch | null> {
-    // Swatch loader not implemented yet - need to add swatchId to optionValue loader
-    // and create a swatch loader
+  swatch(): ProductOptionSwatch | null {
+    // Swatch loader not implemented yet
     return null;
   }
 }

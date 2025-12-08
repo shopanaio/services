@@ -1,4 +1,5 @@
 import { BaseType } from "@shopana/type-executor";
+import type { Variant } from "../models/index.js";
 import type {
   VariantPrice,
   VariantDimensions,
@@ -11,65 +12,52 @@ import type { ProductTypeContext } from "./context.js";
 
 /**
  * Variant type - resolves Variant domain interface
- * Accepts variant ID, loads all data via loaders
+ * Accepts variant ID, loads main entity via loaders (lazy)
+ * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantType extends BaseType<string> {
+export class VariantType extends BaseType<string, Variant | null> {
+  protected async loadData() {
+    return this.ctx<ProductTypeContext>().loaders.variant.load(this.value);
+  }
+
   id() {
     return this.value;
   }
 
   async productId() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.productId ?? null;
+    return (await this.data)?.productId ?? null;
   }
 
   async isDefault() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.isDefault ?? false;
+    return (await this.data)?.isDefault ?? false;
   }
 
   async handle() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.handle ?? "";
+    return (await this.data)?.handle ?? "";
   }
 
   async sku() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.sku ?? null;
+    return (await this.data)?.sku ?? null;
   }
 
   async externalSystem() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.externalSystem ?? null;
+    return (await this.data)?.externalSystem ?? null;
   }
 
   async externalId() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.externalId ?? null;
+    return (await this.data)?.externalId ?? null;
   }
 
   async createdAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.createdAt ?? null;
+    return (await this.data)?.createdAt ?? null;
   }
 
   async updatedAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.updatedAt ?? null;
+    return (await this.data)?.updatedAt ?? null;
   }
 
   async deletedAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const variant = await ctx.loaders.variant.load(this.value);
-    return variant?.deletedAt ?? null;
+    return (await this.data)?.deletedAt ?? null;
   }
 
   async title() {
@@ -104,7 +92,7 @@ export class VariantType extends BaseType<string> {
     };
   }
 
-  async cost() {
+  cost() {
     // Cost loader not implemented yet
     return null;
   }
@@ -156,7 +144,8 @@ export class VariantType extends BaseType<string> {
   }
 
   async inStock(): Promise<boolean> {
-    const stocks = await this.stock();
+    const ctx = this.ctx<ProductTypeContext>();
+    const stocks = await ctx.loaders.variantStock.load(this.value);
     return stocks.some((s) => s.quantityOnHand > 0);
   }
 

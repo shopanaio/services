@@ -1,4 +1,5 @@
 import { BaseType } from "@shopana/type-executor";
+import type { Product } from "../models/index.js";
 import type { Description } from "../../domain/types/product.js";
 import type { ProductTypeContext } from "./context.js";
 import { VariantType } from "./VariantType.js";
@@ -7,54 +8,47 @@ import { FeatureType } from "./FeatureType.js";
 
 /**
  * Product type - resolves Product domain interface
- * Accepts product ID, loads all data via loaders
+ * Accepts product ID, loads data lazily via loaders
  */
-export class ProductType extends BaseType<string> {
+export class ProductType extends BaseType<string, Product | null> {
   static fields = {
     variants: () => VariantType,
     options: () => OptionType,
     features: () => FeatureType,
   };
 
+  protected async loadData() {
+    return this.ctx<ProductTypeContext>().loaders.product.load(this.value);
+  }
+
   id() {
     return this.value;
   }
 
   async handle() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const product = await ctx.loaders.product.load(this.value);
-    return product?.handle ?? null;
+    return (await this.data)?.handle ?? null;
   }
 
   async publishedAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const product = await ctx.loaders.product.load(this.value);
-    return product?.publishedAt ?? null;
+    return (await this.data)?.publishedAt ?? null;
   }
 
   async isPublished() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const product = await ctx.loaders.product.load(this.value);
-    if (!product?.publishedAt) return false;
-    return product.publishedAt <= new Date();
+    const publishedAt = (await this.data)?.publishedAt;
+    if (!publishedAt) return false;
+    return publishedAt <= new Date();
   }
 
   async createdAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const product = await ctx.loaders.product.load(this.value);
-    return product?.createdAt ?? null;
+    return (await this.data)?.createdAt ?? null;
   }
 
   async updatedAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const product = await ctx.loaders.product.load(this.value);
-    return product?.updatedAt ?? null;
+    return (await this.data)?.updatedAt ?? null;
   }
 
   async deletedAt() {
-    const ctx = this.ctx<ProductTypeContext>();
-    const product = await ctx.loaders.product.load(this.value);
-    return product?.deletedAt ?? null;
+    return (await this.data)?.deletedAt ?? null;
   }
 
   async title() {
