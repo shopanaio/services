@@ -118,7 +118,122 @@ export function createCursorQueryBuilder<
     return { $and: [userWhere, cursorWhere] } as NestedWhereInput<Fields>;
   }
 
+  /**
+   * Prepares query components from cursor input.
+   * Shared between query() and buildSql().
+   */
+  function prepareQuery(input: CursorQueryInput<Fields>) {
+    // Validate pagination params
+    const hasFirst = typeof input.first === "number";
+    const hasLast = typeof input.last === "number";
+
+    if (hasFirst && hasLast) {
+      throw new InvalidCursorError("Cannot specify both 'first' and 'last'");
+    }
+    if (!hasFirst && !hasLast) {
+      throw new InvalidCursorError("Either 'first' or 'last' must be provided");
+    }
+
+    const isForward = hasFirst;
+    const limit = isForward ? input.first! : input.last!;
+
+    if (limit <= 0) {
+      throw new InvalidCursorError(
+        `${isForward ? "first" : "last"} must be greater than 0`
+      );
+    }
+
+    // Parse sort
+    const sortParams = parseSortOrder(input.order as string[] | undefined);
+    const filtersHash = hashFilters(input.filters);
+
+    // Decode cursor if present
+    let cursor: CursorParams | null = null;
+    let filtersChanged = false;
+
+    if (isForward && input.after) {
+      cursor = decode(input.after);
+      if (cursor.type !== config.cursorType) {
+        throw new InvalidCursorError(
+          `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
+        );
+      }
+    } else if (!isForward && input.before) {
+      cursor = decode(input.before);
+      if (cursor.type !== config.cursorType) {
+        throw new InvalidCursorError(
+          `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
+        );
+      }
+    }
+
+    // Check filters hash
+    if (cursor && cursor.filtersHash !== filtersHash) {
+      cursor = null;
+      filtersChanged = true;
+    }
+
+    // Validate cursor order matches current sort
+    if (cursor) {
+      validateCursorOrder(cursor, sortParams, config.tieBreaker as string);
+    }
+
+    // Build cursor WHERE
+    const cursorWhere = cursor
+      ? buildCursorWhereInput<Fields>(cursor, isForward)
+      : null;
+
+    // Merge WHERE conditions
+    const where = mergeWhere(input.where, cursorWhere);
+
+    // Determine if order needs inversion (last without before)
+    const invertOrderFlag = !isForward && !input.before;
+
+    // Build ORDER
+    const order = buildOrderPath(sortParams, invertOrderFlag);
+
+    return {
+      isForward,
+      limit,
+      sortParams,
+      filtersHash,
+      cursor,
+      filtersChanged,
+      where,
+      order,
+      invertOrderFlag,
+    };
+  }
+
   return {
+    /**
+     * Get SQL without executing - useful for testing and debugging.
+     * Returns the SQL that would be executed by query().
+     */
+    getSql(input: CursorQueryInput<Fields>) {
+      const prepared = prepareQuery(input);
+
+      const sql = qb.buildSelectSql({
+        where: prepared.where as NestedWhereInput<FieldsDef>,
+        order: prepared.order as OrderPath<string>[],
+        limit: prepared.limit + 1,
+        select: input.select as string[],
+      } as never);
+
+      return {
+        sql,
+        meta: {
+          isForward: prepared.isForward,
+          limit: prepared.limit,
+          filtersHash: prepared.filtersHash,
+          filtersChanged: prepared.filtersChanged,
+          hasCursor: prepared.cursor !== null,
+          invertOrder: prepared.invertOrderFlag,
+          sortParams: prepared.sortParams,
+        },
+      };
+    },
+
     /**
      * Execute cursor-paginated query and return Connection
      */
@@ -126,80 +241,13 @@ export function createCursorQueryBuilder<
       db: DrizzleExecutor,
       input: CursorQueryInput<Fields>
     ): Promise<CursorQueryResult<Result>> {
-      // Validate pagination params
-      const hasFirst = typeof input.first === "number";
-      const hasLast = typeof input.last === "number";
-
-      if (hasFirst && hasLast) {
-        throw new InvalidCursorError("Cannot specify both 'first' and 'last'");
-      }
-      if (!hasFirst && !hasLast) {
-        throw new InvalidCursorError("Either 'first' or 'last' must be provided");
-      }
-
-      const isForward = hasFirst;
-      const limit = isForward ? input.first! : input.last!;
-
-      if (limit <= 0) {
-        throw new InvalidCursorError(
-          `${isForward ? "first" : "last"} must be greater than 0`
-        );
-      }
-
-      // Parse sort
-      const sortParams = parseSortOrder(input.order as string[] | undefined);
-      const filtersHash = hashFilters(input.filters);
-
-      // Decode cursor if present
-      let cursor: CursorParams | null = null;
-      let filtersChanged = false;
-
-      if (isForward && input.after) {
-        cursor = decode(input.after);
-        if (cursor.type !== config.cursorType) {
-          throw new InvalidCursorError(
-            `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
-          );
-        }
-      } else if (!isForward && input.before) {
-        cursor = decode(input.before);
-        if (cursor.type !== config.cursorType) {
-          throw new InvalidCursorError(
-            `Expected cursor type '${config.cursorType}', got '${cursor.type}'`
-          );
-        }
-      }
-
-      // Check filters hash
-      if (cursor && cursor.filtersHash !== filtersHash) {
-        cursor = null;
-        filtersChanged = true;
-      }
-
-      // Validate cursor order matches current sort
-      if (cursor) {
-        validateCursorOrder(cursor, sortParams, config.tieBreaker as string);
-      }
-
-      // Build cursor WHERE
-      const cursorWhere = cursor
-        ? buildCursorWhereInput<Fields>(cursor, isForward)
-        : null;
-
-      // Merge WHERE conditions
-      const where = mergeWhere(input.where, cursorWhere);
-
-      // Determine if order needs inversion (last without before)
-      const invertOrderFlag = !isForward && !input.before;
-
-      // Build ORDER
-      const order = buildOrderPath(sortParams, invertOrderFlag);
+      const prepared = prepareQuery(input);
 
       // Execute query with limit + 1 for hasMore detection
       const rows = await qb.query(db, {
-        where: where as NestedWhereInput<FieldsDef>,
-        order: order as OrderPath<string>[],
-        limit: limit + 1,
+        where: prepared.where as NestedWhereInput<FieldsDef>,
+        order: prepared.order as OrderPath<string>[],
+        limit: prepared.limit + 1,
         select: input.select as string[],
       } as never) as Row[];
 
@@ -208,7 +256,7 @@ export function createCursorQueryBuilder<
         createCursorNode({
           row,
           cursorType: config.cursorType,
-          sortParams,
+          sortParams: prepared.sortParams,
           tieBreaker: config.tieBreaker as string,
         })
       );
@@ -226,15 +274,15 @@ export function createCursorQueryBuilder<
           last: input.last,
           before: input.before,
         },
-        filtersHash,
-        sortParams,
+        filtersHash: prepared.filtersHash,
+        sortParams: prepared.sortParams,
         tieBreaker: config.tieBreaker as string,
-        invertOrder: invertOrderFlag,
+        invertOrder: prepared.invertOrderFlag,
       });
 
       return {
         ...connection,
-        filtersChanged,
+        filtersChanged: prepared.filtersChanged,
       };
     },
 

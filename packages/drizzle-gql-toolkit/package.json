@@ -63,6 +63,7 @@
     "@types/node": "^20.12.7",
     "drizzle-kit": "^0.31.0",
     "drizzle-orm": "^0.44.0",
+    "sql-formatter": "^15.6.10",
     "typescript": "^5.4.5",
     "vitest": "^2.1.8"
   }

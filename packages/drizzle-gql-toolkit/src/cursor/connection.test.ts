@@ -368,4 +368,377 @@ describe("makeConnection", () => {
       expect(connection.edges[1].node).toEqual({ nodeId: "2", transformed: true });
     });
   });
+
+  describe("single item edge cases", () => {
+    it("handles first: 1 with exactly one result", () => {
+      const nodes = [createMockNode("1")];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 1 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(1);
+      expect(connection.pageInfo.hasNextPage).toBe(false);
+      expect(connection.pageInfo.hasPreviousPage).toBe(false);
+      expect(connection.pageInfo.startCursor).toBe(connection.pageInfo.endCursor);
+    });
+
+    it("handles first: 1 with hasMore (two results)", () => {
+      const nodes = [createMockNode("1"), createMockNode("2")];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 1 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(1);
+      expect(connection.edges[0].node.id).toBe("1");
+      expect(connection.pageInfo.hasNextPage).toBe(true);
+    });
+
+    it("handles last: 1 with exactly one result", () => {
+      const nodes = [createMockNode("1")];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 1 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(1);
+      expect(connection.pageInfo.hasPreviousPage).toBe(false);
+    });
+
+    it("handles last: 1 with hasMore (two results)", () => {
+      const nodes = [createMockNode("1"), createMockNode("2")];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 1 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(1);
+      expect(connection.pageInfo.hasPreviousPage).toBe(true);
+    });
+  });
+
+  describe("exact limit (no hasMore)", () => {
+    it("returns all items when count equals limit", () => {
+      const nodes = [
+        createMockNode("1"),
+        createMockNode("2"),
+        createMockNode("3"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 3 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(3);
+      expect(connection.pageInfo.hasNextPage).toBe(false);
+    });
+
+    it("returns all items for last when count equals limit", () => {
+      const nodes = [
+        createMockNode("1"),
+        createMockNode("2"),
+        createMockNode("3"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 3 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(3);
+      expect(connection.pageInfo.hasPreviousPage).toBe(false);
+    });
+  });
+
+  describe("backward pagination with invertOrder", () => {
+    it("reverses nodes when invertOrder is true (last without before)", () => {
+      const nodes = [
+        createMockNode("3"), // oldest (from inverted SQL)
+        createMockNode("2"),
+        createMockNode("1"), // newest
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 3 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+        invertOrder: true,
+      });
+
+      // Should be reversed to natural order: 1, 2, 3
+      expect(connection.edges.map((e) => e.node.id)).toEqual(["1", "2", "3"]);
+    });
+
+    it("does not reverse when invertOrder is false (last with before)", () => {
+      const nodes = [
+        createMockNode("1"),
+        createMockNode("2"),
+        createMockNode("3"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 3, before: "some-cursor" },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+        invertOrder: false,
+      });
+
+      // Order preserved
+      expect(connection.edges.map((e) => e.node.id)).toEqual(["1", "2", "3"]);
+    });
+
+    it("trims from end when last with before and hasMore", () => {
+      const nodes = [
+        createMockNode("1"),
+        createMockNode("2"),
+        createMockNode("3"),
+        createMockNode("4"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 3, before: "some-cursor" },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+        invertOrder: false,
+      });
+
+      // Should trim from start, keeping last 3
+      expect(connection.edges.map((e) => e.node.id)).toEqual(["2", "3", "4"]);
+      expect(connection.pageInfo.hasPreviousPage).toBe(true);
+    });
+  });
+
+  describe("combined pagination scenarios", () => {
+    it("first page forward: no cursors, hasNextPage based on results", () => {
+      const nodes = [
+        createMockNode("1"),
+        createMockNode("2"),
+        createMockNode("3"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 2 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.pageInfo.hasNextPage).toBe(true);
+      expect(connection.pageInfo.hasPreviousPage).toBe(false);
+    });
+
+    it("middle page forward: has after cursor, both pages exist", () => {
+      const nodes = [
+        createMockNode("3"),
+        createMockNode("4"),
+        createMockNode("5"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 2, after: "cursor-to-2" },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.pageInfo.hasNextPage).toBe(true);
+      expect(connection.pageInfo.hasPreviousPage).toBe(true);
+    });
+
+    it("last page forward: has after cursor, no next page", () => {
+      const nodes = [
+        createMockNode("8"),
+        createMockNode("9"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 5, after: "cursor-to-7" },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.pageInfo.hasNextPage).toBe(false);
+      expect(connection.pageInfo.hasPreviousPage).toBe(true);
+    });
+
+    it("first page backward (last without before): invertOrder, hasPrevious based on results", () => {
+      const nodes = [
+        createMockNode("8"),
+        createMockNode("9"),
+        createMockNode("10"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 2 },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+        invertOrder: true,
+      });
+
+      expect(connection.pageInfo.hasNextPage).toBe(false);
+      expect(connection.pageInfo.hasPreviousPage).toBe(true);
+    });
+
+    it("middle page backward: has before cursor, both pages exist", () => {
+      const nodes = [
+        createMockNode("4"),
+        createMockNode("5"),
+        createMockNode("6"),
+      ];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { last: 2, before: "cursor-to-7" },
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.pageInfo.hasNextPage).toBe(true);
+      expect(connection.pageInfo.hasPreviousPage).toBe(true);
+    });
+  });
+
+  describe("null values in cursor nodes", () => {
+    it("handles null id gracefully", () => {
+      const node = createCursorNode({
+        row: { id: null, name: "Test" },
+        cursorType: "product",
+        sortParams: [],
+        tieBreaker: "id",
+      });
+
+      expect(node.getId()).toBe("");
+    });
+
+    it("handles null sort field values", () => {
+      const sortParams: SortParam[] = [{ field: "price", order: "desc" }];
+      const node = createCursorNode({
+        row: { id: "1", price: null },
+        cursorType: "product",
+        sortParams,
+        tieBreaker: "id",
+      });
+
+      const seekValues = node.getSeekValues();
+      expect(seekValues[0].value).toBeNull();
+      expect(seekValues[1].value).toBe("1"); // tieBreaker
+    });
+
+    it("handles undefined field values", () => {
+      const sortParams: SortParam[] = [{ field: "deletedAt", order: "desc" }];
+      const node = createCursorNode({
+        row: { id: "1" }, // deletedAt not present
+        cursorType: "product",
+        sortParams,
+        tieBreaker: "id",
+      });
+
+      const seekValues = node.getSeekValues();
+      expect(seekValues[0].value).toBeUndefined();
+    });
+  });
+
+  describe("nested field values", () => {
+    it("extracts nested field for sort from nested object", () => {
+      const sortParams: SortParam[] = [{ field: "author.name", order: "asc" }];
+      const node = createCursorNode({
+        row: { id: "1", author: { name: "John" } },
+        cursorType: "article",
+        sortParams,
+        tieBreaker: "id",
+      });
+
+      const seekValues = node.getSeekValues();
+      expect(seekValues[0].field).toBe("author.name");
+      expect(seekValues[0].value).toBe("John");
+    });
+
+    it("handles nested tieBreaker from nested object", () => {
+      const node = createCursorNode({
+        row: { entity: { id: "entity-123" }, name: "Test" },
+        cursorType: "item",
+        sortParams: [],
+        tieBreaker: "entity.id",
+      });
+
+      expect(node.getId()).toBe("entity-123");
+    });
+
+    it("returns undefined for missing nested path", () => {
+      const sortParams: SortParam[] = [{ field: "author.name", order: "asc" }];
+      const node = createCursorNode({
+        row: { id: "1" }, // no author field
+        cursorType: "article",
+        sortParams,
+        tieBreaker: "id",
+      });
+
+      const seekValues = node.getSeekValues();
+      expect(seekValues[0].value).toBeUndefined();
+    });
+
+    it("handles deeply nested paths", () => {
+      const sortParams: SortParam[] = [{ field: "meta.author.name", order: "desc" }];
+      const node = createCursorNode({
+        row: { id: "1", meta: { author: { name: "Jane" } } },
+        cursorType: "article",
+        sortParams,
+        tieBreaker: "id",
+      });
+
+      const seekValues = node.getSeekValues();
+      expect(seekValues[0].value).toBe("Jane");
+    });
+  });
 });

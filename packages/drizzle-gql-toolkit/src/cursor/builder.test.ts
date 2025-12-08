@@ -1,24 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
+import { format } from "sql-formatter";
 import { createCursorQueryBuilder } from "./builder.js";
-import { encode } from "./cursor.js";
+import { encode, decode } from "./cursor.js";
 import { createSchema } from "../schema.js";
 import { products, translations } from "../test/setup.js";
+import { hashFilters } from "./helpers.js";
 
 // ============ Test Setup ============
 
 const dialect = new PgDialect();
 
-/**
- * Helper to convert SQL object to readable string with params
- */
 function toSqlString(sqlObj: SQL): string {
   const query = dialect.sqlToQuery(sqlObj);
-  return `SQL: ${query.sql}\nParams: ${JSON.stringify(query.params)}`;
+  const formatted = format(query.sql, {
+    language: "postgresql",
+    tabWidth: 2,
+    keywordCase: "upper",
+  });
+  return `${formatted}\n-- Params: ${JSON.stringify(query.params)}`;
 }
 
-// Simple product schema
 const productsSchema = createSchema({
   table: products,
   tableName: "products",
@@ -30,7 +33,6 @@ const productsSchema = createSchema({
   },
 });
 
-// Schema with translations join
 const translationsSchema = createSchema({
   table: translations,
   tableName: "translations",
@@ -50,6 +52,7 @@ const productsWithTranslationsSchema = createSchema({
     id: { column: "id" },
     handle: { column: "handle" },
     price: { column: "price" },
+    deletedAt: { column: "deleted_at" },
     translation: {
       column: "id",
       join: {
@@ -60,355 +63,1264 @@ const productsWithTranslationsSchema = createSchema({
   },
 });
 
-// ============ createCursorQueryBuilder ============
-
-describe("createCursorQueryBuilder", () => {
-  describe("interface", () => {
-    it("creates a query builder with correct interface", () => {
-      const qb = createCursorQueryBuilder(productsSchema, {
-        cursorType: "product",
-        tieBreaker: "id",
-        defaultSortField: "id",
-      });
-
-      expect(qb).toHaveProperty("query");
-      expect(qb).toHaveProperty("getQueryBuilder");
-      expect(typeof qb.query).toBe("function");
-      expect(typeof qb.getQueryBuilder).toBe("function");
-    });
-
-    it("getQueryBuilder returns underlying query builder", () => {
-      const qb = createCursorQueryBuilder(productsSchema, {
-        cursorType: "product",
-        tieBreaker: "id",
-        defaultSortField: "id",
-      });
-
-      const underlyingQb = qb.getQueryBuilder();
-      expect(underlyingQb).toHaveProperty("query");
-      expect(underlyingQb).toHaveProperty("buildSelectSql");
-    });
+const createProductsQb = () =>
+  createCursorQueryBuilder(productsSchema, {
+    cursorType: "product",
+    tieBreaker: "id",
+    defaultSortField: "id",
   });
 
-  describe("pagination validation", () => {
-    const createTestQb = () =>
-      createCursorQueryBuilder(productsSchema, {
-        cursorType: "product",
-        tieBreaker: "id",
-        defaultSortField: "id",
-      });
+// ============ Validation Tests ============
 
-    it("throws when both first and last are provided", async () => {
-      const qb = createTestQb();
-      const mockDb = {} as any;
-
-      await expect(qb.query(mockDb, { first: 10, last: 5 })).rejects.toThrow(
+describe("createCursorQueryBuilder", () => {
+  describe("validation", () => {
+    it("throws when both first and last are provided", () => {
+      const qb = createProductsQb();
+      expect(() => qb.getSql({ first: 10, last: 5 })).toThrow(
         "Cannot specify both 'first' and 'last'"
       );
     });
 
-    it("throws when neither first nor last is provided", async () => {
-      const qb = createTestQb();
-      const mockDb = {} as any;
-
-      await expect(qb.query(mockDb, {})).rejects.toThrow(
+    it("throws when neither first nor last is provided", () => {
+      const qb = createProductsQb();
+      expect(() => qb.getSql({})).toThrow(
         "Either 'first' or 'last' must be provided"
       );
     });
 
-    it("throws when first is not positive", async () => {
-      const qb = createTestQb();
-      const mockDb = {} as any;
+    it("throws when first is not positive", () => {
+      const qb = createProductsQb();
+      expect(() => qb.getSql({ first: 0 })).toThrow("first must be greater than 0");
+      expect(() => qb.getSql({ first: -1 })).toThrow("first must be greater than 0");
+    });
 
-      await expect(qb.query(mockDb, { first: 0 })).rejects.toThrow(
-        "first must be greater than 0"
-      );
+    it("throws when last is not positive", () => {
+      const qb = createProductsQb();
+      expect(() => qb.getSql({ last: 0 })).toThrow("last must be greater than 0");
+    });
 
-      await expect(qb.query(mockDb, { first: -1 })).rejects.toThrow(
-        "first must be greater than 0"
+    it("throws on invalid cursor type", () => {
+      const qb = createProductsQb();
+      const wrongTypeCursor = encode({
+        type: "category",
+        filtersHash: "",
+        seek: [{ field: "id", value: "1", order: "desc" }],
+      });
+
+      expect(() => qb.getSql({ first: 10, after: wrongTypeCursor })).toThrow(
+        "Expected cursor type 'product', got 'category'"
       );
     });
 
-    it("throws when last is not positive", async () => {
-      const qb = createTestQb();
-      const mockDb = {} as any;
+    it("ignores before cursor when first is used (first takes precedence)", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
 
-      await expect(qb.query(mockDb, { last: 0 })).rejects.toThrow(
-        "last must be greater than 0"
-      );
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "id", value: "prod-999", order: "desc" },
+          { field: "id", value: "prod-999", order: "desc" },
+        ],
+      });
+
+      // first + before: before cursor should be ignored
+      const { meta } = qb.getSql({
+        first: 10,
+        before: cursor,
+        select: ["id"],
+      });
+
+      expect(meta.isForward).toBe(true);
+      expect(meta.hasCursor).toBe(false); // before is ignored for forward pagination
+    });
+
+    it("ignores after cursor when last is used (last takes precedence)", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "id", value: "prod-999", order: "desc" },
+          { field: "id", value: "prod-999", order: "desc" },
+        ],
+      });
+
+      // last + after: after cursor should be ignored
+      const { meta } = qb.getSql({
+        last: 10,
+        after: cursor,
+        select: ["id"],
+      });
+
+      expect(meta.isForward).toBe(false);
+      expect(meta.hasCursor).toBe(false); // after is ignored for backward pagination
+    });
+
+    it("handles single item request (first: 1)", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        first: 1,
+        select: ["id"],
+      });
+
+      expect(meta.limit).toBe(1);
+      // LIMIT should be 2 (1 + 1 for hasMore detection)
+      expect(toSqlString(sql)).toContain("Params: [2,0]");
+    });
+
+    it("handles single item request (last: 1)", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        last: 1,
+        select: ["id"],
+      });
+
+      expect(meta.limit).toBe(1);
+      // LIMIT should be 2 (1 + 1 for hasMore detection)
+      expect(toSqlString(sql)).toContain("Params: [2,0]");
     });
   });
 
-  describe("cursor type validation", () => {
-    it("throws on invalid cursor type", async () => {
-      const qb = createCursorQueryBuilder(productsSchema, {
+  // ============ Cursor Seek Condition Tests ============
+
+  describe("cursor seek conditions", () => {
+    it("forward pagination (first) with cursor builds correct WHERE", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // Default sort is id:desc, so cursor needs: [sort field] + [tie-breaker]
+      // Since default sort field IS the tie-breaker, we get id twice
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "id", value: "prod-123", order: "desc" }, // sort field
+          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+        ],
+      });
+
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        after: cursor,
+        select: ["id", "handle"],
+      });
+
+      expect(meta.isForward).toBe(true);
+      expect(meta.hasCursor).toBe(true);
+
+      // DESC + forward = $lt (seek after current position)
+      // When sort field = tie-breaker, the WHERE simplifies (both conditions use same field)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."id" < $1
+            OR "t0_products"."id" < $2
+          )
+        ORDER BY
+          "t0_products"."id" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["prod-123","prod-123",11,0]"
+      `);
+    });
+
+    it("forward pagination with two-field cursor (price DESC, id DESC)", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // order: ["price:desc"] + tie-breaker (id follows price direction = desc)
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 99.99, order: "desc" },
+          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      // Lexicographic seek: (price < 99.99) OR (price = 99.99 AND id < "prod-123")
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."price" < $1
+            OR (
+              "t0_products"."price" = $2
+              AND "t0_products"."id" < $3
+            )
+          )
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: [99.99,99.99,"prod-123",11,0]"
+      `);
+    });
+
+    it("forward pagination with ASC sort uses $gt operator", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // order: ["handle:asc"] + tie-breaker (id follows handle direction = asc)
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "handle", value: "apple", order: "asc" },
+          { field: "id", value: "prod-100", order: "asc" }, // tie-breaker
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        order: ["handle:asc"],
+        select: ["id", "handle"],
+      });
+
+      // ASC + forward = $gt
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."handle" > $1
+            OR (
+              "t0_products"."handle" = $2
+              AND "t0_products"."id" > $3
+            )
+          )
+        ORDER BY
+          "t0_products"."handle" ASC,
+          "t0_products"."id" ASC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: ["apple","apple","prod-100",11,0]"
+      `);
+    });
+
+    it("forward pagination with mixed ASC/DESC sort (handle ASC, price DESC)", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // order: ["handle:asc", "price:desc"] + tie-breaker (id follows LAST sort field = desc)
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "handle", value: "iphone", order: "asc" },
+          { field: "price", value: 999, order: "desc" },
+          { field: "id", value: "prod-777", order: "desc" }, // tie-breaker follows price:desc
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        order: ["handle:asc", "price:desc"],
+        select: ["id", "handle", "price"],
+      });
+
+      // Mixed: handle ASC -> $gt, price DESC -> $lt, id DESC -> $lt
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."handle" > $1
+            OR (
+              "t0_products"."handle" = $2
+              AND "t0_products"."price" < $3
+            )
+            OR (
+              "t0_products"."handle" = $4
+              AND "t0_products"."price" = $5
+              AND "t0_products"."id" < $6
+            )
+          )
+        ORDER BY
+          "t0_products"."handle" ASC,
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $7
+        OFFSET
+          $8
+        -- Params: ["iphone","iphone",999,"iphone",999,"prod-777",11,0]"
+      `);
+    });
+
+    it("backward pagination (last + before) inverts comparison operators", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 50, order: "desc" },
+          { field: "id", value: "prod-789", order: "desc" },
+        ],
+      });
+
+      const { sql, meta } = qb.getSql({
+        last: 10,
+        before: cursor,
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      expect(meta.isForward).toBe(false);
+      expect(meta.hasCursor).toBe(true);
+      expect(meta.invertOrder).toBe(false); // has before cursor, no inversion
+
+      // DESC + backward = $gt (seek before current position)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."price" > $1
+            OR (
+              "t0_products"."price" = $2
+              AND "t0_products"."id" > $3
+            )
+          )
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: [50,50,"prod-789",11,0]"
+      `);
+    });
+
+    it("backward pagination without cursor inverts ORDER BY", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        last: 10,
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      expect(meta.isForward).toBe(false);
+      expect(meta.hasCursor).toBe(false);
+      expect(meta.invertOrder).toBe(true);
+
+      // Order is inverted: price ASC, id ASC (to get last N items)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."price" ASC,
+          "t0_products"."id" ASC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+
+    it("backward pagination (last + before) with ASC sort uses $lt operator", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "handle", value: "macbook", order: "asc" },
+          { field: "id", value: "prod-500", order: "asc" },
+        ],
+      });
+
+      const { sql, meta } = qb.getSql({
+        last: 10,
+        before: cursor,
+        order: ["handle:asc"],
+        select: ["id", "handle"],
+      });
+
+      expect(meta.isForward).toBe(false);
+      expect(meta.hasCursor).toBe(true);
+
+      // ASC + backward = $lt (seek before current position)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."handle" < $1
+            OR (
+              "t0_products"."handle" = $2
+              AND "t0_products"."id" < $3
+            )
+          )
+        ORDER BY
+          "t0_products"."handle" ASC,
+          "t0_products"."id" ASC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: ["macbook","macbook","prod-500",11,0]"
+      `);
+    });
+
+    it("backward pagination (last + before) with mixed ASC/DESC sort", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "handle", value: "iphone", order: "asc" },
+          { field: "price", value: 999, order: "desc" },
+          { field: "id", value: "prod-777", order: "desc" },
+        ],
+      });
+
+      const { sql, meta } = qb.getSql({
+        last: 10,
+        before: cursor,
+        order: ["handle:asc", "price:desc"],
+        select: ["id", "handle", "price"],
+      });
+
+      expect(meta.isForward).toBe(false);
+      expect(meta.hasCursor).toBe(true);
+
+      // Mixed backward: handle ASC -> $lt, price DESC -> $gt, id DESC -> $gt
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."handle" < $1
+            OR (
+              "t0_products"."handle" = $2
+              AND "t0_products"."price" > $3
+            )
+            OR (
+              "t0_products"."handle" = $4
+              AND "t0_products"."price" = $5
+              AND "t0_products"."id" > $6
+            )
+          )
+        ORDER BY
+          "t0_products"."handle" ASC,
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $7
+        OFFSET
+          $8
+        -- Params: ["iphone","iphone",999,"iphone",999,"prod-777",11,0]"
+      `);
+    });
+
+    it("backward pagination without cursor with ASC sort inverts to DESC", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        last: 10,
+        order: ["handle:asc"],
+        select: ["id", "handle"],
+      });
+
+      expect(meta.isForward).toBe(false);
+      expect(meta.invertOrder).toBe(true);
+
+      // ASC inverted to DESC for last N without cursor
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."handle" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+
+    it("backward pagination without cursor with mixed sort inverts all directions", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        last: 10,
+        order: ["handle:asc", "price:desc"],
+        select: ["id", "handle", "price"],
+      });
+
+      expect(meta.invertOrder).toBe(true);
+
+      // handle:asc -> desc, price:desc -> asc, id (follows price) desc -> asc
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."handle" DESC,
+          "t0_products"."price" ASC,
+          "t0_products"."id" ASC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+  });
+
+  // ============ Filters Hash Tests ============
+
+  describe("filtersHash validation", () => {
+    it("ignores cursor when filters change", () => {
+      const qb = createProductsQb();
+
+      // Cursor created with different filters (status: active)
+      // Default sort is id:desc, so cursor needs sort field + tie-breaker
+      const cursor = encode({
+        type: "product",
+        filtersHash: hashFilters({ status: "active" }),
+        seek: [
+          { field: "id", value: "prod-123", order: "desc" },
+          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+        ],
+      });
+
+      // Query with no filters (different hash)
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        after: cursor,
+        select: ["id"],
+      });
+
+      expect(meta.filtersChanged).toBe(true);
+      expect(meta.hasCursor).toBe(false);
+
+      // No cursor WHERE condition applied, default sort id:desc + tie-breaker id:desc
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."id" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+
+    it("uses cursor when filters match", () => {
+      const qb = createProductsQb();
+      const filters = { status: "active" };
+      const filtersHash = hashFilters(filters);
+
+      // Default sort is id:desc, cursor needs sort + tie-breaker
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "id", value: "prod-123", order: "desc" },
+          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+        ],
+      });
+
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        after: cursor,
+        filters,
+        select: ["id"],
+      });
+
+      expect(meta.filtersChanged).toBe(false);
+      expect(meta.hasCursor).toBe(true);
+
+      // Cursor WHERE condition applied (simplified when sort field = tie-breaker)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."id" < $1
+            OR "t0_products"."id" < $2
+          )
+        ORDER BY
+          "t0_products"."id" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $3
+        OFFSET
+          $4
+        -- Params: ["prod-123","prod-123",11,0]"
+      `);
+    });
+  });
+
+  // ============ User Filter + Cursor Combined ============
+
+  describe("user filters combined with cursor", () => {
+    it("merges user WHERE with cursor seek condition", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 75, order: "desc" },
+          { field: "id", value: "prod-500", order: "desc" },
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        where: { deletedAt: { $is: null } },
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      // User filter AND cursor condition
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."deleted_at" IS NULL
+            AND (
+              "t0_products"."price" < $1
+              OR (
+                "t0_products"."price" = $2
+                AND "t0_products"."id" < $3
+              )
+            )
+          )
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: [75,75,"prod-500",11,0]"
+      `);
+    });
+
+    it("complex user filter with cursor", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 100, order: "desc" },
+          { field: "id", value: "prod-999", order: "desc" },
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        where: {
+          $and: [
+            { price: { $gte: 25, $lte: 200 } },
+            {
+              $or: [
+                { handle: { $iLike: "%premium%" } },
+                { handle: { $iLike: "%sale%" } },
+              ],
+            },
+          ],
+        },
+        order: ["price:desc"],
+        select: ["id", "handle", "price"],
+      });
+
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."price" >= $1
+            AND "t0_products"."price" <= $2
+            AND (
+              "t0_products"."handle" ILIKE $3
+              OR "t0_products"."handle" ILIKE $4
+            )
+            AND (
+              "t0_products"."price" < $5
+              OR (
+                "t0_products"."price" = $6
+                AND "t0_products"."id" < $7
+              )
+            )
+          )
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $8
+        OFFSET
+          $9
+        -- Params: [25,200,"%premium%","%sale%",100,100,"prod-999",11,0]"
+      `);
+    });
+  });
+
+  // ============ Tie-Breaker Tests ============
+
+  describe("tie-breaker handling", () => {
+    it("adds tie-breaker to sort when not present", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      // Tie-breaker (id) added automatically
+      expect(meta.sortParams).toEqual([{ field: "price", order: "desc" }]);
+
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+
+    it("tie-breaker direction follows last sort field direction", () => {
+      const qb = createProductsQb();
+
+      const { sql } = qb.getSql({
+        first: 10,
+        order: ["handle:asc", "price:asc"],
+        select: ["id", "handle", "price"],
+      });
+
+      // Tie-breaker follows price ASC -> id ASC
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."handle" AS "handle",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."handle" ASC,
+          "t0_products"."price" ASC,
+          "t0_products"."id" ASC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+  });
+
+  // ============ First Page (No Cursor) Tests ============
+
+  describe("first page without cursor", () => {
+    it("forward pagination without cursor - no seek WHERE", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      expect(meta.hasCursor).toBe(false);
+      expect(meta.isForward).toBe(true);
+
+      // price:desc + tie-breaker id:desc (follows last sort direction)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+
+    it("uses default sort field when no order specified", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        select: ["id"],
+      });
+
+      // Default sort field is "id" DESC (from parseSort with defaultSortField)
+      expect(meta.sortParams).toEqual([{ field: "id", order: "desc" }]);
+
+      // Order includes default sort + tie-breaker (both id:desc since default IS tie-breaker)
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id"
+        FROM
+          "products" AS "t0_products"
+        ORDER BY
+          "t0_products"."id" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $1
+        OFFSET
+          $2
+        -- Params: [11,0]"
+      `);
+    });
+  });
+
+  // ============ Limit +1 for hasMore Detection ============
+
+  describe("limit calculation", () => {
+    it("requests limit + 1 for hasNextPage detection", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        first: 10,
+        select: ["id"],
+      });
+
+      expect(meta.limit).toBe(10);
+      // SQL LIMIT should be 11 (first + 1 for hasMore detection)
+      expect(toSqlString(sql)).toContain("LIMIT");
+      expect(toSqlString(sql)).toContain("Params: [11,0]");
+    });
+
+    it("last also requests limit + 1", () => {
+      const qb = createProductsQb();
+
+      const { sql, meta } = qb.getSql({
+        last: 5,
+        select: ["id"],
+      });
+
+      expect(meta.limit).toBe(5);
+      // SQL LIMIT should be 6 (last + 1 for hasMore detection)
+      expect(toSqlString(sql)).toContain("Params: [6,0]");
+    });
+  });
+
+  // ============ Cursor Order Mismatch ============
+
+  describe("cursor order mismatch", () => {
+    it("throws when cursor sort order differs from query order", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // Cursor was created with price:desc
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 100, order: "desc" },
+          { field: "id", value: "prod-1", order: "desc" },
+        ],
+      });
+
+      // But now querying with handle:asc
+      expect(() =>
+        qb.getSql({
+          first: 10,
+          after: cursor,
+          order: ["handle:asc"],
+          select: ["id"],
+        })
+      ).toThrow("field mismatch");
+    });
+
+    it("throws when cursor direction differs from query direction", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // Cursor was created with price:desc
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 100, order: "desc" },
+          { field: "id", value: "prod-1", order: "desc" },
+        ],
+      });
+
+      // But now querying with price:asc
+      expect(() =>
+        qb.getSql({
+          first: 10,
+          after: cursor,
+          order: ["price:asc"],
+          select: ["id"],
+        })
+      ).toThrow("order mismatch");
+    });
+
+    it("throws when cursor has wrong number of seek values", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      // Cursor has 3 seek values (for two-field sort)
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "handle", value: "test", order: "asc" },
+          { field: "price", value: 100, order: "desc" },
+          { field: "id", value: "prod-1", order: "desc" },
+        ],
+      });
+
+      // But querying with single field sort
+      expect(() =>
+        qb.getSql({
+          first: 10,
+          after: cursor,
+          order: ["price:desc"],
+          select: ["id"],
+        })
+      ).toThrow("length mismatch");
+    });
+  });
+
+  // ============ NULL Values in Cursor ============
+
+  describe("null values in cursor", () => {
+    it("handles null value in cursor seek field", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "deletedAt", value: null, order: "desc" },
+          { field: "id", value: "prod-123", order: "desc" },
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        order: ["deletedAt:desc"],
+        select: ["id", "deletedAt"],
+      });
+
+      // NULL comparisons should still generate valid SQL
+      expect(toSqlString(sql)).toMatchInlineSnapshot(`
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."deleted_at" AS "deletedAt"
+        FROM
+          "products" AS "t0_products"
+        WHERE
+          (
+            "t0_products"."deleted_at" < $1
+            OR (
+              "t0_products"."deleted_at" = $2
+              AND "t0_products"."id" < $3
+            )
+          )
+        ORDER BY
+          "t0_products"."deleted_at" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: [null,null,"prod-123",11,0]"
+      `);
+    });
+
+    it("handles undefined value in cursor (treated as null)", () => {
+      const qb = createProductsQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: undefined as unknown, order: "desc" },
+          { field: "id", value: "prod-456", order: "desc" },
+        ],
+      });
+
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        order: ["price:desc"],
+        select: ["id", "price"],
+      });
+
+      expect(toSqlString(sql)).toContain('"t0_products"."price" <');
+    });
+  });
+
+  // ============ With Joins ============
+
+  describe("cursor with joins", () => {
+    const createJoinedQb = () =>
+      createCursorQueryBuilder(productsWithTranslationsSchema, {
         cursorType: "product",
         tieBreaker: "id",
         defaultSortField: "id",
       });
 
-      // Create cursor with wrong type
-      const wrongTypeCursor = encode({
-        type: "category",
-        filtersHash: "",
+    it("cursor on joined field builds correct seek", () => {
+      const qb = createJoinedQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
         seek: [
-          { field: "id", value: "2024-01-01", order: "desc" },
-          { field: "id", value: "1", order: "desc" },
+          { field: "translation.value", value: "Apple iPhone", order: "asc" },
+          { field: "id", value: "prod-001", order: "asc" },
         ],
       });
 
-      const mockDb = {} as any;
-
-      await expect(
-        qb.query(mockDb, { first: 10, after: wrongTypeCursor })
-      ).rejects.toThrow("Expected cursor type 'product', got 'category'");
-    });
-  });
-});
-
-// ============ SQL Snapshot Tests - Usage Examples ============
-
-describe("Cursor Pagination SQL Snapshots", () => {
-  const qb = createCursorQueryBuilder(productsSchema, {
-    cursorType: "product",
-    tieBreaker: "id",
-    defaultSortField: "id",
-  });
-
-  describe("basic queries", () => {
-    it("generates SELECT with default sort (id:desc)", () => {
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
-        order: ["id:desc"],
-        limit: 11,
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
+        order: ["translation.value:asc"],
+        select: ["id", "translation.value"],
       });
 
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" ORDER BY "t0_products"."id" DESC LIMIT $1 OFFSET $2
-        Params: [11,0]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t1_translations"."value" AS "translation.value"
+        FROM
+          "products" AS "t0_products"
+          LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"
+        WHERE
+          (
+            "t1_translations"."value" > $1
+            OR (
+              "t1_translations"."value" = $2
+              AND "t0_products"."id" > $3
+            )
+          )
+        ORDER BY
+          "t1_translations"."value" ASC,
+          "t0_products"."id" ASC
+        LIMIT
+          $4
+        OFFSET
+          $5
+        -- Params: ["Apple iPhone","Apple iPhone","prod-001",11,0]"
       `);
     });
 
-    it("generates SELECT with custom sort", () => {
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
-        order: ["price:desc", "id:desc"],
-        limit: 11,
+    it("filter on joined field with cursor", () => {
+      const qb = createJoinedQb();
+      const filtersHash = hashFilters(undefined);
+
+      const cursor = encode({
+        type: "product",
+        filtersHash,
+        seek: [
+          { field: "price", value: 599, order: "desc" },
+          { field: "id", value: "prod-100", order: "desc" },
+        ],
       });
 
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" ORDER BY "t0_products"."price" DESC, "t0_products"."id" DESC LIMIT $1 OFFSET $2
-        Params: [11,0]"
-      `);
-    });
-
-    it("generates SELECT with ascending sort", () => {
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle"],
-        order: ["handle:asc", "id:asc"],
-        limit: 11,
-      });
-
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle" FROM "products" AS "t0_products" ORDER BY "t0_products"."handle" ASC, "t0_products"."id" ASC LIMIT $1 OFFSET $2
-        Params: [11,0]"
-      `);
-    });
-  });
-
-  describe("cursor-based where conditions", () => {
-    it("generates forward pagination WHERE (after cursor, desc)", () => {
-      // Simulates: first: 10, after: cursor with id="123", price=100
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
+      const { sql } = qb.getSql({
+        first: 10,
+        after: cursor,
         where: {
-          $or: [
-            { price: { $lt: 100 } },
-            { price: { $eq: 100 }, id: { $lt: "123" } },
-          ],
+          translation: { searchValue: { $iLike: "%laptop%" } },
         },
-        order: ["price:desc", "id:desc"],
-        limit: 11,
+        order: ["price:desc"],
+        select: ["id", "price", "translation.value"],
       });
 
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" WHERE ("t0_products"."price" < $1 or ("t0_products"."price" = $2 and "t0_products"."id" < $3)) ORDER BY "t0_products"."price" DESC, "t0_products"."id" DESC LIMIT $4 OFFSET $5
-        Params: [100,100,"123",11,0]"
-      `);
-    });
-
-    it("generates forward pagination WHERE (after cursor, asc)", () => {
-      // Simulates: first: 10, after: cursor with id="abc", handle="test"
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle"],
-        where: {
-          $or: [
-            { handle: { $gt: "test" } },
-            { handle: { $eq: "test" }, id: { $gt: "abc" } },
-          ],
-        },
-        order: ["handle:asc", "id:asc"],
-        limit: 11,
-      });
-
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle" FROM "products" AS "t0_products" WHERE ("t0_products"."handle" > $1 or ("t0_products"."handle" = $2 and "t0_products"."id" > $3)) ORDER BY "t0_products"."handle" ASC, "t0_products"."id" ASC LIMIT $4 OFFSET $5
-        Params: ["test","test","abc",11,0]"
-      `);
-    });
-
-    it("generates backward pagination WHERE (before cursor)", () => {
-      // Simulates: last: 10, before: cursor - order inverted
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
-        where: {
-          $or: [
-            { price: { $gt: 100 } },
-            { price: { $eq: 100 }, id: { $gt: "123" } },
-          ],
-        },
-        order: ["price:asc", "id:asc"], // inverted for backward fetch
-        limit: 11,
-      });
-
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" WHERE ("t0_products"."price" > $1 or ("t0_products"."price" = $2 and "t0_products"."id" > $3)) ORDER BY "t0_products"."price" ASC, "t0_products"."id" ASC LIMIT $4 OFFSET $5
-        Params: [100,100,"123",11,0]"
-      `);
-    });
-  });
-
-  describe("combined filters and cursor", () => {
-    it("generates query with user filters AND cursor conditions", () => {
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
-        where: {
-          $and: [
-            // User filter
-            { deletedAt: { $is: null } },
-            // Cursor condition
-            {
-              $or: [
-                { price: { $lt: 100 } },
-                { price: { $eq: 100 }, id: { $lt: "123" } },
-              ],
-            },
-          ],
-        },
-        order: ["price:desc", "id:desc"],
-        limit: 11,
-      });
-
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" WHERE ("t0_products"."deleted_at" is null and ("t0_products"."price" < $1 or ("t0_products"."price" = $2 and "t0_products"."id" < $3))) ORDER BY "t0_products"."price" DESC, "t0_products"."id" DESC LIMIT $4 OFFSET $5
-        Params: [100,100,"123",11,0]"
-      `);
-    });
-
-    it("generates query with complex user filters", () => {
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
-        where: {
-          $and: [
-            {
-              $or: [
-                { price: { $gte: 50, $lte: 150 } },
-                { handle: { $iLike: "%premium%" } },
-              ],
-            },
-            { deletedAt: { $is: null } },
-            // Cursor condition
-            {
-              $or: [{ id: { $lt: "cursor-id" } }],
-            },
-          ],
-        },
-        order: ["id:desc"],
-        limit: 11,
-      });
-
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" WHERE ((("t0_products"."price" >= $1 and "t0_products"."price" <= $2) or "t0_products"."handle" ilike $3) and "t0_products"."deleted_at" is null and "t0_products"."id" < $4) ORDER BY "t0_products"."id" DESC LIMIT $5 OFFSET $6
-        Params: [50,150,"%premium%","cursor-id",11,0]"
-      `);
-    });
-  });
-
-  describe("multi-field cursor (3 fields)", () => {
-    it("generates three-level lexicographic ladder", () => {
-      // status DESC, price DESC, id DESC - cursor at status=ACTIVE, price=100, id="xyz"
-      const sql = qb.getQueryBuilder().buildSelectSql({
-        select: ["id", "handle", "price"],
-        where: {
-          $or: [
-            { handle: { $lt: "active" } },
-            { handle: { $eq: "active" }, price: { $lt: 100 } },
-            {
-              handle: { $eq: "active" },
-              price: { $eq: 100 },
-              id: { $lt: "xyz" },
-            },
-          ],
-        },
-        order: ["handle:desc", "price:desc", "id:desc"],
-        limit: 11,
-      });
-
-      expect(toSqlString(sql)).toMatchInlineSnapshot(`
-        "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t0_products"."price" AS "price" FROM "products" AS "t0_products" WHERE ("t0_products"."handle" < $1 or ("t0_products"."handle" = $2 and "t0_products"."price" < $3) or ("t0_products"."handle" = $4 and "t0_products"."price" = $5 and "t0_products"."id" < $6)) ORDER BY "t0_products"."handle" DESC, "t0_products"."price" DESC, "t0_products"."id" DESC LIMIT $7 OFFSET $8
-        Params: ["active","active",100,"active",100,"xyz",11,0]"
+        "SELECT
+          "t0_products"."id" AS "id",
+          "t0_products"."price" AS "price",
+          "t1_translations"."value" AS "translation.value"
+        FROM
+          "products" AS "t0_products"
+          LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id"
+        WHERE
+          (
+            "t1_translations"."search_value" ILIKE $1
+            AND (
+              "t0_products"."price" < $2
+              OR (
+                "t0_products"."price" = $3
+                AND "t0_products"."id" < $4
+              )
+            )
+          )
+        ORDER BY
+          "t0_products"."price" DESC,
+          "t0_products"."id" DESC
+        LIMIT
+          $5
+        OFFSET
+          $6
+        -- Params: ["%laptop%",599,599,"prod-100",11,0]"
       `);
     });
   });
 });
 
-describe("Cursor Pagination with Joins SQL Snapshots", () => {
-  const qb = createCursorQueryBuilder(productsWithTranslationsSchema, {
-    cursorType: "product",
-    tieBreaker: "id",
-    defaultSortField: "id",
+// ============ Cursor Encode/Decode Tests ============
+
+describe("cursor encode/decode", () => {
+  it("encode creates valid base64url string", () => {
+    const params = {
+      type: "product",
+      filtersHash: "abc123",
+      seek: [{ field: "id", value: "prod-1", order: "desc" as const }],
+    };
+
+    const encoded = encode(params);
+    expect(typeof encoded).toBe("string");
+    expect(encoded).not.toContain("+");
+    expect(encoded).not.toContain("/");
+    expect(encoded).not.toContain("=");
   });
 
-  it("generates query with join and cursor", () => {
-    const sql = qb.getQueryBuilder().buildSelectSql({
-      select: ["id", "handle", "translation.value"],
-      where: {
-        $and: [
-          { translation: { searchValue: { $iLike: "%test%" } } },
-          {
-            $or: [{ id: { $lt: "cursor-id" } }],
-          },
-        ],
-      },
-      order: ["id:desc"],
-      limit: 11,
-    });
+  it("decode restores original params", () => {
+    const params = {
+      type: "product",
+      filtersHash: "abc123",
+      seek: [
+        { field: "price", value: 99.99, order: "desc" as const },
+        { field: "id", value: "prod-1", order: "desc" as const },
+      ],
+    };
 
-    expect(toSqlString(sql)).toMatchInlineSnapshot(`
-      "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t1_translations"."search_value" ilike $1 and "t0_products"."id" < $2) ORDER BY "t0_products"."id" DESC LIMIT $3 OFFSET $4
-      Params: ["%test%","cursor-id",11,0]"
-    `);
+    const encoded = encode(params);
+    const decoded = decode(encoded);
+
+    expect(decoded).toEqual(params);
   });
 
-  it("generates query sorting by joined field", () => {
-    const sql = qb.getQueryBuilder().buildSelectSql({
-      select: ["id", "handle", "translation.value"],
-      where: {
-        $or: [
-          { translation: { value: { $gt: "Test Product" } } },
-          {
-            translation: { value: { $eq: "Test Product" } },
-            id: { $gt: "abc" },
-          },
-        ],
-      },
-      order: ["translation.value:asc", "id:asc"],
-      limit: 11,
-    });
+  it("decode throws on invalid cursor", () => {
+    expect(() => decode("not-valid-base64!!!")).toThrow();
+    expect(() => decode("")).toThrow("Cursor string is empty");
+  });
 
-    expect(toSqlString(sql)).toMatchInlineSnapshot(`
-      "SQL: SELECT "t0_products"."id" AS "id", "t0_products"."handle" AS "handle", "t1_translations"."value" AS "translation.value" FROM "products" AS "t0_products" LEFT JOIN "translations" AS "t1_translations" ON "t0_products"."id" = "t1_translations"."entity_id" WHERE ("t1_translations"."value" > $1 or ("t1_translations"."value" = $2 and "t0_products"."id" > $3)) ORDER BY "t1_translations"."value" ASC, "t0_products"."id" ASC LIMIT $4 OFFSET $5
-      Params: ["Test Product","Test Product","abc",11,0]"
-    `);
+  it("encode throws on empty seek", () => {
+    expect(() =>
+      encode({
+        type: "product",
+        filtersHash: "",
+        seek: [],
+      })
+    ).toThrow("Seek values cannot be empty");
+  });
+
+  it("encode throws on empty type", () => {
+    expect(() =>
+      encode({
+        type: "",
+        filtersHash: "",
+        seek: [{ field: "id", value: "1", order: "desc" }],
+      })
+    ).toThrow("Cursor type cannot be empty");
   });
 });
