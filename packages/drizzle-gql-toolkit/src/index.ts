@@ -4,7 +4,7 @@ export {
   FluentQueryBuilder,
   MaxLimitExceededError,
   field,
-} from "./builder.js";
+} from "./builder/index.js";
 
 // Types
 export type { DrizzleExecutor } from "./types.js";

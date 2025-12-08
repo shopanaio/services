@@ -1,60 +1,9 @@
 import type { OrderDirection } from "../types.js";
+import type { CursorParams, SeekValue } from "./types.js";
+import { base64UrlEncode, base64UrlDecode } from "./helpers.js";
 
-// Note: We can't import from helpers.ts here due to circular dependency
-// (helpers.ts imports SeekValue from cursor.ts)
-// So we define minimal base64 helpers inline
-
-function base64UrlEncode(json: string): string {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(json, "utf-8").toString("base64url");
-  }
-
-  const runtime = globalThis as typeof globalThis & {
-    btoa?: (value: string) => string;
-  };
-  if (typeof runtime.btoa !== "function") {
-    throw new Error("Base64 encoding is not supported in this environment");
-  }
-  return runtime
-    .btoa(json)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function base64UrlDecode(cursor: string): string {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(cursor, "base64url").toString("utf-8");
-  }
-
-  const runtime = globalThis as typeof globalThis & {
-    atob?: (value: string) => string;
-  };
-  if (typeof runtime.atob !== "function") {
-    throw new Error("Base64 decoding is not supported in this environment");
-  }
-
-  // Restore standard base64: replace URL-safe chars, then add padding
-  const padded = cursor
-    .replace(/-/g, "+")
-    .replace(/_/g, "/")
-    .padEnd(cursor.length + ((4 - (cursor.length % 4)) % 4), "=");
-  return runtime.atob(padded);
-}
-
-// ============ Types ============
-
-export type SeekValue = {
-  field: string;
-  value: unknown;
-  order: OrderDirection;
-};
-
-export type CursorParams = {
-  type: string;
-  filtersHash: string;
-  seek: SeekValue[];
-};
+// Re-export types for backwards compatibility
+export type { SeekValue, CursorParams } from "./types.js";
 
 // ============ Errors ============
 

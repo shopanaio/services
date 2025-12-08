@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { parseSort, validateCursorOrder } from "./sort.js";
-import type { CursorParams } from "./cursor.js";
+import { parseSort, validateCursorOrder } from "../../cursor/sort.js";
+import type { CursorParams } from "../../cursor/cursor.js";
 
 // ============ parseSort ============
 

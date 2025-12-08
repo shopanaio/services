@@ -8,7 +8,7 @@ import {
   events,
   clearTables,
 } from "./test/setup.js";
-import { createQuery, field } from "./index.js";
+import { createQuery, field } from "../index.js";
 
 // Create queries using the shared table definitions from setup.ts
 const usersQuery = createQuery(users, {

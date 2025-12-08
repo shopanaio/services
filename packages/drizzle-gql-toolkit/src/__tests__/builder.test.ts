@@ -9,8 +9,8 @@ import {
   PgDialect,
 } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
-import { createQuery, field, MaxLimitExceededError } from "./builder.js";
-import { tablePrefix } from "./schema.js";
+import { createQuery, field, MaxLimitExceededError } from "../builder/index.js";
+import { tablePrefix } from "../schema.js";
 
 // Dialect for SQL serialization
 const dialect = new PgDialect();

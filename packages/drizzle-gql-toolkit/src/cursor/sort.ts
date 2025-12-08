@@ -1,7 +1,6 @@
 import type { OrderDirection } from "../types.js";
-import type { CursorParams } from "./cursor.js";
+import type { CursorParams, SortParam } from "./types.js";
 import { InvalidCursorError } from "./cursor.js";
-import type { SortParam } from "./helpers.js";
 import { snakeToCamel } from "./helpers.js";
 
 function normalizeFieldName(segment: string): string {

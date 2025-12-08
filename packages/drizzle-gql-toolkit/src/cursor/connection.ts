@@ -1,6 +1,5 @@
 import { encode } from "./cursor.js";
-import type { SeekValue } from "./cursor.js";
-import type { SortParam } from "./helpers.js";
+import type { SeekValue, SortParam } from "./types.js";
 import { buildTieBreakerSeekValue, tieBreakerOrder, getNestedValue } from "./helpers.js";
 
 export type PageInfo = {

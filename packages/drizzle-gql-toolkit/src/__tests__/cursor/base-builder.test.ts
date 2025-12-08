@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
-import { createBaseCursorBuilder } from "./base-builder.js";
-import { encode, decode } from "./cursor.js";
-import { createSchema } from "../schema.js";
+import { createBaseCursorBuilder } from "../../cursor/base-builder.js";
+import { encode, decode } from "../../cursor/cursor.js";
+import { createSchema } from "../../schema.js";
 import { products } from "../test/setup.js";
-import { hashFilters } from "./helpers.js";
-import type { DrizzleExecutor } from "../types.js";
+import { hashFilters } from "../../cursor/helpers.js";
+import type { DrizzleExecutor } from "../../types.js";
 
 // ============ Test Setup ============
 

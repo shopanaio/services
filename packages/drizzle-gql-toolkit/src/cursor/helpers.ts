@@ -1,5 +1,8 @@
 import type { OrderDirection } from "../types.js";
-import type { SeekValue } from "./cursor.js";
+import type { SeekValue, SortParam } from "./types.js";
+
+// Re-export types for backwards compatibility
+export type { SortParam } from "./types.js";
 
 // ============ Base64URL Encoding ============
 
@@ -50,11 +53,6 @@ export function base64UrlDecode(value: string): string {
 }
 
 // ============ Types ============
-
-export type SortParam = {
-  field: string;
-  order: OrderDirection;
-};
 
 export type BuildTieBreakerInput = {
   value: unknown;

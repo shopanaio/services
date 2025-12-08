@@ -11,7 +11,7 @@ import {
   numeric,
 } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
-import { createQuery, field } from "./index.js";
+import { createQuery, field } from "../index.js";
 
 const dialect = new PgDialect();
 

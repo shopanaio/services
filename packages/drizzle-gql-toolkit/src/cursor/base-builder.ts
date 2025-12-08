@@ -8,18 +8,15 @@ import type {
   DrizzleExecutor,
   QueryBuilderConfig,
 } from "../types.js";
-import { createQueryBuilder } from "../builder.js";
-import type { CursorParams } from "./cursor.js";
+import { createQueryBuilder } from "../builder/index.js";
 import { encode, decode, InvalidCursorError } from "./cursor.js";
-import type { SortParam } from "./helpers.js";
 import { hashFilters, tieBreakerOrder, invertOrder, getNestedValue } from "./helpers.js";
 import { parseSort, validateCursorOrder } from "./sort.js";
 import { buildCursorWhereInput } from "./where.js";
-import type { SeekValue } from "./cursor.js";
+import type { CursorParams, SeekValue, SortParam, CursorDirection } from "./types.js";
 
-// ============ Types ============
-
-export type CursorDirection = "forward" | "backward";
+// Re-export types
+export type { CursorDirection } from "./types.js";
 
 export type BaseCursorBuilderConfig<
   Fields extends FieldsDef,

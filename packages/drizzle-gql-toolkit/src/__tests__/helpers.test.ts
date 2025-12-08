@@ -7,7 +7,7 @@ import {
   hasKey,
   ensureArray,
   pickDefined,
-} from "./helpers.js";
+} from "../helpers.js";
 
 const testTable = pgTable("test", {
   id: uuid("id").primaryKey(),

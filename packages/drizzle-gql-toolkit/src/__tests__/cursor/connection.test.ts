@@ -3,9 +3,9 @@ import {
   makeConnection,
   createCursorNode,
   type CursorNode,
-} from "./connection.js";
-import { decode } from "./cursor.js";
-import type { SortParam } from "./helpers.js";
+} from "../../cursor/connection.js";
+import { decode } from "../../cursor/cursor.js";
+import type { SortParam } from "../../cursor/helpers.js";
 
 // ============ Test Helpers ============
 

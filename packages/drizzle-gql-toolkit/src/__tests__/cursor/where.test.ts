@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildCursorWhereInput } from "./where.js";
-import type { CursorParams } from "./cursor.js";
+import { buildCursorWhereInput } from "../../cursor/where.js";
+import type { CursorParams } from "../../cursor/cursor.js";
 
 // ============ buildCursorWhereInput ============
 

@@ -4,8 +4,8 @@
  */
 import { describe, it, expectTypeOf } from "vitest";
 import { pgTable, text, uuid, integer } from "drizzle-orm/pg-core";
-import { createQuery, field } from "./index.js";
-import type { ResolvePathType, InferSelectResultFlat } from "./types.js";
+import { createQuery, field } from "../index.js";
+import type { ResolvePathType, InferSelectResultFlat } from "../types.js";
 
 // Test tables
 const users = pgTable("users", {

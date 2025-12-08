@@ -3,7 +3,7 @@ import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
 import { users, products, translations, events } from "./test/setup.js";
-import { createQuery, field } from "./index.js";
+import { createQuery, field } from "../index.js";
 
 // Dialect for SQL serialization
 const dialect = new PgDialect();

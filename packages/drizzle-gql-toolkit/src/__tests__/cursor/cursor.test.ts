@@ -5,7 +5,7 @@ import {
   validateCursorParams,
   InvalidCursorError,
   type CursorParams,
-} from "./cursor.js";
+} from "../../cursor/cursor.js";
 
 // ============ Cursor Encode/Decode ============
 

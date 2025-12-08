@@ -2,14 +2,14 @@ import { describe, it, expect } from "vitest";
 import { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { format } from "sql-formatter";
-import { createCursorQueryBuilder } from "./relay-builder.js";
-import { encode, decode } from "./cursor.js";
-import { createQuery, field } from "../builder.js";
-import { createPaginationQuery } from "../relay/index.js";
-import { createSchema } from "../schema.js";
+import { createCursorQueryBuilder } from "../../cursor/relay-builder.js";
+import { encode, decode } from "../../cursor/cursor.js";
+import { createQuery, field } from "../../builder/index.js";
+import { createPaginationQuery } from "../../relay/index.js";
+import { createSchema } from "../../schema.js";
 import { products, translations } from "../test/setup.js";
-import { hashFilters } from "./helpers.js";
-import type { DrizzleExecutor } from "../types.js";
+import { hashFilters } from "../../cursor/helpers.js";
+import type { DrizzleExecutor } from "../../types.js";
 
 // ============ Test Setup ============
 

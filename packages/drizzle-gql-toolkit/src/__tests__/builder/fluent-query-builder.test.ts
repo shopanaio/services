@@ -11,11 +11,11 @@ import {
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  createPaginationQuery,
   createQuery,
   field,
   MaxLimitExceededError,
-} from "./index.js";
+} from "../../builder/index.js";
+import { createPaginationQuery } from "../../relay/index.js";
 
 // Dialect for SQL serialization
 const dialect = new PgDialect();

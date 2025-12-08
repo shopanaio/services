@@ -1,6 +1,5 @@
-import type { FieldsDef, NestedWhereInput } from "../types.js";
-import type { CursorParams } from "./cursor.js";
-import type { OrderDirection } from "../types.js";
+import type { FieldsDef, NestedWhereInput, OrderDirection } from "../types.js";
+import type { CursorParams } from "./types.js";
 
 type ComparisonOperator = "$lt" | "$gt";
 

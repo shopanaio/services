@@ -12,7 +12,7 @@ import {
   isOperator,
   isLogicalOperator,
   isFilterObject,
-} from "./operators.js";
+} from "../operators.js";
 
 const testTable = pgTable("test", {
   id: integer("id").primaryKey(),
