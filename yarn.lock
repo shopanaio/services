@@ -4685,6 +4685,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/type-executor@workspace:packages/shopana/type-executor":
+  version: 0.0.0-use.local
+  resolution: "@shopana/type-executor@workspace:packages/shopana/type-executor"
+  dependencies:
+    "@types/node": "npm:^20.12.7"
+    typescript: "npm:^5.4.5"
+    vitest: "npm:^2.1.8"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/woodpecker-ci-config-service@workspace:*, @shopana/woodpecker-ci-config-service@workspace:packages/woodpecker-ci-config-service":
   version: 0.0.0-use.local
   resolution: "@shopana/woodpecker-ci-config-service@workspace:packages/woodpecker-ci-config-service"
