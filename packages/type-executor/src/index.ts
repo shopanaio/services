@@ -10,7 +10,7 @@ export {
 } from "./context.js";
 
 // Executor
-export { Executor, executor, createExecutor } from "./executor.js";
+export { Executor, executor, createExecutor, ResolverError } from "./executor.js";
 
 // Base type
 export { BaseType } from "./baseType.js";
@@ -23,4 +23,8 @@ export type {
   ResolverMethod,
   TypeResult,
   TypeValue,
+  ResolverKeys,
+  ChildTypeFor,
+  ArgsForField,
+  FieldArgsTreeFor,
 } from "./types.js";

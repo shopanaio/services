@@ -283,7 +283,9 @@ describe("Executor error handling", () => {
       }
     }
 
-    await expect(executor.resolve(ErrorType, {})).rejects.toThrow("Something went wrong");
+    await expect(executor.resolve(ErrorType, {})).rejects.toThrow(
+      'Failed to resolve field "broken" on ErrorType'
+    );
   });
 
   it("returns null on error with onError: null", async () => {
@@ -501,6 +503,6 @@ describe("Context management", () => {
       contextStorage.run(undefined as unknown as BaseContext, async () => {
         return exec.resolve(ContextRequiredType, {});
       })
-    ).rejects.toThrow("No context available");
+    ).rejects.toThrow('Failed to resolve field "needsContext" on ContextRequiredType');
   });
 });
