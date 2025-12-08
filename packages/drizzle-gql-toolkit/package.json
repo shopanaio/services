@@ -11,13 +11,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./builder": {
-      "types": "./dist/builder/index.d.ts",
-      "import": "./dist/builder/index.js"
-    },
     "./cursor": {
       "types": "./dist/cursor/index.d.ts",
       "import": "./dist/cursor/index.js"
+    },
+    "./relay": {
+      "types": "./dist/relay/index.d.ts",
+      "import": "./dist/relay/index.js"
     }
   },
   "files": [

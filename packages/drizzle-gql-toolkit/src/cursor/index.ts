@@ -8,21 +8,6 @@ export {
   type CursorDirection,
 } from "./base-builder.js";
 
-// ============ Relay Connection ============
-export {
-  createRelayBuilder,
-  createCursorQueryBuilder, // deprecated alias
-  type RelayBuilderConfig,
-  type RelayInput,
-  type RelayResult,
-  type CursorQueryBuilderConfig, // deprecated alias
-  type CursorQueryInput, // deprecated alias
-  type CursorQueryResult, // deprecated alias
-} from "./relay-builder.js";
-
-// ============ Connection Types ============
-export type { Connection, Edge, PageInfo } from "./connection.js";
-
 // ============ Errors ============
 export { InvalidCursorError } from "./cursor.js";
 
@@ -30,3 +15,4 @@ export { InvalidCursorError } from "./cursor.js";
 export { encode, decode } from "./cursor.js";
 export type { CursorParams, SeekValue } from "./cursor.js";
 export { hashFilters } from "./helpers.js";
+export type { SortParam } from "./helpers.js";

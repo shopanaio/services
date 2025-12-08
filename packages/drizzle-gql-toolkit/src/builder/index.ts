@@ -6,18 +6,10 @@ import { QueryBuilder, type TypedInput } from "./query-builder.js";
 // Fluent Query Builder
 export { createQuery, FluentQueryBuilder, MaxLimitExceededError } from "./fluent-query-builder.js";
 
-// Pagination Query Builder
-export {
-  createPaginationQuery,
-  PaginationQueryBuilder,
-  type PaginationQueryConfig,
-  type PaginationResult,
-} from "./pagination-query-builder.js";
-
 // Field helper
 export { field } from "./helpers.js";
 
-// Internal: used by cursor/builder.ts
+// Internal: used by cursor builders
 export function createQueryBuilder<
   T extends Table,
   F extends string,

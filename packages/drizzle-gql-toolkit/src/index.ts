@@ -4,14 +4,19 @@ export {
   FluentQueryBuilder,
   MaxLimitExceededError,
   field,
-  createPaginationQuery,
-  PaginationQueryBuilder,
-  type PaginationQueryConfig,
-  type PaginationResult,
 } from "./builder.js";
 
-// Types for execute()
+// Types
 export type { DrizzleExecutor } from "./types.js";
 
-// Pagination result types
-export type { Connection, Edge, PageInfo } from "./cursor/connection.js";
+// Type helpers for nested paths
+export type {
+  FieldsDef,
+  NestedPaths,
+  NestedWhereInput,
+  OrderPath,
+  FilterOperators,
+  FilterValue,
+  ScalarValue,
+  QueryBuilderConfig,
+} from "./types.js";
