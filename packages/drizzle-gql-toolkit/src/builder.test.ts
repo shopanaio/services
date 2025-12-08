@@ -9,9 +9,8 @@ import {
   PgDialect,
 } from "drizzle-orm/pg-core";
 import type { SQL } from "drizzle-orm";
-import { aliasedTable } from "drizzle-orm";
-import { buildJoinConditions, createQuery, field, MaxLimitExceededError } from "./builder.js";
-import { tablePrefix, type JoinInfo, type AliasedTable } from "./schema.js";
+import { createQuery, field, MaxLimitExceededError } from "./builder.js";
+import { tablePrefix } from "./schema.js";
 
 // Dialect for SQL serialization
 const dialect = new PgDialect();
@@ -511,56 +510,5 @@ describe("FluentQueryBuilder accessors", () => {
     const result = usersQuery.getFieldsDef();
     expect(result.id.column).toBe("id");
     expect(result.name.column).toBe("name");
-  });
-});
-
-// =============================================================================
-// Low-level: buildJoinConditions
-// =============================================================================
-
-describe("buildJoinConditions", () => {
-  it("should return empty array for empty joins", () => {
-    const result = buildJoinConditions([]);
-    expect(result).toEqual([]);
-  });
-
-  it("should build join conditions from JoinInfo array", () => {
-    const sourceAliased = aliasedTable(products, "t0_products");
-    const targetAliased = aliasedTable(translations, "t1_translations");
-
-    const joins: JoinInfo[] = [
-      {
-        type: "left",
-        sourceTable: sourceAliased as unknown as AliasedTable,
-        targetTable: targetAliased as unknown as AliasedTable,
-        conditions: [{ sourceCol: "id", targetCol: "entity_id" }],
-      },
-    ];
-
-    const result = buildJoinConditions(joins);
-    expect(result).toHaveLength(1);
-    expect(result[0].table).toBeDefined();
-    expect(result[0].on).toBeDefined();
-  });
-
-  it("should handle multiple conditions (composite join)", () => {
-    const sourceAliased = aliasedTable(products, "t0_products");
-    const targetAliased = aliasedTable(translations, "t1_translations");
-
-    const joins: JoinInfo[] = [
-      {
-        type: "inner",
-        sourceTable: sourceAliased as unknown as AliasedTable,
-        targetTable: targetAliased as unknown as AliasedTable,
-        conditions: [
-          { sourceCol: "id", targetCol: "entity_id" },
-          { sourceCol: "field_type", targetCol: "field" },
-        ],
-      },
-    ];
-
-    const result = buildJoinConditions(joins);
-    expect(result).toHaveLength(1);
-    expect(result[0].on).toBeDefined();
   });
 });
