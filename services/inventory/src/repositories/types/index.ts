@@ -9,6 +9,7 @@ export { ProductType } from "./ProductType.js";
 
 // Variant type
 export { VariantType } from "./VariantType.js";
+export { VariantPriceType } from "./VariantPriceType.js";
 
 // Option types
 export { OptionType } from "./OptionType.js";

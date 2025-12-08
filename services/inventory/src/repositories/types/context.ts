@@ -20,6 +20,17 @@ import type {
   VariantMedia,
   WarehouseStock,
 } from "../models/index.js";
+import type { PaginationArgs } from "./args.js";
+
+/**
+ * Paginated query functions for cursor-based pagination
+ */
+export interface ProductQueries {
+  /** Get variant IDs for a product with cursor pagination */
+  variantIds: (productId: string, args?: PaginationArgs) => Promise<string[]>;
+  /** Get price IDs for a variant with cursor pagination */
+  variantPriceIds: (variantId: string, args?: PaginationArgs) => Promise<string[]>;
+}
 
 /**
  * Product loaders for efficient data fetching
@@ -34,6 +45,8 @@ export interface ProductLoaders {
   variantIds: DataLoader<string, string[]>;
   variantTranslation: DataLoader<string, VariantTranslation | null>;
   variantPricing: DataLoader<string, ItemPricing[]>;
+  variantPriceById: DataLoader<string, ItemPricing | null>;
+  variantPriceIds: DataLoader<string, string[]>;
   variantDimensions: DataLoader<string, ItemDimensions | null>;
   variantWeight: DataLoader<string, ItemWeight | null>;
   variantMedia: DataLoader<string, VariantMedia[]>;
@@ -65,6 +78,7 @@ export interface ProductLoaders {
  */
 export interface ProductTypeContext extends BaseContext {
   loaders: ProductLoaders;
+  queries: ProductQueries;
   locale: string;
   currency?: string;
 }

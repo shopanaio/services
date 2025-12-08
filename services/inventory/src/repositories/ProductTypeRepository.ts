@@ -5,6 +5,7 @@ import type { Database } from "../infrastructure/db/database.js";
 import { getContext } from "../context/index.js";
 import { product, variant } from "./models/index.js";
 import { ProductLoaderFactory } from "./loaders/index.js";
+import { ProductQueryFactory } from "./queries/index.js";
 import {
   ProductType,
   VariantType,
@@ -18,12 +19,14 @@ import {
 export class ProductTypeRepository {
   private readonly executor = new Executor({ onError: "throw" });
   private readonly loaderFactory: ProductLoaderFactory;
+  private readonly queryFactory: ProductQueryFactory;
 
   constructor(
-    private readonly db: Database,
+    db: Database,
     private readonly txManager: TransactionManager<Database>
   ) {
     this.loaderFactory = new ProductLoaderFactory(db, txManager);
+    this.queryFactory = new ProductQueryFactory(db, txManager);
   }
 
   /**
@@ -53,6 +56,7 @@ export class ProductTypeRepository {
   private createContext(currency?: string): ProductTypeContext {
     return {
       loaders: this.loaderFactory.createLoaders(),
+      queries: this.queryFactory.createQueries(),
       locale: this.locale,
       currency,
     };

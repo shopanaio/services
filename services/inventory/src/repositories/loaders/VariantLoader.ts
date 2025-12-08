@@ -28,6 +28,8 @@ export interface VariantLoaders {
   variantIds: DataLoader<string, string[]>;
   variantTranslation: DataLoader<string, VariantTranslation | null>;
   variantPricing: DataLoader<string, ItemPricing[]>;
+  variantPriceById: DataLoader<string, ItemPricing | null>;
+  variantPriceIds: DataLoader<string, string[]>;
   variantDimensions: DataLoader<string, ItemDimensions | null>;
   variantWeight: DataLoader<string, ItemWeight | null>;
   variantMedia: DataLoader<string, VariantMedia[]>;
@@ -49,6 +51,8 @@ export class VariantLoader extends BaseLoader {
       variantIds: this.createVariantIdsLoader(),
       variantTranslation: this.createVariantTranslationLoader(),
       variantPricing: this.createVariantPricingLoader(),
+      variantPriceById: this.createVariantPriceByIdLoader(),
+      variantPriceIds: this.createVariantPriceIdsLoader(),
       variantDimensions: this.createVariantDimensionsLoader(),
       variantWeight: this.createVariantWeightLoader(),
       variantMedia: this.createVariantMediaLoader(),
@@ -151,6 +155,52 @@ export class VariantLoader extends BaseLoader {
         );
 
       return variantIds.map((id) => results.filter((p) => p.variantId === id));
+    });
+  }
+
+  /**
+   * Variant price by price ID
+   */
+  private createVariantPriceByIdLoader(): DataLoader<string, ItemPricing | null> {
+    const conn = this.connection;
+    const projectId = this.projectId;
+
+    return new DataLoader<string, ItemPricing | null>(async (priceIds) => {
+      const results = await conn
+        .select()
+        .from(itemPricing)
+        .where(
+          and(
+            eq(itemPricing.projectId, projectId),
+            inArray(itemPricing.id, [...priceIds])
+          )
+        );
+
+      return priceIds.map((id) => results.find((p) => p.id === id) ?? null);
+    });
+  }
+
+  /**
+   * Variant price IDs by variant ID (all prices, for history)
+   */
+  private createVariantPriceIdsLoader(): DataLoader<string, string[]> {
+    const conn = this.connection;
+    const projectId = this.projectId;
+
+    return new DataLoader<string, string[]>(async (variantIds) => {
+      const results = await conn
+        .select({ id: itemPricing.id, variantId: itemPricing.variantId })
+        .from(itemPricing)
+        .where(
+          and(
+            eq(itemPricing.projectId, projectId),
+            inArray(itemPricing.variantId, [...variantIds])
+          )
+        );
+
+      return variantIds.map((id) =>
+        results.filter((p) => p.variantId === id).map((p) => p.id)
+      );
     });
   }
 
