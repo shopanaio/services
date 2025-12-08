@@ -2,7 +2,7 @@
  * Domain types - matches GraphQL schema
  */
 
-export type { Timestamps, SoftDeletable } from "./common.js";
+export type { Timestamps, SoftDeletable, PageInfo, UserError, Connection, Edge } from "./common.js";
 export type { Product, Description } from "./product.js";
 export type { Variant } from "./variant.js";
 export type { CurrencyCode, VariantPrice, VariantCost } from "./pricing.js";
