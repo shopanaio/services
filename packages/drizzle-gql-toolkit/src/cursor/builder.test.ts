@@ -7,6 +7,7 @@ import { encode, decode } from "./cursor.js";
 import { createSchema } from "../schema.js";
 import { products, translations } from "../test/setup.js";
 import { hashFilters } from "./helpers.js";
+import type { DrizzleExecutor } from "../types.js";
 
 // ============ Test Setup ============
 
@@ -1262,6 +1263,62 @@ describe("createCursorQueryBuilder", () => {
           $6
         -- Params: ["%laptop%",599,599,"prod-100",11,0]"
       `);
+    });
+  });
+
+  describe("advanced usage hooks", () => {
+    it("applies mapResult transformation before returning nodes", async () => {
+      const mappedIds: string[] = [];
+      const qb = createCursorQueryBuilder(productsSchema, {
+        cursorType: "product",
+        tieBreaker: "id",
+        defaultSortField: "id",
+        mapResult: (row) => {
+          const typedRow = row as { id: string; handle?: string };
+          mappedIds.push(typedRow.id);
+          return {
+            identifier: (typedRow.handle ?? "").toUpperCase(),
+          };
+        },
+      });
+
+      const fakeDb: DrizzleExecutor = {
+        async execute() {
+          return {
+            rows: [
+              { id: "prod_1", handle: "alpha" },
+              { id: "prod_2", handle: "bravo" },
+            ],
+          };
+        },
+      };
+
+      const result = await qb.query(fakeDb, {
+        first: 1,
+        select: ["id", "handle"],
+      });
+
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].node).toEqual({ identifier: "ALPHA" });
+      expect(mappedIds).toEqual(["prod_1"]);
+      expect(result.pageInfo.hasNextPage).toBe(true);
+    });
+
+    it("exposes the underlying QueryBuilder through getQueryBuilder", () => {
+      const qb = createProductsQb();
+      const queryBuilder = qb.getQueryBuilder();
+
+      expect(queryBuilder).toBe(qb.getQueryBuilder());
+
+      const sql = queryBuilder.buildSelectSql({
+        select: ["id"],
+        limit: 5,
+        order: ["id:asc"],
+      } as never);
+
+      const sqlString = toSqlString(sql);
+      expect(sqlString).toContain("LIMIT\n  $1");
+      expect(sqlString).toContain("-- Params: [5,0]");
     });
   });
 });

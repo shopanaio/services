@@ -313,6 +313,34 @@ describe("makeConnection", () => {
     });
   });
 
+  describe("edge cursor fallback", () => {
+    it("builds tie-breaker seek value when node provides none", () => {
+      const customNode: CursorNode = {
+        getId: () => "fallback-1",
+        getCursorType: () => "test",
+        getSeekValues: () => [],
+      };
+
+      const connection = makeConnection({
+        nodes: [customNode],
+        mapper: (node) => ({ id: node.getId() }),
+        paging: { first: 1 },
+        filtersHash: "filters",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(1);
+      const decoded = decode(connection.edges[0].cursor);
+      expect(decoded.seek).toHaveLength(1);
+      expect(decoded.seek[0]).toEqual({
+        field: "id",
+        value: "fallback-1",
+        order: "desc",
+      });
+    });
+  });
+
   describe("totalCount", () => {
     it("includes totalCount when provided", () => {
       const nodes = [createMockNode("1")];
@@ -366,6 +394,25 @@ describe("makeConnection", () => {
 
       expect(connection.edges[0].node).toEqual({ nodeId: "1", transformed: true });
       expect(connection.edges[1].node).toEqual({ nodeId: "2", transformed: true });
+    });
+  });
+
+  describe("pagination defaults", () => {
+    it("returns all nodes when paging input is empty", () => {
+      const nodes = [createMockNode("1"), createMockNode("2")];
+
+      const connection = makeConnection({
+        nodes,
+        mapper: (node) => ({ id: node.getId() }),
+        paging: {},
+        filtersHash: "",
+        tieBreaker: "id",
+        sortParams: [],
+      });
+
+      expect(connection.edges).toHaveLength(2);
+      expect(connection.pageInfo.hasNextPage).toBe(false);
+      expect(connection.pageInfo.hasPreviousPage).toBe(false);
     });
   });
 
