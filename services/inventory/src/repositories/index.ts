@@ -20,3 +20,12 @@ export type { MediaRepository } from "./MediaRepository";
 // Query repositories
 export { ProductQueryRepository } from "./ProductQueryRepository";
 export { VariantQueryRepository } from "./VariantQueryRepository";
+
+// Type repositories (using type-executor pattern)
+export { ProductTypeRepository } from "./ProductTypeRepository";
+
+// Loaders
+export * from "./loaders";
+
+// Type definitions
+export * from "./types";

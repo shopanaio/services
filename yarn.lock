@@ -4325,6 +4325,7 @@ __metadata:
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/plugin-sdk": "npm:*"
     "@shopana/shared-kernel": "npm:*"
+    "@shopana/type-executor": "npm:*"
     "@types/node": "npm:^20.14.14"
     "@upstash/redis": "npm:^1.34.3"
     dataloader: "npm:^2.2.3"
@@ -4685,9 +4686,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/type-executor@workspace:packages/shopana/type-executor":
+"@shopana/type-executor@npm:*, @shopana/type-executor@workspace:packages/type-executor":
   version: 0.0.0-use.local
-  resolution: "@shopana/type-executor@workspace:packages/shopana/type-executor"
+  resolution: "@shopana/type-executor@workspace:packages/type-executor"
   dependencies:
     "@types/node": "npm:^20.12.7"
     typescript: "npm:^5.4.5"

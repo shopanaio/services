@@ -30,6 +30,7 @@
     "@shopana/platform-api": "0.0.1",
     "@shopana/plugin-sdk": "*",
     "@shopana/shared-kernel": "*",
+    "@shopana/type-executor": "*",
     "@upstash/redis": "^1.34.3",
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
