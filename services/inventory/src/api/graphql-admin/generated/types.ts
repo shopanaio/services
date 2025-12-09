@@ -961,8 +961,8 @@ export type VariantInput = {
   externalId?: InputMaybe<Scalars['String']['input']>;
   /** External system identifier. */
   externalSystem?: InputMaybe<Scalars['String']['input']>;
-  /** Selected option values for the variant. */
-  options?: InputMaybe<Array<SelectedOptionInput>>;
+  /** Selected option values for the variant (required). */
+  options: Array<SelectedOptionInput>;
   /** The SKU for the variant. */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Variant title. */

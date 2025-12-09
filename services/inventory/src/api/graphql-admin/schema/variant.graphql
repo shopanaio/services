@@ -119,8 +119,8 @@ input VariantInput {
   """External ID in the external system."""
   externalId: String
 
-  """Selected option values for the variant."""
-  options: [SelectedOptionInput!]
+  """Selected option values for the variant (required)."""
+  options: [SelectedOptionInput!]!
 
   """Physical dimensions."""
   dimensions: DimensionsInput

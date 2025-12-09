@@ -24,13 +24,18 @@ export const variantMutationResolvers: Resolvers = {
       }
 
       const result = await ctx.kernel.executeScript(variantCreate, {
-        // TODO: add required options to the input
         productId: input.productId,
-        sku: input.variant?.sku,
+        options: input.variant.options.map((opt) => ({
+          optionId: opt.optionId,
+          optionValueId: opt.optionValueId,
+        })),
+        sku: input.variant.sku ?? undefined,
+        externalSystem: input.variant.externalSystem ?? undefined,
+        externalId: input.variant.externalId ?? undefined,
       });
 
       return {
-        variant: result.variant ?? null,
+        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
         userErrors: result.userErrors,
       };
     },
@@ -101,7 +106,6 @@ export const variantMutationResolvers: Resolvers = {
 
       return {
         variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
-
         userErrors: result.userErrors,
       };
     },
