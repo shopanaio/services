@@ -1,4 +1,5 @@
 import type { CoreProject, CoreUser } from "@shopana/platform-api";
+import type { ProductLoaders, ProductQueries } from "../views/admin/context.js";
 
 /**
  * Inventory service execution context
@@ -13,4 +14,8 @@ export interface InventoryContext {
   user: CoreUser;
   /** Current locale for translations (default: 'uk') */
   locale?: string;
+  /** DataLoaders for efficient batched data fetching */
+  loaders: ProductLoaders;
+  /** Paginated query functions */
+  queries: ProductQueries;
 }

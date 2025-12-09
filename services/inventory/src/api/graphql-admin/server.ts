@@ -15,6 +15,7 @@ import { Repository } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { inventoryContextPlugin } from "./inventoryContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
+import type { ProductLoaders, ProductQueries } from "../../views/admin/context.js";
 
 export interface GraphQLContext {
   requestId: string;
@@ -138,6 +139,11 @@ export async function startServer(config: ServerConfig) {
         };
       }
 
+      // Create loaders and queries per request for proper batching
+      const services = kernel!.getServices();
+      const loaders: ProductLoaders = services.repository.loaderFactory.createLoaders();
+      const queries: ProductQueries = services.repository.queryFactory.createQueries();
+
       return {
         requestId: request.id as string,
         kernel: kernel as Kernel,
@@ -145,6 +151,8 @@ export async function startServer(config: ServerConfig) {
           slug: request.headers["x-pj-key"] as string,
           project: request.project,
           user: request.user,
+          loaders,
+          queries,
         },
       };
     },
