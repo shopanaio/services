@@ -11,12 +11,7 @@ import { optionMutationResolvers } from "./mutations/option.js";
 import { featureMutationResolvers } from "./mutations/feature.js";
 
 // Type resolvers
-import { productTypeResolvers } from "./types/product.js";
-import { variantTypeResolvers } from "./types/variant.js";
-import { warehouseTypeResolvers } from "./types/warehouse.js";
-import { optionTypeResolvers } from "./types/option.js";
-import { featureTypeResolvers } from "./types/feature.js";
-import { interfaceResolvers } from "./types/interfaces.js";
+import { typeResolvers } from "./types.js";
 
 // TODO: Use DataLoader for batching and caching database queries to avoid N+1 problem
 // TODO: Use @upstash/redis for caching complete Product and Variant objects
@@ -58,10 +53,5 @@ export const resolvers: Resolvers = mergeResolvers(
   featureMutationResolvers,
 
   // Type resolvers
-  productTypeResolvers,
-  variantTypeResolvers,
-  warehouseTypeResolvers,
-  optionTypeResolvers,
-  featureTypeResolvers,
-  interfaceResolvers
+  typeResolvers
 );

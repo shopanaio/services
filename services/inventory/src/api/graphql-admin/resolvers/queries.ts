@@ -1,7 +1,6 @@
 import type { GraphQLResolveInfo } from "graphql";
 import type { Resolvers } from "../generated/types.js";
 import type { GraphQLContext } from "../server.js";
-import { dummyVariants } from "./dummy.js";
 import { requireKernel } from "./utils.js";
 import { parseGraphQLInfoDeep } from "@shopana/type-executor/graphql";
 import { ProductView } from "../../../views/admin/index.js";
@@ -84,15 +83,11 @@ export const queryResolvers: Resolvers = {
 
   InventoryQuery: {
     node: async (_parent, { id }, ctx, info) => {
-      const kernel = requireKernel(ctx);
-
       // Try to resolve as product using executor
       const product = await resolveProductWithExecutor(id, ctx, info);
       if (product) return product;
 
-      const variant = dummyVariants.get(id);
-      if (variant) return variant;
-
+      // TODO: implement variant lookup
       return null;
     },
 
@@ -103,9 +98,7 @@ export const queryResolvers: Resolvers = {
           const product = await resolveProductWithExecutor(id, ctx, info);
           if (product) return product;
 
-          const variant = dummyVariants.get(id);
-          if (variant) return variant;
-
+          // TODO: implement variant lookup
           return null;
         })
       );
@@ -160,27 +153,12 @@ export const queryResolvers: Resolvers = {
       };
     },
 
-    variant: async (_parent, { id }) => {
-      return dummyVariants.get(id) ?? null;
+    variant: async () => {
+      throw new Error("Not implemented");
     },
 
-    variants: async (_parent, args) => {
-      const variants = Array.from(dummyVariants.values());
-      const first = args.first ?? 10;
-      const edges = variants.slice(0, first).map((variant) => ({
-        node: variant,
-        cursor: Buffer.from(variant.id).toString("base64"),
-      }));
-      return {
-        edges,
-        pageInfo: {
-          hasNextPage: variants.length > first,
-          hasPreviousPage: false,
-          startCursor: edges[0]?.cursor ?? null,
-          endCursor: edges[edges.length - 1]?.cursor ?? null,
-        },
-        totalCount: variants.length,
-      };
+    variants: async () => {
+      throw new Error("Not implemented");
     },
 
     warehouse: async () => {
