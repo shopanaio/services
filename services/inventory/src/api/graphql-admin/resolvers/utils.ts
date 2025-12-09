@@ -1,5 +1,6 @@
 import type { GraphQLContext } from "../server.js";
 import type { Kernel } from "../../../kernel/Kernel.js";
+import type { InventoryContext } from "../../../context/types.js";
 
 const NO_DATABASE_ERROR = {
   message: "Database not configured",
@@ -17,6 +18,13 @@ export function requireKernel(ctx: GraphQLContext): Kernel {
     throw new NoDatabaseError();
   }
   return ctx.kernel;
+}
+
+export function requireInventoryContext(ctx: GraphQLContext): InventoryContext {
+  if (!ctx._inventoryContext) {
+    throw new NoDatabaseError();
+  }
+  return ctx._inventoryContext;
 }
 
 export class NoDatabaseError extends Error {

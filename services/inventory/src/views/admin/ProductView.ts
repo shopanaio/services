@@ -5,12 +5,17 @@ import type { ProductVariantsArgs } from "./args.js";
 import { FeatureView } from "./FeatureView.js";
 import { OptionView } from "./OptionView.js";
 import { VariantView } from "./VariantView.js";
+import { InventoryContext } from "../../context/types.js";
 
 /**
  * Product view - resolves Product domain interface
  * Accepts product ID, loads data lazily via loaders
  */
-export class ProductView extends BaseType<string, Product | null> {
+export class ProductView extends BaseType<
+  string,
+  Product | null,
+  InventoryContext
+> {
   static fields = {
     variants: () => VariantView,
     options: () => OptionView,

@@ -1,7 +1,6 @@
-import { InventoryContext } from "../../../context/types.js";
 import { ProductView, WarehouseView } from "../../../views/admin/index.js";
-import type { Product, Resolvers, Warehouse } from "../generated/types.js";
-import { requireKernel } from "./utils.js";
+import type { Resolvers } from "../generated/types.js";
+import { requireInventoryContext, requireKernel } from "./utils.js";
 
 export const queryResolvers: Partial<Resolvers> = {
   Query: {
@@ -10,19 +9,23 @@ export const queryResolvers: Partial<Resolvers> = {
 
   InventoryQuery: {
     node: async (_parent, { id }, ctx, info) => {
-      return ProductView.load(id, info, ctx._inventoryContext);
+      const inventoryCtx = requireInventoryContext(ctx);
+      return ProductView.load(id, info, inventoryCtx);
     },
 
     nodes: async (_parent, { ids }, ctx, info) => {
-      return ProductView.loadMany(ids, info, ctx._inventoryContext);
+      const inventoryCtx = requireInventoryContext(ctx);
+      return ProductView.loadMany(ids, info, inventoryCtx);
     },
 
-    product: async (_parent, { id }, _ctx, info) => {
-      return ProductView.load(id, info, ctx._inventoryContext);
+    product: async (_parent, { id }, ctx, info) => {
+      const inventoryCtx = requireInventoryContext(ctx);
+      return ProductView.load(id, info, inventoryCtx) as any;
     },
 
     products: async (_parent, args, ctx, info) => {
       const kernel = requireKernel(ctx);
+      const inventoryCtx = requireInventoryContext(ctx);
       const services = kernel.getServices();
       const first = args.first ?? 10;
 
@@ -37,11 +40,11 @@ export const queryResolvers: Partial<Resolvers> = {
       const resolvedProducts = await ProductView.loadMany(
         productIds,
         info,
-        ctx._inventoryContext
+        inventoryCtx
       );
 
       const edges = resolvedProducts.map((product, index) => ({
-        node: product,
+        node: product as any,
         cursor: Buffer.from(resultProducts[index].id).toString("base64"),
       }));
 
@@ -66,15 +69,13 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     warehouse: async (_parent, { id }, ctx, info) => {
-      return WarehouseView.load<
-        typeof WarehouseView,
-        Product,
-        InventoryContext
-      >(id, info, ctx._inventoryContext);
+      const inventoryCtx = requireInventoryContext(ctx);
+      return WarehouseView.load(id, info, inventoryCtx) as any;
     },
 
     warehouses: async (_parent, args, ctx, info) => {
       const kernel = requireKernel(ctx);
+      const inventoryCtx = requireInventoryContext(ctx);
       const services = kernel.getServices();
       const first = args.first ?? 10;
 
@@ -86,14 +87,14 @@ export const queryResolvers: Partial<Resolvers> = {
         : warehouses;
 
       const warehouseIds = resultWarehouses.map((w) => w.id);
-      const resolvedWarehouses = await executor.resolveMany(
-        WarehouseView,
+      const resolvedWarehouses = await WarehouseView.loadMany(
         warehouseIds,
-        info
+        info,
+        inventoryCtx
       );
 
-      const edges = resolvedWarehouses.map((warehouse, index) => ({
-        node: warehouse,
+      const edges = resolvedWarehouses.map((warehouse, index: number) => ({
+        node: warehouse as any,
         cursor: Buffer.from(resultWarehouses[index].id).toString("base64"),
       }));
 

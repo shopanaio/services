@@ -7,6 +7,7 @@ export { BaseType } from "./baseType.js";
 // Types
 export type {
   TypeClass,
+  TypeContext,
   TypeInstance,
   ResolverMethod,
   TypeResult,

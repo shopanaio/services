@@ -1,6 +1,11 @@
 import type { GraphQLResolveInfo } from "graphql";
 import { load, loadMany } from "./executor.js";
-import type { FieldArgsTreeFor, TypeClass, TypeResult } from "./types.js";
+import type {
+  FieldArgsTreeFor,
+  TypeClass,
+  TypeContext,
+  TypeResult,
+} from "./types.js";
 
 /**
  * Abstract base class for type definitions.
@@ -18,13 +23,13 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * @param fieldArgs - Optional field arguments or GraphQL resolve info
    * @param ctx - Context object to pass to type instances
    */
-  static load<T extends TypeClass, TResult = TypeResult<T>, TCtx = unknown>(
+  static load<T extends TypeClass, TResult = TypeResult<T>>(
     this: T,
     value: ConstructorParameters<T>[0],
     fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
-    ctx: TCtx
+    ctx: TypeContext<T>
   ): Promise<TResult> {
-    return load<T, TResult, TCtx>(this, value, fieldArgs, ctx);
+    return load<T, TResult, TypeContext<T>>(this, value, fieldArgs, ctx);
   }
 
   /**
@@ -34,13 +39,13 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * @param fieldArgs - Optional field arguments or GraphQL resolve info
    * @param ctx - Context object to pass to type instances
    */
-  static loadMany<T extends TypeClass, TResult = TypeResult<T>, TCtx = unknown>(
+  static loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     this: T,
     values: ConstructorParameters<T>[0][],
     fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
-    ctx: TCtx
+    ctx: TypeContext<T>
   ): Promise<TResult[]> {
-    return loadMany<T, TResult, TCtx>(this, values, fieldArgs, ctx);
+    return loadMany<T, TResult, TypeContext<T>>(this, values, fieldArgs, ctx);
   }
 
   private _dataPromise: Promise<TData> | null = null;

@@ -3,10 +3,22 @@
  * @template TValue - The type of the value passed to the constructor
  * @template TContext - The type of the context passed to the constructor
  */
-export interface TypeClass<TValue = string, TContext = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface TypeClass<TValue = string, TContext = any> {
   new (value: TValue, ctx: TContext): object;
   fields?: Record<string, Function>;
 }
+
+/**
+ * Extracts the context type from a TypeClass.
+ */
+export type TypeContext<T extends TypeClass> = T extends TypeClass<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any,
+  infer TCtx
+>
+  ? TCtx
+  : unknown;
 
 /**
  * Instance of a TypeClass with value and resolver methods.
