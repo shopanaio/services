@@ -101,7 +101,7 @@ export async function startServer(config: ServerConfig) {
   ];
 
   const modules = schemaFiles.map((file) => ({
-    typeDefs: gql(readFileSync(join(__dirname, file), "utf-8")),
+    typeDefs: gql(readFileSync(join(__dirname, "schema", file), "utf-8")),
     resolvers,
   }));
 
