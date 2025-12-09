@@ -1,4 +1,4 @@
-import { Executor, runWithContext } from "@shopana/type-executor";
+import { Executor, runWithContext, type FieldArgsTreeFor } from "@shopana/type-executor";
 import { and, eq, isNull } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database.js";
@@ -7,10 +7,16 @@ import { product, variant } from "./models/index.js";
 import { ProductLoaderFactory } from "./loaders/index.js";
 import { ProductQueryFactory } from "./queries/index.js";
 import {
-  ProductType,
-  VariantType,
-  type ProductTypeContext,
-} from "./types/index.js";
+  ProductView,
+  VariantView,
+  type AdminViewContext,
+} from "../views/admin/index.js";
+
+/** Field arguments tree for ProductView */
+export type ProductFieldArgs = FieldArgsTreeFor<typeof ProductView>;
+
+/** Field arguments tree for VariantView */
+export type VariantFieldArgs = FieldArgsTreeFor<typeof VariantView>;
 
 /**
  * ProductTypeRepository - Uses type-executor pattern to resolve products with all relations
@@ -51,9 +57,9 @@ export class ProductTypeRepository {
   }
 
   /**
-   * Create context for type resolution
+   * Create context for view resolution
    */
-  private createContext(currency?: string): ProductTypeContext {
+  private createContext(currency?: string): AdminViewContext {
     return {
       loaders: this.loaderFactory.createLoaders(),
       queries: this.queryFactory.createQueries(),
@@ -64,10 +70,12 @@ export class ProductTypeRepository {
 
   /**
    * Resolve a single product by ID
+   * @param id - Product ID
+   * @param options - Resolution options (currency, fieldArgs)
    */
   async resolveById(
     id: string,
-    options?: { currency?: string }
+    options?: { currency?: string; fieldArgs?: ProductFieldArgs }
   ): Promise<Record<string, unknown> | null> {
     // Check if product exists
     const result = await this.connection
@@ -86,29 +94,33 @@ export class ProductTypeRepository {
 
     const context = this.createContext(options?.currency);
     return runWithContext(context, () =>
-      this.executor.resolve(ProductType, id)
+      this.executor.resolve(ProductView, id, options?.fieldArgs)
     );
   }
 
   /**
    * Resolve multiple products by IDs
+   * @param productIds - Array of product IDs
+   * @param options - Resolution options (currency, fieldArgs)
    */
   async resolveMany(
     productIds: string[],
-    options?: { currency?: string }
+    options?: { currency?: string; fieldArgs?: ProductFieldArgs }
   ): Promise<Record<string, unknown>[]> {
     const context = this.createContext(options?.currency);
     return runWithContext(context, () =>
-      this.executor.resolveMany(ProductType, productIds)
+      this.executor.resolveMany(ProductView, productIds, options?.fieldArgs)
     );
   }
 
   /**
    * Resolve a single variant by ID
+   * @param id - Variant ID
+   * @param options - Resolution options (currency, fieldArgs)
    */
   async resolveVariantById(
     id: string,
-    options?: { currency?: string }
+    options?: { currency?: string; fieldArgs?: VariantFieldArgs }
   ): Promise<Record<string, unknown> | null> {
     // Check if variant exists
     const result = await this.connection
@@ -127,20 +139,22 @@ export class ProductTypeRepository {
 
     const context = this.createContext(options?.currency);
     return runWithContext(context, () =>
-      this.executor.resolve(VariantType, id)
+      this.executor.resolve(VariantView, id, options?.fieldArgs)
     );
   }
 
   /**
    * Resolve multiple variants by IDs
+   * @param variantIds - Array of variant IDs
+   * @param options - Resolution options (currency, fieldArgs)
    */
   async resolveVariants(
     variantIds: string[],
-    options?: { currency?: string }
+    options?: { currency?: string; fieldArgs?: VariantFieldArgs }
   ): Promise<Record<string, unknown>[]> {
     const context = this.createContext(options?.currency);
     return runWithContext(context, () =>
-      this.executor.resolveMany(VariantType, variantIds)
+      this.executor.resolveMany(VariantView, variantIds, options?.fieldArgs)
     );
   }
 }

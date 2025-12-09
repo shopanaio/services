@@ -1,5 +1,5 @@
 /**
- * Pricing domain types - matches GraphQL schema
+ * Pricing interface types
  */
 
 /** Supported currency codes */

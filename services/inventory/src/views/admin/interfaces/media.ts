@@ -1,5 +1,5 @@
 /**
- * Media domain types - matches GraphQL schema
+ * Media interface types
  */
 
 /**

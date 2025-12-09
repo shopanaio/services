@@ -1,5 +1,5 @@
 /**
- * Common domain types
+ * Common interface types
  */
 
 /**

@@ -28,7 +28,7 @@ export abstract class BaseType<TId, TData = TId> {
    */
   protected loadData(): TData | Promise<TData> {
     // Default: use value as data (for backward compatibility when value is already the data object)
-    return this.value as TData;
+    return this.value as unknown as TData;
   }
 
   /**

@@ -1,5 +1,5 @@
 /**
- * Physical domain types - matches GraphQL schema
+ * Physical interface types
  */
 
 /**

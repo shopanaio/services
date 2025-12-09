@@ -1,5 +1,5 @@
 /**
- * Domain types - matches GraphQL schema
+ * Admin view interfaces
  */
 
 export type { Timestamps, SoftDeletable, PageInfo, UserError, Connection, Edge } from "./common.js";

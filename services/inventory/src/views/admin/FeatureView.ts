@@ -1,19 +1,19 @@
 import { BaseType } from "@shopana/type-executor";
-import type { ProductFeature } from "../models/index.js";
-import type { ProductTypeContext } from "./context.js";
-import { FeatureValueType } from "./FeatureValueType.js";
+import type { ProductFeature } from "../../repositories/models/index.js";
+import type { AdminViewContext } from "./context.js";
+import { FeatureValueView } from "./FeatureValueView.js";
 
 /**
- * Feature type - resolves Feature domain interface
+ * Feature view - resolves Feature domain interface
  * Accepts feature ID, loads data lazily via loaders
  */
-export class FeatureType extends BaseType<string, ProductFeature | null> {
+export class FeatureView extends BaseType<string, ProductFeature | null> {
   static fields = {
-    values: () => FeatureValueType,
+    values: () => FeatureValueView,
   };
 
-  protected async loadData() {
-    return this.ctx<ProductTypeContext>().loaders.productFeature.load(this.value);
+  async loadData() {
+    return this.ctx<AdminViewContext>().loaders.productFeature.load(this.value);
   }
 
   id() {
@@ -25,7 +25,7 @@ export class FeatureType extends BaseType<string, ProductFeature | null> {
   }
 
   async name() {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const translation = await ctx.loaders.featureTranslation.load(this.value);
     if (translation?.name) return translation.name;
     return (await this.data)?.slug ?? "";
@@ -35,7 +35,7 @@ export class FeatureType extends BaseType<string, ProductFeature | null> {
    * Returns feature value IDs for this feature
    */
   async values(): Promise<string[]> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     return ctx.loaders.featureValueIds.load(this.value);
   }
 }

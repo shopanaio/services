@@ -1,5 +1,5 @@
 /**
- * Options domain types - matches GraphQL schema
+ * Options interface types
  */
 
 /** Display type for product options in the UI */

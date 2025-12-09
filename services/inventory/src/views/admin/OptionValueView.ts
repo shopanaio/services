@@ -1,15 +1,15 @@
 import { BaseType } from "@shopana/type-executor";
-import type { ProductOptionValue } from "../models/index.js";
-import type { ProductOptionSwatch } from "../../domain/index.js";
-import type { ProductTypeContext } from "./context.js";
+import type { ProductOptionValue } from "../../repositories/models/index.js";
+import type { ProductOptionSwatch } from "./interfaces/index.js";
+import type { AdminViewContext } from "./context.js";
 
 /**
- * Option value type - resolves ProductOptionValue domain interface
+ * Option value view - resolves ProductOptionValue domain interface
  * Accepts option value ID, loads data lazily via loaders
  */
-export class OptionValueType extends BaseType<string, ProductOptionValue | null> {
-  protected async loadData() {
-    return this.ctx<ProductTypeContext>().loaders.optionValue.load(this.value);
+export class OptionValueView extends BaseType<string, ProductOptionValue | null> {
+  async loadData() {
+    return this.ctx<AdminViewContext>().loaders.optionValue.load(this.value);
   }
 
   id() {
@@ -21,7 +21,7 @@ export class OptionValueType extends BaseType<string, ProductOptionValue | null>
   }
 
   async name() {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const translation = await ctx.loaders.optionValueTranslation.load(this.value);
     if (translation?.name) return translation.name;
     return (await this.data)?.slug ?? "";

@@ -26,6 +26,3 @@ export { ProductTypeRepository } from "./ProductTypeRepository";
 
 // Loaders
 export * from "./loaders";
-
-// Type definitions
-export * from "./types";

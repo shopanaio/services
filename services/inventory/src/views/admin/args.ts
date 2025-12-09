@@ -1,5 +1,5 @@
 /**
- * Common argument types for type-executor resolvers
+ * Common argument types for view resolvers
  */
 
 /**

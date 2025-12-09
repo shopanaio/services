@@ -3,17 +3,17 @@ import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import { getContext } from "../../context/index.js";
 import { variant, itemPricing } from "../models/index.js";
-import type { PaginationArgs } from "../types/args.js";
-import type { ProductQueries } from "../types/context.js";
+import type { PaginationArgs } from "../../views/admin/args.js";
+import type { ProductQueries } from "../../views/admin/context.js";
 
 // Create cursor pagination queries with drizzle-query
 const variantPaginationQuery = createCursorQuery(
-  createQuery(variant).maxLimit(100).defaultLimit(20).defaultSelect(["id"]),
+  createQuery(variant).maxLimit(100).defaultLimit(20).include(["id"]),
   { tieBreaker: "id" }
 );
 
 const pricePaginationQuery = createCursorQuery(
-  createQuery(itemPricing).maxLimit(100).defaultLimit(20).defaultSelect(["id"]),
+  createQuery(itemPricing).maxLimit(100).defaultLimit(20).include(["id"]),
   { tieBreaker: "id" }
 );
 
@@ -49,11 +49,19 @@ export class ProductQueryFactory {
    * Variant IDs by product ID with cursor pagination
    */
   private createVariantIdsQuery(): ProductQueries["variantIds"] {
-    return async (productId: string, args?: PaginationArgs) => {
+    return async (productId: string, args: PaginationArgs) => {
       const result = await variantPaginationQuery.execute(this.connection, {
-        limit: args?.first ?? args?.last ?? 20,
-        direction: args?.last ? "backward" : "forward",
-        cursor: args?.after ?? args?.before,
+        ...(args?.last
+          ? {
+              cursor: args.before,
+              direction: "backward",
+              limit: args.last ?? 20,
+            }
+          : {
+              cursor: args.after,
+              direction: "forward",
+              limit: args.first ?? 20,
+            }),
         where: {
           projectId: this.projectId,
           productId,
@@ -69,11 +77,19 @@ export class ProductQueryFactory {
    * Price IDs by variant ID with cursor pagination
    */
   private createVariantPriceIdsQuery(): ProductQueries["variantPriceIds"] {
-    return async (variantId: string, args?: PaginationArgs) => {
+    return async (variantId: string, args: PaginationArgs) => {
       const result = await pricePaginationQuery.execute(this.connection, {
-        limit: args?.first ?? args?.last ?? 20,
-        direction: args?.last ? "backward" : "forward",
-        cursor: args?.after ?? args?.before,
+        ...(args?.last
+          ? {
+              cursor: args.before,
+              direction: "backward",
+              limit: args.last ?? 20,
+            }
+          : {
+              cursor: args.after,
+              direction: "forward",
+              limit: args.first ?? 20,
+            }),
         where: {
           projectId: this.projectId,
           variantId,

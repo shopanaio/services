@@ -1,5 +1,5 @@
 /**
- * Stock domain types - matches GraphQL schema
+ * Stock interface types
  */
 
 import type { Timestamps } from "./common.js";

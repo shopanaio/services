@@ -1,5 +1,5 @@
 /**
- * Product domain types - matches GraphQL schema
+ * Product interface types
  */
 
 import type { Timestamps, SoftDeletable } from "./common.js";

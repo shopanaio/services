@@ -1,5 +1,5 @@
 /**
- * Features domain types - matches GraphQL schema
+ * Features interface types
  */
 
 /**

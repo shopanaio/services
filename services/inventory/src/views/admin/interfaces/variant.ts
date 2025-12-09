@@ -1,5 +1,5 @@
 /**
- * Variant domain types - matches GraphQL schema
+ * Variant interface types
  */
 
 import type { Timestamps, SoftDeletable } from "./common.js";

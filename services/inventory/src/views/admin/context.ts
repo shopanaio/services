@@ -19,7 +19,7 @@ import type {
   ItemWeight,
   VariantMedia,
   WarehouseStock,
-} from "../models/index.js";
+} from "../../repositories/models/index.js";
 import type { PaginationArgs } from "./args.js";
 
 /**
@@ -27,9 +27,12 @@ import type { PaginationArgs } from "./args.js";
  */
 export interface ProductQueries {
   /** Get variant IDs for a product with cursor pagination */
-  variantIds: (productId: string, args?: PaginationArgs) => Promise<string[]>;
+  variantIds: (productId: string, args: PaginationArgs) => Promise<string[]>;
   /** Get price IDs for a variant with cursor pagination */
-  variantPriceIds: (variantId: string, args?: PaginationArgs) => Promise<string[]>;
+  variantPriceIds: (
+    variantId: string,
+    args: PaginationArgs
+  ) => Promise<string[]>;
 }
 
 /**
@@ -59,7 +62,10 @@ export interface ProductLoaders {
   optionTranslation: DataLoader<string, ProductOptionTranslation | null>;
   optionValueIds: DataLoader<string, string[]>;
   optionValue: DataLoader<string, ProductOptionValue | null>;
-  optionValueTranslation: DataLoader<string, ProductOptionValueTranslation | null>;
+  optionValueTranslation: DataLoader<
+    string,
+    ProductOptionValueTranslation | null
+  >;
 
   // Features
   productFeatureIds: DataLoader<string, string[]>;
@@ -67,16 +73,19 @@ export interface ProductLoaders {
   featureTranslation: DataLoader<string, ProductFeatureTranslation | null>;
   featureValueIds: DataLoader<string, string[]>;
   featureValue: DataLoader<string, ProductFeatureValue | null>;
-  featureValueTranslation: DataLoader<string, ProductFeatureValueTranslation | null>;
+  featureValueTranslation: DataLoader<
+    string,
+    ProductFeatureValueTranslation | null
+  >;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 }
 
 /**
- * Product type context extending BaseContext
+ * Admin view context extending BaseContext
  */
-export interface ProductTypeContext extends BaseContext {
+export interface AdminViewContext extends BaseContext {
   loaders: ProductLoaders;
   queries: ProductQueries;
   locale: string;

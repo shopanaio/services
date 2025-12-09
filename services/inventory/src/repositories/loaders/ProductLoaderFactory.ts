@@ -4,7 +4,7 @@ import { VariantLoader, type VariantLoaders } from "./VariantLoader.js";
 import { ProductLoader, type ProductDataLoaders } from "./ProductLoader.js";
 import { OptionLoader, type OptionLoaders } from "./OptionLoader.js";
 import { FeatureLoader, type FeatureLoaders } from "./FeatureLoader.js";
-import type { ProductLoaders } from "../types/context.js";
+import type { ProductLoaders } from "../../views/admin/context.js";
 
 /**
  * Factory for creating all product-related DataLoaders.

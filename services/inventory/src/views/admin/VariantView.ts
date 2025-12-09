@@ -1,29 +1,32 @@
 import { BaseType } from "@shopana/type-executor";
-import type { Variant } from "../models/index.js";
 import type {
-  VariantPrice,
+  SelectedOption,
   VariantDimensions,
+  VariantMediaItem,
+  VariantPrice,
   VariantWeight,
   WarehouseStock,
-  SelectedOption,
-  VariantMediaItem,
-} from "../../domain/index.js";
-import type { ProductTypeContext } from "./context.js";
-import type { VariantPriceHistoryArgs, VariantCostHistoryArgs } from "./args.js";
-import { VariantPriceType } from "./VariantPriceType.js";
+} from "./interfaces/index.js";
+import type { Variant } from "../../repositories/models/index.js";
+import type {
+  VariantCostHistoryArgs,
+  VariantPriceHistoryArgs,
+} from "./args.js";
+import type { AdminViewContext } from "./context.js";
+import { VariantPriceView } from "./VariantPriceView.js";
 
 /**
- * Variant type - resolves Variant domain interface
+ * Variant view - resolves Variant domain interface
  * Accepts variant ID, loads main entity via loaders (lazy)
  * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantType extends BaseType<string, Variant | null> {
+export class VariantView extends BaseType<string, Variant | null> {
   static fields = {
-    priceHistory: () => VariantPriceType,
+    priceHistory: () => VariantPriceView,
   };
 
-  protected async loadData() {
-    return this.ctx<ProductTypeContext>().loaders.variant.load(this.value);
+  async loadData() {
+    return this.ctx<AdminViewContext>().loaders.variant.load(this.value);
   }
 
   id() {
@@ -55,11 +58,11 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async createdAt() {
-    return (await this.data)?.createdAt ?? null;
+    return (await this.data)?.createdAt;
   }
 
   async updatedAt() {
-    return (await this.data)?.updatedAt ?? null;
+    return (await this.data)?.updatedAt;
   }
 
   async deletedAt() {
@@ -67,13 +70,13 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async title() {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const translation = await ctx.loaders.variantTranslation.load(this.value);
     return translation?.title ?? null;
   }
 
   async price(): Promise<VariantPrice | null> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const prices = await ctx.loaders.variantPricing.load(this.value);
 
     // Filter by currency if specified
@@ -102,8 +105,8 @@ export class VariantType extends BaseType<string, Variant | null> {
    * Returns price history IDs for this variant
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async priceHistory(args?: VariantPriceHistoryArgs): Promise<string[]> {
-    const ctx = this.ctx<ProductTypeContext>();
+  async priceHistory(args: VariantPriceHistoryArgs): Promise<string[]> {
+    const ctx = this.ctx<AdminViewContext>();
     return ctx.queries.variantPriceIds(this.value, args);
   }
 
@@ -120,7 +123,7 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const links = await ctx.loaders.variantSelectedOptions.load(this.value);
     return links
       .filter((link) => link.optionValueId !== null)
@@ -131,7 +134,7 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async dimensions(): Promise<VariantDimensions | null> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const dims = await ctx.loaders.variantDimensions.load(this.value);
     if (!dims) return null;
 
@@ -143,7 +146,7 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async weight(): Promise<VariantWeight | null> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const w = await ctx.loaders.variantWeight.load(this.value);
     if (!w) return null;
 
@@ -153,7 +156,7 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async stock(): Promise<WarehouseStock[]> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const stocks = await ctx.loaders.variantStock.load(this.value);
     return stocks.map((s) => ({
       id: s.id,
@@ -166,13 +169,13 @@ export class VariantType extends BaseType<string, Variant | null> {
   }
 
   async inStock(): Promise<boolean> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const stocks = await ctx.loaders.variantStock.load(this.value);
     return stocks.some((s) => s.quantityOnHand > 0);
   }
 
   async media(): Promise<VariantMediaItem[]> {
-    const ctx = this.ctx<ProductTypeContext>();
+    const ctx = this.ctx<AdminViewContext>();
     const mediaItems = await ctx.loaders.variantMedia.load(this.value);
     return mediaItems.map((m) => ({
       fileId: m.fileId,
