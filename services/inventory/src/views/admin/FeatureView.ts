@@ -1,13 +1,12 @@
 import { BaseType } from "@shopana/type-executor";
 import type { ProductFeature } from "../../repositories/models/index.js";
-import type { ViewContext } from "./context.js";
 import { FeatureValueView } from "./FeatureValueView.js";
 
 /**
  * Feature view - resolves Feature domain interface
  * Accepts feature ID, loads data lazily via loaders
  */
-export class FeatureView extends BaseType<string, ProductFeature | null, ViewContext> {
+export class FeatureView extends BaseType<string, ProductFeature | null> {
   static fields = {
     values: () => FeatureValueView,
   };
@@ -25,7 +24,9 @@ export class FeatureView extends BaseType<string, ProductFeature | null, ViewCon
   }
 
   async name() {
-    const translation = await this.ctx.loaders.featureTranslation.load(this.value);
+    const translation = await this.ctx.loaders.featureTranslation.load(
+      this.value
+    );
     if (translation?.name) return translation.name;
     return (await this.data)?.slug ?? "";
   }

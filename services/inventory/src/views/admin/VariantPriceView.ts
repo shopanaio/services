@@ -1,13 +1,12 @@
 import { BaseType } from "@shopana/type-executor";
 import type { ItemPricing } from "../../repositories/models/index.js";
 import type { CurrencyCode } from "./interfaces/index.js";
-import type { ViewContext } from "./context.js";
 
 /**
  * VariantPrice view - resolves price record
  * Accepts price ID, loads data lazily via loaders
  */
-export class VariantPriceView extends BaseType<string, ItemPricing | null, ViewContext> {
+export class VariantPriceView extends BaseType<string, ItemPricing | null> {
   async loadData() {
     return this.ctx.loaders.variantPriceById.load(this.value);
   }

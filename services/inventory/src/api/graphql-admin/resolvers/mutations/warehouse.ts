@@ -5,7 +5,6 @@ import {
 } from "../../../../scripts/warehouse/index.js";
 import type { Resolvers, Warehouse } from "../../generated/types.js";
 import { WarehouseView } from "../../../../views/admin/index.js";
-import { parseGraphQLInfoForField } from "@shopana/type-executor";
 import { noDatabaseError } from "../utils.js";
 
 export const warehouseMutationResolvers: Resolvers = {
@@ -21,14 +20,9 @@ export const warehouseMutationResolvers: Resolvers = {
         isDefault: input.isDefault ?? undefined,
       });
 
-      const fieldArgs = parseGraphQLInfoForField(info, "warehouse", WarehouseView);
-
       return {
         warehouse: result.warehouse
-          ? ((await WarehouseView.load(
-              result.warehouse.id,
-              fieldArgs
-            )) as Warehouse)
+          ? ((await WarehouseView.load(result.warehouse.id, info)) as Warehouse)
           : null,
         userErrors: result.userErrors,
       };
@@ -46,7 +40,11 @@ export const warehouseMutationResolvers: Resolvers = {
         isDefault: input.isDefault ?? undefined,
       });
 
-      const fieldArgs = parseGraphQLInfoForField(info, "warehouse", WarehouseView);
+      const fieldArgs = parseGraphQLInfoForField(
+        info,
+        "warehouse",
+        WarehouseView
+      );
 
       return {
         warehouse: result.warehouse

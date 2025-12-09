@@ -1,12 +1,11 @@
 import { BaseType } from "@shopana/type-executor";
 import type { Warehouse } from "../../repositories/models/index.js";
-import type { ViewContext } from "./context.js";
 
 /**
  * Warehouse view - resolves Warehouse domain interface
  * Accepts warehouse ID, loads data lazily via loaders
  */
-export class WarehouseView extends BaseType<string, Warehouse | null, ViewContext> {
+export class WarehouseView extends BaseType<string, Warehouse | null> {
   async loadData() {
     return this.ctx.loaders.warehouse.load(this.value);
   }

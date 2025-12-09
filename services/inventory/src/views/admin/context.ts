@@ -84,14 +84,3 @@ export interface ProductLoaders {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;
 }
-
-/**
- * View context - passed to View types by executor
- * Contains loaders, queries, and locale/currency for resolution
- */
-export interface ViewContext {
-  loaders: ProductLoaders;
-  queries: ProductQueries;
-  locale?: string;
-  currency?: string;
-}

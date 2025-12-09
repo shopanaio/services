@@ -1,14 +1,13 @@
 import { BaseType } from "@shopana/type-executor";
 import type { ProductOption } from "../../repositories/models/index.js";
 import type { OptionDisplayType } from "./interfaces/index.js";
-import type { ViewContext } from "./context.js";
 import { OptionValueView } from "./OptionValueView.js";
 
 /**
  * Option view - resolves Option domain interface
  * Accepts option ID, loads data lazily via loaders
  */
-export class OptionView extends BaseType<string, ProductOption | null, ViewContext> {
+export class OptionView extends BaseType<string, ProductOption | null> {
   static fields = {
     values: () => OptionValueView,
   };
@@ -26,7 +25,9 @@ export class OptionView extends BaseType<string, ProductOption | null, ViewConte
   }
 
   async name() {
-    const translation = await this.ctx.loaders.optionTranslation.load(this.value);
+    const translation = await this.ctx.loaders.optionTranslation.load(
+      this.value
+    );
     if (translation?.name) return translation.name;
     return (await this.data)?.slug ?? "";
   }

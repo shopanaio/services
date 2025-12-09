@@ -12,7 +12,6 @@ import type {
   VariantCostHistoryArgs,
   VariantPriceHistoryArgs,
 } from "./args.js";
-import type { ViewContext } from "./context.js";
 import { VariantPriceView } from "./VariantPriceView.js";
 
 /**
@@ -20,7 +19,7 @@ import { VariantPriceView } from "./VariantPriceView.js";
  * Accepts variant ID, loads main entity via loaders (lazy)
  * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantView extends BaseType<string, Variant | null, ViewContext> {
+export class VariantView extends BaseType<string, Variant | null> {
   static fields = {
     priceHistory: () => VariantPriceView,
   };
@@ -70,7 +69,9 @@ export class VariantView extends BaseType<string, Variant | null, ViewContext> {
   }
 
   async title() {
-    const translation = await this.ctx.loaders.variantTranslation.load(this.value);
+    const translation = await this.ctx.loaders.variantTranslation.load(
+      this.value
+    );
     return translation?.title ?? null;
   }
 
@@ -120,7 +121,9 @@ export class VariantView extends BaseType<string, Variant | null, ViewContext> {
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {
-    const links = await this.ctx.loaders.variantSelectedOptions.load(this.value);
+    const links = await this.ctx.loaders.variantSelectedOptions.load(
+      this.value
+    );
     return links
       .filter((link) => link.optionValueId !== null)
       .map((link) => ({
