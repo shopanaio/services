@@ -5,20 +5,32 @@ import { executor } from "@shopana/type-executor";
 
 export const queryResolvers: Partial<Resolvers> = {
   Query: {
-    inventoryQuery: (() => ({})) as unknown as NonNullable<NonNullable<Resolvers["Query"]>["inventoryQuery"]>,
+    inventoryQuery: (() => ({})) as any,
   },
 
   InventoryQuery: {
     node: async (_parent, { id }, _ctx, info) => {
-      return executor.resolve<typeof ProductView, Product>(ProductView, id, info);
+      return executor.resolve<typeof ProductView, Product>(
+        ProductView,
+        id,
+        info
+      );
     },
 
     nodes: async (_parent, { ids }, _ctx, info) => {
-      return executor.resolveMany<typeof ProductView, Product>(ProductView, ids, info);
+      return executor.resolveMany<typeof ProductView, Product>(
+        ProductView,
+        ids,
+        info
+      );
     },
 
     product: async (_parent, { id }, _ctx, info) => {
-      return executor.resolve<typeof ProductView, Product>(ProductView, id, info);
+      return executor.resolve<typeof ProductView, Product>(
+        ProductView,
+        id,
+        info
+      );
     },
 
     products: async (_parent, args, ctx, info) => {
@@ -34,7 +46,10 @@ export const queryResolvers: Partial<Resolvers> = {
       const resultProducts = hasNextPage ? products.slice(0, first) : products;
 
       const productIds = resultProducts.map((p) => p.id);
-      const resolvedProducts = await executor.resolveMany<typeof ProductView, Product>(ProductView, productIds, info);
+      const resolvedProducts = await executor.resolveMany<
+        typeof ProductView,
+        Product
+      >(ProductView, productIds, info);
 
       const edges = resolvedProducts.map((product, index) => ({
         node: product,
