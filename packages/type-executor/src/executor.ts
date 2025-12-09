@@ -1,4 +1,10 @@
-import type { TypeClass, ExecutorOptions, FieldArgsTreeFor, FieldArgsNode, TypeResult } from "./types.js";
+import type {
+  TypeClass,
+  ExecutorOptions,
+  FieldArgsTreeFor,
+  FieldArgsNode,
+  TypeResult,
+} from "./types.js";
 import type { GraphQLResolveInfo } from "graphql";
 import { GraphQLObjectType } from "graphql";
 import { parseGraphQLInfoDeep } from "./utils/graphqlArgsParser.js";
@@ -43,9 +49,11 @@ export class ResolverError extends Error {
  *
  * When fieldArgs is provided, only requested fields are resolved (like GraphQL).
  * Supports aliases: keys in fieldArgs can be aliases with `fieldName` pointing to the actual method.
+ *
+ * @template TContext - The type of the context object passed to type instances
  */
-export class Executor {
-  constructor(private options: ExecutorOptions = {}) {}
+export class Executor<TContext = unknown> {
+  constructor(private options: ExecutorOptions<TContext> = {}) {}
 
   /**
    * Resolves a value through a TypeClass, executing resolver methods
@@ -58,13 +66,14 @@ export class Executor {
    *                    Keys can be aliases with `fieldName` pointing to the actual method.
    * @returns The fully resolved object with all fields
    */
-  async resolve<T extends TypeClass, TResult = TypeResult<T>>(
+  async load<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     value: ConstructorParameters<T>[0],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
   ): Promise<TResult> {
-    const instance = new Type(value);
-    const fieldsMap = (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
+    const instance = new Type(value, this.options.ctx);
+    const fieldsMap =
+      (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
 
     // Auto-convert GraphQL resolve info to field args tree
@@ -72,11 +81,16 @@ export class Executor {
       ? parseGraphQLInfoDeep(fieldArgs, Type)
       : fieldArgs;
 
-    const argsTree = (normalizedFieldArgs ?? {}) as Record<string, FieldArgsNode | undefined>;
+    const argsTree = (normalizedFieldArgs ?? {}) as Record<
+      string,
+      FieldArgsNode | undefined
+    >;
 
     // Only resolve fields that are explicitly requested (like GraphQL)
     // If no fieldArgs provided, return empty object
-    const fieldsToResolve = Object.keys(argsTree).filter((key) => argsTree[key] !== undefined);
+    const fieldsToResolve = Object.keys(argsTree).filter(
+      (key) => argsTree[key] !== undefined
+    );
 
     if (fieldsToResolve.length === 0) {
       return result as TResult;
@@ -113,7 +127,7 @@ export class Executor {
             if (Array.isArray(resolved)) {
               result[key] = await Promise.all(
                 resolved.map((item) =>
-                  this.resolve(
+                  this.load(
                     ChildType as TypeClass,
                     item as ConstructorParameters<typeof ChildType>[0],
                     childArgsTree as FieldArgsTreeFor<typeof ChildType>
@@ -121,7 +135,7 @@ export class Executor {
                 )
               );
             } else {
-              result[key] = await this.resolve(
+              result[key] = await this.load(
                 ChildType as TypeClass,
                 resolved as ConstructorParameters<typeof ChildType>[0],
                 childArgsTree as FieldArgsTreeFor<typeof ChildType>
@@ -156,7 +170,7 @@ export class Executor {
   /**
    * Resolves an array of values through a TypeClass.
    */
-  async resolveMany<T extends TypeClass, TResult = TypeResult<T>>(
+  async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     values: ConstructorParameters<T>[0][],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
@@ -165,22 +179,67 @@ export class Executor {
       ? parseGraphQLInfoDeep(fieldArgs, Type)
       : fieldArgs;
 
-    return Promise.all(values.map((value) => this.resolve<T, TResult>(Type, value, normalizedFieldArgs)));
+    return Promise.all(
+      values.map((value) =>
+        this.load<T, TResult>(Type, value, normalizedFieldArgs)
+      )
+    );
   }
-
 }
-
-/**
- * Default executor instance for convenience.
- */
-export const executor = new Executor();
 
 /**
  * Creates a new executor with custom options.
  *
+ * @template TContext - The type of the context object
  * @param options - Configuration options for the executor
  * @returns A new Executor instance
  */
-export function createExecutor(options: ExecutorOptions): Executor {
+export function createExecutor<TContext = unknown>(
+  options: ExecutorOptions<TContext>
+): Executor<TContext> {
   return new Executor(options);
+}
+
+/**
+ * Load and resolve a value through a TypeClass.
+ *
+ * @param Type - The TypeClass to use for resolution
+ * @param value - The raw value to resolve
+ * @param fieldArgs - Optional field arguments or GraphQL resolve info
+ * @param ctx - Context object to pass to type instances
+ */
+export function load<
+  T extends TypeClass,
+  TResult = TypeResult<T>,
+  TContext = unknown
+>(
+  Type: T,
+  value: ConstructorParameters<T>[0],
+  fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
+  ctx: TContext
+): Promise<TResult> {
+  const exec = new Executor({ ctx });
+  return exec.load<T, TResult>(Type, value, fieldArgs);
+}
+
+/**
+ * Load and resolve multiple values through a TypeClass.
+ *
+ * @param Type - The TypeClass to use for resolution
+ * @param values - The raw values to resolve
+ * @param fieldArgs - Optional field arguments or GraphQL resolve info
+ * @param ctx - Context object to pass to type instances
+ */
+export function loadMany<
+  T extends TypeClass,
+  TResult = TypeResult<T>,
+  TContext = unknown
+>(
+  Type: T,
+  values: ConstructorParameters<T>[0][],
+  fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
+  ctx: TContext
+): Promise<TResult[]> {
+  const exec = new Executor({ ctx });
+  return exec.loadMany<T, TResult>(Type, values, fieldArgs);
 }

@@ -1,5 +1,5 @@
-// Executor
-export { Executor, executor, createExecutor, ResolverError } from "./executor.js";
+// Load functions
+export { load, loadMany, ResolverError } from "./executor.js";
 
 // Base type
 export { BaseType } from "./baseType.js";
@@ -8,7 +8,6 @@ export { BaseType } from "./baseType.js";
 export type {
   TypeClass,
   TypeInstance,
-  ExecutorOptions,
   ResolverMethod,
   TypeResult,
   TypeValue,

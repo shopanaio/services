@@ -1,40 +1,51 @@
-import { executor } from "./executor.js";
-import type { TypeClass, FieldArgsTreeFor, TypeResult } from "./types.js";
 import type { GraphQLResolveInfo } from "graphql";
+import { load, loadMany } from "./executor.js";
+import type { FieldArgsTreeFor, TypeClass, TypeResult } from "./types.js";
 
 /**
  * Abstract base class for type definitions.
  * Provides convenience methods for loading data and value properties.
  *
- * @template TId - The type of the identifier or raw input value
- * @template TData - The type of the loaded data entity (defaults to TId for backward compatibility)
+ * @template TValue - The type of the input value passed to the constructor
+ * @template TData - The type of the loaded data entity (defaults to TValue)
+ * @template TContext - The type of the context object (defaults to unknown)
  */
-export abstract class BaseType<TId, TData = TId> {
+export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   /**
    * Static method to load and resolve a value through the executor.
+   *
+   * @param value - The value to resolve
+   * @param fieldArgs - Optional field arguments or GraphQL resolve info
+   * @param ctx - Context object to pass to type instances
    */
-  static load<T extends TypeClass, TResult = TypeResult<T>>(
+  static load<T extends TypeClass, TResult = TypeResult<T>, TCtx = unknown>(
     this: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
+    fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
+    ctx: TCtx
   ): Promise<TResult> {
-    return executor.resolve<T, TResult>(this, value, fieldArgs);
+    return load<T, TResult, TCtx>(this, value, fieldArgs, ctx);
   }
 
   /**
    * Static method to load and resolve multiple values through the executor.
+   *
+   * @param values - The values to resolve
+   * @param fieldArgs - Optional field arguments or GraphQL resolve info
+   * @param ctx - Context object to pass to type instances
    */
-  static loadMany<T extends TypeClass, TResult = TypeResult<T>>(
+  static loadMany<T extends TypeClass, TResult = TypeResult<T>, TCtx = unknown>(
     this: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
+    fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
+    ctx: TCtx
   ): Promise<TResult[]> {
-    return executor.resolveMany<T, TResult>(this, values, fieldArgs);
+    return loadMany<T, TResult, TCtx>(this, values, fieldArgs, ctx);
   }
 
   private _dataPromise: Promise<TData> | null = null;
 
-  constructor(public value: TId) {}
+  constructor(public value: TValue, protected readonly ctx: TContext) {}
 
   /**
    * Loads entity data. Override this method to load data via loaders.

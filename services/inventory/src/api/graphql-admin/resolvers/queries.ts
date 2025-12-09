@@ -1,7 +1,7 @@
-import type { Resolvers, Product, Warehouse } from "../generated/types.js";
-import { requireKernel } from "./utils.js";
+import { InventoryContext } from "../../../context/types.js";
 import { ProductView, WarehouseView } from "../../../views/admin/index.js";
-import { executor } from "@shopana/type-executor";
+import type { Product, Resolvers, Warehouse } from "../generated/types.js";
+import { requireKernel } from "./utils.js";
 
 export const queryResolvers: Partial<Resolvers> = {
   Query: {
@@ -9,28 +9,16 @@ export const queryResolvers: Partial<Resolvers> = {
   },
 
   InventoryQuery: {
-    node: async (_parent, { id }, _ctx, info) => {
-      return executor.resolve<typeof ProductView, Product>(
-        ProductView,
-        id,
-        info
-      );
+    node: async (_parent, { id }, ctx, info) => {
+      return ProductView.load(id, info, ctx._inventoryContext);
     },
 
-    nodes: async (_parent, { ids }, _ctx, info) => {
-      return executor.resolveMany<typeof ProductView, Product>(
-        ProductView,
-        ids,
-        info
-      );
+    nodes: async (_parent, { ids }, ctx, info) => {
+      return ProductView.loadMany(ids, info, ctx._inventoryContext);
     },
 
     product: async (_parent, { id }, _ctx, info) => {
-      return executor.resolve<typeof ProductView, Product>(
-        ProductView,
-        id,
-        info
-      );
+      return ProductView.load(id, info, ctx._inventoryContext);
     },
 
     products: async (_parent, args, ctx, info) => {
@@ -46,10 +34,11 @@ export const queryResolvers: Partial<Resolvers> = {
       const resultProducts = hasNextPage ? products.slice(0, first) : products;
 
       const productIds = resultProducts.map((p) => p.id);
-      const resolvedProducts = await executor.resolveMany<
-        typeof ProductView,
-        Product
-      >(ProductView, productIds, info);
+      const resolvedProducts = await ProductView.loadMany(
+        productIds,
+        info,
+        ctx._inventoryContext
+      );
 
       const edges = resolvedProducts.map((product, index) => ({
         node: product,
@@ -76,12 +65,12 @@ export const queryResolvers: Partial<Resolvers> = {
       throw new Error("Not implemented");
     },
 
-    warehouse: async (_parent, { id }, _ctx, info) => {
-      return executor.resolve<typeof WarehouseView, Warehouse>(
-        WarehouseView,
-        id,
-        info
-      );
+    warehouse: async (_parent, { id }, ctx, info) => {
+      return WarehouseView.load<
+        typeof WarehouseView,
+        Product,
+        InventoryContext
+      >(id, info, ctx._inventoryContext);
     },
 
     warehouses: async (_parent, args, ctx, info) => {

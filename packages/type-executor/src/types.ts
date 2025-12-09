@@ -1,8 +1,10 @@
 /**
  * Type class constructor interface.
+ * @template TValue - The type of the value passed to the constructor
+ * @template TContext - The type of the context passed to the constructor
  */
-export interface TypeClass<T = string> {
-  new (value: T, ...rest: never[]): object;
+export interface TypeClass<TValue = string, TContext = unknown> {
+  new (value: TValue, ctx: TContext): object;
   fields?: Record<string, Function>;
 }
 
@@ -15,8 +17,9 @@ export interface TypeInstance {
 
 /**
  * Executor options for customizing behavior.
+ * @template TContext - The type of the context to pass to type instances
  */
-export interface ExecutorOptions {
+export interface ExecutorOptions<TContext = unknown> {
   /**
    * Error handling strategy:
    * - 'throw': Re-throw errors (default)
@@ -24,6 +27,11 @@ export interface ExecutorOptions {
    * - 'partial': Return { __error: message } for failed fields
    */
   onError?: "throw" | "null" | "partial";
+  /**
+   * Context object to pass to all type instances.
+   * Available as `this.ctx` in BaseType subclasses.
+   */
+  ctx?: TContext;
 }
 
 /**
