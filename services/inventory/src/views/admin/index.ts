@@ -21,3 +21,6 @@ export { OptionValueView } from "./OptionValueView.js";
 // Feature views
 export { FeatureView } from "./FeatureView.js";
 export { FeatureValueView } from "./FeatureValueView.js";
+
+// Warehouse view
+export { WarehouseView } from "./WarehouseView.js";

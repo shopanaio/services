@@ -1,5 +1,7 @@
 import type { ApolloServerPlugin } from "@apollo/server";
+import { setViewContext } from "@shopana/type-executor";
 import { setContext } from "../../context/index.js";
+import { createViewContext } from "./resolvers/utils.js";
 import type { GraphQLContext } from "./server.js";
 
 /**
@@ -24,6 +26,12 @@ export function inventoryContextPlugin(): ApolloServerPlugin<GraphQLContext> {
 
           // Set context in AsyncLocalStorage for all resolvers
           setContext(inventoryContext);
+
+          // Set view context for type-executor Views
+          if (contextValue.kernel) {
+            const viewContext = createViewContext(contextValue.kernel);
+            setViewContext(viewContext);
+          }
         },
       };
     },

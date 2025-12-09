@@ -31,6 +31,23 @@ export class WarehouseRepository extends BaseRepository {
   }
 
   /**
+   * Get all warehouses for the project
+   */
+  async getAll(limit?: number): Promise<Warehouse[]> {
+    const query = this.connection
+      .select()
+      .from(warehouses)
+      .where(eq(warehouses.projectId, this.projectId))
+      .orderBy(warehouses.createdAt);
+
+    if (limit) {
+      return query.limit(limit);
+    }
+
+    return query;
+  }
+
+  /**
    * Find warehouse by code
    */
   async findByCode(code: string): Promise<Warehouse | null> {

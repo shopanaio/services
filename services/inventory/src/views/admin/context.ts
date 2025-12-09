@@ -18,6 +18,7 @@ import type {
   ItemWeight,
   VariantMedia,
   WarehouseStock,
+  Warehouse,
 } from "../../repositories/models/index.js";
 import type { PaginationArgs } from "./args.js";
 
@@ -76,6 +77,9 @@ export interface ProductLoaders {
     string,
     ProductFeatureValueTranslation | null
   >;
+
+  // Warehouse
+  warehouse: DataLoader<string, Warehouse | null>;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: DataLoader<any, any>;

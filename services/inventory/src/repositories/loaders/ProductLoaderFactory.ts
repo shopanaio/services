@@ -4,17 +4,19 @@ import { VariantLoader, type VariantLoaders } from "./VariantLoader.js";
 import { ProductLoader, type ProductDataLoaders } from "./ProductLoader.js";
 import { OptionLoader, type OptionLoaders } from "./OptionLoader.js";
 import { FeatureLoader, type FeatureLoaders } from "./FeatureLoader.js";
+import { WarehouseLoader, type WarehouseLoaders } from "./WarehouseLoader.js";
 import type { ProductLoaders } from "../../views/admin/context.js";
 
 /**
  * Factory for creating all product-related DataLoaders.
- * Combines loaders from VariantLoader, ProductLoader, OptionLoader, and FeatureLoader.
+ * Combines loaders from VariantLoader, ProductLoader, OptionLoader, FeatureLoader, and WarehouseLoader.
  */
 export class ProductLoaderFactory {
   private readonly variantLoader: VariantLoader;
   private readonly productLoader: ProductLoader;
   private readonly optionLoader: OptionLoader;
   private readonly featureLoader: FeatureLoader;
+  private readonly warehouseLoader: WarehouseLoader;
 
   constructor(
     private readonly db: Database,
@@ -24,6 +26,7 @@ export class ProductLoaderFactory {
     this.productLoader = new ProductLoader(db, txManager);
     this.optionLoader = new OptionLoader(db, txManager);
     this.featureLoader = new FeatureLoader(db, txManager);
+    this.warehouseLoader = new WarehouseLoader(db, txManager);
   }
 
   /**
@@ -34,12 +37,14 @@ export class ProductLoaderFactory {
     const productLoaders = this.productLoader.createLoaders();
     const optionLoaders = this.optionLoader.createLoaders();
     const featureLoaders = this.featureLoader.createLoaders();
+    const warehouseLoaders = this.warehouseLoader.createLoaders();
 
     return {
       ...variantLoaders,
       ...productLoaders,
       ...optionLoaders,
       ...featureLoaders,
+      ...warehouseLoaders,
     };
   }
 
@@ -69,5 +74,12 @@ export class ProductLoaderFactory {
    */
   createFeatureLoaders(): FeatureLoaders {
     return this.featureLoader.createLoaders();
+  }
+
+  /**
+   * Create only warehouse-related loaders
+   */
+  createWarehouseLoaders(): WarehouseLoaders {
+    return this.warehouseLoader.createLoaders();
   }
 }

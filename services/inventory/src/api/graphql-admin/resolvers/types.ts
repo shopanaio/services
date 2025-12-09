@@ -1,8 +1,11 @@
 import type { GraphQLResolveInfo } from "graphql";
-import { ProductView, VariantView } from "../../../views/admin/index.js";
+import {
+  ProductView,
+  VariantView,
+  WarehouseView,
+} from "../../../views/admin/index.js";
 import type { Resolvers } from "../generated/types.js";
 import type { GraphQLContext } from "../server.js";
-import { requireKernel } from "./utils.js";
 
 /**
  * Resolves product using executor
@@ -27,12 +30,14 @@ async function resolveVariant(
 }
 
 /**
- * Resolves warehouse by ID
+ * Resolves warehouse using executor
  */
-async function resolveWarehouseById(warehouseId: string, ctx: GraphQLContext) {
-  const kernel = requireKernel(ctx);
-  const services = kernel.getServices();
-  return services.repository.warehouse.findById(warehouseId);
+async function resolveWarehouse(
+  warehouseId: string,
+  _ctx: GraphQLContext,
+  info: GraphQLResolveInfo
+) {
+  return WarehouseView.load(warehouseId, info);
 }
 
 export const typeResolvers: Resolvers = {
@@ -89,10 +94,11 @@ export const typeResolvers: Resolvers = {
   Warehouse: {
     __resolveReference: async (
       reference: { id: string },
-      ctx: GraphQLContext
+      ctx: GraphQLContext,
+      info
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<any> => {
-      return resolveWarehouseById(reference.id, ctx);
+      return resolveWarehouse(reference.id, ctx, info);
     },
   },
 };

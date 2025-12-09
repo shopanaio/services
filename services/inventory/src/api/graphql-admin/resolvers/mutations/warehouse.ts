@@ -4,11 +4,13 @@ import {
   warehouseUpdate,
 } from "../../../../scripts/warehouse/index.js";
 import type { Resolvers, Warehouse } from "../../generated/types.js";
+import { WarehouseView } from "../../../../views/admin/index.js";
+import { parseGraphQLInfoForField } from "@shopana/type-executor";
 import { noDatabaseError } from "../utils.js";
 
 export const warehouseMutationResolvers: Resolvers = {
   InventoryMutation: {
-    warehouseCreate: async (_parent, { input }, ctx) => {
+    warehouseCreate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ warehouse: null });
       }
@@ -19,15 +21,20 @@ export const warehouseMutationResolvers: Resolvers = {
         isDefault: input.isDefault ?? undefined,
       });
 
+      const fieldArgs = parseGraphQLInfoForField(info, "warehouse", WarehouseView);
+
       return {
         warehouse: result.warehouse
-          ? ({ id: result.warehouse.id } as Warehouse)
+          ? ((await WarehouseView.load(
+              result.warehouse.id,
+              fieldArgs
+            )) as Warehouse)
           : null,
         userErrors: result.userErrors,
       };
     },
 
-    warehouseUpdate: async (_parent, { input }, ctx) => {
+    warehouseUpdate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ warehouse: null });
       }
@@ -39,9 +46,14 @@ export const warehouseMutationResolvers: Resolvers = {
         isDefault: input.isDefault ?? undefined,
       });
 
+      const fieldArgs = parseGraphQLInfoForField(info, "warehouse", WarehouseView);
+
       return {
         warehouse: result.warehouse
-          ? ({ id: result.warehouse.id } as Warehouse)
+          ? ((await WarehouseView.load(
+              result.warehouse.id,
+              fieldArgs
+            )) as Warehouse)
           : null,
         userErrors: result.userErrors,
       };

@@ -1,6 +1,6 @@
-import type { Resolvers, Product } from "../generated/types.js";
+import type { Resolvers, Product, Warehouse } from "../generated/types.js";
 import { requireKernel } from "./utils.js";
-import { ProductView } from "../../../views/admin/index.js";
+import { ProductView, WarehouseView } from "../../../views/admin/index.js";
 import { executor } from "@shopana/type-executor";
 
 export const queryResolvers: Partial<Resolvers> = {
@@ -76,12 +76,47 @@ export const queryResolvers: Partial<Resolvers> = {
       throw new Error("Not implemented");
     },
 
-    warehouse: async () => {
-      throw new Error("Not implemented");
+    warehouse: async (_parent, { id }, _ctx, info) => {
+      return executor.resolve<typeof WarehouseView, Warehouse>(
+        WarehouseView,
+        id,
+        info
+      );
     },
 
-    warehouses: async () => {
-      throw new Error("Not implemented");
+    warehouses: async (_parent, args, ctx, info) => {
+      const kernel = requireKernel(ctx);
+      const services = kernel.getServices();
+      const first = args.first ?? 10;
+
+      const warehouses = await services.repository.warehouse.getAll(first + 1);
+
+      const hasNextPage = warehouses.length > first;
+      const resultWarehouses = hasNextPage
+        ? warehouses.slice(0, first)
+        : warehouses;
+
+      const warehouseIds = resultWarehouses.map((w) => w.id);
+      const resolvedWarehouses = await executor.resolveMany<
+        typeof WarehouseView,
+        Warehouse
+      >(WarehouseView, warehouseIds, info);
+
+      const edges = resolvedWarehouses.map((warehouse, index) => ({
+        node: warehouse,
+        cursor: Buffer.from(resultWarehouses[index].id).toString("base64"),
+      }));
+
+      return {
+        edges,
+        pageInfo: {
+          hasNextPage,
+          hasPreviousPage: false,
+          startCursor: edges[0]?.cursor ?? null,
+          endCursor: edges[edges.length - 1]?.cursor ?? null,
+        },
+        totalCount: resultWarehouses.length,
+      };
     },
   },
 };
