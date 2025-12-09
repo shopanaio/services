@@ -1,23 +1,18 @@
-import { executor } from "@shopana/type-executor";
-import { parseGraphQLInfoDeep } from "@shopana/type-executor/graphql";
 import type { GraphQLResolveInfo } from "graphql";
 import { ProductView, VariantView } from "../../../views/admin/index.js";
 import type { Resolvers } from "../generated/types.js";
 import type { GraphQLContext } from "../server.js";
-import { createViewContext, requireKernel } from "./utils.js";
+import { requireKernel } from "./utils.js";
 
 /**
  * Resolves product using executor
  */
 async function resolveProduct(
   productId: string,
-  ctx: GraphQLContext,
+  _ctx: GraphQLContext,
   info: GraphQLResolveInfo
 ) {
-  const kernel = requireKernel(ctx);
-  const viewCtx = createViewContext(kernel);
-  const fieldArgs = parseGraphQLInfoDeep(info, ProductView);
-  return executor.resolve(ProductView, productId, fieldArgs, viewCtx);
+  return ProductView.load(productId, info);
 }
 
 /**
@@ -25,13 +20,10 @@ async function resolveProduct(
  */
 async function resolveVariant(
   variantId: string,
-  ctx: GraphQLContext,
+  _ctx: GraphQLContext,
   info: GraphQLResolveInfo
 ) {
-  const kernel = requireKernel(ctx);
-  const viewCtx = createViewContext(kernel);
-  const fieldArgs = parseGraphQLInfoDeep(info, VariantView);
-  return executor.resolve(VariantView, variantId, fieldArgs, viewCtx);
+  return VariantView.load(variantId, info);
 }
 
 /**

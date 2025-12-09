@@ -1,15 +1,9 @@
 /**
  * Type class constructor interface.
- * A TypeClass is a class that:
- * - Takes a value in its constructor
- * - Has methods that act as resolvers
- * - Optionally has a static `fields` property mapping to child types
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface TypeClass<T = any> {
-  new (value: T): object;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fields?: Record<string, () => TypeClass<any>>;
+export interface TypeClass<T = string> {
+  new (value: T, ...rest: never[]): object;
+  fields?: Record<string, Function>;
 }
 
 /**

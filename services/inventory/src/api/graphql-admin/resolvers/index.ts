@@ -1,4 +1,4 @@
-import type { Resolvers } from "../generated/types.js";
+import type { Resolvers, InventoryMutation } from "../generated/types.js";
 
 // Queries
 import { queryResolvers } from "./queries.js";
@@ -19,7 +19,7 @@ import { typeResolvers } from "./types.js";
 /**
  * Deep merge resolvers - combines multiple resolver objects into one
  */
-function mergeResolvers(...resolversList: Resolvers[]): Resolvers {
+function mergeResolvers(...resolversList: Partial<Resolvers>[]): Resolvers {
   const merged: Record<string, Record<string, unknown>> = {};
 
   for (const resolvers of resolversList) {
@@ -38,7 +38,7 @@ export const resolvers: Resolvers = mergeResolvers(
   // Base mutation wrapper
   {
     Mutation: {
-      inventoryMutation: () => ({}),
+      inventoryMutation: () => ({}) as InventoryMutation,
     },
   },
 

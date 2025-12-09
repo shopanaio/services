@@ -1,4 +1,4 @@
-import type { TypeClass, ExecutorOptions, FieldArgsTreeFor, FieldArgsNode } from "./types.js";
+import type { TypeClass, ExecutorOptions, FieldArgsTreeFor, FieldArgsNode, TypeResult } from "./types.js";
 import type { GraphQLResolveInfo } from "graphql";
 import { GraphQLObjectType } from "graphql";
 import { parseGraphQLInfoDeep } from "./utils/graphqlArgsParser.js";
@@ -58,11 +58,11 @@ export class Executor {
    *                    Keys can be aliases with `fieldName` pointing to the actual method.
    * @returns The fully resolved object with all fields
    */
-  async resolve<T extends TypeClass>(
+  async resolve<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     value: ConstructorParameters<T>[0],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
-  ): Promise<Record<string, unknown>> {
+  ): Promise<TResult> {
     const instance = new Type(value);
     const fieldsMap = (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
@@ -79,7 +79,7 @@ export class Executor {
     const fieldsToResolve = Object.keys(argsTree).filter((key) => argsTree[key] !== undefined);
 
     if (fieldsToResolve.length === 0) {
-      return result;
+      return result as TResult;
     }
 
     await Promise.all(
@@ -150,28 +150,22 @@ export class Executor {
       })
     );
 
-    return result;
+    return result as TResult;
   }
 
   /**
    * Resolves an array of values through a TypeClass.
-   *
-   * @param Type - The TypeClass to use for resolution
-   * @param values - Array of raw values to resolve
-   * @param fieldArgs - Optional typed arguments tree to pass to resolvers
-   * @returns Array of fully resolved objects
    */
-  async resolveMany<T extends TypeClass>(
+  async resolveMany<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     values: ConstructorParameters<T>[0][],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
-  ): Promise<Record<string, unknown>[]> {
-    // Auto-convert GraphQL resolve info once for all items
+  ): Promise<TResult[]> {
     const normalizedFieldArgs = isGraphQLResolveInfo(fieldArgs)
       ? parseGraphQLInfoDeep(fieldArgs, Type)
       : fieldArgs;
 
-    return Promise.all(values.map((value) => this.resolve(Type, value, normalizedFieldArgs)));
+    return Promise.all(values.map((value) => this.resolve<T, TResult>(Type, value, normalizedFieldArgs)));
   }
 
 }

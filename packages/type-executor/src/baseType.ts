@@ -1,5 +1,5 @@
 import { executor } from "./executor.js";
-import type { TypeClass, FieldArgsTreeFor } from "./types.js";
+import type { TypeClass, FieldArgsTreeFor, TypeResult } from "./types.js";
 import type { GraphQLResolveInfo } from "graphql";
 
 /**
@@ -12,34 +12,24 @@ import type { GraphQLResolveInfo } from "graphql";
 export abstract class BaseType<TId, TData = TId> {
   /**
    * Static method to load and resolve a value through the executor.
-   * Allows calling `MyType.load(value, fields)` instead of `executor.resolve(MyType, value, fields)`.
-   *
-   * @param value - The raw value to resolve (typically an ID)
-   * @param fieldArgs - Optional typed arguments tree to pass to resolvers
-   * @returns The fully resolved object with all fields
    */
-  static load<T extends TypeClass>(
+  static load<T extends TypeClass, TResult = TypeResult<T>>(
     this: T,
     value: ConstructorParameters<T>[0],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
-  ): Promise<Record<string, unknown>> {
-    return executor.resolve(this, value, fieldArgs);
+  ): Promise<TResult> {
+    return executor.resolve<T, TResult>(this, value, fieldArgs);
   }
 
   /**
    * Static method to load and resolve multiple values through the executor.
-   * Allows calling `MyType.loadMany(values, fields)` instead of `executor.resolveMany(MyType, values, fields)`.
-   *
-   * @param values - Array of raw values to resolve
-   * @param fieldArgs - Optional typed arguments tree to pass to resolvers
-   * @returns Array of fully resolved objects
    */
-  static loadMany<T extends TypeClass>(
+  static loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     this: T,
     values: ConstructorParameters<T>[0][],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
-  ): Promise<Record<string, unknown>[]> {
-    return executor.resolveMany(this, values, fieldArgs);
+  ): Promise<TResult[]> {
+    return executor.resolveMany<T, TResult>(this, values, fieldArgs);
   }
 
   private _dataPromise: Promise<TData> | null = null;
