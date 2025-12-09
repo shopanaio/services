@@ -1,9 +1,9 @@
-import type { Resolvers } from "../../generated/types.js";
 import {
   OptionCreateScript,
-  OptionUpdateScript,
   OptionDeleteScript,
+  OptionUpdateScript,
 } from "../../../../scripts/option/index.js";
+import type { ProductOption, Resolvers } from "../../generated/types.js";
 import { noDatabaseError } from "../utils.js";
 
 export const optionMutationResolvers: Resolvers = {
@@ -17,7 +17,11 @@ export const optionMutationResolvers: Resolvers = {
         return {
           option: null,
           userErrors: [
-            { message: "Product ID is required", field: ["productId"], code: "REQUIRED" },
+            {
+              message: "Product ID is required",
+              field: ["productId"],
+              code: "REQUIRED",
+            },
           ],
         };
       }
@@ -43,7 +47,9 @@ export const optionMutationResolvers: Resolvers = {
       });
 
       return {
-        option: result.option ?? null,
+        option: result.option
+          ? ({ id: result.option.id } as ProductOption)
+          : null,
         userErrors: result.userErrors,
       };
     },
@@ -77,9 +83,10 @@ export const optionMutationResolvers: Resolvers = {
                 id: v.id,
                 slug: v.slug ?? undefined,
                 name: v.name ?? undefined,
-                swatch: v.swatch === null
-                  ? null
-                  : v.swatch
+                swatch:
+                  v.swatch === null
+                    ? null
+                    : v.swatch
                     ? {
                         swatchType: v.swatch.swatchType,
                         colorOne: v.swatch.colorOne ?? undefined,
@@ -95,7 +102,9 @@ export const optionMutationResolvers: Resolvers = {
       });
 
       return {
-        option: result.option ?? null,
+        option: result.option
+          ? ({ id: result.option.id } as ProductOption)
+          : null,
         userErrors: result.userErrors,
       };
     },

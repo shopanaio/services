@@ -1,4 +1,4 @@
-import type { Resolvers } from "../../generated/types.js";
+import type { Resolvers, ProductFeature } from "../../generated/types.js";
 import {
   FeatureCreateScript,
   FeatureUpdateScript,
@@ -24,7 +24,9 @@ export const featureMutationResolvers: Resolvers = {
       });
 
       return {
-        feature: result.feature ?? null,
+        feature: result.feature
+          ? ({ id: result.feature.id } as ProductFeature)
+          : null,
         userErrors: result.userErrors,
       };
     },
@@ -55,7 +57,9 @@ export const featureMutationResolvers: Resolvers = {
       });
 
       return {
-        feature: result.feature ?? null,
+        feature: result.feature
+          ? ({ id: result.feature.id } as ProductFeature)
+          : null,
         userErrors: result.userErrors,
       };
     },

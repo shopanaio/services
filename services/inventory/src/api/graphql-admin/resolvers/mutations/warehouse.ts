@@ -1,9 +1,9 @@
-import type { Resolvers } from "../../generated/types.js";
 import {
   warehouseCreate,
-  warehouseUpdate,
   warehouseDelete,
+  warehouseUpdate,
 } from "../../../../scripts/warehouse/index.js";
+import type { Resolvers, Warehouse } from "../../generated/types.js";
 import { noDatabaseError } from "../utils.js";
 
 export const warehouseMutationResolvers: Resolvers = {
@@ -16,11 +16,13 @@ export const warehouseMutationResolvers: Resolvers = {
       const result = await ctx.kernel.executeScript(warehouseCreate, {
         code: input.code,
         name: input.name,
-        isDefault: input.isDefault,
+        isDefault: input.isDefault ?? undefined,
       });
 
       return {
-        warehouse: result.warehouse ?? null,
+        warehouse: result.warehouse
+          ? ({ id: result.warehouse.id } as Warehouse)
+          : null,
         userErrors: result.userErrors,
       };
     },
@@ -32,13 +34,15 @@ export const warehouseMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.executeScript(warehouseUpdate, {
         id: input.id,
-        code: input.code,
-        name: input.name,
-        isDefault: input.isDefault,
+        code: input.code ?? undefined,
+        name: input.name ?? undefined,
+        isDefault: input.isDefault ?? undefined,
       });
 
       return {
-        warehouse: result.warehouse ?? null,
+        warehouse: result.warehouse
+          ? ({ id: result.warehouse.id } as Warehouse)
+          : null,
         userErrors: result.userErrors,
       };
     },
