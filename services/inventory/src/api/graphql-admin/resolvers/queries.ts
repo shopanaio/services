@@ -97,10 +97,11 @@ export const queryResolvers: Partial<Resolvers> = {
         : warehouses;
 
       const warehouseIds = resultWarehouses.map((w) => w.id);
-      const resolvedWarehouses = await executor.resolveMany<
-        typeof WarehouseView,
-        Warehouse
-      >(WarehouseView, warehouseIds, info);
+      const resolvedWarehouses = await executor.resolveMany(
+        WarehouseView,
+        warehouseIds,
+        info
+      );
 
       const edges = resolvedWarehouses.map((warehouse, index) => ({
         node: warehouse,
