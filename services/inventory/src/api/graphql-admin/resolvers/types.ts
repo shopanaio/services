@@ -1,10 +1,10 @@
+import { executor } from "@shopana/type-executor";
+import { parseGraphQLInfoDeep } from "@shopana/type-executor/graphql";
 import type { GraphQLResolveInfo } from "graphql";
+import { ProductView, VariantView } from "../../../views/admin/index.js";
 import type { Resolvers } from "../generated/types.js";
 import type { GraphQLContext } from "../server.js";
-import { requireKernel, createViewContext } from "./utils.js";
-import { parseGraphQLInfoDeep } from "@shopana/type-executor/graphql";
-import { executor } from "@shopana/type-executor";
-import { ProductView, VariantView } from "../../../views/admin/index.js";
+import { createViewContext, requireKernel } from "./utils.js";
 
 /**
  * Resolves product using executor
@@ -67,7 +67,11 @@ export const typeResolvers: Resolvers = {
   // Product resolvers
   Product: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    __resolveReference: async (reference, ctx: GraphQLContext, info): Promise<any> => {
+    __resolveReference: async (
+      reference,
+      ctx: GraphQLContext,
+      info
+    ): Promise<any> => {
       return resolveProduct(reference.id, ctx, info);
     },
 
@@ -77,81 +81,14 @@ export const typeResolvers: Resolvers = {
   // Variant resolvers
   Variant: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    __resolveReference: async (reference, ctx: GraphQLContext, info): Promise<any> => {
+    __resolveReference: async (
+      reference,
+      ctx: GraphQLContext,
+      info
+    ): Promise<any> => {
       return resolveVariant(reference.id, ctx, info);
     },
 
-    // Field resolvers that load data when parent only has id
-    productId: async (parent, _, ctx, info) => {
-      if ("productId" in parent && parent.productId) return parent.productId;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.productId ?? null;
-    },
-    isDefault: async (parent, _, ctx, info) => {
-      if ("isDefault" in parent) return parent.isDefault;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.isDefault ?? false;
-    },
-    handle: async (parent, _, ctx, info) => {
-      if ("handle" in parent && parent.handle) return parent.handle;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.handle ?? "";
-    },
-    sku: async (parent, _, ctx, info) => {
-      if ("sku" in parent) return parent.sku;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.sku ?? null;
-    },
-    title: async (parent, _, ctx, info) => {
-      if ("title" in parent) return parent.title;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.title ?? null;
-    },
-    dimensions: async (parent, _, ctx, info) => {
-      if ("dimensions" in parent) return parent.dimensions;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.dimensions ?? null;
-    },
-    weight: async (parent, _, ctx, info) => {
-      if ("weight" in parent) return parent.weight;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.weight ?? null;
-    },
-    price: async (parent, _, ctx, info) => {
-      if ("price" in parent) return parent.price;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.price ?? null;
-    },
-    stock: async (parent, _, ctx, info) => {
-      if ("stock" in parent) return parent.stock;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.stock ?? [];
-    },
-    inStock: async (parent, _, ctx, info) => {
-      if ("inStock" in parent) return parent.inStock;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.inStock ?? false;
-    },
-    media: async (parent, _, ctx, info) => {
-      if ("media" in parent) return parent.media;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.media ?? [];
-    },
-    selectedOptions: async (parent, _, ctx, info) => {
-      if ("selectedOptions" in parent) return parent.selectedOptions;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.selectedOptions ?? [];
-    },
-    createdAt: async (parent, _, ctx, info) => {
-      if ("createdAt" in parent && parent.createdAt) return parent.createdAt;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.createdAt;
-    },
-    updatedAt: async (parent, _, ctx, info) => {
-      if ("updatedAt" in parent && parent.updatedAt) return parent.updatedAt;
-      const variant = await resolveVariant(parent.id, ctx, info);
-      return variant?.updatedAt;
-    },
     priceHistory: (parent) => parent.priceHistory,
     costHistory: (parent) => parent.costHistory,
   },
