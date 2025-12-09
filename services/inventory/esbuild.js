@@ -33,10 +33,10 @@ try {
     "product.graphql",
   ];
 
-  mkdirSync("dist", { recursive: true });
+  mkdirSync("dist/schema", { recursive: true });
   for (const file of schemaFiles) {
-    const src = `src/api/graphql-admin/${file}`;
-    const dest = `dist/${file}`;
+    const src = `src/api/graphql-admin/schema/${file}`;
+    const dest = `dist/schema/${file}`;
     copyFileSync(src, dest);
   }
 

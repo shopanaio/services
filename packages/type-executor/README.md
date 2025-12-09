@@ -1,13 +1,12 @@
 # Type Executor
 
-A GraphQL-like data resolution system using TypeScript classes. Resolves only requested fields, supports aliases, nested types, and context-based filtering.
+A GraphQL-like data resolution system using TypeScript classes. Resolves only requested fields, supports aliases, nested types, and parallel execution.
 
 ## Features
 
 - **Selective resolution** — only requested fields are resolved (like GraphQL)
 - **Aliases** — same field can be requested multiple times with different arguments
 - **Nested types** — automatic recursive resolution via `static fields`
-- **Context** — AsyncLocalStorage-based context for loaders, locale, etc.
 - **Type-safe** — full TypeScript support with inferred types
 
 ## Installation
@@ -19,7 +18,7 @@ yarn add @shopana/type-executor
 ## Quick Start
 
 ```ts
-import { Executor, enterContext } from "@shopana/type-executor";
+import { Executor } from "@shopana/type-executor";
 
 // 1. Define a type class
 class ProductType {
@@ -30,9 +29,8 @@ class ProductType {
   price() { return this.value.price; }
 }
 
-// 2. Create executor and context
+// 2. Create executor
 const executor = new Executor();
-enterContext({ loaders: {} });
 
 // 3. Resolve only requested fields
 const result = await executor.resolve(ProductType, product, {
@@ -153,62 +151,20 @@ const result = await executor.resolve(ProductType, product, {
 // }
 ```
 
-## Context
-
-Use AsyncLocalStorage for request-scoped data like loaders, locale, currency:
-
-```ts
-import { enterContext, getContext, runWithContext, BaseType } from "@shopana/type-executor";
-
-interface AppContext {
-  loaders: { products: DataLoader<string, Product> };
-  locale: string;
-  currency: string;
-}
-
-// Option 1: enterContext (sets context for current async scope)
-enterContext<AppContext>({
-  loaders: { products: productLoader },
-  locale: "en",
-  currency: "USD",
-});
-
-// Option 2: runWithContext (runs callback with isolated context)
-const result = await runWithContext<AppContext>(context, async () => {
-  return executor.resolve(ProductType, productId, fields);
-});
-
-// Access context in resolvers
-class ProductType {
-  constructor(public value: Product) {}
-
-  title() {
-    const { locale } = getContext<AppContext>();
-    return this.value.translations[locale]?.title ?? this.value.title;
-  }
-
-  async price() {
-    const { currency } = getContext<AppContext>();
-    return this.value.prices.find(p => p.currency === currency);
-  }
-}
-```
-
 ## BaseType
 
-Convenience base class with context and data loading helpers:
+Convenience base class with lazy data loading:
 
 ```ts
 import { BaseType } from "@shopana/type-executor";
 
 class ProductType extends BaseType<string, Product> {
   // value = product ID
-  // data = loaded Product entity
+  // data = loaded Product entity (lazy)
 
   // Override to load data from ID
   protected async loadData(): Promise<Product> {
-    const { loaders } = this.ctx<AppContext>();
-    return loaders.products.load(this.value);
+    return productsLoader.load(this.value);
   }
 
   async id() {
@@ -216,9 +172,8 @@ class ProductType extends BaseType<string, Product> {
   }
 
   async title() {
-    const locale = this.ctx<AppContext>().locale;
     const data = await this.data;
-    return data.translations[locale]?.title ?? data.title;
+    return data.title;
   }
 }
 ```
@@ -292,29 +247,6 @@ class Executor {
 
 interface ExecutorOptions {
   onError?: "throw" | "null" | "partial";
-}
-```
-
-### Context Functions
-
-```ts
-// Set context for current async scope
-function enterContext<T extends BaseContext>(ctx: T): void;
-
-// Run callback with isolated context
-function runWithContext<T extends BaseContext, R>(
-  ctx: T,
-  fn: () => R | Promise<R>
-): Promise<R>;
-
-// Get current context
-function getContext<T extends BaseContext>(): T;
-
-// Check if context exists
-function hasContext(): boolean;
-
-interface BaseContext {
-  loaders: Record<string, unknown>;
 }
 ```
 

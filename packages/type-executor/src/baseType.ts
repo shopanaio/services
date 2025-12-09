@@ -1,24 +1,60 @@
-import { getContext, type BaseContext } from "./context.js";
+import { executor } from "./executor.js";
+import type { TypeClass, FieldArgsTreeFor } from "./types.js";
 
 /**
  * Abstract base class for type definitions.
- * Provides convenience methods for accessing context, loading data, and value properties.
+ * Provides convenience methods for loading data and value properties.
  *
  * @template TId - The type of the identifier or raw input value
  * @template TData - The type of the loaded data entity (defaults to TId for backward compatibility)
+ * @template TContext - The type of the context object
  */
-export abstract class BaseType<TId, TData = TId> {
-  private _dataPromise: Promise<TData> | null = null;
-
-  constructor(public value: TId) {}
+export abstract class BaseType<TId, TData = TId, TContext = unknown> {
+  /**
+   * Static method to load and resolve a value through the executor.
+   * Allows calling `MyType.load(value, fields, context)` instead of `executor.resolve(MyType, value, fields, context)`.
+   *
+   * @param value - The raw value to resolve (typically an ID)
+   * @param fieldArgs - Optional typed arguments tree to pass to resolvers
+   * @param context - Optional context to pass to resolvers
+   * @returns The fully resolved object with all fields
+   */
+  static load<T extends TypeClass>(
+    this: T,
+    value: ConstructorParameters<T>[0],
+    fieldArgs?: FieldArgsTreeFor<T>,
+    context?: unknown
+  ): Promise<Record<string, unknown>> {
+    return executor.resolve(this, value, fieldArgs, context);
+  }
 
   /**
-   * Gets the current context.
-   * Shorthand for getContext().
+   * Static method to load and resolve multiple values through the executor.
+   * Allows calling `MyType.loadMany(values, fields, context)` instead of `executor.resolveMany(MyType, values, fields, context)`.
+   *
+   * @param values - Array of raw values to resolve
+   * @param fieldArgs - Optional typed arguments tree to pass to resolvers
+   * @param context - Optional context to pass to resolvers
+   * @returns Array of fully resolved objects
    */
-  protected ctx<C extends BaseContext = BaseContext>(): C {
-    return getContext<C>();
+  static loadMany<T extends TypeClass>(
+    this: T,
+    values: ConstructorParameters<T>[0][],
+    fieldArgs?: FieldArgsTreeFor<T>,
+    context?: unknown
+  ): Promise<Record<string, unknown>[]> {
+    return executor.resolveMany(this, values, fieldArgs, context);
   }
+
+  private _dataPromise: Promise<TData> | null = null;
+
+  /**
+   * Context object passed by the executor.
+   * Contains loaders, queries, locale, currency, etc.
+   */
+  ctx!: TContext;
+
+  constructor(public value: TId) {}
 
   /**
    * Loads entity data. Override this method to load data via loaders.

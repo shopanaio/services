@@ -41,14 +41,20 @@ export class Executor {
    * @param fieldArgs - Optional typed arguments tree to pass to resolvers.
    *                    When provided, only requested fields are resolved.
    *                    Keys can be aliases with `fieldName` pointing to the actual method.
+   * @param context - Optional context object to pass to the type instance (available as this.ctx)
    * @returns The fully resolved object with all fields
    */
   async resolve<T extends TypeClass>(
     Type: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs?: FieldArgsTreeFor<T>
+    fieldArgs?: FieldArgsTreeFor<T>,
+    context?: unknown
   ): Promise<Record<string, unknown>> {
     const instance = new Type(value);
+    // Set context on instance if provided
+    if (context !== undefined) {
+      (instance as { ctx?: unknown }).ctx = context;
+    }
     const fieldsMap = (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
 
@@ -96,7 +102,8 @@ export class Executor {
                   this.resolve(
                     ChildType as TypeClass,
                     item as ConstructorParameters<typeof ChildType>[0],
-                    childArgsTree as FieldArgsTreeFor<typeof ChildType>
+                    childArgsTree as FieldArgsTreeFor<typeof ChildType>,
+                    context
                   )
                 )
               );
@@ -104,7 +111,8 @@ export class Executor {
               result[key] = await this.resolve(
                 ChildType as TypeClass,
                 resolved as ConstructorParameters<typeof ChildType>[0],
-                childArgsTree as FieldArgsTreeFor<typeof ChildType>
+                childArgsTree as FieldArgsTreeFor<typeof ChildType>,
+                context
               );
             }
           } else {
@@ -139,14 +147,16 @@ export class Executor {
    * @param Type - The TypeClass to use for resolution
    * @param values - Array of raw values to resolve
    * @param fieldArgs - Optional typed arguments tree to pass to resolvers
+   * @param context - Optional context object to pass to type instances
    * @returns Array of fully resolved objects
    */
   async resolveMany<T extends TypeClass>(
     Type: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs?: FieldArgsTreeFor<T>
+    fieldArgs?: FieldArgsTreeFor<T>,
+    context?: unknown
   ): Promise<Record<string, unknown>[]> {
-    return Promise.all(values.map((value) => this.resolve(Type, value, fieldArgs)));
+    return Promise.all(values.map((value) => this.resolve(Type, value, fieldArgs, context)));
   }
 
 }

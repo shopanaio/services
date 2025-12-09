@@ -12,7 +12,7 @@ import type {
   VariantCostHistoryArgs,
   VariantPriceHistoryArgs,
 } from "./args.js";
-import type { AdminViewContext } from "./context.js";
+import type { ViewContext } from "./context.js";
 import { VariantPriceView } from "./VariantPriceView.js";
 
 /**
@@ -20,13 +20,13 @@ import { VariantPriceView } from "./VariantPriceView.js";
  * Accepts variant ID, loads main entity via loaders (lazy)
  * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantView extends BaseType<string, Variant | null> {
+export class VariantView extends BaseType<string, Variant | null, ViewContext> {
   static fields = {
     priceHistory: () => VariantPriceView,
   };
 
   async loadData() {
-    return this.ctx<AdminViewContext>().loaders.variant.load(this.value);
+    return this.ctx.loaders.variant.load(this.value);
   }
 
   id() {
@@ -70,19 +70,17 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async title() {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.variantTranslation.load(this.value);
+    const translation = await this.ctx.loaders.variantTranslation.load(this.value);
     return translation?.title ?? null;
   }
 
   async price(): Promise<VariantPrice | null> {
-    const ctx = this.ctx<AdminViewContext>();
-    const prices = await ctx.loaders.variantPricing.load(this.value);
+    const prices = await this.ctx.loaders.variantPricing.load(this.value);
 
     // Filter by currency if specified
     let filtered = prices;
-    if (ctx.currency) {
-      filtered = prices.filter((p) => p.currency === ctx.currency);
+    if (this.ctx.currency) {
+      filtered = prices.filter((p) => p.currency === this.ctx.currency);
     }
 
     if (filtered.length === 0) return null;
@@ -106,8 +104,7 @@ export class VariantView extends BaseType<string, Variant | null> {
    * @param args - Pagination arguments (first, last, after, before)
    */
   async priceHistory(args: VariantPriceHistoryArgs): Promise<string[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    return ctx.queries.variantPriceIds(this.value, args);
+    return this.ctx.queries.variantPriceIds(this.value, args);
   }
 
   // TODO: implement cost() when cost loader is available
@@ -123,8 +120,7 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    const links = await ctx.loaders.variantSelectedOptions.load(this.value);
+    const links = await this.ctx.loaders.variantSelectedOptions.load(this.value);
     return links
       .filter((link) => link.optionValueId !== null)
       .map((link) => ({
@@ -134,8 +130,7 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async dimensions(): Promise<VariantDimensions | null> {
-    const ctx = this.ctx<AdminViewContext>();
-    const dims = await ctx.loaders.variantDimensions.load(this.value);
+    const dims = await this.ctx.loaders.variantDimensions.load(this.value);
     if (!dims) return null;
 
     return {
@@ -146,8 +141,7 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async weight(): Promise<VariantWeight | null> {
-    const ctx = this.ctx<AdminViewContext>();
-    const w = await ctx.loaders.variantWeight.load(this.value);
+    const w = await this.ctx.loaders.variantWeight.load(this.value);
     if (!w) return null;
 
     return {
@@ -156,8 +150,7 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async stock(): Promise<WarehouseStock[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    const stocks = await ctx.loaders.variantStock.load(this.value);
+    const stocks = await this.ctx.loaders.variantStock.load(this.value);
     return stocks.map((s) => ({
       id: s.id,
       warehouseId: s.warehouseId,
@@ -169,14 +162,12 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async inStock(): Promise<boolean> {
-    const ctx = this.ctx<AdminViewContext>();
-    const stocks = await ctx.loaders.variantStock.load(this.value);
+    const stocks = await this.ctx.loaders.variantStock.load(this.value);
     return stocks.some((s) => s.quantityOnHand > 0);
   }
 
   async media(): Promise<VariantMediaItem[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    const mediaItems = await ctx.loaders.variantMedia.load(this.value);
+    const mediaItems = await this.ctx.loaders.variantMedia.load(this.value);
     return mediaItems.map((m) => ({
       fileId: m.fileId,
       sortIndex: m.sortIndex,

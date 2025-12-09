@@ -1,4 +1,3 @@
-import type { BaseContext } from "@shopana/type-executor";
 import type DataLoader from "dataloader";
 import type {
   Product,
@@ -83,11 +82,12 @@ export interface ProductLoaders {
 }
 
 /**
- * Admin view context extending BaseContext
+ * View context - passed to View types by executor
+ * Contains loaders, queries, and locale/currency for resolution
  */
-export interface AdminViewContext extends BaseContext {
+export interface ViewContext {
   loaders: ProductLoaders;
   queries: ProductQueries;
-  locale: string;
+  locale?: string;
   currency?: string;
 }

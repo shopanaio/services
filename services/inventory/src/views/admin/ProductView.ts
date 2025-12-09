@@ -2,7 +2,7 @@ import { BaseType } from "@shopana/type-executor";
 import type { Description } from "./interfaces/product.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { ProductVariantsArgs } from "./args.js";
-import type { AdminViewContext } from "./context.js";
+import type { ViewContext } from "./context.js";
 import { FeatureView } from "./FeatureView.js";
 import { OptionView } from "./OptionView.js";
 import { VariantView } from "./VariantView.js";
@@ -11,7 +11,7 @@ import { VariantView } from "./VariantView.js";
  * Product view - resolves Product domain interface
  * Accepts product ID, loads data lazily via loaders
  */
-export class ProductView extends BaseType<string, Product | null> {
+export class ProductView extends BaseType<string, Product | null, ViewContext> {
   static fields = {
     variants: () => VariantView,
     options: () => OptionView,
@@ -19,7 +19,7 @@ export class ProductView extends BaseType<string, Product | null> {
   };
 
   async loadData() {
-    return this.ctx<AdminViewContext>().loaders.product.load(this.value);
+    return this.ctx.loaders.product.load(this.value);
   }
 
   id() {
@@ -53,14 +53,12 @@ export class ProductView extends BaseType<string, Product | null> {
   }
 
   async title() {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.productTranslation.load(this.value);
+    const translation = await this.ctx.loaders.productTranslation.load(this.value);
     return translation?.title ?? "";
   }
 
   async description(): Promise<Description | null> {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.productTranslation.load(this.value);
+    const translation = await this.ctx.loaders.productTranslation.load(this.value);
     if (!translation) return null;
 
     return {
@@ -71,20 +69,17 @@ export class ProductView extends BaseType<string, Product | null> {
   }
 
   async excerpt() {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.productTranslation.load(this.value);
+    const translation = await this.ctx.loaders.productTranslation.load(this.value);
     return translation?.excerpt ?? null;
   }
 
   async seoTitle() {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.productTranslation.load(this.value);
+    const translation = await this.ctx.loaders.productTranslation.load(this.value);
     return translation?.seoTitle ?? null;
   }
 
   async seoDescription() {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.productTranslation.load(this.value);
+    const translation = await this.ctx.loaders.productTranslation.load(this.value);
     return translation?.seoDescription ?? null;
   }
 
@@ -93,23 +88,20 @@ export class ProductView extends BaseType<string, Product | null> {
    * @param args - Pagination arguments (first, last, after, before)
    */
   async variants(args: ProductVariantsArgs): Promise<string[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    return ctx.queries.variantIds(this.value, args);
+    return this.ctx.queries.variantIds(this.value, args);
   }
 
   /**
    * Returns option IDs for this product
    */
   async options(): Promise<string[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    return ctx.loaders.productOptionIds.load(this.value);
+    return this.ctx.loaders.productOptionIds.load(this.value);
   }
 
   /**
    * Returns feature IDs for this product
    */
   async features(): Promise<string[]> {
-    const ctx = this.ctx<AdminViewContext>();
-    return ctx.loaders.productFeatureIds.load(this.value);
+    return this.ctx.loaders.productFeatureIds.load(this.value);
   }
 }

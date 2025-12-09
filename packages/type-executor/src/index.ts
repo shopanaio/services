@@ -1,14 +1,3 @@
-// Context management
-export {
-  getContext,
-  runWithContext,
-  runWithContextSync,
-  hasContext,
-  enterContext,
-  contextStorage,
-  type BaseContext,
-} from "./context.js";
-
 // Executor
 export { Executor, executor, createExecutor, ResolverError } from "./executor.js";
 

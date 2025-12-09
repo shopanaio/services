@@ -1,4 +1,4 @@
-import { Executor, runWithContext, type FieldArgsTreeFor } from "@shopana/type-executor";
+import type { FieldArgsTreeFor } from "@shopana/type-executor";
 import { and, eq, isNull } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database.js";
@@ -6,11 +6,7 @@ import { getContext } from "../context/index.js";
 import { product, variant } from "./models/index.js";
 import { ProductLoaderFactory } from "./loaders/index.js";
 import { ProductQueryFactory } from "./queries/index.js";
-import {
-  ProductView,
-  VariantView,
-  type AdminViewContext,
-} from "../views/admin/index.js";
+import { ProductView, VariantView, type ViewContext } from "../views/admin/index.js";
 
 /** Field arguments tree for ProductView */
 export type ProductFieldArgs = FieldArgsTreeFor<typeof ProductView>;
@@ -23,7 +19,6 @@ export type VariantFieldArgs = FieldArgsTreeFor<typeof VariantView>;
  * All types accept only IDs and load data via DataLoaders
  */
 export class ProductTypeRepository {
-  private readonly executor = new Executor({ onError: "throw" });
   private readonly loaderFactory: ProductLoaderFactory;
   private readonly queryFactory: ProductQueryFactory;
 
@@ -57,9 +52,9 @@ export class ProductTypeRepository {
   }
 
   /**
-   * Create context for view resolution
+   * Create view context with loaders and queries
    */
-  private createContext(currency?: string): AdminViewContext {
+  private createViewContext(currency?: string): ViewContext {
     return {
       loaders: this.loaderFactory.createLoaders(),
       queries: this.queryFactory.createQueries(),
@@ -92,10 +87,8 @@ export class ProductTypeRepository {
 
     if (!result[0]) return null;
 
-    const context = this.createContext(options?.currency);
-    return runWithContext(context, () =>
-      this.executor.resolve(ProductView, id, options?.fieldArgs)
-    );
+    const ctx = this.createViewContext(options?.currency);
+    return ProductView.load(id, options?.fieldArgs, ctx);
   }
 
   /**
@@ -107,10 +100,8 @@ export class ProductTypeRepository {
     productIds: string[],
     options?: { currency?: string; fieldArgs?: ProductFieldArgs }
   ): Promise<Record<string, unknown>[]> {
-    const context = this.createContext(options?.currency);
-    return runWithContext(context, () =>
-      this.executor.resolveMany(ProductView, productIds, options?.fieldArgs)
-    );
+    const ctx = this.createViewContext(options?.currency);
+    return ProductView.loadMany(productIds, options?.fieldArgs, ctx);
   }
 
   /**
@@ -137,10 +128,8 @@ export class ProductTypeRepository {
 
     if (!result[0]) return null;
 
-    const context = this.createContext(options?.currency);
-    return runWithContext(context, () =>
-      this.executor.resolve(VariantView, id, options?.fieldArgs)
-    );
+    const ctx = this.createViewContext(options?.currency);
+    return VariantView.load(id, options?.fieldArgs, ctx);
   }
 
   /**
@@ -152,9 +141,7 @@ export class ProductTypeRepository {
     variantIds: string[],
     options?: { currency?: string; fieldArgs?: VariantFieldArgs }
   ): Promise<Record<string, unknown>[]> {
-    const context = this.createContext(options?.currency);
-    return runWithContext(context, () =>
-      this.executor.resolveMany(VariantView, variantIds, options?.fieldArgs)
-    );
+    const ctx = this.createViewContext(options?.currency);
+    return VariantView.loadMany(variantIds, options?.fieldArgs, ctx);
   }
 }

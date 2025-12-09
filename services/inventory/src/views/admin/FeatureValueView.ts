@@ -1,14 +1,14 @@
 import { BaseType } from "@shopana/type-executor";
 import type { ProductFeatureValue } from "../../repositories/models/index.js";
-import type { AdminViewContext } from "./context.js";
+import type { ViewContext } from "./context.js";
 
 /**
  * Feature value view - resolves ProductFeatureValue domain interface
  * Accepts feature value ID, loads data lazily via loaders
  */
-export class FeatureValueView extends BaseType<string, ProductFeatureValue | null> {
+export class FeatureValueView extends BaseType<string, ProductFeatureValue | null, ViewContext> {
   async loadData() {
-    return this.ctx<AdminViewContext>().loaders.featureValue.load(this.value);
+    return this.ctx.loaders.featureValue.load(this.value);
   }
 
   id() {
@@ -20,8 +20,7 @@ export class FeatureValueView extends BaseType<string, ProductFeatureValue | nul
   }
 
   async name() {
-    const ctx = this.ctx<AdminViewContext>();
-    const translation = await ctx.loaders.featureValueTranslation.load(this.value);
+    const translation = await this.ctx.loaders.featureValueTranslation.load(this.value);
     if (translation?.name) return translation.name;
     return (await this.data)?.slug ?? "";
   }

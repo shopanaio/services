@@ -1,68 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Executor, executor, createExecutor } from "./executor.js";
-import { getContext, enterContext, type BaseContext } from "./context.js";
 import { BaseType } from "./baseType.js";
-import type { TypeClass } from "./types.js";
 
 // Helper function for delays
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Mock DataLoader implementation
-class MockDataLoader<K, V> {
-  private batchFn: (keys: K[]) => Promise<V[]>;
-  private batch: K[] = [];
-  private batchPromise: Promise<V[]> | null = null;
-
-  constructor(batchFn: (keys: K[]) => Promise<V[]>) {
-    this.batchFn = batchFn;
-  }
-
-  async load(key: K): Promise<V> {
-    const index = this.batch.length;
-    this.batch.push(key);
-
-    if (!this.batchPromise) {
-      this.batchPromise = new Promise((resolve) => {
-        queueMicrotask(async () => {
-          const keys = [...this.batch];
-          this.batch = [];
-          this.batchPromise = null;
-          resolve(await this.batchFn(keys));
-        });
-      });
-    }
-
-    const results = await this.batchPromise;
-    return results[index];
-  }
-}
-
-// Test context interface
-interface TestContext extends BaseContext {
-  locale: string;
-  currency: string;
-  imageSize: "thumb" | "full";
-}
-
-// Create a mock context for tests
-function createMockContext(overrides: Partial<TestContext> = {}): TestContext {
-  return {
-    loaders: {},
-    locale: "en",
-    currency: "USD",
-    imageSize: "full",
-    ...overrides,
-  };
-}
-
 describe("Executor", () => {
-  beforeEach(() => {
-    // Setup context in AsyncLocalStorage
-    enterContext(createMockContext());
-  });
-
   it("returns empty object when no fields requested", async () => {
     class SimpleType {
       constructor(public value: { id: string; name: string }) {}
@@ -179,22 +124,6 @@ describe("Executor", () => {
     expect(order[1]).toBe("b-start");
   });
 
-  it("uses context from AsyncLocalStorage", async () => {
-    class LocalizedType {
-      constructor(public value: { translations: Record<string, string> }) {}
-      title() {
-        const ctx = getContext<TestContext>();
-        return this.value.translations[ctx.locale];
-      }
-    }
-
-    const result = await executor.resolve(LocalizedType, {
-      translations: { en: "Hello", ru: "Привет" },
-    }, { title: {} });
-
-    expect(result).toEqual({ title: "Hello" });
-  });
-
   it("handles null values in nested types", async () => {
     class ChildType {
       constructor(public value: { id: string }) {}
@@ -249,41 +178,6 @@ describe("Executor", () => {
     expect(result).toEqual({ id: "p1", child: undefined });
   });
 
-  it("batches DataLoader calls", async () => {
-    const batchFn = vi.fn(async (ids: string[]) => ids.map((id) => ({ id })));
-    const loader = new MockDataLoader(batchFn);
-
-    enterContext(
-      createMockContext({
-        loaders: { items: loader },
-      })
-    );
-
-    class ItemType {
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
-      }
-    }
-
-    class RootType {
-      static fields = { items: () => ItemType };
-      constructor(public value: { ids: string[] }) {}
-      async items() {
-        const ctx = getContext<TestContext>();
-        const itemLoader = ctx.loaders.items as MockDataLoader<string, { id: string }>;
-        return Promise.all(this.value.ids.map((id) => itemLoader.load(id)));
-      }
-    }
-
-    await executor.resolve(RootType, { ids: ["1", "2", "3"] }, {
-      items: { children: { id: {} } },
-    });
-
-    expect(batchFn).toHaveBeenCalledTimes(1);
-    expect(batchFn).toHaveBeenCalledWith(["1", "2", "3"]);
-  });
-
   it("resolves many values at once", async () => {
     class SimpleType {
       constructor(public value: { id: string }) {}
@@ -303,10 +197,6 @@ describe("Executor", () => {
 });
 
 describe("Executor error handling", () => {
-  beforeEach(() => {
-    enterContext(createMockContext());
-  });
-
   it("throws errors by default", async () => {
     class ErrorType {
       constructor(public value: Record<string, never>) {}
@@ -367,10 +257,6 @@ describe("Executor error handling", () => {
 });
 
 describe("BaseType", () => {
-  beforeEach(() => {
-    enterContext(createMockContext());
-  });
-
   it("provides access to value via get method", async () => {
     interface Product {
       id: string;
@@ -394,36 +280,61 @@ describe("BaseType", () => {
     expect(result).toEqual({ id: "p1", title: "Test Product" });
   });
 
-  it("provides access to context via ctx method", async () => {
-    enterContext(createMockContext({ locale: "ru" }));
+  it("supports lazy data loading via loadData", async () => {
+    const loadSpy = vi.fn().mockResolvedValue({ id: "loaded-1", name: "Loaded Product" });
 
-    interface LocalizedProduct {
-      translations: Record<string, { title: string }>;
-    }
-
-    class LocalizedProductType extends BaseType<LocalizedProduct> {
-      title() {
-        const locale = this.ctx<TestContext>().locale;
-        return this.value.translations[locale]?.title ?? "Untitled";
+    class ProductType extends BaseType<string, { id: string; name: string }> {
+      protected loadData() {
+        return loadSpy(this.value);
+      }
+      id() {
+        return this.get("id");
+      }
+      name() {
+        return this.get("name");
       }
     }
 
-    const result = await executor.resolve(LocalizedProductType, {
-      translations: {
-        en: { title: "English Title" },
-        ru: { title: "Русский заголовок" },
-      },
-    }, { title: {} });
+    const result = await executor.resolve(ProductType, "product-id", {
+      id: {},
+      name: {},
+    });
 
-    expect(result).toEqual({ title: "Русский заголовок" });
+    expect(loadSpy).toHaveBeenCalledWith("product-id");
+    expect(result).toEqual({ id: "loaded-1", name: "Loaded Product" });
+  });
+
+  it("caches loadData result across multiple field accesses", async () => {
+    const loadSpy = vi.fn().mockResolvedValue({ id: "1", name: "Test", price: 100 });
+
+    class ProductType extends BaseType<string, { id: string; name: string; price: number }> {
+      protected loadData() {
+        return loadSpy(this.value);
+      }
+      id() {
+        return this.get("id");
+      }
+      name() {
+        return this.get("name");
+      }
+      price() {
+        return this.get("price");
+      }
+    }
+
+    const result = await executor.resolve(ProductType, "product-id", {
+      id: {},
+      name: {},
+      price: {},
+    });
+
+    // loadData should only be called once despite multiple fields accessing data
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ id: "1", name: "Test", price: 100 });
   });
 });
 
 describe("Complex nested resolution", () => {
-  beforeEach(() => {
-    enterContext(createMockContext());
-  });
-
   it("resolves deeply nested types", async () => {
     class Level3Type {
       constructor(public value: { name: string }) {}
@@ -541,35 +452,7 @@ describe("Complex nested resolution", () => {
   });
 });
 
-describe("Context management", () => {
-  it("throws when context is not available", async () => {
-    // No context set - use contextStorage.run with undefined to clear context
-    const { contextStorage } = await import("./context.js");
-
-    class ContextRequiredType {
-      constructor(public value: Record<string, never>) {}
-      needsContext() {
-        return getContext<TestContext>().locale;
-      }
-    }
-
-    // Create a new executor
-    const exec = new Executor();
-
-    // Run in a context where storage returns undefined
-    await expect(
-      contextStorage.run(undefined as unknown as BaseContext, async () => {
-        return exec.resolve(ContextRequiredType, {}, { needsContext: {} });
-      })
-    ).rejects.toThrow('Failed to resolve field "needsContext" on ContextRequiredType');
-  });
-});
-
 describe("Selective field resolution", () => {
-  beforeEach(() => {
-    enterContext(createMockContext());
-  });
-
   it("resolves only requested fields", async () => {
     const idSpy = vi.fn().mockReturnValue("1");
     const nameSpy = vi.fn().mockReturnValue("Test");
@@ -612,10 +495,6 @@ describe("Selective field resolution", () => {
 });
 
 describe("Alias support", () => {
-  beforeEach(() => {
-    enterContext(createMockContext());
-  });
-
   it("resolves aliased fields using fieldName", async () => {
     const variantsSpy = vi.fn().mockImplementation((args) => {
       return Array.from({ length: args?.first || 10 }, (_, i) => ({ id: `v${i + 1}` }));
