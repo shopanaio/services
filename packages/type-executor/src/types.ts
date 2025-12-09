@@ -79,22 +79,39 @@ export type ArgsForField<
   : undefined;
 
 /**
+ * A single field node in the args tree.
+ * - `fieldName`: the actual method name to call (for aliases, this differs from the key)
+ * - `args`: the arguments to pass to the resolver method
+ * - `children`: nested arguments for child types (via static fields)
+ */
+export interface FieldArgsNode<TArgs = unknown, TChildren = unknown> {
+  /** The actual method name to call. If omitted, the key is used as the method name. */
+  fieldName?: string;
+  /** Arguments to pass to the resolver method */
+  args?: TArgs;
+  /** Nested field arguments for child types */
+  children?: TChildren;
+}
+
+/**
  * Recursively builds a typed arguments tree for a TypeClass.
+ * Keys can be field names or aliases.
  * Each field can have:
+ * - `fieldName`: the actual method to call (when using aliases)
  * - `args`: the arguments to pass to the resolver method
  * - `children`: nested arguments for child types (via static fields)
  */
 export type FieldArgsTreeFor<T extends TypeClass> = {
   [K in ResolverKeys<T>]?: ArgsForField<T, K> extends undefined
     ? ChildTypeFor<T, K> extends TypeClass
-      ? { children?: FieldArgsTreeFor<ChildTypeFor<T, K>> }
-      : never
-    : {
-        args?: ArgsForField<T, K>;
-        children?: ChildTypeFor<T, K> extends TypeClass
-          ? FieldArgsTreeFor<ChildTypeFor<T, K>>
-          : never;
-      };
+      ? FieldArgsNode<undefined, FieldArgsTreeFor<ChildTypeFor<T, K>>>
+      : FieldArgsNode<undefined, never>
+    : ChildTypeFor<T, K> extends TypeClass
+      ? FieldArgsNode<ArgsForField<T, K>, FieldArgsTreeFor<ChildTypeFor<T, K>>>
+      : FieldArgsNode<ArgsForField<T, K>, never>;
+} & {
+  /** Support for aliased fields - any string key with fieldName pointing to actual method */
+  [alias: string]: FieldArgsNode | undefined;
 };
 
 /**

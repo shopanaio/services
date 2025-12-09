@@ -3,7 +3,7 @@ import type { Resolvers } from "../generated/types.js";
 import type { GraphQLContext } from "../server.js";
 import { dummyVariants } from "./dummy.js";
 import { requireKernel } from "./utils.js";
-import { parseGraphQLInfoDeep } from "./graphqlArgsParser.js";
+import { parseGraphQLInfoDeep } from "@shopana/type-executor/graphql";
 import { ProductView } from "../../../views/admin/index.js";
 import type { ProductFieldArgs } from "../../../repositories/ProductTypeRepository.js";
 

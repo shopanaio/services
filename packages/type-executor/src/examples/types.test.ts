@@ -191,6 +191,68 @@ function createContext(overrides: Partial<ProductContext> = {}): ProductContext 
 }
 
 // ============================================
+// Field Selection Helpers (like GraphQL selections)
+// ============================================
+
+const imageFields = {
+  id: {},
+  url: {},
+  alt: {},
+  isPrimary: {},
+};
+
+const priceFields = {
+  amount: {},
+  currency: {},
+  formatted: {},
+};
+
+const variantFields = {
+  id: {},
+  sku: {},
+  images: { children: imageFields },
+  prices: { children: priceFields },
+};
+
+const attributeFields = {
+  name: {},
+  attrValue: {},
+};
+
+const productFields = {
+  id: {},
+  title: {},
+  slug: {},
+  description: {},
+  variants: { children: variantFields },
+  attributes: { children: attributeFields },
+};
+
+const categoryFields = {
+  id: {},
+  name: {},
+  slug: {},
+};
+
+const productCardFields = {
+  id: {},
+  title: {},
+  slug: {},
+  primaryImage: { children: imageFields },
+  minPrice: {},
+};
+
+const productFullFields = {
+  id: {},
+  title: {},
+  description: {},
+  variants: { children: variantFields },
+  attributes: { children: attributeFields },
+  categories: { children: categoryFields },
+  related: { children: productCardFields },
+};
+
+// ============================================
 // Tests
 // ============================================
 
@@ -203,7 +265,7 @@ describe("ProductType - Full Product Resolution", () => {
   });
 
   it("resolves product with all nested types", async () => {
-    const result = await executor.resolve(ProductType, mockProducts.p1);
+    const result = await executor.resolve(ProductType, mockProducts.p1, productFields);
 
     expect(result).toMatchObject({
       id: "p1",
@@ -244,7 +306,7 @@ describe("ProductType - Full Product Resolution", () => {
   it("uses localized translations when available", async () => {
     enterContext(createContext({ locale: "ru" }));
 
-    const result = await executor.resolve(ProductType, mockProducts.p1);
+    const result = await executor.resolve(ProductType, mockProducts.p1, productFields);
 
     expect(result.title).toBe("Айфон 15");
     expect(result.description).toBe("Новейший Айфон");
@@ -255,7 +317,7 @@ describe("ProductType - Full Product Resolution", () => {
   it("falls back to default when translation missing", async () => {
     enterContext(createContext({ locale: "fr" })); // French not available
 
-    const result = await executor.resolve(ProductType, mockProducts.p1);
+    const result = await executor.resolve(ProductType, mockProducts.p1, productFields);
 
     expect(result.title).toBe("iPhone 15");
     expect(result.description).toBe("The latest iPhone");
@@ -264,7 +326,7 @@ describe("ProductType - Full Product Resolution", () => {
   it("filters images by imageSize context", async () => {
     enterContext(createContext({ imageSize: "thumb" }));
 
-    const result = await executor.resolve(ProductType, mockProducts.p1);
+    const result = await executor.resolve(ProductType, mockProducts.p1, productFields);
 
     // Only thumb images should be returned
     expect(result.variants[0].images).toHaveLength(1);
@@ -274,7 +336,7 @@ describe("ProductType - Full Product Resolution", () => {
   it("filters prices by currency context", async () => {
     enterContext(createContext({ currency: "EUR" }));
 
-    const result = await executor.resolve(ProductType, mockProducts.p1);
+    const result = await executor.resolve(ProductType, mockProducts.p1, productFields);
 
     expect(result.variants[0].prices).toHaveLength(1);
     expect(result.variants[0].prices[0].amount).toBe(899);
@@ -290,7 +352,7 @@ describe("PriceType - Currency Formatting", () => {
   it("formats price with USD currency", async () => {
     enterContext(createContext({ locale: "en-US" }));
 
-    const result = await executor.resolve(PriceType, mockPrices.v1[0]);
+    const result = await executor.resolve(PriceType, mockPrices.v1[0], priceFields);
 
     expect(result.amount).toBe(999);
     expect(result.currency).toBe("USD");
@@ -300,7 +362,7 @@ describe("PriceType - Currency Formatting", () => {
   it("formats price with EUR currency and locale", async () => {
     enterContext(createContext({ locale: "de-DE" }));
 
-    const result = await executor.resolve(PriceType, mockPrices.v1[1]);
+    const result = await executor.resolve(PriceType, mockPrices.v1[1], priceFields);
 
     expect(result.amount).toBe(899);
     expect(result.currency).toBe("EUR");
@@ -318,7 +380,7 @@ describe("ProductCardType - Minimal Product for Lists", () => {
   });
 
   it("resolves minimal product data", async () => {
-    const result = await executor.resolve(ProductCardType, mockProducts.p1);
+    const result = await executor.resolve(ProductCardType, mockProducts.p1, productCardFields);
 
     expect(result).toMatchObject({
       id: "p1",
@@ -328,7 +390,7 @@ describe("ProductCardType - Minimal Product for Lists", () => {
   });
 
   it("resolves primary image from first variant", async () => {
-    const result = await executor.resolve(ProductCardType, mockProducts.p1);
+    const result = await executor.resolve(ProductCardType, mockProducts.p1, productCardFields);
 
     // Returns first isPrimary image from first variant (thumb is first in array)
     expect(result.primaryImage).toMatchObject({
@@ -338,7 +400,7 @@ describe("ProductCardType - Minimal Product for Lists", () => {
   });
 
   it("calculates minimum price across all variants and currencies", async () => {
-    const result = await executor.resolve(ProductCardType, mockProducts.p1);
+    const result = await executor.resolve(ProductCardType, mockProducts.p1, productCardFields);
 
     // Minimum price across all: 899 EUR (v1) is the lowest
     expect(result.minPrice).toBe(899);
@@ -353,7 +415,7 @@ describe("ProductCardType - Minimal Product for Lists", () => {
       translations: {},
     };
 
-    const result = await executor.resolve(ProductCardType, productNoVariants);
+    const result = await executor.resolve(ProductCardType, productNoVariants, productCardFields);
 
     expect(result.primaryImage).toBeNull();
     expect(result.minPrice).toBeNull();
@@ -369,7 +431,7 @@ describe("ProductFullType - Extended Product with BaseType", () => {
   });
 
   it("resolves full product with categories and related", async () => {
-    const result = await executor.resolve(ProductFullType, mockProducts.p1);
+    const result = await executor.resolve(ProductFullType, mockProducts.p1, productFullFields);
 
     expect(result.id).toBe("p1");
     expect(result.title).toBe("iPhone 15");
@@ -395,10 +457,10 @@ describe("runWithContext - Proper Context Isolation", () => {
   it("isolates context between runs", async () => {
     const results = await Promise.all([
       runWithContext(createContext({ locale: "en" }), () =>
-        executor.resolve(ProductType, mockProducts.p1)
+        executor.resolve(ProductType, mockProducts.p1, productFields)
       ),
       runWithContext(createContext({ locale: "ru" }), () =>
-        executor.resolve(ProductType, mockProducts.p1)
+        executor.resolve(ProductType, mockProducts.p1, productFields)
       ),
     ]);
 
@@ -409,10 +471,10 @@ describe("runWithContext - Proper Context Isolation", () => {
   it("isolates currency filter between runs", async () => {
     const [usdResult, eurResult] = await Promise.all([
       runWithContext(createContext({ currency: "USD" }), () =>
-        executor.resolve(ProductType, mockProducts.p1)
+        executor.resolve(ProductType, mockProducts.p1, productFields)
       ),
       runWithContext(createContext({ currency: "EUR" }), () =>
-        executor.resolve(ProductType, mockProducts.p1)
+        executor.resolve(ProductType, mockProducts.p1, productFields)
       ),
     ]);
 
@@ -426,7 +488,7 @@ describe("DataLoader Batching Verification", () => {
     const context = createContext();
     enterContext(context);
 
-    await executor.resolve(ProductType, mockProducts.p1);
+    await executor.resolve(ProductType, mockProducts.p1, productFields);
 
     // Variants loader called once for product
     expect(context.loaders.variants.load).toHaveBeenCalledTimes(1);
@@ -452,7 +514,7 @@ describe("resolveMany - Batch Resolution", () => {
 
   it("resolves multiple products at once", async () => {
     const products = [mockProducts.p1, mockProducts.p2];
-    const results = await executor.resolveMany(ProductType, products);
+    const results = await executor.resolveMany(ProductType, products, productFields);
 
     expect(results).toHaveLength(2);
     expect(results[0].id).toBe("p1");

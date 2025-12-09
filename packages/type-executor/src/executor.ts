@@ -1,4 +1,4 @@
-import type { TypeClass, ExecutorOptions, FieldArgsTreeFor } from "./types.js";
+import type { TypeClass, ExecutorOptions, FieldArgsTreeFor, FieldArgsNode } from "./types.js";
 
 /**
  * Error thrown when a resolver fails.
@@ -25,17 +25,22 @@ export class ResolverError extends Error {
  * Executor class for recursive data resolution.
  * Similar to GraphQL resolution but without GraphQL.
  * Uses classes as types where each method is a resolver.
+ *
+ * When fieldArgs is provided, only requested fields are resolved (like GraphQL).
+ * Supports aliases: keys in fieldArgs can be aliases with `fieldName` pointing to the actual method.
  */
 export class Executor {
   constructor(private options: ExecutorOptions = {}) {}
 
   /**
-   * Resolves a value through a TypeClass, executing all resolver methods
+   * Resolves a value through a TypeClass, executing resolver methods
    * and recursively resolving nested types.
    *
    * @param Type - The TypeClass to use for resolution
    * @param value - The raw value to resolve (typically an ID)
-   * @param fieldArgs - Optional typed arguments tree to pass to resolvers
+   * @param fieldArgs - Optional typed arguments tree to pass to resolvers.
+   *                    When provided, only requested fields are resolved.
+   *                    Keys can be aliases with `fieldName` pointing to the actual method.
    * @returns The fully resolved object with all fields
    */
   async resolve<T extends TypeClass>(
@@ -47,30 +52,43 @@ export class Executor {
     const fieldsMap = (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
 
-    // Data is loaded lazily when resolvers access this.data
-    const methods = this.getResolverMethods(instance);
-    const argsTree = (fieldArgs ?? {}) as Record<
-      string,
-      { args?: unknown; children?: FieldArgsTreeFor<TypeClass> } | undefined
-    >;
+    const argsTree = (fieldArgs ?? {}) as Record<string, FieldArgsNode | undefined>;
+
+    // Only resolve fields that are explicitly requested (like GraphQL)
+    // If no fieldArgs provided, return empty object
+    const fieldsToResolve = Object.keys(argsTree).filter((key) => argsTree[key] !== undefined);
+
+    if (fieldsToResolve.length === 0) {
+      return result;
+    }
 
     await Promise.all(
-      methods.map(async (key) => {
+      fieldsToResolve.map(async (key) => {
         try {
           const fieldNode = argsTree[key];
-          const argsForField = fieldNode && "args" in fieldNode ? fieldNode.args : undefined;
+          // Use fieldName if provided (for aliases), otherwise use the key
+          const methodName = fieldNode?.fieldName ?? key;
+          const argsForField = fieldNode?.args;
 
-          // Always pass args - methods that don't need them will ignore the parameter
-          // Call directly on instance to preserve `this` context
-          const resolved = await (instance as Record<string, (args?: unknown) => unknown>)[key](
+          // Check if this method exists on the instance
+          const method = (instance as Record<string, unknown>)[methodName];
+          if (typeof method !== "function") {
+            // Skip if method doesn't exist (might be an alias for a non-existent field)
+            return;
+          }
+
+          // Call the resolver method
+          const resolved = await (method as (args?: unknown) => unknown).call(
+            instance,
             argsForField
           );
 
-          const getChildType = fieldsMap[key];
+          // Get child type using the actual method name, not the alias
+          const getChildType = fieldsMap[methodName];
 
           if (getChildType && resolved != null) {
             const ChildType = getChildType();
-            const childArgsTree = fieldNode && "children" in fieldNode ? fieldNode.children : undefined;
+            const childArgsTree = fieldNode?.children;
 
             if (Array.isArray(resolved)) {
               result[key] = await Promise.all(
@@ -90,6 +108,7 @@ export class Executor {
               );
             }
           } else {
+            // Store result under the key (which may be an alias)
             result[key] = resolved;
           }
         } catch (error) {
@@ -130,20 +149,6 @@ export class Executor {
     return Promise.all(values.map((value) => this.resolve(Type, value, fieldArgs)));
   }
 
-  /**
-   * Gets all resolver methods from a type instance.
-   * Excludes constructor, loadData, and internal methods.
-   *
-   * @param instance - The type instance to extract methods from
-   * @returns Array of method names
-   */
-  private getResolverMethods(instance: object): string[] {
-    const excluded = new Set(["constructor", "loadData", "data", "get", "ctx"]);
-    const proto = Object.getPrototypeOf(instance);
-    return Object.getOwnPropertyNames(proto).filter(
-      (key) => !excluded.has(key) && typeof proto[key] === "function"
-    );
-  }
 }
 
 /**

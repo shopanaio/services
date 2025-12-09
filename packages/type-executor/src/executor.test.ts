@@ -63,7 +63,7 @@ describe("Executor", () => {
     enterContext(createMockContext());
   });
 
-  it("resolves scalar fields", async () => {
+  it("returns empty object when no fields requested", async () => {
     class SimpleType {
       constructor(public value: { id: string; name: string }) {}
       id() {
@@ -75,6 +75,25 @@ describe("Executor", () => {
     }
 
     const result = await executor.resolve(SimpleType, { id: "1", name: "Test" });
+
+    expect(result).toEqual({});
+  });
+
+  it("resolves only requested scalar fields", async () => {
+    class SimpleType {
+      constructor(public value: { id: string; name: string }) {}
+      id() {
+        return this.value.id;
+      }
+      name() {
+        return this.value.name;
+      }
+    }
+
+    const result = await executor.resolve(SimpleType, { id: "1", name: "Test" }, {
+      id: {},
+      name: {},
+    });
 
     expect(result).toEqual({ id: "1", name: "Test" });
   });
@@ -101,6 +120,9 @@ describe("Executor", () => {
     const result = await executor.resolve(ParentType, {
       id: "p1",
       child: { id: "c1" },
+    }, {
+      id: {},
+      child: { children: { id: {} } },
     });
 
     expect(result).toEqual({ id: "p1", child: { id: "c1" } });
@@ -124,6 +146,8 @@ describe("Executor", () => {
 
     const result = await executor.resolve(ListType, {
       items: [{ id: "1" }, { id: "2" }],
+    }, {
+      items: { children: { id: {} } },
     });
 
     expect(result).toEqual({ items: [{ id: "1" }, { id: "2" }] });
@@ -148,7 +172,7 @@ describe("Executor", () => {
       }
     }
 
-    await executor.resolve(ParallelType, {});
+    await executor.resolve(ParallelType, {}, { a: {}, b: {} });
 
     // Both should start before either ends
     expect(order[0]).toBe("a-start");
@@ -166,7 +190,7 @@ describe("Executor", () => {
 
     const result = await executor.resolve(LocalizedType, {
       translations: { en: "Hello", ru: "Привет" },
-    });
+    }, { title: {} });
 
     expect(result).toEqual({ title: "Hello" });
   });
@@ -190,7 +214,10 @@ describe("Executor", () => {
       }
     }
 
-    const result = await executor.resolve(ParentType, { id: "p1" });
+    const result = await executor.resolve(ParentType, { id: "p1" }, {
+      id: {},
+      child: { children: { id: {} } },
+    });
 
     expect(result).toEqual({ id: "p1", child: null });
   });
@@ -214,7 +241,10 @@ describe("Executor", () => {
       }
     }
 
-    const result = await executor.resolve(ParentType, { id: "p1" });
+    const result = await executor.resolve(ParentType, { id: "p1" }, {
+      id: {},
+      child: { children: { id: {} } },
+    });
 
     expect(result).toEqual({ id: "p1", child: undefined });
   });
@@ -246,7 +276,9 @@ describe("Executor", () => {
       }
     }
 
-    await executor.resolve(RootType, { ids: ["1", "2", "3"] });
+    await executor.resolve(RootType, { ids: ["1", "2", "3"] }, {
+      items: { children: { id: {} } },
+    });
 
     expect(batchFn).toHaveBeenCalledTimes(1);
     expect(batchFn).toHaveBeenCalledWith(["1", "2", "3"]);
@@ -264,7 +296,7 @@ describe("Executor", () => {
       { id: "1" },
       { id: "2" },
       { id: "3" },
-    ]);
+    ], { id: {} });
 
     expect(result).toEqual([{ id: "1" }, { id: "2" }, { id: "3" }]);
   });
@@ -283,7 +315,7 @@ describe("Executor error handling", () => {
       }
     }
 
-    await expect(executor.resolve(ErrorType, {})).rejects.toThrow(
+    await expect(executor.resolve(ErrorType, {}, { broken: {} })).rejects.toThrow(
       'Failed to resolve field "broken" on ErrorType'
     );
   });
@@ -301,7 +333,10 @@ describe("Executor error handling", () => {
       }
     }
 
-    const result = await nullExecutor.resolve(ErrorType, {});
+    const result = await nullExecutor.resolve(ErrorType, {}, {
+      working: {},
+      broken: {},
+    });
 
     expect(result).toEqual({ working: "works", broken: null });
   });
@@ -319,7 +354,10 @@ describe("Executor error handling", () => {
       }
     }
 
-    const result = await partialExecutor.resolve(ErrorType, {});
+    const result = await partialExecutor.resolve(ErrorType, {}, {
+      working: {},
+      broken: {},
+    });
 
     expect(result).toEqual({
       working: "works",
@@ -351,7 +389,7 @@ describe("BaseType", () => {
     const result = await executor.resolve(ProductType, {
       id: "p1",
       title: "Test Product",
-    });
+    }, { id: {}, title: {} });
 
     expect(result).toEqual({ id: "p1", title: "Test Product" });
   });
@@ -375,7 +413,7 @@ describe("BaseType", () => {
         en: { title: "English Title" },
         ru: { title: "Русский заголовок" },
       },
-    });
+    }, { title: {} });
 
     expect(result).toEqual({ title: "Русский заголовок" });
   });
@@ -421,6 +459,16 @@ describe("Complex nested resolution", () => {
       level2: {
         id: "l2",
         level3: { name: "deep" },
+      },
+    }, {
+      id: {},
+      level2: {
+        children: {
+          id: {},
+          level3: {
+            children: { name: {} },
+          },
+        },
       },
     });
 
@@ -471,6 +519,16 @@ describe("Complex nested resolution", () => {
         { id: "v1", images: [{ url: "img1.jpg" }, { url: "img2.jpg" }] },
         { id: "v2", images: [{ url: "img3.jpg" }] },
       ],
+    }, {
+      id: {},
+      variants: {
+        children: {
+          id: {},
+          images: {
+            children: { url: {} },
+          },
+        },
+      },
     });
 
     expect(result).toEqual({
@@ -501,8 +559,178 @@ describe("Context management", () => {
     // Run in a context where storage returns undefined
     await expect(
       contextStorage.run(undefined as unknown as BaseContext, async () => {
-        return exec.resolve(ContextRequiredType, {});
+        return exec.resolve(ContextRequiredType, {}, { needsContext: {} });
       })
     ).rejects.toThrow('Failed to resolve field "needsContext" on ContextRequiredType');
+  });
+});
+
+describe("Selective field resolution", () => {
+  beforeEach(() => {
+    enterContext(createMockContext());
+  });
+
+  it("resolves only requested fields", async () => {
+    const idSpy = vi.fn().mockReturnValue("1");
+    const nameSpy = vi.fn().mockReturnValue("Test");
+    const priceSpy = vi.fn().mockReturnValue(100);
+
+    class ProductType {
+      constructor(public value: Record<string, never>) {}
+      id() { return idSpy(); }
+      name() { return nameSpy(); }
+      price() { return priceSpy(); }
+    }
+
+    const result = await executor.resolve(ProductType, {}, {
+      id: {},
+      name: {},
+    });
+
+    expect(result).toEqual({ id: "1", name: "Test" });
+    expect(idSpy).toHaveBeenCalled();
+    expect(nameSpy).toHaveBeenCalled();
+    expect(priceSpy).not.toHaveBeenCalled(); // price was not requested
+  });
+
+  it("passes args to resolver methods", async () => {
+    const variantsSpy = vi.fn().mockReturnValue([{ id: "v1" }, { id: "v2" }]);
+
+    class ProductType {
+      constructor(public value: Record<string, never>) {}
+      variants(args?: { first?: number }) {
+        return variantsSpy(args);
+      }
+    }
+
+    await executor.resolve(ProductType, {}, {
+      variants: { args: { first: 5 } },
+    });
+
+    expect(variantsSpy).toHaveBeenCalledWith({ first: 5 });
+  });
+});
+
+describe("Alias support", () => {
+  beforeEach(() => {
+    enterContext(createMockContext());
+  });
+
+  it("resolves aliased fields using fieldName", async () => {
+    const variantsSpy = vi.fn().mockImplementation((args) => {
+      return Array.from({ length: args?.first || 10 }, (_, i) => ({ id: `v${i + 1}` }));
+    });
+
+    class ProductType {
+      constructor(public value: Record<string, never>) {}
+      variants(args?: { first?: number }) {
+        return variantsSpy(args);
+      }
+    }
+
+    const result = await executor.resolve(ProductType, {}, {
+      firstThree: { fieldName: "variants", args: { first: 3 } },
+      firstFive: { fieldName: "variants", args: { first: 5 } },
+    });
+
+    expect(variantsSpy).toHaveBeenCalledTimes(2);
+    expect(variantsSpy).toHaveBeenCalledWith({ first: 3 });
+    expect(variantsSpy).toHaveBeenCalledWith({ first: 5 });
+
+    expect(result.firstThree).toHaveLength(3);
+    expect(result.firstFive).toHaveLength(5);
+  });
+
+  it("uses key as method name when fieldName not provided", async () => {
+    class ProductType {
+      constructor(public value: { id: string }) {}
+      id() { return this.value.id; }
+    }
+
+    const result = await executor.resolve(ProductType, { id: "123" }, {
+      id: {}, // no fieldName, so "id" is both alias and method name
+    });
+
+    expect(result).toEqual({ id: "123" });
+  });
+
+  it("resolves nested types with aliases", async () => {
+    class VariantType {
+      constructor(public value: { id: string; sku: string }) {}
+      id() { return this.value.id; }
+      sku() { return this.value.sku; }
+    }
+
+    class ProductType {
+      static fields = { variants: () => VariantType };
+      constructor(public value: { id: string }) {}
+      id() { return this.value.id; }
+      variants(args?: { first?: number }) {
+        const count = args?.first || 2;
+        return Array.from({ length: count }, (_, i) => ({
+          id: `v${i + 1}`,
+          sku: `SKU-${i + 1}`,
+        }));
+      }
+    }
+
+    const result = await executor.resolve(ProductType, { id: "p1" }, {
+      id: {},
+      topVariant: {
+        fieldName: "variants",
+        args: { first: 1 },
+        children: {
+          sku: {},
+        },
+      },
+    });
+
+    expect(result.id).toBe("p1");
+    expect(result.topVariant).toHaveLength(1);
+    expect(result.topVariant[0]).toEqual({ sku: "SKU-1" });
+  });
+
+  it("handles multiple aliases for same field with different args and children", async () => {
+    class VariantType {
+      constructor(public value: { id: string; sku: string; price: number }) {}
+      id() { return this.value.id; }
+      sku() { return this.value.sku; }
+      price() { return this.value.price; }
+    }
+
+    class ProductType {
+      static fields = { variants: () => VariantType };
+      constructor(public value: Record<string, never>) {}
+      variants(args?: { first?: number }) {
+        const count = args?.first || 10;
+        return Array.from({ length: count }, (_, i) => ({
+          id: `v${i + 1}`,
+          sku: `SKU-${i + 1}`,
+          price: (i + 1) * 100,
+        }));
+      }
+    }
+
+    const result = await executor.resolve(ProductType, {}, {
+      // First alias: get 2 variants, only sku
+      preview: {
+        fieldName: "variants",
+        args: { first: 2 },
+        children: { sku: {} },
+      },
+      // Second alias: get 5 variants, sku and price
+      detailed: {
+        fieldName: "variants",
+        args: { first: 5 },
+        children: { sku: {}, price: {} },
+      },
+    });
+
+    expect(result.preview).toHaveLength(2);
+    expect(result.preview[0]).toEqual({ sku: "SKU-1" });
+    expect(result.preview[0]).not.toHaveProperty("price");
+
+    expect(result.detailed).toHaveLength(5);
+    expect(result.detailed[0]).toEqual({ sku: "SKU-1", price: 100 });
   });
 });

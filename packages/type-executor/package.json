@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./graphql": {
+      "types": "./dist/utils/graphqlArgsParser.d.ts",
+      "import": "./dist/utils/graphqlArgsParser.js"
     }
   },
   "files": [
@@ -36,8 +40,22 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "peerDependencies": {
+    "graphql": "^16.0.0",
+    "graphql-parse-resolve-info": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "graphql": {
+      "optional": true
+    },
+    "graphql-parse-resolve-info": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^20.12.7",
+    "graphql": "^16.9.0",
+    "graphql-parse-resolve-info": "^4.14.0",
     "typescript": "^5.4.5",
     "vitest": "^2.1.8"
   }
