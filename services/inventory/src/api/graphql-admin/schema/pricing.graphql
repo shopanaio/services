@@ -137,8 +137,8 @@ input VariantSetPricingInput {
 Payload for variant pricing set.
 """
 type VariantSetPricingPayload {
-  """The created/updated price."""
-  price: VariantPrice
+  """The updated variant."""
+  variant: Variant
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -164,8 +164,8 @@ input VariantSetCostInput {
 Payload for variant cost set.
 """
 type VariantSetCostPayload {
-  """The created/updated cost."""
-  cost: VariantCost
+  """The updated variant."""
+  variant: Variant
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!

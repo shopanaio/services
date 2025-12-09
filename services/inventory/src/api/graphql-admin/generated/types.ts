@@ -1034,10 +1034,10 @@ export type VariantSetCostInput = {
 /** Payload for variant cost set. */
 export type VariantSetCostPayload = {
   __typename?: 'VariantSetCostPayload';
-  /** The created/updated cost. */
-  cost?: Maybe<VariantCost>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+  /** The updated variant. */
+  variant?: Maybe<Variant>;
 };
 
 /** Input for setting variant dimensions. */
@@ -1089,10 +1089,10 @@ export type VariantSetPricingInput = {
 /** Payload for variant pricing set. */
 export type VariantSetPricingPayload = {
   __typename?: 'VariantSetPricingPayload';
-  /** The created/updated price. */
-  price?: Maybe<VariantPrice>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+  /** The updated variant. */
+  variant?: Maybe<Variant>;
 };
 
 /** Input for setting variant SKU. */
@@ -1125,10 +1125,10 @@ export type VariantSetStockInput = {
 /** Payload for variant stock set. */
 export type VariantSetStockPayload = {
   __typename?: 'VariantSetStockPayload';
-  /** The updated stock record. */
-  stock?: Maybe<WarehouseStock>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
+  /** The updated variant. */
+  variant?: Maybe<Variant>;
 };
 
 /** Input for setting variant weight. */
@@ -1983,8 +1983,8 @@ export type VariantPriceEdgeResolvers<ContextType = GraphQLContext, ParentType e
 }>;
 
 export type VariantSetCostPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetCostPayload'] = ResolversParentTypes['VariantSetCostPayload']> = ResolversObject<{
-  cost?: Resolver<Maybe<ResolversTypes['VariantCost']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2001,8 +2001,8 @@ export type VariantSetMediaPayloadResolvers<ContextType = GraphQLContext, Parent
 }>;
 
 export type VariantSetPricingPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetPricingPayload'] = ResolversParentTypes['VariantSetPricingPayload']> = ResolversObject<{
-  price?: Resolver<Maybe<ResolversTypes['VariantPrice']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2013,8 +2013,8 @@ export type VariantSetSkuPayloadResolvers<ContextType = GraphQLContext, ParentTy
 }>;
 
 export type VariantSetStockPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetStockPayload'] = ResolversParentTypes['VariantSetStockPayload']> = ResolversObject<{
-  stock?: Resolver<Maybe<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

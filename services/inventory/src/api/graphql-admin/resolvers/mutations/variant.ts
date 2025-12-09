@@ -1,4 +1,4 @@
-import type { Resolvers } from "../../generated/types.js";
+import type { Resolvers, Variant } from "../../generated/types.js";
 import {
   variantCreate,
   variantDelete,
@@ -10,7 +10,10 @@ import {
   variantSetStock,
   variantSetMedia,
 } from "../../../../scripts/variant/index.js";
-import { decodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { noDatabaseError } from "../utils.js";
 
 export const variantMutationResolvers: Resolvers = {
@@ -21,6 +24,7 @@ export const variantMutationResolvers: Resolvers = {
       }
 
       const result = await ctx.kernel.executeScript(variantCreate, {
+        // TODO: add required options to the input
         productId: input.productId,
         sku: input.variant?.sku,
       });
@@ -38,7 +42,7 @@ export const variantMutationResolvers: Resolvers = {
 
       const result = await ctx.kernel.executeScript(variantDelete, {
         id: input.id,
-        permanent: input.permanent,
+        permanent: Boolean(input.permanent),
       });
 
       return {
@@ -58,7 +62,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.variant ?? null,
+        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
         userErrors: result.userErrors,
       };
     },
@@ -78,7 +82,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.variant ?? null,
+        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
         userErrors: result.userErrors,
       };
     },
@@ -96,32 +100,35 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.variant ?? null,
+        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
+
         userErrors: result.userErrors,
       };
     },
 
     variantSetPricing: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return noDatabaseError({ price: null });
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetPricing, {
         variantId: input.variantId,
         currency: input.currency,
         amountMinor: Number(input.amountMinor),
-        compareAtMinor: input.compareAtMinor ? Number(input.compareAtMinor) : undefined,
+        compareAtMinor: input.compareAtMinor
+          ? Number(input.compareAtMinor)
+          : undefined,
       });
 
       return {
-        price: result.price ?? null,
+        variant: result.price ? ({ id: input.variantId } as Variant) : null,
         userErrors: result.userErrors,
       };
     },
 
     variantSetCost: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return noDatabaseError({ cost: null });
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetCost, {
@@ -131,14 +138,14 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        cost: result.cost ?? null,
+        variant: result.cost ? ({ id: input.variantId } as Variant) : null,
         userErrors: result.userErrors,
       };
     },
 
     variantSetStock: async (_parent, { input }, ctx) => {
       if (!ctx.kernel) {
-        return noDatabaseError({ stock: null });
+        return noDatabaseError({ variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetStock, {
@@ -148,7 +155,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        stock: result.stock ?? null,
+        variant: result.stock ? ({ id: input.variantId } as Variant) : null,
         userErrors: result.userErrors,
       };
     },
@@ -169,7 +176,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.variant ?? null,
+        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
         userErrors: result.userErrors,
       };
     },

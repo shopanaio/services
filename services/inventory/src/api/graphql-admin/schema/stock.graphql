@@ -197,8 +197,8 @@ input VariantSetStockInput {
 Payload for variant stock set.
 """
 type VariantSetStockPayload {
-  """The updated stock record."""
-  stock: WarehouseStock
+  """The updated variant."""
+  variant: Variant
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!

@@ -17,6 +17,11 @@
       "import": "./dist/utils/graphqlArgsParser.js"
     }
   },
+  "typesVersions": {
+    "*": {
+      "graphql": ["./dist/utils/graphqlArgsParser.d.ts"]
+    }
+  },
   "files": [
     "dist"
   ],

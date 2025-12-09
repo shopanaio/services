@@ -1,4 +1,4 @@
-import type { Resolvers } from "../../generated/types.js";
+import type { Resolvers, Product } from "../../generated/types.js";
 import {
   ProductCreateScript,
   ProductUpdateScript,
@@ -18,7 +18,7 @@ export const productMutationResolvers: Resolvers = {
       const result = await ctx.kernel.runScript(ProductCreateScript, {});
 
       return {
-        product: result.product ?? null,
+        product: result.product ? ({ id: result.product.id } as Product) : null,
         userErrors: result.userErrors,
       };
     },
@@ -45,7 +45,7 @@ export const productMutationResolvers: Resolvers = {
       });
 
       return {
-        product: result.product ?? null,
+        product: result.product ? ({ id: result.product.id } as Product) : null,
         userErrors: result.userErrors,
       };
     },
@@ -76,7 +76,7 @@ export const productMutationResolvers: Resolvers = {
       });
 
       return {
-        product: result.product ?? null,
+        product: result.product ? ({ id: result.product.id } as Product) : null,
         userErrors: result.userErrors,
       };
     },
@@ -91,7 +91,7 @@ export const productMutationResolvers: Resolvers = {
       });
 
       return {
-        product: result.product ?? null,
+        product: result.product ? ({ id: result.product.id } as Product) : null,
         userErrors: result.userErrors,
       };
     },
