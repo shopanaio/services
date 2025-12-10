@@ -9,7 +9,7 @@ const config: CodegenConfig = {
       config: {
         useIndexSignature: true,
         federation: true,
-        contextType: "../server.js#GraphQLContext",
+        contextType: "../../../context/types.js#ServiceContext",
         avoidOptionals: {
           field: true,
           inputValue: false,

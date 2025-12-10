@@ -5,7 +5,7 @@ import type { ProductVariantsArgs } from "./args.js";
 import { FeatureView } from "./FeatureView.js";
 import { OptionView } from "./OptionView.js";
 import { VariantView } from "./VariantView.js";
-import { InventoryContext } from "../../context/types.js";
+import type { ServiceContext } from "../../context/types.js";
 
 /**
  * Product view - resolves Product domain interface
@@ -14,7 +14,7 @@ import { InventoryContext } from "../../context/types.js";
 export class ProductView extends BaseType<
   string,
   Product | null,
-  InventoryContext
+  ServiceContext
 > {
   static fields = {
     variants: () => VariantView,
@@ -102,7 +102,8 @@ export class ProductView extends BaseType<
    * @param args - Pagination arguments (first, last, after, before)
    */
   async variants(args: ProductVariantsArgs): Promise<string[]> {
-    return this.ctx.queries.variantIds(this.value, args);
+    const services = this.ctx.kernel.getServices();
+    return services.repository.variantQuery.getIdsByProductId(this.value, args);
   }
 
   /**

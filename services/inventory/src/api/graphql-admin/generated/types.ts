@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { GraphQLContext } from '../server.js';
+import { ServiceContext } from '../../../context/types.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -69,8 +69,8 @@ export type File = {
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
-  code?: Maybe<Scalars['String']['output']>;
-  field?: Maybe<Array<Scalars['String']['output']>>;
+  code: Maybe<Scalars['String']['output']>;
+  field: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
 };
 
@@ -214,19 +214,19 @@ export type InventoryMutationWarehouseUpdateArgs = {
 export type InventoryQuery = {
   __typename?: 'InventoryQuery';
   /** Get a node by its global ID */
-  node?: Maybe<Node>;
+  node: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<Node>>;
   /** Get a product by ID */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** Get products with Relay-style pagination */
   products: ProductConnection;
   /** Get a variant by ID */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
   /** Get variants with Relay-style pagination */
   variants: VariantConnection;
   /** Get a warehouse by ID */
-  warehouse?: Maybe<Warehouse>;
+  warehouse: Maybe<Warehouse>;
   /** Get all warehouses */
   warehouses: WarehouseConnection;
 };
@@ -302,13 +302,13 @@ export enum OptionDisplayType {
 export type PageInfo = {
   __typename?: 'PageInfo';
   /** When paginating forwards, the cursor to continue. */
-  endCursor?: Maybe<Scalars['String']['output']>;
+  endCursor: Maybe<Scalars['String']['output']>;
   /** When paginating forwards, are there more items? */
   hasNextPage: Scalars['Boolean']['output'];
   /** When paginating backwards, are there more items? */
   hasPreviousPage: Scalars['Boolean']['output'];
   /** When paginating backwards, the cursor to continue. */
-  startCursor?: Maybe<Scalars['String']['output']>;
+  startCursor: Maybe<Scalars['String']['output']>;
 };
 
 /** A product represents an item that can be sold. */
@@ -317,15 +317,15 @@ export type Product = Node & {
   /** The date and time when the product was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the product was deleted (soft delete). */
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
   /** Product description. */
-  description?: Maybe<Description>;
+  description: Maybe<Description>;
   /** Short excerpt. */
-  excerpt?: Maybe<Scalars['String']['output']>;
+  excerpt: Maybe<Scalars['String']['output']>;
   /** The features of this product. */
   features: Array<ProductFeature>;
   /** The URL-friendly handle for the product. */
-  handle?: Maybe<Scalars['String']['output']>;
+  handle: Maybe<Scalars['String']['output']>;
   /** The globally unique ID of the product. */
   id: Scalars['ID']['output'];
   /** Whether the product is currently published. */
@@ -333,11 +333,11 @@ export type Product = Node & {
   /** The options available for this product. */
   options: Array<ProductOption>;
   /** The date and time when the product was published, or null if unpublished. */
-  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  publishedAt: Maybe<Scalars['DateTime']['output']>;
   /** SEO description. */
-  seoDescription?: Maybe<Scalars['String']['output']>;
+  seoDescription: Maybe<Scalars['String']['output']>;
   /** SEO title. */
-  seoTitle?: Maybe<Scalars['String']['output']>;
+  seoTitle: Maybe<Scalars['String']['output']>;
   /** Product title. */
   title: Scalars['String']['output'];
   /** The date and time when the product was last updated. */
@@ -372,7 +372,7 @@ export type ProductConnection = {
 export type ProductCreatePayload = {
   __typename?: 'ProductCreatePayload';
   /** The created product. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -389,7 +389,7 @@ export type ProductDeleteInput = {
 export type ProductDeletePayload = {
   __typename?: 'ProductDeletePayload';
   /** The ID of the deleted product. */
-  deletedProductId?: Maybe<Scalars['ID']['output']>;
+  deletedProductId: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -432,9 +432,9 @@ export type ProductFeatureCreateInput = {
 export type ProductFeatureCreatePayload = {
   __typename?: 'ProductFeatureCreatePayload';
   /** The created feature. */
-  feature?: Maybe<ProductFeature>;
+  feature: Maybe<ProductFeature>;
   /** The product with updated features. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -449,9 +449,9 @@ export type ProductFeatureDeleteInput = {
 export type ProductFeatureDeletePayload = {
   __typename?: 'ProductFeatureDeletePayload';
   /** The ID of the deleted feature. */
-  deletedFeatureId?: Maybe<Scalars['ID']['output']>;
+  deletedFeatureId: Maybe<Scalars['ID']['output']>;
   /** The product with updated features. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -482,9 +482,9 @@ export type ProductFeatureUpdateInput = {
 export type ProductFeatureUpdatePayload = {
   __typename?: 'ProductFeatureUpdatePayload';
   /** The updated feature. */
-  feature?: Maybe<ProductFeature>;
+  feature: Maybe<ProductFeature>;
   /** The product with updated features. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -561,9 +561,9 @@ export type ProductOptionCreateInput = {
 export type ProductOptionCreatePayload = {
   __typename?: 'ProductOptionCreatePayload';
   /** The created option. */
-  option?: Maybe<ProductOption>;
+  option: Maybe<ProductOption>;
   /** The product with updated options and variants. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -578,9 +578,9 @@ export type ProductOptionDeleteInput = {
 export type ProductOptionDeletePayload = {
   __typename?: 'ProductOptionDeletePayload';
   /** The ID of the deleted option. */
-  deletedOptionId?: Maybe<Scalars['ID']['output']>;
+  deletedOptionId: Maybe<Scalars['ID']['output']>;
   /** The product with updated options and variants. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -589,15 +589,15 @@ export type ProductOptionDeletePayload = {
 export type ProductOptionSwatch = Node & {
   __typename?: 'ProductOptionSwatch';
   /** The primary color (hex code or color name). */
-  colorOne?: Maybe<Scalars['String']['output']>;
+  colorOne: Maybe<Scalars['String']['output']>;
   /** The secondary color for gradients. */
-  colorTwo?: Maybe<Scalars['String']['output']>;
+  colorTwo: Maybe<Scalars['String']['output']>;
   /** The file for image-based swatches. */
-  file?: Maybe<File>;
+  file: Maybe<File>;
   /** The globally unique ID of the swatch. */
   id: Scalars['ID']['output'];
   /** Additional metadata for the swatch. */
-  metadata?: Maybe<Scalars['JSON']['output']>;
+  metadata: Maybe<Scalars['JSON']['output']>;
   /** The type of swatch. */
   swatchType: SwatchType;
 };
@@ -634,9 +634,9 @@ export type ProductOptionUpdateInput = {
 export type ProductOptionUpdatePayload = {
   __typename?: 'ProductOptionUpdatePayload';
   /** The updated option. */
-  option?: Maybe<ProductOption>;
+  option: Maybe<ProductOption>;
   /** The product with updated options and variants. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -651,7 +651,7 @@ export type ProductOptionValue = Node & {
   /** The URL-friendly identifier for this value. */
   slug: Scalars['String']['output'];
   /** The visual swatch for this value (if applicable). */
-  swatch?: Maybe<ProductOptionSwatch>;
+  swatch: Maybe<ProductOptionSwatch>;
 };
 
 /** Input for creating an option value. */
@@ -696,7 +696,7 @@ export type ProductPublishInput = {
 export type ProductPublishPayload = {
   __typename?: 'ProductPublishPayload';
   /** The published product. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -711,7 +711,7 @@ export type ProductUnpublishInput = {
 export type ProductUnpublishPayload = {
   __typename?: 'ProductUnpublishPayload';
   /** The unpublished product. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -738,7 +738,7 @@ export type ProductUpdateInput = {
 export type ProductUpdatePayload = {
   __typename?: 'ProductUpdatePayload';
   /** The updated product. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -775,9 +775,9 @@ export enum SwatchType {
 /** A generic user error interface for mutation responses. */
 export type UserError = {
   /** An error code for programmatic handling. */
-  code?: Maybe<Scalars['String']['output']>;
+  code: Maybe<Scalars['String']['output']>;
   /** The path to the input field that caused the error. */
-  field?: Maybe<Array<Scalars['String']['output']>>;
+  field: Maybe<Array<Scalars['String']['output']>>;
   /** The error message. */
   message: Scalars['String']['output'];
 };
@@ -786,19 +786,19 @@ export type UserError = {
 export type Variant = Node & {
   __typename?: 'Variant';
   /** Current cost for this variant. */
-  cost?: Maybe<VariantCost>;
+  cost: Maybe<VariantCost>;
   /** Cost history for this variant. */
   costHistory: VariantCostConnection;
   /** The date and time when the variant was created. */
   createdAt: Scalars['DateTime']['output'];
   /** The date and time when the variant was deleted (soft delete). */
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  deletedAt: Maybe<Scalars['DateTime']['output']>;
   /** Physical dimensions of this variant. */
-  dimensions?: Maybe<VariantDimensions>;
+  dimensions: Maybe<VariantDimensions>;
   /** The external ID in the external system. */
-  externalId?: Maybe<Scalars['String']['output']>;
+  externalId: Maybe<Scalars['String']['output']>;
   /** The external system identifier for integration purposes. */
-  externalSystem?: Maybe<Scalars['String']['output']>;
+  externalSystem: Maybe<Scalars['String']['output']>;
   /** The URL-friendly handle for the variant (generated from options). */
   handle: Scalars['String']['output'];
   /** The globally unique ID of the variant. */
@@ -810,7 +810,7 @@ export type Variant = Node & {
   /** Media attached to this variant (images, videos). */
   media: Array<VariantMediaItem>;
   /** Current price for this variant. */
-  price?: Maybe<VariantPrice>;
+  price: Maybe<VariantPrice>;
   /** Price history for this variant. */
   priceHistory: VariantPriceConnection;
   /** The product this variant belongs to. */
@@ -818,15 +818,15 @@ export type Variant = Node & {
   /** The selected option values for this variant. */
   selectedOptions: Array<SelectedOption>;
   /** The SKU (Stock Keeping Unit) of the variant. */
-  sku?: Maybe<Scalars['String']['output']>;
+  sku: Maybe<Scalars['String']['output']>;
   /** Stock levels for this variant across warehouses. */
   stock: Array<WarehouseStock>;
   /** Variant title. */
-  title?: Maybe<Scalars['String']['output']>;
+  title: Maybe<Scalars['String']['output']>;
   /** The date and time when the variant was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** Physical weight of this variant. */
-  weight?: Maybe<VariantWeight>;
+  weight: Maybe<VariantWeight>;
 };
 
 
@@ -866,7 +866,7 @@ export type VariantCost = Node & {
   /** When this cost became effective. */
   effectiveFrom: Scalars['DateTime']['output'];
   /** When this cost stopped being effective (null if current). */
-  effectiveTo?: Maybe<Scalars['DateTime']['output']>;
+  effectiveTo: Maybe<Scalars['DateTime']['output']>;
   /** The globally unique ID of the cost record. */
   id: Scalars['ID']['output'];
   /** Whether this is the current active cost. */
@@ -911,7 +911,7 @@ export type VariantCreatePayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The created variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for deleting a variant. */
@@ -926,9 +926,9 @@ export type VariantDeleteInput = {
 export type VariantDeletePayload = {
   __typename?: 'VariantDeletePayload';
   /** The ID of the deleted variant. */
-  deletedVariantId?: Maybe<Scalars['ID']['output']>;
+  deletedVariantId: Maybe<Scalars['ID']['output']>;
   /** The product the variant belonged to. */
-  product?: Maybe<Product>;
+  product: Maybe<Product>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -986,13 +986,13 @@ export type VariantPrice = Node & {
   /** The price amount in minor units (cents, kopecks, etc.). */
   amountMinor: Scalars['BigInt']['output'];
   /** The compare-at price in minor units (strikethrough price). */
-  compareAtMinor?: Maybe<Scalars['BigInt']['output']>;
+  compareAtMinor: Maybe<Scalars['BigInt']['output']>;
   /** The currency code. */
   currency: CurrencyCode;
   /** When this price became effective. */
   effectiveFrom: Scalars['DateTime']['output'];
   /** When this price stopped being effective (null if current). */
-  effectiveTo?: Maybe<Scalars['DateTime']['output']>;
+  effectiveTo: Maybe<Scalars['DateTime']['output']>;
   /** The globally unique ID of the price record. */
   id: Scalars['ID']['output'];
   /** Whether this is the current active price. */
@@ -1037,7 +1037,7 @@ export type VariantSetCostPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for setting variant dimensions. */
@@ -1054,7 +1054,7 @@ export type VariantSetDimensionsPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for setting variant media (replaces all existing media). */
@@ -1071,7 +1071,7 @@ export type VariantSetMediaPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for setting a price on a variant. */
@@ -1092,7 +1092,7 @@ export type VariantSetPricingPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for setting variant SKU. */
@@ -1109,7 +1109,7 @@ export type VariantSetSkuPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for setting stock on a variant. */
@@ -1128,7 +1128,7 @@ export type VariantSetStockPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Input for setting variant weight. */
@@ -1145,7 +1145,7 @@ export type VariantSetWeightPayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
-  variant?: Maybe<Variant>;
+  variant: Maybe<Variant>;
 };
 
 /** Physical weight of a variant (stored in grams). */
@@ -1212,7 +1212,7 @@ export type WarehouseCreatePayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The created warehouse. */
-  warehouse?: Maybe<Warehouse>;
+  warehouse: Maybe<Warehouse>;
 };
 
 /** Input for deleting a warehouse. */
@@ -1225,7 +1225,7 @@ export type WarehouseDeleteInput = {
 export type WarehouseDeletePayload = {
   __typename?: 'WarehouseDeletePayload';
   /** The ID of the deleted warehouse. */
-  deletedWarehouseId?: Maybe<Scalars['ID']['output']>;
+  deletedWarehouseId: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -1294,7 +1294,7 @@ export type WarehouseUpdatePayload = {
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated warehouse. */
-  warehouse?: Maybe<Warehouse>;
+  warehouse: Maybe<Warehouse>;
 };
 
 /** Input for setting weight (in grams). */
@@ -1614,7 +1614,7 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversT
   name: 'DateTime';
 }
 
-export type DescriptionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Description'] = ResolversParentTypes['Description']> = ResolversObject<{
+export type DescriptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Description'] = ResolversParentTypes['Description']> = ResolversObject<{
   html?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   json?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   text?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1625,20 +1625,20 @@ export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversType
   name: 'Email';
 }
 
-export type FileResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
+export type FileResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['File']>, { __typename: 'File' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type GenericUserErrorResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
+export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type InventoryMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
+export type InventoryMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryMutation'] = ResolversParentTypes['InventoryMutation']> = ResolversObject<{
   productCreate?: Resolver<ResolversTypes['ProductCreatePayload'], ParentType, ContextType>;
   productDelete?: Resolver<ResolversTypes['ProductDeletePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductDeleteArgs, 'input'>>;
   productFeatureCreate?: Resolver<ResolversTypes['ProductFeatureCreatePayload'], ParentType, ContextType, RequireFields<InventoryMutationProductFeatureCreateArgs, 'input'>>;
@@ -1665,7 +1665,7 @@ export type InventoryMutationResolvers<ContextType = GraphQLContext, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type InventoryQueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['InventoryQuery'] = ResolversParentTypes['InventoryQuery']> = ResolversObject<{
+export type InventoryQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InventoryQuery'] = ResolversParentTypes['InventoryQuery']> = ResolversObject<{
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<InventoryQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<InventoryQueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<InventoryQueryProductArgs, 'id'>>;
@@ -1681,16 +1681,16 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
   name: 'JSON';
 }
 
-export type MutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
   inventoryMutation?: Resolver<ResolversTypes['InventoryMutation'], ParentType, ContextType>;
 }>;
 
-export type NodeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
+export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
   __resolveType: TypeResolveFn<'Product' | 'ProductFeature' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionSwatch' | 'ProductOptionValue' | 'Variant' | 'VariantCost' | 'VariantPrice' | 'Warehouse' | 'WarehouseStock', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
-export type PageInfoResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['PageInfo'] = ResolversParentTypes['PageInfo']> = ResolversObject<{
+export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PageInfo'] = ResolversParentTypes['PageInfo']> = ResolversObject<{
   endCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   hasNextPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasPreviousPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -1698,7 +1698,7 @@ export type PageInfoResolvers<ContextType = GraphQLContext, ParentType extends R
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
+export type ProductResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Product']>, { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -1719,32 +1719,32 @@ export type ProductResolvers<ContextType = GraphQLContext, ParentType extends Re
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductConnection'] = ResolversParentTypes['ProductConnection']> = ResolversObject<{
+export type ProductConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductConnection'] = ResolversParentTypes['ProductConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['ProductEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductCreatePayload'] = ResolversParentTypes['ProductCreatePayload']> = ResolversObject<{
+export type ProductCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductCreatePayload'] = ResolversParentTypes['ProductCreatePayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductDeletePayload'] = ResolversParentTypes['ProductDeletePayload']> = ResolversObject<{
+export type ProductDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductDeletePayload'] = ResolversParentTypes['ProductDeletePayload']> = ResolversObject<{
   deletedProductId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductEdge'] = ResolversParentTypes['ProductEdge']> = ResolversObject<{
+export type ProductEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductEdge'] = ResolversParentTypes['ProductEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductFeatureResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductFeature'] = ResolversParentTypes['ProductFeature']> = ResolversObject<{
+export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeature'] = ResolversParentTypes['ProductFeature']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeature']>, { __typename: 'ProductFeature' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1753,28 +1753,28 @@ export type ProductFeatureResolvers<ContextType = GraphQLContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductFeatureCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductFeatureCreatePayload'] = ResolversParentTypes['ProductFeatureCreatePayload']> = ResolversObject<{
+export type ProductFeatureCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureCreatePayload'] = ResolversParentTypes['ProductFeatureCreatePayload']> = ResolversObject<{
   feature?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductFeatureDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductFeatureDeletePayload'] = ResolversParentTypes['ProductFeatureDeletePayload']> = ResolversObject<{
+export type ProductFeatureDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureDeletePayload'] = ResolversParentTypes['ProductFeatureDeletePayload']> = ResolversObject<{
   deletedFeatureId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductFeatureUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductFeatureUpdatePayload'] = ResolversParentTypes['ProductFeatureUpdatePayload']> = ResolversObject<{
+export type ProductFeatureUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureUpdatePayload'] = ResolversParentTypes['ProductFeatureUpdatePayload']> = ResolversObject<{
   feature?: Resolver<Maybe<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductFeatureValueResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductFeatureValue'] = ResolversParentTypes['ProductFeatureValue']> = ResolversObject<{
+export type ProductFeatureValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureValue'] = ResolversParentTypes['ProductFeatureValue']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeatureValue']>, { __typename: 'ProductFeatureValue' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1782,7 +1782,7 @@ export type ProductFeatureValueResolvers<ContextType = GraphQLContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductOptionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductOption'] = ResolversParentTypes['ProductOption']> = ResolversObject<{
+export type ProductOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOption'] = ResolversParentTypes['ProductOption']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductOption']>, { __typename: 'ProductOption' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   displayType?: Resolver<ResolversTypes['OptionDisplayType'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -1792,21 +1792,21 @@ export type ProductOptionResolvers<ContextType = GraphQLContext, ParentType exte
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductOptionCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductOptionCreatePayload'] = ResolversParentTypes['ProductOptionCreatePayload']> = ResolversObject<{
+export type ProductOptionCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionCreatePayload'] = ResolversParentTypes['ProductOptionCreatePayload']> = ResolversObject<{
   option?: Resolver<Maybe<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductOptionDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductOptionDeletePayload'] = ResolversParentTypes['ProductOptionDeletePayload']> = ResolversObject<{
+export type ProductOptionDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionDeletePayload'] = ResolversParentTypes['ProductOptionDeletePayload']> = ResolversObject<{
   deletedOptionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductOptionSwatchResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductOptionSwatch'] = ResolversParentTypes['ProductOptionSwatch']> = ResolversObject<{
+export type ProductOptionSwatchResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionSwatch'] = ResolversParentTypes['ProductOptionSwatch']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductOptionSwatch']>, { __typename: 'ProductOptionSwatch' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   colorOne?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   colorTwo?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1817,14 +1817,14 @@ export type ProductOptionSwatchResolvers<ContextType = GraphQLContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductOptionUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductOptionUpdatePayload'] = ResolversParentTypes['ProductOptionUpdatePayload']> = ResolversObject<{
+export type ProductOptionUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionUpdatePayload'] = ResolversParentTypes['ProductOptionUpdatePayload']> = ResolversObject<{
   option?: Resolver<Maybe<ResolversTypes['ProductOption']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductOptionValueResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductOptionValue'] = ResolversParentTypes['ProductOptionValue']> = ResolversObject<{
+export type ProductOptionValueResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionValue'] = ResolversParentTypes['ProductOptionValue']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductOptionValue']>, { __typename: 'ProductOptionValue' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1833,42 +1833,42 @@ export type ProductOptionValueResolvers<ContextType = GraphQLContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductPublishPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductPublishPayload'] = ResolversParentTypes['ProductPublishPayload']> = ResolversObject<{
+export type ProductPublishPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductPublishPayload'] = ResolversParentTypes['ProductPublishPayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductUnpublishPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductUnpublishPayload'] = ResolversParentTypes['ProductUnpublishPayload']> = ResolversObject<{
+export type ProductUnpublishPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductUnpublishPayload'] = ResolversParentTypes['ProductUnpublishPayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['ProductUpdatePayload'] = ResolversParentTypes['ProductUpdatePayload']> = ResolversObject<{
+export type ProductUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductUpdatePayload'] = ResolversParentTypes['ProductUpdatePayload']> = ResolversObject<{
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type QueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
+export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   inventoryQuery?: Resolver<ResolversTypes['InventoryQuery'], ParentType, ContextType>;
 }>;
 
-export type SelectedOptionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['SelectedOption'] = ResolversParentTypes['SelectedOption']> = ResolversObject<{
+export type SelectedOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SelectedOption'] = ResolversParentTypes['SelectedOption']> = ResolversObject<{
   optionId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   optionValueId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type UserErrorResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
+export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
   __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 }>;
 
-export type VariantResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Variant'] = ResolversParentTypes['Variant']> = ResolversObject<{
+export type VariantResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Variant'] = ResolversParentTypes['Variant']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Variant']>, { __typename: 'Variant' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   cost?: Resolver<Maybe<ResolversTypes['VariantCost']>, ParentType, ContextType>;
   costHistory?: Resolver<ResolversTypes['VariantCostConnection'], ParentType, ContextType, Partial<VariantCostHistoryArgs>>;
@@ -1894,14 +1894,14 @@ export type VariantResolvers<ContextType = GraphQLContext, ParentType extends Re
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantConnection'] = ResolversParentTypes['VariantConnection']> = ResolversObject<{
+export type VariantConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantConnection'] = ResolversParentTypes['VariantConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['VariantEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantCostResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantCost'] = ResolversParentTypes['VariantCost']> = ResolversObject<{
+export type VariantCostResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantCost'] = ResolversParentTypes['VariantCost']> = ResolversObject<{
   currency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   effectiveFrom?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   effectiveTo?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -1912,52 +1912,52 @@ export type VariantCostResolvers<ContextType = GraphQLContext, ParentType extend
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantCostConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantCostConnection'] = ResolversParentTypes['VariantCostConnection']> = ResolversObject<{
+export type VariantCostConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantCostConnection'] = ResolversParentTypes['VariantCostConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['VariantCostEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantCostEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantCostEdge'] = ResolversParentTypes['VariantCostEdge']> = ResolversObject<{
+export type VariantCostEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantCostEdge'] = ResolversParentTypes['VariantCostEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['VariantCost'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantCreatePayload'] = ResolversParentTypes['VariantCreatePayload']> = ResolversObject<{
+export type VariantCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantCreatePayload'] = ResolversParentTypes['VariantCreatePayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantDeletePayload'] = ResolversParentTypes['VariantDeletePayload']> = ResolversObject<{
+export type VariantDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantDeletePayload'] = ResolversParentTypes['VariantDeletePayload']> = ResolversObject<{
   deletedVariantId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantDimensionsResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantDimensions'] = ResolversParentTypes['VariantDimensions']> = ResolversObject<{
+export type VariantDimensionsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantDimensions'] = ResolversParentTypes['VariantDimensions']> = ResolversObject<{
   height?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   length?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   width?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantEdge'] = ResolversParentTypes['VariantEdge']> = ResolversObject<{
+export type VariantEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantEdge'] = ResolversParentTypes['VariantEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['Variant'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantMediaItemResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantMediaItem'] = ResolversParentTypes['VariantMediaItem']> = ResolversObject<{
+export type VariantMediaItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantMediaItem'] = ResolversParentTypes['VariantMediaItem']> = ResolversObject<{
   file?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantPriceResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantPrice'] = ResolversParentTypes['VariantPrice']> = ResolversObject<{
+export type VariantPriceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantPrice'] = ResolversParentTypes['VariantPrice']> = ResolversObject<{
   amountMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   compareAtMinor?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
   currency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
@@ -1969,67 +1969,67 @@ export type VariantPriceResolvers<ContextType = GraphQLContext, ParentType exten
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantPriceConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantPriceConnection'] = ResolversParentTypes['VariantPriceConnection']> = ResolversObject<{
+export type VariantPriceConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantPriceConnection'] = ResolversParentTypes['VariantPriceConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['VariantPriceEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantPriceEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantPriceEdge'] = ResolversParentTypes['VariantPriceEdge']> = ResolversObject<{
+export type VariantPriceEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantPriceEdge'] = ResolversParentTypes['VariantPriceEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['VariantPrice'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetCostPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetCostPayload'] = ResolversParentTypes['VariantSetCostPayload']> = ResolversObject<{
+export type VariantSetCostPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetCostPayload'] = ResolversParentTypes['VariantSetCostPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetDimensionsPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetDimensionsPayload'] = ResolversParentTypes['VariantSetDimensionsPayload']> = ResolversObject<{
+export type VariantSetDimensionsPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetDimensionsPayload'] = ResolversParentTypes['VariantSetDimensionsPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetMediaPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetMediaPayload'] = ResolversParentTypes['VariantSetMediaPayload']> = ResolversObject<{
+export type VariantSetMediaPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetMediaPayload'] = ResolversParentTypes['VariantSetMediaPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetPricingPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetPricingPayload'] = ResolversParentTypes['VariantSetPricingPayload']> = ResolversObject<{
+export type VariantSetPricingPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetPricingPayload'] = ResolversParentTypes['VariantSetPricingPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetSkuPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetSkuPayload'] = ResolversParentTypes['VariantSetSkuPayload']> = ResolversObject<{
+export type VariantSetSkuPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetSkuPayload'] = ResolversParentTypes['VariantSetSkuPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetStockPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetStockPayload'] = ResolversParentTypes['VariantSetStockPayload']> = ResolversObject<{
+export type VariantSetStockPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetStockPayload'] = ResolversParentTypes['VariantSetStockPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantSetWeightPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantSetWeightPayload'] = ResolversParentTypes['VariantSetWeightPayload']> = ResolversObject<{
+export type VariantSetWeightPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetWeightPayload'] = ResolversParentTypes['VariantSetWeightPayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type VariantWeightResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['VariantWeight'] = ResolversParentTypes['VariantWeight']> = ResolversObject<{
+export type VariantWeightResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantWeight'] = ResolversParentTypes['VariantWeight']> = ResolversObject<{
   value?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Warehouse'] = ResolversParentTypes['Warehouse']> = ResolversObject<{
+export type WarehouseResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Warehouse'] = ResolversParentTypes['Warehouse']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Warehouse']>, { __typename: 'Warehouse' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2042,32 +2042,32 @@ export type WarehouseResolvers<ContextType = GraphQLContext, ParentType extends 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseConnection'] = ResolversParentTypes['WarehouseConnection']> = ResolversObject<{
+export type WarehouseConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseConnection'] = ResolversParentTypes['WarehouseConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['WarehouseEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseCreatePayload'] = ResolversParentTypes['WarehouseCreatePayload']> = ResolversObject<{
+export type WarehouseCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseCreatePayload'] = ResolversParentTypes['WarehouseCreatePayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   warehouse?: Resolver<Maybe<ResolversTypes['Warehouse']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseDeletePayload'] = ResolversParentTypes['WarehouseDeletePayload']> = ResolversObject<{
+export type WarehouseDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseDeletePayload'] = ResolversParentTypes['WarehouseDeletePayload']> = ResolversObject<{
   deletedWarehouseId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseEdge'] = ResolversParentTypes['WarehouseEdge']> = ResolversObject<{
+export type WarehouseEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseEdge'] = ResolversParentTypes['WarehouseEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['Warehouse'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseStockResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseStock'] = ResolversParentTypes['WarehouseStock']> = ResolversObject<{
+export type WarehouseStockResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStock'] = ResolversParentTypes['WarehouseStock']> = ResolversObject<{
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   quantityOnHand?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -2077,26 +2077,26 @@ export type WarehouseStockResolvers<ContextType = GraphQLContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseStockConnectionResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseStockConnection'] = ResolversParentTypes['WarehouseStockConnection']> = ResolversObject<{
+export type WarehouseStockConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStockConnection'] = ResolversParentTypes['WarehouseStockConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['WarehouseStockEdge']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseStockEdgeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseStockEdge'] = ResolversParentTypes['WarehouseStockEdge']> = ResolversObject<{
+export type WarehouseStockEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseStockEdge'] = ResolversParentTypes['WarehouseStockEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['WarehouseStock'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type WarehouseUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['WarehouseUpdatePayload'] = ResolversParentTypes['WarehouseUpdatePayload']> = ResolversObject<{
+export type WarehouseUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['WarehouseUpdatePayload'] = ResolversParentTypes['WarehouseUpdatePayload']> = ResolversObject<{
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   warehouse?: Resolver<Maybe<ResolversTypes['Warehouse']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
+export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   DateTime?: GraphQLScalarType;
   Description?: DescriptionResolvers<ContextType>;

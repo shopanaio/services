@@ -13,7 +13,7 @@ import type {
   VariantPriceHistoryArgs,
 } from "./args.js";
 import { VariantPriceView } from "./VariantPriceView.js";
-import { InventoryContext } from "../../context/types.js";
+import type { ServiceContext } from "../../context/types.js";
 
 /**
  * Variant view - resolves Variant domain interface
@@ -23,7 +23,7 @@ import { InventoryContext } from "../../context/types.js";
 export class VariantView extends BaseType<
   string,
   Variant | null,
-  InventoryContext
+  ServiceContext
 > {
   static fields = {
     priceHistory: () => VariantPriceView,
@@ -110,7 +110,8 @@ export class VariantView extends BaseType<
    * @param args - Pagination arguments (first, last, after, before)
    */
   async priceHistory(args: VariantPriceHistoryArgs): Promise<string[]> {
-    return this.ctx.queries.variantPriceIds(this.value, args);
+    const services = this.ctx.kernel.getServices();
+    return services.repository.pricingQuery.getIdsByVariantId(this.value, args);
   }
 
   // TODO: implement cost() when cost loader is available

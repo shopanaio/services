@@ -1,42 +1,42 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { InventoryContext } from "./types.js";
+import type { ServiceContext } from "./types.js";
 
-const storage = new AsyncLocalStorage<InventoryContext>();
+const storage = new AsyncLocalStorage<ServiceContext>();
 
 /**
- * Sets the inventory context for the current async execution context
+ * Sets the service context for the current async execution context
  * Should be called by middleware at the beginning of request processing
  */
-export function setContext(ctx: InventoryContext): void {
+export function setContext(ctx: ServiceContext): void {
   storage.enterWith(ctx);
 }
 
 /**
- * Gets the inventory context from the current async execution context
+ * Gets the service context from the current async execution context
  * Throws error if context is not available
  */
-export function getContext(): InventoryContext {
+export function getContext(): ServiceContext {
   const ctx = storage.getStore();
   if (!ctx) {
-    throw new Error("Inventory context not available - ensure middleware is properly configured");
+    throw new Error("Service context not available - ensure middleware is properly configured");
   }
   return ctx;
 }
 
 /**
- * Gets the inventory context from the current async execution context
+ * Gets the service context from the current async execution context
  * Returns null if context is not available
  */
-export function getContextSafe(): InventoryContext | null {
+export function getContextSafe(): ServiceContext | null {
   return storage.getStore() ?? null;
 }
 
 /**
- * Runs a function within a specific inventory context
+ * Runs a function within a specific service context
  * Useful for testing or special execution scenarios
  */
 export async function runWithContext<T>(
-  context: InventoryContext,
+  context: ServiceContext,
   fn: () => Promise<T>
 ): Promise<T> {
   return new Promise((resolve, reject) => {

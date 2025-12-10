@@ -8,26 +8,12 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import type { CoreProject, CoreUser } from "@shopana/platform-api";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Repository } from "../../repositories/Repository.js";
-import { setContext } from "../../context/index.js";
+import { setContext, type ServiceContext } from "../../context/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
-
-export interface GraphQLContext {
-  requestId: string;
-  kernel: Kernel;
-  /** Project slug from header */
-  slug: string | null;
-  /** Current project - required for all operations */
-  project: CoreProject | null;
-  /** Authenticated user for admin API */
-  user: CoreUser | null;
-  /** Current locale for translations (default: 'uk') */
-  locale?: string;
-}
 
 export interface ServerConfig {
   port: number;
@@ -112,7 +98,7 @@ export async function startServer(config: ServerConfig) {
   }));
 
   // Create Apollo Server
-  const apollo = new ApolloServer<GraphQLContext>({
+  const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
     plugins: [fastifyApolloDrainPlugin(app)],
@@ -130,7 +116,7 @@ export async function startServer(config: ServerConfig) {
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
     path: "/graphql/admin",
-    context: async (request, _reply): Promise<GraphQLContext> => {
+    context: async (request, _reply): Promise<ServiceContext> => {
       // For introspection, return minimal context
       const isIntrospection =
         request.headers["x-interpolation"] === "true" ||
@@ -140,9 +126,10 @@ export async function startServer(config: ServerConfig) {
         return {
           requestId: request.id as string,
           kernel: kernel as Kernel,
-          slug: null,
-          project: null,
-          user: null,
+          slug: "",
+          project: null as any,
+          user: null as any,
+          loaders: null as any,
         };
       }
 
@@ -150,22 +137,19 @@ export async function startServer(config: ServerConfig) {
       const services = kernel!.getServices();
       const loaders = services.repository.loaderFactory.createLoaders();
 
-      // Set context in AsyncLocalStorage for all resolvers
-      setContext({
+      const ctx: ServiceContext = {
+        requestId: request.id as string,
+        kernel: kernel!,
         slug: request.headers["x-pj-key"] as string,
         project: request.project,
         user: request.user,
         loaders,
-        kernel: kernel!,
-      });
-
-      return {
-        requestId: request.id as string,
-        kernel: kernel as Kernel,
-        slug: request.headers["x-pj-key"] as string,
-        project: request.project,
-        user: request.user,
       };
+
+      // Set context in AsyncLocalStorage for all resolvers
+      setContext(ctx);
+
+      return ctx;
     },
   });
 

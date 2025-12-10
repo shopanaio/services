@@ -1,6 +1,6 @@
 import { BaseType } from "@shopana/type-executor";
 import type { Warehouse } from "../../repositories/models/index.js";
-import { InventoryContext } from "../../context/types.js";
+import type { ServiceContext } from "../../context/types.js";
 
 /**
  * Warehouse view - resolves Warehouse domain interface
@@ -9,7 +9,7 @@ import { InventoryContext } from "../../context/types.js";
 export class WarehouseView extends BaseType<
   string,
   Warehouse | null,
-  InventoryContext
+  ServiceContext
 > {
   async loadData() {
     return this.ctx.loaders.warehouse.load(this.value);

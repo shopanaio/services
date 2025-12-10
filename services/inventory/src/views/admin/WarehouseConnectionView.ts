@@ -1,6 +1,6 @@
 import type { PageInfo } from "@shopana/drizzle-query";
 import { BaseType } from "@shopana/type-executor";
-import type { InventoryContext } from "../../context/types.js";
+import type { ServiceContext } from "../../context/types.js";
 import { WarehouseView } from "./WarehouseView.js";
 
 // ============ Types ============
@@ -27,7 +27,7 @@ interface WarehouseConnectionData {
 export class WarehouseEdgeView extends BaseType<
   WarehouseEdgeData,
   WarehouseEdgeData,
-  InventoryContext
+  ServiceContext
 > {
   static fields = {
     node: () => WarehouseView,
@@ -51,14 +51,15 @@ export class WarehouseEdgeView extends BaseType<
 export class WarehouseConnectionView extends BaseType<
   WarehouseConnectionArgs,
   WarehouseConnectionData,
-  InventoryContext
+  ServiceContext
 > {
   static fields = {
     edges: () => WarehouseEdgeView,
   };
 
   async loadData(): Promise<WarehouseConnectionData> {
-    return this.ctx.queries.warehouseConnection(this.value);
+    const services = this.ctx.kernel.getServices();
+    return services.repository.warehouseQuery.getConnection(this.value);
   }
 
   async edges() {

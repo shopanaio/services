@@ -1,11 +1,11 @@
 import type { GraphQLResolveInfo } from "graphql";
+import type { ServiceContext } from "../../../context/index.js";
 import {
   ProductView,
   VariantView,
   WarehouseView,
 } from "../../../views/admin/index.js";
 import type { Resolvers } from "../generated/types.js";
-import type { GraphQLContext } from "../server.js";
 import { requireContext } from "./utils.js";
 
 /**
@@ -13,7 +13,7 @@ import { requireContext } from "./utils.js";
  */
 async function resolveProduct(
   productId: string,
-  ctx: GraphQLContext,
+  ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
   return ProductView.load(productId, info, requireContext(ctx));
@@ -24,7 +24,7 @@ async function resolveProduct(
  */
 async function resolveVariant(
   variantId: string,
-  ctx: GraphQLContext,
+  ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
   return VariantView.load(variantId, info, requireContext(ctx));
@@ -35,7 +35,7 @@ async function resolveVariant(
  */
 async function resolveWarehouse(
   warehouseId: string,
-  ctx: GraphQLContext,
+  ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
   return WarehouseView.load(warehouseId, info, requireContext(ctx));
@@ -67,7 +67,7 @@ export const typeResolvers: Resolvers = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     __resolveReference: async (
       reference,
-      ctx: GraphQLContext,
+      ctx: ServiceContext,
       info
     ): Promise<any> => {
       return resolveProduct(reference.id, ctx, info);
@@ -81,7 +81,7 @@ export const typeResolvers: Resolvers = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     __resolveReference: async (
       reference,
-      ctx: GraphQLContext,
+      ctx: ServiceContext,
       info
     ): Promise<any> => {
       return resolveVariant(reference.id, ctx, info);
@@ -95,7 +95,7 @@ export const typeResolvers: Resolvers = {
   Warehouse: {
     __resolveReference: async (
       reference: { id: string },
-      ctx: GraphQLContext,
+      ctx: ServiceContext,
       info
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<any> => {
