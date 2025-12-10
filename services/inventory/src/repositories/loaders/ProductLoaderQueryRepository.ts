@@ -10,11 +10,10 @@ import {
   type ProductOption,
   type ProductFeature,
 } from "../models/index.js";
-import { getContext } from "../../context/index.js";
 
 export class ProductLoaderQueryRepository extends BaseRepository {
   private get locale(): string {
-    return getContext().locale ?? "uk";
+    return this.ctx.locale ?? "uk";
   }
 
   async getByIds(productIds: readonly string[]): Promise<Product[]> {

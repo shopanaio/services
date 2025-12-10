@@ -1,6 +1,6 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database";
-import { getContext } from "../context/index.js";
+import { getContext, type ServiceContext } from "../context/index.js";
 
 /**
  * Base repository class that provides access to database and context
@@ -21,10 +21,17 @@ export abstract class BaseRepository {
   }
 
   /**
+   * Get current service context from async local storage
+   */
+  protected get ctx(): ServiceContext {
+    return getContext();
+  }
+
+  /**
    * Get projectId from async local storage context
    * Throws if context is not available
    */
   protected get projectId(): string {
-    return getContext().project.id;
+    return this.ctx.project.id;
   }
 }

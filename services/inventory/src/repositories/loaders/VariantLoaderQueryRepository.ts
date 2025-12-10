@@ -18,11 +18,10 @@ import {
   type WarehouseStock,
   type ProductOptionVariantLink,
 } from "../models/index.js";
-import { getContext } from "../../context/index.js";
 
 export class VariantLoaderQueryRepository extends BaseRepository {
   private get locale(): string {
-    return getContext().locale ?? "uk";
+    return this.ctx.locale ?? "uk";
   }
 
   async getByIds(variantIds: readonly string[]): Promise<Variant[]> {

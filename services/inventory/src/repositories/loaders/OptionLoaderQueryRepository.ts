@@ -8,11 +8,10 @@ import {
   type ProductOptionValue,
   type ProductOptionValueTranslation,
 } from "../models/index.js";
-import { getContext } from "../../context/index.js";
 
 export class OptionLoaderQueryRepository extends BaseRepository {
   private get locale(): string {
-    return getContext().locale ?? "uk";
+    return this.ctx.locale ?? "uk";
   }
 
   async getTranslationsByOptionIds(
