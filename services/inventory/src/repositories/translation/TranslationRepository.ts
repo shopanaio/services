@@ -23,7 +23,7 @@ import {
   type NewProductFeatureValueTranslation,
   type WarehouseTranslation,
   type NewWarehouseTranslation,
-} from "./models";
+} from "../models";
 
 export class TranslationRepository {
   constructor(

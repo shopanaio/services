@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { BaseRepository } from "./BaseRepository.js";
-import { warehouseStock, type WarehouseStock, type NewWarehouseStock } from "./models";
+import { BaseRepository } from "../BaseRepository.js";
+import { warehouseStock, type WarehouseStock, type NewWarehouseStock } from "../models";
 
 export class StockRepository extends BaseRepository {
   /**

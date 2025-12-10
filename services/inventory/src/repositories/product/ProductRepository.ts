@@ -1,12 +1,28 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { BaseRepository } from "./BaseRepository.js";
-import { product, type Product, type NewProduct } from "./models";
+import { createQuery } from "@shopana/drizzle-query";
+import { BaseRepository } from "../BaseRepository.js";
+import {
+  product,
+  productTranslation,
+  productOption,
+  productFeature,
+  type Product,
+  type NewProduct,
+  type ProductTranslation,
+  type ProductOption,
+  type ProductFeature,
+} from "../models/index.js";
+
+const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
 export class ProductRepository extends BaseRepository {
-  /**
-   * Check if product exists by ID
-   */
+  private get locale(): string {
+    return this.ctx.locale ?? "uk";
+  }
+
+  // ============ CRUD ============
+
   async exists(id: string): Promise<boolean> {
     const result = await this.connection
       .select({ id: product.id })
@@ -23,9 +39,6 @@ export class ProductRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  /**
-   * Find product by ID
-   */
   async findById(id: string): Promise<Product | null> {
     const result = await this.connection
       .select()
@@ -42,9 +55,6 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Create a new product
-   */
   async create(data: { publishedAt?: Date | null } = {}): Promise<Product> {
     const id = randomUUID();
     const now = new Date();
@@ -66,9 +76,6 @@ export class ProductRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Touch product (update updatedAt timestamp)
-   */
   async touch(id: string): Promise<void> {
     await this.connection
       .update(product)
@@ -81,9 +88,6 @@ export class ProductRepository extends BaseRepository {
       );
   }
 
-  /**
-   * Update product
-   */
   async update(
     id: string,
     data: { handle?: string | null; publishedAt?: Date | null }
@@ -109,9 +113,6 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Soft delete product (set deletedAt timestamp)
-   */
   async softDelete(id: string): Promise<boolean> {
     const result = await this.connection
       .update(product)
@@ -128,9 +129,6 @@ export class ProductRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  /**
-   * Hard delete product (permanent deletion, CASCADE will delete variants)
-   */
   async hardDelete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(product)
@@ -145,9 +143,6 @@ export class ProductRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  /**
-   * Publish product (set publishedAt to now)
-   */
   async publish(id: string): Promise<Product | null> {
     const now = new Date();
     const result = await this.connection
@@ -165,9 +160,6 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Unpublish product (set publishedAt to null)
-   */
   async unpublish(id: string): Promise<Product | null> {
     const result = await this.connection
       .update(product)
@@ -182,5 +174,119 @@ export class ProductRepository extends BaseRepository {
       .returning();
 
     return result[0] ?? null;
+  }
+
+  // ============ Query ============
+
+  async getMany(input?: {
+    where?: Record<string, unknown>;
+    order?: string[];
+    limit?: number;
+    offset?: number;
+  }): Promise<Product[]> {
+    return productQuery.execute(this.connection, {
+      ...input,
+      order: (input?.order as never) ?? ["createdAt:desc", "id:desc"],
+      where: {
+        ...input?.where,
+        projectId: this.projectId,
+        deletedAt: { $is: null },
+      },
+    });
+  }
+
+  async getOne(id: string): Promise<Product | null> {
+    const results = await productQuery.execute(this.connection, {
+      where: {
+        id,
+        projectId: this.projectId,
+        deletedAt: { $is: null },
+      },
+      limit: 1,
+    });
+
+    return results[0] ?? null;
+  }
+
+  // ============ Loader ============
+
+  async getByIds(productIds: readonly string[]): Promise<Product[]> {
+    return this.connection
+      .select()
+      .from(product)
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          inArray(product.id, [...productIds]),
+          isNull(product.deletedAt)
+        )
+      );
+  }
+
+  async getTranslationsByProductIds(
+    productIds: readonly string[]
+  ): Promise<ProductTranslation[]> {
+    return this.connection
+      .select()
+      .from(productTranslation)
+      .where(
+        and(
+          eq(productTranslation.projectId, this.projectId),
+          inArray(productTranslation.productId, [...productIds]),
+          eq(productTranslation.locale, this.locale)
+        )
+      );
+  }
+
+  async getOptionIdsByProductIds(
+    productIds: readonly string[]
+  ): Promise<Array<{ id: string; productId: string }>> {
+    return this.connection
+      .select({ id: productOption.id, productId: productOption.productId })
+      .from(productOption)
+      .where(
+        and(
+          eq(productOption.projectId, this.projectId),
+          inArray(productOption.productId, [...productIds])
+        )
+      );
+  }
+
+  async getFeatureIdsByProductIds(
+    productIds: readonly string[]
+  ): Promise<Array<{ id: string; productId: string }>> {
+    return this.connection
+      .select({ id: productFeature.id, productId: productFeature.productId })
+      .from(productFeature)
+      .where(
+        and(
+          eq(productFeature.projectId, this.projectId),
+          inArray(productFeature.productId, [...productIds])
+        )
+      );
+  }
+
+  async getOptionsByIds(optionIds: readonly string[]): Promise<ProductOption[]> {
+    return this.connection
+      .select()
+      .from(productOption)
+      .where(
+        and(
+          eq(productOption.projectId, this.projectId),
+          inArray(productOption.id, [...optionIds])
+        )
+      );
+  }
+
+  async getFeaturesByIds(featureIds: readonly string[]): Promise<ProductFeature[]> {
+    return this.connection
+      .select()
+      .from(productFeature)
+      .where(
+        and(
+          eq(productFeature.projectId, this.projectId),
+          inArray(productFeature.id, [...featureIds])
+        )
+      );
   }
 }

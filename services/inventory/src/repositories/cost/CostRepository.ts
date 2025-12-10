@@ -1,11 +1,11 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { BaseRepository } from "./BaseRepository.js";
+import { BaseRepository } from "../BaseRepository.js";
 import {
   productVariantCostHistory,
   type ProductVariantCostHistory,
   type NewProductVariantCostHistory,
-} from "./models";
+} from "../models";
 
 type Currency = "UAH" | "USD" | "EUR";
 

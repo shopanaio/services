@@ -26,63 +26,63 @@ export class VariantLoader {
 
   constructor(repository: Repository) {
     this.variant = new DataLoader<string, Variant | null>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getByIds(variantIds);
+      const results = await repository.variant.getByIds(variantIds);
       return variantIds.map((id) => results.find((v) => v.id === id) ?? null);
     });
 
     this.variantIds = new DataLoader<string, string[]>(async (productIds) => {
-      const results = await repository.variantLoaderQuery.getIdsByProductIds(productIds);
+      const results = await repository.variant.getIdsByProductIds(productIds);
       return productIds.map((id) =>
         results.filter((v) => v.productId === id).map((v) => v.id)
       );
     });
 
     this.variantTranslation = new DataLoader<string, VariantTranslation | null>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getTranslationsByVariantIds(variantIds);
+      const results = await repository.variant.getTranslationsByVariantIds(variantIds);
       return variantIds.map((id) => results.find((t) => t.variantId === id) ?? null);
     });
 
     this.variantPricing = new DataLoader<string, ItemPricing[]>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getActivePricingByVariantIds(variantIds);
+      const results = await repository.variant.getActivePricingByVariantIds(variantIds);
       return variantIds.map((id) => results.filter((p) => p.variantId === id));
     });
 
     this.variantPriceById = new DataLoader<string, ItemPricing | null>(async (priceIds) => {
-      const results = await repository.variantLoaderQuery.getPricingByIds(priceIds);
+      const results = await repository.variant.getPricingByIds(priceIds);
       return priceIds.map((id) => results.find((p) => p.id === id) ?? null);
     });
 
     this.variantPriceIds = new DataLoader<string, string[]>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getPriceIdsByVariantIds(variantIds);
+      const results = await repository.variant.getPriceIdsByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((p) => p.variantId === id).map((p) => p.id)
       );
     });
 
     this.variantDimensions = new DataLoader<string, ItemDimensions | null>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getDimensionsByVariantIds(variantIds);
+      const results = await repository.variant.getDimensionsByVariantIds(variantIds);
       return variantIds.map((id) => results.find((d) => d.variantId === id) ?? null);
     });
 
     this.variantWeight = new DataLoader<string, ItemWeight | null>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getWeightsByVariantIds(variantIds);
+      const results = await repository.variant.getWeightsByVariantIds(variantIds);
       return variantIds.map((id) => results.find((w) => w.variantId === id) ?? null);
     });
 
     this.variantMedia = new DataLoader<string, VariantMedia[]>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getMediaByVariantIds(variantIds);
+      const results = await repository.variant.getMediaByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((m) => m.variantId === id).sort((a, b) => a.sortIndex - b.sortIndex)
       );
     });
 
     this.variantStock = new DataLoader<string, WarehouseStock[]>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getStockByVariantIds(variantIds);
+      const results = await repository.variant.getStockByVariantIds(variantIds);
       return variantIds.map((id) => results.filter((s) => s.variantId === id));
     });
 
     this.variantSelectedOptions = new DataLoader<string, ProductOptionVariantLink[]>(async (variantIds) => {
-      const results = await repository.variantLoaderQuery.getSelectedOptionsByVariantIds(variantIds);
+      const results = await repository.variant.getSelectedOptionsByVariantIds(variantIds);
       return variantIds.map((id) => results.filter((o) => o.variantId === id));
     });
   }

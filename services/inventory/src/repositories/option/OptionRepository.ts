@@ -1,11 +1,13 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { BaseRepository } from "./BaseRepository.js";
+import { BaseRepository } from "../BaseRepository.js";
 import {
   productOption,
   productOptionValue,
   productOptionSwatch,
   productOptionVariantLink,
+  productOptionTranslation,
+  productOptionValueTranslation,
   type ProductOption,
   type NewProductOption,
   type ProductOptionValue,
@@ -14,16 +16,17 @@ import {
   type NewProductOptionSwatch,
   type ProductOptionVariantLink,
   type NewProductOptionVariantLink,
-} from "./models";
+  type ProductOptionTranslation,
+  type ProductOptionValueTranslation,
+} from "../models/index.js";
 
 export class OptionRepository extends BaseRepository {
-  // ─────────────────────────────────────────────────────────────────────────
-  // Options
-  // ─────────────────────────────────────────────────────────────────────────
+  private get locale(): string {
+    return this.ctx.locale ?? "uk";
+  }
 
-  /**
-   * Find option by ID
-   */
+  // ============ Options CRUD ============
+
   async findById(id: string): Promise<ProductOption | null> {
     const result = await this.connection
       .select()
@@ -36,9 +39,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find option by slug for a product
-   */
   async findBySlug(productId: string, slug: string): Promise<ProductOption | null> {
     const result = await this.connection
       .select()
@@ -55,9 +55,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find options by product ID
-   */
   async findByProductId(productId: string): Promise<ProductOption[]> {
     return this.connection
       .select()
@@ -70,9 +67,6 @@ export class OptionRepository extends BaseRepository {
       );
   }
 
-  /**
-   * Find options by multiple product IDs (batch)
-   */
   async findByProductIds(productIds: string[]): Promise<Map<string, ProductOption[]>> {
     if (productIds.length === 0) return new Map();
 
@@ -95,9 +89,6 @@ export class OptionRepository extends BaseRepository {
     return map;
   }
 
-  /**
-   * Create a new option
-   */
   async create(
     productId: string,
     data: { slug: string; displayType: string }
@@ -120,9 +111,6 @@ export class OptionRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Update an option
-   */
   async update(
     id: string,
     data: { slug?: string; displayType?: string }
@@ -147,9 +135,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Delete an option (CASCADE will delete values, swatches, variant links)
-   */
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productOption)
@@ -161,13 +146,8 @@ export class OptionRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Option Values
-  // ─────────────────────────────────────────────────────────────────────────
+  // ============ Option Values ============
 
-  /**
-   * Find value by ID
-   */
   async findValueById(id: string): Promise<ProductOptionValue | null> {
     const result = await this.connection
       .select()
@@ -183,9 +163,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find values by option ID
-   */
   async findValuesByOptionId(optionId: string): Promise<ProductOptionValue[]> {
     return this.connection
       .select()
@@ -199,9 +176,6 @@ export class OptionRepository extends BaseRepository {
       .orderBy(productOptionValue.sortIndex);
   }
 
-  /**
-   * Find values by multiple option IDs (batch)
-   */
   async findValuesByOptionIds(
     optionIds: string[]
   ): Promise<Map<string, ProductOptionValue[]>> {
@@ -227,9 +201,6 @@ export class OptionRepository extends BaseRepository {
     return map;
   }
 
-  /**
-   * Create a new option value
-   */
   async createValue(
     optionId: string,
     data: { slug: string; sortIndex: number; swatchId?: string | null }
@@ -253,9 +224,6 @@ export class OptionRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Update an option value
-   */
   async updateValue(
     id: string,
     data: { slug?: string; sortIndex?: number; swatchId?: string | null }
@@ -284,9 +252,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Delete an option value
-   */
   async deleteValue(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productOptionValue)
@@ -301,13 +266,8 @@ export class OptionRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Swatches
-  // ─────────────────────────────────────────────────────────────────────────
+  // ============ Swatches ============
 
-  /**
-   * Create a swatch
-   */
   async createSwatch(data: {
     swatchType: string;
     colorOne?: string | null;
@@ -335,9 +295,6 @@ export class OptionRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Update a swatch
-   */
   async updateSwatch(
     id: string,
     data: {
@@ -374,9 +331,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find swatch by ID
-   */
   async findSwatchById(id: string): Promise<ProductOptionSwatch | null> {
     const result = await this.connection
       .select()
@@ -392,9 +346,6 @@ export class OptionRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Delete a swatch
-   */
   async deleteSwatch(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productOptionSwatch)
@@ -409,13 +360,8 @@ export class OptionRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Variant Links
-  // ─────────────────────────────────────────────────────────────────────────
+  // ============ Variant Links ============
 
-  /**
-   * Link variant to option value
-   */
   async linkVariant(
     variantId: string,
     optionId: string,
@@ -437,9 +383,6 @@ export class OptionRepository extends BaseRepository {
       });
   }
 
-  /**
-   * Unlink variant from option
-   */
   async unlinkVariant(variantId: string, optionId: string): Promise<void> {
     await this.connection
       .delete(productOptionVariantLink)
@@ -452,9 +395,6 @@ export class OptionRepository extends BaseRepository {
       );
   }
 
-  /**
-   * Clear all option links for a variant
-   */
   async clearVariantLinks(variantId: string): Promise<void> {
     await this.connection
       .delete(productOptionVariantLink)
@@ -466,9 +406,6 @@ export class OptionRepository extends BaseRepository {
       );
   }
 
-  /**
-   * Find variant links by variant IDs (batch)
-   */
   async findVariantLinks(
     variantIds: string[]
   ): Promise<Map<string, ProductOptionVariantLink[]>> {
@@ -491,5 +428,67 @@ export class OptionRepository extends BaseRepository {
       map.set(link.variantId, existing);
     }
     return map;
+  }
+
+  // ============ Loader ============
+
+  async getTranslationsByOptionIds(
+    optionIds: readonly string[]
+  ): Promise<ProductOptionTranslation[]> {
+    return this.connection
+      .select()
+      .from(productOptionTranslation)
+      .where(
+        and(
+          eq(productOptionTranslation.projectId, this.projectId),
+          inArray(productOptionTranslation.optionId, [...optionIds]),
+          eq(productOptionTranslation.locale, this.locale)
+        )
+      );
+  }
+
+  async getValueIdsByOptionIds(
+    optionIds: readonly string[]
+  ): Promise<Array<{ id: string; optionId: string; sortIndex: number }>> {
+    return this.connection
+      .select({
+        id: productOptionValue.id,
+        optionId: productOptionValue.optionId,
+        sortIndex: productOptionValue.sortIndex,
+      })
+      .from(productOptionValue)
+      .where(
+        and(
+          eq(productOptionValue.projectId, this.projectId),
+          inArray(productOptionValue.optionId, [...optionIds])
+        )
+      );
+  }
+
+  async getValuesByIds(valueIds: readonly string[]): Promise<ProductOptionValue[]> {
+    return this.connection
+      .select()
+      .from(productOptionValue)
+      .where(
+        and(
+          eq(productOptionValue.projectId, this.projectId),
+          inArray(productOptionValue.id, [...valueIds])
+        )
+      );
+  }
+
+  async getValueTranslationsByValueIds(
+    optionValueIds: readonly string[]
+  ): Promise<ProductOptionValueTranslation[]> {
+    return this.connection
+      .select()
+      .from(productOptionValueTranslation)
+      .where(
+        and(
+          eq(productOptionValueTranslation.projectId, this.projectId),
+          inArray(productOptionValueTranslation.optionValueId, [...optionValueIds]),
+          eq(productOptionValueTranslation.locale, this.locale)
+        )
+      );
   }
 }

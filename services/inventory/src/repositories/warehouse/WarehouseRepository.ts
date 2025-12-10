@@ -1,12 +1,23 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { BaseRepository } from "./BaseRepository.js";
-import { warehouses, type Warehouse, type NewWarehouse } from "./models";
+import { createQuery, createRelayQuery, type PageInfo } from "@shopana/drizzle-query";
+import { BaseRepository } from "../BaseRepository.js";
+import { warehouses, type Warehouse, type NewWarehouse } from "../models/index.js";
+import type { PaginationArgs } from "../../views/admin/args.js";
+
+const warehouseRelayQuery = createRelayQuery(
+  createQuery(warehouses).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "warehouse", tieBreaker: "id" }
+);
+
+export interface WarehouseConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+}
 
 export class WarehouseRepository extends BaseRepository {
-  /**
-   * Check if warehouse exists by ID
-   */
+  // ============ CRUD ============
+
   async exists(id: string): Promise<boolean> {
     const result = await this.connection
       .select({ id: warehouses.id })
@@ -17,9 +28,6 @@ export class WarehouseRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  /**
-   * Find warehouse by ID
-   */
   async findById(id: string): Promise<Warehouse | null> {
     const result = await this.connection
       .select()
@@ -30,9 +38,6 @@ export class WarehouseRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Get all warehouses for the project
-   */
   async getAll(limit?: number): Promise<Warehouse[]> {
     const query = this.connection
       .select()
@@ -47,9 +52,6 @@ export class WarehouseRepository extends BaseRepository {
     return query;
   }
 
-  /**
-   * Find warehouse by code
-   */
   async findByCode(code: string): Promise<Warehouse | null> {
     const result = await this.connection
       .select()
@@ -60,9 +62,6 @@ export class WarehouseRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Clear default flag from all warehouses in project
-   */
   async clearDefault(): Promise<void> {
     await this.connection
       .update(warehouses)
@@ -72,9 +71,6 @@ export class WarehouseRepository extends BaseRepository {
       );
   }
 
-  /**
-   * Create a new warehouse
-   */
   async create(data: { code: string; name: string; isDefault?: boolean }): Promise<Warehouse> {
     const id = randomUUID();
     const now = new Date();
@@ -97,9 +93,6 @@ export class WarehouseRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Update an existing warehouse
-   */
   async update(
     id: string,
     data: { code?: string; name?: string; isDefault?: boolean }
@@ -121,9 +114,6 @@ export class WarehouseRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Delete a warehouse (CASCADE will delete warehouse_stock)
-   */
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(warehouses)
@@ -131,5 +121,37 @@ export class WarehouseRepository extends BaseRepository {
       .returning({ id: warehouses.id });
 
     return result.length > 0;
+  }
+
+  // ============ Query ============
+
+  async getConnection(args: PaginationArgs): Promise<WarehouseConnectionResult> {
+    const result = await warehouseRelayQuery.execute(this.connection, {
+      ...args,
+      where: { projectId: this.projectId },
+      order: ["createdAt:desc"],
+    });
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+    };
+  }
+
+  // ============ Loader ============
+
+  async getByIds(warehouseIds: readonly string[]): Promise<Warehouse[]> {
+    return this.connection
+      .select()
+      .from(warehouses)
+      .where(
+        and(
+          eq(warehouses.projectId, this.projectId),
+          inArray(warehouses.id, [...warehouseIds])
+        )
+      );
   }
 }

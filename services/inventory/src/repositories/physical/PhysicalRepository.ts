@@ -1,4 +1,4 @@
-import { BaseRepository } from "./BaseRepository.js";
+import { BaseRepository } from "../BaseRepository.js";
 import {
   itemDimensions,
   itemWeight,
@@ -6,7 +6,7 @@ import {
   type ItemWeight,
   type NewItemDimensions,
   type NewItemWeight,
-} from "./models";
+} from "../models";
 
 export class PhysicalRepository extends BaseRepository {
   /**

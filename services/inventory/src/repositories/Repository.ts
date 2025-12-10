@@ -1,25 +1,16 @@
 import { TransactionManager } from "@shopana/shared-kernel";
 import { initDatabase, closeDatabaseConnection, type Database } from "../infrastructure/db/database";
-import { ProductRepository } from "./ProductRepository";
-import { VariantRepository } from "./VariantRepository";
-import { PricingRepository } from "./PricingRepository";
-import { CostRepository } from "./CostRepository";
-import { OptionRepository } from "./OptionRepository";
-import { FeatureRepository } from "./FeatureRepository";
-import { PhysicalRepository } from "./PhysicalRepository";
-import { StockRepository } from "./StockRepository";
-import { WarehouseRepository } from "./WarehouseRepository";
-import { TranslationRepository } from "./TranslationRepository";
-import { MediaRepository } from "./MediaRepository";
-import { ProductQueryRepository } from "./ProductQueryRepository";
-import { VariantQueryRepository } from "./VariantQueryRepository";
-import { WarehouseQueryRepository } from "./WarehouseQueryRepository";
-import { PricingQueryRepository } from "./PricingQueryRepository";
-import { VariantLoaderQueryRepository } from "./VariantLoaderQueryRepository.js";
-import { ProductLoaderQueryRepository } from "./ProductLoaderQueryRepository.js";
-import { OptionLoaderQueryRepository } from "./OptionLoaderQueryRepository.js";
-import { FeatureLoaderQueryRepository } from "./FeatureLoaderQueryRepository.js";
-import { WarehouseLoaderQueryRepository } from "./WarehouseLoaderQueryRepository.js";
+import { ProductRepository } from "./product/ProductRepository.js";
+import { VariantRepository } from "./variant/VariantRepository.js";
+import { PricingRepository } from "./pricing/PricingRepository.js";
+import { CostRepository } from "./cost/CostRepository.js";
+import { OptionRepository } from "./option/OptionRepository.js";
+import { FeatureRepository } from "./feature/FeatureRepository.js";
+import { PhysicalRepository } from "./physical/PhysicalRepository.js";
+import { StockRepository } from "./stock/StockRepository.js";
+import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
+import { TranslationRepository } from "./translation/TranslationRepository.js";
+import { MediaRepository } from "./media/MediaRepository.js";
 
 export class Repository {
   public readonly product: ProductRepository;
@@ -33,17 +24,6 @@ export class Repository {
   public readonly warehouse: WarehouseRepository;
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
-  public readonly productQuery: ProductQueryRepository;
-  public readonly variantQuery: VariantQueryRepository;
-  public readonly warehouseQuery: WarehouseQueryRepository;
-  public readonly pricingQuery: PricingQueryRepository;
-
-  // Loader query repositories
-  public readonly variantLoaderQuery: VariantLoaderQueryRepository;
-  public readonly productLoaderQuery: ProductLoaderQueryRepository;
-  public readonly optionLoaderQuery: OptionLoaderQueryRepository;
-  public readonly featureLoaderQuery: FeatureLoaderQueryRepository;
-  public readonly warehouseLoaderQuery: WarehouseLoaderQueryRepository;
 
   private readonly db: Database;
 
@@ -65,17 +45,6 @@ export class Repository {
     this.warehouse = new WarehouseRepository(this.db, this.txManager);
     this.translation = new TranslationRepository(this.db, this.txManager);
     this.media = new MediaRepository(this.db, this.txManager);
-    this.productQuery = new ProductQueryRepository(this.db, this.txManager);
-    this.variantQuery = new VariantQueryRepository(this.db, this.txManager);
-    this.warehouseQuery = new WarehouseQueryRepository(this.db, this.txManager);
-    this.pricingQuery = new PricingQueryRepository(this.db, this.txManager);
-
-    // Loader query repositories
-    this.variantLoaderQuery = new VariantLoaderQueryRepository(this.db, this.txManager);
-    this.productLoaderQuery = new ProductLoaderQueryRepository(this.db, this.txManager);
-    this.optionLoaderQuery = new OptionLoaderQueryRepository(this.db, this.txManager);
-    this.featureLoaderQuery = new FeatureLoaderQueryRepository(this.db, this.txManager);
-    this.warehouseLoaderQuery = new WarehouseLoaderQueryRepository(this.db, this.txManager);
   }
 
   async close(): Promise<void> {

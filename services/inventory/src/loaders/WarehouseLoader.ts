@@ -7,7 +7,7 @@ export class WarehouseLoader {
 
   constructor(repository: Repository) {
     this.warehouse = new DataLoader<string, Warehouse | null>(async (warehouseIds) => {
-      const results = await repository.warehouseLoaderQuery.getByIds(warehouseIds);
+      const results = await repository.warehouse.getByIds(warehouseIds);
       return warehouseIds.map((id) => results.find((w) => w.id === id) ?? null);
     });
   }

@@ -1,23 +1,26 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { BaseRepository } from "./BaseRepository.js";
+import { BaseRepository } from "../BaseRepository.js";
 import {
   productFeature,
   productFeatureValue,
+  productFeatureTranslation,
+  productFeatureValueTranslation,
   type ProductFeature,
   type NewProductFeature,
   type ProductFeatureValue,
   type NewProductFeatureValue,
-} from "./models";
+  type ProductFeatureTranslation,
+  type ProductFeatureValueTranslation,
+} from "../models/index.js";
 
 export class FeatureRepository extends BaseRepository {
-  // ─────────────────────────────────────────────────────────────────────────
-  // Features
-  // ─────────────────────────────────────────────────────────────────────────
+  private get locale(): string {
+    return this.ctx.locale ?? "uk";
+  }
 
-  /**
-   * Find feature by ID
-   */
+  // ============ Features CRUD ============
+
   async findById(id: string): Promise<ProductFeature | null> {
     const result = await this.connection
       .select()
@@ -33,9 +36,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find feature by slug for a product
-   */
   async findBySlug(productId: string, slug: string): Promise<ProductFeature | null> {
     const result = await this.connection
       .select()
@@ -52,9 +52,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find features by product ID
-   */
   async findByProductId(productId: string): Promise<ProductFeature[]> {
     return this.connection
       .select()
@@ -67,9 +64,6 @@ export class FeatureRepository extends BaseRepository {
       );
   }
 
-  /**
-   * Find features by multiple product IDs (batch)
-   */
   async findByProductIds(productIds: string[]): Promise<Map<string, ProductFeature[]>> {
     if (productIds.length === 0) return new Map();
 
@@ -92,9 +86,6 @@ export class FeatureRepository extends BaseRepository {
     return map;
   }
 
-  /**
-   * Create a new feature
-   */
   async create(productId: string, data: { slug: string }): Promise<ProductFeature> {
     const id = randomUUID();
 
@@ -113,9 +104,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Update a feature
-   */
   async update(id: string, data: { slug?: string }): Promise<ProductFeature | null> {
     const updateData: Partial<NewProductFeature> = {};
 
@@ -139,9 +127,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Delete a feature (CASCADE will delete values, translations)
-   */
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productFeature)
@@ -156,13 +141,8 @@ export class FeatureRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Feature Values
-  // ─────────────────────────────────────────────────────────────────────────
+  // ============ Feature Values ============
 
-  /**
-   * Find value by ID
-   */
   async findValueById(id: string): Promise<ProductFeatureValue | null> {
     const result = await this.connection
       .select()
@@ -178,9 +158,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Find values by feature ID
-   */
   async findValuesByFeatureId(featureId: string): Promise<ProductFeatureValue[]> {
     return this.connection
       .select()
@@ -194,9 +171,6 @@ export class FeatureRepository extends BaseRepository {
       .orderBy(productFeatureValue.sortIndex);
   }
 
-  /**
-   * Find values by multiple feature IDs (batch)
-   */
   async findValuesByFeatureIds(
     featureIds: string[]
   ): Promise<Map<string, ProductFeatureValue[]>> {
@@ -222,9 +196,6 @@ export class FeatureRepository extends BaseRepository {
     return map;
   }
 
-  /**
-   * Create a new feature value
-   */
   async createValue(
     featureId: string,
     data: { slug: string; sortIndex: number }
@@ -247,9 +218,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0];
   }
 
-  /**
-   * Update a feature value
-   */
   async updateValue(
     id: string,
     data: { slug?: string; sortIndex?: number }
@@ -277,9 +245,6 @@ export class FeatureRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  /**
-   * Delete a feature value
-   */
   async deleteValue(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(productFeatureValue)
@@ -292,5 +257,67 @@ export class FeatureRepository extends BaseRepository {
       .returning({ id: productFeatureValue.id });
 
     return result.length > 0;
+  }
+
+  // ============ Loader ============
+
+  async getTranslationsByFeatureIds(
+    featureIds: readonly string[]
+  ): Promise<ProductFeatureTranslation[]> {
+    return this.connection
+      .select()
+      .from(productFeatureTranslation)
+      .where(
+        and(
+          eq(productFeatureTranslation.projectId, this.projectId),
+          inArray(productFeatureTranslation.featureId, [...featureIds]),
+          eq(productFeatureTranslation.locale, this.locale)
+        )
+      );
+  }
+
+  async getValueIdsByFeatureIds(
+    featureIds: readonly string[]
+  ): Promise<Array<{ id: string; featureId: string; sortIndex: number }>> {
+    return this.connection
+      .select({
+        id: productFeatureValue.id,
+        featureId: productFeatureValue.featureId,
+        sortIndex: productFeatureValue.sortIndex,
+      })
+      .from(productFeatureValue)
+      .where(
+        and(
+          eq(productFeatureValue.projectId, this.projectId),
+          inArray(productFeatureValue.featureId, [...featureIds])
+        )
+      );
+  }
+
+  async getValuesByIds(valueIds: readonly string[]): Promise<ProductFeatureValue[]> {
+    return this.connection
+      .select()
+      .from(productFeatureValue)
+      .where(
+        and(
+          eq(productFeatureValue.projectId, this.projectId),
+          inArray(productFeatureValue.id, [...valueIds])
+        )
+      );
+  }
+
+  async getValueTranslationsByValueIds(
+    featureValueIds: readonly string[]
+  ): Promise<ProductFeatureValueTranslation[]> {
+    return this.connection
+      .select()
+      .from(productFeatureValueTranslation)
+      .where(
+        and(
+          eq(productFeatureValueTranslation.projectId, this.projectId),
+          inArray(productFeatureValueTranslation.featureValueId, [...featureValueIds]),
+          eq(productFeatureValueTranslation.locale, this.locale)
+        )
+      );
   }
 }

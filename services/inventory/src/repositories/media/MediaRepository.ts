@@ -1,10 +1,10 @@
 import { eq, and, inArray, asc } from "drizzle-orm";
-import { BaseRepository } from "./BaseRepository.js";
+import { BaseRepository } from "../BaseRepository.js";
 import {
   variantMedia,
   type VariantMedia,
   type NewVariantMedia,
-} from "./models";
+} from "../models";
 
 export class MediaRepository extends BaseRepository {
 
