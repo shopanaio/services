@@ -136,8 +136,6 @@ export async function startServer(config: ServerConfig) {
 
       // Create loaders per request for proper batching
       const services = kernel!.getServices();
-      const repo = services.repository;
-      const loaders = new Loader(repo);
 
       const ctx: ServiceContext = {
         requestId: request.id as string,
@@ -145,7 +143,7 @@ export async function startServer(config: ServerConfig) {
         slug: request.headers["x-pj-key"] as string,
         project: request.project,
         user: request.user,
-        loaders,
+        loaders: new Loader(services.repository),
       };
 
       // Set context in AsyncLocalStorage for all resolvers
