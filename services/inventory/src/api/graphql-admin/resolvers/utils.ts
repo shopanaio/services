@@ -1,3 +1,4 @@
+import { getContext, getContextSafe } from "../../../context/index.js";
 import type { InventoryContext } from "../../../context/types.js";
 import type { Kernel } from "../../../kernel/Kernel.js";
 import type { GraphQLContext } from "../server.js";
@@ -20,11 +21,12 @@ export function requireKernel(ctx: GraphQLContext): Kernel {
   return ctx.kernel;
 }
 
-export function requireContext(ctx: GraphQLContext): InventoryContext {
-  if (!ctx._inventoryContext) {
+export function requireContext(_ctx: GraphQLContext): InventoryContext {
+  const context = getContextSafe();
+  if (!context) {
     throw new NoDatabaseError();
   }
-  return ctx._inventoryContext;
+  return context;
 }
 
 export class NoDatabaseError extends Error {

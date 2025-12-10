@@ -8,20 +8,25 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import type { InventoryContext } from "../../context/index.js";
+import type { CoreProject, CoreUser } from "@shopana/platform-api";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Repository } from "../../repositories/Repository.js";
+import { setContext } from "../../context/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
-import { inventoryContextPlugin } from "./inventoryContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
-import type { ProductLoaders, ProductQueries } from "../../views/admin/context.js";
 
 export interface GraphQLContext {
   requestId: string;
   kernel: Kernel;
-  /** Internal context for plugin - use getContext() in resolvers */
-  _inventoryContext: InventoryContext | null;
+  /** Project slug from header */
+  slug: string | null;
+  /** Current project - required for all operations */
+  project: CoreProject | null;
+  /** Authenticated user for admin API */
+  user: CoreUser | null;
+  /** Current locale for translations (default: 'uk') */
+  locale?: string;
 }
 
 export interface ServerConfig {
@@ -110,7 +115,7 @@ export async function startServer(config: ServerConfig) {
   const apollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), inventoryContextPlugin()],
+    plugins: [fastifyApolloDrainPlugin(app)],
   });
 
   await apollo.start();
@@ -135,30 +140,31 @@ export async function startServer(config: ServerConfig) {
         return {
           requestId: request.id as string,
           kernel: kernel as Kernel,
-          _inventoryContext: null,
+          slug: null,
+          project: null,
+          user: null,
         };
       }
 
-      // Create loaders and queries per request for proper batching
+      // Create loaders per request for proper batching
       const services = kernel!.getServices();
-      const loaders: ProductLoaders = services.repository.loaderFactory.createLoaders();
-      const repo = services.repository;
-      const queries: ProductQueries = {
-        variantIds: (productId, args) => repo.variantQuery.getIdsByProductId(productId, args),
-        variantPriceIds: (variantId, args) => repo.pricingQuery.getIdsByVariantId(variantId, args),
-        warehouseConnection: (args) => repo.warehouseQuery.getConnection(args),
-      };
+      const loaders = services.repository.loaderFactory.createLoaders();
+
+      // Set context in AsyncLocalStorage for all resolvers
+      setContext({
+        slug: request.headers["x-pj-key"] as string,
+        project: request.project,
+        user: request.user,
+        loaders,
+        kernel: kernel!,
+      });
 
       return {
         requestId: request.id as string,
         kernel: kernel as Kernel,
-        _inventoryContext: {
-          slug: request.headers["x-pj-key"] as string,
-          project: request.project,
-          user: request.user,
-          loaders,
-          queries,
-        },
+        slug: request.headers["x-pj-key"] as string,
+        project: request.project,
+        user: request.user,
       };
     },
   });
