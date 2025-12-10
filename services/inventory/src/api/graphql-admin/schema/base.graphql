@@ -63,6 +63,10 @@ type InventoryQuery {
     after: String
     last: Int
     before: String
+    """Filter conditions"""
+    where: WarehouseWhereInput
+    """Sort order"""
+    orderBy: [WarehouseOrderByInput!]
   ): WarehouseConnection!
 }
 

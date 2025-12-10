@@ -1,6 +1,12 @@
 import { and, eq, inArray, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { createQuery, createRelayQuery, type PageInfo } from "@shopana/drizzle-query";
+import {
+  createQuery,
+  createRelayQuery,
+  type PageInfo,
+  type GraphQLWhereInput,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import { warehouses, type Warehouse, type NewWarehouse } from "../models/index.js";
 import type { PaginationArgs } from "../../views/admin/args.js";
@@ -9,6 +15,8 @@ const warehouseRelayQuery = createRelayQuery(
   createQuery(warehouses).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "warehouse", tieBreaker: "id" }
 );
+
+type WarehouseRelayInput = InferRelayInput<typeof warehouseRelayQuery>;
 
 export interface WarehouseConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -145,13 +153,28 @@ export class WarehouseRepository extends BaseRepository {
 
   // ============ Query ============
 
-  async getConnection(args: PaginationArgs): Promise<WarehouseConnectionResult> {
+  async getConnection(args: PaginationArgs & {
+    where?: GraphQLWhereInput;
+    order?: string[];
+  }): Promise<WarehouseConnectionResult> {
+    const { where, order, ...paginationArgs } = args;
+
+    // Merge user-provided where with projectId filter
+    const mergedWhere: GraphQLWhereInput = {
+      $and: [
+        { projectId: { $eq: this.projectId } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: WarehouseRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere as WarehouseRelayInput["where"],
+      order: (order ?? ["createdAt:desc"]) as WarehouseRelayInput["order"],
+    };
+
     const [result, totalCount] = await Promise.all([
-      warehouseRelayQuery.execute(this.connection, {
-        ...args,
-        where: { projectId: this.projectId },
-        order: ["createdAt:desc"],
-      }),
+      warehouseRelayQuery.execute(this.connection, executeInput),
       this.count(),
     ]);
 

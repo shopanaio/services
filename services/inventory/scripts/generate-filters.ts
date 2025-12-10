@@ -31,6 +31,7 @@ createGraphQLSchema({
   options: {
     includeDescriptions: true,
   },
+  includeDateTimeScalar: false, // DateTime is defined in base.graphql
   includeRelayInputs: true,
   includeQueryInputs: false,
   includeSortOrderEnums: false,

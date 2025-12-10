@@ -23,12 +23,50 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** Filter operators for Boolean fields */
+export type BooleanFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
 /** Supported currency codes. */
 export enum CurrencyCode {
   Eur = 'EUR',
   Uah = 'UAH',
   Usd = 'USD'
 }
+
+/** Filter operators for DateTime fields */
+export type DateTimeFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than (after) */
+  _gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Greater than or equal (on or after) */
+  _gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than (before) */
+  _lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Less than or equal (on or before) */
+  _lte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['DateTime']['input']>>;
+};
 
 /** Product description in multiple formats. */
 export type Description = {
@@ -66,12 +104,80 @@ export type File = {
   id: Scalars['ID']['output'];
 };
 
+/** Filter operators for Float fields */
+export type FloatFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Float']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Float']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Float']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Float']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Float']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Float']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
+};
+
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
   code: Maybe<Scalars['String']['output']>;
   field: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
+};
+
+/** Filter operators for ID fields */
+export type IdFilter = {
+  /** Equals */
+  _eq?: InputMaybe<Scalars['ID']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['ID']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+/** Filter operators for Int fields */
+export type IntFilter = {
+  /** Between range (inclusive) */
+  _between?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than */
+  _gt?: InputMaybe<Scalars['Int']['input']>;
+  /** Greater than or equal */
+  _gte?: InputMaybe<Scalars['Int']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Less than */
+  _lt?: InputMaybe<Scalars['Int']['input']>;
+  /** Less than or equal */
+  _lte?: InputMaybe<Scalars['Int']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['Int']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
 export type InventoryMutation = {
@@ -278,6 +384,8 @@ export type InventoryQueryWarehousesArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<WarehouseOrderByInput>>;
+  where?: InputMaybe<WarehouseWhereInput>;
 };
 
 export type Mutation = {
@@ -765,6 +873,44 @@ export type SelectedOptionInput = {
   optionValueId: Scalars['ID']['input'];
 };
 
+/** Sort direction */
+export enum SortDirection {
+  Asc = 'ASC',
+  Desc = 'DESC'
+}
+
+/** Filter operators for String fields */
+export type StringFilter = {
+  /** Contains substring (case-sensitive) */
+  _contains?: InputMaybe<Scalars['String']['input']>;
+  /** Contains substring (case-insensitive) */
+  _containsi?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-sensitive) */
+  _endsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Ends with (case-insensitive) */
+  _endsWithi?: InputMaybe<Scalars['String']['input']>;
+  /** Equals */
+  _eq?: InputMaybe<Scalars['String']['input']>;
+  /** In array */
+  _in?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Is null */
+  _is?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Is not null */
+  _isNot?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Not equals */
+  _neq?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-sensitive) */
+  _notContains?: InputMaybe<Scalars['String']['input']>;
+  /** Does not contain substring (case-insensitive) */
+  _notContainsi?: InputMaybe<Scalars['String']['input']>;
+  /** Not in array */
+  _notIn?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Starts with (case-sensitive) */
+  _startsWith?: InputMaybe<Scalars['String']['input']>;
+  /** Starts with (case-insensitive) */
+  _startsWithi?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** Type of visual swatch for option values. */
 export enum SwatchType {
   Color = 'COLOR',
@@ -1196,6 +1342,22 @@ export type WarehouseConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Relay-style pagination input for Warehouse */
+export type WarehouseConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<WarehouseOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<WarehouseWhereInput>;
+};
+
 /** Input for creating a warehouse. */
 export type WarehouseCreateInput = {
   /** The unique code for the warehouse. */
@@ -1238,6 +1400,30 @@ export type WarehouseEdge = {
   /** The item at the end of the edge. */
   node: Warehouse;
 };
+
+/** Ordering configuration for Warehouse */
+export type WarehouseOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: WarehouseOrderField;
+};
+
+/** Fields available for sorting Warehouse */
+export enum WarehouseOrderField {
+  /** Sort by code */
+  Code = 'CODE',
+  /** Sort by createdAt */
+  CreatedAt = 'CREATED_AT',
+  /** Sort by id */
+  Id = 'ID',
+  /** Sort by isDefault */
+  IsDefault = 'IS_DEFAULT',
+  /** Sort by name */
+  Name = 'NAME',
+  /** Sort by updatedAt */
+  UpdatedAt = 'UPDATED_AT'
+}
 
 /** Represents stock level for a variant in a specific warehouse. */
 export type WarehouseStock = Node & {
@@ -1295,6 +1481,28 @@ export type WarehouseUpdatePayload = {
   userErrors: Array<GenericUserError>;
   /** The updated warehouse. */
   warehouse: Maybe<Warehouse>;
+};
+
+/** Filter conditions for Warehouse */
+export type WarehouseWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<WarehouseWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<WarehouseWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<WarehouseWhereInput>>;
+  /** Filter by code */
+  code?: InputMaybe<StringFilter>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by isDefault */
+  isDefault?: InputMaybe<BooleanFilter>;
+  /** Filter by name */
+  name?: InputMaybe<StringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
 /** Input for setting weight (in grams). */
@@ -1392,8 +1600,11 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
+  BooleanFilter: BooleanFilter;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DateTimeFilter: DateTimeFilter;
   Description: ResolverTypeWrapper<Description>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   DescriptionInput: DescriptionInput;
@@ -1402,7 +1613,11 @@ export type ResolversTypes = ResolversObject<{
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   File: ResolverTypeWrapper<File>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  FloatFilter: FloatFilter;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   InventoryMutation: ResolverTypeWrapper<InventoryMutation>;
   InventoryQuery: ResolverTypeWrapper<Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -1410,7 +1625,6 @@ export type ResolversTypes = ResolversObject<{
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   OptionDisplayType: OptionDisplayType;
   PageInfo: ResolverTypeWrapper<PageInfo>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Product: ResolverTypeWrapper<Product>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductCreatePayload: ResolverTypeWrapper<ProductCreatePayload>;
@@ -1451,6 +1665,8 @@ export type ResolversTypes = ResolversObject<{
   Query: ResolverTypeWrapper<{}>;
   SelectedOption: ResolverTypeWrapper<SelectedOption>;
   SelectedOptionInput: SelectedOptionInput;
+  SortDirection: SortDirection;
+  StringFilter: StringFilter;
   SwatchType: SwatchType;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   Variant: ResolverTypeWrapper<Variant>;
@@ -1486,23 +1702,30 @@ export type ResolversTypes = ResolversObject<{
   VariantWeight: ResolverTypeWrapper<VariantWeight>;
   Warehouse: ResolverTypeWrapper<Warehouse>;
   WarehouseConnection: ResolverTypeWrapper<WarehouseConnection>;
+  WarehouseConnectionInput: WarehouseConnectionInput;
   WarehouseCreateInput: WarehouseCreateInput;
   WarehouseCreatePayload: ResolverTypeWrapper<WarehouseCreatePayload>;
   WarehouseDeleteInput: WarehouseDeleteInput;
   WarehouseDeletePayload: ResolverTypeWrapper<WarehouseDeletePayload>;
   WarehouseEdge: ResolverTypeWrapper<WarehouseEdge>;
+  WarehouseOrderByInput: WarehouseOrderByInput;
+  WarehouseOrderField: WarehouseOrderField;
   WarehouseStock: ResolverTypeWrapper<WarehouseStock>;
   WarehouseStockConnection: ResolverTypeWrapper<WarehouseStockConnection>;
   WarehouseStockEdge: ResolverTypeWrapper<WarehouseStockEdge>;
   WarehouseUpdateInput: WarehouseUpdateInput;
   WarehouseUpdatePayload: ResolverTypeWrapper<WarehouseUpdatePayload>;
+  WarehouseWhereInput: WarehouseWhereInput;
   WeightInput: WeightInput;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
+  BooleanFilter: BooleanFilter;
+  Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
+  DateTimeFilter: DateTimeFilter;
   Description: Description;
   String: Scalars['String']['output'];
   DescriptionInput: DescriptionInput;
@@ -1511,14 +1734,17 @@ export type ResolversParentTypes = ResolversObject<{
   Email: Scalars['Email']['output'];
   File: File;
   ID: Scalars['ID']['output'];
+  FloatFilter: FloatFilter;
+  Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
+  IDFilter: IdFilter;
+  IntFilter: IntFilter;
   InventoryMutation: InventoryMutation;
   InventoryQuery: Omit<InventoryQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   JSON: Scalars['JSON']['output'];
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
-  Boolean: Scalars['Boolean']['output'];
   Product: Product;
   ProductConnection: ProductConnection;
   ProductCreatePayload: ProductCreatePayload;
@@ -1559,6 +1785,7 @@ export type ResolversParentTypes = ResolversObject<{
   Query: {};
   SelectedOption: SelectedOption;
   SelectedOptionInput: SelectedOptionInput;
+  StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   Variant: Variant;
   VariantConnection: VariantConnection;
@@ -1593,16 +1820,19 @@ export type ResolversParentTypes = ResolversObject<{
   VariantWeight: VariantWeight;
   Warehouse: Warehouse;
   WarehouseConnection: WarehouseConnection;
+  WarehouseConnectionInput: WarehouseConnectionInput;
   WarehouseCreateInput: WarehouseCreateInput;
   WarehouseCreatePayload: WarehouseCreatePayload;
   WarehouseDeleteInput: WarehouseDeleteInput;
   WarehouseDeletePayload: WarehouseDeletePayload;
   WarehouseEdge: WarehouseEdge;
+  WarehouseOrderByInput: WarehouseOrderByInput;
   WarehouseStock: WarehouseStock;
   WarehouseStockConnection: WarehouseStockConnection;
   WarehouseStockEdge: WarehouseStockEdge;
   WarehouseUpdateInput: WarehouseUpdateInput;
   WarehouseUpdatePayload: WarehouseUpdatePayload;
+  WarehouseWhereInput: WarehouseWhereInput;
   WeightInput: WeightInput;
 }>;
 

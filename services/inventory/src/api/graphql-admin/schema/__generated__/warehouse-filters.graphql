@@ -1,15 +1,15 @@
 # Auto-generated GraphQL types. Do not edit manually.
-# Generated at: 2025-12-10T16:58:14.397Z
+# Generated at: 2025-12-10T17:08:14.626Z
 # Entity: Warehouse
 
 """Filter conditions for Warehouse"""
 input WarehouseWhereInput {
   """Logical AND of multiple conditions"""
-  $and: [WarehouseWhereInput!]
+  _and: [WarehouseWhereInput!]
   """Logical OR of multiple conditions"""
-  $or: [WarehouseWhereInput!]
+  _or: [WarehouseWhereInput!]
   """Negate the condition"""
-  $not: WarehouseWhereInput
+  _not: WarehouseWhereInput
   """Filter by id"""
   id: IDFilter
   """Filter by code"""

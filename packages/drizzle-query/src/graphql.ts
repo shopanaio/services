@@ -95,139 +95,139 @@ const BASE_FILTER_TYPES = `
 """Filter operators for String fields"""
 input StringFilter {
   """Equals"""
-  $eq: String
+  _eq: String
   """Not equals"""
-  $neq: String
+  _neq: String
   """In array"""
-  $in: [String!]
+  _in: [String!]
   """Not in array"""
-  $notIn: [String!]
+  _notIn: [String!]
   """Is null"""
-  $is: Boolean
+  _is: Boolean
   """Is not null"""
-  $isNot: Boolean
+  _isNot: Boolean
   """Contains substring (case-sensitive)"""
-  $contains: String
+  _contains: String
   """Contains substring (case-insensitive)"""
-  $containsi: String
+  _containsi: String
   """Does not contain substring (case-sensitive)"""
-  $notContains: String
+  _notContains: String
   """Does not contain substring (case-insensitive)"""
-  $notContainsi: String
+  _notContainsi: String
   """Starts with (case-sensitive)"""
-  $startsWith: String
+  _startsWith: String
   """Starts with (case-insensitive)"""
-  $startsWithi: String
+  _startsWithi: String
   """Ends with (case-sensitive)"""
-  $endsWith: String
+  _endsWith: String
   """Ends with (case-insensitive)"""
-  $endsWithi: String
+  _endsWithi: String
 }
 
 """Filter operators for ID fields"""
 input IDFilter {
   """Equals"""
-  $eq: ID
+  _eq: ID
   """Not equals"""
-  $neq: ID
+  _neq: ID
   """In array"""
-  $in: [ID!]
+  _in: [ID!]
   """Not in array"""
-  $notIn: [ID!]
+  _notIn: [ID!]
   """Is null"""
-  $is: Boolean
+  _is: Boolean
   """Is not null"""
-  $isNot: Boolean
+  _isNot: Boolean
 }
 
 """Filter operators for Int fields"""
 input IntFilter {
   """Equals"""
-  $eq: Int
+  _eq: Int
   """Not equals"""
-  $neq: Int
+  _neq: Int
   """Greater than"""
-  $gt: Int
+  _gt: Int
   """Greater than or equal"""
-  $gte: Int
+  _gte: Int
   """Less than"""
-  $lt: Int
+  _lt: Int
   """Less than or equal"""
-  $lte: Int
+  _lte: Int
   """In array"""
-  $in: [Int!]
+  _in: [Int!]
   """Not in array"""
-  $notIn: [Int!]
+  _notIn: [Int!]
   """Is null"""
-  $is: Boolean
+  _is: Boolean
   """Is not null"""
-  $isNot: Boolean
+  _isNot: Boolean
   """Between range (inclusive)"""
-  $between: [Int!]
+  _between: [Int!]
 }
 
 """Filter operators for Float fields"""
 input FloatFilter {
   """Equals"""
-  $eq: Float
+  _eq: Float
   """Not equals"""
-  $neq: Float
+  _neq: Float
   """Greater than"""
-  $gt: Float
+  _gt: Float
   """Greater than or equal"""
-  $gte: Float
+  _gte: Float
   """Less than"""
-  $lt: Float
+  _lt: Float
   """Less than or equal"""
-  $lte: Float
+  _lte: Float
   """In array"""
-  $in: [Float!]
+  _in: [Float!]
   """Not in array"""
-  $notIn: [Float!]
+  _notIn: [Float!]
   """Is null"""
-  $is: Boolean
+  _is: Boolean
   """Is not null"""
-  $isNot: Boolean
+  _isNot: Boolean
   """Between range (inclusive)"""
-  $between: [Float!]
+  _between: [Float!]
 }
 
 """Filter operators for Boolean fields"""
 input BooleanFilter {
   """Equals"""
-  $eq: Boolean
+  _eq: Boolean
   """Not equals"""
-  $neq: Boolean
+  _neq: Boolean
   """Is null"""
-  $is: Boolean
+  _is: Boolean
   """Is not null"""
-  $isNot: Boolean
+  _isNot: Boolean
 }
 
 """Filter operators for DateTime fields"""
 input DateTimeFilter {
   """Equals"""
-  $eq: DateTime
+  _eq: DateTime
   """Not equals"""
-  $neq: DateTime
+  _neq: DateTime
   """Greater than (after)"""
-  $gt: DateTime
+  _gt: DateTime
   """Greater than or equal (on or after)"""
-  $gte: DateTime
+  _gte: DateTime
   """Less than (before)"""
-  $lt: DateTime
+  _lt: DateTime
   """Less than or equal (on or before)"""
-  $lte: DateTime
+  _lte: DateTime
   """In array"""
-  $in: [DateTime!]
+  _in: [DateTime!]
   """Not in array"""
-  $notIn: [DateTime!]
+  _notIn: [DateTime!]
   """Is null"""
-  $is: Boolean
+  _is: Boolean
   """Is not null"""
-  $isNot: Boolean
+  _isNot: Boolean
   """Between range (inclusive)"""
-  $between: [DateTime!]
+  _between: [DateTime!]
 }
 
 """Sort direction"""
@@ -449,9 +449,9 @@ function generateWhereInput(
   const notDesc = includeDescriptions ? `  """Negate the condition"""\n` : "";
 
   return `${desc}input ${name}WhereInput {
-${andDesc}  $and: [${name}WhereInput!]
-${orDesc}  $or: [${name}WhereInput!]
-${notDesc}  $not: ${name}WhereInput
+${andDesc}  _and: [${name}WhereInput!]
+${orDesc}  _or: [${name}WhereInput!]
+${notDesc}  _not: ${name}WhereInput
 ${fieldDefs.join("\n")}
 }`;
 }

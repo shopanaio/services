@@ -1,4 +1,4 @@
-import type { PageInfo } from "@shopana/drizzle-query";
+import { type PageInfo, type GraphQLWhereInput } from "@shopana/drizzle-query";
 import { BaseType } from "@shopana/type-executor";
 import type { ServiceContext } from "../../context/types.js";
 import { WarehouseView } from "./WarehouseView.js";
@@ -10,6 +10,8 @@ interface WarehouseConnectionArgs {
   after?: string;
   last?: number;
   before?: string;
+  where?: GraphQLWhereInput;
+  order?: string[];
 }
 
 interface WarehouseEdgeData {
@@ -60,6 +62,7 @@ export class WarehouseConnectionView extends BaseType<
 
   async loadData(): Promise<WarehouseConnectionData> {
     const services = this.ctx.kernel.getServices();
+
     return services.repository.warehouse.getConnection(this.value);
   }
 

@@ -1,4 +1,5 @@
 import { parseGraphqlInfo } from "@shopana/type-executor";
+import { mapWhereInput, mapOrderBy } from "@shopana/drizzle-query";
 import {
   ProductView,
   VariantView,
@@ -115,6 +116,8 @@ export const queryResolvers: Partial<Resolvers> = {
           before: args.before ?? undefined,
           first: args.first ?? undefined,
           last: args.last ?? undefined,
+          where: mapWhereInput(args.where),
+          order: mapOrderBy(args.orderBy),
         },
         parseGraphqlInfo(info),
         requireContext(ctx)

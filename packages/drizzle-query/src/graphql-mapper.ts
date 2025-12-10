@@ -136,11 +136,6 @@ const ALL_OPERATORS = [
   "$between",
 ];
 
-/**
- * Logical operators (not field-specific)
- */
-const LOGICAL_OPERATORS = ["$and", "$or", "$not"];
-
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -299,21 +294,22 @@ export function createGraphQLMapper(config: GraphQLMapperConfig): GraphQLMapper 
         continue;
       }
 
-      if (key === "$and" && Array.isArray(value)) {
+      // Support both _and/_or/_not (GraphQL) and $and/$or/$not (internal)
+      if ((key === "$and" || key === "_and") && Array.isArray(value)) {
         const mapped = value
           .map((item) => mapWhere(item as GraphQLWhereInput))
           .filter(Boolean);
         if (mapped.length > 0) {
           result.$and = mapped;
         }
-      } else if (key === "$or" && Array.isArray(value)) {
+      } else if ((key === "$or" || key === "_or") && Array.isArray(value)) {
         const mapped = value
           .map((item) => mapWhere(item as GraphQLWhereInput))
           .filter(Boolean);
         if (mapped.length > 0) {
           result.$or = mapped;
         }
-      } else if (key === "$not" && typeof value === "object") {
+      } else if ((key === "$not" || key === "_not") && typeof value === "object") {
         const mapped = mapWhere(value as GraphQLWhereInput);
         if (mapped) {
           result.$not = mapped;
@@ -322,12 +318,14 @@ export function createGraphQLMapper(config: GraphQLMapperConfig): GraphQLMapper 
         // Validate field name
         validateWhereField(key);
 
-        // Validate and filter operators
+        // Validate and filter operators, mapping GraphQL operators to internal format
         const filtered: Record<string, unknown> = {};
         for (const [op, opValue] of Object.entries(value as Record<string, unknown>)) {
           if (opValue !== null && opValue !== undefined) {
-            validateOperator(op, key);
-            filtered[op] = opValue;
+            // Map _eq to $eq, etc.
+            const internalOp = op.startsWith("_") ? `$${op.slice(1)}` : op;
+            validateOperator(internalOp, key);
+            filtered[internalOp] = opValue;
           }
         }
 
@@ -449,21 +447,22 @@ export function mapWhereInput<T extends GraphQLWhereInput>(
       continue;
     }
 
-    if (key === "$and" && Array.isArray(value)) {
+    // Support both _and/_or/_not (GraphQL) and $and/$or/$not (internal)
+    if ((key === "$and" || key === "_and") && Array.isArray(value)) {
       const mapped = value
         .map((item) => mapWhereInput(item as GraphQLWhereInput))
         .filter(Boolean);
       if (mapped.length > 0) {
         result.$and = mapped;
       }
-    } else if (key === "$or" && Array.isArray(value)) {
+    } else if ((key === "$or" || key === "_or") && Array.isArray(value)) {
       const mapped = value
         .map((item) => mapWhereInput(item as GraphQLWhereInput))
         .filter(Boolean);
       if (mapped.length > 0) {
         result.$or = mapped;
       }
-    } else if (key === "$not" && typeof value === "object") {
+    } else if ((key === "$not" || key === "_not") && typeof value === "object") {
       const mapped = mapWhereInput(value as GraphQLWhereInput);
       if (mapped) {
         result.$not = mapped;
@@ -488,7 +487,9 @@ function filterNullValues(
 
   for (const [key, value] of Object.entries(obj)) {
     if (value !== null && value !== undefined) {
-      result[key] = value;
+      // Map GraphQL operators (_eq, _neq, etc.) to internal format ($eq, $neq, etc.)
+      const mappedKey = key.startsWith("_") ? `$${key.slice(1)}` : key;
+      result[mappedKey] = value;
     }
   }
 

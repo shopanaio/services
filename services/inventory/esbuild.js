@@ -33,10 +33,23 @@ try {
     "product.graphql",
   ];
 
+  const generatedSchemaFiles = [
+    "base-filters.graphql",
+    "warehouse-filters.graphql",
+  ];
+
   mkdirSync("dist/schema", { recursive: true });
+  mkdirSync("dist/schema/__generated__", { recursive: true });
+
   for (const file of schemaFiles) {
     const src = `src/api/graphql-admin/schema/${file}`;
     const dest = `dist/schema/${file}`;
+    copyFileSync(src, dest);
+  }
+
+  for (const file of generatedSchemaFiles) {
+    const src = `src/api/graphql-admin/schema/__generated__/${file}`;
+    const dest = `dist/schema/__generated__/${file}`;
     copyFileSync(src, dest);
   }
 
