@@ -23,6 +23,9 @@ export type {
   RelayQueryResult,
 } from "./builder/pagination-query-builder.js";
 
+// Relay Connection types
+export type { Connection, Edge, PageInfo } from "./cursor/connection.js";
+
 // Types
 export type { DrizzleExecutor } from "./types.js";
 

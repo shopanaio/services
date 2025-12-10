@@ -4,7 +4,7 @@
  * @template TContext - The type of the context passed to the constructor
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface TypeClass<TValue = string, TContext = any> {
+export interface TypeClass<TValue = any, TContext = any> {
   new (value: TValue, ctx: TContext): object;
   fields?: Record<string, Function>;
 }
@@ -72,7 +72,7 @@ export type ResolverKeys<T extends TypeClass> = {
  */
 export type ChildTypeFor<
   T extends TypeClass,
-  K extends ResolverKeys<T>,
+  K extends ResolverKeys<T>
 > = K extends keyof NonNullable<T["fields"]>
   ? NonNullable<T["fields"]>[K] extends () => infer CT
     ? CT extends TypeClass
@@ -87,7 +87,7 @@ export type ChildTypeFor<
  */
 export type ArgsForField<
   T extends TypeClass,
-  K extends ResolverKeys<T>,
+  K extends ResolverKeys<T>
 > = Instance<T>[K] extends (arg: infer P, ...rest: never[]) => unknown
   ? P
   : undefined;
@@ -121,8 +121,8 @@ export type FieldArgsTreeFor<T extends TypeClass> = {
       ? FieldArgsNode<undefined, FieldArgsTreeFor<ChildTypeFor<T, K>>>
       : FieldArgsNode<undefined, never>
     : ChildTypeFor<T, K> extends TypeClass
-      ? FieldArgsNode<ArgsForField<T, K>, FieldArgsTreeFor<ChildTypeFor<T, K>>>
-      : FieldArgsNode<ArgsForField<T, K>, never>;
+    ? FieldArgsNode<ArgsForField<T, K>, FieldArgsTreeFor<ChildTypeFor<T, K>>>
+    : FieldArgsNode<ArgsForField<T, K>, never>;
 } & {
   /** Support for aliased fields - any string key with fieldName pointing to actual method */
   [alias: string]: FieldArgsNode | undefined;
@@ -133,7 +133,9 @@ export type FieldArgsTreeFor<T extends TypeClass> = {
  * Maps resolver methods to their return types, handling nested types.
  */
 export type TypeResult<T extends TypeClass> = {
-  [K in keyof InstanceType<T> as InstanceType<T>[K] extends (...args: unknown[]) => unknown
+  [K in keyof InstanceType<T> as InstanceType<T>[K] extends (
+    ...args: unknown[]
+  ) => unknown
     ? K extends "constructor"
       ? never
       : K
@@ -153,4 +155,6 @@ export type TypeResult<T extends TypeClass> = {
 /**
  * Utility type to extract the value type from a TypeClass.
  */
-export type TypeValue<T extends TypeClass> = T extends TypeClass<infer V> ? V : never;
+export type TypeValue<T extends TypeClass> = T extends TypeClass<infer V>
+  ? V
+  : never;
