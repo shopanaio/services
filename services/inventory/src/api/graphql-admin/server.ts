@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Repository } from "../../repositories/Repository.js";
+import { ProductLoaderFactory } from "../../repositories/loaders/index.js";
 import { setContext, type ServiceContext } from "../../context/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
@@ -135,7 +136,15 @@ export async function startServer(config: ServerConfig) {
 
       // Create loaders per request for proper batching
       const services = kernel!.getServices();
-      const loaders = services.repository.loaderFactory.createLoaders();
+      const repo = services.repository;
+      const loaderFactory = new ProductLoaderFactory({
+        variant: repo.variantLoaderQuery,
+        product: repo.productLoaderQuery,
+        option: repo.optionLoaderQuery,
+        feature: repo.featureLoaderQuery,
+        warehouse: repo.warehouseLoaderQuery,
+      });
+      const loaders = loaderFactory.createLoaders();
 
       const ctx: ServiceContext = {
         requestId: request.id as string,

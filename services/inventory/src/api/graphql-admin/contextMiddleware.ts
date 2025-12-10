@@ -92,11 +92,6 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
           | undefined,
       });
 
-      console.log("=== GRPC RESPONSE ===");
-      console.log("ctx:", ctx);
-      console.log("ctx?.project:", ctx?.project);
-      console.log("ctx?.tenant:", ctx?.tenant);
-
       if (!ctx || !ctx.project || !ctx.tenant) {
         return reply
           .status(401)

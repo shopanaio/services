@@ -15,7 +15,13 @@ import { ProductQueryRepository } from "./ProductQueryRepository";
 import { VariantQueryRepository } from "./VariantQueryRepository";
 import { WarehouseQueryRepository } from "./WarehouseQueryRepository";
 import { PricingQueryRepository } from "./PricingQueryRepository";
-import { ProductLoaderFactory } from "./loaders/index.js";
+import {
+  VariantLoaderQueryRepository,
+  ProductLoaderQueryRepository,
+  OptionLoaderQueryRepository,
+  FeatureLoaderQueryRepository,
+  WarehouseLoaderQueryRepository,
+} from "./loaders/index.js";
 
 export class Repository {
   public readonly product: ProductRepository;
@@ -33,7 +39,13 @@ export class Repository {
   public readonly variantQuery: VariantQueryRepository;
   public readonly warehouseQuery: WarehouseQueryRepository;
   public readonly pricingQuery: PricingQueryRepository;
-  public readonly loaderFactory: ProductLoaderFactory;
+
+  // Loader query repositories
+  public readonly variantLoaderQuery: VariantLoaderQueryRepository;
+  public readonly productLoaderQuery: ProductLoaderQueryRepository;
+  public readonly optionLoaderQuery: OptionLoaderQueryRepository;
+  public readonly featureLoaderQuery: FeatureLoaderQueryRepository;
+  public readonly warehouseLoaderQuery: WarehouseLoaderQueryRepository;
 
   private readonly db: Database;
 
@@ -59,7 +71,13 @@ export class Repository {
     this.variantQuery = new VariantQueryRepository(this.db, this.txManager);
     this.warehouseQuery = new WarehouseQueryRepository(this.db, this.txManager);
     this.pricingQuery = new PricingQueryRepository(this.db, this.txManager);
-    this.loaderFactory = new ProductLoaderFactory(this.db, this.txManager);
+
+    // Loader query repositories
+    this.variantLoaderQuery = new VariantLoaderQueryRepository(this.db, this.txManager);
+    this.productLoaderQuery = new ProductLoaderQueryRepository(this.db, this.txManager);
+    this.optionLoaderQuery = new OptionLoaderQueryRepository(this.db, this.txManager);
+    this.featureLoaderQuery = new FeatureLoaderQueryRepository(this.db, this.txManager);
+    this.warehouseLoaderQuery = new WarehouseLoaderQueryRepository(this.db, this.txManager);
   }
 
   async close(): Promise<void> {
