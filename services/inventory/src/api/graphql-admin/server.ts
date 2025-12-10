@@ -8,11 +8,11 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { setContext, type ServiceContext } from "../../context/index.js";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { Kernel } from "../../kernel/Kernel.js";
-import { Repository } from "../../repositories/Repository.js";
 import { Loader } from "../../loaders/Loader.js";
-import { setContext, type ServiceContext } from "../../context/index.js";
+import { Repository } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
@@ -134,16 +134,14 @@ export async function startServer(config: ServerConfig) {
         };
       }
 
-      // Create loaders per request for proper batching
-      const services = kernel!.getServices();
-
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
         slug: request.headers["x-pj-key"] as string,
         project: request.project,
         user: request.user,
-        loaders: new Loader(services.repository),
+        // Create loaders per request for proper batching
+        loaders: new Loader(kernel!.getServices().repository),
       };
 
       // Set context in AsyncLocalStorage for all resolvers
