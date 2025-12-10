@@ -1,0 +1,65 @@
+# Auto-generated GraphQL types. Do not edit manually.
+# Generated at: 2025-12-10T16:58:14.397Z
+# Entity: Warehouse
+
+"""Filter conditions for Warehouse"""
+input WarehouseWhereInput {
+  """Logical AND of multiple conditions"""
+  $and: [WarehouseWhereInput!]
+  """Logical OR of multiple conditions"""
+  $or: [WarehouseWhereInput!]
+  """Negate the condition"""
+  $not: WarehouseWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by code"""
+  code: StringFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by isDefault"""
+  isDefault: BooleanFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting Warehouse"""
+enum WarehouseOrderField {
+  """Sort by id"""
+  ID
+  """Sort by code"""
+  CODE
+  """Sort by name"""
+  NAME
+  """Sort by isDefault"""
+  IS_DEFAULT
+  """Sort by createdAt"""
+  CREATED_AT
+  """Sort by updatedAt"""
+  UPDATED_AT
+}
+
+"""Ordering configuration for Warehouse"""
+input WarehouseOrderByInput {
+  """Field to order by"""
+  field: WarehouseOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for Warehouse"""
+input WarehouseConnectionInput {
+  """Returns the first n items"""
+  first: Int
+  """Returns items after this cursor"""
+  after: String
+  """Returns the last n items"""
+  last: Int
+  """Returns items before this cursor"""
+  before: String
+  """Filter conditions"""
+  where: WarehouseWhereInput
+  """Sort order"""
+  orderBy: [WarehouseOrderByInput!]
+}
