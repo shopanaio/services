@@ -6,37 +6,20 @@ import type {
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
-export interface FeatureLoaders {
-  featureTranslation: DataLoader<string, ProductFeatureTranslation | null>;
-  featureValueIds: DataLoader<string, string[]>;
-  featureValue: DataLoader<string, ProductFeatureValue | null>;
-  featureValueTranslation: DataLoader<string, ProductFeatureValueTranslation | null>;
-}
-
 export class FeatureLoader {
-  constructor(private readonly repository: Repository) {}
+  public readonly featureTranslation: DataLoader<string, ProductFeatureTranslation | null>;
+  public readonly featureValueIds: DataLoader<string, string[]>;
+  public readonly featureValue: DataLoader<string, ProductFeatureValue | null>;
+  public readonly featureValueTranslation: DataLoader<string, ProductFeatureValueTranslation | null>;
 
-  createLoaders(): FeatureLoaders {
-    return {
-      featureTranslation: this.createFeatureTranslationLoader(),
-      featureValueIds: this.createFeatureValueIdsLoader(),
-      featureValue: this.createFeatureValueLoader(),
-      featureValueTranslation: this.createFeatureValueTranslationLoader(),
-    };
-  }
-
-  private createFeatureTranslationLoader(): DataLoader<string, ProductFeatureTranslation | null> {
-    return new DataLoader<string, ProductFeatureTranslation | null>(async (featureIds) => {
-      const results = await this.repository.featureLoaderQuery.getTranslationsByFeatureIds(featureIds);
-      return featureIds.map(
-        (id) => results.find((t) => t.featureId === id) ?? null
-      );
+  constructor(repository: Repository) {
+    this.featureTranslation = new DataLoader<string, ProductFeatureTranslation | null>(async (featureIds) => {
+      const results = await repository.featureLoaderQuery.getTranslationsByFeatureIds(featureIds);
+      return featureIds.map((id) => results.find((t) => t.featureId === id) ?? null);
     });
-  }
 
-  private createFeatureValueIdsLoader(): DataLoader<string, string[]> {
-    return new DataLoader<string, string[]>(async (featureIds) => {
-      const results = await this.repository.featureLoaderQuery.getValueIdsByFeatureIds(featureIds);
+    this.featureValueIds = new DataLoader<string, string[]>(async (featureIds) => {
+      const results = await repository.featureLoaderQuery.getValueIdsByFeatureIds(featureIds);
       return featureIds.map((id) =>
         results
           .filter((v) => v.featureId === id)
@@ -44,21 +27,15 @@ export class FeatureLoader {
           .map((v) => v.id)
       );
     });
-  }
 
-  private createFeatureValueLoader(): DataLoader<string, ProductFeatureValue | null> {
-    return new DataLoader<string, ProductFeatureValue | null>(async (valueIds) => {
-      const results = await this.repository.featureLoaderQuery.getValuesByIds(valueIds);
+    this.featureValue = new DataLoader<string, ProductFeatureValue | null>(async (valueIds) => {
+      const results = await repository.featureLoaderQuery.getValuesByIds(valueIds);
       return valueIds.map((id) => results.find((v) => v.id === id) ?? null);
     });
-  }
 
-  private createFeatureValueTranslationLoader(): DataLoader<string, ProductFeatureValueTranslation | null> {
-    return new DataLoader<string, ProductFeatureValueTranslation | null>(async (featureValueIds) => {
-      const results = await this.repository.featureLoaderQuery.getValueTranslationsByValueIds(featureValueIds);
-      return featureValueIds.map(
-        (id) => results.find((t) => t.featureValueId === id) ?? null
-      );
+    this.featureValueTranslation = new DataLoader<string, ProductFeatureValueTranslation | null>(async (featureValueIds) => {
+      const results = await repository.featureLoaderQuery.getValueTranslationsByValueIds(featureValueIds);
+      return featureValueIds.map((id) => results.find((t) => t.featureValueId === id) ?? null);
     });
   }
 }
