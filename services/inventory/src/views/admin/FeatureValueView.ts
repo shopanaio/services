@@ -18,7 +18,7 @@ export class FeatureValueView extends BaseType<
   }
 
   async slug() {
-    return (await this.data)?.slug ?? "";
+    return (await this.get("slug")) ?? "";
   }
 
   async name() {
@@ -26,6 +26,6 @@ export class FeatureValueView extends BaseType<
       this.value
     );
     if (translation?.name) return translation.name;
-    return (await this.data)?.slug ?? "";
+    return (await this.get("slug")) ?? "";
   }
 }

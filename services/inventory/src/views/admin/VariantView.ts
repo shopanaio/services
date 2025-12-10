@@ -13,13 +13,18 @@ import type {
   VariantPriceHistoryArgs,
 } from "./args.js";
 import { VariantPriceView } from "./VariantPriceView.js";
+import { InventoryContext } from "../../context/types.js";
 
 /**
  * Variant view - resolves Variant domain interface
  * Accepts variant ID, loads main entity via loaders (lazy)
  * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantView extends BaseType<string, Variant | null> {
+export class VariantView extends BaseType<
+  string,
+  Variant | null,
+  InventoryContext
+> {
   static fields = {
     priceHistory: () => VariantPriceView,
   };
@@ -33,39 +38,39 @@ export class VariantView extends BaseType<string, Variant | null> {
   }
 
   async productId() {
-    return (await this.data)?.productId ?? null;
+    return this.get("productId");
   }
 
   async isDefault() {
-    return (await this.data)?.isDefault ?? false;
+    return (await this.get("isDefault")) ?? false;
   }
 
   async handle() {
-    return (await this.data)?.handle ?? "";
+    return (await this.get("handle")) ?? "";
   }
 
   async sku() {
-    return (await this.data)?.sku ?? null;
+    return this.get("sku");
   }
 
   async externalSystem() {
-    return (await this.data)?.externalSystem ?? null;
+    return this.get("externalSystem");
   }
 
   async externalId() {
-    return (await this.data)?.externalId ?? null;
+    return this.get("externalId");
   }
 
   async createdAt() {
-    return (await this.data)?.createdAt;
+    return this.get("createdAt");
   }
 
   async updatedAt() {
-    return (await this.data)?.updatedAt;
+    return this.get("updatedAt");
   }
 
   async deletedAt() {
-    return (await this.data)?.deletedAt ?? null;
+    return this.get("deletedAt");
   }
 
   async title() {

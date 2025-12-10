@@ -1,4 +1,4 @@
-import { ProductView, WarehouseView } from "../../../views/admin/index.js";
+import { ProductView, VariantView, WarehouseView } from "../../../views/admin/index.js";
 import type { Resolvers } from "../generated/types.js";
 import { requireContext, requireKernel } from "./utils.js";
 
@@ -57,12 +57,45 @@ export const queryResolvers: Partial<Resolvers> = {
       };
     },
 
-    variant: async () => {
-      throw new Error("Not implemented");
+    variant: async (_parent, { id }, ctx, info) => {
+      return VariantView.load(id, info, requireContext(ctx));
     },
 
-    variants: async () => {
-      throw new Error("Not implemented");
+    variants: async (_parent, args, ctx, info) => {
+      const kernel = requireKernel(ctx);
+
+      const services = kernel.getServices();
+      const first = args.first ?? 10;
+
+      const variants = await services.repository.variantQuery.getMany({
+        limit: first + 1,
+      });
+
+      const hasNextPage = variants.length > first;
+      const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
+
+      const variantIds = resultVariants.map((v) => v.id);
+      const resolvedVariants = await VariantView.loadMany(
+        variantIds,
+        info,
+        requireContext(ctx)
+      );
+
+      const edges = resolvedVariants.map((variant, index) => ({
+        node: variant,
+        cursor: Buffer.from(resultVariants[index].id).toString("base64"),
+      }));
+
+      return {
+        edges,
+        pageInfo: {
+          hasNextPage,
+          hasPreviousPage: false,
+          startCursor: edges[0]?.cursor ?? null,
+          endCursor: edges[edges.length - 1]?.cursor ?? null,
+        },
+        totalCount: resultVariants.length,
+      };
     },
 
     warehouse: async (_parent, { id }, ctx, info) => {

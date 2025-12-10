@@ -20,23 +20,23 @@ export class WarehouseView extends BaseType<
   }
 
   async code() {
-    return (await this.data)?.code ?? null;
+    return this.get("code");
   }
 
   async name() {
-    return (await this.data)?.name ?? null;
+    return this.get("name");
   }
 
   async isDefault() {
-    return (await this.data)?.isDefault ?? false;
+    return (await this.get("isDefault")) ?? false;
   }
 
   async createdAt() {
-    return (await this.data)?.createdAt ?? null;
+    return this.get("createdAt");
   }
 
   async updatedAt() {
-    return (await this.data)?.updatedAt ?? null;
+    return this.get("updatedAt");
   }
 
   async variantsCount(): Promise<number> {

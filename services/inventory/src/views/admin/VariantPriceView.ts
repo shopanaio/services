@@ -16,32 +16,32 @@ export class VariantPriceView extends BaseType<string, ItemPricing | null> {
   }
 
   async currency(): Promise<CurrencyCode | null> {
-    const data = await this.data;
-    return (data?.currency as CurrencyCode) ?? null;
+    const currency = await this.get("currency");
+    return (currency as CurrencyCode) ?? null;
   }
 
   async amountMinor(): Promise<number | null> {
-    return (await this.data)?.amountMinor ?? null;
+    return this.get("amountMinor");
   }
 
   async compareAtMinor(): Promise<number | null> {
-    return (await this.data)?.compareAtMinor ?? null;
+    return this.get("compareAtMinor");
   }
 
   async effectiveFrom(): Promise<Date | null> {
-    return (await this.data)?.effectiveFrom ?? null;
+    return this.get("effectiveFrom");
   }
 
   async effectiveTo(): Promise<Date | null> {
-    return (await this.data)?.effectiveTo ?? null;
+    return this.get("effectiveTo");
   }
 
   async recordedAt(): Promise<Date | null> {
-    return (await this.data)?.recordedAt ?? null;
+    return this.get("recordedAt");
   }
 
   async isCurrent(): Promise<boolean> {
-    const data = await this.data;
-    return data?.effectiveTo === null;
+    const effectiveTo = await this.get("effectiveTo");
+    return effectiveTo === null;
   }
 }

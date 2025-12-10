@@ -31,29 +31,29 @@ export class ProductView extends BaseType<
   }
 
   async handle() {
-    return (await this.data)?.handle ?? null;
+    return this.get("handle");
   }
 
   async publishedAt() {
-    return (await this.data)?.publishedAt ?? null;
+    return this.get("publishedAt");
   }
 
   async isPublished() {
-    const publishedAt = (await this.data)?.publishedAt;
+    const publishedAt = await this.get("publishedAt");
     if (!publishedAt) return false;
     return publishedAt <= new Date();
   }
 
   async createdAt() {
-    return (await this.data)?.createdAt ?? null;
+    return this.get("createdAt");
   }
 
   async updatedAt() {
-    return (await this.data)?.updatedAt ?? null;
+    return this.get("updatedAt");
   }
 
   async deletedAt() {
-    return (await this.data)?.deletedAt ?? null;
+    return this.get("deletedAt");
   }
 
   async title() {

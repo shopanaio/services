@@ -21,7 +21,7 @@ export class OptionView extends BaseType<string, ProductOption | null> {
   }
 
   async slug() {
-    return (await this.data)?.slug ?? "";
+    return (await this.get("slug")) ?? "";
   }
 
   async name() {
@@ -29,11 +29,11 @@ export class OptionView extends BaseType<string, ProductOption | null> {
       this.value
     );
     if (translation?.name) return translation.name;
-    return (await this.data)?.slug ?? "";
+    return (await this.get("slug")) ?? "";
   }
 
   async displayType(): Promise<OptionDisplayType> {
-    return ((await this.data)?.displayType as OptionDisplayType) ?? "BUTTONS";
+    return ((await this.get("displayType")) as OptionDisplayType) ?? "BUTTONS";
   }
 
   /**

@@ -82,12 +82,19 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * @returns The whole loaded entity when called without arguments, or a single property when key is provided.
    */
   protected async get(): Promise<TData>;
-  protected async get<K extends keyof TData>(key: K): Promise<TData[K]>;
-  protected async get(key?: keyof TData): Promise<TData | TData[keyof TData]> {
+  protected async get<K extends keyof NonNullable<TData>>(
+    key: K
+  ): Promise<NonNullable<TData>[K] | undefined>;
+  protected async get(
+    key?: keyof NonNullable<TData>
+  ): Promise<TData | NonNullable<TData>[keyof NonNullable<TData>] | undefined> {
     const data = await this.data;
     if (key === undefined) {
       return data;
     }
-    return data[key];
+    if (data == null) {
+      return undefined;
+    }
+    return (data as NonNullable<TData>)[key];
   }
 }

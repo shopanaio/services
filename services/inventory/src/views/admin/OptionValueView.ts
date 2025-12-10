@@ -19,7 +19,7 @@ export class OptionValueView extends BaseType<
   }
 
   async slug() {
-    return (await this.data)?.slug ?? "";
+    return (await this.get("slug")) ?? "";
   }
 
   async name() {
@@ -27,7 +27,7 @@ export class OptionValueView extends BaseType<
       this.value
     );
     if (translation?.name) return translation.name;
-    return (await this.data)?.slug ?? "";
+    return (await this.get("slug")) ?? "";
   }
 
   swatch(): ProductOptionSwatch | null {
