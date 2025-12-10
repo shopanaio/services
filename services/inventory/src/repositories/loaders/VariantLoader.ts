@@ -65,10 +65,10 @@ export class VariantLoader extends BaseLoader {
    * Variant by ID
    */
   private createVariantLoader(): DataLoader<string, Variant | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, Variant | null>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(variant)
@@ -88,10 +88,10 @@ export class VariantLoader extends BaseLoader {
    * Variant IDs by product ID
    */
   private createVariantIdsLoader(): DataLoader<string, string[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, string[]>(async (productIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select({ id: variant.id, productId: variant.productId })
         .from(variant)
@@ -113,11 +113,11 @@ export class VariantLoader extends BaseLoader {
    * Variant translation by variant ID (for current locale)
    */
   private createVariantTranslationLoader(): DataLoader<string, VariantTranslation | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-    const locale = this.locale;
-
     return new DataLoader<string, VariantTranslation | null>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+      const locale = this.locale;
+
       const results = await conn
         .select()
         .from(variantTranslation)
@@ -139,10 +139,10 @@ export class VariantLoader extends BaseLoader {
    * Variant pricing by variant ID (active pricing only)
    */
   private createVariantPricingLoader(): DataLoader<string, ItemPricing[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ItemPricing[]>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(itemPricing)
@@ -162,10 +162,10 @@ export class VariantLoader extends BaseLoader {
    * Variant price by price ID
    */
   private createVariantPriceByIdLoader(): DataLoader<string, ItemPricing | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ItemPricing | null>(async (priceIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(itemPricing)
@@ -184,10 +184,10 @@ export class VariantLoader extends BaseLoader {
    * Variant price IDs by variant ID (all prices, for history)
    */
   private createVariantPriceIdsLoader(): DataLoader<string, string[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, string[]>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select({ id: itemPricing.id, variantId: itemPricing.variantId })
         .from(itemPricing)
@@ -208,10 +208,10 @@ export class VariantLoader extends BaseLoader {
    * Variant dimensions by variant ID
    */
   private createVariantDimensionsLoader(): DataLoader<string, ItemDimensions | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ItemDimensions | null>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(itemDimensions)
@@ -232,10 +232,10 @@ export class VariantLoader extends BaseLoader {
    * Variant weight by variant ID
    */
   private createVariantWeightLoader(): DataLoader<string, ItemWeight | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ItemWeight | null>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(itemWeight)
@@ -256,10 +256,10 @@ export class VariantLoader extends BaseLoader {
    * Variant media by variant ID (sorted by sortIndex)
    */
   private createVariantMediaLoader(): DataLoader<string, VariantMedia[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, VariantMedia[]>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(variantMedia)
@@ -280,10 +280,10 @@ export class VariantLoader extends BaseLoader {
    * Variant stock by variant ID
    */
   private createVariantStockLoader(): DataLoader<string, WarehouseStock[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, WarehouseStock[]>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(warehouseStock)
@@ -302,10 +302,10 @@ export class VariantLoader extends BaseLoader {
    * Variant selected options (option value links) by variant ID
    */
   private createVariantSelectedOptionsLoader(): DataLoader<string, ProductOptionVariantLink[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ProductOptionVariantLink[]>(async (variantIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(productOptionVariantLink)

@@ -27,10 +27,10 @@ export class WarehouseLoader extends BaseLoader {
    * Warehouse by ID
    */
   private createWarehouseLoader(): DataLoader<string, Warehouse | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, Warehouse | null>(async (warehouseIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(warehouses)

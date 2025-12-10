@@ -47,10 +47,10 @@ export class ProductLoader extends BaseLoader {
    * Product by ID
    */
   private createProductLoader(): DataLoader<string, Product | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, Product | null>(async (productIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(product)
@@ -72,11 +72,11 @@ export class ProductLoader extends BaseLoader {
    * Product translation by product ID (for current locale)
    */
   private createProductTranslationLoader(): DataLoader<string, ProductTranslation | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-    const locale = this.locale;
-
     return new DataLoader<string, ProductTranslation | null>(async (productIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+      const locale = this.locale;
+
       const results = await conn
         .select()
         .from(productTranslation)
@@ -98,10 +98,10 @@ export class ProductLoader extends BaseLoader {
    * Product option IDs by product ID
    */
   private createProductOptionIdsLoader(): DataLoader<string, string[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, string[]>(async (productIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select({ id: productOption.id, productId: productOption.productId })
         .from(productOption)
@@ -122,10 +122,10 @@ export class ProductLoader extends BaseLoader {
    * Product feature IDs by product ID
    */
   private createProductFeatureIdsLoader(): DataLoader<string, string[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, string[]>(async (productIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select({ id: productFeature.id, productId: productFeature.productId })
         .from(productFeature)
@@ -146,10 +146,10 @@ export class ProductLoader extends BaseLoader {
    * Product option by ID
    */
   private createProductOptionLoader(): DataLoader<string, ProductOption | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ProductOption | null>(async (optionIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(productOption)
@@ -168,10 +168,10 @@ export class ProductLoader extends BaseLoader {
    * Product feature by ID
    */
   private createProductFeatureLoader(): DataLoader<string, ProductFeature | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ProductFeature | null>(async (featureIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(productFeature)

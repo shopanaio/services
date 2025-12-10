@@ -72,6 +72,15 @@ export class Executor<TContext = unknown> {
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
   ): Promise<TResult> {
     const instance = new Type(value, this.options.ctx);
+
+    // Check if loadData returns null - if so, return null immediately
+    if (typeof (instance as any).loadData === "function") {
+      const data = await (instance as any).loadData();
+      if (data === null || data === undefined) {
+        return null as TResult;
+      }
+    }
+
     const fieldsMap =
       (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
@@ -86,15 +95,20 @@ export class Executor<TContext = unknown> {
       FieldArgsNode | undefined
     >;
 
-    // Only resolve fields that are explicitly requested (like GraphQL)
-    // If no fieldArgs provided, return empty object
-    const fieldsToResolve = Object.keys(argsTree).filter(
+    // Get fields to resolve: either from argsTree or all methods from the instance
+    const argsTreeFields = Object.keys(argsTree).filter(
       (key) => argsTree[key] !== undefined
     );
 
-    if (fieldsToResolve.length === 0) {
-      return result as TResult;
-    }
+    // If no fieldArgs provided, resolve all public methods (except constructor, loadData, get)
+    const fieldsToResolve = argsTreeFields.length > 0
+      ? argsTreeFields
+      : Object.getOwnPropertyNames(Object.getPrototypeOf(instance))
+          .filter((key) => {
+            if (key === "constructor" || key === "loadData" || key === "get") return false;
+            const method = (instance as Record<string, unknown>)[key];
+            return typeof method === "function";
+          });
 
     await Promise.all(
       fieldsToResolve.map(async (key) => {

@@ -41,11 +41,11 @@ export class FeatureLoader extends BaseLoader {
    * Feature translation by feature ID (for current locale)
    */
   private createFeatureTranslationLoader(): DataLoader<string, ProductFeatureTranslation | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-    const locale = this.locale;
-
     return new DataLoader<string, ProductFeatureTranslation | null>(async (featureIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+      const locale = this.locale;
+
       const results = await conn
         .select()
         .from(productFeatureTranslation)
@@ -67,10 +67,10 @@ export class FeatureLoader extends BaseLoader {
    * Feature value IDs by feature ID (sorted by sortIndex)
    */
   private createFeatureValueIdsLoader(): DataLoader<string, string[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, string[]>(async (featureIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select({
           id: productFeatureValue.id,
@@ -98,10 +98,10 @@ export class FeatureLoader extends BaseLoader {
    * Feature value by ID
    */
   private createFeatureValueLoader(): DataLoader<string, ProductFeatureValue | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ProductFeatureValue | null>(async (valueIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(productFeatureValue)
@@ -120,11 +120,11 @@ export class FeatureLoader extends BaseLoader {
    * Feature value translation by feature value ID (for current locale)
    */
   private createFeatureValueTranslationLoader(): DataLoader<string, ProductFeatureValueTranslation | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-    const locale = this.locale;
-
     return new DataLoader<string, ProductFeatureValueTranslation | null>(async (featureValueIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+      const locale = this.locale;
+
       const results = await conn
         .select()
         .from(productFeatureValueTranslation)

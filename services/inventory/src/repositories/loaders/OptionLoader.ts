@@ -41,11 +41,11 @@ export class OptionLoader extends BaseLoader {
    * Option translation by option ID (for current locale)
    */
   private createOptionTranslationLoader(): DataLoader<string, ProductOptionTranslation | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-    const locale = this.locale;
-
     return new DataLoader<string, ProductOptionTranslation | null>(async (optionIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+      const locale = this.locale;
+
       const results = await conn
         .select()
         .from(productOptionTranslation)
@@ -67,10 +67,10 @@ export class OptionLoader extends BaseLoader {
    * Option value IDs by option ID (sorted by sortIndex)
    */
   private createOptionValueIdsLoader(): DataLoader<string, string[]> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, string[]>(async (optionIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select({
           id: productOptionValue.id,
@@ -98,10 +98,10 @@ export class OptionLoader extends BaseLoader {
    * Option value by ID
    */
   private createOptionValueLoader(): DataLoader<string, ProductOptionValue | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-
     return new DataLoader<string, ProductOptionValue | null>(async (valueIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+
       const results = await conn
         .select()
         .from(productOptionValue)
@@ -120,11 +120,11 @@ export class OptionLoader extends BaseLoader {
    * Option value translation by option value ID (for current locale)
    */
   private createOptionValueTranslationLoader(): DataLoader<string, ProductOptionValueTranslation | null> {
-    const conn = this.connection;
-    const projectId = this.projectId;
-    const locale = this.locale;
-
     return new DataLoader<string, ProductOptionValueTranslation | null>(async (optionValueIds) => {
+      const conn = this.connection;
+      const projectId = this.projectId;
+      const locale = this.locale;
+
       const results = await conn
         .select()
         .from(productOptionValueTranslation)
