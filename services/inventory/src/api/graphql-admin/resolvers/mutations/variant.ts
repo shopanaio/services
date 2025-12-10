@@ -1,24 +1,26 @@
-import type { Resolvers, Variant } from "../../generated/types.js";
-import {
-  variantCreate,
-  variantDelete,
-  variantSetSku,
-  variantSetDimensions,
-  variantSetWeight,
-  variantSetPricing,
-  variantSetCost,
-  variantSetStock,
-  variantSetMedia,
-} from "../../../../scripts/variant/index.js";
 import {
   decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { noDatabaseError } from "../utils.js";
+import { parseGraphqlInfo } from "@shopana/type-executor";
+import {
+  variantCreate,
+  variantDelete,
+  variantSetCost,
+  variantSetDimensions,
+  variantSetMedia,
+  variantSetPricing,
+  variantSetSku,
+  variantSetStock,
+  variantSetWeight,
+} from "../../../../scripts/variant/index.js";
+import { VariantView } from "../../../../views/admin/index.js";
+import type { Resolvers } from "../../generated/types.js";
+import { noDatabaseError, requireContext } from "../utils.js";
 
 export const variantMutationResolvers: Resolvers = {
   InventoryMutation: {
-    variantCreate: async (_parent, { input }, ctx) => {
+    variantCreate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ variant: null });
       }
@@ -34,8 +36,16 @@ export const variantMutationResolvers: Resolvers = {
         externalId: input.variant.externalId ?? undefined,
       });
 
+      const variantFieldInfo = parseGraphqlInfo(info, "variant");
+
       return {
-        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
+        variant: result.variant
+          ? await VariantView.load(
+              result.variant.id,
+              variantFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         userErrors: result.userErrors,
       };
     },
@@ -56,7 +66,7 @@ export const variantMutationResolvers: Resolvers = {
       };
     },
 
-    variantSetSku: async (_parent, { input }, ctx) => {
+    variantSetSku: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ variant: null });
       }
@@ -66,13 +76,21 @@ export const variantMutationResolvers: Resolvers = {
         sku: input.sku,
       });
 
+      const variantFieldInfo = parseGraphqlInfo(info, "variant");
+
       return {
-        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
+        variant: result.variant
+          ? await VariantView.load(
+              result.variant.id,
+              variantFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         userErrors: result.userErrors,
       };
     },
 
-    variantSetDimensions: async (_parent, { input }, ctx) => {
+    variantSetDimensions: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ variant: null });
       }
@@ -86,13 +104,21 @@ export const variantMutationResolvers: Resolvers = {
         },
       });
 
+      const variantFieldInfo = parseGraphqlInfo(info, "variant");
+
       return {
-        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
+        variant: result.variant
+          ? await VariantView.load(
+              result.variant.id,
+              variantFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         userErrors: result.userErrors,
       };
     },
 
-    variantSetWeight: async (_parent, { input }, ctx) => {
+    variantSetWeight: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ variant: null });
       }
@@ -104,8 +130,16 @@ export const variantMutationResolvers: Resolvers = {
         },
       });
 
+      const variantFieldInfo = parseGraphqlInfo(info, "variant");
+
       return {
-        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
+        variant: result.variant
+          ? await VariantView.load(
+              result.variant.id,
+              variantFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         userErrors: result.userErrors,
       };
     },
@@ -125,7 +159,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.price ? ({ id: input.variantId } as Variant) : null,
+        variant: result.price ? { id: input.variantId } : null,
         userErrors: result.userErrors,
       };
     },
@@ -142,7 +176,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.cost ? ({ id: input.variantId } as Variant) : null,
+        variant: result.cost ? { id: input.variantId } : null,
         userErrors: result.userErrors,
       };
     },
@@ -159,7 +193,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.stock ? ({ id: input.variantId } as Variant) : null,
+        variant: result.stock ? { id: input.variantId } : null,
         userErrors: result.userErrors,
       };
     },
@@ -180,7 +214,7 @@ export const variantMutationResolvers: Resolvers = {
       });
 
       return {
-        variant: result.variant ? ({ id: result.variant.id } as Variant) : null,
+        variant: result.variant ? { id: result.variant.id } : null,
         userErrors: result.userErrors,
       };
     },

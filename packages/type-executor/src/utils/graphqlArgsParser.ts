@@ -137,84 +137,96 @@ export function parseGraphQLInfo<T extends TypeClass>(
 }
 
 /**
- * Deep version of parseGraphQLInfo that handles nested types.
+ * Parses GraphQL resolve info and returns requested fields.
  *
- * Traverses the full type hierarchy via `static fields` to determine which fields
- * have children at any nesting level. Use this when your query includes nested
- * types that also have their own nested fields.
+ * Recursively parses the GraphQL AST to extract all requested fields.
  *
  * @param info - GraphQL resolve info from resolver
- * @param Type - The root TypeClass being resolved
- * @returns FieldArgsTree that can be passed to executor.resolve()
+ * @param fieldName - Optional field name to extract sub-fields from (e.g., "warehouse", "product").
+ *                    If not provided, returns top-level fields.
+ * @returns FieldArgsTree that can be passed to executor
  *
  * @example
  * ```ts
- * // For queries with deep nesting like:
- * // product { variants { images { url } } }
- * const argsTree = parseGraphQLInfoDeep(info, ProductType);
- * await executor.resolve(ProductType, productId, argsTree);
+ * // Extract fields for warehouse from WarehouseCreatePayload:
+ * const warehouseFields = parseGraphqlInfo(info, "warehouse");
+ * await WarehouseView.load(warehouseId, warehouseFields, ctx);
+ *
+ * // For __resolveReference or direct type resolvers (top-level fields):
+ * const fields = parseGraphqlInfo(info);
+ * await ProductView.load(productId, fields, ctx);
  * ```
  */
-export function parseGraphQLInfoDeep<T extends TypeClass>(
+export function parseGraphqlInfo(
   info: GraphQLResolveInfo,
-  Type: T
-): FieldArgsTreeFor<T> {
+  fieldName?: string
+): Record<string, FieldArgsNode> {
   const parsed = parseResolveInfo(info);
   if (!parsed) {
-    return {} as FieldArgsTreeFor<T>;
+    return {};
   }
 
   const resolveTree = parsed as ResolveTree;
-  const fieldsWithChildren = collectAllFieldsWithChildren(Type);
 
-  return mapFieldsToArgsTree(
-    resolveTree.fieldsByTypeName,
-    fieldsWithChildren
-  ) as FieldArgsTreeFor<T>;
+  // If fieldName provided, extract that field's children
+  if (fieldName) {
+    for (const fields of Object.values(resolveTree.fieldsByTypeName)) {
+      const field = fields[fieldName];
+      if (field) {
+        return mapFieldsToArgsTreeDeep(field.fieldsByTypeName);
+      }
+    }
+    return {};
+  }
+
+  // Otherwise return top-level fields
+  return mapFieldsToArgsTreeDeep(resolveTree.fieldsByTypeName);
 }
 
 /**
- * Extracts sub-field info for a nested field from GraphQL resolve info.
- *
- * Use this when you need to pass info to a nested type resolver.
- * For example, when resolving `warehouseCreate` which returns `WarehouseCreatePayload`,
- * and you need to pass info for the `warehouse` field to `WarehouseView.load()`.
- *
- * @param info - GraphQL resolve info from parent resolver
- * @param fieldName - The name of the field to extract sub-info for
- * @param Type - The TypeClass of the nested field (used to determine which fields have children)
- * @returns FieldArgsTree for the nested field, or undefined if field not found
- *
- * @example
- * ```ts
- * // In warehouseCreate resolver:
- * const warehouseInfo = getSubFieldInfo(info, 'warehouse', WarehouseView);
- * await WarehouseView.load(warehouseId, warehouseInfo, ctx);
- * ```
+ * Recursively converts parsed resolve info fields to FieldArgsTree format.
+ * Does not require TypeClass - parses all nested fields from GraphQL AST.
  */
-export function getSubFieldInfo<T extends TypeClass>(
-  info: GraphQLResolveInfo,
-  fieldName: string,
-  Type: T
-): FieldArgsTreeFor<T> | undefined {
-  const parsed = parseResolveInfo(info);
-  if (!parsed) {
-    return undefined;
+function mapFieldsToArgsTreeDeep(
+  fieldsByTypeName: FieldsByTypeName
+): Record<string, FieldArgsNode> {
+  const result: Record<string, FieldArgsNode> = {};
+
+  // Merge fields from all types (handles interface/union types)
+  const allFields: Record<string, ResolveTree> = {};
+  for (const fields of Object.values(fieldsByTypeName)) {
+    Object.assign(allFields, fields);
   }
 
-  const resolveTree = parsed as ResolveTree;
+  for (const [alias, field] of Object.entries(allFields)) {
+    // Skip introspection fields
+    if (alias.startsWith("__")) continue;
 
-  // Find the field in fieldsByTypeName
-  for (const fields of Object.values(resolveTree.fieldsByTypeName)) {
-    const field = fields[fieldName];
-    if (field) {
-      const fieldsWithChildren = collectAllFieldsWithChildren(Type);
-      return mapFieldsToArgsTree(
-        field.fieldsByTypeName,
-        fieldsWithChildren
-      ) as FieldArgsTreeFor<T>;
+    const actualFieldName = field.name;
+    const isAlias = alias !== actualFieldName;
+    const hasArgs = Object.keys(field.args).length > 0;
+    const hasChildren = Object.keys(field.fieldsByTypeName).length > 0;
+
+    const node: FieldArgsNode = {};
+
+    if (isAlias) {
+      node.fieldName = actualFieldName;
     }
+
+    if (hasArgs) {
+      node.args = field.args;
+    }
+
+    if (hasChildren) {
+      const children = mapFieldsToArgsTreeDeep(field.fieldsByTypeName);
+      if (Object.keys(children).length > 0) {
+        node.children = children;
+      }
+    }
+
+    result[alias] = node;
   }
 
-  return undefined;
+  return result;
 }
+

@@ -1,3 +1,4 @@
+import { parseGraphqlInfo } from "@shopana/type-executor";
 import type { Resolvers, Product } from "../../generated/types.js";
 import {
   ProductCreateScript,
@@ -6,24 +7,33 @@ import {
   ProductPublishScript,
   ProductUnpublishScript,
 } from "../../../../scripts/product/index.js";
-import { noDatabaseError } from "../utils.js";
+import { ProductView } from "../../../../views/admin/index.js";
+import { noDatabaseError, requireContext } from "../utils.js";
 
 export const productMutationResolvers: Resolvers = {
   InventoryMutation: {
-    productCreate: async (_parent, _args, ctx) => {
+    productCreate: async (_parent, _args, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ product: null });
       }
 
       const result = await ctx.kernel.runScript(ProductCreateScript, {});
 
+      const productFieldInfo = parseGraphqlInfo(info, "product");
+
       return {
-        product: result.product ? ({ id: result.product.id } as Product) : null,
+        product: result.product
+          ? ((await ProductView.load(
+              result.product.id,
+              productFieldInfo,
+              requireContext(ctx)
+            )) as Product)
+          : null,
         userErrors: result.userErrors,
       };
     },
 
-    productUpdate: async (_parent, { input }, ctx) => {
+    productUpdate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ product: null });
       }
@@ -44,8 +54,16 @@ export const productMutationResolvers: Resolvers = {
         seoDescription: input.seoDescription ?? undefined,
       });
 
+      const productFieldInfo = parseGraphqlInfo(info, "product");
+
       return {
-        product: result.product ? ({ id: result.product.id } as Product) : null,
+        product: result.product
+          ? ((await ProductView.load(
+              result.product.id,
+              productFieldInfo,
+              requireContext(ctx)
+            )) as Product)
+          : null,
         userErrors: result.userErrors,
       };
     },
@@ -66,7 +84,7 @@ export const productMutationResolvers: Resolvers = {
       };
     },
 
-    productPublish: async (_parent, { input }, ctx) => {
+    productPublish: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ product: null });
       }
@@ -75,13 +93,21 @@ export const productMutationResolvers: Resolvers = {
         id: input.id,
       });
 
+      const productFieldInfo = parseGraphqlInfo(info, "product");
+
       return {
-        product: result.product ? ({ id: result.product.id } as Product) : null,
+        product: result.product
+          ? ((await ProductView.load(
+              result.product.id,
+              productFieldInfo,
+              requireContext(ctx)
+            )) as Product)
+          : null,
         userErrors: result.userErrors,
       };
     },
 
-    productUnpublish: async (_parent, { input }, ctx) => {
+    productUnpublish: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ product: null });
       }
@@ -90,8 +116,16 @@ export const productMutationResolvers: Resolvers = {
         id: input.id,
       });
 
+      const productFieldInfo = parseGraphqlInfo(info, "product");
+
       return {
-        product: result.product ? ({ id: result.product.id } as Product) : null,
+        product: result.product
+          ? ((await ProductView.load(
+              result.product.id,
+              productFieldInfo,
+              requireContext(ctx)
+            )) as Product)
+          : null,
         userErrors: result.userErrors,
       };
     },

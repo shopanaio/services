@@ -1,4 +1,5 @@
 import type { GraphQLResolveInfo } from "graphql";
+import { parseGraphqlInfo } from "@shopana/type-executor";
 import type { ServiceContext } from "../../../context/index.js";
 import {
   ProductView,
@@ -16,7 +17,7 @@ async function resolveProduct(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return ProductView.load(productId, info, requireContext(ctx));
+  return ProductView.load(productId, parseGraphqlInfo(info), requireContext(ctx));
 }
 
 /**
@@ -27,7 +28,7 @@ async function resolveVariant(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return VariantView.load(variantId, info, requireContext(ctx));
+  return VariantView.load(variantId, parseGraphqlInfo(info), requireContext(ctx));
 }
 
 /**
@@ -38,7 +39,7 @@ async function resolveWarehouse(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return WarehouseView.load(warehouseId, info, requireContext(ctx));
+  return WarehouseView.load(warehouseId, parseGraphqlInfo(info), requireContext(ctx));
 }
 
 export const typeResolvers: Resolvers = {

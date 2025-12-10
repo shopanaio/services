@@ -1,14 +1,16 @@
+import { parseGraphqlInfo } from "@shopana/type-executor";
 import {
   OptionCreateScript,
   OptionDeleteScript,
   OptionUpdateScript,
 } from "../../../../scripts/option/index.js";
+import { OptionView } from "../../../../views/admin/index.js";
 import type { ProductOption, Resolvers } from "../../generated/types.js";
-import { noDatabaseError } from "../utils.js";
+import { noDatabaseError, requireContext } from "../utils.js";
 
 export const optionMutationResolvers: Resolvers = {
   InventoryMutation: {
-    productOptionCreate: async (_parent, { input }, ctx) => {
+    productOptionCreate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ option: null });
       }
@@ -46,15 +48,21 @@ export const optionMutationResolvers: Resolvers = {
         })),
       });
 
+      const optionFieldInfo = parseGraphqlInfo(info, "option");
+
       return {
         option: result.option
-          ? ({ id: result.option.id } as ProductOption)
+          ? ((await OptionView.load(
+              result.option.id,
+              optionFieldInfo,
+              requireContext(ctx)
+            )) as ProductOption)
           : null,
         userErrors: result.userErrors,
       };
     },
 
-    productOptionUpdate: async (_parent, { input }, ctx) => {
+    productOptionUpdate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ option: null });
       }
@@ -101,9 +109,15 @@ export const optionMutationResolvers: Resolvers = {
           : undefined,
       });
 
+      const optionFieldInfo = parseGraphqlInfo(info, "option");
+
       return {
         option: result.option
-          ? ({ id: result.option.id } as ProductOption)
+          ? ((await OptionView.load(
+              result.option.id,
+              optionFieldInfo,
+              requireContext(ctx)
+            )) as ProductOption)
           : null,
         userErrors: result.userErrors,
       };

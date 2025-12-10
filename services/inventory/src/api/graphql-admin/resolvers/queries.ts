@@ -1,3 +1,4 @@
+import { parseGraphqlInfo } from "@shopana/type-executor";
 import {
   ProductView,
   VariantView,
@@ -14,15 +15,15 @@ export const queryResolvers: Partial<Resolvers> = {
 
   InventoryQuery: {
     node: async (_parent, { id }, ctx, info) => {
-      return ProductView.load(id, info, requireContext(ctx));
+      return ProductView.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     nodes: async (_parent, { ids }, ctx, info) => {
-      return ProductView.loadMany(ids, info, requireContext(ctx));
+      return ProductView.loadMany(ids, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     product: async (_parent, { id }, ctx, info) => {
-      return ProductView.load(id, info, requireContext(ctx));
+      return ProductView.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     products: async (_parent, args, ctx, info) => {
@@ -41,7 +42,7 @@ export const queryResolvers: Partial<Resolvers> = {
       const productIds = resultProducts.map((p) => p.id);
       const resolvedProducts = await ProductView.loadMany(
         productIds,
-        info,
+        parseGraphqlInfo(info),
         requireContext(ctx)
       );
 
@@ -63,7 +64,7 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     variant: async (_parent, { id }, ctx, info) => {
-      return VariantView.load(id, info, requireContext(ctx));
+      return VariantView.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     variants: async (_parent, args, ctx, info) => {
@@ -82,7 +83,7 @@ export const queryResolvers: Partial<Resolvers> = {
       const variantIds = resultVariants.map((v) => v.id);
       const resolvedVariants = await VariantView.loadMany(
         variantIds,
-        info,
+        parseGraphqlInfo(info),
         requireContext(ctx)
       );
 
@@ -104,7 +105,7 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     warehouse: async (_parent, { id }, ctx, info) => {
-      return WarehouseView.load(id, info, requireContext(ctx));
+      return WarehouseView.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     warehouses: async (_parent, args, ctx, info) => {
@@ -115,7 +116,7 @@ export const queryResolvers: Partial<Resolvers> = {
           first: args.first ?? undefined,
           last: args.last ?? undefined,
         },
-        info,
+        parseGraphqlInfo(info),
         requireContext(ctx)
       );
     },

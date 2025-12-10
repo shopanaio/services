@@ -1,14 +1,16 @@
+import { parseGraphqlInfo } from "@shopana/type-executor";
 import type { Resolvers, ProductFeature } from "../../generated/types.js";
 import {
   FeatureCreateScript,
   FeatureUpdateScript,
   FeatureDeleteScript,
 } from "../../../../scripts/feature/index.js";
-import { noDatabaseError } from "../utils.js";
+import { FeatureView } from "../../../../views/admin/index.js";
+import { noDatabaseError, requireContext } from "../utils.js";
 
 export const featureMutationResolvers: Resolvers = {
   InventoryMutation: {
-    productFeatureCreate: async (_parent, { input }, ctx) => {
+    productFeatureCreate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ feature: null });
       }
@@ -23,15 +25,21 @@ export const featureMutationResolvers: Resolvers = {
         })),
       });
 
+      const featureFieldInfo = parseGraphqlInfo(info, "feature");
+
       return {
         feature: result.feature
-          ? ({ id: result.feature.id } as ProductFeature)
+          ? ((await FeatureView.load(
+              result.feature.id,
+              featureFieldInfo,
+              requireContext(ctx)
+            )) as ProductFeature)
           : null,
         userErrors: result.userErrors,
       };
     },
 
-    productFeatureUpdate: async (_parent, { input }, ctx) => {
+    productFeatureUpdate: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ feature: null });
       }
@@ -56,9 +64,15 @@ export const featureMutationResolvers: Resolvers = {
           : undefined,
       });
 
+      const featureFieldInfo = parseGraphqlInfo(info, "feature");
+
       return {
         feature: result.feature
-          ? ({ id: result.feature.id } as ProductFeature)
+          ? ((await FeatureView.load(
+              result.feature.id,
+              featureFieldInfo,
+              requireContext(ctx)
+            )) as ProductFeature)
           : null,
         userErrors: result.userErrors,
       };

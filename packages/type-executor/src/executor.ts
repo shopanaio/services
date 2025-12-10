@@ -5,21 +5,6 @@ import type {
   FieldArgsNode,
   TypeResult,
 } from "./types.js";
-import type { GraphQLResolveInfo } from "graphql";
-import { GraphQLObjectType } from "graphql";
-import { parseGraphQLInfoDeep } from "./utils/graphqlArgsParser.js";
-
-/**
- * Checks if the given object is a GraphQL resolve info.
- */
-function isGraphQLResolveInfo(obj: unknown): obj is GraphQLResolveInfo {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    "parentType" in obj &&
-    (obj as { parentType: unknown }).parentType instanceof GraphQLObjectType
-  );
-}
 
 /**
  * Error thrown when a resolver fails.
@@ -69,7 +54,7 @@ export class Executor<TContext = unknown> {
   async load<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
+    fieldArgs?: FieldArgsTreeFor<T>
   ): Promise<TResult> {
     console.log(`[Executor.load] Type: ${Type.name}, value:`, value);
 
@@ -89,14 +74,9 @@ export class Executor<TContext = unknown> {
       (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
 
-    // Auto-convert GraphQL resolve info to field args tree
-    const normalizedFieldArgs = isGraphQLResolveInfo(fieldArgs)
-      ? parseGraphQLInfoDeep(fieldArgs, Type)
-      : fieldArgs;
+    console.log(`[Executor.load] ${Type.name} fieldArgs:`, JSON.stringify(fieldArgs));
 
-    console.log(`[Executor.load] ${Type.name} normalizedFieldArgs:`, JSON.stringify(normalizedFieldArgs));
-
-    const argsTree = (normalizedFieldArgs ?? {}) as Record<
+    const argsTree = (fieldArgs ?? {}) as Record<
       string,
       FieldArgsNode | undefined
     >;
@@ -200,15 +180,11 @@ export class Executor<TContext = unknown> {
   async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
+    fieldArgs?: FieldArgsTreeFor<T>
   ): Promise<TResult[]> {
-    const normalizedFieldArgs = isGraphQLResolveInfo(fieldArgs)
-      ? parseGraphQLInfoDeep(fieldArgs, Type)
-      : fieldArgs;
-
     return Promise.all(
       values.map((value) =>
-        this.load<T, TResult>(Type, value, normalizedFieldArgs)
+        this.load<T, TResult>(Type, value, fieldArgs)
       )
     );
   }
@@ -232,7 +208,7 @@ export function createExecutor<TContext = unknown>(
  *
  * @param Type - The TypeClass to use for resolution
  * @param value - The raw value to resolve
- * @param fieldArgs - Optional field arguments or GraphQL resolve info
+ * @param fieldArgs - Optional field arguments tree (use parseGraphqlInfo to convert from GraphQL info)
  * @param ctx - Context object to pass to type instances
  */
 export function load<
@@ -242,7 +218,7 @@ export function load<
 >(
   Type: T,
   value: ConstructorParameters<T>[0],
-  fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
+  fieldArgs: FieldArgsTreeFor<T> | undefined,
   ctx: TContext
 ): Promise<TResult> {
   const exec = new Executor({ ctx });
@@ -254,7 +230,7 @@ export function load<
  *
  * @param Type - The TypeClass to use for resolution
  * @param values - The raw values to resolve
- * @param fieldArgs - Optional field arguments or GraphQL resolve info
+ * @param fieldArgs - Optional field arguments tree (use parseGraphqlInfo to convert from GraphQL info)
  * @param ctx - Context object to pass to type instances
  */
 export function loadMany<
@@ -264,7 +240,7 @@ export function loadMany<
 >(
   Type: T,
   values: ConstructorParameters<T>[0][],
-  fieldArgs: FieldArgsTreeFor<T> | GraphQLResolveInfo | undefined,
+  fieldArgs: FieldArgsTreeFor<T> | undefined,
   ctx: TContext
 ): Promise<TResult[]> {
   const exec = new Executor({ ctx });
