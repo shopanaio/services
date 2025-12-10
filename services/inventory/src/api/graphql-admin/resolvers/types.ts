@@ -6,16 +6,17 @@ import {
 } from "../../../views/admin/index.js";
 import type { Resolvers } from "../generated/types.js";
 import type { GraphQLContext } from "../server.js";
+import { requireContext } from "./utils.js";
 
 /**
  * Resolves product using executor
  */
 async function resolveProduct(
   productId: string,
-  _ctx: GraphQLContext,
+  ctx: GraphQLContext,
   info: GraphQLResolveInfo
 ) {
-  return ProductView.load(productId, info);
+  return ProductView.load(productId, info, requireContext(ctx));
 }
 
 /**
@@ -23,10 +24,10 @@ async function resolveProduct(
  */
 async function resolveVariant(
   variantId: string,
-  _ctx: GraphQLContext,
+  ctx: GraphQLContext,
   info: GraphQLResolveInfo
 ) {
-  return VariantView.load(variantId, info);
+  return VariantView.load(variantId, info, requireContext(ctx));
 }
 
 /**
@@ -34,10 +35,10 @@ async function resolveVariant(
  */
 async function resolveWarehouse(
   warehouseId: string,
-  _ctx: GraphQLContext,
+  ctx: GraphQLContext,
   info: GraphQLResolveInfo
 ) {
-  return WarehouseView.load(warehouseId, info);
+  return WarehouseView.load(warehouseId, info, requireContext(ctx));
 }
 
 export const typeResolvers: Resolvers = {

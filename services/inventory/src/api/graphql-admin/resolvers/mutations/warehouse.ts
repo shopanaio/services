@@ -5,7 +5,7 @@ import {
 } from "../../../../scripts/warehouse/index.js";
 import type { Resolvers, Warehouse } from "../../generated/types.js";
 import { WarehouseView } from "../../../../views/admin/index.js";
-import { noDatabaseError } from "../utils.js";
+import { noDatabaseError, requireContext } from "../utils.js";
 
 export const warehouseMutationResolvers: Resolvers = {
   InventoryMutation: {
@@ -22,7 +22,7 @@ export const warehouseMutationResolvers: Resolvers = {
 
       return {
         warehouse: result.warehouse
-          ? ((await WarehouseView.load(result.warehouse.id, info)) as Warehouse)
+          ? ((await WarehouseView.load(result.warehouse.id, info, requireContext(ctx))) as Warehouse)
           : null,
         userErrors: result.userErrors,
       };
@@ -40,17 +40,12 @@ export const warehouseMutationResolvers: Resolvers = {
         isDefault: input.isDefault ?? undefined,
       });
 
-      const fieldArgs = parseGraphQLInfoForField(
-        info,
-        "warehouse",
-        WarehouseView
-      );
-
       return {
         warehouse: result.warehouse
           ? ((await WarehouseView.load(
               result.warehouse.id,
-              fieldArgs
+              info,
+              requireContext(ctx)
             )) as Warehouse)
           : null,
         userErrors: result.userErrors,
