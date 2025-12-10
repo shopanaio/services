@@ -14,8 +14,8 @@ import { MediaRepository } from "./MediaRepository";
 import { ProductQueryRepository } from "./ProductQueryRepository";
 import { VariantQueryRepository } from "./VariantQueryRepository";
 import { WarehouseQueryRepository } from "./WarehouseQueryRepository";
+import { PricingQueryRepository } from "./PricingQueryRepository";
 import { ProductLoaderFactory } from "./loaders/index.js";
-import { ProductQueryFactory } from "./queries/index.js";
 
 export class Repository {
   public readonly product: ProductRepository;
@@ -32,8 +32,8 @@ export class Repository {
   public readonly productQuery: ProductQueryRepository;
   public readonly variantQuery: VariantQueryRepository;
   public readonly warehouseQuery: WarehouseQueryRepository;
+  public readonly pricingQuery: PricingQueryRepository;
   public readonly loaderFactory: ProductLoaderFactory;
-  public readonly queryFactory: ProductQueryFactory;
 
   private readonly db: Database;
 
@@ -58,8 +58,8 @@ export class Repository {
     this.productQuery = new ProductQueryRepository(this.db, this.txManager);
     this.variantQuery = new VariantQueryRepository(this.db, this.txManager);
     this.warehouseQuery = new WarehouseQueryRepository(this.db, this.txManager);
+    this.pricingQuery = new PricingQueryRepository(this.db, this.txManager);
     this.loaderFactory = new ProductLoaderFactory(this.db, this.txManager);
-    this.queryFactory = new ProductQueryFactory(this.db, this.txManager);
   }
 
   async close(): Promise<void> {

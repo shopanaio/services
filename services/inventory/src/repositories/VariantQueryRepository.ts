@@ -1,8 +1,14 @@
-import { createQuery } from "@shopana/drizzle-query";
+import { createQuery, createCursorQuery } from "@shopana/drizzle-query";
 import { BaseRepository } from "./BaseRepository.js";
 import { variant, type Variant } from "./models/index.js";
+import type { PaginationArgs } from "../views/admin/args.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
+
+const variantPaginationQuery = createCursorQuery(
+  createQuery(variant).maxLimit(100).defaultLimit(20).include(["id"]),
+  { tieBreaker: "id" }
+);
 
 export class VariantQueryRepository extends BaseRepository {
   async getMany(input?: {
@@ -59,5 +65,31 @@ export class VariantQueryRepository extends BaseRepository {
       },
     });
     return results.length;
+  }
+
+  /**
+   * Get variant IDs by product ID with cursor pagination
+   */
+  async getIdsByProductId(productId: string, args: PaginationArgs): Promise<string[]> {
+    const result = await variantPaginationQuery.execute(this.connection, {
+      ...(args?.last
+        ? {
+            cursor: args.before,
+            direction: "backward",
+            limit: args.last ?? 20,
+          }
+        : {
+            cursor: args.after,
+            direction: "forward",
+            limit: args.first ?? 20,
+          }),
+      where: {
+        projectId: this.projectId,
+        productId,
+        deletedAt: { $is: null },
+      },
+    });
+
+    return result.items.map((item: { id: string }) => item.id);
   }
 }

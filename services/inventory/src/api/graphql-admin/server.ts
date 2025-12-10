@@ -142,7 +142,12 @@ export async function startServer(config: ServerConfig) {
       // Create loaders and queries per request for proper batching
       const services = kernel!.getServices();
       const loaders: ProductLoaders = services.repository.loaderFactory.createLoaders();
-      const queries: ProductQueries = services.repository.queryFactory.createQueries();
+      const repo = services.repository;
+      const queries: ProductQueries = {
+        variantIds: (productId, args) => repo.variantQuery.getIdsByProductId(productId, args),
+        variantPriceIds: (variantId, args) => repo.pricingQuery.getIdsByVariantId(variantId, args),
+        warehouseConnection: (args) => repo.warehouseQuery.getConnection(args),
+      };
 
       return {
         requestId: request.id as string,
