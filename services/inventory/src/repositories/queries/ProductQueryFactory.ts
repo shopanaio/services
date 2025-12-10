@@ -5,6 +5,7 @@ import { getContext } from "../../context/index.js";
 import { variant, itemPricing } from "../models/index.js";
 import type { PaginationArgs } from "../../views/admin/args.js";
 import type { ProductQueries } from "../../views/admin/context.js";
+import { WarehouseQueryRepository } from "../WarehouseQueryRepository.js";
 
 // Create cursor pagination queries with drizzle-query
 const variantPaginationQuery = createCursorQuery(
@@ -22,10 +23,14 @@ const pricePaginationQuery = createCursorQuery(
  * Uses @shopana/drizzle-query createCursorQuery for cursor-based pagination.
  */
 export class ProductQueryFactory {
+  private readonly warehouseQueryRepo: WarehouseQueryRepository;
+
   constructor(
-    _db: Database,
+    db: Database,
     private readonly txManager: TransactionManager<Database>
-  ) {}
+  ) {
+    this.warehouseQueryRepo = new WarehouseQueryRepository(db, txManager);
+  }
 
   private get connection(): Database {
     return this.txManager.getConnection() as Database;
@@ -42,6 +47,7 @@ export class ProductQueryFactory {
     return {
       variantIds: this.createVariantIdsQuery(),
       variantPriceIds: this.createVariantPriceIdsQuery(),
+      warehouseConnection: (args: PaginationArgs) => this.warehouseQueryRepo.getConnection(args),
     };
   }
 

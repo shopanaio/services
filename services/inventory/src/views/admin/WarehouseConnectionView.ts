@@ -1,18 +1,7 @@
-import {
-  createQuery,
-  createRelayQuery,
-  type PageInfo,
-} from "@shopana/drizzle-query";
+import type { PageInfo } from "@shopana/drizzle-query";
 import { BaseType } from "@shopana/type-executor";
 import type { InventoryContext } from "../../context/types.js";
-import { warehouses } from "../../repositories/models/index.js";
 import { WarehouseView } from "./WarehouseView.js";
-
-// RelayQuery - selects only id for cursor-based pagination
-const warehouseRelayQuery = createRelayQuery(
-  createQuery(warehouses).include(["id"]).maxLimit(100).defaultLimit(20),
-  { name: "warehouse", tieBreaker: "id" }
-);
 
 // ============ Types ============
 
@@ -69,19 +58,7 @@ export class WarehouseConnectionView extends BaseType<
   };
 
   async loadData(): Promise<WarehouseConnectionData> {
-    const result = await warehouseRelayQuery.execute(this.ctx.connection, {
-      ...this.value,
-      where: { projectId: this.ctx.project.id },
-      order: ["createdAt:desc"],
-    });
-
-    return {
-      edges: result.edges.map((edge) => ({
-        cursor: edge.cursor,
-        nodeId: edge.node.id,
-      })),
-      pageInfo: result.pageInfo,
-    };
+    return this.ctx.queries.warehouseConnection(this.value);
   }
 
   async edges() {

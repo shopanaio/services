@@ -1,5 +1,4 @@
 import type { CoreProject, CoreUser } from "@shopana/platform-api";
-import type { DrizzleExecutor } from "@shopana/drizzle-query";
 import type { ProductLoaders, ProductQueries } from "../views/admin/context.js";
 
 /**
@@ -19,6 +18,4 @@ export interface InventoryContext {
   loaders: ProductLoaders;
   /** Paginated query functions */
   queries: ProductQueries;
-  /** Database connection for direct queries */
-  connection: DrizzleExecutor;
 }

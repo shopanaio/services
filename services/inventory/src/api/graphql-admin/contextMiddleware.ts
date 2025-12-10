@@ -4,7 +4,6 @@ import {
   type GrpcConfigPort,
 } from "@shopana/platform-api";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { setContext } from "../../context/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -106,13 +105,6 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
 
       request.project = ctx.project;
       request.user = ctx.tenant;
-
-      // Set context in async local storage
-      setContext({
-        slug,
-        project: ctx.project,
-        user: ctx.tenant,
-      });
     } catch (error) {
       console.error("Failed to fetch admin context via gRPC:", error);
       return reply

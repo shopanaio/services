@@ -21,6 +21,7 @@ import type {
   Warehouse,
 } from "../../repositories/models/index.js";
 import type { PaginationArgs } from "./args.js";
+import type { WarehouseConnectionResult } from "../../repositories/WarehouseQueryRepository.js";
 
 /**
  * Paginated query functions for cursor-based pagination
@@ -33,6 +34,8 @@ export interface ProductQueries {
     variantId: string,
     args: PaginationArgs
   ) => Promise<string[]>;
+  /** Get warehouse connection with relay pagination */
+  warehouseConnection: (args: PaginationArgs) => Promise<WarehouseConnectionResult>;
 }
 
 /**
