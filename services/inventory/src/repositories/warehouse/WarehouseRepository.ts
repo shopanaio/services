@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { createQuery, createRelayQuery, type PageInfo } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
@@ -13,6 +13,7 @@ const warehouseRelayQuery = createRelayQuery(
 export interface WarehouseConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
+  totalCount: number;
 }
 
 export class WarehouseRepository extends BaseRepository {
@@ -52,6 +53,15 @@ export class WarehouseRepository extends BaseRepository {
     return query;
   }
 
+  async count(): Promise<number> {
+    const result = await this.connection
+      .select({ count: count() })
+      .from(warehouses)
+      .where(eq(warehouses.projectId, this.projectId));
+
+    return result[0]?.count ?? 0;
+  }
+
   async findByCode(code: string): Promise<Warehouse | null> {
     const result = await this.connection
       .select()
@@ -75,6 +85,10 @@ export class WarehouseRepository extends BaseRepository {
     const id = randomUUID();
     const now = new Date();
 
+    console.log("[WarehouseRepository.create] Starting with data:", JSON.stringify(data));
+    console.log("[WarehouseRepository.create] Generated id:", id);
+    console.log("[WarehouseRepository.create] projectId:", this.projectId);
+
     const newWarehouse: NewWarehouse = {
       projectId: this.projectId,
       id,
@@ -85,10 +99,16 @@ export class WarehouseRepository extends BaseRepository {
       updatedAt: now,
     };
 
+    console.log("[WarehouseRepository.create] newWarehouse object:", JSON.stringify(newWarehouse));
+    console.log("[WarehouseRepository.create] connection exists:", !!this.connection);
+
     const result = await this.connection
       .insert(warehouses)
       .values(newWarehouse)
       .returning();
+
+    console.log("[WarehouseRepository.create] Insert result:", JSON.stringify(result));
+    console.log("[WarehouseRepository.create] result[0]:", JSON.stringify(result[0]));
 
     return result[0];
   }
@@ -126,11 +146,14 @@ export class WarehouseRepository extends BaseRepository {
   // ============ Query ============
 
   async getConnection(args: PaginationArgs): Promise<WarehouseConnectionResult> {
-    const result = await warehouseRelayQuery.execute(this.connection, {
-      ...args,
-      where: { projectId: this.projectId },
-      order: ["createdAt:desc"],
-    });
+    const [result, totalCount] = await Promise.all([
+      warehouseRelayQuery.execute(this.connection, {
+        ...args,
+        where: { projectId: this.projectId },
+        order: ["createdAt:desc"],
+      }),
+      this.count(),
+    ]);
 
     return {
       edges: result.edges.map((edge) => ({
@@ -138,13 +161,17 @@ export class WarehouseRepository extends BaseRepository {
         nodeId: edge.node.id,
       })),
       pageInfo: result.pageInfo,
+      totalCount,
     };
   }
 
   // ============ Loader ============
 
   async getByIds(warehouseIds: readonly string[]): Promise<Warehouse[]> {
-    return this.connection
+    console.log("[WarehouseRepository.getByIds] warehouseIds:", warehouseIds);
+    console.log("[WarehouseRepository.getByIds] projectId:", this.projectId);
+
+    const result = await this.connection
       .select()
       .from(warehouses)
       .where(
@@ -153,5 +180,8 @@ export class WarehouseRepository extends BaseRepository {
           inArray(warehouses.id, [...warehouseIds])
         )
       );
+
+    console.log("[WarehouseRepository.getByIds] Query result:", JSON.stringify(result));
+    return result;
   }
 }

@@ -18,12 +18,20 @@ export const warehouseCreate: TransactionScript<
 > = async (params, services) => {
   const { logger, repository } = services;
 
+  console.log("[warehouseCreate script] Starting with params:", JSON.stringify(params));
+  console.log("[warehouseCreate script] repository exists:", !!repository);
+  console.log("[warehouseCreate script] repository.warehouse exists:", !!repository?.warehouse);
+
   try {
     const { code, name, isDefault } = params;
 
     // 1. Check if code is unique for this project
+    console.log("[warehouseCreate script] Checking for existing warehouse with code:", code);
     const existing = await repository.warehouse.findByCode(code);
+    console.log("[warehouseCreate script] Existing warehouse:", existing);
+
     if (existing) {
+      console.log("[warehouseCreate script] Code already exists, returning error");
       return {
         warehouse: undefined,
         userErrors: [
@@ -38,15 +46,20 @@ export const warehouseCreate: TransactionScript<
 
     // 2. If isDefault=true, clear existing default
     if (isDefault) {
+      console.log("[warehouseCreate script] Clearing existing default warehouses");
       await repository.warehouse.clearDefault();
     }
 
     // 3. Create warehouse
+    console.log("[warehouseCreate script] Creating warehouse...");
     const warehouse = await repository.warehouse.create({
       code,
       name,
       isDefault: isDefault ?? false,
     });
+
+    console.log("[warehouseCreate script] Created warehouse:", JSON.stringify(warehouse));
+    console.log("[warehouseCreate script] warehouse.id:", warehouse?.id);
 
     logger.info({ warehouseId: warehouse.id }, "Warehouse created successfully");
 
@@ -55,6 +68,7 @@ export const warehouseCreate: TransactionScript<
       userErrors: [],
     };
   } catch (error) {
+    console.log("[warehouseCreate script] ERROR:", error);
     logger.error({ error }, "warehouseCreate failed");
     return {
       warehouse: undefined,

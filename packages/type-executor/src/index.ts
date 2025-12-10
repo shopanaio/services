@@ -4,6 +4,9 @@ export { load, loadMany, ResolverError } from "./executor.js";
 // Base type
 export { BaseType } from "./baseType.js";
 
+// GraphQL utils
+export { getSubFieldInfo } from "./utils/graphqlArgsParser.js";
+
 // Types
 export type {
   TypeClass,

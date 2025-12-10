@@ -172,3 +172,49 @@ export function parseGraphQLInfoDeep<T extends TypeClass>(
     fieldsWithChildren
   ) as FieldArgsTreeFor<T>;
 }
+
+/**
+ * Extracts sub-field info for a nested field from GraphQL resolve info.
+ *
+ * Use this when you need to pass info to a nested type resolver.
+ * For example, when resolving `warehouseCreate` which returns `WarehouseCreatePayload`,
+ * and you need to pass info for the `warehouse` field to `WarehouseView.load()`.
+ *
+ * @param info - GraphQL resolve info from parent resolver
+ * @param fieldName - The name of the field to extract sub-info for
+ * @param Type - The TypeClass of the nested field (used to determine which fields have children)
+ * @returns FieldArgsTree for the nested field, or undefined if field not found
+ *
+ * @example
+ * ```ts
+ * // In warehouseCreate resolver:
+ * const warehouseInfo = getSubFieldInfo(info, 'warehouse', WarehouseView);
+ * await WarehouseView.load(warehouseId, warehouseInfo, ctx);
+ * ```
+ */
+export function getSubFieldInfo<T extends TypeClass>(
+  info: GraphQLResolveInfo,
+  fieldName: string,
+  Type: T
+): FieldArgsTreeFor<T> | undefined {
+  const parsed = parseResolveInfo(info);
+  if (!parsed) {
+    return undefined;
+  }
+
+  const resolveTree = parsed as ResolveTree;
+
+  // Find the field in fieldsByTypeName
+  for (const fields of Object.values(resolveTree.fieldsByTypeName)) {
+    const field = fields[fieldName];
+    if (field) {
+      const fieldsWithChildren = collectAllFieldsWithChildren(Type);
+      return mapFieldsToArgsTree(
+        field.fieldsByTypeName,
+        fieldsWithChildren
+      ) as FieldArgsTreeFor<T>;
+    }
+  }
+
+  return undefined;
+}

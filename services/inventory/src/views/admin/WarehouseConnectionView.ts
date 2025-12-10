@@ -20,6 +20,7 @@ interface WarehouseEdgeData {
 interface WarehouseConnectionData {
   edges: WarehouseEdgeData[];
   pageInfo: PageInfo;
+  totalCount: number;
 }
 
 // ============ EdgeView ============
@@ -59,7 +60,7 @@ export class WarehouseConnectionView extends BaseType<
 
   async loadData(): Promise<WarehouseConnectionData> {
     const services = this.ctx.kernel.getServices();
-    return services.repository.warehouseQuery.getConnection(this.value);
+    return services.repository.warehouse.getConnection(this.value);
   }
 
   async edges() {
@@ -71,6 +72,6 @@ export class WarehouseConnectionView extends BaseType<
   }
 
   async totalCount(): Promise<number> {
-    return 0;
+    return this.get("totalCount");
   }
 }

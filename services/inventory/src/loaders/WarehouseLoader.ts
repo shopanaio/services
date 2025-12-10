@@ -7,8 +7,12 @@ export class WarehouseLoader {
 
   constructor(repository: Repository) {
     this.warehouse = new DataLoader<string, Warehouse | null>(async (warehouseIds) => {
+      console.log("[WarehouseLoader] Loading warehouse ids:", warehouseIds);
       const results = await repository.warehouse.getByIds(warehouseIds);
-      return warehouseIds.map((id) => results.find((w) => w.id === id) ?? null);
+      console.log("[WarehouseLoader] Loaded results:", JSON.stringify(results));
+      const mapped = warehouseIds.map((id) => results.find((w) => w.id === id) ?? null);
+      console.log("[WarehouseLoader] Mapped results:", JSON.stringify(mapped));
+      return mapped;
     });
   }
 }

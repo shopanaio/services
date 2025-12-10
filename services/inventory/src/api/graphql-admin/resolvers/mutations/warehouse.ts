@@ -6,23 +6,35 @@ import {
 import type { Resolvers, Warehouse } from "../../generated/types.js";
 import { WarehouseView } from "../../../../views/admin/index.js";
 import { noDatabaseError, requireContext } from "../utils.js";
+import { getSubFieldInfo } from "@shopana/type-executor";
 
 export const warehouseMutationResolvers: Resolvers = {
   InventoryMutation: {
     warehouseCreate: async (_parent, { input }, ctx, info) => {
+      console.log("[warehouseCreate resolver] input:", JSON.stringify(input));
+      console.log("[warehouseCreate resolver] ctx.kernel exists:", !!ctx.kernel);
+
       if (!ctx.kernel) {
+        console.log("[warehouseCreate resolver] No kernel, returning noDatabaseError");
         return noDatabaseError({ warehouse: null });
       }
 
+      console.log("[warehouseCreate resolver] Calling kernel.executeScript...");
       const result = await ctx.kernel.executeScript(warehouseCreate, {
         code: input.code,
         name: input.name,
         isDefault: input.isDefault ?? undefined,
       });
 
+      console.log("[warehouseCreate resolver] Script result:", JSON.stringify(result));
+      console.log("[warehouseCreate resolver] result.warehouse:", result.warehouse);
+      console.log("[warehouseCreate resolver] result.warehouse?.id:", result.warehouse?.id);
+
+      const warehouseFieldInfo = getSubFieldInfo(info, "warehouse", WarehouseView);
+
       return {
         warehouse: result.warehouse
-          ? ((await WarehouseView.load(result.warehouse.id, info, requireContext(ctx))) as Warehouse)
+          ? ((await WarehouseView.load(result.warehouse.id, warehouseFieldInfo, requireContext(ctx))) as Warehouse)
           : null,
         userErrors: result.userErrors,
       };
@@ -40,11 +52,13 @@ export const warehouseMutationResolvers: Resolvers = {
         isDefault: input.isDefault ?? undefined,
       });
 
+      const warehouseFieldInfo = getSubFieldInfo(info, "warehouse", WarehouseView);
+
       return {
         warehouse: result.warehouse
           ? ((await WarehouseView.load(
               result.warehouse.id,
-              info,
+              warehouseFieldInfo,
               requireContext(ctx)
             )) as Warehouse)
           : null,

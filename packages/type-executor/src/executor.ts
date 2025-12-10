@@ -71,12 +71,16 @@ export class Executor<TContext = unknown> {
     value: ConstructorParameters<T>[0],
     fieldArgs?: FieldArgsTreeFor<T> | GraphQLResolveInfo
   ): Promise<TResult> {
+    console.log(`[Executor.load] Type: ${Type.name}, value:`, value);
+
     const instance = new Type(value, this.options.ctx);
 
     // Check if loadData returns null - if so, return null immediately
     if (typeof (instance as any).loadData === "function") {
       const data = await (instance as any).loadData();
+      console.log(`[Executor.load] ${Type.name} loadData result:`, data);
       if (data === null || data === undefined) {
+        console.log(`[Executor.load] ${Type.name} returning null because loadData is null/undefined`);
         return null as TResult;
       }
     }
@@ -90,6 +94,8 @@ export class Executor<TContext = unknown> {
       ? parseGraphQLInfoDeep(fieldArgs, Type)
       : fieldArgs;
 
+    console.log(`[Executor.load] ${Type.name} normalizedFieldArgs:`, JSON.stringify(normalizedFieldArgs));
+
     const argsTree = (normalizedFieldArgs ?? {}) as Record<
       string,
       FieldArgsNode | undefined
@@ -99,6 +105,7 @@ export class Executor<TContext = unknown> {
     const argsTreeFields = Object.keys(argsTree).filter(
       (key) => argsTree[key] !== undefined
     );
+    console.log(`[Executor.load] ${Type.name} argsTreeFields:`, argsTreeFields);
 
     // If no fieldArgs provided, resolve all public methods (except constructor, loadData, get)
     const fieldsToResolve = argsTreeFields.length > 0
@@ -109,6 +116,8 @@ export class Executor<TContext = unknown> {
             const method = (instance as Record<string, unknown>)[key];
             return typeof method === "function";
           });
+
+    console.log(`[Executor.load] ${Type.name} fieldsToResolve:`, fieldsToResolve);
 
     await Promise.all(
       fieldsToResolve.map(async (key) => {
@@ -121,15 +130,19 @@ export class Executor<TContext = unknown> {
           // Check if this method exists on the instance
           const method = (instance as Record<string, unknown>)[methodName];
           if (typeof method !== "function") {
+            console.log(`[Executor.load] ${Type.name}.${methodName} is not a function, skipping`);
             // Skip if method doesn't exist (might be an alias for a non-existent field)
             return;
           }
+
+          console.log(`[Executor.load] ${Type.name} calling method:`, methodName);
 
           // Call the resolver method
           const resolved = await (method as (args?: unknown) => unknown).call(
             instance,
             argsForField
           );
+          console.log(`[Executor.load] ${Type.name}.${methodName} returned:`, resolved);
 
           // Get child type using the actual method name, not the alias
           const getChildType = fieldsMap[methodName];

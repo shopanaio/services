@@ -1,6 +1,6 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
-import type { Database } from "../infrastructure/db/database";
 import { getContext, type ServiceContext } from "../context/index.js";
+import type { Database } from "../infrastructure/db/database";
 
 /**
  * Base repository class that provides access to database and context
