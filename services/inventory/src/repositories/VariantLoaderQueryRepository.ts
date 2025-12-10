@@ -1,5 +1,5 @@
 import { and, eq, isNull, inArray } from "drizzle-orm";
-import { BaseRepository } from "../BaseRepository.js";
+import { BaseRepository } from "./BaseRepository.js";
 import {
   variant,
   variantTranslation,
@@ -17,7 +17,7 @@ import {
   type VariantMedia,
   type WarehouseStock,
   type ProductOptionVariantLink,
-} from "../models/index.js";
+} from "./models/index.js";
 
 export class VariantLoaderQueryRepository extends BaseRepository {
   private get locale(): string {

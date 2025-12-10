@@ -5,12 +5,5 @@ export { OptionLoader, type OptionLoaders } from "./OptionLoader.js";
 export { FeatureLoader, type FeatureLoaders } from "./FeatureLoader.js";
 export { WarehouseLoader, type WarehouseLoaders } from "./WarehouseLoader.js";
 
-// Query repositories for loaders
-export { VariantLoaderQueryRepository } from "./VariantLoaderQueryRepository.js";
-export { ProductLoaderQueryRepository } from "./ProductLoaderQueryRepository.js";
-export { OptionLoaderQueryRepository } from "./OptionLoaderQueryRepository.js";
-export { FeatureLoaderQueryRepository } from "./FeatureLoaderQueryRepository.js";
-export { WarehouseLoaderQueryRepository } from "./WarehouseLoaderQueryRepository.js";
-
 // Factory
 export { ProductLoaderFactory } from "./ProductLoaderFactory.js";

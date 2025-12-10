@@ -21,5 +21,9 @@ export type { MediaRepository } from "./MediaRepository";
 export { ProductQueryRepository } from "./ProductQueryRepository";
 export { VariantQueryRepository } from "./VariantQueryRepository";
 
-// Loaders
-export * from "./loaders";
+// Loader query repositories
+export { VariantLoaderQueryRepository } from "./VariantLoaderQueryRepository";
+export { ProductLoaderQueryRepository } from "./ProductLoaderQueryRepository";
+export { OptionLoaderQueryRepository } from "./OptionLoaderQueryRepository";
+export { FeatureLoaderQueryRepository } from "./FeatureLoaderQueryRepository";
+export { WarehouseLoaderQueryRepository } from "./WarehouseLoaderQueryRepository";

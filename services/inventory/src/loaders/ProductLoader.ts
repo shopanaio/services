@@ -4,8 +4,8 @@ import type {
   ProductTranslation,
   ProductOption,
   ProductFeature,
-} from "../models/index.js";
-import type { Repository } from "../Repository.js";
+} from "../repositories/models/index.js";
+import type { Repository } from "../repositories/Repository.js";
 
 export interface ProductDataLoaders {
   product: DataLoader<string, Product | null>;

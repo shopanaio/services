@@ -1,5 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { BaseRepository } from "../BaseRepository.js";
+import { BaseRepository } from "./BaseRepository.js";
 import {
   productFeatureTranslation,
   productFeatureValue,
@@ -7,7 +7,7 @@ import {
   type ProductFeatureTranslation,
   type ProductFeatureValue,
   type ProductFeatureValueTranslation,
-} from "../models/index.js";
+} from "./models/index.js";
 
 export class FeatureLoaderQueryRepository extends BaseRepository {
   private get locale(): string {

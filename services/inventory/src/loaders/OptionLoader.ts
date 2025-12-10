@@ -3,8 +3,8 @@ import type {
   ProductOptionTranslation,
   ProductOptionValue,
   ProductOptionValueTranslation,
-} from "../models/index.js";
-import type { Repository } from "../Repository.js";
+} from "../repositories/models/index.js";
+import type { Repository } from "../repositories/Repository.js";
 
 export interface OptionLoaders {
   optionTranslation: DataLoader<string, ProductOptionTranslation | null>;

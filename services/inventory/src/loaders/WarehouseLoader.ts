@@ -1,6 +1,6 @@
 import DataLoader from "dataloader";
-import type { Warehouse } from "../models/index.js";
-import type { Repository } from "../Repository.js";
+import type { Warehouse } from "../repositories/models/index.js";
+import type { Repository } from "../repositories/Repository.js";
 
 export interface WarehouseLoaders {
   warehouse: DataLoader<string, Warehouse | null>;

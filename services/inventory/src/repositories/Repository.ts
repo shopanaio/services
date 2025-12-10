@@ -15,13 +15,11 @@ import { ProductQueryRepository } from "./ProductQueryRepository";
 import { VariantQueryRepository } from "./VariantQueryRepository";
 import { WarehouseQueryRepository } from "./WarehouseQueryRepository";
 import { PricingQueryRepository } from "./PricingQueryRepository";
-import {
-  VariantLoaderQueryRepository,
-  ProductLoaderQueryRepository,
-  OptionLoaderQueryRepository,
-  FeatureLoaderQueryRepository,
-  WarehouseLoaderQueryRepository,
-} from "./loaders/index.js";
+import { VariantLoaderQueryRepository } from "./VariantLoaderQueryRepository.js";
+import { ProductLoaderQueryRepository } from "./ProductLoaderQueryRepository.js";
+import { OptionLoaderQueryRepository } from "./OptionLoaderQueryRepository.js";
+import { FeatureLoaderQueryRepository } from "./FeatureLoaderQueryRepository.js";
+import { WarehouseLoaderQueryRepository } from "./WarehouseLoaderQueryRepository.js";
 
 export class Repository {
   public readonly product: ProductRepository;

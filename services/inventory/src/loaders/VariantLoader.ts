@@ -8,8 +8,8 @@ import type {
   VariantMedia,
   WarehouseStock,
   ProductOptionVariantLink,
-} from "../models/index.js";
-import type { Repository } from "../Repository.js";
+} from "../repositories/models/index.js";
+import type { Repository } from "../repositories/Repository.js";
 
 export interface VariantLoaders {
   variant: DataLoader<string, Variant | null>;

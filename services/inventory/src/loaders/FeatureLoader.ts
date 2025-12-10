@@ -3,8 +3,8 @@ import type {
   ProductFeatureTranslation,
   ProductFeatureValue,
   ProductFeatureValueTranslation,
-} from "../models/index.js";
-import type { Repository } from "../Repository.js";
+} from "../repositories/models/index.js";
+import type { Repository } from "../repositories/Repository.js";
 
 export interface FeatureLoaders {
   featureTranslation: DataLoader<string, ProductFeatureTranslation | null>;

@@ -1,5 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { BaseRepository } from "../BaseRepository.js";
+import { BaseRepository } from "./BaseRepository.js";
 import {
   productOptionTranslation,
   productOptionValue,
@@ -7,7 +7,7 @@ import {
   type ProductOptionTranslation,
   type ProductOptionValue,
   type ProductOptionValueTranslation,
-} from "../models/index.js";
+} from "./models/index.js";
 
 export class OptionLoaderQueryRepository extends BaseRepository {
   private get locale(): string {

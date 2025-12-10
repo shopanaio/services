@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Repository } from "../../repositories/Repository.js";
-import { ProductLoaderFactory } from "../../repositories/loaders/index.js";
+import { ProductLoaderFactory } from "../../loaders/index.js";
 import { setContext, type ServiceContext } from "../../context/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";

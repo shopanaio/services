@@ -3,8 +3,8 @@ import { ProductLoader, type ProductDataLoaders } from "./ProductLoader.js";
 import { OptionLoader, type OptionLoaders } from "./OptionLoader.js";
 import { FeatureLoader, type FeatureLoaders } from "./FeatureLoader.js";
 import { WarehouseLoader, type WarehouseLoaders } from "./WarehouseLoader.js";
-import type { Repository } from "../Repository.js";
-import type { ProductLoaders } from "../../views/admin/context.js";
+import type { Repository } from "../repositories/Repository.js";
+import type { ProductLoaders } from "../views/admin/context.js";
 
 export class ProductLoaderFactory {
   private readonly variantLoader: VariantLoader;
