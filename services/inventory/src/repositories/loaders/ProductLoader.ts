@@ -5,7 +5,7 @@ import type {
   ProductOption,
   ProductFeature,
 } from "../models/index.js";
-import type { ProductLoaderQueryRepository } from "./ProductLoaderQueryRepository.js";
+import type { Repository } from "../Repository.js";
 
 export interface ProductDataLoaders {
   product: DataLoader<string, Product | null>;
@@ -17,7 +17,7 @@ export interface ProductDataLoaders {
 }
 
 export class ProductLoader {
-  constructor(private readonly queryRepo: ProductLoaderQueryRepository) {}
+  constructor(private readonly repository: Repository) {}
 
   createLoaders(): ProductDataLoaders {
     return {
@@ -32,7 +32,7 @@ export class ProductLoader {
 
   private createProductLoader(): DataLoader<string, Product | null> {
     return new DataLoader<string, Product | null>(async (productIds) => {
-      const results = await this.queryRepo.getByIds(productIds);
+      const results = await this.repository.productLoaderQuery.getByIds(productIds);
       return productIds.map(
         (id) => results.find((p) => p.id === id) ?? null
       );
@@ -41,7 +41,7 @@ export class ProductLoader {
 
   private createProductTranslationLoader(): DataLoader<string, ProductTranslation | null> {
     return new DataLoader<string, ProductTranslation | null>(async (productIds) => {
-      const results = await this.queryRepo.getTranslationsByProductIds(productIds);
+      const results = await this.repository.productLoaderQuery.getTranslationsByProductIds(productIds);
       return productIds.map(
         (id) => results.find((t) => t.productId === id) ?? null
       );
@@ -50,7 +50,7 @@ export class ProductLoader {
 
   private createProductOptionIdsLoader(): DataLoader<string, string[]> {
     return new DataLoader<string, string[]>(async (productIds) => {
-      const results = await this.queryRepo.getOptionIdsByProductIds(productIds);
+      const results = await this.repository.productLoaderQuery.getOptionIdsByProductIds(productIds);
       return productIds.map((id) =>
         results.filter((o) => o.productId === id).map((o) => o.id)
       );
@@ -59,7 +59,7 @@ export class ProductLoader {
 
   private createProductFeatureIdsLoader(): DataLoader<string, string[]> {
     return new DataLoader<string, string[]>(async (productIds) => {
-      const results = await this.queryRepo.getFeatureIdsByProductIds(productIds);
+      const results = await this.repository.productLoaderQuery.getFeatureIdsByProductIds(productIds);
       return productIds.map((id) =>
         results.filter((f) => f.productId === id).map((f) => f.id)
       );
@@ -68,14 +68,14 @@ export class ProductLoader {
 
   private createProductOptionLoader(): DataLoader<string, ProductOption | null> {
     return new DataLoader<string, ProductOption | null>(async (optionIds) => {
-      const results = await this.queryRepo.getOptionsByIds(optionIds);
+      const results = await this.repository.productLoaderQuery.getOptionsByIds(optionIds);
       return optionIds.map((id) => results.find((o) => o.id === id) ?? null);
     });
   }
 
   private createProductFeatureLoader(): DataLoader<string, ProductFeature | null> {
     return new DataLoader<string, ProductFeature | null>(async (featureIds) => {
-      const results = await this.queryRepo.getFeaturesByIds(featureIds);
+      const results = await this.repository.productLoaderQuery.getFeaturesByIds(featureIds);
       return featureIds.map((id) => results.find((f) => f.id === id) ?? null);
     });
   }

@@ -13,4 +13,4 @@ export { FeatureLoaderQueryRepository } from "./FeatureLoaderQueryRepository.js"
 export { WarehouseLoaderQueryRepository } from "./WarehouseLoaderQueryRepository.js";
 
 // Factory
-export { ProductLoaderFactory, type LoaderQueryRepositories } from "./ProductLoaderFactory.js";
+export { ProductLoaderFactory } from "./ProductLoaderFactory.js";

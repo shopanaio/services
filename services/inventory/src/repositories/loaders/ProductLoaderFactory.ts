@@ -3,20 +3,8 @@ import { ProductLoader, type ProductDataLoaders } from "./ProductLoader.js";
 import { OptionLoader, type OptionLoaders } from "./OptionLoader.js";
 import { FeatureLoader, type FeatureLoaders } from "./FeatureLoader.js";
 import { WarehouseLoader, type WarehouseLoaders } from "./WarehouseLoader.js";
-import type { VariantLoaderQueryRepository } from "./VariantLoaderQueryRepository.js";
-import type { ProductLoaderQueryRepository } from "./ProductLoaderQueryRepository.js";
-import type { OptionLoaderQueryRepository } from "./OptionLoaderQueryRepository.js";
-import type { FeatureLoaderQueryRepository } from "./FeatureLoaderQueryRepository.js";
-import type { WarehouseLoaderQueryRepository } from "./WarehouseLoaderQueryRepository.js";
+import type { Repository } from "../Repository.js";
 import type { ProductLoaders } from "../../views/admin/context.js";
-
-export interface LoaderQueryRepositories {
-  variant: VariantLoaderQueryRepository;
-  product: ProductLoaderQueryRepository;
-  option: OptionLoaderQueryRepository;
-  feature: FeatureLoaderQueryRepository;
-  warehouse: WarehouseLoaderQueryRepository;
-}
 
 export class ProductLoaderFactory {
   private readonly variantLoader: VariantLoader;
@@ -25,12 +13,12 @@ export class ProductLoaderFactory {
   private readonly featureLoader: FeatureLoader;
   private readonly warehouseLoader: WarehouseLoader;
 
-  constructor(repos: LoaderQueryRepositories) {
-    this.variantLoader = new VariantLoader(repos.variant);
-    this.productLoader = new ProductLoader(repos.product);
-    this.optionLoader = new OptionLoader(repos.option);
-    this.featureLoader = new FeatureLoader(repos.feature);
-    this.warehouseLoader = new WarehouseLoader(repos.warehouse);
+  constructor(repository: Repository) {
+    this.variantLoader = new VariantLoader(repository);
+    this.productLoader = new ProductLoader(repository);
+    this.optionLoader = new OptionLoader(repository);
+    this.featureLoader = new FeatureLoader(repository);
+    this.warehouseLoader = new WarehouseLoader(repository);
   }
 
   createLoaders(): ProductLoaders {

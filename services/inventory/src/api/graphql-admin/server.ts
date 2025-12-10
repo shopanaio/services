@@ -137,13 +137,7 @@ export async function startServer(config: ServerConfig) {
       // Create loaders per request for proper batching
       const services = kernel!.getServices();
       const repo = services.repository;
-      const loaderFactory = new ProductLoaderFactory({
-        variant: repo.variantLoaderQuery,
-        product: repo.productLoaderQuery,
-        option: repo.optionLoaderQuery,
-        feature: repo.featureLoaderQuery,
-        warehouse: repo.warehouseLoaderQuery,
-      });
+      const loaderFactory = new ProductLoaderFactory(repo);
       const loaders = loaderFactory.createLoaders();
 
       const ctx: ServiceContext = {

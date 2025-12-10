@@ -9,7 +9,7 @@ import type {
   WarehouseStock,
   ProductOptionVariantLink,
 } from "../models/index.js";
-import type { VariantLoaderQueryRepository } from "./VariantLoaderQueryRepository.js";
+import type { Repository } from "../Repository.js";
 
 export interface VariantLoaders {
   variant: DataLoader<string, Variant | null>;
@@ -26,7 +26,7 @@ export interface VariantLoaders {
 }
 
 export class VariantLoader {
-  constructor(private readonly queryRepo: VariantLoaderQueryRepository) {}
+  constructor(private readonly repository: Repository) {}
 
   createLoaders(): VariantLoaders {
     return {
@@ -46,14 +46,14 @@ export class VariantLoader {
 
   private createVariantLoader(): DataLoader<string, Variant | null> {
     return new DataLoader<string, Variant | null>(async (variantIds) => {
-      const results = await this.queryRepo.getByIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getByIds(variantIds);
       return variantIds.map((id) => results.find((v) => v.id === id) ?? null);
     });
   }
 
   private createVariantIdsLoader(): DataLoader<string, string[]> {
     return new DataLoader<string, string[]>(async (productIds) => {
-      const results = await this.queryRepo.getIdsByProductIds(productIds);
+      const results = await this.repository.variantLoaderQuery.getIdsByProductIds(productIds);
       return productIds.map((id) =>
         results.filter((v) => v.productId === id).map((v) => v.id)
       );
@@ -62,7 +62,7 @@ export class VariantLoader {
 
   private createVariantTranslationLoader(): DataLoader<string, VariantTranslation | null> {
     return new DataLoader<string, VariantTranslation | null>(async (variantIds) => {
-      const results = await this.queryRepo.getTranslationsByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getTranslationsByVariantIds(variantIds);
       return variantIds.map(
         (id) => results.find((t) => t.variantId === id) ?? null
       );
@@ -71,21 +71,21 @@ export class VariantLoader {
 
   private createVariantPricingLoader(): DataLoader<string, ItemPricing[]> {
     return new DataLoader<string, ItemPricing[]>(async (variantIds) => {
-      const results = await this.queryRepo.getActivePricingByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getActivePricingByVariantIds(variantIds);
       return variantIds.map((id) => results.filter((p) => p.variantId === id));
     });
   }
 
   private createVariantPriceByIdLoader(): DataLoader<string, ItemPricing | null> {
     return new DataLoader<string, ItemPricing | null>(async (priceIds) => {
-      const results = await this.queryRepo.getPricingByIds(priceIds);
+      const results = await this.repository.variantLoaderQuery.getPricingByIds(priceIds);
       return priceIds.map((id) => results.find((p) => p.id === id) ?? null);
     });
   }
 
   private createVariantPriceIdsLoader(): DataLoader<string, string[]> {
     return new DataLoader<string, string[]>(async (variantIds) => {
-      const results = await this.queryRepo.getPriceIdsByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getPriceIdsByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((p) => p.variantId === id).map((p) => p.id)
       );
@@ -94,7 +94,7 @@ export class VariantLoader {
 
   private createVariantDimensionsLoader(): DataLoader<string, ItemDimensions | null> {
     return new DataLoader<string, ItemDimensions | null>(async (variantIds) => {
-      const results = await this.queryRepo.getDimensionsByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getDimensionsByVariantIds(variantIds);
       return variantIds.map(
         (id) => results.find((d) => d.variantId === id) ?? null
       );
@@ -103,7 +103,7 @@ export class VariantLoader {
 
   private createVariantWeightLoader(): DataLoader<string, ItemWeight | null> {
     return new DataLoader<string, ItemWeight | null>(async (variantIds) => {
-      const results = await this.queryRepo.getWeightsByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getWeightsByVariantIds(variantIds);
       return variantIds.map(
         (id) => results.find((w) => w.variantId === id) ?? null
       );
@@ -112,7 +112,7 @@ export class VariantLoader {
 
   private createVariantMediaLoader(): DataLoader<string, VariantMedia[]> {
     return new DataLoader<string, VariantMedia[]>(async (variantIds) => {
-      const results = await this.queryRepo.getMediaByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getMediaByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((m) => m.variantId === id).sort((a, b) => a.sortIndex - b.sortIndex)
       );
@@ -121,14 +121,14 @@ export class VariantLoader {
 
   private createVariantStockLoader(): DataLoader<string, WarehouseStock[]> {
     return new DataLoader<string, WarehouseStock[]>(async (variantIds) => {
-      const results = await this.queryRepo.getStockByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getStockByVariantIds(variantIds);
       return variantIds.map((id) => results.filter((s) => s.variantId === id));
     });
   }
 
   private createVariantSelectedOptionsLoader(): DataLoader<string, ProductOptionVariantLink[]> {
     return new DataLoader<string, ProductOptionVariantLink[]>(async (variantIds) => {
-      const results = await this.queryRepo.getSelectedOptionsByVariantIds(variantIds);
+      const results = await this.repository.variantLoaderQuery.getSelectedOptionsByVariantIds(variantIds);
       return variantIds.map((id) =>
         results.filter((o) => o.variantId === id)
       );
