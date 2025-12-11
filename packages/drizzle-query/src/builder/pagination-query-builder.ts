@@ -35,21 +35,21 @@ export type RelayQueryConfig = {
  */
 export type RelayQueryInput<InferredFields extends FieldsDef> = {
   /** Number of items to fetch (forward pagination) */
-  first?: number;
+  first?: number | null;
   /** Cursor to start after (forward pagination) */
-  after?: string;
+  after?: string | null;
   /** Number of items to fetch (backward pagination) */
-  last?: number;
+  last?: number | null;
   /** Cursor to start before (backward pagination) */
-  before?: string;
+  before?: string | null;
   /** Filter conditions */
-  where?: NestedWhereInput<InferredFields>;
+  where?: NestedWhereInput<InferredFields> | null;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<InferredFields>>[];
+  order?: OrderByItem<NestedPaths<InferredFields>>[] | null;
   /** Fields to select */
-  select?: NestedPaths<InferredFields>[];
+  select?: NestedPaths<InferredFields>[] | null;
   /** Current filters for hash comparison */
-  filters?: Record<string, unknown>;
+  filters?: Record<string, unknown> | null;
 };
 
 /**
@@ -98,9 +98,14 @@ export class RelayQueryBuilder<
   T extends Table,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"],
+  Types = T["$inferSelect"]
 > {
-  private readonly queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>;
+  private readonly queryBuilder: FluentQueryBuilder<
+    T,
+    Fields,
+    InferredFields,
+    Types
+  >;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
 
@@ -114,7 +119,7 @@ export class RelayQueryBuilder<
     if (!snapshot.fields.includes(tieBreaker)) {
       throw new Error(
         `Tie-breaker field '${tieBreaker}' not found in schema. ` +
-        `Available fields: ${snapshot.fields.join(", ")}`
+          `Available fields: ${snapshot.fields.join(", ")}`
       );
     }
 
@@ -156,7 +161,8 @@ export class RelayQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig:
+          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
       }
     );
 
@@ -176,8 +182,8 @@ export class RelayQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-        ? (snapshot.config.defaultSelect as string[])
-        : undefined;
+      ? (snapshot.config.defaultSelect as string[])
+      : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -228,7 +234,8 @@ export class RelayQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig:
+          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
       }
     );
 
@@ -245,8 +252,8 @@ export class RelayQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-        ? (snapshot.config.defaultSelect as string[])
-        : undefined;
+      ? (snapshot.config.defaultSelect as string[])
+      : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -331,7 +338,7 @@ export function createRelayQuery<
   T extends Table,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"],
+  Types = T["$inferSelect"]
 >(
   queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
   config?: RelayQueryConfig
@@ -416,9 +423,14 @@ export class CursorQueryBuilder<
   T extends Table,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"],
+  Types = T["$inferSelect"]
 > {
-  private readonly queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>;
+  private readonly queryBuilder: FluentQueryBuilder<
+    T,
+    Fields,
+    InferredFields,
+    Types
+  >;
   private readonly cursorType: string;
   private readonly tieBreaker: string;
 
@@ -432,7 +444,7 @@ export class CursorQueryBuilder<
     if (!snapshot.fields.includes(tieBreaker)) {
       throw new Error(
         `Tie-breaker field '${tieBreaker}' not found in schema. ` +
-        `Available fields: ${snapshot.fields.join(", ")}`
+          `Available fields: ${snapshot.fields.join(", ")}`
       );
     }
 
@@ -475,7 +487,8 @@ export class CursorQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig:
+          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
       }
     );
 
@@ -492,8 +505,8 @@ export class CursorQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-        ? (snapshot.config.defaultSelect as string[])
-        : undefined;
+      ? (snapshot.config.defaultSelect as string[])
+      : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -543,7 +556,8 @@ export class CursorQueryBuilder<
       {
         cursorType: this.cursorType,
         tieBreaker: this.tieBreaker as never,
-        queryConfig: Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
+        queryConfig:
+          Object.keys(queryConfig).length > 0 ? queryConfig : undefined,
       }
     );
 
@@ -560,8 +574,8 @@ export class CursorQueryBuilder<
     let select: string[] | undefined = input.select
       ? (input.select as string[])
       : snapshot.config.defaultSelect
-        ? (snapshot.config.defaultSelect as string[])
-        : undefined;
+      ? (snapshot.config.defaultSelect as string[])
+      : undefined;
 
     if (select) {
       if (snapshot.config.include) {
@@ -650,11 +664,10 @@ export function createCursorQuery<
   T extends Table,
   Fields extends FluentFieldsDef,
   InferredFields extends FieldsDef = ToFieldsDef<Fields>,
-  Types = T["$inferSelect"],
+  Types = T["$inferSelect"]
 >(
   queryBuilder: FluentQueryBuilder<T, Fields, InferredFields, Types>,
   config?: CursorQueryConfig
 ): CursorQueryBuilder<T, Fields, InferredFields, Types> {
   return new CursorQueryBuilder(queryBuilder, config);
 }
-

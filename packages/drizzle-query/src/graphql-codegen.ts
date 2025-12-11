@@ -204,11 +204,6 @@ export function createGraphQLSchema(config: GraphQLSchemaConfig): void {
     parts.push(types.orderByInput);
     parts.push("");
 
-    // Optional: SortOrder enum
-    if (includeSortOrderEnums) {
-      parts.push(types.orderEnum);
-      parts.push("");
-    }
 
     // Optional: QueryInput
     if (includeQueryInputs) {
@@ -310,11 +305,6 @@ export function generateQuerySchema(
   parts.push(types.orderByInput);
   parts.push("");
 
-  if (includeSortOrderEnums) {
-    parts.push(types.orderEnum);
-    parts.push("");
-  }
-
   if (includeQueryInputs) {
     parts.push(types.queryInput);
     parts.push("");
@@ -382,11 +372,6 @@ export function generateGraphQLSchema(config: {
     parts.push("");
     parts.push(types.orderByInput);
     parts.push("");
-
-    if (includeSortOrderEnums) {
-      parts.push(types.orderEnum);
-      parts.push("");
-    }
 
     if (includeQueryInputs) {
       parts.push(types.queryInput);

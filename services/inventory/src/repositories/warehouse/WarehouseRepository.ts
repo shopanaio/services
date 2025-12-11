@@ -4,19 +4,17 @@ import {
   createQuery,
   createRelayQuery,
   type PageInfo,
-  type GraphQLWhereInput,
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import { warehouses, type Warehouse, type NewWarehouse } from "../models/index.js";
-import type { PaginationArgs } from "../../views/admin/args.js";
 
-const warehouseRelayQuery = createRelayQuery(
+export const warehouseRelayQuery = createRelayQuery(
   createQuery(warehouses).include(["id"]).maxLimit(100).defaultLimit(20),
   { name: "warehouse", tieBreaker: "id" }
 );
 
-type WarehouseRelayInput = InferRelayInput<typeof warehouseRelayQuery>;
+export type WarehouseRelayInput = InferRelayInput<typeof warehouseRelayQuery>;
 
 export interface WarehouseConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -153,24 +151,21 @@ export class WarehouseRepository extends BaseRepository {
 
   // ============ Query ============
 
-  async getConnection(args: PaginationArgs & {
-    where?: GraphQLWhereInput;
-    order?: string[];
-  }): Promise<WarehouseConnectionResult> {
+  async getConnection(args: WarehouseRelayInput): Promise<WarehouseConnectionResult> {
     const { where, order, ...paginationArgs } = args;
 
     // Merge user-provided where with projectId filter
-    const mergedWhere: GraphQLWhereInput = {
-      $and: [
-        { projectId: { $eq: this.projectId } },
+    const mergedWhere: WarehouseRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.projectId } },
         ...(where ? [where] : []),
       ],
     };
 
     const executeInput: WarehouseRelayInput = {
       ...paginationArgs,
-      where: mergedWhere as WarehouseRelayInput["where"],
-      order: (order ?? ["createdAt:desc"]) as WarehouseRelayInput["order"],
+      where: mergedWhere,
+      order: order ?? [{ field: "createdAt", order: "desc" }],
     };
 
     const [result, totalCount] = await Promise.all([

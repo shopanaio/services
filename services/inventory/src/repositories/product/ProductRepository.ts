@@ -180,17 +180,20 @@ export class ProductRepository extends BaseRepository {
 
   async getMany(input?: {
     where?: Record<string, unknown>;
-    order?: string[];
+    order?: Array<{ field: string; order: "asc" | "desc" }>;
     limit?: number;
     offset?: number;
   }): Promise<Product[]> {
     return productQuery.execute(this.connection, {
       ...input,
-      order: (input?.order as never) ?? ["createdAt:desc", "id:desc"],
+      order: (input?.order ?? [
+        { field: "createdAt", order: "desc" },
+        { field: "id", order: "desc" },
+      ]) as never,
       where: {
         ...input?.where,
         projectId: this.projectId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
     });
   }
@@ -200,7 +203,7 @@ export class ProductRepository extends BaseRepository {
       where: {
         id,
         projectId: this.projectId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
       limit: 1,
     });

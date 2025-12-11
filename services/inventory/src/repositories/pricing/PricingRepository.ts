@@ -78,13 +78,13 @@ export class PricingRepository extends BaseRepository {
 
   async getMany(input?: {
     where?: Record<string, unknown>;
-    order?: string[];
+    order?: Array<{ field: string; order: "asc" | "desc" }>;
     limit?: number;
     offset?: number;
   }): Promise<ItemPricing[]> {
     return pricingQuery.execute(this.connection, {
       ...input,
-      order: input?.order as never,
+      order: input?.order,
       where: {
         ...input?.where,
         projectId: this.projectId,
@@ -106,11 +106,11 @@ export class PricingRepository extends BaseRepository {
 
   async getByVariantId(
     variantId: string,
-    input?: { order?: string[]; limit?: number; offset?: number }
+    input?: { order?: Array<{ field: string; order: "asc" | "desc" }>; limit?: number; offset?: number }
   ): Promise<ItemPricing[]> {
     return pricingQuery.execute(this.connection, {
       ...input,
-      order: input?.order as never,
+      order: input?.order,
       where: {
         variantId,
         projectId: this.projectId,

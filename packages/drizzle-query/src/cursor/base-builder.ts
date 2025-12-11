@@ -1,27 +1,34 @@
 import type { Table } from "drizzle-orm";
+import { createQueryBuilder } from "../builder/index.js";
 import type { ObjectSchema } from "../schema.js";
 import type {
+  DrizzleExecutor,
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
   OrderByItem,
-  DrizzleExecutor,
   QueryBuilderConfig,
 } from "../types.js";
-import { createQueryBuilder } from "../builder/index.js";
-import { encode, decode, InvalidCursorError } from "./cursor.js";
-import { hashFilters, tieBreakerOrder, invertOrder, getNestedValue } from "./helpers.js";
+import { decode, encode, InvalidCursorError } from "./cursor.js";
+import {
+  getNestedValue,
+  hashFilters,
+  invertOrder,
+  tieBreakerOrder,
+} from "./helpers.js";
 import { parseSort, validateCursorOrder } from "./sort.js";
+import type {
+  CursorDirection,
+  CursorParams,
+  SeekValue,
+  SortParam,
+} from "./types.js";
 import { buildCursorWhereInput } from "./where.js";
-import type { CursorParams, SeekValue, SortParam, CursorDirection } from "./types.js";
 
 // Re-export types
 export type { CursorDirection } from "./types.js";
 
-export type BaseCursorBuilderConfig<
-  Fields extends FieldsDef,
-  Types,
-> = {
+export type BaseCursorBuilderConfig<Fields extends FieldsDef, Types> = {
   /** Cursor type identifier (e.g., "product", "category") */
   cursorType: string;
   /** Tie-breaker field for stable sorting (usually "id") */
@@ -34,19 +41,19 @@ export type BaseCursorBuilderConfig<
 
 export type BaseCursorInput<F extends FieldsDef> = {
   /** Cursor to continue from (opaque string) */
-  cursor?: string;
+  cursor?: string | null;
   /** Number of items to fetch */
-  limit: number;
+  limit: number | null;
   /** Pagination direction */
   direction: CursorDirection;
   /** Filter conditions */
-  where?: NestedWhereInput<F>;
+  where?: NestedWhereInput<F> | null;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<F>>[];
+  order?: OrderByItem<NestedPaths<F>>[] | null;
   /** Fields to select */
-  select?: NestedPaths<F>[];
+  select?: NestedPaths<F>[] | null;
   /** Current filters for hash comparison (optional) */
-  filters?: Record<string, unknown>;
+  filters?: Record<string, unknown> | null;
 };
 
 export type BaseCursorResult<T> = {
@@ -126,13 +133,19 @@ export function createBaseCursorBuilder<
   type Row = Types;
 
   const qb = createQueryBuilder(schema, config.queryConfig);
-  const mapResult = config.mapResult ?? ((row: Row) => row as unknown as Result);
+  const mapResult =
+    config.mapResult ?? ((row: Row) => row as unknown as Result);
 
-  function parseSortOrder(order: OrderByItem<string>[] | undefined): SortParam[] {
+  function parseSortOrder(
+    order: OrderByItem<string>[] | undefined
+  ): SortParam[] {
     return parseSort(order, config.tieBreaker as string);
   }
 
-  function buildOrderPath(sortParams: SortParam[], invert: boolean): OrderByItem<string>[] {
+  function buildOrderPath(
+    sortParams: SortParam[],
+    invert: boolean
+  ): OrderByItem<string>[] {
     const tieBreakerDir = tieBreakerOrder(sortParams);
     const entries = [
       ...sortParams,
@@ -171,7 +184,9 @@ export function createBaseCursorBuilder<
     const isForward = input.direction === "forward";
 
     // Parse sort
-    const sortParams = parseSortOrder(input.order as OrderByItem<string>[] | undefined);
+    const sortParams = parseSortOrder(
+      input.order as OrderByItem<string>[] | undefined
+    );
     const filtersHash = hashFilters(input.filters);
 
     // Decode cursor if present
@@ -229,15 +244,18 @@ export function createBaseCursorBuilder<
     /**
      * Get SQL without executing - useful for testing and debugging.
      */
-    getSql(input: BaseCursorInput<Fields>): { sql: unknown; meta: BaseCursorSqlMeta } {
+    getSql(input: BaseCursorInput<Fields>): {
+      sql: unknown;
+      meta: BaseCursorSqlMeta;
+    } {
       const prepared = prepareQuery(input);
 
       const sql = qb.buildSelectSql({
-        where: prepared.where as NestedWhereInput<FieldsDef>,
-        order: prepared.order as OrderByItem<string>[],
+        where: prepared.where,
+        order: prepared.order,
         limit: prepared.limit + 1,
-        select: input.select as string[],
-      } as never);
+        select: input.select,
+      });
 
       return {
         sql,
@@ -264,11 +282,11 @@ export function createBaseCursorBuilder<
 
       // Execute query with limit + 1 for hasMore detection
       const rows = await qb.query(db, {
-        where: prepared.where as NestedWhereInput<FieldsDef>,
-        order: prepared.order as OrderByItem<string>[],
+        where: prepared.where,
+        order: prepared.order,
         limit: prepared.limit + 1,
-        select: input.select as string[],
-      } as never) as Row[];
+        select: input.select,
+      });
 
       // Check if we have more items
       const hasMore = rows.length > prepared.limit;

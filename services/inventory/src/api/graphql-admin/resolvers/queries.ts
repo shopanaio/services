@@ -1,12 +1,11 @@
 import { parseGraphqlInfo } from "@shopana/type-executor";
-import { mapWhereInput, mapOrderBy } from "@shopana/drizzle-query";
 import {
   ProductView,
   VariantView,
   WarehouseConnectionView,
   WarehouseView,
 } from "../../../views/admin/index.js";
-import type { Resolvers } from "../generated/types.js";
+import type { Resolvers, WarehouseOrderByInput } from "../generated/types.js";
 import { requireContext, requireKernel } from "./utils.js";
 
 export const queryResolvers: Partial<Resolvers> = {
@@ -20,7 +19,11 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     nodes: async (_parent, { ids }, ctx, info) => {
-      return ProductView.loadMany(ids, parseGraphqlInfo(info), requireContext(ctx));
+      return ProductView.loadMany(
+        ids,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
     product: async (_parent, { id }, ctx, info) => {
@@ -106,18 +109,22 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     warehouse: async (_parent, { id }, ctx, info) => {
-      return WarehouseView.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return WarehouseView.load(
+        id,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
     warehouses: async (_parent, args, ctx, info) => {
       return WarehouseConnectionView.load(
         {
-          after: args.after ?? undefined,
-          before: args.before ?? undefined,
-          first: args.first ?? undefined,
-          last: args.last ?? undefined,
-          where: mapWhereInput(args.where),
-          order: mapOrderBy(args.orderBy),
+          after: args.after,
+          before: args.before,
+          first: args.first,
+          last: args.last,
+          where: args.where,
+          order: args.orderBy,
         },
         parseGraphqlInfo(info),
         requireContext(ctx)

@@ -199,7 +199,7 @@ export class VariantRepository extends BaseRepository {
 
   async getMany(input?: {
     where?: Record<string, unknown>;
-    order?: string[];
+    order?: Array<{ field: string; order: "asc" | "desc" }>;
     limit?: number;
     offset?: number;
   }): Promise<Variant[]> {
@@ -209,7 +209,7 @@ export class VariantRepository extends BaseRepository {
       where: {
         ...input?.where,
         projectId: this.projectId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
     });
   }
@@ -219,7 +219,7 @@ export class VariantRepository extends BaseRepository {
       where: {
         id,
         projectId: this.projectId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
       limit: 1,
     });
@@ -229,7 +229,7 @@ export class VariantRepository extends BaseRepository {
 
   async getByProductId(
     productId: string,
-    input?: { order?: string[]; limit?: number; offset?: number }
+    input?: { order?: Array<{ field: string; order: "asc" | "desc" }>; limit?: number; offset?: number }
   ): Promise<Variant[]> {
     return variantQuery.execute(this.connection, {
       ...input,
@@ -237,7 +237,7 @@ export class VariantRepository extends BaseRepository {
       where: {
         productId,
         projectId: this.projectId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
     });
   }
@@ -247,7 +247,7 @@ export class VariantRepository extends BaseRepository {
       where: {
         productId,
         projectId: this.projectId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
     });
     return results.length;
@@ -269,7 +269,7 @@ export class VariantRepository extends BaseRepository {
       where: {
         projectId: this.projectId,
         productId,
-        deletedAt: { $is: null },
+        deletedAt: { _is: null },
       },
     });
 

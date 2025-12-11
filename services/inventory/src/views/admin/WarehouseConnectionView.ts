@@ -1,18 +1,10 @@
-import { type PageInfo, type GraphQLWhereInput } from "@shopana/drizzle-query";
+import { type PageInfo } from "@shopana/drizzle-query";
 import { BaseType } from "@shopana/type-executor";
 import type { ServiceContext } from "../../context/types.js";
+import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
 import { WarehouseView } from "./WarehouseView.js";
 
 // ============ Types ============
-
-interface WarehouseConnectionArgs {
-  first?: number;
-  after?: string;
-  last?: number;
-  before?: string;
-  where?: GraphQLWhereInput;
-  order?: string[];
-}
 
 interface WarehouseEdgeData {
   cursor: string;
@@ -52,7 +44,7 @@ export class WarehouseEdgeView extends BaseType<
  * Uses cursor-based pagination with Relay-style Connection spec
  */
 export class WarehouseConnectionView extends BaseType<
-  WarehouseConnectionArgs,
+  WarehouseRelayInput,
   WarehouseConnectionData,
   ServiceContext
 > {
@@ -61,9 +53,9 @@ export class WarehouseConnectionView extends BaseType<
   };
 
   async loadData(): Promise<WarehouseConnectionData> {
-    const services = this.ctx.kernel.getServices();
-
-    return services.repository.warehouse.getConnection(this.value);
+    return this.ctx.kernel
+      .getServices()
+      .repository.warehouse.getConnection(this.value);
   }
 
   async edges() {

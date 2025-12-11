@@ -21,26 +21,26 @@ import type { Connection } from "./connection.js";
 
 export type RelayBuilderConfig<
   Fields extends FieldsDef,
-  Types,
+  Types
 > = BaseCursorBuilderConfig<Fields, Types>;
 
 export type RelayInput<F extends FieldsDef> = {
   /** Number of items to fetch (forward pagination) */
-  first?: number;
+  first?: number | null;
   /** Cursor to start after (forward pagination) */
-  after?: string;
+  after?: string | null;
   /** Number of items to fetch (backward pagination) */
-  last?: number;
+  last?: number | null;
   /** Cursor to start before (backward pagination) */
-  before?: string;
+  before?: string | null;
   /** Filter conditions */
-  where?: NestedWhereInput<F>;
+  where?: NestedWhereInput<F> | null;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<F>>[];
+  order?: OrderByItem<NestedPaths<F>>[] | null;
   /** Fields to select */
-  select?: NestedPaths<F>[];
+  select?: NestedPaths<F>[] | null;
   /** Current filters for hash comparison (optional) */
-  filters?: Record<string, unknown>;
+  filters?: Record<string, unknown> | null;
 };
 
 export type RelayResult<T> = Connection<T> & {
@@ -75,7 +75,7 @@ function convertRelayToBase<F extends FieldsDef>(
   return {
     baseInput: {
       limit,
-      direction: isForward ? "forward" : "backward" as CursorDirection,
+      direction: isForward ? "forward" : ("backward" as CursorDirection),
       cursor: isForward ? input.after : input.before,
       where: input.where,
       order: input.order,
@@ -114,7 +114,9 @@ function buildRelayConnection<T>(
     edges,
     pageInfo: {
       hasNextPage: isForward ? baseResult.hasMore : Boolean(relayInput.before),
-      hasPreviousPage: isForward ? Boolean(relayInput.after) : baseResult.hasMore,
+      hasPreviousPage: isForward
+        ? Boolean(relayInput.after)
+        : baseResult.hasMore,
       startCursor: baseResult.startCursor,
       endCursor: baseResult.endCursor,
     },
@@ -133,7 +135,10 @@ export function createRelayBuilder<
   schema: ObjectSchema<T, F, Fields, Types>,
   config: RelayBuilderConfig<Fields, Types>
 ) {
-  const baseBuilder = createBaseCursorBuilder<T, F, Fields, Types, Result>(schema, config);
+  const baseBuilder = createBaseCursorBuilder<T, F, Fields, Types, Result>(
+    schema,
+    config
+  );
 
   return {
     /**
