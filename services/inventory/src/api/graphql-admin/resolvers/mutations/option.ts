@@ -4,7 +4,7 @@ import {
   OptionDeleteScript,
   OptionUpdateScript,
 } from "../../../../scripts/option/index.js";
-import { OptionView } from "../../../../views/admin/index.js";
+import { OptionResolver } from "../../../../resolvers/admin/index.js";
 import type { ProductOption, Resolvers } from "../../generated/types.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 
@@ -52,7 +52,7 @@ export const optionMutationResolvers: Resolvers = {
 
       return {
         option: result.option
-          ? ((await OptionView.load(
+          ? ((await OptionResolver.load(
               result.option.id,
               optionFieldInfo,
               requireContext(ctx)
@@ -113,7 +113,7 @@ export const optionMutationResolvers: Resolvers = {
 
       return {
         option: result.option
-          ? ((await OptionView.load(
+          ? ((await OptionResolver.load(
               result.option.id,
               optionFieldInfo,
               requireContext(ctx)

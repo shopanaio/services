@@ -4,7 +4,7 @@ import {
   warehouseDelete,
   warehouseUpdate,
 } from "../../../../scripts/warehouse/index.js";
-import { WarehouseView } from "../../../../views/admin/index.js";
+import { WarehouseResolver } from "../../../../resolvers/admin/index.js";
 import type { Resolvers, Warehouse } from "../../generated/types.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 
@@ -48,7 +48,7 @@ export const warehouseMutationResolvers: Resolvers = {
 
       return {
         warehouse: result.warehouse
-          ? ((await WarehouseView.load(
+          ? ((await WarehouseResolver.load(
               result.warehouse.id,
               warehouseFieldInfo,
               requireContext(ctx)
@@ -74,7 +74,7 @@ export const warehouseMutationResolvers: Resolvers = {
 
       return {
         warehouse: result.warehouse
-          ? ((await WarehouseView.load(
+          ? ((await WarehouseResolver.load(
               result.warehouse.id,
               warehouseFieldInfo,
               requireContext(ctx)

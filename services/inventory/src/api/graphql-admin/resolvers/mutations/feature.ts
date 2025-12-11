@@ -5,7 +5,7 @@ import {
   FeatureUpdateScript,
   FeatureDeleteScript,
 } from "../../../../scripts/feature/index.js";
-import { FeatureView } from "../../../../views/admin/index.js";
+import { FeatureResolver } from "../../../../resolvers/admin/index.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 
 export const featureMutationResolvers: Resolvers = {
@@ -29,7 +29,7 @@ export const featureMutationResolvers: Resolvers = {
 
       return {
         feature: result.feature
-          ? ((await FeatureView.load(
+          ? ((await FeatureResolver.load(
               result.feature.id,
               featureFieldInfo,
               requireContext(ctx)
@@ -68,7 +68,7 @@ export const featureMutationResolvers: Resolvers = {
 
       return {
         feature: result.feature
-          ? ((await FeatureView.load(
+          ? ((await FeatureResolver.load(
               result.feature.id,
               featureFieldInfo,
               requireContext(ctx)

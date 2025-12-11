@@ -1,14 +1,14 @@
 import { BaseType } from "@shopana/type-resolver";
 import type { ProductFeature } from "../../repositories/models/index.js";
-import { FeatureValueView } from "./FeatureValueView.js";
+import { FeatureValueResolver } from "./FeatureValueResolver.js";
 
 /**
  * Feature view - resolves Feature domain interface
  * Accepts feature ID, loads data lazily via loaders
  */
-export class FeatureView extends BaseType<string, ProductFeature | null> {
+export class FeatureResolver extends BaseType<string, ProductFeature | null> {
   static fields = {
-    values: () => FeatureValueView,
+    values: () => FeatureValueResolver,
   };
 
   async loadData() {

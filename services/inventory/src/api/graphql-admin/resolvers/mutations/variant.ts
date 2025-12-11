@@ -14,7 +14,7 @@ import {
   variantSetStock,
   variantSetWeight,
 } from "../../../../scripts/variant/index.js";
-import { VariantView } from "../../../../views/admin/index.js";
+import { VariantResolver } from "../../../../resolvers/admin/index.js";
 import type { Resolvers } from "../../generated/types.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 
@@ -40,7 +40,7 @@ export const variantMutationResolvers: Resolvers = {
 
       return {
         variant: result.variant
-          ? await VariantView.load(
+          ? await VariantResolver.load(
               result.variant.id,
               variantFieldInfo,
               requireContext(ctx)
@@ -80,7 +80,7 @@ export const variantMutationResolvers: Resolvers = {
 
       return {
         variant: result.variant
-          ? await VariantView.load(
+          ? await VariantResolver.load(
               result.variant.id,
               variantFieldInfo,
               requireContext(ctx)
@@ -108,7 +108,7 @@ export const variantMutationResolvers: Resolvers = {
 
       return {
         variant: result.variant
-          ? await VariantView.load(
+          ? await VariantResolver.load(
               result.variant.id,
               variantFieldInfo,
               requireContext(ctx)
@@ -134,7 +134,7 @@ export const variantMutationResolvers: Resolvers = {
 
       return {
         variant: result.variant
-          ? await VariantView.load(
+          ? await VariantResolver.load(
               result.variant.id,
               variantFieldInfo,
               requireContext(ctx)

@@ -6,7 +6,7 @@ import type { CurrencyCode } from "./interfaces/index.js";
  * VariantPrice view - resolves price record
  * Accepts price ID, loads data lazily via loaders
  */
-export class VariantPriceView extends BaseType<string, ItemPricing | null> {
+export class VariantPriceResolver extends BaseType<string, ItemPricing | null> {
   async loadData() {
     return this.ctx.loaders.variantPriceById.load(this.value);
   }

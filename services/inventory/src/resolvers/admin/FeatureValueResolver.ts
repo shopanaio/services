@@ -5,7 +5,7 @@ import type { ProductFeatureValue } from "../../repositories/models/index.js";
  * Feature value view - resolves ProductFeatureValue domain interface
  * Accepts feature value ID, loads data lazily via loaders
  */
-export class FeatureValueView extends BaseType<
+export class FeatureValueResolver extends BaseType<
   string,
   ProductFeatureValue | null
 > {

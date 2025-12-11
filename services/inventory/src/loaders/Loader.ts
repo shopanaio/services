@@ -5,7 +5,7 @@ import { OptionLoader } from "./OptionLoader.js";
 import { FeatureLoader } from "./FeatureLoader.js";
 import { WarehouseLoader } from "./WarehouseLoader.js";
 import type { Repository } from "../repositories/Repository.js";
-import type { ProductLoaders } from "../views/admin/context.js";
+import type { ProductLoaders } from "../resolvers/admin/context.js";
 
 export class Loader implements ProductLoaders {
   // Product

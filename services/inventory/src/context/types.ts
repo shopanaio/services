@@ -1,6 +1,6 @@
 import type { CoreProject, CoreUser } from "@shopana/platform-api";
 import type { Kernel } from "../kernel/Kernel.js";
-import type { ProductLoaders } from "../views/admin/context.js";
+import type { ProductLoaders } from "../resolvers/admin/context.js";
 
 /**
  * Unified service context for inventory service

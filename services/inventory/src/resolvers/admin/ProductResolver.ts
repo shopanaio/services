@@ -2,24 +2,24 @@ import { BaseType } from "@shopana/type-resolver";
 import type { Description } from "./interfaces/product.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { ProductVariantsArgs } from "./args.js";
-import { FeatureView } from "./FeatureView.js";
-import { OptionView } from "./OptionView.js";
-import { VariantView } from "./VariantView.js";
+import { FeatureResolver } from "./FeatureResolver.js";
+import { OptionResolver } from "./OptionResolver.js";
+import { VariantResolver } from "./VariantResolver.js";
 import type { ServiceContext } from "../../context/types.js";
 
 /**
  * Product view - resolves Product domain interface
  * Accepts product ID, loads data lazily via loaders
  */
-export class ProductView extends BaseType<
+export class ProductResolver extends BaseType<
   string,
   Product | null,
   ServiceContext
 > {
   static fields = {
-    variants: () => VariantView,
-    options: () => OptionView,
-    features: () => FeatureView,
+    variants: () => VariantResolver,
+    options: () => OptionResolver,
+    features: () => FeatureResolver,
   };
 
   async loadData() {

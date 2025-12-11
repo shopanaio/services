@@ -7,7 +7,7 @@ import {
   ProductPublishScript,
   ProductUnpublishScript,
 } from "../../../../scripts/product/index.js";
-import { ProductView } from "../../../../views/admin/index.js";
+import { ProductResolver } from "../../../../resolvers/admin/index.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 
 export const productMutationResolvers: Resolvers = {
@@ -23,7 +23,7 @@ export const productMutationResolvers: Resolvers = {
 
       return {
         product: result.product
-          ? ((await ProductView.load(
+          ? ((await ProductResolver.load(
               result.product.id,
               productFieldInfo,
               requireContext(ctx)
@@ -58,7 +58,7 @@ export const productMutationResolvers: Resolvers = {
 
       return {
         product: result.product
-          ? ((await ProductView.load(
+          ? ((await ProductResolver.load(
               result.product.id,
               productFieldInfo,
               requireContext(ctx)
@@ -97,7 +97,7 @@ export const productMutationResolvers: Resolvers = {
 
       return {
         product: result.product
-          ? ((await ProductView.load(
+          ? ((await ProductResolver.load(
               result.product.id,
               productFieldInfo,
               requireContext(ctx)
@@ -120,7 +120,7 @@ export const productMutationResolvers: Resolvers = {
 
       return {
         product: result.product
-          ? ((await ProductView.load(
+          ? ((await ProductResolver.load(
               result.product.id,
               productFieldInfo,
               requireContext(ctx)

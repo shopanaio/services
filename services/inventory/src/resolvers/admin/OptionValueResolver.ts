@@ -6,7 +6,7 @@ import type { ProductOptionSwatch } from "./interfaces/index.js";
  * Option value view - resolves ProductOptionValue domain interface
  * Accepts option value ID, loads data lazily via loaders
  */
-export class OptionValueView extends BaseType<
+export class OptionValueResolver extends BaseType<
   string,
   ProductOptionValue | null
 > {

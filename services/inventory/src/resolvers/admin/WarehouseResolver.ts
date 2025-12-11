@@ -6,7 +6,7 @@ import type { Warehouse } from "../../repositories/models/index.js";
  * Warehouse view - resolves Warehouse domain interface
  * Accepts warehouse ID, loads data lazily via loaders
  */
-export class WarehouseView extends BaseType<
+export class WarehouseResolver extends BaseType<
   string,
   Warehouse | null,
   ServiceContext

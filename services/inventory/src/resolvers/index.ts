@@ -1,2 +1,2 @@
-// Admin views
+// Admin resolvers
 export * from "./admin/index.js";

@@ -1,10 +1,10 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import {
-  ProductView,
-  VariantView,
-  WarehouseConnectionView,
-  WarehouseView,
-} from "../../../views/admin/index.js";
+  ProductResolver,
+  VariantResolver,
+  WarehouseConnectionResolver,
+  WarehouseResolver,
+} from "../../../resolvers/admin/index.js";
 import type { Resolvers, WarehouseOrderByInput } from "../generated/types.js";
 import { requireContext, requireKernel } from "./utils.js";
 
@@ -15,11 +15,11 @@ export const queryResolvers: Partial<Resolvers> = {
 
   InventoryQuery: {
     node: async (_parent, { id }, ctx, info) => {
-      return ProductView.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return ProductResolver.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     nodes: async (_parent, { ids }, ctx, info) => {
-      return ProductView.loadMany(
+      return ProductResolver.loadMany(
         ids,
         parseGraphqlInfo(info),
         requireContext(ctx)
@@ -27,7 +27,7 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     product: async (_parent, { id }, ctx, info) => {
-      return ProductView.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return ProductResolver.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     products: async (_parent, args, ctx, info) => {
@@ -44,7 +44,7 @@ export const queryResolvers: Partial<Resolvers> = {
       const resultProducts = hasNextPage ? products.slice(0, first) : products;
 
       const productIds = resultProducts.map((p) => p.id);
-      const resolvedProducts = await ProductView.loadMany(
+      const resolvedProducts = await ProductResolver.loadMany(
         productIds,
         parseGraphqlInfo(info),
         requireContext(ctx)
@@ -68,7 +68,7 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     variant: async (_parent, { id }, ctx, info) => {
-      return VariantView.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return VariantResolver.load(id, parseGraphqlInfo(info), requireContext(ctx));
     },
 
     variants: async (_parent, args, ctx, info) => {
@@ -85,7 +85,7 @@ export const queryResolvers: Partial<Resolvers> = {
       const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
 
       const variantIds = resultVariants.map((v) => v.id);
-      const resolvedVariants = await VariantView.loadMany(
+      const resolvedVariants = await VariantResolver.loadMany(
         variantIds,
         parseGraphqlInfo(info),
         requireContext(ctx)
@@ -109,7 +109,7 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     warehouse: async (_parent, { id }, ctx, info) => {
-      return WarehouseView.load(
+      return WarehouseResolver.load(
         id,
         parseGraphqlInfo(info),
         requireContext(ctx)
@@ -117,7 +117,7 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     warehouses: async (_parent, args, ctx, info) => {
-      return WarehouseConnectionView.load(
+      return WarehouseConnectionResolver.load(
         args,
         parseGraphqlInfo(info),
         requireContext(ctx)

@@ -12,7 +12,7 @@ import type {
   VariantCostHistoryArgs,
   VariantPriceHistoryArgs,
 } from "./args.js";
-import { VariantPriceView } from "./VariantPriceView.js";
+import { VariantPriceResolver } from "./VariantPriceResolver.js";
 import type { ServiceContext } from "../../context/types.js";
 
 /**
@@ -20,13 +20,13 @@ import type { ServiceContext } from "../../context/types.js";
  * Accepts variant ID, loads main entity via loaders (lazy)
  * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantView extends BaseType<
+export class VariantResolver extends BaseType<
   string,
   Variant | null,
   ServiceContext
 > {
   static fields = {
-    priceHistory: () => VariantPriceView,
+    priceHistory: () => VariantPriceResolver,
   };
 
   async loadData() {
