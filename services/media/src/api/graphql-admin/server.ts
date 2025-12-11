@@ -10,7 +10,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
-import { ensureBucketExists, getBucketName } from "../../infrastructure/s3/index.js";
+import { getBucketName } from "../../infrastructure/s3/index.js";
 import { config } from "../../config.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
@@ -49,27 +49,13 @@ export async function startServer(serverConfig: ServerConfig) {
   // Initialize services (repository, etc.)
   const services = initServices();
 
-  // Ensure S3 bucket exists
-  const bucketName = getBucketName();
-  console.log(`[media] Checking S3 bucket '${bucketName}'...`);
-  try {
-    const created = await ensureBucketExists();
-    if (created) {
-      console.log(`[media] S3 bucket '${bucketName}' created`);
-    } else {
-      console.log(`[media] S3 bucket '${bucketName}' already exists`);
-    }
-  } catch (error) {
-    console.error(`[media] Failed to ensure S3 bucket exists:`, error);
-    // Don't fail startup - bucket might be managed externally
-  }
-
   // Ensure bucket record exists in database (for default/system bucket)
-  console.log(`[media] Checking bucket record in database...`);
+  const bucketName = getBucketName();
+  console.log(`[media] Checking bucket record '${bucketName}' in database...`);
   try {
     const existingBucket = await services.repository.bucket.findByBucketName(bucketName);
     if (!existingBucket) {
-      // Create a system-level bucket record with a null-like project_id
+      // Create a system-level bucket record
       // Using a fixed UUID for the system project
       const SYSTEM_PROJECT_ID = "00000000-0000-0000-0000-000000000000";
       await services.repository.bucket.create(SYSTEM_PROJECT_ID, {
