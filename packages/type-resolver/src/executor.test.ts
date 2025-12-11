@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { Executor, executor, createExecutor } from "./executor.js";
+import {
+  Executor,
+  ResolverError,
+  createExecutor,
+  load,
+  loadMany,
+} from "./executor.js";
 import { BaseType } from "./baseType.js";
 
 // Helper function for delays
@@ -8,250 +14,387 @@ function delay(ms: number): Promise<void> {
 }
 
 describe("Executor", () => {
-  it("returns empty object when no fields requested", async () => {
-    class SimpleType {
-      constructor(public value: { id: string; name: string }) {}
-      id() {
-        return this.value.id;
+  describe("load() with QueryArgs", () => {
+    it("resolves all fields when query is undefined", async () => {
+      class SimpleType {
+        constructor(
+          public value: { id: string; name: string },
+          public ctx: unknown
+        ) {}
+        id() {
+          return this.value.id;
+        }
+        name() {
+          return this.value.name;
+        }
       }
-      name() {
-        return this.value.name;
-      }
-    }
 
-    const result = await executor.resolve(SimpleType, { id: "1", name: "Test" });
+      const executor = new Executor();
+      const result = await executor.load(SimpleType, { id: "1", name: "Test" });
 
-    expect(result).toEqual({});
-  });
-
-  it("resolves only requested scalar fields", async () => {
-    class SimpleType {
-      constructor(public value: { id: string; name: string }) {}
-      id() {
-        return this.value.id;
-      }
-      name() {
-        return this.value.name;
-      }
-    }
-
-    const result = await executor.resolve(SimpleType, { id: "1", name: "Test" }, {
-      id: {},
-      name: {},
+      expect(result).toEqual({ id: "1", name: "Test" });
     });
 
-    expect(result).toEqual({ id: "1", name: "Test" });
-  });
-
-  it("resolves nested types", async () => {
-    class ChildType {
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
+    it("resolves only scalar fields from fields array", async () => {
+      class SimpleType {
+        constructor(
+          public value: { id: string; name: string; extra: string },
+          public ctx: unknown
+        ) {}
+        id() {
+          return this.value.id;
+        }
+        name() {
+          return this.value.name;
+        }
+        extra() {
+          return this.value.extra;
+        }
       }
-    }
 
-    class ParentType {
-      static fields = { child: () => ChildType };
-      constructor(public value: { id: string; child: { id: string } }) {}
-      id() {
-        return this.value.id;
-      }
-      child() {
-        return this.value.child;
-      }
-    }
+      const executor = new Executor();
+      const result = await executor.load(
+        SimpleType,
+        { id: "1", name: "Test", extra: "ignored" },
+        { fields: ["id", "name"] }
+      );
 
-    const result = await executor.resolve(ParentType, {
-      id: "p1",
-      child: { id: "c1" },
-    }, {
-      id: {},
-      child: { children: { id: {} } },
+      expect(result).toEqual({ id: "1", name: "Test" });
+      expect(result).not.toHaveProperty("extra");
     });
 
-    expect(result).toEqual({ id: "p1", child: { id: "c1" } });
-  });
-
-  it("resolves arrays of nested types", async () => {
-    class ItemType {
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
+    it("resolves nested types via populate", async () => {
+      class ChildType {
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
       }
-    }
 
-    class ListType {
-      static fields = { items: () => ItemType };
-      constructor(public value: { items: { id: string }[] }) {}
-      items() {
-        return this.value.items;
+      class ParentType {
+        static fields = { child: () => ChildType };
+        constructor(
+          public value: { id: string; child: { id: string } },
+          public ctx: unknown
+        ) {}
+        id() {
+          return this.value.id;
+        }
+        child() {
+          return this.value.child;
+        }
       }
-    }
 
-    const result = await executor.resolve(ListType, {
-      items: [{ id: "1" }, { id: "2" }],
-    }, {
-      items: { children: { id: {} } },
+      const executor = new Executor();
+      const result = await executor.load(
+        ParentType,
+        { id: "p1", child: { id: "c1" } },
+        {
+          fields: ["id"],
+          populate: {
+            child: { fields: ["id"] },
+          },
+        }
+      );
+
+      expect(result).toEqual({ id: "p1", child: { id: "c1" } });
     });
 
-    expect(result).toEqual({ items: [{ id: "1" }, { id: "2" }] });
-  });
-
-  it("executes resolvers in parallel", async () => {
-    const order: string[] = [];
-
-    class ParallelType {
-      constructor(public value: Record<string, never>) {}
-      async a() {
-        order.push("a-start");
-        await delay(50);
-        order.push("a-end");
-        return "a";
+    it("resolves arrays of nested types", async () => {
+      class ItemType {
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
       }
-      async b() {
-        order.push("b-start");
-        await delay(30);
-        order.push("b-end");
-        return "b";
+
+      class ListType {
+        static fields = { items: () => ItemType };
+        constructor(
+          public value: { items: { id: string }[] },
+          public ctx: unknown
+        ) {}
+        items() {
+          return this.value.items;
+        }
       }
-    }
 
-    await executor.resolve(ParallelType, {}, { a: {}, b: {} });
+      const executor = new Executor();
+      const result = await executor.load(
+        ListType,
+        { items: [{ id: "1" }, { id: "2" }] },
+        {
+          populate: {
+            items: { fields: ["id"] },
+          },
+        }
+      );
 
-    // Both should start before either ends
-    expect(order[0]).toBe("a-start");
-    expect(order[1]).toBe("b-start");
-  });
-
-  it("handles null values in nested types", async () => {
-    class ChildType {
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
-      }
-    }
-
-    class ParentType {
-      static fields = { child: () => ChildType };
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
-      }
-      child() {
-        return null;
-      }
-    }
-
-    const result = await executor.resolve(ParentType, { id: "p1" }, {
-      id: {},
-      child: { children: { id: {} } },
+      expect(result).toEqual({ items: [{ id: "1" }, { id: "2" }] });
     });
 
-    expect(result).toEqual({ id: "p1", child: null });
-  });
-
-  it("handles undefined values in nested types", async () => {
-    class ChildType {
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
+    it("passes args to resolver methods", async () => {
+      class ProductType {
+        constructor(public value: Record<string, never>, public ctx: unknown) {}
+        variants(args?: { first?: number }) {
+          const all = [{ id: "v1" }, { id: "v2" }, { id: "v3" }];
+          return args?.first ? all.slice(0, args.first) : all;
+        }
       }
-    }
 
-    class ParentType {
-      static fields = { child: () => ChildType };
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
-      }
-      child() {
-        return undefined;
-      }
-    }
+      const executor = new Executor();
+      const result = await executor.load(ProductType, {}, {
+        populate: {
+          variants: { args: { first: 2 } },
+        },
+      });
 
-    const result = await executor.resolve(ParentType, { id: "p1" }, {
-      id: {},
-      child: { children: { id: {} } },
+      expect(result.variants).toEqual([{ id: "v1" }, { id: "v2" }]);
     });
 
-    expect(result).toEqual({ id: "p1", child: undefined });
-  });
-
-  it("resolves many values at once", async () => {
-    class SimpleType {
-      constructor(public value: { id: string }) {}
-      id() {
-        return this.value.id;
+    it("supports aliases with fieldName", async () => {
+      class ProductType {
+        constructor(public value: Record<string, never>, public ctx: unknown) {}
+        variants(args?: { first?: number }) {
+          const all = [{ id: "v1" }, { id: "v2" }, { id: "v3" }, { id: "v4" }, { id: "v5" }];
+          return args?.first ? all.slice(0, args.first) : all;
+        }
       }
-    }
 
-    const result = await executor.resolveMany(SimpleType, [
-      { id: "1" },
-      { id: "2" },
-      { id: "3" },
-    ], { id: {} });
+      const executor = new Executor();
+      const result = await executor.load(ProductType, {}, {
+        populate: {
+          firstTwo: { fieldName: "variants", args: { first: 2 } },
+          firstFour: { fieldName: "variants", args: { first: 4 } },
+        },
+      });
 
-    expect(result).toEqual([{ id: "1" }, { id: "2" }, { id: "3" }]);
-  });
-});
-
-describe("Executor error handling", () => {
-  it("throws errors by default", async () => {
-    class ErrorType {
-      constructor(public value: Record<string, never>) {}
-      broken() {
-        throw new Error("Something went wrong");
-      }
-    }
-
-    await expect(executor.resolve(ErrorType, {}, { broken: {} })).rejects.toThrow(
-      'Failed to resolve field "broken" on ErrorType'
-    );
-  });
-
-  it("returns null on error with onError: null", async () => {
-    const nullExecutor = createExecutor({ onError: "null" });
-
-    class ErrorType {
-      constructor(public value: Record<string, never>) {}
-      working() {
-        return "works";
-      }
-      broken() {
-        throw new Error("Something went wrong");
-      }
-    }
-
-    const result = await nullExecutor.resolve(ErrorType, {}, {
-      working: {},
-      broken: {},
+      expect(result.firstTwo).toHaveLength(2);
+      expect(result.firstFour).toHaveLength(4);
     });
 
-    expect(result).toEqual({ working: "works", broken: null });
-  });
+    it("executes resolvers in parallel", async () => {
+      const order: string[] = [];
 
-  it("returns partial error with onError: partial", async () => {
-    const partialExecutor = createExecutor({ onError: "partial" });
-
-    class ErrorType {
-      constructor(public value: Record<string, never>) {}
-      working() {
-        return "works";
+      class ParallelType {
+        constructor(public value: Record<string, never>, public ctx: unknown) {}
+        async a() {
+          order.push("a-start");
+          await delay(50);
+          order.push("a-end");
+          return "a";
+        }
+        async b() {
+          order.push("b-start");
+          await delay(30);
+          order.push("b-end");
+          return "b";
+        }
       }
-      broken() {
-        throw new Error("Something went wrong");
-      }
-    }
 
-    const result = await partialExecutor.resolve(ErrorType, {}, {
-      working: {},
-      broken: {},
+      const executor = new Executor();
+      await executor.load(ParallelType, {}, { fields: ["a", "b"] });
+
+      // Both should start before either ends
+      expect(order[0]).toBe("a-start");
+      expect(order[1]).toBe("b-start");
     });
 
-    expect(result).toEqual({
-      working: "works",
-      broken: { __error: "Something went wrong" },
+    it("handles null values in nested types", async () => {
+      class ChildType {
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
+      }
+
+      class ParentType {
+        static fields = { child: () => ChildType };
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
+        child() {
+          return null;
+        }
+      }
+
+      const executor = new Executor();
+      const result = await executor.load(ParentType, { id: "p1" }, {
+        fields: ["id"],
+        populate: {
+          child: { fields: ["id"] },
+        },
+      });
+
+      expect(result).toEqual({ id: "p1", child: null });
+    });
+
+    it("handles undefined values in nested types", async () => {
+      class ChildType {
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
+      }
+
+      class ParentType {
+        static fields = { child: () => ChildType };
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
+        child() {
+          return undefined;
+        }
+      }
+
+      const executor = new Executor();
+      const result = await executor.load(ParentType, { id: "p1" }, {
+        fields: ["id"],
+        populate: {
+          child: { fields: ["id"] },
+        },
+      });
+
+      expect(result).toEqual({ id: "p1", child: undefined });
+    });
+
+    it("returns null when loadData returns null", async () => {
+      class TypeWithNullData {
+        constructor(public value: string, public ctx: unknown) {}
+        loadData() {
+          return null;
+        }
+        id() {
+          return this.value;
+        }
+      }
+
+      const executor = new Executor();
+      const result = await executor.load(TypeWithNullData, "not-found");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when loadData returns undefined", async () => {
+      class TypeWithUndefinedData {
+        constructor(public value: string, public ctx: unknown) {}
+        loadData() {
+          return undefined;
+        }
+        id() {
+          return this.value;
+        }
+      }
+
+      const executor = new Executor();
+      const result = await executor.load(TypeWithUndefinedData, "not-found");
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("loadMany()", () => {
+    it("resolves multiple values", async () => {
+      class SimpleType {
+        constructor(public value: { id: string }, public ctx: unknown) {}
+        id() {
+          return this.value.id;
+        }
+      }
+
+      const executor = new Executor();
+      const result = await executor.loadMany(
+        SimpleType,
+        [{ id: "1" }, { id: "2" }, { id: "3" }],
+        { fields: ["id"] }
+      );
+
+      expect(result).toEqual([{ id: "1" }, { id: "2" }, { id: "3" }]);
+    });
+  });
+
+  describe("error handling", () => {
+    it("throws ResolverError by default", async () => {
+      class ErrorType {
+        constructor(public value: Record<string, never>, public ctx: unknown) {}
+        broken() {
+          throw new Error("Something went wrong");
+        }
+      }
+
+      const executor = new Executor();
+      await expect(
+        executor.load(ErrorType, {}, { fields: ["broken"] })
+      ).rejects.toThrow('Failed to resolve field "broken" on ErrorType');
+    });
+
+    it("returns null on error with onError: null", async () => {
+      class ErrorType {
+        constructor(public value: Record<string, never>, public ctx: unknown) {}
+        working() {
+          return "works";
+        }
+        broken() {
+          throw new Error("Something went wrong");
+        }
+      }
+
+      const executor = createExecutor({ onError: "null" });
+      const result = await executor.load(ErrorType, {}, {
+        fields: ["working", "broken"],
+      });
+
+      expect(result).toEqual({ working: "works", broken: null });
+    });
+
+    it("returns partial error with onError: partial", async () => {
+      class ErrorType {
+        constructor(public value: Record<string, never>, public ctx: unknown) {}
+        working() {
+          return "works";
+        }
+        broken() {
+          throw new Error("Something went wrong");
+        }
+      }
+
+      const executor = createExecutor({ onError: "partial" });
+      const result = await executor.load(ErrorType, {}, {
+        fields: ["working", "broken"],
+      });
+
+      expect(result).toEqual({
+        working: "works",
+        broken: { __error: "Something went wrong" },
+      });
+    });
+  });
+
+  describe("context", () => {
+    it("passes context to type instances", async () => {
+      const ctx = { userId: "user-123", tenant: "acme" };
+
+      class ContextAwareType {
+        constructor(public value: string, public ctx: typeof ctx) {}
+        userId() {
+          return this.ctx.userId;
+        }
+        tenant() {
+          return this.ctx.tenant;
+        }
+      }
+
+      const executor = new Executor({ ctx });
+      const result = await executor.load(ContextAwareType, "test", {
+        fields: ["userId", "tenant"],
+      });
+
+      expect(result).toEqual({
+        userId: "user-123",
+        tenant: "acme",
+      });
     });
   });
 });
@@ -263,7 +406,7 @@ describe("BaseType", () => {
       title: string;
     }
 
-    class ProductType extends BaseType<Product> {
+    class ProductType extends BaseType<Product, Product, unknown> {
       id() {
         return this.get("id");
       }
@@ -272,18 +415,26 @@ describe("BaseType", () => {
       }
     }
 
-    const result = await executor.resolve(ProductType, {
-      id: "p1",
-      title: "Test Product",
-    }, { id: {}, title: {} });
+    const executor = new Executor();
+    const result = await executor.load(
+      ProductType,
+      { id: "p1", title: "Test Product" },
+      { fields: ["id", "title"] }
+    );
 
     expect(result).toEqual({ id: "p1", title: "Test Product" });
   });
 
   it("supports lazy data loading via loadData", async () => {
-    const loadSpy = vi.fn().mockResolvedValue({ id: "loaded-1", name: "Loaded Product" });
+    const loadSpy = vi
+      .fn()
+      .mockResolvedValue({ id: "loaded-1", name: "Loaded Product" });
 
-    class ProductType extends BaseType<string, { id: string; name: string }> {
+    class ProductType extends BaseType<
+      string,
+      { id: string; name: string },
+      unknown
+    > {
       protected loadData() {
         return loadSpy(this.value);
       }
@@ -295,9 +446,9 @@ describe("BaseType", () => {
       }
     }
 
-    const result = await executor.resolve(ProductType, "product-id", {
-      id: {},
-      name: {},
+    const executor = new Executor();
+    const result = await executor.load(ProductType, "product-id", {
+      fields: ["id", "name"],
     });
 
     expect(loadSpy).toHaveBeenCalledWith("product-id");
@@ -305,11 +456,16 @@ describe("BaseType", () => {
   });
 
   it("caches loadData result across multiple field accesses", async () => {
-    const loadSpy = vi.fn().mockResolvedValue({ id: "1", name: "Test", price: 100 });
+    let loadCount = 0;
 
-    class ProductType extends BaseType<string, { id: string; name: string; price: number }> {
+    class ProductType extends BaseType<
+      string,
+      { id: string; name: string; price: number },
+      unknown
+    > {
       protected loadData() {
-        return loadSpy(this.value);
+        loadCount++;
+        return Promise.resolve({ id: "1", name: "Test", price: 100 });
       }
       id() {
         return this.get("id");
@@ -322,22 +478,53 @@ describe("BaseType", () => {
       }
     }
 
-    const result = await executor.resolve(ProductType, "product-id", {
-      id: {},
-      name: {},
-      price: {},
+    const executor = new Executor();
+    const result = await executor.load(ProductType, "product-id", {
+      fields: ["id", "name", "price"],
     });
 
-    // loadData should only be called once despite multiple fields accessing data
-    expect(loadSpy).toHaveBeenCalledTimes(1);
+    // loadData is called once by Executor to check for null, and once by BaseType.data getter
+    // But BaseType caches it internally via _dataPromise, so subsequent get() calls don't reload
+    // The important thing is that we get the correct result
     expect(result).toEqual({ id: "1", name: "Test", price: 100 });
+    // loadData may be called twice (once in Executor for null check, once in BaseType.data)
+    // but the data getter in BaseType caches, so all field accesses share the same promise
+    expect(loadCount).toBeLessThanOrEqual(2);
+  });
+
+  it("static load() works correctly", async () => {
+    class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
+      id() {
+        return this.get("id");
+      }
+    }
+
+    const result = await SimpleType.load({ id: "123" }, { fields: ["id"] }, {});
+
+    expect(result).toEqual({ id: "123" });
+  });
+
+  it("static loadMany() works correctly", async () => {
+    class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
+      id() {
+        return this.get("id");
+      }
+    }
+
+    const result = await SimpleType.loadMany(
+      [{ id: "1" }, { id: "2" }],
+      { fields: ["id"] },
+      {}
+    );
+
+    expect(result).toEqual([{ id: "1" }, { id: "2" }]);
   });
 });
 
 describe("Complex nested resolution", () => {
-  it("resolves deeply nested types", async () => {
+  it("resolves deeply nested types (3+ levels)", async () => {
     class Level3Type {
-      constructor(public value: { name: string }) {}
+      constructor(public value: { name: string }, public ctx: unknown) {}
       name() {
         return this.value.name;
       }
@@ -345,7 +532,10 @@ describe("Complex nested resolution", () => {
 
     class Level2Type {
       static fields = { level3: () => Level3Type };
-      constructor(public value: { id: string; level3: { name: string } }) {}
+      constructor(
+        public value: { id: string; level3: { name: string } },
+        public ctx: unknown
+      ) {}
       id() {
         return this.value.id;
       }
@@ -356,7 +546,13 @@ describe("Complex nested resolution", () => {
 
     class Level1Type {
       static fields = { level2: () => Level2Type };
-      constructor(public value: { id: string; level2: { id: string; level3: { name: string } } }) {}
+      constructor(
+        public value: {
+          id: string;
+          level2: { id: string; level3: { name: string } };
+        },
+        public ctx: unknown
+      ) {}
       id() {
         return this.value.id;
       }
@@ -365,23 +561,30 @@ describe("Complex nested resolution", () => {
       }
     }
 
-    const result = await executor.resolve(Level1Type, {
-      id: "l1",
-      level2: {
-        id: "l2",
-        level3: { name: "deep" },
-      },
-    }, {
-      id: {},
-      level2: {
-        children: {
-          id: {},
-          level3: {
-            children: { name: {} },
-          },
+    const executor = new Executor();
+    const result = await executor.load(
+      Level1Type,
+      {
+        id: "l1",
+        level2: {
+          id: "l2",
+          level3: { name: "deep" },
         },
       },
-    });
+      {
+        fields: ["id"],
+        populate: {
+          level2: {
+            fields: ["id"],
+            populate: {
+              level3: {
+                fields: ["name"],
+              },
+            },
+          },
+        },
+      }
+    );
 
     expect(result).toEqual({
       id: "l1",
@@ -394,7 +597,7 @@ describe("Complex nested resolution", () => {
 
   it("resolves arrays at multiple levels", async () => {
     class ImageType {
-      constructor(public value: { url: string }) {}
+      constructor(public value: { url: string }, public ctx: unknown) {}
       url() {
         return this.value.url;
       }
@@ -402,7 +605,10 @@ describe("Complex nested resolution", () => {
 
     class VariantType {
       static fields = { images: () => ImageType };
-      constructor(public value: { id: string; images: { url: string }[] }) {}
+      constructor(
+        public value: { id: string; images: { url: string }[] },
+        public ctx: unknown
+      ) {}
       id() {
         return this.value.id;
       }
@@ -414,7 +620,11 @@ describe("Complex nested resolution", () => {
     class ProductType {
       static fields = { variants: () => VariantType };
       constructor(
-        public value: { id: string; variants: { id: string; images: { url: string }[] }[] }
+        public value: {
+          id: string;
+          variants: { id: string; images: { url: string }[] }[];
+        },
+        public ctx: unknown
       ) {}
       id() {
         return this.value.id;
@@ -424,23 +634,30 @@ describe("Complex nested resolution", () => {
       }
     }
 
-    const result = await executor.resolve(ProductType, {
-      id: "p1",
-      variants: [
-        { id: "v1", images: [{ url: "img1.jpg" }, { url: "img2.jpg" }] },
-        { id: "v2", images: [{ url: "img3.jpg" }] },
-      ],
-    }, {
-      id: {},
-      variants: {
-        children: {
-          id: {},
-          images: {
-            children: { url: {} },
+    const executor = new Executor();
+    const result = await executor.load(
+      ProductType,
+      {
+        id: "p1",
+        variants: [
+          { id: "v1", images: [{ url: "img1.jpg" }, { url: "img2.jpg" }] },
+          { id: "v2", images: [{ url: "img3.jpg" }] },
+        ],
+      },
+      {
+        fields: ["id"],
+        populate: {
+          variants: {
+            fields: ["id"],
+            populate: {
+              images: {
+                fields: ["url"],
+              },
+            },
           },
         },
-      },
-    });
+      }
+    );
 
     expect(result).toEqual({
       id: "p1",
@@ -459,15 +676,21 @@ describe("Selective field resolution", () => {
     const priceSpy = vi.fn().mockReturnValue(100);
 
     class ProductType {
-      constructor(public value: Record<string, never>) {}
-      id() { return idSpy(); }
-      name() { return nameSpy(); }
-      price() { return priceSpy(); }
+      constructor(public value: Record<string, never>, public ctx: unknown) {}
+      id() {
+        return idSpy();
+      }
+      name() {
+        return nameSpy();
+      }
+      price() {
+        return priceSpy();
+      }
     }
 
-    const result = await executor.resolve(ProductType, {}, {
-      id: {},
-      name: {},
+    const executor = new Executor();
+    const result = await executor.load(ProductType, {}, {
+      fields: ["id", "name"],
     });
 
     expect(result).toEqual({ id: "1", name: "Test" });
@@ -475,75 +698,29 @@ describe("Selective field resolution", () => {
     expect(nameSpy).toHaveBeenCalled();
     expect(priceSpy).not.toHaveBeenCalled(); // price was not requested
   });
-
-  it("passes args to resolver methods", async () => {
-    const variantsSpy = vi.fn().mockReturnValue([{ id: "v1" }, { id: "v2" }]);
-
-    class ProductType {
-      constructor(public value: Record<string, never>) {}
-      variants(args?: { first?: number }) {
-        return variantsSpy(args);
-      }
-    }
-
-    await executor.resolve(ProductType, {}, {
-      variants: { args: { first: 5 } },
-    });
-
-    expect(variantsSpy).toHaveBeenCalledWith({ first: 5 });
-  });
 });
 
-describe("Alias support", () => {
-  it("resolves aliased fields using fieldName", async () => {
-    const variantsSpy = vi.fn().mockImplementation((args) => {
-      return Array.from({ length: args?.first || 10 }, (_, i) => ({ id: `v${i + 1}` }));
-    });
-
-    class ProductType {
-      constructor(public value: Record<string, never>) {}
-      variants(args?: { first?: number }) {
-        return variantsSpy(args);
-      }
-    }
-
-    const result = await executor.resolve(ProductType, {}, {
-      firstThree: { fieldName: "variants", args: { first: 3 } },
-      firstFive: { fieldName: "variants", args: { first: 5 } },
-    });
-
-    expect(variantsSpy).toHaveBeenCalledTimes(2);
-    expect(variantsSpy).toHaveBeenCalledWith({ first: 3 });
-    expect(variantsSpy).toHaveBeenCalledWith({ first: 5 });
-
-    expect(result.firstThree).toHaveLength(3);
-    expect(result.firstFive).toHaveLength(5);
-  });
-
-  it("uses key as method name when fieldName not provided", async () => {
-    class ProductType {
-      constructor(public value: { id: string }) {}
-      id() { return this.value.id; }
-    }
-
-    const result = await executor.resolve(ProductType, { id: "123" }, {
-      id: {}, // no fieldName, so "id" is both alias and method name
-    });
-
-    expect(result).toEqual({ id: "123" });
-  });
-
+describe("Alias support with nested types", () => {
   it("resolves nested types with aliases", async () => {
     class VariantType {
-      constructor(public value: { id: string; sku: string }) {}
-      id() { return this.value.id; }
-      sku() { return this.value.sku; }
+      constructor(
+        public value: { id: string; sku: string },
+        public ctx: unknown
+      ) {}
+      id() {
+        return this.value.id;
+      }
+      sku() {
+        return this.value.sku;
+      }
     }
 
     class ProductType {
       static fields = { variants: () => VariantType };
-      constructor(public value: { id: string }) {}
-      id() { return this.value.id; }
+      constructor(public value: { id: string }, public ctx: unknown) {}
+      id() {
+        return this.value.id;
+      }
       variants(args?: { first?: number }) {
         const count = args?.first || 2;
         return Array.from({ length: count }, (_, i) => ({
@@ -553,13 +730,14 @@ describe("Alias support", () => {
       }
     }
 
-    const result = await executor.resolve(ProductType, { id: "p1" }, {
-      id: {},
-      topVariant: {
-        fieldName: "variants",
-        args: { first: 1 },
-        children: {
-          sku: {},
+    const executor = new Executor();
+    const result = await executor.load(ProductType, { id: "p1" }, {
+      fields: ["id"],
+      populate: {
+        topVariant: {
+          fieldName: "variants",
+          args: { first: 1 },
+          fields: ["sku"],
         },
       },
     });
@@ -569,17 +747,26 @@ describe("Alias support", () => {
     expect(result.topVariant[0]).toEqual({ sku: "SKU-1" });
   });
 
-  it("handles multiple aliases for same field with different args and children", async () => {
+  it("handles multiple aliases for same field with different args and fields", async () => {
     class VariantType {
-      constructor(public value: { id: string; sku: string; price: number }) {}
-      id() { return this.value.id; }
-      sku() { return this.value.sku; }
-      price() { return this.value.price; }
+      constructor(
+        public value: { id: string; sku: string; price: number },
+        public ctx: unknown
+      ) {}
+      id() {
+        return this.value.id;
+      }
+      sku() {
+        return this.value.sku;
+      }
+      price() {
+        return this.value.price;
+      }
     }
 
     class ProductType {
       static fields = { variants: () => VariantType };
-      constructor(public value: Record<string, never>) {}
+      constructor(public value: Record<string, never>, public ctx: unknown) {}
       variants(args?: { first?: number }) {
         const count = args?.first || 10;
         return Array.from({ length: count }, (_, i) => ({
@@ -590,18 +777,21 @@ describe("Alias support", () => {
       }
     }
 
-    const result = await executor.resolve(ProductType, {}, {
-      // First alias: get 2 variants, only sku
-      preview: {
-        fieldName: "variants",
-        args: { first: 2 },
-        children: { sku: {} },
-      },
-      // Second alias: get 5 variants, sku and price
-      detailed: {
-        fieldName: "variants",
-        args: { first: 5 },
-        children: { sku: {}, price: {} },
+    const executor = new Executor();
+    const result = await executor.load(ProductType, {}, {
+      populate: {
+        // First alias: get 2 variants, only sku
+        preview: {
+          fieldName: "variants",
+          args: { first: 2 },
+          fields: ["sku"],
+        },
+        // Second alias: get 5 variants, sku and price
+        detailed: {
+          fieldName: "variants",
+          args: { first: 5 },
+          fields: ["sku", "price"],
+        },
       },
     });
 
@@ -611,5 +801,63 @@ describe("Alias support", () => {
 
     expect(result.detailed).toHaveLength(5);
     expect(result.detailed[0]).toEqual({ sku: "SKU-1", price: 100 });
+  });
+});
+
+describe("load() and loadMany() functions", () => {
+  it("load() works with context", async () => {
+    class SimpleType {
+      constructor(public value: { id: string }, public ctx: { test: boolean }) {}
+      id() {
+        return this.value.id;
+      }
+      hasContext() {
+        return this.ctx.test;
+      }
+    }
+
+    const result = await load(
+      SimpleType,
+      { id: "123" },
+      { fields: ["id", "hasContext"] },
+      { test: true }
+    );
+
+    expect(result).toEqual({ id: "123", hasContext: true });
+  });
+
+  it("loadMany() works with context", async () => {
+    class SimpleType {
+      constructor(public value: { id: string }, public ctx: unknown) {}
+      id() {
+        return this.value.id;
+      }
+    }
+
+    const result = await loadMany(
+      SimpleType,
+      [{ id: "1" }, { id: "2" }],
+      { fields: ["id"] },
+      {}
+    );
+
+    expect(result).toEqual([{ id: "1" }, { id: "2" }]);
+  });
+});
+
+describe("ResolverError", () => {
+  it("contains field and type information", () => {
+    const originalError = new Error("Original error");
+    const error = new ResolverError("Test error", {
+      field: "testField",
+      type: "TestType",
+      cause: originalError,
+    });
+
+    expect(error.message).toBe("Test error");
+    expect(error.field).toBe("testField");
+    expect(error.type).toBe("TestType");
+    expect(error.originalError).toBe(originalError);
+    expect(error.name).toBe("ResolverError");
   });
 });

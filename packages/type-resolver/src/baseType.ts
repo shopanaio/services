@@ -1,6 +1,6 @@
 import { load, loadMany } from "./executor.js";
 import type {
-  FieldArgsTreeFor,
+  QueryArgs,
   TypeClass,
   TypeContext,
   TypeResult,
@@ -19,32 +19,32 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * Static method to load and resolve a value through the executor.
    *
    * @param value - The value to resolve
-   * @param fieldArgs - Optional field arguments tree (use parseGraphqlInfo to convert from GraphQL info)
+   * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
   static load<T extends TypeClass, TResult = TypeResult<T>>(
     this: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs: FieldArgsTreeFor<T> | undefined,
+    query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<TResult> {
-    return load<T, TResult, TypeContext<T>>(this, value, fieldArgs, ctx);
+    return load<T, TResult, TypeContext<T>>(this, value, query, ctx);
   }
 
   /**
    * Static method to load and resolve multiple values through the executor.
    *
    * @param values - The values to resolve
-   * @param fieldArgs - Optional field arguments tree (use parseGraphqlInfo to convert from GraphQL info)
+   * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
   static loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     this: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs: FieldArgsTreeFor<T> | undefined,
+    query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<TResult[]> {
-    return loadMany<T, TResult, TypeContext<T>>(this, values, fieldArgs, ctx);
+    return loadMany<T, TResult, TypeContext<T>>(this, values, query, ctx);
   }
 
   private _dataPromise: Promise<TData> | null = null;

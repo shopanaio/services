@@ -18,6 +18,5 @@ export type {
   ResolverKeys,
   ChildTypeFor,
   ArgsForField,
-  FieldArgsNode,
-  FieldArgsTreeFor,
+  QueryArgs,
 } from "./types.js";

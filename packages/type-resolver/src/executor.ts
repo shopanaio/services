@@ -1,8 +1,7 @@
 import type {
-  TypeClass,
   ExecutorOptions,
-  FieldArgsTreeFor,
-  FieldArgsNode,
+  QueryArgs,
+  TypeClass,
   TypeResult,
 } from "./types.js";
 
@@ -32,8 +31,8 @@ export class ResolverError extends Error {
  * Similar to GraphQL resolution but without GraphQL.
  * Uses classes as types where each method is a resolver.
  *
- * When fieldArgs is provided, only requested fields are resolved (like GraphQL).
- * Supports aliases: keys in fieldArgs can be aliases with `fieldName` pointing to the actual method.
+ * When query is provided, only requested fields are resolved (like GraphQL).
+ * Supports aliases via `fieldName` property in populate entries.
  *
  * @template TContext - The type of the context object passed to type instances
  */
@@ -46,26 +45,21 @@ export class Executor<TContext = unknown> {
    *
    * @param Type - The TypeClass to use for resolution
    * @param value - The raw value to resolve (typically an ID)
-   * @param fieldArgs - Optional typed arguments tree to pass to resolvers.
-   *                    When provided, only requested fields are resolved.
-   *                    Keys can be aliases with `fieldName` pointing to the actual method.
+   * @param query - Optional QueryArgs specifying which fields to resolve.
+   *                When provided, only requested fields are resolved.
    * @returns The fully resolved object with all fields
    */
   async load<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs?: FieldArgsTreeFor<T>
+    query?: QueryArgs
   ): Promise<TResult> {
-    console.log(`[Executor.load] Type: ${Type.name}, value:`, value);
-
     const instance = new Type(value, this.options.ctx);
 
     // Check if loadData returns null - if so, return null immediately
     if (typeof (instance as any).loadData === "function") {
       const data = await (instance as any).loadData();
-      console.log(`[Executor.load] ${Type.name} loadData result:`, data);
       if (data === null || data === undefined) {
-        console.log(`[Executor.load] ${Type.name} returning null because loadData is null/undefined`);
         return null as TResult;
       }
     }
@@ -74,82 +68,70 @@ export class Executor<TContext = unknown> {
       (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
 
-    console.log(`[Executor.load] ${Type.name} fieldArgs:`, JSON.stringify(fieldArgs));
+    // Collect all fields to resolve
+    const fieldsToResolve = new Set<string>();
 
-    const argsTree = (fieldArgs ?? {}) as Record<
-      string,
-      FieldArgsNode | undefined
-    >;
+    // 1. Add scalar fields from fields array
+    if (query?.fields) {
+      for (const field of query.fields) {
+        fieldsToResolve.add(field);
+      }
+    }
 
-    // Get fields to resolve: either from argsTree or all methods from the instance
-    const argsTreeFields = Object.keys(argsTree).filter(
-      (key) => argsTree[key] !== undefined
-    );
-    console.log(`[Executor.load] ${Type.name} argsTreeFields:`, argsTreeFields);
+    // 2. Add relation fields from populate
+    if (query?.populate) {
+      for (const field of Object.keys(query.populate)) {
+        fieldsToResolve.add(field);
+      }
+    }
 
-    // If no fieldArgs provided, resolve all public methods (except constructor, loadData, get)
-    const fieldsToResolve = argsTreeFields.length > 0
-      ? argsTreeFields
-      : Object.getOwnPropertyNames(Object.getPrototypeOf(instance))
-          .filter((key) => {
-            if (key === "constructor" || key === "loadData" || key === "get") return false;
-            const method = (instance as Record<string, unknown>)[key];
-            return typeof method === "function";
-          });
-
-    console.log(`[Executor.load] ${Type.name} fieldsToResolve:`, fieldsToResolve);
-
-    await Promise.all(
-      fieldsToResolve.map(async (key) => {
-        try {
-          const fieldNode = argsTree[key];
-          // Use fieldName if provided (for aliases), otherwise use the key
-          const methodName = fieldNode?.fieldName ?? key;
-          const argsForField = fieldNode?.args;
-
-          // Check if this method exists on the instance
-          const method = (instance as Record<string, unknown>)[methodName];
-          if (typeof method !== "function") {
-            console.log(`[Executor.load] ${Type.name}.${methodName} is not a function, skipping`);
-            // Skip if method doesn't exist (might be an alias for a non-existent field)
-            return;
+    // 3. If query is not specified - resolve ALL methods (backwards compat)
+    if (!query) {
+      const prototype = Object.getPrototypeOf(instance);
+      for (const key of Object.getOwnPropertyNames(prototype)) {
+        if (key !== "constructor" && key !== "loadData" && key !== "get") {
+          if (typeof (instance as any)[key] === "function") {
+            fieldsToResolve.add(key);
           }
+        }
+      }
+    }
 
-          console.log(`[Executor.load] ${Type.name} calling method:`, methodName);
+    // Resolve fields
+    await Promise.all(
+      Array.from(fieldsToResolve).map(async (key) => {
+        try {
+          // Get config for field from populate (if exists)
+          const fieldQuery = query?.populate?.[key];
 
-          // Call the resolver method
-          const resolved = await (method as (args?: unknown) => unknown).call(
-            instance,
-            argsForField
-          );
-          console.log(`[Executor.load] ${Type.name}.${methodName} returned:`, resolved);
+          // Alias support: fieldName specifies the real method
+          const methodName = fieldQuery?.fieldName ?? key;
 
-          // Get child type using the actual method name, not the alias
+          // Args for method
+          const argsForField = fieldQuery?.args;
+
+          const method = (instance as any)[methodName];
+          if (typeof method !== "function") return;
+
+          // Call resolver method
+          const resolved = await method.call(instance, argsForField);
+
+          // Check if there is a child type for this field
           const getChildType = fieldsMap[methodName];
 
-          if (getChildType && resolved != null) {
+          if (getChildType && resolved != null && fieldQuery) {
+            // Relation field - recursively resolve with child query
             const ChildType = getChildType();
-            const childArgsTree = fieldNode?.children;
 
             if (Array.isArray(resolved)) {
               result[key] = await Promise.all(
-                resolved.map((item) =>
-                  this.load(
-                    ChildType as TypeClass,
-                    item as ConstructorParameters<typeof ChildType>[0],
-                    childArgsTree as FieldArgsTreeFor<typeof ChildType>
-                  )
-                )
+                resolved.map((item) => this.load(ChildType, item, fieldQuery))
               );
             } else {
-              result[key] = await this.load(
-                ChildType as TypeClass,
-                resolved as ConstructorParameters<typeof ChildType>[0],
-                childArgsTree as FieldArgsTreeFor<typeof ChildType>
-              );
+              result[key] = await this.load(ChildType, resolved, fieldQuery);
             }
           } else {
-            // Store result under the key (which may be an alias)
+            // Scalar field or relation without query
             result[key] = resolved;
           }
         } catch (error) {
@@ -180,12 +162,10 @@ export class Executor<TContext = unknown> {
   async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs?: FieldArgsTreeFor<T>
+    query?: QueryArgs
   ): Promise<TResult[]> {
     return Promise.all(
-      values.map((value) =>
-        this.load<T, TResult>(Type, value, fieldArgs)
-      )
+      values.map((value) => this.load<T, TResult>(Type, value, query))
     );
   }
 }
@@ -208,7 +188,7 @@ export function createExecutor<TContext = unknown>(
  *
  * @param Type - The TypeClass to use for resolution
  * @param value - The raw value to resolve
- * @param fieldArgs - Optional field arguments tree (use parseGraphqlInfo to convert from GraphQL info)
+ * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
  * @param ctx - Context object to pass to type instances
  */
 export function load<
@@ -218,11 +198,11 @@ export function load<
 >(
   Type: T,
   value: ConstructorParameters<T>[0],
-  fieldArgs: FieldArgsTreeFor<T> | undefined,
+  query: QueryArgs | undefined,
   ctx: TContext
 ): Promise<TResult> {
   const exec = new Executor({ ctx });
-  return exec.load<T, TResult>(Type, value, fieldArgs);
+  return exec.load<T, TResult>(Type, value, query);
 }
 
 /**
@@ -230,7 +210,7 @@ export function load<
  *
  * @param Type - The TypeClass to use for resolution
  * @param values - The raw values to resolve
- * @param fieldArgs - Optional field arguments tree (use parseGraphqlInfo to convert from GraphQL info)
+ * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
  * @param ctx - Context object to pass to type instances
  */
 export function loadMany<
@@ -240,9 +220,9 @@ export function loadMany<
 >(
   Type: T,
   values: ConstructorParameters<T>[0][],
-  fieldArgs: FieldArgsTreeFor<T> | undefined,
+  query: QueryArgs | undefined,
   ctx: TContext
 ): Promise<TResult[]> {
   const exec = new Executor({ ctx });
-  return exec.loadMany<T, TResult>(Type, values, fieldArgs);
+  return exec.loadMany<T, TResult>(Type, values, query);
 }

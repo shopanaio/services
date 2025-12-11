@@ -93,39 +93,65 @@ export type ArgsForField<
   : undefined;
 
 /**
- * A single field node in the args tree.
- * - `fieldName`: the actual method name to call (for aliases, this differs from the key)
- * - `args`: the arguments to pass to the resolver method
- * - `children`: nested arguments for child types (via static fields)
+ * Query arguments - native format for Executor.
+ * Works like GraphQL: if a field is not specified - it won't be resolved.
+ *
+ * @example
+ * ```typescript
+ * const query: QueryArgs = {
+ *   fields: ["id", "title", "handle"],
+ *   populate: {
+ *     variants: {
+ *       args: { where: { isPublished: { _eq: true } }, first: 10 },
+ *       fields: ["id", "sku", "price"],
+ *       populate: {
+ *         options: {
+ *           fields: ["id", "name"]
+ *         }
+ *       }
+ *     }
+ *   }
+ * };
+ * ```
  */
-export interface FieldArgsNode<TArgs = unknown, TChildren = unknown> {
-  /** The actual method name to call. If omitted, the key is used as the method name. */
-  fieldName?: string;
-  /** Arguments to pass to the resolver method */
-  args?: TArgs;
-  /** Nested field arguments for child types */
-  children?: TChildren;
-}
+export type QueryArgs<TArgs = unknown> = {
+  /**
+   * Scalar fields to resolve (without children).
+   * @example fields: ["id", "title", "handle"]
+   */
+  fields?: string[];
 
-/**
- * Recursively builds a typed arguments tree for a TypeClass.
- * Keys can be field names or aliases.
- * Each field can have:
- * - `fieldName`: the actual method to call (when using aliases)
- * - `args`: the arguments to pass to the resolver method
- * - `children`: nested arguments for child types (via static fields)
- */
-export type FieldArgsTreeFor<T extends TypeClass> = {
-  [K in ResolverKeys<T>]?: ArgsForField<T, K> extends undefined
-    ? ChildTypeFor<T, K> extends TypeClass
-      ? FieldArgsNode<undefined, FieldArgsTreeFor<ChildTypeFor<T, K>>>
-      : FieldArgsNode<undefined, never>
-    : ChildTypeFor<T, K> extends TypeClass
-    ? FieldArgsNode<ArgsForField<T, K>, FieldArgsTreeFor<ChildTypeFor<T, K>>>
-    : FieldArgsNode<ArgsForField<T, K>, never>;
-} & {
-  /** Support for aliased fields - any string key with fieldName pointing to actual method */
-  [alias: string]: FieldArgsNode | undefined;
+  /**
+   * Relation fields with nested structure.
+   * IMPORTANT: you need to specify children explicitly.
+   *
+   * @example
+   * populate: {
+   *   variants: {
+   *     args: { where: { isPublished: { _eq: true } }, first: 10 },
+   *     fields: ["id", "sku", "price"],
+   *     populate: {
+   *       options: {
+   *         fields: ["id", "name"]
+   *       }
+   *     }
+   *   }
+   * }
+   */
+  populate?: {
+    [fieldName: string]: QueryArgs;
+  };
+
+  /**
+   * Generic args - passed to resolver method as-is.
+   */
+  args?: TArgs;
+
+  /**
+   * Alias support - specifies the real method name.
+   * @example { "publishedVariants": { fieldName: "variants", args: {...} } }
+   */
+  fieldName?: string;
 };
 
 /**
