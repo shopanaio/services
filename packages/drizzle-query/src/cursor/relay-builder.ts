@@ -4,9 +4,8 @@ import type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
+  OrderByItem,
   DrizzleExecutor,
-  QueryBuilderConfig,
 } from "../types.js";
 import { InvalidCursorError } from "./cursor.js";
 import {
@@ -37,7 +36,7 @@ export type RelayInput<F extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<F>;
   /** Sort order */
-  order?: OrderPath<NestedPaths<F>>[];
+  order?: OrderByItem<NestedPaths<F>>[];
   /** Fields to select */
   select?: NestedPaths<F>[];
   /** Current filters for hash comparison (optional) */

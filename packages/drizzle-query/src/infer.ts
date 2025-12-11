@@ -25,7 +25,7 @@ import type {
   CursorQueryInput,
 } from "./builder/pagination-query-builder.js";
 import type { FluentFieldsDef, ToFieldsDef, ExecuteOptions } from "./builder/fluent-types.js";
-import type { NestedWhereInput, NestedPaths, OrderPath, FieldsDef } from "./types.js";
+import type { NestedWhereInput, NestedPaths, OrderByItem, FieldsDef } from "./types.js";
 
 // =============================================================================
 // FluentQueryBuilder type inference
@@ -71,13 +71,13 @@ export type InferWhere<Q> = Q extends FluentQueryBuilder<
       : never;
 
 /**
- * Extract all valid Order paths from a query builder (union of strings)
+ * Extract all valid Order fields from a query builder (union of strings)
  *
  * @example
  * ```ts
  * const warehouseQuery = createQuery(warehouses);
- * type WarehouseOrderPath = InferOrderPath<typeof warehouseQuery>;
- * // "id" | "id:asc" | "id:desc" | "name" | "name:asc" | "name:desc" | ...
+ * type WarehouseOrderField = InferOrderPath<typeof warehouseQuery>;
+ * // "id" | "name" | "createdAt" | ...
  * ```
  */
 export type InferOrderPath<Q> = Q extends FluentQueryBuilder<
@@ -86,24 +86,24 @@ export type InferOrderPath<Q> = Q extends FluentQueryBuilder<
   infer InferredFields,
   infer _Types
 >
-  ? OrderPath<NestedPaths<InferredFields>>
+  ? NestedPaths<InferredFields>
   : Q extends RelayQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
-    ? OrderPath<NestedPaths<InferredFields>>
+    ? NestedPaths<InferredFields>
     : Q extends CursorQueryBuilder<infer _T, infer _Fields, infer InferredFields, infer _Types>
-      ? OrderPath<NestedPaths<InferredFields>>
+      ? NestedPaths<InferredFields>
       : never;
 
 /**
- * Extract the Order input type (array of order paths) from a query builder
+ * Extract the Order input type (array of OrderByItem) from a query builder
  *
  * @example
  * ```ts
  * const warehouseQuery = createQuery(warehouses);
  * type WarehouseOrder = InferOrder<typeof warehouseQuery>;
- * // ("id" | "id:asc" | "id:desc" | "name" | ...)[]
+ * // OrderByItem<"id" | "name" | ...>[]
  * ```
  */
-export type InferOrder<Q> = InferOrderPath<Q>[];
+export type InferOrder<Q> = OrderByItem<InferOrderPath<Q>>[];
 
 /**
  * Extract all valid Select paths from a query builder (union of strings)

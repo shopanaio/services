@@ -45,11 +45,11 @@ describe("Type inference utilities", () => {
         isDefault?: boolean | FilterOperators<boolean> | null;
       }>();
 
-      // Should allow $and, $or, $not
+      // Should allow _and, _or, _not
       expectTypeOf<WarehouseWhere>().toMatchTypeOf<{
-        $and?: WarehouseWhere[];
-        $or?: WarehouseWhere[];
-        $not?: WarehouseWhere;
+        _and?: WarehouseWhere[];
+        _or?: WarehouseWhere[];
+        _not?: WarehouseWhere;
       }>();
     });
 

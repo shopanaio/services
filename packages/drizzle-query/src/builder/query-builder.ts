@@ -5,7 +5,7 @@ import type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
+  OrderByItem,
   DrizzleExecutor,
   QueryBuilderConfig,
   ResolvePathType,
@@ -35,7 +35,7 @@ const DEFAULT_CONFIG: ResolvedConfig = {
 export type TypedInput<Fields extends FieldsDef> = {
   offset?: number;
   limit?: number;
-  order?: OrderPath<NestedPaths<Fields>>[];
+  order?: OrderByItem<NestedPaths<Fields>>[];
   select?: NestedPaths<Fields>[];
   where?: NestedWhereInput<Fields>;
 };

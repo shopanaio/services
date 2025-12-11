@@ -1,7 +1,7 @@
 import type { FieldsDef, NestedWhereInput, OrderDirection } from "../types.js";
 import type { CursorParams } from "./types.js";
 
-type ComparisonOperator = "$lt" | "$gt";
+type ComparisonOperator = "_lt" | "_gt";
 
 /**
  * Filter operators for cursor values.
@@ -9,16 +9,16 @@ type ComparisonOperator = "$lt" | "$gt";
  * are serialized/deserialized from JSON and may have any type.
  */
 type CursorFilterOperators = {
-  $eq?: unknown;
-  $lt?: unknown;
-  $gt?: unknown;
+  _eq?: unknown;
+  _lt?: unknown;
+  _gt?: unknown;
 };
 
 function getComparisonOperator(forward: boolean, order: OrderDirection): ComparisonOperator {
   if (forward) {
-    return order === "desc" ? "$lt" : "$gt";
+    return order === "desc" ? "_lt" : "_gt";
   }
-  return order === "desc" ? "$gt" : "$lt";
+  return order === "desc" ? "_gt" : "_lt";
 }
 
 function setPathCondition(target: Record<string, unknown>, path: string, filter: CursorFilterOperators): void {
@@ -59,7 +59,7 @@ export function buildCursorWhereInput<F extends FieldsDef = FieldsDef>(
 
     for (let i = 0; i < index; i++) {
       const previous = params.seek[i];
-      setPathCondition(condition, previous.field, { $eq: previous.value });
+      setPathCondition(condition, previous.field, { _eq: previous.value });
     }
 
     const operator = getComparisonOperator(forward, seekValue.order);
@@ -68,5 +68,5 @@ export function buildCursorWhereInput<F extends FieldsDef = FieldsDef>(
     orConditions.push(condition as NestedWhereInput<F>);
   });
 
-  return { $or: orConditions } as NestedWhereInput<F>;
+  return { _or: orConditions } as NestedWhereInput<F>;
 }

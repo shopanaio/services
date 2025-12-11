@@ -31,27 +31,27 @@ export type ScalarValue = string | number | boolean | null | Date;
  * All comparison operators accept ScalarValue for flexibility
  */
 export type FilterOperators<T = ScalarValue> = {
-  $eq?: T;
-  $neq?: T;
-  $gt?: T;
-  $gte?: T;
-  $lt?: T;
-  $lte?: T;
-  $in?: T[];
-  $notIn?: T[];
-  $is?: null;
-  $isNot?: null;
+  _eq?: T;
+  _neq?: T;
+  _gt?: T;
+  _gte?: T;
+  _lt?: T;
+  _lte?: T;
+  _in?: T[];
+  _notIn?: T[];
+  _is?: null;
+  _isNot?: null;
   // String operators (auto-wrap with wildcards)
-  $contains?: string;
-  $notContains?: string;
-  $containsi?: string;
-  $notContainsi?: string;
-  $startsWith?: string;
-  $startsWithi?: string;
-  $endsWith?: string;
-  $endsWithi?: string;
+  _contains?: string;
+  _notContains?: string;
+  _containsi?: string;
+  _notContainsi?: string;
+  _startsWith?: string;
+  _startsWithi?: string;
+  _endsWith?: string;
+  _endsWithi?: string;
   // Range operator
-  $between?: [T, T];
+  _between?: [T, T];
 };
 
 /**
@@ -340,15 +340,14 @@ export type NestedPaths<T extends FieldsDef, Prefix extends string = ""> = {
 }[keyof T & string];
 
 /**
- * Generate ORDER BY paths with direction suffix.
- *
- * @example
- * ```ts
- * type OrderPaths = OrderPath<"id" | "items.product.price">;
- * // Result: "id" | "id:asc" | "id:desc" | "items.product.price" | "items.product.price:asc" | "items.product.price:desc"
- * ```
+ * Order input item - object-based sort specification
+ * field может содержать путь с точками для вложенных полей: "items.product.price"
  */
-export type OrderPath<F extends string> = F | `${F}:${"asc" | "desc"}`;
+export type OrderByItem<F extends string = string> = {
+  field: F;
+  order: OrderDirection;
+  nulls?: NullsOrder;
+};
 
 /**
  * Nested WhereInput with proper type inference for nested paths.
@@ -361,9 +360,9 @@ export type NestedWhereInput<T extends FieldsDef> = {
       ? NestedWhereInput<T[K]>
       : never;
 } & {
-  $and?: NestedWhereInput<T>[];
-  $or?: NestedWhereInput<T>[];
-  $not?: NestedWhereInput<T>;
+  _and?: NestedWhereInput<T>[];
+  _or?: NestedWhereInput<T>[];
+  _not?: NestedWhereInput<T>;
 };
 
 /**
@@ -402,8 +401,8 @@ export type NestedSchemaInput<T extends Table, Fields extends FieldsDef> = {
   offset?: number;
   /** Limit for pagination */
   limit?: number;
-  /** Order fields with nested path support (e.g., ["createdAt:desc", "items.product.price:asc"]) */
-  order?: OrderPath<NestedPaths<Fields>>[];
+  /** Order fields with nested path support */
+  order?: OrderByItem<NestedPaths<Fields>>[];
   /** Fields to select with nested path support */
   select?: NestedPaths<Fields>[];
   /** Where filters with nested structure */
@@ -444,7 +443,7 @@ export type TypedSchemaInput<S extends SchemaWithFields> =
         /** Limit for pagination */
         limit?: number;
         /** Order fields with nested path support */
-        order?: OrderPath<NestedPaths<Fields>>[];
+        order?: OrderByItem<NestedPaths<Fields>>[];
         /** Fields to select with nested path support */
         select?: NestedPaths<Fields>[];
         /** Where filters with nested structure */

@@ -2,7 +2,7 @@ import type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
+  OrderByItem,
   FilterValue,
 } from "../types.js";
 import type { SimpleFieldDefinition, JoinFieldDefinition, FieldBuilder } from "./helpers.js";
@@ -77,8 +77,8 @@ export type ToFieldsDef<T extends FluentFieldsDef> = {
  * Fluent Query Builder configuration (immutable)
  */
 export type FluentQueryConfig<Fields extends FieldsDef = FieldsDef> = {
-  /** Default order (e.g., "id:asc") */
-  defaultOrder?: OrderPath<NestedPaths<Fields>>;
+  /** Default order */
+  defaultOrder?: OrderByItem<NestedPaths<Fields>>;
   /** Default fields to select */
   defaultSelect?: NestedPaths<Fields>[];
   /** Fields always included in select */
@@ -99,8 +99,8 @@ export type FluentQueryConfig<Fields extends FieldsDef = FieldsDef> = {
 export type ExecuteOptions<Fields extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<Fields>;
-  /** Order fields (e.g., ["id:asc", "name:desc"]) */
-  order?: OrderPath<NestedPaths<Fields>>[];
+  /** Order fields */
+  order?: OrderByItem<NestedPaths<Fields>>[];
   /** Fields to select */
   select?: NestedPaths<Fields>[];
   /** Maximum number of records to return */
@@ -119,4 +119,4 @@ export type QuerySnapshot<Fields extends FieldsDef = FieldsDef> = {
 };
 
 // Re-export types from main types.ts for convenience
-export type { FieldsDef, NestedPaths, NestedWhereInput, OrderPath, FilterValue };
+export type { FieldsDef, NestedPaths, NestedWhereInput, OrderByItem, FilterValue };

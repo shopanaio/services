@@ -77,7 +77,7 @@ export class WhereBuilder<
         continue;
       }
 
-      if (key === "$and" && Array.isArray(rawValue)) {
+      if (key === "_and" && Array.isArray(rawValue)) {
         for (const nested of rawValue) {
           const nestedConditions = this.buildWhereConditions(
             nested as NestedWhereInput<FieldsDef>,
@@ -89,7 +89,7 @@ export class WhereBuilder<
         continue;
       }
 
-      if (key === "$or" && Array.isArray(rawValue)) {
+      if (key === "_or" && Array.isArray(rawValue)) {
         const orConditions: SQL[] = [];
         for (const nested of rawValue) {
           const nestedConditions = this.buildWhereConditions(
@@ -111,7 +111,7 @@ export class WhereBuilder<
         continue;
       }
 
-      if (key === "$not" && rawValue !== null && typeof rawValue === "object" && !Array.isArray(rawValue)) {
+      if (key === "_not" && rawValue !== null && typeof rawValue === "object" && !Array.isArray(rawValue)) {
         const nestedConditions = this.buildWhereConditions(
           rawValue as NestedWhereInput<FieldsDef>,
           schema,
@@ -126,7 +126,7 @@ export class WhereBuilder<
         continue;
       }
 
-      if (key.startsWith("$")) {
+      if (key.startsWith("_")) {
         continue;
       }
 

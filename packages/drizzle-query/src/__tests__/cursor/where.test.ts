@@ -18,9 +18,9 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { updatedAt: { $lt: "2024-01-01" } },
-          { updatedAt: { $eq: "2024-01-01" }, id: { $lt: "node-1" } },
+        _or: [
+          { updatedAt: { _lt: "2024-01-01" } },
+          { updatedAt: { _eq: "2024-01-01" }, id: { _lt: "node-1" } },
         ],
       });
     });
@@ -35,12 +35,12 @@ describe("buildCursorWhereInput", () => {
         ],
       };
 
-      // forward + asc = $gt (next items are greater)
+      // forward + asc = _gt (next items are greater)
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { title: { $gt: "A" } },
-          { title: { $eq: "A" }, id: { $gt: "1" } },
+        _or: [
+          { title: { _gt: "A" } },
+          { title: { _eq: "A" }, id: { _gt: "1" } },
         ],
       });
     });
@@ -58,13 +58,13 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { status: { $gt: "ACTIVE" } },
-          { status: { $eq: "ACTIVE" }, updatedAt: { $lt: "2024-01-01" } },
+        _or: [
+          { status: { _gt: "ACTIVE" } },
+          { status: { _eq: "ACTIVE" }, updatedAt: { _lt: "2024-01-01" } },
           {
-            status: { $eq: "ACTIVE" },
-            updatedAt: { $eq: "2024-01-01" },
-            id: { $lt: "abc" },
+            status: { _eq: "ACTIVE" },
+            updatedAt: { _eq: "2024-01-01" },
+            id: { _lt: "abc" },
           },
         ],
       });
@@ -84,9 +84,9 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, false);
       expect(where).toEqual({
-        $or: [
-          { updatedAt: { $gt: "2024-01-01" } },
-          { updatedAt: { $eq: "2024-01-01" }, id: { $gt: "node-1" } },
+        _or: [
+          { updatedAt: { _gt: "2024-01-01" } },
+          { updatedAt: { _eq: "2024-01-01" }, id: { _gt: "node-1" } },
         ],
       });
     });
@@ -101,12 +101,12 @@ describe("buildCursorWhereInput", () => {
         ],
       };
 
-      // backward + asc = $lt (previous items are smaller)
+      // backward + asc = _lt (previous items are smaller)
       const where = buildCursorWhereInput(params, false);
       expect(where).toEqual({
-        $or: [
-          { title: { $lt: "Z" } },
-          { title: { $eq: "Z" }, id: { $lt: "999" } },
+        _or: [
+          { title: { _lt: "Z" } },
+          { title: { _eq: "Z" }, id: { _lt: "999" } },
         ],
       });
     });
@@ -122,7 +122,7 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [{ id: { $lt: "123" } }],
+        _or: [{ id: { _lt: "123" } }],
       });
     });
 
@@ -135,7 +135,7 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, false);
       expect(where).toEqual({
-        $or: [{ id: { $gt: "123" } }],
+        _or: [{ id: { _gt: "123" } }],
       });
     });
   });
@@ -153,9 +153,9 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { author: { name: { $gt: "John" } } },
-          { author: { name: { $eq: "John" } }, id: { $gt: "1" } },
+        _or: [
+          { author: { name: { _gt: "John" } } },
+          { author: { name: { _eq: "John" } }, id: { _gt: "1" } },
         ],
       });
     });
@@ -172,9 +172,9 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { category: { parent: { name: { $gt: "Electronics" } } } },
-          { category: { parent: { name: { $eq: "Electronics" } } }, id: { $gt: "1" } },
+        _or: [
+          { category: { parent: { name: { _gt: "Electronics" } } } },
+          { category: { parent: { name: { _eq: "Electronics" } } }, id: { _gt: "1" } },
         ],
       });
     });
@@ -205,13 +205,13 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { status: { $lt: "ACTIVE" } },
-          { status: { $eq: "ACTIVE" }, updatedAt: { $lt: "2024-01-01" } },
+        _or: [
+          { status: { _lt: "ACTIVE" } },
+          { status: { _eq: "ACTIVE" }, updatedAt: { _lt: "2024-01-01" } },
           {
-            status: { $eq: "ACTIVE" },
-            updatedAt: { $eq: "2024-01-01" },
-            id: { $lt: "abc" },
+            status: { _eq: "ACTIVE" },
+            updatedAt: { _eq: "2024-01-01" },
+            id: { _lt: "abc" },
           },
         ],
       });
@@ -229,9 +229,9 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { deletedAt: { $lt: null } },
-          { deletedAt: { $eq: null }, id: { $lt: "123" } },
+        _or: [
+          { deletedAt: { _lt: null } },
+          { deletedAt: { _eq: null }, id: { _lt: "123" } },
         ],
       });
     });
@@ -248,9 +248,9 @@ describe("buildCursorWhereInput", () => {
 
       const where = buildCursorWhereInput(params, true);
       expect(where).toEqual({
-        $or: [
-          { price: { $lt: 99.99 } },
-          { price: { $eq: 99.99 }, id: { $lt: "123" } },
+        _or: [
+          { price: { _lt: 99.99 } },
+          { price: { _eq: 99.99 }, id: { _lt: "123" } },
         ],
       });
     });

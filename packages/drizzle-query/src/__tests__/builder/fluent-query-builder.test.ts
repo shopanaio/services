@@ -161,12 +161,12 @@ describe("createQuery", () => {
       id: field(users.id),
       name: field(users.name),
     })
-      .defaultOrder("id:asc")
+      .defaultOrder({ field: "id", order: "asc" })
       .defaultLimit(10)
       .maxLimit(50);
 
     const snapshot = usersQuery.getSnapshot();
-    expect(snapshot.config.defaultOrder).toBe("id:asc");
+    expect(snapshot.config.defaultOrder).toEqual({ field: "id", order: "asc" });
     expect(snapshot.config.defaultLimit).toBe(10);
     expect(snapshot.config.maxLimit).toBe(50);
   });
@@ -196,9 +196,9 @@ describe("FluentQueryBuilder configuration", () => {
     const query = createQuery(users, {
       id: field(users.id),
       name: field(users.name),
-    }).defaultOrder("name:desc");
+    }).defaultOrder({ field: "name", order: "desc" });
 
-    expect(query.getSnapshot().config.defaultOrder).toBe("name:desc");
+    expect(query.getSnapshot().config.defaultOrder).toEqual({ field: "name", order: "desc" });
   });
 
   it("defaultSelect should set default fields", () => {
@@ -282,7 +282,7 @@ describe("FluentQueryBuilder execution", () => {
 
   it("should apply order", async () => {
     const results = await usersQuery.execute(db, {
-      order: ["name:asc"],
+      order: [{ field: "name", order: "asc" }],
       limit: 10,
     });
 
@@ -306,7 +306,7 @@ describe("FluentQueryBuilder execution", () => {
   });
 
   it("should use defaultOrder when order not provided", async () => {
-    const query = usersQuery.defaultOrder("name:desc");
+    const query = usersQuery.defaultOrder({ field: "name", order: "desc" });
     const results = await query.execute(db, { limit: 10 });
 
     expect(results[0].name).toBe("Charlie");
@@ -322,15 +322,15 @@ describe("FluentQueryBuilder execution", () => {
 
   it("should override defaults with explicit options", async () => {
     const query = usersQuery
-      .defaultOrder("name:asc")
+      .defaultOrder({ field: "name", order: "asc" })
       .defaultLimit(1)
       .defaultWhere({ name: "Alice" });
 
     // Override all defaults
     const results = await query.execute(db, {
-      order: ["name:desc"],
+      order: [{ field: "name", order: "desc" }],
       limit: 3,
-      where: { age: { $gte: 25 } },
+      where: { age: { _gte: 25 } },
     });
 
     expect(results.length).toBe(3);
@@ -486,7 +486,7 @@ describe.skip("createRelayQuery", () => {
     name: field(users.name),
     email: field(users.email),
   })
-    .defaultOrder("id:asc")
+    .defaultOrder({ field: "id", order: "asc" })
     .maxLimit(100);
 
   it("should create pagination query from fluent query", () => {
@@ -597,7 +597,7 @@ describe("FluentQueryBuilder SQL generation", () => {
     });
 
     const sql = query.getSql({
-      order: ["name:desc"],
+      order: [{ field: "name", order: "desc" }],
       limit: 10,
     });
 
@@ -622,23 +622,23 @@ describe("Complex usage example", () => {
       createdAt: field(users.createdAt),
       deletedAt: field(users.deletedAt),
     })
-      .defaultOrder("createdAt:desc")
+      .defaultOrder({ field: "createdAt", order: "desc" })
       .defaultSelect(["id", "name", "email"])
       .include(["id"])
       .exclude(["createdAt"])
       .maxLimit(100)
       .defaultLimit(20)
-      .defaultWhere({ deletedAt: { $is: null } });
+      .defaultWhere({ deletedAt: { _is: null } });
 
     // Get snapshot
     const snapshot = query.getSnapshot();
-    expect(snapshot.config.defaultOrder).toBe("createdAt:desc");
+    expect(snapshot.config.defaultOrder).toEqual({ field: "createdAt", order: "desc" });
     expect(snapshot.config.maxLimit).toBe(100);
 
     // Execute with overrides
     const results = await query.execute(db, {
-      where: { age: { $gte: 25 } },
-      order: ["name:asc"],
+      where: { age: { _gte: 25 } },
+      order: [{ field: "name", order: "asc" }],
       limit: 10,
     });
 
@@ -700,7 +700,7 @@ describe("Type inference for nested paths", () => {
     };
 
     const _validOrder: Parameters<typeof usersWithAddress.execute>[1] = {
-      order: ["id:asc", "address.city:desc"],
+      order: [{ field: "id", order: "asc" }, { field: "address.city", order: "desc" }],
       limit: 10,
     };
 
@@ -709,7 +709,7 @@ describe("Type inference for nested paths", () => {
         id: "test",
         address: {
           city: "New York",
-          country: { $startsWith: "US" },
+          country: { _startsWith: "US" },
         },
       },
       limit: 10,
@@ -717,7 +717,7 @@ describe("Type inference for nested paths", () => {
 
     // Just verify compilation works
     expect(_validSelect.select).toContain("address.city");
-    expect(_validOrder.order).toContain("address.city:desc");
+    expect(_validOrder.order).toContainEqual({ field: "address.city", order: "desc" });
     expect(_validWhere.where).toBeDefined();
   });
 

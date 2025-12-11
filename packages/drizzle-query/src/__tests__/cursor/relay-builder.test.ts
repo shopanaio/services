@@ -199,7 +199,7 @@ describe("createRelayQuery (fluent API)", () => {
       expect(meta.isForward).toBe(true);
       expect(meta.hasCursor).toBe(true);
 
-      // DESC + forward = $lt (seek after current position)
+      // DESC + forward = _lt (seek after current position)
       // When sort field = tie-breaker, the WHERE simplifies (both conditions use same field)
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
@@ -227,7 +227,7 @@ describe("createRelayQuery (fluent API)", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
-      // order: ["price:desc"] + tie-breaker (id follows price direction = desc)
+      // order: [{ field: "price", order: "desc" }] + tie-breaker (id follows price direction = desc)
       const cursor = encode({
         type: "product",
         filtersHash,
@@ -240,7 +240,7 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -270,11 +270,11 @@ describe("createRelayQuery (fluent API)", () => {
       `);
     });
 
-    it("forward pagination with ASC sort uses $gt operator", () => {
+    it("forward pagination with ASC sort uses _gt operator", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
-      // order: ["handle:asc"] + tie-breaker (id follows handle direction = asc)
+      // order: [{ field: "handle", order: "asc" }] + tie-breaker (id follows handle direction = asc)
       const cursor = encode({
         type: "product",
         filtersHash,
@@ -287,11 +287,11 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle"],
       });
 
-      // ASC + forward = $gt
+      // ASC + forward = _gt
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -321,7 +321,7 @@ describe("createRelayQuery (fluent API)", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
-      // order: ["handle:asc", "price:desc"] + tie-breaker (id follows LAST sort field = desc)
+      // order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }] + tie-breaker (id follows LAST sort field = desc)
       const cursor = encode({
         type: "product",
         filtersHash,
@@ -335,11 +335,11 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: ["handle:asc", "price:desc"],
+        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
-      // Mixed: handle ASC -> $gt, price DESC -> $lt, id DESC -> $lt
+      // Mixed: handle ASC -> _gt, price DESC -> _lt, id DESC -> _lt
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -388,7 +388,7 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -396,7 +396,7 @@ describe("createRelayQuery (fluent API)", () => {
       expect(meta.hasCursor).toBe(true);
       expect(meta.invertOrder).toBe(false); // has before cursor, no inversion
 
-      // DESC + backward = $gt (seek before current position)
+      // DESC + backward = _gt (seek before current position)
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -427,7 +427,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -453,7 +453,7 @@ describe("createRelayQuery (fluent API)", () => {
       `);
     });
 
-    it("backward pagination (last + before) with ASC sort uses $lt operator", () => {
+    it("backward pagination (last + before) with ASC sort uses _lt operator", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
@@ -469,14 +469,14 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle"],
       });
 
       expect(meta.isForward).toBe(false);
       expect(meta.hasCursor).toBe(true);
 
-      // ASC + backward = $lt (seek before current position)
+      // ASC + backward = _lt (seek before current position)
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -519,14 +519,14 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        order: ["handle:asc", "price:desc"],
+        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
       expect(meta.isForward).toBe(false);
       expect(meta.hasCursor).toBe(true);
 
-      // Mixed backward: handle ASC -> $lt, price DESC -> $gt, id DESC -> $gt
+      // Mixed backward: handle ASC -> _lt, price DESC -> _gt, id DESC -> _gt
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -564,7 +564,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -594,7 +594,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        order: ["handle:asc", "price:desc"],
+        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -732,8 +732,8 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        where: { deletedAt: { $is: null } },
-        order: ["price:desc"],
+        where: { deletedAt: { _is: null } },
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -783,17 +783,17 @@ describe("createRelayQuery (fluent API)", () => {
         first: 10,
         after: cursor,
         where: {
-          $and: [
-            { price: { $gte: 25, $lte: 200 } },
+          _and: [
+            { price: { _gte: 25, _lte: 200 } },
             {
-              $or: [
-                { handle: { $containsi: "premium" } },
-                { handle: { $containsi: "sale" } },
+              _or: [
+                { handle: { _containsi: "premium" } },
+                { handle: { _containsi: "sale" } },
               ],
             },
           ],
         },
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -840,7 +840,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         first: 10,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -869,7 +869,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql } = qb.getSql({
         first: 10,
-        order: ["handle:asc", "price:asc"],
+        order: [{ field: "handle", order: "asc" }, { field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -902,7 +902,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         first: 10,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -1009,7 +1009,7 @@ describe("createRelayQuery (fluent API)", () => {
         qb.getSql({
           first: 10,
           after: cursor,
-          order: ["handle:asc"],
+          order: [{ field: "handle", order: "asc" }],
           select: ["id"],
         })
       ).toThrow("field mismatch");
@@ -1034,7 +1034,7 @@ describe("createRelayQuery (fluent API)", () => {
         qb.getSql({
           first: 10,
           after: cursor,
-          order: ["price:asc"],
+          order: [{ field: "price", order: "asc" }],
           select: ["id"],
         })
       ).toThrow("order mismatch");
@@ -1060,7 +1060,7 @@ describe("createRelayQuery (fluent API)", () => {
         qb.getSql({
           first: 10,
           after: cursor,
-          order: ["price:desc"],
+          order: [{ field: "price", order: "desc" }],
           select: ["id"],
         })
       ).toThrow("length mismatch");
@@ -1086,7 +1086,7 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: ["deletedAt:desc"],
+        order: [{ field: "deletedAt", order: "desc" }],
         select: ["id", "deletedAt"],
       });
 
@@ -1132,7 +1132,7 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -1165,7 +1165,7 @@ describe("createRelayQuery (fluent API)", () => {
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: ["translation.value:asc"],
+        order: [{ field: "translation.value", order: "asc" }],
         select: ["id", "translation.value"],
       });
 
@@ -1212,9 +1212,9 @@ describe("createRelayQuery (fluent API)", () => {
         first: 10,
         after: cursor,
         where: {
-          translation: { searchValue: { $containsi: "laptop" } },
+          translation: { searchValue: { _containsi: "laptop" } },
         },
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price", "translation.value"],
       });
 
@@ -1259,7 +1259,7 @@ describe("createRelayQuery (fluent API)", () => {
       const sql = queryBuilder.getSql({
         select: ["id"],
         limit: 5,
-        order: ["id:asc"],
+        order: [{ field: "id", order: "asc" }],
       });
 
       const sqlString = toSqlString(sql);
@@ -1349,7 +1349,7 @@ describe("createRelayBuilder (legacy API)", () => {
       const sql = queryBuilder.buildSelectSql({
         select: ["id"],
         limit: 5,
-        order: ["id:asc"],
+        order: [{ field: "id", order: "asc" }],
       } as never);
 
       const sqlString = toSqlString(sql);

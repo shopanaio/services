@@ -80,7 +80,7 @@ describe("createBaseCursorBuilder", () => {
       const { sql, meta } = builder.getSql({
         limit: 10,
         direction: "forward",
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -123,7 +123,7 @@ describe("createBaseCursorBuilder", () => {
         limit: 10,
         direction: "forward",
         cursor,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -162,7 +162,7 @@ describe("createBaseCursorBuilder", () => {
       const { sql, meta } = builder.getSql({
         limit: 10,
         direction: "backward",
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
@@ -204,14 +204,14 @@ describe("createBaseCursorBuilder", () => {
         limit: 10,
         direction: "backward",
         cursor,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "price"],
       });
 
       expect(meta.hasCursor).toBe(true);
       expect(meta.invertOrder).toBe(false); // has cursor, no inversion
 
-      // DESC + backward = $gt (seek before current position)
+      // DESC + backward = _gt (seek before current position)
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -308,7 +308,7 @@ describe("createBaseCursorBuilder", () => {
       const result = await builder.query(fakeDb, {
         limit: 2,
         direction: "forward",
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -385,7 +385,7 @@ describe("createBaseCursorBuilder", () => {
       const result = await builder.query(fakeDb, {
         limit: 2,
         direction: "backward",
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -446,7 +446,7 @@ describe("createBaseCursorBuilder", () => {
       const result = await builder.query(fakeDb, {
         limit: 10,
         direction: "forward",
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 

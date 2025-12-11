@@ -4,7 +4,7 @@ import type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
+  OrderByItem,
 } from "../types.js";
 import { createRelayBuilder } from "../cursor/relay-builder.js";
 import {
@@ -44,8 +44,8 @@ export type RelayQueryInput<InferredFields extends FieldsDef> = {
   before?: string;
   /** Filter conditions */
   where?: NestedWhereInput<InferredFields>;
-  /** Sort order (e.g., ["createdAt:desc"]) */
-  order?: OrderPath<NestedPaths<InferredFields>>[];
+  /** Sort order */
+  order?: OrderByItem<NestedPaths<InferredFields>>[];
   /** Fields to select */
   select?: NestedPaths<InferredFields>[];
   /** Current filters for hash comparison */
@@ -365,8 +365,8 @@ export type CursorQueryInput<InferredFields extends FieldsDef> = {
   cursor?: string;
   /** Filter conditions */
   where?: NestedWhereInput<InferredFields>;
-  /** Sort order (e.g., ["createdAt:desc"]) */
-  order?: OrderPath<NestedPaths<InferredFields>>[];
+  /** Sort order */
+  order?: OrderByItem<NestedPaths<InferredFields>>[];
   /** Fields to select */
   select?: NestedPaths<InferredFields>[];
   /** Current filters for hash comparison */

@@ -95,7 +95,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await usersQuery.execute(db as any, {
         limit: 2,
         offset: 1,
-        order: ["name:asc"],
+        order: [{ field: "name", order: "asc" }],
       });
 
       expect(result).toHaveLength(2);
@@ -114,134 +114,134 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should filter with $eq operator", async () => {
+    it("should filter with _eq operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $eq: "Alice" } },
+        where: { name: { _eq: "Alice" } },
       });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter with $neq operator", async () => {
+    it("should filter with _neq operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $neq: "Alice" } },
+        where: { name: { _neq: "Alice" } },
       });
 
       expect(result).toHaveLength(3);
       expect(result.every((u) => u.name !== "Alice")).toBe(true);
     });
 
-    it("should filter with $gt operator", async () => {
+    it("should filter with _gt operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $gt: 30 } },
+        where: { age: { _gt: 30 } },
       });
       expect(result).toHaveLength(2);
       expect(result.every((u) => u.age! > 30)).toBe(true);
     });
 
-    it("should filter with $gte operator", async () => {
+    it("should filter with _gte operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $gte: 30 } },
+        where: { age: { _gte: 30 } },
       });
 
       expect(result).toHaveLength(3);
       expect(result.every((u) => u.age! >= 30)).toBe(true);
     });
 
-    it("should filter with $lt operator", async () => {
+    it("should filter with _lt operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $lt: 30 } },
+        where: { age: { _lt: 30 } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter with $lte operator", async () => {
+    it("should filter with _lte operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $lte: 30 } },
+        where: { age: { _lte: 30 } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.every((u) => u.age! <= 30)).toBe(true);
     });
 
-    it("should filter with $in operator", async () => {
+    it("should filter with _in operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $in: ["Alice", "Charlie"] } },
+        where: { name: { _in: ["Alice", "Charlie"] } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
     });
 
-    it("should filter with $notIn operator", async () => {
+    it("should filter with _notIn operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $notIn: ["Alice", "Charlie"] } },
+        where: { name: { _notIn: ["Alice", "Charlie"] } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Bob", "Diana"]);
     });
 
-    it("should filter with $startsWith operator", async () => {
+    it("should filter with _startsWith operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $startsWith: "A" } },
+        where: { name: { _startsWith: "A" } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter with $startsWithi operator (case-insensitive)", async () => {
+    it("should filter with _startsWithi operator (case-insensitive)", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $startsWithi: "a" } },
+        where: { name: { _startsWithi: "a" } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter with $is: null", async () => {
+    it("should filter with _is: null", async () => {
       const db = getDb();
       await db.insert(users).values({ name: "NoAge", age: null });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $is: null } },
+        where: { age: { _is: null } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("NoAge");
     });
 
-    it("should filter with $isNot: null", async () => {
+    it("should filter with _isNot: null", async () => {
       const db = getDb();
       await db.insert(users).values({ name: "NoAge", age: null });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $isNot: null } },
+        where: { age: { _isNot: null } },
       });
 
       expect(result).toHaveLength(4); // Original 4 users have age
@@ -259,12 +259,12 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should combine conditions with $and", async () => {
+    it("should combine conditions with _and", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $and: [{ age: { $gte: 25 } }, { age: { $lte: 30 } }],
+          _and: [{ age: { _gte: 25 } }, { age: { _lte: 30 } }],
         },
       });
 
@@ -272,12 +272,12 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Bob"]);
     });
 
-    it("should combine conditions with $or", async () => {
+    it("should combine conditions with _or", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $or: [{ name: { $eq: "Alice" } }, { name: { $eq: "Charlie" } }],
+          _or: [{ name: { _eq: "Alice" } }, { name: { _eq: "Charlie" } }],
         },
       });
 
@@ -285,14 +285,14 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
     });
 
-    it("should handle nested $and and $or", async () => {
+    it("should handle nested _and and _or", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $or: [
-            { $and: [{ name: { $eq: "Alice" } }, { isActive: { $eq: true } }] },
-            { age: { $gt: 30 } },
+          _or: [
+            { _and: [{ name: { _eq: "Alice" } }, { isActive: { _eq: true } }] },
+            { age: { _gt: 30 } },
           ],
         },
       });
@@ -306,8 +306,8 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          age: { $gte: 25 },
-          isActive: { $eq: true },
+          age: { _gte: 25 },
+          isActive: { _eq: true },
         },
       });
 
@@ -330,7 +330,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: ["name:asc"],
+        order: [{ field: "name", order: "asc" }],
       });
 
       expect(result.map((u) => u.name)).toEqual(["Alice", "Bob", "Charlie"]);
@@ -340,7 +340,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: ["age:desc"],
+        order: [{ field: "age", order: "desc" }],
       });
 
       expect(result.map((u) => u.age)).toEqual([35, 30, 25]);
@@ -352,7 +352,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: ["name:asc", "age:desc"],
+        order: [{ field: "name", order: "asc" }, { field: "age", order: "desc" }],
       });
 
       // Both Alices first, then Bob, then Charlie
@@ -384,22 +384,22 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should filter through join with $containsi", async () => {
+    it("should filter through join with _containsi", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
-        where: { translation: { value: { $containsi: "phone" } } },
+        where: { translation: { value: { _containsi: "phone" } } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].handle).toBe("phone");
     });
 
-    it("should filter through join with $eq", async () => {
+    it("should filter through join with _eq", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
-        where: { translation: { value: { $eq: "Gaming Laptop" } } },
+        where: { translation: { value: { _eq: "Gaming Laptop" } } },
       });
 
       expect(result).toHaveLength(1);
@@ -411,8 +411,8 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
-          price: { $gt: 500 },
-          translation: { value: { $containsi: "laptop" } },
+          price: { _gt: 500 },
+          translation: { value: { _containsi: "laptop" } },
         },
       });
 
@@ -436,8 +436,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $gte: 22 } },
-        order: ["age:asc"],
+        where: { age: { _gte: 22 } },
+        order: [{ field: "age", order: "asc" }],
         limit: 3,
         offset: 1,
       });
@@ -446,13 +446,13 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((u) => u.age)).toEqual([23, 24, 25]);
     });
 
-    it("should treat empty $in array as always false", async () => {
+    it("should treat empty _in array as always false", async () => {
       const db = getDb();
       await db.insert(users).values({ name: "Alice", age: 25 });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $in: [] } },
+        where: { name: { _in: [] } },
       });
 
       expect(result).toHaveLength(0);
@@ -475,18 +475,18 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $gte: 25, $lte: 35 } },
+        where: { age: { _gte: 25, _lte: 35 } },
       });
 
       expect(result).toHaveLength(3);
       expect(result.every((u) => u.age! >= 25 && u.age! <= 35)).toBe(true);
     });
 
-    it("should filter boolean field with $eq true", async () => {
+    it("should filter boolean field with _eq true", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { isActive: { $eq: true } },
+        where: { isActive: { _eq: true } },
       });
 
       expect(result).toHaveLength(2);
@@ -495,11 +495,11 @@ describe("SQL Integration Tests with PGlite", () => {
       ).toBe(true);
     });
 
-    it("should filter boolean field with $eq false", async () => {
+    it("should filter boolean field with _eq false", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { isActive: { $eq: false } },
+        where: { isActive: { _eq: false } },
       });
 
       expect(result).toHaveLength(2);
@@ -508,14 +508,14 @@ describe("SQL Integration Tests with PGlite", () => {
       ).toBe(true);
     });
 
-    it("should handle empty $notIn array gracefully", async () => {
+    it("should handle empty _notIn array gracefully", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $notIn: [] } },
+        where: { name: { _notIn: [] } },
       });
 
-      // Empty $notIn should be ignored, return all users
+      // Empty _notIn should be ignored, return all users
       expect(result).toHaveLength(4);
     });
   });
@@ -531,77 +531,77 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should filter with $contains operator", async () => {
+    it("should filter with _contains operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $contains: "li" } },
+        where: { name: { _contains: "li" } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
     });
 
-    it("should filter with $containsi operator (case-insensitive)", async () => {
+    it("should filter with _containsi operator (case-insensitive)", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $containsi: "LI" } },
+        where: { name: { _containsi: "LI" } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
     });
 
-    it("should filter with $notContains operator", async () => {
+    it("should filter with _notContains operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $notContains: "li" } },
+        where: { name: { _notContains: "li" } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Bob", "Diana"]);
     });
 
-    it("should filter with $startsWith operator", async () => {
+    it("should filter with _startsWith operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $startsWith: "Al" } },
+        where: { name: { _startsWith: "Al" } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter with $startsWithi operator (case-insensitive)", async () => {
+    it("should filter with _startsWithi operator (case-insensitive)", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $startsWithi: "al" } },
+        where: { name: { _startsWithi: "al" } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter with $endsWith operator", async () => {
+    it("should filter with _endsWith operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $endsWith: "ob" } },
+        where: { name: { _endsWith: "ob" } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Bob");
     });
 
-    it("should filter with $endsWithi operator (case-insensitive)", async () => {
+    it("should filter with _endsWithi operator (case-insensitive)", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: { $endsWithi: "OB" } },
+        where: { name: { _endsWithi: "OB" } },
       });
 
       expect(result).toHaveLength(1);
@@ -609,7 +609,7 @@ describe("SQL Integration Tests with PGlite", () => {
     });
   });
 
-  describe("$between operator", () => {
+  describe("_between operator", () => {
     beforeEach(async () => {
       const db = getDb();
       await db.insert(users).values([
@@ -620,22 +620,22 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should filter with $between operator", async () => {
+    it("should filter with _between operator", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $between: [28, 36] } },
+        where: { age: { _between: [28, 36] } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Bob", "Charlie"]);
     });
 
-    it("should filter with $between inclusive boundaries", async () => {
+    it("should filter with _between inclusive boundaries", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { age: { $between: [25, 35] } },
+        where: { age: { _between: [25, 35] } },
       });
 
       expect(result).toHaveLength(3);
@@ -643,7 +643,7 @@ describe("SQL Integration Tests with PGlite", () => {
     });
   });
 
-  describe("$not operator", () => {
+  describe("_not operator", () => {
     beforeEach(async () => {
       const db = getDb();
       await db.insert(users).values([
@@ -658,7 +658,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { $not: { name: { $eq: "Alice" } } },
+        where: { _not: { name: { _eq: "Alice" } } },
       });
 
       expect(result).toHaveLength(3);
@@ -670,9 +670,9 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $not: {
-            age: { $gte: 30 },
-            isActive: { $eq: false },
+          _not: {
+            age: { _gte: 30 },
+            isActive: { _eq: false },
           },
         },
       });
@@ -684,13 +684,13 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
     });
 
-    it("should combine $not with other conditions", async () => {
+    it("should combine _not with other conditions", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          isActive: { $eq: true },
-          $not: { name: { $eq: "Alice" } },
+          isActive: { _eq: true },
+          _not: { name: { _eq: "Alice" } },
         },
       });
 
@@ -698,14 +698,14 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result[0].name).toBe("Charlie");
     });
 
-    it("should handle nested $not inside $or", async () => {
+    it("should handle nested _not inside _or", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $or: [
-            { $not: { isActive: { $eq: true } } },
-            { age: { $lt: 26 } },
+          _or: [
+            { _not: { isActive: { _eq: true } } },
+            { age: { _lt: 26 } },
           ],
         },
       });
@@ -729,19 +729,19 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should handle deeply nested $and inside $or inside $and", async () => {
+    it("should handle deeply nested _and inside _or inside _and", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $and: [
+          _and: [
             {
-              $or: [
-                { $and: [{ name: { $eq: "Alice" } }, { age: { $eq: 25 } }] },
-                { $and: [{ name: { $eq: "Charlie" } }, { age: { $eq: 35 } }] },
+              _or: [
+                { _and: [{ name: { _eq: "Alice" } }, { age: { _eq: 25 } }] },
+                { _and: [{ name: { _eq: "Charlie" } }, { age: { _eq: 35 } }] },
               ],
             },
-            { isActive: { $eq: true } },
+            { isActive: { _eq: true } },
           ],
         },
       });
@@ -750,14 +750,14 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Charlie"]);
     });
 
-    it("should handle $or with multiple $and branches", async () => {
+    it("should handle _or with multiple _and branches", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          $or: [
-            { $and: [{ age: { $lt: 30 } }, { isActive: { $eq: true } }] },
-            { $and: [{ age: { $gt: 35 } }, { isActive: { $eq: false } }] },
+          _or: [
+            { _and: [{ age: { _lt: 30 } }, { isActive: { _eq: true } }] },
+            { _and: [{ age: { _gt: 35 } }, { isActive: { _eq: false } }] },
           ],
         },
       });
@@ -834,7 +834,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithInnerJoinQuery.execute(db as any, {
-        where: { translation: { value: { $isNot: null } } },
+        where: { translation: { value: { _isNot: null } } },
       });
 
       // INNER JOIN should return only product with translation
@@ -867,34 +867,34 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should filter through join with $notContains", async () => {
+    it("should filter through join with _notContains", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
-        where: { translation: { value: { $notContains: "Phone" } } },
+        where: { translation: { value: { _notContains: "Phone" } } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((p) => p.handle).sort()).toEqual(["laptop", "tablet"]);
     });
 
-    it("should filter through join with $notContainsi", async () => {
+    it("should filter through join with _notContainsi", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
-        where: { translation: { value: { $notContainsi: "phone" } } },
+        where: { translation: { value: { _notContainsi: "phone" } } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((p) => p.handle).sort()).toEqual(["laptop", "tablet"]);
     });
 
-    it("should filter through join with $in", async () => {
+    it("should filter through join with _in", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
-          translation: { value: { $in: ["Smart Phone", "Gaming Laptop"] } },
+          translation: { value: { _in: ["Smart Phone", "Gaming Laptop"] } },
         },
       });
 
@@ -902,12 +902,12 @@ describe("SQL Integration Tests with PGlite", () => {
       expect(result.map((p) => p.handle).sort()).toEqual(["laptop", "phone"]);
     });
 
-    it("should filter through join with $notIn", async () => {
+    it("should filter through join with _notIn", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
-          translation: { value: { $notIn: ["Smart Phone", "Gaming Laptop"] } },
+          translation: { value: { _notIn: ["Smart Phone", "Gaming Laptop"] } },
         },
       });
 
@@ -926,7 +926,7 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
     });
 
-    it("should filter with direct value (implicit $eq)", async () => {
+    it("should filter with direct value (implicit _eq)", async () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
@@ -954,7 +954,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await usersQuery.execute(db as any, {
         where: {
           name: "Alice",
-          age: { $gte: 20 },
+          age: { _gte: 20 },
         },
       });
 
@@ -964,7 +964,7 @@ describe("SQL Integration Tests with PGlite", () => {
   });
 
   describe("UUID filtering", () => {
-    it("should filter by UUID with $eq", async () => {
+    it("should filter by UUID with _eq", async () => {
       const db = getDb();
 
       const [user1] = await db
@@ -975,14 +975,14 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { id: { $eq: user1.id } },
+        where: { id: { _eq: user1.id } },
       });
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe("Alice");
     });
 
-    it("should filter by UUID with $in", async () => {
+    it("should filter by UUID with _in", async () => {
       const db = getDb();
 
       const [user1] = await db
@@ -997,14 +997,14 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { id: { $in: [user1.id, user2.id] } },
+        where: { id: { _in: [user1.id, user2.id] } },
       });
 
       expect(result).toHaveLength(2);
       expect(result.map((u) => u.name).sort()).toEqual(["Alice", "Bob"]);
     });
 
-    it("should filter by UUID with $neq", async () => {
+    it("should filter by UUID with _neq", async () => {
       const db = getDb();
 
       const [user1] = await db
@@ -1015,7 +1015,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { id: { $neq: user1.id } },
+        where: { id: { _neq: user1.id } },
       });
 
       expect(result).toHaveLength(1);
@@ -1024,7 +1024,7 @@ describe("SQL Integration Tests with PGlite", () => {
   });
 
   describe("Timestamp filtering", () => {
-    it("should filter by createdAt with $gte", async () => {
+    it("should filter by createdAt with _gte", async () => {
       const db = getDb();
 
       const pastDate = new Date("2020-01-01");
@@ -1037,14 +1037,14 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { createdAt: { $gte: pastDate } },
+        where: { createdAt: { _gte: pastDate } },
       });
 
       // Both users should be found (created now, after 2020)
       expect(result).toHaveLength(2);
     });
 
-    it("should filter by createdAt with $lt", async () => {
+    it("should filter by createdAt with _lt", async () => {
       const db = getDb();
 
       const futureDate = new Date("2030-01-01");
@@ -1056,7 +1056,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { createdAt: { $lt: futureDate } },
+        where: { createdAt: { _lt: futureDate } },
       });
 
       // Both users should be found (created now, before 2030)
@@ -1076,8 +1076,8 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: {
-          createdAt: { $gte: pastDate },
-          isActive: { $eq: true },
+          createdAt: { _gte: pastDate },
+          isActive: { _eq: true },
         },
       });
 
@@ -1102,7 +1102,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: ["age:asc"],
+        order: [{ field: "age", order: "asc" }],
       });
 
       // ASC order: 25, 35, then nulls (PostgreSQL default is NULLS LAST for ASC)
@@ -1118,7 +1118,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: ["age:desc"],
+        order: [{ field: "age", order: "desc" }],
       });
 
       // DESC order: PostgreSQL default is NULLS FIRST for DESC
@@ -1164,7 +1164,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithRightJoinQuery.execute(db as any, {
-        where: { translation: { value: { $isNot: null } } },
+        where: { translation: { value: { _isNot: null } } },
       });
 
       expect(result).toHaveLength(2);
@@ -1217,9 +1217,9 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithFullJoinQuery.execute(db as any, {
         where: {
-          $or: [
-            { translation: { value: { $isNot: null } } },
-            { price: { $gte: 0 } },
+          _or: [
+            { translation: { value: { _isNot: null } } },
+            { price: { _gte: 0 } },
           ],
         },
       });
@@ -1266,8 +1266,8 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await productsWithMultipleJoinsQuery.execute(db as any, {
         where: {
           translation: {
-            value: { $containsi: "phone" },
-            searchValue: { $containsi: "mobile" },
+            value: { _containsi: "phone" },
+            searchValue: { _containsi: "mobile" },
           },
         },
       });
@@ -1287,7 +1287,7 @@ describe("SQL Integration Tests with PGlite", () => {
       ]);
 
       const selectSql = usersQuery.getSql({
-        where: { age: { $gte: 20 } },
+        where: { age: { _gte: 20 } },
         limit: 10,
         offset: 0,
       });
@@ -1314,7 +1314,7 @@ describe("SQL Integration Tests with PGlite", () => {
       });
 
       const selectSql = productsWithTranslationsQuery.getSql({
-        where: { translation: { value: { $containsi: "phone" } } },
+        where: { translation: { value: { _containsi: "phone" } } },
         limit: 10,
       });
 
@@ -1360,10 +1360,10 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: {
-          translation: { value: { $containsi: "phone" } },
-          price: { $gte: 800 },
+          translation: { value: { _containsi: "phone" } },
+          price: { _gte: 800 },
         },
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         limit: 2,
         offset: 0,
       });
@@ -1401,8 +1401,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
-        where: { translation: { value: { $containsi: "phone" } } },
-        order: ["handle:asc"],
+        where: { translation: { value: { _containsi: "phone" } } },
+        order: [{ field: "handle", order: "asc" }],
         limit: 2,
         offset: 1,
       });
@@ -1437,8 +1437,8 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
-        where: { price: { $gt: 0 } },
-        order: ["handle:asc", "price:desc"],
+        where: { price: { _gt: 0 } },
+        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
         limit: 10,
       });
 
@@ -1462,7 +1462,7 @@ describe("SQL Integration Tests with PGlite", () => {
       await expect(
         usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          where: { unknownField: { $eq: "value" } } as any,
+          where: { unknownField: { _eq: "value" } } as any,
         })
       ).rejects.toThrow(/Unknown field "unknownField"/);
     });
@@ -1478,25 +1478,9 @@ describe("SQL Integration Tests with PGlite", () => {
       await expect(
         usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          order: ["nonExistentField:asc"] as any,
+          order: [{ field: "nonExistentField", order: "asc" }] as any,
         })
       ).rejects.toThrow(/Unknown field "nonExistentField"/);
-    });
-
-    it("should throw SQL error on invalid order format", async () => {
-      const db = getDb();
-      await db.insert(users).values([
-        { name: "Alice", age: 25 },
-        { name: "Bob", age: 30 },
-      ]);
-
-      // Invalid format is treated as field name, causing SQL error
-      await expect(
-        usersQuery.execute(db as any, {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          order: ["invalid:::format"] as any,
-        })
-      ).rejects.toThrow(/Unknown field "invalid:::format"/);
     });
 
     it("should handle empty where object", async () => {
@@ -1523,7 +1507,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        where: { name: undefined, age: { $eq: 25 } },
+        where: { name: undefined, age: { _eq: 25 } },
       });
 
       expect(result).toHaveLength(1);
@@ -1563,7 +1547,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await eventsQuery.execute(db as any, {
-        where: { eventType: { $eq: "login" } },
+        where: { eventType: { _eq: "login" } },
       });
 
       expect(result).toHaveLength(1);
@@ -1593,7 +1577,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersWithEventsQuery.execute(db as any, {
         where: {
-          events: { eventType: { $eq: "purchase" } },
+          events: { eventType: { _eq: "purchase" } },
         },
       });
 
@@ -1622,8 +1606,8 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersWithEventsQuery.execute(db as any, {
         where: {
-          isActive: { $eq: true },
-          events: { eventType: { $eq: "purchase" } },
+          isActive: { _eq: true },
+          events: { eventType: { _eq: "purchase" } },
         },
       });
 

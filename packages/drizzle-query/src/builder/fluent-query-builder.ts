@@ -5,7 +5,7 @@ import type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
+  OrderByItem,
   QueryBuilderConfig,
 } from "../types.js";
 import { QueryBuilder } from "./query-builder.js";
@@ -88,11 +88,11 @@ export class FluentQueryBuilder<
    *
    * @example
    * ```ts
-   * query.defaultOrder("createdAt:desc")
+   * query.defaultOrder({ field: "createdAt", order: "desc" })
    * ```
    */
   defaultOrder(
-    order: OrderPath<NestedPaths<InferredFields>>
+    order: OrderByItem<NestedPaths<InferredFields>>
   ): FluentQueryBuilder<T, Fields, InferredFields, Types> {
     return new FluentQueryBuilder(this.table, this.tableName, this.fieldsDef, {
       ...this.config,
@@ -349,7 +349,7 @@ export class FluentQueryBuilder<
     options?: ExecuteOptions<InferredFields>
   ): {
     where: Record<string, unknown> | undefined;
-    order: string[] | undefined;
+    order: OrderByItem<string>[] | undefined;
     select: string[] | undefined;
     limit: number;
     offset: number;
@@ -362,9 +362,9 @@ export class FluentQueryBuilder<
 
     // Resolve order
     const order = options?.order
-      ? (options.order as string[])
+      ? (options.order as OrderByItem<string>[])
       : this.config.defaultOrder
-        ? [this.config.defaultOrder as string]
+        ? [this.config.defaultOrder as OrderByItem<string>]
         : undefined;
 
     // Resolve select with include/exclude

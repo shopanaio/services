@@ -342,8 +342,8 @@ describe("Complex SQL Snapshot Tests", () => {
           usersWithOrdersQuery.getSql({
             select: ["id", "email", "name", "role", "isActive"],
             where: {
-              orders: { status: { $eq: "completed" } },
-              isActive: { $eq: true },
+              orders: { status: { _eq: "completed" } },
+              isActive: { _eq: true },
             },
             limit: 50,
           })
@@ -376,17 +376,17 @@ describe("Complex SQL Snapshot Tests", () => {
           usersWithOrdersQuery.getSql({
             select: ["id", "email", "name", "role"],
             where: {
-              $or: [
+              _or: [
                 {
-                  $and: [
-                    { orders: { status: { $eq: "completed" } } },
-                    { orders: { totalAmount: { $gte: 500 } } },
+                  _and: [
+                    { orders: { status: { _eq: "completed" } } },
+                    { orders: { totalAmount: { _gte: 500 } } },
                   ],
                 },
                 {
-                  $and: [
-                    { orders: { status: { $eq: "pending" } } },
-                    { role: { $eq: "vip" } },
+                  _and: [
+                    { orders: { status: { _eq: "pending" } } },
+                    { role: { _eq: "vip" } },
                   ],
                 },
               ],
@@ -429,9 +429,9 @@ describe("Complex SQL Snapshot Tests", () => {
           productsWithTranslationsQuery.getSql({
             select: ["id", "sku", "price", "stock", "isPublished"],
             where: {
-              translation: { value: { $containsi: "smartphone" } },
-              isPublished: { $eq: true },
-              deletedAt: { $is: null },
+              translation: { value: { _containsi: "smartphone" } },
+              isPublished: { _eq: true },
+              deletedAt: { _is: null },
             },
           })
         )
@@ -465,9 +465,9 @@ describe("Complex SQL Snapshot Tests", () => {
           categoriesWithTranslationsQuery.getSql({
             select: ["id", "slug", "parentId", "isVisible"],
             where: {
-              translation: { value: { $containsi: "electronics" } },
-              isVisible: { $eq: true },
-              parentId: { $isNot: null },
+              translation: { value: { _containsi: "electronics" } },
+              isVisible: { _eq: true },
+              parentId: { _isNot: null },
             },
           })
         )
@@ -500,9 +500,9 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersWithUserAndItemsQuery.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
-              user: { email: { $endsWithi: "@gmail.com" } },
-              items: { quantity: { $gte: 5 } },
-              status: { $in: ["pending", "processing", "shipped"] },
+              user: { email: { _endsWithi: "@gmail.com" } },
+              items: { quantity: { _gte: 5 } },
+              status: { _in: ["pending", "processing", "shipped"] },
             },
           })
         )
@@ -537,10 +537,10 @@ describe("Complex SQL Snapshot Tests", () => {
             select: ["id", "sku", "price", "stock", "isPublished"],
             where: {
               category: {
-                slug: { $in: ["electronics", "computers", "phones"] },
+                slug: { _in: ["electronics", "computers", "phones"] },
               },
-              isPublished: { $eq: true },
-              deletedAt: { $is: null },
+              isPublished: { _eq: true },
+              deletedAt: { _is: null },
             },
           })
         )
@@ -575,7 +575,7 @@ describe("Complex SQL Snapshot Tests", () => {
           usersWithOrdersQuery.getSql({
             select: ["id", "email", "name"],
             where: {
-              email: { $endsWithi: "@gmail.com" },
+              email: { _endsWithi: "@gmail.com" },
             },
           })
         )
@@ -604,8 +604,8 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
-              status: { $eq: "pending" },
-              items: { product: { sku: { $startsWith: "PHONE-" } } },
+              status: { _eq: "pending" },
+              items: { product: { sku: { _startsWith: "PHONE-" } } },
             },
           })
         )
@@ -637,13 +637,13 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount"],
             where: {
-              $and: [
-                { user: { email: { $endsWithi: "@company.com" } } },
-                { status: { $in: ["pending", "processing"] } },
+              _and: [
+                { user: { email: { _endsWithi: "@company.com" } } },
+                { status: { _in: ["pending", "processing"] } },
                 {
-                  $or: [
-                    { items: { product: { sku: { $startsWith: "LAPTOP-" } } } },
-                    { items: { product: { sku: { $startsWith: "PHONE-" } } } },
+                  _or: [
+                    { items: { product: { sku: { _startsWith: "LAPTOP-" } } } },
+                    { items: { product: { sku: { _startsWith: "PHONE-" } } } },
                   ],
                 },
               ],
@@ -684,10 +684,10 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel3Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
-              status: { $eq: "completed" },
+              status: { _eq: "completed" },
               items: {
                 product: {
-                  category: { slug: { $in: ["electronics", "computers"] } },
+                  category: { slug: { _in: ["electronics", "computers"] } },
                 },
               },
             },
@@ -722,29 +722,29 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel3Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
-              $or: [
+              _or: [
                 {
-                  $and: [
-                    { status: { $eq: "processing" } },
-                    { items: { quantity: { $gte: 5 } } },
+                  _and: [
+                    { status: { _eq: "processing" } },
+                    { items: { quantity: { _gte: 5 } } },
                   ],
                 },
                 {
-                  $and: [
-                    { items: { product: { sku: { $startsWith: "VIP-" } } } },
-                    { items: { product: { price: { $gte: 1000 } } } },
+                  _and: [
+                    { items: { product: { sku: { _startsWith: "VIP-" } } } },
+                    { items: { product: { price: { _gte: 1000 } } } },
                   ],
                 },
                 {
-                  $and: [
+                  _and: [
                     {
                       items: {
-                        product: { category: { slug: { $eq: "premium" } } },
+                        product: { category: { slug: { _eq: "premium" } } },
                       },
                     },
                     {
                       items: {
-                        product: { category: { isVisible: { $eq: true } } },
+                        product: { category: { isVisible: { _eq: true } } },
                       },
                     },
                   ],
@@ -794,11 +794,11 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel4Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: {
-              status: { $eq: "completed" },
+              status: { _eq: "completed" },
               items: {
                 product: {
                   category: {
-                    translation: { value: { $containsi: "Electronics" } },
+                    translation: { value: { _containsi: "Electronics" } },
                   },
                 },
               },
@@ -835,11 +835,11 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel4Query.getSql({
             select: ["id", "status", "totalAmount"],
             where: {
-              $and: [
+              _and: [
                 {
                   items: {
                     product: {
-                      category: { translation: { locale: { $eq: "en" } } },
+                      category: { translation: { locale: { _eq: "en" } } },
                     },
                   },
                 },
@@ -847,14 +847,14 @@ describe("Complex SQL Snapshot Tests", () => {
                   items: {
                     product: {
                       category: {
-                        translation: { value: { $notContainsi: "test" } },
+                        translation: { value: { _notContainsi: "test" } },
                       },
                     },
                   },
                 },
                 {
                   items: {
-                    product: { category: { isVisible: { $eq: true } } },
+                    product: { category: { isVisible: { _eq: true } } },
                   },
                 },
               ],
@@ -894,8 +894,8 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
-            where: { status: { $eq: "completed" } },
-            order: ["totalAmount:desc"],
+            where: { status: { _eq: "completed" } },
+            order: [{ field: "totalAmount", order: "desc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -922,10 +922,10 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           ordersNestedLevel2Query.getSql({
             where: {
-              status: { $eq: "pending" },
-              items: { quantity: { $gte: 1 } },
+              status: { _eq: "pending" },
+              items: { quantity: { _gte: 1 } },
             },
-            order: ["items.quantity:desc"],
+            order: [{ field: "items.quantity", order: "desc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -957,8 +957,8 @@ describe("Complex SQL Snapshot Tests", () => {
       expect(
         toSqlString(
           ordersNestedLevel2Query.getSql({
-            where: { items: { product: { isPublished: { $eq: true } } } },
-            order: ["items.product.price:desc"],
+            where: { items: { product: { isPublished: { _eq: true } } } },
+            order: [{ field: "items.product.price", order: "desc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -989,9 +989,9 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           ordersNestedLevel3Query.getSql({
             where: {
-              items: { product: { category: { isVisible: { $eq: true } } } },
+              items: { product: { category: { isVisible: { _eq: true } } } },
             },
-            order: ["items.product.category.slug:asc"],
+            order: [{ field: "items.product.category.slug", order: "asc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -1025,11 +1025,11 @@ describe("Complex SQL Snapshot Tests", () => {
             where: {
               items: {
                 product: {
-                  category: { translation: { locale: { $eq: "en" } } },
+                  category: { translation: { locale: { _eq: "en" } } },
                 },
               },
             },
-            order: ["items.product.category.translation.value:asc"],
+            order: [{ field: "items.product.category.translation.value", order: "asc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -1062,14 +1062,14 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           ordersNestedLevel3Query.getSql({
             where: {
-              status: { $neq: "cancelled" },
-              items: { product: { category: { isVisible: { $eq: true } } } },
+              status: { _neq: "cancelled" },
+              items: { product: { category: { isVisible: { _eq: true } } } },
             },
             order: [
-              "items.product.category.slug:asc",
-              "items.product.price:desc",
-              "items.quantity:desc",
-              "totalAmount:desc",
+              { field: "items.product.category.slug", order: "asc" },
+              { field: "items.product.price", order: "desc" },
+              { field: "items.quantity", order: "desc" },
+              { field: "totalAmount", order: "desc" },
             ],
           })
         )
@@ -1111,7 +1111,7 @@ describe("Complex SQL Snapshot Tests", () => {
       expect(
         toSqlString(
           ordersNestedLevel2Query.getSql({
-            where: { items: { quantity: { $gte: 1 } } },
+            where: { items: { quantity: { _gte: 1 } } },
             select: ["id", "status", "items.quantity", "items.unitPrice"],
           })
         )
@@ -1137,7 +1137,7 @@ describe("Complex SQL Snapshot Tests", () => {
       expect(
         toSqlString(
           ordersNestedLevel2Query.getSql({
-            where: { items: { product: { isPublished: { $eq: true } } } },
+            where: { items: { product: { isPublished: { _eq: true } } } },
             select: ["id", "items.product.sku", "items.product.price"],
           })
         )
@@ -1164,7 +1164,7 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           ordersNestedLevel3Query.getSql({
             where: {
-              items: { product: { category: { isVisible: { $eq: true } } } },
+              items: { product: { category: { isVisible: { _eq: true } } } },
             },
             select: [
               "id",
@@ -1201,7 +1201,7 @@ describe("Complex SQL Snapshot Tests", () => {
             where: {
               items: {
                 product: {
-                  category: { translation: { locale: { $eq: "en" } } },
+                  category: { translation: { locale: { _eq: "en" } } },
                 },
               },
             },
@@ -1247,7 +1247,7 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           productsFullQuery.getSql({
             select: ["id", "sku", "isPublished"],
-            where: { sku: { $in: productSkus }, isPublished: { $eq: true } },
+            where: { sku: { _in: productSkus }, isPublished: { _eq: true } },
           })
         )
       ).toMatchInlineSnapshot(`
@@ -1298,19 +1298,19 @@ describe("Complex SQL Snapshot Tests", () => {
             select: ["id", "sku", "price", "stock", "isPublished"],
 
             where: {
-              $and: [
-                { id: { $neq: "00000000-0000-0000-0000-000000000000" } },
-                { sku: { $startsWith: "" } },
-                { sku: { $notContains: "TEST-" } },
-                { price: { $gt: 0 } },
-                { price: { $lt: 999999 } },
-                { stock: { $gte: 0 } },
-                { stock: { $lte: 10000 } },
-                { isPublished: { $eq: true } },
-                { deletedAt: { $is: null } },
-                { category: { slug: { $in: ["a", "b", "c", "d", "e"] } } },
-                { category: { isVisible: { $isNot: null } } },
-                { translation: { value: { $containsi: "keyword" } } },
+              _and: [
+                { id: { _neq: "00000000-0000-0000-0000-000000000000" } },
+                { sku: { _startsWith: "" } },
+                { sku: { _notContains: "TEST-" } },
+                { price: { _gt: 0 } },
+                { price: { _lt: 999999 } },
+                { stock: { _gte: 0 } },
+                { stock: { _lte: 10000 } },
+                { isPublished: { _eq: true } },
+                { deletedAt: { _is: null } },
+                { category: { slug: { _in: ["a", "b", "c", "d", "e"] } } },
+                { category: { isVisible: { _isNot: null } } },
+                { translation: { value: { _containsi: "keyword" } } },
               ],
             },
           })
@@ -1355,7 +1355,7 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           limitedQuery.getSql({
             select: ["id", "sku", "isPublished"],
-            where: { isPublished: { $eq: true } },
+            where: { isPublished: { _eq: true } },
             limit: 1000,
             offset: 99000,
           })
@@ -1383,33 +1383,33 @@ describe("Complex SQL Snapshot Tests", () => {
           usersWithOrdersQuery.getSql({
             select: ["id", "email", "name", "role", "isActive"],
             where: {
-              $or: [
+              _or: [
                 {
-                  $and: [
-                    { role: { $eq: "admin" } },
+                  _and: [
+                    { role: { _eq: "admin" } },
                     {
-                      $or: [
-                        { email: { $endsWithi: "@company.com" } },
-                        { email: { $endsWithi: "@corp.com" } },
+                      _or: [
+                        { email: { _endsWithi: "@company.com" } },
+                        { email: { _endsWithi: "@corp.com" } },
                       ],
                     },
                   ],
                 },
                 {
-                  $and: [
-                    { role: { $eq: "manager" } },
+                  _and: [
+                    { role: { _eq: "manager" } },
                     {
-                      $or: [
+                      _or: [
                         {
-                          $and: [
-                            { orders: { status: { $eq: "completed" } } },
-                            { orders: { totalAmount: { $gte: 1000 } } },
+                          _and: [
+                            { orders: { status: { _eq: "completed" } } },
+                            { orders: { totalAmount: { _gte: 1000 } } },
                           ],
                         },
                         {
-                          $and: [
-                            { isActive: { $eq: true } },
-                            { name: { $isNot: null } },
+                          _and: [
+                            { isActive: { _eq: true } },
+                            { name: { _isNot: null } },
                           ],
                         },
                       ],

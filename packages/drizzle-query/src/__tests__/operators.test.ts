@@ -24,71 +24,71 @@ const dialect = new PgDialect();
 
 describe("OPERATORS", () => {
   it("should have all expected operators", () => {
-    expect(OPERATORS.$eq).toBe("eq");
-    expect(OPERATORS.$neq).toBe("neq");
-    expect(OPERATORS.$gt).toBe("gt");
-    expect(OPERATORS.$gte).toBe("gte");
-    expect(OPERATORS.$lt).toBe("lt");
-    expect(OPERATORS.$lte).toBe("lte");
-    expect(OPERATORS.$in).toBe("in");
-    expect(OPERATORS.$notIn).toBe("notIn");
-    expect(OPERATORS.$is).toBe("is");
-    expect(OPERATORS.$isNot).toBe("isNot");
+    expect(OPERATORS._eq).toBe("eq");
+    expect(OPERATORS._neq).toBe("neq");
+    expect(OPERATORS._gt).toBe("gt");
+    expect(OPERATORS._gte).toBe("gte");
+    expect(OPERATORS._lt).toBe("lt");
+    expect(OPERATORS._lte).toBe("lte");
+    expect(OPERATORS._in).toBe("in");
+    expect(OPERATORS._notIn).toBe("notIn");
+    expect(OPERATORS._is).toBe("is");
+    expect(OPERATORS._isNot).toBe("isNot");
     // String operators
-    expect(OPERATORS.$contains).toBe("contains");
-    expect(OPERATORS.$notContains).toBe("notContains");
-    expect(OPERATORS.$containsi).toBe("containsi");
-    expect(OPERATORS.$notContainsi).toBe("notContainsi");
-    expect(OPERATORS.$startsWith).toBe("startsWith");
-    expect(OPERATORS.$startsWithi).toBe("startsWithi");
-    expect(OPERATORS.$endsWith).toBe("endsWith");
-    expect(OPERATORS.$endsWithi).toBe("endsWithi");
+    expect(OPERATORS._contains).toBe("contains");
+    expect(OPERATORS._notContains).toBe("notContains");
+    expect(OPERATORS._containsi).toBe("containsi");
+    expect(OPERATORS._notContainsi).toBe("notContainsi");
+    expect(OPERATORS._startsWith).toBe("startsWith");
+    expect(OPERATORS._startsWithi).toBe("startsWithi");
+    expect(OPERATORS._endsWith).toBe("endsWith");
+    expect(OPERATORS._endsWithi).toBe("endsWithi");
     // Range operator
-    expect(OPERATORS.$between).toBe("between");
+    expect(OPERATORS._between).toBe("between");
   });
 });
 
 describe("isOperator", () => {
   it("should return true for valid operators", () => {
-    expect(isOperator("$eq")).toBe(true);
-    expect(isOperator("$neq")).toBe(true);
-    expect(isOperator("$gt")).toBe(true);
-    expect(isOperator("$in")).toBe(true);
-    expect(isOperator("$contains")).toBe(true);
+    expect(isOperator("_eq")).toBe(true);
+    expect(isOperator("_neq")).toBe(true);
+    expect(isOperator("_gt")).toBe(true);
+    expect(isOperator("_in")).toBe(true);
+    expect(isOperator("_contains")).toBe(true);
   });
 
   it("should return false for invalid operators", () => {
     expect(isOperator("eq")).toBe(false);
-    expect(isOperator("$unknown")).toBe(false);
+    expect(isOperator("_unknown")).toBe(false);
     expect(isOperator("name")).toBe(false);
     expect(isOperator("")).toBe(false);
   });
 });
 
 describe("isLogicalOperator", () => {
-  it("should return true for $and, $or and $not", () => {
-    expect(isLogicalOperator("$and")).toBe(true);
-    expect(isLogicalOperator("$or")).toBe(true);
-    expect(isLogicalOperator("$not")).toBe(true);
+  it("should return true for _and, _or and _not", () => {
+    expect(isLogicalOperator("_and")).toBe(true);
+    expect(isLogicalOperator("_or")).toBe(true);
+    expect(isLogicalOperator("_not")).toBe(true);
   });
 
   it("should return false for other operators", () => {
-    expect(isLogicalOperator("$eq")).toBe(false);
+    expect(isLogicalOperator("_eq")).toBe(false);
     expect(isLogicalOperator("and")).toBe(false);
-    expect(isLogicalOperator("$AND")).toBe(false);
+    expect(isLogicalOperator("_AND")).toBe(false);
   });
 });
 
 describe("isFilterObject", () => {
-  it("should return true for objects with only $ keys", () => {
-    expect(isFilterObject({ $eq: 1 })).toBe(true);
-    expect(isFilterObject({ $gt: 1, $lt: 10 })).toBe(true);
-    expect(isFilterObject({ $in: [1, 2, 3] })).toBe(true);
+  it("should return true for objects with only _ keys", () => {
+    expect(isFilterObject({ _eq: 1 })).toBe(true);
+    expect(isFilterObject({ _gt: 1, _lt: 10 })).toBe(true);
+    expect(isFilterObject({ _in: [1, 2, 3] })).toBe(true);
   });
 
-  it("should return false for objects with non-$ keys", () => {
+  it("should return false for objects with non-_ keys", () => {
     expect(isFilterObject({ name: "test" })).toBe(false);
-    expect(isFilterObject({ $eq: 1, name: "test" })).toBe(false);
+    expect(isFilterObject({ _eq: 1, name: "test" })).toBe(false);
   });
 
   it("should return false for non-objects", () => {
@@ -108,59 +108,59 @@ describe("buildOperatorCondition", () => {
   const column = testTable.age;
 
   describe("equality operators", () => {
-    it("should build $eq condition", () => {
-      const result = buildOperatorCondition(column, "$eq", 25);
+    it("should build _eq condition", () => {
+      const result = buildOperatorCondition(column, "_eq", 25);
       expect(result).not.toBeNull();
     });
 
-    it("should build $neq condition", () => {
-      const result = buildOperatorCondition(column, "$neq", 25);
+    it("should build _neq condition", () => {
+      const result = buildOperatorCondition(column, "_neq", 25);
       expect(result).not.toBeNull();
     });
   });
 
   describe("comparison operators", () => {
-    it("should build $gt condition", () => {
-      const result = buildOperatorCondition(column, "$gt", 18);
+    it("should build _gt condition", () => {
+      const result = buildOperatorCondition(column, "_gt", 18);
       expect(result).not.toBeNull();
     });
 
-    it("should build $gte condition", () => {
-      const result = buildOperatorCondition(column, "$gte", 18);
+    it("should build _gte condition", () => {
+      const result = buildOperatorCondition(column, "_gte", 18);
       expect(result).not.toBeNull();
     });
 
-    it("should build $lt condition", () => {
-      const result = buildOperatorCondition(column, "$lt", 30);
+    it("should build _lt condition", () => {
+      const result = buildOperatorCondition(column, "_lt", 30);
       expect(result).not.toBeNull();
     });
 
-    it("should build $lte condition", () => {
-      const result = buildOperatorCondition(column, "$lte", 30);
+    it("should build _lte condition", () => {
+      const result = buildOperatorCondition(column, "_lte", 30);
       expect(result).not.toBeNull();
     });
   });
 
   describe("array operators", () => {
-    it("should build $in condition", () => {
-      const result = buildOperatorCondition(column, "$in", [1, 2, 3]);
+    it("should build _in condition", () => {
+      const result = buildOperatorCondition(column, "_in", [1, 2, 3]);
       expect(result).not.toBeNull();
     });
 
-    it("should return FALSE for empty $in array", () => {
-      const result = buildOperatorCondition(column, "$in", []);
+    it("should return FALSE for empty _in array", () => {
+      const result = buildOperatorCondition(column, "_in", []);
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql.trim()).toBe("FALSE");
     });
 
-    it("should build $notIn condition", () => {
-      const result = buildOperatorCondition(column, "$notIn", [1, 2, 3]);
+    it("should build _notIn condition", () => {
+      const result = buildOperatorCondition(column, "_notIn", [1, 2, 3]);
       expect(result).not.toBeNull();
     });
 
-    it("should return TRUE for empty $notIn array", () => {
-      const result = buildOperatorCondition(column, "$notIn", []);
+    it("should return TRUE for empty _notIn array", () => {
+      const result = buildOperatorCondition(column, "_notIn", []);
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql.trim()).toBe("TRUE");
@@ -168,37 +168,37 @@ describe("buildOperatorCondition", () => {
   });
 
   describe("null operators", () => {
-    it("should build $is null condition", () => {
-      const result = buildOperatorCondition(column, "$is", null);
+    it("should build _is null condition", () => {
+      const result = buildOperatorCondition(column, "_is", null);
       expect(result).not.toBeNull();
     });
 
-    it("should build $isNot null condition", () => {
-      const result = buildOperatorCondition(column, "$isNot", null);
+    it("should build _isNot null condition", () => {
+      const result = buildOperatorCondition(column, "_isNot", null);
       expect(result).not.toBeNull();
     });
 
-    it("should return null for non-null $is value", () => {
-      const result = buildOperatorCondition(column, "$is", "something");
+    it("should return null for non-null _is value", () => {
+      const result = buildOperatorCondition(column, "_is", "something");
       expect(result).toBeNull();
     });
   });
 
   describe("unknown operators", () => {
     it("should return null for unknown operators", () => {
-      const result = buildOperatorCondition(column, "$unknown", 1);
+      const result = buildOperatorCondition(column, "_unknown", 1);
       expect(result).toBeNull();
     });
   });
 
   describe("operator normalization", () => {
-    it("should handle operators without $ prefix", () => {
+    it("should handle operators without _ prefix", () => {
       const result = buildOperatorCondition(column, "eq", 25);
       expect(result).not.toBeNull();
     });
 
     it("should handle uppercase operators", () => {
-      const result = buildOperatorCondition(column, "$EQ", 25);
+      const result = buildOperatorCondition(column, "_EQ", 25);
       expect(result).not.toBeNull();
     });
   });
@@ -206,64 +206,64 @@ describe("buildOperatorCondition", () => {
   describe("string convenience operators", () => {
     const nameColumn = testTable.name;
 
-    it("should build $contains condition with wildcards", () => {
-      const result = buildOperatorCondition(nameColumn, "$contains", "test");
+    it("should build _contains condition with wildcards", () => {
+      const result = buildOperatorCondition(nameColumn, "_contains", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("like");
       expect(query.params).toContain("%test%");
     });
 
-    it("should build $notContains condition with wildcards", () => {
-      const result = buildOperatorCondition(nameColumn, "$notContains", "test");
+    it("should build _notContains condition with wildcards", () => {
+      const result = buildOperatorCondition(nameColumn, "_notContains", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("not like");
       expect(query.params).toContain("%test%");
     });
 
-    it("should build $containsi condition (case-insensitive)", () => {
-      const result = buildOperatorCondition(nameColumn, "$containsi", "test");
+    it("should build _containsi condition (case-insensitive)", () => {
+      const result = buildOperatorCondition(nameColumn, "_containsi", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("ilike");
       expect(query.params).toContain("%test%");
     });
 
-    it("should build $notContainsi condition (case-insensitive)", () => {
-      const result = buildOperatorCondition(nameColumn, "$notContainsi", "test");
+    it("should build _notContainsi condition (case-insensitive)", () => {
+      const result = buildOperatorCondition(nameColumn, "_notContainsi", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("not ilike");
       expect(query.params).toContain("%test%");
     });
 
-    it("should build $startsWith condition with trailing wildcard", () => {
-      const result = buildOperatorCondition(nameColumn, "$startsWith", "test");
+    it("should build _startsWith condition with trailing wildcard", () => {
+      const result = buildOperatorCondition(nameColumn, "_startsWith", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("like");
       expect(query.params).toContain("test%");
     });
 
-    it("should build $startsWithi condition (case-insensitive)", () => {
-      const result = buildOperatorCondition(nameColumn, "$startsWithi", "test");
+    it("should build _startsWithi condition (case-insensitive)", () => {
+      const result = buildOperatorCondition(nameColumn, "_startsWithi", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("ilike");
       expect(query.params).toContain("test%");
     });
 
-    it("should build $endsWith condition with leading wildcard", () => {
-      const result = buildOperatorCondition(nameColumn, "$endsWith", "test");
+    it("should build _endsWith condition with leading wildcard", () => {
+      const result = buildOperatorCondition(nameColumn, "_endsWith", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("like");
       expect(query.params).toContain("%test");
     });
 
-    it("should build $endsWithi condition (case-insensitive)", () => {
-      const result = buildOperatorCondition(nameColumn, "$endsWithi", "test");
+    it("should build _endsWithi condition (case-insensitive)", () => {
+      const result = buildOperatorCondition(nameColumn, "_endsWithi", "test");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       expect(query.sql).toContain("ilike");
@@ -271,7 +271,7 @@ describe("buildOperatorCondition", () => {
     });
 
     it("should escape wildcards in user input", () => {
-      const result = buildOperatorCondition(nameColumn, "$contains", "test%value_here");
+      const result = buildOperatorCondition(nameColumn, "_contains", "test%value_here");
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       // The wildcards in user input should be escaped
@@ -279,14 +279,14 @@ describe("buildOperatorCondition", () => {
     });
 
     it("should return null for non-string values", () => {
-      const result = buildOperatorCondition(nameColumn, "$contains", 123);
+      const result = buildOperatorCondition(nameColumn, "_contains", 123);
       expect(result).toBeNull();
     });
   });
 
-  describe("$between operator", () => {
-    it("should build $between condition", () => {
-      const result = buildOperatorCondition(column, "$between", [10, 100]);
+  describe("_between operator", () => {
+    it("should build _between condition", () => {
+      const result = buildOperatorCondition(column, "_between", [10, 100]);
       expect(result).not.toBeNull();
       const query = dialect.sqlToQuery(result!);
       // Should generate >= and <= conditions
@@ -295,14 +295,14 @@ describe("buildOperatorCondition", () => {
     });
 
     it("should return null for non-array values", () => {
-      const result = buildOperatorCondition(column, "$between", "not-array");
+      const result = buildOperatorCondition(column, "_between", "not-array");
       expect(result).toBeNull();
     });
 
     it("should return null for arrays with wrong length", () => {
-      const result = buildOperatorCondition(column, "$between", [10]);
+      const result = buildOperatorCondition(column, "_between", [10]);
       expect(result).toBeNull();
-      const result2 = buildOperatorCondition(column, "$between", [10, 20, 30]);
+      const result2 = buildOperatorCondition(column, "_between", [10, 20, 30]);
       expect(result2).toBeNull();
     });
   });

@@ -89,12 +89,12 @@ describe("createQuery", () => {
       id: field(users.id),
       name: field(users.name),
     })
-      .defaultOrder("id:asc")
+      .defaultOrder({ field: "id", order: "asc" })
       .defaultLimit(10)
       .maxLimit(50);
 
     const snapshot = usersQuery.getSnapshot();
-    expect(snapshot.config.defaultOrder).toBe("id:asc");
+    expect(snapshot.config.defaultOrder).toEqual({ field: "id", order: "asc" });
     expect(snapshot.config.defaultLimit).toBe(10);
     expect(snapshot.config.maxLimit).toBe(50);
   });
@@ -124,9 +124,9 @@ describe("FluentQueryBuilder configuration", () => {
     const query = createQuery(users, {
       id: field(users.id),
       name: field(users.name),
-    }).defaultOrder("name:desc");
+    }).defaultOrder({ field: "name", order: "desc" });
 
-    expect(query.getSnapshot().config.defaultOrder).toBe("name:desc");
+    expect(query.getSnapshot().config.defaultOrder).toEqual({ field: "name", order: "desc" });
   });
 
   it("defaultSelect should set default fields", () => {
@@ -226,7 +226,7 @@ describe("FluentQueryBuilder SQL generation", () => {
     });
 
     const sql = query.getSql({
-      order: ["name:desc"],
+      order: [{ field: "name", order: "desc" }],
       limit: 10,
     });
 
@@ -250,7 +250,7 @@ describe("FluentQueryBuilder SQL generation", () => {
     const query = createQuery(users, {
       id: field(users.id),
       name: field(users.name),
-    }).defaultOrder("name:asc");
+    }).defaultOrder({ field: "name", order: "asc" });
 
     const sql = query.getSql({ limit: 10 });
     const sqlString = toSqlString(sql);
@@ -275,11 +275,11 @@ describe("FluentQueryBuilder SQL generation", () => {
       id: field(users.id),
       name: field(users.name),
     })
-      .defaultOrder("id:asc")
+      .defaultOrder({ field: "id", order: "asc" })
       .defaultLimit(5);
 
     const sql = query.getSql({
-      order: ["name:desc"],
+      order: [{ field: "name", order: "desc" }],
       limit: 20,
     });
 
@@ -419,7 +419,7 @@ describe("FluentQueryBuilder joins", () => {
     const sql = productsWithTranslation.getSql({
       where: {
         translation: {
-          value: { $containsi: "test" },
+          value: { _containsi: "test" },
         },
       },
       limit: 10,

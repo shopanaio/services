@@ -4,7 +4,7 @@ import type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
+  OrderByItem,
   DrizzleExecutor,
   QueryBuilderConfig,
 } from "../types.js";
@@ -42,7 +42,7 @@ export type BaseCursorInput<F extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<F>;
   /** Sort order */
-  order?: OrderPath<NestedPaths<F>>[];
+  order?: OrderByItem<NestedPaths<F>>[];
   /** Fields to select */
   select?: NestedPaths<F>[];
   /** Current filters for hash comparison (optional) */
@@ -128,23 +128,20 @@ export function createBaseCursorBuilder<
   const qb = createQueryBuilder(schema, config.queryConfig);
   const mapResult = config.mapResult ?? ((row: Row) => row as unknown as Result);
 
-  function parseSortOrder(order: string[] | undefined): SortParam[] {
-    if (!order || order.length === 0) {
-      return parseSort(undefined, config.tieBreaker as string);
-    }
-    return parseSort(order.join(","), config.tieBreaker as string);
+  function parseSortOrder(order: OrderByItem<string>[] | undefined): SortParam[] {
+    return parseSort(order, config.tieBreaker as string);
   }
 
-  function buildOrderPath(sortParams: SortParam[], invert: boolean): string[] {
+  function buildOrderPath(sortParams: SortParam[], invert: boolean): OrderByItem<string>[] {
     const tieBreakerDir = tieBreakerOrder(sortParams);
     const entries = [
       ...sortParams,
       { field: config.tieBreaker as string, order: tieBreakerDir },
     ];
-    return entries.map((entry) => {
-      const direction = invert ? invertOrder(entry.order) : entry.order;
-      return `${entry.field}:${direction}`;
-    });
+    return entries.map((entry) => ({
+      field: entry.field,
+      order: invert ? invertOrder(entry.order) : entry.order,
+    }));
   }
 
   function mergeWhere(
@@ -160,7 +157,7 @@ export function createBaseCursorBuilder<
     if (!userWhere) {
       return cursorWhere;
     }
-    return { $and: [userWhere, cursorWhere] } as NestedWhereInput<Fields>;
+    return { _and: [userWhere, cursorWhere] } as NestedWhereInput<Fields>;
   }
 
   /**
@@ -174,7 +171,7 @@ export function createBaseCursorBuilder<
     const isForward = input.direction === "forward";
 
     // Parse sort
-    const sortParams = parseSortOrder(input.order as string[] | undefined);
+    const sortParams = parseSortOrder(input.order as OrderByItem<string>[] | undefined);
     const filtersHash = hashFilters(input.filters);
 
     // Decode cursor if present
@@ -237,7 +234,7 @@ export function createBaseCursorBuilder<
 
       const sql = qb.buildSelectSql({
         where: prepared.where as NestedWhereInput<FieldsDef>,
-        order: prepared.order as OrderPath<string>[],
+        order: prepared.order as OrderByItem<string>[],
         limit: prepared.limit + 1,
         select: input.select as string[],
       } as never);
@@ -268,7 +265,7 @@ export function createBaseCursorBuilder<
       // Execute query with limit + 1 for hasMore detection
       const rows = await qb.query(db, {
         where: prepared.where as NestedWhereInput<FieldsDef>,
-        order: prepared.order as OrderPath<string>[],
+        order: prepared.order as OrderByItem<string>[],
         limit: prepared.limit + 1,
         select: input.select as string[],
       } as never) as Row[];

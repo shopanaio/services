@@ -94,7 +94,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // First page: get first 2 items ordered by price ASC
       const page1 = await qb.query(db as never, {
         first: 2,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -110,7 +110,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -124,7 +124,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page3 = await qb.query(db as never, {
         first: 2,
         after: page2.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -148,7 +148,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // First page: DESC order
       const page1 = await qb.query(db as never, {
         first: 2,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -160,7 +160,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -187,7 +187,7 @@ describe("Cursor Pagination Integration Tests", () => {
         const result = await qb.query(db as never, {
           first: 1,
           after: cursor,
-          order: ["handle:asc"],
+          order: [{ field: "handle", order: "asc" }],
           select: ["id", "handle"],
         });
 
@@ -218,7 +218,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Get last 2 items (should be product-4 and product-5 when sorted by price ASC)
       const result = await qb.query(db as never, {
         last: 2,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -246,7 +246,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // First, get some pages forward to establish cursors
       const page1 = await qb.query(db as never, {
         first: 2,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -256,7 +256,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -267,7 +267,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const backPage = await qb.query(db as never, {
         last: 2,
         before: page2.pageInfo.startCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -293,7 +293,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Get last 2 items in DESC order (should be 500, 100)
       const result = await qb.query(db as never, {
         last: 2,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -320,7 +320,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Page 1: first 3 items (100, 200, 300)
       const page1 = await qb.query(db as never, {
         first: 3,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -332,7 +332,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 3,
         after: page1.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -344,7 +344,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const backToPage1 = await qb.query(db as never, {
         last: 3,
         before: page2.pageInfo.startCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -356,7 +356,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page3 = await qb.query(db as never, {
         first: 3,
         after: page2.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -365,7 +365,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page4 = await qb.query(db as never, {
         first: 3,
         after: page3.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -387,7 +387,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Get all items first
       const all = await qb.query(db as never, {
         first: 10,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -395,7 +395,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const afterFirst = await qb.query(db as never, {
         first: 10,
         after: all.edges[0].cursor,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -405,7 +405,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const afterSecond = await qb.query(db as never, {
         first: 10,
         after: all.edges[1].cursor,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -430,8 +430,8 @@ describe("Cursor Pagination Integration Tests", () => {
       // Get only active products (deletedAt is null)
       const page1 = await qb.query(db as never, {
         first: 2,
-        where: { deletedAt: { $is: null } },
-        order: ["price:asc"],
+        where: { deletedAt: { _is: null } },
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -443,8 +443,8 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        where: { deletedAt: { $is: null } },
-        order: ["price:asc"],
+        where: { deletedAt: { _is: null } },
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -468,8 +468,8 @@ describe("Cursor Pagination Integration Tests", () => {
       const cheapPage = await qb.query(db as never, {
         first: 2,
         filters: { category: "cheap" },
-        where: { price: { $lt: 500 } },
-        order: ["price:asc"],
+        where: { price: { _lt: 500 } },
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -481,8 +481,8 @@ describe("Cursor Pagination Integration Tests", () => {
         first: 2,
         after: cheapPage.pageInfo.endCursor!,
         filters: { category: "expensive" },
-        where: { price: { $gte: 500 } },
-        order: ["price:asc"],
+        where: { price: { _gte: 500 } },
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -510,7 +510,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Sort by price ASC, then handle ASC
       const page1 = await qb.query(db as never, {
         first: 3,
-        order: ["price:asc", "handle:asc"],
+        order: [{ field: "price", order: "asc" }, { field: "handle", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -524,7 +524,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 3,
         after: page1.pageInfo.endCursor!,
-        order: ["price:asc", "handle:asc"],
+        order: [{ field: "price", order: "asc" }, { field: "handle", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -549,7 +549,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Sort by handle ASC, price DESC
       const result = await qb.query(db as never, {
         first: 10,
-        order: ["handle:asc", "price:desc"],
+        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -612,7 +612,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Request exactly 3 items when there are 3
       const result = await qb.query(db as never, {
         first: 3,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -652,7 +652,7 @@ describe("Cursor Pagination Integration Tests", () => {
 
       const result = await qb.query(db as never, {
         first: 1,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -718,7 +718,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // First page
       const page1 = await qb.query(db as never, {
         first: 2,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price", "translation.value"],
       });
 
@@ -730,7 +730,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price", "translation.value"],
       });
 
@@ -772,8 +772,8 @@ describe("Cursor Pagination Integration Tests", () => {
       // Filter for phones only
       const page1 = await qb.query(db as never, {
         first: 2,
-        where: { translation: { searchValue: { $containsi: "phone" } } },
-        order: ["price:asc"],
+        where: { translation: { searchValue: { _containsi: "phone" } } },
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -785,8 +785,8 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        where: { translation: { searchValue: { $containsi: "phone" } } },
-        order: ["price:asc"],
+        where: { translation: { searchValue: { _containsi: "phone" } } },
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -811,7 +811,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // ASC order: nulls go last in PostgreSQL by default
       const result = await qb.query(db as never, {
         first: 10,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -840,7 +840,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Sort by handle (non-null) - this allows reliable cursor pagination
       const page1 = await qb.query(db as never, {
         first: 2,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -853,7 +853,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -882,7 +882,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Get all with price sort (tie-breaker follows sort direction: price ASC -> id ASC)
       const result = await qb.query(db as never, {
         first: 10,
-        order: ["price:asc"],
+        order: [{ field: "price", order: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -908,7 +908,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Get all with price DESC (tie-breaker follows: id DESC)
       const result = await qb.query(db as never, {
         first: 10,
-        order: ["price:desc"],
+        order: [{ field: "price", order: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -935,7 +935,7 @@ describe("Cursor Pagination Integration Tests", () => {
       // Use handle sort for reliable ordering (not random UUIDs)
       const page1 = await qb.query(db as never, {
         first: 2,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -945,7 +945,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page2 = await qb.query(db as never, {
         first: 2,
         after: page1.pageInfo.endCursor!,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -955,7 +955,7 @@ describe("Cursor Pagination Integration Tests", () => {
       const page3 = await qb.query(db as never, {
         first: 2,
         after: page2.pageInfo.endCursor!,
-        order: ["handle:asc"],
+        order: [{ field: "handle", order: "asc" }],
         select: ["id", "handle"],
       });
 

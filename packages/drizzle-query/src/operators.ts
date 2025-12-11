@@ -20,30 +20,30 @@ import {
 } from "drizzle-orm";
 
 /**
- * Operator names matching goqutil V3 format
+ * Operator names
  */
 export const OPERATORS = {
-  $eq: "eq",
-  $neq: "neq",
-  $gt: "gt",
-  $gte: "gte",
-  $lt: "lt",
-  $lte: "lte",
-  $in: "in",
-  $notIn: "notIn",
-  $is: "is",
-  $isNot: "isNot",
+  _eq: "eq",
+  _neq: "neq",
+  _gt: "gt",
+  _gte: "gte",
+  _lt: "lt",
+  _lte: "lte",
+  _in: "in",
+  _notIn: "notIn",
+  _is: "is",
+  _isNot: "isNot",
   // String convenience operators
-  $contains: "contains",
-  $notContains: "notContains",
-  $containsi: "containsi",
-  $notContainsi: "notContainsi",
-  $startsWith: "startsWith",
-  $startsWithi: "startsWithi",
-  $endsWith: "endsWith",
-  $endsWithi: "endsWithi",
+  _contains: "contains",
+  _notContains: "notContains",
+  _containsi: "containsi",
+  _notContainsi: "notContainsi",
+  _startsWith: "startsWith",
+  _startsWithi: "startsWithi",
+  _endsWith: "endsWith",
+  _endsWithi: "endsWithi",
   // Range operator
-  $between: "between",
+  _between: "between",
 } as const;
 
 export type OperatorKey = keyof typeof OPERATORS;
@@ -111,30 +111,29 @@ const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
 } as const;
 
 /**
- * Check if a key is an operator (starts with $)
+ * Check if a key is an operator (starts with _)
  */
 export function isOperator(key: string): key is OperatorKey {
-  return key.startsWith("$") && key in OPERATORS;
+  return key.startsWith("_") && key in OPERATORS;
 }
 
 /**
- * Check if a key is a logical operator ($and, $or, $not)
+ * Check if a key is a logical operator (_and, _or, _not)
  */
-export function isLogicalOperator(key: string): key is "$and" | "$or" | "$not" {
-  return key === "$and" || key === "$or" || key === "$not";
+export function isLogicalOperator(key: string): key is "_and" | "_or" | "_not" {
+  return key === "_and" || key === "_or" || key === "_not";
 }
 
 /**
  * Build SQL condition from operator and value
- * Matches goqutil V3 operator handling
  */
 export function buildOperatorCondition(
   column: Column,
   operator: string,
   value: unknown
 ): SQL | null {
-  // Normalize operator (remove $ prefix and lowercase)
-  const op = operator.startsWith("$")
+  // Normalize operator (remove _ prefix and lowercase)
+  const op = operator.startsWith("_")
     ? operator.slice(1).toLowerCase()
     : operator.toLowerCase();
 
@@ -151,14 +150,14 @@ export function isFilterObject(obj: unknown): obj is Record<string, unknown> {
   }
 
   const keys = Object.keys(obj);
-  return keys.length > 0 && keys.every((k) => k.startsWith("$"));
+  return keys.length > 0 && keys.every((k) => k.startsWith("_"));
 }
 
 export function validateFilterValue(
   operator: string,
   value: unknown
 ): { valid: boolean; reason?: string } {
-  const op = operator.startsWith("$")
+  const op = operator.startsWith("_")
     ? operator.slice(1).toLowerCase()
     : operator.toLowerCase();
 

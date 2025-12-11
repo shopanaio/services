@@ -34,7 +34,6 @@ export type {
   FieldsDef,
   NestedPaths,
   NestedWhereInput,
-  OrderPath,
   FilterOperators,
   FilterValue,
   ScalarValue,
@@ -90,26 +89,8 @@ export type {
   QueryDefinition,
 } from "./graphql-codegen.js";
 
-// GraphQL input mappers
-export {
-  // Mapper factory (with validation)
-  createGraphQLMapper,
-  // Standalone functions (no validation)
-  mapOrderBy,
-  mapOrderByItem,
-  mapWhereInput,
-  mapConnectionInput,
-  mapQueryInput,
-  // Errors
-  InvalidFieldError,
-  InvalidOperatorError,
-} from "./graphql-mapper.js";
+// Validation errors (moved from graphql-mapper)
+export { InvalidFieldError, InvalidOperatorError } from "./errors.js";
 
-export type {
-  GraphQLMapper,
-  GraphQLMapperConfig,
-  GraphQLOrderByInput,
-  GraphQLWhereInput,
-  GraphQLConnectionInput,
-  GraphQLQueryInput,
-} from "./graphql-mapper.js";
+// OrderByItem type
+export type { OrderByItem } from "./types.js";
