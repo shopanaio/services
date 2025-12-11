@@ -1,5 +1,5 @@
 import { BaseType } from "@shopana/type-resolver";
-import type { Description } from "./interfaces/product.js";
+import type { Description } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantCursorInput } from "../../repositories/variant/VariantRepository.js";
 import { FeatureResolver } from "./FeatureResolver.js";
