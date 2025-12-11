@@ -2,7 +2,6 @@ import { type PageInfo } from "@shopana/drizzle-query";
 import { BaseType } from "@shopana/type-executor";
 import type { InventoryQueryWarehousesArgs } from "../../api/graphql-admin/generated/types.js";
 import type { ServiceContext } from "../../context/types.js";
-import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
 import { WarehouseView } from "./WarehouseView.js";
 
 // ============ Types ============
@@ -54,15 +53,9 @@ export class WarehouseConnectionView extends BaseType<
   };
 
   async loadData(): Promise<WarehouseConnectionData> {
-    // Map GraphQL args (orderBy) to internal API (order)
-    const { orderBy, ...rest } = this.value;
-    const input: WarehouseRelayInput = {
-      ...rest,
-      order: orderBy,
-    };
     return this.ctx.kernel
       .getServices()
-      .repository.warehouse.getConnection(input);
+      .repository.warehouse.getConnection(this.value);
   }
 
   async edges() {

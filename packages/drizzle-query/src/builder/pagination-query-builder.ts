@@ -45,7 +45,7 @@ export type RelayQueryInput<InferredFields extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<InferredFields> | null;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<InferredFields>>[] | null;
+  orderBy?: OrderByItem<NestedPaths<InferredFields>>[] | null;
   /** Fields to select */
   select?: NestedPaths<InferredFields>[] | null;
   /** Current filters for hash comparison */
@@ -173,7 +173,7 @@ export class RelayQueryBuilder<
     }
 
     // Merge order with default order from fluent builder
-    let order = input.order;
+    let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
       order = [snapshot.config.defaultOrder];
     }
@@ -205,7 +205,7 @@ export class RelayQueryBuilder<
       last: input.last,
       before: input.before,
       where: where as NestedWhereInput<FieldsDef>,
-      order: order as never,
+      orderBy: order as never,
       select: select as never,
       filters: input.filters,
     });
@@ -244,7 +244,7 @@ export class RelayQueryBuilder<
       where = snapshot.config.defaultWhere;
     }
 
-    let order = input.order;
+    let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
       order = [snapshot.config.defaultOrder];
     }
@@ -275,7 +275,7 @@ export class RelayQueryBuilder<
       last: input.last,
       before: input.before,
       where: where as NestedWhereInput<FieldsDef>,
-      order: order as never,
+      orderBy: order as never,
       select: select as never,
       filters: input.filters,
     });
@@ -373,7 +373,7 @@ export type CursorQueryInput<InferredFields extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<InferredFields>;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<InferredFields>>[];
+  orderBy?: OrderByItem<NestedPaths<InferredFields>>[];
   /** Fields to select */
   select?: NestedPaths<InferredFields>[];
   /** Current filters for hash comparison */
@@ -497,7 +497,7 @@ export class CursorQueryBuilder<
       where = snapshot.config.defaultWhere;
     }
 
-    let order = input.order;
+    let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
       order = [snapshot.config.defaultOrder];
     }
@@ -527,7 +527,7 @@ export class CursorQueryBuilder<
       direction: input.direction,
       cursor: input.cursor,
       where: where as NestedWhereInput<FieldsDef>,
-      order: order as never,
+      orderBy: order as never,
       select: select as never,
       filters: input.filters,
     });
@@ -566,7 +566,7 @@ export class CursorQueryBuilder<
       where = snapshot.config.defaultWhere;
     }
 
-    let order = input.order;
+    let order = input.orderBy;
     if (!order && snapshot.config.defaultOrder) {
       order = [snapshot.config.defaultOrder];
     }
@@ -596,7 +596,7 @@ export class CursorQueryBuilder<
       direction: input.direction,
       cursor: input.cursor,
       where: where as NestedWhereInput<FieldsDef>,
-      order: order as never,
+      orderBy: order as never,
       select: select as never,
       filters: input.filters,
     });

@@ -49,7 +49,7 @@ export type BaseCursorInput<F extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<F> | null;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<F>>[] | null;
+  orderBy?: OrderByItem<NestedPaths<F>>[] | null;
   /** Fields to select */
   select?: NestedPaths<F>[] | null;
   /** Current filters for hash comparison (optional) */
@@ -100,13 +100,13 @@ function buildSeekValuesFromRow(
   const seekValues: SeekValue[] = sortParams.map((param) => ({
     field: param.field,
     value: getNestedValue(row, param.field),
-    order: param.order,
+    direction: param.direction,
   }));
 
   seekValues.push({
     field: tieBreaker,
     value: getNestedValue(row, tieBreaker),
-    order: tieBreakerDir,
+    direction: tieBreakerDir,
   });
 
   const cursor = encode({
@@ -149,11 +149,11 @@ export function createBaseCursorBuilder<
     const tieBreakerDir = tieBreakerOrder(sortParams);
     const entries = [
       ...sortParams,
-      { field: config.tieBreaker as string, order: tieBreakerDir },
+      { field: config.tieBreaker as string, direction: tieBreakerDir },
     ];
     return entries.map((entry) => ({
       field: entry.field,
-      order: invert ? invertOrder(entry.order) : entry.order,
+      direction: invert ? invertOrder(entry.direction) : entry.direction,
     }));
   }
 
@@ -185,7 +185,7 @@ export function createBaseCursorBuilder<
 
     // Parse sort
     const sortParams = parseSortOrder(
-      input.order as OrderByItem<string>[] | undefined
+      input.orderBy as OrderByItem<string>[] | undefined
     );
     const filtersHash = hashFilters(input.filters);
 

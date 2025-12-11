@@ -58,7 +58,7 @@ export type BuildTieBreakerInput = {
   value: unknown;
   tieBreaker: string;
   sortParams: SortParam[];
-  order?: OrderDirection;
+  direction?: OrderDirection;
 };
 
 export function snakeToCamel(value: string): string {
@@ -85,7 +85,7 @@ export function tieBreakerOrder(sortParams: SortParam[]): OrderDirection {
     return "desc";
   }
   const last = sortParams[sortParams.length - 1];
-  return last.order === "asc" ? "asc" : "desc";
+  return last.direction === "asc" ? "asc" : "desc";
 }
 
 export function invertOrder(direction: OrderDirection): OrderDirection {
@@ -95,11 +95,11 @@ export function invertOrder(direction: OrderDirection): OrderDirection {
 export function buildTieBreakerSeekValue(
   input: BuildTieBreakerInput
 ): SeekValue {
-  const order = input.order ?? tieBreakerOrder(input.sortParams);
+  const direction = input.direction ?? tieBreakerOrder(input.sortParams);
   return {
     field: input.tieBreaker,
     value: input.value,
-    order,
+    direction,
   };
 }
 

@@ -480,7 +480,7 @@ ${enumValues.join("\n")}
   """Field to order by"""
   field: ${name}OrderField!
   """Sort direction"""
-  order: SortDirection!
+  direction: SortDirection!
 }`;
 
   return `${enumDef}\n\n${inputDef}`;

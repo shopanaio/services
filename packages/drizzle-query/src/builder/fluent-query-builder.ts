@@ -88,7 +88,7 @@ export class FluentQueryBuilder<
    *
    * @example
    * ```ts
-   * query.defaultOrder({ field: "createdAt", order: "desc" })
+   * query.defaultOrder({ field: "createdAt", orderBy: "desc" })
    * ```
    */
   defaultOrder(

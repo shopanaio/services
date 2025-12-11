@@ -193,7 +193,7 @@ export function createCursorNode(options: CreateCursorNodeOptions): CursorNode {
       const values: SeekValue[] = sortParams.map((param) => ({
         field: param.field,
         value: getNestedValue(row, param.field),
-        order: param.order,
+        direction: param.direction,
       }));
 
       values.push(
@@ -201,7 +201,7 @@ export function createCursorNode(options: CreateCursorNodeOptions): CursorNode {
           value: getNestedValue(row, tieBreaker),
           tieBreaker,
           sortParams,
-          order: tieBreakerDir,
+          direction: tieBreakerDir,
         })
       );
 

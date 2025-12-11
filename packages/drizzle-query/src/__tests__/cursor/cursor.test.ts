@@ -16,8 +16,8 @@ describe("cursor encode/decode", () => {
         type: "category",
         filtersHash: "abc123",
         seek: [
-          { field: "updatedAt", value: "2024-01-01T00:00:00Z", order: "desc" },
-          { field: "id", value: "node-1", order: "desc" },
+          { field: "updatedAt", value: "2024-01-01T00:00:00Z", direction: "desc" },
+          { field: "id", value: "node-1", direction: "desc" },
         ],
       };
 
@@ -28,14 +28,20 @@ describe("cursor encode/decode", () => {
       expect(encoded).not.toContain("=");
 
       const decoded = decode(encoded);
-      expect(decoded).toEqual(params);
+      // Date strings are converted to Date objects during decode
+      expect(decoded.type).toBe(params.type);
+      expect(decoded.filtersHash).toBe(params.filtersHash);
+      expect(decoded.seek[0].field).toBe("updatedAt");
+      expect(decoded.seek[0].value).toEqual(new Date("2024-01-01T00:00:00Z"));
+      expect(decoded.seek[0].direction).toBe("desc");
+      expect(decoded.seek[1]).toEqual(params.seek[1]);
     });
 
     it("handles empty filtersHash", () => {
       const params: CursorParams = {
         type: "product",
         filtersHash: "",
-        seek: [{ field: "id", value: "123", order: "asc" }],
+        seek: [{ field: "id", value: "123", direction: "asc" }],
       };
 
       const encoded = encode(params);
@@ -49,7 +55,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "title", value: "Hello World", order: "asc" }],
+        seek: [{ field: "title", value: "Hello World", direction: "asc" }],
       };
 
       const decoded = decode(encode(params));
@@ -60,7 +66,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "count", value: 42, order: "desc" }],
+        seek: [{ field: "count", value: 42, direction: "desc" }],
       };
 
       const decoded = decode(encode(params));
@@ -71,7 +77,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "active", value: true, order: "asc" }],
+        seek: [{ field: "active", value: true, direction: "asc" }],
       };
 
       const decoded = decode(encode(params));
@@ -82,7 +88,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "nullable", value: null, order: "desc" }],
+        seek: [{ field: "nullable", value: null, direction: "desc" }],
       };
 
       const decoded = decode(encode(params));
@@ -94,10 +100,10 @@ describe("cursor encode/decode", () => {
         type: "item",
         filtersHash: "hash",
         seek: [
-          { field: "count", value: 42, order: "desc" },
-          { field: "active", value: true, order: "asc" },
-          { field: "nullable", value: null, order: "desc" },
-          { field: "id", value: "abc", order: "desc" },
+          { field: "count", value: 42, direction: "desc" },
+          { field: "active", value: true, direction: "asc" },
+          { field: "nullable", value: null, direction: "desc" },
+          { field: "id", value: "abc", direction: "desc" },
         ],
       };
 
@@ -112,7 +118,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "price", value: 99.99, order: "desc" }],
+        seek: [{ field: "price", value: 99.99, direction: "desc" }],
       };
 
       const decoded = decode(encode(params));
@@ -123,7 +129,7 @@ describe("cursor encode/decode", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "offset", value: -100, order: "asc" }],
+        seek: [{ field: "offset", value: -100, direction: "asc" }],
       };
 
       const decoded = decode(encode(params));
@@ -161,7 +167,7 @@ describe("cursor encode/decode", () => {
         type: "category",
         filtersHash: "test-hash",
         seek: [
-          { field: "id", value: "abc+def/ghi=jkl", order: "desc" },
+          { field: "id", value: "abc+def/ghi=jkl", direction: "desc" },
         ],
       };
 
@@ -190,7 +196,7 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "",
           filtersHash: "",
-          seek: [{ field: "id", value: "1", order: "asc" }],
+          seek: [{ field: "id", value: "1", direction: "asc" }],
         })
       ).toThrow("type cannot be empty");
     });
@@ -200,7 +206,7 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "   ",
           filtersHash: "",
-          seek: [{ field: "id", value: "1", order: "asc" }],
+          seek: [{ field: "id", value: "1", direction: "asc" }],
         })
       ).toThrow("type cannot be empty");
     });
@@ -212,7 +218,7 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "test",
           filtersHash: 123 as unknown as string,
-          seek: [{ field: "id", value: "1", order: "asc" }],
+          seek: [{ field: "id", value: "1", direction: "asc" }],
         })
       ).toThrow("Filters hash must be a string");
     });
@@ -222,7 +228,7 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "test",
           filtersHash: "",
-          seek: [{ field: "id", value: "1", order: "asc" }],
+          seek: [{ field: "id", value: "1", direction: "asc" }],
         })
       ).not.toThrow();
     });
@@ -254,7 +260,7 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "test",
           filtersHash: "",
-          seek: [{ field: "", value: "1", order: "asc" }],
+          seek: [{ field: "", value: "1", direction: "asc" }],
         })
       ).toThrow("Field cannot be empty at index 0");
     });
@@ -264,7 +270,7 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "test",
           filtersHash: "",
-          seek: [{ field: "   ", value: "1", order: "asc" }],
+          seek: [{ field: "   ", value: "1", direction: "asc" }],
         })
       ).toThrow("Field cannot be empty at index 0");
     });
@@ -274,9 +280,9 @@ describe("validateCursorParams", () => {
         validateCursorParams({
           type: "test",
           filtersHash: "",
-          seek: [{ field: "id", value: "1", order: "invalid" as "asc" }],
+          seek: [{ field: "id", value: "1", direction: "invalid" as "asc" }],
         })
-      ).toThrow("Invalid order 'invalid'");
+      ).toThrow("Invalid direction 'invalid'");
     });
 
     it("reports correct index for invalid field", () => {
@@ -285,8 +291,8 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "",
           seek: [
-            { field: "valid", value: "1", order: "asc" },
-            { field: "", value: "2", order: "desc" },
+            { field: "valid", value: "1", direction: "asc" },
+            { field: "", value: "2", direction: "desc" },
           ],
         })
       ).toThrow("Field cannot be empty at index 1");
@@ -300,8 +306,8 @@ describe("validateCursorParams", () => {
           type: "test",
           filtersHash: "abc",
           seek: [
-            { field: "name", value: "test", order: "asc" },
-            { field: "id", value: "123", order: "desc" },
+            { field: "name", value: "test", direction: "asc" },
+            { field: "id", value: "123", direction: "desc" },
           ],
         })
       ).not.toThrow();

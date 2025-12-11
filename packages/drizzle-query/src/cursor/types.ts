@@ -7,7 +7,7 @@ export type CursorDirection = "forward" | "backward";
 export type SeekValue = {
   field: string;
   value: unknown;
-  order: OrderDirection;
+  direction: OrderDirection;
 };
 
 export type CursorParams = {
@@ -18,5 +18,5 @@ export type CursorParams = {
 
 export type SortParam = {
   field: string;
-  order: OrderDirection;
+  direction: OrderDirection;
 };

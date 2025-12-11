@@ -11,8 +11,8 @@ describe("buildCursorWhereInput", () => {
         type: "category",
         filtersHash: "",
         seek: [
-          { field: "updatedAt", value: "2024-01-01", order: "desc" },
-          { field: "id", value: "node-1", order: "desc" },
+          { field: "updatedAt", value: "2024-01-01", direction: "desc" },
+          { field: "id", value: "node-1", direction: "desc" },
         ],
       };
 
@@ -30,8 +30,8 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "title", value: "A", order: "asc" },
-          { field: "id", value: "1", order: "asc" },
+          { field: "title", value: "A", direction: "asc" },
+          { field: "id", value: "1", direction: "asc" },
         ],
       };
 
@@ -50,9 +50,9 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "status", value: "ACTIVE", order: "asc" },
-          { field: "updatedAt", value: "2024-01-01", order: "desc" },
-          { field: "id", value: "abc", order: "desc" },
+          { field: "status", value: "ACTIVE", direction: "asc" },
+          { field: "updatedAt", value: "2024-01-01", direction: "desc" },
+          { field: "id", value: "abc", direction: "desc" },
         ],
       };
 
@@ -77,8 +77,8 @@ describe("buildCursorWhereInput", () => {
         type: "category",
         filtersHash: "",
         seek: [
-          { field: "updatedAt", value: "2024-01-01", order: "desc" },
-          { field: "id", value: "node-1", order: "desc" },
+          { field: "updatedAt", value: "2024-01-01", direction: "desc" },
+          { field: "id", value: "node-1", direction: "desc" },
         ],
       };
 
@@ -96,8 +96,8 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "title", value: "Z", order: "asc" },
-          { field: "id", value: "999", order: "asc" },
+          { field: "title", value: "Z", direction: "asc" },
+          { field: "id", value: "999", direction: "asc" },
         ],
       };
 
@@ -117,7 +117,7 @@ describe("buildCursorWhereInput", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "id", value: "123", order: "desc" }],
+        seek: [{ field: "id", value: "123", direction: "desc" }],
       };
 
       const where = buildCursorWhereInput(params, true);
@@ -130,7 +130,7 @@ describe("buildCursorWhereInput", () => {
       const params: CursorParams = {
         type: "item",
         filtersHash: "",
-        seek: [{ field: "id", value: "123", order: "desc" }],
+        seek: [{ field: "id", value: "123", direction: "desc" }],
       };
 
       const where = buildCursorWhereInput(params, false);
@@ -146,8 +146,8 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "author.name", value: "John", order: "asc" },
-          { field: "id", value: "1", order: "asc" },
+          { field: "author.name", value: "John", direction: "asc" },
+          { field: "id", value: "1", direction: "asc" },
         ],
       };
 
@@ -165,8 +165,8 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "category.parent.name", value: "Electronics", order: "asc" },
-          { field: "id", value: "1", order: "asc" },
+          { field: "category.parent.name", value: "Electronics", direction: "asc" },
+          { field: "id", value: "1", direction: "asc" },
         ],
       };
 
@@ -197,9 +197,9 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "status", value: "ACTIVE", order: "desc" },
-          { field: "updatedAt", value: "2024-01-01", order: "desc" },
-          { field: "id", value: "abc", order: "desc" },
+          { field: "status", value: "ACTIVE", direction: "desc" },
+          { field: "updatedAt", value: "2024-01-01", direction: "desc" },
+          { field: "id", value: "abc", direction: "desc" },
         ],
       };
 
@@ -222,8 +222,8 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "deletedAt", value: null, order: "desc" },
-          { field: "id", value: "123", order: "desc" },
+          { field: "deletedAt", value: null, direction: "desc" },
+          { field: "id", value: "123", direction: "desc" },
         ],
       };
 
@@ -241,8 +241,8 @@ describe("buildCursorWhereInput", () => {
         type: "item",
         filtersHash: "",
         seek: [
-          { field: "price", value: 99.99, order: "desc" },
-          { field: "id", value: "123", order: "desc" },
+          { field: "price", value: 99.99, direction: "desc" },
+          { field: "id", value: "123", direction: "desc" },
         ],
       };
 

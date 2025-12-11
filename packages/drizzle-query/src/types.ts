@@ -345,7 +345,7 @@ export type NestedPaths<T extends FieldsDef, Prefix extends string = ""> = {
  */
 export type OrderByItem<F extends string = string> = {
   field: F;
-  order: OrderDirection;
+  direction: OrderDirection;
   nulls?: NullsOrder;
 };
 

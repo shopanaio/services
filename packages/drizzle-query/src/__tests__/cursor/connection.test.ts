@@ -64,8 +64,8 @@ describe("createCursorNode", () => {
       row: { id: "node-123", updatedAt: "2024-01-01", title: "Test" },
       cursorType: "product",
       sortParams: [
-        { field: "updatedAt", order: "desc" },
-        { field: "title", order: "asc" },
+        { field: "updatedAt", direction: "desc" },
+        { field: "title", direction: "asc" },
       ],
       tieBreaker: "id",
     });
@@ -75,17 +75,17 @@ describe("createCursorNode", () => {
     expect(seekValues[0]).toEqual({
       field: "updatedAt",
       value: "2024-01-01",
-      order: "desc",
+      direction: "desc",
     });
     expect(seekValues[1]).toEqual({
       field: "title",
       value: "Test",
-      order: "asc",
+      direction: "asc",
     });
     expect(seekValues[2]).toEqual({
       field: "id",
       value: "node-123",
-      order: "asc", // inherits from last sort param
+      direction: "asc", // inherits from last sort param
     });
   });
 
@@ -102,7 +102,7 @@ describe("createCursorNode", () => {
     expect(seekValues[0]).toEqual({
       field: "id",
       value: "node-123",
-      order: "desc",
+      direction: "desc",
     });
   });
 });
@@ -268,7 +268,7 @@ describe("makeConnection", () => {
 
   describe("cursor generation", () => {
     it("generates valid cursors for each edge", () => {
-      const sortParams: SortParam[] = [{ field: "title", order: "asc" }];
+      const sortParams: SortParam[] = [{ field: "title", direction: "asc" }];
       const nodes = [
         createMockNodeWithSort("1", { title: "A" }, sortParams),
         createMockNodeWithSort("2", { title: "B" }, sortParams),
@@ -336,7 +336,7 @@ describe("makeConnection", () => {
       expect(decoded.seek[0]).toEqual({
         field: "id",
         value: "fallback-1",
-        order: "desc",
+        direction: "desc",
       });
     });
   });
@@ -709,7 +709,7 @@ describe("makeConnection", () => {
     });
 
     it("handles null sort field values", () => {
-      const sortParams: SortParam[] = [{ field: "price", order: "desc" }];
+      const sortParams: SortParam[] = [{ field: "price", direction: "desc" }];
       const node = createCursorNode({
         row: { id: "1", price: null },
         cursorType: "product",
@@ -723,7 +723,7 @@ describe("makeConnection", () => {
     });
 
     it("handles undefined field values", () => {
-      const sortParams: SortParam[] = [{ field: "deletedAt", order: "desc" }];
+      const sortParams: SortParam[] = [{ field: "deletedAt", direction: "desc" }];
       const node = createCursorNode({
         row: { id: "1" }, // deletedAt not present
         cursorType: "product",
@@ -738,7 +738,7 @@ describe("makeConnection", () => {
 
   describe("nested field values", () => {
     it("extracts nested field for sort from nested object", () => {
-      const sortParams: SortParam[] = [{ field: "author.name", order: "asc" }];
+      const sortParams: SortParam[] = [{ field: "author.name", direction: "asc" }];
       const node = createCursorNode({
         row: { id: "1", author: { name: "John" } },
         cursorType: "article",
@@ -763,7 +763,7 @@ describe("makeConnection", () => {
     });
 
     it("returns undefined for missing nested path", () => {
-      const sortParams: SortParam[] = [{ field: "author.name", order: "asc" }];
+      const sortParams: SortParam[] = [{ field: "author.name", direction: "asc" }];
       const node = createCursorNode({
         row: { id: "1" }, // no author field
         cursorType: "article",
@@ -776,7 +776,7 @@ describe("makeConnection", () => {
     });
 
     it("handles deeply nested paths", () => {
-      const sortParams: SortParam[] = [{ field: "meta.author.name", order: "desc" }];
+      const sortParams: SortParam[] = [{ field: "meta.author.name", direction: "desc" }];
       const node = createCursorNode({
         row: { id: "1", meta: { author: { name: "Jane" } } },
         cursorType: "article",

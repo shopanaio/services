@@ -449,7 +449,6 @@ describe("Complex SQL Snapshot Tests", () => {
           (
             "t1_translations"."value" ILIKE $1
             AND "t0_products"."is_published" = $2
-            AND "t0_products"."deleted_at" IS NULL
           )
         LIMIT
           $3
@@ -484,7 +483,6 @@ describe("Complex SQL Snapshot Tests", () => {
           (
             "t1_translations"."value" ILIKE $1
             AND "t0_categories"."is_visible" = $2
-            AND "t0_categories"."parent_id" IS NOT NULL
           )
         LIMIT
           $3
@@ -558,7 +556,6 @@ describe("Complex SQL Snapshot Tests", () => {
           (
             "t1_categories"."slug" IN ($1, $2, $3)
             AND "t0_products"."is_published" = $4
-            AND "t0_products"."deleted_at" IS NULL
           )
         LIMIT
           $5
@@ -895,7 +892,7 @@ describe("Complex SQL Snapshot Tests", () => {
           ordersNestedLevel2Query.getSql({
             select: ["id", "status", "totalAmount", "currency"],
             where: { status: { _eq: "completed" } },
-            order: [{ field: "totalAmount", order: "desc" }],
+            order: [{ field: "totalAmount", direction: "desc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -925,7 +922,7 @@ describe("Complex SQL Snapshot Tests", () => {
               status: { _eq: "pending" },
               items: { quantity: { _gte: 1 } },
             },
-            order: [{ field: "items.quantity", order: "desc" }],
+            order: [{ field: "items.quantity", direction: "desc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -958,7 +955,7 @@ describe("Complex SQL Snapshot Tests", () => {
         toSqlString(
           ordersNestedLevel2Query.getSql({
             where: { items: { product: { isPublished: { _eq: true } } } },
-            order: [{ field: "items.product.price", order: "desc" }],
+            order: [{ field: "items.product.price", direction: "desc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -991,7 +988,7 @@ describe("Complex SQL Snapshot Tests", () => {
             where: {
               items: { product: { category: { isVisible: { _eq: true } } } },
             },
-            order: [{ field: "items.product.category.slug", order: "asc" }],
+            order: [{ field: "items.product.category.slug", direction: "asc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -1029,7 +1026,7 @@ describe("Complex SQL Snapshot Tests", () => {
                 },
               },
             },
-            order: [{ field: "items.product.category.translation.value", order: "asc" }],
+            order: [{ field: "items.product.category.translation.value", direction: "asc" }],
           })
         )
       ).toMatchInlineSnapshot(`
@@ -1066,10 +1063,10 @@ describe("Complex SQL Snapshot Tests", () => {
               items: { product: { category: { isVisible: { _eq: true } } } },
             },
             order: [
-              { field: "items.product.category.slug", order: "asc" },
-              { field: "items.product.price", order: "desc" },
-              { field: "items.quantity", order: "desc" },
-              { field: "totalAmount", order: "desc" },
+              { field: "items.product.category.slug", direction: "asc" },
+              { field: "items.product.price", direction: "desc" },
+              { field: "items.quantity", direction: "desc" },
+              { field: "totalAmount", direction: "desc" },
             ],
           })
         )
@@ -1336,9 +1333,7 @@ describe("Complex SQL Snapshot Tests", () => {
             AND "t0_products"."stock" >= $6
             AND "t0_products"."stock" <= $7
             AND "t0_products"."is_published" = $8
-            AND "t0_products"."deleted_at" IS NULL
             AND "t1_categories"."slug" IN ($9, $10, $11, $12, $13)
-            AND "t1_categories"."is_visible" IS NOT NULL
             AND "t1_translations"."value" ILIKE $14
           )
         LIMIT
@@ -1446,10 +1441,7 @@ describe("Complex SQL Snapshot Tests", () => {
                   "t1_orders"."status" = $5
                   AND "t1_orders"."total_amount" >= $6
                 )
-                OR (
-                  "t0_users"."is_active" = $7
-                  AND "t0_users"."name" IS NOT NULL
-                )
+                OR "t0_users"."is_active" = $7
               )
             )
           )

@@ -59,7 +59,7 @@ describe("createBaseCursorBuilder", () => {
       const wrongTypeCursor = encode({
         type: "category",
         filtersHash: "",
-        seek: [{ field: "id", value: "1", order: "desc" }],
+        seek: [{ field: "id", value: "1", direction: "desc" }],
       });
 
       expect(() =>
@@ -80,7 +80,7 @@ describe("createBaseCursorBuilder", () => {
       const { sql, meta } = builder.getSql({
         limit: 10,
         direction: "forward",
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -114,8 +114,8 @@ describe("createBaseCursorBuilder", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 99.99, order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" },
+          { field: "price", value: 99.99, direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" },
         ],
       });
 
@@ -123,7 +123,7 @@ describe("createBaseCursorBuilder", () => {
         limit: 10,
         direction: "forward",
         cursor,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -162,7 +162,7 @@ describe("createBaseCursorBuilder", () => {
       const { sql, meta } = builder.getSql({
         limit: 10,
         direction: "backward",
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -195,8 +195,8 @@ describe("createBaseCursorBuilder", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 50, order: "desc" },
-          { field: "id", value: "prod-789", order: "desc" },
+          { field: "price", value: 50, direction: "desc" },
+          { field: "id", value: "prod-789", direction: "desc" },
         ],
       });
 
@@ -204,7 +204,7 @@ describe("createBaseCursorBuilder", () => {
         limit: 10,
         direction: "backward",
         cursor,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -246,8 +246,8 @@ describe("createBaseCursorBuilder", () => {
         type: "product",
         filtersHash: hashFilters({ status: "active" }),
         seek: [
-          { field: "id", value: "prod-123", order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" },
         ],
       });
 
@@ -271,8 +271,8 @@ describe("createBaseCursorBuilder", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "id", value: "prod-123", order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" },
         ],
       });
 
@@ -308,7 +308,7 @@ describe("createBaseCursorBuilder", () => {
       const result = await builder.query(fakeDb, {
         limit: 2,
         direction: "forward",
-        order: [{ field: "price", order: "asc" }],
+        orderBy: [{ field: "price", direction: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -319,7 +319,7 @@ describe("createBaseCursorBuilder", () => {
       expect(result.startCursor).toBe(result.cursors[0]);
       expect(result.endCursor).toBe(result.cursors[1]);
       expect(result.filtersChanged).toBe(false);
-      expect(result.sortParams).toEqual([{ field: "price", order: "asc" }]);
+      expect(result.sortParams).toEqual([{ field: "price", direction: "asc" }]);
     });
 
     it("returns hasMore = false when no more items", async () => {
@@ -385,7 +385,7 @@ describe("createBaseCursorBuilder", () => {
       const result = await builder.query(fakeDb, {
         limit: 2,
         direction: "backward",
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -446,7 +446,7 @@ describe("createBaseCursorBuilder", () => {
       const result = await builder.query(fakeDb, {
         limit: 10,
         direction: "forward",
-        order: [{ field: "price", order: "asc" }],
+        orderBy: [{ field: "price", direction: "asc" }],
         select: ["id", "handle", "price"],
       });
 

@@ -89,7 +89,7 @@ describe("createRelayQuery (fluent API)", () => {
       const wrongTypeCursor = encode({
         type: "category",
         filtersHash: "",
-        seek: [{ field: "id", value: "1", order: "desc" }],
+        seek: [{ field: "id", value: "1", direction: "desc" }],
       });
 
       expect(() => qb.getSql({ first: 10, after: wrongTypeCursor })).toThrow(
@@ -105,8 +105,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "id", value: "prod-999", order: "desc" },
-          { field: "id", value: "prod-999", order: "desc" },
+          { field: "id", value: "prod-999", direction: "desc" },
+          { field: "id", value: "prod-999", direction: "desc" },
         ],
       });
 
@@ -129,8 +129,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "id", value: "prod-999", order: "desc" },
-          { field: "id", value: "prod-999", order: "desc" },
+          { field: "id", value: "prod-999", direction: "desc" },
+          { field: "id", value: "prod-999", direction: "desc" },
         ],
       });
 
@@ -185,8 +185,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "id", value: "prod-123", order: "desc" }, // sort field
-          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+          { field: "id", value: "prod-123", direction: "desc" }, // sort field
+          { field: "id", value: "prod-123", direction: "desc" }, // tie-breaker
         ],
       });
 
@@ -227,20 +227,20 @@ describe("createRelayQuery (fluent API)", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
-      // order: [{ field: "price", order: "desc" }] + tie-breaker (id follows price direction = desc)
+      // orderBy: [{ field: "price", direction: "desc" }] + tie-breaker (id follows price direction = desc)
       const cursor = encode({
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 99.99, order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+          { field: "price", value: 99.99, direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" }, // tie-breaker
         ],
       });
 
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -274,20 +274,20 @@ describe("createRelayQuery (fluent API)", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
-      // order: [{ field: "handle", order: "asc" }] + tie-breaker (id follows handle direction = asc)
+      // orderBy: [{ field: "handle", direction: "asc" }] + tie-breaker (id follows handle direction = asc)
       const cursor = encode({
         type: "product",
         filtersHash,
         seek: [
-          { field: "handle", value: "apple", order: "asc" },
-          { field: "id", value: "prod-100", order: "asc" }, // tie-breaker
+          { field: "handle", value: "apple", direction: "asc" },
+          { field: "id", value: "prod-100", direction: "asc" }, // tie-breaker
         ],
       });
 
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: [{ field: "handle", order: "asc" }],
+        orderBy: [{ field: "handle", direction: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -321,21 +321,21 @@ describe("createRelayQuery (fluent API)", () => {
       const qb = createProductsPagination();
       const filtersHash = hashFilters(undefined);
 
-      // order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }] + tie-breaker (id follows LAST sort field = desc)
+      // orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }] + tie-breaker (id follows LAST sort field = desc)
       const cursor = encode({
         type: "product",
         filtersHash,
         seek: [
-          { field: "handle", value: "iphone", order: "asc" },
-          { field: "price", value: 999, order: "desc" },
-          { field: "id", value: "prod-777", order: "desc" }, // tie-breaker follows price:desc
+          { field: "handle", value: "iphone", direction: "asc" },
+          { field: "price", value: 999, direction: "desc" },
+          { field: "id", value: "prod-777", direction: "desc" }, // tie-breaker follows price:desc
         ],
       });
 
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
+        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -380,15 +380,15 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 50, order: "desc" },
-          { field: "id", value: "prod-789", order: "desc" },
+          { field: "price", value: 50, direction: "desc" },
+          { field: "id", value: "prod-789", direction: "desc" },
         ],
       });
 
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -427,7 +427,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -461,15 +461,15 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "handle", value: "macbook", order: "asc" },
-          { field: "id", value: "prod-500", order: "asc" },
+          { field: "handle", value: "macbook", direction: "asc" },
+          { field: "id", value: "prod-500", direction: "asc" },
         ],
       });
 
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        order: [{ field: "handle", order: "asc" }],
+        orderBy: [{ field: "handle", direction: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -492,8 +492,8 @@ describe("createRelayQuery (fluent API)", () => {
             )
           )
         ORDER BY
-          "t0_products"."handle" ASC,
-          "t0_products"."id" ASC
+          "t0_products"."handle" DESC,
+          "t0_products"."id" DESC
         LIMIT
           $4
         OFFSET
@@ -510,16 +510,16 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "handle", value: "iphone", order: "asc" },
-          { field: "price", value: 999, order: "desc" },
-          { field: "id", value: "prod-777", order: "desc" },
+          { field: "handle", value: "iphone", direction: "asc" },
+          { field: "price", value: 999, direction: "desc" },
+          { field: "id", value: "prod-777", direction: "desc" },
         ],
       });
 
       const { sql, meta } = qb.getSql({
         last: 10,
         before: cursor,
-        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
+        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -548,9 +548,9 @@ describe("createRelayQuery (fluent API)", () => {
             )
           )
         ORDER BY
-          "t0_products"."handle" ASC,
-          "t0_products"."price" DESC,
-          "t0_products"."id" DESC
+          "t0_products"."handle" DESC,
+          "t0_products"."price" ASC,
+          "t0_products"."id" ASC
         LIMIT
           $7
         OFFSET
@@ -564,7 +564,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        order: [{ field: "handle", order: "asc" }],
+        orderBy: [{ field: "handle", direction: "asc" }],
         select: ["id", "handle"],
       });
 
@@ -594,7 +594,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         last: 10,
-        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
+        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -633,8 +633,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash: hashFilters({ status: "active" }),
         seek: [
-          { field: "id", value: "prod-123", order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+          { field: "id", value: "prod-123", direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" }, // tie-breaker
         ],
       });
 
@@ -675,8 +675,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "id", value: "prod-123", order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" }, // tie-breaker
+          { field: "id", value: "prod-123", direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" }, // tie-breaker
         ],
       });
 
@@ -724,8 +724,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 75, order: "desc" },
-          { field: "id", value: "prod-500", order: "desc" },
+          { field: "price", value: 75, direction: "desc" },
+          { field: "id", value: "prod-500", direction: "desc" },
         ],
       });
 
@@ -733,7 +733,7 @@ describe("createRelayQuery (fluent API)", () => {
         first: 10,
         after: cursor,
         where: { deletedAt: { _is: null } },
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -746,13 +746,10 @@ describe("createRelayQuery (fluent API)", () => {
           "products" AS "t0_products"
         WHERE
           (
-            "t0_products"."deleted_at" IS NULL
-            AND (
-              "t0_products"."price" < $1
-              OR (
-                "t0_products"."price" = $2
-                AND "t0_products"."id" < $3
-              )
+            "t0_products"."price" < $1
+            OR (
+              "t0_products"."price" = $2
+              AND "t0_products"."id" < $3
             )
           )
         ORDER BY
@@ -774,8 +771,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 100, order: "desc" },
-          { field: "id", value: "prod-999", order: "desc" },
+          { field: "price", value: 100, direction: "desc" },
+          { field: "id", value: "prod-999", direction: "desc" },
         ],
       });
 
@@ -793,7 +790,7 @@ describe("createRelayQuery (fluent API)", () => {
             },
           ],
         },
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -840,12 +837,12 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         first: 10,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
       // Tie-breaker (id) added automatically
-      expect(meta.sortParams).toEqual([{ field: "price", order: "desc" }]);
+      expect(meta.sortParams).toEqual([{ field: "price", direction: "desc" }]);
 
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
         "SELECT
@@ -869,7 +866,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql } = qb.getSql({
         first: 10,
-        order: [{ field: "handle", order: "asc" }, { field: "price", order: "asc" }],
+        orderBy: [{ field: "handle", direction: "asc" }, { field: "price", direction: "asc" }],
         select: ["id", "handle", "price"],
       });
 
@@ -902,7 +899,7 @@ describe("createRelayQuery (fluent API)", () => {
 
       const { sql, meta } = qb.getSql({
         first: 10,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -936,7 +933,7 @@ describe("createRelayQuery (fluent API)", () => {
       });
 
       // Default sort field is "id" DESC (from parseSort with defaultSortField)
-      expect(meta.sortParams).toEqual([{ field: "id", order: "desc" }]);
+      expect(meta.sortParams).toEqual([{ field: "id", direction: "desc" }]);
 
       // Order includes default sort + tie-breaker (both id:desc since default IS tie-breaker)
       expect(toSqlString(sql)).toMatchInlineSnapshot(`
@@ -999,8 +996,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 100, order: "desc" },
-          { field: "id", value: "prod-1", order: "desc" },
+          { field: "price", value: 100, direction: "desc" },
+          { field: "id", value: "prod-1", direction: "desc" },
         ],
       });
 
@@ -1009,7 +1006,7 @@ describe("createRelayQuery (fluent API)", () => {
         qb.getSql({
           first: 10,
           after: cursor,
-          order: [{ field: "handle", order: "asc" }],
+          orderBy: [{ field: "handle", direction: "asc" }],
           select: ["id"],
         })
       ).toThrow("field mismatch");
@@ -1024,8 +1021,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 100, order: "desc" },
-          { field: "id", value: "prod-1", order: "desc" },
+          { field: "price", value: 100, direction: "desc" },
+          { field: "id", value: "prod-1", direction: "desc" },
         ],
       });
 
@@ -1034,10 +1031,10 @@ describe("createRelayQuery (fluent API)", () => {
         qb.getSql({
           first: 10,
           after: cursor,
-          order: [{ field: "price", order: "asc" }],
+          orderBy: [{ field: "price", direction: "asc" }],
           select: ["id"],
         })
-      ).toThrow("order mismatch");
+      ).toThrow("direction mismatch");
     });
 
     it("throws when cursor has wrong number of seek values", () => {
@@ -1049,9 +1046,9 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "handle", value: "test", order: "asc" },
-          { field: "price", value: 100, order: "desc" },
-          { field: "id", value: "prod-1", order: "desc" },
+          { field: "handle", value: "test", direction: "asc" },
+          { field: "price", value: 100, direction: "desc" },
+          { field: "id", value: "prod-1", direction: "desc" },
         ],
       });
 
@@ -1060,7 +1057,7 @@ describe("createRelayQuery (fluent API)", () => {
         qb.getSql({
           first: 10,
           after: cursor,
-          order: [{ field: "price", order: "desc" }],
+          orderBy: [{ field: "price", direction: "desc" }],
           select: ["id"],
         })
       ).toThrow("length mismatch");
@@ -1078,15 +1075,15 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "deletedAt", value: null, order: "desc" },
-          { field: "id", value: "prod-123", order: "desc" },
+          { field: "deletedAt", value: null, direction: "desc" },
+          { field: "id", value: "prod-123", direction: "desc" },
         ],
       });
 
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: [{ field: "deletedAt", order: "desc" }],
+        orderBy: [{ field: "deletedAt", direction: "desc" }],
         select: ["id", "deletedAt"],
       });
 
@@ -1098,21 +1095,15 @@ describe("createRelayQuery (fluent API)", () => {
         FROM
           "products" AS "t0_products"
         WHERE
-          (
-            "t0_products"."deleted_at" < $1
-            OR (
-              "t0_products"."deleted_at" = $2
-              AND "t0_products"."id" < $3
-            )
-          )
+          "t0_products"."id" < $1
         ORDER BY
           "t0_products"."deleted_at" DESC,
           "t0_products"."id" DESC
         LIMIT
-          $4
+          $2
         OFFSET
-          $5
-        -- Params: [null,null,"prod-123",11,0]"
+          $3
+        -- Params: ["prod-123",11,0]"
       `);
     });
 
@@ -1124,15 +1115,15 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: undefined as unknown, order: "desc" },
-          { field: "id", value: "prod-456", order: "desc" },
+          { field: "price", value: undefined as unknown, direction: "desc" },
+          { field: "id", value: "prod-456", direction: "desc" },
         ],
       });
 
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price"],
       });
 
@@ -1157,15 +1148,15 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "translation.value", value: "Apple iPhone", order: "asc" },
-          { field: "id", value: "prod-001", order: "asc" },
+          { field: "translation.value", value: "Apple iPhone", direction: "asc" },
+          { field: "id", value: "prod-001", direction: "asc" },
         ],
       });
 
       const { sql } = qb.getSql({
         first: 10,
         after: cursor,
-        order: [{ field: "translation.value", order: "asc" }],
+        orderBy: [{ field: "translation.value", direction: "asc" }],
         select: ["id", "translation.value"],
       });
 
@@ -1203,8 +1194,8 @@ describe("createRelayQuery (fluent API)", () => {
         type: "product",
         filtersHash,
         seek: [
-          { field: "price", value: 599, order: "desc" },
-          { field: "id", value: "prod-100", order: "desc" },
+          { field: "price", value: 599, direction: "desc" },
+          { field: "id", value: "prod-100", direction: "desc" },
         ],
       });
 
@@ -1214,7 +1205,7 @@ describe("createRelayQuery (fluent API)", () => {
         where: {
           translation: { searchValue: { _containsi: "laptop" } },
         },
-        order: [{ field: "price", order: "desc" }],
+        orderBy: [{ field: "price", direction: "desc" }],
         select: ["id", "price", "translation.value"],
       });
 
@@ -1259,7 +1250,7 @@ describe("createRelayQuery (fluent API)", () => {
       const sql = queryBuilder.getSql({
         select: ["id"],
         limit: 5,
-        order: [{ field: "id", order: "asc" }],
+        orderBy: [{ field: "id", direction: "asc" }],
       });
 
       const sqlString = toSqlString(sql);
@@ -1349,7 +1340,7 @@ describe("createRelayBuilder (legacy API)", () => {
       const sql = queryBuilder.buildSelectSql({
         select: ["id"],
         limit: 5,
-        order: [{ field: "id", order: "asc" }],
+        orderBy: [{ field: "id", direction: "asc" }],
       } as never);
 
       const sqlString = toSqlString(sql);
@@ -1366,7 +1357,7 @@ describe("cursor encode/decode", () => {
     const params = {
       type: "product",
       filtersHash: "abc123",
-      seek: [{ field: "id", value: "prod-1", order: "desc" as const }],
+      seek: [{ field: "id", value: "prod-1", direction: "desc" as const }],
     };
 
     const encoded = encode(params);
@@ -1381,8 +1372,8 @@ describe("cursor encode/decode", () => {
       type: "product",
       filtersHash: "abc123",
       seek: [
-        { field: "price", value: 99.99, order: "desc" as const },
-        { field: "id", value: "prod-1", order: "desc" as const },
+        { field: "price", value: 99.99, direction: "desc" as const },
+        { field: "id", value: "prod-1", direction: "desc" as const },
       ],
     };
 
@@ -1412,7 +1403,7 @@ describe("cursor encode/decode", () => {
       encode({
         type: "",
         filtersHash: "",
-        seek: [{ field: "id", value: "1", order: "desc" }],
+        seek: [{ field: "id", value: "1", direction: "desc" }],
       })
     ).toThrow("Cursor type cannot be empty");
   });

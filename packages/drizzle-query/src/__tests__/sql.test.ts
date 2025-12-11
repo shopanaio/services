@@ -95,7 +95,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const result = await usersQuery.execute(db as any, {
         limit: 2,
         offset: 1,
-        order: [{ field: "name", order: "asc" }],
+        order: [{ field: "name", direction: "asc" }],
       });
 
       expect(result).toHaveLength(2);
@@ -330,7 +330,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: [{ field: "name", order: "asc" }],
+        order: [{ field: "name", direction: "asc" }],
       });
 
       expect(result.map((u) => u.name)).toEqual(["Alice", "Bob", "Charlie"]);
@@ -340,7 +340,7 @@ describe("SQL Integration Tests with PGlite", () => {
       const db = getDb();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: [{ field: "age", order: "desc" }],
+        order: [{ field: "age", direction: "desc" }],
       });
 
       expect(result.map((u) => u.age)).toEqual([35, 30, 25]);
@@ -352,7 +352,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: [{ field: "name", order: "asc" }, { field: "age", order: "desc" }],
+        order: [{ field: "name", direction: "asc" }, { field: "age", direction: "desc" }],
       });
 
       // Both Alices first, then Bob, then Charlie
@@ -437,7 +437,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
         where: { age: { _gte: 22 } },
-        order: [{ field: "age", order: "asc" }],
+        order: [{ field: "age", direction: "asc" }],
         limit: 3,
         offset: 1,
       });
@@ -1102,7 +1102,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: [{ field: "age", order: "asc" }],
+        order: [{ field: "age", direction: "asc" }],
       });
 
       // ASC order: 25, 35, then nulls (PostgreSQL default is NULLS LAST for ASC)
@@ -1118,7 +1118,7 @@ describe("SQL Integration Tests with PGlite", () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await usersQuery.execute(db as any, {
-        order: [{ field: "age", order: "desc" }],
+        order: [{ field: "age", direction: "desc" }],
       });
 
       // DESC order: PostgreSQL default is NULLS FIRST for DESC
@@ -1363,7 +1363,7 @@ describe("SQL Integration Tests with PGlite", () => {
           translation: { value: { _containsi: "phone" } },
           price: { _gte: 800 },
         },
-        order: [{ field: "price", order: "desc" }],
+        order: [{ field: "price", direction: "desc" }],
         limit: 2,
         offset: 0,
       });
@@ -1402,7 +1402,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { translation: { value: { _containsi: "phone" } } },
-        order: [{ field: "handle", order: "asc" }],
+        order: [{ field: "handle", direction: "asc" }],
         limit: 2,
         offset: 1,
       });
@@ -1438,7 +1438,7 @@ describe("SQL Integration Tests with PGlite", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await productsWithTranslationsQuery.execute(db as any, {
         where: { price: { _gt: 0 } },
-        order: [{ field: "handle", order: "asc" }, { field: "price", order: "desc" }],
+        order: [{ field: "handle", direction: "asc" }, { field: "price", direction: "desc" }],
         limit: 10,
       });
 
@@ -1478,7 +1478,7 @@ describe("SQL Integration Tests with PGlite", () => {
       await expect(
         usersQuery.execute(db as any, {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          order: [{ field: "nonExistentField", order: "asc" }] as any,
+          order: [{ field: "nonExistentField", direction: "asc" }] as any,
         })
       ).rejects.toThrow(/Unknown field "nonExistentField"/);
     });

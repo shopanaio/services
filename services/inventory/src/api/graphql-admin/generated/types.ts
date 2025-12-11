@@ -1403,10 +1403,10 @@ export type WarehouseEdge = {
 
 /** Ordering configuration for Warehouse */
 export type WarehouseOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
   /** Field to order by */
   field: WarehouseOrderField;
-  /** Sort direction */
-  order: SortDirection;
 };
 
 /** Fields available for sorting Warehouse */

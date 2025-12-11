@@ -75,8 +75,8 @@ describe("snakeToCamel", () => {
 describe("cloneSortParams", () => {
   it("creates deep copy of params", () => {
     const original: SortParam[] = [
-      { field: "a", order: "asc" },
-      { field: "b", order: "desc" },
+      { field: "a", direction: "asc" },
+      { field: "b", direction: "desc" },
     ];
     const cloned = cloneSortParams(original);
 
@@ -95,7 +95,7 @@ describe("cloneSortParams", () => {
   });
 
   it("modifications to clone don't affect original", () => {
-    const original: SortParam[] = [{ field: "a", order: "asc" }];
+    const original: SortParam[] = [{ field: "a", direction: "asc" }];
     const cloned = cloneSortParams(original);
     cloned[0].field = "b";
     expect(original[0].field).toBe("a");
@@ -104,11 +104,11 @@ describe("cloneSortParams", () => {
 
 describe("tieBreakerOrder", () => {
   it("returns last sort order", () => {
-    expect(tieBreakerOrder([{ field: "a", order: "asc" }])).toBe("asc");
+    expect(tieBreakerOrder([{ field: "a", direction: "asc" }])).toBe("asc");
     expect(
       tieBreakerOrder([
-        { field: "a", order: "asc" },
-        { field: "b", order: "desc" },
+        { field: "a", direction: "asc" },
+        { field: "b", direction: "desc" },
       ])
     ).toBe("desc");
   });
@@ -118,8 +118,8 @@ describe("tieBreakerOrder", () => {
   });
 
   it("handles single element", () => {
-    expect(tieBreakerOrder([{ field: "id", order: "asc" }])).toBe("asc");
-    expect(tieBreakerOrder([{ field: "id", order: "desc" }])).toBe("desc");
+    expect(tieBreakerOrder([{ field: "id", direction: "asc" }])).toBe("asc");
+    expect(tieBreakerOrder([{ field: "id", direction: "desc" }])).toBe("desc");
   });
 });
 
@@ -138,25 +138,25 @@ describe("buildTieBreakerSeekValue", () => {
     const result = buildTieBreakerSeekValue({
       value: "123",
       tieBreaker: "id",
-      sortParams: [{ field: "name", order: "asc" }],
+      sortParams: [{ field: "name", direction: "asc" }],
     });
 
     expect(result).toEqual({
       field: "id",
       value: "123",
-      order: "asc",
+      direction: "asc",
     });
   });
 
-  it("uses explicit order when provided", () => {
+  it("uses explicit direction when provided", () => {
     const result = buildTieBreakerSeekValue({
       value: "456",
       tieBreaker: "id",
-      sortParams: [{ field: "name", order: "asc" }],
-      order: "desc",
+      sortParams: [{ field: "name", direction: "asc" }],
+      direction: "desc",
     });
 
-    expect(result.order).toBe("desc");
+    expect(result.direction).toBe("desc");
   });
 
   it("uses desc as default when sortParams is empty", () => {
@@ -166,7 +166,7 @@ describe("buildTieBreakerSeekValue", () => {
       sortParams: [],
     });
 
-    expect(result.order).toBe("desc");
+    expect(result.direction).toBe("desc");
   });
 
   it("handles various value types", () => {

@@ -288,8 +288,6 @@ describe("SQL Snapshot Tests", () => {
           "t0_users"."age" AS "age"
         FROM
           "users" AS "t0_users"
-        WHERE
-          "t0_users"."age" IS NULL
         LIMIT
           $1
         OFFSET
@@ -306,8 +304,6 @@ describe("SQL Snapshot Tests", () => {
           "t0_users"."age" AS "age"
         FROM
           "users" AS "t0_users"
-        WHERE
-          "t0_users"."age" IS NOT NULL
         LIMIT
           $1
         OFFSET
@@ -597,7 +593,7 @@ describe("SQL Snapshot Tests", () => {
       // Order by nested paths - join added automatically
       expect(toSqlString(multiSelectJoinQuery.getSql({
         select: ["id", "handle"],
-        order: [{ field: "translation.value", order: "asc" }, { field: "translation.searchValue", order: "desc" }],
+        order: [{ field: "translation.value", direction: "asc" }, { field: "translation.searchValue", direction: "desc" }],
       }))).toMatchInlineSnapshot(`
         "SELECT
           "t0_products"."id" AS "id",
@@ -851,7 +847,7 @@ describe("SQL Snapshot Tests", () => {
             },
           ],
         },
-        order: [{ field: "events.createdAt", order: "desc" }],
+        order: [{ field: "events.createdAt", direction: "desc" }],
         limit: 50,
       }))).toMatchInlineSnapshot(`
         "SELECT

@@ -89,12 +89,12 @@ describe("createQuery", () => {
       id: field(users.id),
       name: field(users.name),
     })
-      .defaultOrder({ field: "id", order: "asc" })
+      .defaultOrder({ field: "id", direction: "asc" })
       .defaultLimit(10)
       .maxLimit(50);
 
     const snapshot = usersQuery.getSnapshot();
-    expect(snapshot.config.defaultOrder).toEqual({ field: "id", order: "asc" });
+    expect(snapshot.config.defaultOrder).toEqual({ field: "id", direction: "asc" });
     expect(snapshot.config.defaultLimit).toBe(10);
     expect(snapshot.config.maxLimit).toBe(50);
   });
@@ -124,9 +124,9 @@ describe("FluentQueryBuilder configuration", () => {
     const query = createQuery(users, {
       id: field(users.id),
       name: field(users.name),
-    }).defaultOrder({ field: "name", order: "desc" });
+    }).defaultOrder({ field: "name", direction: "desc" });
 
-    expect(query.getSnapshot().config.defaultOrder).toEqual({ field: "name", order: "desc" });
+    expect(query.getSnapshot().config.defaultOrder).toEqual({ field: "name", direction: "desc" });
   });
 
   it("defaultSelect should set default fields", () => {
@@ -226,7 +226,7 @@ describe("FluentQueryBuilder SQL generation", () => {
     });
 
     const sql = query.getSql({
-      order: [{ field: "name", order: "desc" }],
+      order: [{ field: "name", direction: "desc" }],
       limit: 10,
     });
 
@@ -250,7 +250,7 @@ describe("FluentQueryBuilder SQL generation", () => {
     const query = createQuery(users, {
       id: field(users.id),
       name: field(users.name),
-    }).defaultOrder({ field: "name", order: "asc" });
+    }).defaultOrder({ field: "name", direction: "asc" });
 
     const sql = query.getSql({ limit: 10 });
     const sqlString = toSqlString(sql);
@@ -275,11 +275,11 @@ describe("FluentQueryBuilder SQL generation", () => {
       id: field(users.id),
       name: field(users.name),
     })
-      .defaultOrder({ field: "id", order: "asc" })
+      .defaultOrder({ field: "id", direction: "asc" })
       .defaultLimit(5);
 
     const sql = query.getSql({
-      order: [{ field: "name", order: "desc" }],
+      order: [{ field: "name", direction: "desc" }],
       limit: 20,
     });
 

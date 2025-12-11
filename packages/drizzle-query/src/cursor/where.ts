@@ -62,7 +62,7 @@ export function buildCursorWhereInput<F extends FieldsDef = FieldsDef>(
       setPathCondition(condition, previous.field, { _eq: previous.value });
     }
 
-    const operator = getComparisonOperator(forward, seekValue.order);
+    const operator = getComparisonOperator(forward, seekValue.direction);
     setPathCondition(condition, seekValue.field, { [operator]: seekValue.value });
 
     orConditions.push(condition as NestedWhereInput<F>);

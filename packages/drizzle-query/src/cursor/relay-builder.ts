@@ -36,7 +36,7 @@ export type RelayInput<F extends FieldsDef> = {
   /** Filter conditions */
   where?: NestedWhereInput<F> | null;
   /** Sort order */
-  order?: OrderByItem<NestedPaths<F>>[] | null;
+  orderBy?: OrderByItem<NestedPaths<F>>[] | null;
   /** Fields to select */
   select?: NestedPaths<F>[] | null;
   /** Current filters for hash comparison (optional) */
@@ -78,7 +78,7 @@ function convertRelayToBase<F extends FieldsDef>(
       direction: isForward ? "forward" : ("backward" as CursorDirection),
       cursor: isForward ? input.after : input.before,
       where: input.where,
-      order: input.order,
+      orderBy: input.orderBy,
       select: input.select,
       filters: input.filters,
     },

@@ -41,8 +41,8 @@ export function validateCursorParams(params: CursorParams | null | undefined): a
     if (!value.field?.trim()) {
       throw new InvalidCursorError(`Field cannot be empty at index ${index}`);
     }
-    if (!isOrderDirection(value.order)) {
-      throw new InvalidCursorError(`Invalid order '${value.order}' at index ${index}`);
+    if (!isOrderDirection(value.direction)) {
+      throw new InvalidCursorError(`Invalid direction '${value.direction}' at index ${index}`);
     }
   });
 }

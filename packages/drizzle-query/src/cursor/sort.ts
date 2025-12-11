@@ -8,12 +8,12 @@ export function parseSort(
   defaultField: string
 ): SortParam[] {
   if (!order || order.length === 0) {
-    return [{ field: defaultField, order: "desc" }];
+    return [{ field: defaultField, direction: "desc" }];
   }
 
   return order.map((item) => ({
     field: item.field,
-    order: item.order,
+    direction: item.direction,
   }));
 }
 
@@ -42,9 +42,9 @@ export function validateCursorOrder(
         `Cursor field mismatch at index ${i}: got ${seek.field}, expected ${expected.field}`
       );
     }
-    if (seek.order !== expected.order) {
+    if (seek.direction !== expected.direction) {
       throw new InvalidCursorError(
-        `Cursor order mismatch for field ${expected.field}: got ${seek.order}, expected ${expected.order}`
+        `Cursor direction mismatch for field ${expected.field}: got ${seek.direction}, expected ${expected.direction}`
       );
     }
   }

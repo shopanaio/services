@@ -31,7 +31,7 @@ export class OrderBuilder<
         orderItem.field.split("."),
         this.schema,
         0,
-        orderItem.order,
+        orderItem.direction,
         orderItem.nulls
       );
       if (resolved) {
