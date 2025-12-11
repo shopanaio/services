@@ -2,9 +2,6 @@
  * Admin view interfaces
  */
 
-// Common types (manual interfaces)
-export type { Timestamps, SoftDeletable, PageInfo, UserError, Connection, Edge } from "./common.js";
-
 // Simple value types (manual interfaces - no resolvers)
 export type { Description } from "./product.js";
 export type { CurrencyCode, VariantPrice, VariantCost } from "./pricing.js";

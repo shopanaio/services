@@ -1,6 +1,9 @@
-import { WarehouseResolver } from "./WarehouseResolver.js";
-import { BaseConnectionResolver, type ConnectionData } from "./BaseConnectionResolver.js";
 import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
+import { WarehouseResolver } from "./WarehouseResolver.js";
+import {
+  BaseConnectionResolver,
+  type ConnectionData,
+} from "./connection/BaseConnectionResolver.js";
 
 /**
  * WarehouseConnection - resolves paginated warehouse list
