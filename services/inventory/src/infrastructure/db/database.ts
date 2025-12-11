@@ -15,7 +15,17 @@ export function initDatabase(connectionString: string): Database {
   }
   // postgres.js doesn't support schema parameter in connection string
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
-  client = postgres(cleanUrl);
+  client = postgres(cleanUrl, {
+    types: {
+      // Parse timestamp/timestamptz as Date instead of string
+      date: {
+        to: 1184, // timestamptz OID
+        from: [1114, 1184], // timestamp and timestamptz OIDs
+        serialize: (x: Date) => x.toISOString(),
+        parse: (x: string) => new Date(x),
+      },
+    },
+  });
   database = drizzle(client, { schema });
   return database;
 }
