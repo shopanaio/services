@@ -1,13 +1,13 @@
-import { BaseType } from "@shopana/type-resolver";
 import type { ProductOption } from "../../repositories/models/index.js";
 import type { OptionDisplayType } from "./interfaces/index.js";
+import { InventoryType } from "./InventoryType.js";
 import { OptionValueResolver } from "./OptionValueResolver.js";
 
 /**
  * Option view - resolves Option domain interface
  * Accepts option ID, loads data lazily via loaders
  */
-export class OptionResolver extends BaseType<string, ProductOption | null> {
+export class OptionResolver extends InventoryType<string, ProductOption | null> {
   static fields = {
     values: () => OptionValueResolver,
   };

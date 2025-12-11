@@ -1,6 +1,6 @@
 import { type PageInfo } from "@shopana/drizzle-query";
-import { BaseType, type TypeClass } from "@shopana/type-resolver";
-import type { ServiceContext } from "../../../context/types.js";
+import { type TypeClass } from "@shopana/type-resolver";
+import { InventoryType } from "../InventoryType.js";
 
 // ============ Types ============
 
@@ -28,11 +28,7 @@ export interface ConnectionData {
  * The Edge class handles cursor and node resolution automatically.
  */
 function createEdgeResolver(getNodeResolver: () => TypeClass) {
-  return class EdgeResolver extends BaseType<
-    EdgeData,
-    EdgeData,
-    ServiceContext
-  > {
+  return class EdgeResolver extends InventoryType<EdgeData, EdgeData> {
     static fields = {
       node: getNodeResolver,
     };
@@ -70,10 +66,9 @@ function createEdgeResolver(getNodeResolver: () => TypeClass) {
  *   }
  * }
  */
-export abstract class BaseConnectionResolver<TArgs = unknown> extends BaseType<
+export abstract class BaseConnectionResolver<TArgs = unknown> extends InventoryType<
   TArgs,
-  ConnectionData,
-  ServiceContext
+  ConnectionData
 > {
   /**
    * Override in subclass to specify the node resolver.

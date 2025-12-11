@@ -1,4 +1,3 @@
-import { BaseType } from "@shopana/type-resolver";
 import type {
   SelectedOption,
   VariantDimensions,
@@ -9,19 +8,15 @@ import type {
 } from "./interfaces/index.js";
 import type { Variant } from "../../repositories/models/index.js";
 import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
+import { InventoryType } from "./InventoryType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
-import type { ServiceContext } from "../../context/types.js";
 
 /**
  * Variant view - resolves Variant domain interface
  * Accepts variant ID, loads main entity via loaders (lazy)
  * Related data (pricing, stock, etc.) loaded on demand via resolvers
  */
-export class VariantResolver extends BaseType<
-  string,
-  Variant | null,
-  ServiceContext
-> {
+export class VariantResolver extends InventoryType<string, Variant | null> {
   static fields = {
     priceHistory: () => VariantPriceResolver,
   };

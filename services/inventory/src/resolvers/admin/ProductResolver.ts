@@ -1,21 +1,16 @@
-import { BaseType } from "@shopana/type-resolver";
 import type { Description } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantCursorInput } from "../../repositories/variant/VariantRepository.js";
+import { InventoryType } from "./InventoryType.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
-import type { ServiceContext } from "../../context/types.js";
 
 /**
  * Product view - resolves Product domain interface
  * Accepts product ID, loads data lazily via loaders
  */
-export class ProductResolver extends BaseType<
-  string,
-  Product | null,
-  ServiceContext
-> {
+export class ProductResolver extends InventoryType<string, Product | null> {
   static fields = {
     variants: () => VariantResolver,
     options: () => OptionResolver,

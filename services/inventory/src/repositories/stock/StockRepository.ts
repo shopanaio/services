@@ -1,7 +1,26 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import {
+  createQuery,
+  createRelayQuery,
+  type PageInfo,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import { warehouseStock, type WarehouseStock, type NewWarehouseStock } from "../models";
+
+export const stockRelayQuery = createRelayQuery(
+  createQuery(warehouseStock).include(["id", "warehouseId", "variantId"]).maxLimit(100).defaultLimit(20),
+  { name: "stock", tieBreaker: "id" }
+);
+
+export type StockRelayInput = InferRelayInput<typeof stockRelayQuery>;
+
+export interface StockConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 export class StockRepository extends BaseRepository {
   /**
@@ -122,5 +141,73 @@ export class StockRepository extends BaseRepository {
       .returning({ id: warehouseStock.id });
 
     return result.length > 0;
+  }
+
+  /**
+   * Get stock by ID
+   */
+  async findById(id: string): Promise<WarehouseStock | null> {
+    const result = await this.connection
+      .select()
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.id, id)
+        )
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
+  /**
+   * Get stock connection with cursor-based pagination
+   */
+  async getConnection(args: StockRelayInput): Promise<StockConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+
+    const mergedWhere: StockRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.projectId } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: StockRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
+    };
+
+    const result = await stockRelayQuery.execute(this.connection, executeInput);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount: result.totalCount,
+    };
+  }
+
+  /**
+   * Get stock by IDs (for DataLoader)
+   */
+  async getByIds(stockIds: readonly string[]): Promise<WarehouseStock[]> {
+    if (stockIds.length === 0) {
+      return [];
+    }
+
+    return await this.connection
+      .select()
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.projectId, this.projectId),
+          inArray(warehouseStock.id, [...stockIds])
+        )
+      );
   }
 }

@@ -1,16 +1,17 @@
-import { BaseType } from "@shopana/type-resolver";
-import type { ServiceContext } from "../../context/types.js";
 import type { Warehouse } from "../../repositories/models/index.js";
+import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
+import { InventoryType } from "./InventoryType.js";
+import { StockConnectionResolver } from "./StockConnectionResolver.js";
 
 /**
  * Warehouse view - resolves Warehouse domain interface
  * Accepts warehouse ID, loads data lazily via loaders
  */
-export class WarehouseResolver extends BaseType<
-  string,
-  Warehouse | null,
-  ServiceContext
-> {
+export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
+  static fields = {
+    stock: () => StockConnectionResolver,
+  };
+
   async loadData() {
     return await this.ctx.loaders.warehouse.load(this.value);
   }
@@ -44,17 +45,12 @@ export class WarehouseResolver extends BaseType<
     return 0;
   }
 
-  async stock() {
-    // TODO: implement stock connection when needed
+  async stock(args: Omit<StockRelayInput, "where">): Promise<StockRelayInput> {
     return {
-      edges: [],
-      pageInfo: {
-        hasNextPage: false,
-        hasPreviousPage: false,
-        startCursor: null,
-        endCursor: null,
+      ...args,
+      where: {
+        warehouseId: { _eq: this.value },
       },
-      totalCount: 0,
     };
   }
 }

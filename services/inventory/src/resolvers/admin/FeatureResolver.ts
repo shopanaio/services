@@ -1,12 +1,12 @@
-import { BaseType } from "@shopana/type-resolver";
 import type { ProductFeature } from "../../repositories/models/index.js";
+import { InventoryType } from "./InventoryType.js";
 import { FeatureValueResolver } from "./FeatureValueResolver.js";
 
 /**
  * Feature view - resolves Feature domain interface
  * Accepts feature ID, loads data lazily via loaders
  */
-export class FeatureResolver extends BaseType<string, ProductFeature | null> {
+export class FeatureResolver extends InventoryType<string, ProductFeature | null> {
   static fields = {
     values: () => FeatureValueResolver,
   };

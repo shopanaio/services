@@ -1,11 +1,11 @@
-import { BaseType } from "@shopana/type-resolver";
 import type { ProductFeatureValue } from "../../repositories/models/index.js";
+import { InventoryType } from "./InventoryType.js";
 
 /**
  * Feature value view - resolves ProductFeatureValue domain interface
  * Accepts feature value ID, loads data lazily via loaders
  */
-export class FeatureValueResolver extends BaseType<
+export class FeatureValueResolver extends InventoryType<
   string,
   ProductFeatureValue | null
 > {
