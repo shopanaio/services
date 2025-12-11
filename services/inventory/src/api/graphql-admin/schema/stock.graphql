@@ -28,6 +28,10 @@ type Warehouse implements Node @key(fields: "id") {
     after: String
     last: Int
     before: String
+    """Filter conditions"""
+    where: WarehouseStockWhereInput
+    """Sort order"""
+    orderBy: [WarehouseStockOrderByInput!]
   ): WarehouseStockConnection!
 
   """Total number of variants stocked in this warehouse."""

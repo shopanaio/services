@@ -3,8 +3,11 @@ import { randomUUID } from "crypto";
 import {
   createQuery,
   createCursorQuery,
+  createRelayQuery,
   type InferExecuteOptions,
   type InferCursorInput,
+  type InferRelayInput,
+  type PageInfo,
 } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -34,8 +37,20 @@ const variantPaginationQuery = createCursorQuery(
   { tieBreaker: "id" }
 );
 
+const variantRelayQuery = createRelayQuery(
+  createQuery(variant).include(["id", "productId"]).maxLimit(100).defaultLimit(20),
+  { name: "variant", tieBreaker: "id" }
+);
+
 export type VariantQueryInput = InferExecuteOptions<typeof variantQuery>;
 export type VariantCursorInput = InferCursorInput<typeof variantPaginationQuery>;
+export type VariantRelayInput = InferRelayInput<typeof variantRelayQuery>;
+
+export interface VariantConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 export class VariantRepository extends BaseRepository {
   private get locale(): string {
@@ -265,6 +280,39 @@ export class VariantRepository extends BaseRepository {
     });
 
     return result.items.map((item) => item.id);
+  }
+
+  async getConnectionByProductId(
+    productId: string,
+    args: VariantRelayInput
+  ): Promise<VariantConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+
+    const mergedWhere: VariantRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.projectId } },
+        { productId: { _eq: productId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: VariantRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
+    };
+
+    const result = await variantRelayQuery.execute(this.connection, executeInput);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount: result.totalCount,
+    };
   }
 
   // ============ Loader ============

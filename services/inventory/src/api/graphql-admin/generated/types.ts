@@ -1329,6 +1329,8 @@ export type WarehouseStockArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<WarehouseStockOrderByInput>>;
+  where?: InputMaybe<WarehouseStockWhereInput>;
 };
 
 /** A connection to a list of Warehouse items. */
@@ -1453,6 +1455,22 @@ export type WarehouseStockConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Relay-style pagination input for WarehouseStock */
+export type WarehouseStockConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<WarehouseStockOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<WarehouseStockWhereInput>;
+};
+
 /** An edge in a WarehouseStock connection. */
 export type WarehouseStockEdge = {
   __typename?: 'WarehouseStockEdge';
@@ -1460,6 +1478,52 @@ export type WarehouseStockEdge = {
   cursor: Scalars['String']['output'];
   /** The item at the end of the edge. */
   node: WarehouseStock;
+};
+
+/** Ordering configuration for WarehouseStock */
+export type WarehouseStockOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: WarehouseStockOrderField;
+};
+
+/** Fields available for sorting WarehouseStock */
+export enum WarehouseStockOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by quantityOnHand */
+  QuantityOnHand = 'quantityOnHand',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
+  VariantId = 'variantId',
+  /** Sort by warehouseId */
+  WarehouseId = 'warehouseId'
+}
+
+/** Filter conditions for WarehouseStock */
+export type WarehouseStockWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<WarehouseStockWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<WarehouseStockWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<WarehouseStockWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<IdFilter>;
+  /** Filter by quantityOnHand */
+  quantityOnHand?: InputMaybe<IntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by variantId */
+  variantId?: InputMaybe<IdFilter>;
+  /** Filter by warehouseId */
+  warehouseId?: InputMaybe<IdFilter>;
 };
 
 /** Input for updating a warehouse. */
@@ -1712,7 +1776,11 @@ export type ResolversTypes = ResolversObject<{
   WarehouseOrderField: WarehouseOrderField;
   WarehouseStock: ResolverTypeWrapper<WarehouseStock>;
   WarehouseStockConnection: ResolverTypeWrapper<WarehouseStockConnection>;
+  WarehouseStockConnectionInput: WarehouseStockConnectionInput;
   WarehouseStockEdge: ResolverTypeWrapper<WarehouseStockEdge>;
+  WarehouseStockOrderByInput: WarehouseStockOrderByInput;
+  WarehouseStockOrderField: WarehouseStockOrderField;
+  WarehouseStockWhereInput: WarehouseStockWhereInput;
   WarehouseUpdateInput: WarehouseUpdateInput;
   WarehouseUpdatePayload: ResolverTypeWrapper<WarehouseUpdatePayload>;
   WarehouseWhereInput: WarehouseWhereInput;
@@ -1829,7 +1897,10 @@ export type ResolversParentTypes = ResolversObject<{
   WarehouseOrderByInput: WarehouseOrderByInput;
   WarehouseStock: WarehouseStock;
   WarehouseStockConnection: WarehouseStockConnection;
+  WarehouseStockConnectionInput: WarehouseStockConnectionInput;
   WarehouseStockEdge: WarehouseStockEdge;
+  WarehouseStockOrderByInput: WarehouseStockOrderByInput;
+  WarehouseStockWhereInput: WarehouseStockWhereInput;
   WarehouseUpdateInput: WarehouseUpdateInput;
   WarehouseUpdatePayload: WarehouseUpdatePayload;
   WarehouseWhereInput: WarehouseWhereInput;

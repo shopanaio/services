@@ -3,7 +3,7 @@ import type {
   ScriptContext as BaseScriptContext,
   TransactionScript as BaseTransactionScript,
 } from "@shopana/shared-kernel";
-import type { Repository } from "../repositories";
+import type { Repository } from "../repositories/Repository";
 
 /**
  * Logger interface for the inventory service
@@ -42,11 +42,10 @@ export type ScriptContext = BaseScriptContext;
 /**
  * Transaction script for inventory service
  */
-export type TransactionScript<TParams = any, TResult = any> = BaseTransactionScript<
-  TParams,
-  TResult,
-  InventoryKernelServices
->;
+export type TransactionScript<
+  TParams = any,
+  TResult = any
+> = BaseTransactionScript<TParams, TResult, InventoryKernelServices>;
 
 /**
  * Kernel error

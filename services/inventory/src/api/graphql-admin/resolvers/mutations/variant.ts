@@ -3,6 +3,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import { VariantResolver } from "../../../../resolvers/admin/VariantResolver";
 import {
   variantCreate,
   variantDelete,
@@ -14,7 +15,6 @@ import {
   variantSetStock,
   variantSetWeight,
 } from "../../../../scripts/variant/index.js";
-import { VariantResolver } from "../../../../resolvers/admin/index.js";
 import type { Resolvers } from "../../generated/types.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 

@@ -45,11 +45,12 @@ export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
     return 0;
   }
 
-  async stock(args: Omit<StockRelayInput, "where">): Promise<StockRelayInput> {
+  async stock(args: StockRelayInput): Promise<StockRelayInput> {
+    const { where, ...rest } = args;
     return {
-      ...args,
+      ...rest,
       where: {
-        warehouseId: { _eq: this.value },
+        _and: [{ warehouseId: { _eq: this.value } }, ...(where ? [where] : [])],
       },
     };
   }

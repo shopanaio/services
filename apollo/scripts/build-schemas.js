@@ -12,11 +12,11 @@
  * Uses tsx to run TypeScript directly without compilation.
  */
 
-import { printSubgraphSchema, buildSubgraphSchema } from "@apollo/subgraph";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join, resolve } from "path";
-import { gql } from "graphql-tag";
+import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { glob } from "glob";
+import { gql } from "graphql-tag";
+import { join, resolve } from "path";
 
 // Configuration for all services and their schemas
 // Schema files are auto-discovered recursively using glob patterns
@@ -79,7 +79,10 @@ const SERVICES_CONFIG = [
  * @param {string} directory - Directory to search
  * @param {string} pattern - Glob pattern for file matching
  */
-async function findGraphQLFiles(directory, pattern = "**/*.{graphql,graphqls}") {
+async function findGraphQLFiles(
+  directory,
+  pattern = "**/*.{graphql,graphqls}"
+) {
   if (!existsSync(directory)) {
     return [];
   }

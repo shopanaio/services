@@ -1,10 +1,13 @@
 import type { Description } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
-import type { VariantCursorInput } from "../../repositories/variant/VariantRepository.js";
+import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 import { InventoryType } from "./InventoryType.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
-import { VariantResolver } from "./VariantResolver.js";
+import {
+  VariantConnectionResolver,
+  type VariantConnectionInput,
+} from "./VariantConnectionResolver.js";
 
 /**
  * Product view - resolves Product domain interface
@@ -12,7 +15,7 @@ import { VariantResolver } from "./VariantResolver.js";
  */
 export class ProductResolver extends InventoryType<string, Product | null> {
   static fields = {
-    variants: () => VariantResolver,
+    variants: () => VariantConnectionResolver,
     options: () => OptionResolver,
     features: () => FeatureResolver,
   };
@@ -93,12 +96,14 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   }
 
   /**
-   * Returns variant IDs for this product
+   * Returns variant connection input for this product
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async variants(args: VariantCursorInput): Promise<string[]> {
-    const services = this.ctx.kernel.getServices();
-    return services.repository.variantQuery.getIdsByProductId(this.value, args);
+  async variants(args: VariantRelayInput): Promise<VariantConnectionInput> {
+    return {
+      ...args,
+      productId: this.value,
+    };
   }
 
   /**

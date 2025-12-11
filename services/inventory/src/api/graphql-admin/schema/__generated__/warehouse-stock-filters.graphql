@@ -1,0 +1,65 @@
+# Auto-generated GraphQL types. Do not edit manually.
+# Generated at: 2025-12-11T17:05:16.496Z
+# Entity: WarehouseStock
+
+"""Filter conditions for WarehouseStock"""
+input WarehouseStockWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [WarehouseStockWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [WarehouseStockWhereInput!]
+  """Negate the condition"""
+  _not: WarehouseStockWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by warehouseId"""
+  warehouseId: IDFilter
+  """Filter by variantId"""
+  variantId: IDFilter
+  """Filter by quantityOnHand"""
+  quantityOnHand: IntFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+}
+
+"""Fields available for sorting WarehouseStock"""
+enum WarehouseStockOrderField {
+  """Sort by id"""
+  id
+  """Sort by warehouseId"""
+  warehouseId
+  """Sort by variantId"""
+  variantId
+  """Sort by quantityOnHand"""
+  quantityOnHand
+  """Sort by updatedAt"""
+  updatedAt
+  """Sort by createdAt"""
+  createdAt
+}
+
+"""Ordering configuration for WarehouseStock"""
+input WarehouseStockOrderByInput {
+  """Field to order by"""
+  field: WarehouseStockOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
+"""Relay-style pagination input for WarehouseStock"""
+input WarehouseStockConnectionInput {
+  """Returns the first n items"""
+  first: Int
+  """Returns items after this cursor"""
+  after: String
+  """Returns the last n items"""
+  last: Int
+  """Returns items before this cursor"""
+  before: String
+  """Filter conditions"""
+  where: WarehouseStockWhereInput
+  """Sort order"""
+  orderBy: [WarehouseStockOrderByInput!]
+}

@@ -5,12 +5,13 @@
  */
 
 import { createGraphQLSchema, createQuery } from "@shopana/drizzle-query";
-import { warehouses } from "../src/repositories/models/stock.js";
+import { warehouses, warehouseStock } from "../src/repositories/models/stock.js";
 
 const OUTPUT_DIR = "src/api/graphql-admin/schema/__generated__";
 
 // Query builders
 const warehouseQuery = createQuery(warehouses);
+const warehouseStockQuery = createQuery(warehouseStock);
 
 // Generate .graphql files
 createGraphQLSchema({
@@ -22,6 +23,13 @@ createGraphQLSchema({
     Warehouse: {
       query: warehouseQuery,
       output: `${OUTPUT_DIR}/warehouse-filters.graphql`,
+      options: {
+        excludeFields: ["projectId"],
+      },
+    },
+    WarehouseStock: {
+      query: warehouseStockQuery,
+      output: `${OUTPUT_DIR}/warehouse-stock-filters.graphql`,
       options: {
         excludeFields: ["projectId"],
       },

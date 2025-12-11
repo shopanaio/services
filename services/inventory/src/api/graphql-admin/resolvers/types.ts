@@ -1,11 +1,9 @@
-import type { GraphQLResolveInfo } from "graphql";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/index.js";
-import {
-  ProductResolver,
-  VariantResolver,
-  WarehouseResolver,
-} from "../../../resolvers/admin/index.js";
+import { ProductResolver } from "../../../resolvers/admin/ProductResolver";
+import { VariantResolver } from "../../../resolvers/admin/VariantResolver";
+import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver";
 import type { Resolvers } from "../generated/types.js";
 import { requireContext } from "./utils.js";
 
@@ -17,7 +15,11 @@ async function resolveProduct(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return ProductResolver.load(productId, parseGraphqlInfo(info), requireContext(ctx));
+  return ProductResolver.load(
+    productId,
+    parseGraphqlInfo(info),
+    requireContext(ctx)
+  );
 }
 
 /**
@@ -28,7 +30,11 @@ async function resolveVariant(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return VariantResolver.load(variantId, parseGraphqlInfo(info), requireContext(ctx));
+  return VariantResolver.load(
+    variantId,
+    parseGraphqlInfo(info),
+    requireContext(ctx)
+  );
 }
 
 /**
@@ -39,7 +45,11 @@ async function resolveWarehouse(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return WarehouseResolver.load(warehouseId, parseGraphqlInfo(info), requireContext(ctx));
+  return WarehouseResolver.load(
+    warehouseId,
+    parseGraphqlInfo(info),
+    requireContext(ctx)
+  );
 }
 
 export const typeResolvers: Resolvers = {

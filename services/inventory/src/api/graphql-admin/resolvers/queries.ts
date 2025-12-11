@@ -1,11 +1,9 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import {
-  ProductResolver,
-  VariantResolver,
-  WarehouseConnectionResolver,
-  WarehouseResolver,
-} from "../../../resolvers/admin/index.js";
-import type { Resolvers, WarehouseOrderByInput } from "../generated/types.js";
+import { ProductResolver } from "../../../resolvers/admin/ProductResolver";
+import { VariantResolver } from "../../../resolvers/admin/VariantResolver";
+import { WarehouseConnectionResolver } from "../../../resolvers/admin/WarehouseConnectionResolver";
+import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver";
+import type { Resolvers } from "../generated/types.js";
 import { requireContext, requireKernel } from "./utils.js";
 
 export const queryResolvers: Partial<Resolvers> = {
@@ -15,7 +13,11 @@ export const queryResolvers: Partial<Resolvers> = {
 
   InventoryQuery: {
     node: async (_parent, { id }, ctx, info) => {
-      return ProductResolver.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return ProductResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
     nodes: async (_parent, { ids }, ctx, info) => {
@@ -27,7 +29,11 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     product: async (_parent, { id }, ctx, info) => {
-      return ProductResolver.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return ProductResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
     products: async (_parent, args, ctx, info) => {
@@ -68,7 +74,11 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     variant: async (_parent, { id }, ctx, info) => {
-      return VariantResolver.load(id, parseGraphqlInfo(info), requireContext(ctx));
+      return VariantResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
     variants: async (_parent, args, ctx, info) => {

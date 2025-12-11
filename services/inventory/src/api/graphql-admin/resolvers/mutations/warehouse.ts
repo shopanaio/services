@@ -1,10 +1,10 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import { WarehouseResolver } from "../../../../resolvers/admin/WarehouseResolver";
 import {
   warehouseCreate,
   warehouseDelete,
   warehouseUpdate,
 } from "../../../../scripts/warehouse/index.js";
-import { WarehouseResolver } from "../../../../resolvers/admin/index.js";
 import type { Resolvers, Warehouse } from "../../generated/types.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 

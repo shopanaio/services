@@ -4,7 +4,7 @@ import {
   OptionDeleteScript,
   OptionUpdateScript,
 } from "../../../../scripts/option/index.js";
-import { OptionResolver } from "../../../../resolvers/admin/index.js";
+import { OptionResolver } from "../../../../resolvers/admin/OptionResolver";
 import type { ProductOption, Resolvers } from "../../generated/types.js";
 import { noDatabaseError, requireContext } from "../utils.js";
 

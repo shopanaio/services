@@ -1,7 +1,6 @@
-import { build } from "esbuild";
 import { addJsExtensionPlugin } from "@shopana/build-tools/esbuild";
-import { copyFileSync, mkdirSync, cpSync } from "fs";
-import { dirname } from "path";
+import { build } from "esbuild";
+import { copyFileSync, cpSync, mkdirSync } from "fs";
 
 // Build module entry point for orchestrator
 const moduleOptions = {
@@ -36,6 +35,7 @@ try {
   const generatedSchemaFiles = [
     "base-filters.graphql",
     "warehouse-filters.graphql",
+    "warehouse-stock-filters.graphql",
   ];
 
   mkdirSync("dist/schema", { recursive: true });

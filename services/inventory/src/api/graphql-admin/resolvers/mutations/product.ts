@@ -7,7 +7,7 @@ import {
   ProductPublishScript,
   ProductUnpublishScript,
 } from "../../../../scripts/product/index.js";
-import { ProductResolver } from "../../../../resolvers/admin/index.js";
+import { ProductResolver } from "../../../../resolvers/admin/ProductResolver";
 import { noDatabaseError, requireContext } from "../utils.js";
 
 export const productMutationResolvers: Resolvers = {

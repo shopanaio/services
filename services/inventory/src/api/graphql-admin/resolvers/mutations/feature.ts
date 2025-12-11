@@ -5,7 +5,7 @@ import {
   FeatureUpdateScript,
   FeatureDeleteScript,
 } from "../../../../scripts/feature/index.js";
-import { FeatureResolver } from "../../../../resolvers/admin/index.js";
+import { FeatureResolver } from "../../../../resolvers/admin/FeatureResolver";
 import { noDatabaseError, requireContext } from "../utils.js";
 
 export const featureMutationResolvers: Resolvers = {
