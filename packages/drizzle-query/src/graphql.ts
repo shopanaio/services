@@ -232,8 +232,8 @@ input DateTimeFilter {
 
 """Sort direction"""
 enum SortDirection {
-  ASC
-  DESC
+  asc
+  desc
 }
 `;
 
@@ -315,15 +315,6 @@ export type FieldInfo = {
   columnType: string;
 };
 
-/**
- * Convert camelCase to SCREAMING_SNAKE_CASE
- * e.g., "createdAt" -> "CREATED_AT", "isDefault" -> "IS_DEFAULT"
- */
-function toScreamingSnakeCase(str: string): string {
-  return str
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .toUpperCase();
-}
 
 function getFilterType(fieldType: GraphQLFieldType): string {
   switch (fieldType) {
@@ -470,7 +461,7 @@ function generateOrderByInput(
 
   const enumValues = filteredFields.map((field) => {
     const desc = includeDescriptions ? `  """Sort by ${field.name}"""\n` : "";
-    return `${desc}  ${toScreamingSnakeCase(field.name)}`;
+    return `${desc}  ${field.name}`;
   });
 
   const desc = includeDescriptions
@@ -489,44 +480,10 @@ ${enumValues.join("\n")}
   """Field to order by"""
   field: ${name}OrderField!
   """Sort direction"""
-  direction: SortDirection!
+  order: SortDirection!
 }`;
 
   return `${enumDef}\n\n${inputDef}`;
-}
-
-/**
- * Generate a simple order enum (for string-based ordering like "field:asc")
- */
-function generateOrderEnum(
-  name: string,
-  fields: FieldInfo[],
-  options: GraphQLGeneratorOptions
-): string {
-  const { excludeFields = [], includeDescriptions = true } = options;
-
-  const filteredFields = fields.filter((f) => !excludeFields.includes(f.name));
-
-  const enumValues: string[] = [];
-  for (const field of filteredFields) {
-    const fieldUpper = toScreamingSnakeCase(field.name);
-    if (includeDescriptions) {
-      enumValues.push(`  """Sort by ${field.name} ascending"""`);
-    }
-    enumValues.push(`  ${fieldUpper}_ASC`);
-    if (includeDescriptions) {
-      enumValues.push(`  """Sort by ${field.name} descending"""`);
-    }
-    enumValues.push(`  ${fieldUpper}_DESC`);
-  }
-
-  const desc = includeDescriptions
-    ? `"""Sort options for ${name}"""\n`
-    : "";
-
-  return `${desc}enum ${name}SortOrder {
-${enumValues.join("\n")}
-}`;
 }
 
 /**
@@ -596,8 +553,6 @@ export type GeneratedGraphQLTypes = {
   whereInput: string;
   /** OrderByInput and enum definitions */
   orderByInput: string;
-  /** Simple order enum (FIELD_ASC, FIELD_DESC) */
-  orderEnum: string;
   /** Combined query input */
   queryInput: string;
   /** Relay-style connection input */
@@ -649,7 +604,6 @@ export function generateGraphQLTypes<
   const baseTypes = BASE_FILTER_TYPES.trim();
   const whereInput = generateWhereInput(name, fieldsWithTypes, options);
   const orderByInput = generateOrderByInput(name, fieldsWithTypes, options);
-  const orderEnum = generateOrderEnum(name, fieldsWithTypes, options);
   const queryInput = generateQueryInput(name, options);
   const relayInput = generateRelayInput(name, options);
 
@@ -660,7 +614,6 @@ export function generateGraphQLTypes<
   }
   parts.push(whereInput);
   parts.push(orderByInput);
-  parts.push(orderEnum);
   parts.push(queryInput);
   parts.push(relayInput);
 
@@ -669,7 +622,6 @@ export function generateGraphQLTypes<
     baseTypes,
     whereInput,
     orderByInput,
-    orderEnum,
     queryInput,
     relayInput,
     fields: fieldsWithTypes.map((f) => f.name),

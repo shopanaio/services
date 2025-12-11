@@ -1,5 +1,5 @@
 # Auto-generated GraphQL types. Do not edit manually.
-# Generated at: 2025-12-10T17:08:14.626Z
+# Generated at: 2025-12-11T09:38:56.966Z
 # Entity: Warehouse
 
 """Filter conditions for Warehouse"""
@@ -27,17 +27,17 @@ input WarehouseWhereInput {
 """Fields available for sorting Warehouse"""
 enum WarehouseOrderField {
   """Sort by id"""
-  ID
+  id
   """Sort by code"""
-  CODE
+  code
   """Sort by name"""
-  NAME
+  name
   """Sort by isDefault"""
-  IS_DEFAULT
+  isDefault
   """Sort by createdAt"""
-  CREATED_AT
+  createdAt
   """Sort by updatedAt"""
-  UPDATED_AT
+  updatedAt
 }
 
 """Ordering configuration for Warehouse"""
@@ -45,7 +45,7 @@ input WarehouseOrderByInput {
   """Field to order by"""
   field: WarehouseOrderField!
   """Sort direction"""
-  direction: SortDirection!
+  order: SortDirection!
 }
 
 """Relay-style pagination input for Warehouse"""

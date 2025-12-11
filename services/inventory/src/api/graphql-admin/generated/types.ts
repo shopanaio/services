@@ -875,8 +875,8 @@ export type SelectedOptionInput = {
 
 /** Sort direction */
 export enum SortDirection {
-  Asc = 'ASC',
-  Desc = 'DESC'
+  Asc = 'asc',
+  Desc = 'desc'
 }
 
 /** Filter operators for String fields */
@@ -1403,26 +1403,26 @@ export type WarehouseEdge = {
 
 /** Ordering configuration for Warehouse */
 export type WarehouseOrderByInput = {
-  /** Sort direction */
-  direction: SortDirection;
   /** Field to order by */
   field: WarehouseOrderField;
+  /** Sort direction */
+  order: SortDirection;
 };
 
 /** Fields available for sorting Warehouse */
 export enum WarehouseOrderField {
   /** Sort by code */
-  Code = 'CODE',
+  Code = 'code',
   /** Sort by createdAt */
-  CreatedAt = 'CREATED_AT',
+  CreatedAt = 'createdAt',
   /** Sort by id */
-  Id = 'ID',
+  Id = 'id',
   /** Sort by isDefault */
-  IsDefault = 'IS_DEFAULT',
+  IsDefault = 'isDefault',
   /** Sort by name */
-  Name = 'NAME',
+  Name = 'name',
   /** Sort by updatedAt */
-  UpdatedAt = 'UPDATED_AT'
+  UpdatedAt = 'updatedAt'
 }
 
 /** Represents stock level for a variant in a specific warehouse. */

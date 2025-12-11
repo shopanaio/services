@@ -1,7 +1,5 @@
 # Auto-generated GraphQL types. Do not edit manually.
-# Generated at: 2025-12-10T17:08:14.617Z
-
-# Note: DateTime scalar is defined in base.graphql
+# Generated at: 2025-12-11T09:38:56.957Z
 
 """Filter operators for String fields"""
 input StringFilter {
@@ -143,6 +141,6 @@ input DateTimeFilter {
 
 """Sort direction"""
 enum SortDirection {
-  ASC
-  DESC
+  asc
+  desc
 }
