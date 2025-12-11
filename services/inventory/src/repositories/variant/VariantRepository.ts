@@ -15,6 +15,7 @@ import {
   itemPricing,
   itemWeight,
   productOptionVariantLink,
+  productVariantCostHistory,
   variant,
   variantMedia,
   variantTranslation,
@@ -24,6 +25,7 @@ import {
   type ItemWeight,
   type NewVariant,
   type ProductOptionVariantLink,
+  type ProductVariantCostHistory,
   type Variant,
   type VariantMedia,
   type VariantTranslation,
@@ -469,6 +471,21 @@ export class VariantRepository extends BaseRepository {
         and(
           eq(productOptionVariantLink.projectId, this.projectId),
           inArray(productOptionVariantLink.variantId, [...variantIds])
+        )
+      );
+  }
+
+  async getActiveCostsByVariantIds(
+    variantIds: readonly string[]
+  ): Promise<ProductVariantCostHistory[]> {
+    return this.connection
+      .select()
+      .from(productVariantCostHistory)
+      .where(
+        and(
+          eq(productVariantCostHistory.projectId, this.projectId),
+          inArray(productVariantCostHistory.variantId, [...variantIds]),
+          isNull(productVariantCostHistory.effectiveTo)
         )
       );
   }

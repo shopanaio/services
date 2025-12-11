@@ -22,6 +22,7 @@ export class Loader {
   public readonly variantPricing;
   public readonly variantPriceById;
   public readonly variantPriceIds;
+  public readonly variantCost;
   public readonly variantDimensions;
   public readonly variantWeight;
   public readonly variantMedia;
@@ -68,6 +69,7 @@ export class Loader {
     this.variantPricing = variantLoader.variantPricing;
     this.variantPriceById = variantLoader.variantPriceById;
     this.variantPriceIds = variantLoader.variantPriceIds;
+    this.variantCost = variantLoader.variantCost;
     this.variantDimensions = variantLoader.variantDimensions;
     this.variantWeight = variantLoader.variantWeight;
     this.variantMedia = variantLoader.variantMedia;

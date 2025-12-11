@@ -145,7 +145,7 @@ export const variantMutationResolvers: Resolvers = {
       };
     },
 
-    variantSetPricing: async (_parent, { input }, ctx) => {
+    variantSetPricing: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ variant: null });
       }
@@ -159,13 +159,21 @@ export const variantMutationResolvers: Resolvers = {
           : undefined,
       });
 
+      const variantFieldInfo = parseGraphqlInfo(info, "variant");
+
       return {
-        variant: result.price ? { id: input.variantId } : null,
+        variant: result.price
+          ? await VariantResolver.load(
+              input.variantId,
+              variantFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         userErrors: result.userErrors,
       };
     },
 
-    variantSetCost: async (_parent, { input }, ctx) => {
+    variantSetCost: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
         return noDatabaseError({ variant: null });
       }
@@ -176,8 +184,16 @@ export const variantMutationResolvers: Resolvers = {
         unitCostMinor: Number(input.unitCostMinor),
       });
 
+      const variantFieldInfo = parseGraphqlInfo(info, "variant");
+
       return {
-        variant: result.cost ? { id: input.variantId } : null,
+        variant: result.cost
+          ? await VariantResolver.load(
+              input.variantId,
+              variantFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         userErrors: result.userErrors,
       };
     },

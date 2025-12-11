@@ -8,6 +8,7 @@ import type {
   VariantMedia,
   WarehouseStock,
   ProductOptionVariantLink,
+  ProductVariantCostHistory,
 } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
@@ -18,6 +19,7 @@ export class VariantLoader {
   public readonly variantPricing: DataLoader<string, ItemPricing[]>;
   public readonly variantPriceById: DataLoader<string, ItemPricing | null>;
   public readonly variantPriceIds: DataLoader<string, string[]>;
+  public readonly variantCost: DataLoader<string, ProductVariantCostHistory[]>;
   public readonly variantDimensions: DataLoader<string, ItemDimensions | null>;
   public readonly variantWeight: DataLoader<string, ItemWeight | null>;
   public readonly variantMedia: DataLoader<string, VariantMedia[]>;
@@ -57,6 +59,11 @@ export class VariantLoader {
       return variantIds.map((id) =>
         results.filter((p) => p.variantId === id).map((p) => p.id)
       );
+    });
+
+    this.variantCost = new DataLoader<string, ProductVariantCostHistory[]>(async (variantIds) => {
+      const results = await repository.variant.getActiveCostsByVariantIds(variantIds);
+      return variantIds.map((id) => results.filter((c) => c.variantId === id));
     });
 
     this.variantDimensions = new DataLoader<string, ItemDimensions | null>(async (variantIds) => {

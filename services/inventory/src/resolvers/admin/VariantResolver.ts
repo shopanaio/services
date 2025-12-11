@@ -1,5 +1,6 @@
 import type {
   SelectedOption,
+  VariantCost,
   VariantDimensions,
   VariantMediaItem,
   VariantPrice,
@@ -106,15 +107,36 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     return services.repository.pricingQuery.getIdsByVariantId(this.value, args);
   }
 
-  // TODO: implement cost() when cost loader is available
-  // cost(): Promise<string | null>
+  async cost(): Promise<VariantCost | null> {
+    const costs = await this.ctx.loaders.variantCost.load(this.value);
+
+    // Filter by currency if specified
+    let filtered = costs;
+    if (this.ctx.currency) {
+      filtered = costs.filter((c) => c.currency === this.ctx.currency);
+    }
+
+    if (filtered.length === 0) return null;
+
+    // Get current active cost
+    const current = filtered[0];
+    return {
+      id: current.id,
+      currency: current.currency as "UAH" | "USD" | "EUR",
+      unitCostMinor: current.unitCostMinor,
+      effectiveFrom: current.effectiveFrom,
+      effectiveTo: current.effectiveTo,
+      recordedAt: current.recordedAt,
+      isCurrent: current.effectiveTo === null,
+    };
+  }
 
   /**
    * Returns cost history IDs for this variant
    * @param args - Pagination arguments (first, last, after, before)
    */
   async costHistory(_args?: PricingCursorInput): Promise<string[]> {
-    // Cost loader not implemented yet
+    // TODO: implement cost history pagination
     return [];
   }
 
