@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { createQuery } from "@shopana/drizzle-query";
+import { createQuery, type InferExecuteOptions } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
@@ -15,6 +15,8 @@ import {
 } from "../models/index.js";
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
+
+export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
 
 export class ProductRepository extends BaseRepository {
   private get locale(): string {
@@ -178,21 +180,16 @@ export class ProductRepository extends BaseRepository {
 
   // ============ Query ============
 
-  async getMany(input?: {
-    where?: Record<string, unknown>;
-    order?: Array<{ field: string; order: "asc" | "desc" }>;
-    limit?: number;
-    offset?: number;
-  }): Promise<Product[]> {
+  async getMany(input?: ProductQueryInput): Promise<Product[]> {
     return productQuery.execute(this.connection, {
       ...input,
-      order: (input?.order ?? [
+      order: input?.order ?? [
         { field: "createdAt", order: "desc" },
         { field: "id", order: "desc" },
-      ]) as never,
+      ],
       where: {
         ...input?.where,
-        projectId: this.projectId,
+        projectId: { _eq: this.projectId },
         deletedAt: { _is: null },
       },
     });
@@ -201,8 +198,8 @@ export class ProductRepository extends BaseRepository {
   async getOne(id: string): Promise<Product | null> {
     const results = await productQuery.execute(this.connection, {
       where: {
-        id,
-        projectId: this.projectId,
+        id: { _eq: id },
+        projectId: { _eq: this.projectId },
         deletedAt: { _is: null },
       },
       limit: 1,

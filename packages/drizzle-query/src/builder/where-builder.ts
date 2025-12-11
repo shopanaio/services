@@ -73,7 +73,9 @@ export class WhereBuilder<
     this.joinCollector.getOrCreateAliasedTable(schema.table, tableAlias);
 
     for (const [key, rawValue] of Object.entries(input)) {
-      if (rawValue === undefined) {
+      // Skip undefined and null values (null means "no filter", not "IS NULL")
+      // Use _is/_isNot operators for NULL checks
+      if (rawValue === undefined || rawValue === null) {
         continue;
       }
 
@@ -200,6 +202,10 @@ export class WhereBuilder<
     if (isFilterObject(value)) {
       const conditions: SQL[] = [];
       for (const [opKey, opVal] of Object.entries(value)) {
+        // Skip null/undefined operator values (use _is/_isNot for NULL checks)
+        if (opVal === undefined || opVal === null) {
+          continue;
+        }
         const validation = validateFilterValue(opKey, opVal);
         if (!validation.valid) {
           throw new InvalidFilterError(

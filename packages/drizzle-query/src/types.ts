@@ -31,33 +31,33 @@ export type ScalarValue = string | number | boolean | null | Date;
  * All comparison operators accept ScalarValue for flexibility
  */
 export type FilterOperators<T = ScalarValue> = {
-  _eq?: T;
-  _neq?: T;
-  _gt?: T;
-  _gte?: T;
-  _lt?: T;
-  _lte?: T;
-  _in?: T[];
-  _notIn?: T[];
-  _is?: null;
-  _isNot?: null;
+  _eq?: T | null;
+  _neq?: T | null;
+  _gt?: T | null;
+  _gte?: T | null;
+  _lt?: T | null;
+  _lte?: T | null;
+  _in?: T[] | null;
+  _notIn?: T[] | null;
+  _is?: boolean | null;
+  _isNot?: boolean | null;
   // String operators (auto-wrap with wildcards)
-  _contains?: string;
-  _notContains?: string;
-  _containsi?: string;
-  _notContainsi?: string;
-  _startsWith?: string;
-  _startsWithi?: string;
-  _endsWith?: string;
-  _endsWithi?: string;
+  _contains?: string | null;
+  _notContains?: string | null;
+  _containsi?: string | null;
+  _notContainsi?: string | null;
+  _startsWith?: string | null;
+  _startsWithi?: string | null;
+  _endsWith?: string | null;
+  _endsWithi?: string | null;
   // Range operator
-  _between?: [T, T];
+  _between?: T[] | null;
 };
 
 /**
  * Filter value can be scalar or operator object
  */
-export type FilterValue = ScalarValue | FilterOperators;
+export type FilterValue = ScalarValue | FilterOperators | null;
 
 /**
  * Order direction
@@ -357,12 +357,12 @@ export type NestedWhereInput<T extends FieldsDef> = {
   [K in keyof T & string]?: T[K] extends true
     ? FilterValue
     : T[K] extends FieldsDef
-      ? NestedWhereInput<T[K]>
+      ? NestedWhereInput<T[K]> | null
       : never;
 } & {
-  _and?: NestedWhereInput<T>[];
-  _or?: NestedWhereInput<T>[];
-  _not?: NestedWhereInput<T>;
+  _and?: NestedWhereInput<T>[] | null;
+  _or?: NestedWhereInput<T>[] | null;
+  _not?: NestedWhereInput<T> | null;
 };
 
 /**

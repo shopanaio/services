@@ -118,14 +118,7 @@ export const queryResolvers: Partial<Resolvers> = {
 
     warehouses: async (_parent, args, ctx, info) => {
       return WarehouseConnectionView.load(
-        {
-          after: args.after,
-          before: args.before,
-          first: args.first,
-          last: args.last,
-          where: args.where,
-          order: args.orderBy,
-        },
+        args,
         parseGraphqlInfo(info),
         requireContext(ctx)
       );

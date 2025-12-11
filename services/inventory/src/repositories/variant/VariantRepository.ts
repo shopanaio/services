@@ -1,6 +1,11 @@
 import { and, eq, isNull, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { createQuery, createCursorQuery } from "@shopana/drizzle-query";
+import {
+  createQuery,
+  createCursorQuery,
+  type InferExecuteOptions,
+  type InferCursorInput,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   variant,
@@ -21,7 +26,6 @@ import {
   type WarehouseStock,
   type ProductOptionVariantLink,
 } from "../models/index.js";
-import type { PaginationArgs } from "../../views/admin/args.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
 
@@ -29,6 +33,9 @@ const variantPaginationQuery = createCursorQuery(
   createQuery(variant).maxLimit(100).defaultLimit(20).include(["id"]),
   { tieBreaker: "id" }
 );
+
+export type VariantQueryInput = InferExecuteOptions<typeof variantQuery>;
+export type VariantCursorInput = InferCursorInput<typeof variantPaginationQuery>;
 
 export class VariantRepository extends BaseRepository {
   private get locale(): string {
@@ -197,18 +204,12 @@ export class VariantRepository extends BaseRepository {
 
   // ============ Query ============
 
-  async getMany(input?: {
-    where?: Record<string, unknown>;
-    order?: Array<{ field: string; order: "asc" | "desc" }>;
-    limit?: number;
-    offset?: number;
-  }): Promise<Variant[]> {
+  async getMany(input?: VariantQueryInput): Promise<Variant[]> {
     return variantQuery.execute(this.connection, {
       ...input,
-      order: input?.order as never,
       where: {
         ...input?.where,
-        projectId: this.projectId,
+        projectId: { _eq: this.projectId },
         deletedAt: { _is: null },
       },
     });
@@ -217,8 +218,8 @@ export class VariantRepository extends BaseRepository {
   async getOne(id: string): Promise<Variant | null> {
     const results = await variantQuery.execute(this.connection, {
       where: {
-        id,
-        projectId: this.projectId,
+        id: { _eq: id },
+        projectId: { _eq: this.projectId },
         deletedAt: { _is: null },
       },
       limit: 1,
@@ -229,14 +230,13 @@ export class VariantRepository extends BaseRepository {
 
   async getByProductId(
     productId: string,
-    input?: { order?: Array<{ field: string; order: "asc" | "desc" }>; limit?: number; offset?: number }
+    input?: Omit<VariantQueryInput, "where">
   ): Promise<Variant[]> {
     return variantQuery.execute(this.connection, {
       ...input,
-      order: input?.order as never,
       where: {
-        productId,
-        projectId: this.projectId,
+        productId: { _eq: productId },
+        projectId: { _eq: this.projectId },
         deletedAt: { _is: null },
       },
     });
@@ -245,35 +245,26 @@ export class VariantRepository extends BaseRepository {
   async countByProductId(productId: string): Promise<number> {
     const results = await variantQuery.execute(this.connection, {
       where: {
-        productId,
-        projectId: this.projectId,
+        productId: { _eq: productId },
+        projectId: { _eq: this.projectId },
         deletedAt: { _is: null },
       },
     });
     return results.length;
   }
 
-  async getIdsByProductId(productId: string, args: PaginationArgs): Promise<string[]> {
+  async getIdsByProductId(productId: string, args: VariantCursorInput): Promise<string[]> {
     const result = await variantPaginationQuery.execute(this.connection, {
-      ...(args?.last
-        ? {
-            cursor: args.before,
-            direction: "backward",
-            limit: args.last ?? 20,
-          }
-        : {
-            cursor: args.after,
-            direction: "forward",
-            limit: args.first ?? 20,
-          }),
+      ...args,
       where: {
-        projectId: this.projectId,
-        productId,
+        ...args.where,
+        projectId: { _eq: this.projectId },
+        productId: { _eq: productId },
         deletedAt: { _is: null },
       },
     });
 
-    return result.items.map((item: { id: string }) => item.id);
+    return result.items.map((item) => item.id);
   }
 
   // ============ Loader ============

@@ -59,53 +59,100 @@ function escapeWildcards(value: string): string {
 }
 
 const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
-  eq: (column, value) => eq(column, value),
-  neq: (column, value) => ne(column, value),
-  gt: (column, value) => gt(column, value),
-  gte: (column, value) => gte(column, value),
-  lt: (column, value) => lt(column, value),
-  lte: (column, value) => lte(column, value),
+  eq: (column, value) => (value === null ? isNull(column) : eq(column, value)),
+  neq: (column, value) =>
+    value === null ? isNotNull(column) : ne(column, value),
+  gt: (column, value) => {
+    if (value === null) throw new Error("Cannot use _gt with null value");
+    return gt(column, value);
+  },
+  gte: (column, value) => {
+    if (value === null) throw new Error("Cannot use _gte with null value");
+    return gte(column, value);
+  },
+  lt: (column, value) => {
+    if (value === null) throw new Error("Cannot use _lt with null value");
+    return lt(column, value);
+  },
+  lte: (column, value) => {
+    if (value === null) throw new Error("Cannot use _lte with null value");
+    return lte(column, value);
+  },
   in: (column, value) => {
-    if (!Array.isArray(value)) {
-      return null;
-    }
-    if (value.length === 0) {
-      return sql`FALSE`;
-    }
+    if (value === null) throw new Error("Cannot use _in with null value");
+    if (!Array.isArray(value)) return null;
+    if (value.length === 0) return sql`FALSE`;
     return inArray(column, value);
   },
   notin: (column, value) => {
-    if (!Array.isArray(value)) {
-      return null;
-    }
-    if (value.length === 0) {
-      return sql`TRUE`;
-    }
+    if (value === null) throw new Error("Cannot use _notIn with null value");
+    if (!Array.isArray(value)) return null;
+    if (value.length === 0) return sql`TRUE`;
     return notInArray(column, value);
   },
-  is: (column, value) => (value === null ? isNull(column) : null),
-  isnot: (column, value) => (value === null ? isNotNull(column) : null),
+  is: (column, value) => {
+    if (value === null) return isNull(column);
+    if (value === true) return eq(column, true);
+    if (value === false) return eq(column, false);
+    return null;
+  },
+  isnot: (column, value) => {
+    if (value === null) return isNotNull(column);
+    if (value === true) return eq(column, false);
+    if (value === false) return eq(column, true);
+    return null;
+  },
   // String convenience operators
-  contains: (column, value) =>
-    typeof value === "string" ? like(column, `%${escapeWildcards(value)}%`) : null,
-  notcontains: (column, value) =>
-    typeof value === "string" ? notLike(column, `%${escapeWildcards(value)}%`) : null,
-  containsi: (column, value) =>
-    typeof value === "string" ? ilike(column, `%${escapeWildcards(value)}%`) : null,
-  notcontainsi: (column, value) =>
-    typeof value === "string" ? notIlike(column, `%${escapeWildcards(value)}%`) : null,
-  startswith: (column, value) =>
-    typeof value === "string" ? like(column, `${escapeWildcards(value)}%`) : null,
-  startswithi: (column, value) =>
-    typeof value === "string" ? ilike(column, `${escapeWildcards(value)}%`) : null,
-  endswith: (column, value) =>
-    typeof value === "string" ? like(column, `%${escapeWildcards(value)}`) : null,
-  endswithi: (column, value) =>
-    typeof value === "string" ? ilike(column, `%${escapeWildcards(value)}`) : null,
+  contains: (column, value) => {
+    if (value === null) throw new Error("Cannot use _contains with null value");
+    if (typeof value !== "string") return null;
+    return like(column, `%${escapeWildcards(value)}%`);
+  },
+  notcontains: (column, value) => {
+    if (value === null)
+      throw new Error("Cannot use _notContains with null value");
+    if (typeof value !== "string") return null;
+    return notLike(column, `%${escapeWildcards(value)}%`);
+  },
+  containsi: (column, value) => {
+    if (value === null)
+      throw new Error("Cannot use _containsi with null value");
+    if (typeof value !== "string") return null;
+    return ilike(column, `%${escapeWildcards(value)}%`);
+  },
+  notcontainsi: (column, value) => {
+    if (value === null)
+      throw new Error("Cannot use _notContainsi with null value");
+    if (typeof value !== "string") return null;
+    return notIlike(column, `%${escapeWildcards(value)}%`);
+  },
+  startswith: (column, value) => {
+    if (value === null)
+      throw new Error("Cannot use _startsWith with null value");
+    if (typeof value !== "string") return null;
+    return like(column, `${escapeWildcards(value)}%`);
+  },
+  startswithi: (column, value) => {
+    if (value === null)
+      throw new Error("Cannot use _startsWithi with null value");
+    if (typeof value !== "string") return null;
+    return ilike(column, `${escapeWildcards(value)}%`);
+  },
+  endswith: (column, value) => {
+    if (value === null) throw new Error("Cannot use _endsWith with null value");
+    if (typeof value !== "string") return null;
+    return like(column, `%${escapeWildcards(value)}`);
+  },
+  endswithi: (column, value) => {
+    if (value === null)
+      throw new Error("Cannot use _endsWithi with null value");
+    if (typeof value !== "string") return null;
+    return ilike(column, `%${escapeWildcards(value)}`);
+  },
   // Range operator
   between: (column, value) => {
+    if (value === null) throw new Error("Cannot use _between with null value");
     if (!Array.isArray(value) || value.length !== 2) return null;
-    // and() with 2 arguments always returns SQL, not undefined
     return and(gte(column, value[0]), lte(column, value[1]))!;
   },
 } as const;
@@ -185,7 +232,10 @@ export function validateFilterValue(
       return { valid: true };
     case "between":
       if (!Array.isArray(value) || value.length !== 2) {
-        return { valid: false, reason: "Expected array with exactly 2 elements" };
+        return {
+          valid: false,
+          reason: "Expected array with exactly 2 elements",
+        };
       }
       return { valid: true };
     case "is":

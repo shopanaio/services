@@ -1,9 +1,13 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { createQuery, createCursorQuery } from "@shopana/drizzle-query";
+import {
+  createQuery,
+  createCursorQuery,
+  type InferExecuteOptions,
+  type InferCursorInput,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import { itemPricing, type ItemPricing, type NewItemPricing } from "../models/index.js";
-import type { PaginationArgs } from "../../views/admin/args.js";
 
 type Currency = "UAH" | "USD" | "EUR";
 
@@ -13,6 +17,9 @@ const pricingPaginationQuery = createCursorQuery(
   createQuery(itemPricing).maxLimit(100).defaultLimit(20).include(["id"]),
   { tieBreaker: "id" }
 );
+
+export type PricingQueryInput = InferExecuteOptions<typeof pricingQuery>;
+export type PricingCursorInput = InferCursorInput<typeof pricingPaginationQuery>;
 
 export class PricingRepository extends BaseRepository {
   // ============ CRUD ============
@@ -76,18 +83,12 @@ export class PricingRepository extends BaseRepository {
 
   // ============ Query ============
 
-  async getMany(input?: {
-    where?: Record<string, unknown>;
-    order?: Array<{ field: string; order: "asc" | "desc" }>;
-    limit?: number;
-    offset?: number;
-  }): Promise<ItemPricing[]> {
+  async getMany(input?: PricingQueryInput): Promise<ItemPricing[]> {
     return pricingQuery.execute(this.connection, {
       ...input,
-      order: input?.order,
       where: {
         ...input?.where,
-        projectId: this.projectId,
+        projectId: { _eq: this.projectId },
       },
     });
   }
@@ -95,8 +96,8 @@ export class PricingRepository extends BaseRepository {
   async getOne(id: string): Promise<ItemPricing | null> {
     const results = await pricingQuery.execute(this.connection, {
       where: {
-        id,
-        projectId: this.projectId,
+        id: { _eq: id },
+        projectId: { _eq: this.projectId },
       },
       limit: 1,
     });
@@ -106,37 +107,27 @@ export class PricingRepository extends BaseRepository {
 
   async getByVariantId(
     variantId: string,
-    input?: { order?: Array<{ field: string; order: "asc" | "desc" }>; limit?: number; offset?: number }
+    input?: Omit<PricingQueryInput, "where">
   ): Promise<ItemPricing[]> {
     return pricingQuery.execute(this.connection, {
       ...input,
-      order: input?.order,
       where: {
-        variantId,
-        projectId: this.projectId,
+        variantId: { _eq: variantId },
+        projectId: { _eq: this.projectId },
       },
     });
   }
 
-  async getIdsByVariantId(variantId: string, args: PaginationArgs): Promise<string[]> {
+  async getIdsByVariantId(variantId: string, args: PricingCursorInput): Promise<string[]> {
     const result = await pricingPaginationQuery.execute(this.connection, {
-      ...(args?.last
-        ? {
-            cursor: args.before,
-            direction: "backward",
-            limit: args.last ?? 20,
-          }
-        : {
-            cursor: args.after,
-            direction: "forward",
-            limit: args.first ?? 20,
-          }),
+      ...args,
       where: {
-        projectId: this.projectId,
-        variantId,
+        ...args.where,
+        projectId: { _eq: this.projectId },
+        variantId: { _eq: variantId },
       },
     });
 
-    return result.items.map((item: { id: string }) => item.id);
+    return result.items.map((item) => item.id);
   }
 }
