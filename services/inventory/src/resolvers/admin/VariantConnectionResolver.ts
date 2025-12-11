@@ -20,6 +20,6 @@ export class VariantConnectionResolver extends BaseConnectionResolver<VariantCon
     const { productId, ...args } = this.value;
     return this.ctx.kernel
       .getServices()
-      .repository.variantQuery.getConnectionByProductId(productId, args);
+      .repository.variant.getConnectionByProductId(productId, args);
   }
 }

@@ -83,8 +83,6 @@ export const typeResolvers: Resolvers = {
     ): Promise<any> => {
       return resolveProduct(reference.id, ctx, info);
     },
-
-    variants: (parent) => parent.variants,
   },
 
   // Variant resolvers

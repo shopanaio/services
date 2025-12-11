@@ -3,6 +3,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import { StockResolver } from "../../../../resolvers/admin/StockResolver";
 import { VariantResolver } from "../../../../resolvers/admin/VariantResolver";
 import {
   variantCreate,
@@ -181,9 +182,9 @@ export const variantMutationResolvers: Resolvers = {
       };
     },
 
-    variantSetStock: async (_parent, { input }, ctx) => {
+    variantSetStock: async (_parent, { input }, ctx, info) => {
       if (!ctx.kernel) {
-        return noDatabaseError({ variant: null });
+        return noDatabaseError({ stock: null, variant: null });
       }
 
       const result = await ctx.kernel.executeScript(variantSetStock, {
@@ -192,7 +193,16 @@ export const variantMutationResolvers: Resolvers = {
         quantity: input.quantity,
       });
 
+      const stockFieldInfo = parseGraphqlInfo(info, "stock");
+
       return {
+        stock: result.stock
+          ? await StockResolver.load(
+              result.stock.id,
+              stockFieldInfo,
+              requireContext(ctx)
+            )
+          : null,
         variant: result.stock ? { id: input.variantId } : null,
         userErrors: result.userErrors,
       };

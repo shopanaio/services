@@ -1,33 +1,33 @@
-import { and, eq, isNull, inArray } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import {
-  createQuery,
   createCursorQuery,
+  createQuery,
   createRelayQuery,
-  type InferExecuteOptions,
   type InferCursorInput,
+  type InferExecuteOptions,
   type InferRelayInput,
   type PageInfo,
 } from "@shopana/drizzle-query";
+import { randomUUID } from "crypto";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  variant,
-  variantTranslation,
-  itemPricing,
   itemDimensions,
+  itemPricing,
   itemWeight,
-  variantMedia,
-  warehouseStock,
   productOptionVariantLink,
-  type Variant,
-  type NewVariant,
-  type VariantTranslation,
-  type ItemPricing,
+  variant,
+  variantMedia,
+  variantTranslation,
+  warehouseStock,
   type ItemDimensions,
+  type ItemPricing,
   type ItemWeight,
-  type VariantMedia,
-  type WarehouseStock,
+  type NewVariant,
   type ProductOptionVariantLink,
+  type Variant,
+  type VariantMedia,
+  type VariantTranslation,
+  type WarehouseStock,
 } from "../models/index.js";
 
 const variantQuery = createQuery(variant).maxLimit(100).defaultLimit(20);
@@ -38,12 +38,17 @@ const variantPaginationQuery = createCursorQuery(
 );
 
 const variantRelayQuery = createRelayQuery(
-  createQuery(variant).include(["id", "productId"]).maxLimit(100).defaultLimit(20),
+  createQuery(variant)
+    .include(["id", "productId"])
+    .maxLimit(100)
+    .defaultLimit(20),
   { name: "variant", tieBreaker: "id" }
 );
 
 export type VariantQueryInput = InferExecuteOptions<typeof variantQuery>;
-export type VariantCursorInput = InferCursorInput<typeof variantPaginationQuery>;
+export type VariantCursorInput = InferCursorInput<
+  typeof variantPaginationQuery
+>;
 export type VariantRelayInput = InferRelayInput<typeof variantRelayQuery>;
 
 export interface VariantConnectionResult {
@@ -170,18 +175,14 @@ export class VariantRepository extends BaseRepository {
     };
 
     if (data.sku !== undefined) updateData.sku = data.sku;
-    if (data.externalSystem !== undefined) updateData.externalSystem = data.externalSystem;
+    if (data.externalSystem !== undefined)
+      updateData.externalSystem = data.externalSystem;
     if (data.externalId !== undefined) updateData.externalId = data.externalId;
 
     const result = await this.connection
       .update(variant)
       .set(updateData)
-      .where(
-        and(
-          eq(variant.projectId, this.projectId),
-          eq(variant.id, id)
-        )
-      )
+      .where(and(eq(variant.projectId, this.projectId), eq(variant.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -206,12 +207,7 @@ export class VariantRepository extends BaseRepository {
   async hardDelete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(variant)
-      .where(
-        and(
-          eq(variant.projectId, this.projectId),
-          eq(variant.id, id)
-        )
-      )
+      .where(and(eq(variant.projectId, this.projectId), eq(variant.id, id)))
       .returning({ id: variant.id });
 
     return result.length > 0;
@@ -268,7 +264,10 @@ export class VariantRepository extends BaseRepository {
     return results.length;
   }
 
-  async getIdsByProductId(productId: string, args: VariantCursorInput): Promise<string[]> {
+  async getIdsByProductId(
+    productId: string,
+    args: VariantCursorInput
+  ): Promise<string[]> {
     const result = await variantPaginationQuery.execute(this.connection, {
       ...args,
       where: {
@@ -303,7 +302,10 @@ export class VariantRepository extends BaseRepository {
       orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
     };
 
-    const result = await variantRelayQuery.execute(this.connection, executeInput);
+    const result = await variantRelayQuery.execute(
+      this.connection,
+      executeInput
+    );
 
     return {
       edges: result.edges.map((edge) => ({
