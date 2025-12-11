@@ -139,7 +139,7 @@ function normalizeValue(value: unknown): unknown {
 }
 
 export function hashFilters(
-  filters: Record<string, unknown> | undefined
+  filters: Record<string, unknown> | null | undefined
 ): string {
   if (!filters || Object.keys(filters).length === 0) {
     return "";

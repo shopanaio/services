@@ -33,11 +33,11 @@ const DEFAULT_CONFIG: ResolvedConfig = {
 };
 
 export type TypedInput<Fields extends FieldsDef> = {
-  offset?: number;
-  limit?: number;
-  order?: OrderByItem<NestedPaths<Fields>>[];
-  select?: NestedPaths<Fields>[];
-  where?: NestedWhereInput<Fields>;
+  offset?: number | null;
+  limit?: number | null;
+  order?: OrderByItem<NestedPaths<Fields>>[] | null;
+  select?: NestedPaths<Fields>[] | null;
+  where?: NestedWhereInput<Fields> | null;
 };
 
 type PaginationResult = {
@@ -57,7 +57,7 @@ export class QueryBuilder<
   T extends Table,
   F extends string = string,
   Fields extends FieldsDef = FieldsDef,
-  Types = T["$inferSelect"],
+  Types = T["$inferSelect"]
 > {
   private readonly config: ResolvedConfig;
 
@@ -228,11 +228,16 @@ export class QueryBuilder<
     };
   }
 
-  pagination(input: { limit?: number; offset?: number } | undefined | null): PaginationResult {
+  pagination(
+    input: { limit?: number; offset?: number } | undefined | null
+  ): PaginationResult {
     return this.resolvePagination(input ?? {});
   }
 
-  private resolvePagination(input: { limit?: number; offset?: number }): PaginationResult {
+  private resolvePagination(input: {
+    limit?: number | null;
+    offset?: number | null;
+  }): PaginationResult {
     const limit = Math.min(
       input.limit ?? this.config.defaultLimit,
       this.config.maxLimit

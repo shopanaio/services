@@ -43,7 +43,7 @@ export type BaseCursorInput<F extends FieldsDef> = {
   /** Cursor to continue from (opaque string) */
   cursor?: string | null;
   /** Number of items to fetch */
-  limit: number | null;
+  limit: number;
   /** Pagination direction */
   direction: CursorDirection;
   /** Filter conditions */
@@ -158,14 +158,14 @@ export function createBaseCursorBuilder<
   }
 
   function mergeWhere(
-    userWhere: NestedWhereInput<Fields> | undefined,
+    userWhere: NestedWhereInput<Fields> | null | undefined,
     cursorWhere: NestedWhereInput<Fields> | null
-  ): NestedWhereInput<Fields> | undefined {
+  ): NestedWhereInput<Fields> | null {
     if (!cursorWhere && !userWhere) {
-      return undefined;
+      return null;
     }
     if (!cursorWhere) {
-      return userWhere;
+      return userWhere || null;
     }
     if (!userWhere) {
       return cursorWhere;
@@ -225,7 +225,9 @@ export function createBaseCursorBuilder<
     const invertOrderFlag = !isForward && !input.cursor;
 
     // Build ORDER
-    const order = buildOrderPath(sortParams, invertOrderFlag);
+    const order = buildOrderPath(sortParams, invertOrderFlag) as OrderByItem<
+      NestedPaths<Fields>
+    >[];
 
     return {
       isForward,
