@@ -129,14 +129,20 @@ export type FieldArgsTreeFor<T extends TypeClass> = {
 };
 
 /**
+ * Internal/system method names from BaseType that should be excluded from TypeResult.
+ */
+type BaseTypeInternalMethods = "loadData" | "get" | "data";
+
+/**
  * Infers the result type from a TypeClass.
  * Maps resolver methods to their return types, handling nested types.
+ * Excludes constructor and internal BaseType methods (loadData, get, data).
  */
 export type TypeResult<T extends TypeClass> = {
   [K in keyof InstanceType<T> as InstanceType<T>[K] extends (
     ...args: unknown[]
   ) => unknown
-    ? K extends "constructor"
+    ? K extends "constructor" | BaseTypeInternalMethods
       ? never
       : K
     : never]: InstanceType<T>[K] extends ResolverMethod<infer R>
