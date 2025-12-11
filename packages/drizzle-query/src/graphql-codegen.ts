@@ -29,8 +29,8 @@
 
 import { writeFileSync } from "fs";
 import type { Table } from "drizzle-orm";
-import type { FluentQueryBuilder } from "./builder/fluent-query-builder.js";
-import type { RelayQueryBuilder, CursorQueryBuilder } from "./builder/pagination-query-builder.js";
+import { FluentQueryBuilder } from "./builder/fluent-query-builder.js";
+import { RelayQueryBuilder, CursorQueryBuilder } from "./builder/pagination-query-builder.js";
 import type { FluentFieldsDef } from "./builder/fluent-types.js";
 import type { FieldsDef } from "./types.js";
 import {
@@ -47,11 +47,22 @@ type AnyQueryBuilder = FluentQueryBuilder<Table, FluentFieldsDef, FieldsDef, unk
   | RelayQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>
   | CursorQueryBuilder<Table, FluentFieldsDef, FieldsDef, unknown>;
 
+type QueryBuilderType = "fluent" | "relay" | "cursor";
+
+/**
+ * Detect the type of query builder
+ */
+function getQueryBuilderType(query: AnyQueryBuilder): QueryBuilderType {
+  if (query instanceof RelayQueryBuilder) return "relay";
+  if (query instanceof CursorQueryBuilder) return "cursor";
+  return "fluent";
+}
+
 export type QueryDefinition = {
   /** The query builder instance */
   query: AnyQueryBuilder;
-  /** Output file path for this query's types */
-  output: string;
+  /** Output file path for this query's types (only used when output is not specified at top level) */
+  output?: string;
   /** Override options for this specific query */
   options?: Omit<GraphQLGeneratorOptions, "includeBaseTypes">;
 };
@@ -62,6 +73,13 @@ export type GraphQLSchemaConfig = {
    * If not specified, base types won't be generated as a separate file.
    */
   baseTypesOutput?: string;
+
+  /**
+   * Output file path for all query types (when using single file mode).
+   * When specified, all queries will be generated into this single file.
+   * Individual query `output` fields will be ignored.
+   */
+  output?: string;
 
   /**
    * Queries to generate types for.
@@ -85,24 +103,6 @@ export type GraphQLSchemaConfig = {
    * @default true
    */
   includeDateTimeScalar?: boolean;
-
-  /**
-   * Generate relay connection inputs
-   * @default true
-   */
-  includeRelayInputs?: boolean;
-
-  /**
-   * Generate query inputs (with limit/offset)
-   * @default true
-   */
-  includeQueryInputs?: boolean;
-
-  /**
-   * Generate simple sort order enums (FIELD_ASC, FIELD_DESC)
-   * @default false
-   */
-  includeSortOrderEnums?: boolean;
 };
 
 // =============================================================================
@@ -145,13 +145,11 @@ export type GraphQLSchemaConfig = {
 export function createGraphQLSchema(config: GraphQLSchemaConfig): void {
   const {
     baseTypesOutput,
+    output: singleOutput,
     queries,
     options: globalOptions = {},
     header = "Auto-generated GraphQL types. Do not edit manually.",
     includeDateTimeScalar = true,
-    includeRelayInputs = true,
-    includeQueryInputs = true,
-    includeSortOrderEnums = false,
   } = config;
 
   const generatedFiles: string[] = [];
@@ -176,50 +174,94 @@ export function createGraphQLSchema(config: GraphQLSchemaConfig): void {
     generatedFiles.push(baseTypesOutput);
   }
 
-  // Generate types for each query
-  for (const [name, definition] of Object.entries(queries)) {
-    const { query, output, options: queryOptions } = definition;
-
-    // Merge options: global < query-specific
-    const mergedOptions: GraphQLGeneratorOptions = {
-      ...globalOptions,
-      ...queryOptions,
-      includeBaseTypes: false,
-    };
-
-    const types = generateGraphQLTypes(query, name, mergedOptions);
-
+  // Single file mode: all queries go into one file
+  if (singleOutput) {
     const parts: string[] = [];
 
     parts.push(`# ${header}`);
     parts.push(`# Generated at: ${new Date().toISOString()}`);
-    parts.push(`# Entity: ${name}`);
     parts.push("");
 
-    // WhereInput
-    parts.push(types.whereInput);
-    parts.push("");
+    for (const [name, definition] of Object.entries(queries)) {
+      const { query, options: queryOptions } = definition;
+      const builderType = getQueryBuilderType(query);
 
-    // OrderByInput (enum + input)
-    parts.push(types.orderByInput);
-    parts.push("");
+      const mergedOptions: GraphQLGeneratorOptions = {
+        ...globalOptions,
+        ...queryOptions,
+        includeBaseTypes: false,
+      };
 
+      const types = generateGraphQLTypes(query, name, mergedOptions);
 
-    // Optional: QueryInput
-    if (includeQueryInputs) {
-      parts.push(types.queryInput);
+      parts.push(`# ---- ${name} ----`);
       parts.push("");
-    }
-
-    // Optional: RelayInput
-    if (includeRelayInputs) {
-      parts.push(types.relayInput);
+      parts.push(types.whereInput);
       parts.push("");
+      parts.push(types.orderByInput);
+      parts.push("");
+
+      // Auto-detect input type based on query builder type
+      if (builderType === "relay" || builderType === "cursor") {
+        parts.push(types.relayInput);
+        parts.push("");
+      } else {
+        parts.push(types.queryInput);
+        parts.push("");
+      }
     }
 
     const content = parts.join("\n").trim() + "\n";
-    writeFileSync(output, content, "utf-8");
-    generatedFiles.push(output);
+    writeFileSync(singleOutput, content, "utf-8");
+    generatedFiles.push(singleOutput);
+  } else {
+    // Multi-file mode: each query gets its own file
+    for (const [name, definition] of Object.entries(queries)) {
+      const { query, output, options: queryOptions } = definition;
+      const builderType = getQueryBuilderType(query);
+
+      if (!output) {
+        console.warn(`⚠ Skipping ${name}: no output path specified (use 'output' at top level for single file mode)`);
+        continue;
+      }
+
+      // Merge options: global < query-specific
+      const mergedOptions: GraphQLGeneratorOptions = {
+        ...globalOptions,
+        ...queryOptions,
+        includeBaseTypes: false,
+      };
+
+      const types = generateGraphQLTypes(query, name, mergedOptions);
+
+      const parts: string[] = [];
+
+      parts.push(`# ${header}`);
+      parts.push(`# Generated at: ${new Date().toISOString()}`);
+      parts.push(`# Entity: ${name}`);
+      parts.push("");
+
+      // WhereInput
+      parts.push(types.whereInput);
+      parts.push("");
+
+      // OrderByInput (enum + input)
+      parts.push(types.orderByInput);
+      parts.push("");
+
+      // Auto-detect input type based on query builder type
+      if (builderType === "relay" || builderType === "cursor") {
+        parts.push(types.relayInput);
+        parts.push("");
+      } else {
+        parts.push(types.queryInput);
+        parts.push("");
+      }
+
+      const content = parts.join("\n").trim() + "\n";
+      writeFileSync(output, content, "utf-8");
+      generatedFiles.push(output);
+    }
   }
 
   // Log results
@@ -275,7 +317,6 @@ export function generateQuerySchema(
     header?: string;
     includeRelayInputs?: boolean;
     includeQueryInputs?: boolean;
-    includeSortOrderEnums?: boolean;
     generatorOptions?: Omit<GraphQLGeneratorOptions, "includeBaseTypes">;
   } = {}
 ): string {
@@ -283,7 +324,6 @@ export function generateQuerySchema(
     header = "Auto-generated GraphQL types. Do not edit manually.",
     includeRelayInputs = true,
     includeQueryInputs = true,
-    includeSortOrderEnums = false,
     generatorOptions = {},
   } = options;
 
@@ -328,7 +368,6 @@ export function generateGraphQLSchema(config: {
   includeDateTimeScalar?: boolean;
   includeRelayInputs?: boolean;
   includeQueryInputs?: boolean;
-  includeSortOrderEnums?: boolean;
 }): string {
   const {
     queries,
@@ -337,7 +376,6 @@ export function generateGraphQLSchema(config: {
     includeDateTimeScalar = true,
     includeRelayInputs = true,
     includeQueryInputs = true,
-    includeSortOrderEnums = false,
   } = config;
 
   const parts: string[] = [];

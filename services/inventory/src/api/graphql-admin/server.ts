@@ -93,8 +93,7 @@ export async function startServer(config: ServerConfig) {
     "product.graphql",
     // Generated schemas
     "__generated__/base-filters.graphql",
-    "__generated__/warehouse-filters.graphql",
-    "__generated__/warehouse-stock-filters.graphql",
+    "__generated__/filters.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({

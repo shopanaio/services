@@ -34,8 +34,7 @@ try {
 
   const generatedSchemaFiles = [
     "base-filters.graphql",
-    "warehouse-filters.graphql",
-    "warehouse-stock-filters.graphql",
+    "filters.graphql",
   ];
 
   mkdirSync("dist/schema", { recursive: true });

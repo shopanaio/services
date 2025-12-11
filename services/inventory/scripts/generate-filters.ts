@@ -4,32 +4,30 @@
  * Run: npx tsx scripts/generate-filters.ts
  */
 
-import { createGraphQLSchema, createQuery } from "@shopana/drizzle-query";
-import { warehouses, warehouseStock } from "../src/repositories/models/stock.js";
+import { createGraphQLSchema } from "@shopana/drizzle-query";
+import { stockRelayQuery } from "../src/repositories/stock/StockRepository.js";
+import { warehouseRelayQuery } from "../src/repositories/warehouse/WarehouseRepository.js";
 
 const OUTPUT_DIR = "src/api/graphql-admin/schema/__generated__";
 
-// Query builders
-const warehouseQuery = createQuery(warehouses);
-const warehouseStockQuery = createQuery(warehouseStock);
-
 // Generate .graphql files
 createGraphQLSchema({
-  // Base types (StringFilter, IntFilter, etc.)
+  // Base types (StringFilter, IntFilter, etc.) - separate file
   baseTypesOutput: `${OUTPUT_DIR}/base-filters.graphql`,
 
-  // Query-specific types
+  // All query types in a single file
+  output: `${OUTPUT_DIR}/filters.graphql`,
+
+  // Query definitions
   queries: {
     Warehouse: {
-      query: warehouseQuery,
-      output: `${OUTPUT_DIR}/warehouse-filters.graphql`,
+      query: warehouseRelayQuery,
       options: {
         excludeFields: ["projectId"],
       },
     },
     WarehouseStock: {
-      query: warehouseStockQuery,
-      output: `${OUTPUT_DIR}/warehouse-stock-filters.graphql`,
+      query: stockRelayQuery,
       options: {
         excludeFields: ["projectId"],
       },
@@ -39,8 +37,5 @@ createGraphQLSchema({
   options: {
     includeDescriptions: true,
   },
-  includeDateTimeScalar: false, // DateTime is defined in base.graphql
-  includeRelayInputs: true,
-  includeQueryInputs: false,
-  includeSortOrderEnums: false,
+  includeDateTimeScalar: false,
 });
