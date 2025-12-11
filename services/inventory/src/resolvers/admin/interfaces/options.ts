@@ -1,5 +1,6 @@
 /**
- * Options interface types
+ * Options interface types - simple value types only
+ * Main Option and OptionValue types are derived from resolvers in derived.ts
  */
 
 /** Display type for product options in the UI */
@@ -24,36 +25,6 @@ export interface ProductOptionSwatch {
   fileId: string | null;
   /** Additional metadata for the swatch */
   metadata: Record<string, unknown> | null;
-}
-
-/**
- * A value for a product option, such as "Red" for Color or "Large" for Size
- */
-export interface ProductOptionValue {
-  /** UUID of the option value */
-  id: string;
-  /** The URL-friendly identifier for this value */
-  slug: string;
-  /** Display name */
-  name: string;
-  /** The visual swatch for this value (if applicable) */
-  swatch: ProductOptionSwatch | null;
-}
-
-/**
- * A product option defines a configurable aspect of a product, such as Size or Color
- */
-export interface Option {
-  /** UUID of the option */
-  id: string;
-  /** The URL-friendly identifier for this option */
-  slug: string;
-  /** Display name */
-  name: string;
-  /** The display type for UI rendering */
-  displayType: OptionDisplayType;
-  /** The available values for this option */
-  values: ProductOptionValue[];
 }
 
 /**

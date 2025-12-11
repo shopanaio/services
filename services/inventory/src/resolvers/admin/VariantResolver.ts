@@ -8,10 +8,7 @@ import type {
   WarehouseStock,
 } from "./interfaces/index.js";
 import type { Variant } from "../../repositories/models/index.js";
-import type {
-  VariantCostHistoryArgs,
-  VariantPriceHistoryArgs,
-} from "./args.js";
+import type { PricingCursorInput } from "../../repositories/pricing/PricingRepository.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
 import type { ServiceContext } from "../../context/types.js";
 
@@ -109,7 +106,7 @@ export class VariantResolver extends BaseType<
    * Returns price history IDs for this variant
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async priceHistory(args: VariantPriceHistoryArgs): Promise<string[]> {
+  async priceHistory(args: PricingCursorInput): Promise<string[]> {
     const services = this.ctx.kernel.getServices();
     return services.repository.pricingQuery.getIdsByVariantId(this.value, args);
   }
@@ -121,7 +118,7 @@ export class VariantResolver extends BaseType<
    * Returns cost history IDs for this variant
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async costHistory(_args?: VariantCostHistoryArgs): Promise<string[]> {
+  async costHistory(_args?: PricingCursorInput): Promise<string[]> {
     // Cost loader not implemented yet
     return [];
   }

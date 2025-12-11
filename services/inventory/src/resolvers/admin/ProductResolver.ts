@@ -1,7 +1,7 @@
 import { BaseType } from "@shopana/type-resolver";
 import type { Description } from "./interfaces/product.js";
 import type { Product } from "../../repositories/models/index.js";
-import type { ProductVariantsArgs } from "./args.js";
+import type { VariantCursorInput } from "../../repositories/variant/VariantRepository.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
 import { VariantResolver } from "./VariantResolver.js";
@@ -101,7 +101,7 @@ export class ProductResolver extends BaseType<
    * Returns variant IDs for this product
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async variants(args: ProductVariantsArgs): Promise<string[]> {
+  async variants(args: VariantCursorInput): Promise<string[]> {
     const services = this.ctx.kernel.getServices();
     return services.repository.variantQuery.getIdsByProductId(this.value, args);
   }

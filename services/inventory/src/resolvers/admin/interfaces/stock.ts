@@ -1,22 +1,9 @@
 /**
- * Stock interface types
+ * Stock interface types - simple value types only
+ * Main Warehouse type is derived from WarehouseResolver in derived.ts
  */
 
 import type { Timestamps } from "./common.js";
-
-/**
- * A warehouse represents a physical location where inventory is stored
- */
-export interface Warehouse extends Timestamps {
-  /** UUID of the warehouse */
-  id: string;
-  /** The unique code identifying this warehouse */
-  code: string;
-  /** The display name of the warehouse */
-  name: string;
-  /** Whether this is the default warehouse for the project */
-  isDefault: boolean;
-}
 
 /**
  * Represents stock level for a variant in a specific warehouse
