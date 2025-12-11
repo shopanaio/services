@@ -53,6 +53,25 @@ export function encode(params: CursorParams): string {
   return base64UrlEncode(json);
 }
 
+// Date string patterns:
+// - ISO 8601: 2025-12-11T12:21:30.992Z or 2025-12-11T12:21:30Z
+// - Postgres: 2025-12-11 12:21:30.992+00 or 2025-12-11 12:21:30+00
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}(?::\d{2})?)$/;
+
+/**
+ * JSON reviver that converts date strings back to Date objects.
+ * Handles both ISO 8601 format and Postgres timestamp format.
+ * This is necessary because cursor values are serialized to JSON,
+ * and when these values are used in WHERE clauses, drizzle-orm expects
+ * Date objects for timestamp columns.
+ */
+function dateReviver(_key: string, value: unknown): unknown {
+  if (typeof value === "string" && DATE_REGEX.test(value)) {
+    return new Date(value);
+  }
+  return value;
+}
+
 export function decode(cursor: string): CursorParams {
   if (!cursor?.trim()) {
     throw new InvalidCursorError("Cursor string is empty");
@@ -67,7 +86,7 @@ export function decode(cursor: string): CursorParams {
 
   let params: CursorParams;
   try {
-    params = JSON.parse(json) as CursorParams;
+    params = JSON.parse(json, dateReviver) as CursorParams;
   } catch (error) {
     throw new InvalidCursorError("Failed to parse cursor JSON", error);
   }

@@ -120,6 +120,17 @@ function normalizeValue(value: unknown): unknown {
     return value.toISOString();
   }
 
+  // Handle Date-like objects that have toISOString but aren't instanceof Date
+  // (can happen with objects from different realms or custom Date wrappers)
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toISOString" in value &&
+    typeof (value as { toISOString: unknown }).toISOString === "function"
+  ) {
+    return (value as { toISOString: () => string }).toISOString();
+  }
+
   if (Array.isArray(value)) {
     return value.map((item) => normalizeValue(item));
   }

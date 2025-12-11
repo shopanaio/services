@@ -221,8 +221,10 @@ export function createBaseCursorBuilder<
     // Merge WHERE conditions
     const where = mergeWhere(input.where, cursorWhere);
 
-    // Determine if order needs inversion (backward without cursor = get last N)
-    const invertOrderFlag = !isForward && !input.cursor;
+    // Determine if order needs inversion:
+    // - backward without cursor: invert to get last N items
+    // - backward with cursor: invert to get items BEFORE the cursor
+    const invertOrderFlag = !isForward;
 
     // Build ORDER
     const order = buildOrderPath(sortParams, invertOrderFlag) as OrderByItem<
@@ -296,7 +298,8 @@ export function createBaseCursorBuilder<
       // Trim to requested limit
       let items = hasMore ? rows.slice(0, prepared.limit) : rows;
 
-      // Reverse if order was inverted (backward without cursor)
+      // Reverse if order was inverted (all backward pagination)
+      // This restores the original sort order for the response
       if (prepared.invertOrderFlag) {
         items = [...items].reverse();
       }

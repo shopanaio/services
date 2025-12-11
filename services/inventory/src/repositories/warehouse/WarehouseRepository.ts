@@ -168,10 +168,26 @@ export class WarehouseRepository extends BaseRepository {
       order: order ?? [{ field: "createdAt", order: "desc" }],
     };
 
-    const [result, totalCount] = await Promise.all([
-      warehouseRelayQuery.execute(this.connection, executeInput),
-      this.count(),
-    ]);
+    console.log("[WarehouseRepository.getConnection] executeInput:", JSON.stringify(executeInput, null, 2));
+
+    let result;
+    let totalCount;
+    try {
+      [result, totalCount] = await Promise.all([
+        warehouseRelayQuery.execute(this.connection, executeInput),
+        this.count(),
+      ]);
+    } catch (err) {
+      console.error("[WarehouseRepository.getConnection] ERROR:", err);
+      throw err;
+    }
+
+    console.log("[WarehouseRepository.getConnection] result edges count:", result.edges.length);
+    if (result.edges.length > 0) {
+      console.log("[WarehouseRepository.getConnection] first edge node:", JSON.stringify(result.edges[0].node));
+      console.log("[WarehouseRepository.getConnection] createdAt type:", typeof result.edges[0].node.createdAt);
+      console.log("[WarehouseRepository.getConnection] createdAt instanceof Date:", result.edges[0].node.createdAt instanceof Date);
+    }
 
     return {
       edges: result.edges.map((edge) => ({
