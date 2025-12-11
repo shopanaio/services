@@ -27,10 +27,9 @@ class ProductType extends BaseType<{ id: string; title: string; price: number }>
   price() { return this.value.price; }
 }
 
-// 2. Resolve only requested fields via static methods
+// 2. Resolve only requested fields
 const result = await ProductType.load(product, {
-  id: {},
-  title: {},
+  fields: ["id", "title"],
 }, ctx);
 // => { id: "p1", title: "iPhone" }
 // Note: price() was NOT called
@@ -38,16 +37,28 @@ const result = await ProductType.load(product, {
 
 ## Core Concepts
 
-### Field Selection
+### QueryArgs Format
 
-Pass a `fieldArgs` object to specify which fields to resolve:
+The query format uses `fields` for scalar fields and `populate` for relations:
 
 ```ts
-// Request specific fields
+type QueryArgs = {
+  fields?: string[];              // scalar fields to resolve
+  populate?: {                    // relation fields with nested structure
+    [fieldName: string]: QueryArgs;
+  };
+  args?: unknown;                 // arguments for resolver method
+  fieldName?: string;             // alias support (actual method name)
+};
+```
+
+### Field Selection
+
+```ts
+// Request specific scalar fields
 const result = await ProductType.load(product, {
-  id: {},      // resolve id()
-  title: {},   // resolve title()
-  // price not requested - won't be resolved
+  fields: ["id", "title"],
+  // price not in fields - won't be resolved
 }, ctx);
 ```
 
@@ -69,18 +80,16 @@ class ProductType extends BaseType<{ id: string }> {
   id() { return this.value.id; }
 
   async variants() {
-    // Return array of variant data - resolver will resolve each through VariantType
     return [{ id: "v1", sku: "SKU-1" }, { id: "v2", sku: "SKU-2" }];
   }
 }
 
-// Request nested fields using `children`
+// Request nested fields using `populate`
 const result = await ProductType.load(product, {
-  id: {},
-  variants: {
-    children: {
-      id: {},
-      sku: {},
+  fields: ["id"],
+  populate: {
+    variants: {
+      fields: ["id", "sku"],
     },
   },
 }, ctx);
@@ -89,42 +98,45 @@ const result = await ProductType.load(product, {
 
 ### Arguments
 
-Pass arguments to resolver methods:
+Pass arguments to resolver methods via `args`:
 
 ```ts
 class ProductType extends BaseType<{ id: string }> {
-  variants(args?: { first?: number; after?: string }) {
+  variants(args?: { first?: number; where?: object }) {
     const limit = args?.first ?? 10;
-    // fetch variants with pagination...
-    return fetchVariants(this.value.id, { limit, after: args?.after });
+    return fetchVariants(this.value.id, { limit, where: args?.where });
   }
 }
 
 const result = await ProductType.load(product, {
-  variants: {
-    args: { first: 5 },
-    children: { id: {}, sku: {} },
+  populate: {
+    variants: {
+      args: { first: 5, where: { isPublished: true } },
+      fields: ["id", "sku"],
+    },
   },
 }, ctx);
 ```
 
 ### Aliases
 
-Request the same field multiple times with different arguments:
+Request the same field multiple times with different arguments using `fieldName`:
 
 ```ts
 const result = await ProductType.load(product, {
-  // First alias: get 3 variants, only sku
-  preview: {
-    fieldName: "variants",  // actual method name
-    args: { first: 3 },
-    children: { sku: {} },
-  },
-  // Second alias: get all variants with full details
-  allVariants: {
-    fieldName: "variants",
-    args: { first: 100 },
-    children: { id: {}, sku: {}, price: {} },
+  populate: {
+    // First alias: get 3 variants, only sku
+    preview: {
+      fieldName: "variants",  // actual method name
+      args: { first: 3 },
+      fields: ["sku"],
+    },
+    // Second alias: get all variants with full details
+    allVariants: {
+      fieldName: "variants",
+      args: { first: 100 },
+      fields: ["id", "sku", "price"],
+    },
   },
 }, ctx);
 
@@ -132,6 +144,31 @@ const result = await ProductType.load(product, {
 //   preview: [{ sku: "SKU-1" }, { sku: "SKU-2" }, { sku: "SKU-3" }],
 //   allVariants: [{ id: "v1", sku: "SKU-1", price: 100 }, ...]
 // }
+```
+
+### Deep Nesting (3+ levels)
+
+```ts
+const result = await ProductType.load(product, {
+  fields: ["id"],
+  populate: {
+    variants: {
+      args: { first: 10 },
+      fields: ["id", "sku"],
+      populate: {
+        stock: {
+          args: { where: { quantity: { _gt: 0 } } },
+          fields: ["quantity"],
+          populate: {
+            warehouse: {
+              fields: ["id", "name"],
+            },
+          },
+        },
+      },
+    },
+  },
+}, ctx);
 ```
 
 ## BaseType
@@ -161,15 +198,15 @@ class ProductType extends BaseType<string, Product, MyContext> {
 }
 
 // Load single item
-const product = await ProductType.load(productId, fieldArgs, ctx);
+const product = await ProductType.load(productId, query, ctx);
 
 // Load multiple items
-const products = await ProductType.loadMany(productIds, fieldArgs, ctx);
+const products = await ProductType.loadMany(productIds, query, ctx);
 ```
 
 ## Integration with GraphQL
 
-The package includes a utility to convert GraphQL queries to fieldArgs:
+The package includes a utility to convert GraphQL queries to QueryArgs:
 
 ```ts
 import { parseGraphqlInfo } from "@shopana/type-resolver";
@@ -178,8 +215,18 @@ import { parseGraphqlInfo } from "@shopana/type-resolver";
 const resolvers = {
   Query: {
     product: async (_, { id }, context, info) => {
-      const fieldArgs = parseGraphqlInfo(info, ProductType);
-      return ProductType.load(id, fieldArgs, context);
+      const query = parseGraphqlInfo(info);
+      return ProductType.load(id, query, context);
+    },
+  },
+  Mutation: {
+    createProduct: async (_, { input }, context, info) => {
+      const product = await createProduct(input);
+      // Extract fields for nested "product" field in payload
+      const query = parseGraphqlInfo(info, "product");
+      return {
+        product: await ProductType.load(product.id, query, context),
+      };
     },
   },
 };
@@ -200,7 +247,7 @@ class BaseType<TValue, TData = TValue, TContext = unknown> {
   static load<T extends TypeClass>(
     this: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs: FieldArgsTreeFor<T> | undefined,
+    query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<TypeResult<T>>;
 
@@ -208,30 +255,30 @@ class BaseType<TValue, TData = TValue, TContext = unknown> {
   static loadMany<T extends TypeClass>(
     this: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs: FieldArgsTreeFor<T> | undefined,
+    query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<TypeResult<T>[]>;
 }
 ```
 
-### FieldArgsNode
+### QueryArgs
 
 ```ts
-interface FieldArgsNode {
-  fieldName?: string;  // actual method name (for aliases)
-  args?: unknown;      // arguments to pass to resolver
-  children?: Record<string, FieldArgsNode>;  // nested field selections
-}
+type QueryArgs<TArgs = unknown> = {
+  fields?: string[];                      // scalar fields to resolve
+  populate?: Record<string, QueryArgs>;   // relation fields
+  args?: TArgs;                           // arguments for resolver method
+  fieldName?: string;                     // alias support
+};
 ```
 
 ## TypeScript Types
 
 ```ts
 import type {
-  TypeClass,        // Constructor interface for type classes
-  TypeResult,       // Inferred result type from TypeClass
-  FieldArgsTreeFor, // Typed fieldArgs for a TypeClass
-  FieldArgsNode,    // Single field node in args tree
-  ResolverKeys,     // Union of resolver method names
+  TypeClass,      // Constructor interface for type classes
+  TypeResult,     // Inferred result type from TypeClass
+  QueryArgs,      // Query arguments for selective resolution
+  ResolverKeys,   // Union of resolver method names
 } from "@shopana/type-resolver";
 ```
