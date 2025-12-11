@@ -1,4 +1,4 @@
-import { parseGraphqlInfo } from "@shopana/type-executor";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { Resolvers, Product } from "../../generated/types.js";
 import {
   ProductCreateScript,

@@ -1,5 +1,5 @@
 import type { GraphQLResolveInfo } from "graphql";
-import { parseGraphqlInfo } from "@shopana/type-executor";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../../context/index.js";
 import {
   ProductView,

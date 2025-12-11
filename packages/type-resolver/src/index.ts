@@ -1,8 +1,8 @@
-// Load functions
-export { load, loadMany, ResolverError } from "./executor.js";
-
-// Base type
+// Base type (use Type.load() and Type.loadMany() static methods)
 export { BaseType } from "./baseType.js";
+
+// Error type
+export { ResolverError } from "./executor.js";
 
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";

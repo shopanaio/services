@@ -2,7 +2,7 @@ import {
   decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import { parseGraphqlInfo } from "@shopana/type-executor";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
 import {
   variantCreate,
   variantDelete,

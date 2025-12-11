@@ -1,4 +1,4 @@
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 import type { ProductFeature } from "../../repositories/models/index.js";
 import { FeatureValueView } from "./FeatureValueView.js";
 

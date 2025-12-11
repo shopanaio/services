@@ -1,4 +1,4 @@
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 import type { ProductOption } from "../../repositories/models/index.js";
 import type { OptionDisplayType } from "./interfaces/index.js";
 import { OptionValueView } from "./OptionValueView.js";

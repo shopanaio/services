@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/type-executor",
+  "name": "@shopana/type-resolver",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -19,7 +19,9 @@
   },
   "typesVersions": {
     "*": {
-      "graphql": ["./dist/utils/graphqlArgsParser.d.ts"]
+      "graphql": [
+        "./dist/utils/graphqlArgsParser.d.ts"
+      ]
     }
   },
   "files": [
@@ -34,7 +36,7 @@
     "test:watch": "vitest"
   },
   "keywords": [
-    "type-executor",
+    "type-resolver",
     "graphql",
     "resolver",
     "typescript",

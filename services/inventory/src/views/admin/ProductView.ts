@@ -1,4 +1,4 @@
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 import type { Description } from "./interfaces/product.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { ProductVariantsArgs } from "./args.js";

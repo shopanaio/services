@@ -1,4 +1,4 @@
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 import type { ItemPricing } from "../../repositories/models/index.js";
 import type { CurrencyCode } from "./interfaces/index.js";
 

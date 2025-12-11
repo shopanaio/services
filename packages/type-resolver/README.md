@@ -1,4 +1,4 @@
-# Type Executor
+# Type Resolver
 
 A GraphQL-like data resolution system using TypeScript classes. Resolves only requested fields, supports aliases, nested types, and parallel execution.
 
@@ -12,31 +12,26 @@ A GraphQL-like data resolution system using TypeScript classes. Resolves only re
 ## Installation
 
 ```bash
-yarn add @shopana/type-executor
+yarn add @shopana/type-resolver
 ```
 
 ## Quick Start
 
 ```ts
-import { Executor } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 
 // 1. Define a type class
-class ProductType {
-  constructor(public value: { id: string; title: string; price: number }) {}
-
+class ProductType extends BaseType<{ id: string; title: string; price: number }> {
   id() { return this.value.id; }
   title() { return this.value.title; }
   price() { return this.value.price; }
 }
 
-// 2. Create executor
-const executor = new Executor();
-
-// 3. Resolve only requested fields
-const result = await executor.resolve(ProductType, product, {
+// 2. Resolve only requested fields via static methods
+const result = await ProductType.load(product, {
   id: {},
   title: {},
-});
+}, ctx);
 // => { id: "p1", title: "iPhone" }
 // Note: price() was NOT called
 ```
@@ -49,18 +44,11 @@ Pass a `fieldArgs` object to specify which fields to resolve:
 
 ```ts
 // Request specific fields
-const result = await executor.resolve(ProductType, product, {
+const result = await ProductType.load(product, {
   id: {},      // resolve id()
   title: {},   // resolve title()
   // price not requested - won't be resolved
-});
-```
-
-**If no `fieldArgs` passed, returns empty object:**
-
-```ts
-const empty = await executor.resolve(ProductType, product);
-// => {}
+}, ctx);
 ```
 
 ### Nested Types
@@ -68,29 +56,26 @@ const empty = await executor.resolve(ProductType, product);
 Use `static fields` to define nested type relationships:
 
 ```ts
-class VariantType {
-  constructor(public value: { id: string; sku: string }) {}
+class VariantType extends BaseType<{ id: string; sku: string }> {
   id() { return this.value.id; }
   sku() { return this.value.sku; }
 }
 
-class ProductType {
+class ProductType extends BaseType<{ id: string }> {
   static fields = {
     variants: () => VariantType,  // variants resolves to VariantType[]
   };
 
-  constructor(public value: { id: string }) {}
-
   id() { return this.value.id; }
 
   async variants() {
-    // Return array of variant data - executor will resolve each through VariantType
+    // Return array of variant data - resolver will resolve each through VariantType
     return [{ id: "v1", sku: "SKU-1" }, { id: "v2", sku: "SKU-2" }];
   }
 }
 
 // Request nested fields using `children`
-const result = await executor.resolve(ProductType, product, {
+const result = await ProductType.load(product, {
   id: {},
   variants: {
     children: {
@@ -98,7 +83,7 @@ const result = await executor.resolve(ProductType, product, {
       sku: {},
     },
   },
-});
+}, ctx);
 // => { id: "p1", variants: [{ id: "v1", sku: "SKU-1" }, { id: "v2", sku: "SKU-2" }] }
 ```
 
@@ -107,9 +92,7 @@ const result = await executor.resolve(ProductType, product, {
 Pass arguments to resolver methods:
 
 ```ts
-class ProductType {
-  constructor(public value: { id: string }) {}
-
+class ProductType extends BaseType<{ id: string }> {
   variants(args?: { first?: number; after?: string }) {
     const limit = args?.first ?? 10;
     // fetch variants with pagination...
@@ -117,12 +100,12 @@ class ProductType {
   }
 }
 
-const result = await executor.resolve(ProductType, product, {
+const result = await ProductType.load(product, {
   variants: {
     args: { first: 5 },
     children: { id: {}, sku: {} },
   },
-});
+}, ctx);
 ```
 
 ### Aliases
@@ -130,7 +113,7 @@ const result = await executor.resolve(ProductType, product, {
 Request the same field multiple times with different arguments:
 
 ```ts
-const result = await executor.resolve(ProductType, product, {
+const result = await ProductType.load(product, {
   // First alias: get 3 variants, only sku
   preview: {
     fieldName: "variants",  // actual method name
@@ -143,7 +126,7 @@ const result = await executor.resolve(ProductType, product, {
     args: { first: 100 },
     children: { id: {}, sku: {}, price: {} },
   },
-});
+}, ctx);
 
 // => {
 //   preview: [{ sku: "SKU-1" }, { sku: "SKU-2" }, { sku: "SKU-3" }],
@@ -156,15 +139,15 @@ const result = await executor.resolve(ProductType, product, {
 Convenience base class with lazy data loading:
 
 ```ts
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 
-class ProductType extends BaseType<string, Product> {
+class ProductType extends BaseType<string, Product, MyContext> {
   // value = product ID
   // data = loaded Product entity (lazy)
 
   // Override to load data from ID
   protected async loadData(): Promise<Product> {
-    return productsLoader.load(this.value);
+    return this.ctx.loaders.products.load(this.value);
   }
 
   async id() {
@@ -176,21 +159,12 @@ class ProductType extends BaseType<string, Product> {
     return data.title;
   }
 }
-```
 
-## Error Handling
+// Load single item
+const product = await ProductType.load(productId, fieldArgs, ctx);
 
-Configure error behavior with `onError` option:
-
-```ts
-// Default: throw errors
-const executor = new Executor();
-
-// Return null for failed fields
-const nullExecutor = new Executor({ onError: "null" });
-
-// Return { __error: message } for failed fields
-const partialExecutor = new Executor({ onError: "partial" });
+// Load multiple items
+const products = await ProductType.loadMany(productIds, fieldArgs, ctx);
 ```
 
 ## Integration with GraphQL
@@ -198,16 +172,14 @@ const partialExecutor = new Executor({ onError: "partial" });
 The package includes a utility to convert GraphQL queries to fieldArgs:
 
 ```ts
-import { parseGraphQLInfo, parseGraphQLInfoDeep } from "@shopana/type-executor/graphql";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
 
 // In GraphQL resolver
 const resolvers = {
   Query: {
     product: async (_, { id }, context, info) => {
-      // parseGraphQLInfo - uses direct fields from TypeClass
-      // parseGraphQLInfoDeep - traverses full type hierarchy (for deep nesting)
-      const fieldArgs = parseGraphQLInfoDeep(info, ProductType);
-      return executor.resolve(ProductType, id, fieldArgs);
+      const fieldArgs = parseGraphqlInfo(info, ProductType);
+      return ProductType.load(id, fieldArgs, context);
     },
   },
 };
@@ -218,35 +190,27 @@ const resolvers = {
 yarn add graphql graphql-parse-resolve-info
 ```
 
-**Features:**
-- Converts GraphQL selection sets to fieldArgs
-- Handles aliases (adds `fieldName`)
-- Handles fragments (via `graphql-parse-resolve-info`)
-- Handles union/interface types (merges fields from all types)
-
 ## API Reference
 
-### Executor
+### BaseType Static Methods
 
 ```ts
-class Executor {
-  constructor(options?: ExecutorOptions);
-
-  resolve<T extends TypeClass>(
-    Type: T,
+class BaseType<TValue, TData = TValue, TContext = unknown> {
+  // Load and resolve a single value
+  static load<T extends TypeClass>(
+    this: T,
     value: ConstructorParameters<T>[0],
-    fieldArgs?: FieldArgsTreeFor<T>
-  ): Promise<Record<string, unknown>>;
+    fieldArgs: FieldArgsTreeFor<T> | undefined,
+    ctx: TypeContext<T>
+  ): Promise<TypeResult<T>>;
 
-  resolveMany<T extends TypeClass>(
-    Type: T,
+  // Load and resolve multiple values
+  static loadMany<T extends TypeClass>(
+    this: T,
     values: ConstructorParameters<T>[0][],
-    fieldArgs?: FieldArgsTreeFor<T>
-  ): Promise<Record<string, unknown>[]>;
-}
-
-interface ExecutorOptions {
-  onError?: "throw" | "null" | "partial";
+    fieldArgs: FieldArgsTreeFor<T> | undefined,
+    ctx: TypeContext<T>
+  ): Promise<TypeResult<T>[]>;
 }
 ```
 
@@ -269,5 +233,5 @@ import type {
   FieldArgsTreeFor, // Typed fieldArgs for a TypeClass
   FieldArgsNode,    // Single field node in args tree
   ResolverKeys,     // Union of resolver method names
-} from "@shopana/type-executor";
+} from "@shopana/type-resolver";
 ```

@@ -1,4 +1,4 @@
-import { parseGraphqlInfo } from "@shopana/type-executor";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
 import {
   warehouseCreate,
   warehouseDelete,

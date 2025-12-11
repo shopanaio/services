@@ -1,4 +1,4 @@
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import type { Warehouse } from "../../repositories/models/index.js";
 
@@ -12,20 +12,10 @@ export class WarehouseView extends BaseType<
   ServiceContext
 > {
   async loadData() {
-    console.log(
-      "[WarehouseView.loadData] Loading warehouse with id:",
-      this.value
-    );
-    const result = await this.ctx.loaders.warehouse.load(this.value);
-    console.log(
-      "[WarehouseView.loadData] Loaded result:",
-      JSON.stringify(result)
-    );
-    return result;
+    return await this.ctx.loaders.warehouse.load(this.value);
   }
 
   id() {
-    console.log("[WarehouseView.id] Returning id:", this.value);
     return this.value;
   }
 

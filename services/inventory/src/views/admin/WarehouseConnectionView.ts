@@ -1,5 +1,5 @@
 import { type PageInfo } from "@shopana/drizzle-query";
-import { BaseType } from "@shopana/type-executor";
+import { BaseType } from "@shopana/type-resolver";
 import type { InventoryQueryWarehousesArgs } from "../../api/graphql-admin/generated/types.js";
 import type { ServiceContext } from "../../context/types.js";
 import { WarehouseView } from "./WarehouseView.js";
