@@ -1,0 +1,20 @@
+import type { ProductRelayInput } from "../../repositories/product/ProductRepository.js";
+import { ProductResolver } from "./ProductResolver.js";
+import {
+  BaseConnectionResolver,
+  type ConnectionData,
+} from "./connection/BaseConnectionResolver.js";
+
+/**
+ * ProductConnection - resolves paginated product list
+ * Uses cursor-based pagination with Relay-style Connection spec
+ */
+export class ProductConnectionResolver extends BaseConnectionResolver<ProductRelayInput> {
+  static node = () => ProductResolver;
+
+  async loadData(): Promise<ConnectionData> {
+    return this.ctx.kernel
+      .getServices()
+      .repository.product.getConnection(this.value);
+  }
+}

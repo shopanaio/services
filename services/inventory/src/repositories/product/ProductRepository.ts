@@ -1,6 +1,12 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { createQuery, type InferExecuteOptions } from "@shopana/drizzle-query";
+import {
+  createQuery,
+  createRelayQuery,
+  type PageInfo,
+  type InferExecuteOptions,
+  type InferRelayInput,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   product,
@@ -16,7 +22,19 @@ import {
 
 const productQuery = createQuery(product).maxLimit(100).defaultLimit(20);
 
+export const productRelayQuery = createRelayQuery(
+  createQuery(product).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "product", tieBreaker: "id" }
+);
+
 export type ProductQueryInput = InferExecuteOptions<typeof productQuery>;
+export type ProductRelayInput = InferRelayInput<typeof productRelayQuery>;
+
+export interface ProductConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 export class ProductRepository extends BaseRepository {
   private get locale(): string {
@@ -179,6 +197,55 @@ export class ProductRepository extends BaseRepository {
   }
 
   // ============ Query ============
+
+  async count(): Promise<number> {
+    const result = await this.connection
+      .select({ count: count() })
+      .from(product)
+      .where(
+        and(
+          eq(product.projectId, this.projectId),
+          isNull(product.deletedAt)
+        )
+      );
+    return result[0]?.count ?? 0;
+  }
+
+  async getConnection(args: ProductRelayInput): Promise<ProductConnectionResult> {
+    const { where, order, ...paginationArgs } = args;
+
+    // Merge user-provided where with projectId and deletedAt filters
+    const mergedWhere: ProductRelayInput["where"] = {
+      _and: [
+        { projectId: { _eq: this.projectId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+
+    const executeInput: ProductRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      order: order ?? [
+        { field: "createdAt", order: "desc" },
+        { field: "id", order: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      productRelayQuery.execute(this.connection, executeInput),
+      this.count(),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
 
   async getMany(input?: ProductQueryInput): Promise<Product[]> {
     return productQuery.execute(this.connection, {

@@ -119,4 +119,12 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   async features(): Promise<string[]> {
     return this.ctx.loaders.productFeatureIds.load(this.value);
   }
+
+  /**
+   * Returns the count of variants for this product
+   */
+  async variantsCount(): Promise<number> {
+    const variantIds = await this.ctx.loaders.variantIds.load(this.value);
+    return variantIds.length;
+  }
 }

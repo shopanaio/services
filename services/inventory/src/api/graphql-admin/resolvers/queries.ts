@@ -1,4 +1,5 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import { ProductConnectionResolver } from "../../../resolvers/admin/ProductConnectionResolver";
 import { ProductResolver } from "../../../resolvers/admin/ProductResolver";
 import { VariantResolver } from "../../../resolvers/admin/VariantResolver";
 import { WarehouseConnectionResolver } from "../../../resolvers/admin/WarehouseConnectionResolver";
@@ -37,40 +38,11 @@ export const queryResolvers: Partial<Resolvers> = {
     },
 
     products: async (_parent, args, ctx, info) => {
-      const kernel = requireKernel(ctx);
-
-      const services = kernel.getServices();
-      const first = args.first ?? 10;
-
-      const products = await services.repository.productQuery.getMany({
-        limit: first + 1,
-      });
-
-      const hasNextPage = products.length > first;
-      const resultProducts = hasNextPage ? products.slice(0, first) : products;
-
-      const productIds = resultProducts.map((p) => p.id);
-      const resolvedProducts = await ProductResolver.loadMany(
-        productIds,
+      return ProductConnectionResolver.load(
+        args,
         parseGraphqlInfo(info),
         requireContext(ctx)
       );
-
-      const edges = resolvedProducts.map((product, index) => ({
-        node: product,
-        cursor: Buffer.from(resultProducts[index].id).toString("base64"),
-      }));
-
-      return {
-        edges,
-        pageInfo: {
-          hasNextPage,
-          hasPreviousPage: false,
-          startCursor: edges[0]?.cursor ?? null,
-          endCursor: edges[edges.length - 1]?.cursor ?? null,
-        },
-        totalCount: resultProducts.length,
-      };
     },
 
     variant: async (_parent, { id }, ctx, info) => {
@@ -87,7 +59,7 @@ export const queryResolvers: Partial<Resolvers> = {
       const services = kernel.getServices();
       const first = args.first ?? 10;
 
-      const variants = await services.repository.variantQuery.getMany({
+      const variants = await services.repository.variant.getMany({
         limit: first + 1,
       });
 
