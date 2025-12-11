@@ -12,24 +12,28 @@ const { config: serviceConfig, vars } = loadServiceConfig("inventory");
 const normalizedVars = vars as Record<string, string | undefined>;
 const normalizedConfig = serviceConfig as Record<string, string | undefined>;
 
-const readOptionalConfig = (key: string, source: 'vars' | 'config' = 'vars'): string | undefined => {
-  const record = source === 'vars' ? normalizedVars : normalizedConfig;
+const readOptionalConfig = (
+  key: string,
+  source: "vars" | "config" = "vars"
+): string | undefined => {
+  const record = source === "vars" ? normalizedVars : normalizedConfig;
   const value = record[key];
   if (value === undefined || value === null) {
     return undefined;
   }
   // Convert to string if needed
-  const stringValue = typeof value === 'string' ? value : String(value);
+  const stringValue = typeof value === "string" ? value : String(value);
   const trimmed = stringValue.trim();
   return trimmed.length ? trimmed : undefined;
 };
 
-const readRequiredConfig = (key: string, source: 'vars' | 'config' = 'vars'): string => {
+const readRequiredConfig = (
+  key: string,
+  source: "vars" | "config" = "vars"
+): string => {
   const value = readOptionalConfig(key, source);
   if (!value) {
-    throw new Error(
-      `Missing required configuration value for key: ${key}`
-    );
+    throw new Error(`Missing required configuration value for key: ${key}`);
   }
   return value;
 };
@@ -46,9 +50,7 @@ const parseOptionalBoolean = (
   if (value === "false") {
     return false;
   }
-  throw new Error(
-    `Invalid boolean configuration value: ${value}`
-  );
+  throw new Error(`Invalid boolean configuration value: ${value}`);
 };
 
 export const config = {

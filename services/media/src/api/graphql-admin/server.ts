@@ -11,10 +11,11 @@ import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
 import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { ensureBucketExists, getBucketName } from "../../infrastructure/s3/index.js";
+import { config } from "../../config.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
-import { getServices } from "./services.js";
+import { getServices, initServices } from "./services.js";
 import { createDataLoaders, type DataLoaders } from "./dataloaders.js";
 import { processRequest } from "graphql-upload-minimal";
 
@@ -45,18 +46,44 @@ export async function startServer(serverConfig: ServerConfig) {
   await runMigrations(serverConfig.databaseUrl, serverConfig.migrationsPath);
   console.log("[media] Database migrations completed");
 
+  // Initialize services (repository, etc.)
+  const services = initServices();
+
   // Ensure S3 bucket exists
-  console.log(`[media] Checking S3 bucket '${getBucketName()}'...`);
+  const bucketName = getBucketName();
+  console.log(`[media] Checking S3 bucket '${bucketName}'...`);
   try {
     const created = await ensureBucketExists();
     if (created) {
-      console.log(`[media] S3 bucket '${getBucketName()}' created`);
+      console.log(`[media] S3 bucket '${bucketName}' created`);
     } else {
-      console.log(`[media] S3 bucket '${getBucketName()}' already exists`);
+      console.log(`[media] S3 bucket '${bucketName}' already exists`);
     }
   } catch (error) {
     console.error(`[media] Failed to ensure S3 bucket exists:`, error);
     // Don't fail startup - bucket might be managed externally
+  }
+
+  // Ensure bucket record exists in database (for default/system bucket)
+  console.log(`[media] Checking bucket record in database...`);
+  try {
+    const existingBucket = await services.repository.bucket.findByBucketName(bucketName);
+    if (!existingBucket) {
+      // Create a system-level bucket record with a null-like project_id
+      // Using a fixed UUID for the system project
+      const SYSTEM_PROJECT_ID = "00000000-0000-0000-0000-000000000000";
+      await services.repository.bucket.create(SYSTEM_PROJECT_ID, {
+        bucketName,
+        region: config.storage.region ?? "us-east-1",
+        status: "active",
+        endpointUrl: config.storage.endpoint,
+      });
+      console.log(`[media] Bucket record '${bucketName}' created in database`);
+    } else {
+      console.log(`[media] Bucket record '${bucketName}' already exists in database`);
+    }
+  } catch (error) {
+    console.error(`[media] Failed to ensure bucket record exists:`, error);
   }
 
   const app = fastify({
