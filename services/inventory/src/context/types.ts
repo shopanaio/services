@@ -1,6 +1,6 @@
 import type { CoreProject, CoreUser } from "@shopana/platform-api";
 import type { Kernel } from "../kernel/Kernel.js";
-import type { ProductLoaders } from "../resolvers/admin/context.js";
+import type { Loader } from "../loaders/Loader.js";
 
 /**
  * Unified service context for inventory service
@@ -20,7 +20,7 @@ export interface ServiceContext {
   /** Current currency for pricing */
   currency?: string;
   /** DataLoaders for efficient batched data fetching */
-  loaders: ProductLoaders;
+  loaders: Loader;
   /** Kernel for business logic */
   kernel: Kernel;
 }

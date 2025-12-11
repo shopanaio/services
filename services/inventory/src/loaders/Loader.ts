@@ -1,13 +1,12 @@
 import DataLoader from "dataloader";
-import { VariantLoader } from "./VariantLoader.js";
-import { ProductLoader } from "./ProductLoader.js";
-import { OptionLoader } from "./OptionLoader.js";
-import { FeatureLoader } from "./FeatureLoader.js";
-import { WarehouseLoader } from "./WarehouseLoader.js";
 import type { Repository } from "../repositories/Repository.js";
-import type { ProductLoaders } from "../resolvers/admin/context.js";
+import { FeatureLoader } from "./FeatureLoader.js";
+import { OptionLoader } from "./OptionLoader.js";
+import { ProductLoader } from "./ProductLoader.js";
+import { VariantLoader } from "./VariantLoader.js";
+import { WarehouseLoader } from "./WarehouseLoader.js";
 
-export class Loader implements ProductLoaders {
+export class Loader {
   // Product
   public readonly product;
   public readonly productTranslation;

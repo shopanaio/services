@@ -1,29 +1,13 @@
-import type { InventoryQueryWarehousesArgs } from "../../api/graphql-admin/generated/types.js";
 import { WarehouseResolver } from "./WarehouseResolver.js";
-import {
-  BaseConnectionResolver,
-  BaseEdgeResolver,
-  type ConnectionData,
-} from "./BaseConnectionResolver.js";
-
-// ============ EdgeResolver ============
-
-export class WarehouseEdgeResolver extends BaseEdgeResolver {
-  static fields = {
-    node: () => WarehouseResolver,
-  };
-}
-
-// ============ ConnectionResolver ============
+import { BaseConnectionResolver, type ConnectionData } from "./BaseConnectionResolver.js";
+import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
 
 /**
- * WarehouseConnection view - resolves paginated warehouse list
+ * WarehouseConnection - resolves paginated warehouse list
  * Uses cursor-based pagination with Relay-style Connection spec
  */
-export class WarehouseConnectionResolver extends BaseConnectionResolver<InventoryQueryWarehousesArgs> {
-  static fields = {
-    edges: () => WarehouseEdgeResolver,
-  };
+export class WarehouseConnectionResolver extends BaseConnectionResolver<WarehouseRelayInput> {
+  static node = () => WarehouseResolver;
 
   async loadData(): Promise<ConnectionData> {
     return this.ctx.kernel
