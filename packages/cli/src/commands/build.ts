@@ -2,6 +2,14 @@ import chalk from "chalk";
 import ora from "ora";
 import { execa } from "execa";
 import { findRootDir } from "../utils.js";
+import {
+  buildServices,
+  discoverServices,
+  getServicesDir,
+  printSummary,
+} from "../scripts/build-services.js";
+import { existsSync } from "fs";
+import { join } from "path";
 
 interface BuildOptions {
   service?: string[];
@@ -33,37 +41,31 @@ export async function buildCommand(options: BuildOptions) {
 
   // Build services
   if (!options.packages) {
-    const args = ["scripts/build-services.js"];
+    const allServices = discoverServices();
+
+    // Validate requested services
+    let servicesToBuild = allServices;
 
     if (options.service && options.service.length > 0) {
-      for (const s of options.service) {
-        args.push("-s", s);
+      const invalid = options.service.filter((s) => !allServices.includes(s));
+      if (invalid.length > 0) {
+        console.error(chalk.red(`\n❌ Unknown service(s): ${invalid.join(", ")}`));
+        console.error(chalk.gray(`   Available: ${allServices.join(", ")}`));
+        process.exit(1);
       }
+      servicesToBuild = options.service;
     }
 
-    if (options.parallel) {
-      args.push("--parallel");
-    }
+    console.log(
+      chalk.gray(`\nBuilding ${servicesToBuild.length} service(s)${options.parallel ? " (parallel)" : ""}...`)
+    );
 
-    const servicesSpinner = ora("Building services...").start();
+    const results = await buildServices(servicesToBuild, options.parallel);
 
-    try {
-      const result = await execa("node", args, {
-        cwd: rootDir,
-        stdio: "pipe",
-      });
+    printSummary(results);
 
-      servicesSpinner.succeed("Services built");
-
-      // Show summary
-      const lines = result.stdout.split("\n");
-      const summaryStart = lines.findIndex((l) => l.includes("Built") && l.includes("service"));
-      if (summaryStart !== -1) {
-        console.log(chalk.gray(lines.slice(summaryStart).join("\n")));
-      }
-    } catch (error) {
-      servicesSpinner.fail("Services build failed");
-      console.error(chalk.red((error as Error).message));
+    const failed = results.filter((r) => !r.success);
+    if (failed.length > 0) {
       process.exit(1);
     }
   }

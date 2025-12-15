@@ -13,10 +13,6 @@
   ],
   "packageManager": "yarn@4.10.3",
   "scripts": {
-    "build:packages": "node packages/esbuild.js",
-    "build:services": "node scripts/build-services.js",
-    "build:services:parallel": "node scripts/build-services.js --parallel",
-    "build": "yarn build:packages && yarn build:services",
     "shopana": "tsx packages/cli/src/cli.ts"
   },
   "devDependencies": {

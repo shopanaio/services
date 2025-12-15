@@ -45,7 +45,7 @@ export class BrokerCoreModule {
     };
 
     const rabbitModule = options.rabbitmqUrl
-      ? RabbitMQModule.forRoot(RabbitMQModule, {
+      ? RabbitMQModule.forRoot({
           uri: options.rabbitmqUrl,
           connectionInitOptions: { wait: true },
           exchanges: [

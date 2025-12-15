@@ -23,6 +23,9 @@ ci/dev/repo/
 **/supergraph-*.graphql
 **/supergraph.graphql
 
+# Federation exported subgraph schemas
+federation/schema/
+
 .yarn/*
 !.yarn/patches
 !.yarn/plugins

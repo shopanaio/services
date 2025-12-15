@@ -3730,7 +3730,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphql-tools/utils@npm:^10.0.3, @graphql-tools/utils@npm:^10.10.3, @graphql-tools/utils@npm:^10.11.0, @graphql-tools/utils@npm:^10.5.1, @graphql-tools/utils@npm:^10.5.4, @graphql-tools/utils@npm:^10.8.0, @graphql-tools/utils@npm:^10.8.6":
+"@graphql-tools/utils@npm:^10.0.3, @graphql-tools/utils@npm:^10.10.2, @graphql-tools/utils@npm:^10.10.3, @graphql-tools/utils@npm:^10.11.0, @graphql-tools/utils@npm:^10.5.1, @graphql-tools/utils@npm:^10.5.4, @graphql-tools/utils@npm:^10.8.0, @graphql-tools/utils@npm:^10.8.6":
   version: 10.11.0
   resolution: "@graphql-tools/utils@npm:10.11.0"
   dependencies:
@@ -5859,12 +5859,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/cli@workspace:packages/cli"
   dependencies:
+    "@apollo/subgraph": "npm:^2.9.3"
     "@graphql-hive/cli": "npm:^0.44.2"
+    "@shopana/build-tools": "npm:0.0.1"
     "@types/node": "npm:^20.14.14"
+    "@wundergraph/composition": "npm:^0.49.0"
     chalk: "npm:^5.3.0"
     commander: "npm:^12.1.0"
     esbuild: "npm:^0.24.0"
     execa: "npm:^9.5.1"
+    glob: "npm:^11.0.0"
+    graphql: "npm:^16.9.0"
+    graphql-tag: "npm:^2.12.6"
     ora: "npm:^8.1.0"
     tsx: "npm:^4.20.6"
     typescript: "npm:^5.5.4"
@@ -7903,6 +7909,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@wundergraph/composition@npm:^0.49.0":
+  version: 0.49.0
+  resolution: "@wundergraph/composition@npm:0.49.0"
+  dependencies:
+    "@graphql-tools/merge": "npm:^9.0.0"
+    "@graphql-tools/schema": "npm:^10.0.0"
+    "@graphql-tools/utils": "npm:^10.10.2"
+    core-js: "npm:^3.41.0"
+    graphql: "npm:^16.9.0"
+    lodash: "npm:^4.17.21"
+    pathe: "npm:^1.1.1"
+  checksum: 10/3fe4d27629da317e67921822d0249e87fadc6f48c70a86243a95b5ec6384f507b01e28327caa224bd9a155bd70a56e7c709d229f207eeec81454947f374338db
+  languageName: node
+  linkType: hard
+
 "@zxing/text-encoding@npm:0.9.0":
   version: 0.9.0
   resolution: "@zxing/text-encoding@npm:0.9.0"
@@ -9275,6 +9296,13 @@ __metadata:
   dependencies:
     is-what: "npm:^4.1.8"
   checksum: 10/4c41385a94a1cff6352a954f9b1c05b6bb1b70713a2d31f4c7b188ae7187ce00ddcc9c09bd58d24cd35b67fc6dd84df5954c0be86ea10700ff74e677db3cb09c
+  languageName: node
+  linkType: hard
+
+"core-js@npm:^3.41.0":
+  version: 3.47.0
+  resolution: "core-js@npm:3.47.0"
+  checksum: 10/c02dc6a091c7e6799e3527dc06a428c44bbcff7f8f6ee700ff818b90aa2ebaf1f17b0234146e692811da97cda5a39a6095ecadec9fd1a74b1135103eb0e96cb1
   languageName: node
   linkType: hard
 
@@ -14369,7 +14397,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pathe@npm:^1.1.2":
+"pathe@npm:^1.1.1, pathe@npm:^1.1.2":
   version: 1.1.2
   resolution: "pathe@npm:1.1.2"
   checksum: 10/f201d796351bf7433d147b92c20eb154a4e0ea83512017bf4ec4e492a5d6e738fb45798be4259a61aa81270179fce11026f6ff0d3fa04173041de044defe9d80
