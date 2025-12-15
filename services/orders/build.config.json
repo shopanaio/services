@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schemas/build.config.schema.json",
+  "entryPoint": "src/orders.module.ts",
+  "assets": [
+    {
+      "include": "src/interfaces/gql-admin-api/schema/**/*.graphql",
+      "outDir": "dist/schema/admin"
+    },
+    {
+      "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "outDir": "dist/schema/storefront"
+    }
+  ]
+}

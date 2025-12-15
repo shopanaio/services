@@ -1,0 +1,4 @@
+{
+  "$schema": "../../schemas/build.config.schema.json",
+  "entryPoint": "src/payments.module.ts"
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Shopana Service Build Config",
+  "type": "object",
+  "properties": {
+    "entryPoint": {
+      "type": "string",
+      "description": "Entry point file (e.g., src/checkout.module.ts)",
+      "default": "src/main.ts"
+    },
+    "outFile": {
+      "type": "string",
+      "description": "Output file path. If not specified, derived from service name"
+    },
+    "assets": {
+      "type": "array",
+      "description": "Assets to copy to dist folder",
+      "items": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "string",
+            "description": "Glob pattern for files to include (e.g., src/**/*.graphql)"
+          },
+          "exclude": {
+            "type": "string",
+            "description": "Glob pattern for files to exclude"
+          },
+          "outDir": {
+            "type": "string",
+            "description": "Output directory relative to service root (e.g., dist/schema)"
+          },
+          "flatten": {
+            "type": "boolean",
+            "description": "Flatten directory structure (copy all files to outDir root)",
+            "default": true
+          }
+        },
+        "required": ["include", "outDir"]
+      }
+    }
+  },
+  "required": ["entryPoint"]
+}

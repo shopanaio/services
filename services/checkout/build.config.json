@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/build.config.schema.json",
+  "entryPoint": "src/checkout.module.ts",
+  "assets": [
+    {
+      "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    }
+  ]
+}
