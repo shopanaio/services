@@ -19,16 +19,16 @@ import {
 const rootDir = findRootDir();
 const servicesDir = getServicesDir();
 
-// Find services with build.config.json (exclude orchestrator)
+// Find services with build.config.json (exclude bootstrap)
 const services = discoverServices().filter(
   (name) =>
     existsSync(join(servicesDir, name, "build.config.json")) &&
-    name !== "orchestrator"
+    name !== "bootstrap"
 );
 
 // Track rebuild state
 const rebuilding = new Map<string, boolean>();
-let orchestratorProcess: ChildProcess | null = null;
+let bootstrapProcess: ChildProcess | null = null;
 let restartTimeout: NodeJS.Timeout | null = null;
 
 async function rebuildService(service: string): Promise<boolean> {
@@ -41,16 +41,16 @@ async function rebuildService(service: string): Promise<boolean> {
   return result.success;
 }
 
-function startOrchestrator() {
-  if (orchestratorProcess) {
-    orchestratorProcess.kill();
+function startBootstrap() {
+  if (bootstrapProcess) {
+    bootstrapProcess.kill();
   }
 
-  console.log("\n🚀 Starting orchestrator...\n");
+  console.log("\n🚀 Starting bootstrap...\n");
 
-  const orchestratorDir = join(servicesDir, "orchestrator");
-  orchestratorProcess = spawn("node", ["dist/main.js"], {
-    cwd: orchestratorDir,
+  const bootstrapDir = join(servicesDir, "bootstrap");
+  bootstrapProcess = spawn("node", ["dist/main.js"], {
+    cwd: bootstrapDir,
     stdio: "inherit",
   });
 }
@@ -66,7 +66,7 @@ function scheduleRestart() {
         return;
       }
     }
-    startOrchestrator();
+    startBootstrap();
   }, 500);
 }
 
@@ -89,17 +89,17 @@ export async function runDev(singleService?: string) {
     return;
   }
 
-  // Full orchestrator mode
+  // Full bootstrap mode
   console.log("Building all services...\n");
 
   // Initial build
   await buildServices(services, true);
-  await buildService("orchestrator");
+  await buildService("bootstrap");
 
   console.log("\n✓ All services built\n");
 
-  // Start orchestrator
-  startOrchestrator();
+  // Start bootstrap
+  startBootstrap();
 
   // Watch each service
   for (const service of services) {
@@ -117,14 +117,14 @@ export async function runDev(singleService?: string) {
     });
   }
 
-  // Watch orchestrator
-  const orchestratorSrc = join(servicesDir, "orchestrator", "src");
-  watch(orchestratorSrc, { recursive: true }, async (_event, filename) => {
+  // Watch bootstrap
+  const bootstrapSrc = join(servicesDir, "bootstrap", "src");
+  watch(bootstrapSrc, { recursive: true }, async (_event, filename) => {
     if (!filename) return;
     if (filename.endsWith(".test.ts") || filename.endsWith(".spec.ts")) return;
     if (!/\.(ts|js|json)$/.test(filename)) return;
 
-    const built = await rebuildService("orchestrator");
+    const built = await rebuildService("bootstrap");
     if (built) scheduleRestart();
   });
 
@@ -132,7 +132,7 @@ export async function runDev(singleService?: string) {
 
   // Handle shutdown
   process.on("SIGINT", () => {
-    if (orchestratorProcess) orchestratorProcess.kill();
+    if (bootstrapProcess) bootstrapProcess.kill();
     process.exit();
   });
 }
