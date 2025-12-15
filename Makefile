@@ -1,7 +1,7 @@
 .SILENT:
 
-.PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:orchestrator
-.PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps docker\:build-orchestrator
+.PHONY: apollo\:storefront apollo\:admin build\:packages dev\:checkout dev\:apps dev\:inventory dev\:pricing dev\:shipping dev\:orders dev\:bootstrap
+.PHONY: docker\:build docker\:build-checkout docker\:build-orders docker\:build-payments docker\:build-delivery docker\:build-inventory docker\:build-pricing docker\:build-apps docker\:build-bootstrap
 .PHONY: network network-create db-up db-down nats-up nats-down rabbitmq-up rabbitmq-down minio-up minio-down platform-up platform-down services-up services-down infra-up infra-down up down logs status clean
 
 apollo\:storefront:
@@ -43,8 +43,8 @@ dev\:shipping:
 dev\:orders:
 	yarn workspace @shopana/orders-service run dev
 
-dev\:orchestrator:
-	yarn workspace @shopana/orchestrator-service run dev
+dev\:bootstrap:
+	yarn workspace @shopana/bootstrap-service run dev
 
 # Docker build commands
 SERVICE ?= checkout
@@ -80,8 +80,8 @@ docker\:build-pricing:
 docker\:build-apps:
 	@$(MAKE) docker:build SERVICE=apps
 
-docker\:build-orchestrator:
-	@$(MAKE) docker:build SERVICE=orchestrator
+docker\:build-bootstrap:
+	@$(MAKE) docker:build SERVICE=bootstrap
 
 # Network management
 network: network-create
@@ -204,7 +204,7 @@ up: infra-up platform-up services-up
 	@echo "  - PostgreSQL: localhost:5432"
 	@echo "  - MinIO S3: localhost:9000 (Console: localhost:9001)"
 	@echo "  - Platform: localhost:8000 (gRPC: localhost:50051)"
-	@echo "  - Orchestrator Services (in-memory):"
+	@echo "  - Bootstrap (monolith):"
 	@echo "    - Apps: localhost:10001/graphql"
 	@echo "    - Checkout: localhost:10002/graphql"
 	@echo "    - Orders: localhost:10003/graphql"

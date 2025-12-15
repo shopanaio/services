@@ -20,8 +20,8 @@ export interface VarsConfig {
  * Services configuration map
  */
 export type ServicesConfig = {
-  /** Orchestrator service configuration */
-  orchestrator: {
+  /** Bootstrap service configuration */
+  bootstrap: {
     services: string[];
     metrics_port?: number;
   };

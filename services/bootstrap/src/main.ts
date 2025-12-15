@@ -3,21 +3,21 @@ import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import { OrchestratorModule } from './orchestrator.module';
+import { BootstrapModule } from './bootstrap.module';
 import { loadServiceConfig } from '@shopana/shared-service-config';
 
-const logger = new Logger('Orchestrator');
+const logger = new Logger('Bootstrap');
 
 async function bootstrap() {
   logger.log('═'.repeat(60));
-  logger.log('Starting NestJS Orchestrator');
+  logger.log('Starting Bootstrap Service');
   logger.log('═'.repeat(60));
 
   // Load configuration synchronously before NestFactory
-  const { vars, config: orchestratorConfig } = loadServiceConfig('orchestrator');
+  const { vars, config: bootstrapConfig } = loadServiceConfig('bootstrap');
 
   logger.log(`Environment: ${vars.environment}`);
-  logger.log(`Services to load: ${orchestratorConfig.services.join(', ')}`);
+  logger.log(`Services to load: ${bootstrapConfig.services.join(', ')}`);
 
   // RabbitMQ is optional - read from environment variable
   const rabbitmqUrl = process.env.RABBITMQ_URL;
@@ -29,7 +29,7 @@ async function bootstrap() {
 
   // Create application context (no HTTP server)
   const app = await NestFactory.createApplicationContext(
-    OrchestratorModule.forRoot({
+    BootstrapModule.forRoot({
       rabbitmqUrl,
       prefetch: 20,
     }),
@@ -46,7 +46,7 @@ async function bootstrap() {
     logger.log(`Received ${signal}, starting graceful shutdown...`);
     try {
       await app.close();
-      logger.log('Orchestrator stopped gracefully');
+      logger.log('Bootstrap stopped gracefully');
       process.exit(0);
     } catch (error) {
       logger.error('Error during shutdown:', error);
@@ -62,9 +62,9 @@ async function bootstrap() {
   });
 
   logger.log('═'.repeat(60));
-  logger.log('NestJS Orchestrator started successfully');
+  logger.log('Bootstrap Service started successfully');
   logger.log('Communication: Direct method calls (zero latency)');
-  logger.log(`Loaded services (${orchestratorConfig.services.length}): ${orchestratorConfig.services.join(', ')}`);
+  logger.log(`Loaded services (${bootstrapConfig.services.length}): ${bootstrapConfig.services.join(', ')}`);
   logger.log('═'.repeat(60));
 
   // Keep the process alive
@@ -72,6 +72,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  logger.error('Failed to start orchestrator:', error);
+  logger.error('Failed to start bootstrap:', error);
   process.exit(1);
 });

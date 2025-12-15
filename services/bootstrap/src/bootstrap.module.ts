@@ -10,16 +10,16 @@ import { OrdersModule } from '@shopana/orders-service';
 import { PricingModule } from '@shopana/pricing-service';
 
 /**
- * OrchestratorModule is the root module for the NestJS application.
+ * BootstrapModule is the composition root for the NestJS application.
  * It imports BrokerCoreModule.forRoot() with the resolved configuration
- * and all migrated service modules.
+ * and all service modules.
  *
  * Configuration is resolved synchronously before NestFactory.createApplicationContext()
  * in main.ts, then passed to this module via forRoot().
  */
 @Module({})
-export class OrchestratorModule {
-  static forRoot(options: BrokerCoreModuleOptions): typeof OrchestratorModule {
+export class BootstrapModule {
+  static forRoot(options: BrokerCoreModuleOptions): typeof BootstrapModule {
     @Module({
       imports: [
         BrokerCoreModule.forRoot(options),
@@ -33,8 +33,8 @@ export class OrchestratorModule {
         PricingModule,
       ],
     })
-    class DynamicOrchestratorModule {}
+    class DynamicBootstrapModule {}
 
-    return DynamicOrchestratorModule as unknown as typeof OrchestratorModule;
+    return DynamicBootstrapModule as unknown as typeof BootstrapModule;
   }
 }

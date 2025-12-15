@@ -6,14 +6,12 @@ vars:
   environment: production
   # Log level for all services
   log_level: info
-  # Moleculer transporter for services broker (null for in-memory, NATS for distributed)
-  moleculer_transporter: null
   # Platform GRPC (context) server (use localhost for local dev)
   platform_grpc_host: localhost:50051
 
 services:
-  orchestrator:
-    # Services included to orchestrator
+  bootstrap:
+    # Service modules loaded in monolith
     services:
       - apps
       - checkout

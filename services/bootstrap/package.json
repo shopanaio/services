@@ -1,9 +1,9 @@
 {
-  "name": "@shopana/orchestrator-service",
+  "name": "@shopana/bootstrap-service",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Service orchestrator for running multiple services in a single process",
+  "description": "Modular monolith - composition root for Shopana services",
   "scripts": {
     "start": "node dist/main.js"
   },
