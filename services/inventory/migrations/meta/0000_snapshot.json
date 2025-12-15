@@ -1,5 +1,5 @@
 {
-  "id": "dbc53fca-ad69-470b-bb45-45496a0726e2",
+  "id": "d54467dd-b290-4043-afc1-60cdcc314463",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -19,6 +19,12 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true
+        },
+        "handle": {
+          "name": "handle",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
         },
         "published_at": {
           "name": "published_at",
@@ -48,6 +54,28 @@
         }
       },
       "indexes": {
+        "product_project_id_handle_key": {
+          "name": "product_project_id_handle_key",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "handle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL AND handle IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_product_project_id": {
           "name": "idx_product_project_id",
           "columns": [
@@ -114,7 +142,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "product_published_requires_handle": {
+          "name": "product_published_requires_handle",
+          "value": "published_at IS NULL OR handle IS NOT NULL"
+        }
+      },
       "isRLSEnabled": false
     },
     "inventory.variant": {
@@ -137,6 +170,19 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
+          "notNull": true
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "handle": {
+          "name": "handle",
+          "type": "varchar(255)",
+          "primaryKey": false,
           "notNull": true
         },
         "sku": {
@@ -179,6 +225,94 @@
         }
       },
       "indexes": {
+        "variant_product_id_default_key": {
+          "name": "variant_product_id_default_key",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "is_default = true AND deleted_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "variant_product_id_handle_key": {
+          "name": "variant_product_id_handle_key",
+          "columns": [
+            {
+              "expression": "product_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "handle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "variant_project_id_sku_key": {
+          "name": "variant_project_id_sku_key",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sku",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL AND sku IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "variant_project_id_external_system_external_id_key": {
+          "name": "variant_project_id_external_system_external_id_key",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_system",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL AND external_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "idx_variant_project_id": {
           "name": "idx_variant_project_id",
           "columns": [
@@ -254,28 +388,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "idx_variant_sku": {
-          "name": "idx_variant_sku",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sku",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "sku IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -295,27 +407,14 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "variant_project_id_sku_key": {
-          "name": "variant_project_id_sku_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "project_id",
-            "sku"
-          ]
-        },
-        "variant_project_id_external_system_external_id_key": {
-          "name": "variant_project_id_external_system_external_id_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "project_id",
-            "external_system",
-            "external_id"
-          ]
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "variant_handle_required_if_not_default": {
+          "name": "variant_handle_required_if_not_default",
+          "value": "is_default = true OR length(handle) > 0"
         }
       },
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "inventory.item_pricing": {

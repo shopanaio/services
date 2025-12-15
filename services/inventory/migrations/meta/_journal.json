@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1765026194972,
-      "tag": "0000_bumpy_odin",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1765060859235,
-      "tag": "0001_dizzy_night_thrasher",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1765127400000,
-      "tag": "0002_protect_default_variant",
+      "when": 1765825087298,
+      "tag": "0000_breezy_night_thrasher",
       "breakpoints": true
     }
   ]

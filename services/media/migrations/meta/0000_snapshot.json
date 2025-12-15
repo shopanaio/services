@@ -1,5 +1,5 @@
 {
-  "id": "5c13ee3f-f85f-4c1b-9b00-2c002308aaff",
+  "id": "1af22110-f6fc-4601-b4a5-0d7bb8cfedd6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -81,22 +81,6 @@
         }
       },
       "indexes": {
-        "idx_buckets_active_per_project": {
-          "name": "idx_buckets_active_per_project",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "status = 'active' AND deleted_at IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idx_buckets_project_id": {
           "name": "idx_buckets_project_id",
           "columns": [
@@ -115,12 +99,6 @@
         "idx_buckets_status": {
           "name": "idx_buckets_status",
           "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
             {
               "expression": "status",
               "isExpression": false,

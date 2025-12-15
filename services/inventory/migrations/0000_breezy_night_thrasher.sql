@@ -6,24 +6,27 @@ CREATE TYPE "inventory"."weight_unit" AS ENUM('g', 'kg', 'lb', 'oz');--> stateme
 CREATE TABLE "inventory"."product" (
 	"project_id" uuid NOT NULL,
 	"id" uuid PRIMARY KEY NOT NULL,
+	"handle" varchar(255),
 	"published_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "product_published_requires_handle" CHECK (published_at IS NULL OR handle IS NOT NULL)
 );
 --> statement-breakpoint
 CREATE TABLE "inventory"."variant" (
 	"project_id" uuid NOT NULL,
 	"product_id" uuid NOT NULL,
 	"id" uuid PRIMARY KEY NOT NULL,
+	"is_default" boolean DEFAULT false NOT NULL,
+	"handle" varchar(255) NOT NULL,
 	"sku" varchar(64),
 	"external_system" varchar(32),
 	"external_id" text,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"deleted_at" timestamp with time zone,
-	CONSTRAINT "variant_project_id_sku_key" UNIQUE("project_id","sku"),
-	CONSTRAINT "variant_project_id_external_system_external_id_key" UNIQUE("project_id","external_system","external_id")
+	CONSTRAINT "variant_handle_required_if_not_default" CHECK (is_default = true OR length(handle) > 0)
 );
 --> statement-breakpoint
 CREATE TABLE "inventory"."item_pricing" (
@@ -243,16 +246,20 @@ ALTER TABLE "inventory"."product_option_value_translation" ADD CONSTRAINT "produ
 ALTER TABLE "inventory"."product_translation" ADD CONSTRAINT "product_translation_product_id_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "inventory"."product"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inventory"."variant_translation" ADD CONSTRAINT "variant_translation_variant_id_variant_id_fk" FOREIGN KEY ("variant_id") REFERENCES "inventory"."variant"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "inventory"."warehouse_translation" ADD CONSTRAINT "warehouse_translation_warehouse_id_warehouses_id_fk" FOREIGN KEY ("warehouse_id") REFERENCES "inventory"."warehouses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "product_project_id_handle_key" ON "inventory"."product" USING btree ("project_id","handle") WHERE deleted_at IS NULL AND handle IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_product_project_id" ON "inventory"."product" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_product_created_at" ON "inventory"."product" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "idx_product_updated_at" ON "inventory"."product" USING btree ("updated_at");--> statement-breakpoint
 CREATE INDEX "idx_product_deleted_at" ON "inventory"."product" USING btree ("deleted_at") WHERE deleted_at IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "variant_product_id_default_key" ON "inventory"."variant" USING btree ("product_id") WHERE is_default = true AND deleted_at IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "variant_product_id_handle_key" ON "inventory"."variant" USING btree ("product_id","handle") WHERE deleted_at IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "variant_project_id_sku_key" ON "inventory"."variant" USING btree ("project_id","sku") WHERE deleted_at IS NULL AND sku IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "variant_project_id_external_system_external_id_key" ON "inventory"."variant" USING btree ("project_id","external_system","external_id") WHERE deleted_at IS NULL AND external_id IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_variant_project_id" ON "inventory"."variant" USING btree ("project_id");--> statement-breakpoint
 CREATE INDEX "idx_variant_product_id" ON "inventory"."variant" USING btree ("product_id");--> statement-breakpoint
 CREATE INDEX "idx_variant_created_at" ON "inventory"."variant" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "idx_variant_updated_at" ON "inventory"."variant" USING btree ("updated_at");--> statement-breakpoint
 CREATE INDEX "idx_variant_deleted_at" ON "inventory"."variant" USING btree ("deleted_at") WHERE deleted_at IS NOT NULL;--> statement-breakpoint
-CREATE INDEX "idx_variant_sku" ON "inventory"."variant" USING btree ("project_id","sku") WHERE sku IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "idx_item_pricing_variant_currency_effective_from" ON "inventory"."item_pricing" USING btree ("project_id","variant_id","currency","effective_from");--> statement-breakpoint
 CREATE INDEX "idx_item_pricing_variant_effective_from" ON "inventory"."item_pricing" USING btree ("project_id","variant_id","effective_from");--> statement-breakpoint
 CREATE INDEX "idx_item_pricing_recorded_at" ON "inventory"."item_pricing" USING btree ("project_id","recorded_at");--> statement-breakpoint
