@@ -9,7 +9,6 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import type { MediaContext } from "../../context/index.js";
-import { runMigrations } from "../../infrastructure/db/migrate.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
 import { config } from "../../config.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
@@ -31,7 +30,6 @@ export interface ServerConfig {
   port: number;
   grpcHost?: string;
   databaseUrl: string;
-  migrationsPath: string;
 }
 
 /**
@@ -40,11 +38,6 @@ export interface ServerConfig {
  */
 export async function startServer(serverConfig: ServerConfig) {
   const isDevelopment = process.env.NODE_ENV === "development";
-
-  // Run migrations on startup
-  console.log("[media] Running database migrations...");
-  await runMigrations(serverConfig.databaseUrl, serverConfig.migrationsPath);
-  console.log("[media] Database migrations completed");
 
   // Initialize services (repository, etc.)
   const services = initServices();

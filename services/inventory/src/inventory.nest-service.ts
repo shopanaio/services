@@ -85,7 +85,6 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
       port: config.port,
       grpcHost: config.platformGrpcHost,
       databaseUrl: config.databaseUrl,
-      migrationsPath: config.migrationsPath,
     });
 
     this.logger.log("Inventory service started");
