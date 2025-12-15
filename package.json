@@ -8,7 +8,7 @@
     "packages/*",
     "packages/shopana/*",
     "services/*",
-    "apollo",
+    "federation",
     "workflows"
   ],
   "packageManager": "yarn@4.10.3",

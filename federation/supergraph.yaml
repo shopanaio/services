@@ -1,0 +1,40 @@
+# Hive CLI supergraph composition config
+# Docs: https://the-guild.dev/graphql/hive/docs/gateway
+
+subgraphs:
+  # Admin API
+  - name: platform-admin
+    routing_url: http://localhost:50051/graphql
+    schema:
+      file: ./schema/platform-admin.graphql
+
+  - name: apps-admin
+    routing_url: http://localhost:10001/graphql
+    schema:
+      file: ./schema/apps-admin.graphql
+
+  - name: inventory-admin
+    routing_url: http://localhost:10005/graphql
+    schema:
+      file: ./schema/inventory-admin.graphql
+
+  - name: media-admin
+    routing_url: http://localhost:10007/graphql
+    schema:
+      file: ./schema/media-admin.graphql
+
+  # Storefront API
+  - name: platform-storefront
+    routing_url: http://localhost:50052/graphql
+    schema:
+      file: ./schema/platform-storefront.graphql
+
+  - name: checkout-storefront
+    routing_url: http://localhost:10002/graphql
+    schema:
+      file: ./schema/checkout-storefront.graphql
+
+  - name: orders-storefront
+    routing_url: http://localhost:10003/graphql
+    schema:
+      file: ./schema/orders-storefront.graphql

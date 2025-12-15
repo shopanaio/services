@@ -4,6 +4,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { buildCommand } from "./commands/build.js";
 import { devCommand } from "./commands/dev.js";
+import { schemaExportCommand, schemaComposeCommand, schemaBuildCommand } from "./commands/schema.js";
 
 const program = new Command();
 
@@ -27,6 +28,28 @@ program
   .description("Start development environment (orchestrator)")
   .option("-s, --service <service>", "Run specific service only")
   .action(devCommand);
+
+// Schema commands
+const schema = program
+  .command("schema")
+  .description("Manage GraphQL schemas");
+
+schema
+  .command("export")
+  .description("Export subgraph schemas from services")
+  .action(schemaExportCommand);
+
+schema
+  .command("compose")
+  .description("Compose supergraph from subgraphs (Hive CLI)")
+  .option("-o, --output <file>", "Output file", "apollo/supergraph.graphql")
+  .action(schemaComposeCommand);
+
+schema
+  .command("build")
+  .description("Export + compose (full schema build)")
+  .option("-o, --output <file>", "Output file", "apollo/supergraph.graphql")
+  .action(schemaBuildCommand);
 
 // Parse and run
 program.parse();

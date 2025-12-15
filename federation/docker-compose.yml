@@ -1,0 +1,24 @@
+services:
+  gateway:
+    build: .
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./supergraph.graphql:/app/supergraph.graphql:ro
+    networks:
+      - shopana-network
+    depends_on:
+      - services
+
+  # Use this if services are external
+  # gateway:
+  #   image: ghcr.io/graphql-hive/gateway:latest
+  #   ports:
+  #     - "4000:4000"
+  #   volumes:
+  #     - ./supergraph.graphql:/app/supergraph.graphql:ro
+  #   command: ["supergraph", "--supergraph", "/app/supergraph.graphql"]
+
+networks:
+  shopana-network:
+    external: true

@@ -1,0 +1,26 @@
+{
+  "name": "@shopana/federation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GraphQL Federation gateway (Hive)",
+  "type": "module",
+  "scripts": {
+    "schema:export": "tsx scripts/export-schemas.ts",
+    "schema:compose": "hive supergraph compose --config supergraph.yaml --output supergraph.graphql",
+    "schema:build": "yarn schema:export && yarn schema:compose",
+    "gateway:dev": "hive-gateway supergraph --supergraph supergraph.graphql",
+    "dev": "yarn schema:build && yarn gateway:dev"
+  },
+  "dependencies": {
+    "@graphql-hive/gateway": "^1.7.2"
+  },
+  "devDependencies": {
+    "@apollo/subgraph": "^2.9.3",
+    "@graphql-hive/cli": "^0.44.2",
+    "glob": "^11.0.0",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "tsx": "^4.20.6",
+    "typescript": "^5.5.4"
+  }
+}
