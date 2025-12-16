@@ -19,26 +19,26 @@ import type { AuthConfig, Response } from "./types.js";
  * TypeScript port of casdoor-go-sdk v1.5.0
  */
 export class Client {
-  public readonly Endpoint: string;
-  public readonly ClientId: string;
-  public readonly ClientSecret: string;
-  public Certificate: string;
-  public readonly OrganizationName: string;
-  public readonly ApplicationName: string;
+  public readonly endpoint: string;
+  public readonly clientId: string;
+  public readonly clientSecret: string;
+  public certificate: string;
+  public readonly organizationName: string;
+  public readonly applicationName: string;
 
   constructor(config: AuthConfig) {
-    this.Endpoint = config.endpoint;
-    this.ClientId = config.clientId;
-    this.ClientSecret = config.clientSecret;
-    this.Certificate = config.certificate;
-    this.OrganizationName = config.organizationName;
-    this.ApplicationName = config.applicationName;
+    this.endpoint = config.endpoint;
+    this.clientId = config.clientId;
+    this.clientSecret = config.clientSecret;
+    this.certificate = config.certificate;
+    this.organizationName = config.organizationName;
+    this.applicationName = config.applicationName;
   }
 
   /**
-   * GetUrl builds API URL with query parameters
+   * getUrl builds API URL with query parameters
    */
-  GetUrl(action: string, queryMap: Record<string, string> | null = null): string {
+  getUrl(action: string, queryMap: Record<string, string> | null = null): string {
     let query = "";
     if (queryMap) {
       const parts: string[] = [];
@@ -47,20 +47,20 @@ export class Client {
       }
       query = parts.join("&");
     }
-    return `${this.Endpoint}/api/${action}?${query}`;
+    return `${this.endpoint}/api/${action}?${query}`;
   }
 
   /**
-   * GetId returns the full ID for a resource
+   * getId returns the full ID for a resource
    */
-  GetId(name: string): string {
-    return `${this.OrganizationName}/${name}`;
+  getId(name: string): string {
+    return `${this.organizationName}/${name}`;
   }
 
   /**
-   * DoGetResponse performs GET request and returns parsed Response
+   * doGetResponse performs GET request and returns parsed Response
    */
-  async DoGetResponse<T = unknown>(url: string): Promise<Response<T>> {
+  async doGetResponse<T = unknown>(url: string): Promise<Response<T>> {
     const respBytes = await this.doGetBytesRawWithoutCheck(url);
     const response = JSON.parse(respBytes) as Response<T>;
 
@@ -72,17 +72,17 @@ export class Client {
   }
 
   /**
-   * DoGetBytes performs GET request and returns response.data as JSON string
+   * doGetBytes performs GET request and returns response.data as JSON string
    */
-  async DoGetBytes(url: string): Promise<string> {
-    const response = await this.DoGetResponse(url);
+  async doGetBytes(url: string): Promise<string> {
+    const response = await this.doGetResponse(url);
     return JSON.stringify(response.data);
   }
 
   /**
-   * DoGetBytesRaw performs GET request and returns raw response body
+   * doGetBytesRaw performs GET request and returns raw response body
    */
-  async DoGetBytesRaw(url: string): Promise<string> {
+  async doGetBytesRaw(url: string): Promise<string> {
     const respBytes = await this.doGetBytesRawWithoutCheck(url);
 
     try {
@@ -98,16 +98,16 @@ export class Client {
   }
 
   /**
-   * DoPost performs POST request
+   * doPost performs POST request
    */
-  async DoPost<T = unknown>(
+  async doPost<T = unknown>(
     action: string,
     queryMap: Record<string, string> | null,
     postData: unknown,
     isForm: boolean = false,
     isFile: boolean = false
   ): Promise<Response<T>> {
-    const url = this.GetUrl(action, queryMap);
+    const url = this.getUrl(action, queryMap);
 
     let contentType: string;
     let body: string | FormData | Uint8Array;
@@ -132,7 +132,7 @@ export class Client {
       body = JSON.stringify(postData);
     }
 
-    const respBytes = await this.DoPostBytesRaw(url, contentType, body);
+    const respBytes = await this.doPostBytesRaw(url, contentType, body);
     const response = JSON.parse(respBytes) as Response<T>;
 
     if (response.status !== "ok") {
@@ -143,15 +143,15 @@ export class Client {
   }
 
   /**
-   * DoPostBytesRaw performs raw POST request
+   * doPostBytesRaw performs raw POST request
    */
-  async DoPostBytesRaw(
+  async doPostBytesRaw(
     url: string,
     contentType: string,
     body: string | FormData | Uint8Array
   ): Promise<string> {
     const headers: Record<string, string> = {
-      Authorization: `Basic ${Buffer.from(`${this.ClientId}:${this.ClientSecret}`).toString("base64")}`,
+      Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
     };
 
     if (contentType) {
@@ -180,7 +180,7 @@ export class Client {
     const resp = await fetch(url, {
       method: "GET",
       headers: {
-        Authorization: `Basic ${Buffer.from(`${this.ClientId}:${this.ClientSecret}`).toString("base64")}`,
+        Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
       },
     });
 
@@ -197,7 +197,7 @@ export class Client {
 /**
  * Create a new Casdoor client
  */
-export function NewClient(
+export function createClient(
   endpoint: string,
   clientId: string,
   clientSecret: string,
@@ -218,13 +218,13 @@ export function NewClient(
 /**
  * Create a new Casdoor client with config object
  */
-export function NewClientWithConf(config: AuthConfig): Client {
+export function createClientWithConf(config: AuthConfig): Client {
   return new Client(config);
 }
 
 /**
  * Get current time in RFC3339 format
  */
-export function GetCurrentTime(): string {
+export function getCurrentTime(): string {
   return new Date().toISOString();
 }

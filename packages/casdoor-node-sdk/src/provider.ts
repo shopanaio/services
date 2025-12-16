@@ -18,45 +18,45 @@ import type { Provider, Response } from "./types.js";
 /**
  * Get all providers
  */
-export async function GetProviders(client: Client): Promise<Provider[]> {
+export async function getProviders(client: Client): Promise<Provider[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-providers", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-providers", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Provider[];
 }
 
 /**
  * Get provider by name
  */
-export async function GetProvider(
+export async function getProvider(
   client: Client,
   name: string
 ): Promise<Provider | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-provider", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-provider", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Provider | null;
 }
 
 /**
  * Get providers with pagination
  */
-export async function GetPaginationProviders(
+export async function getPaginationProviders(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: Record<string, string> = {}
 ): Promise<{ providers: Provider[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-providers", queryMap);
-  const response = await client.DoGetResponse<Provider[]>(url);
+  const url = client.getUrl("get-providers", queryMap);
+  const response = await client.doGetResponse<Provider[]>(url);
 
   const providers = response.data;
   const total = response.data2 as number;
@@ -67,7 +67,7 @@ export async function GetPaginationProviders(
 /**
  * Add provider
  */
-export async function AddProvider(
+export async function addProvider(
   client: Client,
   provider: Partial<Provider>
 ): Promise<boolean> {
@@ -78,7 +78,7 @@ export async function AddProvider(
 /**
  * Update provider
  */
-export async function UpdateProvider(
+export async function updateProvider(
   client: Client,
   provider: Partial<Provider>
 ): Promise<boolean> {
@@ -94,7 +94,7 @@ export async function UpdateProvider(
 /**
  * Delete provider
  */
-export async function DeleteProvider(
+export async function deleteProvider(
   client: Client,
   provider: Partial<Provider>
 ): Promise<boolean> {
@@ -115,7 +115,7 @@ async function modifyProvider(
   columns: string[] | null
 ): Promise<{ response: Response; affected: boolean }> {
   const providerData = { ...provider };
-  providerData.owner = client.OrganizationName;
+  providerData.owner = client.organizationName;
 
   const queryMap: Record<string, string> = {
     id: `${providerData.owner}/${providerData.name}`,
@@ -125,6 +125,6 @@ async function modifyProvider(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, providerData, false, false);
+  const resp = await client.doPost(action, queryMap, providerData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

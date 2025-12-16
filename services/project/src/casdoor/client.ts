@@ -1,9 +1,6 @@
 import {
   Client,
-  NewClientWithConf,
-  GetCert,
-  ParseJwtToken,
-  ParseJwtTokenWithoutVerify,
+  createClient,
   type AuthConfig,
   type Claims,
 } from "@shopana/casdoor-node-sdk";
@@ -64,7 +61,7 @@ export class CasdoorClient {
       applicationName: casdoorConfig.applicationName,
     };
 
-    this.client = NewClientWithConf(authConfig);
+    this.client = createClient(authConfig);
   }
 
   /**
@@ -78,23 +75,23 @@ export class CasdoorClient {
    * Get configuration values
    */
   get endpoint(): string {
-    return this.client.Endpoint;
+    return this.client.endpoint;
   }
 
   get clientId(): string {
-    return this.client.ClientId;
+    return this.client.clientId;
   }
 
   get clientSecret(): string {
-    return this.client.ClientSecret;
+    return this.client.clientSecret;
   }
 
   get organizationName(): string {
-    return this.client.OrganizationName;
+    return this.client.organizationName;
   }
 
   get applicationName(): string {
-    return this.client.ApplicationName;
+    return this.client.applicationName;
   }
 
   /**
@@ -198,23 +195,23 @@ export class CasdoorClient {
    * Parse JWT token with verification
    */
   parseJwtToken(token: string): Claims {
-    return ParseJwtToken(this.client, token);
+    return this.client.parseJwtToken(token);
   }
 
   /**
    * Parse JWT token without verification (for debugging)
    */
   parseJwtTokenWithoutVerify(token: string): Claims {
-    return ParseJwtTokenWithoutVerify(token);
+    return this.client.parseJwtTokenWithoutVerify(token);
   }
 
   /**
    * Load certificate by name
    */
   async loadCert(certName: string): Promise<this> {
-    const cert = await GetCert(this.client, certName);
+    const cert = await this.client.getCert(certName);
     if (cert) {
-      this.client.Certificate = cert.certificate;
+      this.client.certificate = cert.certificate;
     }
     return this;
   }

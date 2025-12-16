@@ -18,49 +18,49 @@ import type { Application, Response } from "./types.js";
 /**
  * Get all applications
  */
-export async function GetApplications(client: Client): Promise<Application[]> {
+export async function getApplications(client: Client): Promise<Application[]> {
   const queryMap = {
     owner: "admin",
   };
-  const url = client.GetUrl("get-applications", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-applications", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Application[];
 }
 
 /**
  * Get organization applications
  */
-export async function GetOrganizationApplications(
+export async function getOrganizationApplications(
   client: Client
 ): Promise<Application[]> {
   const queryMap = {
     owner: "admin",
-    organization: client.OrganizationName,
+    organization: client.organizationName,
   };
-  const url = client.GetUrl("get-organization-applications", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-organization-applications", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Application[];
 }
 
 /**
  * Get application by name
  */
-export async function GetApplication(
+export async function getApplication(
   client: Client,
   name: string
 ): Promise<Application | null> {
   const queryMap = {
     id: `admin/${name}`,
   };
-  const url = client.GetUrl("get-application", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-application", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Application | null;
 }
 
 /**
  * Add application
  */
-export async function AddApplication(
+export async function addApplication(
   client: Client,
   application: Partial<Application>
 ): Promise<boolean> {
@@ -76,7 +76,7 @@ export async function AddApplication(
 /**
  * Update application
  */
-export async function UpdateApplication(
+export async function updateApplication(
   client: Client,
   application: Partial<Application>
 ): Promise<boolean> {
@@ -92,7 +92,7 @@ export async function UpdateApplication(
 /**
  * Delete application
  */
-export async function DeleteApplication(
+export async function deleteApplication(
   client: Client,
   application: Partial<Application>
 ): Promise<boolean> {
@@ -125,6 +125,6 @@ async function modifyApplication(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, appData, false, false);
+  const resp = await client.doPost(action, queryMap, appData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

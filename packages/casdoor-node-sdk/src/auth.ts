@@ -17,19 +17,19 @@ import type { OAuth2Token, Claims, User } from "./types.js";
 import jwt from "jsonwebtoken";
 
 /**
- * GetOAuthToken gets the pivotal and necessary secret to interact with the Casdoor server
+ * getOAuthToken gets the pivotal and necessary secret to interact with the Casdoor server
  */
-export async function GetOAuthToken(
+export async function getOAuthToken(
   client: Client,
   code: string,
   _state: string
 ): Promise<OAuth2Token> {
-  const tokenUrl = `${client.Endpoint}/api/login/oauth/access_token`;
+  const tokenUrl = `${client.endpoint}/api/login/oauth/access_token`;
 
   const params = new URLSearchParams({
     grant_type: "authorization_code",
-    client_id: client.ClientId,
-    client_secret: client.ClientSecret,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     code,
   });
 
@@ -63,18 +63,18 @@ export async function GetOAuthToken(
 }
 
 /**
- * RefreshOAuthToken refreshes the OAuth token
+ * refreshOAuthToken refreshes the OAuth token
  */
-export async function RefreshOAuthToken(
+export async function refreshOAuthToken(
   client: Client,
   refreshToken: string
 ): Promise<OAuth2Token> {
-  const tokenUrl = `${client.Endpoint}/api/login/oauth/refresh_token`;
+  const tokenUrl = `${client.endpoint}/api/login/oauth/refresh_token`;
 
   const params = new URLSearchParams({
     grant_type: "refresh_token",
-    client_id: client.ClientId,
-    client_secret: client.ClientSecret,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     refresh_token: refreshToken,
   });
 
@@ -108,14 +108,14 @@ export async function RefreshOAuthToken(
 }
 
 /**
- * ParseJwtToken parses JWT token with RSA verification
+ * parseJwtToken parses JWT token with RSA verification
  */
-export function ParseJwtToken(client: Client, token: string): Claims {
-  if (!client.Certificate) {
+export function parseJwtToken(client: Client, token: string): Claims {
+  if (!client.certificate) {
     throw new Error("Certificate is required to parse JWT token");
   }
 
-  const decoded = jwt.verify(token, client.Certificate, {
+  const decoded = jwt.verify(token, client.certificate, {
     algorithms: ["RS256"],
   }) as jwt.JwtPayload & { user?: User; accessToken?: string; tokenType?: string; TokenType?: string };
 
@@ -136,9 +136,9 @@ export function ParseJwtToken(client: Client, token: string): Claims {
 }
 
 /**
- * ParseJwtTokenWithoutVerify parses JWT token without verification (for debugging)
+ * parseJwtTokenWithoutVerify parses JWT token without verification (for debugging)
  */
-export function ParseJwtTokenWithoutVerify(token: string): Claims {
+export function parseJwtTokenWithoutVerify(token: string): Claims {
   const decoded = jwt.decode(token, { complete: true }) as {
     payload: jwt.JwtPayload & { user?: User; accessToken?: string; tokenType?: string; TokenType?: string };
   } | null;
@@ -165,40 +165,40 @@ export function ParseJwtTokenWithoutVerify(token: string): Claims {
 }
 
 /**
- * IsRefreshToken returns true if the token is a refresh token
+ * isRefreshToken returns true if the token is a refresh token
  */
-export function IsRefreshToken(claims: Claims): boolean {
+export function isRefreshToken(claims: Claims): boolean {
   return claims.TokenType === "refresh-token";
 }
 
 /**
  * Get sign-in URL
  */
-export function GetSigninUrl(
+export function getSigninUrl(
   client: Client,
   redirectUri: string,
   state: string = ""
 ): string {
   const params = new URLSearchParams({
-    client_id: client.ClientId,
+    client_id: client.clientId,
     response_type: "code",
     redirect_uri: redirectUri,
     scope: "read",
-    state: state || client.ApplicationName,
+    state: state || client.applicationName,
   });
 
-  return `${client.Endpoint}/login/oauth/authorize?${params.toString()}`;
+  return `${client.endpoint}/login/oauth/authorize?${params.toString()}`;
 }
 
 /**
  * Get signup URL
  */
-export function GetSignupUrl(
+export function getSignupUrl(
   client: Client,
   redirectUri: string,
   state: string = ""
 ): string {
-  return GetSigninUrl(client, redirectUri, state).replace(
+  return getSigninUrl(client, redirectUri, state).replace(
     "/login/oauth/authorize",
     "/signup/oauth/authorize"
   );
@@ -207,12 +207,12 @@ export function GetSignupUrl(
 /**
  * Get user profile URL
  */
-export function GetUserProfileUrl(
+export function getUserProfileUrl(
   client: Client,
   username: string,
   accessToken: string | null = null
 ): string {
-  let url = `${client.Endpoint}/users/${client.OrganizationName}/${username}`;
+  let url = `${client.endpoint}/users/${client.organizationName}/${username}`;
   if (accessToken) {
     url += `?access_token=${accessToken}`;
   }
@@ -222,11 +222,11 @@ export function GetUserProfileUrl(
 /**
  * Get my profile URL
  */
-export function GetMyProfileUrl(
+export function getMyProfileUrl(
   client: Client,
   accessToken: string | null = null
 ): string {
-  let url = `${client.Endpoint}/account`;
+  let url = `${client.endpoint}/account`;
   if (accessToken) {
     url += `?access_token=${accessToken}`;
   }

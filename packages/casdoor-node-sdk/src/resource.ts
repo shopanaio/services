@@ -18,34 +18,34 @@ import type { Resource } from "./types.js";
 /**
  * Get resource by ID
  */
-export async function GetResource(
+export async function getResource(
   client: Client,
   id: string
 ): Promise<Resource | null> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     id,
   };
-  const url = client.GetUrl("get-resource", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-resource", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Resource | null;
 }
 
 /**
  * Get resource by owner and name
  */
-export async function GetResourceEx(
+export async function getResourceEx(
   client: Client,
   owner: string,
   name: string
 ): Promise<Resource | null> {
-  return GetResource(client, `${owner}/${name}`);
+  return getResource(client, `${owner}/${name}`);
 }
 
 /**
  * Get resources with filters
  */
-export async function GetResources(
+export async function getResources(
   client: Client,
   owner: string,
   user: string,
@@ -62,15 +62,15 @@ export async function GetResources(
     sortField,
     sortOrder,
   };
-  const url = client.GetUrl("get-resources", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-resources", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Resource[];
 }
 
 /**
  * Get resources with pagination
  */
-export async function GetPaginationResources(
+export async function getPaginationResources(
   client: Client,
   owner: string,
   user: string,
@@ -91,15 +91,15 @@ export async function GetPaginationResources(
     sortField,
     sortOrder,
   };
-  const url = client.GetUrl("get-resources", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-resources", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Resource[];
 }
 
 /**
  * Upload resource
  */
-export async function UploadResource(
+export async function uploadResource(
   client: Client,
   user: string,
   tag: string,
@@ -108,15 +108,15 @@ export async function UploadResource(
   fileBytes: Uint8Array
 ): Promise<{ fileUrl: string; name: string }> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     user,
-    application: client.ApplicationName,
+    application: client.applicationName,
     tag,
     parent,
     fullFilePath,
   };
 
-  const resp = await client.DoPost("upload-resource", queryMap, fileBytes, true, true);
+  const resp = await client.doPost("upload-resource", queryMap, fileBytes, true, true);
 
   return {
     fileUrl: resp.data as string,
@@ -127,7 +127,7 @@ export async function UploadResource(
 /**
  * Upload resource with extra parameters
  */
-export async function UploadResourceEx(
+export async function uploadResourceEx(
   client: Client,
   user: string,
   tag: string,
@@ -138,9 +138,9 @@ export async function UploadResourceEx(
   description: string
 ): Promise<{ fileUrl: string; name: string }> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     user,
-    application: client.ApplicationName,
+    application: client.applicationName,
     tag,
     parent,
     fullFilePath,
@@ -148,7 +148,7 @@ export async function UploadResourceEx(
     description,
   };
 
-  const resp = await client.DoPost("upload-resource", queryMap, fileBytes, true, true);
+  const resp = await client.doPost("upload-resource", queryMap, fileBytes, true, true);
 
   return {
     fileUrl: resp.data as string,
@@ -159,15 +159,15 @@ export async function UploadResourceEx(
 /**
  * Delete resource
  */
-export async function DeleteResource(
+export async function deleteResource(
   client: Client,
   resource: Partial<Resource>
 ): Promise<boolean> {
   const resourceData = { ...resource };
   if (!resourceData.owner) {
-    resourceData.owner = client.OrganizationName;
+    resourceData.owner = client.organizationName;
   }
 
-  const resp = await client.DoPost("delete-resource", null, resourceData, false, false);
+  const resp = await client.doPost("delete-resource", null, resourceData, false, false);
   return resp.data === "Affected";
 }

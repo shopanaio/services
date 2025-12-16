@@ -1,16 +1,4 @@
-import {
-  GetPaginationUsers,
-  GetUser,
-  GetUserByEmail,
-  GetUserByPhone,
-  GetUserByUserId,
-  AddUser,
-  UpdateUser,
-  DeleteUser,
-  SetPassword,
-  SendEmail,
-  type User,
-} from "@shopana/casdoor-node-sdk";
+import { type User } from "@shopana/casdoor-node-sdk";
 import { CasdoorClient } from "./client.js";
 
 /**
@@ -61,10 +49,9 @@ export class CasdoorSdk {
       queryMap.sortOrder = input.sortOrder;
     }
 
-    // Note: SDK's GetPaginationUsers uses client's OrganizationName as owner
+    // Note: SDK's getPaginationUsers uses client's organizationName as owner
     // For custom owner, we need to override
-    const result = await GetPaginationUsers(
-      this.casdoorClient.sdkClient,
+    const result = await this.casdoorClient.sdkClient.getPaginationUsers(
       input.page,
       input.pageSize,
       queryMap
@@ -77,22 +64,22 @@ export class CasdoorSdk {
    * Get user by owner and name
    */
   async getOwnUser(owner: string, name: string): Promise<User | null> {
-    // SDK's GetUser uses id format: org/name
-    return GetUser(this.casdoorClient.sdkClient, name);
+    // SDK's getUser uses id format: org/name
+    return this.casdoorClient.sdkClient.getUser(name);
   }
 
   /**
    * Get user by email
    */
   async getOwnUserByEmail(owner: string, email: string): Promise<User | null> {
-    return GetUserByEmail(this.casdoorClient.sdkClient, email);
+    return this.casdoorClient.sdkClient.getUserByEmail(email);
   }
 
   /**
    * Get user by phone
    */
   async getOwnUserByPhone(owner: string, phone: string): Promise<User | null> {
-    return GetUserByPhone(this.casdoorClient.sdkClient, phone);
+    return this.casdoorClient.sdkClient.getUserByPhone(phone);
   }
 
   /**
@@ -102,7 +89,7 @@ export class CasdoorSdk {
     owner: string,
     userId: string
   ): Promise<User | null> {
-    return GetUserByUserId(this.casdoorClient.sdkClient, userId);
+    return this.casdoorClient.sdkClient.getUserByUserId(userId);
   }
 
   /**
@@ -113,7 +100,7 @@ export class CasdoorSdk {
     email: string,
     app: string
   ): Promise<void> {
-    const response = await this.casdoorClient.sdkClient.DoPost(
+    const response = await this.casdoorClient.sdkClient.doPost(
       "send-reset-email",
       null,
       {
@@ -138,7 +125,7 @@ export class CasdoorSdk {
     newPassword: string,
     code: string
   ): Promise<void> {
-    const response = await this.casdoorClient.sdkClient.DoPost(
+    const response = await this.casdoorClient.sdkClient.doPost(
       "reset-password",
       null,
       {
@@ -164,7 +151,7 @@ export class CasdoorSdk {
     app: string,
     code: string
   ): Promise<void> {
-    const response = await this.casdoorClient.sdkClient.DoPost(
+    const response = await this.casdoorClient.sdkClient.doPost(
       "verify-email",
       null,
       {
@@ -184,21 +171,21 @@ export class CasdoorSdk {
    * Add a new user
    */
   async addUser(user: Partial<User>): Promise<boolean> {
-    return AddUser(this.casdoorClient.sdkClient, user);
+    return this.casdoorClient.sdkClient.addUser(user);
   }
 
   /**
    * Update user
    */
   async updateUser(user: Partial<User>): Promise<boolean> {
-    return UpdateUser(this.casdoorClient.sdkClient, user);
+    return this.casdoorClient.sdkClient.updateUser(user);
   }
 
   /**
    * Delete user
    */
   async deleteUser(user: Partial<User>): Promise<boolean> {
-    return DeleteUser(this.casdoorClient.sdkClient, user);
+    return this.casdoorClient.sdkClient.deleteUser(user);
   }
 
   /**
@@ -210,8 +197,7 @@ export class CasdoorSdk {
     oldPassword: string,
     newPassword: string
   ): Promise<boolean> {
-    return SetPassword(
-      this.casdoorClient.sdkClient,
+    return this.casdoorClient.sdkClient.setPassword(
       owner,
       name,
       oldPassword,
@@ -227,13 +213,12 @@ export class CasdoorSdk {
     content: string,
     sender: string,
     receivers: string[]
-  ): Promise<boolean> {
-    return SendEmail(
-      this.casdoorClient.sdkClient,
+  ): Promise<void> {
+    await this.casdoorClient.sdkClient.sendEmail(
       title,
       content,
       sender,
-      receivers
+      ...receivers
     );
   }
 }

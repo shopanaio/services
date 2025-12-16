@@ -24,7 +24,7 @@ interface EmailForm {
 /**
  * Send email
  */
-export async function SendEmail(
+export async function sendEmail(
   client: Client,
   title: string,
   content: string,
@@ -38,13 +38,13 @@ export async function SendEmail(
     receivers,
   };
 
-  await client.DoPost("send-email", null, form, false, false);
+  await client.doPost("send-email", null, form, false, false);
 }
 
 /**
  * Send email by provider
  */
-export async function SendEmailByProvider(
+export async function sendEmailByProvider(
   client: Client,
   title: string,
   content: string,
@@ -63,5 +63,5 @@ export async function SendEmailByProvider(
     provider,
   };
 
-  await client.DoPost("send-email", providerMap, form, false, false);
+  await client.doPost("send-email", providerMap, form, false, false);
 }

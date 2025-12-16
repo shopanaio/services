@@ -21,158 +21,158 @@
 export * from "./types.js";
 
 // Re-export client
-export { Client, NewClient, NewClientWithConf, GetCurrentTime } from "./client.js";
+export { Client, createClient, createClientWithConf, getCurrentTime } from "./client.js";
 
 // Re-export auth methods
 export {
-  GetOAuthToken,
-  RefreshOAuthToken,
-  ParseJwtToken,
-  ParseJwtTokenWithoutVerify,
-  IsRefreshToken,
-  GetSigninUrl,
-  GetSignupUrl,
-  GetUserProfileUrl,
-  GetMyProfileUrl,
+  getOAuthToken,
+  refreshOAuthToken,
+  parseJwtToken,
+  parseJwtTokenWithoutVerify,
+  isRefreshToken,
+  getSigninUrl,
+  getSignupUrl,
+  getUserProfileUrl,
+  getMyProfileUrl,
 } from "./auth.js";
 
 // Re-export user methods
 export {
-  MfaRecoveryCodesSession,
-  GetUserId,
-  GetGlobalUsers,
-  GetUsers,
-  GetSortedUsers,
-  GetPaginationUsers,
-  GetUserCount,
-  GetUser,
-  GetUserByEmail,
-  GetUserByPhone,
-  GetUserByUserId,
-  SetPassword,
-  UpdateUserById,
-  UpdateUser,
-  UpdateUserForColumns,
-  AddUser,
-  DeleteUser,
-  CheckUserPassword,
+  MFA_RECOVERY_CODES_SESSION,
+  getUserId,
+  getGlobalUsers,
+  getUsers,
+  getSortedUsers,
+  getPaginationUsers,
+  getUserCount,
+  getUser,
+  getUserByEmail,
+  getUserByPhone,
+  getUserByUserId,
+  setPassword,
+  updateUserById,
+  updateUser,
+  updateUserForColumns,
+  addUser,
+  deleteUser,
+  checkUserPassword,
 } from "./user.js";
 
 // Re-export organization methods
 export {
-  GetOrganization,
-  GetOrganizations,
-  GetOrganizationNames,
-  AddOrganization,
-  UpdateOrganization,
-  DeleteOrganization,
+  getOrganization,
+  getOrganizations,
+  getOrganizationNames,
+  addOrganization,
+  updateOrganization,
+  deleteOrganization,
 } from "./organization.js";
 
 // Re-export application methods
 export {
-  GetApplications,
-  GetOrganizationApplications,
-  GetApplication,
-  AddApplication,
-  UpdateApplication,
-  DeleteApplication,
+  getApplications,
+  getOrganizationApplications,
+  getApplication,
+  addApplication,
+  updateApplication,
+  deleteApplication,
 } from "./application.js";
 
 // Re-export role methods
 export {
-  GetRoles,
-  GetPaginationRoles,
-  GetRole,
-  AddRole,
-  UpdateRole,
-  UpdateRoleForColumns,
-  DeleteRole,
+  getRoles,
+  getPaginationRoles,
+  getRole,
+  addRole,
+  updateRole,
+  updateRoleForColumns,
+  deleteRole,
 } from "./role.js";
 
 // Re-export permission methods
 export {
-  GetPermissions,
-  GetPermissionsByRole,
-  GetPaginationPermissions,
-  GetPermission,
-  AddPermission,
-  UpdatePermission,
-  UpdatePermissionForColumns,
-  DeletePermission,
+  getPermissions,
+  getPermissionsByRole,
+  getPaginationPermissions,
+  getPermission,
+  addPermission,
+  updatePermission,
+  updatePermissionForColumns,
+  deletePermission,
 } from "./permission.js";
 
 // Re-export provider methods
 export {
-  GetProviders,
-  GetProvider,
-  GetPaginationProviders,
-  AddProvider,
-  UpdateProvider,
-  DeleteProvider,
+  getProviders,
+  getProvider,
+  getPaginationProviders,
+  addProvider,
+  updateProvider,
+  deleteProvider,
 } from "./provider.js";
 
 // Re-export cert methods
 export {
-  GetGlobalCerts,
-  GetCerts,
-  GetCert,
-  AddCert,
-  UpdateCert,
-  DeleteCert,
+  getGlobalCerts,
+  getCerts,
+  getCert,
+  addCert,
+  updateCert,
+  deleteCert,
 } from "./cert.js";
 
 // Re-export token methods
 export {
-  GetTokens,
-  GetPaginationTokens,
-  GetToken,
-  AddToken,
-  UpdateToken,
-  UpdateTokenForColumns,
-  DeleteToken,
-  IntrospectToken,
+  getTokens,
+  getPaginationTokens,
+  getToken,
+  addToken,
+  updateToken,
+  updateTokenForColumns,
+  deleteToken,
+  introspectToken,
 } from "./token.js";
 
 // Re-export resource methods
 export {
-  GetResource,
-  GetResourceEx,
-  GetResources,
-  GetPaginationResources,
-  UploadResource,
-  UploadResourceEx,
-  DeleteResource,
+  getResource,
+  getResourceEx,
+  getResources,
+  getPaginationResources,
+  uploadResource,
+  uploadResourceEx,
+  deleteResource,
 } from "./resource.js";
 
 // Re-export email methods
-export { SendEmail, SendEmailByProvider } from "./email.js";
+export { sendEmail, sendEmailByProvider } from "./email.js";
 
 // Re-export sms methods
-export { SendSms, SendSmsByProvider } from "./sms.js";
+export { sendSms, sendSmsByProvider } from "./sms.js";
 
 // Re-export session methods
 export {
-  GetSessions,
-  GetPaginationSessions,
-  GetSession,
-  AddSession,
-  UpdateSession,
-  UpdateSessionForColumns,
-  DeleteSession,
+  getSessions,
+  getPaginationSessions,
+  getSession,
+  addSession,
+  updateSession,
+  updateSessionForColumns,
+  deleteSession,
 } from "./session.js";
 
 // Re-export group methods
 export {
-  GetGroups,
-  GetPaginationGroups,
-  GetGroup,
-  AddGroup,
-  UpdateGroup,
-  DeleteGroup,
+  getGroups,
+  getPaginationGroups,
+  getGroup,
+  addGroup,
+  updateGroup,
+  deleteGroup,
 } from "./group.js";
 
 // Re-export record methods
-export { GetRecords, GetPaginationRecords, GetRecord, AddRecord } from "./record.js";
+export { getRecords, getPaginationRecords, getRecord, addRecord } from "./record.js";
 
 // Re-export CasdoorRecord type alias for backward compatibility
 export { CasdoorRecord as Record } from "./types.js";
@@ -183,7 +183,7 @@ let globalClient: import("./client.js").Client | null = null;
 /**
  * Initialize global client (for compatibility with Go SDK)
  */
-export function InitConfig(
+export function initConfig(
   endpoint: string,
   clientId: string,
   clientSecret: string,
@@ -191,8 +191,8 @@ export function InitConfig(
   organizationName: string,
   applicationName: string
 ): void {
-  const { NewClient } = require("./client.js");
-  globalClient = NewClient(
+  const { createClient } = require("./client.js");
+  globalClient = createClient(
     endpoint,
     clientId,
     clientSecret,
@@ -205,6 +205,6 @@ export function InitConfig(
 /**
  * Get global client instance
  */
-export function GetGlobalClient(): import("./client.js").Client | null {
+export function getGlobalClient(): import("./client.js").Client | null {
   return globalClient;
 }

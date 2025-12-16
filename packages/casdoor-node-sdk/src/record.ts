@@ -18,30 +18,30 @@ import type { CasdoorRecord } from "./types.js";
 /**
  * Get all records
  */
-export async function GetRecords(client: Client): Promise<CasdoorRecord[]> {
+export async function getRecords(client: Client): Promise<CasdoorRecord[]> {
   const queryMap: globalThis.Record<string, string> = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-records", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-records", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as CasdoorRecord[];
 }
 
 /**
  * Get records with pagination
  */
-export async function GetPaginationRecords(
+export async function getPaginationRecords(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: globalThis.Record<string, string> = {}
 ): Promise<{ records: CasdoorRecord[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-records", queryMap);
-  const response = await client.DoGetResponse<CasdoorRecord[]>(url);
+  const url = client.getUrl("get-records", queryMap);
+  const response = await client.doGetResponse<CasdoorRecord[]>(url);
 
   const records = response.data;
   const total = response.data2 as number;
@@ -52,30 +52,30 @@ export async function GetPaginationRecords(
 /**
  * Get record by name
  */
-export async function GetRecord(
+export async function getRecord(
   client: Client,
   name: string
 ): Promise<CasdoorRecord | null> {
   const queryMap: globalThis.Record<string, string> = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-record", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-record", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as CasdoorRecord | null;
 }
 
 /**
  * Add record
  */
-export async function AddRecord(
+export async function addRecord(
   client: Client,
   record: Partial<CasdoorRecord>
 ): Promise<boolean> {
   const recordData = { ...record };
   if (!recordData.owner) {
-    recordData.owner = client.OrganizationName;
+    recordData.owner = client.organizationName;
   }
 
-  const resp = await client.DoPost("add-record", null, recordData, false, false);
+  const resp = await client.doPost("add-record", null, recordData, false, false);
   return resp.data === "Affected";
 }

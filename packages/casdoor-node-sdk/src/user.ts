@@ -15,69 +15,69 @@
 import { Client } from "./client.js";
 import type { User, Response } from "./types.js";
 
-export const MfaRecoveryCodesSession = "mfa_recovery_codes";
+export const MFA_RECOVERY_CODES_SESSION = "mfa_recovery_codes";
 
 /**
  * Get user ID
  */
-export function GetUserId(user: User): string {
+export function getUserId(user: User): string {
   return `${user.owner}/${user.name}`;
 }
 
 /**
  * Get all global users
  */
-export async function GetGlobalUsers(client: Client): Promise<User[]> {
-  const url = client.GetUrl("get-global-users", null);
-  const bytes = await client.DoGetBytes(url);
+export async function getGlobalUsers(client: Client): Promise<User[]> {
+  const url = client.getUrl("get-global-users", null);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User[];
 }
 
 /**
  * Get users for the organization
  */
-export async function GetUsers(client: Client): Promise<User[]> {
+export async function getUsers(client: Client): Promise<User[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-users", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-users", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User[];
 }
 
 /**
  * Get sorted users
  */
-export async function GetSortedUsers(
+export async function getSortedUsers(
   client: Client,
   sorter: string,
   limit: number
 ): Promise<User[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     sorter,
     limit: String(limit),
   };
-  const url = client.GetUrl("get-sorted-users", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-sorted-users", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User[];
 }
 
 /**
  * Get users with pagination
  */
-export async function GetPaginationUsers(
+export async function getPaginationUsers(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: Record<string, string> = {}
 ): Promise<{ users: User[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-users", queryMap);
-  const response = await client.DoGetResponse<User[]>(url);
+  const url = client.getUrl("get-users", queryMap);
+  const response = await client.doGetResponse<User[]>(url);
 
   const users = response.data;
   const total = response.data2 as number;
@@ -88,76 +88,76 @@ export async function GetPaginationUsers(
 /**
  * Get user count
  */
-export async function GetUserCount(
+export async function getUserCount(
   client: Client,
   isOnline: string = ""
 ): Promise<number> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     isOnline,
   };
-  const url = client.GetUrl("get-user-count", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-user-count", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as number;
 }
 
 /**
  * Get user by name
  */
-export async function GetUser(client: Client, name: string): Promise<User | null> {
+export async function getUser(client: Client, name: string): Promise<User | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-user", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-user", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User | null;
 }
 
 /**
  * Get user by email
  */
-export async function GetUserByEmail(
+export async function getUserByEmail(
   client: Client,
   email: string
 ): Promise<User | null> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     email,
   };
-  const url = client.GetUrl("get-user", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-user", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User | null;
 }
 
 /**
  * Get user by phone
  */
-export async function GetUserByPhone(
+export async function getUserByPhone(
   client: Client,
   phone: string
 ): Promise<User | null> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     phone,
   };
-  const url = client.GetUrl("get-user", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-user", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User | null;
 }
 
 /**
  * Get user by user ID
  */
-export async function GetUserByUserId(
+export async function getUserByUserId(
   client: Client,
   userId: string
 ): Promise<User | null> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
     userId,
   };
-  const url = client.GetUrl("get-user", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-user", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as User | null;
 }
 
@@ -165,7 +165,7 @@ export async function GetUserByUserId(
  * Set user password
  * Note: oldPassword is not required, if you don't need it, pass an empty string
  */
-export async function SetPassword(
+export async function setPassword(
   client: Client,
   owner: string,
   name: string,
@@ -179,14 +179,14 @@ export async function SetPassword(
     newPassword,
   };
 
-  const resp = await client.DoPost("set-password", null, param, true, false);
+  const resp = await client.doPost("set-password", null, param, true, false);
   return resp.status === "ok";
 }
 
 /**
  * Update user by ID
  */
-export async function UpdateUserById(
+export async function updateUserById(
   client: Client,
   id: string,
   user: Partial<User>
@@ -198,7 +198,7 @@ export async function UpdateUserById(
 /**
  * Update user
  */
-export async function UpdateUser(
+export async function updateUser(
   client: Client,
   user: Partial<User>
 ): Promise<boolean> {
@@ -209,7 +209,7 @@ export async function UpdateUser(
 /**
  * Update user for specific columns
  */
-export async function UpdateUserForColumns(
+export async function updateUserForColumns(
   client: Client,
   user: Partial<User>,
   columns: string[]
@@ -221,7 +221,7 @@ export async function UpdateUserForColumns(
 /**
  * Add user
  */
-export async function AddUser(
+export async function addUser(
   client: Client,
   user: Partial<User>
 ): Promise<boolean> {
@@ -232,7 +232,7 @@ export async function AddUser(
 /**
  * Delete user
  */
-export async function DeleteUser(
+export async function deleteUser(
   client: Client,
   user: Partial<User>
 ): Promise<boolean> {
@@ -243,7 +243,7 @@ export async function DeleteUser(
 /**
  * Check user password
  */
-export async function CheckUserPassword(
+export async function checkUserPassword(
   client: Client,
   user: Partial<User>
 ): Promise<boolean> {
@@ -278,9 +278,9 @@ async function modifyUserById(
 
   const userData = { ...user };
   if (!userData.owner) {
-    userData.owner = client.OrganizationName;
+    userData.owner = client.organizationName;
   }
 
-  const resp = await client.DoPost(action, queryMap, userData, false, false);
+  const resp = await client.doPost(action, queryMap, userData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

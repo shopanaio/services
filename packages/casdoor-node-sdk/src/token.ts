@@ -18,19 +18,19 @@ import type { Token, IntrospectTokenResult, Response } from "./types.js";
 /**
  * Get all tokens
  */
-export async function GetTokens(client: Client): Promise<Token[]> {
+export async function getTokens(client: Client): Promise<Token[]> {
   const queryMap = {
     owner: "admin",
   };
-  const url = client.GetUrl("get-tokens", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-tokens", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Token[];
 }
 
 /**
  * Get tokens with pagination
  */
-export async function GetPaginationTokens(
+export async function getPaginationTokens(
   client: Client,
   p: number,
   pageSize: number,
@@ -40,8 +40,8 @@ export async function GetPaginationTokens(
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-tokens", queryMap);
-  const response = await client.DoGetResponse<Token[]>(url);
+  const url = client.getUrl("get-tokens", queryMap);
+  const response = await client.doGetResponse<Token[]>(url);
 
   const tokens = response.data;
   const total = response.data2 as number;
@@ -52,19 +52,19 @@ export async function GetPaginationTokens(
 /**
  * Get token by name
  */
-export async function GetToken(client: Client, name: string): Promise<Token | null> {
+export async function getToken(client: Client, name: string): Promise<Token | null> {
   const queryMap = {
     id: `admin/${name}`,
   };
-  const url = client.GetUrl("get-token", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-token", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Token | null;
 }
 
 /**
  * Add token
  */
-export async function AddToken(
+export async function addToken(
   client: Client,
   token: Partial<Token>
 ): Promise<boolean> {
@@ -75,7 +75,7 @@ export async function AddToken(
 /**
  * Update token
  */
-export async function UpdateToken(
+export async function updateToken(
   client: Client,
   token: Partial<Token>
 ): Promise<boolean> {
@@ -86,7 +86,7 @@ export async function UpdateToken(
 /**
  * Update token for specific columns
  */
-export async function UpdateTokenForColumns(
+export async function updateTokenForColumns(
   client: Client,
   token: Partial<Token>,
   columns: string[]
@@ -98,7 +98,7 @@ export async function UpdateTokenForColumns(
 /**
  * Delete token
  */
-export async function DeleteToken(
+export async function deleteToken(
   client: Client,
   token: Partial<Token>
 ): Promise<boolean> {
@@ -109,7 +109,7 @@ export async function DeleteToken(
 /**
  * Introspect token (OAuth2 token introspection)
  */
-export async function IntrospectToken(
+export async function introspectToken(
   client: Client,
   token: string,
   tokenTypeHint: string
@@ -118,9 +118,9 @@ export async function IntrospectToken(
   formData.append("token", token);
   formData.append("token_type_hint", tokenTypeHint);
 
-  const url = client.GetUrl("login/oauth/introspect", null);
+  const url = client.getUrl("login/oauth/introspect", null);
 
-  const respBytes = await client.DoPostBytesRaw(url, "", formData);
+  const respBytes = await client.doPostBytesRaw(url, "", formData);
   return JSON.parse(respBytes) as IntrospectTokenResult;
 }
 
@@ -142,6 +142,6 @@ async function modifyToken(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, tokenData, false, false);
+  const resp = await client.doPost(action, queryMap, tokenData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

@@ -22,7 +22,7 @@ interface SmsForm {
 /**
  * Send SMS
  */
-export async function SendSms(
+export async function sendSms(
   client: Client,
   content: string,
   ...receivers: string[]
@@ -32,13 +32,13 @@ export async function SendSms(
     receivers,
   };
 
-  await client.DoPost("send-sms", null, form, false, false);
+  await client.doPost("send-sms", null, form, false, false);
 }
 
 /**
  * Send SMS by provider
  */
-export async function SendSmsByProvider(
+export async function sendSmsByProvider(
   client: Client,
   content: string,
   provider: string,
@@ -53,5 +53,5 @@ export async function SendSmsByProvider(
     provider,
   };
 
-  await client.DoPost("send-sms", providerMap, form, false, false);
+  await client.doPost("send-sms", providerMap, form, false, false);
 }

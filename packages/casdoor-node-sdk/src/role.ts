@@ -18,30 +18,30 @@ import type { Role, Response } from "./types.js";
 /**
  * Get all roles
  */
-export async function GetRoles(client: Client): Promise<Role[]> {
+export async function getRoles(client: Client): Promise<Role[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-roles", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-roles", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Role[];
 }
 
 /**
  * Get roles with pagination
  */
-export async function GetPaginationRoles(
+export async function getPaginationRoles(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: Record<string, string> = {}
 ): Promise<{ roles: Role[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-roles", queryMap);
-  const response = await client.DoGetResponse<Role[]>(url);
+  const url = client.getUrl("get-roles", queryMap);
+  const response = await client.doGetResponse<Role[]>(url);
 
   const roles = response.data;
   const total = response.data2 as number;
@@ -52,19 +52,19 @@ export async function GetPaginationRoles(
 /**
  * Get role by name
  */
-export async function GetRole(client: Client, name: string): Promise<Role | null> {
+export async function getRole(client: Client, name: string): Promise<Role | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-role", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-role", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Role | null;
 }
 
 /**
  * Add role
  */
-export async function AddRole(
+export async function addRole(
   client: Client,
   role: Partial<Role>
 ): Promise<boolean> {
@@ -75,7 +75,7 @@ export async function AddRole(
 /**
  * Update role
  */
-export async function UpdateRole(
+export async function updateRole(
   client: Client,
   role: Partial<Role>
 ): Promise<boolean> {
@@ -86,7 +86,7 @@ export async function UpdateRole(
 /**
  * Update role for specific columns
  */
-export async function UpdateRoleForColumns(
+export async function updateRoleForColumns(
   client: Client,
   role: Partial<Role>,
   columns: string[]
@@ -98,7 +98,7 @@ export async function UpdateRoleForColumns(
 /**
  * Delete role
  */
-export async function DeleteRole(
+export async function deleteRole(
   client: Client,
   role: Partial<Role>
 ): Promise<boolean> {
@@ -114,7 +114,7 @@ async function modifyRole(
   columns: string[] | null
 ): Promise<{ response: Response; affected: boolean }> {
   const roleData = { ...role };
-  roleData.owner = client.OrganizationName;
+  roleData.owner = client.organizationName;
 
   const queryMap: Record<string, string> = {
     id: `${roleData.owner}/${roleData.name}`,
@@ -124,6 +124,6 @@ async function modifyRole(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, roleData, false, false);
+  const resp = await client.doPost(action, queryMap, roleData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

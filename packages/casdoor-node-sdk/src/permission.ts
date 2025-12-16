@@ -18,45 +18,45 @@ import type { Permission, Response } from "./types.js";
 /**
  * Get all permissions
  */
-export async function GetPermissions(client: Client): Promise<Permission[]> {
+export async function getPermissions(client: Client): Promise<Permission[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-permissions", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-permissions", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Permission[];
 }
 
 /**
  * Get permissions by role
  */
-export async function GetPermissionsByRole(
+export async function getPermissionsByRole(
   client: Client,
   name: string
 ): Promise<Permission[]> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-permissions-by-role", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-permissions-by-role", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Permission[];
 }
 
 /**
  * Get permissions with pagination
  */
-export async function GetPaginationPermissions(
+export async function getPaginationPermissions(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: Record<string, string> = {}
 ): Promise<{ permissions: Permission[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-permissions", queryMap);
-  const response = await client.DoGetResponse<Permission[]>(url);
+  const url = client.getUrl("get-permissions", queryMap);
+  const response = await client.doGetResponse<Permission[]>(url);
 
   const permissions = response.data;
   const total = response.data2 as number;
@@ -67,22 +67,22 @@ export async function GetPaginationPermissions(
 /**
  * Get permission by name
  */
-export async function GetPermission(
+export async function getPermission(
   client: Client,
   name: string
 ): Promise<Permission | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-permission", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-permission", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Permission | null;
 }
 
 /**
  * Add permission
  */
-export async function AddPermission(
+export async function addPermission(
   client: Client,
   permission: Partial<Permission>
 ): Promise<boolean> {
@@ -98,7 +98,7 @@ export async function AddPermission(
 /**
  * Update permission
  */
-export async function UpdatePermission(
+export async function updatePermission(
   client: Client,
   permission: Partial<Permission>
 ): Promise<boolean> {
@@ -114,7 +114,7 @@ export async function UpdatePermission(
 /**
  * Update permission for specific columns
  */
-export async function UpdatePermissionForColumns(
+export async function updatePermissionForColumns(
   client: Client,
   permission: Partial<Permission>,
   columns: string[]
@@ -131,7 +131,7 @@ export async function UpdatePermissionForColumns(
 /**
  * Delete permission
  */
-export async function DeletePermission(
+export async function deletePermission(
   client: Client,
   permission: Partial<Permission>
 ): Promise<boolean> {
@@ -152,7 +152,7 @@ async function modifyPermission(
   columns: string[] | null
 ): Promise<{ response: Response; affected: boolean }> {
   const permData = { ...permission };
-  permData.owner = client.OrganizationName;
+  permData.owner = client.organizationName;
 
   const queryMap: Record<string, string> = {
     id: `${permData.owner}/${permData.name}`,
@@ -162,6 +162,6 @@ async function modifyPermission(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, permData, false, false);
+  const resp = await client.doPost(action, queryMap, permData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

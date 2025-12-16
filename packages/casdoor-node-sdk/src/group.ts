@@ -18,30 +18,30 @@ import type { Group, Response } from "./types.js";
 /**
  * Get all groups
  */
-export async function GetGroups(client: Client): Promise<Group[]> {
+export async function getGroups(client: Client): Promise<Group[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-groups", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-groups", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Group[];
 }
 
 /**
  * Get groups with pagination
  */
-export async function GetPaginationGroups(
+export async function getPaginationGroups(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: Record<string, string> = {}
 ): Promise<{ groups: Group[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-groups", queryMap);
-  const response = await client.DoGetResponse<Group[]>(url);
+  const url = client.getUrl("get-groups", queryMap);
+  const response = await client.doGetResponse<Group[]>(url);
 
   const groups = response.data;
   const total = response.data2 as number;
@@ -52,19 +52,19 @@ export async function GetPaginationGroups(
 /**
  * Get group by name
  */
-export async function GetGroup(client: Client, name: string): Promise<Group | null> {
+export async function getGroup(client: Client, name: string): Promise<Group | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-group", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-group", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Group | null;
 }
 
 /**
  * Add group
  */
-export async function AddGroup(
+export async function addGroup(
   client: Client,
   group: Partial<Group>
 ): Promise<boolean> {
@@ -75,7 +75,7 @@ export async function AddGroup(
 /**
  * Update group
  */
-export async function UpdateGroup(
+export async function updateGroup(
   client: Client,
   group: Partial<Group>
 ): Promise<boolean> {
@@ -86,7 +86,7 @@ export async function UpdateGroup(
 /**
  * Delete group
  */
-export async function DeleteGroup(
+export async function deleteGroup(
   client: Client,
   group: Partial<Group>
 ): Promise<boolean> {
@@ -102,7 +102,7 @@ async function modifyGroup(
   columns: string[] | null
 ): Promise<{ response: Response; affected: boolean }> {
   const groupData = { ...group };
-  groupData.owner = client.OrganizationName;
+  groupData.owner = client.organizationName;
 
   const queryMap: Record<string, string> = {
     id: `${groupData.owner}/${groupData.name}`,
@@ -112,6 +112,6 @@ async function modifyGroup(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, groupData, false, false);
+  const resp = await client.doPost(action, queryMap, groupData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

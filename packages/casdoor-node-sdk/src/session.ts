@@ -18,30 +18,30 @@ import type { Session, Response } from "./types.js";
 /**
  * Get all sessions
  */
-export async function GetSessions(client: Client): Promise<Session[]> {
+export async function getSessions(client: Client): Promise<Session[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-sessions", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-sessions", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Session[];
 }
 
 /**
  * Get sessions with pagination
  */
-export async function GetPaginationSessions(
+export async function getPaginationSessions(
   client: Client,
   p: number,
   pageSize: number,
   queryMap: Record<string, string> = {}
 ): Promise<{ sessions: Session[]; total: number }> {
-  queryMap.owner = client.OrganizationName;
+  queryMap.owner = client.organizationName;
   queryMap.p = String(p);
   queryMap.pageSize = String(pageSize);
 
-  const url = client.GetUrl("get-sessions", queryMap);
-  const response = await client.DoGetResponse<Session[]>(url);
+  const url = client.getUrl("get-sessions", queryMap);
+  const response = await client.doGetResponse<Session[]>(url);
 
   const sessions = response.data;
   const total = response.data2 as number;
@@ -52,22 +52,22 @@ export async function GetPaginationSessions(
 /**
  * Get session by name
  */
-export async function GetSession(
+export async function getSession(
   client: Client,
   name: string
 ): Promise<Session | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-session", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-session", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Session | null;
 }
 
 /**
  * Add session
  */
-export async function AddSession(
+export async function addSession(
   client: Client,
   session: Partial<Session>
 ): Promise<boolean> {
@@ -78,7 +78,7 @@ export async function AddSession(
 /**
  * Update session
  */
-export async function UpdateSession(
+export async function updateSession(
   client: Client,
   session: Partial<Session>
 ): Promise<boolean> {
@@ -89,7 +89,7 @@ export async function UpdateSession(
 /**
  * Update session for specific columns
  */
-export async function UpdateSessionForColumns(
+export async function updateSessionForColumns(
   client: Client,
   session: Partial<Session>,
   columns: string[]
@@ -101,7 +101,7 @@ export async function UpdateSessionForColumns(
 /**
  * Delete session
  */
-export async function DeleteSession(
+export async function deleteSession(
   client: Client,
   session: Partial<Session>
 ): Promise<boolean> {
@@ -117,7 +117,7 @@ async function modifySession(
   columns: string[] | null
 ): Promise<{ response: Response; affected: boolean }> {
   const sessionData = { ...session };
-  sessionData.owner = client.OrganizationName;
+  sessionData.owner = client.organizationName;
 
   const queryMap: Record<string, string> = {
     id: `${sessionData.owner}/${sessionData.name}`,
@@ -127,6 +127,6 @@ async function modifySession(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, sessionData, false, false);
+  const resp = await client.doPost(action, queryMap, sessionData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

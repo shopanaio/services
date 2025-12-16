@@ -18,50 +18,50 @@ import type { Organization, Response } from "./types.js";
 /**
  * Get organization by name
  */
-export async function GetOrganization(
+export async function getOrganization(
   client: Client,
   name: string
 ): Promise<Organization | null> {
   const queryMap = {
     id: `admin/${name}`,
   };
-  const url = client.GetUrl("get-organization", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-organization", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Organization | null;
 }
 
 /**
  * Get all organizations
  */
-export async function GetOrganizations(
+export async function getOrganizations(
   client: Client
 ): Promise<Organization[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-organizations", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-organizations", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Organization[];
 }
 
 /**
  * Get organization names
  */
-export async function GetOrganizationNames(
+export async function getOrganizationNames(
   client: Client
 ): Promise<Organization[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-organization-names", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-organization-names", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Organization[];
 }
 
 /**
  * Add organization
  */
-export async function AddOrganization(
+export async function addOrganization(
   client: Client,
   organization: Partial<Organization>
 ): Promise<boolean> {
@@ -77,7 +77,7 @@ export async function AddOrganization(
 /**
  * Update organization
  */
-export async function UpdateOrganization(
+export async function updateOrganization(
   client: Client,
   organization: Partial<Organization>
 ): Promise<boolean> {
@@ -93,7 +93,7 @@ export async function UpdateOrganization(
 /**
  * Delete organization
  */
-export async function DeleteOrganization(
+export async function deleteOrganization(
   client: Client,
   organization: Partial<Organization>
 ): Promise<boolean> {
@@ -126,6 +126,6 @@ async function modifyOrganization(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, orgData, false, false);
+  const resp = await client.doPost(action, queryMap, orgData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

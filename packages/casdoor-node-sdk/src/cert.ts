@@ -18,40 +18,40 @@ import type { Cert, Response } from "./types.js";
 /**
  * Get all global certs
  */
-export async function GetGlobalCerts(client: Client): Promise<Cert[]> {
-  const url = client.GetUrl("get-global-certs", null);
-  const bytes = await client.DoGetBytes(url);
+export async function getGlobalCerts(client: Client): Promise<Cert[]> {
+  const url = client.getUrl("get-global-certs", null);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Cert[];
 }
 
 /**
  * Get all certs
  */
-export async function GetCerts(client: Client): Promise<Cert[]> {
+export async function getCerts(client: Client): Promise<Cert[]> {
   const queryMap = {
-    owner: client.OrganizationName,
+    owner: client.organizationName,
   };
-  const url = client.GetUrl("get-certs", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-certs", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Cert[];
 }
 
 /**
  * Get cert by name
  */
-export async function GetCert(client: Client, name: string): Promise<Cert | null> {
+export async function getCert(client: Client, name: string): Promise<Cert | null> {
   const queryMap = {
-    id: `${client.OrganizationName}/${name}`,
+    id: `${client.organizationName}/${name}`,
   };
-  const url = client.GetUrl("get-cert", queryMap);
-  const bytes = await client.DoGetBytes(url);
+  const url = client.getUrl("get-cert", queryMap);
+  const bytes = await client.doGetBytes(url);
   return JSON.parse(bytes) as Cert | null;
 }
 
 /**
  * Add cert
  */
-export async function AddCert(
+export async function addCert(
   client: Client,
   cert: Partial<Cert>
 ): Promise<boolean> {
@@ -62,7 +62,7 @@ export async function AddCert(
 /**
  * Update cert
  */
-export async function UpdateCert(
+export async function updateCert(
   client: Client,
   cert: Partial<Cert>
 ): Promise<boolean> {
@@ -73,7 +73,7 @@ export async function UpdateCert(
 /**
  * Delete cert
  */
-export async function DeleteCert(
+export async function deleteCert(
   client: Client,
   cert: Partial<Cert>
 ): Promise<boolean> {
@@ -90,7 +90,7 @@ async function modifyCert(
 ): Promise<{ response: Response; affected: boolean }> {
   const certData = { ...cert };
   if (!certData.owner) {
-    certData.owner = client.OrganizationName;
+    certData.owner = client.organizationName;
   }
 
   const queryMap: Record<string, string> = {
@@ -101,6 +101,6 @@ async function modifyCert(
     queryMap.columns = columns.join(",");
   }
 
-  const resp = await client.DoPost(action, queryMap, certData, false, false);
+  const resp = await client.doPost(action, queryMap, certData, false, false);
   return { response: resp, affected: resp.data === "Affected" };
 }

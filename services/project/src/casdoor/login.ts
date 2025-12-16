@@ -1,4 +1,4 @@
-import { GetOAuthToken, type Response } from "@shopana/casdoor-node-sdk";
+import { type Response } from "@shopana/casdoor-node-sdk";
 import {
   CasdoorClient,
   ResponseTypeToken,
@@ -207,6 +207,6 @@ export class CasdoorLogin {
    * Exchange authorization code for OAuth token (standard OAuth2 flow)
    */
   async getOAuthToken(code: string, state: string) {
-    return GetOAuthToken(this.casdoorClient.sdkClient, code, state);
+    return this.casdoorClient.sdkClient.getOAuthToken(code, state);
   }
 }
