@@ -2,22 +2,21 @@ import type { UserError } from "../../../kernel/BaseScript.js";
 import type { LocaleCode } from "../../../resolvers/admin/interfaces/index.js";
 
 /**
- * Base result interface for user scripts
+ * Base result interface for customer scripts
  */
-export interface UserResultBase {
+export interface CustomerResultBase {
   userErrors: UserError[];
 }
 
 /**
- * Common user input fields
+ * Common customer input fields
  */
-export interface UserInputBase {
+export interface CustomerInputBase {
   email?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
   locale?: LocaleCode;
-  isAdmin?: boolean;
+  avatar?: string;
   isForbidden?: boolean;
-  roles?: string[];
 }
