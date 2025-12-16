@@ -1,0 +1,65 @@
+// Copyright 2021 The Casdoor Authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import { Client } from "./client.js";
+import type { CasdoorRecord } from "./types.js";
+
+/**
+ * Get all records
+ */
+export async function GetRecords(client: Client): Promise<CasdoorRecord[]> {
+  const queryMap: globalThis.Record<string, string> = {
+    owner: client.OrganizationName,
+  };
+  const url = client.GetUrl("get-records", queryMap);
+  const bytes = await client.DoGetBytes(url);
+  return JSON.parse(bytes) as CasdoorRecord[];
+}
+
+/**
+ * Get records with pagination
+ */
+export async function GetPaginationRecords(
+  client: Client,
+  p: number,
+  pageSize: number,
+  queryMap: globalThis.Record<string, string> = {}
+): Promise<{ records: CasdoorRecord[]; total: number }> {
+  queryMap.owner = client.OrganizationName;
+  queryMap.p = String(p);
+  queryMap.pageSize = String(pageSize);
+
+  const url = client.GetUrl("get-records", queryMap);
+  const response = await client.DoGetResponse<CasdoorRecord[]>(url);
+
+  const records = response.data;
+  const total = response.data2 as number;
+
+  return { records, total };
+}
+
+/**
+ * Get record by name
+ */
+export async function GetRecord(
+  client: Client,
+  name: string
+): Promise<CasdoorRecord | null> {
+  const queryMap: globalThis.Record<string, string> = {
+    id: `${client.OrganizationName}/${name}`,
+  };
+  const url = client.GetUrl("get-record", queryMap);
+  const bytes = await client.DoGetBytes(url);
+  return JSON.parse(bytes) as CasdoorRecord | null;
+}

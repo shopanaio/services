@@ -69,4 +69,16 @@ export const config = {
   /** Service metadata */
   serviceName: "project-service",
   serviceVersion: "1.0.0",
+
+  /** Casdoor configuration */
+  casdoor: {
+    endpoint: readOptionalConfig("casdoor_endpoint"),
+    clientId: readOptionalConfig("casdoor_client_id"),
+    clientSecret: readOptionalConfig("casdoor_client_secret"),
+    applicationName: readOptionalConfig("casdoor_application_name"),
+    organizationName: readOptionalConfig("casdoor_organization_name"),
+    certificate: readOptionalConfig("casdoor_certificate"),
+    googleProvider: readOptionalConfig("casdoor_google_provider"),
+    oauthRedirectUri: readOptionalConfig("casdoor_oauth_redirect_uri"),
+  },
 } as const;
