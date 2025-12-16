@@ -10,8 +10,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
         name: input.name,
         slug: input.slug,
         locales: input.locales,
-        currency: input.currency,
-        country: input.country,
+        baseCurrency: input.baseCurrency,
         status: input.status ?? undefined,
         timezone: input.timezone ?? undefined,
         phoneNumber: input.phoneNumber ?? undefined,
@@ -30,10 +29,9 @@ export const projectMutationResolvers: Partial<Resolvers> = {
         name: input.name ?? undefined,
         phoneNumber: input.phoneNumber ?? undefined,
         email: input.email ?? undefined,
-        country: input.country ?? undefined,
         timezone: input.timezone ?? undefined,
-        weightUnit: input.weightUnit ?? undefined,
-        dimensionUnit: input.dimensionUnit ?? undefined,
+        defaultWeightUnit: input.defaultWeightUnit ?? undefined,
+        defaultDimensionUnit: input.defaultDimensionUnit ?? undefined,
       });
 
       return {

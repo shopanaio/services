@@ -7,6 +7,10 @@
       "outDir": "dist/schema"
     },
     {
+      "include": "../../packages/shared-references/graphql/**/*.graphql",
+      "outDir": "dist/schema"
+    },
+    {
       "include": "migrations/**/*",
       "outDir": "dist/migrations"
     }

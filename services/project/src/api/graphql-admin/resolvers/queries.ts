@@ -47,13 +47,12 @@ export const queryResolvers: Partial<Resolvers> = {
       return {
         name: project.name,
         timezone: project.timezone,
-        country: project.country,
         phoneNumber: project.phoneNumber,
         email: project.email,
-        currency: project.defaultCurrency,
-        locale: project.defaultLocale,
-        weightUnit: project.weightUnit,
-        dimensionUnit: project.dimensionUnit,
+        baseCurrency: project.baseCurrency,
+        baseLocale: project.baseLocale,
+        defaultWeightUnit: project.defaultWeightUnit,
+        defaultDimensionUnit: project.defaultDimensionUnit,
       };
     },
 

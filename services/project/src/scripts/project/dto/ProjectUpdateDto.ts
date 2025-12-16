@@ -6,10 +6,9 @@ export interface ProjectUpdateParams {
   name?: string;
   phoneNumber?: string;
   email?: string;
-  country?: string;
   timezone?: string;
-  weightUnit?: WeightUnit;
-  dimensionUnit?: DimensionUnit;
+  defaultWeightUnit?: WeightUnit;
+  defaultDimensionUnit?: DimensionUnit;
 }
 
 export type ProjectUpdateResult = ProjectPayload;

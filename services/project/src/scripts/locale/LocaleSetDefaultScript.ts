@@ -12,8 +12,8 @@ export class LocaleSetDefaultScript extends BaseScript<LocaleSetDefaultParams, L
       };
     }
 
-    // Update project default locale
-    const updated = await this.repository.project.updateDefaultLocale(params.projectId, params.locale);
+    // Update project base locale
+    const updated = await this.repository.project.updateBaseLocale(params.projectId, params.locale);
 
     if (!updated) {
       return {

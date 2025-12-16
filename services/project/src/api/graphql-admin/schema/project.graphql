@@ -3,7 +3,7 @@ enum ProjectStatus {
   inactive
 }
 
-# WeightUnit and DimensionUnit enums are defined in units.graphql
+# WeightUnit, DimensionUnit, CurrencyCode, LocaleCode enums are defined in shared-references
 
 type Project {
   id: ID!
@@ -11,13 +11,12 @@ type Project {
   slug: String!
   status: ProjectStatus!
   timezone: String!
-  country: String!
   phoneNumber: String
   email: String
-  defaultLocale: String!
-  defaultCurrency: String!
-  weightUnit: WeightUnit!
-  dimensionUnit: DimensionUnit!
+  baseLocale: LocaleCode!
+  baseCurrency: CurrencyCode!
+  defaultWeightUnit: WeightUnit!
+  defaultDimensionUnit: DimensionUnit!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -25,21 +24,19 @@ type Project {
 type ProjectInfo {
   name: String!
   timezone: String!
-  country: String!
   phoneNumber: String
   email: String
-  currency: String!
-  locale: String!
-  weightUnit: WeightUnit!
-  dimensionUnit: DimensionUnit!
+  baseCurrency: CurrencyCode!
+  baseLocale: LocaleCode!
+  defaultWeightUnit: WeightUnit!
+  defaultDimensionUnit: DimensionUnit!
 }
 
 input ProjectCreateInput {
   name: String!
   slug: String!
-  locales: [String!]!
-  currency: String!
-  country: String!
+  locales: [LocaleCode!]!
+  baseCurrency: CurrencyCode!
   status: ProjectStatus
   timezone: String
   phoneNumber: String
@@ -50,10 +47,9 @@ input ProjectUpdateInput {
   name: String
   phoneNumber: String
   email: String
-  country: String
   timezone: String
-  weightUnit: WeightUnit
-  dimensionUnit: DimensionUnit
+  defaultWeightUnit: WeightUnit
+  defaultDimensionUnit: DimensionUnit
 }
 
 input ProjectDeleteInput {

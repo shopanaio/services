@@ -15,6 +15,8 @@ import {
   type ProjectStatus,
   type WeightUnit,
   type DimensionUnit,
+  type CurrencyCode,
+  type LocaleCode,
 } from "../models/index.js";
 
 const projectQuery = createQuery(project).maxLimit(100).defaultLimit(20);
@@ -38,21 +40,19 @@ export interface CreateProjectData {
   slug: string;
   status?: ProjectStatus;
   timezone?: string;
-  country?: string;
   phoneNumber?: string | null;
   email?: string | null;
-  defaultLocale?: string;
-  defaultCurrency?: string;
+  baseLocale?: LocaleCode;
+  baseCurrency?: CurrencyCode;
 }
 
 export interface UpdateProjectData {
   name?: string;
   phoneNumber?: string | null;
   email?: string | null;
-  country?: string;
   timezone?: string;
-  weightUnit?: WeightUnit;
-  dimensionUnit?: DimensionUnit;
+  defaultWeightUnit?: WeightUnit;
+  defaultDimensionUnit?: DimensionUnit;
 }
 
 export class ProjectRepository extends BaseRepository {
@@ -111,13 +111,12 @@ export class ProjectRepository extends BaseRepository {
       id,
       name: data.name,
       slug: data.slug,
-      status: data.status ?? "ACTIVE",
+      status: data.status ?? "active",
       timezone: data.timezone ?? "UTC",
-      country: data.country ?? "UA",
       phoneNumber: data.phoneNumber ?? null,
       email: data.email ?? null,
-      defaultLocale: data.defaultLocale ?? "uk",
-      defaultCurrency: data.defaultCurrency ?? "UAH",
+      baseLocale: data.baseLocale ?? "en",
+      baseCurrency: data.baseCurrency ?? "USD",
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -139,10 +138,9 @@ export class ProjectRepository extends BaseRepository {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber;
     if (data.email !== undefined) updateData.email = data.email;
-    if (data.country !== undefined) updateData.country = data.country;
     if (data.timezone !== undefined) updateData.timezone = data.timezone;
-    if (data.weightUnit !== undefined) updateData.weightUnit = data.weightUnit;
-    if (data.dimensionUnit !== undefined) updateData.dimensionUnit = data.dimensionUnit;
+    if (data.defaultWeightUnit !== undefined) updateData.defaultWeightUnit = data.defaultWeightUnit;
+    if (data.defaultDimensionUnit !== undefined) updateData.defaultDimensionUnit = data.defaultDimensionUnit;
 
     const result = await this.connection
       .update(project)
@@ -158,10 +156,10 @@ export class ProjectRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async updateDefaultLocale(id: string, locale: string): Promise<boolean> {
+  async updateBaseLocale(id: string, locale: LocaleCode): Promise<boolean> {
     const result = await this.connection
       .update(project)
-      .set({ defaultLocale: locale, updatedAt: new Date() })
+      .set({ baseLocale: locale, updatedAt: new Date() })
       .where(
         and(
           eq(project.id, id),
@@ -173,10 +171,10 @@ export class ProjectRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  async updateDefaultCurrency(id: string, currency: string): Promise<boolean> {
+  async updateBaseCurrency(id: string, currency: CurrencyCode): Promise<boolean> {
     const result = await this.connection
       .update(project)
-      .set({ defaultCurrency: currency, updatedAt: new Date() })
+      .set({ baseCurrency: currency, updatedAt: new Date() })
       .where(
         and(
           eq(project.id, id),

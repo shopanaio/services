@@ -1,12 +1,12 @@
 type Currency {
-  code: String!
+  code: CurrencyCode!
   title: String!
   isActive: Boolean!
   exchangeRate: Float!
 }
 
 input CurrencySetDefaultInput {
-  currency: String!
+  currency: CurrencyCode!
 }
 
 type CurrencyUpdatePayload {

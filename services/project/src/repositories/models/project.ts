@@ -10,8 +10,12 @@ import { projectSchema } from "./schema.js";
 import {
   weightUnitEnum,
   dimensionUnitEnum,
+  currencyCodeEnum,
+  localeCodeEnum,
   type WeightUnit,
   type DimensionUnit,
+  type CurrencyCode,
+  type LocaleCode,
 } from "./reference.js";
 
 export const projectStatusEnum = projectSchema.enum("project_status", [
@@ -19,7 +23,16 @@ export const projectStatusEnum = projectSchema.enum("project_status", [
   "inactive",
 ]);
 
-export { weightUnitEnum, dimensionUnitEnum, type WeightUnit, type DimensionUnit };
+export {
+  weightUnitEnum,
+  dimensionUnitEnum,
+  currencyCodeEnum,
+  localeCodeEnum,
+  type WeightUnit,
+  type DimensionUnit,
+  type CurrencyCode,
+  type LocaleCode,
+};
 
 export const project = projectSchema.table(
   "project",
@@ -29,13 +42,12 @@ export const project = projectSchema.table(
     slug: varchar("slug", { length: 255 }).notNull(),
     status: projectStatusEnum("status").notNull().default("active"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
-    country: varchar("country", { length: 2 }).notNull().default("UA"),
     phoneNumber: varchar("phone_number", { length: 32 }),
     email: varchar("email", { length: 255 }),
-    defaultLocale: varchar("default_locale", { length: 10 }).notNull().default("uk"),
-    defaultCurrency: varchar("default_currency", { length: 3 }).notNull().default("UAH"),
-    weightUnit: weightUnitEnum("weight_unit").notNull().default("kg"),
-    dimensionUnit: dimensionUnitEnum("dimension_unit").notNull().default("cm"),
+    baseLocale: localeCodeEnum("base_locale").notNull().default("en"),
+    baseCurrency: currencyCodeEnum("base_currency").notNull().default("USD"),
+    defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull().default("g"),
+    defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull().default("mm"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

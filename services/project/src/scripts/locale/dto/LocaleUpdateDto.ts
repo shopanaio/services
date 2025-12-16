@@ -1,12 +1,13 @@
+import type { LocaleCode } from "../../../repositories/models/index.js";
 import type { LocaleUpdatePayload } from "./shared.js";
 
 export interface CreateLocaleInput {
-  code: string;
+  code: LocaleCode;
   isActive: boolean;
 }
 
 export interface UpdateLocaleInput {
-  code: string;
+  code: LocaleCode;
   isActive: boolean;
 }
 
@@ -14,14 +15,14 @@ export interface LocaleUpdateParams {
   projectId: string;
   create: CreateLocaleInput[];
   update: UpdateLocaleInput[];
-  delete: string[];
+  delete: LocaleCode[];
 }
 
 export type LocaleUpdateResult = LocaleUpdatePayload;
 
 export interface LocaleSetDefaultParams {
   projectId: string;
-  locale: string;
+  locale: LocaleCode;
 }
 
 export type LocaleSetDefaultResult = LocaleUpdatePayload;

@@ -17,10 +17,9 @@ export class ProjectUpdateScript extends BaseScript<ProjectUpdateParams, Project
       name: params.name,
       phoneNumber: params.phoneNumber,
       email: params.email,
-      country: params.country,
       timezone: params.timezone,
-      weightUnit: params.weightUnit,
-      dimensionUnit: params.dimensionUnit,
+      defaultWeightUnit: params.defaultWeightUnit,
+      defaultDimensionUnit: params.defaultDimensionUnit,
     });
 
     this.logger.info({ projectId: params.id }, "Project updated");

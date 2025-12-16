@@ -18,11 +18,10 @@ export class ProjectCreateScript extends BaseScript<ProjectCreateParams, Project
       slug: params.slug,
       status: params.status,
       timezone: params.timezone,
-      country: params.country,
       phoneNumber: params.phoneNumber,
       email: params.email,
-      defaultLocale: params.locales[0],
-      defaultCurrency: params.currency,
+      baseLocale: params.locales[0],
+      baseCurrency: params.baseCurrency,
     });
 
     // Create locales
@@ -38,7 +37,7 @@ export class ProjectCreateScript extends BaseScript<ProjectCreateParams, Project
 
     // Create currency
     await this.repository.currency.create(project.id, {
-      code: params.currency,
+      code: params.baseCurrency,
       isActive: true,
     });
 

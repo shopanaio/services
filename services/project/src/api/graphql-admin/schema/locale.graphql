@@ -1,27 +1,27 @@
 type Locale {
-  code: String!
+  code: LocaleCode!
   title: String!
   isActive: Boolean!
 }
 
 input LocaleCreateInput {
-  code: String!
+  code: LocaleCode!
   isActive: Boolean!
 }
 
 input LocaleUpdateInput {
-  code: String!
+  code: LocaleCode!
   isActive: Boolean!
 }
 
 input LocalesUpdateInput {
   create: [LocaleCreateInput!]!
   update: [LocaleUpdateInput!]!
-  delete: [String!]!
+  delete: [LocaleCode!]!
 }
 
 input LocaleSetDefaultInput {
-  locale: String!
+  locale: LocaleCode!
 }
 
 type LocaleUpdatePayload {

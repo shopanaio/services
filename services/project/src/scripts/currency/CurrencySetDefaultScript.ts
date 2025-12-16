@@ -12,8 +12,8 @@ export class CurrencySetDefaultScript extends BaseScript<CurrencySetDefaultParam
       };
     }
 
-    // Update project default currency
-    const updated = await this.repository.project.updateDefaultCurrency(params.projectId, params.currency);
+    // Update project base currency
+    const updated = await this.repository.project.updateBaseCurrency(params.projectId, params.currency);
 
     if (!updated) {
       return {
