@@ -1,30 +1,25 @@
 import {
   uuid,
   varchar,
-  text,
   timestamp,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { projectSchema } from "./schema.js";
+import {
+  weightUnitEnum,
+  dimensionUnitEnum,
+  type WeightUnit,
+  type DimensionUnit,
+} from "./reference.js";
 
 export const projectStatusEnum = projectSchema.enum("project_status", [
-  "ACTIVE",
-  "INACTIVE",
+  "active",
+  "inactive",
 ]);
 
-export const weightUnitEnum = projectSchema.enum("weight_unit", [
-  "KILOGRAMS",
-  "GRAMS",
-  "POUNDS",
-  "OUNCES",
-]);
-
-export const unitSystemEnum = projectSchema.enum("unit_system", [
-  "METRIC",
-  "IMPERIAL",
-]);
+export { weightUnitEnum, dimensionUnitEnum, type WeightUnit, type DimensionUnit };
 
 export const project = projectSchema.table(
   "project",
@@ -32,15 +27,15 @@ export const project = projectSchema.table(
     id: uuid("id").primaryKey(),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull(),
-    status: projectStatusEnum("status").notNull().default("ACTIVE"),
+    status: projectStatusEnum("status").notNull().default("active"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
     country: varchar("country", { length: 2 }).notNull().default("UA"),
     phoneNumber: varchar("phone_number", { length: 32 }),
     email: varchar("email", { length: 255 }),
     defaultLocale: varchar("default_locale", { length: 10 }).notNull().default("uk"),
     defaultCurrency: varchar("default_currency", { length: 3 }).notNull().default("UAH"),
-    weightUnit: weightUnitEnum("weight_unit").notNull().default("KILOGRAMS"),
-    unitSystem: unitSystemEnum("unit_system").notNull().default("METRIC"),
+    weightUnit: weightUnitEnum("weight_unit").notNull().default("kg"),
+    dimensionUnit: dimensionUnitEnum("dimension_unit").notNull().default("cm"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -63,6 +58,4 @@ export const project = projectSchema.table(
 
 export type Project = typeof project.$inferSelect;
 export type NewProject = typeof project.$inferInsert;
-export type ProjectStatus = "ACTIVE" | "INACTIVE";
-export type WeightUnit = "KILOGRAMS" | "GRAMS" | "POUNDS" | "OUNCES";
-export type UnitSystem = "METRIC" | "IMPERIAL";
+export type ProjectStatus = "active" | "inactive";

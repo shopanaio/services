@@ -1,19 +1,9 @@
 enum ProjectStatus {
-  ACTIVE
-  INACTIVE
+  active
+  inactive
 }
 
-enum WeightUnit {
-  KILOGRAMS
-  GRAMS
-  POUNDS
-  OUNCES
-}
-
-enum UnitSystem {
-  METRIC
-  IMPERIAL
-}
+# WeightUnit and DimensionUnit enums are defined in units.graphql
 
 type Project {
   id: ID!
@@ -27,7 +17,7 @@ type Project {
   defaultLocale: String!
   defaultCurrency: String!
   weightUnit: WeightUnit!
-  unitSystem: UnitSystem!
+  dimensionUnit: DimensionUnit!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -41,7 +31,7 @@ type ProjectInfo {
   currency: String!
   locale: String!
   weightUnit: WeightUnit!
-  unitSystem: UnitSystem!
+  dimensionUnit: DimensionUnit!
 }
 
 input ProjectCreateInput {
@@ -63,7 +53,7 @@ input ProjectUpdateInput {
   country: String
   timezone: String
   weightUnit: WeightUnit
-  unitSystem: UnitSystem
+  dimensionUnit: DimensionUnit
 }
 
 input ProjectDeleteInput {

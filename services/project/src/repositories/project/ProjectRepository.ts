@@ -14,7 +14,7 @@ import {
   type NewProject,
   type ProjectStatus,
   type WeightUnit,
-  type UnitSystem,
+  type DimensionUnit,
 } from "../models/index.js";
 
 const projectQuery = createQuery(project).maxLimit(100).defaultLimit(20);
@@ -52,7 +52,7 @@ export interface UpdateProjectData {
   country?: string;
   timezone?: string;
   weightUnit?: WeightUnit;
-  unitSystem?: UnitSystem;
+  dimensionUnit?: DimensionUnit;
 }
 
 export class ProjectRepository extends BaseRepository {
@@ -142,7 +142,7 @@ export class ProjectRepository extends BaseRepository {
     if (data.country !== undefined) updateData.country = data.country;
     if (data.timezone !== undefined) updateData.timezone = data.timezone;
     if (data.weightUnit !== undefined) updateData.weightUnit = data.weightUnit;
-    if (data.unitSystem !== undefined) updateData.unitSystem = data.unitSystem;
+    if (data.dimensionUnit !== undefined) updateData.dimensionUnit = data.dimensionUnit;
 
     const result = await this.connection
       .update(project)

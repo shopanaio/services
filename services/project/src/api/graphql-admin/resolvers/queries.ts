@@ -53,7 +53,7 @@ export const queryResolvers: Partial<Resolvers> = {
         currency: project.defaultCurrency,
         locale: project.defaultLocale,
         weightUnit: project.weightUnit,
-        unitSystem: project.unitSystem,
+        dimensionUnit: project.dimensionUnit,
       };
     },
 

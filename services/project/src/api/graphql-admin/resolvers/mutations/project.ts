@@ -33,7 +33,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
         country: input.country ?? undefined,
         timezone: input.timezone ?? undefined,
         weightUnit: input.weightUnit ?? undefined,
-        unitSystem: input.unitSystem ?? undefined,
+        dimensionUnit: input.dimensionUnit ?? undefined,
       });
 
       return {

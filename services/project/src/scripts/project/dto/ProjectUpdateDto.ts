@@ -1,4 +1,4 @@
-import type { WeightUnit, UnitSystem } from "../../../repositories/models/index.js";
+import type { WeightUnit, DimensionUnit } from "../../../repositories/models/index.js";
 import type { ProjectPayload } from "./shared.js";
 
 export interface ProjectUpdateParams {
@@ -9,7 +9,7 @@ export interface ProjectUpdateParams {
   country?: string;
   timezone?: string;
   weightUnit?: WeightUnit;
-  unitSystem?: UnitSystem;
+  dimensionUnit?: DimensionUnit;
 }
 
 export type ProjectUpdateResult = ProjectPayload;
