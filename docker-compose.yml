@@ -16,7 +16,7 @@ services:
       - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./platform/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -35,8 +35,8 @@ services:
     ports:
       - "5432:6432"
     volumes:
-      - ./platform/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ./platform/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     depends_on:
       postgres:
         condition: service_healthy
