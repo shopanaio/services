@@ -1,13 +1,12 @@
-import type { Role } from "./interfaces/index.js";
-import type { UserData } from "../../repositories/user/UserRepository.js";
+import type { CustomerData } from "../../repositories/customer/CustomerRepository.js";
 import { UsersType } from "./UsersType.js";
 
 /**
- * User resolver - resolves admin user domain interface
+ * Customer resolver - resolves storefront customer domain interface
  */
-export class UserResolver extends UsersType<string, UserData | null> {
+export class CustomerResolver extends UsersType<string, CustomerData | null> {
   async loadData() {
-    return this.ctx.loaders.user.load(this.value);
+    return this.ctx.loaders.customer.load(this.value);
   }
 
   id() {
@@ -42,20 +41,12 @@ export class UserResolver extends UsersType<string, UserData | null> {
     return this.get("locale");
   }
 
-  async isAdmin() {
-    return this.get("isAdmin");
-  }
-
   async isForbidden() {
     return this.get("isForbidden");
   }
 
   async isDeleted() {
     return this.get("isDeleted");
-  }
-
-  async roles(): Promise<Role[]> {
-    return this.get("roles");
   }
 
   async createdAt() {
