@@ -41,7 +41,8 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "postgres"]
+      test:
+        ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +51,7 @@ services:
   # Casdoor (Authentication)
   # ============================================
   casdoor:
-    image: casbin/casdoor:latest
+    image: casbin/casdoor:2.196.1
     container_name: shopana-casdoor
     restart: unless-stopped
     environment:
@@ -76,8 +77,8 @@ services:
     container_name: shopana-minio
     restart: unless-stopped
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Console
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -120,8 +121,8 @@ services:
       RABBITMQ_DEFAULT_PASS: rabbitmq
       RABBITMQ_DEFAULT_VHOST: /
     ports:
-      - "5672:5672"    # AMQP
-      - "15672:15672"  # Management UI
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
     volumes:
       - ./.data/rabbitmq:/var/lib/rabbitmq
     healthcheck:
@@ -129,4 +130,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-
