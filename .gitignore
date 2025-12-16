@@ -37,3 +37,4 @@ federation/schema/
 **/*.tsbuildinfo
 
 .gocache
+.data
