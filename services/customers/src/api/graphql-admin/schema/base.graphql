@@ -1,0 +1,54 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+scalar DateTime
+scalar Email
+
+extend type Query {
+  customersQuery: CustomersQuery!
+}
+
+extend type Mutation {
+  customersMutation: CustomersMutation!
+}
+
+type CustomersQuery {
+  """Get a node by its global ID"""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs"""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Get a customer by ID"""
+  customer(id: ID!): Customer
+
+  """Get customers with Relay-style pagination"""
+  customers(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CustomerConnection!
+}
+
+type CustomersMutation {
+  """Create a new customer"""
+  customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
+
+  """Update an existing customer"""
+  customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
+
+  """Delete a customer"""
+  customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
+}

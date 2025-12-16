@@ -1,0 +1,54 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+scalar DateTime
+scalar Email
+
+extend type Query {
+  usersQuery: UsersQuery!
+}
+
+extend type Mutation {
+  usersMutation: UsersMutation!
+}
+
+type UsersQuery {
+  """Get a node by its global ID"""
+  node(id: ID!): Node
+
+  """Get multiple nodes by their global IDs"""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Get a user by ID"""
+  user(id: ID!): User
+
+  """Get users with Relay-style pagination"""
+  users(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): UserConnection!
+}
+
+type UsersMutation {
+  """Create a new user"""
+  userCreate(input: UserCreateInput!): UserCreatePayload!
+
+  """Update an existing user"""
+  userUpdate(input: UserUpdateInput!): UserUpdatePayload!
+
+  """Delete a user"""
+  userDelete(input: UserDeleteInput!): UserDeletePayload!
+}

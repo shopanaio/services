@@ -1,0 +1,113 @@
+# ---- User Types ----
+
+"""
+A user represents a person in the system.
+"""
+type User implements Node @key(fields: "id") {
+  """The globally unique ID of the user."""
+  id: ID!
+
+  """The email address of the user."""
+  email: String!
+
+  """The date and time when the user was created."""
+  createdAt: DateTime!
+
+  """The date and time when the user was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the user was deleted (soft delete)."""
+  deletedAt: DateTime
+}
+
+"""
+A connection to a list of User items.
+"""
+type UserConnection {
+  """A list of edges."""
+  edges: [UserEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of users."""
+  totalCount: Int!
+}
+
+"""
+An edge in a User connection.
+"""
+type UserEdge {
+  """The item at the end of the edge."""
+  node: User!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ---- User Inputs ----
+
+"""
+Input for creating a user.
+"""
+input UserCreateInput {
+  """The email address for the user."""
+  email: String!
+}
+
+"""
+Input for updating a user.
+"""
+input UserUpdateInput {
+  """The user ID."""
+  id: ID!
+
+  """The email address for the user."""
+  email: String
+}
+
+"""
+Input for deleting a user.
+"""
+input UserDeleteInput {
+  """The ID of the user to delete."""
+  id: ID!
+
+  """Whether to permanently delete the user (hard delete)."""
+  permanent: Boolean
+}
+
+# ---- User Payloads ----
+
+"""
+Payload for user creation.
+"""
+type UserCreatePayload {
+  """The created user."""
+  user: User
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for user update.
+"""
+type UserUpdatePayload {
+  """The updated user."""
+  user: User
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for user deletion.
+"""
+type UserDeletePayload {
+  """The ID of the deleted user."""
+  deletedUserId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

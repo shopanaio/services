@@ -1,0 +1,113 @@
+# ---- Customer Types ----
+
+"""
+A customer represents a person who purchases from the store.
+"""
+type Customer implements Node @key(fields: "id") {
+  """The globally unique ID of the customer."""
+  id: ID!
+
+  """The email address of the customer."""
+  email: String!
+
+  """The date and time when the customer was created."""
+  createdAt: DateTime!
+
+  """The date and time when the customer was last updated."""
+  updatedAt: DateTime!
+
+  """The date and time when the customer was deleted (soft delete)."""
+  deletedAt: DateTime
+}
+
+"""
+A connection to a list of Customer items.
+"""
+type CustomerConnection {
+  """A list of edges."""
+  edges: [CustomerEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The total number of customers."""
+  totalCount: Int!
+}
+
+"""
+An edge in a Customer connection.
+"""
+type CustomerEdge {
+  """The item at the end of the edge."""
+  node: Customer!
+
+  """A cursor for use in pagination."""
+  cursor: String!
+}
+
+# ---- Customer Inputs ----
+
+"""
+Input for creating a customer.
+"""
+input CustomerCreateInput {
+  """The email address for the customer."""
+  email: String!
+}
+
+"""
+Input for updating a customer.
+"""
+input CustomerUpdateInput {
+  """The customer ID."""
+  id: ID!
+
+  """The email address for the customer."""
+  email: String
+}
+
+"""
+Input for deleting a customer.
+"""
+input CustomerDeleteInput {
+  """The ID of the customer to delete."""
+  id: ID!
+
+  """Whether to permanently delete the customer (hard delete)."""
+  permanent: Boolean
+}
+
+# ---- Customer Payloads ----
+
+"""
+Payload for customer creation.
+"""
+type CustomerCreatePayload {
+  """The created customer."""
+  customer: Customer
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for customer update.
+"""
+type CustomerUpdatePayload {
+  """The updated customer."""
+  customer: Customer
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload for customer deletion.
+"""
+type CustomerDeletePayload {
+  """The ID of the deleted customer."""
+  deletedCustomerId: ID
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}

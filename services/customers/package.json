@@ -1,0 +1,59 @@
+{
+  "name": "@shopana/customers-service",
+  "version": "0.0.1",
+  "description": "Customers microservice with microkernel + transaction script architecture",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/customers.module.js",
+      "default": "./src/customers.module.ts"
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "start": "node dist/src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "codegen": "node bin/graphql/script.js"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "@apollo/subgraph": "^2.9.0",
+    "@as-integrations/fastify": "^2.1.1",
+    "@shopana/drizzle-query": "*",
+    "@shopana/platform-api": "0.0.1",
+    "@shopana/shared-kernel": "*",
+    "@shopana/type-resolver": "*",
+    "dataloader": "^2.2.3",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.44.7",
+    "fastify": "^4.28.1",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "pino": "^9.3.2",
+    "pino-pretty": "^11.2.2",
+    "postgres": "^3.4.7",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.8",
+    "@graphql-codegen/typescript-resolvers": "^4.0.9",
+    "@shopana/build-tools": "0.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.14.14",
+    "drizzle-kit": "^0.31.7",
+    "esbuild": "^0.24.2",
+    "jest": "^30.1.3",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
