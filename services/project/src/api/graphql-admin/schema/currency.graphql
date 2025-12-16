@@ -2,21 +2,7 @@ type Currency {
   code: String!
   title: String!
   isActive: Boolean!
-  decimalPlaces: Int!
   exchangeRate: Float!
-  symbolLeft: String!
-  symbolRight: String!
-  decimalSeparator: String!
-  thousandsSeparator: String!
-}
-
-input CurrencyFormatUpdateInput {
-  code: String!
-  decimalPlaces: Int
-  symbolLeft: String
-  symbolRight: String
-  decimalSeparator: String
-  thousandsSeparator: String
 }
 
 input CurrencySetDefaultInput {

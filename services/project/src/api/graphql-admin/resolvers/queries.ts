@@ -72,12 +72,7 @@ export const queryResolvers: Partial<Resolvers> = {
         code: currency.code,
         title: currencyNames[currency.code] ?? currency.code,
         isActive: currency.isActive,
-        decimalPlaces: currency.decimalPlaces,
         exchangeRate: currency.exchangeRate,
-        symbolLeft: currency.symbolLeft,
-        symbolRight: currency.symbolRight,
-        decimalSeparator: currency.decimalSeparator,
-        thousandsSeparator: currency.thousandsSeparator,
       }));
     },
 

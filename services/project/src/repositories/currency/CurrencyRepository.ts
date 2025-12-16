@@ -9,20 +9,7 @@ import {
 export interface CreateCurrencyData {
   code: string;
   isActive?: boolean;
-  decimalPlaces?: number;
   exchangeRate?: number;
-  symbolLeft?: string;
-  symbolRight?: string;
-  decimalSeparator?: string;
-  thousandsSeparator?: string;
-}
-
-export interface UpdateCurrencyFormatData {
-  decimalPlaces?: number;
-  symbolLeft?: string;
-  symbolRight?: string;
-  decimalSeparator?: string;
-  thousandsSeparator?: string;
 }
 
 export class CurrencyRepository extends BaseRepository {
@@ -57,12 +44,7 @@ export class CurrencyRepository extends BaseRepository {
       projectId,
       code: data.code,
       isActive: data.isActive ?? true,
-      decimalPlaces: data.decimalPlaces ?? 2,
       exchangeRate: data.exchangeRate ?? 1,
-      symbolLeft: data.symbolLeft ?? "",
-      symbolRight: data.symbolRight ?? "",
-      decimalSeparator: data.decimalSeparator ?? ".",
-      thousandsSeparator: data.thousandsSeparator ?? ",",
       createdAt: now,
       updatedAt: now,
     };
@@ -84,12 +66,7 @@ export class CurrencyRepository extends BaseRepository {
       projectId,
       code: item.code,
       isActive: item.isActive ?? true,
-      decimalPlaces: item.decimalPlaces ?? 2,
       exchangeRate: item.exchangeRate ?? 1,
-      symbolLeft: item.symbolLeft ?? "",
-      symbolRight: item.symbolRight ?? "",
-      decimalSeparator: item.decimalSeparator ?? ".",
-      thousandsSeparator: item.thousandsSeparator ?? ",",
       createdAt: now,
       updatedAt: now,
     }));
@@ -98,31 +75,6 @@ export class CurrencyRepository extends BaseRepository {
       .insert(currency)
       .values(newCurrencies)
       .returning();
-  }
-
-  async updateFormat(projectId: string, code: string, data: UpdateCurrencyFormatData): Promise<Currency | null> {
-    const updateData: Partial<NewCurrency> = {
-      updatedAt: new Date(),
-    };
-
-    if (data.decimalPlaces !== undefined) updateData.decimalPlaces = data.decimalPlaces;
-    if (data.symbolLeft !== undefined) updateData.symbolLeft = data.symbolLeft;
-    if (data.symbolRight !== undefined) updateData.symbolRight = data.symbolRight;
-    if (data.decimalSeparator !== undefined) updateData.decimalSeparator = data.decimalSeparator;
-    if (data.thousandsSeparator !== undefined) updateData.thousandsSeparator = data.thousandsSeparator;
-
-    const result = await this.connection
-      .update(currency)
-      .set(updateData)
-      .where(
-        and(
-          eq(currency.projectId, projectId),
-          eq(currency.code, code)
-        )
-      )
-      .returning();
-
-    return result[0] ?? null;
   }
 
   async delete(projectId: string, code: string): Promise<boolean> {

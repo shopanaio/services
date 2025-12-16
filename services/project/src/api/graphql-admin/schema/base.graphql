@@ -51,7 +51,6 @@ type ProjectMutation {
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
 
   # Currency mutations
-  currencyFormatUpdate(input: CurrencyFormatUpdateInput!): CurrencyUpdatePayload!
   currencySetDefault(input: CurrencySetDefaultInput!): CurrencyUpdatePayload!
 
   # Locale mutations

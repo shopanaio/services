@@ -2,7 +2,6 @@ import {
   uuid,
   varchar,
   boolean,
-  integer,
   real,
   timestamp,
   index,
@@ -19,12 +18,7 @@ export const currency = projectSchema.table(
       .references(() => project.id, { onDelete: "cascade" }),
     code: varchar("code", { length: 3 }).notNull(),
     isActive: boolean("is_active").notNull().default(true),
-    decimalPlaces: integer("decimal_places").notNull().default(2),
     exchangeRate: real("exchange_rate").notNull().default(1),
-    symbolLeft: varchar("symbol_left", { length: 10 }).notNull().default(""),
-    symbolRight: varchar("symbol_right", { length: 10 }).notNull().default(""),
-    decimalSeparator: varchar("decimal_separator", { length: 5 }).notNull().default("."),
-    thousandsSeparator: varchar("thousands_separator", { length: 5 }).notNull().default(","),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
