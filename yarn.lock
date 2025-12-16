@@ -6501,12 +6501,12 @@ __metadata:
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
-    "@shopana/shared-casdoor": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-service-config": "npm:*"
     "@shopana/type-resolver": "npm:*"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^20.14.14"
+    casdoor-nodejs-sdk: "npm:^1.34.0"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
     drizzle-kit: "npm:^0.31.7"
@@ -8453,6 +8453,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:^1.8.4":
+  version: 1.13.2
+  resolution: "axios@npm:1.13.2"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.4"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10/ae4e06dcd18289f2fd18179256d550d27f9a53ecb2f9c59f2ccc4efd1d7151839ba8c3e0fb533dac793e4a59a576ca8689a19244dce5c396680837674a47a867
+  languageName: node
+  linkType: hard
+
 "babel-jest@npm:30.1.2":
   version: 30.1.2
   resolution: "babel-jest@npm:30.1.2"
@@ -8932,6 +8943,18 @@ __metadata:
   bin:
     cdl: ./bin/cdl.js
   checksum: 10/caf0d34739ef7b1d80e1753311f889997b62c4490906819eb5da5bd46e7f5e5caba7a8a96ca401190c7d9c18443a7749e5338630f7f9a1ae98d60cac49b9008e
+  languageName: node
+  linkType: hard
+
+"casdoor-nodejs-sdk@npm:^1.34.0":
+  version: 1.34.0
+  resolution: "casdoor-nodejs-sdk@npm:1.34.0"
+  dependencies:
+    axios: "npm:^1.8.4"
+    form-data: "npm:^4.0.0"
+    jsonwebtoken: "npm:9.0.2"
+    node-fetch: "npm:^3.3.2"
+  checksum: 10/d5a0c84fb50421aff5f6fc40d122a02ebd1b1c64db4e88bbdc8340103fc36bffd3ae2042ef8b0597e71112eaf03b72782b7ab9f213fac9e22e73a6181bd2443b
   languageName: node
   linkType: hard
 
@@ -10956,6 +10979,16 @@ __metadata:
     locate-path: "npm:^5.0.0"
     path-exists: "npm:^4.0.0"
   checksum: 10/4c172680e8f8c1f78839486e14a43ef82e9decd0e74145f40707cc42e7420506d5ec92d9a11c22bd2c48fb0c384ea05dd30e10dd152fefeec6f2f75282a8b844
+  languageName: node
+  linkType: hard
+
+"follow-redirects@npm:^1.15.6":
+  version: 1.15.11
+  resolution: "follow-redirects@npm:1.15.11"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 10/07372fd74b98c78cf4d417d68d41fdaa0be4dcacafffb9e67b1e3cf090bc4771515e65020651528faab238f10f9b9c0d9707d6c1574a6c0387c5de1042cde9ba
   languageName: node
   linkType: hard
 
@@ -13095,6 +13128,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jsonwebtoken@npm:9.0.2":
+  version: 9.0.2
+  resolution: "jsonwebtoken@npm:9.0.2"
+  dependencies:
+    jws: "npm:^3.2.2"
+    lodash.includes: "npm:^4.3.0"
+    lodash.isboolean: "npm:^3.0.3"
+    lodash.isinteger: "npm:^4.0.4"
+    lodash.isnumber: "npm:^3.0.3"
+    lodash.isplainobject: "npm:^4.0.6"
+    lodash.isstring: "npm:^4.0.1"
+    lodash.once: "npm:^4.0.0"
+    ms: "npm:^2.1.1"
+    semver: "npm:^7.5.4"
+  checksum: 10/6e9b6d879cec2b27f2f3a88a0c0973edc7ba956a5d9356b2626c4fddfda969e34a3832deaf79c3e1c6c9a525bc2c4f2c2447fa477f8ac660f0017c31a59ae96b
+  languageName: node
+  linkType: hard
+
 "jsonwebtoken@npm:^9.0.0, jsonwebtoken@npm:^9.0.2":
   version: 9.0.3
   resolution: "jsonwebtoken@npm:9.0.3"
@@ -13110,6 +13161,17 @@ __metadata:
     ms: "npm:^2.1.1"
     semver: "npm:^7.5.4"
   checksum: 10/a67a276db41fbfb458ebdc4938d5d7b01d4743e16bda0f25ac01996fe5b5819d66656153f6cfce19b4680b79ae9f9ca185965defc22e77e0abddf443573238d6
+  languageName: node
+  linkType: hard
+
+"jwa@npm:^1.4.2":
+  version: 1.4.2
+  resolution: "jwa@npm:1.4.2"
+  dependencies:
+    buffer-equal-constant-time: "npm:^1.0.1"
+    ecdsa-sig-formatter: "npm:1.0.11"
+    safe-buffer: "npm:^5.0.1"
+  checksum: 10/a46c9ddbcc226d9e85e13ef96328c7d331abddd66b5a55ec44bcf4350464a6125385ac9c1e64faa0fae8d586d90a14d6b5e96c73f0388970a3918d5252efb0f3
   languageName: node
   linkType: hard
 
@@ -13135,6 +13197,16 @@ __metadata:
     limiter: "npm:^1.1.5"
     lru-memoizer: "npm:^2.2.0"
   checksum: 10/4787842532c41377211070a0646011e88dbb4dfd1c5b92d48a9587a47791c8f04a534a004ac76e87163170a68f166bfc429c30cc73f83277e30e42ebea67dd9f
+  languageName: node
+  linkType: hard
+
+"jws@npm:^3.2.2":
+  version: 3.2.3
+  resolution: "jws@npm:3.2.3"
+  dependencies:
+    jwa: "npm:^1.4.2"
+    safe-buffer: "npm:^5.0.1"
+  checksum: 10/707387dd1cabcc3d9c2818f773cfaac7ede66e79ca11bbd159285a88cf5d8e8f355afcb8ee373e7bb0fcf9b7a2df015b22c50f27842f2c77453f04cd9f8f4009
   languageName: node
   linkType: hard
 
@@ -15088,6 +15160,13 @@ __metadata:
     forwarded: "npm:0.2.0"
     ipaddr.js: "npm:1.9.1"
   checksum: 10/f24a0c80af0e75d31e3451398670d73406ec642914da11a2965b80b1898ca6f66a0e3e091a11a4327079b2b268795f6fa06691923fef91887215c3d0e8ea3f68
+  languageName: node
+  linkType: hard
+
+"proxy-from-env@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "proxy-from-env@npm:1.1.0"
+  checksum: 10/f0bb4a87cfd18f77bc2fba23ae49c3b378fb35143af16cc478171c623eebe181678f09439707ad80081d340d1593cd54a33a0113f3ccb3f4bc9451488780ee23
   languageName: node
   linkType: hard
 
