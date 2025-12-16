@@ -1,0 +1,1 @@
+// Customers type resolver

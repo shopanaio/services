@@ -1,1 +1,1 @@
-export * from "./user/index.js";
+// Scripts index
