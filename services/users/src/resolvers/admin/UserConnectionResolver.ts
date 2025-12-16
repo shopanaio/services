@@ -1,1 +1,0 @@
-// User connection resolver
