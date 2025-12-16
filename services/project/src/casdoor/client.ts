@@ -1,116 +1,100 @@
 import {
-  CasdoorConfig,
-  CasdoorResponse,
-  OAuth2Token,
-  CasdoorJwtClaims,
-} from "./types.js";
+  Client,
+  NewClientWithConf,
+  GetCert,
+  ParseJwtToken,
+  ParseJwtTokenWithoutVerify,
+  type AuthConfig,
+  type Claims,
+} from "@shopana/casdoor-node-sdk";
+import { config } from "../config.js";
 
 /**
- * Casdoor client for authentication operations
+ * Response status constants
+ */
+export const StatusOk = "ok";
+export const ResponseTypeCode = "code";
+export const ResponseTypeToken = "token";
+export const MethodSignIn = "signin";
+export const MethodSignUp = "signup";
+export const SignInMethodPassword = "Password";
+
+/**
+ * OAuth2 token response
+ */
+export interface OAuth2Token {
+  accessToken: string;
+  tokenType: string;
+  refreshToken?: string;
+  expiry?: Date;
+}
+
+/**
+ * Casdoor client wrapper over @shopana/casdoor-node-sdk
+ * Similar to Go SDK wrapper in platform/project/app/casdoor
  */
 export class CasdoorClient {
-  private readonly endpoint: string;
-  private readonly clientId: string;
-  private readonly clientSecret: string;
-  private readonly applicationName: string;
-  private readonly organizationName: string;
-  public certificate: string;
+  private readonly client: Client;
 
-  constructor(config: CasdoorConfig) {
-    this.endpoint = config.endpoint;
-    this.clientId = config.clientId;
-    this.clientSecret = config.clientSecret;
-    this.applicationName = config.applicationName;
-    this.organizationName = config.organizationName;
-    this.certificate = config.certificate ?? "";
+  constructor() {
+    const casdoorConfig = config.casdoor;
+
+    if (!casdoorConfig.endpoint) {
+      throw new Error("Casdoor endpoint is required");
+    }
+    if (!casdoorConfig.clientId) {
+      throw new Error("Casdoor clientId is required");
+    }
+    if (!casdoorConfig.clientSecret) {
+      throw new Error("Casdoor clientSecret is required");
+    }
+    if (!casdoorConfig.organizationName) {
+      throw new Error("Casdoor organizationName is required");
+    }
+    if (!casdoorConfig.applicationName) {
+      throw new Error("Casdoor applicationName is required");
+    }
+
+    const authConfig: AuthConfig = {
+      endpoint: casdoorConfig.endpoint,
+      clientId: casdoorConfig.clientId,
+      clientSecret: casdoorConfig.clientSecret,
+      certificate: casdoorConfig.certificate ?? "",
+      organizationName: casdoorConfig.organizationName,
+      applicationName: casdoorConfig.applicationName,
+    };
+
+    this.client = NewClientWithConf(authConfig);
+  }
+
+  /**
+   * Get the underlying SDK client
+   */
+  get sdkClient(): Client {
+    return this.client;
   }
 
   /**
    * Get configuration values
    */
-  get config() {
-    return {
-      endpoint: this.endpoint,
-      clientId: this.clientId,
-      clientSecret: this.clientSecret,
-      applicationName: this.applicationName,
-      organizationName: this.organizationName,
-    };
+  get endpoint(): string {
+    return this.client.Endpoint;
   }
 
-  /**
-   * Build URL with query parameters
-   */
-  getUrl(action: string, queryMap: Record<string, string> = {}): string {
-    const url = new URL(`/api/${action}`, this.endpoint);
-    Object.entries(queryMap).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
-    return url.toString();
+  get clientId(): string {
+    return this.client.ClientId;
   }
 
-  /**
-   * Perform GET request and return bytes
-   */
-  async doGetBytes(url: string): Promise<Buffer> {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+  get clientSecret(): string {
+    return this.client.ClientSecret;
   }
 
-  /**
-   * Perform GET request and return parsed response
-   */
-  async doGetResponse<T>(url: string): Promise<CasdoorResponse<T>> {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json() as Promise<CasdoorResponse<T>>;
+  get organizationName(): string {
+    return this.client.OrganizationName;
   }
 
-  /**
-   * Perform POST request
-   */
-  async doPost<T>(
-    action: string,
-    queryMap: Record<string, string>,
-    body: unknown
-  ): Promise<CasdoorResponse<T>> {
-    const url = this.getUrl(action, queryMap);
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json() as Promise<CasdoorResponse<T>>;
+  get applicationName(): string {
+    return this.client.ApplicationName;
   }
 
   /**
@@ -211,45 +195,34 @@ export class CasdoorClient {
   }
 
   /**
-   * Parse JWT token without verification (for extracting claims)
+   * Parse JWT token with verification
    */
-  parseJwtToken(token: string): CasdoorJwtClaims {
-    const parts = token.split(".");
-    if (parts.length !== 3) {
-      throw new Error("Invalid JWT token format");
-    }
+  parseJwtToken(token: string): Claims {
+    return ParseJwtToken(this.client, token);
+  }
 
-    const payload = Buffer.from(parts[1], "base64url").toString("utf-8");
-    return JSON.parse(payload) as CasdoorJwtClaims;
+  /**
+   * Parse JWT token without verification (for debugging)
+   */
+  parseJwtTokenWithoutVerify(token: string): Claims {
+    return ParseJwtTokenWithoutVerify(token);
   }
 
   /**
    * Load certificate by name
    */
   async loadCert(certName: string): Promise<this> {
-    const cert = await this.getCert(certName);
-    this.certificate = cert.certificate;
+    const cert = await GetCert(this.client, certName);
+    if (cert) {
+      this.client.Certificate = cert.certificate;
+    }
     return this;
-  }
-
-  /**
-   * Get certificate from Casdoor
-   */
-  async getCert(
-    certName: string
-  ): Promise<{ owner: string; name: string; certificate: string }> {
-    const url = this.getUrl("get-cert", {
-      id: `${this.organizationName}/${certName}`,
-    });
-
-    const bytes = await this.doGetBytes(url);
-    return JSON.parse(bytes.toString());
   }
 
   /**
    * Get username from email (replace @ with _)
    */
   getUserName(email: string): string {
-    return email.replace("@", "_");
+    return email.replace(/@/g, "_");
   }
 }

@@ -1,24 +1,44 @@
-import { CasdoorClient } from "./client.js";
 import {
-  CasdoorUser,
-  CasdoorResponse,
-  GetPaginationUsersInput,
-  StatusOk,
-} from "./types.js";
+  GetPaginationUsers,
+  GetUser,
+  GetUserByEmail,
+  GetUserByPhone,
+  GetUserByUserId,
+  AddUser,
+  UpdateUser,
+  DeleteUser,
+  SetPassword,
+  SendEmail,
+  type User,
+} from "@shopana/casdoor-node-sdk";
+import { CasdoorClient } from "./client.js";
+
+/**
+ * Get pagination users input
+ */
+export interface GetPaginationUsersInput {
+  owner: string;
+  page: number;
+  pageSize: number;
+  field?: string;
+  value?: string;
+  sortField?: string;
+  sortOrder?: string;
+}
 
 /**
  * Casdoor SDK methods for user management
+ * Wrapper over @shopana/casdoor-node-sdk
  */
 export class CasdoorSdk {
-  constructor(private readonly client: CasdoorClient) {}
+  constructor(private readonly casdoorClient: CasdoorClient) {}
 
   /**
    * Get paginated users list
    */
   async getOwnPaginationUsers(
     input: GetPaginationUsersInput
-  ): Promise<{ users: CasdoorUser[]; total: number }> {
-    // Validate input
+  ): Promise<{ users: User[]; total: number }> {
     if (!input.owner) {
       throw new Error("owner is required");
     }
@@ -29,11 +49,7 @@ export class CasdoorSdk {
       throw new Error("pageSize must be between 1 and 100");
     }
 
-    const queryMap: Record<string, string> = {
-      owner: input.owner,
-      p: String(input.page),
-      pageSize: String(input.pageSize),
-    };
+    const queryMap: Record<string, string> = {};
 
     if (input.field && input.value) {
       queryMap.field = input.field;
@@ -45,64 +61,38 @@ export class CasdoorSdk {
       queryMap.sortOrder = input.sortOrder;
     }
 
-    const url = this.client.getUrl("get-users", queryMap);
-    const response = await this.client.doGetResponse<CasdoorUser[]>(url);
+    // Note: SDK's GetPaginationUsers uses client's OrganizationName as owner
+    // For custom owner, we need to override
+    const result = await GetPaginationUsers(
+      this.casdoorClient.sdkClient,
+      input.page,
+      input.pageSize,
+      queryMap
+    );
 
-    if (!response.data) {
-      throw new Error("Response data format is incorrect");
-    }
-
-    const total =
-      typeof response.data2 === "number" ? response.data2 : response.data.length;
-
-    return { users: response.data, total };
+    return { users: result.users, total: result.total };
   }
 
   /**
    * Get user by owner and name
    */
-  async getOwnUser(owner: string, name: string): Promise<CasdoorUser | null> {
-    const url = this.client.getUrl("get-user", {
-      id: `${owner}/${name}`,
-    });
-
-    const bytes = await this.client.doGetBytes(url);
-    const user = JSON.parse(bytes.toString()) as CasdoorUser | null;
-    return user;
+  async getOwnUser(owner: string, name: string): Promise<User | null> {
+    // SDK's GetUser uses id format: org/name
+    return GetUser(this.casdoorClient.sdkClient, name);
   }
 
   /**
    * Get user by email
    */
-  async getOwnUserByEmail(
-    owner: string,
-    email: string
-  ): Promise<CasdoorUser | null> {
-    const url = this.client.getUrl("get-user", {
-      owner,
-      email,
-    });
-
-    const bytes = await this.client.doGetBytes(url);
-    const user = JSON.parse(bytes.toString()) as CasdoorUser | null;
-    return user;
+  async getOwnUserByEmail(owner: string, email: string): Promise<User | null> {
+    return GetUserByEmail(this.casdoorClient.sdkClient, email);
   }
 
   /**
    * Get user by phone
    */
-  async getOwnUserByPhone(
-    owner: string,
-    phone: string
-  ): Promise<CasdoorUser | null> {
-    const url = this.client.getUrl("get-user", {
-      owner,
-      phone,
-    });
-
-    const bytes = await this.client.doGetBytes(url);
-    const user = JSON.parse(bytes.toString()) as CasdoorUser | null;
-    return user;
+  async getOwnUserByPhone(owner: string, phone: string): Promise<User | null> {
+    return GetUserByPhone(this.casdoorClient.sdkClient, phone);
   }
 
   /**
@@ -111,15 +101,8 @@ export class CasdoorSdk {
   async getOwnUserByUserId(
     owner: string,
     userId: string
-  ): Promise<CasdoorUser | null> {
-    const url = this.client.getUrl("get-user", {
-      owner,
-      userId,
-    });
-
-    const bytes = await this.client.doGetBytes(url);
-    const user = JSON.parse(bytes.toString()) as CasdoorUser | null;
-    return user;
+  ): Promise<User | null> {
+    return GetUserByUserId(this.casdoorClient.sdkClient, userId);
   }
 
   /**
@@ -130,9 +113,9 @@ export class CasdoorSdk {
     email: string,
     app: string
   ): Promise<void> {
-    const response = await this.client.doPost<unknown>(
+    const response = await this.casdoorClient.sdkClient.DoPost(
       "send-reset-email",
-      {},
+      null,
       {
         userOwner: org,
         userName: email,
@@ -140,7 +123,7 @@ export class CasdoorSdk {
       }
     );
 
-    if (response.status !== StatusOk) {
+    if (response.status !== "ok") {
       throw new Error(response.msg || "Failed to send reset email");
     }
   }
@@ -155,9 +138,9 @@ export class CasdoorSdk {
     newPassword: string,
     code: string
   ): Promise<void> {
-    const response = await this.client.doPost<unknown>(
+    const response = await this.casdoorClient.sdkClient.DoPost(
       "reset-password",
-      {},
+      null,
       {
         userOwner: org,
         userName: email,
@@ -167,7 +150,7 @@ export class CasdoorSdk {
       }
     );
 
-    if (response.status !== StatusOk) {
+    if (response.status !== "ok") {
       throw new Error(response.msg || "Failed to reset password");
     }
   }
@@ -181,9 +164,9 @@ export class CasdoorSdk {
     app: string,
     code: string
   ): Promise<void> {
-    const response = await this.client.doPost<unknown>(
+    const response = await this.casdoorClient.sdkClient.DoPost(
       "verify-email",
-      {},
+      null,
       {
         userOwner: org,
         userName: email,
@@ -192,7 +175,7 @@ export class CasdoorSdk {
       }
     );
 
-    if (response.status !== StatusOk) {
+    if (response.status !== "ok") {
       throw new Error(response.msg || "Failed to verify email");
     }
   }
@@ -200,62 +183,57 @@ export class CasdoorSdk {
   /**
    * Add a new user
    */
-  async addUser(user: Partial<CasdoorUser>): Promise<CasdoorUser> {
-    const response = await this.client.doPost<CasdoorUser>(
-      "add-user",
-      {},
-      user
-    );
-
-    if (response.status !== StatusOk) {
-      throw new Error(response.msg || "Failed to add user");
-    }
-
-    if (!response.data) {
-      throw new Error("No user data returned");
-    }
-
-    return response.data;
+  async addUser(user: Partial<User>): Promise<boolean> {
+    return AddUser(this.casdoorClient.sdkClient, user);
   }
 
   /**
    * Update user
    */
-  async updateUser(user: Partial<CasdoorUser>): Promise<CasdoorUser> {
-    const response = await this.client.doPost<CasdoorUser>(
-      "update-user",
-      {
-        id: `${user.owner}/${user.name}`,
-      },
-      user
-    );
-
-    if (response.status !== StatusOk) {
-      throw new Error(response.msg || "Failed to update user");
-    }
-
-    if (!response.data) {
-      throw new Error("No user data returned");
-    }
-
-    return response.data;
+  async updateUser(user: Partial<User>): Promise<boolean> {
+    return UpdateUser(this.casdoorClient.sdkClient, user);
   }
 
   /**
    * Delete user
    */
-  async deleteUser(owner: string, name: string): Promise<void> {
-    const response = await this.client.doPost<unknown>(
-      "delete-user",
-      {},
-      {
-        owner,
-        name,
-      }
-    );
+  async deleteUser(user: Partial<User>): Promise<boolean> {
+    return DeleteUser(this.casdoorClient.sdkClient, user);
+  }
 
-    if (response.status !== StatusOk) {
-      throw new Error(response.msg || "Failed to delete user");
-    }
+  /**
+   * Set user password
+   */
+  async setPassword(
+    owner: string,
+    name: string,
+    oldPassword: string,
+    newPassword: string
+  ): Promise<boolean> {
+    return SetPassword(
+      this.casdoorClient.sdkClient,
+      owner,
+      name,
+      oldPassword,
+      newPassword
+    );
+  }
+
+  /**
+   * Send email
+   */
+  async sendEmail(
+    title: string,
+    content: string,
+    sender: string,
+    receivers: string[]
+  ): Promise<boolean> {
+    return SendEmail(
+      this.casdoorClient.sdkClient,
+      title,
+      content,
+      sender,
+      receivers
+    );
   }
 }

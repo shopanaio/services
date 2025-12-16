@@ -1,21 +1,63 @@
-import { CasdoorClient } from "./client.js";
+import { GetOAuthToken, type Response } from "@shopana/casdoor-node-sdk";
 import {
-  SignInInput,
-  SignInPayload,
-  OAuth2ProviderSignUpInput,
-  OAuth2ProviderPayload,
-  CasdoorResponse,
-  StatusOk,
+  CasdoorClient,
   ResponseTypeToken,
   SignInMethodPassword,
-  MethodSignUp,
-} from "./types.js";
+  StatusOk,
+} from "./client.js";
+
+/**
+ * Sign in input
+ */
+export interface SignInInput {
+  organization: string;
+  email: string;
+  password: string;
+  application: string;
+}
+
+/**
+ * Sign in payload sent to Casdoor
+ */
+interface SignInPayload {
+  application: string;
+  autoSignin: boolean;
+  organization: string;
+  password: string;
+  signinMethod: string;
+  type: string;
+  username: string;
+}
+
+/**
+ * OAuth2 provider sign up/sign in input
+ */
+export interface OAuth2ProviderSignUpInput {
+  provider: string;
+  code: string;
+  application: string;
+  redirectUri: string;
+}
+
+/**
+ * OAuth2 provider payload
+ */
+interface OAuth2ProviderPayload {
+  type: string;
+  application: string;
+  provider: string;
+  code: string;
+  state: string;
+  redirectUri: string;
+  method: string;
+}
 
 /**
  * Casdoor login/authentication methods
+ * Wrapper over @shopana/casdoor-node-sdk
  */
 export class CasdoorLogin {
-  constructor(private readonly client: CasdoorClient) {}
+  constructor(private readonly casdoorClient: CasdoorClient) {}
 
   /**
    * Sign in with email and password
@@ -31,7 +73,7 @@ export class CasdoorLogin {
       username: input.email,
     };
 
-    const url = `${this.client.config.endpoint}/api/login?clientId=${this.client.config.clientId}&responseType=${ResponseTypeToken}`;
+    const url = `${this.casdoorClient.endpoint}/api/login?clientId=${this.casdoorClient.clientId}&responseType=${ResponseTypeToken}`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -43,7 +85,7 @@ export class CasdoorLogin {
       signal: AbortSignal.timeout(10000),
     });
 
-    const result = (await response.json()) as CasdoorResponse<string>;
+    const result = (await response.json()) as Response<string>;
 
     if (result.status !== StatusOk) {
       throw new Error(`Failed to login: ${result.msg}`);
@@ -69,11 +111,11 @@ export class CasdoorLogin {
       provider: input.provider,
       redirectUri: input.redirectUri,
       state: input.application,
-      method: MethodSignUp,
+      method: "signup",
       type: ResponseTypeToken,
     };
 
-    const url = `${this.client.config.endpoint}/api/login?clientId=${this.client.config.clientId}&responseType=${ResponseTypeToken}&redirectUri=${input.redirectUri}`;
+    const url = `${this.casdoorClient.endpoint}/api/login?clientId=${this.casdoorClient.clientId}&responseType=${ResponseTypeToken}&redirectUri=${input.redirectUri}`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -85,7 +127,7 @@ export class CasdoorLogin {
       signal: AbortSignal.timeout(10000),
     });
 
-    const result = (await response.json()) as CasdoorResponse<string>;
+    const result = (await response.json()) as Response<string>;
 
     if (result.status !== StatusOk) {
       throw new Error(`Failed to login with OAuth provider: ${result.msg}`);
@@ -115,7 +157,7 @@ export class CasdoorLogin {
       type: ResponseTypeToken,
     };
 
-    const url = `${this.client.config.endpoint}/api/login?clientId=${this.client.config.clientId}&responseType=${ResponseTypeToken}&redirectUri=${input.redirectUri}`;
+    const url = `${this.casdoorClient.endpoint}/api/login?clientId=${this.casdoorClient.clientId}&responseType=${ResponseTypeToken}&redirectUri=${input.redirectUri}`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -127,7 +169,7 @@ export class CasdoorLogin {
       signal: AbortSignal.timeout(10000),
     });
 
-    const result = (await response.json()) as CasdoorResponse<string>;
+    const result = (await response.json()) as Response<string>;
 
     if (result.status !== StatusOk) {
       throw new Error(`Failed to login with OAuth provider: ${result.msg}`);
@@ -149,16 +191,22 @@ export class CasdoorLogin {
     redirectUri: string,
     state?: string
   ): string {
-    const { endpoint, clientId, applicationName } = this.client.config;
     const params = new URLSearchParams({
-      client_id: clientId,
+      client_id: this.casdoorClient.clientId,
       response_type: "code",
       redirect_uri: redirectUri,
       scope: "profile openid email",
-      state: state ?? applicationName,
+      state: state ?? this.casdoorClient.applicationName,
       provider,
     });
 
-    return `${endpoint}/login/oauth/authorize?${params.toString()}`;
+    return `${this.casdoorClient.endpoint}/login/oauth/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Exchange authorization code for OAuth token (standard OAuth2 flow)
+   */
+  async getOAuthToken(code: string, state: string) {
+    return GetOAuthToken(this.casdoorClient.sdkClient, code, state);
   }
 }
