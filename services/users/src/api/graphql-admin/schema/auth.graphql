@@ -1,1 +1,356 @@
-# Auth types (SignUpPayload, etc.)
+# ---- Auth Types ----
+
+"""
+Authentication token information.
+"""
+type AuthToken {
+  """
+  Access token for API requests.
+  """
+  accessToken: String!
+
+  """
+  Token expiration time in seconds.
+  """
+  expiresIn: Int!
+
+  """
+  Refresh token for obtaining new access tokens.
+  """
+  refreshToken: String
+}
+
+# ---- Sign Up ----
+
+"""
+Input for customer registration.
+"""
+input SignUpInput {
+  """
+  Email address (required).
+  """
+  email: Email!
+
+  """
+  Password (required).
+  """
+  password: String!
+}
+
+"""
+Payload for sign up mutation.
+"""
+type SignUpPayload {
+  """
+  The created customer.
+  """
+  customer: Customer
+
+  """
+  Authentication tokens (if auto sign-in is enabled).
+  """
+  token: AuthToken
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Sign In ----
+
+"""
+Input for customer authentication.
+"""
+input SignInInput {
+  """
+  Email address.
+  """
+  email: Email!
+
+  """
+  Password.
+  """
+  password: String!
+}
+
+"""
+Payload for sign in mutation.
+"""
+type SignInPayload {
+  """
+  The authenticated customer.
+  """
+  customer: Customer
+
+  """
+  Authentication tokens.
+  """
+  token: AuthToken
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Sign Out ----
+
+"""
+Input for sign out.
+"""
+input SignOutInput {
+  """
+  Sign out from all sessions.
+  """
+  allSessions: Boolean
+}
+
+"""
+Payload for sign out mutation.
+"""
+type SignOutPayload {
+  """
+  Whether sign out was successful.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Token Refresh ----
+
+"""
+Input for refreshing access token.
+"""
+input TokenRefreshInput {
+  """
+  Refresh token to use for obtaining new access token.
+  """
+  refreshToken: String!
+}
+
+"""
+Payload for token refresh mutation.
+"""
+type TokenRefreshPayload {
+  """
+  New authentication tokens.
+  """
+  token: AuthToken
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Password Reset Request ----
+
+"""
+Input for password reset request (sends email with reset code).
+"""
+input PasswordResetRequestInput {
+  """
+  Email address of the account.
+  """
+  email: Email!
+}
+
+"""
+Payload for password reset request mutation.
+"""
+type PasswordResetRequestPayload {
+  """
+  Whether the request was processed (always true for security).
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Password Reset ----
+
+"""
+Input for password reset (using code from email).
+"""
+input PasswordResetInput {
+  """
+  Email address of the account.
+  """
+  email: Email!
+
+  """
+  Reset code received via email.
+  """
+  code: String!
+
+  """
+  New password.
+  """
+  newPassword: String!
+}
+
+"""
+Payload for password reset mutation.
+"""
+type PasswordResetPayload {
+  """
+  Whether the password was reset successfully.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Password Change ----
+
+"""
+Input for password change (authenticated customer).
+"""
+input PasswordChangeInput {
+  """
+  Current password.
+  """
+  currentPassword: String!
+
+  """
+  New password.
+  """
+  newPassword: String!
+}
+
+"""
+Payload for password change mutation.
+"""
+type PasswordChangePayload {
+  """
+  Whether the password was changed successfully.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Profile Update ----
+
+"""
+Input for profile update (authenticated customer).
+"""
+input ProfileUpdateInput {
+  """
+  Customer's first name.
+  """
+  firstName: String
+
+  """
+  Customer's last name.
+  """
+  lastName: String
+
+  """
+  Customer's phone number.
+  """
+  phone: String
+
+  """
+  Customer's locale/language preference.
+  """
+  locale: LocaleCode
+
+  """
+  URL to customer's avatar image.
+  """
+  avatar: String
+}
+
+"""
+Payload for profile update mutation.
+"""
+type ProfileUpdatePayload {
+  """
+  The updated customer.
+  """
+  customer: Customer
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Email Verification Request ----
+
+"""
+Input for email verification request (sends verification email).
+"""
+input EmailVerifyRequestInput {
+  """
+  Email address to verify (optional, uses current customer's email if not provided).
+  """
+  email: Email
+}
+
+"""
+Payload for email verification request mutation.
+"""
+type EmailVerifyRequestPayload {
+  """
+  Whether the request was processed.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Email Verification ----
+
+"""
+Input for email verification (using code from email).
+"""
+input EmailVerifyInput {
+  """
+  Email address to verify.
+  """
+  email: Email!
+
+  """
+  Verification code received via email.
+  """
+  code: String!
+}
+
+"""
+Payload for email verification mutation.
+"""
+type EmailVerifyPayload {
+  """
+  Whether the email was verified successfully.
+  """
+  success: Boolean!
+
+  """
+  The customer with updated email verification status.
+  """
+  customer: Customer
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}

@@ -1,1 +1,203 @@
-# Customer types
+# ---- Customer Types (Storefront Users) ----
+
+"""
+Customer type representing storefront customers/buyers.
+"""
+type Customer @key(fields: "id") {
+  """
+  The globally unique ID of the customer.
+  """
+  id: ID!
+
+  """
+  Customer's email address.
+  """
+  email: Email!
+
+  """
+  Whether the email has been verified.
+  """
+  emailVerified: Boolean!
+
+  """
+  Customer's first name.
+  """
+  firstName: String
+
+  """
+  Customer's last name.
+  """
+  lastName: String
+
+  """
+  URL to customer's avatar image.
+  """
+  avatar: String
+
+  """
+  Customer's phone number.
+  """
+  phone: String
+
+  """
+  Customer's locale/language preference.
+  """
+  locale: LocaleCode
+
+  """
+  Whether the customer account is forbidden/banned.
+  """
+  isForbidden: Boolean!
+
+  """
+  Whether the customer account is deleted.
+  """
+  isDeleted: Boolean!
+
+  """
+  The date and time when the customer was created.
+  """
+  createdAt: DateTime!
+
+  """
+  The date and time when the customer was last updated.
+  """
+  updatedAt: DateTime!
+}
+
+# ---- Customer Inputs ----
+
+"""
+Input for creating a new customer.
+"""
+input CustomerCreateInput {
+  """
+  Customer's email address (required).
+  """
+  email: Email!
+
+  """
+  Customer's password.
+  """
+  password: String!
+
+  """
+  Customer's first name.
+  """
+  firstName: String
+
+  """
+  Customer's last name.
+  """
+  lastName: String
+
+  """
+  Customer's phone number.
+  """
+  phone: String
+
+  """
+  Customer's locale/language preference.
+  """
+  locale: LocaleCode
+}
+
+"""
+Payload for customer creation.
+"""
+type CustomerCreatePayload {
+  """
+  The created customer.
+  """
+  customer: Customer
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating a customer.
+"""
+input CustomerUpdateInput {
+  """
+  The customer ID.
+  """
+  id: ID!
+
+  """
+  Customer's email address.
+  """
+  email: Email
+
+  """
+  Customer's first name.
+  """
+  firstName: String
+
+  """
+  Customer's last name.
+  """
+  lastName: String
+
+  """
+  Customer's phone number.
+  """
+  phone: String
+
+  """
+  Customer's locale/language preference.
+  """
+  locale: LocaleCode
+
+  """
+  Whether the customer account is forbidden/banned.
+  """
+  isForbidden: Boolean
+}
+
+"""
+Payload for customer update.
+"""
+type CustomerUpdatePayload {
+  """
+  The updated customer.
+  """
+  customer: Customer
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a customer.
+"""
+input CustomerDeleteInput {
+  """
+  The ID of the customer to delete.
+  """
+  id: ID!
+
+  """
+  Whether to permanently delete the customer (hard delete).
+  """
+  permanent: Boolean
+}
+
+"""
+Payload for customer deletion.
+"""
+type CustomerDeletePayload {
+  """
+  The ID of the deleted customer.
+  """
+  deletedCustomerId: ID
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}

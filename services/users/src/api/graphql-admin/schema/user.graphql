@@ -1,1 +1,380 @@
-# Admin user types
+# ---- User Types (Admin Users) ----
+
+"""
+User type representing admin users (CMS/backoffice).
+"""
+type User @key(fields: "id") {
+  """
+  The globally unique ID of the user.
+  """
+  id: ID!
+
+  """
+  User's email address.
+  """
+  email: Email!
+
+  """
+  Whether the email has been verified.
+  """
+  emailVerified: Boolean!
+
+  """
+  User's first name.
+  """
+  firstName: String
+
+  """
+  User's last name.
+  """
+  lastName: String
+
+  """
+  URL to user's avatar image.
+  """
+  avatar: String
+
+  """
+  User's phone number.
+  """
+  phone: String
+
+  """
+  User's locale/language preference.
+  """
+  locale: LocaleCode
+
+  """
+  Whether the user has admin privileges.
+  """
+  isAdmin: Boolean!
+
+  """
+  Whether the user account is forbidden/banned.
+  """
+  isForbidden: Boolean!
+
+  """
+  Whether the user account is deleted.
+  """
+  isDeleted: Boolean!
+
+  """
+  User's roles.
+  """
+  roles: [Role!]!
+
+  """
+  The date and time when the user was created.
+  """
+  createdAt: DateTime!
+
+  """
+  The date and time when the user was last updated.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Role assigned to a user.
+"""
+type Role {
+  """
+  Role owner (organization).
+  """
+  owner: String!
+
+  """
+  Role name/identifier.
+  """
+  name: String!
+
+  """
+  Human-readable display name.
+  """
+  displayName: String
+
+  """
+  Role description.
+  """
+  description: String
+
+  """
+  Whether the role is enabled.
+  """
+  isEnabled: Boolean!
+}
+
+# ---- User Inputs ----
+
+"""
+Input for creating a new user.
+"""
+input UserCreateInput {
+  """
+  User's email address (required).
+  """
+  email: Email!
+
+  """
+  User's password.
+  """
+  password: String!
+
+  """
+  User's first name.
+  """
+  firstName: String
+
+  """
+  User's last name.
+  """
+  lastName: String
+
+  """
+  User's phone number.
+  """
+  phone: String
+
+  """
+  User's locale/language preference.
+  """
+  locale: LocaleCode
+
+  """
+  Whether the user should have admin privileges.
+  """
+  isAdmin: Boolean
+
+  """
+  Role names to assign to the user.
+  """
+  roles: [String!]
+}
+
+"""
+Payload for user creation.
+"""
+type UserCreatePayload {
+  """
+  The created user.
+  """
+  user: User
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for updating a user.
+"""
+input UserUpdateInput {
+  """
+  The user ID.
+  """
+  id: ID!
+
+  """
+  User's email address.
+  """
+  email: Email
+
+  """
+  User's first name.
+  """
+  firstName: String
+
+  """
+  User's last name.
+  """
+  lastName: String
+
+  """
+  User's phone number.
+  """
+  phone: String
+
+  """
+  User's locale/language preference.
+  """
+  locale: LocaleCode
+
+  """
+  Whether the user should have admin privileges.
+  """
+  isAdmin: Boolean
+
+  """
+  Whether the user account is forbidden/banned.
+  """
+  isForbidden: Boolean
+
+  """
+  Role names to assign to the user.
+  """
+  roles: [String!]
+}
+
+"""
+Payload for user update.
+"""
+type UserUpdatePayload {
+  """
+  The updated user.
+  """
+  user: User
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for deleting a user.
+"""
+input UserDeleteInput {
+  """
+  The ID of the user to delete.
+  """
+  id: ID!
+
+  """
+  Whether to permanently delete the user (hard delete).
+  """
+  permanent: Boolean
+}
+
+"""
+Payload for user deletion.
+"""
+type UserDeletePayload {
+  """
+  The ID of the deleted user.
+  """
+  deletedUserId: ID
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- User Auth ----
+
+"""
+Input for admin user authentication.
+"""
+input UserSignInInput {
+  """
+  Email address.
+  """
+  email: Email!
+
+  """
+  Password.
+  """
+  password: String!
+}
+
+"""
+Payload for admin user sign in.
+"""
+type UserSignInPayload {
+  """
+  The authenticated user.
+  """
+  user: User
+
+  """
+  Authentication tokens.
+  """
+  token: AuthToken
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for admin user sign out.
+"""
+input UserSignOutInput {
+  """
+  Sign out from all sessions.
+  """
+  allSessions: Boolean
+}
+
+"""
+Payload for admin user sign out.
+"""
+type UserSignOutPayload {
+  """
+  Whether sign out was successful.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for refreshing admin user access token.
+"""
+input UserTokenRefreshInput {
+  """
+  Refresh token to use for obtaining new access token.
+  """
+  refreshToken: String!
+}
+
+"""
+Payload for admin user token refresh.
+"""
+type UserTokenRefreshPayload {
+  """
+  New authentication tokens.
+  """
+  token: AuthToken
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Input for admin user password change.
+"""
+input UserPasswordChangeInput {
+  """
+  Current password.
+  """
+  currentPassword: String!
+
+  """
+  New password.
+  """
+  newPassword: String!
+}
+
+"""
+Payload for admin user password change.
+"""
+type UserPasswordChangePayload {
+  """
+  Whether the password was changed successfully.
+  """
+  success: Boolean!
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
