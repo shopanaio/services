@@ -1,0 +1,327 @@
+"""
+Currency codes according to ISO 4217
+"""
+enum CurrencyCode {
+  "UAE Dirham (United Arab Emirates) - 2 decimals"
+  AED
+  "Afghan Afghani (Afghanistan) - 0 decimals"
+  AFN
+  "Albanian Lek (Albania) - 0 decimals"
+  ALL
+  "Armenian Dram (Armenia) - 2 decimals"
+  AMD
+  "Netherlands Antillean Guilder - 2 decimals"
+  ANG
+  "Angolan Kwanza (Angola) - 2 decimals"
+  AOA
+  "Argentine Peso (Argentina) - 2 decimals"
+  ARS
+  "Australian Dollar (Australia) - 2 decimals"
+  AUD
+  "Aruban Florin (Aruba) - 2 decimals"
+  AWG
+  "Azerbaijani Manat (Azerbaijan) - 2 decimals"
+  AZN
+  "Bosnia-Herzegovina Convertible Mark - 2 decimals"
+  BAM
+  "Barbadian Dollar (Barbados) - 2 decimals"
+  BBD
+  "Bangladeshi Taka (Bangladesh) - 2 decimals"
+  BDT
+  "Bulgarian Lev (Bulgaria) - 2 decimals"
+  BGN
+  "Bahraini Dinar (Bahrain) - 3 decimals"
+  BHD
+  "Burundian Franc (Burundi) - 0 decimals"
+  BIF
+  "Bermudian Dollar (Bermuda) - 2 decimals"
+  BMD
+  "Brunei Dollar (Brunei) - 2 decimals"
+  BND
+  "Bolivian Boliviano (Bolivia) - 2 decimals"
+  BOB
+  "Brazilian Real (Brazil) - 2 decimals"
+  BRL
+  "Bahamian Dollar (Bahamas) - 2 decimals"
+  BSD
+  "Bhutanese Ngultrum (Bhutan) - 2 decimals"
+  BTN
+  "Botswana Pula (Botswana) - 2 decimals"
+  BWP
+  "Belarusian Ruble (Belarus) - 2 decimals"
+  BYN
+  "Belize Dollar (Belize) - 2 decimals"
+  BZD
+  "Canadian Dollar (Canada) - 2 decimals"
+  CAD
+  "Congolese Franc (DR Congo) - 2 decimals"
+  CDF
+  "Swiss Franc (Switzerland) - 2 decimals"
+  CHF
+  "Chilean Peso (Chile) - 0 decimals"
+  CLP
+  "Chinese Yuan (China) - 2 decimals"
+  CNY
+  "Colombian Peso (Colombia) - 2 decimals"
+  COP
+  "Costa Rican Colon (Costa Rica) - 2 decimals"
+  CRC
+  "Cuban Peso (Cuba) - 2 decimals"
+  CUP
+  "Cape Verdean Escudo (Cape Verde) - 2 decimals"
+  CVE
+  "Czech Koruna (Czech Republic) - 2 decimals"
+  CZK
+  "Djiboutian Franc (Djibouti) - 0 decimals"
+  DJF
+  "Danish Krone (Denmark) - 2 decimals"
+  DKK
+  "Dominican Peso (Dominican Republic) - 2 decimals"
+  DOP
+  "Algerian Dinar (Algeria) - 2 decimals"
+  DZD
+  "Egyptian Pound (Egypt) - 2 decimals"
+  EGP
+  "Eritrean Nakfa (Eritrea) - 2 decimals"
+  ERN
+  "Ethiopian Birr (Ethiopia) - 2 decimals"
+  ETB
+  "Euro (European Union) - 2 decimals"
+  EUR
+  "Fijian Dollar (Fiji) - 2 decimals"
+  FJD
+  "Falkland Islands Pound - 2 decimals"
+  FKP
+  "Faroese Króna (Faroe Islands) - 2 decimals"
+  FOK
+  "Pound Sterling (United Kingdom) - 2 decimals"
+  GBP
+  "Georgian Lari (Georgia) - 2 decimals"
+  GEL
+  "Guernsey Pound (Guernsey) - 2 decimals"
+  GGP
+  "Ghanaian Cedi (Ghana) - 2 decimals"
+  GHS
+  "Gibraltar Pound (Gibraltar) - 2 decimals"
+  GIP
+  "Gambian Dalasi (Gambia) - 2 decimals"
+  GMD
+  "Guinean Franc (Guinea) - 0 decimals"
+  GNF
+  "Guatemalan Quetzal (Guatemala) - 2 decimals"
+  GTQ
+  "Guyanese Dollar (Guyana) - 2 decimals"
+  GYD
+  "Hong Kong Dollar (Hong Kong) - 2 decimals"
+  HKD
+  "Honduran Lempira (Honduras) - 2 decimals"
+  HNL
+  "Croatian Kuna (Croatia) - 2 decimals"
+  HRK
+  "Haitian Gourde (Haiti) - 2 decimals"
+  HTG
+  "Hungarian Forint (Hungary) - 2 decimals"
+  HUF
+  "Indonesian Rupiah (Indonesia) - 0 decimals"
+  IDR
+  "Israeli New Shekel (Israel) - 2 decimals"
+  ILS
+  "Isle of Man Pound - 2 decimals"
+  IMP
+  "Indian Rupee (India) - 2 decimals"
+  INR
+  "Iraqi Dinar (Iraq) - 3 decimals"
+  IQD
+  "Iranian Rial (Iran) - 2 decimals"
+  IRR
+  "Icelandic Króna (Iceland) - 0 decimals"
+  ISK
+  "Jersey Pound (Jersey) - 2 decimals"
+  JEP
+  "Jamaican Dollar (Jamaica) - 2 decimals"
+  JMD
+  "Jordanian Dinar (Jordan) - 3 decimals"
+  JOD
+  "Japanese Yen (Japan) - 0 decimals"
+  JPY
+  "Kenyan Shilling (Kenya) - 2 decimals"
+  KES
+  "Kyrgyzstani Som (Kyrgyzstan) - 2 decimals"
+  KGS
+  "Cambodian Riel (Cambodia) - 2 decimals"
+  KHR
+  "Comorian Franc (Comoros) - 2 decimals"
+  KMF
+  "North Korean Won (North Korea) - 2 decimals"
+  KPW
+  "South Korean Won (South Korea) - 0 decimals"
+  KRW
+  "Kuwaiti Dinar (Kuwait) - 3 decimals"
+  KWD
+  "Cayman Islands Dollar - 2 decimals"
+  KYD
+  "Kazakhstani Tenge (Kazakhstan) - 2 decimals"
+  KZT
+  "Lao Kip (Laos) - 2 decimals"
+  LAK
+  "Lebanese Pound (Lebanon) - 2 decimals"
+  LBP
+  "Sri Lankan Rupee (Sri Lanka) - 2 decimals"
+  LKR
+  "Liberian Dollar (Liberia) - 2 decimals"
+  LRD
+  "Lesotho Loti (Lesotho) - 2 decimals"
+  LSL
+  "Libyan Dinar (Libya) - 3 decimals"
+  LYD
+  "Moroccan Dirham (Morocco) - 2 decimals"
+  MAD
+  "Moldovan Leu (Moldova) - 2 decimals"
+  MDL
+  "Malagasy Ariary (Madagascar) - 2 decimals"
+  MGA
+  "Macedonian Denar (North Macedonia) - 2 decimals"
+  MKD
+  "Burmese Kyat (Myanmar) - 2 decimals"
+  MMK
+  "Mongolian Tögrög (Mongolia) - 2 decimals"
+  MNT
+  "Macanese Pataca (Macau) - 2 decimals"
+  MOP
+  "Mauritanian Ouguiya (Mauritania) - 2 decimals"
+  MRU
+  "Mauritian Rupee (Mauritius) - 2 decimals"
+  MUR
+  "Maldivian Rufiyaa (Maldives) - 2 decimals"
+  MVR
+  "Malawian Kwacha (Malawi) - 2 decimals"
+  MWK
+  "Mexican Peso (Mexico) - 2 decimals"
+  MXN
+  "Malaysian Ringgit (Malaysia) - 2 decimals"
+  MYR
+  "Mozambican Metical (Mozambique) - 2 decimals"
+  MZN
+  "Namibian Dollar (Namibia) - 2 decimals"
+  NAD
+  "Nigerian Naira (Nigeria) - 2 decimals"
+  NGN
+  "Nicaraguan Córdoba (Nicaragua) - 2 decimals"
+  NIO
+  "Norwegian Krone (Norway) - 2 decimals"
+  NOK
+  "Nepalese Rupee (Nepal) - 2 decimals"
+  NPR
+  "New Zealand Dollar (New Zealand) - 2 decimals"
+  NZD
+  "Omani Rial (Oman) - 3 decimals"
+  OMR
+  "Panamanian Balboa (Panama) - 2 decimals"
+  PAB
+  "Peruvian Sol (Peru) - 2 decimals"
+  PEN
+  "Papua New Guinean Kina - 2 decimals"
+  PGK
+  "Philippine Peso (Philippines) - 2 decimals"
+  PHP
+  "Pakistani Rupee (Pakistan) - 2 decimals"
+  PKR
+  "Polish Zloty (Poland) - 2 decimals"
+  PLN
+  "Paraguayan Guaraní (Paraguay) - 0 decimals"
+  PYG
+  "Qatari Riyal (Qatar) - 2 decimals"
+  QAR
+  "Romanian Leu (Romania) - 2 decimals"
+  RON
+  "Serbian Dinar (Serbia) - 2 decimals"
+  RSD
+  "Russian Ruble (Russia) - 2 decimals"
+  RUB
+  "Rwandan Franc (Rwanda) - 0 decimals"
+  RWF
+  "Saudi Riyal (Saudi Arabia) - 2 decimals"
+  SAR
+  "Solomon Islands Dollar - 2 decimals"
+  SBD
+  "Seychelles Rupee (Seychelles) - 2 decimals"
+  SCR
+  "Sudanese Pound (Sudan) - 2 decimals"
+  SDG
+  "Swedish Krona (Sweden) - 2 decimals"
+  SEK
+  "Singapore Dollar (Singapore) - 2 decimals"
+  SGD
+  "Saint Helena Pound - 2 decimals"
+  SHP
+  "Sierra Leonean Leone - 2 decimals"
+  SLE
+  "Somali Shilling (Somalia) - 2 decimals"
+  SOS
+  "Surinamese Dollar (Suriname) - 2 decimals"
+  SRD
+  "South Sudanese Pound - 2 decimals"
+  SSP
+  "São Tomé and Príncipe Dobra - 2 decimals"
+  STN
+  "Salvadoran Colón (El Salvador) - 2 decimals"
+  SVC
+  "Syrian Pound (Syria) - 2 decimals"
+  SYP
+  "Eswatini Lilangeni (Eswatini) - 2 decimals"
+  SZL
+  "Thai Baht (Thailand) - 2 decimals"
+  THB
+  "Tajikistani Somoni (Tajikistan) - 2 decimals"
+  TJS
+  "Turkmenistani Manat (Turkmenistan) - 2 decimals"
+  TMT
+  "Tunisian Dinar (Tunisia) - 3 decimals"
+  TND
+  "Tongan Paʻanga (Tonga) - 2 decimals"
+  TOP
+  "Turkish Lira (Turkey) - 2 decimals"
+  TRY
+  "Trinidad and Tobago Dollar - 2 decimals"
+  TTD
+  "New Taiwan Dollar (Taiwan) - 2 decimals"
+  TWD
+  "Tanzanian Shilling (Tanzania) - 2 decimals"
+  TZS
+  "Ukrainian Hryvnia (Ukraine) - 2 decimals"
+  UAH
+  "Ugandan Shilling (Uganda) - 0 decimals"
+  UGX
+  "United States Dollar (USA) - 2 decimals"
+  USD
+  "Uruguayan Peso (Uruguay) - 2 decimals"
+  UYU
+  "Uzbekistani Som (Uzbekistan) - 2 decimals"
+  UZS
+  "Venezuelan Bolívar (Venezuela) - 2 decimals"
+  VES
+  "Vietnamese Dong (Vietnam) - 0 decimals"
+  VND
+  "Vanuatu Vatu (Vanuatu) - 0 decimals"
+  VUV
+  "Samoan Tala (Samoa) - 2 decimals"
+  WST
+  "Central African CFA Franc - 0 decimals"
+  XAF
+  "East Caribbean Dollar - 2 decimals"
+  XCD
+  "Special Drawing Rights (IMF) - 0 decimals"
+  XDR
+  "West African CFA Franc - 0 decimals"
+  XOF
+  "CFP Franc - 0 decimals"
+  XPF
+  "Yemeni Rial (Yemen) - 2 decimals"
+  YER
+  "South African Rand (South Africa) - 2 decimals"
+  ZAR
+  "Zambian Kwacha (Zambia) - 2 decimals"
+  ZMW
+  "Zimbabwean Dollar (Zimbabwe) - 2 decimals"
+  ZWL
+}

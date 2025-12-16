@@ -1,0 +1,31 @@
+{
+  "name": "@shopana/shared-references",
+  "version": "0.0.1",
+  "description": "Shared reference data: currencies, locales, units",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./graphql": {
+      "import": "./graphql/index.graphql"
+    }
+  },
+  "scripts": {
+    "build": "node ../esbuild.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.4"
+  },
+  "files": [
+    "dist",
+    "graphql"
+  ]
+}

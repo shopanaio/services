@@ -1,0 +1,29 @@
+"""
+Weight measurement units
+"""
+enum WeightUnit {
+  "Kilogram"
+  kg
+  "Gram"
+  g
+  "Pound"
+  lb
+  "Ounce"
+  oz
+}
+
+"""
+Dimension (length) measurement units
+"""
+enum DimensionUnit {
+  "Millimeter"
+  mm
+  "Centimeter"
+  cm
+  "Meter"
+  m
+  "Inch"
+  in
+  "Foot"
+  ft
+}
