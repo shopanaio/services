@@ -1,7 +1,7 @@
 type ApiKey {
   id: ID!
   name: String!
-  keyPrefix: String!
+  key: String!
   createdAt: DateTime!
   createdById: ID!
   dueDate: DateTime
@@ -25,8 +25,6 @@ input ApiKeyDeleteInput {
 
 type ApiKeyCreatePayload {
   apiKey: ApiKey
-  """The raw API key - only returned once on creation"""
-  rawKey: String
   userErrors: [UserError!]!
 }
 
