@@ -1,9 +1,4 @@
-import {
-  Client,
-  createClient,
-  type AuthConfig,
-  type Claims,
-} from "@shopana/casdoor-node-sdk";
+import { Client, type AuthConfig, type Claims } from "@shopana/casdoor-node-sdk";
 import { config } from "../config.js";
 
 /**
@@ -61,7 +56,7 @@ export class CasdoorClient {
       applicationName: casdoorConfig.applicationName,
     };
 
-    this.client = createClient(authConfig);
+    this.client = new Client(authConfig);
   }
 
   /**
