@@ -11,7 +11,6 @@ export interface ApiKeyCreateParams {
 
 export interface ApiKeyCreateResult {
   apiKey?: ApiKey;
-  rawKey?: string;
   userErrors: UserError[];
 }
 

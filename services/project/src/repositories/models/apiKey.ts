@@ -18,8 +18,7 @@ export const apiKey = projectSchema.table(
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
-    keyHash: varchar("key_hash", { length: 64 }).notNull(),
-    keyPrefix: varchar("key_prefix", { length: 8 }).notNull(),
+    key: varchar("key", { length: 64 }).notNull(),
     createdById: uuid("created_by_id").notNull(),
     dueDate: timestamp("due_date", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
@@ -31,8 +30,8 @@ export const apiKey = projectSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex("api_key_key_hash_key")
-      .on(table.keyHash)
+    uniqueIndex("api_key_key_unique")
+      .on(table.key)
       .where(sql`deleted_at IS NULL`),
     index("idx_api_key_project_id").on(table.projectId),
     index("idx_api_key_created_by_id").on(table.createdById),

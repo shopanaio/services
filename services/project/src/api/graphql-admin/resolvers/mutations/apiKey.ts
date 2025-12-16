@@ -15,7 +15,6 @@ export const apiKeyMutationResolvers: Partial<Resolvers> = {
 
       return {
         apiKey: result.apiKey ?? null,
-        rawKey: result.rawKey ?? null,
         userErrors: result.userErrors,
       };
     },

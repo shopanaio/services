@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { randomUUID, createHash } from "crypto";
+import { randomUUID } from "crypto";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   apiKey,
@@ -11,11 +11,6 @@ export interface CreateApiKeyData {
   name: string;
   createdById: string;
   dueDate?: Date | null;
-}
-
-export interface CreateApiKeyResult {
-  apiKey: ApiKey;
-  rawKey: string;
 }
 
 export class ApiKeyRepository extends BaseRepository {
@@ -48,13 +43,13 @@ export class ApiKeyRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async findByKeyHash(keyHash: string): Promise<ApiKey | null> {
+  async findByKey(key: string): Promise<ApiKey | null> {
     const result = await this.connection
       .select()
       .from(apiKey)
       .where(
         and(
-          eq(apiKey.keyHash, keyHash),
+          eq(apiKey.key, key),
           isNull(apiKey.deletedAt)
         )
       )
@@ -63,21 +58,18 @@ export class ApiKeyRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async create(projectId: string, data: CreateApiKeyData): Promise<CreateApiKeyResult> {
+  async create(projectId: string, data: CreateApiKeyData): Promise<ApiKey> {
     const id = randomUUID();
     const now = new Date();
 
     // Generate a secure random key
-    const rawKey = `sk_${randomUUID().replace(/-/g, "")}`;
-    const keyPrefix = rawKey.substring(0, 8);
-    const keyHash = createHash("sha256").update(rawKey).digest("hex");
+    const key = `sk_${randomUUID().replace(/-/g, "")}`;
 
     const newApiKey: NewApiKey = {
       id,
       projectId,
       name: data.name,
-      keyHash,
-      keyPrefix,
+      key,
       createdById: data.createdById,
       dueDate: data.dueDate ?? null,
       isBanned: false,
@@ -90,10 +82,7 @@ export class ApiKeyRepository extends BaseRepository {
       .values(newApiKey)
       .returning();
 
-    return {
-      apiKey: result[0],
-      rawKey,
-    };
+    return result[0];
   }
 
   async revoke(id: string): Promise<boolean> {
@@ -166,19 +155,18 @@ export class ApiKeyRepository extends BaseRepository {
 
   // ============ Validation ============
 
-  async validateKey(rawKey: string): Promise<ApiKey | null> {
-    const keyHash = createHash("sha256").update(rawKey).digest("hex");
-    const key = await this.findByKeyHash(keyHash);
+  async validateKey(key: string): Promise<ApiKey | null> {
+    const apiKeyRecord = await this.findByKey(key);
 
-    if (!key) return null;
-    if (key.isBanned) return null;
-    if (key.revokedAt) return null;
-    if (key.dueDate && key.dueDate < new Date()) return null;
+    if (!apiKeyRecord) return null;
+    if (apiKeyRecord.isBanned) return null;
+    if (apiKeyRecord.revokedAt) return null;
+    if (apiKeyRecord.dueDate && apiKeyRecord.dueDate < new Date()) return null;
 
     // Update last used timestamp
-    await this.updateLastUsed(key.id);
+    await this.updateLastUsed(apiKeyRecord.id);
 
-    return key;
+    return apiKeyRecord;
   }
 
   // ============ Loader ============
