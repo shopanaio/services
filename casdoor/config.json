@@ -1,0 +1,7 @@
+{
+  "user": "admin",
+  "password": "admin",
+  "organization": "orbit",
+  "clientId": "orbit-dev-client",
+  "clientSecret": "orbit-dev-secret-key-12345"
+}
