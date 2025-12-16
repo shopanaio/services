@@ -157,6 +157,7 @@ export {
   GetSession,
   AddSession,
   UpdateSession,
+  UpdateSessionForColumns,
   DeleteSession,
 } from "./session.js";
 
@@ -171,7 +172,7 @@ export {
 } from "./group.js";
 
 // Re-export record methods
-export { GetRecords, GetPaginationRecords, GetRecord } from "./record.js";
+export { GetRecords, GetPaginationRecords, GetRecord, AddRecord } from "./record.js";
 
 // Re-export CasdoorRecord type alias for backward compatibility
 export { CasdoorRecord as Record } from "./types.js";

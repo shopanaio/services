@@ -1,5 +1,5 @@
 {
-  "name": "@shopana/casdoor-client-node",
+  "name": "@shopana/casdoor-node-sdk",
   "version": "1.5.0",
   "description": "Casdoor SDK for Node.js - TypeScript port of casdoor-go-sdk v1.5.0",
   "type": "module",

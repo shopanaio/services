@@ -87,6 +87,18 @@ export async function UpdateSession(
 }
 
 /**
+ * Update session for specific columns
+ */
+export async function UpdateSessionForColumns(
+  client: Client,
+  session: Partial<Session>,
+  columns: string[]
+): Promise<boolean> {
+  const { affected } = await modifySession(client, "update-session", session, columns);
+  return affected;
+}
+
+/**
  * Delete session
  */
 export async function DeleteSession(

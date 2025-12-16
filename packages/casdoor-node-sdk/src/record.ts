@@ -63,3 +63,19 @@ export async function GetRecord(
   const bytes = await client.DoGetBytes(url);
   return JSON.parse(bytes) as CasdoorRecord | null;
 }
+
+/**
+ * Add record
+ */
+export async function AddRecord(
+  client: Client,
+  record: Partial<CasdoorRecord>
+): Promise<boolean> {
+  const recordData = { ...record };
+  if (!recordData.owner) {
+    recordData.owner = client.OrganizationName;
+  }
+
+  const resp = await client.DoPost("add-record", null, recordData, false, false);
+  return resp.data === "Affected";
+}
