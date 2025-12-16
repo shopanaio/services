@@ -1,0 +1,30 @@
+type Locale {
+  code: String!
+  title: String!
+  isActive: Boolean!
+}
+
+input LocaleCreateInput {
+  code: String!
+  isActive: Boolean!
+}
+
+input LocaleUpdateInput {
+  code: String!
+  isActive: Boolean!
+}
+
+input LocalesUpdateInput {
+  create: [LocaleCreateInput!]!
+  update: [LocaleUpdateInput!]!
+  delete: [String!]!
+}
+
+input LocaleSetDefaultInput {
+  locale: String!
+}
+
+type LocaleUpdatePayload {
+  success: Boolean!
+  userErrors: [UserError!]!
+}

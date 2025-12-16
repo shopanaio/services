@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schemas/build.config.schema.json",
+  "entryPoint": "src/project.module.ts",
+  "assets": [
+    {
+      "include": "src/api/graphql-admin/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    },
+    {
+      "include": "migrations/**/*",
+      "outDir": "dist/migrations"
+    }
+  ]
+}

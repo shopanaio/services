@@ -1,0 +1,65 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+scalar DateTime
+scalar Email
+scalar Timestamp
+
+extend type Query {
+  projectQuery: ProjectQuery!
+}
+
+extend type Mutation {
+  projectMutation: ProjectMutation!
+}
+
+type ProjectQuery {
+  """Get all projects"""
+  projects: [Project!]!
+
+  """Get a project by slug"""
+  project(slug: String!): Project
+
+  """Get current project info"""
+  projectInfo: ProjectInfo!
+
+  """Get locales for current project"""
+  locales: [Locale!]!
+
+  """Get currencies for current project"""
+  currencies: [Currency!]!
+
+  """Get API keys for current project"""
+  apiKeys: [ApiKey!]!
+}
+
+type ProjectMutation {
+  # Project mutations
+  projectCreate(input: ProjectCreateInput!): ProjectCreatePayload!
+  projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
+  projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
+
+  # Currency mutations
+  currencyFormatUpdate(input: CurrencyFormatUpdateInput!): CurrencyUpdatePayload!
+  currencySetDefault(input: CurrencySetDefaultInput!): CurrencyUpdatePayload!
+
+  # Locale mutations
+  localesUpdate(input: LocalesUpdateInput!): LocaleUpdatePayload!
+  localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
+
+  # API Key mutations
+  apiKeyCreate(input: ApiKeyCreateInput!): ApiKeyCreatePayload!
+  apiKeyRevoke(input: ApiKeyRevokeInput!): ApiKeyActionPayload!
+  apiKeyDelete(input: ApiKeyDeleteInput!): ApiKeyDeletePayload!
+}

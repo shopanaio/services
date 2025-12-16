@@ -1,0 +1,92 @@
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum WeightUnit {
+  KILOGRAMS
+  GRAMS
+  POUNDS
+  OUNCES
+}
+
+enum UnitSystem {
+  METRIC
+  IMPERIAL
+}
+
+type Project {
+  id: ID!
+  name: String!
+  slug: String!
+  status: ProjectStatus!
+  timezone: String!
+  country: String!
+  phoneNumber: String
+  email: String
+  defaultLocale: String!
+  defaultCurrency: String!
+  weightUnit: WeightUnit!
+  unitSystem: UnitSystem!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ProjectInfo {
+  name: String!
+  timezone: String!
+  country: String!
+  phoneNumber: String
+  email: String
+  currency: String!
+  locale: String!
+  weightUnit: WeightUnit!
+  unitSystem: UnitSystem!
+}
+
+input ProjectCreateInput {
+  name: String!
+  slug: String!
+  locales: [String!]!
+  currency: String!
+  country: String!
+  status: ProjectStatus
+  timezone: String
+  phoneNumber: String
+  email: String
+}
+
+input ProjectUpdateInput {
+  name: String
+  phoneNumber: String
+  email: String
+  country: String
+  timezone: String
+  weightUnit: WeightUnit
+  unitSystem: UnitSystem
+}
+
+input ProjectDeleteInput {
+  id: ID!
+}
+
+type UserError {
+  message: String!
+  field: [String!]
+  code: String
+}
+
+type ProjectCreatePayload {
+  project: Project
+  userErrors: [UserError!]!
+}
+
+type ProjectUpdatePayload {
+  project: Project
+  userErrors: [UserError!]!
+}
+
+type ProjectDeletePayload {
+  deletedProjectId: ID
+  userErrors: [UserError!]!
+}

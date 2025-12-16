@@ -1,0 +1,41 @@
+type ApiKey {
+  id: ID!
+  name: String!
+  keyPrefix: String!
+  createdAt: DateTime!
+  createdById: ID!
+  dueDate: DateTime
+  lastUsedAt: DateTime
+  isBanned: Boolean!
+  revokedAt: DateTime
+}
+
+input ApiKeyCreateInput {
+  name: String!
+  dueDate: DateTime
+}
+
+input ApiKeyRevokeInput {
+  id: ID!
+}
+
+input ApiKeyDeleteInput {
+  id: ID!
+}
+
+type ApiKeyCreatePayload {
+  apiKey: ApiKey
+  """The raw API key - only returned once on creation"""
+  rawKey: String
+  userErrors: [UserError!]!
+}
+
+type ApiKeyActionPayload {
+  success: Boolean!
+  userErrors: [UserError!]!
+}
+
+type ApiKeyDeletePayload {
+  deletedApiKeyId: ID
+  userErrors: [UserError!]!
+}
