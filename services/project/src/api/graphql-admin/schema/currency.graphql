@@ -2,9 +2,12 @@ type Currency {
   code: CurrencyCode!
   title: String!
   isActive: Boolean!
-  exchangeRate: Float!
-  exchangeRateAmount: String!
-  exchangeRateScale: Int!
+  exchangeRate: ExchangeRate!
+}
+
+type ExchangeRate {
+  amount: Int!
+  scale: Int!
 }
 
 input CurrencyCreateInput {
