@@ -1,14 +1,14 @@
 // Schema
-export * from "./schema.js";
+export * from "./schema";
 
 // Project
-export * from "./project.js";
+export * from "./project";
 
 // Locale
-export * from "./locale.js";
+export * from "./locale";
 
 // Currency
-export * from "./currency.js";
+export * from "./currency";
 
 // API Key
-export * from "./apiKey.js";
+export * from "./apiKey";

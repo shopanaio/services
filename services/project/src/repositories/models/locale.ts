@@ -8,8 +8,8 @@ import {
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema.js";
-import { project } from "./project.js";
+import { projectSchema } from "./schema";
+import { project } from "./project";
 
 export const locale = projectSchema.table(
   "locale",

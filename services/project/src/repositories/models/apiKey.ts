@@ -7,8 +7,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema.js";
-import { project } from "./project.js";
+import { projectSchema } from "./schema";
+import { project } from "./project";
 
 export const apiKey = projectSchema.table(
   "api_key",

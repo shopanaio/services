@@ -2,11 +2,11 @@
 
 /**
  * Database migrations for all services
- * Uses drizzle-orm for inventory and media services
+ * Uses drizzle-orm, reads migrationsPath from build.config.json
  * Reads database_url from config.local.yml (same as services)
  */
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { load as yamlLoad } from "js-yaml";
 import { findRootDir } from "../utils.js";
@@ -14,21 +14,66 @@ import { findRootDir } from "../utils.js";
 const rootDir = findRootDir();
 const servicesDir = join(rootDir, "services");
 
-// Services with drizzle migrations
-const MIGRATEABLE_SERVICES = [
-  {
-    name: "inventory",
-    migrationsPath: "dist/migrations",
-  },
-  {
-    name: "media",
-    migrationsPath: "dist/migrations",
-  },
-];
+interface MigrationsConfig {
+  path: string;
+  type: "drizzle" | "typeorm" | "prisma";
+}
+
+interface BuildConfig {
+  entryPoint: string;
+  migrations?: MigrationsConfig;
+  assets?: unknown[];
+}
+
+interface ServiceMigrationConfig {
+  name: string;
+  path: string;
+  type: "drizzle" | "typeorm" | "prisma";
+}
 
 interface ConfigStructure {
   vars?: Record<string, unknown>;
   services?: Record<string, { database_url?: string }>;
+}
+
+/**
+ * Read build.config.json from service directory
+ */
+function readBuildConfig(servicePath: string): BuildConfig | null {
+  const configPath = join(servicePath, "build.config.json");
+
+  if (!existsSync(configPath)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(readFileSync(configPath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Discover all services with migrations configured in build.config.json
+ */
+function discoverMigratableServices(): ServiceMigrationConfig[] {
+  const services: ServiceMigrationConfig[] = [];
+
+  for (const name of readdirSync(servicesDir)) {
+    const servicePath = join(servicesDir, name);
+    if (!statSync(servicePath).isDirectory()) continue;
+
+    const buildConfig = readBuildConfig(servicePath);
+    if (buildConfig?.migrations?.path && buildConfig?.migrations?.type) {
+      services.push({
+        name,
+        path: buildConfig.migrations.path,
+        type: buildConfig.migrations.type,
+      });
+    }
+  }
+
+  return services;
 }
 
 /**
@@ -84,31 +129,30 @@ async function runDrizzleMigration(
 
 async function migrateService(
   serviceName: string,
+  config: ServiceMigrationConfig,
   databaseUrl: string
 ): Promise<MigrationResult> {
-  const serviceConfig = MIGRATEABLE_SERVICES.find((s) => s.name === serviceName);
-
-  if (!serviceConfig) {
-    return {
-      service: serviceName,
-      success: false,
-      error: `Service "${serviceName}" does not support migrations`,
-    };
-  }
-
   const serviceDir = join(servicesDir, serviceName);
-  const migrationsPath = join(serviceDir, serviceConfig.migrationsPath);
+  const fullMigrationsPath = join(serviceDir, config.path);
 
-  if (!existsSync(migrationsPath)) {
+  if (!existsSync(fullMigrationsPath)) {
     return {
       service: serviceName,
       success: false,
-      error: `Migrations folder not found: ${migrationsPath}`,
+      error: `Migrations folder not found: ${config.path}`,
     };
   }
 
   try {
-    await runDrizzleMigration(databaseUrl, migrationsPath);
+    if (config.type === "drizzle") {
+      await runDrizzleMigration(databaseUrl, fullMigrationsPath);
+    } else {
+      return {
+        service: serviceName,
+        success: false,
+        error: `Migration type "${config.type}" not yet supported`,
+      };
+    }
     return { service: serviceName, success: true };
   } catch (error: any) {
     return {
@@ -147,12 +191,26 @@ function getDatabaseUrl(serviceName?: string): string {
  * Run migrations for specific service
  */
 export async function runMigration(serviceName: string): Promise<boolean> {
+  const servicePath = join(servicesDir, serviceName);
+  const buildConfig = readBuildConfig(servicePath);
+
+  if (!buildConfig?.migrations?.path || !buildConfig?.migrations?.type) {
+    console.error(`\n❌ Service "${serviceName}" does not have migrations configured in build.config.json`);
+    return false;
+  }
+
   const databaseUrl = getDatabaseUrl(serviceName);
 
   console.log(`\n📦 Migrating ${serviceName}...`);
   console.log(`   Database: ${databaseUrl.replace(/:[^:@]+@/, ":***@")}`);
 
-  const result = await migrateService(serviceName, databaseUrl);
+  const config: ServiceMigrationConfig = {
+    name: serviceName,
+    path: buildConfig.migrations.path,
+    type: buildConfig.migrations.type,
+  };
+
+  const result = await migrateService(serviceName, config, databaseUrl);
 
   if (result.success) {
     console.log(`   ✅ ${serviceName} migrated successfully`);
@@ -167,7 +225,14 @@ export async function runMigration(serviceName: string): Promise<boolean> {
  * Run migrations for all services
  */
 export async function runAllMigrations(): Promise<boolean> {
-  console.log("📋 Running migrations for all services\n");
+  const migratableServices = discoverMigratableServices();
+
+  if (migratableServices.length === 0) {
+    console.log("📋 No services with migrations found\n");
+    return true;
+  }
+
+  console.log(`📋 Running migrations for ${migratableServices.length} service(s)\n`);
 
   // Show database URL from config
   const defaultUrl = getDatabaseUrl();
@@ -176,11 +241,11 @@ export async function runAllMigrations(): Promise<boolean> {
 
   const results: MigrationResult[] = [];
 
-  for (const service of MIGRATEABLE_SERVICES) {
+  for (const service of migratableServices) {
     const databaseUrl = getDatabaseUrl(service.name);
     console.log(`📦 Migrating ${service.name}...`);
 
-    const result = await migrateService(service.name, databaseUrl);
+    const result = await migrateService(service.name, service, databaseUrl);
     results.push(result);
 
     if (result.success) {
@@ -208,5 +273,5 @@ export async function runAllMigrations(): Promise<boolean> {
  * List available services for migration
  */
 export function listMigratableServices(): string[] {
-  return MIGRATEABLE_SERVICES.map((s) => s.name);
+  return discoverMigratableServices().map((s) => s.name);
 }

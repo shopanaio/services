@@ -12,6 +12,22 @@
       "type": "string",
       "description": "Output file path. If not specified, derived from service name"
     },
+    "migrations": {
+      "type": "object",
+      "description": "Database migrations configuration",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to migrations folder (e.g., dist/migrations)"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["drizzle", "typeorm", "prisma"],
+          "description": "Migration tool type"
+        }
+      },
+      "required": ["path", "type"]
+    },
     "assets": {
       "type": "array",
       "description": "Assets to copy to dist folder",

@@ -6,7 +6,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema.js";
+import { projectSchema } from "./schema";
 import {
   weightUnitEnum,
   dimensionUnitEnum,
@@ -16,7 +16,7 @@ import {
   type DimensionUnit,
   type CurrencyCode,
   type LocaleCode,
-} from "./reference.js";
+} from "./reference";
 
 export const projectStatusEnum = projectSchema.enum("project_status", [
   "active",

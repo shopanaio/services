@@ -7,8 +7,8 @@ import {
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { projectSchema } from "./schema.js";
-import { project } from "./project.js";
+import { projectSchema } from "./schema";
+import { project } from "./project";
 
 export const currency = projectSchema.table(
   "currency",
