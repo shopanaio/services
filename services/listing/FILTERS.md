@@ -315,20 +315,20 @@ POST /api/search
 ### 2. Filter Validation
 
 ```typescript
-// 1. Загружаем filter_config для категории
+// 1. Load filter_config for category
 const config = await filterConfigService.getFilterConfig(projectId, categoryId, locale);
 
-// 2. Проверяем что запрошенные фильтры разрешены
+// 2. Check that requested filters are allowed
 const allowedFilters = new Set(config.flatMap(g =>
   g.filters.map(f => `${f.filterType}:${f.filterSlug ?? ''}`)
 ));
 
-// 3. Отбрасываем неразрешённые
+// 3. Discard disallowed filters
 const validFilters = filters.filter(f =>
   allowedFilters.has(`${f.type}:${f.slug ?? ''}`)
 );
 
-// 4. Убираем скрытые значения
+// 4. Remove hidden values
 for (const filter of validFilters) {
   const configItem = findConfig(config, filter.type, filter.slug);
   if (configItem?.hiddenValues) {

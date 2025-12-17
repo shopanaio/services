@@ -35,7 +35,7 @@ beforeEach(() => {
   }));
 });
 
-  it("загружает данные и проверяет sha256", async () => {
+  it("downloads data and verifies sha256 checksum", async () => {
     const payload = Buffer.from(JSON.stringify({ test: true }), "utf8");
     getObjectMock.mockResolvedValue(Readable.from([payload]));
 
@@ -74,7 +74,7 @@ beforeEach(() => {
     expect(result.buffer.equals(payload)).toBe(true);
   });
 
-  it("бросает ошибку при несоответствии контрольной суммы", async () => {
+  it("throws error on checksum mismatch", async () => {
     const payload = Buffer.from("invalid", "utf8");
     getObjectMock.mockResolvedValue(Readable.from([payload]));
 

@@ -10,7 +10,7 @@ import type { FacebookFeedRecord } from '../types';
 const feedPath = resolve(__dirname, '../feed-fb.csv');
 
 describe('FacebookFeedHashParser', () => {
-  it('парсит CSV фид и вычисляет стабильные хеши', async () => {
+  it('parses CSV feed and computes stable hashes', async () => {
     const parser = new FacebookFeedHashParser();
     const reader = new FileFacebookFeedReader(feedPath);
 
@@ -27,7 +27,7 @@ describe('FacebookFeedHashParser', () => {
     const lastRecord = records.find((item) => item.id === '282236170171');
     expect(lastRecord?.hash).toBe('0aaf521fb5cffa8cff82938d4f50c5bd49e7e0a57090d01ebdc47927d3fc6380');
   });
-  it('парсит CSV фид по HTTP, не буферизуя весь ответ', async () => {
+  it('parses CSV feed via HTTP without buffering entire response', async () => {
     const server = createServer((request, response) => {
       response.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' });
       createReadStream(feedPath).pipe(response);

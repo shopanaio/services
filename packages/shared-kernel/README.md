@@ -1,25 +1,25 @@
 # @shopana/shared-kernel
 
-Архитектурное ядро (microkernel) для микросервисов Shopana, реализующее паттерн Transaction Script.
+Architectural microkernel for Shopana microservices implementing the Transaction Script pattern.
 
-## Описание
+## Description
 
-Пакет предоставляет минималистичную архитектуру ядра для микросервисов:
+This package provides a minimal kernel architecture for microservices:
 
-- **Kernel** - центральный координатор для выполнения транзакционных скриптов
-- **Transaction Script** - паттерн для организации бизнес-логики
-- **MoleculerLogger** - адаптер для Moleculer logger
-- Набор общих типов и интерфейсов
+- **Kernel** - central coordinator for executing transaction scripts
+- **Transaction Script** - pattern for organizing business logic
+- **MoleculerLogger** - adapter for Moleculer logger
+- A set of common types and interfaces
 
-## Установка
+## Installation
 
 ```bash
 yarn add @shopana/shared-kernel
 ```
 
-## Использование
+## Usage
 
-### 1. Создание Kernel в сервисе
+### 1. Creating Kernel in a Service
 
 ```typescript
 import { Kernel, MoleculerLogger } from "@shopana/shared-kernel";
@@ -37,7 +37,7 @@ const MyService: ServiceSchema = {
 };
 ```
 
-### 2. Создание Transaction Script
+### 2. Creating a Transaction Script
 
 ```typescript
 import type { TransactionScript } from "@shopana/shared-kernel";
@@ -77,7 +77,7 @@ export const getData: TransactionScript<GetDataParams, GetDataResult> =
   };
 ```
 
-### 3. Выполнение скриптов через Kernel
+### 3. Executing Scripts via Kernel
 
 ```typescript
 actions: {
@@ -87,30 +87,30 @@ actions: {
 }
 ```
 
-## Архитектура
+## Architecture
 
 ### Kernel Services
 
-Kernel предоставляет скриптам два основных сервиса:
+Kernel provides scripts with two main services:
 
-- **broker** - Moleculer ServiceBroker для межсервисной коммуникации
-- **logger** - Логгер для записи событий и ошибок
+- **broker** - Moleculer ServiceBroker for inter-service communication
+- **logger** - Logger for recording events and errors
 
 ### Transaction Script Pattern
 
-Transaction Script - это паттерн организации бизнес-логики, при котором каждая операция представлена отдельной функцией (скриптом). Скрипт:
+Transaction Script is a business logic organization pattern where each operation is represented by a separate function (script). A script:
 
-1. Получает параметры и сервисы от Kernel
-2. Выполняет бизнес-логику
-3. Возвращает результат
+1. Receives parameters and services from Kernel
+2. Executes business logic
+3. Returns the result
 
-Преимущества:
-- Простота и понятность
-- Легкое тестирование
-- Минимальная связность
-- Явные зависимости
+Benefits:
+- Simplicity and clarity
+- Easy testing
+- Minimal coupling
+- Explicit dependencies
 
-## Типы
+## Types
 
 ### Logger
 
@@ -162,13 +162,13 @@ class KernelError extends Error {
 }
 ```
 
-## Примеры использования
+## Usage Examples
 
-См. сервисы:
-- `services/payments` - работа с платежными методами
-- `services/delivery` - работа с методами доставки
-- `services/pricing` - работа со скидками и ценообразованием
+See services:
+- `services/payments` - payment methods handling
+- `services/delivery` - delivery methods handling
+- `services/pricing` - discounts and pricing handling
 
-## Лицензия
+## License
 
 ISC

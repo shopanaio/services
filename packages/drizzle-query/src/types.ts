@@ -341,7 +341,7 @@ export type NestedPaths<T extends FieldsDef, Prefix extends string = ""> = {
 
 /**
  * Order input item - object-based sort specification
- * field может содержать путь с точками для вложенных полей: "items.product.price"
+ * field can contain dot-separated path for nested fields: "items.product.price"
  */
 export type OrderByItem<F extends string = string> = {
   field: F;

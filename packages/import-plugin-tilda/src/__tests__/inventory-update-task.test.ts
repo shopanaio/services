@@ -40,7 +40,7 @@ describe("TildaImportProvider.inventory.createUpdateTask", () => {
     putObjectMock.mockResolvedValue("test-etag");
   });
 
-  it("формирует задачу обновления инвентаря в стандартизированном формате", async () => {
+  it("creates inventory update task in standardized format", async () => {
     const provider = new TildaImportProvider(ctx, {
       feed: {
         source: "file",
