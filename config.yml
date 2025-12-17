@@ -4,7 +4,6 @@
 global:
   environment: development # development | staging | production
   log_level: debug # debug | info | warn | error
-  platform_grpc_host: localhost:50051
 
 # ═══════════════════════════════════════════════════════════════════
 # SHARED RESOURCES (YAML anchors for DRY)
@@ -31,19 +30,6 @@ shared:
 # SERVICES
 # ═══════════════════════════════════════════════════════════════════
 services:
-  bootstrap:
-    services:
-      - apps
-      - checkout
-      - delivery
-      - inventory
-      - media
-      - orders
-      - payments
-      - pricing
-      - project
-    metrics_port: 3030
-
   apps:
     ports:
       admin_graphql: 10001
