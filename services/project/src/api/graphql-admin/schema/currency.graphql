@@ -7,8 +7,27 @@ type Currency {
   exchangeRateScale: Int!
 }
 
+input CurrencyCreateInput {
+  code: CurrencyCode!
+  isActive: Boolean!
+}
+
+input CurrencyDeleteInput {
+  code: CurrencyCode!
+}
+
 input CurrencySetDefaultInput {
   currency: CurrencyCode!
+}
+
+type CurrencyCreatePayload {
+  currency: Currency
+  userErrors: [UserError!]!
+}
+
+type CurrencyDeletePayload {
+  deletedCurrencyCode: CurrencyCode
+  userErrors: [UserError!]!
 }
 
 type CurrencyUpdatePayload {

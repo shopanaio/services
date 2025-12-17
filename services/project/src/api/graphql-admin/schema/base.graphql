@@ -31,12 +31,6 @@ type ProjectQuery {
   """Get a project by slug"""
   project(slug: String!): Project
 
-  """Get locales for current project"""
-  locales: [Locale!]!
-
-  """Get currencies for current project"""
-  currencies: [Currency!]!
-
   """Get API keys for current project"""
   apiKeys: [ApiKey!]!
 }
@@ -48,10 +42,13 @@ type ProjectMutation {
   projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
 
   # Currency mutations
+  currencyCreate(input: CurrencyCreateInput!): CurrencyCreatePayload!
+  currencyDelete(input: CurrencyDeleteInput!): CurrencyDeletePayload!
   currencySetDefault(input: CurrencySetDefaultInput!): CurrencyUpdatePayload!
 
   # Locale mutations
-  localesUpdate(input: LocalesUpdateInput!): LocaleUpdatePayload!
+  localeCreate(input: LocaleCreateInput!): LocaleCreatePayload!
+  localeDelete(input: LocaleDeleteInput!): LocaleDeletePayload!
   localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
 
   # API Key mutations

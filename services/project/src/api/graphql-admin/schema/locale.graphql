@@ -9,19 +9,22 @@ input LocaleCreateInput {
   isActive: Boolean!
 }
 
-input LocaleUpdateInput {
+input LocaleDeleteInput {
   code: LocaleCode!
-  isActive: Boolean!
-}
-
-input LocalesUpdateInput {
-  create: [LocaleCreateInput!]!
-  update: [LocaleUpdateInput!]!
-  delete: [LocaleCode!]!
 }
 
 input LocaleSetDefaultInput {
   locale: LocaleCode!
+}
+
+type LocaleCreatePayload {
+  locale: Locale
+  userErrors: [UserError!]!
+}
+
+type LocaleDeletePayload {
+  deletedLocaleCode: LocaleCode
+  userErrors: [UserError!]!
 }
 
 type LocaleUpdatePayload {
