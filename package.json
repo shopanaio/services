@@ -13,7 +13,10 @@
   ],
   "packageManager": "yarn@4.10.3",
   "scripts": {
-    "shopana": "tsx packages/cli/src/cli.ts"
+    "shopana": "tsx packages/cli/src/cli.ts",
+    "dev": "yarn shopana dev",
+    "build": "yarn shopana build",
+    "migrate": "yarn shopana migrate"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.53.1",
