@@ -84,6 +84,17 @@ export type ServicesConfig = {
   pricing: {
     metrics_port?: number;
   };
+  /** Project service configuration */
+  project: {
+    admin_graphql_port: number;
+    metrics_port?: number;
+    database_url?: string;
+  };
+  /** Users service configuration */
+  users: {
+    admin_graphql_port: number;
+    metrics_port?: number;
+  };
 };
 
 /**

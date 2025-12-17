@@ -66,3 +66,12 @@ services:
 
   pricing:
     port: 10008
+
+  project:
+    admin_graphql_port: 10009
+    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
+    metrics_port: 3039
+
+  users:
+    admin_graphql_port: 10010
+    metrics_port: 3040

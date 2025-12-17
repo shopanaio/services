@@ -9,6 +9,7 @@ import { DeliveryModule } from '@shopana/delivery-service';
 import { OrdersModule } from '@shopana/orders-service';
 import { PricingModule } from '@shopana/pricing-service';
 import { ProjectModule } from '@shopana/project-service';
+import { UsersModule } from '@shopana/users-service';
 
 /**
  * BootstrapModule is the composition root for the NestJS application.
@@ -33,6 +34,7 @@ export class BootstrapModule {
         OrdersModule,
         PricingModule,
         ProjectModule,
+        UsersModule,
       ],
     })
     class DynamicBootstrapModule {}
