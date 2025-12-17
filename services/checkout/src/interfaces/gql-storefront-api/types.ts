@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { GraphQLContext } from '@src/interfaces/gql-storefront-api/context.js';
+import { GraphQLContext } from './context.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -45,12 +45,28 @@ export type ApiCheckout = ApiNode & {
   notifications: Array<ApiCheckoutNotification>;
   /** Payment aggregate for this checkout. */
   payment: ApiCheckoutPayment;
-  /** Tags available for this checkout. */
+  /** Tags that can be used to organize checkout lines. */
   tags: Array<ApiCheckoutTag>;
   /** Quantity of the item being purchased. */
   totalQuantity: Scalars['Int']['output'];
   /** When this checkout was last updated. */
   updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * Input data for a child item in a bundle.
+ * Price configuration is automatically taken from ProductGroup in the database.
+ */
+export type ApiCheckoutChildLineInput = {
+  /**
+   * ID of the purchasable for child item.
+   * Must be a variant that exists in parent product's groups.
+   */
+  purchasableId: Scalars['ID']['input'];
+  /** Snapshot data for child purchasable. */
+  purchasableSnapshot: InputMaybe<ApiPurchasableSnapshotInput>;
+  /** Quantity of the child item. */
+  quantity: Scalars['Int']['input'];
 };
 
 /** All monetary calculations related to the checkout. */
@@ -80,7 +96,7 @@ export type ApiCheckoutCreateInput = {
   items: Array<ApiCheckoutLineAddInput>;
   /** Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru") */
   localeCode: Scalars['String']['input'];
-  /** Optional tag definitions available to this checkout. */
+  /** Optional tag definitions to initialize for this checkout. */
   tags: InputMaybe<Array<ApiCheckoutTagInput>>;
 };
 
@@ -357,13 +373,17 @@ export type ApiCheckoutLanguageCodeUpdateInput = {
 export type ApiCheckoutLine = ApiNode & {
   __typename?: 'CheckoutLine';
   /** A list of components that make up this checkout line, such as individual products in a bundle. */
-  children: Array<Maybe<ApiCheckoutLine>>;
+  children: Array<ApiCheckoutLine>;
   /** Cost calculations for this checkout item. */
   cost: ApiCheckoutLineCost;
   /** Global unique identifier for the checkout line. */
   id: Scalars['ID']['output'];
   /** Image URL of the purchasable. */
   imageSrc: Maybe<Scalars['String']['output']>;
+  /** Original price before any adjustments (e.g., child price config). */
+  originalPrice: ApiMoney;
+  /** Price adjustment applied to this line (for child items in bundles). */
+  priceConfig: Maybe<ApiCheckoutLinePriceConfig>;
   /** ID of the purchasable. */
   purchasableId: Scalars['ID']['output'];
   /** Purchasable snapshot data at the time of adding to checkout. */
@@ -372,7 +392,7 @@ export type ApiCheckoutLine = ApiNode & {
   quantity: Scalars['Int']['output'];
   /** SKU of the purchasable. */
   sku: Maybe<Scalars['String']['output']>;
-  /** Optional tag assigned to this line. */
+  /** Optional tag assigned to this checkout line. */
   tag: Maybe<ApiCheckoutTag>;
   /** Title of the purchasable. */
   title: Scalars['String']['output'];
@@ -380,6 +400,8 @@ export type ApiCheckoutLine = ApiNode & {
 
 /** Input data for a single item in the checkout. */
 export type ApiCheckoutLineAddInput = {
+  /** Child items for this line. If provided, this line becomes a parent. */
+  children: InputMaybe<Array<ApiCheckoutChildLineInput>>;
   /** ID of the product to add or update. */
   purchasableId: Scalars['ID']['input'];
   /** ID of the purchasable snapshot to add or update. */
@@ -405,6 +427,17 @@ export type ApiCheckoutLineCost = {
   totalAmount: ApiMoney;
   /** The current price per unit before discounts are applied (may differ from compareAt price if on sale). */
   unitPrice: ApiMoney;
+};
+
+/** Price adjustment configuration applied to a child line item. */
+export type ApiCheckoutLinePriceConfig = {
+  __typename?: 'CheckoutLinePriceConfig';
+  /** Amount in minor units (always positive). Used for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE. */
+  amount: Maybe<Scalars['Int']['output']>;
+  /** Percentage (always positive). Used for DISCOUNT_PERCENT, MARKUP_PERCENT. */
+  percent: Maybe<Scalars['Float']['output']>;
+  /** Type of price adjustment. */
+  type: ApiChildPriceType;
 };
 
 /** Single replacement operation. */
@@ -567,7 +600,7 @@ export type ApiCheckoutMutation = {
   checkoutTagCreate: ApiCheckout;
   /** Deletes a checkout tag. */
   checkoutTagDelete: ApiCheckout;
-  /** Updates an existing checkout tag. */
+  /** Updates a checkout tag. */
   checkoutTagUpdate: ApiCheckout;
 };
 
@@ -851,30 +884,30 @@ export type ApiCheckoutRecipientInput = {
   phone: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Tag entity that can be assigned to checkout lines. */
+/** A tag that can be attached to checkout lines. */
 export type ApiCheckoutTag = ApiNode & {
   __typename?: 'CheckoutTag';
-  /** Creation timestamp. */
+  /** Tag creation timestamp. */
   createdAt: Scalars['DateTime']['output'];
-  /** A globally-unique ID. */
+  /** Global identifier of the tag. */
   id: Scalars['ID']['output'];
-  /** Slug identifier (alphanumeric). */
+  /** Slug identifier (a-zA-Z0-9). */
   slug: Scalars['String']['output'];
-  /** Whether the tag enforces uniqueness. */
+  /** Whether the tag enforces uniqueness for checkout lines. */
   unique: Scalars['Boolean']['output'];
   /** Last update timestamp. */
   updatedAt: Scalars['DateTime']['output'];
 };
 
-/** Input for creating a checkout tag. */
+/** Input payload for checkoutTagCreate mutation. */
 export type ApiCheckoutTagCreateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** Tag payload. */
+  /** Tag configuration. */
   tag: ApiCheckoutTagInput;
 };
 
-/** Input for deleting a checkout tag. */
+/** Input payload for checkoutTagDelete mutation. */
 export type ApiCheckoutTagDeleteInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
@@ -882,25 +915,46 @@ export type ApiCheckoutTagDeleteInput = {
   tagId: Scalars['ID']['input'];
 };
 
-/** Reusable tag payload. */
+/** Tag definition used when initializing or mutating checkout tags. */
 export type ApiCheckoutTagInput = {
   /** Slug identifier consisting of alphanumeric characters. */
   slug: Scalars['String']['input'];
-  /** Whether the tag enforces uniqueness for checkout lines. */
+  /** Whether this tag enforces uniqueness for checkout lines. */
   unique: Scalars['Boolean']['input'];
 };
 
-/** Input for updating a checkout tag. */
+/** Input payload for checkoutTagUpdate mutation. */
 export type ApiCheckoutTagUpdateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** New slug if renaming the tag. */
+  /** New slug, if tag needs to be renamed. */
   slug: InputMaybe<Scalars['String']['input']>;
   /** Tag identifier (global ID). */
   tagId: Scalars['ID']['input'];
   /** Updated uniqueness flag. */
   unique: InputMaybe<Scalars['Boolean']['input']>;
 };
+
+/**
+ * Price adjustment type for child items in a bundle.
+ * Values are always positive - the type determines the operation.
+ */
+export enum ApiChildPriceType {
+  /** Use original price without adjustments */
+  Base = 'BASE',
+  /** Subtract fixed amount from original price */
+  DiscountAmount = 'DISCOUNT_AMOUNT',
+  /** Subtract percentage from original price */
+  DiscountPercent = 'DISCOUNT_PERCENT',
+  /** Item is free (price = 0) */
+  Free = 'FREE',
+  /** Add fixed amount to original price */
+  MarkupAmount = 'MARKUP_AMOUNT',
+  /** Add percentage to original price */
+  MarkupPercent = 'MARKUP_PERCENT',
+  /** Override with fixed price */
+  Override = 'OVERRIDE'
+}
 
 export enum ApiCountryCode {
   /** Andorra */
@@ -1786,6 +1840,7 @@ export type ApiResolversTypes = {
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Checkout: ResolverTypeWrapper<ApiCheckout>;
+  CheckoutChildLineInput: ApiCheckoutChildLineInput;
   CheckoutCost: ResolverTypeWrapper<ApiCheckoutCost>;
   CheckoutCreateInput: ApiCheckoutCreateInput;
   CheckoutCreatePayload: ResolverTypeWrapper<ApiCheckoutCreatePayload>;
@@ -1813,6 +1868,7 @@ export type ApiResolversTypes = {
   CheckoutLine: ResolverTypeWrapper<ApiCheckoutLine>;
   CheckoutLineAddInput: ApiCheckoutLineAddInput;
   CheckoutLineCost: ResolverTypeWrapper<ApiCheckoutLineCost>;
+  CheckoutLinePriceConfig: ResolverTypeWrapper<ApiCheckoutLinePriceConfig>;
   CheckoutLineReplaceInput: ApiCheckoutLineReplaceInput;
   CheckoutLineUpdateInput: ApiCheckoutLineUpdateInput;
   CheckoutLinesAddInput: ApiCheckoutLinesAddInput;
@@ -1844,12 +1900,14 @@ export type ApiResolversTypes = {
   CheckoutTagDeleteInput: ApiCheckoutTagDeleteInput;
   CheckoutTagInput: ApiCheckoutTagInput;
   CheckoutTagUpdateInput: ApiCheckoutTagUpdateInput;
+  ChildPriceType: ApiChildPriceType;
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Decimal: ResolverTypeWrapper<Scalars['Decimal']['output']>;
   DeliveryCost: ResolverTypeWrapper<ApiDeliveryCost>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -1870,6 +1928,7 @@ export type ApiResolversParentTypes = {
   BigInt: Scalars['BigInt']['output'];
   Boolean: Scalars['Boolean']['output'];
   Checkout: ApiCheckout;
+  CheckoutChildLineInput: ApiCheckoutChildLineInput;
   CheckoutCost: ApiCheckoutCost;
   CheckoutCreateInput: ApiCheckoutCreateInput;
   CheckoutCreatePayload: ApiCheckoutCreatePayload;
@@ -1896,6 +1955,7 @@ export type ApiResolversParentTypes = {
   CheckoutLine: ApiCheckoutLine;
   CheckoutLineAddInput: ApiCheckoutLineAddInput;
   CheckoutLineCost: ApiCheckoutLineCost;
+  CheckoutLinePriceConfig: ApiCheckoutLinePriceConfig;
   CheckoutLineReplaceInput: ApiCheckoutLineReplaceInput;
   CheckoutLineUpdateInput: ApiCheckoutLineUpdateInput;
   CheckoutLinesAddInput: ApiCheckoutLinesAddInput;
@@ -1930,6 +1990,7 @@ export type ApiResolversParentTypes = {
   Decimal: Scalars['Decimal']['output'];
   DeliveryCost: ApiDeliveryCost;
   Email: Scalars['Email']['output'];
+  Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
@@ -2032,10 +2093,12 @@ export type ApiCheckoutFieldErrorResolvers<ContextType = GraphQLContext, ParentT
 };
 
 export type ApiCheckoutLineResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLine'] = ApiResolversParentTypes['CheckoutLine']> = {
-  children: Resolver<Array<Maybe<ApiResolversTypes['CheckoutLine']>>, ParentType, ContextType>;
+  children: Resolver<Array<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
   cost: Resolver<ApiResolversTypes['CheckoutLineCost'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   imageSrc: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  originalPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  priceConfig: Resolver<Maybe<ApiResolversTypes['CheckoutLinePriceConfig']>, ParentType, ContextType>;
   purchasableId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   purchasableSnapshot: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   quantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
@@ -2052,6 +2115,13 @@ export type ApiCheckoutLineCostResolvers<ContextType = GraphQLContext, ParentTyp
   taxAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   totalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   unitPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiCheckoutLinePriceConfigResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinePriceConfig'] = ApiResolversParentTypes['CheckoutLinePriceConfig']> = {
+  amount: Resolver<Maybe<ApiResolversTypes['Int']>, ParentType, ContextType>;
+  percent: Resolver<Maybe<ApiResolversTypes['Float']>, ParentType, ContextType>;
+  type: Resolver<ApiResolversTypes['ChildPriceType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2237,6 +2307,7 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   CheckoutFieldError: ApiCheckoutFieldErrorResolvers<ContextType>;
   CheckoutLine: ApiCheckoutLineResolvers<ContextType>;
   CheckoutLineCost: ApiCheckoutLineCostResolvers<ContextType>;
+  CheckoutLinePriceConfig: ApiCheckoutLinePriceConfigResolvers<ContextType>;
   CheckoutLinesAddPayload: ApiCheckoutLinesAddPayloadResolvers<ContextType>;
   CheckoutLinesClearPayload: ApiCheckoutLinesClearPayloadResolvers<ContextType>;
   CheckoutLinesDeletePayload: ApiCheckoutLinesDeletePayloadResolvers<ContextType>;

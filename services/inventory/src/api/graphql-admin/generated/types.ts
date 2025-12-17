@@ -1271,6 +1271,8 @@ export type VariantSetStockInput = {
 /** Payload for variant stock set. */
 export type VariantSetStockPayload = {
   __typename?: 'VariantSetStockPayload';
+  /** The updated stock record. */
+  stock: Maybe<WarehouseStock>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
   /** The updated variant. */
@@ -2314,6 +2316,7 @@ export type VariantSetSkuPayloadResolvers<ContextType = ServiceContext, ParentTy
 }>;
 
 export type VariantSetStockPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['VariantSetStockPayload'] = ResolversParentTypes['VariantSetStockPayload']> = ResolversObject<{
+  stock?: Resolver<Maybe<ResolversTypes['WarehouseStock']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

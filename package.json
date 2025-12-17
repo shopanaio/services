@@ -16,6 +16,7 @@
     "shopana": "tsx packages/cli/src/cli.ts",
     "dev": "yarn shopana dev",
     "build": "yarn shopana build",
+    "codegen": "yarn shopana codegen",
     "migrate": "yarn shopana migrate"
   },
   "devDependencies": {

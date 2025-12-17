@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { GraphQLContext } from '@src/interfaces/gql-admin-api/context.js';
+import { GraphQLContext } from './context.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -20,11 +20,6 @@ export type Scalars = {
   DateTime: { input: any; output: any; }
   Email: { input: string; output: string; }
   JSON: { input: unknown; output: unknown; }
-  _Any: { input: any; output: any; }
-  federation__FieldSet: { input: any; output: any; }
-  federation__Policy: { input: any; output: any; }
-  federation__Scope: { input: any; output: any; }
-  link__Import: { input: any; output: any; }
 };
 
 export type ApiApiKey = {
@@ -899,7 +894,6 @@ export type ApiOrderLine = {
   createdAt: Scalars['DateTime']['output'];
   discountAmount: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
-  purchasable: ApiPurchasable;
   purchasableId: Scalars['ID']['output'];
   quantity: Scalars['Int']['output'];
   subtotalAmount: Scalars['Int']['output'];
@@ -982,19 +976,12 @@ export type ApiPurchasable = {
 export type ApiPurchasableSnapshot = ApiPurchasable & {
   __typename?: 'PurchasableSnapshot';
   id: Scalars['ID']['output'];
-  snapshot: Scalars['JSON']['output'];
+  purchasableSnapshot: Scalars['JSON']['output'];
 };
 
 export type ApiQuery = {
   __typename?: 'Query';
-  _entities: Array<Maybe<Api_Entity>>;
-  _service: Api_Service;
   orderQuery: ApiOrderQuery;
-};
-
-
-export type ApiQuery_EntitiesArgs = {
-  representations: Array<Scalars['_Any']['input']>;
 };
 
 export type ApiTag = {
@@ -1018,20 +1005,6 @@ export enum ApiWeightUnit {
   Kg = 'KG',
   Lb = 'LB',
   Oz = 'OZ'
-}
-
-export type Api_Entity = ApiApiKey | ApiCustomer | ApiLabel | ApiTag | ApiUser;
-
-export type Api_Service = {
-  __typename?: '_Service';
-  sdl: Maybe<Scalars['String']['output']>;
-};
-
-export enum ApiLink__Purpose {
-  /** `EXECUTION` features provide metadata necessary for operation execution. */
-  Execution = 'EXECUTION',
-  /** `SECURITY` features provide metadata necessary to securely resolve fields. */
-  Security = 'SECURITY'
 }
 
 
@@ -1104,7 +1077,6 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of union types */
 export type ApiResolversUnionTypes<_RefType extends Record<string, unknown>> = {
   OrderActor: ( ApiApiKey ) | ( ApiUser );
-  _Entity: ( ApiApiKey ) | ( ApiCustomer ) | ( ApiLabel ) | ( ApiTag ) | ( ApiUser );
 };
 
 /** Mapping of interface types */
@@ -1131,7 +1103,7 @@ export type ApiResolversTypes = {
   Label: ResolverTypeWrapper<ApiLabel>;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
-  Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy' | 'events' | 'lines'> & { createdBy: ApiResolversTypes['OrderActor'], events: Array<ApiResolversTypes['OrderEvent']>, lines: Array<ApiResolversTypes['OrderLine']> }>;
+  Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversTypes['OrderActor'], events: Array<ApiResolversTypes['OrderEvent']> }>;
   OrderActor: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['OrderActor']>;
   OrderAdminNoteUpdateInput: ApiOrderAdminNoteUpdateInput;
   OrderCancelInput: ApiOrderCancelInput;
@@ -1143,7 +1115,7 @@ export type ApiResolversTypes = {
   OrderDeliveryAddress: ResolverTypeWrapper<ApiOrderDeliveryAddress>;
   OrderEvent: ResolverTypeWrapper<Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversTypes['OrderActor'] }>;
   OrderEventType: ApiOrderEventType;
-  OrderLine: ResolverTypeWrapper<Omit<ApiOrderLine, 'purchasable'> & { purchasable: ApiResolversTypes['Purchasable'] }>;
+  OrderLine: ResolverTypeWrapper<ApiOrderLine>;
   OrderMutation: ResolverTypeWrapper<ApiOrderMutation>;
   OrderQuery: ResolverTypeWrapper<Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversTypes['Order']>, orders: ApiResolversTypes['OrdersOutput'] }>;
   OrderStatus: ApiOrderStatus;
@@ -1157,14 +1129,6 @@ export type ApiResolversTypes = {
   User: ResolverTypeWrapper<ApiUser>;
   Weight: ResolverTypeWrapper<ApiWeight>;
   WeightUnit: ApiWeightUnit;
-  _Any: ResolverTypeWrapper<Scalars['_Any']['output']>;
-  _Entity: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['_Entity']>;
-  _Service: ResolverTypeWrapper<Api_Service>;
-  federation__FieldSet: ResolverTypeWrapper<Scalars['federation__FieldSet']['output']>;
-  federation__Policy: ResolverTypeWrapper<Scalars['federation__Policy']['output']>;
-  federation__Scope: ResolverTypeWrapper<Scalars['federation__Scope']['output']>;
-  link__Import: ResolverTypeWrapper<Scalars['link__Import']['output']>;
-  link__Purpose: ApiLink__Purpose;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -1183,7 +1147,7 @@ export type ApiResolversParentTypes = {
   Label: ApiLabel;
   Mutation: {};
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
-  Order: Omit<ApiOrder, 'createdBy' | 'events' | 'lines'> & { createdBy: ApiResolversParentTypes['OrderActor'], events: Array<ApiResolversParentTypes['OrderEvent']>, lines: Array<ApiResolversParentTypes['OrderLine']> };
+  Order: Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversParentTypes['OrderActor'], events: Array<ApiResolversParentTypes['OrderEvent']> };
   OrderActor: ApiResolversUnionTypes<ApiResolversParentTypes>['OrderActor'];
   OrderAdminNoteUpdateInput: ApiOrderAdminNoteUpdateInput;
   OrderCancelInput: ApiOrderCancelInput;
@@ -1193,7 +1157,7 @@ export type ApiResolversParentTypes = {
   OrderCustomerStatistic: ApiOrderCustomerStatistic;
   OrderDeliveryAddress: ApiOrderDeliveryAddress;
   OrderEvent: Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversParentTypes['OrderActor'] };
-  OrderLine: Omit<ApiOrderLine, 'purchasable'> & { purchasable: ApiResolversParentTypes['Purchasable'] };
+  OrderLine: ApiOrderLine;
   OrderMutation: ApiOrderMutation;
   OrderQuery: Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversParentTypes['Order']>, orders: ApiResolversParentTypes['OrdersOutput'] };
   OrdersInput: ApiOrdersInput;
@@ -1205,99 +1169,7 @@ export type ApiResolversParentTypes = {
   Tag: ApiTag;
   User: ApiUser;
   Weight: ApiWeight;
-  _Any: Scalars['_Any']['output'];
-  _Entity: ApiResolversUnionTypes<ApiResolversParentTypes>['_Entity'];
-  _Service: Api_Service;
-  federation__FieldSet: Scalars['federation__FieldSet']['output'];
-  federation__Policy: Scalars['federation__Policy']['output'];
-  federation__Scope: Scalars['federation__Scope']['output'];
-  link__Import: Scalars['link__Import']['output'];
 };
-
-export type ApiExternalDirectiveArgs = {
-  reason: Maybe<Scalars['String']['input']>;
-};
-
-export type ApiExternalDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiExternalDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__AuthenticatedDirectiveArgs = { };
-
-export type ApiFederation__AuthenticatedDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__AuthenticatedDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__ComposeDirectiveDirectiveArgs = {
-  name: Maybe<Scalars['String']['input']>;
-};
-
-export type ApiFederation__ComposeDirectiveDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__ComposeDirectiveDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__ExtendsDirectiveArgs = { };
-
-export type ApiFederation__ExtendsDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__ExtendsDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__InterfaceObjectDirectiveArgs = { };
-
-export type ApiFederation__InterfaceObjectDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__InterfaceObjectDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__PolicyDirectiveArgs = {
-  policies: Array<Array<Scalars['federation__Policy']['input']>>;
-};
-
-export type ApiFederation__PolicyDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__PolicyDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__RequiresScopesDirectiveArgs = {
-  scopes: Array<Array<Scalars['federation__Scope']['input']>>;
-};
-
-export type ApiFederation__RequiresScopesDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__RequiresScopesDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiFederation__TagDirectiveArgs = {
-  name: Scalars['String']['input'];
-};
-
-export type ApiFederation__TagDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiFederation__TagDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiInaccessibleDirectiveArgs = { };
-
-export type ApiInaccessibleDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiInaccessibleDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiKeyDirectiveArgs = {
-  fields: Scalars['federation__FieldSet']['input'];
-  resolvable?: Maybe<Scalars['Boolean']['input']>;
-};
-
-export type ApiKeyDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiKeyDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiLinkDirectiveArgs = {
-  as: Maybe<Scalars['String']['input']>;
-  for: Maybe<ApiLink__Purpose>;
-  import: Maybe<Array<Maybe<Scalars['link__Import']['input']>>>;
-  url: Maybe<Scalars['String']['input']>;
-};
-
-export type ApiLinkDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiLinkDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiOverrideDirectiveArgs = {
-  from: Scalars['String']['input'];
-  label: Maybe<Scalars['String']['input']>;
-};
-
-export type ApiOverrideDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiOverrideDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiProvidesDirectiveArgs = {
-  fields: Scalars['federation__FieldSet']['input'];
-};
-
-export type ApiProvidesDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiProvidesDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiRequiresDirectiveArgs = {
-  fields: Scalars['federation__FieldSet']['input'];
-};
-
-export type ApiRequiresDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiRequiresDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
-
-export type ApiShareableDirectiveArgs = { };
-
-export type ApiShareableDirectiveResolver<Result, Parent, ContextType = GraphQLContext, Args = ApiShareableDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type ApiApiKeyResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['ApiKey'] = ApiResolversParentTypes['ApiKey']> = {
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
@@ -1422,7 +1294,6 @@ export type ApiOrderLineResolvers<ContextType = GraphQLContext, ParentType exten
   createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
   discountAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  purchasable: Resolver<ApiResolversTypes['Purchasable'], ParentType, ContextType>;
   purchasableId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   quantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   subtotalAmount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
@@ -1461,13 +1332,11 @@ export type ApiPurchasableResolvers<ContextType = GraphQLContext, ParentType ext
 
 export type ApiPurchasableSnapshotResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PurchasableSnapshot'] = ApiResolversParentTypes['PurchasableSnapshot']> = {
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  snapshot: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
+  purchasableSnapshot: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Query'] = ApiResolversParentTypes['Query']> = {
-  _entities: Resolver<Array<Maybe<ApiResolversTypes['_Entity']>>, ParentType, ContextType, RequireFields<ApiQuery_EntitiesArgs, 'representations'>>;
-  _service: Resolver<ApiResolversTypes['_Service'], ParentType, ContextType>;
   orderQuery: Resolver<ApiResolversTypes['OrderQuery'], ParentType, ContextType>;
 };
 
@@ -1486,35 +1355,6 @@ export type ApiWeightResolvers<ContextType = GraphQLContext, ParentType extends 
   weight: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
-
-export interface Api_AnyScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['_Any'], any> {
-  name: '_Any';
-}
-
-export type Api_EntityResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['_Entity'] = ApiResolversParentTypes['_Entity']> = {
-  __resolveType: TypeResolveFn<'ApiKey' | 'Customer' | 'Label' | 'Tag' | 'User', ParentType, ContextType>;
-};
-
-export type Api_ServiceResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['_Service'] = ApiResolversParentTypes['_Service']> = {
-  sdl: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export interface ApiFederation__FieldSetScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['federation__FieldSet'], any> {
-  name: 'federation__FieldSet';
-}
-
-export interface ApiFederation__PolicyScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['federation__Policy'], any> {
-  name: 'federation__Policy';
-}
-
-export interface ApiFederation__ScopeScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['federation__Scope'], any> {
-  name: 'federation__Scope';
-}
-
-export interface ApiLink__ImportScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['link__Import'], any> {
-  name: 'link__Import';
-}
 
 export type ApiResolvers<ContextType = GraphQLContext> = {
   ApiKey: ApiApiKeyResolvers<ContextType>;
@@ -1543,29 +1383,5 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   Tag: ApiTagResolvers<ContextType>;
   User: ApiUserResolvers<ContextType>;
   Weight: ApiWeightResolvers<ContextType>;
-  _Any: GraphQLScalarType;
-  _Entity: Api_EntityResolvers<ContextType>;
-  _Service: Api_ServiceResolvers<ContextType>;
-  federation__FieldSet: GraphQLScalarType;
-  federation__Policy: GraphQLScalarType;
-  federation__Scope: GraphQLScalarType;
-  link__Import: GraphQLScalarType;
 };
 
-export type ApiDirectiveResolvers<ContextType = GraphQLContext> = {
-  external: ApiExternalDirectiveResolver<any, any, ContextType>;
-  federation__authenticated: ApiFederation__AuthenticatedDirectiveResolver<any, any, ContextType>;
-  federation__composeDirective: ApiFederation__ComposeDirectiveDirectiveResolver<any, any, ContextType>;
-  federation__extends: ApiFederation__ExtendsDirectiveResolver<any, any, ContextType>;
-  federation__interfaceObject: ApiFederation__InterfaceObjectDirectiveResolver<any, any, ContextType>;
-  federation__policy: ApiFederation__PolicyDirectiveResolver<any, any, ContextType>;
-  federation__requiresScopes: ApiFederation__RequiresScopesDirectiveResolver<any, any, ContextType>;
-  federation__tag: ApiFederation__TagDirectiveResolver<any, any, ContextType>;
-  inaccessible: ApiInaccessibleDirectiveResolver<any, any, ContextType>;
-  key: ApiKeyDirectiveResolver<any, any, ContextType>;
-  link: ApiLinkDirectiveResolver<any, any, ContextType>;
-  override: ApiOverrideDirectiveResolver<any, any, ContextType>;
-  provides: ApiProvidesDirectiveResolver<any, any, ContextType>;
-  requires: ApiRequiresDirectiveResolver<any, any, ContextType>;
-  shareable: ApiShareableDirectiveResolver<any, any, ContextType>;
-};
