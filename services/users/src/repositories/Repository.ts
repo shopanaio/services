@@ -1,6 +1,5 @@
 import { createCasdoorService, type CasdoorService } from "@shopana/shared-casdoor";
 import { UserRepository } from "./user/UserRepository.js";
-import { CustomerRepository } from "./customer/CustomerRepository.js";
 
 export interface RepositoryConfig {
   endpoint: string;
@@ -17,7 +16,6 @@ export interface RepositoryConfig {
  */
 export class Repository {
   public readonly user: UserRepository;
-  public readonly customer: CustomerRepository;
   public readonly casdoor: CasdoorService;
 
   private readonly _organization: string;
@@ -37,7 +35,6 @@ export class Repository {
     this._application = config.applicationName;
 
     this.user = new UserRepository(this.casdoor, this._organization, this._application);
-    this.customer = new CustomerRepository(this.casdoor, this._organization, this._application);
   }
 
   /**

@@ -9,9 +9,6 @@ export interface Loader {
   user: {
     load: (id: string) => Promise<User | null>;
   };
-  customer: {
-    load: (id: string) => Promise<User | null>;
-  };
 }
 
 /**

@@ -6,7 +6,6 @@
 
 import type { TypeResult } from "@shopana/type-resolver";
 import type { Role as CasdoorRole, User as CasdoorUser } from "@shopana/casdoor-node-sdk";
-import type { CustomerResolver } from "../CustomerResolver.js";
 import type { UserResolver } from "../UserResolver.js";
 
 // ============================================================================
@@ -22,9 +21,6 @@ export type { User as CasdoorUser, Role as CasdoorRole } from "@shopana/casdoor-
 
 /** User type derived from UserResolver */
 export type User = TypeResult<typeof UserResolver>;
-
-/** Customer type derived from CustomerResolver */
-export type Customer = TypeResult<typeof CustomerResolver>;
 
 // ============================================================================
 // Simple value types (view-specific)

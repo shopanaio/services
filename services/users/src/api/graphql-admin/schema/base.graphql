@@ -18,12 +18,10 @@ scalar JSON
 
 extend type Query {
   userQuery: UserQuery!
-  customerQuery: CustomerQuery!
 }
 
 extend type Mutation {
   userMutation: UserMutation!
-  customerMutation: CustomerMutation!
 }
 
 # ---- Admin Users Namespace ----
@@ -53,39 +51,3 @@ type UserMutation {
   passwordChange(input: UserPasswordChangeInput!): UserPasswordChangePayload!
 }
 
-# ---- Customers Namespace ----
-
-type CustomerQuery {
-  """
-  Get a customer by ID
-  """
-  customer(id: ID!): Customer
-
-  """
-  Get current authenticated customer
-  """
-  me: Customer
-}
-
-type CustomerMutation {
-  # CRUD (admin manages customers)
-  customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
-  customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
-  customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
-
-  # Auth (customer self-service)
-  signUp(input: SignUpInput!): SignUpPayload!
-  signIn(input: SignInInput!): SignInPayload!
-  signOut(input: SignOutInput!): SignOutPayload!
-  tokenRefresh(input: TokenRefreshInput!): TokenRefreshPayload!
-  passwordResetRequest(
-    input: PasswordResetRequestInput!
-  ): PasswordResetRequestPayload!
-  passwordReset(input: PasswordResetInput!): PasswordResetPayload!
-  passwordChange(input: PasswordChangeInput!): PasswordChangePayload!
-  profileUpdate(input: ProfileUpdateInput!): ProfileUpdatePayload!
-  emailVerify(input: EmailVerifyInput!): EmailVerifyPayload!
-  emailVerifyRequest(
-    input: EmailVerifyRequestInput!
-  ): EmailVerifyRequestPayload!
-}
