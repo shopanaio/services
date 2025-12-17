@@ -1,6 +1,10 @@
 import {
   uuid,
   varchar,
+  boolean,
+  bigint,
+  integer,
+  real,
   timestamp,
   index,
   uniqueIndex,
@@ -40,22 +44,15 @@ export {
 // Locale table (defined first to break circular reference)
 export const locale = projectSchema.table(
   "locale",
-  (t) => ({
-    projectId: t
-      .uuid("project_id")
+  {
+    projectId: uuid("project_id")
       .notNull()
       .references((): AnyPgColumn => project.id, { onDelete: "cascade" }),
-    code: t.varchar("code", { length: 10 }).notNull(),
-    isActive: t.boolean("is_active").notNull().default(true),
-    createdAt: t
-      .timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: t
-      .timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  }),
+    code: localeCodeEnum("code").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
   (table) => [
     primaryKey({ columns: [table.projectId, table.code] }),
     index("idx_locale_project_id").on(table.projectId),
@@ -66,31 +63,20 @@ export const locale = projectSchema.table(
 // Currency table (defined first to break circular reference)
 export const currency = projectSchema.table(
   "currency",
-  (t) => ({
-    projectId: t
-      .uuid("project_id")
+  {
+    projectId: uuid("project_id")
       .notNull()
       .references((): AnyPgColumn => project.id, { onDelete: "cascade" }),
-    code: t.varchar("code", { length: 3 }).notNull(),
-    isActive: t.boolean("is_active").notNull().default(true),
-    exchangeRateAmount: t
-      .bigint("exchange_rate_amount", { mode: "bigint" })
+    code: currencyCodeEnum("code").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    exchangeRateAmount: bigint("exchange_rate_amount", { mode: "bigint" })
       .notNull()
       .default(sql`1`),
-    exchangeRateScale: t
-      .integer("exchange_rate_scale")
-      .notNull()
-      .default(0),
-    exchangeRate: t.real("exchange_rate").notNull().default(1),
-    createdAt: t
-      .timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: t
-      .timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  }),
+    exchangeRateScale: integer("exchange_rate_scale").notNull(),
+    exchangeRate: real("exchange_rate").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
   (table) => [
     primaryKey({ columns: [table.projectId, table.code] }),
     index("idx_currency_project_id").on(table.projectId),
@@ -108,23 +94,13 @@ export const project = projectSchema.table(
     status: projectStatusEnum("status").notNull().default("active"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
     email: varchar("email", { length: 255 }),
-    defaultLocale: localeCodeEnum("default_locale").notNull().default("en"),
-    baseCurrency: currencyCodeEnum("base_currency").notNull().default("USD"),
-    defaultCurrency: currencyCodeEnum("default_currency")
-      .notNull()
-      .default("USD"),
-    defaultWeightUnit: weightUnitEnum("default_weight_unit")
-      .notNull()
-      .default("g"),
-    defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit")
-      .notNull()
-      .default("mm"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    defaultLocale: localeCodeEnum("default_locale").notNull(),
+    baseCurrency: currencyCodeEnum("base_currency").notNull(),
+    defaultCurrency: currencyCodeEnum("default_currency").notNull(),
+    defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull(),
+    defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [

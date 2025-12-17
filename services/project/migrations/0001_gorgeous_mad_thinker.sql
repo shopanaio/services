@@ -1,1 +1,0 @@
-ALTER TABLE "project"."project" DROP COLUMN "phone_number";
