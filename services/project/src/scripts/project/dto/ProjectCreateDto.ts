@@ -5,7 +5,7 @@ export interface ProjectCreateParams {
   name: string;
   slug: string;
   locales: LocaleCode[];
-  baseCurrency: CurrencyCode;
+  defaultCurrency: CurrencyCode;
   status?: ProjectStatus;
   timezone?: string;
   phoneNumber?: string;

@@ -44,8 +44,8 @@ export const project = projectSchema.table(
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
     phoneNumber: varchar("phone_number", { length: 32 }),
     email: varchar("email", { length: 255 }),
-    baseLocale: localeCodeEnum("base_locale").notNull().default("en"),
-    baseCurrency: currencyCodeEnum("base_currency").notNull().default("USD"),
+    defaultLocale: localeCodeEnum("default_locale").notNull().default("en"),
+    defaultCurrency: currencyCodeEnum("default_currency").notNull().default("USD"),
     defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull().default("g"),
     defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull().default("mm"),
     createdAt: timestamp("created_at", { withTimezone: true })

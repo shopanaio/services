@@ -13,8 +13,8 @@ type Project {
   timezone: String!
   phoneNumber: String
   email: String
-  baseLocale: LocaleCode!
-  baseCurrency: CurrencyCode!
+  defaultLocale: LocaleCode!
+  defaultCurrency: CurrencyCode!
   defaultWeightUnit: WeightUnit!
   defaultDimensionUnit: DimensionUnit!
   createdAt: DateTime!
@@ -26,8 +26,8 @@ type ProjectInfo {
   timezone: String!
   phoneNumber: String
   email: String
-  baseCurrency: CurrencyCode!
-  baseLocale: LocaleCode!
+  defaultCurrency: CurrencyCode!
+  defaultLocale: LocaleCode!
   defaultWeightUnit: WeightUnit!
   defaultDimensionUnit: DimensionUnit!
 }
@@ -36,7 +36,7 @@ input ProjectCreateInput {
   name: String!
   slug: String!
   locales: [LocaleCode!]!
-  baseCurrency: CurrencyCode!
+  defaultCurrency: CurrencyCode!
   status: ProjectStatus
   timezone: String
   phoneNumber: String

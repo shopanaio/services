@@ -10,7 +10,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
         name: input.name,
         slug: input.slug,
         locales: input.locales,
-        baseCurrency: input.baseCurrency,
+        defaultCurrency: input.defaultCurrency,
         status: input.status ?? undefined,
         timezone: input.timezone ?? undefined,
         phoneNumber: input.phoneNumber ?? undefined,

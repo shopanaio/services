@@ -42,8 +42,8 @@ export interface CreateProjectData {
   timezone?: string;
   phoneNumber?: string | null;
   email?: string | null;
-  baseLocale?: LocaleCode;
-  baseCurrency?: CurrencyCode;
+  defaultLocale?: LocaleCode;
+  defaultCurrency?: CurrencyCode;
 }
 
 export interface UpdateProjectData {
@@ -115,8 +115,8 @@ export class ProjectRepository extends BaseRepository {
       timezone: data.timezone ?? "UTC",
       phoneNumber: data.phoneNumber ?? null,
       email: data.email ?? null,
-      baseLocale: data.baseLocale ?? "en",
-      baseCurrency: data.baseCurrency ?? "USD",
+      defaultLocale: data.defaultLocale ?? "en",
+      defaultCurrency: data.defaultCurrency ?? "USD",
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -156,10 +156,10 @@ export class ProjectRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
-  async updateBaseLocale(id: string, locale: LocaleCode): Promise<boolean> {
+  async updateDefaultLocale(id: string, locale: LocaleCode): Promise<boolean> {
     const result = await this.connection
       .update(project)
-      .set({ baseLocale: locale, updatedAt: new Date() })
+      .set({ defaultLocale: locale, updatedAt: new Date() })
       .where(
         and(
           eq(project.id, id),
@@ -171,10 +171,10 @@ export class ProjectRepository extends BaseRepository {
     return result.length > 0;
   }
 
-  async updateBaseCurrency(id: string, currency: CurrencyCode): Promise<boolean> {
+  async updateDefaultCurrency(id: string, currency: CurrencyCode): Promise<boolean> {
     const result = await this.connection
       .update(project)
-      .set({ baseCurrency: currency, updatedAt: new Date() })
+      .set({ defaultCurrency: currency, updatedAt: new Date() })
       .where(
         and(
           eq(project.id, id),

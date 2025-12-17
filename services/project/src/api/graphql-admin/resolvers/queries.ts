@@ -49,8 +49,8 @@ export const queryResolvers: Partial<Resolvers> = {
         timezone: project.timezone,
         phoneNumber: project.phoneNumber,
         email: project.email,
-        baseCurrency: project.baseCurrency,
-        baseLocale: project.baseLocale,
+        defaultCurrency: project.defaultCurrency,
+        defaultLocale: project.defaultLocale,
         defaultWeightUnit: project.defaultWeightUnit,
         defaultDimensionUnit: project.defaultDimensionUnit,
       };
