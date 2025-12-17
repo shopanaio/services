@@ -1,4 +1,10 @@
 import type { Resolvers, ProjectMutation } from "../generated/types.js";
+import {
+  CURRENCY_INFO,
+  LOCALE_INFO,
+  type CurrencyCode,
+  type LocaleCode,
+} from "@shopana/shared-references";
 
 // Queries
 import { queryResolvers } from "./queries.js";
@@ -32,6 +38,16 @@ export const resolvers: Resolvers = mergeResolvers(
   {
     Mutation: {
       projectMutation: () => ({}) as ProjectMutation,
+    },
+  },
+
+  // Type resolvers
+  {
+    Currency: {
+      name: (parent) => CURRENCY_INFO[parent.code as CurrencyCode]?.name ?? parent.code,
+    },
+    Locale: {
+      name: (parent) => LOCALE_INFO[parent.code as LocaleCode]?.name ?? parent.code,
     },
   },
 
