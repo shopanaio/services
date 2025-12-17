@@ -6,20 +6,26 @@
  */
 
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import { findRootDir } from "../utils.js";
 
 const rootDir = findRootDir();
 
-// Services that have codegen.ts
-const SERVICES_WITH_CODEGEN = [
-  "inventory",
-  "project",
-  "apps",
-  "users",
-  "media",
-];
+function findServicesWithCodegen(): string[] {
+  const servicesDir = join(rootDir, "services");
+
+  if (!existsSync(servicesDir)) {
+    return [];
+  }
+
+  return readdirSync(servicesDir, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .filter((dirent) =>
+      existsSync(join(servicesDir, dirent.name, "codegen.ts"))
+    )
+    .map((dirent) => dirent.name);
+}
 
 interface CodegenResult {
   service: string;
@@ -58,14 +64,18 @@ async function runCodegenForService(service: string): Promise<CodegenResult> {
 export async function runCodegen(targetService?: string) {
   console.log("🔧 Generating GraphQL TypeScript types\n");
 
-  const services = targetService ? [targetService] : SERVICES_WITH_CODEGEN;
+  const availableServices = findServicesWithCodegen();
 
-  if (targetService && !SERVICES_WITH_CODEGEN.includes(targetService)) {
-    console.error(`❌ Unknown service: ${targetService}`);
-    console.log(`   Available: ${SERVICES_WITH_CODEGEN.join(", ")}`);
-    process.exitCode = 1;
-    return;
+  if (targetService) {
+    if (!availableServices.includes(targetService)) {
+      console.error(`❌ Unknown service: ${targetService}`);
+      console.log(`   Available: ${availableServices.join(", ")}`);
+      process.exitCode = 1;
+      return;
+    }
   }
+
+  const services = targetService ? [targetService] : availableServices;
 
   let success = 0;
   let failed = 0;
