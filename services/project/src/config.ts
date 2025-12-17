@@ -38,7 +38,4 @@ export const config = {
   /** Development flag */
   isDevelopment: isDevelopment(global),
 
-  /** Service metadata */
-  serviceName: "project-service",
-  serviceVersion: "1.0.0",
 } as const;

@@ -48,10 +48,6 @@ export const config = {
   /** Development flag */
   isDevelopment: isDevelopment(global),
 
-  /** Service metadata */
-  serviceName: "inventory-service",
-  serviceVersion: "1.0.0",
-
   /** Object storage configuration for inventory payloads */
   storage: storageConfig
     ? {

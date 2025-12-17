@@ -40,10 +40,6 @@ export const config = {
   /** Development flag */
   isDevelopment: isDevelopment(global),
 
-  /** Service metadata */
-  serviceName: "media-service",
-  serviceVersion: "1.0.0",
-
   /** GraphQL endpoint path */
   graphqlPath: service.graphql?.path ?? "/graphql/admin",
 

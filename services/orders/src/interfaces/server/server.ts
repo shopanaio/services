@@ -21,23 +21,22 @@ import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddle
  * Uses core context middleware that sets async local storage context
  */
 export async function startServer(broker: ServiceBroker) {
-  const isDevelopment = !!1 || process.env.NODE_ENV === "development";
-
   const app = fastify({
-    logger: isDevelopment
+    logger: config.isDevelopment
       ? {
+          level: config.logLevel ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: "[FASTIFY] {msg}",
+              messageFormat: '[ORDERS] {msg}',
               levelFirst: true,
             },
           },
         }
-      : true,
+      : { level: config.logLevel ?? "info" },
   });
 
   // Load GraphQL schemas for both Admin and Storefront APIs
@@ -91,12 +90,19 @@ export async function startServer(broker: ServiceBroker) {
 
   // Health check endpoint
   app.get("/", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "order" });
+    return reply.send({
+      status: "ok",
+      service: "orders",
+      environment: config.environment,
+    });
   });
 
   // Healthz endpoint for Docker health checks
   app.get("/healthz", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "order" });
+    return reply.send({
+      status: "ok",
+      service: "orders",
+    });
   });
 
   // Admin GraphQL route group with context middleware
@@ -164,7 +170,7 @@ export async function startServer(broker: ServiceBroker) {
   });
 
   app.log.info(
-    `Order GraphQL API ready:\n` +
+    `orders GraphQL API ready:\n` +
       `  Admin API: http://localhost:${config.port}/graphql/admin/v1\n` +
       `  Storefront API: http://localhost:${config.port}/graphql/storefront/v1`
   );

@@ -37,7 +37,6 @@ export interface ServerConfig {
  * Uses admin context middleware that sets async local storage context
  */
 export async function startServer(serverConfig: ServerConfig) {
-  const isDevelopment = process.env.NODE_ENV === "development";
 
   // Initialize services (repository, etc.)
   const services = initServices();
@@ -66,20 +65,21 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
-    logger: isDevelopment
+    logger: config.isDevelopment
       ? {
+          level: config.logLevel ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: "[FASTIFY] {msg}",
+              messageFormat: '[MEDIA] {msg}',
               levelFirst: true,
             },
           },
         }
-      : true,
+      : { level: config.logLevel ?? "info" },
   });
 
   // Register custom content type parser for multipart/form-data (for GraphQL file uploads)
@@ -174,11 +174,18 @@ export async function startServer(serverConfig: ServerConfig) {
 
   // Health check endpoints
   app.get("/", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "media" });
+    return reply.send({
+      status: "ok",
+      service: "media",
+      environment: config.environment,
+    });
   });
 
   app.get("/healthz", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "media" });
+    return reply.send({
+      status: "ok",
+      service: "media",
+    });
   });
 
   // Start server

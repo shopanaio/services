@@ -1,4 +1,5 @@
 import { createServer, type Server } from "http";
+import { config } from "./config.js";
 
 /**
  * Create and start health check HTTP server
@@ -11,6 +12,7 @@ export function startHealthServer(port: number): Promise<Server> {
         const response = {
           status: "ok",
           service: "delivery",
+          environment: config.environment,
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
         };
@@ -24,7 +26,7 @@ export function startHealthServer(port: number): Promise<Server> {
     });
 
     server.listen(port, "0.0.0.0", () => {
-      console.log(`💚 Health check available at http://localhost:${port}/healthz`);
+      console.log(`delivery health check available at http://localhost:${port}/healthz`);
       resolve(server);
     });
 

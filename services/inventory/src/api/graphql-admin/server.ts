@@ -8,6 +8,7 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { config } from "../../config.js";
 import { setContext, type ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
@@ -33,11 +34,9 @@ const consoleLogger = {
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
  */
-export async function startServer(config: ServerConfig) {
-  const isDevelopment = process.env.NODE_ENV === "development";
-
+export async function startServer(serverConfig: ServerConfig) {
   // Initialize Repository and Kernel
-  const databaseUrl = config.databaseUrl || process.env.DATABASE_URL || "";
+  const databaseUrl = serverConfig.databaseUrl || process.env.DATABASE_URL || "";
   let repository: Repository | null = null;
   let kernel: Kernel | null = null;
 
@@ -52,20 +51,21 @@ export async function startServer(config: ServerConfig) {
   }
 
   const app = fastify({
-    logger: isDevelopment
+    logger: config.isDevelopment
       ? {
+          level: config.logLevel ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: "[FASTIFY] {msg}",
+              messageFormat: '[INVENTORY] {msg}',
               levelFirst: true,
             },
           },
         }
-      : true,
+      : { level: config.logLevel ?? "info" },
   });
 
   // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
@@ -104,7 +104,7 @@ export async function startServer(config: ServerConfig) {
   // Admin context middleware
   const grpcConfig = {
     getGrpcHost: () =>
-      config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
+      serverConfig.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
   };
   app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
 
@@ -147,21 +147,28 @@ export async function startServer(config: ServerConfig) {
 
   // Health check endpoints
   app.get("/", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "inventory" });
+    return reply.send({
+      status: "ok",
+      service: "inventory",
+      environment: config.environment,
+    });
   });
 
   app.get("/healthz", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "inventory" });
+    return reply.send({
+      status: "ok",
+      service: "inventory",
+    });
   });
 
   // Start server
   await app.listen({
-    port: config.port,
+    port: serverConfig.port,
     host: "0.0.0.0",
   });
 
   app.log.info(
-    `Inventory GraphQL Admin API ready at http://localhost:${config.port}/graphql`
+    `inventory GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
   );
 
   return app;

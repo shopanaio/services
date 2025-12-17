@@ -20,23 +20,22 @@ import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddle
  * Uses core context middleware that sets async local storage context
  */
 export async function startServer(broker: ServiceBroker) {
-  const isDevelopment = !!1 || process.env.NODE_ENV === "development";
-
   const app = fastify({
-    logger: isDevelopment
+    logger: config.isDevelopment
       ? {
+          level: config.logLevel ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: "[FASTIFY] {msg}",
+              messageFormat: '[CHECKOUT] {msg}',
               levelFirst: true,
             },
           },
         }
-      : true,
+      : { level: config.logLevel ?? "info" },
   });
 
   // Load GraphQL schema
@@ -71,12 +70,19 @@ export async function startServer(broker: ServiceBroker) {
 
   // Health check endpoint
   app.get("/", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "checkout" });
+    return reply.send({
+      status: "ok",
+      service: "checkout",
+      environment: config.environment,
+    });
   });
 
   // Healthz endpoint for Docker health checks
   app.get("/healthz", async (_request, reply) => {
-    return reply.send({ status: "ok", service: "checkout" });
+    return reply.send({
+      status: "ok",
+      service: "checkout",
+    });
   });
 
   // GraphQL route group with context middleware
@@ -123,7 +129,7 @@ export async function startServer(broker: ServiceBroker) {
   });
 
   app.log.info(
-    `Checkout GraphQL API ready at http://localhost:${config.port}/graphql`
+    `checkout GraphQL API ready at http://localhost:${config.port}/graphql`
   );
 
   return app;

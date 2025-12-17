@@ -21,7 +21,23 @@ import { buildCoreContextMiddleware } from "./contextMiddleware";
  * Resolvers use kernel for direct script execution
  */
 export async function startServer(broker: ServiceBroker, kernel: Kernel) {
-  const app = fastify({ logger: true });
+  const app = fastify({
+    logger: config.isDevelopment
+      ? {
+          level: config.logLevel ?? "info",
+          transport: {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "SYS:HH:MM:ss.l",
+              ignore: "pid,hostname,reqId,responseTime",
+              messageFormat: '[APPS] {msg}',
+              levelFirst: true,
+            },
+          },
+        }
+      : { level: config.logLevel ?? "info" },
+  });
 
   // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
   const __filename = fileURLToPath(import.meta.url);
@@ -77,7 +93,8 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   app.get("/", async (_request, reply) => {
     return reply.send({
       status: "ok",
-      service: "apps-service",
+      service: "apps",
+      environment: config.environment,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     });
@@ -87,7 +104,7 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   app.get("/healthz", async (_request, reply) => {
     return reply.send({
       status: "ok",
-      service: "apps-service",
+      service: "apps",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     });
@@ -100,10 +117,10 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   });
 
   app.log.info(
-    `🚀 Apps Service ready at http://localhost:${config.port}${config.graphqlPath}`
+    `apps ready at http://localhost:${config.port}${config.graphqlPath}`
   );
   app.log.info(
-    `💚 Health check available at http://localhost:${config.port}/`
+    `Health check available at http://localhost:${config.port}/`
   );
 
   return app;

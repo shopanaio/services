@@ -1,17 +1,16 @@
 import pino, { type Logger } from 'pino';
+import { config } from '../../config.js';
 
 /**
  * Creates a configured pino logger instance with pretty formatting for development
  */
 export function createLogger(): Logger {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
   const baseConfig = {
-    level: process.env.LOG_LEVEL ?? 'info',
+    level: config.logLevel ?? 'info',
     base: {
       pid: process.pid,
       hostname: undefined, // Remove hostname for cleaner output
-      service: 'order',
+      service: 'orders',
     },
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
@@ -22,7 +21,7 @@ export function createLogger(): Logger {
   };
 
   // Pretty formatting for development
-  if (isDevelopment) {
+  if (config.isDevelopment) {
     return pino({
       ...baseConfig,
       transport: {
@@ -31,9 +30,7 @@ export function createLogger(): Logger {
           colorize: true,
           translateTime: 'SYS:HH:MM:ss.l',
           ignore: 'pid,hostname',
-          messageFormat: '{level} [ORDER] {msg}',
-          // Removed customPrettifiers as they contain non-serializable functions
-          // which cause DataCloneError during object cloning
+          messageFormat: '{level} [ORDERS] {msg}',
           levelFirst: true,
           hideObject: false,
           singleLine: false,

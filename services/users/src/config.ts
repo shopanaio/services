@@ -18,10 +18,6 @@ export const config = {
   /** Development flag */
   isDevelopment: isDevelopment(global),
 
-  /** Service metadata */
-  serviceName: "users-service",
-  serviceVersion: "1.0.0",
-
   /** Casdoor configuration */
   casdoor: service.casdoor
     ? {

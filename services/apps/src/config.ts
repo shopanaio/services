@@ -38,4 +38,5 @@ export const config = {
 
   /** Convenience flag for development checks */
   isDevelopment: isDevelopment(global),
+
 } as const;
