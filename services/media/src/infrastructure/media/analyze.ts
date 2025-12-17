@@ -1,5 +1,5 @@
-import sharp from "sharp";
 import { fileTypeFromBuffer } from "file-type";
+import imageSize from "image-size";
 
 export interface MediaMetadata {
   /** Detected MIME type from file content (magic bytes) */
@@ -10,14 +10,6 @@ export interface MediaMetadata {
   width?: number;
   /** Image/video height in pixels */
   height?: number;
-  /** Duration in milliseconds (for video/audio) */
-  durationMs?: number;
-  /** Whether the file is animated (GIF, APNG, WebP) */
-  isAnimated?: boolean;
-  /** Color space (sRGB, Adobe RGB, etc) */
-  colorSpace?: string;
-  /** Has alpha channel */
-  hasAlpha?: boolean;
 }
 
 // Extension mapping for common types that file-type might not detect
@@ -56,34 +48,16 @@ export async function analyzeMedia(
     ext,
   };
 
-  // 2. Extract image metadata using sharp
+  // 2. Extract image dimensions using image-size
   if (mimeType.startsWith("image/")) {
     try {
-      const metadata = await sharp(buffer).metadata();
-
-      result.width = metadata.width;
-      result.height = metadata.height;
-      result.colorSpace = metadata.space;
-      result.hasAlpha = metadata.hasAlpha;
-
-      // Check for animated images
-      if (metadata.pages && metadata.pages > 1) {
-        result.isAnimated = true;
-
-        // For animated GIFs/WebP, try to calculate duration
-        if (metadata.delay && Array.isArray(metadata.delay)) {
-          // delay is in ms per frame
-          const totalDelay = metadata.delay.reduce((sum, d) => sum + (d || 100), 0);
-          result.durationMs = totalDelay;
-        }
-      }
-    } catch (error) {
-      // Sharp might fail for some formats (SVG, etc.), that's ok
+      const dimensions = imageSize(buffer);
+      result.width = dimensions.width;
+      result.height = dimensions.height;
+    } catch {
+      // image-size might fail for some formats, that's ok
     }
   }
-
-  // 3. For video/audio, we'd need ffprobe - leaving as TODO for now
-  // Could use fluent-ffmpeg or ffprobe-static packages
 
   return result;
 }
