@@ -4,7 +4,7 @@ import { z } from "zod";
 // HELPER SCHEMAS (for use in services, not for validation)
 // ═══════════════════════════════════════════════════════════════════
 
-export const DatabaseConfigSchema = z.object({
+export const DbConfigSchema = z.object({
   host: z.string(),
   port: z.number().int().positive(),
   user: z.string(),
@@ -13,7 +13,7 @@ export const DatabaseConfigSchema = z.object({
   schema: z.string().nullable().optional(),
 });
 
-export const StorageConfigSchema = z.object({
+export const S3ConfigSchema = z.object({
   endpoint: z.string(),
   access_key: z.string(),
   secret_key: z.string(),
@@ -33,22 +33,28 @@ export const CasdoorConfigSchema = z.object({
   oauth_redirect_uri: z.string().optional(),
 });
 
-export const PortsConfigSchema = z.object({
-  admin_graphql: z.number().int().positive().optional(),
-  storefront_graphql: z.number().int().positive().optional(),
-  metrics: z.number().int().positive().optional(),
+export const PortsConfigSchema = z.record(
+  z.string(),
+  z.number().int().positive()
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// BASE SERVICE SCHEMA (like docker-compose service definition)
+// ═══════════════════════════════════════════════════════════════════
+
+export const BaseServiceSchema = z.object({
+  ports: PortsConfigSchema.optional(),
+  db: DbConfigSchema.optional(),
+  s3: S3ConfigSchema.optional(),
+  casdoor: CasdoorConfigSchema.optional(),
 });
 
-export const GraphQLConfigSchema = z.object({
-  path: z.string(),
-});
+// Service config extends base with additional custom fields
+export const ServiceConfigSchema = BaseServiceSchema.passthrough();
 
 // ═══════════════════════════════════════════════════════════════════
 // CONFIG SCHEMA
 // ═══════════════════════════════════════════════════════════════════
-
-// Service config is flexible - services validate their own requirements
-export const ServiceConfigSchema = z.record(z.string(), z.unknown());
 
 export const ConfigSchema = z.object({
   global: z
@@ -69,10 +75,14 @@ export type Config = z.infer<typeof ConfigSchema>;
 export type GlobalConfig = Config["global"] & Record<string, unknown>;
 export type ServicesConfig = Config["services"];
 export type ServiceName = string;
-export type ServiceConfig = Record<string, unknown>;
 
-export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
-export type StorageConfig = z.infer<typeof StorageConfigSchema>;
+// Base service type with common fields
+export type BaseService = z.infer<typeof BaseServiceSchema>;
+
+// Service config extends base with additional custom fields
+export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
+
+export type DbConfig = z.infer<typeof DbConfigSchema>;
+export type S3Config = z.infer<typeof S3ConfigSchema>;
 export type CasdoorConfig = z.infer<typeof CasdoorConfigSchema>;
 export type PortsConfig = z.infer<typeof PortsConfigSchema>;
-export type GraphQLConfig = z.infer<typeof GraphQLConfigSchema>;

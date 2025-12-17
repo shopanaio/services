@@ -1,9 +1,9 @@
-import type { DatabaseConfig, GlobalConfig, StorageConfig } from "./schema.js";
+import type { DbConfig, GlobalConfig, S3Config } from "./schema.js";
 
 /**
  * Build PostgreSQL connection URL from database configuration
  */
-export function buildDatabaseUrl(config: DatabaseConfig): string {
+export function buildDbUrl(config: DbConfig): string {
   const { host, port, user, password, database, schema } = config;
   const baseUrl = `postgresql://${user}:${password}@${host}:${port}/${database}`;
 
@@ -38,7 +38,7 @@ export function isStaging(config: GlobalConfig): boolean {
 /**
  * Get S3-compatible storage configuration object
  */
-export function buildStorageConfig(config: StorageConfig): {
+export function buildS3Config(config: S3Config): {
   endpoint: string;
   credentials: {
     accessKeyId: string;

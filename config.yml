@@ -9,7 +9,7 @@ global:
 # SHARED RESOURCES (YAML anchors for DRY)
 # ═══════════════════════════════════════════════════════════════════
 shared:
-  database:
+  db:
     default: &db_default
       host: localhost
       port: 5432
@@ -18,8 +18,8 @@ shared:
       database: portal
       schema: portal
 
-  storage:
-    default: &storage_default
+  s3:
+    default: &s3_default
       endpoint: http://localhost:9000
       access_key: minioadmin
       secret_key: minioadmin
@@ -34,16 +34,14 @@ services:
     ports:
       admin_graphql: 10001
       metrics: 3033
-    database:
+    db:
       <<: *db_default
-    graphql:
-      path: /graphql
 
   checkout:
     ports:
       storefront_graphql: 10002
       metrics: 3031
-    database:
+    db:
       <<: *db_default
 
   delivery: {}
@@ -52,30 +50,28 @@ services:
     ports:
       admin_graphql: 10005
       metrics: 3034
-    database:
+    db:
       <<: *db_default
       schema: null
-    storage:
-      <<: *storage_default
+    s3:
+      <<: *s3_default
       bucket: inventory
 
   media:
     ports:
       admin_graphql: 10007
       metrics: 3035
-    database:
+    db:
       <<: *db_default
-    graphql:
-      path: /graphql/admin
-    storage:
-      <<: *storage_default
+    s3:
+      <<: *s3_default
       bucket: media
 
   orders:
     ports:
       storefront_graphql: 10003
       metrics: 3032
-    database:
+    db:
       <<: *db_default
 
   payments: {}
@@ -86,7 +82,7 @@ services:
     ports:
       admin_graphql: 10009
       metrics: 3036
-    database:
+    db:
       <<: *db_default
 
   users:

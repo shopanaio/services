@@ -16,15 +16,23 @@ export type {
   ServicesConfig,
   ServiceName,
   ServiceConfig,
-  DatabaseConfig,
-  StorageConfig,
+  BaseService,
+  DbConfig,
+  S3Config,
   CasdoorConfig,
   PortsConfig,
-  GraphQLConfig,
 } from "./schema.js";
 
-// Export schema for advanced use cases
-export { ConfigSchema, ServiceConfigSchema } from "./schema.js";
+// Export schemas for advanced use cases
+export {
+  ConfigSchema,
+  ServiceConfigSchema,
+  BaseServiceSchema,
+  DbConfigSchema,
+  S3ConfigSchema,
+  CasdoorConfigSchema,
+  PortsConfigSchema,
+} from "./schema.js";
 
 // Export configuration loader functions
 export {
@@ -38,8 +46,8 @@ export {
 
 // Export helper functions
 export {
-  buildDatabaseUrl,
-  buildStorageConfig,
+  buildDbUrl,
+  buildS3Config,
   isDevelopment,
   isProduction,
   isStaging,
