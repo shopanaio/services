@@ -44,16 +44,12 @@
     {
       "label": "Run Bootstrap",
       "type": "shell",
-      "command": "export CONFIG_FILE=config.local.yml && source ~/.nvm/nvm.sh && nvm use 22 && echo '🚀 Starting Bootstrap...' && yarn shopana dev",
+      "command": "source ~/.nvm/nvm.sh && nvm use 22 && echo '🚀 Starting Bootstrap...' && yarn shopana dev",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
           "executable": "/bin/zsh",
           "args": ["-c"]
-        },
-        "env": {
-          "NODE_ENV": "development",
-          "CONFIG_FILE": "config.local.yml"
         }
       },
       "group": "build",

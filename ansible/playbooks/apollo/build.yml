@@ -11,13 +11,13 @@
     rover_app_name: apollo-rover
     rover_image_tag: "latest"
     rover_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ rover_app_name }}:{{ rover_image_tag }}"
-    rover_build_context: "{{ root_dir }}/apollo/rover"
+    rover_build_context: "{{ root_dir }}/infra/apollo/rover"
 
     # Router configuration
     router_app_name: apollo-router
     router_image_tag: "latest"
     router_image_name: "{{ shopana_ghcr_registry }}/{{ shopana_ghcr_owner }}/{{ router_app_name }}:{{ router_image_tag }}"
-    router_build_context: "{{ root_dir }}/apollo/router"
+    router_build_context: "{{ root_dir }}/infra/apollo/router"
 
     # Build configuration
     build_dir: "{{ root_dir }}"

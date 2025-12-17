@@ -24,12 +24,12 @@
     rover_app_name: shopana/apollo-rover
     rover_image_tag: local
     rover_image_name: "{{ rover_app_name }}:{{ rover_image_tag }}"
-    rover_build_context: "{{ root_dir }}/apollo/rover"
+    rover_build_context: "{{ root_dir }}/infra/apollo/rover"
 
     router_app_name: shopana/apollo-router
     router_image_tag: local
     router_image_name: "{{ router_app_name }}:{{ router_image_tag }}"
-    router_build_context: "{{ root_dir }}/apollo/router"
+    router_build_context: "{{ root_dir }}/infra/apollo/router"
 
     # Supergraph configuration
     admin_api_config_path: "{{ runtime_dir }}/config/supergraph-admin.yaml"
