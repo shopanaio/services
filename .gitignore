@@ -24,7 +24,7 @@ ci/dev/repo/
 **/supergraph.graphql
 
 # Federation exported subgraph schemas
-federation/schema/
+infra/federation/schema/
 
 .yarn/*
 !.yarn/patches
@@ -38,3 +38,5 @@ federation/schema/
 
 .gocache
 .data
+
+test-results/
