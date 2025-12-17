@@ -35,27 +35,6 @@ export const queryResolvers: Partial<Resolvers> = {
       return ctx.kernel.getServices().repository.project.findBySlug(slug);
     },
 
-    projectInfo: async (_parent, _args, ctx) => {
-      const project = await ctx.kernel
-        .getServices()
-        .repository.project.findById(ctx.project.id);
-
-      if (!project) {
-        throw new Error("Project not found");
-      }
-
-      return {
-        name: project.name,
-        timezone: project.timezone,
-        phoneNumber: project.phoneNumber,
-        email: project.email,
-        defaultCurrency: project.defaultCurrency,
-        defaultLocale: project.defaultLocale,
-        defaultWeightUnit: project.defaultWeightUnit,
-        defaultDimensionUnit: project.defaultDimensionUnit,
-      };
-    },
-
     locales: async (_parent, _args, ctx) => {
       const locales = await ctx.loaders.locales.load(ctx.project.id);
       return locales.map((locale) => ({

@@ -740,14 +740,15 @@ export type Mutation = {
 export type Project = {
   __typename?: 'Project';
   createdAt: Scalars['DateTime']['output'];
+  currencies: Array<CurrencyCode>;
   defaultCurrency: CurrencyCode;
   defaultDimensionUnit: DimensionUnit;
   defaultLocale: LocaleCode;
   defaultWeightUnit: WeightUnit;
   email: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
+  locales: Array<LocaleCode>;
   name: Scalars['String']['output'];
-  phoneNumber: Maybe<Scalars['String']['output']>;
   slug: Scalars['String']['output'];
   status: ProjectStatus;
   timezone: Scalars['String']['output'];
@@ -755,11 +756,11 @@ export type Project = {
 };
 
 export type ProjectCreateInput = {
+  currencies: Array<CurrencyCode>;
   defaultCurrency: CurrencyCode;
   email?: InputMaybe<Scalars['String']['input']>;
   locales: Array<LocaleCode>;
   name: Scalars['String']['input'];
-  phoneNumber?: InputMaybe<Scalars['String']['input']>;
   slug: Scalars['String']['input'];
   status?: InputMaybe<ProjectStatus>;
   timezone?: InputMaybe<Scalars['String']['input']>;
@@ -779,18 +780,6 @@ export type ProjectDeletePayload = {
   __typename?: 'ProjectDeletePayload';
   deletedProjectId: Maybe<Scalars['ID']['output']>;
   userErrors: Array<UserError>;
-};
-
-export type ProjectInfo = {
-  __typename?: 'ProjectInfo';
-  defaultCurrency: CurrencyCode;
-  defaultDimensionUnit: DimensionUnit;
-  defaultLocale: LocaleCode;
-  defaultWeightUnit: WeightUnit;
-  email: Maybe<Scalars['String']['output']>;
-  name: Scalars['String']['output'];
-  phoneNumber: Maybe<Scalars['String']['output']>;
-  timezone: Scalars['String']['output'];
 };
 
 export type ProjectMutation = {
@@ -861,8 +850,6 @@ export type ProjectQuery = {
   locales: Array<Locale>;
   /** Get a project by slug */
   project: Maybe<Project>;
-  /** Get current project info */
-  projectInfo: ProjectInfo;
   /** Get all projects */
   projects: Array<Project>;
 };
@@ -878,11 +865,12 @@ export enum ProjectStatus {
 }
 
 export type ProjectUpdateInput = {
+  currencies?: InputMaybe<Array<CurrencyCode>>;
   defaultDimensionUnit?: InputMaybe<DimensionUnit>;
   defaultWeightUnit?: InputMaybe<WeightUnit>;
   email?: InputMaybe<Scalars['String']['input']>;
+  locales?: InputMaybe<Array<LocaleCode>>;
   name?: InputMaybe<Scalars['String']['input']>;
-  phoneNumber?: InputMaybe<Scalars['String']['input']>;
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1019,7 +1007,6 @@ export type ResolversTypes = ResolversObject<{
   ProjectCreatePayload: ResolverTypeWrapper<ProjectCreatePayload>;
   ProjectDeleteInput: ProjectDeleteInput;
   ProjectDeletePayload: ResolverTypeWrapper<ProjectDeletePayload>;
-  ProjectInfo: ResolverTypeWrapper<ProjectInfo>;
   ProjectMutation: ResolverTypeWrapper<ProjectMutation>;
   ProjectQuery: ResolverTypeWrapper<ProjectQuery>;
   ProjectStatus: ProjectStatus;
@@ -1061,7 +1048,6 @@ export type ResolversParentTypes = ResolversObject<{
   ProjectCreatePayload: ProjectCreatePayload;
   ProjectDeleteInput: ProjectDeleteInput;
   ProjectDeletePayload: ProjectDeletePayload;
-  ProjectInfo: ProjectInfo;
   ProjectMutation: ProjectMutation;
   ProjectQuery: ProjectQuery;
   ProjectUpdateInput: ProjectUpdateInput;
@@ -1143,14 +1129,15 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 
 export type ProjectResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = ResolversObject<{
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  currencies?: Resolver<Array<ResolversTypes['CurrencyCode']>, ParentType, ContextType>;
   defaultCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   defaultDimensionUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
   defaultLocale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   defaultWeightUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  locales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  phoneNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ProjectStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1167,18 +1154,6 @@ export type ProjectCreatePayloadResolvers<ContextType = ServiceContext, ParentTy
 export type ProjectDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectDeletePayload'] = ResolversParentTypes['ProjectDeletePayload']> = ResolversObject<{
   deletedProjectId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProjectInfoResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectInfo'] = ResolversParentTypes['ProjectInfo']> = ResolversObject<{
-  defaultCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
-  defaultDimensionUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
-  defaultLocale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
-  defaultWeightUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
-  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  phoneNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1200,7 +1175,6 @@ export type ProjectQueryResolvers<ContextType = ServiceContext, ParentType exten
   currencies?: Resolver<Array<ResolversTypes['Currency']>, ParentType, ContextType>;
   locales?: Resolver<Array<ResolversTypes['Locale']>, ParentType, ContextType>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<ProjectQueryProjectArgs, 'slug'>>;
-  projectInfo?: Resolver<ResolversTypes['ProjectInfo'], ParentType, ContextType>;
   projects?: Resolver<Array<ResolversTypes['Project']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1241,7 +1215,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Project?: ProjectResolvers<ContextType>;
   ProjectCreatePayload?: ProjectCreatePayloadResolvers<ContextType>;
   ProjectDeletePayload?: ProjectDeletePayloadResolvers<ContextType>;
-  ProjectInfo?: ProjectInfoResolvers<ContextType>;
   ProjectMutation?: ProjectMutationResolvers<ContextType>;
   ProjectQuery?: ProjectQueryResolvers<ContextType>;
   ProjectUpdatePayload?: ProjectUpdatePayloadResolvers<ContextType>;

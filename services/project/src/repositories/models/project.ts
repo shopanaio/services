@@ -44,7 +44,6 @@ export const project = projectSchema.table(
     slug: varchar("slug", { length: 255 }).notNull(),
     status: projectStatusEnum("status").notNull().default("active"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
-    phoneNumber: varchar("phone_number", { length: 32 }),
     email: varchar("email", { length: 255 }),
     defaultLocale: localeCodeEnum("default_locale").notNull().default("en"),
     defaultCurrency: currencyCodeEnum("default_currency").notNull().default("USD"),

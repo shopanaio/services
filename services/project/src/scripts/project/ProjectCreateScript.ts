@@ -18,7 +18,6 @@ export class ProjectCreateScript extends BaseScript<ProjectCreateParams, Project
       slug: params.slug,
       status: params.status,
       timezone: params.timezone,
-      phoneNumber: params.phoneNumber,
       email: params.email,
       defaultLocale: params.locales[0],
       defaultCurrency: params.defaultCurrency,

@@ -8,7 +8,6 @@ export interface ProjectCreateParams {
   defaultCurrency: CurrencyCode;
   status?: ProjectStatus;
   timezone?: string;
-  phoneNumber?: string;
   email?: string;
 }
 

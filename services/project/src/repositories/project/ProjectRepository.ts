@@ -40,7 +40,6 @@ export interface CreateProjectData {
   slug: string;
   status?: ProjectStatus;
   timezone?: string;
-  phoneNumber?: string | null;
   email?: string | null;
   defaultLocale?: LocaleCode;
   defaultCurrency?: CurrencyCode;
@@ -48,7 +47,6 @@ export interface CreateProjectData {
 
 export interface UpdateProjectData {
   name?: string;
-  phoneNumber?: string | null;
   email?: string | null;
   timezone?: string;
   defaultWeightUnit?: WeightUnit;
@@ -113,7 +111,6 @@ export class ProjectRepository extends BaseRepository {
       slug: data.slug,
       status: data.status ?? "active",
       timezone: data.timezone ?? "UTC",
-      phoneNumber: data.phoneNumber ?? null,
       email: data.email ?? null,
       defaultLocale: data.defaultLocale ?? "en",
       defaultCurrency: data.defaultCurrency ?? "USD",
@@ -136,7 +133,6 @@ export class ProjectRepository extends BaseRepository {
     };
 
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.timezone !== undefined) updateData.timezone = data.timezone;
     if (data.defaultWeightUnit !== undefined) updateData.defaultWeightUnit = data.defaultWeightUnit;

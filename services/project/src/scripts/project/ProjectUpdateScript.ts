@@ -15,7 +15,6 @@ export class ProjectUpdateScript extends BaseScript<ProjectUpdateParams, Project
     // Update project
     const project = await this.repository.project.update(params.id, {
       name: params.name,
-      phoneNumber: params.phoneNumber,
       email: params.email,
       timezone: params.timezone,
       defaultWeightUnit: params.defaultWeightUnit,

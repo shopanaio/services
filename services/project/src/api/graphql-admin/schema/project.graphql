@@ -11,8 +11,9 @@ type Project {
   slug: String!
   status: ProjectStatus!
   timezone: String!
-  phoneNumber: String
   email: String
+  locales: [LocaleCode!]!
+  currencies: [CurrencyCode!]!
   defaultLocale: LocaleCode!
   defaultCurrency: CurrencyCode!
   defaultWeightUnit: WeightUnit!
@@ -21,33 +22,23 @@ type Project {
   updatedAt: DateTime!
 }
 
-type ProjectInfo {
-  name: String!
-  timezone: String!
-  phoneNumber: String
-  email: String
-  defaultCurrency: CurrencyCode!
-  defaultLocale: LocaleCode!
-  defaultWeightUnit: WeightUnit!
-  defaultDimensionUnit: DimensionUnit!
-}
-
 input ProjectCreateInput {
   name: String!
   slug: String!
   locales: [LocaleCode!]!
+  currencies: [CurrencyCode!]!
   defaultCurrency: CurrencyCode!
   status: ProjectStatus
   timezone: String
-  phoneNumber: String
   email: String
 }
 
 input ProjectUpdateInput {
   name: String
-  phoneNumber: String
   email: String
   timezone: String
+  locales: [LocaleCode!]
+  currencies: [CurrencyCode!]
   defaultWeightUnit: WeightUnit
   defaultDimensionUnit: DimensionUnit
 }

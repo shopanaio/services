@@ -13,7 +13,6 @@ export const projectMutationResolvers: Partial<Resolvers> = {
         defaultCurrency: input.defaultCurrency,
         status: input.status ?? undefined,
         timezone: input.timezone ?? undefined,
-        phoneNumber: input.phoneNumber ?? undefined,
         email: input.email ?? undefined,
       });
 
@@ -27,7 +26,6 @@ export const projectMutationResolvers: Partial<Resolvers> = {
       const result = await ctx.kernel.runScript(ProjectUpdateScript, {
         id: ctx.project.id,
         name: input.name ?? undefined,
-        phoneNumber: input.phoneNumber ?? undefined,
         email: input.email ?? undefined,
         timezone: input.timezone ?? undefined,
         defaultWeightUnit: input.defaultWeightUnit ?? undefined,

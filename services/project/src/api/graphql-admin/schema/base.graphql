@@ -31,9 +31,6 @@ type ProjectQuery {
   """Get a project by slug"""
   project(slug: String!): Project
 
-  """Get current project info"""
-  projectInfo: ProjectInfo!
-
   """Get locales for current project"""
   locales: [Locale!]!
 
