@@ -1,5 +1,4 @@
 import { BaseRepository } from "../BaseRepository.js";
-import { type Currency } from "../models/index.js";
 
 export interface CreateCurrencyData {
   code: string;

@@ -1,5 +1,4 @@
 import { BaseRepository } from "../BaseRepository.js";
-import { type Locale } from "../models/index.js";
 
 export interface CreateLocaleData {
   code: string;

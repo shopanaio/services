@@ -1,7 +1,6 @@
 import type { PageInfo } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  type Project,
   type ProjectStatus,
   type WeightUnit,
   type DimensionUnit,
