@@ -14,7 +14,6 @@ export interface UserInputBase {
   email?: string;
   firstName?: string;
   lastName?: string;
-  phone?: string;
   language?: string;
   isAdmin?: boolean;
   isForbidden?: boolean;
