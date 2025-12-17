@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // ═══════════════════════════════════════════════════════════════════
-// SHARED SCHEMAS
+// HELPER SCHEMAS (for use in services, not for validation)
 // ═══════════════════════════════════════════════════════════════════
 
 export const DatabaseConfigSchema = z.object({
@@ -13,19 +13,13 @@ export const DatabaseConfigSchema = z.object({
   schema: z.string().nullable().optional(),
 });
 
-// Base storage schema (bucket optional for shared templates)
-const BaseStorageConfigSchema = z.object({
+export const StorageConfigSchema = z.object({
   endpoint: z.string(),
   access_key: z.string(),
   secret_key: z.string(),
-  bucket: z.string().optional(),
+  bucket: z.string(),
   region: z.string().optional(),
   path_style: z.boolean().optional(),
-});
-
-// Service storage schema (bucket required)
-export const StorageConfigSchema = BaseStorageConfigSchema.extend({
-  bucket: z.string(),
 });
 
 export const CasdoorConfigSchema = z.object({
@@ -50,43 +44,20 @@ export const GraphQLConfigSchema = z.object({
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// SERVICE SCHEMAS
+// CONFIG SCHEMA
 // ═══════════════════════════════════════════════════════════════════
 
-// Universal service schema - accepts any service configuration
-export const ServiceConfigSchema = z
-  .object({
-    // Common service fields
-    ports: PortsConfigSchema.optional(),
-    database: DatabaseConfigSchema.optional(),
-    storage: StorageConfigSchema.optional(),
-    graphql: GraphQLConfigSchema.optional(),
-    // Service-specific fields
-    casdoor: CasdoorConfigSchema.optional(),
-    // Bootstrap-specific fields
-    services: z.array(z.string()).optional(),
-    metrics_port: z.number().int().positive().optional(),
-  })
-  .passthrough(); // Allow additional fields for future extensibility
-
-// ═══════════════════════════════════════════════════════════════════
-// FULL CONFIG SCHEMA
-// ═══════════════════════════════════════════════════════════════════
+// Service config is flexible - services validate their own requirements
+export const ServiceConfigSchema = z.record(z.string(), z.unknown());
 
 export const ConfigSchema = z.object({
-  global: z.object({
-    environment: z.enum(["development", "staging", "production"]),
-    log_level: z.enum(["debug", "info", "warn", "error"]),
-    moleculer_transporter: z.string().optional(),
-    platform_grpc_host: z.string().optional(),
-  }),
-  shared: z
+  global: z
     .object({
-      database: z.object({ default: DatabaseConfigSchema }).optional(),
-      storage: z.object({ default: BaseStorageConfigSchema }).optional(),
+      environment: z.enum(["development", "staging", "production"]),
+      log_level: z.enum(["debug", "info", "warn", "error"]),
     })
-    .optional(),
-  // Dynamic services - any service name is allowed
+    .passthrough(), // Allow additional properties
+  shared: z.record(z.string(), z.unknown()).optional(),
   services: z.record(z.string(), ServiceConfigSchema),
 });
 
@@ -95,10 +66,10 @@ export const ConfigSchema = z.object({
 // ═══════════════════════════════════════════════════════════════════
 
 export type Config = z.infer<typeof ConfigSchema>;
-export type GlobalConfig = Config["global"];
+export type GlobalConfig = Config["global"] & Record<string, unknown>;
 export type ServicesConfig = Config["services"];
 export type ServiceName = string;
-export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
+export type ServiceConfig = Record<string, unknown>;
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
 export type StorageConfig = z.infer<typeof StorageConfigSchema>;
