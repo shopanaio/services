@@ -1,6 +1,12 @@
 {
   "entryPoint": "src/project.module.ts",
   "migrations": { "path": "dist/migrations", "type": "drizzle" },
+  "graphql": {
+    "admin": [
+      "src/api/graphql-admin/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ]
+  },
   "assets": [
     {
       "include": "src/api/graphql-admin/schema/**/*.graphql",

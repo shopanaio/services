@@ -1,5 +1,9 @@
 {
   "entryPoint": "src/orders.module.ts",
+  "graphql": {
+    "admin": "src/interfaces/gql-admin-api/schema/**/*.graphql",
+    "storefront": "src/interfaces/gql-storefront-api/schema/**/*.graphql"
+  },
   "assets": [
     {
       "include": "src/interfaces/gql-admin-api/schema/**/*.graphql",

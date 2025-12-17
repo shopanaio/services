@@ -1,5 +1,8 @@
 {
   "entryPoint": "src/checkout.module.ts",
+  "graphql": {
+    "storefront": "src/interfaces/gql-storefront-api/schema/**/*.graphql"
+  },
   "assets": [
     {
       "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",

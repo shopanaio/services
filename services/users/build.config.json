@@ -1,5 +1,11 @@
 {
   "entryPoint": "src/users.module.ts",
+  "graphql": {
+    "admin": [
+      "src/api/graphql-admin/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ]
+  },
   "assets": [
     {
       "include": "src/api/graphql-admin/schema/**/*.graphql",

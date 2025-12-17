@@ -1,5 +1,8 @@
 {
   "entryPoint": "src/apps.module.ts",
+  "graphql": {
+    "admin": "src/api/schema/**/*.graphql"
+  },
   "assets": [
     {
       "include": "src/api/schema/**/*.graphql",
