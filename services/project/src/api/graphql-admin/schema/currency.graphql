@@ -1,39 +1,63 @@
+"""Currency configuration for the project"""
 type Currency {
+  """ISO 4217 currency code"""
   code: CurrencyCode!
-  title: String!
+  """Display name of the currency"""
+  name: String!
+  """Whether this currency is currently active for the project"""
   isActive: Boolean!
+  """Exchange rate relative to the base currency"""
   exchangeRate: ExchangeRate!
 }
 
+"""Exchange rate representation using integer arithmetic for precision"""
 type ExchangeRate {
+  """The exchange rate value as an integer (divide by 10^scale for actual rate)"""
   amount: Int!
+  """The number of decimal places in the amount"""
   scale: Int!
 }
 
+"""Input for creating a new currency"""
 input CurrencyCreateInput {
+  """ISO 4217 currency code to add"""
   code: CurrencyCode!
+  """Whether the currency should be active upon creation"""
   isActive: Boolean!
 }
 
+"""Input for deleting a currency"""
 input CurrencyDeleteInput {
+  """ISO 4217 currency code to delete"""
   code: CurrencyCode!
 }
 
+"""Input for setting the default currency"""
 input CurrencySetDefaultInput {
+  """ISO 4217 currency code to set as default"""
   currency: CurrencyCode!
 }
 
+"""Payload returned after creating a currency"""
 type CurrencyCreatePayload {
+  """The newly created currency, null if creation failed"""
   currency: Currency
+  """List of errors that occurred during creation"""
   userErrors: [UserError!]!
 }
 
+"""Payload returned after deleting a currency"""
 type CurrencyDeletePayload {
+  """The code of the deleted currency, null if deletion failed"""
   deletedCurrencyCode: CurrencyCode
+  """List of errors that occurred during deletion"""
   userErrors: [UserError!]!
 }
 
+"""Payload returned after updating currency settings"""
 type CurrencyUpdatePayload {
+  """Whether the update was successful"""
   success: Boolean!
+  """List of errors that occurred during update"""
   userErrors: [UserError!]!
 }

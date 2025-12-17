@@ -1,39 +1,65 @@
+"""API key for programmatic access to the project"""
 type ApiKey {
+  """Unique identifier of the API key"""
   id: ID!
+  """Human-readable name for the API key"""
   name: String!
+  """The API key value (only shown once upon creation)"""
   key: String!
+  """Timestamp when the API key was created"""
   createdAt: DateTime!
+  """ID of the user who created this API key"""
   createdById: ID!
+  """Optional expiration date for the API key"""
   dueDate: DateTime
+  """Timestamp of the last API call using this key"""
   lastUsedAt: DateTime
+  """Whether the API key has been banned by the system"""
   isBanned: Boolean!
+  """Timestamp when the API key was revoked, null if still active"""
   revokedAt: DateTime
 }
 
+"""Input for creating a new API key"""
 input ApiKeyCreateInput {
+  """Human-readable name for the API key"""
   name: String!
+  """Optional expiration date for the API key"""
   dueDate: DateTime
 }
 
+"""Input for revoking an API key"""
 input ApiKeyRevokeInput {
+  """ID of the API key to revoke"""
   id: ID!
 }
 
+"""Input for deleting an API key"""
 input ApiKeyDeleteInput {
+  """ID of the API key to delete"""
   id: ID!
 }
 
+"""Payload returned after creating an API key"""
 type ApiKeyCreatePayload {
+  """The newly created API key, null if creation failed"""
   apiKey: ApiKey
+  """List of errors that occurred during creation"""
   userErrors: [UserError!]!
 }
 
+"""Payload returned after an API key action (revoke)"""
 type ApiKeyActionPayload {
+  """Whether the action was successful"""
   success: Boolean!
+  """List of errors that occurred during the action"""
   userErrors: [UserError!]!
 }
 
+"""Payload returned after deleting an API key"""
 type ApiKeyDeletePayload {
+  """ID of the deleted API key, null if deletion failed"""
   deletedApiKeyId: ID
+  """List of errors that occurred during deletion"""
   userErrors: [UserError!]!
 }
