@@ -1,5 +1,4 @@
 import type { Kernel } from "../kernel/Kernel.js";
-import type { Loader } from "../loaders/Loader.js";
 
 /**
  * Project entity from context
@@ -31,8 +30,6 @@ export interface ServiceContext {
   user: ContextUser;
   /** Current locale for translations (default: 'uk') */
   locale?: string;
-  /** DataLoaders for efficient batched data fetching */
-  loaders: Loader;
   /** Kernel for business logic */
   kernel: Kernel;
 }

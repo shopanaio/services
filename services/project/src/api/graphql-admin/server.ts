@@ -15,7 +15,6 @@ import {
   type ContextUser,
 } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
-import { Loader } from "../../loaders/Loader.js";
 import { Repository } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
@@ -119,7 +118,6 @@ export async function startServer(config: ServerConfig) {
           slug: "",
           project: null as any,
           user: null as any,
-          loaders: null as any,
         };
       }
 
@@ -140,8 +138,6 @@ export async function startServer(config: ServerConfig) {
         slug,
         project,
         user,
-        // Create loaders per request for proper batching
-        loaders: new Loader(kernel!.getServices().repository),
       };
 
       // Set context in AsyncLocalStorage for all resolvers
