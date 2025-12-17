@@ -15,26 +15,16 @@ export type {
   GlobalConfig,
   ServicesConfig,
   ServiceName,
+  ServiceConfig,
   DatabaseConfig,
   StorageConfig,
   CasdoorConfig,
   PortsConfig,
   GraphQLConfig,
-  AppsConfig,
-  CheckoutConfig,
-  DeliveryConfig,
-  InventoryConfig,
-  MediaConfig,
-  OrdersConfig,
-  PaymentsConfig,
-  PricingConfig,
-  ProjectConfig,
-  UsersConfig,
-  BootstrapConfig,
 } from "./schema.js";
 
 // Export schema for advanced use cases
-export { ConfigSchema } from "./schema.js";
+export { ConfigSchema, ServiceConfigSchema } from "./schema.js";
 
 // Export configuration loader functions
 export {

@@ -53,21 +53,21 @@ export const GraphQLConfigSchema = z.object({
 // SERVICE SCHEMAS
 // ═══════════════════════════════════════════════════════════════════
 
-const BaseServiceSchema = z.object({
-  ports: PortsConfigSchema.optional(),
-  database: DatabaseConfigSchema.optional(),
-  storage: StorageConfigSchema.optional(),
-  graphql: GraphQLConfigSchema.optional(),
-});
-
-const UsersServiceSchema = BaseServiceSchema.extend({
-  casdoor: CasdoorConfigSchema.optional(),
-});
-
-const BootstrapServiceSchema = z.object({
-  services: z.array(z.string()),
-  metrics_port: z.number().int().positive().optional(),
-});
+// Universal service schema - accepts any service configuration
+export const ServiceConfigSchema = z
+  .object({
+    // Common service fields
+    ports: PortsConfigSchema.optional(),
+    database: DatabaseConfigSchema.optional(),
+    storage: StorageConfigSchema.optional(),
+    graphql: GraphQLConfigSchema.optional(),
+    // Service-specific fields
+    casdoor: CasdoorConfigSchema.optional(),
+    // Bootstrap-specific fields
+    services: z.array(z.string()).optional(),
+    metrics_port: z.number().int().positive().optional(),
+  })
+  .passthrough(); // Allow additional fields for future extensibility
 
 // ═══════════════════════════════════════════════════════════════════
 // FULL CONFIG SCHEMA
@@ -86,19 +86,8 @@ export const ConfigSchema = z.object({
       storage: z.object({ default: BaseStorageConfigSchema }).optional(),
     })
     .optional(),
-  services: z.object({
-    bootstrap: BootstrapServiceSchema.optional(),
-    apps: BaseServiceSchema,
-    checkout: BaseServiceSchema,
-    delivery: BaseServiceSchema,
-    inventory: BaseServiceSchema,
-    media: BaseServiceSchema,
-    orders: BaseServiceSchema,
-    payments: BaseServiceSchema,
-    pricing: BaseServiceSchema,
-    project: BaseServiceSchema,
-    users: UsersServiceSchema,
-  }),
+  // Dynamic services - any service name is allowed
+  services: z.record(z.string(), ServiceConfigSchema),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -108,23 +97,11 @@ export const ConfigSchema = z.object({
 export type Config = z.infer<typeof ConfigSchema>;
 export type GlobalConfig = Config["global"];
 export type ServicesConfig = Config["services"];
-export type ServiceName = keyof ServicesConfig;
+export type ServiceName = string;
+export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
 export type StorageConfig = z.infer<typeof StorageConfigSchema>;
 export type CasdoorConfig = z.infer<typeof CasdoorConfigSchema>;
 export type PortsConfig = z.infer<typeof PortsConfigSchema>;
 export type GraphQLConfig = z.infer<typeof GraphQLConfigSchema>;
-
-// Service-specific configs
-export type AppsConfig = ServicesConfig["apps"];
-export type CheckoutConfig = ServicesConfig["checkout"];
-export type DeliveryConfig = ServicesConfig["delivery"];
-export type InventoryConfig = ServicesConfig["inventory"];
-export type MediaConfig = ServicesConfig["media"];
-export type OrdersConfig = ServicesConfig["orders"];
-export type PaymentsConfig = ServicesConfig["payments"];
-export type PricingConfig = ServicesConfig["pricing"];
-export type ProjectConfig = ServicesConfig["project"];
-export type UsersConfig = ServicesConfig["users"];
-export type BootstrapConfig = ServicesConfig["bootstrap"];

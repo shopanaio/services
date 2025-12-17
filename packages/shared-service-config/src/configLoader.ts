@@ -6,8 +6,7 @@ import {
   ConfigSchema,
   type Config,
   type GlobalConfig,
-  type ServiceName,
-  type ServicesConfig,
+  type ServiceConfig,
 } from "./schema.js";
 
 // Cached configuration
@@ -152,10 +151,8 @@ export function getGlobalConfig(): GlobalConfig {
 /**
  * Load configuration for a specific service
  */
-export function getServiceConfig<T extends ServiceName>(
-  serviceName: T
-): {
-  service: ServicesConfig[T];
+export function getServiceConfig(serviceName: string): {
+  service: ServiceConfig;
   global: GlobalConfig;
 } {
   const config = loadYamlConfig();
@@ -172,10 +169,8 @@ export function getServiceConfig<T extends ServiceName>(
 }
 
 // Legacy export for backwards compatibility
-export function loadServiceConfig<T extends ServiceName>(
-  serviceName: T
-): {
-  config: ServicesConfig[T];
+export function loadServiceConfig(serviceName: string): {
+  config: ServiceConfig;
   vars: GlobalConfig;
 } {
   const { service, global } = getServiceConfig(serviceName);
