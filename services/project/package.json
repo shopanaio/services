@@ -10,16 +10,7 @@
       "default": "./src/project.module.ts"
     }
   },
-  "scripts": {
-    "build": "node esbuild.js",
-    "start": "node dist/src/index.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "codegen": "graphql-codegen"
-  },
+  "scripts": {},
   "dependencies": {
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
@@ -47,12 +38,8 @@
     "@graphql-codegen/typescript": "^4.0.8",
     "@graphql-codegen/typescript-resolvers": "^4.0.9",
     "@shopana/build-tools": "0.0.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.14.14",
     "drizzle-kit": "^0.31.7",
-    "esbuild": "^0.24.2",
-    "jest": "^30.1.3",
-    "ts-jest": "^29.4.6",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   },

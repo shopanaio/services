@@ -4,9 +4,6 @@
   "private": true,
   "type": "module",
   "description": "Modular monolith - composition root for Shopana services",
-  "scripts": {
-    "start": "node dist/main.js"
-  },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^5.5.0",
     "@nestjs/common": "^10.0.0",
@@ -30,9 +27,6 @@
   "devDependencies": {
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^22.7.4",
-    "esbuild": "^0.24.2",
-    "nodemon": "^3.1.7",
-    "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.5.4"
   }

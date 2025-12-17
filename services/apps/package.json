@@ -9,14 +9,7 @@
       "default": "./src/apps.module.ts"
     }
   },
-  "scripts": {
-    "build": "node esbuild.js",
-    "start": "node dist/src/index.js",
-    "codegen": "node bin/graphql/script.js",
-    "test": "jest --passWithNoTests",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
-  },
+  "scripts": {},
   "dependencies": {
     "@apollo/server": "^4.11.2",
     "@apollo/subgraph": "^2.7.4",

@@ -9,10 +9,6 @@
       "default": "./src/payments.module.ts"
     }
   },
-  "scripts": {
-    "build": "node esbuild.js",
-    "start": "node dist/src/index.js"
-  },
   "dependencies": {
     "@shopana/plugin-sdk": "*",
     "@shopana/shared-kernel": "*",
@@ -23,7 +19,6 @@
   "devDependencies": {
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^22.7.4",
-    "esbuild": "^0.24.2",
     "pino-pretty": "^11.2.2",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4"

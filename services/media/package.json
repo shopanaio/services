@@ -10,13 +10,7 @@
       "default": "./src/media.module.ts"
     }
   },
-  "scripts": {
-    "build": "node esbuild.js",
-    "start": "node dist/src/index.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "codegen": "node bin/graphql/script.js"
-  },
+  "scripts": {},
   "dependencies": {
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
@@ -48,8 +42,6 @@
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^20.14.14",
     "drizzle-kit": "^0.31.7",
-    "esbuild": "^0.24.2",
-    "jest": "^30.1.3",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   },
