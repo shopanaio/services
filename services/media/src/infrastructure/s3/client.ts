@@ -1,5 +1,19 @@
 import { Client as MinioClient } from "minio";
-import { config } from "../../config.js";
+import { getServiceConfig, buildS3Config } from "@shopana/shared-service-config";
+
+const { service } = getServiceConfig("media");
+const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
+
+const storage = storageConfig
+  ? {
+      endpoint: storageConfig.endpoint,
+      accessKey: storageConfig.credentials.accessKeyId,
+      secretKey: storageConfig.credentials.secretAccessKey,
+      bucket: storageConfig.bucket,
+      region: storageConfig.region,
+      pathStyle: storageConfig.forcePathStyle,
+    }
+  : null;
 
 let clientInstance: MinioClient | null = null;
 
@@ -20,7 +34,10 @@ export function getS3Client(): MinioClient {
  * Creates a new MinIO client (for cases where singleton is not desired)
  */
 export function createMinioClient(): MinioClient {
-  const { endpoint, accessKey, secretKey, region, pathStyle } = config.storage;
+  if (!storage) {
+    throw new Error("S3 storage configuration is not available");
+  }
+  const { endpoint, accessKey, secretKey, region, pathStyle } = storage;
 
   // Parse endpoint URL
   let endpointHost: string;
@@ -53,7 +70,10 @@ export function createMinioClient(): MinioClient {
  * Gets the configured bucket name
  */
 export function getBucketName(): string {
-  return config.storage.bucket;
+  if (!storage) {
+    throw new Error("S3 storage configuration is not available");
+  }
+  return storage.bucket;
 }
 
 /**
@@ -61,9 +81,12 @@ export function getBucketName(): string {
  * Returns true if bucket was created, false if it already existed.
  */
 export async function ensureBucketExists(): Promise<boolean> {
+  if (!storage) {
+    throw new Error("S3 storage configuration is not available");
+  }
   const client = getS3Client();
   const bucketName = getBucketName();
-  const region = config.storage.region ?? "us-east-1";
+  const region = storage.region ?? "us-east-1";
 
   try {
     const exists = await client.bucketExists(bucketName);
@@ -86,7 +109,10 @@ export async function ensureBucketExists(): Promise<boolean> {
  * Builds the public URL for an S3 object
  */
 export function buildPublicUrl(objectKey: string): string {
-  const { endpoint, bucket, pathStyle } = config.storage;
+  if (!storage) {
+    throw new Error("S3 storage configuration is not available");
+  }
+  const { endpoint, bucket, pathStyle } = storage;
   const baseEndpoint = endpoint.replace(/\/$/, "");
 
   if (pathStyle) {

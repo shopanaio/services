@@ -11,9 +11,11 @@ import {
   SERVICE_BROKER,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server.js";
-import { config } from "./config.js";
+
+const { service, global } = getServiceConfig("project");
 
 @Injectable()
 export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
@@ -27,9 +29,9 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = new Kernel(this.broker, new NestLogger(this.logger));
 
     this.graphqlServer = await startServer({
-      port: config.port,
-      grpcHost: config.platformGrpcHost,
-      databaseUrl: config.databaseUrl,
+      port: service.ports?.admin_graphql ?? 0,
+      grpcHost: global.platform_grpc_host,
+      databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
     });
 
     this.logger.log("Project service started");

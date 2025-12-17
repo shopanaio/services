@@ -1,7 +1,9 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import type { FastifyInstance } from 'fastify';
-import { config } from './config';
 import { startServer } from './api/graphql-admin/server';
+
+const { service, global } = getServiceConfig("media");
 
 @Injectable()
 export class MediaNestService implements OnModuleInit, OnModuleDestroy {
@@ -9,12 +11,14 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
   private fastify: FastifyInstance | null = null;
 
   async onModuleInit() {
+    const port = service.ports?.admin_graphql ?? 0;
+    const graphqlPath = service.graphql?.path ?? "/graphql/admin";
     this.fastify = await startServer({
-      port: config.port,
-      grpcHost: config.platformGrpcHost,
-      databaseUrl: config.databaseUrl,
+      port,
+      grpcHost: global.platform_grpc_host,
+      databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
     });
-    this.logger.log(`Media GraphQL Admin API running at http://localhost:${config.port}${config.graphqlPath}`);
+    this.logger.log(`Media GraphQL Admin API running at http://localhost:${port}${graphqlPath}`);
   }
 
   async onModuleDestroy() {

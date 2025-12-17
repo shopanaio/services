@@ -8,10 +8,13 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { getServiceConfig, buildS3Config, isDevelopment } from "@shopana/shared-service-config";
 import type { MediaContext } from "../../context/index.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
-import { config } from "../../config.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+
+const { service, global } = getServiceConfig("media");
+const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
 import { getServices, initServices } from "./services.js";
@@ -52,9 +55,9 @@ export async function startServer(serverConfig: ServerConfig) {
       const SYSTEM_PROJECT_ID = "00000000-0000-0000-0000-000000000000";
       await services.repository.bucket.create(SYSTEM_PROJECT_ID, {
         bucketName,
-        region: config.storage.region ?? "us-east-1",
+        region: storageConfig?.region ?? "us-east-1",
         status: "active",
-        endpointUrl: config.storage.endpoint,
+        endpointUrl: storageConfig?.endpoint ?? "",
       });
       console.log(`[media] Bucket record '${bucketName}' created in database`);
     } else {
@@ -65,9 +68,9 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
-    logger: config.isDevelopment
+    logger: isDevelopment(global)
       ? {
-          level: config.logLevel ?? "info",
+          level: global.log_level ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
@@ -79,7 +82,7 @@ export async function startServer(serverConfig: ServerConfig) {
             },
           },
         }
-      : { level: config.logLevel ?? "info" },
+      : { level: global.log_level ?? "info" },
   });
 
   // Register custom content type parser for multipart/form-data (for GraphQL file uploads)
@@ -177,7 +180,7 @@ export async function startServer(serverConfig: ServerConfig) {
     return reply.send({
       status: "ok",
       service: "media",
-      environment: config.environment,
+      environment: global.environment,
     });
   });
 

@@ -10,11 +10,13 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
 import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
-import { config } from "@src/config";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
+
+const { service, global } = getServiceConfig("orders");
 
 /**
  * Create and start GraphQL-only server
@@ -22,9 +24,9 @@ import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddle
  */
 export async function startServer(broker: ServiceBroker) {
   const app = fastify({
-    logger: config.isDevelopment
+    logger: isDevelopment(global)
       ? {
-          level: config.logLevel ?? "info",
+          level: global.log_level ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
@@ -36,7 +38,7 @@ export async function startServer(broker: ServiceBroker) {
             },
           },
         }
-      : { level: config.logLevel ?? "info" },
+      : { level: global.log_level ?? "info" },
   });
 
   // Load GraphQL schemas for both Admin and Storefront APIs
@@ -93,7 +95,7 @@ export async function startServer(broker: ServiceBroker) {
     return reply.send({
       status: "ok",
       service: "orders",
-      environment: config.environment,
+      environment: global.environment,
     });
   });
 
@@ -109,7 +111,7 @@ export async function startServer(broker: ServiceBroker) {
   await app.register(async function (adminGraphqlInstance) {
     // Core context middleware that sets async local storage
     const grpcConfig = {
-      getGrpcHost: () => config.platformGrpcHost,
+      getGrpcHost: () => global.platform_grpc_host,
     };
     await adminGraphqlInstance.addHook(
       "preHandler",
@@ -138,7 +140,7 @@ export async function startServer(broker: ServiceBroker) {
   await app.register(async function (storefrontGraphqlInstance) {
     // Core context middleware that sets async local storage
     const grpcConfig = {
-      getGrpcHost: () => config.platformGrpcHost,
+      getGrpcHost: () => global.platform_grpc_host,
     };
     await storefrontGraphqlInstance.addHook(
       "preHandler",
@@ -163,16 +165,18 @@ export async function startServer(broker: ServiceBroker) {
     });
   });
 
+  const port = service.ports?.storefront_graphql ?? 0;
+
   // Start server
   await app.listen({
-    port: config.port,
+    port,
     host: "0.0.0.0",
   });
 
   app.log.info(
     `orders GraphQL API ready:\n` +
-      `  Admin API: http://localhost:${config.port}/graphql/admin/v1\n` +
-      `  Storefront API: http://localhost:${config.port}/graphql/storefront/v1`
+      `  Admin API: http://localhost:${port}/graphql/admin/v1\n` +
+      `  Storefront API: http://localhost:${port}/graphql/storefront/v1`
   );
 
   return app;

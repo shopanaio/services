@@ -1,6 +1,8 @@
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import { Repository } from "../../repositories/index.js";
-import { config } from "../../config.js";
 import type { MediaKernelServices } from "../../kernel/types.js";
+
+const { service } = getServiceConfig("media");
 
 /**
  * Logger implementation for resolvers
@@ -40,7 +42,8 @@ export function initServices(): MediaKernelServices {
     return servicesInstance;
   }
 
-  const repository = new Repository(config.databaseUrl);
+  const databaseUrl = service.db ? buildDatabaseUrl(service.db) : "";
+  const repository = new Repository(databaseUrl);
 
   servicesInstance = {
     broker: stubBroker,

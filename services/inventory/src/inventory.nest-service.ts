@@ -14,9 +14,15 @@ import {
   SERVICE_BROKER,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import {
+  getServiceConfig,
+  buildDatabaseUrl,
+  buildS3Config,
+} from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server";
-import { config } from "./config";
+
+const { service, global } = getServiceConfig("inventory");
 import type {
   ProductUpdatedEvent,
   StockChangedEvent,
@@ -45,7 +51,20 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.kernel = new Kernel(this.broker, new NestLogger(this.logger));
-    this.storageGateway = new InventoryObjectStorage(config.storage);
+
+    const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
+    this.storageGateway = new InventoryObjectStorage(
+      storageConfig
+        ? {
+            endpoint: storageConfig.endpoint,
+            accessKey: storageConfig.credentials.accessKeyId,
+            secretKey: storageConfig.credentials.secretAccessKey,
+            bucket: storageConfig.bucket,
+            region: storageConfig.region,
+            pathStyle: storageConfig.forcePathStyle,
+          }
+        : null!
+    );
 
     this.broker.register<GetOffersParams, GetOffersResult>(
       "getOffers",
@@ -82,9 +101,9 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.graphqlServer = await startServer({
-      port: config.port,
-      grpcHost: config.platformGrpcHost,
-      databaseUrl: config.databaseUrl,
+      port: service.ports?.admin_graphql ?? 0,
+      grpcHost: global.platform_grpc_host,
+      databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
     });
 
     this.logger.log("Inventory service started");

@@ -5,7 +5,6 @@ import {
 } from "@shopana/plugin-sdk";
 import type { CorePluginManifest } from "@shopana/plugin-sdk";
 import type { Domain, shipping as ShippingSDK } from "@shopana/plugin-sdk";
-import { config } from "@src/config";
 import {
   shippingPlugins,
   paymentPlugins,
@@ -14,6 +13,11 @@ import {
   importPlugins,
 } from "@src/infrastructure/plugins/registry";
 import type { Logger } from "@shopana/shared-kernel";
+
+// Plugin settings (hardcoded defaults, can be moved to config if needed)
+const pluginTimeoutMs = 3000;
+const pluginRetries = 1;
+const pluginRateLimit = 10;
 
 // No aliasing: operation equals provider method name across domains (e.g., list, validate)
 
@@ -27,9 +31,9 @@ export class AppsPluginManager {
 
   constructor(private readonly logger: Logger) {
     this.runner = new ResilienceRunner({
-      timeoutMs: config.pluginTimeoutMs,
-      retries: config.pluginRetries,
-      rateLimit: config.pluginRateLimit,
+      timeoutMs: pluginTimeoutMs,
+      retries: pluginRetries,
+      rateLimit: pluginRateLimit,
       cbThreshold: 5,
       cbResetMs: 15000,
     });

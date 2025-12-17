@@ -1,4 +1,6 @@
 import { dumbo } from '@event-driven-io/dumbo';
-import { config } from '@src/config';
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 
-export const dumboPool = dumbo({ connectionString: config.databaseUrl });
+const { service } = getServiceConfig("orders");
+
+export const dumboPool = dumbo({ connectionString: service.db ? buildDatabaseUrl(service.db) : "" });

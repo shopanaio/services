@@ -10,11 +10,13 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { createResolvers } from "./resolvers";
 import type { GraphQLContext } from "@src/kernel/types";
 import type { Kernel } from "@src/kernel/Kernel";
-import { config } from "@src/config";
 import { buildCoreContextMiddleware } from "./contextMiddleware";
+
+const { service, global } = getServiceConfig("apps");
 
 /**
  * Create and start GraphQL-only server
@@ -22,9 +24,9 @@ import { buildCoreContextMiddleware } from "./contextMiddleware";
  */
 export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   const app = fastify({
-    logger: config.isDevelopment
+    logger: isDevelopment(global)
       ? {
-          level: config.logLevel ?? "info",
+          level: global.log_level ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
@@ -36,7 +38,7 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
             },
           },
         }
-      : { level: config.logLevel ?? "info" },
+      : { level: global.log_level ?? "info" },
   });
 
   // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
@@ -63,17 +65,20 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
 
   await apollo.start();
 
+  const graphqlPath = service.graphql?.path ?? "/graphql";
+  const port = service.ports?.admin_graphql ?? 0;
+
   // GraphQL route group with simplified middleware
   await app.register(async function (graphqlInstance) {
     // Only core context middleware - no correlation middleware
     const grpcConfig = {
-      getGrpcHost: () => config.platformGrpcHost,
+      getGrpcHost: () => global.platform_grpc_host,
     };
     await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
 
     // GraphQL endpoint with simplified context
     await graphqlInstance.register(fastifyApollo(apollo), {
-      path: config.graphqlPath,
+      path: graphqlPath,
       context: async (request, _reply) => {
         // Simplified context - only essential fields
         // Moleculer will handle internal tracing via ctx.requestID, ctx.parentID
@@ -94,7 +99,7 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
     return reply.send({
       status: "ok",
       service: "apps",
-      environment: config.environment,
+      environment: global.environment,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     });
@@ -112,15 +117,15 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
 
   // Start server
   await app.listen({
-    port: config.port,
+    port,
     host: "0.0.0.0",
   });
 
   app.log.info(
-    `apps ready at http://localhost:${config.port}${config.graphqlPath}`
+    `apps ready at http://localhost:${port}${graphqlPath}`
   );
   app.log.info(
-    `Health check available at http://localhost:${config.port}/`
+    `Health check available at http://localhost:${port}/`
   );
 
   return app;

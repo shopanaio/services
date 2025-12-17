@@ -1,6 +1,9 @@
 import { dumbo } from '@event-driven-io/dumbo';
 import knex from 'knex';
-import { config } from '@src/config';
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
+
+const { service } = getServiceConfig("apps");
+const databaseUrl = service.db ? buildDatabaseUrl(service.db) : "";
 
 /**
  * Database connections initialization
@@ -12,13 +15,13 @@ import { config } from '@src/config';
 
 // Dumbo pool for event sourcing
 export const dumboPool = dumbo({
-  connectionString: config.databaseUrl
+  connectionString: databaseUrl
 });
 
 // Knex for regular SQL operations
 export const knexInstance = knex({
   client: 'pg',
-  connection: config.databaseUrl,
+  connection: databaseUrl,
   pool: {
     min: 2,
     max: 10,

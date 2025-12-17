@@ -6,15 +6,18 @@ import type {
   AppendOptions,
 } from "@src/application/ports/eventStorePort";
 import { getPostgreSQLEventStore } from "@event-driven-io/emmett-postgresql";
-import { config } from "@src/config";
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import { dumboPool } from "@src/infrastructure/db/dumbo";
 import { orderCreateProjection } from "@src/infrastructure/projections/orderCreateProjection";
 import { orderIdempotencyProjection } from "@src/infrastructure/projections/idempotencyProjection";
 
+const { service } = getServiceConfig("orders");
+const databaseUrl = service.db ? buildDatabaseUrl(service.db) : "";
+
 const inline = (projection: any) => ({ type: "inline", projection } as any);
 
 export class EmmetPostgresqlEventStoreAdapter implements EventStorePort {
-  private readonly store = getPostgreSQLEventStore(config.databaseUrl, {
+  private readonly store = getPostgreSQLEventStore(databaseUrl, {
     schema: { autoMigration: "CreateOrUpdate" },
     projections: [
       inline(orderIdempotencyProjection),

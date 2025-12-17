@@ -1,12 +1,14 @@
 import pino, { type Logger } from 'pino';
-import { config } from '../../config.js';
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+
+const { global } = getServiceConfig("orders");
 
 /**
  * Creates a configured pino logger instance with pretty formatting for development
  */
 export function createLogger(): Logger {
   const baseConfig = {
-    level: config.logLevel ?? 'info',
+    level: global.log_level ?? 'info',
     base: {
       pid: process.pid,
       hostname: undefined, // Remove hostname for cleaner output
@@ -21,7 +23,7 @@ export function createLogger(): Logger {
   };
 
   // Pretty formatting for development
-  if (config.isDevelopment) {
+  if (isDevelopment(global)) {
     return pino({
       ...baseConfig,
       transport: {

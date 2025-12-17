@@ -1,5 +1,7 @@
 import { createServer, type Server } from "http";
-import { config } from "./config.js";
+import { getServiceConfig } from "@shopana/shared-service-config";
+
+const { global } = getServiceConfig("pricing");
 
 /**
  * Create and start health check HTTP server
@@ -12,7 +14,7 @@ export function startHealthServer(port: number): Promise<Server> {
         const response = {
           status: "ok",
           service: "pricing",
-          environment: config.environment,
+          environment: global.environment,
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
         };

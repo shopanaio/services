@@ -10,10 +10,12 @@ import { fileURLToPath } from "url";
 import { gql } from "graphql-tag";
 
 import type { ServiceBroker } from "@shopana/shared-kernel";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { resolvers } from "@src/interfaces/gql-storefront-api/resolvers";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
-import { config } from "@src/config";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
+
+const { service, global } = getServiceConfig("checkout");
 
 /**
  * Create and start GraphQL-only server
@@ -21,9 +23,9 @@ import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddle
  */
 export async function startServer(broker: ServiceBroker) {
   const app = fastify({
-    logger: config.isDevelopment
+    logger: isDevelopment(global)
       ? {
-          level: config.logLevel ?? "info",
+          level: global.log_level ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
@@ -35,7 +37,7 @@ export async function startServer(broker: ServiceBroker) {
             },
           },
         }
-      : { level: config.logLevel ?? "info" },
+      : { level: global.log_level ?? "info" },
   });
 
   // Load GraphQL schema
@@ -73,7 +75,7 @@ export async function startServer(broker: ServiceBroker) {
     return reply.send({
       status: "ok",
       service: "checkout",
-      environment: config.environment,
+      environment: global.environment,
     });
   });
 
@@ -89,7 +91,7 @@ export async function startServer(broker: ServiceBroker) {
   await app.register(async function (graphqlInstance) {
     // Core context middleware that sets async local storage
     const grpcConfig = {
-      getGrpcHost: () => config.platformGrpcHost,
+      getGrpcHost: () => global.platform_grpc_host,
     };
     await graphqlInstance.addHook(
       "preHandler",
@@ -122,14 +124,16 @@ export async function startServer(broker: ServiceBroker) {
     });
   });
 
+  const port = service.ports?.storefront_graphql ?? 0;
+
   // Start server
   await app.listen({
-    port: config.port,
+    port,
     host: "0.0.0.0",
   });
 
   app.log.info(
-    `checkout GraphQL API ready at http://localhost:${config.port}/graphql`
+    `checkout GraphQL API ready at http://localhost:${port}/graphql`
   );
 
   return app;

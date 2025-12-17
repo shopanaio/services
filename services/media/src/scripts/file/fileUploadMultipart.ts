@@ -1,6 +1,5 @@
 import type { TransactionScript } from "../../kernel/types.js";
 import { getContext } from "../../context/index.js";
-import { config } from "../../config.js";
 import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
 import crypto from "node:crypto";
@@ -183,6 +182,5 @@ export const fileUploadMultipart: TransactionScript<
 function generateObjectKey(projectId: string, ext: string): string {
   const timestamp = Date.now();
   const random = crypto.randomBytes(8).toString("hex");
-  const prefix = config.storage.prefix ? `${config.storage.prefix}/` : "";
-  return `${prefix}${projectId}/${timestamp}-${random}.${ext}`;
+  return `${projectId}/${timestamp}-${random}.${ext}`;
 }

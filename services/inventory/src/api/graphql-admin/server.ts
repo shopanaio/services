@@ -8,8 +8,10 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { config } from "../../config.js";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { setContext, type ServiceContext } from "../../context/index.js";
+
+const { global } = getServiceConfig("inventory");
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { Repository } from "../../repositories/Repository.js";
@@ -51,9 +53,9 @@ export async function startServer(serverConfig: ServerConfig) {
   }
 
   const app = fastify({
-    logger: config.isDevelopment
+    logger: isDevelopment(global)
       ? {
-          level: config.logLevel ?? "info",
+          level: global.log_level ?? "info",
           transport: {
             target: "pino-pretty",
             options: {
@@ -65,7 +67,7 @@ export async function startServer(serverConfig: ServerConfig) {
             },
           },
         }
-      : { level: config.logLevel ?? "info" },
+      : { level: global.log_level ?? "info" },
   });
 
   // Load GraphQL schema - use import.meta.url to get correct path when loaded from orchestrator
@@ -150,7 +152,7 @@ export async function startServer(serverConfig: ServerConfig) {
     return reply.send({
       status: "ok",
       service: "inventory",
-      environment: config.environment,
+      environment: global.environment,
     });
   });
 
