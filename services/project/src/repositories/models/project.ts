@@ -4,9 +4,11 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { projectSchema } from "./schema";
+import { locale } from "./locale";
 import {
   weightUnitEnum,
   dimensionUnitEnum,
@@ -65,6 +67,10 @@ export const project = projectSchema.table(
     index("idx_project_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
+    foreignKey({
+      columns: [table.id, table.defaultLocale],
+      foreignColumns: [locale.projectId, locale.code],
+    }),
   ]
 );
 

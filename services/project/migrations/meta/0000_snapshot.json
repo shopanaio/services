@@ -1,5 +1,5 @@
 {
-  "id": "da279c90-ba46-4b89-b22b-ed3788332991",
+  "id": "3f75667f-a245-496c-a51e-34de636b92f6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -319,16 +319,16 @@
           "primaryKey": false,
           "notNull": false
         },
-        "base_locale": {
-          "name": "base_locale",
+        "default_locale": {
+          "name": "default_locale",
           "type": "locale_code",
           "typeSchema": "reference",
           "primaryKey": false,
           "notNull": true,
           "default": "'en'"
         },
-        "base_currency": {
-          "name": "base_currency",
+        "default_currency": {
+          "name": "default_currency",
           "type": "currency_code",
           "typeSchema": "reference",
           "primaryKey": false,
@@ -436,7 +436,24 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "project_id_default_locale_locale_project_id_code_fk": {
+          "name": "project_id_default_locale_locale_project_id_code_fk",
+          "tableFrom": "project",
+          "tableTo": "locale",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "id",
+            "default_locale"
+          ],
+          "columnsTo": [
+            "project_id",
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

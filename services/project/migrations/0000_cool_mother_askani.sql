@@ -39,8 +39,8 @@ CREATE TABLE "project"."project" (
 	"timezone" varchar(64) DEFAULT 'UTC' NOT NULL,
 	"phone_number" varchar(32),
 	"email" varchar(255),
-	"base_locale" "reference"."locale_code" DEFAULT 'en' NOT NULL,
-	"base_currency" "reference"."currency_code" DEFAULT 'USD' NOT NULL,
+	"default_locale" "reference"."locale_code" DEFAULT 'en' NOT NULL,
+	"default_currency" "reference"."currency_code" DEFAULT 'USD' NOT NULL,
 	"default_weight_unit" "reference"."weight_unit" DEFAULT 'g' NOT NULL,
 	"default_dimension_unit" "reference"."dimension_unit" DEFAULT 'mm' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -59,6 +59,7 @@ CREATE TABLE "project"."locale" (
 --> statement-breakpoint
 ALTER TABLE "project"."api_key" ADD CONSTRAINT "api_key_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "project"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project"."currency" ADD CONSTRAINT "currency_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "project"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "project"."project" ADD CONSTRAINT "project_id_default_locale_locale_project_id_code_fk" FOREIGN KEY ("id","default_locale") REFERENCES "project"."locale"("project_id","code") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project"."locale" ADD CONSTRAINT "locale_project_id_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "project"."project"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "api_key_key_unique" ON "project"."api_key" USING btree ("key") WHERE deleted_at IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_api_key_project_id" ON "project"."api_key" USING btree ("project_id");--> statement-breakpoint
