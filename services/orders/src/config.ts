@@ -11,7 +11,7 @@ export const config = {
   port: service.ports?.storefront_graphql,
 
   /** Database connection URL */
-  databaseUrl: service.database ? buildDatabaseUrl(service.database) : "",
+  databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
 
   /** Current environment */
   environment: global.environment,

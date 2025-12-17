@@ -47,7 +47,9 @@ export {
 // Export helper functions
 export {
   buildDbUrl,
+  buildDbUrl as buildDatabaseUrl, // Alias for backwards compatibility
   buildS3Config,
+  buildS3Config as buildStorageConfig, // Alias for backwards compatibility
   isDevelopment,
   isProduction,
   isStaging,

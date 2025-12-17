@@ -11,7 +11,7 @@ export const config = {
   port: service.ports?.admin_graphql,
 
   /** Database connection URL */
-  databaseUrl: service.database ? buildDatabaseUrl(service.database) : "",
+  databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
 
   /** Current environment name */
   environment: global.environment,

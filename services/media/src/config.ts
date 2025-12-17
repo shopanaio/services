@@ -11,13 +11,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const { service, global } = getServiceConfig("media");
 
-const storageConfig = service.storage
-  ? buildStorageConfig(service.storage)
+const storageConfig = service.s3
+  ? buildStorageConfig(service.s3)
   : null;
 
 export const config = {
   /** Database connection string */
-  databaseUrl: service.database ? buildDatabaseUrl(service.database) : "",
+  databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
 
   /** HTTP port for GraphQL/API server */
   port: service.ports?.admin_graphql,

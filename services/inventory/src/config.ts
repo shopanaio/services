@@ -11,8 +11,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const { service, global } = getServiceConfig("inventory");
 
-const storageConfig = service.storage
-  ? buildStorageConfig(service.storage)
+const storageConfig = service.s3
+  ? buildStorageConfig(service.s3)
   : null;
 
 export const config = {
@@ -23,7 +23,7 @@ export const config = {
   metricsPort: service.ports?.metrics,
 
   /** Database connection URL */
-  databaseUrl: service.database ? buildDatabaseUrl(service.database) : "",
+  databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
 
   /** Migrations folder path (from dist -> ./migrations) */
   migrationsPath: join(__dirname, "migrations"),

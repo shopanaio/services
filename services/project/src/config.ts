@@ -18,7 +18,7 @@ export const config = {
   metricsPort: service.ports?.metrics,
 
   /** Database connection URL */
-  databaseUrl: service.database ? buildDatabaseUrl(service.database) : "",
+  databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
 
   /** Migrations folder path (from dist -> ./migrations) */
   migrationsPath: join(__dirname, "migrations"),
