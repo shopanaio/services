@@ -14,6 +14,7 @@ import {
   mkdirSync,
   copyFileSync,
   readFileSync,
+  rmSync,
 } from "fs";
 import { join, dirname, basename, relative } from "path";
 import { glob } from "glob";
@@ -140,6 +141,12 @@ export async function buildService(serviceName: string): Promise<BuildResult> {
   const startTime = Date.now();
 
   console.log(`\n📦 Building ${serviceName}...`);
+
+  // Clean dist folder before build
+  const distPath = join(servicePath, "dist");
+  if (existsSync(distPath)) {
+    rmSync(distPath, { recursive: true, force: true });
+  }
 
   const config = readBuildConfig(servicePath, serviceName);
   const entryPath = join(servicePath, config.entryPoint);

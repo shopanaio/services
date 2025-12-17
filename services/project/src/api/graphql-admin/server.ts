@@ -72,6 +72,9 @@ export async function startServer(config: ServerConfig) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const schemaFiles = [
+    "shared-locale.graphql",
+    "shared-currency.graphql",
+    "shared-units.graphql",
     "base.graphql",
     "project.graphql",
     "locale.graphql",
