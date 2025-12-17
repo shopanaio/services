@@ -2,47 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Clean Ports",
+      "label": "Run Infrastructure",
       "type": "shell",
-      "command": "lsof -ti:10001,10002,10003,3030,8000,50051 | xargs kill -9 2>/dev/null || true",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "silent",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Clean Platform",
-      "type": "shell",
-      "command": "lsof -ti:8000,50051 | xargs kill -9 2>/dev/null || true",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "silent",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Start Infrastructure",
-      "type": "shell",
-      "command": "make infra-up",
+      "command": "docker compose up",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -60,9 +22,9 @@
       "problemMatcher": []
     },
     {
-      "label": "🗄️ Run Platform Migrations",
+      "label": "Run Migrations",
       "type": "shell",
-      "command": "cd platform && echo '🗄️ Running Platform Migrations...' && make db:migrate && echo '✅ Migrations completed'",
+      "command": "yarn shopana migrate",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -80,39 +42,9 @@
       "problemMatcher": []
     },
     {
-      "label": "Start Platform",
+      "label": "Run Bootstrap",
       "type": "shell",
-      "command": "cd platform && echo 'Starting Platform Service...' && make start",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "isBackground": true,
-      "problemMatcher": {
-        "pattern": {
-          "regexp": "^$"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "Starting Platform Service",
-          "endsPattern": "starting HTTP server|Fiber v2"
-        }
-      }
-    },
-    {
-      "label": "Start NestJS Orchestrator",
-      "type": "shell",
-      "command": "export CONFIG_FILE=config.local.yml && source ~/.nvm/nvm.sh && nvm use 22 && echo '🚀 Starting NestJS Orchestrator...' && yarn workspace @shopana/orchestrator-service dev",
+      "command": "export CONFIG_FILE=config.local.yml && source ~/.nvm/nvm.sh && nvm use 22 && echo '🚀 Starting Bootstrap...' && yarn shopana dev",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -145,27 +77,7 @@
       }
     },
     {
-      "label": "🔨 Build All Services",
-      "type": "shell",
-      "command": "yarn workspace @shopana/orchestrator-service build:all && echo '✅ All services built'",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "shell": {
-          "executable": "/bin/zsh",
-          "args": ["-c"]
-        }
-      },
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Claude (Skip Permissions)",
+      "label": "Claude",
       "type": "shell",
       "command": "claude --dangerously-skip-permissions",
       "presentation": {
