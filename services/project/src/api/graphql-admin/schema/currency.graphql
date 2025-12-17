@@ -3,6 +3,8 @@ type Currency {
   title: String!
   isActive: Boolean!
   exchangeRate: Float!
+  exchangeRateAmount: String!
+  exchangeRateScale: Int!
 }
 
 input CurrencySetDefaultInput {

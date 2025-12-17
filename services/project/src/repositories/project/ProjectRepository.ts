@@ -42,6 +42,7 @@ export interface CreateProjectData {
   timezone?: string;
   email?: string | null;
   defaultLocale?: LocaleCode;
+  baseCurrency?: CurrencyCode;
   defaultCurrency?: CurrencyCode;
 }
 
@@ -105,6 +106,8 @@ export class ProjectRepository extends BaseRepository {
     const id = randomUUID();
     const now = new Date();
 
+    const baseCurrency = data.baseCurrency ?? data.defaultCurrency ?? "USD";
+
     const newProject: NewProject = {
       id,
       name: data.name,
@@ -113,7 +116,8 @@ export class ProjectRepository extends BaseRepository {
       timezone: data.timezone ?? "UTC",
       email: data.email ?? null,
       defaultLocale: data.defaultLocale ?? "en",
-      defaultCurrency: data.defaultCurrency ?? "USD",
+      baseCurrency,
+      defaultCurrency: data.defaultCurrency ?? baseCurrency,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

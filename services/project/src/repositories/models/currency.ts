@@ -2,11 +2,14 @@ import {
   uuid,
   varchar,
   boolean,
+  bigint,
+  integer,
   real,
   timestamp,
   index,
   primaryKey,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { projectSchema } from "./schema";
 import { project } from "./project";
 
@@ -18,6 +21,10 @@ export const currency = projectSchema.table(
       .references(() => project.id, { onDelete: "cascade" }),
     code: varchar("code", { length: 3 }).notNull(),
     isActive: boolean("is_active").notNull().default(true),
+    exchangeRateAmount: bigint("exchange_rate_amount", { mode: "bigint" })
+      .notNull()
+      .default(sql`1`),
+    exchangeRateScale: integer("exchange_rate_scale").notNull().default(0),
     exchangeRate: real("exchange_rate").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

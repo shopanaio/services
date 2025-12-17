@@ -14,6 +14,7 @@ type Project {
   email: String
   locales: [LocaleCode!]!
   currencies: [CurrencyCode!]!
+  baseCurrency: CurrencyCode!
   defaultLocale: LocaleCode!
   defaultCurrency: CurrencyCode!
   defaultWeightUnit: WeightUnit!

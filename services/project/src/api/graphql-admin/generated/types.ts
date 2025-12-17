@@ -68,7 +68,9 @@ export type ApiKeyRevokeInput = {
 export type Currency = {
   __typename?: 'Currency';
   code: CurrencyCode;
+  exchangeRateAmount: Scalars['String']['output'];
   exchangeRate: Scalars['Float']['output'];
+  exchangeRateScale: Scalars['Int']['output'];
   isActive: Scalars['Boolean']['output'];
   title: Scalars['String']['output'];
 };
@@ -739,6 +741,7 @@ export type Mutation = {
 
 export type Project = {
   __typename?: 'Project';
+  baseCurrency: CurrencyCode;
   createdAt: Scalars['DateTime']['output'];
   currencies: Array<CurrencyCode>;
   defaultCurrency: CurrencyCode;
@@ -1090,7 +1093,9 @@ export type ApiKeyDeletePayloadResolvers<ContextType = ServiceContext, ParentTyp
 
 export type CurrencyResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Currency'] = ResolversParentTypes['Currency']> = ResolversObject<{
   code?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  exchangeRateAmount?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   exchangeRate?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  exchangeRateScale?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1128,6 +1133,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type ProjectResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = ResolversObject<{
+  baseCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   currencies?: Resolver<Array<ResolversTypes['CurrencyCode']>, ParentType, ContextType>;
   defaultCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
@@ -1222,4 +1228,3 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Timestamp?: GraphQLScalarType;
   UserError?: UserErrorResolvers<ContextType>;
 }>;
-

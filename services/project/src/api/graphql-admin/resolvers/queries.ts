@@ -50,7 +50,9 @@ export const queryResolvers: Partial<Resolvers> = {
         code: currency.code,
         title: currencyNames[currency.code] ?? currency.code,
         isActive: currency.isActive,
-        exchangeRate: currency.exchangeRate,
+        exchangeRate: Number(currency.exchangeRateAmount) / 10 ** currency.exchangeRateScale,
+        exchangeRateAmount: currency.exchangeRateAmount.toString(),
+        exchangeRateScale: currency.exchangeRateScale,
       }));
     },
 

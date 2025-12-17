@@ -12,8 +12,15 @@ export class CurrencySetDefaultScript extends BaseScript<CurrencySetDefaultParam
       };
     }
 
-    // Update project base currency
-    const updated = await this.repository.project.updateBaseCurrency(params.projectId, params.currency);
+    if (!currency.isActive) {
+      return {
+        success: false,
+        userErrors: [{ message: "Currency is not active", field: ["currency"], code: "INVALID" }],
+      };
+    }
+
+    // Update project default (display) currency
+    const updated = await this.repository.project.updateDefaultCurrency(params.projectId, params.currency);
 
     if (!updated) {
       return {
