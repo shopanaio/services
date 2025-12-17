@@ -1,0 +1,13 @@
+# Hive CLI supergraph composition config for Storefront API
+# Docs: https://the-guild.dev/graphql/hive/docs/gateway
+
+subgraphs:
+  - name: checkout-storefront
+    routing_url: http://localhost:10002/graphql
+    schema:
+      file: ./schema/checkout-storefront.graphql
+
+  - name: orders-storefront
+    routing_url: http://localhost:10003/graphql
+    schema:
+      file: ./schema/orders-storefront.graphql
