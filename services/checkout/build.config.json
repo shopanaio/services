@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/build.config.schema.json",
   "entryPoint": "src/checkout.module.ts",
   "assets": [
     {

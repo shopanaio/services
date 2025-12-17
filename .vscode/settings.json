@@ -1,5 +1,11 @@
 {
   "terminal.integrated.defaultLocation": "panel",
   "terminal.integrated.fontSize": 13,
-  "terminal.integrated.lineHeight": 1.2
+  "terminal.integrated.lineHeight": 1.2,
+  "json.schemas": [
+    {
+      "fileMatch": ["**/build.config.json"],
+      "url": "./packages/cli/schemas/build.config.schema.json"
+    }
+  ]
 }

@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/build.config.schema.json",
   "entryPoint": "src/inventory.module.ts",
   "migrations": { "path": "dist/migrations", "type": "drizzle" },
   "assets": [
