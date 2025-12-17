@@ -39,15 +39,14 @@ type UserQuery {
 }
 
 type UserMutation {
-  # CRUD
-  userCreate(input: UserCreateInput!): UserCreatePayload!
-  userUpdate(input: UserUpdateInput!): UserUpdatePayload!
-  userDelete(input: UserDeleteInput!): UserDeletePayload!
+  # Profile
+  userUpdateProfile(input: UserUpdateProfileInput!): UserUpdateProfilePayload!
+  userUpdateEmail(input: UserUpdateEmailInput!): UserUpdateEmailPayload!
+  userUpdatePassword(input: UserUpdatePasswordInput!): UserUpdatePasswordPayload!
 
   # Auth
   signIn(input: UserSignInInput!): UserSignInPayload!
   signOut(input: UserSignOutInput!): UserSignOutPayload!
   tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
-  passwordChange(input: UserPasswordChangeInput!): UserPasswordChangePayload!
 }
 

@@ -108,19 +108,9 @@ type Role {
 # ---- User Inputs ----
 
 """
-Input for creating a new user.
+Input for updating user profile.
 """
-input UserCreateInput {
-  """
-  User's email address (required).
-  """
-  email: Email!
-
-  """
-  User's password.
-  """
-  password: String!
-
+input UserUpdateProfileInput {
   """
   User's first name.
   """
@@ -140,87 +130,12 @@ input UserCreateInput {
   User's locale/language preference.
   """
   locale: LocaleCode
-
-  """
-  Whether the user should have admin privileges.
-  """
-  isAdmin: Boolean
-
-  """
-  Role names to assign to the user.
-  """
-  roles: [String!]
 }
 
 """
-Payload for user creation.
+Payload for user profile update.
 """
-type UserCreatePayload {
-  """
-  The created user.
-  """
-  user: User
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Input for updating a user.
-"""
-input UserUpdateInput {
-  """
-  The user ID.
-  """
-  id: ID!
-
-  """
-  User's email address.
-  """
-  email: Email
-
-  """
-  User's first name.
-  """
-  firstName: String
-
-  """
-  User's last name.
-  """
-  lastName: String
-
-  """
-  User's phone number.
-  """
-  phone: String
-
-  """
-  User's locale/language preference.
-  """
-  locale: LocaleCode
-
-  """
-  Whether the user should have admin privileges.
-  """
-  isAdmin: Boolean
-
-  """
-  Whether the user account is forbidden/banned.
-  """
-  isForbidden: Boolean
-
-  """
-  Role names to assign to the user.
-  """
-  roles: [String!]
-}
-
-"""
-Payload for user update.
-"""
-type UserUpdatePayload {
+type UserUpdateProfilePayload {
   """
   The updated user.
   """
@@ -233,28 +148,28 @@ type UserUpdatePayload {
 }
 
 """
-Input for deleting a user.
+Input for updating user email.
 """
-input UserDeleteInput {
+input UserUpdateEmailInput {
   """
-  The ID of the user to delete.
+  New email address.
   """
-  id: ID!
+  newEmail: Email!
 
   """
-  Whether to permanently delete the user (hard delete).
+  Current password for verification.
   """
-  permanent: Boolean
+  currentPassword: String!
 }
 
 """
-Payload for user deletion.
+Payload for user email update.
 """
-type UserDeletePayload {
+type UserUpdateEmailPayload {
   """
-  The ID of the deleted user.
+  The updated user.
   """
-  deletedUserId: ID
+  user: User
 
   """
   List of errors that occurred during the mutation.
@@ -350,9 +265,9 @@ type UserTokenRefreshPayload {
 }
 
 """
-Input for admin user password change.
+Input for updating user password.
 """
-input UserPasswordChangeInput {
+input UserUpdatePasswordInput {
   """
   Current password.
   """
@@ -365,9 +280,9 @@ input UserPasswordChangeInput {
 }
 
 """
-Payload for admin user password change.
+Payload for user password update.
 """
-type UserPasswordChangePayload {
+type UserUpdatePasswordPayload {
   """
   Whether the password was changed successfully.
   """
