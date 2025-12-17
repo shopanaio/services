@@ -1,10 +1,11 @@
-import type { CustomerData } from "../../repositories/customer/CustomerRepository.js";
+import type { User } from "@shopana/casdoor-node-sdk";
 import { UsersType } from "./UsersType.js";
 
 /**
  * Customer resolver - resolves storefront customer domain interface
+ * Uses User type from @shopana/casdoor-node-sdk
  */
-export class CustomerResolver extends UsersType<string, CustomerData | null> {
+export class CustomerResolver extends UsersType<string, User | null> {
   async loadData() {
     return this.ctx.loaders.customer.load(this.value);
   }
@@ -38,7 +39,7 @@ export class CustomerResolver extends UsersType<string, CustomerData | null> {
   }
 
   async locale() {
-    return this.get("locale");
+    return this.get("language");
   }
 
   async isForbidden() {
@@ -50,10 +51,10 @@ export class CustomerResolver extends UsersType<string, CustomerData | null> {
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.get("createdTime");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.get("updatedTime");
   }
 }

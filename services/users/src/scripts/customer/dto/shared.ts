@@ -1,5 +1,4 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type { LocaleCode } from "../../../resolvers/admin/interfaces/index.js";
 
 /**
  * Base result interface for customer scripts
@@ -16,7 +15,7 @@ export interface CustomerInputBase {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   avatar?: string;
   isForbidden?: boolean;
 }

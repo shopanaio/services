@@ -1,11 +1,11 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import type { ServiceContext } from "../../../../context/index.js";
 import { CustomerResolver } from "../../../../resolvers/admin/CustomerResolver.js";
 import {
   CustomerCreateScript,
-  CustomerUpdateScript,
   CustomerDeleteScript,
+  CustomerUpdateScript,
 } from "../../../../scripts/customer/index.js";
-import type { ServiceContext } from "../../../../context/index.js";
 import { noKernelError, requireContext } from "../utils.js";
 
 interface CustomerCreateInput {
@@ -50,14 +50,18 @@ export const customerMutationResolvers = {
         firstName: input.firstName ?? undefined,
         lastName: input.lastName ?? undefined,
         phone: input.phone ?? undefined,
-        locale: input.locale as "uk" | "en" | "ru" | "de" | "fr" | "es" | "pl" | undefined,
+        language: input.locale ?? undefined,
       });
 
       const customerFieldInfo = parseGraphqlInfo(info, "customer");
 
       return {
         customer: result.customerId
-          ? await CustomerResolver.load(result.customerId, customerFieldInfo, requireContext(ctx))
+          ? await CustomerResolver.load(
+              result.customerId,
+              customerFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         userErrors: result.userErrors,
       };
@@ -79,7 +83,7 @@ export const customerMutationResolvers = {
         firstName: input.firstName ?? undefined,
         lastName: input.lastName ?? undefined,
         phone: input.phone ?? undefined,
-        locale: input.locale as "uk" | "en" | "ru" | "de" | "fr" | "es" | "pl" | undefined,
+        language: input.locale ?? undefined,
         isForbidden: input.isForbidden ?? undefined,
       });
 
@@ -87,7 +91,11 @@ export const customerMutationResolvers = {
 
       return {
         customer: result.customerId
-          ? await CustomerResolver.load(result.customerId, customerFieldInfo, requireContext(ctx))
+          ? await CustomerResolver.load(
+              result.customerId,
+              customerFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         userErrors: result.userErrors,
       };

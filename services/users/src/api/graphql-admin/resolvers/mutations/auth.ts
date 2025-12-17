@@ -1,17 +1,17 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import type { ServiceContext } from "../../../../context/index.js";
 import { CustomerResolver } from "../../../../resolvers/admin/CustomerResolver.js";
 import {
-  SignUpScript,
-  SignInScript,
-  SignOutScript,
-  TokenRefreshScript,
+  EmailVerifyScript,
+  PasswordChangeScript,
   PasswordResetRequestScript,
   PasswordResetScript,
-  PasswordChangeScript,
   ProfileUpdateScript,
-  EmailVerifyScript,
+  SignInScript,
+  SignOutScript,
+  SignUpScript,
+  TokenRefreshScript,
 } from "../../../../scripts/auth/index.js";
-import type { ServiceContext } from "../../../../context/index.js";
 import { noKernelError, requireContext } from "../utils.js";
 
 // Input types
@@ -87,7 +87,11 @@ export const authMutationResolvers = {
 
       return {
         customer: result.customerId
-          ? await CustomerResolver.load(result.customerId, customerFieldInfo, requireContext(ctx))
+          ? await CustomerResolver.load(
+              result.customerId,
+              customerFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         token: result.token ?? null,
         userErrors: result.userErrors,
@@ -114,7 +118,11 @@ export const authMutationResolvers = {
 
       return {
         customer: result.customerId
-          ? await CustomerResolver.load(result.customerId, customerFieldInfo, requireContext(ctx))
+          ? await CustomerResolver.load(
+              result.customerId,
+              customerFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         token: result.token ?? null,
         userErrors: result.userErrors,
@@ -219,7 +227,9 @@ export const authMutationResolvers = {
       if (!customerId) {
         return {
           success: false,
-          userErrors: [{ message: "Not authenticated", code: "UNAUTHENTICATED" }],
+          userErrors: [
+            { message: "Not authenticated", code: "UNAUTHENTICATED" },
+          ],
         };
       }
 
@@ -251,7 +261,9 @@ export const authMutationResolvers = {
       if (!customerId) {
         return {
           customer: null,
-          userErrors: [{ message: "Not authenticated", code: "UNAUTHENTICATED" }],
+          userErrors: [
+            { message: "Not authenticated", code: "UNAUTHENTICATED" },
+          ],
         };
       }
 
@@ -260,7 +272,7 @@ export const authMutationResolvers = {
         firstName: input.firstName ?? undefined,
         lastName: input.lastName ?? undefined,
         phone: input.phone ?? undefined,
-        locale: input.locale as "uk" | "en" | "ru" | "de" | "fr" | "es" | "pl" | undefined,
+        language: input.locale ?? undefined,
         avatar: input.avatar ?? undefined,
       });
 
@@ -268,7 +280,11 @@ export const authMutationResolvers = {
 
       return {
         customer: result.customerId
-          ? await CustomerResolver.load(result.customerId, customerFieldInfo, requireContext(ctx))
+          ? await CustomerResolver.load(
+              result.customerId,
+              customerFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         userErrors: result.userErrors,
       };
@@ -323,7 +339,11 @@ export const authMutationResolvers = {
       return {
         success: result.success,
         customer: result.customerId
-          ? await CustomerResolver.load(result.customerId, customerFieldInfo, requireContext(ctx))
+          ? await CustomerResolver.load(
+              result.customerId,
+              customerFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         userErrors: result.userErrors,
       };

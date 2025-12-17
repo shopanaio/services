@@ -1,4 +1,3 @@
-import type { LocaleCode } from "../../../resolvers/admin/interfaces/index.js";
 import type { CustomerResultBase } from "./shared.js";
 
 /**
@@ -10,7 +9,7 @@ export interface CustomerUpdateParams {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   isForbidden?: boolean;
 }
 

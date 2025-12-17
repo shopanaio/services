@@ -1,17 +1,16 @@
+import type { User } from "@shopana/casdoor-node-sdk";
 import type { CoreProject, CoreUser } from "@shopana/platform-api";
 import type { Kernel } from "../kernel/Kernel.js";
-import type { UserData } from "../repositories/user/UserRepository.js";
-import type { CustomerData } from "../repositories/customer/CustomerRepository.js";
 
 /**
  * DataLoaders for users service
  */
 export interface Loader {
   user: {
-    load: (id: string) => Promise<UserData | null>;
+    load: (id: string) => Promise<User | null>;
   };
   customer: {
-    load: (id: string) => Promise<CustomerData | null>;
+    load: (id: string) => Promise<User | null>;
   };
 }
 

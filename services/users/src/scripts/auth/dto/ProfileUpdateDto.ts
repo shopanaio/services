@@ -1,4 +1,3 @@
-import type { LocaleCode } from "../../../resolvers/admin/interfaces/index.js";
 import type { AuthResultBase } from "./shared.js";
 
 /**
@@ -9,7 +8,7 @@ export interface ProfileUpdateParams {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   avatar?: string;
 }
 

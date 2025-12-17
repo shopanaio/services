@@ -3,7 +3,7 @@ import type { CustomerCreateParams, CustomerCreateResult } from "./dto/index.js"
 
 export class CustomerCreateScript extends BaseScript<CustomerCreateParams, CustomerCreateResult> {
   protected async execute(params: CustomerCreateParams): Promise<CustomerCreateResult> {
-    const { email, password, firstName, lastName, phone, locale } = params;
+    const { email, password, firstName, lastName, phone, language } = params;
 
     // 1. Check if customer with this email already exists
     const existingCustomer = await this.repository.customer.findByEmail(email);
@@ -25,7 +25,7 @@ export class CustomerCreateScript extends BaseScript<CustomerCreateParams, Custo
       firstName,
       lastName,
       phone,
-      locale,
+      language,
     });
 
     this.logger.info({ customerId: customer.id, email }, "Customer created");

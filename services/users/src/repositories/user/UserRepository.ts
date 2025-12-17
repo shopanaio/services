@@ -1,29 +1,5 @@
-import type { Role as CasdoorRole, User } from "@shopana/casdoor-node-sdk";
+import type { User } from "@shopana/casdoor-node-sdk";
 import type { CasdoorService } from "@shopana/shared-casdoor";
-import type {
-  LocaleCode,
-  Role,
-} from "../../resolvers/admin/interfaces/index.js";
-
-/**
- * User data structure returned by repository
- */
-export interface UserData {
-  id: string;
-  email: string;
-  emailVerified: boolean;
-  firstName: string | null;
-  lastName: string | null;
-  avatar: string | null;
-  phone: string | null;
-  locale: LocaleCode | null;
-  isAdmin: boolean;
-  isForbidden: boolean;
-  isDeleted: boolean;
-  roles: Role[];
-  createdAt: string;
-  updatedAt: string;
-}
 
 /**
  * User create input
@@ -34,7 +10,7 @@ export interface UserCreateInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   isAdmin?: boolean;
   roles?: string[];
 }
@@ -47,14 +23,18 @@ export interface UserUpdateInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   isAdmin?: boolean;
   isForbidden?: boolean;
   roles?: string[];
 }
 
+// Re-export User type from SDK
+export type { User };
+
 /**
  * Repository for admin users (CMS/backoffice)
+ * Returns User type from @shopana/casdoor-node-sdk
  */
 export class UserRepository {
   constructor(
@@ -62,42 +42,6 @@ export class UserRepository {
     private readonly organization: string,
     private readonly application: string
   ) {}
-
-  /**
-   * Convert Casdoor user to UserData
-   */
-  private toUserData(user: User): UserData {
-    return {
-      id: user.id || user.name,
-      email: user.email,
-      emailVerified: user.emailVerified ?? false,
-      firstName: user.firstName || null,
-      lastName: user.lastName || null,
-      avatar: user.avatar || null,
-      phone: user.phone || null,
-      locale: (user.language as LocaleCode) || null,
-      isAdmin: user.isAdmin ?? false,
-      isForbidden: user.isForbidden ?? false,
-      isDeleted: user.isDeleted ?? false,
-      roles: this.mapRoles(user.roles),
-      createdAt: user.createdTime,
-      updatedAt: user.updatedTime,
-    };
-  }
-
-  /**
-   * Map Casdoor roles to our Role interface
-   */
-  private mapRoles(roles?: CasdoorRole[]): Role[] {
-    if (!roles) return [];
-    return roles.map((r) => ({
-      owner: r.owner,
-      name: r.name,
-      displayName: r.displayName || null,
-      description: r.description || null,
-      isEnabled: r.isEnabled ?? true,
-    }));
-  }
 
   /**
    * Get username from email (Casdoor convention)
@@ -109,50 +53,46 @@ export class UserRepository {
   /**
    * Find user by ID
    */
-  async findById(id: string): Promise<UserData | null> {
-    const user = await this.casdoor.getOwnUserByUserId(this.organization, id);
-    if (!user) return null;
-    // Only return admin users (not customers)
-    if (user.type !== "admin-user" && user.type !== "normal-user") return null;
-    return this.toUserData(user);
+  async findById(id: string): Promise<User | null> {
+    return this.casdoor.getOwnUserByUserId(this.organization, id);
   }
 
   /**
    * Find user by email
    */
-  async findByEmail(email: string): Promise<UserData | null> {
-    const user = await this.casdoor.getOwnUserByEmail(this.organization, email);
-    if (!user) return null;
-    return this.toUserData(user);
+  async findByEmail(email: string): Promise<User | null> {
+    return this.casdoor.getOwnUserByEmail(this.organization, email);
   }
 
   /**
-   * Get paginated list of admin users
+   * Find user by name
+   */
+  async findByName(name: string): Promise<User | null> {
+    return this.casdoor.getOwnUser(this.organization, name);
+  }
+
+  /**
+   * Get paginated list of users
    */
   async findMany(options: {
     page: number;
     pageSize: number;
     field?: string;
     value?: string;
-  }): Promise<{ users: UserData[]; total: number }> {
-    const result = await this.casdoor.getOwnPaginationUsers({
+  }): Promise<{ users: User[]; total: number }> {
+    return this.casdoor.getOwnPaginationUsers({
       owner: this.organization,
       page: options.page,
       pageSize: options.pageSize,
       field: options.field,
       value: options.value,
     });
-
-    return {
-      users: result.users.map((u) => this.toUserData(u)),
-      total: result.total,
-    };
   }
 
   /**
-   * Create a new admin user
+   * Create a new user
    */
-  async create(input: UserCreateInput): Promise<UserData> {
+  async create(input: UserCreateInput): Promise<User> {
     const userName = this.getUserName(input.email);
 
     const userData: Partial<User> = {
@@ -163,7 +103,7 @@ export class UserRepository {
       firstName: input.firstName || "",
       lastName: input.lastName || "",
       phone: input.phone || "",
-      language: input.locale || "uk",
+      language: input.language || "uk",
       isAdmin: input.isAdmin ?? false,
       type: "normal-user",
       signupApplication: this.application,
@@ -174,7 +114,6 @@ export class UserRepository {
       throw new Error("Failed to create user");
     }
 
-    // Fetch the created user
     const user = await this.findByEmail(input.email);
     if (!user) {
       throw new Error("User created but not found");
@@ -186,7 +125,7 @@ export class UserRepository {
   /**
    * Update an existing user
    */
-  async update(id: string, input: UserUpdateInput): Promise<UserData> {
+  async update(id: string, input: UserUpdateInput): Promise<User> {
     const existingUser = await this.casdoor.getOwnUserByUserId(
       this.organization,
       id
@@ -202,7 +141,7 @@ export class UserRepository {
       ...(input.firstName !== undefined && { firstName: input.firstName }),
       ...(input.lastName !== undefined && { lastName: input.lastName }),
       ...(input.phone !== undefined && { phone: input.phone }),
-      ...(input.locale !== undefined && { language: input.locale }),
+      ...(input.language !== undefined && { language: input.language }),
       ...(input.isAdmin !== undefined && { isAdmin: input.isAdmin }),
       ...(input.isForbidden !== undefined && {
         isForbidden: input.isForbidden,

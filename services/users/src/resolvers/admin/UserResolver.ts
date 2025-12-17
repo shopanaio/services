@@ -1,11 +1,12 @@
+import type { Role as CasdoorRole, User } from "@shopana/casdoor-node-sdk";
 import type { Role } from "./interfaces/index.js";
-import type { UserData } from "../../repositories/user/UserRepository.js";
 import { UsersType } from "./UsersType.js";
 
 /**
  * User resolver - resolves admin user domain interface
+ * Uses User type from @shopana/casdoor-node-sdk
  */
-export class UserResolver extends UsersType<string, UserData | null> {
+export class UserResolver extends UsersType<string, User | null> {
   async loadData() {
     return this.ctx.loaders.user.load(this.value);
   }
@@ -39,7 +40,7 @@ export class UserResolver extends UsersType<string, UserData | null> {
   }
 
   async locale() {
-    return this.get("locale");
+    return this.get("language");
   }
 
   async isAdmin() {
@@ -55,14 +56,26 @@ export class UserResolver extends UsersType<string, UserData | null> {
   }
 
   async roles(): Promise<Role[]> {
-    return this.get("roles");
+    const casdoorRoles = await this.get("roles");
+    return this.mapRoles(casdoorRoles);
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.get("createdTime");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.get("updatedTime");
+  }
+
+  private mapRoles(roles?: CasdoorRole[]): Role[] {
+    if (!roles) return [];
+    return roles.map((r) => ({
+      owner: r.owner,
+      name: r.name,
+      displayName: r.displayName || null,
+      description: r.description || null,
+      isEnabled: r.isEnabled ?? true,
+    }));
   }
 }

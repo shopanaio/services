@@ -1,4 +1,3 @@
-import type { LocaleCode } from "../../../resolvers/admin/interfaces/index.js";
 import type { UserResultBase } from "./shared.js";
 
 /**
@@ -10,7 +9,7 @@ export interface UserUpdateParams {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   isAdmin?: boolean;
   isForbidden?: boolean;
   roles?: string[];

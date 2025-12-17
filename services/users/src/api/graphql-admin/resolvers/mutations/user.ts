@@ -1,11 +1,11 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
+import type { ServiceContext } from "../../../../context/index.js";
 import { UserResolver } from "../../../../resolvers/admin/UserResolver.js";
 import {
   UserCreateScript,
-  UserUpdateScript,
   UserDeleteScript,
+  UserUpdateScript,
 } from "../../../../scripts/user/index.js";
-import type { ServiceContext } from "../../../../context/index.js";
 import { noKernelError, requireContext } from "../utils.js";
 
 interface UserCreateInput {
@@ -54,7 +54,7 @@ export const userMutationResolvers = {
         firstName: input.firstName ?? undefined,
         lastName: input.lastName ?? undefined,
         phone: input.phone ?? undefined,
-        locale: input.locale as "uk" | "en" | "ru" | "de" | "fr" | "es" | "pl" | undefined,
+        language: input.locale ?? undefined,
         isAdmin: input.isAdmin ?? undefined,
         roles: input.roles ?? undefined,
       });
@@ -63,7 +63,11 @@ export const userMutationResolvers = {
 
       return {
         user: result.userId
-          ? await UserResolver.load(result.userId, userFieldInfo, requireContext(ctx))
+          ? await UserResolver.load(
+              result.userId,
+              userFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         userErrors: result.userErrors,
       };
@@ -85,7 +89,7 @@ export const userMutationResolvers = {
         firstName: input.firstName ?? undefined,
         lastName: input.lastName ?? undefined,
         phone: input.phone ?? undefined,
-        locale: input.locale as "uk" | "en" | "ru" | "de" | "fr" | "es" | "pl" | undefined,
+        language: input.locale ?? undefined,
         isAdmin: input.isAdmin ?? undefined,
         isForbidden: input.isForbidden ?? undefined,
         roles: input.roles ?? undefined,
@@ -95,7 +99,11 @@ export const userMutationResolvers = {
 
       return {
         user: result.userId
-          ? await UserResolver.load(result.userId, userFieldInfo, requireContext(ctx))
+          ? await UserResolver.load(
+              result.userId,
+              userFieldInfo,
+              requireContext(ctx)
+            )
           : null,
         userErrors: result.userErrors,
       };

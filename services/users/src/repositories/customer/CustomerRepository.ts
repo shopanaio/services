@@ -1,24 +1,5 @@
 import type { User } from "@shopana/casdoor-node-sdk";
 import type { CasdoorService } from "@shopana/shared-casdoor";
-import type { LocaleCode } from "../../resolvers/admin/interfaces/index.js";
-
-/**
- * Customer data structure returned by repository
- */
-export interface CustomerData {
-  id: string;
-  email: string;
-  emailVerified: boolean;
-  firstName: string | null;
-  lastName: string | null;
-  avatar: string | null;
-  phone: string | null;
-  locale: LocaleCode | null;
-  isForbidden: boolean;
-  isDeleted: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
 
 /**
  * Customer create input
@@ -29,7 +10,7 @@ export interface CustomerCreateInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
 }
 
 /**
@@ -40,13 +21,17 @@ export interface CustomerUpdateInput {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  locale?: LocaleCode;
+  language?: string;
   avatar?: string;
   isForbidden?: boolean;
 }
 
+// Re-export User type from SDK as Customer alias
+export type { User as Customer };
+
 /**
  * Repository for storefront customers
+ * Returns User type from @shopana/casdoor-node-sdk
  */
 export class CustomerRepository {
   constructor(
@@ -54,26 +39,6 @@ export class CustomerRepository {
     private readonly organization: string,
     private readonly application: string
   ) {}
-
-  /**
-   * Convert Casdoor user to CustomerData
-   */
-  private toCustomerData(user: User): CustomerData {
-    return {
-      id: user.id || user.name,
-      email: user.email,
-      emailVerified: user.emailVerified ?? false,
-      firstName: user.firstName || null,
-      lastName: user.lastName || null,
-      avatar: user.avatar || null,
-      phone: user.phone || null,
-      locale: (user.language as LocaleCode) || null,
-      isForbidden: user.isForbidden ?? false,
-      isDeleted: user.isDeleted ?? false,
-      createdAt: user.createdTime,
-      updatedAt: user.updatedTime,
-    };
-  }
 
   /**
    * Get username from email (Casdoor convention)
@@ -85,19 +50,22 @@ export class CustomerRepository {
   /**
    * Find customer by ID
    */
-  async findById(id: string): Promise<CustomerData | null> {
-    const user = await this.casdoor.getOwnUserByUserId(this.organization, id);
-    if (!user) return null;
-    return this.toCustomerData(user);
+  async findById(id: string): Promise<User | null> {
+    return this.casdoor.getOwnUserByUserId(this.organization, id);
   }
 
   /**
    * Find customer by email
    */
-  async findByEmail(email: string): Promise<CustomerData | null> {
-    const user = await this.casdoor.getOwnUserByEmail(this.organization, email);
-    if (!user) return null;
-    return this.toCustomerData(user);
+  async findByEmail(email: string): Promise<User | null> {
+    return this.casdoor.getOwnUserByEmail(this.organization, email);
+  }
+
+  /**
+   * Find customer by name
+   */
+  async findByName(name: string): Promise<User | null> {
+    return this.casdoor.getOwnUser(this.organization, name);
   }
 
   /**
@@ -108,25 +76,20 @@ export class CustomerRepository {
     pageSize: number;
     field?: string;
     value?: string;
-  }): Promise<{ customers: CustomerData[]; total: number }> {
-    const result = await this.casdoor.getOwnPaginationUsers({
+  }): Promise<{ users: User[]; total: number }> {
+    return this.casdoor.getOwnPaginationUsers({
       owner: this.organization,
       page: options.page,
       pageSize: options.pageSize,
       field: options.field,
       value: options.value,
     });
-
-    return {
-      customers: result.users.map((u) => this.toCustomerData(u)),
-      total: result.total,
-    };
   }
 
   /**
    * Create a new customer
    */
-  async create(input: CustomerCreateInput): Promise<CustomerData> {
+  async create(input: CustomerCreateInput): Promise<User> {
     const userName = this.getUserName(input.email);
 
     const userData: Partial<User> = {
@@ -137,7 +100,7 @@ export class CustomerRepository {
       firstName: input.firstName || "",
       lastName: input.lastName || "",
       phone: input.phone || "",
-      language: input.locale || "uk",
+      language: input.language || "uk",
       type: "normal-user",
       signupApplication: this.application,
     };
@@ -158,7 +121,7 @@ export class CustomerRepository {
   /**
    * Update an existing customer
    */
-  async update(id: string, input: CustomerUpdateInput): Promise<CustomerData> {
+  async update(id: string, input: CustomerUpdateInput): Promise<User> {
     const existingUser = await this.casdoor.getOwnUserByUserId(
       this.organization,
       id
@@ -174,7 +137,7 @@ export class CustomerRepository {
       ...(input.firstName !== undefined && { firstName: input.firstName }),
       ...(input.lastName !== undefined && { lastName: input.lastName }),
       ...(input.phone !== undefined && { phone: input.phone }),
-      ...(input.locale !== undefined && { language: input.locale }),
+      ...(input.language !== undefined && { language: input.language }),
       ...(input.avatar !== undefined && { avatar: input.avatar }),
       ...(input.isForbidden !== undefined && {
         isForbidden: input.isForbidden,

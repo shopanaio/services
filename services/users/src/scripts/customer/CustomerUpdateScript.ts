@@ -3,7 +3,7 @@ import type { CustomerUpdateParams, CustomerUpdateResult } from "./dto/index.js"
 
 export class CustomerUpdateScript extends BaseScript<CustomerUpdateParams, CustomerUpdateResult> {
   protected async execute(params: CustomerUpdateParams): Promise<CustomerUpdateResult> {
-    const { id, email, firstName, lastName, phone, locale, isForbidden } = params;
+    const { id, email, firstName, lastName, phone, language, isForbidden } = params;
 
     // 1. Check if customer exists
     const existingCustomer = await this.repository.customer.findById(id);
@@ -39,7 +39,7 @@ export class CustomerUpdateScript extends BaseScript<CustomerUpdateParams, Custo
       firstName,
       lastName,
       phone,
-      locale,
+      language,
       isForbidden,
     });
 

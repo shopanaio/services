@@ -3,7 +3,7 @@ import type { UserUpdateParams, UserUpdateResult } from "./dto/index.js";
 
 export class UserUpdateScript extends BaseScript<UserUpdateParams, UserUpdateResult> {
   protected async execute(params: UserUpdateParams): Promise<UserUpdateResult> {
-    const { id, email, firstName, lastName, phone, locale, isAdmin, isForbidden, roles } = params;
+    const { id, email, firstName, lastName, phone, language, isAdmin, isForbidden, roles } = params;
 
     // 1. Check if user exists
     const existingUser = await this.repository.user.findById(id);
@@ -39,7 +39,7 @@ export class UserUpdateScript extends BaseScript<UserUpdateParams, UserUpdateRes
       firstName,
       lastName,
       phone,
-      locale,
+      language,
       isAdmin,
       isForbidden,
       roles,

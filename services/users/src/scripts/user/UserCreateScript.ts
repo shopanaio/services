@@ -3,7 +3,7 @@ import type { UserCreateParams, UserCreateResult } from "./dto/index.js";
 
 export class UserCreateScript extends BaseScript<UserCreateParams, UserCreateResult> {
   protected async execute(params: UserCreateParams): Promise<UserCreateResult> {
-    const { email, password, firstName, lastName, phone, locale, isAdmin, roles } = params;
+    const { email, password, firstName, lastName, phone, language, isAdmin, roles } = params;
 
     // 1. Check if user with this email already exists
     const existingUser = await this.repository.user.findByEmail(email);
@@ -25,7 +25,7 @@ export class UserCreateScript extends BaseScript<UserCreateParams, UserCreateRes
       firstName,
       lastName,
       phone,
-      locale,
+      language,
       isAdmin,
       roles,
     });

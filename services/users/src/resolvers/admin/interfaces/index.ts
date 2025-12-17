@@ -1,12 +1,20 @@
 /**
  * Admin view interfaces
  *
- * Simple value types (manual interfaces) and derived types from Resolver classes
+ * Re-export types from Casdoor SDK and define view-specific types
  */
 
 import type { TypeResult } from "@shopana/type-resolver";
+import type { Role as CasdoorRole, User as CasdoorUser } from "@shopana/casdoor-node-sdk";
 import type { CustomerResolver } from "../CustomerResolver.js";
 import type { UserResolver } from "../UserResolver.js";
+
+// ============================================================================
+// Re-export types from Casdoor SDK
+// ============================================================================
+
+/** User type from Casdoor SDK */
+export type { User as CasdoorUser, Role as CasdoorRole } from "@shopana/casdoor-node-sdk";
 
 // ============================================================================
 // Derived types from Resolver classes (auto-generated from TypeResult)
@@ -19,14 +27,14 @@ export type User = TypeResult<typeof UserResolver>;
 export type Customer = TypeResult<typeof CustomerResolver>;
 
 // ============================================================================
-// Simple value types (manual interfaces - no resolvers for these)
+// Simple value types (view-specific)
 // ============================================================================
 
 /** Supported locale codes */
 export type LocaleCode = "en" | "uk" | "ru" | "de" | "fr" | "es" | "pl";
 
 /**
- * Role assigned to a user
+ * Role view type (simplified from CasdoorRole)
  */
 export interface Role {
   /** Role owner (organization) */

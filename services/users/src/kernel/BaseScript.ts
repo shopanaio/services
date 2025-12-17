@@ -1,5 +1,5 @@
-import type { UsersKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
+import type { UsersKernelServices } from "./types.js";
 
 export interface UserError {
   message: string;
