@@ -1,15 +1,6 @@
 # ---- Pricing Types ----
 
 """
-Supported currency codes.
-"""
-enum CurrencyCode {
-  UAH
-  USD
-  EUR
-}
-
-"""
 Represents a price for a variant.
 """
 type VariantPrice implements Node {
@@ -170,4 +161,3 @@ type VariantSetCostPayload {
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
 }
-

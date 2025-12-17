@@ -1,11 +1,18 @@
 {
   "entryPoint": "src/apps.module.ts",
   "graphql": {
-    "admin": "src/api/schema/**/*.graphql"
+    "admin": [
+      "src/api/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ]
   },
   "assets": [
     {
       "include": "src/api/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/**/*.graphql",
       "outDir": "dist/schema"
     }
   ]

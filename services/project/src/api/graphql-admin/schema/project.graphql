@@ -87,7 +87,17 @@ input ProjectDeleteInput {
 }
 
 """Represents a user-facing error"""
-type UserError {
+interface UserError {
+  """Human-readable error message"""
+  message: String!
+  """Path to the field that caused the error"""
+  field: [String!]
+  """Machine-readable error code"""
+  code: String
+}
+
+"""Generic implementation of UserError"""
+type GenericUserError implements UserError @shareable {
   """Human-readable error message"""
   message: String!
   """Path to the field that caused the error"""

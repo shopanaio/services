@@ -1,11 +1,18 @@
 {
   "entryPoint": "src/checkout.module.ts",
   "graphql": {
-    "storefront": "src/interfaces/gql-storefront-api/schema/**/*.graphql"
+    "storefront": [
+      "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ]
   },
   "assets": [
     {
       "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/**/*.graphql",
       "outDir": "dist/schema"
     }
   ]

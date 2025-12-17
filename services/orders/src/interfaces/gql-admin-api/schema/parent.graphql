@@ -26,13 +26,6 @@ extend type Tag @key(fields: "id") {
   id: ID! @external
 }
 
-enum WeightUnit {
-  GR
-  KG
-  LB
-  OZ
-}
-
 type Weight {
   weight: Float!
   unit: WeightUnit!

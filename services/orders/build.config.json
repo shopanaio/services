@@ -1,8 +1,14 @@
 {
   "entryPoint": "src/orders.module.ts",
   "graphql": {
-    "admin": "src/interfaces/gql-admin-api/schema/**/*.graphql",
-    "storefront": "src/interfaces/gql-storefront-api/schema/**/*.graphql"
+    "admin": [
+      "src/interfaces/gql-admin-api/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ],
+    "storefront": [
+      "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "../../packages/shared-references/graphql/**/*.graphql"
+    ]
   },
   "assets": [
     {
@@ -12,6 +18,10 @@
     {
       "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",
       "outDir": "dist/schema/storefront"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/**/*.graphql",
+      "outDir": "dist/schema"
     }
   ]
 }

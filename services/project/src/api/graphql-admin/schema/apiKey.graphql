@@ -1,5 +1,5 @@
 """API key for programmatic access to the project"""
-type ApiKey {
+type ApiKey @key(fields: "id") {
   """Unique identifier of the API key"""
   id: ID!
   """Human-readable name for the API key"""
