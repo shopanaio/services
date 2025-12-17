@@ -1,14 +1,8 @@
 // Schema
 export * from "./schema";
 
-// Project
+// Project, Locale, Currency (combined to avoid circular dependencies)
 export * from "./project";
-
-// Locale
-export * from "./locale";
-
-// Currency
-export * from "./currency";
 
 // API Key
 export * from "./apiKey";

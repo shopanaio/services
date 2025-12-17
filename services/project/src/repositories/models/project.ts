@@ -4,12 +4,12 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  primaryKey,
   foreignKey,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { projectSchema } from "./schema";
-import { locale } from "./locale";
-import { currency } from "./currency";
 import {
   weightUnitEnum,
   dimensionUnitEnum,
@@ -37,6 +37,68 @@ export {
   type LocaleCode,
 };
 
+// Locale table (defined first to break circular reference)
+export const locale = projectSchema.table(
+  "locale",
+  (t) => ({
+    projectId: t
+      .uuid("project_id")
+      .notNull()
+      .references((): AnyPgColumn => project.id, { onDelete: "cascade" }),
+    code: t.varchar("code", { length: 10 }).notNull(),
+    isActive: t.boolean("is_active").notNull().default(true),
+    createdAt: t
+      .timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: t
+      .timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.code] }),
+    index("idx_locale_project_id").on(table.projectId),
+    index("idx_locale_is_active").on(table.isActive),
+  ]
+);
+
+// Currency table (defined first to break circular reference)
+export const currency = projectSchema.table(
+  "currency",
+  (t) => ({
+    projectId: t
+      .uuid("project_id")
+      .notNull()
+      .references((): AnyPgColumn => project.id, { onDelete: "cascade" }),
+    code: t.varchar("code", { length: 3 }).notNull(),
+    isActive: t.boolean("is_active").notNull().default(true),
+    exchangeRateAmount: t
+      .bigint("exchange_rate_amount", { mode: "bigint" })
+      .notNull()
+      .default(sql`1`),
+    exchangeRateScale: t
+      .integer("exchange_rate_scale")
+      .notNull()
+      .default(0),
+    exchangeRate: t.real("exchange_rate").notNull().default(1),
+    createdAt: t
+      .timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: t
+      .timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.code] }),
+    index("idx_currency_project_id").on(table.projectId),
+    index("idx_currency_is_active").on(table.isActive),
+  ]
+);
+
+// Project table (main table with FK constraints to locale and currency)
 export const project = projectSchema.table(
   "project",
   {
@@ -48,9 +110,15 @@ export const project = projectSchema.table(
     email: varchar("email", { length: 255 }),
     defaultLocale: localeCodeEnum("default_locale").notNull().default("en"),
     baseCurrency: currencyCodeEnum("base_currency").notNull().default("USD"),
-    defaultCurrency: currencyCodeEnum("default_currency").notNull().default("USD"),
-    defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull().default("g"),
-    defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull().default("mm"),
+    defaultCurrency: currencyCodeEnum("default_currency")
+      .notNull()
+      .default("USD"),
+    defaultWeightUnit: weightUnitEnum("default_weight_unit")
+      .notNull()
+      .default("g"),
+    defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit")
+      .notNull()
+      .default("mm"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -71,14 +139,17 @@ export const project = projectSchema.table(
     foreignKey({
       columns: [table.id, table.defaultLocale],
       foreignColumns: [locale.projectId, locale.code],
+      name: "project_id_default_locale_locale_project_id_code_fk",
     }),
     foreignKey({
       columns: [table.id, table.baseCurrency],
       foreignColumns: [currency.projectId, currency.code],
+      name: "project_id_base_currency_currency_project_id_code_fk",
     }),
     foreignKey({
       columns: [table.id, table.defaultCurrency],
       foreignColumns: [currency.projectId, currency.code],
+      name: "project_id_default_currency_currency_project_id_code_fk",
     }),
   ]
 );
@@ -86,3 +157,9 @@ export const project = projectSchema.table(
 export type Project = typeof project.$inferSelect;
 export type NewProject = typeof project.$inferInsert;
 export type ProjectStatus = "active" | "inactive";
+
+export type Locale = typeof locale.$inferSelect;
+export type NewLocale = typeof locale.$inferInsert;
+
+export type Currency = typeof currency.$inferSelect;
+export type NewCurrency = typeof currency.$inferInsert;

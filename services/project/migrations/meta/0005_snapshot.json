@@ -1,0 +1,965 @@
+{
+  "id": "69bf53d4-48a8-4dec-b7e0-05fa834a101a",
+  "prevId": "e9c41f1f-1d75-424c-af30-564c97cd4527",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "project.api_key": {
+      "name": "api_key",
+      "schema": "project",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_id": {
+          "name": "created_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_used_at": {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_banned": {
+          "name": "is_banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "api_key_key_unique": {
+          "name": "api_key_key_unique",
+          "columns": [
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_api_key_project_id": {
+          "name": "idx_api_key_project_id",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_api_key_created_by_id": {
+          "name": "idx_api_key_created_by_id",
+          "columns": [
+            {
+              "expression": "created_by_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_api_key_deleted_at": {
+          "name": "idx_api_key_deleted_at",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "deleted_at IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "api_key_project_id_project_id_fk": {
+          "name": "api_key_project_id_project_id_fk",
+          "tableFrom": "api_key",
+          "tableTo": "project",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "project.currency": {
+      "name": "currency",
+      "schema": "project",
+      "columns": {
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "exchange_rate_amount": {
+          "name": "exchange_rate_amount",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "1"
+        },
+        "exchange_rate_scale": {
+          "name": "exchange_rate_scale",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "exchange_rate": {
+          "name": "exchange_rate",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_currency_project_id": {
+          "name": "idx_currency_project_id",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_currency_is_active": {
+          "name": "idx_currency_is_active",
+          "columns": [
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "currency_project_id_project_id_fk": {
+          "name": "currency_project_id_project_id_fk",
+          "tableFrom": "currency",
+          "tableTo": "project",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "currency_project_id_code_pk": {
+          "name": "currency_project_id_code_pk",
+          "columns": [
+            "project_id",
+            "code"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "project.locale": {
+      "name": "locale",
+      "schema": "project",
+      "columns": {
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_locale_project_id": {
+          "name": "idx_locale_project_id",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_locale_is_active": {
+          "name": "idx_locale_is_active",
+          "columns": [
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "locale_project_id_project_id_fk": {
+          "name": "locale_project_id_project_id_fk",
+          "tableFrom": "locale",
+          "tableTo": "project",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "locale_project_id_code_pk": {
+          "name": "locale_project_id_code_pk",
+          "columns": [
+            "project_id",
+            "code"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "project.project": {
+      "name": "project",
+      "schema": "project",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "project_status",
+          "typeSchema": "project",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "default_locale": {
+          "name": "default_locale",
+          "type": "locale_code",
+          "typeSchema": "reference",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "base_currency": {
+          "name": "base_currency",
+          "type": "currency_code",
+          "typeSchema": "reference",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "default_currency": {
+          "name": "default_currency",
+          "type": "currency_code",
+          "typeSchema": "reference",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "default_weight_unit": {
+          "name": "default_weight_unit",
+          "type": "weight_unit",
+          "typeSchema": "reference",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'g'"
+        },
+        "default_dimension_unit": {
+          "name": "default_dimension_unit",
+          "type": "dimension_unit",
+          "typeSchema": "reference",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'mm'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "project_slug_key": {
+          "name": "project_slug_key",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_project_status": {
+          "name": "idx_project_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_project_created_at": {
+          "name": "idx_project_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_project_deleted_at": {
+          "name": "idx_project_deleted_at",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "deleted_at IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "project_id_default_locale_locale_project_id_code_fk": {
+          "name": "project_id_default_locale_locale_project_id_code_fk",
+          "tableFrom": "project",
+          "tableTo": "locale",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "id",
+            "default_locale"
+          ],
+          "columnsTo": [
+            "project_id",
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "project_id_base_currency_currency_project_id_code_fk": {
+          "name": "project_id_base_currency_currency_project_id_code_fk",
+          "tableFrom": "project",
+          "tableTo": "currency",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "id",
+            "base_currency"
+          ],
+          "columnsTo": [
+            "project_id",
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "project_id_default_currency_currency_project_id_code_fk": {
+          "name": "project_id_default_currency_currency_project_id_code_fk",
+          "tableFrom": "project",
+          "tableTo": "currency",
+          "schemaTo": "project",
+          "columnsFrom": [
+            "id",
+            "default_currency"
+          ],
+          "columnsTo": [
+            "project_id",
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "reference.currency_code": {
+      "name": "currency_code",
+      "schema": "reference",
+      "values": [
+        "AED",
+        "AFN",
+        "ALL",
+        "AMD",
+        "ANG",
+        "AOA",
+        "ARS",
+        "AUD",
+        "AWG",
+        "AZN",
+        "BAM",
+        "BBD",
+        "BDT",
+        "BGN",
+        "BHD",
+        "BIF",
+        "BMD",
+        "BND",
+        "BOB",
+        "BRL",
+        "BSD",
+        "BTN",
+        "BWP",
+        "BYN",
+        "BZD",
+        "CAD",
+        "CDF",
+        "CHF",
+        "CLP",
+        "CNY",
+        "COP",
+        "CRC",
+        "CUP",
+        "CVE",
+        "CZK",
+        "DJF",
+        "DKK",
+        "DOP",
+        "DZD",
+        "EGP",
+        "ERN",
+        "ETB",
+        "EUR",
+        "FJD",
+        "FKP",
+        "FOK",
+        "GBP",
+        "GEL",
+        "GGP",
+        "GHS",
+        "GIP",
+        "GMD",
+        "GNF",
+        "GTQ",
+        "GYD",
+        "HKD",
+        "HNL",
+        "HRK",
+        "HTG",
+        "HUF",
+        "IDR",
+        "ILS",
+        "IMP",
+        "INR",
+        "IQD",
+        "IRR",
+        "ISK",
+        "JEP",
+        "JMD",
+        "JOD",
+        "JPY",
+        "KES",
+        "KGS",
+        "KHR",
+        "KMF",
+        "KPW",
+        "KRW",
+        "KWD",
+        "KYD",
+        "KZT",
+        "LAK",
+        "LBP",
+        "LKR",
+        "LRD",
+        "LSL",
+        "LYD",
+        "MAD",
+        "MDL",
+        "MGA",
+        "MKD",
+        "MMK",
+        "MNT",
+        "MOP",
+        "MRU",
+        "MUR",
+        "MVR",
+        "MWK",
+        "MXN",
+        "MYR",
+        "MZN",
+        "NAD",
+        "NGN",
+        "NIO",
+        "NOK",
+        "NPR",
+        "NZD",
+        "OMR",
+        "PAB",
+        "PEN",
+        "PGK",
+        "PHP",
+        "PKR",
+        "PLN",
+        "PYG",
+        "QAR",
+        "RON",
+        "RSD",
+        "RUB",
+        "RWF",
+        "SAR",
+        "SBD",
+        "SCR",
+        "SDG",
+        "SEK",
+        "SGD",
+        "SHP",
+        "SLE",
+        "SOS",
+        "SRD",
+        "SSP",
+        "STN",
+        "SVC",
+        "SYP",
+        "SZL",
+        "THB",
+        "TJS",
+        "TMT",
+        "TND",
+        "TOP",
+        "TRY",
+        "TTD",
+        "TWD",
+        "TZS",
+        "UAH",
+        "UGX",
+        "USD",
+        "UYU",
+        "UZS",
+        "VES",
+        "VND",
+        "VUV",
+        "WST",
+        "XAF",
+        "XCD",
+        "XDR",
+        "XOF",
+        "XPF",
+        "YER",
+        "ZAR",
+        "ZMW",
+        "ZWL"
+      ]
+    },
+    "reference.dimension_unit": {
+      "name": "dimension_unit",
+      "schema": "reference",
+      "values": [
+        "mm",
+        "cm",
+        "m",
+        "in",
+        "ft"
+      ]
+    },
+    "reference.locale_code": {
+      "name": "locale_code",
+      "schema": "reference",
+      "values": [
+        "ak",
+        "sq",
+        "am",
+        "ar",
+        "hy",
+        "as",
+        "az",
+        "bm",
+        "bn",
+        "eu",
+        "be",
+        "bs",
+        "br",
+        "bg",
+        "my",
+        "ca",
+        "ckb",
+        "ce",
+        "zh-CN",
+        "zh-TW",
+        "kw",
+        "hr",
+        "cs",
+        "da",
+        "nl",
+        "dz",
+        "en",
+        "eo",
+        "et",
+        "ee",
+        "fo",
+        "fil",
+        "fi",
+        "fr",
+        "ff",
+        "gl",
+        "lg",
+        "ka",
+        "de",
+        "el",
+        "gu",
+        "ha",
+        "he",
+        "hi",
+        "hu",
+        "is",
+        "ig",
+        "id",
+        "ia",
+        "ga",
+        "it",
+        "ja",
+        "jv",
+        "kl",
+        "kn",
+        "ks",
+        "kk",
+        "km",
+        "ki",
+        "rw",
+        "ko",
+        "ku",
+        "ky",
+        "lo",
+        "lv",
+        "ln",
+        "lt",
+        "lu",
+        "lb",
+        "mk",
+        "mg",
+        "ms",
+        "ml",
+        "mt",
+        "gv",
+        "mr",
+        "mn",
+        "mi",
+        "ne",
+        "nd",
+        "se",
+        "no",
+        "nb",
+        "nn",
+        "or",
+        "om",
+        "os",
+        "ps",
+        "fa",
+        "pl",
+        "pt-BR",
+        "pt-PT",
+        "pa",
+        "qu",
+        "ro",
+        "rm",
+        "rn",
+        "ru",
+        "sg",
+        "sa",
+        "sc",
+        "gd",
+        "sr",
+        "sn",
+        "ii",
+        "sd",
+        "si",
+        "sk",
+        "sl",
+        "so",
+        "es",
+        "su",
+        "sw",
+        "sv",
+        "tg",
+        "ta",
+        "tt",
+        "te",
+        "th",
+        "bo",
+        "ti",
+        "to",
+        "tr",
+        "tk",
+        "uk",
+        "ur",
+        "ug",
+        "uz",
+        "vi",
+        "cy",
+        "fy",
+        "wo",
+        "xh",
+        "yi",
+        "yo",
+        "zu"
+      ]
+    },
+    "project.project_status": {
+      "name": "project_status",
+      "schema": "project",
+      "values": [
+        "active",
+        "inactive"
+      ]
+    },
+    "reference.weight_unit": {
+      "name": "weight_unit",
+      "schema": "reference",
+      "values": [
+        "kg",
+        "g",
+        "lb",
+        "oz"
+      ]
+    }
+  },
+  "schemas": {
+    "project": "project",
+    "reference": "reference"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

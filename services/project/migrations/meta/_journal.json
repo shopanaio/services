@@ -29,6 +29,20 @@
       "when": 1765975520583,
       "tag": "0003_currency_foreign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765975737891,
+      "tag": "0004_currency_foreign_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765975859075,
+      "tag": "0005_currency_foreign_keys",
+      "breakpoints": true
     }
   ]
 }
