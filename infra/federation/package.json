@@ -6,17 +6,21 @@
   "type": "module",
   "scripts": {
     "schema:export": "tsx scripts/export-schemas.ts",
-    "schema:compose": "hive supergraph compose --config supergraph.yaml --output supergraph.graphql",
-    "schema:build": "yarn schema:export && yarn schema:compose",
-    "gateway:dev": "hive-gateway supergraph --supergraph supergraph.graphql",
-    "dev": "yarn schema:build && yarn gateway:dev"
+    "compose:storefront": "mesh-compose -c mesh-storefront.config.ts -o supergraph-storefront.graphql",
+    "compose:admin": "mesh-compose -c mesh-admin.config.ts -o supergraph-admin.graphql",
+    "compose": "yarn compose:storefront; yarn compose:admin; true",
+    "build": "yarn schema:export; yarn compose",
+    "gateway:storefront": "hive-gateway supergraph supergraph-storefront.graphql -p 4000",
+    "gateway:admin": "hive-gateway supergraph supergraph-admin.graphql -p 4001",
+    "dev:storefront": "yarn schema:export && yarn compose:storefront && yarn gateway:storefront",
+    "dev:admin": "yarn schema:export && yarn compose:admin && yarn gateway:admin"
   },
   "dependencies": {
     "@graphql-hive/gateway": "^1.7.2"
   },
   "devDependencies": {
     "@apollo/subgraph": "^2.9.3",
-    "@graphql-hive/cli": "^0.44.2",
+    "@graphql-mesh/compose-cli": "^1.2.13",
     "glob": "^11.0.0",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
