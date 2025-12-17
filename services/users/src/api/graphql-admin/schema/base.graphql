@@ -28,14 +28,9 @@ extend type Mutation {
 
 type UserQuery {
   """
-  Get a user by ID
-  """
-  user(id: ID!): User
-
-  """
   Get current authenticated admin user
   """
-  me: User
+  current: User
 }
 
 type UserMutation {
