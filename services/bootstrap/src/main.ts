@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { BootstrapModule } from './bootstrap.module';
-import { loadServiceConfig } from '@shopana/shared-service-config';
+import { getConfig } from '@shopana/shared-service-config';
 
 const logger = new Logger('Bootstrap');
 
@@ -14,10 +14,11 @@ async function bootstrap() {
   logger.log('═'.repeat(60));
 
   // Load configuration synchronously before NestFactory
-  const { vars, config: bootstrapConfig } = loadServiceConfig('bootstrap');
+  const config = getConfig();
+  const services = Object.keys(config.services);
 
-  logger.log(`Environment: ${vars.environment}`);
-  logger.log(`Services to load: ${bootstrapConfig.services.join(', ')}`);
+  logger.log(`Environment: ${config.global.environment}`);
+  logger.log(`Services to load: ${services.join(', ')}`);
 
   // RabbitMQ is optional - read from environment variable
   const rabbitmqUrl = process.env.RABBITMQ_URL;
@@ -64,7 +65,7 @@ async function bootstrap() {
   logger.log('═'.repeat(60));
   logger.log('Bootstrap Service started successfully');
   logger.log('Communication: Direct method calls (zero latency)');
-  logger.log(`Loaded services (${bootstrapConfig.services.length}): ${bootstrapConfig.services.join(', ')}`);
+  logger.log(`Loaded services (${services.length}): ${services.join(', ')}`);
   logger.log('═'.repeat(60));
 
   // Keep the process alive
