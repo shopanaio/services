@@ -35,11 +35,6 @@ type User @key(fields: "id") {
   avatar: String
 
   """
-  User's phone number.
-  """
-  phone: String
-
-  """
   User's locale/language preference.
   """
   locale: LocaleCode
@@ -122,11 +117,6 @@ input UserUpdateProfileInput {
   lastName: String
 
   """
-  User's phone number.
-  """
-  phone: String
-
-  """
   User's locale/language preference.
   """
   locale: LocaleCode
@@ -155,11 +145,6 @@ input UserUpdateEmailInput {
   New email address.
   """
   newEmail: Email!
-
-  """
-  Current password for verification.
-  """
-  currentPassword: String!
 }
 
 """
