@@ -16,7 +16,7 @@ import {
   readFileSync,
   rmSync,
 } from "fs";
-import { join, dirname, basename, relative } from "path";
+import { join, dirname, relative } from "path";
 import { glob } from "glob";
 import { findRootDir } from "../utils.js";
 
@@ -24,7 +24,6 @@ interface AssetConfig {
   include: string;
   exclude?: string;
   outDir: string;
-  flatten?: boolean;
 }
 
 interface BuildConfig {
@@ -115,16 +114,9 @@ async function copyAssets(servicePath: string, assets?: AssetConfig[]) {
     const baseDir = join(servicePath, includeBase);
 
     for (const file of files) {
-      let destPath: string;
-
-      if (asset.flatten !== false) {
-        destPath = join(outDir, basename(file));
-      } else {
-        const relPath = relative(baseDir, file);
-        destPath = join(outDir, relPath);
-        mkdirSync(dirname(destPath), { recursive: true });
-      }
-
+      const relPath = relative(baseDir, file);
+      const destPath = join(outDir, relPath);
+      mkdirSync(dirname(destPath), { recursive: true });
       copyFileSync(file, destPath);
     }
 

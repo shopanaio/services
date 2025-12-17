@@ -1,4 +1,10 @@
 {
   "$schema": "../../schemas/build.config.schema.json",
-  "entryPoint": "src/apps.module.ts"
+  "entryPoint": "src/apps.module.ts",
+  "assets": [
+    {
+      "include": "src/api/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    }
+  ]
 }
