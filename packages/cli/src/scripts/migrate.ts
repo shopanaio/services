@@ -3,7 +3,7 @@
 /**
  * Database migrations for all services
  * Uses drizzle-orm, reads migrationsPath from build.config.json
- * Reads database_url from config.local.yml (same as services)
+ * Reads database config from config.yml (same as services)
  */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
@@ -31,9 +31,32 @@ interface ServiceMigrationConfig {
   type: "drizzle" | "typeorm" | "prisma";
 }
 
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  schema?: string | null;
+}
+
+interface ServiceConfig {
+  database?: DatabaseConfig;
+  [key: string]: unknown;
+}
+
 interface ConfigStructure {
-  vars?: Record<string, unknown>;
-  services?: Record<string, { database_url?: string }>;
+  global?: Record<string, unknown>;
+  shared?: {
+    database?: { default: DatabaseConfig };
+  };
+  services?: Record<string, ServiceConfig>;
+}
+
+function buildDatabaseUrl(config: DatabaseConfig): string {
+  const { host, port, user, password, database, schema } = config;
+  const baseUrl = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+  return schema ? `${baseUrl}?schema=${schema}` : baseUrl;
 }
 
 /**
@@ -77,19 +100,13 @@ function discoverMigratableServices(): ServiceMigrationConfig[] {
 }
 
 /**
- * Load config from config.local.yml or config.yml
+ * Load config from config.yml
  */
 function loadConfig(): ConfigStructure {
-  const configFile = process.env.CONFIG_FILE || "config.local.yml";
+  const configFile = process.env.CONFIG_FILE || "config.yml";
   const configPath = join(rootDir, configFile);
 
   if (!existsSync(configPath)) {
-    // Fallback to config.yml
-    const fallbackPath = join(rootDir, "config.yml");
-    if (existsSync(fallbackPath)) {
-      const content = readFileSync(fallbackPath, "utf-8");
-      return yamlLoad(content) as ConfigStructure;
-    }
     return {};
   }
 
@@ -102,7 +119,18 @@ function loadConfig(): ConfigStructure {
  */
 function getServiceDatabaseUrl(serviceName: string): string | null {
   const config = loadConfig();
-  return config.services?.[serviceName]?.database_url || null;
+  const serviceConfig = config.services?.[serviceName];
+
+  if (serviceConfig?.database) {
+    return buildDatabaseUrl(serviceConfig.database);
+  }
+
+  // Fallback to shared database config
+  if (config.shared?.database?.default) {
+    return buildDatabaseUrl(config.shared.database.default);
+  }
+
+  return null;
 }
 
 interface MigrationResult {
@@ -236,7 +264,7 @@ export async function runAllMigrations(): Promise<boolean> {
 
   // Show database URL from config
   const defaultUrl = getDatabaseUrl();
-  console.log(`   Config: config.local.yml`);
+  console.log(`   Config: ${process.env.CONFIG_FILE || "config.yml"}`);
   console.log(`   Database: ${defaultUrl.replace(/:[^:@]+@/, ":***@")}\n`);
 
   const results: MigrationResult[] = [];

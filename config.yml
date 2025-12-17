@@ -1,17 +1,37 @@
-# Services Configuration
-
-# Common vars for services
-vars:
-  # Environment for all services
-  environment: production
-  # Log level for all services
-  log_level: info
-  # Platform GRPC (context) server (use localhost for local dev)
+# ═══════════════════════════════════════════════════════════════════
+# GLOBAL SETTINGS
+# ═══════════════════════════════════════════════════════════════════
+global:
+  environment: development # development | staging | production
+  log_level: debug # debug | info | warn | error
   platform_grpc_host: localhost:50051
 
+# ═══════════════════════════════════════════════════════════════════
+# SHARED RESOURCES (YAML anchors for DRY)
+# ═══════════════════════════════════════════════════════════════════
+shared:
+  database:
+    default: &db_default
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      database: portal
+      schema: portal
+
+  storage:
+    default: &storage_default
+      endpoint: http://localhost:9000
+      access_key: minioadmin
+      secret_key: minioadmin
+      region: us-east-1
+      path_style: true
+
+# ═══════════════════════════════════════════════════════════════════
+# SERVICES
+# ═══════════════════════════════════════════════════════════════════
 services:
   bootstrap:
-    # Service modules loaded in monolith
     services:
       - apps
       - checkout
@@ -21,57 +41,78 @@ services:
       - orders
       - payments
       - pricing
+      - project
     metrics_port: 3030
 
-  checkout:
-    storefront_graphql_port: 10002
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-    metrics_port: 3031
-
-  orders:
-    storefront_graphql_port: 10003
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-    metrics_port: 3032
-
   apps:
-    admin_graphql_port: 10001
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-    metrics_port: 3033
+    ports:
+      admin_graphql: 10001
+      metrics: 3033
+    database:
+      <<: *db_default
+    graphql:
+      path: /graphql
 
-  delivery:
-    port: 10004
+  checkout:
+    ports:
+      storefront_graphql: 10002
+      metrics: 3031
+    database:
+      <<: *db_default
+
+  delivery: {}
 
   inventory:
-    port: 10005
-    object_storage_endpoint: http://localhost:9000
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-    object_storage_access_key: minioadmin
-    object_storage_secret_key: minioadmin
-    object_storage_bucket: inventory
-    object_storage_region: us-east-1
-    object_storage_path_style: true
+    ports:
+      admin_graphql: 10005
+      metrics: 3034
+    database:
+      <<: *db_default
+      schema: null
+    storage:
+      <<: *storage_default
+      bucket: inventory
 
   media:
-    port: 10007
-    object_storage_endpoint: http://localhost:9000
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-    object_storage_access_key: minioadmin
-    object_storage_secret_key: minioadmin
-    object_storage_bucket: inventory
-    object_storage_region: us-east-1
-    object_storage_path_style: true
+    ports:
+      admin_graphql: 10007
+      metrics: 3035
+    database:
+      <<: *db_default
+    graphql:
+      path: /graphql/admin
+    storage:
+      <<: *storage_default
+      bucket: media
 
-  payments:
-    port: 10006
+  orders:
+    ports:
+      storefront_graphql: 10003
+      metrics: 3032
+    database:
+      <<: *db_default
 
-  pricing:
-    port: 10008
+  payments: {}
+
+  pricing: {}
 
   project:
-    admin_graphql_port: 10009
-    database_url: "postgresql://postgres:postgres@localhost:5432/portal?schema=portal"
-    metrics_port: 3039
+    ports:
+      admin_graphql: 10009
+      metrics: 3036
+    database:
+      <<: *db_default
 
   users:
-    admin_graphql_port: 10010
-    metrics_port: 3040
+    ports:
+      admin_graphql: 10010
+      metrics: 3037
+    casdoor:
+      endpoint: ${CASDOOR_ENDPOINT}
+      client_id: ${CASDOOR_CLIENT_ID}
+      client_secret: ${CASDOOR_CLIENT_SECRET}
+      application_name: ${CASDOOR_APPLICATION_NAME}
+      organization_name: ${CASDOOR_ORGANIZATION_NAME}
+      certificate: ${CASDOOR_CERTIFICATE}
+      google_provider: ${CASDOOR_GOOGLE_PROVIDER}
+      oauth_redirect_uri: ${CASDOOR_OAUTH_REDIRECT_URI}

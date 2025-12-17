@@ -1,25 +1,22 @@
-import { loadServiceConfig } from "@shopana/shared-service-config";
+import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 
-/**
- * Service configuration using centralized config system
- */
-const { vars } = loadServiceConfig("delivery");
+const { global } = getServiceConfig("delivery");
 
 export const config = {
   /** HTTP port for health check server */
   port: 0,
 
   /** Current environment name */
-  environment: vars.environment,
+  environment: global.environment,
 
   /** Log level */
-  logLevel: vars.log_level,
+  logLevel: global.log_level,
 
   /** Moleculer transporter */
-  transporter: vars.moleculer_transporter,
+  transporter: global.moleculer_transporter,
 
   /** Platform gRPC host */
-  platformGrpcHost: vars.platform_grpc_host,
+  platformGrpcHost: global.platform_grpc_host,
 
   /** Plugin settings */
   pluginTimeoutMs: 3000,
@@ -27,5 +24,5 @@ export const config = {
   pluginRateLimit: 10,
 
   /** Development flag */
-  isDevelopment: vars.environment === "development",
+  isDevelopment: isDevelopment(global),
 } as const;

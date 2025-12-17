@@ -1,15 +1,20 @@
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
-import type {
-  ConfigStructure,
-  ServiceName,
-  ServicesConfig,
-  VarsConfig,
-} from "./types.js";
+import { ZodError } from "zod";
+import {
+  ConfigSchema,
+  type Config,
+  type GlobalConfig,
+  type ServiceName,
+  type ServicesConfig,
+} from "./schema.js";
+
+// Cached configuration
+let cachedConfig: Config | null = null;
 
 /**
- * Find the workspace root by looking for config.yml
+ * Find the workspace root by looking for package.json with workspaces
  */
 export function findWorkspaceRoot(startDir: string = process.cwd()): string {
   let currentDir = path.resolve(startDir);
@@ -25,7 +30,7 @@ export function findWorkspaceRoot(startDir: string = process.cwd()): string {
       if (pkg.workspaces) {
         return currentDir;
       }
-    } catch (e) {
+    } catch {
       // package.json not found or not readable, continue searching
     }
 
@@ -38,9 +43,51 @@ export function findWorkspaceRoot(startDir: string = process.cwd()): string {
 }
 
 /**
- * Load and parse YAML configuration file
+ * Substitute ${ENV_VAR} patterns with environment variable values
  */
-function loadYamlConfig(): ConfigStructure {
+function substituteEnvVars(obj: unknown): unknown {
+  if (typeof obj === "string") {
+    // Match ${ENV_VAR} pattern
+    const envVarPattern = /\$\{([^}]+)\}/g;
+    let result = obj;
+    let match;
+
+    while ((match = envVarPattern.exec(obj)) !== null) {
+      const envVarName = match[1];
+      const envValue = process.env[envVarName];
+
+      if (envValue !== undefined) {
+        result = result.replace(match[0], envValue);
+      }
+      // If env var is not set, keep the placeholder (will fail validation if required)
+    }
+
+    return result;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(substituteEnvVars);
+  }
+
+  if (obj !== null && typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = substituteEnvVars(value);
+    }
+    return result;
+  }
+
+  return obj;
+}
+
+/**
+ * Load and parse YAML configuration file with ENV substitution and Zod validation
+ */
+function loadYamlConfig(): Config {
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+
   try {
     const workspaceRoot = findWorkspaceRoot();
 
@@ -51,22 +98,29 @@ function loadYamlConfig(): ConfigStructure {
     console.log(`Loading configuration from: ${configPath}`);
 
     const fileContents = fs.readFileSync(configPath, "utf8");
-    const yamlConfig = yaml.load(fileContents) as ConfigStructure;
+    const rawConfig = yaml.load(fileContents);
 
-    if (!yamlConfig || typeof yamlConfig !== "object") {
+    if (!rawConfig || typeof rawConfig !== "object") {
       throw new Error("Invalid configuration file format");
     }
 
-    if (!yamlConfig.vars) {
-      throw new Error("Missing 'vars' section in config.yml");
-    }
+    // Substitute environment variables
+    const substitutedConfig = substituteEnvVars(rawConfig);
 
-    if (!yamlConfig.services) {
-      throw new Error("Missing 'services' section in config.yml");
-    }
+    // Validate with Zod schema
+    const validatedConfig = ConfigSchema.parse(substitutedConfig);
 
-    return yamlConfig;
+    // Cache the validated config
+    cachedConfig = validatedConfig;
+
+    return validatedConfig;
   } catch (error) {
+    if (error instanceof ZodError) {
+      const issues = error.issues
+        .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
+        .join("\n");
+      throw new Error(`Configuration validation failed:\n${issues}`);
+    }
     if (error instanceof Error) {
       throw new Error(`Error loading config.yml: ${error.message}`);
     }
@@ -75,25 +129,58 @@ function loadYamlConfig(): ConfigStructure {
 }
 
 /**
+ * Clear cached configuration (useful for testing)
+ */
+export function clearConfigCache(): void {
+  cachedConfig = null;
+}
+
+/**
+ * Get the full validated configuration
+ */
+export function getConfig(): Config {
+  return loadYamlConfig();
+}
+
+/**
+ * Get global configuration
+ */
+export function getGlobalConfig(): GlobalConfig {
+  return loadYamlConfig().global;
+}
+
+/**
  * Load configuration for a specific service
  */
-export function loadServiceConfig<T extends ServiceName>(
+export function getServiceConfig<T extends ServiceName>(
   serviceName: T
 ): {
-  config: ServicesConfig[T];
-  vars: VarsConfig;
+  service: ServicesConfig[T];
+  global: GlobalConfig;
 } {
-  // Load configuration
   const config = loadYamlConfig();
-
-  // Get service configuration
   const serviceConfig = config.services[serviceName];
+
   if (!serviceConfig) {
     throw new Error(`Configuration for service "${serviceName}" not found`);
   }
 
   return {
-    config: config.services[serviceName],
-    vars: config.vars,
+    service: serviceConfig,
+    global: config.global,
+  };
+}
+
+// Legacy export for backwards compatibility
+export function loadServiceConfig<T extends ServiceName>(
+  serviceName: T
+): {
+  config: ServicesConfig[T];
+  vars: GlobalConfig;
+} {
+  const { service, global } = getServiceConfig(serviceName);
+  return {
+    config: service,
+    vars: global,
   };
 }

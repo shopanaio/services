@@ -1,42 +1,41 @@
-import { loadServiceConfig } from "@shopana/shared-service-config";
+import {
+  getServiceConfig,
+  buildDatabaseUrl,
+  isDevelopment,
+} from "@shopana/shared-service-config";
 
-/**
- * Service configuration using centralized config system
- */
-const { config: serviceConfig, vars } = loadServiceConfig("apps");
+const { service, global } = getServiceConfig("apps");
 
 export const config = {
   /** HTTP port for GraphQL/API server */
-  port: serviceConfig.admin_graphql_port,
+  port: service.ports?.admin_graphql,
 
   /** Database connection URL */
-  databaseUrl: serviceConfig.database_url!,
+  databaseUrl: service.database ? buildDatabaseUrl(service.database) : "",
 
   /** Current environment name */
-  environment: vars.environment,
+  environment: global.environment,
 
   /** Mount path for GraphQL endpoint */
-  graphqlPath: "/graphql",
+  graphqlPath: service.graphql?.path ?? "/graphql",
 
   /** Application log level */
-  logLevel: vars.log_level,
+  logLevel: global.log_level,
 
-  /**
-   * Plugin runner settings (shared for all capabilities)
-   */
+  /** Plugin runner settings (shared for all capabilities) */
   pluginTimeoutMs: 3000,
   pluginRetries: 1,
   pluginRateLimit: 10,
 
   /** Moleculer transporter configuration */
-  transporter: vars.moleculer_transporter,
+  transporter: global.moleculer_transporter,
 
   /** Platform gRPC host for context service */
-  platformGrpcHost: vars.platform_grpc_host,
+  platformGrpcHost: global.platform_grpc_host,
 
   /** Metrics port */
-  metricsPort: serviceConfig.metrics_port,
+  metricsPort: service.ports?.metrics,
 
   /** Convenience flag for development checks */
-  isDevelopment: vars.environment === "development",
+  isDevelopment: isDevelopment(global),
 } as const;

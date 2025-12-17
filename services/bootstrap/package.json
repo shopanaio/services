@@ -21,8 +21,8 @@
     "@shopana/payments-service": "0.0.1",
     "@shopana/pricing-service": "0.0.1",
     "@shopana/shared-kernel": "1.0.0",
-    "@shopana/users-service": "0.0.1",
     "@shopana/shared-service-config": "0.0.1",
+    "@shopana/users-service": "0.0.1",
     "dotenv": "^16.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
