@@ -1,6 +1,20 @@
-import type { CoreProject, CoreUser } from "@shopana/platform-api";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
+
+/**
+ * Project entity from context
+ */
+export interface ContextProject {
+  id: string;
+  slug: string;
+}
+
+/**
+ * User entity from context
+ */
+export interface ContextUser {
+  id: string;
+}
 
 /**
  * Unified service context for project service
@@ -12,9 +26,9 @@ export interface ServiceContext {
   /** Project slug from header */
   slug: string;
   /** Current project - required for all operations */
-  project: CoreProject;
+  project: ContextProject;
   /** Authenticated user for admin API */
-  user: CoreUser;
+  user: ContextUser;
   /** Current locale for translations (default: 'uk') */
   locale?: string;
   /** DataLoaders for efficient batched data fetching */

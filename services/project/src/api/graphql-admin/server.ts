@@ -8,7 +8,12 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { setContext, type ServiceContext } from "../../context/index.js";
+import {
+  setContext,
+  type ServiceContext,
+  type ContextProject,
+  type ContextUser,
+} from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { Repository } from "../../repositories/Repository.js";
@@ -17,7 +22,6 @@ import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  grpcHost?: string;
   databaseUrl?: string;
 }
 
@@ -97,11 +101,7 @@ export async function startServer(config: ServerConfig) {
   await apollo.start();
 
   // Admin context middleware
-  const grpcConfig = {
-    getGrpcHost: () =>
-      config.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
-  };
-  app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
+  app.addHook("preHandler", buildAdminContextMiddleware({}));
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
@@ -123,12 +123,23 @@ export async function startServer(config: ServerConfig) {
         };
       }
 
+      const slug = request.headers["x-pj-key"] as string;
+
+      // TODO: Implement context fetching
+      const project: ContextProject = {
+        id: "",
+        slug,
+      };
+      const user: ContextUser = {
+        id: "",
+      };
+
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
-        slug: request.headers["x-pj-key"] as string,
-        project: request.project,
-        user: request.user,
+        slug,
+        project,
+        user,
         // Create loaders per request for proper batching
         loaders: new Loader(kernel!.getServices().repository),
       };
