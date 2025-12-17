@@ -22,6 +22,13 @@
       "when": 1765974495261,
       "tag": "0002_lean_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1765975520583,
+      "tag": "0003_currency_foreign_keys",
+      "breakpoints": true
     }
   ]
 }

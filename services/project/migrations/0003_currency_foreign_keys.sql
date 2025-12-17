@@ -1,0 +1,2 @@
+ALTER TABLE "project"."project" ADD CONSTRAINT "project_id_base_currency_currency_project_id_code_fk" FOREIGN KEY ("id","base_currency") REFERENCES "project"."currency"("project_id","code") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "project"."project" ADD CONSTRAINT "project_id_default_currency_currency_project_id_code_fk" FOREIGN KEY ("id","default_currency") REFERENCES "project"."currency"("project_id","code") ON DELETE no action ON UPDATE no action;

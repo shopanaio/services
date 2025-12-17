@@ -9,6 +9,7 @@ import {
 import { sql } from "drizzle-orm";
 import { projectSchema } from "./schema";
 import { locale } from "./locale";
+import { currency } from "./currency";
 import {
   weightUnitEnum,
   dimensionUnitEnum,
@@ -70,6 +71,14 @@ export const project = projectSchema.table(
     foreignKey({
       columns: [table.id, table.defaultLocale],
       foreignColumns: [locale.projectId, locale.code],
+    }),
+    foreignKey({
+      columns: [table.id, table.baseCurrency],
+      foreignColumns: [currency.projectId, currency.code],
+    }),
+    foreignKey({
+      columns: [table.id, table.defaultCurrency],
+      foreignColumns: [currency.projectId, currency.code],
     }),
   ]
 );
