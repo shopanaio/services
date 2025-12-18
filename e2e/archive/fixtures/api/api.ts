@@ -2,6 +2,7 @@ import { TenantApiFixture } from '@fixtures/admin/api';
 import { ClientApiFixture } from '@fixtures/client/api';
 import { SessionFixture } from '@fixtures/Session';
 import { test as base } from '@playwright/test';
+import { CheckoutApiFixture } from '@fixtures/checkout/api';
 
 export interface ApiFixtures {
   api: {
