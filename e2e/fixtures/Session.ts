@@ -1,19 +1,13 @@
-import { Country, Currency, generateUser, Locale, UserData, Timezone } from '@utils/user';
-import {
-  ApiProject,
-  ApiSession,
-  ApiUserMutationSignInArgs,
-  ApiUserMutationSignUpArgs,
-  ProjectStatus,
-} from '@codegen/admin-gql';
+import { generateUser, UserData, Timezone } from '@utils/user';
+import { ApiProject, ApiSession, ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
 import { LocaleCode } from '@codegen/client-gql';
-import { ClientApiFixture } from '@fixtures/client/api';
-import { TenantApiFixture } from '@fixtures/admin/api';
+import { StorefrontApiFixture } from '@fixtures/storefront/api';
+import { AdminApiFixture } from '@fixtures/admin/api';
 
 export class SessionFixture {
   private api!: {
-    admin: TenantApiFixture;
-    client: ClientApiFixture;
+    admin: AdminApiFixture;
+    client: StorefrontApiFixture;
   };
 
   scope: 'tenant' | 'customer' = 'tenant';
@@ -58,7 +52,7 @@ export class SessionFixture {
   }
 
   async setupUser(): Promise<ApiSession> {
-    const { data } = await this.api.admin.mutation<ApiUserMutationSignUpArgs>('admin/UserSignUp', {
+    const { data } = await this.api.admin.mutation<ApiUserMutationSignUpArgs>('users-api/SignUp', {
       variables: {
         input: {
           email: this.tenant.data.email,
@@ -75,95 +69,7 @@ export class SessionFixture {
     return data.userMutation.signUp;
   }
 
-  async signIn(email: string, password: string) {
-    const { data } = await this.api.admin.mutation<ApiUserMutationSignInArgs>('admin/UserSignIn', {
-      variables: {
-        input: {
-          email,
-          password,
-        },
-      },
-    });
-    const { user, jwt } = data.userMutation.signIn;
-
-    this.tenant.accessToken = jwt;
-    this.tenant.data = {
-      email,
-      password,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      uuid: user.id,
-    };
-
-    return data.userMutation.signIn;
-  }
-
-  async setupProject(): Promise<ApiProject> {
-    const { data } = await this.api.admin.mutation('admin/ProjectCreate', {
-      variables: {
-        input: {
-          name: 'Session Store',
-          currency: Currency.EUR,
-          country: Country.UA,
-          status: ProjectStatus.Active,
-          timezone: Timezone.EUROPE_KIEV,
-          locales: [Locale.EN, Locale.RU],
-        },
-      },
-    });
-
-    this.project = data.projectMutation.create;
-    return data.projectMutation.create;
-  }
-
-  async pullProject(slug: string) {
-    this.project = await this.api.admin.projects.get(slug);
-    return this.project;
-  }
-
-  async setupApiKey() {
-    this.apiKey = await this.api.admin.apiKey.create({
-      name: 'Test API Key',
-    });
-    this.setCustomerScope();
-  }
-
-  setupUserAndProject = async () => {
-    await this.setupUser();
-    await this.setupProject();
-  };
-
-  setupCustomer = async () => {
-    this.setCustomerScope();
-    const { data } = await this.api.client.auth.passwordSignUp({
-      email: this.customer.data.email,
-      password: this.customer.data.password,
-    });
-    if (!data?.passwordSignUp?.session?.accessToken) {
-      throw new Error('Failed to sign up customer');
-    }
-    this.customer.data.uuid = data?.passwordSignUp?.session?.user?.iid;
-    this.customer.accessToken = data?.passwordSignUp?.session?.accessToken ?? null;
-  };
-
-  setupClient = async () => {
-    await this.setupUser();
-    await this.setupProject();
-    await this.setupApiKey();
-
-    await Promise.all(
-      ['shopana', 'bank_transfer', 'novaposhta', 'meest', 'simple-promo'].map((code) =>
-        this.api.admin.mutation('admin/AppsInstall', { variables: { code } }),
-      ),
-    );
-  };
-
-  setupClientAndCustomer = async () => {
-    await this.setupClient();
-    await this.setupCustomer();
-  };
-
-  setApi(api: { admin: TenantApiFixture; client: ClientApiFixture }) {
+  setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {
     this.api = api;
   }
 

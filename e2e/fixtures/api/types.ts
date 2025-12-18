@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { GraphQLError } from 'graphql';
 import path from 'path';
-import { Session } from '@fixtures/Session';
+import { SessionFixture } from '@fixtures/Session';
 import { GraphQLFileName } from '@queries/filenames';
 
 export const readQuery = (filename: string) => {
@@ -17,7 +17,7 @@ export type GQLQuery = <TQuery, TArgs extends object>(
   query: GraphQLFileName,
   props: {
     variables?: TArgs;
-    session?: Session;
+    session?: SessionFixture;
     accessToken?: string;
     apiKey?: string;
     throwOnError?: boolean;
@@ -28,7 +28,7 @@ export type GQLMutation = <TMutation, TArgs extends object>(
   mutation: GraphQLFileName,
   props: {
     variables?: TArgs;
-    session?: Session;
+    session?: SessionFixture;
     accessToken?: string;
     apiKey?: string;
     throwOnError?: boolean;
