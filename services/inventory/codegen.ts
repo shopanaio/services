@@ -3,6 +3,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 const config: CodegenConfig = {
   overwrite: true,
   schema: [
+    "../../packages/shared-references/graphql/*.graphql",
     "src/api/graphql-admin/schema/*.graphql",
     "src/api/graphql-admin/schema/__generated__/*.graphql",
   ],

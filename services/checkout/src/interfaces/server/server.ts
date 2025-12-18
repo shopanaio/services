@@ -43,21 +43,21 @@ export async function startServer(broker: ServiceBroker) {
   // Load GraphQL schema
   // Use import.meta.url to get the current file's directory, works when run from orchestrator
   const currentDir = dirname(fileURLToPath(import.meta.url));
-  // In prod: currentDir = dist/, schemaPath = dist/schema (copied by esbuild)
-  const schemaPath = join(currentDir, "schema");
-  const storefrontSchemas = [
-    join(schemaPath, "parent.graphql"),
-    join(schemaPath, "base.graphql"),
-    join(schemaPath, "checkout.graphql"),
-    join(schemaPath, "checkoutLine.graphql"),
-    join(schemaPath, "checkoutDelivery.graphql"),
-    join(schemaPath, "checkoutPayment.graphql"),
-    join(schemaPath, "currency.graphql"),
-    join(schemaPath, "country.graphql"),
+  const schemaFiles = [
+    // Shared types first (copied from packages/shared-references during build)
+    "shared-currency.graphql",
+    // Service-specific schemas
+    "parent.graphql",
+    "base.graphql",
+    "checkout.graphql",
+    "checkoutLine.graphql",
+    "checkoutDelivery.graphql",
+    "checkoutPayment.graphql",
+    "country.graphql",
   ];
 
-  const modules = storefrontSchemas.map((p) => ({
-    typeDefs: gql(readFileSync(p, "utf-8")),
+  const modules = schemaFiles.map((file) => ({
+    typeDefs: gql(readFileSync(join(currentDir, "schema", file), "utf-8")),
     resolvers,
   }));
 

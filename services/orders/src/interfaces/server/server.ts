@@ -43,36 +43,35 @@ export async function startServer(broker: ServiceBroker) {
 
   // Load GraphQL schemas for both Admin and Storefront APIs
   // Use import.meta.url to get the current file's directory
-  // In dev: src/interfaces/server/, in prod: dist/
   const currentDir = dirname(fileURLToPath(import.meta.url));
-  const adminSchemaPath = join(currentDir, "schema", "admin");
-  const storefrontSchemaPath = join(currentDir, "schema", "storefront");
+  const schemaPath = join(currentDir, "schema");
 
   const schemaFiles = [
     "base.graphql",
     "country.graphql",
-    "currency.graphql",
     "order.graphql",
     "parent.graphql",
   ];
 
   // Admin API schemas and modules
-  const adminSchemas = schemaFiles.map((file) =>
-    join(adminSchemaPath, file)
-  );
-  const adminModules = adminSchemas.map((p) => ({
-    typeDefs: gql(readFileSync(p, "utf-8")),
-    resolvers: adminResolvers,
-  }));
+  const adminModules = [
+    // Shared types first (copied from packages/shared-references during build)
+    { typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")), resolvers: adminResolvers },
+    ...schemaFiles.map((file) => ({
+      typeDefs: gql(readFileSync(join(schemaPath, "admin", file), "utf-8")),
+      resolvers: adminResolvers,
+    })),
+  ];
 
   // Storefront API schemas and modules
-  const storefrontSchemas = schemaFiles.map((file) =>
-    join(storefrontSchemaPath, file)
-  );
-  const storefrontModules = storefrontSchemas.map((p) => ({
-    typeDefs: gql(readFileSync(p, "utf-8")),
-    resolvers: storefrontResolvers,
-  }));
+  const storefrontModules = [
+    // Shared types first (copied from packages/shared-references during build)
+    { typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")), resolvers: storefrontResolvers },
+    ...schemaFiles.map((file) => ({
+      typeDefs: gql(readFileSync(join(schemaPath, "storefront", file), "utf-8")),
+      resolvers: storefrontResolvers,
+    })),
+  ];
 
   // Create Apollo Servers
   const adminApollo = new ApolloServer<GraphQLContext>({

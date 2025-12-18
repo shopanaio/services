@@ -74,6 +74,9 @@ export async function startServer(serverConfig: ServerConfig) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const schemaFiles = [
+    // Shared types first (copied from packages/shared-references during build)
+    "shared-currency.graphql",
+    // Service-specific schemas
     "relay.graphql",
     "base.graphql",
     "physical.graphql",
