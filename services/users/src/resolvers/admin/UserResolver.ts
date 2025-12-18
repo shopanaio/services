@@ -1,5 +1,4 @@
-import type { User } from "casdoor-nodejs-sdk/lib/cjs/user";
-import type { Role as CasdoorRole } from "casdoor-nodejs-sdk/lib/cjs/role";
+import type { User, Role as CasdoorRole } from "@zaytra/casdoor-node-client-ext";
 import type { Role } from "./interfaces/index.js";
 import { UsersType } from "./UsersType.js";
 

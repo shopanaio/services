@@ -1,5 +1,4 @@
-import type { User } from "casdoor-nodejs-sdk/lib/cjs/user";
-import type { CasdoorNodeClient, RequestContext } from "@zaytra/casdoor-node-client-ext";
+import type { User, CasdoorNodeClient, RequestContext } from "@zaytra/casdoor-node-client-ext";
 
 // Re-export User type from SDK
 export type { User };

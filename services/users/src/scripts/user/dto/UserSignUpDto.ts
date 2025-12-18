@@ -1,4 +1,4 @@
-import type { User } from "casdoor-nodejs-sdk/lib/cjs/user";
+import type { User } from "@zaytra/casdoor-node-client-ext";
 import type { UserResultBase } from "./shared.js";
 
 export interface UserSignUpParams {

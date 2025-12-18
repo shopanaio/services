@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { User as CasdoorUser } from 'casdoor-nodejs-sdk/lib/cjs/user';
+import { User as CasdoorUser } from '@zaytra/casdoor-node-client-ext';
 import { ServiceContext } from '../../../context/index.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
