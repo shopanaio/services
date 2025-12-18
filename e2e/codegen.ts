@@ -24,7 +24,7 @@ const config: CodegenConfig = {
   documents: [],
   // ['src/**/*.gql', 'src/**/*.graphql'],
   generates: {
-    'codegen/admin-gql-v2.ts': {
+    'codegen/admin-gql.ts': {
       schema: 'schema-admin.graphql',
       plugins: ['typescript', 'typescript-operations'],
       config: {
@@ -33,7 +33,7 @@ const config: CodegenConfig = {
         scalars,
       },
     },
-    'codegen/client-gql-v2.ts': {
+    'codegen/client-gql.ts': {
       schema: 'schema-client.graphql',
       plugins: ['typescript', 'typescript-operations'],
       config: {
