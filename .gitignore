@@ -40,3 +40,4 @@ infra/federation/schema/
 .data
 
 test-results/
+.external/
