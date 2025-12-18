@@ -51,7 +51,7 @@ export class SessionFixture {
     this.customer = { data: generateUser() };
   }
 
-  async setupUser(): Promise<ApiSession> {
+  async setupUser() {
     const { data } = await this.api.admin.mutation<ApiUserMutationSignUpArgs>('users-api/SignUp', {
       variables: {
         input: {
@@ -61,8 +61,9 @@ export class SessionFixture {
       },
     });
 
-    this.tenant.accessToken = data.userMutation.signUp.jwt;
-    return data.userMutation.signUp;
+    const result = data.userMutation.signUp;
+    this.tenant.accessToken = result.token?.accessToken;
+    return result;
   }
 
   setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {
