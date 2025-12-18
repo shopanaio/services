@@ -46,6 +46,11 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
   const __dirname = dirname(__filename);
   const schemaPath = join(__dirname, "schema");
   const sdlFiles = [
+    // Shared types first (copied from packages/shared-references during build)
+    join(schemaPath, "shared-currency.graphql"),
+    join(schemaPath, "shared-locale.graphql"),
+    join(schemaPath, "shared-units.graphql"),
+    // Service-specific schemas
     join(schemaPath, "base.graphql"),
     join(schemaPath, "apps.graphql"),
   ];

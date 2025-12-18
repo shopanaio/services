@@ -46,6 +46,8 @@ export async function startServer(broker: ServiceBroker) {
   const schemaFiles = [
     // Shared types first (copied from packages/shared-references during build)
     "shared-currency.graphql",
+    "shared-locale.graphql",
+    "shared-units.graphql",
     // Service-specific schemas
     "parent.graphql",
     "base.graphql",

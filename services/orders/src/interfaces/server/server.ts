@@ -57,6 +57,8 @@ export async function startServer(broker: ServiceBroker) {
   const adminModules = [
     // Shared types first (copied from packages/shared-references during build)
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")), resolvers: adminResolvers },
+    { typeDefs: gql(readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8")), resolvers: adminResolvers },
+    { typeDefs: gql(readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8")), resolvers: adminResolvers },
     ...schemaFiles.map((file) => ({
       typeDefs: gql(readFileSync(join(schemaPath, "admin", file), "utf-8")),
       resolvers: adminResolvers,
@@ -67,6 +69,8 @@ export async function startServer(broker: ServiceBroker) {
   const storefrontModules = [
     // Shared types first (copied from packages/shared-references during build)
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")), resolvers: storefrontResolvers },
+    { typeDefs: gql(readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8")), resolvers: storefrontResolvers },
+    { typeDefs: gql(readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8")), resolvers: storefrontResolvers },
     ...schemaFiles.map((file) => ({
       typeDefs: gql(readFileSync(join(schemaPath, "storefront", file), "utf-8")),
       resolvers: storefrontResolvers,
