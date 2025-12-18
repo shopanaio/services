@@ -447,325 +447,327 @@ export enum ApiCountryCode {
 
 /** Currency codes according to ISO 4217 */
 export enum ApiCurrencyCode {
-  /** 2 decimals — UAE Dirham (United Arab Emirates) */
+  /** UAE Dirham (United Arab Emirates) - 2 decimals */
   Aed = 'AED',
-  /** 2 decimals — Afghan Afghani (Afghanistan) */
+  /** Afghan Afghani (Afghanistan) - 0 decimals */
   Afn = 'AFN',
-  /** 2 decimals — Albanian Lek (Albania) */
+  /** Albanian Lek (Albania) - 0 decimals */
   All = 'ALL',
-  /** 2 decimals — Armenian Dram (Armenia) */
+  /** Armenian Dram (Armenia) - 2 decimals */
   Amd = 'AMD',
-  /** 2 decimals — Netherlands Antillean Guilder (Netherlands Antilles) */
+  /** Netherlands Antillean Guilder - 2 decimals */
   Ang = 'ANG',
-  /** 2 decimals — Angolan Kwanza (Angola) */
+  /** Angolan Kwanza (Angola) - 2 decimals */
   Aoa = 'AOA',
-  /** 2 decimals — Argentine Peso (Argentina) */
+  /** Argentine Peso (Argentina) - 2 decimals */
   Ars = 'ARS',
-  /** 2 decimals — Australian Dollar (Australia) */
+  /** Australian Dollar (Australia) - 2 decimals */
   Aud = 'AUD',
-  /** 2 decimals — Aruban Florin (Aruba) */
+  /** Aruban Florin (Aruba) - 2 decimals */
   Awg = 'AWG',
-  /** 2 decimals — Azerbaijani Manat (Azerbaijan) */
+  /** Azerbaijani Manat (Azerbaijan) - 2 decimals */
   Azn = 'AZN',
-  /** 2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina) */
+  /** Bosnia-Herzegovina Convertible Mark - 2 decimals */
   Bam = 'BAM',
-  /** 2 decimals — Barbadian Dollar (Barbados) */
+  /** Barbadian Dollar (Barbados) - 2 decimals */
   Bbd = 'BBD',
-  /** 2 decimals — Bangladeshi Taka (Bangladesh) */
+  /** Bangladeshi Taka (Bangladesh) - 2 decimals */
   Bdt = 'BDT',
-  /** 2 decimals — Bulgarian Lev (Bulgaria) */
+  /** Bulgarian Lev (Bulgaria) - 2 decimals */
   Bgn = 'BGN',
-  /** 3 decimals — Bahraini Dinar (Bahrain) */
+  /** Bahraini Dinar (Bahrain) - 3 decimals */
   Bhd = 'BHD',
-  /** 0 decimals — Burundian Franc (Burundi) */
+  /** Burundian Franc (Burundi) - 0 decimals */
   Bif = 'BIF',
-  /** 2 decimals — Bermudian Dollar (Bermuda) */
+  /** Bermudian Dollar (Bermuda) - 2 decimals */
   Bmd = 'BMD',
-  /** 2 decimals — Brunei Dollar (Brunei) */
+  /** Brunei Dollar (Brunei) - 2 decimals */
   Bnd = 'BND',
-  /** 2 decimals — Bolivian Boliviano (Bolivia) */
+  /** Bolivian Boliviano (Bolivia) - 2 decimals */
   Bob = 'BOB',
-  /** 2 decimals — Brazilian Real (Brazil) */
+  /** Brazilian Real (Brazil) - 2 decimals */
   Brl = 'BRL',
-  /** 2 decimals — Bahamian Dollar (Bahamas) */
+  /** Bahamian Dollar (Bahamas) - 2 decimals */
   Bsd = 'BSD',
-  /** 2 decimals — Bhutanese Ngultrum (Bhutan) */
+  /** Bhutanese Ngultrum (Bhutan) - 2 decimals */
   Btn = 'BTN',
-  /** 2 decimals — Botswana Pula (Botswana) */
+  /** Botswana Pula (Botswana) - 2 decimals */
   Bwp = 'BWP',
-  /** 2 decimals — Belarusian Ruble (Belarus) */
+  /** Belarusian Ruble (Belarus) - 2 decimals */
   Byn = 'BYN',
-  /** 2 decimals — Belize Dollar (Belize) */
+  /** Belize Dollar (Belize) - 2 decimals */
   Bzd = 'BZD',
-  /** 2 decimals — Canadian Dollar (Canada) */
+  /** Canadian Dollar (Canada) - 2 decimals */
   Cad = 'CAD',
-  /** 2 decimals — Congolese Franc (Democratic Republic of the Congo) */
+  /** Congolese Franc (DR Congo) - 2 decimals */
   Cdf = 'CDF',
-  /** 2 decimals — Swiss Franc (Switzerland) */
+  /** Swiss Franc (Switzerland) - 2 decimals */
   Chf = 'CHF',
-  /** 0 decimals — Chilean Peso (Chile) */
+  /** Chilean Peso (Chile) - 0 decimals */
   Clp = 'CLP',
-  /** 2 decimals — Chinese Yuan (China) */
+  /** Chinese Yuan (China) - 2 decimals */
   Cny = 'CNY',
-  /** 2 decimals — Colombian Peso (Colombia) */
+  /** Colombian Peso (Colombia) - 2 decimals */
   Cop = 'COP',
-  /** 2 decimals — Costa Rican Colon (Costa Rica) */
+  /** Costa Rican Colon (Costa Rica) - 2 decimals */
   Crc = 'CRC',
-  /** 2 decimals — Cuban Peso (Cuba) */
+  /** Cuban Peso (Cuba) - 2 decimals */
   Cup = 'CUP',
-  /** 2 decimals — Cape Verdean Escudo (Cape Verde) */
+  /** Cape Verdean Escudo (Cape Verde) - 2 decimals */
   Cve = 'CVE',
-  /** 2 decimals — Czech Koruna (Czech Republic) */
+  /** Czech Koruna (Czech Republic) - 2 decimals */
   Czk = 'CZK',
-  /** 0 decimals — Djiboutian Franc (Djibouti) */
+  /** Djiboutian Franc (Djibouti) - 0 decimals */
   Djf = 'DJF',
-  /** 2 decimals — Danish Krone (Denmark) */
+  /** Danish Krone (Denmark) - 2 decimals */
   Dkk = 'DKK',
-  /** 2 decimals — Dominican Peso (Dominican Republic) */
+  /** Dominican Peso (Dominican Republic) - 2 decimals */
   Dop = 'DOP',
-  /** 2 decimals — Algerian Dinar (Algeria) */
+  /** Algerian Dinar (Algeria) - 2 decimals */
   Dzd = 'DZD',
-  /** 2 decimals — Egyptian Pound (Egypt) */
+  /** Egyptian Pound (Egypt) - 2 decimals */
   Egp = 'EGP',
-  /** 2 decimals — Eritrean Nakfa (Eritrea) */
+  /** Eritrean Nakfa (Eritrea) - 2 decimals */
   Ern = 'ERN',
-  /** 2 decimals — Ethiopian Birr (Ethiopia) */
+  /** Ethiopian Birr (Ethiopia) - 2 decimals */
   Etb = 'ETB',
-  /** 2 decimals — Euro (European Union) */
+  /** Euro (European Union) - 2 decimals */
   Eur = 'EUR',
-  /** 2 decimals — Fijian Dollar (Fiji) */
+  /** Fijian Dollar (Fiji) - 2 decimals */
   Fjd = 'FJD',
-  /** 2 decimals — Falkland Islands Pound (Falkland Islands) */
+  /** Falkland Islands Pound - 2 decimals */
   Fkp = 'FKP',
-  /** 2 decimals — Faroese Króna (Faroe Islands) */
+  /** Faroese Króna (Faroe Islands) - 2 decimals */
   Fok = 'FOK',
-  /** 2 decimals — Pound Sterling (United Kingdom) */
+  /** Pound Sterling (United Kingdom) - 2 decimals */
   Gbp = 'GBP',
-  /** 2 decimals — Georgian Lari (Georgia) */
+  /** Georgian Lari (Georgia) - 2 decimals */
   Gel = 'GEL',
-  /** 2 decimals — Guernsey Pound (Guernsey) */
+  /** Guernsey Pound (Guernsey) - 2 decimals */
   Ggp = 'GGP',
-  /** 2 decimals — Ghanaian Cedi (Ghana) */
+  /** Ghanaian Cedi (Ghana) - 2 decimals */
   Ghs = 'GHS',
-  /** 2 decimals — Gibraltar Pound (Gibraltar) */
+  /** Gibraltar Pound (Gibraltar) - 2 decimals */
   Gip = 'GIP',
-  /** 2 decimals — Gambian Dalasi (Gambia) */
+  /** Gambian Dalasi (Gambia) - 2 decimals */
   Gmd = 'GMD',
-  /** 0 decimals — Guinean Franc (Guinea) */
+  /** Guinean Franc (Guinea) - 0 decimals */
   Gnf = 'GNF',
-  /** 2 decimals — Guatemalan Quetzal (Guatemala) */
+  /** Guatemalan Quetzal (Guatemala) - 2 decimals */
   Gtq = 'GTQ',
-  /** 2 decimals — Guyanese Dollar (Guyana) */
+  /** Guyanese Dollar (Guyana) - 2 decimals */
   Gyd = 'GYD',
-  /** 2 decimals — Hong Kong Dollar (Hong Kong) */
+  /** Hong Kong Dollar (Hong Kong) - 2 decimals */
   Hkd = 'HKD',
-  /** 2 decimals — Honduran Lempira (Honduras) */
+  /** Honduran Lempira (Honduras) - 2 decimals */
   Hnl = 'HNL',
-  /** 2 decimals — Croatian Kuna (Croatia) */
+  /** Croatian Kuna (Croatia) - 2 decimals */
   Hrk = 'HRK',
-  /** 2 decimals — Haitian Gourde (Haiti) */
+  /** Haitian Gourde (Haiti) - 2 decimals */
   Htg = 'HTG',
-  /** 2 decimals — Hungarian Forint (Hungary) */
+  /** Hungarian Forint (Hungary) - 2 decimals */
   Huf = 'HUF',
-  /** 0 decimals — Indonesian Rupiah (Indonesia) */
+  /** Indonesian Rupiah (Indonesia) - 0 decimals */
   Idr = 'IDR',
-  /** 2 decimals — Israeli New Shekel (Israel) */
+  /** Israeli New Shekel (Israel) - 2 decimals */
   Ils = 'ILS',
-  /** 2 decimals — Isle of Man Pound (Isle of Man) */
+  /** Isle of Man Pound - 2 decimals */
   Imp = 'IMP',
-  /** 2 decimals — Indian Rupee (India) */
+  /** Indian Rupee (India) - 2 decimals */
   Inr = 'INR',
-  /** 3 decimals — Iraqi Dinar (Iraq) */
+  /** Iraqi Dinar (Iraq) - 3 decimals */
   Iqd = 'IQD',
-  /** 2 decimals — Iranian Rial (Iran) */
+  /** Iranian Rial (Iran) - 2 decimals */
   Irr = 'IRR',
-  /** 0 decimals — Icelandic Króna (Iceland) */
+  /** Icelandic Króna (Iceland) - 0 decimals */
   Isk = 'ISK',
-  /** 2 decimals — Jersey Pound (Jersey) */
+  /** Jersey Pound (Jersey) - 2 decimals */
   Jep = 'JEP',
-  /** 2 decimals — Jamaican Dollar (Jamaica) */
+  /** Jamaican Dollar (Jamaica) - 2 decimals */
   Jmd = 'JMD',
-  /** 3 decimals — Jordanian Dinar (Jordan) */
+  /** Jordanian Dinar (Jordan) - 3 decimals */
   Jod = 'JOD',
-  /** 0 decimals — Japanese Yen (Japan) */
+  /** Japanese Yen (Japan) - 0 decimals */
   Jpy = 'JPY',
-  /** 2 decimals — Kenyan Shilling (Kenya) */
+  /** Kenyan Shilling (Kenya) - 2 decimals */
   Kes = 'KES',
-  /** 2 decimals — Kyrgyzstani Som (Kyrgyzstan) */
+  /** Kyrgyzstani Som (Kyrgyzstan) - 2 decimals */
   Kgs = 'KGS',
-  /** 2 decimals — Cambodian Riel (Cambodia) */
+  /** Cambodian Riel (Cambodia) - 2 decimals */
   Khr = 'KHR',
-  /** 2 decimals — Comorian Franc (Comoros) */
+  /** Comorian Franc (Comoros) - 2 decimals */
   Kmf = 'KMF',
-  /** 2 decimals — North Korean Won (North Korea) */
+  /** North Korean Won (North Korea) - 2 decimals */
   Kpw = 'KPW',
-  /** 2 decimals — South Korean Won (South Korea) */
+  /** South Korean Won (South Korea) - 0 decimals */
   Krw = 'KRW',
-  /** 3 decimals — Kuwaiti Dinar (Kuwait) */
+  /** Kuwaiti Dinar (Kuwait) - 3 decimals */
   Kwd = 'KWD',
-  /** 2 decimals — Cayman Islands Dollar (Cayman Islands) */
+  /** Cayman Islands Dollar - 2 decimals */
   Kyd = 'KYD',
-  /** 2 decimals — Kazakhstani Tenge (Kazakhstan) */
+  /** Kazakhstani Tenge (Kazakhstan) - 2 decimals */
   Kzt = 'KZT',
-  /** 2 decimals — Lao Kip (Laos) */
+  /** Lao Kip (Laos) - 2 decimals */
   Lak = 'LAK',
-  /** 2 decimals — Lebanese Pound (Lebanon) */
+  /** Lebanese Pound (Lebanon) - 2 decimals */
   Lbp = 'LBP',
-  /** 2 decimals — Sri Lankan Rupee (Sri Lanka) */
+  /** Sri Lankan Rupee (Sri Lanka) - 2 decimals */
   Lkr = 'LKR',
-  /** 3 decimals — Liberian Dollar (Liberia) */
+  /** Liberian Dollar (Liberia) - 2 decimals */
   Lrd = 'LRD',
-  /** 3 decimals — Libyan Dinar (Libya) */
+  /** Lesotho Loti (Lesotho) - 2 decimals */
+  Lsl = 'LSL',
+  /** Libyan Dinar (Libya) - 3 decimals */
   Lyd = 'LYD',
-  /** 2 decimals — Moroccan Dirham (Morocco) */
+  /** Moroccan Dirham (Morocco) - 2 decimals */
   Mad = 'MAD',
-  /** 2 decimals — Moldovan Leu (Moldova) */
+  /** Moldovan Leu (Moldova) - 2 decimals */
   Mdl = 'MDL',
-  /** 2 decimals — Malagasy Ariary (Madagascar) */
+  /** Malagasy Ariary (Madagascar) - 2 decimals */
   Mga = 'MGA',
-  /** 2 decimals — Macedonian Denar (North Macedonia) */
+  /** Macedonian Denar (North Macedonia) - 2 decimals */
   Mkd = 'MKD',
-  /** 2 decimals — Burmese Kyat (Myanmar) */
+  /** Burmese Kyat (Myanmar) - 2 decimals */
   Mmk = 'MMK',
-  /** 2 decimals — Mongolian Tögrög (Mongolia) */
+  /** Mongolian Tögrög (Mongolia) - 2 decimals */
   Mnt = 'MNT',
-  /** 2 decimals — Macanese Pataca (Macau) */
+  /** Macanese Pataca (Macau) - 2 decimals */
   Mop = 'MOP',
-  /** 2 decimals — Mauritanian Ouguiya (Mauritania) */
+  /** Mauritanian Ouguiya (Mauritania) - 2 decimals */
   Mru = 'MRU',
-  /** 2 decimals — Mauritian Rupee (Mauritius) */
+  /** Mauritian Rupee (Mauritius) - 2 decimals */
   Mur = 'MUR',
-  /** 2 decimals — Maldivian Rufiyaa (Maldives) */
+  /** Maldivian Rufiyaa (Maldives) - 2 decimals */
   Mvr = 'MVR',
-  /** 2 decimals — Malawian Kwacha (Malawi) */
+  /** Malawian Kwacha (Malawi) - 2 decimals */
   Mwk = 'MWK',
-  /** 2 decimals — Mexican Peso (Mexico) */
+  /** Mexican Peso (Mexico) - 2 decimals */
   Mxn = 'MXN',
-  /** 2 decimals — Malaysian Ringgit (Malaysia) */
+  /** Malaysian Ringgit (Malaysia) - 2 decimals */
   Myr = 'MYR',
-  /** 2 decimals — Mozambican Metical (Mozambique) */
+  /** Mozambican Metical (Mozambique) - 2 decimals */
   Mzn = 'MZN',
-  /** 2 decimals — Namibian Dollar (Namibia) */
+  /** Namibian Dollar (Namibia) - 2 decimals */
   Nad = 'NAD',
-  /** 2 decimals — Nigerian Naira (Nigeria) */
+  /** Nigerian Naira (Nigeria) - 2 decimals */
   Ngn = 'NGN',
-  /** 2 decimals — Nicaraguan Córdoba (Nicaragua) */
+  /** Nicaraguan Córdoba (Nicaragua) - 2 decimals */
   Nio = 'NIO',
-  /** 2 decimals — Norwegian Krone (Norway) */
+  /** Norwegian Krone (Norway) - 2 decimals */
   Nok = 'NOK',
-  /** 2 decimals — Nepalese Rupee (Nepal) */
+  /** Nepalese Rupee (Nepal) - 2 decimals */
   Npr = 'NPR',
-  /** 2 decimals — New Zealand Dollar (New Zealand) */
+  /** New Zealand Dollar (New Zealand) - 2 decimals */
   Nzd = 'NZD',
-  /** 2 decimals — Omani Rial (Oman) */
+  /** Omani Rial (Oman) - 3 decimals */
   Omr = 'OMR',
-  /** 2 decimals — Panamanian Balboa (Panama) */
+  /** Panamanian Balboa (Panama) - 2 decimals */
   Pab = 'PAB',
-  /** 2 decimals — Peruvian Sol (Peru) */
+  /** Peruvian Sol (Peru) - 2 decimals */
   Pen = 'PEN',
-  /** 0 decimals — Papua New Guinean Kina (Papua New Guinea) */
+  /** Papua New Guinean Kina - 2 decimals */
   Pgk = 'PGK',
-  /** 2 decimals — Philippine Peso (Philippines) */
+  /** Philippine Peso (Philippines) - 2 decimals */
   Php = 'PHP',
-  /** 2 decimals — Pakistani Rupee (Pakistan) */
+  /** Pakistani Rupee (Pakistan) - 2 decimals */
   Pkr = 'PKR',
-  /** 0 decimals — Polish Zloty (Poland) */
+  /** Polish Zloty (Poland) - 2 decimals */
   Pln = 'PLN',
-  /** 2 decimals — Paraguayan Guaraní (Paraguay) */
+  /** Paraguayan Guaraní (Paraguay) - 0 decimals */
   Pyg = 'PYG',
-  /** 2 decimals — Qatari Riyal (Qatar) */
+  /** Qatari Riyal (Qatar) - 2 decimals */
   Qar = 'QAR',
-  /** 2 decimals — Romanian Leu (Romania) */
+  /** Romanian Leu (Romania) - 2 decimals */
   Ron = 'RON',
-  /** 2 decimals — Serbian Dinar (Serbia) */
+  /** Serbian Dinar (Serbia) - 2 decimals */
   Rsd = 'RSD',
-  /** 2 decimals — Russian Ruble (Russia) */
+  /** Russian Ruble (Russia) - 2 decimals */
   Rub = 'RUB',
-  /** 2 decimals — Rwandan Franc (Rwanda) */
+  /** Rwandan Franc (Rwanda) - 0 decimals */
   Rwf = 'RWF',
-  /** 2 decimals — Saudi Riyal (Saudi Arabia) */
+  /** Saudi Riyal (Saudi Arabia) - 2 decimals */
   Sar = 'SAR',
-  /** 2 decimals — Solomon Islands Dollar (Solomon Islands) */
+  /** Solomon Islands Dollar - 2 decimals */
   Sbd = 'SBD',
-  /** 2 decimals — Seychelles Rupee (Seychelles) */
+  /** Seychelles Rupee (Seychelles) - 2 decimals */
   Scr = 'SCR',
-  /** 2 decimals — Sudanese Pound (Sudan) */
+  /** Sudanese Pound (Sudan) - 2 decimals */
   Sdg = 'SDG',
-  /** 2 decimals — Swedish Krona (Sweden) */
+  /** Swedish Krona (Sweden) - 2 decimals */
   Sek = 'SEK',
-  /** 2 decimals — Singapore Dollar (Singapore) */
+  /** Singapore Dollar (Singapore) - 2 decimals */
   Sgd = 'SGD',
-  /** 0 decimals — Saint Helena Pound (Saint Helena) */
+  /** Saint Helena Pound - 2 decimals */
   Shp = 'SHP',
-  /** 2 decimals — Sierra Leonean Leone (Sierra Leone) */
+  /** Sierra Leonean Leone - 2 decimals */
   Sle = 'SLE',
-  /** 2 decimals — Somali Shilling (Somalia) */
+  /** Somali Shilling (Somalia) - 2 decimals */
   Sos = 'SOS',
-  /** 2 decimals — Surinamese Dollar (Suriname) */
+  /** Surinamese Dollar (Suriname) - 2 decimals */
   Srd = 'SRD',
-  /** 2 decimals — South Sudanese Pound (South Sudan) */
+  /** South Sudanese Pound - 2 decimals */
   Ssp = 'SSP',
-  /** 2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe) */
+  /** São Tomé and Príncipe Dobra - 2 decimals */
   Stn = 'STN',
-  /** 2 decimals — Salvadoran Colón (El Salvador) */
+  /** Salvadoran Colón (El Salvador) - 2 decimals */
   Svc = 'SVC',
-  /** 2 decimals — Syrian Pound (Syria) */
+  /** Syrian Pound (Syria) - 2 decimals */
   Syp = 'SYP',
-  /** 2 decimals — Eswatini Lilangeni (Eswatini) */
+  /** Eswatini Lilangeni (Eswatini) - 2 decimals */
   Szl = 'SZL',
-  /** 2 decimals — Thai Baht (Thailand) */
+  /** Thai Baht (Thailand) - 2 decimals */
   Thb = 'THB',
-  /** 2 decimals — Tajikistani Somoni (Tajikistan) */
+  /** Tajikistani Somoni (Tajikistan) - 2 decimals */
   Tjs = 'TJS',
-  /** 2 decimals — Turkmenistani Manat (Turkmenistan) */
+  /** Turkmenistani Manat (Turkmenistan) - 2 decimals */
   Tmt = 'TMT',
-  /** 2 decimals — Tunisian Dinar (Tunisia) */
+  /** Tunisian Dinar (Tunisia) - 3 decimals */
   Tnd = 'TND',
-  /** 2 decimals — Tongan Paʻanga (Tonga) */
+  /** Tongan Paʻanga (Tonga) - 2 decimals */
   Top = 'TOP',
-  /** 2 decimals — Turkish Lira (Türkiye) */
+  /** Turkish Lira (Turkey) - 2 decimals */
   Try = 'TRY',
-  /** 2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago) */
+  /** Trinidad and Tobago Dollar - 2 decimals */
   Ttd = 'TTD',
-  /** 2 decimals — New Taiwan Dollar (Taiwan) */
+  /** New Taiwan Dollar (Taiwan) - 2 decimals */
   Twd = 'TWD',
-  /** 0 decimals — Tanzanian Shilling (Tanzania) */
+  /** Tanzanian Shilling (Tanzania) - 2 decimals */
   Tzs = 'TZS',
-  /** 2 decimals — Ukrainian Hryvnia (Ukraine) */
+  /** Ukrainian Hryvnia (Ukraine) - 2 decimals */
   Uah = 'UAH',
-  /** 2 decimals — Ugandan Shilling (Uganda) */
+  /** Ugandan Shilling (Uganda) - 0 decimals */
   Ugx = 'UGX',
-  /** 2 decimals — United States Dollar (United States) */
+  /** United States Dollar (USA) - 2 decimals */
   Usd = 'USD',
-  /** 2 decimals — Uruguayan Peso (Uruguay) */
+  /** Uruguayan Peso (Uruguay) - 2 decimals */
   Uyu = 'UYU',
-  /** 2 decimals — Uzbekistan Som (Uzbekistan) */
+  /** Uzbekistani Som (Uzbekistan) - 2 decimals */
   Uzs = 'UZS',
-  /** 2 decimals — Venezuelan Bolívar (Venezuela) */
+  /** Venezuelan Bolívar (Venezuela) - 2 decimals */
   Ves = 'VES',
-  /** 0 decimals — Vietnamese Dong (Vietnam) */
+  /** Vietnamese Dong (Vietnam) - 0 decimals */
   Vnd = 'VND',
-  /** 2 decimals — Vanuatu Vatu (Vanuatu) */
+  /** Vanuatu Vatu (Vanuatu) - 0 decimals */
   Vuv = 'VUV',
-  /** 2 decimals — Samoan Tala (Samoa) */
+  /** Samoan Tala (Samoa) - 2 decimals */
   Wst = 'WST',
-  /** 2 decimals — Central African CFA Franc (CEMAC) */
+  /** Central African CFA Franc - 0 decimals */
   Xaf = 'XAF',
-  /** 0 decimals — East Caribbean Dollar (OECS) */
+  /** East Caribbean Dollar - 2 decimals */
   Xcd = 'XCD',
-  /** 0 decimals — Special Drawing Rights (IMF) */
+  /** Special Drawing Rights (IMF) - 0 decimals */
   Xdr = 'XDR',
-  /** 0 decimals — West African CFA Franc (UEMOA) */
+  /** West African CFA Franc - 0 decimals */
   Xof = 'XOF',
-  /** 0 decimals — CFP Franc (French overseas territories) */
+  /** CFP Franc - 0 decimals */
   Xpf = 'XPF',
-  /** 2 decimals — Yemeni Rial (Yemen) */
+  /** Yemeni Rial (Yemen) - 2 decimals */
   Yer = 'YER',
-  /** 2 decimals — South African Rand (South Africa) */
+  /** South African Rand (South Africa) - 2 decimals */
   Zar = 'ZAR',
-  /** 2 decimals — Zambian Kwacha (Zambia) */
+  /** Zambian Kwacha (Zambia) - 2 decimals */
   Zmw = 'ZMW',
-  /** 2 decimals — Zimbabwean Dollar (Zimbabwe) */
+  /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   Zwl = 'ZWL'
 }
 
@@ -774,10 +776,300 @@ export type ApiCustomer = {
   id: Scalars['ID']['output'];
 };
 
+/** Dimension (length) measurement units */
+export enum ApiDimensionUnit {
+  /** Centimeter */
+  Cm = 'cm',
+  /** Foot */
+  Ft = 'ft',
+  /** Inch */
+  In = 'in',
+  /** Meter */
+  M = 'm',
+  /** Millimeter */
+  Mm = 'mm'
+}
+
 export type ApiLabel = {
   __typename?: 'Label';
   id: Scalars['ID']['output'];
 };
+
+/** Language/Locale codes based on ISO 639-1 and BCP 47 */
+export enum ApiLocaleCode {
+  /** Akan */
+  Ak = 'ak',
+  /** Amharic */
+  Am = 'am',
+  /** Arabic */
+  Ar = 'ar',
+  /** Assamese */
+  As = 'as',
+  /** Azerbaijani */
+  Az = 'az',
+  /** Belarusian */
+  Be = 'be',
+  /** Bulgarian */
+  Bg = 'bg',
+  /** Bambara */
+  Bm = 'bm',
+  /** Bangla */
+  Bn = 'bn',
+  /** Tibetan */
+  Bo = 'bo',
+  /** Breton */
+  Br = 'br',
+  /** Bosnian */
+  Bs = 'bs',
+  /** Catalan */
+  Ca = 'ca',
+  /** Chechen */
+  Ce = 'ce',
+  /** Central Kurdish */
+  Ckb = 'ckb',
+  /** Czech */
+  Cs = 'cs',
+  /** Welsh */
+  Cy = 'cy',
+  /** Danish */
+  Da = 'da',
+  /** German */
+  De = 'de',
+  /** Dzongkha */
+  Dz = 'dz',
+  /** Ewe */
+  Ee = 'ee',
+  /** Greek */
+  El = 'el',
+  /** English */
+  En = 'en',
+  /** Esperanto */
+  Eo = 'eo',
+  /** Spanish */
+  Es = 'es',
+  /** Estonian */
+  Et = 'et',
+  /** Basque */
+  Eu = 'eu',
+  /** Persian */
+  Fa = 'fa',
+  /** Fulah */
+  Ff = 'ff',
+  /** Finnish */
+  Fi = 'fi',
+  /** Filipino */
+  Fil = 'fil',
+  /** Faroese */
+  Fo = 'fo',
+  /** French */
+  Fr = 'fr',
+  /** Western Frisian */
+  Fy = 'fy',
+  /** Irish */
+  Ga = 'ga',
+  /** Scottish Gaelic */
+  Gd = 'gd',
+  /** Galician */
+  Gl = 'gl',
+  /** Gujarati */
+  Gu = 'gu',
+  /** Manx */
+  Gv = 'gv',
+  /** Hausa */
+  Ha = 'ha',
+  /** Hebrew */
+  He = 'he',
+  /** Hindi */
+  Hi = 'hi',
+  /** Croatian */
+  Hr = 'hr',
+  /** Hungarian */
+  Hu = 'hu',
+  /** Armenian */
+  Hy = 'hy',
+  /** Interlingua */
+  Ia = 'ia',
+  /** Indonesian */
+  Id = 'id',
+  /** Igbo */
+  Ig = 'ig',
+  /** Sichuan Yi */
+  Ii = 'ii',
+  /** Icelandic */
+  Is = 'is',
+  /** Italian */
+  It = 'it',
+  /** Japanese */
+  Ja = 'ja',
+  /** Javanese */
+  Jv = 'jv',
+  /** Georgian */
+  Ka = 'ka',
+  /** Kikuyu */
+  Ki = 'ki',
+  /** Kazakh */
+  Kk = 'kk',
+  /** Kalaallisut */
+  Kl = 'kl',
+  /** Khmer */
+  Km = 'km',
+  /** Kannada */
+  Kn = 'kn',
+  /** Korean */
+  Ko = 'ko',
+  /** Kashmiri */
+  Ks = 'ks',
+  /** Kurdish */
+  Ku = 'ku',
+  /** Cornish */
+  Kw = 'kw',
+  /** Kyrgyz */
+  Ky = 'ky',
+  /** Luxembourgish */
+  Lb = 'lb',
+  /** Ganda */
+  Lg = 'lg',
+  /** Lingala */
+  Ln = 'ln',
+  /** Lao */
+  Lo = 'lo',
+  /** Lithuanian */
+  Lt = 'lt',
+  /** Luba-Katanga */
+  Lu = 'lu',
+  /** Latvian */
+  Lv = 'lv',
+  /** Malagasy */
+  Mg = 'mg',
+  /** Māori */
+  Mi = 'mi',
+  /** Macedonian */
+  Mk = 'mk',
+  /** Malayalam */
+  Ml = 'ml',
+  /** Mongolian */
+  Mn = 'mn',
+  /** Marathi */
+  Mr = 'mr',
+  /** Malay */
+  Ms = 'ms',
+  /** Maltese */
+  Mt = 'mt',
+  /** Burmese */
+  My = 'my',
+  /** Norwegian Bokmål */
+  Nb = 'nb',
+  /** North Ndebele */
+  Nd = 'nd',
+  /** Nepali */
+  Ne = 'ne',
+  /** Dutch */
+  Nl = 'nl',
+  /** Norwegian Nynorsk */
+  Nn = 'nn',
+  /** Norwegian */
+  No = 'no',
+  /** Oromo */
+  Om = 'om',
+  /** Odia */
+  Or = 'or',
+  /** Ossetic */
+  Os = 'os',
+  /** Punjabi */
+  Pa = 'pa',
+  /** Polish */
+  Pl = 'pl',
+  /** Pashto */
+  Ps = 'ps',
+  /** Portuguese (Brazil) */
+  PtBr = 'pt_BR',
+  /** Portuguese (Portugal) */
+  PtPt = 'pt_PT',
+  /** Quechua */
+  Qu = 'qu',
+  /** Romansh */
+  Rm = 'rm',
+  /** Rundi */
+  Rn = 'rn',
+  /** Romanian */
+  Ro = 'ro',
+  /** Russian */
+  Ru = 'ru',
+  /** Kinyarwanda */
+  Rw = 'rw',
+  /** Sanskrit */
+  Sa = 'sa',
+  /** Sardinian */
+  Sc = 'sc',
+  /** Sindhi */
+  Sd = 'sd',
+  /** Northern Sami */
+  Se = 'se',
+  /** Sango */
+  Sg = 'sg',
+  /** Sinhala */
+  Si = 'si',
+  /** Slovak */
+  Sk = 'sk',
+  /** Slovenian */
+  Sl = 'sl',
+  /** Shona */
+  Sn = 'sn',
+  /** Somali */
+  So = 'so',
+  /** Albanian */
+  Sq = 'sq',
+  /** Serbian */
+  Sr = 'sr',
+  /** Sundanese */
+  Su = 'su',
+  /** Swedish */
+  Sv = 'sv',
+  /** Swahili */
+  Sw = 'sw',
+  /** Tamil */
+  Ta = 'ta',
+  /** Telugu */
+  Te = 'te',
+  /** Tajik */
+  Tg = 'tg',
+  /** Thai */
+  Th = 'th',
+  /** Tigrinya */
+  Ti = 'ti',
+  /** Turkmen */
+  Tk = 'tk',
+  /** Tongan */
+  To = 'to',
+  /** Turkish */
+  Tr = 'tr',
+  /** Tatar */
+  Tt = 'tt',
+  /** Uyghur */
+  Ug = 'ug',
+  /** Ukrainian */
+  Uk = 'uk',
+  /** Urdu */
+  Ur = 'ur',
+  /** Uzbek */
+  Uz = 'uz',
+  /** Vietnamese */
+  Vi = 'vi',
+  /** Wolof */
+  Wo = 'wo',
+  /** Xhosa */
+  Xh = 'xh',
+  /** Yiddish */
+  Yi = 'yi',
+  /** Yoruba */
+  Yo = 'yo',
+  /** Chinese (Simplified) */
+  ZhCn = 'zh_CN',
+  /** Chinese (Traditional) */
+  ZhTw = 'zh_TW',
+  /** Zulu */
+  Zu = 'zu'
+}
 
 export type ApiMutation = {
   __typename?: 'Mutation';
@@ -1000,11 +1292,16 @@ export type ApiWeight = {
   weight: Scalars['Float']['output'];
 };
 
+/** Weight measurement units */
 export enum ApiWeightUnit {
-  Gr = 'GR',
-  Kg = 'KG',
-  Lb = 'LB',
-  Oz = 'OZ'
+  /** Gram */
+  G = 'g',
+  /** Kilogram */
+  Kg = 'kg',
+  /** Pound */
+  Lb = 'lb',
+  /** Ounce */
+  Oz = 'oz'
 }
 
 
@@ -1095,12 +1392,14 @@ export type ApiResolversTypes = {
   CurrencyCode: ApiCurrencyCode;
   Customer: ResolverTypeWrapper<ApiCustomer>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
+  DimensionUnit: ApiDimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   Label: ResolverTypeWrapper<ApiLabel>;
+  LocaleCode: ApiLocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
   Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversTypes['OrderActor'], events: Array<ApiResolversTypes['OrderEvent']> }>;
