@@ -69,6 +69,7 @@ services:
 
   orders:
     ports:
+      admin_graphql: 10004
       storefront_graphql: 10003
       metrics: 3032
     db:
