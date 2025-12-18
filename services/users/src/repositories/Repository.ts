@@ -1,4 +1,7 @@
-import { Client, type AuthConfig } from "@shopana/casdoor-node-sdk";
+import {
+  CasdoorNodeClient,
+  type CasdoorNodeClientConfig,
+} from "@zaytra/casdoor-node-client-ext";
 import { UserRepository } from "./user/UserRepository.js";
 
 export interface RepositoryConfig {
@@ -15,20 +18,24 @@ export interface RepositoryConfig {
  */
 export class Repository {
   public readonly user: UserRepository;
-  public readonly client: Client;
+  public readonly client: CasdoorNodeClient;
   public readonly organization: string;
   public readonly application: string;
 
   constructor(config: RepositoryConfig) {
-    const authConfig: AuthConfig = {
-      endpoint: config.endpoint,
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
-      certificate: config.certificate ?? "",
-      organizationName: config.organizationName,
-      applicationName: config.applicationName,
+    const clientConfig: CasdoorNodeClientConfig = {
+      casdoorBaseUrl: config.endpoint,
+      sdkConfig: {
+        endpoint: config.endpoint,
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        certificate: config.certificate ?? "",
+        orgName: config.organizationName,
+        appName: config.applicationName,
+      },
+      cookie: { mode: "forward" },
     };
-    this.client = new Client(authConfig);
+    this.client = new CasdoorNodeClient(clientConfig);
     this.organization = config.organizationName;
     this.application = config.applicationName;
     this.user = new UserRepository(this.client, this.organization, this.application);

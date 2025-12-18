@@ -9,9 +9,6 @@ const config: CodegenConfig = {
         useIndexSignature: true,
         contextType: "../../../context/index.js#ServiceContext",
         federation: true,
-        mappers: {
-          User: "@shopana/casdoor-node-sdk#User as CasdoorUser",
-        },
         scalars: {
           DateTime: "string",
           Email: "string",

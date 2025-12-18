@@ -1,4 +1,4 @@
-import type { User } from "@shopana/casdoor-node-sdk";
+import type { User } from "casdoor-nodejs-sdk/lib/cjs/user";
 import type { UserResultBase } from "./shared.js";
 
 export interface UserSignUpParams {

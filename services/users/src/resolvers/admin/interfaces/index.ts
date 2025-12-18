@@ -5,7 +5,8 @@
  */
 
 import type { TypeResult } from "@shopana/type-resolver";
-import type { Role as CasdoorRole, User as CasdoorUser } from "@shopana/casdoor-node-sdk";
+import type { User as CasdoorUser } from "casdoor-nodejs-sdk/lib/cjs/user";
+import type { Role as CasdoorRole } from "casdoor-nodejs-sdk/lib/cjs/role";
 import type { UserResolver } from "../UserResolver.js";
 
 // ============================================================================
@@ -13,7 +14,8 @@ import type { UserResolver } from "../UserResolver.js";
 // ============================================================================
 
 /** User type from Casdoor SDK */
-export type { User as CasdoorUser, Role as CasdoorRole } from "@shopana/casdoor-node-sdk";
+export type { User as CasdoorUser } from "casdoor-nodejs-sdk/lib/cjs/user";
+export type { Role as CasdoorRole } from "casdoor-nodejs-sdk/lib/cjs/role";
 
 // ============================================================================
 // Derived types from Resolver classes (auto-generated from TypeResult)

@@ -1,10 +1,11 @@
-import type { Role as CasdoorRole, User } from "@shopana/casdoor-node-sdk";
+import type { User } from "casdoor-nodejs-sdk/lib/cjs/user";
+import type { Role as CasdoorRole } from "casdoor-nodejs-sdk/lib/cjs/role";
 import type { Role } from "./interfaces/index.js";
 import { UsersType } from "./UsersType.js";
 
 /**
  * User resolver - resolves admin user domain interface
- * Uses User type from @shopana/casdoor-node-sdk
+ * Uses User type from casdoor-nodejs-sdk
  */
 export class UserResolver extends UsersType<string, User | null> {
   async loadData() {

@@ -1,4 +1,5 @@
-import type { User, Client } from "@shopana/casdoor-node-sdk";
+import type { User } from "casdoor-nodejs-sdk/lib/cjs/user";
+import type { CasdoorNodeClient, RequestContext } from "@zaytra/casdoor-node-client-ext";
 
 // Re-export User type from SDK
 export type { User };
@@ -30,7 +31,7 @@ export interface SignUpResult {
  */
 export class UserRepository {
   constructor(
-    private readonly client: Client,
+    private readonly client: CasdoorNodeClient,
     private readonly organization: string,
     private readonly application: string
   ) {}
@@ -39,66 +40,77 @@ export class UserRepository {
    * Find user by email
    */
   async findByEmail(email: string): Promise<User | null> {
-    return this.client.getUserByEmail(email);
+    const response = await this.client.sdk.getUser(email);
+    return response.data?.data ?? null;
   }
 
   /**
    * Find user by name (username)
    */
   async findByName(name: string): Promise<User | null> {
-    return this.client.getUser(name);
+    const response = await this.client.sdk.getUser(name);
+    return response.data?.data ?? null;
   }
 
   /**
    * Sign up a new user
    */
-  async signUp(input: UserCreateInput): Promise<SignUpResult> {
+  async signUp(input: UserCreateInput, ctx: RequestContext = {}): Promise<SignUpResult> {
     const { email, password } = input;
-
-    // Generate username from email (before @)
     const username = email.split("@")[0] + "_" + Date.now();
 
-    const userData: Partial<User> = {
-      owner: this.organization,
-      name: username,
-      email,
-      password,
-      displayName: username,
-      signupApplication: this.application,
-      type: "normal-user",
-    };
-
     try {
-      const success = await this.client.addUser(userData);
+      // 1. Create user via /api/signup
+      const signupResponse = await this.client.auth.signup(ctx, {
+        application: this.application,
+        organization: this.organization,
+        username,
+        name: username,
+        email,
+        password,
+      });
 
-      if (!success) {
+      if (signupResponse.data.status !== "ok") {
         return {
           success: false,
           user: null,
           token: null,
-          error: "Failed to create user",
+          error: signupResponse.data.msg || "Signup failed",
         };
       }
 
-      // Get the created user
-      const user = await this.client.getUserByEmail(email);
+      // 2. Login with type: "token" to get tokens
+      const loginResponse = await this.client.auth.login(ctx, {
+        application: this.application,
+        organization: this.organization,
+        username: email,
+        password,
+        type: "token",
+      });
 
-      if (!user) {
+      if (loginResponse.data.status !== "ok") {
         return {
           success: false,
           user: null,
           token: null,
-          error: "User created but not found",
+          error: loginResponse.data.msg || "Login after signup failed",
         };
       }
 
-      // Note: Token generation after signup would typically require
-      // OAuth flow or direct API call to Casdoor's login endpoint
-      // For now, we return user without token - client should call signIn after signUp
+      const accessToken = loginResponse.data.data as string;
+      const refreshToken = (loginResponse.data.data2 as string) || "";
+
+      // 3. Parse user from token
+      const user = this.client.sdk.parseJwtToken(accessToken);
+
       return {
         success: true,
         user,
-        token: null,
+        token: {
+          accessToken,
+          refreshToken,
+          expiresIn: 7200,
+        },
       };
     } catch (error) {
       return {
