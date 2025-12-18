@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { buildCommand } from "./commands/build.js";
 import { codegenCommand } from "./commands/codegen.js";
 import { devCommand } from "./commands/dev.js";
+import { gatewayCommand } from "./commands/gateway.js";
 import { migrateCommand } from "./commands/migrate.js";
 import {
   schemaBuildCommand,
@@ -45,6 +46,14 @@ program
   .description("Generate GraphQL TypeScript types")
   .option("-s, --service <service>", "Generate for specific service only")
   .action(codegenCommand);
+
+// Gateway command
+program
+  .command("gateway")
+  .description("Start GraphQL federation gateway")
+  .option("-a, --admin", "Start admin gateway only")
+  .option("-s, --storefront", "Start storefront gateway only")
+  .action(gatewayCommand);
 
 // Schema commands
 const schema = program.command("schema").description("Manage GraphQL schemas");
