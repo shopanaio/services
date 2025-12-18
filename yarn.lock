@@ -5669,17 +5669,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/casdoor-node-sdk@npm:*, @shopana/casdoor-node-sdk@workspace:packages/casdoor-node-sdk":
-  version: 0.0.0-use.local
-  resolution: "@shopana/casdoor-node-sdk@workspace:packages/casdoor-node-sdk"
-  dependencies:
-    "@types/jsonwebtoken": "npm:^9.0.7"
-    "@types/node": "npm:^20.14.14"
-    jsonwebtoken: "npm:^9.0.2"
-    typescript: "npm:^5.5.4"
-  languageName: unknown
-  linkType: soft
-
 "@shopana/checkout-sdk@npm:*, @shopana/checkout-sdk@workspace:packages/checkout-sdk":
   version: 0.0.0-use.local
   resolution: "@shopana/checkout-sdk@workspace:packages/checkout-sdk"
@@ -5760,6 +5749,7 @@ __metadata:
     postgres: "npm:^3.4.7"
     tsx: "npm:^4.20.6"
     typescript: "npm:^5.5.4"
+    yaml: "npm:^2.6.1"
   bin:
     shopana: ./dist/cli.js
   languageName: unknown
@@ -5815,6 +5805,7 @@ __metadata:
     graphql-tag: "npm:^2.12.6"
     tsx: "npm:^4.20.6"
     typescript: "npm:^5.5.4"
+    yaml: "npm:^2.6.1"
   languageName: unknown
   linkType: soft
 
@@ -6013,16 +6004,9 @@ __metadata:
   dependencies:
     "@grpc/grpc-js": "npm:^1.12.4"
     "@grpc/proto-loader": "npm:^0.7.15"
-    "@shopana/platform-proto": "npm:0.0.1"
     graphql-request: "npm:^7.1.0"
     rimraf: "npm:^5.0.0"
     typescript: "npm:^5.5.4"
-  languageName: unknown
-  linkType: soft
-
-"@shopana/platform-proto@npm:0.0.1, @shopana/platform-proto@workspace:packages/platform-proto":
-  version: 0.0.0-use.local
-  resolution: "@shopana/platform-proto@workspace:packages/platform-proto"
   languageName: unknown
   linkType: soft
 
@@ -6089,7 +6073,6 @@ __metadata:
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
-    "@shopana/shared-casdoor": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-references": "npm:*"
     "@shopana/type-resolver": "npm:*"
@@ -6128,16 +6111,6 @@ __metadata:
   dependencies:
     "@types/node": "npm:^20.0.0"
     tsc-alias: "npm:^1.8.10"
-    typescript: "npm:^5.5.4"
-  languageName: unknown
-  linkType: soft
-
-"@shopana/shared-casdoor@npm:*, @shopana/shared-casdoor@workspace:packages/shared-casdoor":
-  version: 0.0.0-use.local
-  resolution: "@shopana/shared-casdoor@workspace:packages/shared-casdoor"
-  dependencies:
-    "@shopana/casdoor-node-sdk": "npm:*"
-    "@types/node": "npm:^20.14.14"
     typescript: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
@@ -6275,13 +6248,12 @@ __metadata:
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@shopana/build-tools": "npm:0.0.1"
-    "@shopana/casdoor-node-sdk": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
-    "@shopana/shared-casdoor": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-service-config": "npm:*"
     "@shopana/type-resolver": "npm:*"
     "@types/node": "npm:^20.14.14"
+    "@zaytra/casdoor-node-client-ext": "workspace:*"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
     fastify: "npm:^4.28.1"
@@ -7206,7 +7178,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/jsonwebtoken@npm:^9.0.4, @types/jsonwebtoken@npm:^9.0.7":
+"@types/jsonwebtoken@npm:^9.0.4":
   version: 9.0.10
   resolution: "@types/jsonwebtoken@npm:9.0.10"
   dependencies:
@@ -7840,6 +7812,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@zaytra/casdoor-node-client-ext@workspace:*, @zaytra/casdoor-node-client-ext@workspace:packages/casdoor-sdk":
+  version: 0.0.0-use.local
+  resolution: "@zaytra/casdoor-node-client-ext@workspace:packages/casdoor-sdk"
+  dependencies:
+    axios: "npm:^1.8.4"
+    casdoor-nodejs-sdk: "npm:^1.34.0"
+    form-data: "npm:^4.0.0"
+    rimraf: "npm:^5.0.0"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
 "@zxing/text-encoding@npm:0.9.0":
   version: 0.9.0
   resolution: "@zxing/text-encoding@npm:0.9.0"
@@ -8226,6 +8210,17 @@ __metadata:
   version: 1.13.2
   resolution: "aws4@npm:1.13.2"
   checksum: 10/290b9f84facbad013747725bfd8b4c42d0b3b04b5620d8418f0219832ef95a7dc597a4af7b1589ae7fce18bacde96f40911c3cda36199dd04d9f8e01f72fa50a
+  languageName: node
+  linkType: hard
+
+"axios@npm:^1.8.4":
+  version: 1.13.2
+  resolution: "axios@npm:1.13.2"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.4"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10/ae4e06dcd18289f2fd18179256d550d27f9a53ecb2f9c59f2ccc4efd1d7151839ba8c3e0fb533dac793e4a59a576ca8689a19244dce5c396680837674a47a867
   languageName: node
   linkType: hard
 
@@ -8708,6 +8703,18 @@ __metadata:
   bin:
     cdl: ./bin/cdl.js
   checksum: 10/caf0d34739ef7b1d80e1753311f889997b62c4490906819eb5da5bd46e7f5e5caba7a8a96ca401190c7d9c18443a7749e5338630f7f9a1ae98d60cac49b9008e
+  languageName: node
+  linkType: hard
+
+"casdoor-nodejs-sdk@npm:^1.34.0":
+  version: 1.34.0
+  resolution: "casdoor-nodejs-sdk@npm:1.34.0"
+  dependencies:
+    axios: "npm:^1.8.4"
+    form-data: "npm:^4.0.0"
+    jsonwebtoken: "npm:9.0.2"
+    node-fetch: "npm:^3.3.2"
+  checksum: 10/d5a0c84fb50421aff5f6fc40d122a02ebd1b1c64db4e88bbdc8340103fc36bffd3ae2042ef8b0597e71112eaf03b72782b7ab9f213fac9e22e73a6181bd2443b
   languageName: node
   linkType: hard
 
@@ -10732,6 +10739,16 @@ __metadata:
     locate-path: "npm:^5.0.0"
     path-exists: "npm:^4.0.0"
   checksum: 10/4c172680e8f8c1f78839486e14a43ef82e9decd0e74145f40707cc42e7420506d5ec92d9a11c22bd2c48fb0c384ea05dd30e10dd152fefeec6f2f75282a8b844
+  languageName: node
+  linkType: hard
+
+"follow-redirects@npm:^1.15.6":
+  version: 1.15.11
+  resolution: "follow-redirects@npm:1.15.11"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 10/07372fd74b98c78cf4d417d68d41fdaa0be4dcacafffb9e67b1e3cf090bc4771515e65020651528faab238f10f9b9c0d9707d6c1574a6c0387c5de1042cde9ba
   languageName: node
   linkType: hard
 
@@ -12868,7 +12885,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonwebtoken@npm:^9.0.0, jsonwebtoken@npm:^9.0.2":
+"jsonwebtoken@npm:9.0.2":
+  version: 9.0.2
+  resolution: "jsonwebtoken@npm:9.0.2"
+  dependencies:
+    jws: "npm:^3.2.2"
+    lodash.includes: "npm:^4.3.0"
+    lodash.isboolean: "npm:^3.0.3"
+    lodash.isinteger: "npm:^4.0.4"
+    lodash.isnumber: "npm:^3.0.3"
+    lodash.isplainobject: "npm:^4.0.6"
+    lodash.isstring: "npm:^4.0.1"
+    lodash.once: "npm:^4.0.0"
+    ms: "npm:^2.1.1"
+    semver: "npm:^7.5.4"
+  checksum: 10/6e9b6d879cec2b27f2f3a88a0c0973edc7ba956a5d9356b2626c4fddfda969e34a3832deaf79c3e1c6c9a525bc2c4f2c2447fa477f8ac660f0017c31a59ae96b
+  languageName: node
+  linkType: hard
+
+"jsonwebtoken@npm:^9.0.0":
   version: 9.0.3
   resolution: "jsonwebtoken@npm:9.0.3"
   dependencies:
@@ -12883,6 +12918,17 @@ __metadata:
     ms: "npm:^2.1.1"
     semver: "npm:^7.5.4"
   checksum: 10/a67a276db41fbfb458ebdc4938d5d7b01d4743e16bda0f25ac01996fe5b5819d66656153f6cfce19b4680b79ae9f9ca185965defc22e77e0abddf443573238d6
+  languageName: node
+  linkType: hard
+
+"jwa@npm:^1.4.2":
+  version: 1.4.2
+  resolution: "jwa@npm:1.4.2"
+  dependencies:
+    buffer-equal-constant-time: "npm:^1.0.1"
+    ecdsa-sig-formatter: "npm:1.0.11"
+    safe-buffer: "npm:^5.0.1"
+  checksum: 10/a46c9ddbcc226d9e85e13ef96328c7d331abddd66b5a55ec44bcf4350464a6125385ac9c1e64faa0fae8d586d90a14d6b5e96c73f0388970a3918d5252efb0f3
   languageName: node
   linkType: hard
 
@@ -12908,6 +12954,16 @@ __metadata:
     limiter: "npm:^1.1.5"
     lru-memoizer: "npm:^2.2.0"
   checksum: 10/4787842532c41377211070a0646011e88dbb4dfd1c5b92d48a9587a47791c8f04a534a004ac76e87163170a68f166bfc429c30cc73f83277e30e42ebea67dd9f
+  languageName: node
+  linkType: hard
+
+"jws@npm:^3.2.2":
+  version: 3.2.3
+  resolution: "jws@npm:3.2.3"
+  dependencies:
+    jwa: "npm:^1.4.2"
+    safe-buffer: "npm:^5.0.1"
+  checksum: 10/707387dd1cabcc3d9c2818f773cfaac7ede66e79ca11bbd159285a88cf5d8e8f355afcb8ee373e7bb0fcf9b7a2df015b22c50f27842f2c77453f04cd9f8f4009
   languageName: node
   linkType: hard
 
@@ -14859,6 +14915,13 @@ __metadata:
     forwarded: "npm:0.2.0"
     ipaddr.js: "npm:1.9.1"
   checksum: 10/f24a0c80af0e75d31e3451398670d73406ec642914da11a2965b80b1898ca6f66a0e3e091a11a4327079b2b268795f6fa06691923fef91887215c3d0e8ea3f68
+  languageName: node
+  linkType: hard
+
+"proxy-from-env@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "proxy-from-env@npm:1.1.0"
+  checksum: 10/f0bb4a87cfd18f77bc2fba23ae49c3b378fb35143af16cc478171c623eebe181678f09439707ad80081d340d1593cd54a33a0113f3ccb3f4bc9451488780ee23
   languageName: node
   linkType: hard
 
@@ -17563,6 +17626,15 @@ __metadata:
   bin:
     yaml: bin.mjs
   checksum: 10/eae07b3947d405012672ec17ce27348aea7d1fa0534143355d24a43a58f5e05652157ea2182c4fe0604f0540be71f99f1173f9d61018379404507790dff17665
+  languageName: node
+  linkType: hard
+
+"yaml@npm:^2.6.1":
+  version: 2.8.2
+  resolution: "yaml@npm:2.8.2"
+  bin:
+    yaml: bin.mjs
+  checksum: 10/4eab0074da6bc5a5bffd25b9b359cf7061b771b95d1b3b571852098380db3b1b8f96e0f1f354b56cc7216aa97cea25163377ccbc33a2e9ce00316fe8d02f4539
   languageName: node
   linkType: hard
 

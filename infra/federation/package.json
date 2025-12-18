@@ -20,12 +20,12 @@
   },
   "devDependencies": {
     "@apollo/subgraph": "^2.9.3",
-    "yaml": "^2.6.1",
     "@graphql-mesh/compose-cli": "^1.2.13",
     "glob": "^11.0.0",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "tsx": "^4.20.6",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "yaml": "^2.6.1"
   }
 }

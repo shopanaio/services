@@ -16,7 +16,6 @@
     "@as-integrations/fastify": "^2.1.1",
     "@shopana/drizzle-query": "*",
     "@shopana/platform-api": "0.0.1",
-    "@shopana/shared-casdoor": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-references": "*",
     "@shopana/type-resolver": "*",
