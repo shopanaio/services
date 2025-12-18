@@ -123,7 +123,7 @@ export async function startServer(broker: ServiceBroker) {
 
     // Admin GraphQL endpoint with simplified context
     await adminGraphqlInstance.register(fastifyApollo(adminApollo), {
-      path: "/graphql/admin/v1",
+      path: "/graphql",
       context: async (request, _reply) => {
         // Simplified context - only essential fields
         const ctx = {
@@ -152,7 +152,7 @@ export async function startServer(broker: ServiceBroker) {
 
     // Storefront GraphQL endpoint with simplified context
     await storefrontGraphqlInstance.register(fastifyApollo(storefrontApollo), {
-      path: "/graphql/storefront/v1",
+      path: "/graphql",
       context: async (request, _reply) => {
         // Simplified context - only essential fields
         const ctx = {

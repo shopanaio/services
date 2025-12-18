@@ -106,7 +106,7 @@ export async function startServer(serverConfig: ServerConfig) {
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
-    path: "/graphql/admin",
+    path: "/graphql",
     context: async (request, _reply): Promise<ServiceContext> => {
       // For introspection, return minimal context
       const isIntrospection =

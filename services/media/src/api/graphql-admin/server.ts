@@ -130,7 +130,7 @@ export async function startServer(serverConfig: ServerConfig) {
   app.addHook("preHandler", async (request, reply) => {
     // Only process multipart requests to GraphQL endpoint
     if (
-      request.url === "/graphql/admin" &&
+      request.url === "/graphql" &&
       request.headers["content-type"]?.includes("multipart/form-data")
     ) {
       try {
@@ -150,7 +150,7 @@ export async function startServer(serverConfig: ServerConfig) {
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
-    path: "/graphql/admin",
+    path: "/graphql",
 
     context: async (request, _reply): Promise<GraphQLContext> => {
       // For introspection, return minimal context
