@@ -7,6 +7,7 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -501,6 +502,17 @@ export type ExchangeRate = {
   amount: Scalars['Int']['output'];
   /** The number of decimal places in the amount */
   scale: Scalars['Int']['output'];
+};
+
+/** Generic implementation of UserError */
+export type GenericUserError = UserError & {
+  __typename?: 'GenericUserError';
+  /** Machine-readable error code */
+  code: Maybe<Scalars['String']['output']>;
+  /** Path to the field that caused the error */
+  field: Maybe<Array<Scalars['String']['output']>>;
+  /** Human-readable error message */
+  message: Scalars['String']['output'];
 };
 
 /** Locale configuration for the project */
@@ -1083,7 +1095,6 @@ export type Query = {
 
 /** Represents a user-facing error */
 export type UserError = {
-  __typename?: 'UserError';
   /** Machine-readable error code */
   code: Maybe<Scalars['String']['output']>;
   /** Path to the field that caused the error */
@@ -1109,6 +1120,17 @@ export type ResolversObject<TObject> = WithIndex<TObject>;
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
 
+export type ReferenceResolver<TResult, TReference, TContext> = (
+      reference: TReference,
+      context: TContext,
+      info: GraphQLResolveInfo
+    ) => Promise<TResult> | TResult;
+
+      type ScalarCheck<T, S> = S extends true ? T : NullableCheck<T, S>;
+      type NullableCheck<T, S> = Maybe<T> extends T ? Maybe<ListCheck<NonNullable<T>, S>> : ListCheck<T, S>;
+      type ListCheck<T, S> = T extends (infer U)[] ? NullableCheck<U, S>[] : GraphQLRecursivePick<T, S>;
+      export type GraphQLRecursivePick<T, S> = { [K in keyof T & keyof S]: ScalarCheck<T[K], S[K]> };
+    
 
 export type ResolverWithResolve<TResult, TParent, TContext, TArgs> = {
   resolve: ResolverFn<TResult, TParent, TContext, TArgs>;
@@ -1173,6 +1195,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 ) => TResult | Promise<TResult>;
 
 
+/** Mapping of interface types */
+export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
+  UserError: ( GenericUserError );
+}>;
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
@@ -1180,47 +1206,48 @@ export type ResolversTypes = ResolversObject<{
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  ApiKeyActionPayload: ResolverTypeWrapper<ApiKeyActionPayload>;
+  ApiKeyActionPayload: ResolverTypeWrapper<Omit<ApiKeyActionPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ApiKeyCreateInput: ApiKeyCreateInput;
-  ApiKeyCreatePayload: ResolverTypeWrapper<ApiKeyCreatePayload>;
+  ApiKeyCreatePayload: ResolverTypeWrapper<Omit<ApiKeyCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ApiKeyDeleteInput: ApiKeyDeleteInput;
-  ApiKeyDeletePayload: ResolverTypeWrapper<ApiKeyDeletePayload>;
+  ApiKeyDeletePayload: ResolverTypeWrapper<Omit<ApiKeyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ApiKeyRevokeInput: ApiKeyRevokeInput;
   Currency: ResolverTypeWrapper<Currency>;
   CurrencyCode: CurrencyCode;
   CurrencyCreateInput: CurrencyCreateInput;
-  CurrencyCreatePayload: ResolverTypeWrapper<CurrencyCreatePayload>;
+  CurrencyCreatePayload: ResolverTypeWrapper<Omit<CurrencyCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   CurrencyDeleteInput: CurrencyDeleteInput;
-  CurrencyDeletePayload: ResolverTypeWrapper<CurrencyDeletePayload>;
+  CurrencyDeletePayload: ResolverTypeWrapper<Omit<CurrencyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   CurrencySetDefaultInput: CurrencySetDefaultInput;
-  CurrencyUpdatePayload: ResolverTypeWrapper<CurrencyUpdatePayload>;
+  CurrencyUpdatePayload: ResolverTypeWrapper<Omit<CurrencyUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   ExchangeRate: ResolverTypeWrapper<ExchangeRate>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  GenericUserError: ResolverTypeWrapper<GenericUserError>;
   Locale: ResolverTypeWrapper<Locale>;
   LocaleCode: LocaleCode;
   LocaleCreateInput: LocaleCreateInput;
-  LocaleCreatePayload: ResolverTypeWrapper<LocaleCreatePayload>;
+  LocaleCreatePayload: ResolverTypeWrapper<Omit<LocaleCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   LocaleDeleteInput: LocaleDeleteInput;
-  LocaleDeletePayload: ResolverTypeWrapper<LocaleDeletePayload>;
+  LocaleDeletePayload: ResolverTypeWrapper<Omit<LocaleDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   LocaleSetDefaultInput: LocaleSetDefaultInput;
-  LocaleUpdatePayload: ResolverTypeWrapper<LocaleUpdatePayload>;
+  LocaleUpdatePayload: ResolverTypeWrapper<Omit<LocaleUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Mutation: ResolverTypeWrapper<{}>;
   Project: ResolverTypeWrapper<Project>;
   ProjectCreateInput: ProjectCreateInput;
-  ProjectCreatePayload: ResolverTypeWrapper<ProjectCreatePayload>;
+  ProjectCreatePayload: ResolverTypeWrapper<Omit<ProjectCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ProjectDeleteInput: ProjectDeleteInput;
-  ProjectDeletePayload: ResolverTypeWrapper<ProjectDeletePayload>;
-  ProjectMutation: ResolverTypeWrapper<ProjectMutation>;
+  ProjectDeletePayload: ResolverTypeWrapper<Omit<ProjectDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  ProjectMutation: ResolverTypeWrapper<Omit<ProjectMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'projectCreate' | 'projectDelete' | 'projectUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], currencyCreate: ResolversTypes['CurrencyCreatePayload'], currencyDelete: ResolversTypes['CurrencyDeletePayload'], currencySetDefault: ResolversTypes['CurrencyUpdatePayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], projectCreate: ResolversTypes['ProjectCreatePayload'], projectDelete: ResolversTypes['ProjectDeletePayload'], projectUpdate: ResolversTypes['ProjectUpdatePayload'] }>;
   ProjectQuery: ResolverTypeWrapper<ProjectQuery>;
   ProjectStatus: ProjectStatus;
   ProjectUpdateInput: ProjectUpdateInput;
-  ProjectUpdatePayload: ResolverTypeWrapper<ProjectUpdatePayload>;
+  ProjectUpdatePayload: ResolverTypeWrapper<Omit<ProjectUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Query: ResolverTypeWrapper<{}>;
   Timestamp: ResolverTypeWrapper<Scalars['Timestamp']['output']>;
-  UserError: ResolverTypeWrapper<UserError>;
+  UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   WeightUnit: WeightUnit;
 }>;
 
@@ -1230,46 +1257,48 @@ export type ResolversParentTypes = ResolversObject<{
   ID: Scalars['ID']['output'];
   Boolean: Scalars['Boolean']['output'];
   String: Scalars['String']['output'];
-  ApiKeyActionPayload: ApiKeyActionPayload;
+  ApiKeyActionPayload: Omit<ApiKeyActionPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   ApiKeyCreateInput: ApiKeyCreateInput;
-  ApiKeyCreatePayload: ApiKeyCreatePayload;
+  ApiKeyCreatePayload: Omit<ApiKeyCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   ApiKeyDeleteInput: ApiKeyDeleteInput;
-  ApiKeyDeletePayload: ApiKeyDeletePayload;
+  ApiKeyDeletePayload: Omit<ApiKeyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   ApiKeyRevokeInput: ApiKeyRevokeInput;
   Currency: Currency;
   CurrencyCreateInput: CurrencyCreateInput;
-  CurrencyCreatePayload: CurrencyCreatePayload;
+  CurrencyCreatePayload: Omit<CurrencyCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   CurrencyDeleteInput: CurrencyDeleteInput;
-  CurrencyDeletePayload: CurrencyDeletePayload;
+  CurrencyDeletePayload: Omit<CurrencyDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   CurrencySetDefaultInput: CurrencySetDefaultInput;
-  CurrencyUpdatePayload: CurrencyUpdatePayload;
+  CurrencyUpdatePayload: Omit<CurrencyUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   DateTime: Scalars['DateTime']['output'];
   Email: Scalars['Email']['output'];
   ExchangeRate: ExchangeRate;
   Int: Scalars['Int']['output'];
+  GenericUserError: GenericUserError;
   Locale: Locale;
   LocaleCreateInput: LocaleCreateInput;
-  LocaleCreatePayload: LocaleCreatePayload;
+  LocaleCreatePayload: Omit<LocaleCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   LocaleDeleteInput: LocaleDeleteInput;
-  LocaleDeletePayload: LocaleDeletePayload;
+  LocaleDeletePayload: Omit<LocaleDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   LocaleSetDefaultInput: LocaleSetDefaultInput;
-  LocaleUpdatePayload: LocaleUpdatePayload;
+  LocaleUpdatePayload: Omit<LocaleUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Mutation: {};
   Project: Project;
   ProjectCreateInput: ProjectCreateInput;
-  ProjectCreatePayload: ProjectCreatePayload;
+  ProjectCreatePayload: Omit<ProjectCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   ProjectDeleteInput: ProjectDeleteInput;
-  ProjectDeletePayload: ProjectDeletePayload;
-  ProjectMutation: ProjectMutation;
+  ProjectDeletePayload: Omit<ProjectDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  ProjectMutation: Omit<ProjectMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'projectCreate' | 'projectDelete' | 'projectUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], currencyCreate: ResolversParentTypes['CurrencyCreatePayload'], currencyDelete: ResolversParentTypes['CurrencyDeletePayload'], currencySetDefault: ResolversParentTypes['CurrencyUpdatePayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], projectCreate: ResolversParentTypes['ProjectCreatePayload'], projectDelete: ResolversParentTypes['ProjectDeletePayload'], projectUpdate: ResolversParentTypes['ProjectUpdatePayload'] };
   ProjectQuery: ProjectQuery;
   ProjectUpdateInput: ProjectUpdateInput;
-  ProjectUpdatePayload: ProjectUpdatePayload;
+  ProjectUpdatePayload: Omit<ProjectUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Query: {};
   Timestamp: Scalars['Timestamp']['output'];
-  UserError: UserError;
+  UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;
 
 export type ApiKeyResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApiKey'] = ResolversParentTypes['ApiKey']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ApiKey']>, { __typename: 'ApiKey' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   createdById?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   dueDate?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -1337,6 +1366,13 @@ export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversType
 export type ExchangeRateResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ExchangeRate'] = ResolversParentTypes['ExchangeRate']> = ResolversObject<{
   amount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   scale?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['GenericUserError'] = ResolversParentTypes['GenericUserError']> = ResolversObject<{
+  code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1438,10 +1474,10 @@ export interface TimestampScalarConfig extends GraphQLScalarTypeConfig<Resolvers
 }
 
 export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
+  __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
@@ -1456,6 +1492,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
   ExchangeRate?: ExchangeRateResolvers<ContextType>;
+  GenericUserError?: GenericUserErrorResolvers<ContextType>;
   Locale?: LocaleResolvers<ContextType>;
   LocaleCreatePayload?: LocaleCreatePayloadResolvers<ContextType>;
   LocaleDeletePayload?: LocaleDeletePayloadResolvers<ContextType>;
