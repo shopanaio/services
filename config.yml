@@ -27,9 +27,9 @@ shared:
       path_style: true
 
 # ═══════════════════════════════════════════════════════════════════
-# FEDERATION (GraphQL Gateway)
+# GATEWAY (GraphQL Federation)
 # ═══════════════════════════════════════════════════════════════════
-federation:
+gateway:
   admin:
     port: 4001
   storefront:

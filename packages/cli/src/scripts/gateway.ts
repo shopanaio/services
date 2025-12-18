@@ -13,13 +13,13 @@ import { findRootDir } from "../utils.js";
 
 type GatewayType = "admin" | "storefront";
 
-interface FederationConfig {
+interface GatewayConfig {
   admin: { port: number };
   storefront: { port: number };
 }
 
 interface Config {
-  federation: FederationConfig;
+  gateway: GatewayConfig;
 }
 
 function loadConfig(): Config {
@@ -86,12 +86,12 @@ export async function runGateway(options: GatewayOptions) {
 
   try {
     if (startStorefront) {
-      const port = config.federation.storefront.port;
+      const port = config.gateway.storefront.port;
       processes.push(startGateway("storefront", port, federationDir));
     }
 
     if (startAdmin) {
-      const port = config.federation.admin.port;
+      const port = config.gateway.admin.port;
       processes.push(startGateway("admin", port, federationDir));
     }
 

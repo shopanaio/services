@@ -6,7 +6,7 @@ import { join } from "path";
 import { parse as parseYaml } from "yaml";
 
 interface Config {
-  federation: {
+  gateway: {
     admin: { port: number };
     storefront: { port: number };
   };
@@ -52,11 +52,11 @@ export async function gatewayCommand(options: GatewayOptions) {
 
   console.log(chalk.gray("Gateways:"));
   if (startStorefront) {
-    const port = config.federation.storefront.port;
+    const port = config.gateway.storefront.port;
     console.log(chalk.gray(`  • Storefront: http://localhost:${port}/graphql`));
   }
   if (startAdmin) {
-    const port = config.federation.admin.port;
+    const port = config.gateway.admin.port;
     console.log(chalk.gray(`  • Admin:      http://localhost:${port}/graphql`));
   }
   console.log();

@@ -17,7 +17,8 @@
     "dev": "yarn shopana dev",
     "build": "yarn shopana build",
     "codegen": "yarn shopana codegen",
-    "migrate": "yarn shopana migrate"
+    "migrate": "yarn shopana migrate",
+    "gateway": "yarn shopana gateway"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.53.1",
