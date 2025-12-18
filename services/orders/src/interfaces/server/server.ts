@@ -3,7 +3,7 @@ import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
 } from "@as-integrations/fastify";
-import fastify from "fastify";
+import fastify, { type FastifyInstance } from "fastify";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -18,12 +18,8 @@ import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddle
 
 const { service, global } = getServiceConfig("orders");
 
-/**
- * Create and start GraphQL-only server
- * Uses core context middleware that sets async local storage context
- */
-export async function startServer(broker: ServiceBroker) {
-  const app = fastify({
+function createFastifyApp(name: string): FastifyInstance {
+  return fastify({
     logger: isDevelopment(global)
       ? {
           level: global.log_level ?? "info",
@@ -33,16 +29,37 @@ export async function startServer(broker: ServiceBroker) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[ORDERS] {msg}',
+              messageFormat: `[ORDERS-${name.toUpperCase()}] {msg}`,
               levelFirst: true,
             },
           },
         }
       : { level: global.log_level ?? "info" },
   });
+}
 
-  // Load GraphQL schemas for both Admin and Storefront APIs
-  // Use import.meta.url to get the current file's directory
+function addHealthChecks(app: FastifyInstance, serviceName: string) {
+  app.get("/", async (_request, reply) => {
+    return reply.send({
+      status: "ok",
+      service: serviceName,
+      environment: global.environment,
+    });
+  });
+
+  app.get("/healthz", async (_request, reply) => {
+    return reply.send({
+      status: "ok",
+      service: serviceName,
+    });
+  });
+}
+
+/**
+ * Create and start GraphQL servers for orders service
+ * Admin API on admin_graphql port, Storefront API on storefront_graphql port
+ */
+export async function startServer(broker: ServiceBroker) {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const schemaPath = join(currentDir, "schema");
 
@@ -53,9 +70,16 @@ export async function startServer(broker: ServiceBroker) {
     "parent.graphql",
   ];
 
-  // Admin API schemas and modules
+  const grpcConfig = {
+    getGrpcHost: () => global.platform_grpc_host,
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ADMIN SERVER
+  // ═══════════════════════════════════════════════════════════════════
+  const adminApp = createFastifyApp("admin");
+
   const adminModules = [
-    // Shared types first (copied from packages/shared-references during build)
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")), resolvers: adminResolvers },
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8")), resolvers: adminResolvers },
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8")), resolvers: adminResolvers },
@@ -65,9 +89,43 @@ export async function startServer(broker: ServiceBroker) {
     })),
   ];
 
-  // Storefront API schemas and modules
+  const adminApollo = new ApolloServer<GraphQLContext>({
+    introspection: true,
+    schema: buildSubgraphSchema(adminModules),
+    plugins: [fastifyApolloDrainPlugin(adminApp)],
+  });
+
+  await adminApollo.start();
+  addHealthChecks(adminApp, "orders-admin");
+
+  await adminApp.register(async function (graphqlInstance) {
+    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
+
+    await graphqlInstance.register(fastifyApollo(adminApollo), {
+      path: "/graphql",
+      context: async (request, _reply) => {
+        const ctx = {
+          requestId: request.id as string,
+          apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
+          project: request.project,
+          user: null,
+          customer: request.customer,
+        } satisfies GraphQLContext;
+        return ctx;
+      },
+    });
+  });
+
+  const adminPort = service.ports?.admin_graphql ?? 10004;
+  await adminApp.listen({ port: adminPort, host: "0.0.0.0" });
+  adminApp.log.info(`Orders Admin API ready at http://localhost:${adminPort}/graphql`);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // STOREFRONT SERVER
+  // ═══════════════════════════════════════════════════════════════════
+  const storefrontApp = createFastifyApp("storefront");
+
   const storefrontModules = [
-    // Shared types first (copied from packages/shared-references during build)
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")), resolvers: storefrontResolvers },
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-locale.graphql"), "utf-8")), resolvers: storefrontResolvers },
     { typeDefs: gql(readFileSync(join(schemaPath, "shared-units.graphql"), "utf-8")), resolvers: storefrontResolvers },
@@ -77,55 +135,21 @@ export async function startServer(broker: ServiceBroker) {
     })),
   ];
 
-  // Create Apollo Servers
-  const adminApollo = new ApolloServer<GraphQLContext>({
-    introspection: true,
-    schema: buildSubgraphSchema(adminModules),
-    plugins: [fastifyApolloDrainPlugin(app)],
-  });
-
   const storefrontApollo = new ApolloServer<GraphQLContext>({
     introspection: true,
     schema: buildSubgraphSchema(storefrontModules),
-    plugins: [fastifyApolloDrainPlugin(app)],
+    plugins: [fastifyApolloDrainPlugin(storefrontApp)],
   });
 
-  await adminApollo.start();
   await storefrontApollo.start();
+  addHealthChecks(storefrontApp, "orders-storefront");
 
-  // Health check endpoint
-  app.get("/", async (_request, reply) => {
-    return reply.send({
-      status: "ok",
-      service: "orders",
-      environment: global.environment,
-    });
-  });
+  await storefrontApp.register(async function (graphqlInstance) {
+    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
 
-  // Healthz endpoint for Docker health checks
-  app.get("/healthz", async (_request, reply) => {
-    return reply.send({
-      status: "ok",
-      service: "orders",
-    });
-  });
-
-  // Admin GraphQL route group with context middleware
-  await app.register(async function (adminGraphqlInstance) {
-    // Core context middleware that sets async local storage
-    const grpcConfig = {
-      getGrpcHost: () => global.platform_grpc_host,
-    };
-    await adminGraphqlInstance.addHook(
-      "preHandler",
-      buildCoreContextMiddleware(grpcConfig)
-    );
-
-    // Admin GraphQL endpoint with simplified context
-    await adminGraphqlInstance.register(fastifyApollo(adminApollo), {
+    await graphqlInstance.register(fastifyApollo(storefrontApollo), {
       path: "/graphql",
       context: async (request, _reply) => {
-        // Simplified context - only essential fields
         const ctx = {
           requestId: request.id as string,
           apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
@@ -133,54 +157,14 @@ export async function startServer(broker: ServiceBroker) {
           user: null,
           customer: request.customer,
         } satisfies GraphQLContext;
-
         return ctx;
       },
     });
   });
 
-  // Storefront GraphQL route group with context middleware
-  await app.register(async function (storefrontGraphqlInstance) {
-    // Core context middleware that sets async local storage
-    const grpcConfig = {
-      getGrpcHost: () => global.platform_grpc_host,
-    };
-    await storefrontGraphqlInstance.addHook(
-      "preHandler",
-      buildCoreContextMiddleware(grpcConfig)
-    );
+  const storefrontPort = service.ports?.storefront_graphql ?? 10003;
+  await storefrontApp.listen({ port: storefrontPort, host: "0.0.0.0" });
+  storefrontApp.log.info(`Orders Storefront API ready at http://localhost:${storefrontPort}/graphql`);
 
-    // Storefront GraphQL endpoint with simplified context
-    await storefrontGraphqlInstance.register(fastifyApollo(storefrontApollo), {
-      path: "/graphql",
-      context: async (request, _reply) => {
-        // Simplified context - only essential fields
-        const ctx = {
-          requestId: request.id as string,
-          apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
-          project: request.project,
-          user: null,
-          customer: request.customer,
-        } satisfies GraphQLContext;
-
-        return ctx;
-      },
-    });
-  });
-
-  const port = service.ports?.storefront_graphql ?? 0;
-
-  // Start server
-  await app.listen({
-    port,
-    host: "0.0.0.0",
-  });
-
-  app.log.info(
-    `orders GraphQL API ready:\n` +
-      `  Admin API: http://localhost:${port}/graphql/admin/v1\n` +
-      `  Storefront API: http://localhost:${port}/graphql/storefront/v1`
-  );
-
-  return app;
+  return { adminApp, storefrontApp };
 }

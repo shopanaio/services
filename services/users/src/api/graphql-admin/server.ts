@@ -137,7 +137,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `users GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql/admin`
+    `users GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
   );
 
   return app;
