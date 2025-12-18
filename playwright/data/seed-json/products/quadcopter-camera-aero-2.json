@@ -1,0 +1,14 @@
+{
+  "title": "Квадрокоптер с камерой 'Aero 2'",
+  "slug": "quadcopter-camera-aero-2",
+  "description": "Легкий в управлении квадрокоптер для начинающих.",
+  "category": "toys-kids",
+  "price": 150.00,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black", "White", "Red"]
+    }
+  ]
+}

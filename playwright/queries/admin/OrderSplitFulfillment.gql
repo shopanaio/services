@@ -1,0 +1,5 @@
+mutation OrderSplitFulfillment($input: SplitFulfillmentInput!) {
+  orderMutation {
+    splitFulfillment(input: $input)
+  }
+}

@@ -1,0 +1,42 @@
+query CategoryChildren(
+  $handle: String!
+  $first: Int
+  $after: Cursor
+  $last: Int
+  $before: Cursor
+  $sort: CategorySort
+) {
+  category(handle: $handle) {
+    children(first: $first, after: $after, last: $last, before: $before, sort: $sort) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          title
+          handle
+          description
+          excerpt
+          # listingType
+          createdAt
+          updatedAt
+          seoTitle
+          seoDescription
+          cover {
+            id
+            iid
+            url
+            source
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

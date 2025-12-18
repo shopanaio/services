@@ -1,0 +1,11 @@
+query PredictiveSearchProducts($query: String!) {
+  predictiveSearch(input: { query: $query }) {
+    products {
+      title
+      handle
+      product {
+        id
+      }
+    }
+  }
+}

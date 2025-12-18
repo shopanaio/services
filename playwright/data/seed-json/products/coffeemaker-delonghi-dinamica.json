@@ -1,0 +1,14 @@
+
+{
+  "title": "De'Longhi Dinamica Plus",
+  "slug": "coffeemaker-delonghi-dinamica",
+  "description": "Автоматическая кофемашина с возможностью управления через приложение. Готовьте свои любимые кофейные напитки одним нажатием кнопки.",
+  "category": "electronics",
+  "price": 1299,
+  "tags": ["premium", "bestseller"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Titanium", "Black"] },
+    { "slug": "material", "values": ["Stainless Steel", "Plastic"] },
+    { "slug": "power", "values": ["1450W"] }
+  ]
+}

@@ -1,0 +1,22 @@
+query CategoryGallery($handle: String!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+  category(handle: $handle) {
+    gallery(first: $first, after: $after, last: $last, before: $before) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          url
+          source
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

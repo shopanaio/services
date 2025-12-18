@@ -1,0 +1,14 @@
+{
+  "title": "Холст для рисования",
+  "slug": "painting-component-canvas",
+  "category": "arts-crafts",
+  "description": "Выберите тематику холста для своей картины.",
+  "price": 10.0,
+  "tags": ["eco"],
+  "featureGroups": [
+    {
+      "slug": "painting-subject",
+      "values": ["Пейзаж", "Натюрморт"]
+    }
+  ]
+}

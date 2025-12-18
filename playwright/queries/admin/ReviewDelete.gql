@@ -1,0 +1,5 @@
+mutation ReviewDelete($input: ID!) {
+  reviewMutation {
+    delete(input: $input)
+  }
+}

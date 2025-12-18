@@ -1,0 +1,10 @@
+query TagFindOne($id: ID!) {
+  tagQuery {
+    findOne(id: $id) {
+      id
+      slug
+      title
+      color
+    }
+  }
+}

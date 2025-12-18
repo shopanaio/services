@@ -1,0 +1,18 @@
+mutation VariantSetDimensions($input: VariantSetDimensionsInput!) {
+  inventoryMutation {
+    variantSetDimensions(input: $input) {
+      variant {
+        id
+        dimensions {
+          width
+          length
+          height
+        }
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

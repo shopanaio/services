@@ -1,0 +1,14 @@
+{
+  "title": "Протеиновый порошок 'Whey Pro'",
+  "slug": "protein-powder-whey-pro",
+  "description": "Высококачественный сывороточный протеин для роста мышц.",
+  "category": "food-drinks",
+  "price": 39.99,
+  "tags": ["bestseller"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Chocolate", "Vanilla", "Strawberry"]
+    }
+  ]
+}

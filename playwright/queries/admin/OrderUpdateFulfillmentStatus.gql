@@ -1,0 +1,5 @@
+mutation OrderUpdateFulfillmentStatus($input: UpdateFulfillmentStatusInput!) {
+  orderMutation {
+    updateFulfillmentStatus(input: $input)
+  }
+}

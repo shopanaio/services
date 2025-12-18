@@ -1,0 +1,18 @@
+{
+  "title": "Набор для йоги 'Zen'",
+  "slug": "yoga-set-zen",
+  "description": "Все что нужно для комфортной практики йоги в одном наборе.",
+  "category": "sports-leisure",
+  "price": 89.99,
+  "tags": ["premium", "new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Purple", "Blue", "Green"]
+    },
+    {
+      "slug": "mat-size",
+      "values": ["Standard", "Large"]
+    }
+  ]
+}

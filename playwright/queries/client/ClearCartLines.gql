@@ -1,0 +1,32 @@
+mutation ClearCartLines($input: ClearCartLinesInput!) {
+  clearCartLines(input: $input) {
+    cart {
+      id
+      totalQuantity
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines(first: 10) {
+        totalCount
+        edges {
+          node {
+            id
+          }
+        }
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

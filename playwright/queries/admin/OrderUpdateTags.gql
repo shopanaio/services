@@ -1,0 +1,5 @@
+mutation OrderUpdateTags($input: UpdateOrderTagsInput!) {
+  orderMutation {
+    updateTags(input: $input)
+  }
+}

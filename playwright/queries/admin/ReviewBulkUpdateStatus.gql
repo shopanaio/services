@@ -1,0 +1,5 @@
+mutation ReviewBulkUpdateStatus($input: BulkUpdateStatusInput!) {
+  reviewMutation {
+    bulkUpdateStatus(input: $input)
+  }
+}

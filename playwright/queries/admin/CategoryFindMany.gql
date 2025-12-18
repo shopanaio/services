@@ -1,0 +1,25 @@
+query CategoryFindMany($input: CategoriesInput) {
+  categoryQuery {
+    findMany(input: $input) {
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+      data {
+        id
+        title
+        listingOrderByStatus
+        listingOrderBy
+        status
+        slug
+        listingType
+        createdAt
+        sublistingStep
+        updatedAt
+      }
+    }
+  }
+}

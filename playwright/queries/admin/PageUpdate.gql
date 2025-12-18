@@ -1,0 +1,5 @@
+mutation PageUpdate($input: UpdatePageInput!) {
+  pageMutation {
+    update(input: $input)
+  }
+}

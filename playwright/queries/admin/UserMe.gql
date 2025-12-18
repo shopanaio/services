@@ -1,0 +1,14 @@
+query UserMe {
+  userQuery {
+    me {
+      email
+      firstName
+      id
+      isVerified
+      language
+      lastName
+      phoneNumber
+      timezone
+    }
+  }
+}

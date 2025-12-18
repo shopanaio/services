@@ -1,0 +1,88 @@
+{
+  "title": "Подарочный набор 'Релакс'",
+  "slug": "relax-gift-box",
+  "description": "Соберите идеальный набор для релаксации.",
+  "category": "beauty-health",
+  "price": 0.0,
+  "tags": ["new", "eco"],
+  "groups": [
+    {
+      "title": "Выберите бомбочку для ванны",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "relax-component-bath-bomb",
+          "featureValues": ["Лаванда"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "relax-component-bath-bomb",
+          "featureValues": ["Роза"],
+          "sortIndex": 1,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "relax-component-bath-bomb",
+          "featureValues": ["Эвкалипт"],
+          "sortIndex": 2,
+          "priceType": "BASE"
+        }
+      ]
+    },
+    {
+      "title": "Выберите ароматическую свечу",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "relax-component-candle",
+          "featureValues": ["Ваниль"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "relax-component-candle",
+          "featureValues": ["Сандал"],
+          "sortIndex": 1,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "relax-component-candle",
+          "featureValues": ["Жасмин"],
+          "sortIndex": 2,
+          "priceType": "BASE"
+        }
+      ]
+    },
+    {
+      "title": "Добавьте маску для лица",
+      "isMultiple": true,
+      "isRequired": false,
+      "sortIndex": 2,
+      "items": [
+        {
+          "productSlug": "relax-component-face-mask",
+          "featureValues": ["Увлажняющая"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "relax-component-face-mask",
+          "featureValues": ["Очищающая"],
+          "sortIndex": 1,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "relax-component-face-mask",
+          "featureValues": ["Питательная"],
+          "sortIndex": 2,
+          "priceType": "BASE"
+        }
+      ]
+    }
+  ]
+}

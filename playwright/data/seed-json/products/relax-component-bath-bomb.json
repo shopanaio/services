@@ -1,0 +1,14 @@
+{
+  "title": "Бомбочка для ванны",
+  "slug": "relax-component-bath-bomb",
+  "description": "Расслабляющая бомбочка для ванны.",
+  "category": "beauty-health",
+  "price": 7.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "relax-bundle",
+      "values": ["Лаванда", "Роза", "Эвкалипт"]
+    }
+  ]
+}

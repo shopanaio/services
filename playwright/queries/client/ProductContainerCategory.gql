@@ -1,0 +1,15 @@
+query ProductContainerCategory($handle: String!) {
+  variant(handle: $handle) {
+    id
+    handle
+    product {
+      id
+      handle
+      category {
+        id
+        handle
+        title
+      }
+    }
+  }
+}

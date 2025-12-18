@@ -1,0 +1,14 @@
+{
+  "title": "Умная колонка 'VoiceHelper'",
+  "slug": "smart-speaker-voicehelper",
+  "description": "Ваш персональный помощник для дома.",
+  "category": "electronics",
+  "price": 99.00,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Chalk", "Charcoal"]
+    }
+  ]
+}

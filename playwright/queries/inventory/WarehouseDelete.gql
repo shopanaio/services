@@ -1,0 +1,11 @@
+mutation WarehouseDelete($input: WarehouseDeleteInput!) {
+  inventoryMutation {
+    warehouseDelete(input: $input) {
+      deletedWarehouseId
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

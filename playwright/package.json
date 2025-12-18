@@ -1,0 +1,47 @@
+{
+  "name": "@shopana/admin-automation",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "type": "module",
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@graphql-codegen/cli": "^5.0.5",
+    "@graphql-eslint/eslint-plugin": "^4.4.0",
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0",
+    "@kesills/eslint-config-airbnb-typescript": "^20.0.0",
+    "@playwright/test": "^1.50.1",
+    "@stylistic/eslint-plugin": "^4.0.0",
+    "@types/form-data": "^2.5.2",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.13.4",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.24.0",
+    "eslint-plugin-prettier": "^5.2.6",
+    "graphql": "^16.10.0",
+    "prettier": "^3.5.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.29.1"
+  },
+  "scripts": {
+    "gql:gen": "node ./bin/graphql/script.js",
+    "query:gen": "node ./bin/graphql/query-map-script.js queries queries/filenames.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "type-check": "tsc --noEmit",
+    "test": "npx playwright test"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.17.20",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^10.1.1",
+    "form-data": "^4.0.5",
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
+    "uuid": "^11.0.5",
+    "yup": "^1.6.1"
+  }
+}

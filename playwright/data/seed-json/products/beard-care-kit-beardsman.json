@@ -1,0 +1,14 @@
+{
+  "title": "Набор для ухода за бородой 'Бородач'",
+  "slug": "beard-care-kit-beardsman",
+  "description": "Все необходимое для идеальной бороды: масло, бальзам и воск.",
+  "category": "beauty-health",
+  "price": 49.99,
+  "tags": ["new", "premium"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Масло + Бальзам", "Масло + Бальзам + Воск", "Полный набор + Расческа"]
+    }
+  ]
+}

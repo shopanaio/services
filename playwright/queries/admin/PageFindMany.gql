@@ -1,0 +1,25 @@
+query PageFindMany($input: PagesInput) {
+  pageQuery {
+    findMany(input: $input) {
+      data {
+        id
+        title
+        slug
+        status
+        createdAt
+        updatedAt
+        gallery {
+          id
+          name
+        }
+      }
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+    }
+  }
+}

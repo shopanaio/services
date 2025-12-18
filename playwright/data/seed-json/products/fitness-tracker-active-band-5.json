@@ -1,0 +1,14 @@
+{
+  "title": "Фитнес-браслет 'Active Band 5'",
+  "slug": "fitness-tracker-active-band-5",
+  "description": "Отслеживайте свою активность и сон 24/7.",
+  "category": "sports-leisure",
+  "price": 49.99,
+  "tags": ["new", "bestseller"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black", "Blue", "Pink", "Orange"]
+    }
+  ]
+}

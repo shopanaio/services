@@ -1,0 +1,14 @@
+{
+  "title": "Ароматическая свеча",
+  "slug": "relax-component-candle",
+  "description": "Свеча для создания уютной атмосферы.",
+  "category": "home-garden",
+  "price": 15.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "relax-bundle",
+      "values": ["Ваниль", "Сандал", "Жасмин"]
+    }
+  ]
+}

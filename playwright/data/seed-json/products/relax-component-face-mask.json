@@ -1,0 +1,14 @@
+{
+  "title": "Маска для лица",
+  "slug": "relax-component-face-mask",
+  "description": "Увлажняющая маска для лица.",
+  "category": "beauty-health",
+  "price": 5.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "face-mask-type",
+      "values": ["Увлажняющая", "Очищающая", "Питательная"]
+    }
+  ]
+}

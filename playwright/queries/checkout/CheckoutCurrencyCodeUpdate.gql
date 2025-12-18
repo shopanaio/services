@@ -1,0 +1,69 @@
+mutation CheckoutCurrencyCodeUpdate($input: CheckoutCurrencyCodeUpdateInput!) {
+  checkoutMutation {
+    checkoutCurrencyCodeUpdate(input: $input) {
+      id
+      createdAt
+      updatedAt
+      totalQuantity
+      cost {
+        totalDiscountAmount { amount currencyCode }
+        totalTaxAmount { amount currencyCode }
+        totalShippingAmount { amount currencyCode }
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines {
+        id
+        quantity
+        purchasableId
+        sku
+        title
+        cost {
+          compareAtUnitPrice {
+            amount
+            currencyCode
+          }
+          discountAmount {
+            amount
+            currencyCode
+          }
+          subtotalAmount {
+            amount
+            currencyCode
+          }
+          taxAmount {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+          unitPrice {
+            amount
+            currencyCode
+          }
+        }
+      }
+      deliveryGroups {
+        id
+        checkoutLines { id }
+        deliveryAddress { id address1 address2 city countryCode provinceCode postalCode data }
+        recipient { firstName lastName middleName email phone }
+        deliveryMethods { code deliveryMethodType provider { code } data }
+        selectedDeliveryMethod { code deliveryMethodType provider { code } data }
+        estimatedCost { amount { amount currencyCode } paymentModel }
+      }
+      appliedPromoCodes {
+        code
+        appliedAt
+      }
+    }
+  }
+}

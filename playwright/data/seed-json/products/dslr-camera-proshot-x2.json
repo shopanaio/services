@@ -1,0 +1,14 @@
+{
+  "title": "Зеркальная камера 'ProShot X2'",
+  "slug": "dslr-camera-proshot-x2",
+  "description": "Профессиональная камера для фотографов.",
+  "category": "electronics",
+  "price": 1800.00,
+  "tags": ["premium"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Body only", "Kit 18-55mm", "Kit 24-105mm"]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+
+{
+  "title": "Apple Watch Series 9",
+  "slug": "smartwatch-apple-watch-9",
+  "description": "Умные часы нового поколения. Отслеживайте свою активность, следите за здоровьем и оставайтесь на связи. Яркий дисплей и новые функции.",
+  "category": "electronics",
+  "price": 399,
+  "tags": ["new", "premium"],
+  "featureGroups": [
+    { "slug": "case-color", "values": ["Midnight", "Starlight", "Silver", "Red"] },
+    { "slug": "strap-material", "values": ["Silicone", "Nylon", "Stainless Steel"] },
+    { "slug": "strap-size", "values": ["41mm", "45mm"] }
+  ]
+}

@@ -1,0 +1,5 @@
+mutation ProjectDeleteApiKey($id: ID!) {
+  projectMutation {
+    deleteApiKey(input: $id)
+  }
+}

@@ -1,0 +1,78 @@
+mutation LoadCart($input: LoadCartInput!) {
+  loadCart(input: $input) {
+    cart {
+      id
+      iid
+      totalQuantity
+      createdAt
+      updatedAt
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+        totalDiscountAmount {
+          amount
+          currencyCode
+        }
+        totalTaxAmount {
+          amount
+          currencyCode
+        }
+        shippingCost {
+          amount
+          currencyCode
+        }
+      }
+      lines(first: 20) {
+        totalCount
+        edges {
+          node {
+            id
+            quantity
+            purchasable {
+              ... on ProductVariant {
+                id
+                title
+                handle
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+            cost {
+              unitPrice {
+                amount
+                currencyCode
+              }
+              totalAmount {
+                amount
+                currencyCode
+              }
+              discountAmount {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+      notifications {
+        id
+        code
+        severity
+        isDismissed
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}

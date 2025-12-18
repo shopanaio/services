@@ -1,0 +1,4539 @@
+directive @defer(label: String, if: Boolean! = true) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"""
+A postal address.
+Implements the Node interface.
+"""
+type Address implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """
+  The first line of the street address (e.g., house number and street name).
+  """
+  addressLine1: String!
+
+  """The second line of the street address (e.g., apartment, suite, unit)."""
+  addressLine2: String
+
+  """City where the address is located."""
+  city: String!
+
+  """ISO 3166-1 alpha-2 country code (e.g., "US" for United States)."""
+  countryCode: CountryCode!
+
+  """Recipient’s first name."""
+  firstName: String
+
+  """Recipient’s last name."""
+  lastName: String
+
+  """Recipient’s middle name."""
+  middleName: String
+
+  """Latitude coordinate of the address location."""
+  latitude: Float
+
+  """Longitude coordinate of the address location."""
+  longitude: Float
+
+  """Contact email for this address."""
+  email: String
+
+  """Contact phone number for this address."""
+  phone: String
+
+  """Province, state or region code (e.g., "CA" for California)."""
+  provinceCode: String
+
+  """Postal or ZIP code."""
+  postalCode: String
+
+  """Arbitrary metadata as JSON (e.g., delivery instructions)."""
+  metadata: JSON
+}
+
+"""
+Input type for creating or updating an Address.
+Maps to Go model portal/project/storage/address/dto.Input.
+"""
+input AddressInput {
+  """
+  The first line of the street address (e.g., house number and street name).
+  """
+  addressLine1: String!
+
+  """The second line of the street address (e.g., apartment, suite, unit)."""
+  addressLine2: String
+
+  """City where the address is located."""
+  city: String!
+
+  """ISO 3166-1 alpha-2 country code (e.g., "US" for United States)."""
+  countryCode: CountryCode!
+
+  """Recipient’s first name."""
+  firstName: String
+
+  """Recipient’s last name."""
+  lastName: String
+
+  """Recipient’s middle name."""
+  middleName: String
+
+  """Latitude coordinate of the address location."""
+  latitude: Float
+
+  """Longitude coordinate of the address location."""
+  longitude: Float
+
+  """Contact email for this address."""
+  email: String
+
+  """Contact phone number for this address."""
+  phone: String
+
+  """Province, state or region code (e.g., "CA" for California)."""
+  provinceCode: String
+
+  """Postal or ZIP code."""
+  postalCode: String
+
+  """Arbitrary metadata as JSON (e.g., delivery instructions)."""
+  metadata: JSON
+}
+
+"""A content article."""
+type Article implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Unique human-readable slug."""
+  handle: String!
+
+  """The article’s title."""
+  title: String!
+
+  """The full description of the article."""
+  description: String!
+
+  """A short excerpt of the article."""
+  excerpt: String!
+
+  """The cover image for the article."""
+  cover: File
+
+  """The date and time when the article was created."""
+  createdAt: DateTime!
+
+  """The date and time when the article was last updated."""
+  updatedAt: DateTime!
+
+  """The type of the article."""
+  articleType: String!
+
+  """Gallery of additional images with cursor-based pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+}
+
+"""Connection type for articles."""
+type ArticleConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of article edges."""
+  edges: [ArticleEdge!]!
+
+  """Pagination details."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the paginated list of articles."""
+type ArticleEdge {
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The article node."""
+  node: Article!
+}
+
+enum ArticleSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  TITLE_ASC
+  TITLE_DESC
+}
+
+scalar BigInt
+
+type Category implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """A unique human-readable identifier for the category."""
+  handle: String!
+
+  """
+  The category title in the language specified by the Accept-Language header.
+  """
+  title: String!
+
+  """
+  The category description in the language specified by the Accept-Language header.
+  """
+  description: String!
+
+  """
+  A short excerpt of the category in the language specified by the Accept-Language header.
+  """
+  excerpt: String!
+
+  """The cover image file for the category."""
+  cover: File
+
+  """Child categories using Relay-style pagination."""
+  children(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Breadcrumbs from the root category to this category (inclusive)."""
+  breadcrumbs: [Category!]!
+
+  """A preview listing with filters, sorting, and pagination."""
+  listing(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order. Defaults to the category's default sort."""
+    sort: ListingSort = MOST_RELEVANT
+
+    """Filters to apply (AND-combined)."""
+    filters: [FilterInput!]
+  ): ListingConnection!
+
+  """The listing mode for this category (SMART, STANDARD, CONTAINER)."""
+  listingType: ListingType!
+
+  """Gallery images using Relay-style pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+
+  """DateTime when the category was created."""
+  createdAt: DateTime!
+
+  """DateTime when the category was last updated."""
+  updatedAt: DateTime!
+
+  """SEO title for the category page."""
+  seoTitle: String
+
+  """SEO description for the category page."""
+  seoDescription: String
+}
+
+type CategoryConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of category edges (each contains a node and a cursor)."""
+  edges: [CategoryEdge!]!
+
+  """Pagination metadata (hasNextPage, endCursor, etc.)."""
+  pageInfo: PageInfo!
+}
+
+type CategoryEdge {
+  """Cursor for Relay-style pagination."""
+  cursor: Cursor!
+
+  """Node containing the category data."""
+  node: Category!
+}
+
+enum CategorySort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  TITLE_ASC
+  TITLE_DESC
+}
+
+"""A checkout with multiple items."""
+type Checkout implements Node {
+  """A globally-unique ID."""
+  id: ID!
+
+  """When this checkout was first created."""
+  createdAt: DateTime!
+
+  """When this checkout was last updated."""
+  updatedAt: DateTime!
+
+  """All cost calculations for the checkout."""
+  cost: CheckoutCost!
+
+  """Customer identity associated with the checkout."""
+  customerIdentity: CheckoutCustomerIdentity!
+
+  """Customer note or special instructions for the checkout."""
+  customerNote: String
+
+  """Quantity of the item being purchased."""
+  totalQuantity: Int!
+
+  """List of items in the checkout (paginated)."""
+  lines: [CheckoutLine!]!
+
+  """Notifications for the user regarding the checkout."""
+  notifications: [CheckoutNotification!]!
+
+  """Delivery groups."""
+  deliveryGroups: [CheckoutDeliveryGroup!]!
+
+  """Applied promo codes for the checkout."""
+  appliedPromoCodes: [CheckoutPromoCode!]!
+
+  """Tags that can be used to organize checkout lines."""
+  tags: [CheckoutTag!]!
+
+  """Payment aggregate for this checkout."""
+  payment: CheckoutPayment!
+}
+
+"""
+Input data for a child item in a bundle.
+Price configuration is automatically taken from ProductGroup in the database.
+"""
+input CheckoutChildLineInput {
+  """Quantity of the child item."""
+  quantity: Int!
+
+  """
+  ID of the purchasable for child item.
+  Must be a variant that exists in parent product's groups.
+  """
+  purchasableId: ID!
+
+  """Snapshot data for child purchasable."""
+  purchasableSnapshot: PurchasableSnapshotInput
+}
+
+"""All monetary calculations related to the checkout."""
+type CheckoutCost {
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Total discount from both item-level and checkout-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the checkout."""
+  totalTaxAmount: Money!
+
+  """Total shipping cost (only MERCHANT_COLLECTED payments)."""
+  totalShippingAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+"""Input data for creating a new checkout."""
+input CheckoutCreateInput {
+  """Source of sales for the checkout."""
+  externalSource: String
+
+  """ID of the external source for the checkout."""
+  externalId: String
+
+  """Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru")"""
+  localeCode: String!
+
+  """
+  Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
+  """
+  currencyCode: CurrencyCode!
+
+  """Initial items to add to the new checkout."""
+  items: [CheckoutLineAddInput!]!
+
+  """Optional tag definitions to initialize for this checkout."""
+  tags: [CheckoutTagInput!]
+}
+
+"""Payload returned after creating a checkout."""
+type CheckoutCreatePayload {
+  """The newly created checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for updating the display currency of the checkout."""
+input CheckoutCurrencyCodeUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Currency code according to ISO 4217 (e.g., "USD", "EUR")."""
+  currencyCode: CurrencyCode!
+}
+
+type CheckoutCustomerIdentity {
+  """Country code of the customer."""
+  countryCode: CountryCode
+
+  """Customer associated with the checkout."""
+  customer: User
+
+  """Customer email address associated with the checkout."""
+  email: Email
+
+  """Phone number of the customer."""
+  phone: String
+
+  """First name of the customer."""
+  firstName: String
+
+  """Last name of the customer."""
+  lastName: String
+
+  """Middle name of the customer."""
+  middleName: String
+}
+
+"""
+Input data for updating customer identification data associated with the checkout.
+"""
+input CheckoutCustomerIdentityUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Customer's email address. If specified, will be linked to the checkout.
+  """
+  email: Email
+
+  """Phone number of the customer."""
+  phone: String
+
+  """
+  Country code of the customer.
+  ISO 3166-1 alpha-2.
+  """
+  countryCode: CountryCode
+
+  """
+  Customer identifier in external/internal system.
+  Used to link the checkout with an existing customer.
+  """
+  customerId: ID
+
+  """First name of the customer."""
+  firstName: String
+
+  """Last name of the customer."""
+  lastName: String
+
+  """Middle name of the customer."""
+  middleName: String
+}
+
+"""Input data for updating the customer note attached to the checkout."""
+input CheckoutCustomerNoteUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Text of the customer note (delivery instructions, etc.).
+  Empty value clears the note.
+  """
+  note: String
+}
+
+"""Delivery address associated with a checkout."""
+type CheckoutDeliveryAddress {
+  """Unique identifier for the delivery address."""
+  id: ID
+
+  """Primary address line."""
+  address1: String
+
+  """Secondary address line."""
+  address2: String
+
+  """City name."""
+  city: String
+
+  """Country code (ISO 3166-1 alpha-2)."""
+  countryCode: CountryCode
+
+  """Province code."""
+  provinceCode: String
+
+  """Postal code."""
+  postalCode: String
+
+  """Data associated with the delivery address."""
+  data: JSON
+}
+
+"""
+Input data for adding one or more delivery addresses to the checkout.
+Supports multi-shipping.
+"""
+input CheckoutDeliveryAddressesAddInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of delivery addresses to be added."""
+  addresses: [CheckoutDeliveryAddressInput!]!
+}
+
+"""
+Input data for removing one or more delivery addresses from the checkout.
+"""
+input CheckoutDeliveryAddressesRemoveInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Identifiers of delivery addresses to be removed."""
+  addressIds: [ID!]!
+}
+
+"""Input data for batch updating previously added delivery addresses."""
+input CheckoutDeliveryAddressesUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of updates for delivery addresses."""
+  updates: [CheckoutDeliveryAddressUpdateInput!]!
+}
+
+input CheckoutDeliveryAddressInput {
+  """Primary address line."""
+  address1: String
+
+  """Secondary address line."""
+  address2: String
+
+  """City name."""
+  city: String
+
+  """Country code (ISO 3166-1 alpha-2)."""
+  countryCode: CountryCode
+
+  """Province code."""
+  provinceCode: String
+
+  """Postal code."""
+  postalCode: String
+
+  """Email address for this delivery address."""
+  email: Email
+
+  """First name for delivery."""
+  firstName: String
+
+  """Last name for delivery."""
+  lastName: String
+
+  """Data associated with the delivery address."""
+  data: JSON
+}
+
+"""
+Delivery address update element: which address to update and with what data.
+"""
+input CheckoutDeliveryAddressUpdateInput {
+  """Identifier of the existing delivery address in the checkout."""
+  addressId: ID!
+
+  """New postal address values."""
+  address: CheckoutDeliveryAddressInput!
+}
+
+"""Delivery group for one or more checkout lines."""
+type CheckoutDeliveryGroup {
+  """Unique identifier for the delivery group."""
+  id: ID!
+
+  """Checkout lines associated with the delivery group."""
+  checkoutLines: [CheckoutLine!]!
+
+  """Delivery address associated with the delivery group."""
+  deliveryAddress: CheckoutDeliveryAddress
+
+  """Recipient associated with the delivery group."""
+  recipient: CheckoutRecipient
+
+  """Delivery methods associated with the delivery group."""
+  deliveryMethods: [CheckoutDeliveryMethod!]!
+
+  """Selected delivery method associated with the delivery group."""
+  selectedDeliveryMethod: CheckoutDeliveryMethod
+
+  """Estimated cost of the delivery group."""
+  estimatedCost: DeliveryCost
+}
+
+type CheckoutDeliveryMethod {
+  """Code of the shipping method (e.g., "standard", "express", "courier")."""
+  code: String!
+
+  """Delivery method type associated with the delivery option."""
+  deliveryMethodType: CheckoutDeliveryMethodType!
+
+  """Provider data associated with the delivery method."""
+  provider: CheckoutDeliveryProvider!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON!
+}
+
+enum CheckoutDeliveryMethodType {
+  """Pickup delivery method."""
+  PICKUP
+
+  """Shipping delivery method."""
+  SHIPPING
+}
+
+"""
+Input data for selecting/changing delivery method.
+Can be applied to the entire checkout or to a specific delivery address.
+"""
+input CheckoutDeliveryMethodUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Code of the delivery method available for this checkout/address."""
+  shippingMethodCode: String!
+
+  """Provider code (e.g., "novaposhta", "ups", "fedex", "dhl", "usps")."""
+  provider: String!
+
+  """
+  Identifier of the delivery group for which the delivery method is selected.
+  """
+  deliveryGroupId: ID!
+
+  """
+  Arbitrary customer-provided data for the selected delivery method.
+  Will be stored in checkout_delivery_methods.customer_input.
+  """
+  data: JSON
+}
+
+type CheckoutDeliveryProvider {
+  """
+  Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
+  """
+  code: String!
+}
+
+"""Input data for adding recipients for delivery groups."""
+input CheckoutDeliveryRecipientsAddInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of recipients to be added for delivery groups."""
+  recipients: [CheckoutDeliveryRecipientUpdateInput!]!
+}
+
+"""Input data for removing recipients associated with delivery groups."""
+input CheckoutDeliveryRecipientsRemoveInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Identifiers of delivery groups whose recipients should be removed."""
+  deliveryGroupIds: [ID!]!
+}
+
+"""Input data for batch updating recipients for delivery groups."""
+input CheckoutDeliveryRecipientsUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """List of updates for recipients."""
+  updates: [CheckoutDeliveryRecipientUpdateInput!]!
+}
+
+"""
+Recipient update element: which delivery group's recipient to update and with what data.
+"""
+input CheckoutDeliveryRecipientUpdateInput {
+  """Identifier of the delivery group in the checkout."""
+  deliveryGroupId: ID!
+
+  """New recipient values."""
+  recipient: CheckoutRecipientInput!
+}
+
+type CheckoutFieldError {
+  """The field that caused the error."""
+  field: String!
+
+  """The error message."""
+  message: String!
+}
+
+"""Input data for updating the language/locale code of the checkout."""
+input CheckoutLanguageCodeUpdateInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """
+  Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
+  Affects localization and formatting.
+  """
+  localeCode: String!
+}
+
+"""A single item in a checkout."""
+type CheckoutLine implements Node {
+  """Global unique identifier for the checkout line."""
+  id: ID!
+
+  """Title of the purchasable."""
+  title: String!
+
+  """SKU of the purchasable."""
+  sku: String
+
+  """Image URL of the purchasable."""
+  imageSrc: String
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost calculations for this checkout item."""
+  cost: CheckoutLineCost!
+
+  """Original price before any adjustments (e.g., child price config)."""
+  originalPrice: Money!
+
+  """Price adjustment applied to this line (for child items in bundles)."""
+  priceConfig: CheckoutLinePriceConfig
+
+  """
+  A list of components that make up this checkout line, such as individual products in a bundle.
+  """
+  children: [CheckoutLine!]!
+
+  """ID of the purchasable."""
+  purchasableId: ID!
+
+  """Purchasable snapshot data at the time of adding to checkout."""
+  purchasableSnapshot: JSON!
+
+  """Optional tag assigned to this checkout line."""
+  tag: CheckoutTag
+  purchasable: ProductVariant!
+}
+
+"""Input data for a single item in the checkout."""
+input CheckoutLineAddInput {
+  """Quantity of the product in the checkout."""
+  quantity: Int!
+
+  """ID of the product to add or update."""
+  purchasableId: ID!
+
+  """ID of the purchasable snapshot to add or update."""
+  purchasableSnapshot: PurchasableSnapshotInput
+
+  """Optional tag slug to associate with this line."""
+  tagSlug: String
+
+  """Child items for this line. If provided, this line becomes a parent."""
+  children: [CheckoutChildLineInput!]
+}
+
+"""Detailed breakdown of costs for a checkout line item"""
+type CheckoutLineCost {
+  """The original list price per unit before any discounts."""
+  compareAtUnitPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """Discount amount applied to a line."""
+  discountAmount: Money!
+
+  """Total cost of all units before discounts."""
+  subtotalAmount: Money!
+
+  """Total tax amount applied to the checkout line."""
+  taxAmount: Money!
+
+  """Total cost of this line (all units), after discounts and taxes."""
+  totalAmount: Money!
+}
+
+"""Price adjustment configuration applied to a child line item."""
+type CheckoutLinePriceConfig {
+  """Type of price adjustment."""
+  type: ChildPriceType!
+
+  """
+  Amount in minor units (always positive). Used for DISCOUNT_AMOUNT, MARKUP_AMOUNT, OVERRIDE.
+  """
+  amount: Int
+
+  """
+  Percentage (always positive). Used for DISCOUNT_PERCENT, MARKUP_PERCENT.
+  """
+  percent: Float
+}
+
+"""Single replacement operation."""
+input CheckoutLineReplaceInput {
+  """Source line ID to replace (quantity will be moved from this line)."""
+  lineId: ID!
+
+  """Target purchasable ID to receive the quantity."""
+  purchasableId: ID!
+
+  """
+  Quantity to move; if not set, moves full quantity from source line.
+  Must be greater than 0 if provided.
+  """
+  quantity: Int
+}
+
+"""Input data for adding an item to an existing checkout."""
+input CheckoutLinesAddInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of checkout items to add."""
+  lines: [CheckoutLineAddInput!]!
+}
+
+"""Payload returned after adding an item to the checkout."""
+type CheckoutLinesAddPayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for clearing all items from a checkout."""
+input CheckoutLinesClearInput {
+  """ID of the checkout to clear."""
+  checkoutId: ID!
+}
+
+"""Payload returned after clearing all items from the checkout."""
+type CheckoutLinesClearPayload {
+  """The updated (now empty) checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for removing one or more items from the checkout."""
+input CheckoutLinesDeleteInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """IDs of the lines to remove."""
+  lineIds: [ID!]!
+}
+
+"""Payload returned after removing an item from the checkout."""
+type CheckoutLinesDeletePayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""
+Input data for replacing one or more checkout lines.
+Each replacement moves quantity from source line to target line.
+If quantity is not provided, full quantity from the source line will be moved.
+"""
+input CheckoutLinesReplaceInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of replacement operations to apply."""
+  lines: [CheckoutLineReplaceInput!]!
+}
+
+"""Payload returned after replacing one checkout line with another."""
+type CheckoutLinesReplacePayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for updating the quantity of a specific checkout item."""
+input CheckoutLinesUpdateInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+
+  """List of checkout items to update."""
+  lines: [CheckoutLineUpdateInput!]!
+}
+
+"""Payload returned after updating a checkout item's quantity."""
+type CheckoutLinesUpdatePayload {
+  """The updated checkout."""
+  checkout: Checkout
+
+  """List of field-specific or general errors."""
+  errors: [CheckoutFieldError!]
+}
+
+"""Input data for updating the quantity of a specific checkout item."""
+input CheckoutLineUpdateInput {
+  """ID of the checkout item to update."""
+  lineId: ID!
+
+  """
+  New quantity for the checkout item.
+  If set to 0, the item will be removed.
+  """
+  quantity: Int!
+}
+
+type CheckoutMutation {
+  """Creates a new checkout."""
+  checkoutCreate(input: CheckoutCreateInput!): Checkout!
+
+  """Adds an item to an existing checkout."""
+  checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!
+
+  """Updates the quantity of a specific checkout item."""
+  checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
+
+  """
+  Replaces one checkout line with another by merging quantities and removing the source line.
+  """
+  checkoutLinesReplace(input: CheckoutLinesReplaceInput!): CheckoutLinesReplacePayload!
+
+  """Removes a single item from the checkout."""
+  checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
+
+  """Clears all items from a checkout."""
+  checkoutLinesClear(input: CheckoutLinesClearInput!): CheckoutLinesClearPayload!
+
+  """
+  Updates customer identification data associated with the checkout
+  (email, customerId and if necessary country/language for calculations).
+  """
+  checkoutCustomerIdentityUpdate(input: CheckoutCustomerIdentityUpdateInput!): Checkout!
+
+  """
+  Updates the customer note attached to the checkout (delivery instructions, etc.).
+  """
+  checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): Checkout!
+
+  """
+  Updates the language/locale of the checkout (affects localization and formatting).
+  """
+  checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
+
+  """
+  Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR").
+  """
+  checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
+
+  """
+  Adds one or more delivery addresses to the checkout (supports multi-shipping).
+  """
+  checkoutDeliveryAddressesAdd(input: CheckoutDeliveryAddressesAddInput!): Checkout!
+
+  """
+  Updates previously added delivery addresses (e.g., correcting postal code or city).
+  """
+  checkoutDeliveryAddressesUpdate(input: CheckoutDeliveryAddressesUpdateInput!): Checkout!
+
+  """
+  Removes one or more delivery addresses previously attached to the checkout.
+  """
+  checkoutDeliveryAddressesRemove(input: CheckoutDeliveryAddressesRemoveInput!): Checkout!
+
+  """
+  Selects or changes the delivery method for the entire checkout or specific address.
+  """
+  checkoutDeliveryMethodUpdate(input: CheckoutDeliveryMethodUpdateInput!): Checkout!
+
+  """Adds recipients to delivery groups."""
+  checkoutDeliveryRecipientsAdd(input: CheckoutDeliveryRecipientsAddInput!): Checkout!
+
+  """Updates recipients for delivery groups."""
+  checkoutDeliveryRecipientsUpdate(input: CheckoutDeliveryRecipientsUpdateInput!): Checkout!
+
+  """Removes recipients from delivery groups."""
+  checkoutDeliveryRecipientsRemove(input: CheckoutDeliveryRecipientsRemoveInput!): Checkout!
+
+  """Applies a promo code/coupon to the checkout."""
+  checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
+
+  """Removes a previously applied promo code/coupon from the checkout."""
+  checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+
+  """Creates a new checkout tag."""
+  checkoutTagCreate(input: CheckoutTagCreateInput!): Checkout!
+
+  """Updates a checkout tag."""
+  checkoutTagUpdate(input: CheckoutTagUpdateInput!): Checkout!
+
+  """Deletes a checkout tag."""
+  checkoutTagDelete(input: CheckoutTagDeleteInput!): Checkout!
+
+  """Selects or changes the payment method for the checkout."""
+  checkoutPaymentMethodUpdate(input: CheckoutPaymentMethodUpdateInput!): Checkout!
+}
+
+"""A non-blocking warning generated by checkout operations."""
+type CheckoutNotification {
+  """A globally-unique ID."""
+  id: ID!
+
+  """Code categorizing the warning."""
+  code: CheckoutNotificationCode!
+
+  """Importance level of the warning."""
+  severity: NotificationSeverity!
+
+  """Whether the warning has been acknowledged by the user."""
+  isDismissed: Boolean!
+}
+
+"""
+Codes for warnings that may be returned with Checkout mutations,
+indicating non-blocking adjustments or issues in the checkout.
+"""
+enum CheckoutNotificationCode {
+  """
+  The requested item is completely out of stock and has been removed from the checkout.
+  """
+  OUT_OF_STOCK
+
+  """
+  The requested quantity exceeds available stock;
+  quantity was automatically reduced to the maximum available.
+  """
+  NOT_ENOUGH_STOCK
+
+  """
+  The price of one or more items has changed since they were added to the checkout.
+  """
+  PRICE_CHANGED
+
+  """An item in the checkout is no longer available for sale."""
+  ITEM_UNAVAILABLE
+}
+
+"""Payment aggregate for a checkout."""
+type CheckoutPayment {
+  """Available payment methods for this checkout context."""
+  paymentMethods: [CheckoutPaymentMethod!]!
+
+  """Selected payment method, if any."""
+  selectedPaymentMethod: CheckoutPaymentMethod
+
+  """
+  Amount payable to the merchant via the selected method.
+  This excludes SHIPPING_CARRIER components (CARRIER_DIRECT).
+  """
+  payableAmount: Money!
+}
+
+"""Payment method available/selected for checkout."""
+type CheckoutPaymentMethod {
+  """Method code (e.g., "card", "apple_pay", "bank_transfer", "cod")."""
+  code: String!
+
+  """Provider data associated with the payment method."""
+  provider: CheckoutPaymentProvider!
+
+  """Payment flow (ONLINE vs ON_DELIVERY)."""
+  flow: PaymentFlow!
+
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON!
+}
+
+"""Constraints for payment method availability (from payment-plugin-sdk)."""
+type CheckoutPaymentMethodConstraints {
+  """
+  Limit to specific shipping method codes. If empty, all shipping methods are allowed.
+  Code includes shipping provider code.
+  """
+  shippingMethods: [String!]!
+}
+
+"""Select or change payment method for the checkout."""
+input CheckoutPaymentMethodUpdateInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Code of the payment method available for this checkout."""
+  paymentMethodCode: String!
+
+  """Provider code (e.g., "stripe", "liqpay", "monobank", "paypal")."""
+  provider: String!
+
+  """
+  Arbitrary customer-provided data for the selected payment method.
+  Will be stored in checkout_payment_methods.customer_input.
+  """
+  data: JSON
+}
+
+type CheckoutPaymentProvider {
+  """Code of the provider (e.g., "stripe", "liqpay", "monobank", "paypal")."""
+  code: String!
+}
+
+"""Applied promo code for a checkout."""
+type CheckoutPromoCode {
+  """Promo code text."""
+  code: String!
+
+  """When this promo code was applied."""
+  appliedAt: DateTime!
+
+  """Discount type (percentage)."""
+  discountType: String!
+
+  """Discount value (percentage as number)."""
+  value: Int!
+
+  """Discount provider."""
+  provider: String!
+
+  """Discount conditions."""
+  conditions: JSON
+}
+
+"""Input data for applying a promo code to the checkout."""
+input CheckoutPromoCodeAddInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Text code of the coupon/promo code."""
+  code: String!
+}
+
+"""
+Input data for removing a previously applied promo code from the checkout.
+"""
+input CheckoutPromoCodeRemoveInput {
+  """Identifier of the checkout on which the operation is performed."""
+  checkoutId: ID!
+
+  """Text code of the coupon/promo code to be cancelled."""
+  code: String!
+}
+
+type CheckoutQuery {
+  """Get a checkout by its ID."""
+  checkout(id: ID!): Checkout
+}
+
+"""Recipient details for the delivery group."""
+type CheckoutRecipient {
+  """First name of the recipient."""
+  firstName: String
+
+  """Last name of the recipient."""
+  lastName: String
+
+  """Middle name of the recipient."""
+  middleName: String
+
+  """Email of the recipient."""
+  email: Email
+
+  """Phone of the recipient."""
+  phone: String
+}
+
+"""Input fields for recipient details."""
+input CheckoutRecipientInput {
+  """First name of the recipient."""
+  firstName: String
+
+  """Last name of the recipient."""
+  lastName: String
+
+  """Middle name of the recipient."""
+  middleName: String
+
+  """Email of the recipient."""
+  email: Email
+
+  """Phone of the recipient."""
+  phone: String
+}
+
+"""A tag that can be attached to checkout lines."""
+type CheckoutTag implements Node {
+  """Global identifier of the tag."""
+  id: ID!
+
+  """Slug identifier (a-zA-Z0-9)."""
+  slug: String!
+
+  """Whether the tag enforces uniqueness for checkout lines."""
+  unique: Boolean!
+
+  """Tag creation timestamp."""
+  createdAt: DateTime!
+
+  """Last update timestamp."""
+  updatedAt: DateTime!
+}
+
+"""Input payload for checkoutTagCreate mutation."""
+input CheckoutTagCreateInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Tag configuration."""
+  tag: CheckoutTagInput!
+}
+
+"""Input payload for checkoutTagDelete mutation."""
+input CheckoutTagDeleteInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Tag identifier (global ID)."""
+  tagId: ID!
+}
+
+"""Tag definition used when initializing or mutating checkout tags."""
+input CheckoutTagInput {
+  """Slug identifier consisting of alphanumeric characters."""
+  slug: String!
+
+  """Whether this tag enforces uniqueness for checkout lines."""
+  unique: Boolean!
+}
+
+"""Input payload for checkoutTagUpdate mutation."""
+input CheckoutTagUpdateInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Tag identifier (global ID)."""
+  tagId: ID!
+
+  """New slug, if tag needs to be renamed."""
+  slug: String
+
+  """Updated uniqueness flag."""
+  unique: Boolean
+}
+
+"""
+Price adjustment type for child items in a bundle.
+Values are always positive - the type determines the operation.
+"""
+enum ChildPriceType {
+  """Item is free (price = 0)"""
+  FREE
+
+  """Use original price without adjustments"""
+  BASE
+
+  """Subtract fixed amount from original price"""
+  DISCOUNT_AMOUNT
+
+  """Subtract percentage from original price"""
+  DISCOUNT_PERCENT
+
+  """Add fixed amount to original price"""
+  MARKUP_AMOUNT
+
+  """Add percentage to original price"""
+  MARKUP_PERCENT
+
+  """Override with fixed price"""
+  OVERRIDE
+}
+
+enum CountryCode {
+  """United States"""
+  US
+
+  """Canada"""
+  CA
+
+  """Mexico"""
+  MX
+
+  """United Kingdom"""
+  GB
+
+  """Germany"""
+  DE
+
+  """France"""
+  FR
+
+  """Italy"""
+  IT
+
+  """Spain"""
+  ES
+
+  """Australia"""
+  AU
+
+  """New Zealand"""
+  NZ
+
+  """Japan"""
+  JP
+
+  """China"""
+  CN
+
+  """South Korea"""
+  KR
+
+  """India"""
+  IN
+
+  """Brazil"""
+  BR
+
+  """Argentina"""
+  AR
+
+  """South Africa"""
+  ZA
+
+  """Russia"""
+  RU
+
+  """Ukraine"""
+  UA
+
+  """Poland"""
+  PL
+
+  """Netherlands"""
+  NL
+
+  """Belgium"""
+  BE
+
+  """Sweden"""
+  SE
+
+  """Norway"""
+  NO
+
+  """Denmark"""
+  DK
+
+  """Finland"""
+  FI
+
+  """Switzerland"""
+  CH
+
+  """Austria"""
+  AT
+
+  """Portugal"""
+  PT
+
+  """Ireland"""
+  IE
+
+  """Czech Republic"""
+  CZ
+
+  """Hungary"""
+  HU
+
+  """Slovakia"""
+  SK
+
+  """Slovenia"""
+  SI
+
+  """Croatia"""
+  HR
+
+  """Greece"""
+  GR
+
+  """Turkey"""
+  TR
+
+  """Romania"""
+  RO
+
+  """Bulgaria"""
+  BG
+
+  """Estonia"""
+  EE
+
+  """Latvia"""
+  LV
+
+  """Lithuania"""
+  LT
+
+  """Iceland"""
+  IS
+
+  """Luxembourg"""
+  LU
+
+  """Liechtenstein"""
+  LI
+
+  """Malta"""
+  MT
+
+  """Cyprus"""
+  CY
+
+  """Israel"""
+  IL
+
+  """Saudi Arabia"""
+  SA
+
+  """United Arab Emirates"""
+  AE
+
+  """Qatar"""
+  QA
+
+  """Kuwait"""
+  KW
+
+  """Oman"""
+  OM
+
+  """Jordan"""
+  JO
+
+  """Egypt"""
+  EG
+
+  """Morocco"""
+  MA
+
+  """Tunisia"""
+  TN
+
+  """Algeria"""
+  DZ
+
+  """Nigeria"""
+  NG
+
+  """Kenya"""
+  KE
+
+  """Ethiopia"""
+  ET
+
+  """Ghana"""
+  GH
+
+  """Senegal"""
+  SN
+
+  """Ivory Coast"""
+  CI
+
+  """Tanzania"""
+  TZ
+
+  """Uganda"""
+  UG
+
+  """Cameroon"""
+  CM
+
+  """Zambia"""
+  ZM
+
+  """Zimbabwe"""
+  ZW
+
+  """Mozambique"""
+  MZ
+
+  """Botswana"""
+  BW
+
+  """Namibia"""
+  NA
+
+  """Angola"""
+  AO
+
+  """Democratic Republic of the Congo"""
+  CD
+
+  """Sudan"""
+  SD
+
+  """Pakistan"""
+  PK
+
+  """Bangladesh"""
+  BD
+
+  """Nepal"""
+  NP
+
+  """Thailand"""
+  TH
+
+  """Vietnam"""
+  VN
+
+  """Malaysia"""
+  MY
+
+  """Singapore"""
+  SG
+
+  """Indonesia"""
+  ID
+
+  """Philippines"""
+  PH
+
+  """Myanmar"""
+  MM
+
+  """Cambodia"""
+  KH
+
+  """Laos"""
+  LA
+
+  """Brunei"""
+  BN
+
+  """Kazakhstan"""
+  KZ
+
+  """Uzbekistan"""
+  UZ
+
+  """Turkmenistan"""
+  TM
+
+  """Kyrgyzstan"""
+  KG
+
+  """Tajikistan"""
+  TJ
+
+  """Georgia"""
+  GE
+
+  """Armenia"""
+  AM
+
+  """Azerbaijan"""
+  AZ
+
+  """Belarus"""
+  BY
+
+  """Moldova"""
+  MD
+
+  """Serbia"""
+  RS
+
+  """Montenegro"""
+  ME
+
+  """North Macedonia"""
+  MK
+
+  """Bosnia and Herzegovina"""
+  BA
+
+  """Albania"""
+  AL
+
+  """Kosovo"""
+  XK
+
+  """Greenland"""
+  GL
+
+  """Panama"""
+  PA
+
+  """Costa Rica"""
+  CR
+
+  """El Salvador"""
+  SV
+
+  """Guatemala"""
+  GT
+
+  """Honduras"""
+  HN
+
+  """Nicaragua"""
+  NI
+
+  """Jamaica"""
+  JM
+
+  """Cuba"""
+  CU
+
+  """Dominican Republic"""
+  DO
+
+  """Haiti"""
+  HT
+
+  """Trinidad and Tobago"""
+  TT
+
+  """Barbados"""
+  BB
+
+  """Bahamas"""
+  BS
+
+  """Paraguay"""
+  PY
+
+  """Uruguay"""
+  UY
+
+  """Chile"""
+  CL
+
+  """Peru"""
+  PE
+
+  """Colombia"""
+  CO
+
+  """Venezuela"""
+  VE
+
+  """Bolivia"""
+  BO
+
+  """Ecuador"""
+  EC
+
+  """Suriname"""
+  SR
+
+  """Guyana"""
+  GY
+
+  """Fiji"""
+  FJ
+
+  """Papua New Guinea"""
+  PG
+
+  """Samoa"""
+  WS
+
+  """Tonga"""
+  TO
+
+  """Solomon Islands"""
+  SB
+
+  """Vanuatu"""
+  VU
+
+  """New Caledonia"""
+  NC
+
+  """Marshall Islands"""
+  MH
+
+  """Micronesia"""
+  FM
+
+  """Palau"""
+  PW
+
+  """Maldives"""
+  MV
+
+  """Seychelles"""
+  SC
+
+  """Mauritius"""
+  MU
+
+  """Sri Lanka"""
+  LK
+
+  """Bhutan"""
+  BT
+
+  """Mongolia"""
+  MN
+
+  """North Korea"""
+  KP
+
+  """Iraq"""
+  IQ
+
+  """Iran"""
+  IR
+
+  """Afghanistan"""
+  AF
+
+  """Yemen"""
+  YE
+
+  """Syria"""
+  SY
+
+  """Lebanon"""
+  LB
+
+  """Palestine"""
+  PS
+
+  """Bahrain"""
+  BH
+
+  """Malawi"""
+  MW
+
+  """Rwanda"""
+  RW
+
+  """Burundi"""
+  BI
+
+  """South Sudan"""
+  SS
+
+  """Lesotho"""
+  LS
+
+  """Swaziland (Eswatini)"""
+  SZ
+
+  """Madagascar"""
+  MG
+
+  """Central African Republic"""
+  CF
+
+  """Republic of the Congo"""
+  CG
+
+  """Gabon"""
+  GA
+
+  """Guinea"""
+  GN
+
+  """Guinea-Bissau"""
+  GW
+
+  """Equatorial Guinea"""
+  GQ
+
+  """Sierra Leone"""
+  SL
+
+  """Liberia"""
+  LR
+
+  """Benin"""
+  BJ
+
+  """Togo"""
+  TG
+
+  """Niger"""
+  NE
+
+  """Mali"""
+  ML
+
+  """Burkina Faso"""
+  BF
+
+  """Chad"""
+  TD
+
+  """Mauritania"""
+  MR
+
+  """Gambia"""
+  GM
+
+  """Cape Verde"""
+  CV
+
+  """Eritrea"""
+  ER
+
+  """Djibouti"""
+  DJ
+
+  """Comoros"""
+  KM
+
+  """Andorra"""
+  AD
+
+  """Monaco"""
+  MC
+
+  """San Marino"""
+  SM
+
+  """Vatican City"""
+  VA
+
+  """Timor-Leste (East Timor)"""
+  TL
+
+  """Antigua and Barbuda"""
+  AG
+
+  """Saint Kitts and Nevis"""
+  KN
+
+  """Saint Lucia"""
+  LC
+
+  """Saint Vincent and the Grenadines"""
+  VC
+
+  """Grenada"""
+  GD
+
+  """Dominica"""
+  DM
+
+  """Belize"""
+  BZ
+
+  """Aruba"""
+  AW
+
+  """Curaçao"""
+  CW
+
+  """Bermuda"""
+  BM
+
+  """Faroe Islands"""
+  FO
+
+  """Isle of Man"""
+  IM
+
+  """Jersey"""
+  JE
+
+  """Guernsey"""
+  GG
+
+  """Åland Islands"""
+  AX
+
+  """Western Sahara"""
+  EH
+
+  """British Virgin Islands"""
+  VG
+
+  """US Virgin Islands"""
+  VI
+}
+
+input CreateOrderInput {
+  """ID of the checkout."""
+  checkoutId: ID!
+}
+
+"""Input type for submitting a new product review."""
+input CreateReviewInput {
+  """The unique identifier of the product to which this review belongs."""
+  productId: ID!
+
+  """
+  The numerical rating given by the reviewer.
+  Valid values typically range from 1.0 (worst) to 5.0 (best).
+  """
+  rating: Float!
+
+  """
+  The publicly displayed name of the reviewer.
+  This may be a username, nickname, or real name, depending on your policy.
+  """
+  displayName: String!
+
+  """
+  The main body of the review.
+  Should capture the reviewer's overall experience and opinions.
+  """
+  message: String!
+
+  """
+  A brief, descriptive title summarizing the review.
+  For example: "Excellent quality, highly recommend".
+  """
+  title: String
+
+  """
+  A summary of key positive points noted by the reviewer.
+  Use commas or semicolons to separate multiple pros.
+  """
+  pros: String
+
+  """
+  A summary of key negative points noted by the reviewer.
+  Use commas or semicolons to separate multiple cons.
+  """
+  cons: String
+
+  """
+  An optional list of image IDs uploaded by the reviewer.
+  Images should illustrate product features or usage.
+  """
+  images: [ID!]
+
+  """The locale or language code."""
+  locale: LocaleCode
+}
+
+"""Currency codes according to ISO 4217"""
+enum CurrencyCode {
+  """2 decimals — UAE Dirham (United Arab Emirates)"""
+  AED
+
+  """2 decimals — Afghan Afghani (Afghanistan)"""
+  AFN
+
+  """2 decimals — Albanian Lek (Albania)"""
+  ALL
+
+  """2 decimals — Armenian Dram (Armenia)"""
+  AMD
+
+  """2 decimals — Netherlands Antillean Guilder (Netherlands Antilles)"""
+  ANG
+
+  """2 decimals — Angolan Kwanza (Angola)"""
+  AOA
+
+  """2 decimals — Argentine Peso (Argentina)"""
+  ARS
+
+  """2 decimals — Australian Dollar (Australia)"""
+  AUD
+
+  """2 decimals — Aruban Florin (Aruba)"""
+  AWG
+
+  """2 decimals — Azerbaijani Manat (Azerbaijan)"""
+  AZN
+
+  """
+  2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina)
+  """
+  BAM
+
+  """2 decimals — Barbadian Dollar (Barbados)"""
+  BBD
+
+  """2 decimals — Bangladeshi Taka (Bangladesh)"""
+  BDT
+
+  """2 decimals — Bulgarian Lev (Bulgaria)"""
+  BGN
+
+  """3 decimals — Bahraini Dinar (Bahrain)"""
+  BHD
+
+  """0 decimals — Burundian Franc (Burundi)"""
+  BIF
+
+  """2 decimals — Bermudian Dollar (Bermuda)"""
+  BMD
+
+  """2 decimals — Brunei Dollar (Brunei)"""
+  BND
+
+  """2 decimals — Bolivian Boliviano (Bolivia)"""
+  BOB
+
+  """2 decimals — Brazilian Real (Brazil)"""
+  BRL
+
+  """2 decimals — Bahamian Dollar (Bahamas)"""
+  BSD
+
+  """2 decimals — Bhutanese Ngultrum (Bhutan)"""
+  BTN
+
+  """2 decimals — Botswana Pula (Botswana)"""
+  BWP
+
+  """2 decimals — Belarusian Ruble (Belarus)"""
+  BYN
+
+  """2 decimals — Belize Dollar (Belize)"""
+  BZD
+
+  """2 decimals — Canadian Dollar (Canada)"""
+  CAD
+
+  """2 decimals — Congolese Franc (Democratic Republic of the Congo)"""
+  CDF
+
+  """2 decimals — Swiss Franc (Switzerland)"""
+  CHF
+
+  """0 decimals — Chilean Peso (Chile)"""
+  CLP
+
+  """2 decimals — Chinese Yuan (China)"""
+  CNY
+
+  """2 decimals — Colombian Peso (Colombia)"""
+  COP
+
+  """2 decimals — Costa Rican Colon (Costa Rica)"""
+  CRC
+
+  """2 decimals — Cuban Peso (Cuba)"""
+  CUP
+
+  """2 decimals — Cape Verdean Escudo (Cape Verde)"""
+  CVE
+
+  """2 decimals — Czech Koruna (Czech Republic)"""
+  CZK
+
+  """0 decimals — Djiboutian Franc (Djibouti)"""
+  DJF
+
+  """2 decimals — Danish Krone (Denmark)"""
+  DKK
+
+  """2 decimals — Dominican Peso (Dominican Republic)"""
+  DOP
+
+  """2 decimals — Algerian Dinar (Algeria)"""
+  DZD
+
+  """2 decimals — Egyptian Pound (Egypt)"""
+  EGP
+
+  """2 decimals — Eritrean Nakfa (Eritrea)"""
+  ERN
+
+  """2 decimals — Ethiopian Birr (Ethiopia)"""
+  ETB
+
+  """2 decimals — Euro (European Union)"""
+  EUR
+
+  """2 decimals — Fijian Dollar (Fiji)"""
+  FJD
+
+  """2 decimals — Falkland Islands Pound (Falkland Islands)"""
+  FKP
+
+  """2 decimals — Faroese Króna (Faroe Islands)"""
+  FOK
+
+  """2 decimals — Pound Sterling (United Kingdom)"""
+  GBP
+
+  """2 decimals — Georgian Lari (Georgia)"""
+  GEL
+
+  """2 decimals — Guernsey Pound (Guernsey)"""
+  GGP
+
+  """2 decimals — Ghanaian Cedi (Ghana)"""
+  GHS
+
+  """2 decimals — Gibraltar Pound (Gibraltar)"""
+  GIP
+
+  """2 decimals — Gambian Dalasi (Gambia)"""
+  GMD
+
+  """0 decimals — Guinean Franc (Guinea)"""
+  GNF
+
+  """2 decimals — Guatemalan Quetzal (Guatemala)"""
+  GTQ
+
+  """2 decimals — Guyanese Dollar (Guyana)"""
+  GYD
+
+  """2 decimals — Hong Kong Dollar (Hong Kong)"""
+  HKD
+
+  """2 decimals — Honduran Lempira (Honduras)"""
+  HNL
+
+  """2 decimals — Croatian Kuna (Croatia)"""
+  HRK
+
+  """2 decimals — Haitian Gourde (Haiti)"""
+  HTG
+
+  """2 decimals — Hungarian Forint (Hungary)"""
+  HUF
+
+  """0 decimals — Indonesian Rupiah (Indonesia)"""
+  IDR
+
+  """2 decimals — Israeli New Shekel (Israel)"""
+  ILS
+
+  """2 decimals — Isle of Man Pound (Isle of Man)"""
+  IMP
+
+  """2 decimals — Indian Rupee (India)"""
+  INR
+
+  """3 decimals — Iraqi Dinar (Iraq)"""
+  IQD
+
+  """2 decimals — Iranian Rial (Iran)"""
+  IRR
+
+  """0 decimals — Icelandic Króna (Iceland)"""
+  ISK
+
+  """2 decimals — Jersey Pound (Jersey)"""
+  JEP
+
+  """2 decimals — Jamaican Dollar (Jamaica)"""
+  JMD
+
+  """3 decimals — Jordanian Dinar (Jordan)"""
+  JOD
+
+  """0 decimals — Japanese Yen (Japan)"""
+  JPY
+
+  """2 decimals — Kenyan Shilling (Kenya)"""
+  KES
+
+  """2 decimals — Kyrgyzstani Som (Kyrgyzstan)"""
+  KGS
+
+  """2 decimals — Cambodian Riel (Cambodia)"""
+  KHR
+
+  """2 decimals — Comorian Franc (Comoros)"""
+  KMF
+
+  """2 decimals — North Korean Won (North Korea)"""
+  KPW
+
+  """2 decimals — South Korean Won (South Korea)"""
+  KRW
+
+  """3 decimals — Kuwaiti Dinar (Kuwait)"""
+  KWD
+
+  """2 decimals — Cayman Islands Dollar (Cayman Islands)"""
+  KYD
+
+  """2 decimals — Kazakhstani Tenge (Kazakhstan)"""
+  KZT
+
+  """2 decimals — Lao Kip (Laos)"""
+  LAK
+
+  """2 decimals — Lebanese Pound (Lebanon)"""
+  LBP
+
+  """2 decimals — Sri Lankan Rupee (Sri Lanka)"""
+  LKR
+
+  """3 decimals — Liberian Dollar (Liberia)"""
+  LRD
+
+  """3 decimals — Libyan Dinar (Libya)"""
+  LYD
+
+  """2 decimals — Moroccan Dirham (Morocco)"""
+  MAD
+
+  """2 decimals — Moldovan Leu (Moldova)"""
+  MDL
+
+  """2 decimals — Malagasy Ariary (Madagascar)"""
+  MGA
+
+  """2 decimals — Macedonian Denar (North Macedonia)"""
+  MKD
+
+  """2 decimals — Burmese Kyat (Myanmar)"""
+  MMK
+
+  """2 decimals — Mongolian Tögrög (Mongolia)"""
+  MNT
+
+  """2 decimals — Macanese Pataca (Macau)"""
+  MOP
+
+  """2 decimals — Mauritanian Ouguiya (Mauritania)"""
+  MRU
+
+  """2 decimals — Mauritian Rupee (Mauritius)"""
+  MUR
+
+  """2 decimals — Maldivian Rufiyaa (Maldives)"""
+  MVR
+
+  """2 decimals — Malawian Kwacha (Malawi)"""
+  MWK
+
+  """2 decimals — Mexican Peso (Mexico)"""
+  MXN
+
+  """2 decimals — Malaysian Ringgit (Malaysia)"""
+  MYR
+
+  """2 decimals — Mozambican Metical (Mozambique)"""
+  MZN
+
+  """2 decimals — Namibian Dollar (Namibia)"""
+  NAD
+
+  """2 decimals — Nigerian Naira (Nigeria)"""
+  NGN
+
+  """2 decimals — Nicaraguan Córdoba (Nicaragua)"""
+  NIO
+
+  """2 decimals — Norwegian Krone (Norway)"""
+  NOK
+
+  """2 decimals — Nepalese Rupee (Nepal)"""
+  NPR
+
+  """2 decimals — New Zealand Dollar (New Zealand)"""
+  NZD
+
+  """2 decimals — Omani Rial (Oman)"""
+  OMR
+
+  """2 decimals — Panamanian Balboa (Panama)"""
+  PAB
+
+  """2 decimals — Peruvian Sol (Peru)"""
+  PEN
+
+  """0 decimals — Papua New Guinean Kina (Papua New Guinea)"""
+  PGK
+
+  """2 decimals — Philippine Peso (Philippines)"""
+  PHP
+
+  """2 decimals — Pakistani Rupee (Pakistan)"""
+  PKR
+
+  """0 decimals — Polish Zloty (Poland)"""
+  PLN
+
+  """2 decimals — Paraguayan Guaraní (Paraguay)"""
+  PYG
+
+  """2 decimals — Qatari Riyal (Qatar)"""
+  QAR
+
+  """2 decimals — Romanian Leu (Romania)"""
+  RON
+
+  """2 decimals — Serbian Dinar (Serbia)"""
+  RSD
+
+  """2 decimals — Russian Ruble (Russia)"""
+  RUB
+
+  """2 decimals — Rwandan Franc (Rwanda)"""
+  RWF
+
+  """2 decimals — Saudi Riyal (Saudi Arabia)"""
+  SAR
+
+  """2 decimals — Solomon Islands Dollar (Solomon Islands)"""
+  SBD
+
+  """2 decimals — Seychelles Rupee (Seychelles)"""
+  SCR
+
+  """2 decimals — Sudanese Pound (Sudan)"""
+  SDG
+
+  """2 decimals — Swedish Krona (Sweden)"""
+  SEK
+
+  """2 decimals — Singapore Dollar (Singapore)"""
+  SGD
+
+  """0 decimals — Saint Helena Pound (Saint Helena)"""
+  SHP
+
+  """2 decimals — Sierra Leonean Leone (Sierra Leone)"""
+  SLE
+
+  """2 decimals — Somali Shilling (Somalia)"""
+  SOS
+
+  """2 decimals — Surinamese Dollar (Suriname)"""
+  SRD
+
+  """2 decimals — South Sudanese Pound (South Sudan)"""
+  SSP
+
+  """2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe)"""
+  STN
+
+  """2 decimals — Salvadoran Colón (El Salvador)"""
+  SVC
+
+  """2 decimals — Syrian Pound (Syria)"""
+  SYP
+
+  """2 decimals — Eswatini Lilangeni (Eswatini)"""
+  SZL
+
+  """2 decimals — Thai Baht (Thailand)"""
+  THB
+
+  """2 decimals — Tajikistani Somoni (Tajikistan)"""
+  TJS
+
+  """2 decimals — Turkmenistani Manat (Turkmenistan)"""
+  TMT
+
+  """2 decimals — Tunisian Dinar (Tunisia)"""
+  TND
+
+  """2 decimals — Tongan Paʻanga (Tonga)"""
+  TOP
+
+  """2 decimals — Turkish Lira (Türkiye)"""
+  TRY
+
+  """2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago)"""
+  TTD
+
+  """2 decimals — New Taiwan Dollar (Taiwan)"""
+  TWD
+
+  """0 decimals — Tanzanian Shilling (Tanzania)"""
+  TZS
+
+  """2 decimals — Ukrainian Hryvnia (Ukraine)"""
+  UAH
+
+  """2 decimals — Ugandan Shilling (Uganda)"""
+  UGX
+
+  """2 decimals — United States Dollar (United States)"""
+  USD
+
+  """2 decimals — Uruguayan Peso (Uruguay)"""
+  UYU
+
+  """2 decimals — Uzbekistan Som (Uzbekistan)"""
+  UZS
+
+  """2 decimals — Venezuelan Bolívar (Venezuela)"""
+  VES
+
+  """0 decimals — Vietnamese Dong (Vietnam)"""
+  VND
+
+  """2 decimals — Vanuatu Vatu (Vanuatu)"""
+  VUV
+
+  """2 decimals — Samoan Tala (Samoa)"""
+  WST
+
+  """2 decimals — Central African CFA Franc (CEMAC)"""
+  XAF
+
+  """0 decimals — East Caribbean Dollar (OECS)"""
+  XCD
+
+  """0 decimals — Special Drawing Rights (IMF)"""
+  XDR
+
+  """0 decimals — West African CFA Franc (UEMOA)"""
+  XOF
+
+  """0 decimals — CFP Franc (French overseas territories)"""
+  XPF
+
+  """2 decimals — Yemeni Rial (Yemen)"""
+  YER
+
+  """2 decimals — South African Rand (South Africa)"""
+  ZAR
+
+  """2 decimals — Zambian Kwacha (Zambia)"""
+  ZMW
+
+  """2 decimals — Zimbabwean Dollar (Zimbabwe)"""
+  ZWL
+}
+
+scalar Cursor
+
+scalar DateTime
+
+scalar Decimal
+
+"""Delivery cost with payment model"""
+type DeliveryCost {
+  """Delivery amount"""
+  amount: Money!
+
+  """Shipping payment model"""
+  paymentModel: ShippingPaymentModel!
+}
+
+scalar Email
+
+"""Error information for a failed field."""
+type FieldError {
+  """Name of the field that caused the error."""
+  field: String!
+
+  """Human-readable error message."""
+  message: String!
+
+  """Optional machine-readable error code."""
+  code: String
+}
+
+"""Represents a file or media resource in the system."""
+type File implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The origin of the media (e.g., URL, YouTube)."""
+  source: MediaSource!
+
+  """Direct link to the resource or identifier (for YouTube, the video ID)."""
+  url: String!
+}
+
+interface Filter {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier."""
+  id: String!
+
+  """The handle of the Filter."""
+  handle: String!
+
+  """Display title for the Filter."""
+  title: String!
+}
+
+"""Input type for applying a Filter to a listing."""
+input FilterInput {
+  """The handle of the Filter."""
+  handle: String!
+
+  """The value handles of the Filter. Ranges accept min, max values."""
+  values: [String!]!
+}
+
+"""Result of cursor-based pagination for a gallery of files."""
+type GalleryConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of edges (file nodes with cursors)."""
+  edges: [GalleryEdge!]!
+
+  """
+  Pagination information (hasNextPage, hasPreviousPage, start/end cursors).
+  """
+  pageInfo: PageInfo!
+}
+
+"""An edge in the gallery connection, containing a file and its cursor."""
+type GalleryEdge {
+  """The file node."""
+  node: File!
+
+  """Cursor for pagination."""
+  cursor: Cursor!
+}
+
+scalar JSON
+
+type ListFilter implements Filter {
+  iid: Uuid!
+  id: String!
+  title: String!
+  handle: String!
+
+  """List of available categories for filtering."""
+  values: [ListFilterValue!]!
+}
+
+type ListFilterValue {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier."""
+  id: String!
+
+  """The handle of the Filter."""
+  handle: String!
+
+  """The swatch of the Filter value. Usually used for color filters."""
+  swatch: Swatch
+
+  """Display title for the Filter."""
+  title: String!
+
+  """Number of products associated with this Filter value."""
+  count: Int!
+}
+
+"""A connection object for listings, following the cursor-based pattern."""
+type ListingConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """A list of edges."""
+  edges: [ListingEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """filters of the listing."""
+  filters: [Filter!]!
+
+  """The sort order that was applied."""
+  sort: ListingSort!
+
+  """Show available products first."""
+  availabilitySortApplied: Boolean!
+
+  """Include nested categories."""
+  nestedCategoriesIncluded: Boolean!
+}
+
+"""An edge in a listing connection, with the cursor for pagination."""
+type ListingEdge {
+  """The item at the end of this edge."""
+  node: ListingNode!
+
+  """A cursor for use in pagination."""
+  cursor: Cursor!
+}
+
+"""A node in a listing."""
+union ListingNode = ProductVariant
+
+"""
+Defines the available sorting orders for Listings.
+Maps to Go enum portal/project/entity/listing/listingOrder.Enum.
+"""
+enum ListingSort {
+  """Newest first"""
+  CREATED_AT_ASC
+
+  """Oldest first"""
+  CREATED_AT_DESC
+
+  """Price ascending"""
+  PRICE_ASC
+
+  """Price descending"""
+  PRICE_DESC
+
+  """Title ascending"""
+  TITLE_ASC
+
+  """Title descending"""
+  TITLE_DESC
+
+  """Recommended order based on the listing settings"""
+  MOST_RELEVANT
+}
+
+"""Defines the type of listing, determining how products are selected."""
+enum ListingType {
+  """Automatically generated by applying predefined filters."""
+  SMART
+
+  """Manually curated: admin selects products and defines their order;"""
+  STANDARD
+
+  """
+  Aggregates all products from this category and its subcategories recursively.
+  """
+  CONTAINER
+}
+
+"""Language codes based on ISO 639-1 and BCP 47"""
+enum LocaleCode {
+  """English"""
+  en
+
+  """Russian"""
+  ru
+
+  """Ukrainian"""
+  uk
+
+  """French"""
+  fr
+
+  """Spanish"""
+  es
+
+  """German"""
+  de
+
+  """Italian"""
+  it
+
+  """Portuguese (Portugal/Brazil unified)"""
+  pt
+
+  """Japanese"""
+  ja
+
+  """Korean"""
+  ko
+
+  """Chinese (Simplified, China)"""
+  zh_CN
+
+  """Chinese (Traditional, Taiwan)"""
+  zh_TW
+
+  """Polish"""
+  pl
+
+  """Turkish"""
+  tr
+
+  """Dutch"""
+  nl
+
+  """Arabic"""
+  ar
+
+  """Hebrew"""
+  he
+
+  """Hindi"""
+  hi
+
+  """Bengali"""
+  bn
+
+  """Vietnamese"""
+  vi
+
+  """Thai"""
+  th
+
+  """Indonesian"""
+  id
+
+  """Malay"""
+  ms
+
+  """Czech"""
+  cs
+
+  """Slovak"""
+  sk
+
+  """Romanian"""
+  ro
+
+  """Hungarian"""
+  hu
+
+  """Greek"""
+  el
+
+  """Bulgarian"""
+  bg
+
+  """Serbian"""
+  sr
+
+  """Croatian"""
+  hr
+
+  """Slovenian"""
+  sl
+
+  """Lithuanian"""
+  lt
+
+  """Latvian"""
+  lv
+
+  """Estonian"""
+  et
+
+  """Finnish"""
+  fi
+
+  """Swedish"""
+  sv
+
+  """Norwegian"""
+  no
+
+  """Danish"""
+  da
+
+  """Icelandic"""
+  is
+
+  """Filipino"""
+  fil
+
+  """Swahili"""
+  sw
+
+  """Azerbaijani"""
+  az
+
+  """Armenian"""
+  hy
+
+  """Georgian"""
+  ka
+
+  """Kazakh"""
+  kk
+
+  """Uzbek"""
+  uz
+
+  """Turkmen"""
+  tk
+
+  """Kyrgyz"""
+  ky
+
+  """Tajik"""
+  tg
+
+  """Pashto"""
+  ps
+
+  """Persian (Farsi)"""
+  fa
+
+  """Kurdish"""
+  ku
+
+  """Mongolian"""
+  mn
+
+  """Nepali"""
+  ne
+
+  """Sinhala"""
+  si
+
+  """Tamil"""
+  ta
+
+  """Telugu"""
+  te
+
+  """Kannada"""
+  kn
+
+  """Malayalam"""
+  ml
+
+  """Marathi"""
+  mr
+
+  """Gujarati"""
+  gu
+
+  """Punjabi"""
+  pa
+
+  """Lao"""
+  lo
+
+  """Burmese"""
+  my
+
+  """Khmer"""
+  km
+
+  """Basque"""
+  eu
+
+  """Galician"""
+  gl
+
+  """Catalan"""
+  ca
+
+  """Welsh"""
+  cy
+
+  """Irish"""
+  ga
+
+  """Scottish Gaelic"""
+  gd
+
+  """Haitian Creole"""
+  ht
+
+  """Afrikaans"""
+  af
+
+  """Zulu"""
+  zu
+
+  """Xhosa"""
+  xh
+
+  """Yoruba"""
+  yo
+
+  """Igbo"""
+  ig
+
+  """Amharic"""
+  am
+
+  """Malagasy"""
+  mg
+
+  """Maori"""
+  mi
+
+  """Samoan"""
+  sm
+
+  """Tongan"""
+  to
+
+  """Esperanto"""
+  eo
+
+  """Latin"""
+  la
+}
+
+"""Source of the media file."""
+enum MediaSource {
+  """The file is available at an arbitrary URL."""
+  URL
+
+  """YouTube video (the `url` field contains the YouTube Video ID)."""
+  YOUTUBE
+}
+
+"""A menu."""
+type Menu implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Human-friendly unique handle."""
+  handle: String!
+
+  """The menu's title."""
+  title: String!
+
+  """Paginated list of menu items."""
+  items(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: MenuItemSort = UPDATED_AT_DESC
+  ): MenuItemConnection!
+}
+
+"""Connection type for menus."""
+type MenuConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of edges."""
+  edges: [MenuEdge!]!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the Menu connection."""
+type MenuEdge {
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The menu node."""
+  node: Menu!
+}
+
+"""A single menu item."""
+type MenuItem implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The item's title."""
+  title: String!
+
+  """The referenced node (Product, Category, Page, or URLNode)."""
+  node: MenuNode!
+
+  """Paginated list of nested menu items."""
+  items(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: MenuItemSort = UPDATED_AT_DESC
+  ): MenuItemConnection!
+}
+
+"""Connection type for menu items."""
+type MenuItemConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of edges."""
+  edges: [MenuItemEdge!]!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the MenuItem connection."""
+type MenuItemEdge {
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The menu item node."""
+  node: MenuItem!
+}
+
+enum MenuItemSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  TITLE_ASC
+  TITLE_DESC
+}
+
+"""A menu node: Product, Category, Page, or URL."""
+union MenuNode = ProductVariant | Category | Page | URLNode
+
+enum MenuSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  TITLE_ASC
+  TITLE_DESC
+}
+
+type Money {
+  """The amount of money"""
+  amount: Decimal!
+
+  """The currency code"""
+  currencyCode: CurrencyCode!
+}
+
+input MoneyInput {
+  """The amount of money"""
+  amount: Decimal!
+
+  """The currency code"""
+  currencyCode: CurrencyCode!
+}
+
+type Mutation {
+  checkoutMutation: CheckoutMutation!
+  orderMutation: OrderMutation!
+
+  """Create a review."""
+  createReview(input: CreateReviewInput!): ProductReview!
+
+  """Edit own review."""
+  updateReview(input: UpdateReviewInput!): ProductReview!
+
+  """Delete own review."""
+  deleteReview(id: ID!): Boolean!
+
+  """Mark review as helpful / not helpful."""
+  voteReviewHelpful(input: VoteReviewHelpfulInput!): Boolean!
+
+  """Report review abuse."""
+  reportReviewAbuse(reviewId: ID!, reason: String!): Boolean!
+
+  """Reply to review as seller."""
+  sellerReplyToReview(input: SellerReplyInput!): Boolean!
+
+  """Creates a new session using email and password."""
+  passwordSignIn(
+    """Input for signing in."""
+    input: PasswordSignInInput!
+  ): PasswordSignInPayload!
+
+  """Registers a new user and returns a session."""
+  passwordSignUp(
+    """Input for signing up."""
+    input: PasswordSignUpInput!
+  ): PasswordSignUpPayload!
+
+  """Signs out the current user."""
+  signOut: Boolean!
+
+  """Confirms a user's email address using a token."""
+  verifyEmail(
+    """Input for email verification."""
+    input: VerifyEmailInput!
+  ): VerifyEmailPayload!
+
+  """Sends a password recovery email."""
+  requestPasswordRecovery(
+    """Input for requesting password recovery."""
+    input: PasswordRecoveryInput!
+  ): PasswordRecoveryPayload!
+
+  """Resets the user's password with a recovery token."""
+  resetPassword(
+    """Input for password reset."""
+    input: ResetPasswordInput!
+  ): ResetPasswordPayload!
+
+  """Updates the authenticated user's password."""
+  updatePassword(
+    """Input for updating password."""
+    input: UpdatePasswordInput!
+  ): UpdatePasswordPayload!
+
+  """Updates the authenticated user's profile information."""
+  updateUserProfile(
+    """Input for updating user profile."""
+    input: UpdateUserProfileInput!
+  ): UpdateUserProfilePayload!
+}
+
+interface Node {
+  id: ID!
+}
+
+"""Severity levels for checkout warnings."""
+enum NotificationSeverity {
+  """Informational notice; does not indicate any change in checkout data."""
+  INFO
+
+  """Notification about automatic adjustments (e.g., quantity reduced)."""
+  WARNING
+}
+
+type Order {
+  """A globally-unique ID."""
+  id: ID!
+
+  """Order status."""
+  status: OrderStatus!
+
+  """
+  A unique numeric identifier for the order for use by shop owner and customer.
+  """
+  number: BigInt!
+
+  """Cost breakdown for the order."""
+  cost: OrderCost!
+
+  """Order items."""
+  lines: [OrderLine!]!
+}
+
+type OrderCost {
+  """Total value of items before any discounts."""
+  subtotalAmount: Money!
+
+  """Total discount from both item-level and checkout-level promotions."""
+  totalDiscountAmount: Money!
+
+  """Total tax amount applied to the checkout."""
+  totalTaxAmount: Money!
+
+  """Total shipping cost (only MERCHANT_COLLECTED payments)."""
+  totalShippingAmount: Money!
+
+  """Final amount to be paid, including item cost, shipping, and taxes."""
+  totalAmount: Money!
+}
+
+type OrderLine {
+  """A globally-unique ID."""
+  id: ID!
+
+  """Quantity of the item being purchased."""
+  quantity: Int!
+
+  """Cost breakdown for the order line."""
+  cost: OrderLineCost!
+
+  """ID of the purchasable."""
+  purchasableId: ID!
+
+  """Purchasable snapshot data at the time of adding to checkout."""
+  purchasableSnapshot: JSON!
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """Last updated date."""
+  updatedAt: DateTime!
+  purchasable: ProductVariant!
+}
+
+type OrderLineCost {
+  """The original list price per unit before any discounts."""
+  unitCompareAtPrice: Money!
+
+  """
+  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
+  """
+  unitPrice: Money!
+
+  """Discount amount applied to a line."""
+  discountAmount: Money!
+
+  """Total cost of all units before discounts."""
+  subtotalAmount: Money!
+
+  """Total tax amount applied to the checkout line."""
+  taxAmount: Money!
+
+  """Total cost of this line (all units), after discounts and taxes."""
+  totalAmount: Money!
+}
+
+type OrderMutation {
+  orderCreate(input: CreateOrderInput!): Order!
+}
+
+enum OrderStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+"""A content page."""
+type Page implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Unique human-readable slug."""
+  handle: String!
+
+  """The page’s title."""
+  title: String!
+
+  """The full description of the page."""
+  description: String!
+
+  """A short excerpt of the page."""
+  excerpt: String!
+
+  """The cover image for the page."""
+  cover: File
+
+  """The date and time when the page was created."""
+  createdAt: DateTime!
+
+  """The date and time when the page was last updated."""
+  updatedAt: DateTime!
+
+  """The type of the page (e.g., "page", "article")."""
+  pageType: String!
+
+  """Gallery of additional images with cursor-based pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+}
+
+"""Connection type for pages."""
+type PageConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of page edges."""
+  edges: [PageEdge!]!
+
+  """Pagination details."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in the paginated list of pages."""
+type PageEdge {
+  """Cursor for pagination."""
+  cursor: Cursor!
+
+  """The page node."""
+  node: Page!
+}
+
+"""Pagination information according to the Relay/Shopify spec."""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """The cursor corresponding to the first node in edges."""
+  startCursor: String
+
+  """The cursor corresponding to the last node in edges."""
+  endCursor: String
+}
+
+enum PageSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  TITLE_ASC
+  TITLE_DESC
+}
+
+"""Input data for requesting a password recovery email."""
+input PasswordRecoveryInput {
+  """User's email address."""
+  email: Email!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after requesting password recovery."""
+type PasswordRecoveryPayload {
+  """True if the recovery email was sent successfully."""
+  success: Boolean!
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for signing in with email and password."""
+input PasswordSignInInput {
+  """User's email address."""
+  email: Email!
+
+  """User's password."""
+  password: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after signing in."""
+type PasswordSignInPayload {
+  """Newly created session."""
+  session: Session
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Input data for registering a new user."""
+input PasswordSignUpInput {
+  """User's email address."""
+  email: Email!
+
+  """User's password."""
+  password: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after signing up."""
+type PasswordSignUpPayload {
+  """Newly created session."""
+  session: Session
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Payment flow for the method, aligned with payment-plugin-sdk."""
+enum PaymentFlow {
+  """
+  Customer pays online via provider (redirect/app flow handled externally).
+  """
+  ONLINE
+
+  """Customer pays offline via provider (QR code, display code, etc)."""
+  OFFLINE
+
+  """Customer pays later/on delivery or by invoice (offline instructions)."""
+  ON_DELIVERY
+}
+
+scalar Phone
+
+"""Input type for executing predictive search (autocomplete suggestions)."""
+input PredictiveSearchInput {
+  """The search query string."""
+  query: String!
+}
+
+"""
+Result of a predictive search: arrays of matching entities for quick suggestions.
+"""
+type PredictiveSearchResult {
+  """Top matching articles."""
+  articles: [Article!]!
+
+  """Top matching categories."""
+  categories: [Category!]!
+
+  """Top matching pages."""
+  pages: [Page!]!
+
+  """Top matching products."""
+  products: [ProductVariant!]!
+}
+
+"""Filter representing a price range filter."""
+type PriceRangeFilter implements Filter {
+  iid: Uuid!
+  id: String!
+  title: String!
+  handle: String!
+
+  """Minimum price in the range."""
+  minPrice: Money!
+
+  """Maximum price in the range."""
+  maxPrice: Money!
+
+  """Count of products in the range."""
+  count: Int!
+}
+
+type Product implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """URL-friendly slug for the product."""
+  handle: String!
+
+  """Name of the product."""
+  title: String!
+
+  """Full description of the product."""
+  description: String!
+
+  """Short excerpt or summary of the product."""
+  excerpt: String!
+
+  """Primary category of the product."""
+  category: Category
+
+  """Feature sections and their values."""
+  features: [ProductFeature!]!
+
+  """
+  All option groups defined for this product—each group represents a configurable attribute
+  (for example: color, size, material) and includes the full set of possible values.
+  """
+  options: [ProductOption!]!
+
+  """Variants of the product (different option combinations)."""
+  variants: [ProductVariant!]!
+
+  """Tags associated with the product."""
+  tags(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: TagSort = UPDATED_AT_DESC
+  ): TagConnection!
+
+  """Groups of related products (e.g., bundles)."""
+  groups: [ProductGroup!]!
+
+  """Seo title for the product page."""
+  seoTitle: String
+
+  """Seo description for the product page."""
+  seoDescription: String
+
+  """DateTime when the category was created."""
+  createdAt: DateTime!
+
+  """DateTime when the category was last updated."""
+  updatedAt: DateTime!
+
+  """Product rating."""
+  rating: ProductRating!
+
+  """List of reviews with pagination/filters."""
+  reviews(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order."""
+    sort: ProductReviewSort
+  ): ProductReviewConnection!
+}
+
+"""A specific feature of a product, such as "Color" or "Size"."""
+type ProductFeature implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Machine-friendly slug for the feature, e.g., "color" or "size"."""
+  handle: String!
+
+  """Human-readable name of the feature shown to users."""
+  title: String!
+
+  """Available values for this feature."""
+  values: [ProductFeatureValue!]!
+}
+
+"""
+A single possible value for a product feature, such as "Red" or "Large".
+"""
+type ProductFeatureValue implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Display name of the value shown to users."""
+  title: String!
+
+  """Machine-friendly slug for the value, e.g., "red" or "large"."""
+  handle: String!
+}
+
+"""A group of related products (e.g., bundled items)."""
+type ProductGroup implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Human-readable title of the group."""
+  title: String!
+
+  """Whether at least one item from this group is required."""
+  isRequired: Boolean!
+
+  """Whether multiple items can be selected from this group."""
+  isMultiple: Boolean!
+
+  """List of products in this group."""
+  items: [ProductGroupItem!]!
+}
+
+"""
+An item within a product group, with optional quantity and custom pricing.
+"""
+type ProductGroupItem {
+  """The product included in this group."""
+  node: ProductGroupNode!
+
+  """Optional quantity for this item in the group."""
+  maxQuantity: Int
+
+  """Pricing strategy and override values for this item."""
+  price: ProductGroupPrice!
+}
+
+union ProductGroupNode = ProductVariant
+
+"""Defines how to calculate the price for a grouped item."""
+type ProductGroupPrice {
+  """Pricing mode to apply."""
+  type: ProductGroupPriceType!
+
+  """
+  Fixed amount to add to the product’s base price.
+  Only used when `type: FIXED`.
+  """
+  amount: Money
+
+  """
+  Percentage to add to the product’s base price (e.g. 10.0 adds 10%).
+  Only used when `type: PERCENT`.
+  """
+  percentage: Float
+}
+
+"""Available pricing modes for group items."""
+enum ProductGroupPriceType {
+  """Use the product's standard price."""
+  BASE
+
+  """Add a fixed markup (the `amount` field) to the base price."""
+  FIXED
+
+  """Add a percentage markup (the `percentage` field) to the base price."""
+  PERCENT
+
+  """Include the item free of charge."""
+  FREE
+}
+
+"""A group of product options (e.g., "Color", "Size")."""
+type ProductOption implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The slug for this group (e.g., "color", "size")."""
+  handle: String!
+
+  """The display name of the option group shown to users."""
+  title: String!
+
+  """The display type (color swatch, image, or control)."""
+  displayType: ProductOptionDisplayType!
+
+  """The selected or available value in this group."""
+  values: [ProductOptionValue!]!
+}
+
+"""How a product option is displayed in the UI."""
+enum ProductOptionDisplayType {
+  """Display a swatch (color or image)."""
+  SWATCH
+
+  """Display an image (e.g., picture or video)."""
+  VARIANT_COVER
+
+  """Display options as radio buttons with text."""
+  RADIO
+
+  """Display options in a dropdown select."""
+  DROPDOWN
+
+  """Display dropdown with variant cover image per value."""
+  DROPDOWN_VARIANT_COVER
+
+  """Apparel size control (e.g., S, M, L, XL)."""
+  APPAREL_SIZE
+}
+
+"""A single value for a product option (e.g., "Red", "XL", "Patterned")."""
+type ProductOptionValue implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The display name of the value shown to users."""
+  title: String!
+
+  """The human-readable slug used in API/URLs."""
+  handle: String!
+
+  """The swatch object. For swatch display type."""
+  swatch: Swatch
+
+  """Variant cover image. For variant cover display type."""
+  image: File
+}
+
+type ProductRating implements Node {
+  """Internal ID of the rating. (product container id)"""
+  iid: Uuid!
+
+  """Global ID of the rating."""
+  id: ID!
+
+  """Average rating."""
+  rating: Float!
+
+  """Number of approved reviews."""
+  count: Int!
+
+  """Rating breakdown details."""
+  breakdown: [RatingBreakdown!]!
+}
+
+"""ProductReview — user review of a product (Relay-Node)."""
+type ProductReview implements Node {
+  """Internal ID of the review."""
+  iid: Uuid!
+
+  """Global ID of the review."""
+  id: ID!
+
+  """Number of stars (1–5, step 0.5)."""
+  rating: Float!
+
+  """Review title."""
+  title: String
+
+  """Main review text."""
+  message: String!
+
+  """Author's name."""
+  displayName: String!
+
+  """Product pros."""
+  pros: String
+
+  """Product cons."""
+  cons: String
+
+  """Review language (ISO-639-1)."""
+  locale: String
+
+  """Whether the product was actually purchased by this user."""
+  verifiedPurchase: Boolean!
+
+  """Publication status."""
+  status: ReviewStatus!
+
+  """Total "helpful" votes."""
+  helpfulYes: Int!
+
+  """Total "not helpful" votes."""
+  helpfulNo: Int!
+
+  """Did the current user mark the review as helpful?"""
+  meHelpful: Boolean!
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """Last edit date."""
+  editedAt: DateTime
+
+  """Review author."""
+  user: User!
+
+  """Attached media files."""
+  media: [File!]
+
+  """Seller reply (if any)."""
+  sellerReply: ReviewComment
+}
+
+type ProductReviewConnection {
+  edges: [ProductReviewEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductReviewEdge {
+  node: ProductReview!
+  cursor: String!
+}
+
+enum ProductReviewSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  RATING_DESC
+  HELPFUL_YES_DESC
+}
+
+type ProductVariant implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """URL-friendly slug for the product."""
+  handle: String!
+
+  """Name of the product."""
+  title: String!
+
+  """Full description of the product."""
+  description: String!
+
+  """Short excerpt or summary of the product."""
+  excerpt: String!
+
+  """Primary cover image of the product."""
+  cover: File
+
+  """Gallery of additional images with cursor-based pagination."""
+  gallery(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+  ): GalleryConnection!
+
+  """Current price of the product, including currency."""
+  price: Money!
+
+  """Original or list price when on sale."""
+  compareAtPrice: Money
+
+  """Stock keeping unit identifier."""
+  sku: String
+
+  """Stock availability information."""
+  stockStatus: StockStatus!
+
+  """Primary category of the product."""
+  category: Category
+
+  """All categories this product [variant] belongs to."""
+  categories(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Feature sections and their values."""
+  features: [ProductFeature!]!
+
+  """
+  All option groups defined for this product—each group represents a configurable attribute
+  (for example: color, size, material) and includes the full set of possible values.
+  """
+  options: [ProductOption!]!
+
+  """
+  The ordered list of value handles currently applied to this product configuration.
+  Each entry is the `handle` of a selected `ProductOptionValue` (for example: ["red", "m", "patterned"]).
+  """
+  selectedOptions: [String!]!
+
+  """Variants of the product (different option combinations)."""
+  variants: [ProductVariant!]!
+
+  """Tags associated with the product."""
+  tags(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: TagSort = UPDATED_AT_DESC
+  ): TagConnection!
+
+  """Groups of related products (e.g., bundles)."""
+  groups: [ProductGroup!]!
+
+  """Seo title for the product page."""
+  seoTitle: String
+
+  """Seo description for the product page."""
+  seoDescription: String
+
+  """Private field won't be in prod. Used for internal purposes."""
+  productId: Uuid!
+
+  """Product that this variant belongs to."""
+  product: Product!
+
+  """DateTime when the category was created."""
+  createdAt: DateTime!
+
+  """DateTime when the category was last updated."""
+  updatedAt: DateTime!
+
+  """Product rating."""
+  rating: ProductRating!
+
+  """List of reviews with pagination/filters."""
+  reviews(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order."""
+    sort: ProductReviewSort
+  ): ProductReviewConnection!
+}
+
+input PurchasableSnapshotInput {
+  """SKU of the purchasable snapshot."""
+  sku: String
+
+  """Title of the purchasable snapshot."""
+  title: String!
+
+  """Image URL of the purchasable snapshot."""
+  imageUrl: String
+
+  """JSON data of the purchasable snapshot."""
+  data: JSON
+}
+
+type Query {
+  checkoutQuery: CheckoutQuery!
+
+  """Retrieve a paginated list of articles (Relay Connection)."""
+  articles(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: ArticleSort = UPDATED_AT_DESC
+  ): ArticleConnection!
+
+  """Retrieve a single article by its slug."""
+  article(slug: String!): Article
+
+  """Retrieve a paginated list of menus (Relay Connection)."""
+  menus(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: MenuSort = UPDATED_AT_DESC
+  ): MenuConnection!
+
+  """Retrieve a single menu by its handle."""
+  menu(handle: String!): Menu
+
+  """Retrieve a paginated list of pages (Relay Connection)."""
+  pages(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: PageSort = UPDATED_AT_DESC
+  ): PageConnection!
+
+  """Retrieve a single page by its slug."""
+  page(slug: String!): Page
+  node(id: ID!): Node
+
+  """Retrieve a paginated list of categories."""
+  categories(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Retrieve a single category by its handle."""
+  category(handle: String!): Category
+
+  """
+  Performs a full search and returns Relay‐style connections for each entity.
+  """
+  search(input: SearchInput!): SearchResult!
+
+  """
+  Performs a predictive (autocomplete) search and returns a limited list of entities.
+  """
+  predictiveSearch(input: PredictiveSearchInput!): PredictiveSearchResult!
+
+  """Fetch a single product by its handle (slug)."""
+  product(handle: String!): Product
+  variant(handle: String!): ProductVariant
+  variantBySelectedOptions(selectedOptions: [String!]!): ProductVariant
+
+  """Retrieves the current authentication session."""
+  session: Session
+}
+
+type RatingBreakdown {
+  """Number of stars (1–5, step 0.5)."""
+  star: Int!
+
+  """Number of approved reviews."""
+  count: Int!
+
+  """Percentage of approved reviews."""
+  percentage: Float!
+}
+
+"""Filter representing a rating range filter."""
+type RatingRangeFilter implements Filter {
+  iid: Uuid!
+  id: String!
+  title: String!
+  handle: String!
+
+  """Minimum rating in the range."""
+  minRate: Float!
+
+  """Maximum rating in the range."""
+  maxRate: Float!
+
+  """Count of products in the range."""
+  count: Int!
+}
+
+"""Input data for resetting a password using a token."""
+input ResetPasswordInput {
+  """User's email address."""
+  email: Email!
+
+  """New password."""
+  password: String!
+
+  """Password reset token sent to the email."""
+  token: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after resetting the password."""
+type ResetPasswordPayload {
+  """True if the password was reset successfully."""
+  success: Boolean!
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""Comment/reply to a review."""
+type ReviewComment implements Node {
+  """Global unique identifier."""
+  id: ID!
+
+  """Comment author."""
+  author: User!
+
+  """Comment message."""
+  message: String!
+
+  """Creation date."""
+  createdAt: DateTime!
+
+  """Last edit date."""
+  editedAt: DateTime
+}
+
+"""Review status."""
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+"""Input type for executing full search."""
+input SearchInput {
+  """The search query string."""
+  query: String!
+}
+
+"""
+Result of a full search: a set of Relay connections for various entity types.
+"""
+type SearchResult {
+  """Relay‐style connection for articles."""
+  articles(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: ArticleSort = UPDATED_AT_DESC
+  ): ArticleConnection!
+
+  """Relay‐style connection for categories."""
+  categories(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sorting options for categories."""
+    sort: CategorySort = UPDATED_AT_DESC
+  ): CategoryConnection!
+
+  """Relay‐style connection for pages."""
+  pages(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order (default: newest first)."""
+    sort: PageSort = UPDATED_AT_DESC
+  ): PageConnection!
+
+  """Relay‐style connection for products."""
+  products(
+    """Return the first n elements after the cursor."""
+    first: Int
+
+    """Return elements after the specified cursor."""
+    after: Cursor
+
+    """Return the last n elements before the cursor."""
+    last: Int
+
+    """Return elements before the specified cursor."""
+    before: Cursor
+
+    """Sort order. Defaults to the category's default sort."""
+    sort: ListingSort = MOST_RELEVANT
+
+    """Filters to apply (AND-combined)."""
+    filters: [FilterInput!]
+  ): ListingConnection!
+}
+
+input SellerReplyInput {
+  reviewId: ID!
+  text: String!
+}
+
+"""Represents an authentication session."""
+type Session {
+  """The authenticated user."""
+  user: User!
+
+  """JWT access token for authenticating subsequent requests."""
+  accessToken: String
+}
+
+"""Shipping payment model"""
+enum ShippingPaymentModel {
+  """Customer pays merchant, included in grandTotal"""
+  MERCHANT_COLLECTED
+
+  """Customer pays carrier directly, NOT included in grandTotal"""
+  CARRIER_DIRECT
+}
+
+"""Stock status of the product."""
+type StockStatus {
+  """Machine-readable status identifier (e.g., "IN_STOCK", "OUT_OF_STOCK")."""
+  handle: String!
+
+  """Indicates whether the product is available for purchase."""
+  isAvailable: Boolean!
+}
+
+type Swatch {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """The primary color in HEX format, e.g., "#ff0000"."""
+  color: String!
+
+  """An optional secondary color (e.g., for gradients)."""
+  color2: String
+
+  """The image or video file."""
+  image: File
+
+  """The type of swatch."""
+  displayType: SwatchDisplayType!
+}
+
+enum SwatchDisplayType {
+  COLOR
+  COLOR_DUO
+  IMAGE
+}
+
+type Tag implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """Slug is a unique identifier for the Tag in the human-readable format"""
+  handle: String!
+
+  """The title"""
+  title: String!
+}
+
+type TagConnection {
+  """The total number of items."""
+  totalCount: Int!
+
+  """List of category edges (each contains a node and a cursor)."""
+  edges: [TagEdge!]!
+
+  """Pagination metadata (hasNextPage, endCursor, etc.)."""
+  pageInfo: PageInfo!
+}
+
+type TagEdge {
+  """Cursor for Relay-style pagination."""
+  cursor: Cursor!
+
+  """Node containing the category data."""
+  node: Tag!
+}
+
+enum TagSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  UPDATED_AT_ASC
+  UPDATED_AT_DESC
+  TITLE_ASC
+  TITLE_DESC
+}
+
+"""Input data for changing the password of an authenticated user."""
+input UpdatePasswordInput {
+  """New password."""
+  password: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after updating the password."""
+type UpdatePasswordPayload {
+  """True if the password was updated successfully."""
+  success: Boolean!
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+input UpdateReviewInput {
+  id: ID!
+  rating: Float
+  title: String
+  message: String
+  pros: String
+  cons: String
+  images: [ID!]
+  displayName: String
+}
+
+"""Input data for updating the authenticated user's profile."""
+input UpdateUserProfileInput {
+  """New email address (optional)."""
+  email: Email
+
+  """Preferred interface language (locale code)."""
+  language: LocaleCode
+
+  """User's full name."""
+  name: UserNameInput
+
+  """Phone number in E.164 format."""
+  phone: Phone
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after updating the user profile."""
+type UpdateUserProfilePayload {
+  """The updated user object."""
+  user: User
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+"""A node representing an arbitrary URL."""
+type URLNode {
+  """The URL string."""
+  url: String!
+}
+
+"""Represents a user in the system."""
+type User implements Node {
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """List of the user's orders."""
+  orders: [Order!]!
+
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """User's email address."""
+  email: Email!
+
+  """Full name of the user."""
+  name: UserName!
+
+  """Whether the user's email has been verified."""
+  isVerified: Boolean!
+
+  """Preferred interface language (locale code)."""
+  language: LocaleCode
+
+  """Phone number in E.164 format."""
+  phone: Phone
+}
+
+"""Customer's first, middle, and last name."""
+type UserName {
+  """First name."""
+  first: String!
+
+  """Middle name (optional)."""
+  middle: String
+
+  """Last name."""
+  last: String!
+}
+
+"""Input type for customer's name."""
+input UserNameInput {
+  """First name."""
+  first: String!
+
+  """Middle name (optional)."""
+  middle: String
+
+  """Last name."""
+  last: String!
+}
+
+scalar Uuid
+
+type Vendor implements Node {
+  """Object identifier (Internal)."""
+  iid: Uuid!
+
+  """Global unique identifier for the address."""
+  id: ID!
+
+  """
+  Slug is a unique identifier for the Vendor in the human-readable format
+  """
+  handle: String!
+
+  """The title"""
+  title: String!
+}
+
+"""Input data for verifying a user's email address."""
+input VerifyEmailInput {
+  """Email address to verify."""
+  email: Email!
+
+  """Verification token sent to the email."""
+  token: String!
+
+  """Unique identifier for the client mutation."""
+  clientMutationId: String
+}
+
+"""Payload returned after email verification."""
+type VerifyEmailPayload {
+  """Session created upon successful verification."""
+  session: Session
+
+  """List of field-specific errors."""
+  errors: [FieldError!]
+
+  """Unique identifier echoed from the input."""
+  clientMutationId: String
+}
+
+input VoteReviewHelpfulInput {
+  reviewId: ID!
+  helpful: Boolean!
+}

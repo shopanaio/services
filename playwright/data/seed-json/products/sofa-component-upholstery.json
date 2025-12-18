@@ -1,0 +1,18 @@
+{
+  "title": "Обивка для дивана",
+  "slug": "sofa-component-upholstery",
+  "description": "Выберите материал и цвет обивки.",
+  "category": "home-garden",
+  "price": 100.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Серый", "Бежевый", "Синий"]
+    },
+    {
+      "slug": "material",
+      "values": ["Велюр", "Рогожка"]
+    }
+  ]
+}

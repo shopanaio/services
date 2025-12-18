@@ -1,0 +1,59 @@
+query ProductDetails($handle: String!) {
+  product(handle: $handle) {
+    id
+    handle
+    title
+    description
+    excerpt
+    price {
+      amount
+      currencyCode
+    }
+    rating {
+      rating
+      count
+    }
+    sku
+    stockStatus {
+      handle
+      isAvailable
+    }
+    cover {
+      id
+      source
+      url
+    }
+    features {
+      id
+      handle
+      title
+      values {
+        id
+        handle
+        title
+      }
+    }
+    options {
+      id
+      handle
+      title
+      displayType
+      values {
+        id
+        handle
+        title
+      }
+    }
+    selectedOptions
+    variants {
+      id
+      handle
+      title
+    }
+    groups {
+      id
+      handle
+      title
+    }
+  }
+}

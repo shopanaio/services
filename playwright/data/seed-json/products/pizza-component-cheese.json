@@ -1,0 +1,14 @@
+{
+  "title": "Сыр для пиццы",
+  "slug": "pizza-component-cheese",
+  "description": "Дополнительный сыр для вашей пиццы.",
+  "category": "food-drinks",
+  "price": 2.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "cheese-type",
+      "values": ["Моцарелла", "Чеддер"]
+    }
+  ]
+}

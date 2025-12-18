@@ -1,0 +1,13 @@
+{
+  "title": "Смарт-часы FitTrack Pro",
+  "slug": "smartwatch-fittrack-pro",
+  "category": "electronics",
+  "tags": ["new", "bestseller"],
+  "price": 299,
+  "description": "Профессиональные смарт-часы с функциями фитнес-трекера",
+  "featureGroups": [
+    { "slug": "case-color", "values": ["Черный", "Серебристый", "Золотой"] },
+    { "slug": "strap-size", "values": ["S/M", "M/L"] },
+    { "slug": "strap-material", "values": ["Силикон", "Кожа", "Металл"] }
+  ]
+}

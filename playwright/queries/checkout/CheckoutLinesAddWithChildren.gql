@@ -1,0 +1,67 @@
+mutation CheckoutLinesAddWithChildren($input: CheckoutLinesAddInput!) {
+  checkoutMutation {
+    checkoutLinesAdd(input: $input) {
+      checkout {
+        id
+        totalQuantity
+        cost {
+          totalDiscountAmount { amount currencyCode }
+          totalTaxAmount { amount currencyCode }
+          totalShippingAmount { amount currencyCode }
+          subtotalAmount { amount currencyCode }
+          totalAmount { amount currencyCode }
+        }
+        lines {
+          id
+          quantity
+          purchasableId
+          title
+          sku
+          tag {
+            id
+            slug
+            unique
+          }
+          originalPrice { amount currencyCode }
+          priceConfig {
+            type
+            amount
+            percent
+          }
+          cost {
+            unitPrice { amount currencyCode }
+            subtotalAmount { amount currencyCode }
+            totalAmount { amount currencyCode }
+          }
+          children {
+            id
+            quantity
+            purchasableId
+            title
+            sku
+            tag {
+              id
+              slug
+              unique
+            }
+            originalPrice { amount currencyCode }
+            priceConfig {
+              type
+              amount
+              percent
+            }
+            cost {
+              unitPrice { amount currencyCode }
+              subtotalAmount { amount currencyCode }
+              totalAmount { amount currencyCode }
+            }
+          }
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+}

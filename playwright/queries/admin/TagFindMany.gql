@@ -1,0 +1,19 @@
+query TagFindMany ($input: TagsInput!) {
+  tagQuery {
+    findMany(input: $input) {
+      data {
+        id
+        title
+        slug
+        color
+      }
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+    }
+  }
+}

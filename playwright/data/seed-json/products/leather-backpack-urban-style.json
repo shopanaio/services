@@ -1,0 +1,12 @@
+{
+  "title": "Кожаный рюкзак \"Городской стиль\"",
+  "slug": "leather-backpack-urban-style",
+  "category": "clothing",
+  "tags": ["premium", "made-in-ukraine"],
+  "price": 220,
+  "description": "Стильный и вместительный рюкзак из натуральной кожи.",
+  "featureGroups": [
+    { "slug": "material", "values": ["Кожа"] },
+    { "slug": "color", "values": ["Черный", "Коричневый"] }
+  ]
+}

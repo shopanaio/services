@@ -1,0 +1,5 @@
+mutation CategoryCreate($input: CreateCategoryInput!) {
+  categoryMutation {
+    create(input: $input)
+  }
+}

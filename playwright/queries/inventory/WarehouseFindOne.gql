@@ -1,0 +1,12 @@
+query WarehouseFindOne($id: ID!) {
+  inventoryQuery {
+    warehouse(id: $id) {
+      id
+      code
+      name
+      isDefault
+      createdAt
+      updatedAt
+    }
+  }
+}

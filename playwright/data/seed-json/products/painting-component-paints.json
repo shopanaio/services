@@ -1,0 +1,14 @@
+{
+  "title": "Краски для рисования",
+  "slug": "painting-component-paints",
+  "category": "arts-crafts",
+  "description": "Выберите тип красок.",
+  "price": 15.0,
+  "tags": ["eco"],
+  "featureGroups": [
+    {
+      "slug": "paint-type",
+      "values": ["Акрил", "Масло"]
+    }
+  ]
+}

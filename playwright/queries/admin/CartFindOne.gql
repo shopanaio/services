@@ -1,0 +1,10 @@
+query CartFindOne($id: ID!) {
+  cartQuery {
+    findOne(id: $id) {
+      id
+      totalQuantity
+      createdAt
+      updatedAt
+    }
+  }
+}

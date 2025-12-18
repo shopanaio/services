@@ -1,0 +1,14 @@
+{
+  "title": "Набор гантелей 'Fit' 20кг",
+  "slug": "dumbbell-set-fit-20kg",
+  "description": "Регулируемый набор гантелей для домашних тренировок.",
+  "category": "sports-leisure",
+  "price": 79.99,
+  "tags": ["bestseller"],
+  "featureGroups": [
+    {
+      "slug": "material",
+      "values": ["Cast Iron", "Vinyl"]
+    }
+  ]
+}

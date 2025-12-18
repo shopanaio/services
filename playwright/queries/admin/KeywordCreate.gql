@@ -1,0 +1,5 @@
+mutation KeywordCreate($input: KeywordCreateInput!) {
+  searchMutation {
+    keywordCreate(input: $input)
+  }
+}

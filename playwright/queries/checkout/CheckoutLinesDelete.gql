@@ -1,0 +1,42 @@
+mutation CheckoutLinesDelete($input: CheckoutLinesDeleteInput!) {
+  checkoutMutation {
+    checkoutLinesDelete(input: $input) {
+      checkout {
+        id
+        totalQuantity
+        cost {
+          totalDiscountAmount { amount currencyCode }
+          totalTaxAmount { amount currencyCode }
+          totalShippingAmount { amount currencyCode }
+          subtotalAmount {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+        lines {
+          id
+          quantity
+          purchasableId
+          cost {
+            unitPrice {
+              amount
+              currencyCode
+            }
+            totalAmount {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+}

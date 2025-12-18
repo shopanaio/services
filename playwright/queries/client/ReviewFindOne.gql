@@ -1,0 +1,22 @@
+query ReviewFindOne($id: ID!) {
+  node(id: $id) {
+    ... on ProductReview {
+      id
+      iid
+      rating
+      title
+      message
+      pros
+      cons
+      locale
+      verifiedPurchase
+      status
+      createdAt
+      editedAt
+      helpfulYes
+      helpfulNo
+      meHelpful
+      displayName
+    }
+  }
+}

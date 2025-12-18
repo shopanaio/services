@@ -1,0 +1,14 @@
+{
+  "title": "Котлета для бургера",
+  "slug": "burger-component-patty",
+  "category": "food-drinks",
+  "description": "Выберите котлету для своего идеального бургера.",
+  "price": 3.0,
+  "tags": ["made-in-ukraine"],
+  "featureGroups": [
+    {
+      "slug": "meat-type",
+      "values": ["Говядина", "Курица", "Вегетарианская"]
+    }
+  ]
+}

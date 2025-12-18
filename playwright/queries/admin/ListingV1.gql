@@ -1,0 +1,81 @@
+query ListingV1($input: ListingInput!) {
+  listingQuery {
+    listingV1(input: $input) {
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+      data {
+        id
+        title
+        slug
+        containerId
+        createdAt
+        updatedAt
+        variantSortIndex
+        stockStatus
+        price
+        gallery {
+          id
+          driver
+          name
+          url
+          size
+          ext
+          key
+          createdAt
+          updatedAt
+        }
+        features {
+          isAttribute
+          isOption
+          featureId
+          title
+          slug
+          group {
+            id
+            title
+            slug
+            featureStyleType
+          }
+        }
+        categories {
+          id
+          title
+          slug
+          sublistingStep
+          status
+          listingType
+          includeChildrenProducts
+          listingOrderByStatus
+          listingOrderBy
+          listingFilters {
+            id
+            path
+            operator
+            type
+            value
+            createdAt
+            updatedAt
+          }
+          gallery {
+            id
+            driver
+            name
+            url
+            size
+            ext
+            key
+            createdAt
+            updatedAt
+          }
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  }
+}

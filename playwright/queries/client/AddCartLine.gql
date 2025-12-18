@@ -1,0 +1,50 @@
+mutation AddCartLine($input: AddCartLineInput!) {
+  addCartLine(input: $input) {
+    cart {
+      id
+      totalQuantity
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines(first: 10) {
+        totalCount
+        edges {
+          node {
+            id
+            quantity
+            purchasable {
+              ... on ProductVariant {
+                id
+                title
+                handle
+              }
+            }
+            cost {
+              unitPrice {
+                amount
+                currencyCode
+              }
+              totalAmount {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

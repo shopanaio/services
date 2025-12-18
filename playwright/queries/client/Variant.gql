@@ -1,0 +1,34 @@
+query Variant($handle: String!) {
+  variant(handle: $handle) {
+    id
+    handle
+    title
+    description
+    excerpt
+    price {
+      amount
+      currencyCode
+    }
+    rating {
+      rating
+      count
+    }
+    sku
+    stockStatus {
+      handle
+      isAvailable
+    }
+    cover {
+      id
+      source
+      url
+    }
+    product {
+      id
+      handle
+      title
+      description
+      excerpt
+    }
+  }
+}

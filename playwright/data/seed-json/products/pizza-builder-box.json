@@ -1,0 +1,52 @@
+{
+  "title": "Pizza Builder Box",
+  "slug": "pizza-builder-box",
+  "description": "Собери свою идеальную пиццу!",
+  "category": "food-drinks",
+  "price": 5.0,
+  "tags": ["new"],
+  "groups": [
+    {
+      "title": "Выберите соус",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "pizza-component-sauce",
+          "featureValues": ["Томатный"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "pizza-component-sauce",
+          "featureValues": ["Сливочный"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 50
+        }
+      ]
+    },
+    {
+      "title": "Добавьте сыр",
+      "isMultiple": true,
+      "isRequired": false,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "pizza-component-cheese",
+          "featureValues": ["Моцарелла"],
+          "sortIndex": 0,
+          "priceType": "BASE_ADJUST_PERCENT",
+          "pricePercentageValue": 10
+        },
+        {
+          "productSlug": "pizza-component-cheese",
+          "featureValues": ["Чеддер"],
+          "sortIndex": 1,
+          "priceType": "FREE"
+        }
+      ]
+    }
+  ]
+}

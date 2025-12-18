@@ -1,0 +1,5 @@
+mutation ReviewUpdate($input: UpdateReviewInput!) {
+  reviewMutation {
+    edit(input: $input)
+  }
+}

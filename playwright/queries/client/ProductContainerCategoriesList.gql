@@ -1,0 +1,22 @@
+query ProductContainerCategoriesList($handle: String!, $first: Int = 10) {
+  variant(handle: $handle) {
+    id
+    handle
+    categories(first: $first) {
+      edges {
+        node {
+          id
+          handle
+          title
+        }
+      }
+    }
+    product {
+      id
+      handle
+      category {
+        handle
+      }
+    }
+  }
+}

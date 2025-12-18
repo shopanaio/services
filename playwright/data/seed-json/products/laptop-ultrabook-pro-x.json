@@ -1,0 +1,14 @@
+{
+  "title": "Ноутбук 'UltraBook Pro X'",
+  "slug": "laptop-ultrabook-pro-x",
+  "description": "Мощный и легкий ноутбук для профессионалов.",
+  "category": "electronics",
+  "price": 1299.00,
+  "tags": ["premium", "new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Space Gray", "Silver"]
+    }
+  ]
+}

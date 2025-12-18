@@ -1,0 +1,66 @@
+{
+  "title": "Собери свой ПК",
+  "slug": "pc-builder-box",
+  "description": "Создайте компьютер, который подходит именно вам.",
+  "category": "electronics",
+  "price": 100.0,
+  "tags": ["new", "premium"],
+  "groups": [
+    {
+      "title": "Выберите процессор",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "pc-component-cpu",
+          "featureValues": ["Basic"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "pc-component-cpu",
+          "featureValues": ["Standard"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 150
+        },
+        {
+          "productSlug": "pc-component-cpu",
+          "featureValues": ["Pro"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 300
+        }
+      ]
+    },
+    {
+      "title": "Выберите оперативную память",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "pc-component-ram",
+          "featureValues": ["8GB"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "pc-component-ram",
+          "featureValues": ["16GB"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 40
+        },
+        {
+          "productSlug": "pc-component-ram",
+          "featureValues": ["32GB"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 100
+        }
+      ]
+    }
+  ]
+}

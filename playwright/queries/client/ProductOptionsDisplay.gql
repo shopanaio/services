@@ -1,0 +1,16 @@
+query ProductOptionsDisplay($handle: String!) {
+  product(handle: $handle) {
+    options {
+      handle
+      displayType
+      values {
+        handle
+        swatch {
+          color
+          color2
+          displayType
+        }
+      }
+    }
+  }
+}

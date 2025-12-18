@@ -1,0 +1,16 @@
+query PageFindOne($id: ID!) {
+  pageQuery {
+    findOne(id: $id) {
+      id
+      title
+      slug
+      status
+      createdAt
+      updatedAt
+      gallery {
+        id
+        name
+      }
+    }
+  }
+}

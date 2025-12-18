@@ -1,0 +1,47 @@
+mutation CheckoutLinesAdd($input: CheckoutLinesAddInput!) {
+  checkoutMutation {
+    checkoutLinesAdd(input: $input) {
+      checkout {
+        id
+        totalQuantity
+        cost {
+          totalDiscountAmount { amount currencyCode }
+          totalTaxAmount { amount currencyCode }
+          totalShippingAmount { amount currencyCode }
+          subtotalAmount {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+        lines {
+          id
+          quantity
+          purchasableId
+          tag {
+            id
+            slug
+            unique
+          }
+          cost {
+            unitPrice {
+              amount
+              currencyCode
+            }
+            totalAmount {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+}

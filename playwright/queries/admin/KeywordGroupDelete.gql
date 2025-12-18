@@ -1,0 +1,5 @@
+mutation KeywordGroupDelete($input: KeywordGroupDeleteInput!) {
+  searchMutation {
+    keywordGroupDelete(input: $input)
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Модуль для дивана",
+  "slug": "sofa-component-module",
+  "description": "Основной модуль для вашего дивана.",
+  "category": "home-garden",
+  "price": 200.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "size",
+      "values": ["Одноместный", "Двухместный"]
+    }
+  ]
+}

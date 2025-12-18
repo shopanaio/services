@@ -1,0 +1,12 @@
+{
+  "title": "Набор натуральной косметики Beauty Box",
+  "slug": "beauty-box-natural",
+  "category": "beauty-health",
+  "tags": ["exclusive", "limited", "eco"],
+  "price": 125,
+  "description": "Подарочный набор натуральной косметики премиум-класса",
+  "featureGroups": [
+    { "slug": "skin-type", "values": ["Нормальная", "Сухая", "Жирная", "Комбинированная"] },
+    { "slug": "bundle", "values": ["Базовый", "Стандартный", "Премиум"] }
+  ]
+}

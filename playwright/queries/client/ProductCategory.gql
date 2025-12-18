@@ -1,0 +1,11 @@
+query ProductCategory($handle: String!) {
+  product(handle: $handle) {
+    id
+    handle
+    category {
+      id
+      handle
+      title
+    }
+  }
+}

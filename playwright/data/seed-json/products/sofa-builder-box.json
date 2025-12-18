@@ -1,0 +1,101 @@
+{
+  "title": "Собери свой диван",
+  "slug": "sofa-builder-box",
+  "description": "Создайте уникальный диван, выбрав модули, обивку и подлокотники.",
+  "category": "home-garden",
+  "price": 500.0,
+  "tags": ["new", "premium"],
+  "groups": [
+    {
+      "title": "Выберите основной модуль",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "sofa-component-module",
+          "featureValues": ["Одноместный"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "sofa-component-module",
+          "featureValues": ["Двухместный"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 300
+        }
+      ]
+    },
+    {
+      "title": "Выберите обивку",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "sofa-component-upholstery",
+          "featureValues": ["Серый", "Велюр"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "sofa-component-upholstery",
+          "featureValues": ["Бежевый", "Велюр"],
+          "sortIndex": 1,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "sofa-component-upholstery",
+          "featureValues": ["Синий", "Велюр"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 50
+        },
+        {
+          "productSlug": "sofa-component-upholstery",
+          "featureValues": ["Серый", "Рогожка"],
+          "sortIndex": 3,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 100
+        },
+        {
+          "productSlug": "sofa-component-upholstery",
+          "featureValues": ["Бежевый", "Рогожка"],
+          "sortIndex": 4,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 100
+        },
+        {
+          "productSlug": "sofa-component-upholstery",
+          "featureValues": ["Синий", "Рогожка"],
+          "sortIndex": 5,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 150
+        }
+      ]
+    },
+    {
+      "title": "Выберите подлокотники",
+      "isMultiple": false,
+      "isRequired": false,
+      "sortIndex": 2,
+      "items": [
+        {
+          "productSlug": "sofa-component-armrest",
+          "featureValues": ["Ткань"],
+          "sortIndex": 0,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 50
+        },
+        {
+          "productSlug": "sofa-component-armrest",
+          "featureValues": ["Дерево"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 100
+        }
+      ]
+    }
+  ]
+}

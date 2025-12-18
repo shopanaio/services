@@ -1,0 +1,48 @@
+query WarehouseStockFindMany(
+  $warehouseId: ID!
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: WarehouseStockWhereInput
+  $orderBy: [WarehouseStockOrderByInput!]
+) {
+  inventoryQuery {
+    warehouse(id: $warehouseId) {
+      id
+      code
+      name
+      stock(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          node {
+            id
+            quantityOnHand
+            createdAt
+            updatedAt
+            variant {
+              id
+            }
+            warehouse {
+              id
+            }
+          }
+          cursor
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

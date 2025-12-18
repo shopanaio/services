@@ -1,0 +1,78 @@
+query OrderFindOne($findOneId: ID!) {
+  orderQuery {
+    findOne(id: $findOneId) {
+      id
+      createdAt
+      updatedAt
+      status
+      orderNumber
+      currencyCode
+      totalAmount
+      subtotalAmount
+      adminNote
+      customer {
+        id
+        email
+        firstName
+        lastName
+        language
+        phone
+        isVerified
+        updatedAt
+        createdAt
+      }
+      tags {
+        id
+        slug
+        title
+      }
+      payment {
+        id
+        status
+        amount
+        createdAt
+      }
+      fulfillments {
+        id
+        status
+        createdAt
+        items {
+          quantity
+          orderItemId
+        }
+      }
+      events {
+        id
+        eventData
+        eventType
+        createdAt
+      }
+      orderItems {
+        id
+        createdAt
+        discountAmount
+        originalQuantity
+        price
+        productInfo {
+          id
+          variantId
+          snapshot {
+            title
+            price
+          }
+        }
+        quantity
+        subtotalAmount
+        totalAmount
+      }
+      productsInfo {
+        id
+        variantId
+        snapshot {
+          title
+          price
+        }
+      }
+    }
+  }
+}

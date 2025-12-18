@@ -1,0 +1,55 @@
+query CategoryChildrenMulti(
+  $categoriesFirst: Int!
+  $childrenFirst: Int
+  $childrenAfter: Cursor
+  $sort: CategorySort
+) {
+  categories(first: $categoriesFirst) {
+    edges {
+      node {
+        id
+        iid
+        title
+        handle
+        children(first: $childrenFirst, after: $childrenAfter, sort: $sort) {
+          edges {
+            cursor
+            node {
+              id
+              iid
+              title
+              handle
+              description
+              excerpt
+              # listingType
+              createdAt
+              updatedAt
+              seoTitle
+              seoDescription
+              cover {
+                id
+                iid
+                url
+                source
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}

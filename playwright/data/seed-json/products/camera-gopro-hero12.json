@@ -1,0 +1,12 @@
+
+{
+  "title": "GoPro HERO12 Black",
+  "slug": "camera-gopro-hero12",
+  "description": "Новая экшн-камера с улучшенной стабилизацией изображения HyperSmooth 6.0 и поддержкой HDR-видео. Снимайте свои приключения в невероятном качестве.",
+  "category": "electronics",
+  "price": 399,
+  "tags": ["new", "bestseller"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Black"] }
+  ]
+}

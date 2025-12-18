@@ -1,0 +1,39 @@
+mutation RemoveCartLine($input: RemoveCartLineInput!) {
+  removeCartLine(input: $input) {
+    cart {
+      id
+      totalQuantity
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines(first: 10) {
+        totalCount
+        edges {
+          node {
+            id
+            quantity
+            purchasable {
+              ... on ProductVariant {
+                id
+                title
+              }
+            }
+          }
+        }
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

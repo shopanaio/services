@@ -1,0 +1,13 @@
+{
+  "title": "Йога-мат Professional Plus",
+  "slug": "yoga-mat-pro-plus",
+  "category": "sports-leisure",
+  "tags": ["bestseller", "premium"],
+  "price": 75,
+  "description": "Профессиональный коврик для йоги с антискользящим покрытием",
+  "featureGroups": [
+    { "slug": "thickness", "values": ["4мм", "6мм", "8мм"] },
+    { "slug": "color", "values": ["Фиолетовый", "Бирюзовый", "Розовый", "Черный", "Серый"] },
+    { "slug": "mat-size", "values": ["173x61см", "183x61см", "183x68см"] }
+  ]
+}

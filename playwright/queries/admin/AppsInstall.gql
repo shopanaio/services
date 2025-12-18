@@ -1,0 +1,5 @@
+mutation AppsInstall($code: String!) {
+  appsMutation {
+    install(code: $code)
+  }
+}

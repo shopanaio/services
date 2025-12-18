@@ -1,0 +1,25 @@
+mutation FileUpdate($input: FileUpdateInput!) {
+  mediaMutation {
+    fileUpdate(input: $input) {
+      file {
+        id
+        provider
+        url
+        mimeType
+        ext
+        sizeBytes
+        originalName
+        altText
+        isProcessed
+        meta
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}

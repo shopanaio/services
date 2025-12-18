@@ -1,0 +1,14 @@
+{
+  "title": "Игровая мышь",
+  "slug": "gaming-component-mouse",
+  "category": "electronics",
+  "description": "Выберите цвет мыши.",
+  "price": 50.0,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black", "White"]
+    }
+  ]
+}

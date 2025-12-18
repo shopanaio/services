@@ -1,0 +1,15 @@
+query ReviewFindOne($id: ID!) {
+  reviewQuery {
+    findOne(id: $id) {
+      id
+      rating
+      status
+      message
+      createdAt
+      updatedAt
+      title
+      pros
+      cons
+    }
+  }
+}

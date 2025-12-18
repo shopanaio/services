@@ -1,0 +1,15 @@
+query CustomerFindOne($findOneId: ID!) {
+  customerQuery {
+    findOne(id: $findOneId) {
+      id
+      firstName
+      lastName
+      email
+      phone
+      language
+      isVerified
+      createdAt
+      updatedAt
+    }
+  }
+}

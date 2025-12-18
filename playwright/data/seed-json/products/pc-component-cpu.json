@@ -1,0 +1,13 @@
+{
+  "title": "Процессор (CPU)",
+  "slug": "pc-component-cpu",
+  "description": "Мозг вашего компьютера.",
+  "category": "electronics",
+  "price": 200.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "cpu-bundle",
+      "values": ["Basic", "Standard", "Pro"]
+    }  ]
+}

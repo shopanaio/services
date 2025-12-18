@@ -1,0 +1,77 @@
+{
+  "title": "Собери свой бургер",
+  "slug": "burger-builder-box",
+  "description": "Создайте свой идеальный бургер, выбрав котлету и топпинги.",
+  "category": "food-drinks",
+  "price": 8.0,
+  "tags": ["new", "made-in-ukraine"],
+  "groups": [
+    {
+      "title": "Выберите котлету",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "burger-component-patty",
+          "featureValues": ["Говядина"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "burger-component-patty",
+          "featureValues": ["Курица"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": -50
+        },
+        {
+          "productSlug": "burger-component-patty",
+          "featureValues": ["Вегетарианская"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": -100
+        }
+      ]
+    },
+    {
+      "title": "Добавьте топпинги",
+      "isMultiple": true,
+      "isRequired": false,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "burger-component-topping",
+          "featureValues": ["Салат"],
+          "sortIndex": 0,
+          "priceType": "FREE"
+        },
+        {
+          "productSlug": "burger-component-topping",
+          "featureValues": ["Помидор"],
+          "sortIndex": 1,
+          "priceType": "FREE"
+        },
+        {
+          "productSlug": "burger-component-topping",
+          "featureValues": ["Лук"],
+          "sortIndex": 2,
+          "priceType": "FREE"
+        },
+        {
+          "productSlug": "burger-component-topping",
+          "featureValues": ["Огурец"],
+          "sortIndex": 3,
+          "priceType": "FREE"
+        },
+        {
+          "productSlug": "burger-component-topping",
+          "featureValues": ["Бекон"],
+          "sortIndex": 4,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 100
+        }
+      ]
+    }
+  ]
+}

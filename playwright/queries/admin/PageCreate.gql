@@ -1,0 +1,5 @@
+mutation PageCreate($input: CreatePageInput!) {
+  pageMutation {
+    create(input: $input)
+  }
+}

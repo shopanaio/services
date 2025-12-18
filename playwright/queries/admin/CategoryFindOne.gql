@@ -1,0 +1,77 @@
+query CategoryFindOne($id: ID!) {
+  categoryQuery {
+    findOne(id: $id) {
+      id
+      slug
+      title
+      description
+      excerpt
+      status
+      sublistingStep
+      listingType
+      createdAt
+      updatedAt
+      includeChildrenProducts
+      listingOrderByStatus
+      listingOrderBy
+      children {
+        id
+        children {
+          createdAt
+          id
+          listingType
+          listingOrderBy
+          listingOrderByStatus
+          sublistingStep
+          listingPlacement
+          slug
+          status
+          updatedAt
+          listingFilters {
+            id
+            value
+            updatedAt
+            type
+            operator
+            path
+            createdAt
+          }
+          children {
+            id
+            slug
+            status
+            updatedAt
+            listingOrderBy
+            listingOrderByStatus
+            sublistingStep
+            listingFilters {
+              createdAt
+              id
+              path
+              operator
+              type
+              updatedAt
+              value
+            }
+          }
+        }
+        slug
+        status
+        updatedAt
+        listingOrderBy
+        listingOrderByStatus
+        sublistingStep
+
+      }
+      listingFilters {
+        id
+        createdAt
+        path
+        operator
+        type
+        updatedAt
+        value
+      }
+    }
+  }
+}

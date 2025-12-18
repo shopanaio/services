@@ -1,0 +1,14 @@
+{
+  "title": "Колеса для велосипеда",
+  "slug": "bike-component-wheels",
+  "category": "sports-leisure",
+  "description": "Выберите диаметр колес для своего велосипеда.",
+  "price": 80.0,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "bike-wheel-diameter",
+      "values": ["26", "27.5", "29"]
+    }
+  ]
+}

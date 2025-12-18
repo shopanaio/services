@@ -1,0 +1,5 @@
+mutation LabelUpdate($input: UpdateLabelInput!) {
+  labelMutation {
+    update(input: $input)
+  }
+}

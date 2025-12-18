@@ -1,0 +1,71 @@
+query ProductGalleryAliases(
+  $handle1: String!
+  $handle2: String!
+  $handle3: String!
+  # prod1 vars
+  $first1: Int
+  $after1: Cursor
+  # prod2 vars
+  $last2: Int
+  $before2: Cursor
+  # prod3 vars
+  $first3: Int
+) {
+  prod1: product(handle: $handle1) {
+    gallery(first: $first1, after: $after1) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          url
+          source
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+  prod2: product(handle: $handle2) {
+    gallery(last: $last2, before: $before2) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          url
+          source
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+  prod3: product(handle: $handle3) {
+    gallery(first: $first3) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          url
+          source
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+}

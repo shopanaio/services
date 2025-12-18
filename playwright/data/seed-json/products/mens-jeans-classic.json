@@ -1,0 +1,12 @@
+{
+  "title": "Мужские джинсы \"Классика\"",
+  "slug": "mens-jeans-classic",
+  "category": "clothing",
+  "tags": ["bestseller"],
+  "price": 89,
+  "description": "Классические джинсы прямого кроя из качественного денима.",
+  "featureGroups": [
+    { "slug": "size", "values": ["M", "L", "XL"] },
+    { "slug": "color", "values": ["Синий", "Черный"] }
+  ]
+}

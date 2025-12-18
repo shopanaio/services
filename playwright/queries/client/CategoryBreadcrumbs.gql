@@ -1,0 +1,19 @@
+query CategoryBreadcrumbs($handle: String!) {
+  category(handle: $handle) {
+    id
+    handle
+    title
+    breadcrumbs {
+      id
+      handle
+      title
+      description
+      excerpt
+      createdAt
+      updatedAt
+      # listingType
+      seoTitle
+      seoDescription
+    }
+  }
+}

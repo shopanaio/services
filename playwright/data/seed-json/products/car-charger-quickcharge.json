@@ -1,0 +1,14 @@
+{
+  "title": "Автомобильное зарядное устройство 'QuickCharge'",
+  "slug": "car-charger-quickcharge",
+  "description": "Быстрая зарядка для ваших устройств в дороге.",
+  "category": "auto",
+  "price": 29.99,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "socket-type",
+      "values": ["USB-A", "USB-C"]
+    }
+  ]
+}

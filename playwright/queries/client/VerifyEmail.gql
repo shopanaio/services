@@ -1,0 +1,23 @@
+mutation VerifyEmail($input: VerifyEmailInput!) {
+  verifyEmail(input: $input) {
+    session {
+      user {
+        id
+        iid
+        email
+        isVerified
+        name {
+          first
+          last
+        }
+      }
+      accessToken
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

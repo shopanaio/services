@@ -1,0 +1,54 @@
+query CheckoutById($id: ID!) {
+  checkoutQuery {
+    checkout(id: $id) {
+      id
+      createdAt
+      updatedAt
+      totalQuantity
+      cost {
+        totalDiscountAmount { amount currencyCode }
+        totalTaxAmount { amount currencyCode }
+        totalShippingAmount { amount currencyCode }
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      customerIdentity { email phone countryCode firstName lastName middleName customer { id } }
+      customerNote
+      notifications {
+        id
+        code
+        severity
+        isDismissed
+      }
+      lines {
+        id
+        quantity
+        purchasableId
+        cost {
+          unitPrice {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+      }
+      appliedPromoCodes {
+        code
+        appliedAt
+        discountType
+        value
+        provider
+        conditions
+      }
+    }
+  }
+}

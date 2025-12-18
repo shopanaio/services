@@ -1,0 +1,52 @@
+{
+  "title": "Собери свой велосипед",
+  "slug": "bike-builder-box",
+  "description": "Создайте свой уникальный велосипед, выбрав раму и колеса.",
+  "category": "sports-leisure",
+  "price": 50.0,
+  "tags": ["new", "exclusive"],
+  "groups": [
+    {
+      "title": "Выберите раму",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "bike-component-frame",
+          "featureValues": ["Алюминий", "M"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "bike-component-frame",
+          "featureValues": ["Карбон", "M"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 200
+        }
+      ]
+    },
+    {
+      "title": "Выберите колеса",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "bike-component-wheels",
+          "featureValues": ["26"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "bike-component-wheels",
+          "featureValues": ["29"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 50
+        }
+      ]
+    }
+  ]
+}

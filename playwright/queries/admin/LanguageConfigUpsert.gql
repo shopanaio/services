@@ -1,0 +1,5 @@
+mutation LanguageConfigUpsert($input: LanguageConfigInput!) {
+  searchMutation {
+    languageConfigUpsert(input: $input)
+  }
+}

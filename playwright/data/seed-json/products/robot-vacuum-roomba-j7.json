@@ -1,0 +1,13 @@
+
+{
+  "title": "Roomba j7+",
+  "slug": "robot-vacuum-roomba-j7",
+  "description": "Робот-пылесос с системой самоочистки и навигацией PrecisionVision. Распознает и избегает препятствия, такие как провода и отходы домашних животных.",
+  "category": "electronics",
+  "price": 849,
+  "tags": ["new", "smart-home"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Graphite"] },
+    { "slug": "power", "values": ["33W"] }
+  ]
+}

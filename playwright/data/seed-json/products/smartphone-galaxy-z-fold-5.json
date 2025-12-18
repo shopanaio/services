@@ -1,0 +1,14 @@
+
+{
+  "title": "Galaxy Z Fold 5",
+  "slug": "smartphone-galaxy-z-fold-5",
+  "description": "Инновационный складной смартфон с гибким экраном. Откройте для себя новые возможности многозадачности и развлечений. Поддержка 5G и мощная камера.",
+  "category": "electronics",
+  "price": 1799,
+  "tags": ["new", "premium", "exclusive"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Phantom Black", "Green", "Beige"] },
+    { "slug": "material", "values": ["Gorilla Glass Victus 2", "Armor Aluminum"] },
+    { "slug": "power", "values": ["25W"] }
+  ]
+}

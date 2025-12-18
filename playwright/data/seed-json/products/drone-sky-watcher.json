@@ -1,0 +1,14 @@
+{
+  "title": "Дрон 'Sky Watcher'",
+  "slug": "drone-sky-watcher",
+  "description": "Снимайте видео с высоты птичьего полета.",
+  "category": "electronics",
+  "price": 699.99,
+  "tags": ["new", "premium"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Drone only", "Drone + Extra Battery", "Full Kit"]
+    }
+  ]
+}

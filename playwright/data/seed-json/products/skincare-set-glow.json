@@ -1,0 +1,12 @@
+{
+  "title": "Набор для ухода за кожей \"Сияние\"",
+  "slug": "skincare-set-glow",
+  "category": "beauty-health",
+  "tags": ["eco", "new"],
+  "price": 120,
+  "description": "Комплексный уход для сияния вашей кожи.",
+  "featureGroups": [
+    { "slug": "skin-type", "values": ["Нормальная", "Сухая", "Комбинированная"] },
+    { "slug": "bundle", "values": ["Базовый", "Расширенный"] }
+  ]
+}

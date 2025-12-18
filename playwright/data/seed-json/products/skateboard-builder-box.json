@@ -1,0 +1,70 @@
+{
+  "title": "Собери свой скейтборд",
+  "slug": "skateboard-builder-box",
+  "description": "Создайте свой кастомный скейтборд.",
+  "category": "sports-leisure",
+  "price": 15.0,
+  "tags": ["new"],
+  "groups": [
+    {
+      "title": "Выберите деку",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "skateboard-component-deck",
+          "featureValues": ["Classic Logo"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "skateboard-component-deck",
+          "featureValues": ["Skull"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 5
+        },
+        {
+          "productSlug": "skateboard-component-deck",
+          "featureValues": ["Cosmic"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 10
+        }
+      ]
+    },
+    {
+      "title": "Выберите колеса",
+      "isMultiple": true,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "skateboard-component-wheels",
+          "featureValues": ["White"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "skateboard-component-wheels",
+          "featureValues": ["Black"],
+          "sortIndex": 1,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "skateboard-component-wheels",
+          "featureValues": ["Red"],
+          "sortIndex": 2,
+          "priceType": "FREE"
+        },
+        {
+          "productSlug": "skateboard-component-wheels",
+          "featureValues": ["Green"],
+          "sortIndex": 3,
+          "priceType": "FREE"
+        }
+      ]
+    }
+  ]
+}

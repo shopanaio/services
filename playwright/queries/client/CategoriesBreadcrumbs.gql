@@ -1,0 +1,30 @@
+query CategoriesBreadcrumbs($first: Int, $sort: CategorySort) {
+  categories(first: $first, sort: $sort) {
+    edges {
+      node {
+        id
+        handle
+        title
+        breadcrumbs {
+          id
+          handle
+          title
+          description
+          excerpt
+          createdAt
+          updatedAt
+          # listingType
+          seoTitle
+          seoDescription
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    totalCount
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Набор холстов для рисования 'Pro'",
+  "slug": "painting-canvas-set-pro",
+  "description": "Качественные холсты для ваших шедевров.",
+  "category": "arts-crafts",
+  "price": 22.50,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "size",
+      "values": ["20x30cm", "30x40cm", "40x50cm"]
+    }
+  ]
+}

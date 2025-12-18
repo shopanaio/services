@@ -1,0 +1,64 @@
+query ProductFindOne($id: ID!) {
+  productQuery {
+    findOne(id: $id) {
+      id
+      title
+      slug
+      status
+      createdAt
+      description
+      excerpt
+      updatedAt
+      requiresShipping
+      labels {
+        id
+        slug
+        name
+        colorHex
+      }
+      variants {
+        id
+        title
+        price
+        oldPrice
+        slug
+        stockStatus
+        createdAt
+        updatedAt
+        variantSortIndex
+        weight
+        weightUnit
+        sku
+        categories {
+          id
+        }
+        features {
+          isAttribute
+          isOption
+          optionSortIndex
+          attributeSortIndex
+          featureId
+          title
+          slug
+          group {
+            id
+            title
+            slug
+            featureStyleType
+          }
+        }
+      }
+      groups {
+        id
+        title
+        isRequired
+        isMultiple
+        sortIndex
+        items {
+          id
+          sortIndex
+        }
+      }
+    }
+  }
+}

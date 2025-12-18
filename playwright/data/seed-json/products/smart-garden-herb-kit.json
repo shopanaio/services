@@ -1,0 +1,14 @@
+{
+  "title": "Умный сад 'Herb Kit'",
+  "slug": "smart-garden-herb-kit",
+  "description": "Выращивайте свежие травы прямо у себя на кухне.",
+  "category": "home-garden",
+  "price": 120.00,
+  "tags": ["eco", "new"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Basil", "Mint", "Parsley"]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Топпинг для бургера",
+  "slug": "burger-component-topping",
+  "category": "food-drinks",
+  "description": "Добавьте топпинги в свой бургер.",
+  "price": 0.5,
+  "tags": ["made-in-ukraine"],
+  "featureGroups": [
+    {
+      "slug": "topping-type",
+              "values": ["Салат", "Помидор", "Лук", "Огурец", "Бекон"]
+    }
+  ]
+}

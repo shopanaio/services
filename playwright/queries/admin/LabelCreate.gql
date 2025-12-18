@@ -1,0 +1,5 @@
+mutation LabelCreate($input: CreateLabelInput!) {
+  labelMutation {
+    create(input: $input)
+  }
+}

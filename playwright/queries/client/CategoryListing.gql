@@ -1,0 +1,38 @@
+query CategoryListing(
+  $handle: String!
+  $first: Int
+  $after: Cursor
+  $last: Int
+  $before: Cursor
+  $sort: ListingSort
+) {
+  category(handle: $handle) {
+    listing(first: $first, after: $after, last: $last, before: $before, sort: $sort) {
+      edges {
+        cursor
+        node {
+          ... on ProductVariant {
+            id
+            iid
+            title
+            handle
+            createdAt
+            updatedAt
+            title
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

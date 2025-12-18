@@ -1,0 +1,5 @@
+mutation ReviewReject($input: RejectReviewInput!) {
+  reviewMutation {
+    reject(input: $input)
+  }
+}

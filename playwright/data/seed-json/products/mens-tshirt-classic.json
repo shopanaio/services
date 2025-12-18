@@ -1,0 +1,18 @@
+{
+  "title": "Мужская футболка 'Classic'",
+  "slug": "mens-tshirt-classic",
+  "description": "Классическая мужская футболка из 100% хлопка.",
+  "category": "clothing",
+  "price": 35.00,
+  "tags": ["bestseller"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["White", "Black", "Grey", "Navy"]
+    },
+    {
+      "slug": "size",
+      "values": ["S", "M", "L", "XL"]
+    }
+  ]
+}

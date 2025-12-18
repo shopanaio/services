@@ -1,0 +1,74 @@
+{
+  "title": "Подарочная коробка",
+  "slug": "gift-box",
+  "category": "boxes",
+  "price": 50,
+  "description": "Красивая подарочная коробка для упаковки вашего подарка. Выберите цвет коробки и дизайн марки.",
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": [
+        "Белая",
+        "Зеленая",
+        "Красная",
+        "Оранжевая",
+        "Синяя",
+        "Черная",
+        "Крафт"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "title": "Выберите марку",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Gift Box"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Gift Box Premium"],
+          "sortIndex": 1,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Good Morning"],
+          "sortIndex": 2,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Happy Birthday"],
+          "sortIndex": 3,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Special Delivery"],
+          "sortIndex": 4,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Special For You"],
+          "sortIndex": 5,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gift-mark",
+          "featureValues": ["Thank You"],
+          "sortIndex": 6,
+          "priceType": "BASE"
+        }
+      ]
+    }
+  ]
+}

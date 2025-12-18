@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"],
+    "baseUrl": ".",
+    "allowJs": false,
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "paths": {
+      "@data/*": ["data/*"],
+      "@fixtures/*": ["fixtures/*"],
+      "@queries/*": ["queries/*"],
+      "@utils/*": ["utils/*"],
+      "@codegen/*": ["codegen/*"],
+      "@schema/*": ["schema/*"]
+    }
+  },
+  "exclude": ["node_modules", "bin"]
+}

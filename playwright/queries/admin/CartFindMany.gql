@@ -1,0 +1,19 @@
+query CartFindMany($input: CartsInput) {
+  cartQuery {
+    findMany(input: $input) {
+      data {
+        id
+        totalQuantity
+        createdAt
+        updatedAt
+      }
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+    }
+  }
+}

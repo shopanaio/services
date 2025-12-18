@@ -1,0 +1,14 @@
+{
+  "title": "Колеса для скейтборда",
+  "slug": "skateboard-component-wheels",
+  "description": "Выберите колеса для своего скейтборда.",
+  "category": "sports-leisure",
+  "price": 20.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "skateboard-color",
+      "values": ["White", "Black", "Red", "Green"]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+query ProductContainerGroups($handle: String!) {
+  variant(handle: $handle) {
+    id
+    handle
+    title
+    price {
+      amount
+      currencyCode
+    }
+    product {
+      id
+      handle
+      title
+      groups {
+        id
+        title
+        isMultiple
+        isRequired
+        items {
+          maxQuantity
+          price {
+            type
+            percentage
+            amount {
+              amount
+              currencyCode
+            }
+          }
+          node {
+            ... on ProductVariant {
+              id
+              handle
+              title
+              price {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

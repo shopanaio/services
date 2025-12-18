@@ -1,0 +1,22 @@
+{
+  "title": "Женское платье 'Летний бриз'",
+  "slug": "womens-dress-summer-breeze",
+  "category": "clothing",
+  "description": "Легкое и воздушное платье для жарких летних дней.",
+  "price": 49.99,
+  "tags": ["new", "sale"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Белый", "Синий"]
+    },
+    {
+      "slug": "size",
+      "values": ["S", "M", "L"]
+    },
+    {
+      "slug": "print",
+      "values": ["Цветочный", "Полоска"]
+    }
+  ]
+}

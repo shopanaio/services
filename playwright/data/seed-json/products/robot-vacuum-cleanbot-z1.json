@@ -1,0 +1,18 @@
+{
+  "title": "Робот-пылесос 'CleanBot Z1'",
+  "slug": "robot-vacuum-cleanbot-z1",
+  "description": "Автоматическая уборка вашего дома.",
+  "category": "home-garden",
+  "price": 350.00,
+  "tags": ["bestseller", "new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["White", "Graphite"]
+    },
+    {
+      "slug": "power",
+      "values": ["2200Pa"]
+    }
+  ]
+}

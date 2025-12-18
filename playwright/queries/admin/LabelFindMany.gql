@@ -1,0 +1,19 @@
+query LabelFindMany ($input: LabelsInput!) {
+  labelQuery {
+    findMany(input: $input) {
+      data {
+        id
+        name
+        slug
+        colorHex
+      }
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+    }
+  }
+}

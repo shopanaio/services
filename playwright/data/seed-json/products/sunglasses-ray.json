@@ -1,0 +1,18 @@
+{
+  "title": "Солнцезащитные очки 'Ray'",
+  "slug": "sunglasses-ray",
+  "description": "Классические солнцезащитные очки с UV защитой.",
+  "category": "clothing",
+  "price": 120.00,
+  "tags": ["bestseller", "premium"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black", "Tortoise"]
+    },
+    {
+      "slug": "frame-size",
+      "values": ["Standard", "Large"]
+    }
+  ]
+}

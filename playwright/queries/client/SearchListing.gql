@@ -1,0 +1,37 @@
+query SearchListing(
+  $query: String!
+  $first: Int
+  $after: Cursor
+  $last: Int
+  $before: Cursor
+  $sort: ListingSort
+) {
+  search(input: { query: $query }) {
+    products(first: $first, after: $after, last: $last, before: $before, sort: $sort) {
+      edges {
+        cursor
+        node {
+          ... on ProductVariant {
+            id
+            iid
+            title
+            handle
+            createdAt
+            updatedAt
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

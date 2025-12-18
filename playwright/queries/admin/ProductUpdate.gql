@@ -1,0 +1,56 @@
+mutation ProductUpdate($input: UpdateProductInput!) {
+  productMutation {
+    update(input: $input) {
+      id
+      title
+      slug
+      status
+      createdAt
+      description
+      excerpt
+      updatedAt
+      tags {
+        id
+        title
+        slug
+        color
+      }
+      variants {
+        id
+        title
+        sku
+        weight
+        price
+        categories {
+          id
+        }
+        features {
+          isAttribute
+          isOption
+          optionSortIndex
+          attributeSortIndex
+          featureId
+          title
+          slug
+          group {
+            id
+            title
+            slug
+            featureStyleType
+          }
+        }
+      }
+      groups {
+        id
+        title
+        isRequired
+        isMultiple
+        sortIndex
+        items {
+          id
+          sortIndex
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+query ProductRatingBreakdown($handle: String!) {
+  product(handle: $handle) {
+    rating {
+      rating
+      count
+      breakdown {
+        star
+        count
+        percentage
+      }
+    }
+  }
+}

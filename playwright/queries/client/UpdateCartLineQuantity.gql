@@ -1,0 +1,45 @@
+mutation UpdateCartLineQuantity($input: UpdateCartLineQuantityInput!) {
+  updateCartLineQuantity(input: $input) {
+    cart {
+      id
+      totalQuantity
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines(first: 10) {
+        totalCount
+        edges {
+          node {
+            id
+            quantity
+            purchasable {
+              ... on ProductVariant {
+                id
+                title
+              }
+            }
+            cost {
+              totalAmount {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

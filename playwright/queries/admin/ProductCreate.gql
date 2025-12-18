@@ -1,0 +1,47 @@
+mutation ProductCreate($input: CreateProductInput!) {
+  productMutation {
+    create(input: $input) {
+      id
+      title
+      slug
+      status
+      createdAt
+      description
+      excerpt
+      updatedAt
+      labels {
+        id
+        slug
+        name
+        colorHex
+      }
+      tags {
+        id
+        title
+        slug
+        color
+      }
+      variants {
+        id
+        containerId
+        title
+        updatedAt
+        createdAt
+        categories {
+          id
+        }
+      }
+      groups {
+        id
+        title
+        isRequired
+        isMultiple
+        sortIndex
+        items {
+          id
+          sortIndex
+        }
+      }
+    }
+  }
+}

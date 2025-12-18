@@ -1,0 +1,39 @@
+query ProductGroups($handle: String!) {
+  product(handle: $handle) {
+    id
+    handle
+    title
+    price {
+      amount
+      currencyCode
+    }
+    groups {
+      id
+      title
+      isMultiple
+      isRequired
+      items {
+        maxQuantity
+        price {
+          type
+          percentage
+          amount {
+            amount
+            currencyCode
+          }
+        }
+        node {
+          ... on ProductVariant {
+            id
+            handle
+            title
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Игровая консоль 'NextGen 5'",
+  "slug": "gaming-console-nextgen-5",
+  "description": "Погрузитесь в мир игр нового поколения.",
+  "category": "electronics",
+  "price": 499.99,
+  "tags": ["bestseller", "premium", "new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Cosmic Black", "Starlight White"]
+    },
+    {
+        "slug": "bundle",
+        "values": ["Console only", "Console + 2 controllers"]
+    }
+  ]
+}

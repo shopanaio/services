@@ -1,0 +1,14 @@
+query ProductFindOneCategory($id: ID!) {
+  productQuery {
+    findOne(id: $id) {
+      id
+      title
+      variants {
+        id
+        categories {
+          id
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,49 @@
+query CheckoutByIdWithChildren($id: ID!) {
+  checkoutQuery {
+    checkout(id: $id) {
+      id
+      totalQuantity
+      cost {
+        subtotalAmount { amount currencyCode }
+        totalAmount { amount currencyCode }
+        totalDiscountAmount { amount currencyCode }
+      }
+      lines {
+        id
+        quantity
+        purchasableId
+        title
+        sku
+        originalPrice { amount currencyCode }
+        priceConfig {
+          type
+          amount
+          percent
+        }
+        cost {
+          unitPrice { amount currencyCode }
+          subtotalAmount { amount currencyCode }
+          totalAmount { amount currencyCode }
+        }
+        children {
+          id
+          quantity
+          purchasableId
+          title
+          sku
+          originalPrice { amount currencyCode }
+          priceConfig {
+            type
+            amount
+            percent
+          }
+          cost {
+            unitPrice { amount currencyCode }
+            subtotalAmount { amount currencyCode }
+            totalAmount { amount currencyCode }
+          }
+        }
+      }
+    }
+  }
+}

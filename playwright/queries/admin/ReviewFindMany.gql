@@ -1,0 +1,19 @@
+query ReviewFindMany($input: ReviewsInput) {
+  reviewQuery {
+    findMany(input: $input) {
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+      data {
+        id
+        rating
+        status
+        createdAt
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+mutation WarehouseCreate($input: WarehouseCreateInput!) {
+  inventoryMutation {
+    warehouseCreate(input: $input) {
+      warehouse {
+        id
+        code
+        name
+        isDefault
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

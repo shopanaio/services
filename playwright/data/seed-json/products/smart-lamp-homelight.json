@@ -1,0 +1,12 @@
+{
+  "title": "Умная лампа HomeLight RGB",
+  "slug": "smart-lamp-homelight",
+  "category": "home-garden",
+  "tags": ["premium", "new"],
+  "price": 89,
+  "description": "Wi-Fi лампа с поддержкой 16 млн цветов и голосовым управлением",
+  "featureGroups": [
+    { "slug": "socket-type", "values": ["E27", "E14", "GU10"] },
+    { "slug": "power", "values": ["9W", "12W", "15W"] }
+  ]
+}

@@ -1,0 +1,13 @@
+
+{
+  "title": "Canon EOS R5",
+  "slug": "camera-canon-eos-r5",
+  "description": "Профессиональная беззеркальная камера с разрешением 45 Мп и возможностью записи видео в 8K. Идеальный инструмент для фотографов и видеографов.",
+  "category": "electronics",
+  "price": 3899,
+  "tags": ["premium", "exclusive"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Black"] },
+    { "slug": "material", "values": ["Magnesium alloy"] }
+  ]
+}

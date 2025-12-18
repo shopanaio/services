@@ -1,0 +1,18 @@
+{
+  "title": "Массажное кресло 'Relax Pro'",
+  "slug": "massage-chair-relax-pro",
+  "description": "Полное расслабление после тяжелого дня.",
+  "category": "beauty-health",
+  "price": 1500.00,
+  "tags": ["premium", "limited"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black Leather", "Cream Leather"]
+    },
+    {
+      "slug": "material",
+      "values": ["Genuine Leather"]
+    }
+  ]
+}

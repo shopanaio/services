@@ -1,0 +1,29 @@
+{
+  "title": "Поздравительная открытка",
+  "slug": "greeting-card",
+  "category": "cards",
+  "price": 35,
+  "description": "Красочная поздравительная открытка для любого случая. Выберите подходящий дизайн для вашего события.",
+  "tags": ["new", "bestseller"],
+  "featureGroups": [
+    {
+      "slug": "occasion",
+      "values": [
+        "Better Than Nothing",
+        "Expensive Card",
+        "Birthday Celebration",
+        "Happy Birthday Blue",
+        "Happy Birthday Gray",
+        "I Love You",
+        "Love You Mother",
+        "Love You Ukraine",
+        "Mother With Love",
+        "Smile Flowers UA",
+        "Smile For Man",
+        "Smile For Women",
+        "Understood For Girl",
+        "Understood For Man"
+      ]
+    }
+  ]
+}

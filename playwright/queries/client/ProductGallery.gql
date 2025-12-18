@@ -1,0 +1,22 @@
+query ProductGallery($handle: String!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+  product(handle: $handle) {
+    gallery(first: $first, after: $after, last: $last, before: $before) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          url
+          source
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

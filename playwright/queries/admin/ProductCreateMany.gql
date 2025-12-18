@@ -1,0 +1,5 @@
+mutation ProductCreateMany($input: [CreateProductInput!]!) {
+  productMutation {
+    createMany(input: $input)
+  }
+}

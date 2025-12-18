@@ -1,0 +1,22 @@
+query CustomerFindMany($input: CustomersInput) {
+  customerQuery {
+    findMany(input: $input) {
+      data {
+        id
+        firstName
+        lastName
+        email
+        isVerified
+        createdAt
+        updatedAt
+      }
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+    }
+  }
+}

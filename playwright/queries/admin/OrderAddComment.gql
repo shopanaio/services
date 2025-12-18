@@ -1,0 +1,5 @@
+mutation OrderAddComment($input: AddCommentInput!) {
+  orderMutation {
+    addComment(input: $input)
+  }
+}

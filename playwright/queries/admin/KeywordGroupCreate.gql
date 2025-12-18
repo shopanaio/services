@@ -1,0 +1,5 @@
+mutation KeywordGroupCreate($input: KeywordGroupCreateInput!) {
+  searchMutation {
+    keywordGroupCreate(input: $input)
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Набор для рисования 'ArtPro'",
+  "slug": "drawing-set-artpro",
+  "description": "Профессиональный набор для художников и любителей.",
+  "category": "arts-crafts",
+  "price": 75.00,
+  "tags": ["premium"],
+  "featureGroups": [
+     {
+      "slug": "bundle",
+      "values": ["Pencils", "Paints", "Full Set"]
+    }
+  ]
+}

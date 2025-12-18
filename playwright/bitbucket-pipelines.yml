@@ -1,0 +1,13 @@
+image: node:22
+
+pipelines:
+  pull-requests:
+    "**":
+      - step:
+          name: "Run Drone CI"
+          script:
+            - echo "Branch: $BITBUCKET_BRANCH"
+            - echo "Commit: $BITBUCKET_COMMIT"
+            - >
+              curl -X POST "https://drone.shopana.dev/api/repos/${BITBUCKET_REPO_FULL_NAME}/builds?branch=${BITBUCKET_BRANCH}&commit=${BITBUCKET_COMMIT}" \
+                -H "Authorization: Bearer $DRONE_TOKEN"

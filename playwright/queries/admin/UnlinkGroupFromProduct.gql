@@ -1,0 +1,5 @@
+mutation UnlinkGroupFromProduct($input: GroupProductLinkInput!) {
+  searchMutation {
+    unlinkGroupFromProduct(input: $input)
+  }
+}

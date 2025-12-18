@@ -1,0 +1,14 @@
+{
+  "title": "Детский конструктор 'Стройка'",
+  "slug": "kids-constructor-building",
+  "description": "Развивающий конструктор для детей от 3 лет.",
+  "category": "toys-kids",
+  "price": 45.99,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "material",
+      "values": ["Plastic", "Wood"]
+    }
+  ]
+}

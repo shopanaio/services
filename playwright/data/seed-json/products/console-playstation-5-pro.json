@@ -1,0 +1,13 @@
+
+{
+  "title": "PlayStation 5 Pro",
+  "slug": "console-playstation-5-pro",
+  "description": "Новое поколение игровых консолей. Наслаждайтесь невероятной графикой, сверхбыстрой загрузкой и эксклюзивными играми. Поддержка 4K и 8K.",
+  "category": "electronics",
+  "price": 599,
+  "tags": ["new", "bestseller", "limited"],
+  "featureGroups": [
+    { "slug": "color", "values": ["White", "Black"] },
+    { "slug": "power", "values": ["350W"] }
+  ]
+}

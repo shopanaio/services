@@ -1,0 +1,120 @@
+import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { EntityStatus } from '@codegen/admin-gql';
+import { randomUUID } from 'crypto';
+import { ApiFixtures } from '@fixtures/api/api';
+
+const prepareProduct = async (api: ApiFixtures['api']) => {
+  await api.session.setupUserAndProject();
+
+  
+  
+  const options = [
+    {
+      title: 'Size',
+      values: ['XS', 'S', 'M', 'L'],
+    },
+    {
+      title: 'Color',
+      values: ['Black', 'White', 'Red'],
+    },
+    {
+      title: 'Material',
+      values: ['Cotton', 'Polyester'],
+    },
+  ];
+
+  
+  const productHandle = `test-product-options-${randomUUID()}`;
+
+  return {
+    product: await api.admin.product.createWithOptions({
+      title: 'Product With Options',
+      slug: productHandle,
+      status: EntityStatus.Published,
+      options,
+    }),
+    options,
+  };
+};
+
+test.describe('product container variants', () => {
+  test('should return product variants in order defined by sort index through product field', async ({ api }) => {
+    const { product: adminProduct, options } = await prepareProduct(api);
+    await api.session.setupApiKey();
+
+    
+    
+    const variantSlug = adminProduct.variants[0].slug;
+
+    const { data } = await api.client.query('client/ProductContainerVariants', {
+      variables: { handle: variantSlug },
+    });
+
+    expect(data.variant).not.toBeNull();
+
+    const variants = data.variant?.product?.variants ?? [];
+    const totalVariants = options.reduce<number>((acc, g) => acc * g.values.length, 1);
+    expect(variants.length).toBe(totalVariants);
+    expect(adminProduct.variants.map((it) => it.slug)).toEqual(variants.map((it) => it.handle));
+  });
+
+  test('each variant should expose correct options structure and selectedOptions through product field', async ({
+    api,
+  }) => {
+    const { product: adminProduct, options } = await prepareProduct(api);
+    await api.session.setupApiKey();
+
+    // Use the slug of the first generated variant to fetch the product with all variants via client API.
+    const firstVariantSlug = adminProduct.variants[0].slug;
+    const { data } = await api.client.query('client/ProductContainerVariants', {
+      variables: { handle: firstVariantSlug },
+    });
+
+    const variant = data.variant;
+    if (!variant) {
+      throw new Error('Variant not found');
+    }
+
+    expect(variant).not.toBeNull();
+    const variants = variant.product.variants;
+    const totalVariants = options.reduce<number>((acc, g) => acc * g.values.length, 1);
+    expect(variants.length).toBe(totalVariants);
+
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const productOptions = (variant.product as any).options as any[];
+    expect(productOptions.length).toBe(options.length);
+
+    options.forEach((group, idx) => {
+      const apiGroup = productOptions[idx];
+      expect(apiGroup.title).toBe(group.title);
+      const apiValues = apiGroup.values.map((v: { title: string }) => v.title);
+      expect(apiValues.sort()).toEqual([...group.values].sort());
+    });
+
+    
+    const allValueSet = new Set(
+      options.flatMap((g) => g.values.map((v) => `${g.title.toLowerCase()}.${v.toLowerCase()}`)),
+    );
+
+    
+    for (const variant of variants) {
+      const parts = variant.title.split(' ');
+      expect(parts.length).toBe(options.length);
+
+      const selected = variant.selectedOptions;
+      expect(Array.isArray(selected)).toBe(true);
+      expect(selected.length).toBe(options.length);
+      
+      selected.forEach((handle, idx) => {
+        expect(allValueSet.has(handle)).toBe(true);
+
+        const [groupHandle, valueHandle] = handle.split('.');
+        expect(groupHandle).toBe(options[idx].title.toLowerCase());
+        expect(valueHandle).toBe(parts[idx].toLowerCase());
+      });
+    }
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+  });
+});

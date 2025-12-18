@@ -1,0 +1,19 @@
+mutation VariantSetCost($input: VariantSetCostInput!) {
+  inventoryMutation {
+    variantSetCost(input: $input) {
+      variant {
+        id
+        cost {
+          id
+          currency
+          unitCostMinor
+          effectiveFrom
+        }
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

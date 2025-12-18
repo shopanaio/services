@@ -1,0 +1,3 @@
+mutation ReviewVoteHelpful($input: VoteReviewHelpfulInput!) {
+  voteReviewHelpful(input: $input)
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Эко-футболка Organic Cotton",
+  "slug": "eco-tshirt-organic",
+  "category": "clothing",
+  "tags": ["eco", "new"],
+  "price": 35,
+  "description": "Футболка из 100% органического хлопка",
+  "featureGroups": [
+    { "slug": "size", "values": ["XS", "S", "M", "L", "XL", "XXL"] },
+    { "slug": "color", "values": ["Белый", "Черный", "Серый", "Бежевый", "Зеленый"] },
+    { "slug": "print", "values": ["Без принта", "Минималистичный логотип", "Эко-дизайн"] }
+  ]
+}

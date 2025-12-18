@@ -1,0 +1,5 @@
+mutation OrderUpdatePaymentStatus($input: UpdatePaymentStatusInput!) {
+  orderMutation {
+    updatePaymentStatus(input: $input)
+  }
+}

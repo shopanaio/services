@@ -1,0 +1,52 @@
+{
+  "title": "Игровой набор",
+  "slug": "gaming-setup-box",
+  "description": "Соберите идеальный игровой набор с мышью и клавиатурой.",
+  "category": "electronics",
+  "price": 100.0,
+  "tags": ["new", "premium"],
+  "groups": [
+    {
+      "title": "Выберите игровую мышь",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "gaming-component-mouse",
+          "featureValues": ["Black"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gaming-component-mouse",
+          "featureValues": ["White"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 20
+        }
+      ]
+    },
+    {
+      "title": "Выберите клавиатуру",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "gaming-component-keyboard",
+          "featureValues": ["TKL"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "gaming-component-keyboard",
+          "featureValues": ["Full-size"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 50
+        }
+      ]
+    }
+  ]
+}

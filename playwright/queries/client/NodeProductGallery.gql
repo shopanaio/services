@@ -1,0 +1,41 @@
+query NodeProductGallery(
+  $id: ID!
+  $first: Int
+  $after: Cursor
+) {
+  node(id: $id) {
+    ... on Product {
+      gallery(first: $first, after: $after) {
+        edges {
+          cursor
+          node {
+            id
+            iid
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        totalCount
+      }
+    }
+    # legacy: use Product instead
+    ... on ProductVariant {
+      gallery(first: $first, after: $after) {
+        edges {
+          cursor
+          node {
+            id
+            iid
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

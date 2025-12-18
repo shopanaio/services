@@ -1,0 +1,5 @@
+mutation SynonymUpsert($input: SynonymUpsertInput!) {
+  searchMutation {
+    synonymUpsert(input: $input)
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Горный велосипед \"Everest\"",
+  "slug": "mountain-bike-everest",
+  "category": "sports-leisure",
+  "tags": ["new"],
+  "price": 850,
+  "description": "Надежный горный велосипед для покорения любых вершин.",
+  "featureGroups": [
+    { "slug": "frame-size", "values": ["M", "L", "XL"] },
+    { "slug": "color", "values": ["Черный", "Красный", "Зеленый"] }
+  ]
+}

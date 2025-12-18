@@ -1,0 +1,63 @@
+mutation CheckoutPromoCodeAdd($input: CheckoutPromoCodeAddInput!) {
+  checkoutMutation {
+    checkoutPromoCodeAdd(input: $input) {
+      id
+      createdAt
+      updatedAt
+      totalQuantity
+      cost {
+        totalDiscountAmount { amount currencyCode }
+        totalTaxAmount { amount currencyCode }
+        totalShippingAmount { amount currencyCode }
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines {
+        id
+        quantity
+        purchasableId
+        sku
+        title
+        cost {
+          unitPrice {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+          discountAmount {
+            amount
+            currencyCode
+          }
+        }
+      }
+      customerIdentity { email phone countryCode firstName lastName middleName customer { id } }
+      customerNote
+      deliveryGroups {
+        id
+        checkoutLines { id }
+        deliveryAddress { id address1 address2 city countryCode provinceCode postalCode data }
+        recipient { firstName lastName middleName email phone }
+        deliveryMethods { code deliveryMethodType provider { code } data }
+        selectedDeliveryMethod { code deliveryMethodType provider { code } data }
+        estimatedCost { amount { amount currencyCode } paymentModel }
+      }
+      appliedPromoCodes {
+        code
+        appliedAt
+        # discountType
+        # value
+        # provider
+        # conditions
+      }
+    }
+  }
+}

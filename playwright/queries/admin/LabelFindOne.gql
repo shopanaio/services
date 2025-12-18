@@ -1,0 +1,10 @@
+query LabelFindOne($id: ID!) {
+  labelQuery {
+    findOne(id: $id) {
+      id
+      slug
+      name
+      colorHex
+    }
+  }
+}

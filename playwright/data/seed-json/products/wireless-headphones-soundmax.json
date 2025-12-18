@@ -1,0 +1,18 @@
+{
+  "title": "Беспроводные наушники 'SoundMax'",
+  "slug": "wireless-headphones-soundmax",
+  "description": "Кристально чистый звук и до 24 часов работы.",
+  "category": "electronics",
+  "price": 199.99,
+  "tags": ["bestseller", "premium"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["White", "Black"]
+    },
+    {
+      "slug": "case-color",
+      "values": ["White", "Black"]
+    }
+  ]
+}

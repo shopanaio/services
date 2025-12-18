@@ -1,0 +1,14 @@
+
+{
+  "title": "ProBook X5",
+  "slug": "laptop-probook-x5",
+  "description": "Мощный и легкий ноутбук для профессионалов. Оснащен последним процессором Intel Core i9, 32 ГБ оперативной памяти и 1 ТБ SSD. Идеально подходит для работы и развлечений.",
+  "category": "electronics",
+  "price": 1999,
+  "tags": ["new", "premium", "bestseller"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Space Gray", "Silver"] },
+    { "slug": "material", "values": ["Aluminum"] },
+    { "slug": "power", "values": ["96W"] }
+  ]
+}

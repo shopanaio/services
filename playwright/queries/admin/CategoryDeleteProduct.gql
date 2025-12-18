@@ -1,0 +1,5 @@
+mutation CategoryDeleteProduct($input: DeleteCategoryProductInput!) {
+  categoryMutation {
+    deleteProduct(input: $input)
+  }
+}

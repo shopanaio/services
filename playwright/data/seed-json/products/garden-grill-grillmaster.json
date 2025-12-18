@@ -1,0 +1,18 @@
+{
+  "title": "Садовый гриль 'GrillMaster'",
+  "slug": "garden-grill-grillmaster",
+  "description": "Идеальный гриль для вашего сада или террасы.",
+  "category": "home-garden",
+  "price": 349.00,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "material",
+      "values": ["Stainless Steel"]
+    },
+    {
+      "slug": "power",
+      "values": ["Gas", "Charcoal"]
+    }
+  ]
+}

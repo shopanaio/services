@@ -1,0 +1,14 @@
+{
+  "title": "Экшн-камера 'ActionCam 4K'",
+  "slug": "action-camera-4k",
+  "description": "Снимайте свои приключения в потрясающем 4K качестве.",
+  "category": "electronics",
+  "price": 249.99,
+  "tags": ["new", "bestseller"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Camera only", "Camera + Accessories Kit"]
+    }
+  ]
+}

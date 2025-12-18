@@ -1,0 +1,5 @@
+mutation ReviewApprove($input: ApproveReviewInput!) {
+  reviewMutation {
+    approve(input: $input)
+  }
+}

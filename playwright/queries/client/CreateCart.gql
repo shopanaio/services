@@ -1,0 +1,66 @@
+mutation CreateCart($input: CreateCartInput!) {
+  createCart(input: $input) {
+    cart {
+      id
+      iid
+      totalQuantity
+      createdAt
+      updatedAt
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+        totalDiscountAmount {
+          amount
+          currencyCode
+        }
+        totalTaxAmount {
+          amount
+          currencyCode
+        }
+      }
+      lines(first: 10) {
+        totalCount
+        edges {
+          node {
+            id
+            quantity
+            purchasable {
+              ... on ProductVariant {
+                id
+                iid
+                title
+                handle
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+            cost {
+              unitPrice {
+                amount
+                currencyCode
+              }
+              totalAmount {
+                amount
+                currencyCode
+              }
+            }
+          }
+        }
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

@@ -1,0 +1,31 @@
+query Product($handle: String!) {
+  product(handle: $handle) {
+    id
+    handle
+    title
+    description
+    excerpt
+    rating {
+      rating
+      count
+    }
+    variants {
+      id
+      handle
+      price {
+        amount
+        currencyCode
+      }
+      sku
+      stockStatus {
+        handle
+        isAvailable
+      }
+      cover {
+        id
+        source
+        url
+      }
+    }
+  }
+}

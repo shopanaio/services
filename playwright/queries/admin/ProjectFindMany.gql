@@ -1,0 +1,10 @@
+query ProjectFindMany {
+  projectQuery {
+    findMany {
+      id
+      name
+      slug
+      status
+    }
+  }
+}

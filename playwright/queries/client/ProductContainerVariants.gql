@@ -1,0 +1,32 @@
+query ProductContainerVariants($handle: String!) {
+  variant(handle: $handle) {
+    product {
+      options {
+        id
+        handle
+        title
+        displayType
+        values {
+          id
+          handle
+          title
+        }
+      }
+      variants {
+        id
+        handle
+        title
+        options {
+          handle
+          title
+          displayType
+          values {
+            handle
+            title
+          }
+        }
+        selectedOptions
+      }
+    }
+  }
+}

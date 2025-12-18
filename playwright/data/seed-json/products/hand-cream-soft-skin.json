@@ -1,0 +1,14 @@
+{
+  "title": "Крем для рук 'Soft Skin'",
+  "slug": "hand-cream-soft-skin",
+  "description": "Интенсивное увлажнение и питание для кожи рук.",
+  "category": "beauty-health",
+  "price": 8.50,
+  "tags": ["eco"],
+  "featureGroups": [
+    {
+      "slug": "skin-type",
+      "values": ["Dry", "Normal", "Sensitive"]
+    }
+  ]
+}

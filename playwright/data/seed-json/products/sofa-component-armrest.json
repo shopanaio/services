@@ -1,0 +1,14 @@
+{
+  "title": "Подлокотники для дивана",
+  "slug": "sofa-component-armrest",
+  "description": "Выберите подлокотники.",
+  "category": "home-garden",
+  "price": 50.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "material",
+      "values": ["Ткань", "Дерево"]
+    }
+  ]
+}

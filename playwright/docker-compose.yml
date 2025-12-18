@@ -1,0 +1,16 @@
+version: "3.8"
+
+# Start theses services for local development
+
+services:
+  drone-convert-extension:
+    build:
+      context: drone-convert-extension
+    container_name: drone-convert-extension
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    volumes:
+      - "${SSH_AUTH_SOCK}:/ssh-agent"
+    environment:
+      SSH_AUTH_SOCK: /ssh-agent

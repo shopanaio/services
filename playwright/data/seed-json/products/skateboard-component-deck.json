@@ -1,0 +1,14 @@
+{
+  "title": "Дека для скейтборда",
+  "slug": "skateboard-component-deck",
+  "description": "Выберите деку для своего скейтборда.",
+  "category": "sports-leisure",
+  "price": 40.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "skateboard-print",
+      "values": ["Classic Logo", "Skull", "Cosmic"]
+    }
+  ]
+}

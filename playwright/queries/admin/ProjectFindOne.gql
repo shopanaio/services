@@ -1,0 +1,10 @@
+query ProjectFindOne($slug: String!) {
+  projectQuery {
+    findOne(slug: $slug) {
+      id
+      name
+      slug
+      status
+    }
+  }
+}

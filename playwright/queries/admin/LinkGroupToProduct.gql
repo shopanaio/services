@@ -1,0 +1,5 @@
+mutation LinkGroupToProduct($input: GroupProductLinkInput!) {
+  searchMutation {
+    linkGroupToProduct(input: $input)
+  }
+}

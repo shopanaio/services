@@ -1,0 +1,14 @@
+{
+  "title": "Корпус для часов",
+  "slug": "watch-component-case",
+  "description": "Выберите корпус для ваших уникальных часов.",
+  "category": "clothing",
+  "price": 50.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "watch-material",
+      "values": ["Steel", "Titanium", "Gold-plated"]
+    }
+  ]
+}

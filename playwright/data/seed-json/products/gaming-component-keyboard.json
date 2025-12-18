@@ -1,0 +1,14 @@
+{
+  "title": "Игровая клавиатура",
+  "slug": "gaming-component-keyboard",
+  "category": "electronics",
+  "description": "Выберите форм-фактор клавиатуры.",
+  "price": 80.0,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "layout",
+      "values": ["TKL", "Full-size"]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+mutation KeywordDelete($input: KeywordDeleteInput!) {
+  searchMutation {
+    keywordDelete(input: $input)
+  }
+}

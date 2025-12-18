@@ -1,0 +1,5 @@
+mutation ProjectCreateApiKey($input: CreateApiKeyInput!) {
+  projectMutation {
+    createApiKey(input: $input)
+  }
+}

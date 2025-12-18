@@ -1,0 +1,5 @@
+mutation OrderUndoSplitFulfillment($undoSplitFulfillmentId: ID!) {
+  orderMutation {
+    undoSplitFulfillment(id: $undoSplitFulfillmentId)
+  }
+}

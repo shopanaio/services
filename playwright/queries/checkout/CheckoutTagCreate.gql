@@ -1,0 +1,45 @@
+mutation CheckoutTagCreate($input: CheckoutTagCreateInput!) {
+  checkoutMutation {
+    checkoutTagCreate(input: $input) {
+      id
+      tags {
+        id
+        slug
+        unique
+        createdAt
+        updatedAt
+      }
+      lines {
+        id
+        quantity
+        purchasableId
+        tag {
+          id
+          slug
+          unique
+        }
+        cost {
+          unitPrice {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+      }
+      totalQuantity
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+    }
+  }
+}

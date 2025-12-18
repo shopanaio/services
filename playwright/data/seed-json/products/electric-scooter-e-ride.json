@@ -1,0 +1,18 @@
+{
+  "title": "Электросамокат 'E-Ride'",
+  "slug": "electric-scooter-e-ride",
+  "description": "Быстрый и удобный электросамокат для городских поездок.",
+  "category": "auto",
+  "price": 450.00,
+  "tags": ["new", "eco"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black", "White"]
+    },
+    {
+      "slug": "power",
+      "values": ["350W", "500W"]
+    }
+  ]
+}

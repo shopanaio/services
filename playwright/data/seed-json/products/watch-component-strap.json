@@ -1,0 +1,14 @@
+{
+  "title": "Ремешок для часов",
+  "slug": "watch-component-strap",
+  "description": "Выберите ремешок для ваших часов.",
+  "category": "clothing",
+  "price": 25.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "watch-strap-material",
+      "values": ["Leather", "Silicone", "Steel Bracelet"]
+    }
+  ]
+}

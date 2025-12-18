@@ -1,0 +1,116 @@
+mutation CheckoutCreate($input: CheckoutCreateInput!) {
+  checkoutMutation {
+    checkoutCreate(input: $input) {
+      id
+      createdAt
+      updatedAt
+      totalQuantity
+      cost {
+        subtotalAmount {
+          amount
+          currencyCode
+        }
+        totalDiscountAmount {
+          amount
+          currencyCode
+        }
+        totalTaxAmount {
+          amount
+          currencyCode
+        }
+        totalShippingAmount {
+          amount
+          currencyCode
+        }
+        totalAmount {
+          amount
+          currencyCode
+        }
+      }
+      customerIdentity {
+        email
+        phone
+        countryCode
+        firstName
+        lastName
+        middleName
+        customer { id }
+      }
+      customerNote
+      notifications {
+        id
+        code
+        severity
+        isDismissed
+      }
+      lines {
+        id
+        quantity
+        purchasableId
+        tag {
+          id
+          slug
+          unique
+        }
+        cost {
+          unitPrice {
+            amount
+            currencyCode
+          }
+          totalAmount {
+            amount
+            currencyCode
+          }
+        }
+      }
+      tags {
+        id
+        slug
+        unique
+        createdAt
+        updatedAt
+      }
+      deliveryGroups {
+        id
+        checkoutLines { id }
+        deliveryAddress {
+          id
+          address1
+          address2
+          city
+          countryCode
+          provinceCode
+          postalCode
+          data
+        }
+        recipient {
+          firstName
+          lastName
+          middleName
+          email
+          phone
+        }
+        deliveryMethods {
+          code
+          deliveryMethodType
+          provider { code }
+          data
+        }
+        selectedDeliveryMethod {
+          code
+          deliveryMethodType
+          provider { code }
+          data
+        }
+        estimatedCost {
+          amount { amount currencyCode }
+          paymentModel
+        }
+      }
+      appliedPromoCodes {
+        code
+        appliedAt
+      }
+    }
+  }
+}

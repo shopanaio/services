@@ -1,0 +1,18 @@
+{
+  "title": "Органический кофейный скраб",
+  "slug": "organic-coffee-scrub",
+  "description": "Натуральный кофейный скраб для гладкой и сияющей кожи.",
+  "category": "beauty-health",
+  "price": 24.50,
+  "tags": ["eco", "new"],
+  "featureGroups": [
+    {
+      "slug": "skin-type",
+      "values": ["All", "Sensitive", "Oily"]
+    },
+    {
+      "slug": "bundle",
+      "values": ["Scrub only", "Scrub + Moisturizer"]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+query ProductTagsConnection(
+  $handle: String!
+  $first: Int
+  $after: Cursor
+  $last: Int
+  $before: Cursor
+  $sort: TagSort
+) {
+  product(handle: $handle) {
+    tags(first: $first, after: $after, last: $last, before: $before, sort: $sort) {
+      edges {
+        cursor
+        node {
+          id
+          title
+          handle
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

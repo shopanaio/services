@@ -1,0 +1,24 @@
+mutation CheckoutLinesReplace($checkoutId: ID!, $lines: [CheckoutLineReplaceInput!]!) {
+  checkoutMutation {
+    checkoutLinesReplace(input: { checkoutId: $checkoutId, lines: $lines }) {
+      checkout {
+        id
+        totalQuantity
+        cost {
+          totalAmount { amount currencyCode }
+          subtotalAmount { amount currencyCode }
+        }
+        lines {
+          id
+          purchasableId
+          quantity
+          cost {
+            unitPrice { amount currencyCode }
+            totalAmount { amount currencyCode }
+          }
+        }
+      }
+      errors { field message }
+    }
+  }
+}

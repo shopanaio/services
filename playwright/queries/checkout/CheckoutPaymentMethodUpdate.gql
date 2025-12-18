@@ -1,0 +1,25 @@
+mutation CheckoutPaymentMethodUpdate($input: CheckoutPaymentMethodUpdateInput!) {
+  checkoutMutation {
+    checkoutPaymentMethodUpdate(input: $input) {
+      id
+      payment {
+        paymentMethods {
+          code
+          provider { code }
+          flow
+          data
+        }
+        selectedPaymentMethod {
+          code
+          provider { code }
+          flow
+          data
+        }
+        payableAmount {
+          amount
+          currencyCode
+        }
+      }
+    }
+  }
+}

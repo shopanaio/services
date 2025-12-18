@@ -1,0 +1,18 @@
+{
+  "title": "Внешний аккумулятор 'PowerCore 20000'",
+  "slug": "power-bank-powercore-20000",
+  "description": "Заряжайте свои устройства где угодно с емкостью 20000 мАч.",
+  "category": "electronics",
+  "price": 45.00,
+  "tags": ["bestseller"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Black", "White"]
+    },
+    {
+      "slug": "socket-type",
+      "values": ["USB-A", "USB-C"]
+    }
+  ]
+}

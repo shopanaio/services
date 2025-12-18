@@ -1,0 +1,63 @@
+query CategoryChildrenAliases(
+  $handle1: String!
+  $handle2: String!
+  $handle3: String!
+  # cat1 vars
+  $first1: Int
+  $after1: Cursor
+  # cat2 vars
+  $last2: Int
+  $before2: Cursor
+  # cat3 vars
+  $first3: Int
+  $sort: CategorySort
+) {
+  cat1: category(handle: $handle1) {
+    children(first: $first1, after: $after1, sort: $sort) {
+      edges {
+        cursor
+        node {
+          title
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+  cat2: category(handle: $handle2) {
+    children(last: $last2, before: $before2, sort: $sort) {
+      edges {
+        cursor
+        node {
+          title
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+  cat3: category(handle: $handle3) {
+    children(first: $first3, sort: $sort) {
+      edges {
+        cursor
+        node {
+          title
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+    }
+  }
+}

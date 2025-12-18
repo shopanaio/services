@@ -1,0 +1,13 @@
+
+{
+  "title": "AirPods Pro 2",
+  "slug": "headphones-airpods-pro-2",
+  "description": "Беспроводные наушники с активным шумоподавлением и пространственным аудио. Наслаждайтесь кристально чистым звуком и удобством использования.",
+  "category": "electronics",
+  "price": 249,
+  "tags": ["new", "bestseller"],
+  "featureGroups": [
+    { "slug": "color", "values": ["White"] },
+    { "slug": "material", "values": ["Plastic"] }
+  ]
+}

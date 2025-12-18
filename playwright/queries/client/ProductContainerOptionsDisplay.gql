@@ -1,0 +1,18 @@
+query ProductContainerOptionsDisplay($handle: String!) {
+  variant(handle: $handle) {
+    product {
+      options {
+        handle
+        displayType
+        values {
+          handle
+          swatch {
+            color
+            color2
+            displayType
+          }
+        }
+      }
+    }
+  }
+}

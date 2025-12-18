@@ -1,0 +1,5 @@
+{
+  "title": "Тип цоколя",
+  "slug": "socket-type",
+  "values": ["E27", "E14", "GU10", "GU5.3", "G9"]
+}

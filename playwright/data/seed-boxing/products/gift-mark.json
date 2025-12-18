@@ -1,0 +1,22 @@
+{
+  "title": "Подарочная марка",
+  "slug": "gift-mark",
+  "category": "marks",
+  "price": 15,
+  "description": "Декоративная марка для украшения подарочной упаковки. Придает особый шарм вашему подарку.",
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "design",
+      "values": [
+        "Gift Box",
+        "Gift Box Premium",
+        "Good Morning",
+        "Happy Birthday",
+        "Special Delivery",
+        "Special For You",
+        "Thank You"
+      ]
+    }
+  ]
+}

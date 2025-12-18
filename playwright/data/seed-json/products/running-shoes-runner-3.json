@@ -1,0 +1,18 @@
+{
+  "title": "Беговые кроссовки 'Runner 3'",
+  "slug": "running-shoes-runner-3",
+  "description": "Легкие и удобные кроссовки для бега.",
+  "category": "sports-leisure",
+  "price": 95.50,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "color",
+      "values": ["Blue/Green", "Black/White", "Pink/Grey"]
+    },
+    {
+      "slug": "size",
+      "values": ["38", "39", "40", "41", "42", "43", "44", "45"]
+    }
+  ]
+}

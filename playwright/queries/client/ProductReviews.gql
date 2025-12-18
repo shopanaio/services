@@ -1,0 +1,31 @@
+query ProductReviews(
+  $handle: String!
+  $first: Int
+  $after: Cursor
+  $last: Int
+  $before: Cursor
+  $sort: ProductReviewSort
+) {
+  product(handle: $handle) {
+    reviews(first: $first, after: $after, last: $last, before: $before, sort: $sort) {
+      edges {
+        cursor
+        node {
+          id
+          iid
+          title
+          rating
+          helpfulYes
+          createdAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

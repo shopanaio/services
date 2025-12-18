@@ -1,0 +1,66 @@
+{
+  "title": "Собери свои часы",
+  "slug": "watch-builder-box",
+  "description": "Создайте уникальные часы, выбрав корпус и ремешок.",
+  "category": "clothing",
+  "price": 200.0,
+  "tags": ["new", "premium"],
+  "groups": [
+    {
+      "title": "Выберите корпус",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "watch-component-case",
+          "featureValues": ["Steel"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "watch-component-case",
+          "featureValues": ["Titanium"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 150
+        },
+        {
+          "productSlug": "watch-component-case",
+          "featureValues": ["Gold-plated"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 300
+        }
+      ]
+    },
+    {
+      "title": "Выберите ремешок",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "watch-component-strap",
+          "featureValues": ["Leather"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "watch-component-strap",
+          "featureValues": ["Silicone"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": -10
+        },
+        {
+          "productSlug": "watch-component-strap",
+          "featureValues": ["Steel Bracelet"],
+          "sortIndex": 2,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 50
+        }
+      ]
+    }
+  ]
+}

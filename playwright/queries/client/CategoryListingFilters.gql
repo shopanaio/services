@@ -1,0 +1,68 @@
+query CategoryListingFilters(
+  $handle: String!
+  $first: Int
+  $after: Cursor
+  $last: Int
+  $before: Cursor
+  $sort: ListingSort
+  $filters: [FilterInput!]
+) {
+  category(handle: $handle) {
+    listing(first: $first, after: $after, last: $last, before: $before, sort: $sort, filters: $filters) {
+      totalCount
+      edges {
+        cursor
+        node {
+          ... on ProductVariant {
+            id
+            iid
+            title
+            handle
+            createdAt
+            updatedAt
+            price {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      filters {
+        __typename
+        id
+        iid
+        title
+        handle
+        ... on PriceRangeFilter {
+          minPrice {
+            amount
+            currencyCode
+          }
+          maxPrice {
+            amount
+            currencyCode
+          }
+        }
+        ... on RatingRangeFilter {
+          minRate
+          maxRate
+        }
+        ... on ListFilter {
+          values {
+            id
+            iid
+            handle
+            title
+            count
+          }
+        }
+      }
+    }
+  }
+}

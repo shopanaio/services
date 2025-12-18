@@ -1,0 +1,14 @@
+{
+  "title": "Автомобильный ароматизатор 'Ocean'",
+  "slug": "car-air-freshener-ocean",
+  "description": "Свежий аромат океана в вашем автомобиле.",
+  "category": "auto",
+  "price": 5.99,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+      "slug": "bundle",
+      "values": ["Ocean", "Vanilla", "Citrus"]
+    }
+  ]
+}

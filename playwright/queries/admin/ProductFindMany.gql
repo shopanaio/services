@@ -1,0 +1,31 @@
+query ProductFindMany($input: ProductsInput) {
+  productQuery {
+    findMany(input: $input) {
+      data {
+        title
+        slug
+        status
+        createdAt
+        description
+        excerpt
+        id
+        updatedAt
+        requiresShipping
+        variants {
+          inListing
+          barcode
+          categories {
+            listingOrderByStatus
+          }
+        }
+      }
+      meta {
+        page
+        pageSize
+        count
+        total
+        pageCount
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+query Session {
+  session {
+    user {
+      id
+      iid
+      email
+    }
+    accessToken
+  }
+}

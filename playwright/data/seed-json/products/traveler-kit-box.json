@@ -1,0 +1,51 @@
+{
+  "title": "Набор для путешественника",
+  "slug": "traveler-kit-box",
+  "category": "home-garden",
+  "description": "Все необходимое для комфортного путешествия в одном наборе.",
+  "price": 150.0,
+  "tags": ["new", "bestseller"],
+  "groups": [
+    {
+      "title": "Рюкзаки",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "leather-backpack-urban-explorer",
+          "sortIndex": 0,
+          "priceType": "BASE"
+        }
+      ]
+    },
+    {
+      "title": "Термосы",
+      "isMultiple": false,
+      "isRequired": false,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "thermos-hot-cold",
+          "sortIndex": 0,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 25
+        }
+      ]
+    },
+    {
+      "title": "Подушки",
+      "isMultiple": false,
+      "isRequired": false,
+      "sortIndex": 2,
+      "items": [
+        {
+          "productSlug": "travel-pillow-comfortzone",
+          "sortIndex": 0,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 15
+        }
+      ]
+    }
+  ]
+}

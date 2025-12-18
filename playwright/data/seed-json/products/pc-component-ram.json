@@ -1,0 +1,14 @@
+{
+  "title": "Оперативная память (RAM)",
+  "slug": "pc-component-ram",
+  "description": "Память для многозадачности.",
+  "category": "electronics",
+  "price": 50.0,
+  "tags": [],
+  "featureGroups": [
+    {
+      "slug": "ram-size",
+      "values": ["8GB", "16GB", "32GB"]
+    }
+  ]
+}

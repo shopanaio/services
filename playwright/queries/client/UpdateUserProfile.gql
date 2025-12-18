@@ -1,0 +1,23 @@
+mutation UpdateUserProfile($input: UpdateUserProfileInput!) {
+  updateUserProfile(input: $input) {
+    user {
+      id
+      iid
+      email
+      isVerified
+      language
+      name {
+        first
+        last
+        middle
+      }
+      phone
+    }
+    errors {
+      field
+      message
+      code
+    }
+    clientMutationId
+  }
+}

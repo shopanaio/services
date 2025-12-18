@@ -1,0 +1,26 @@
+mutation ProductCreate {
+  inventoryMutation {
+    productCreate {
+      product {
+        id
+        title
+        handle
+        isPublished
+        variants(first: 10) {
+          edges {
+            node {
+              id
+              isDefault
+              handle
+              sku
+            }
+          }
+        }
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

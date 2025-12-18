@@ -1,0 +1,12 @@
+query ProjectApiKeys {
+  projectQuery {
+    apiKeys {
+      id
+      name
+      isBanned
+      lastUsedAt
+      dueDate
+      createdAt
+    }
+  }
+}

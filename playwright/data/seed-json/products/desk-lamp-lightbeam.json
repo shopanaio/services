@@ -1,0 +1,18 @@
+{
+  "title": "Настольная лампа 'LightBeam'",
+  "slug": "desk-lamp-lightbeam",
+  "description": "Современная светодиодная лампа с регулировкой яркости.",
+  "category": "home-garden",
+  "price": 55.00,
+  "tags": ["new"],
+  "featureGroups": [
+    {
+        "slug": "color",
+        "values": ["White", "Black"]
+    },
+     {
+        "slug": "power",
+        "values": ["LED"]
+    }
+  ]
+}

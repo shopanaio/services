@@ -1,0 +1,15 @@
+mutation UserSignIn($input: SignInInput!) {
+  userMutation {
+    signIn(input: $input) {
+      user {
+        email
+        firstName
+        id
+        isVerified
+        lastName
+        phoneNumber
+      }
+      jwt
+    }
+  }
+}

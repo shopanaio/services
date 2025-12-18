@@ -1,0 +1,11 @@
+{
+  "title": "Беспроводные наушники SoundWave X1",
+  "slug": "wireless-headphones-soundwave-x1",
+  "category": "electronics",
+  "tags": ["new", "premium"],
+  "price": 149,
+  "description": "Наушники с кристально чистым звуком и шумоподавлением.",
+  "featureGroups": [
+    { "slug": "color", "values": ["Черный", "Белый", "Синий"] }
+  ]
+}

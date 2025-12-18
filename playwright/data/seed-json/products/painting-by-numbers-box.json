@@ -1,0 +1,52 @@
+{
+  "title": "Картина по номерам",
+  "slug": "painting-by-numbers-box",
+  "category": "arts-crafts",
+  "description": "Создайте свой шедевр, выбрав холст и краски.",
+  "price": 25.0,
+  "tags": ["new", "bestseller", "eco"],
+  "groups": [
+    {
+      "title": "Холсты",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 0,
+      "items": [
+        {
+          "productSlug": "painting-component-canvas",
+          "featureValues": ["Пейзаж"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "painting-component-canvas",
+          "featureValues": ["Натюрморт"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 2
+        }
+      ]
+    },
+    {
+      "title": "Краски",
+      "isMultiple": false,
+      "isRequired": true,
+      "sortIndex": 1,
+      "items": [
+        {
+          "productSlug": "painting-component-paints",
+          "featureValues": ["Акрил"],
+          "sortIndex": 0,
+          "priceType": "BASE"
+        },
+        {
+          "productSlug": "painting-component-paints",
+          "featureValues": ["Масло"],
+          "sortIndex": 1,
+          "priceType": "BASE_ADJUST_AMOUNT",
+          "priceAmountValue": 5
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "title": "TabPro 10",
+  "slug": "tablet-tabpro-10",
+  "description": "Универсальный планшет для работы и учебы. Яркий 10-дюймовый дисплей, мощный процессор и поддержка стилуса делают его идеальным инструментом для творчества и продуктивности.",
+  "category": "electronics",
+  "price": 499,
+  "tags": ["new", "sale"],
+  "featureGroups": [
+    { "slug": "color", "values": ["Silver", "Space Gray"] },
+    { "slug": "material", "values": ["Plastic"] },
+    { "slug": "power", "values": ["18W"] }
+  ]
+}

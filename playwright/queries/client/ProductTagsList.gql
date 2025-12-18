@@ -1,0 +1,15 @@
+query ProductTagsList($handle: String!, $first: Int = 10) {
+  product(handle: $handle) {
+    id
+    handle
+    tags(first: $first) {
+      edges {
+        node {
+          id
+          handle
+          title
+        }
+      }
+    }
+  }
+}
