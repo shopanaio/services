@@ -100,11 +100,11 @@ services:
       admin_graphql: 10010
       metrics: 3037
     casdoor:
-      endpoint: ${CASDOOR_ENDPOINT}
-      client_id: ${CASDOOR_CLIENT_ID}
-      client_secret: ${CASDOOR_CLIENT_SECRET}
-      application_name: ${CASDOOR_APPLICATION_NAME}
-      organization_name: ${CASDOOR_ORGANIZATION_NAME}
-      certificate: ${CASDOOR_CERTIFICATE}
-      google_provider: ${CASDOOR_GOOGLE_PROVIDER}
-      oauth_redirect_uri: ${CASDOOR_OAUTH_REDIRECT_URI}
+      endpoint: http://localhost:9011
+      client_id: app-built-in-client-id
+      client_secret: app-built-in-client-secret"
+      application_name: app-built-in
+      organization_name: built-in
+      certificate: cert-built-in
+      # google_provider: ${CASDOOR_GOOGLE_PROVIDER}
+      # oauth_redirect_uri: ${CASDOOR_OAUTH_REDIRECT_URI}

@@ -22,6 +22,26 @@
       "problemMatcher": []
     },
     {
+      "label": "Run Gateway",
+      "type": "shell",
+      "command": "yarn shopana gateway",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Run Migrations",
       "type": "shell",
       "command": "yarn shopana migrate",
