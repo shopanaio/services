@@ -27,8 +27,8 @@
     "typescript-eslint": "^8.29.1"
   },
   "scripts": {
-    "gql:gen": "node ./bin/graphql/script.js",
-    "query:gen": "node ./bin/graphql/query-map-script.js queries queries/filenames.ts",
+    "codegen": "node ./bin/graphql/script.js",
+    "querygen": "node ./bin/graphql/query-map-script.js queries queries/filenames.ts",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "type-check": "tsc --noEmit",

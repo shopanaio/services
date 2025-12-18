@@ -18,269 +18,13 @@ export type Scalars = {
   Decimal: { input: number; output: number; }
   Email: { input: string; output: string; }
   JSON: { input: object; output: object; }
-  Phone: { input: string; output: string; }
-  Uuid: { input: string; output: string; }
+  TransportOptions: { input: any; output: any; }
 };
 
-/**
- * A postal address.
- * Implements the Node interface.
- */
-export type ApiAddress = ApiNode & {
-  __typename?: 'Address';
-  /** The first line of the street address (e.g., house number and street name). */
-  addressLine1: Scalars['String']['output'];
-  /** The second line of the street address (e.g., apartment, suite, unit). */
-  addressLine2?: Maybe<Scalars['String']['output']>;
-  /** City where the address is located. */
-  city: Scalars['String']['output'];
-  /** ISO 3166-1 alpha-2 country code (e.g., "US" for United States). */
-  countryCode: CountryCode;
-  /** Contact email for this address. */
-  email?: Maybe<Scalars['String']['output']>;
-  /** Recipient’s first name. */
-  firstName?: Maybe<Scalars['String']['output']>;
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Recipient’s last name. */
-  lastName?: Maybe<Scalars['String']['output']>;
-  /** Latitude coordinate of the address location. */
-  latitude?: Maybe<Scalars['Float']['output']>;
-  /** Longitude coordinate of the address location. */
-  longitude?: Maybe<Scalars['Float']['output']>;
-  /** Arbitrary metadata as JSON (e.g., delivery instructions). */
-  metadata?: Maybe<Scalars['JSON']['output']>;
-  /** Recipient’s middle name. */
-  middleName?: Maybe<Scalars['String']['output']>;
-  /** Contact phone number for this address. */
-  phone?: Maybe<Scalars['String']['output']>;
-  /** Postal or ZIP code. */
-  postalCode?: Maybe<Scalars['String']['output']>;
-  /** Province, state or region code (e.g., "CA" for California). */
-  provinceCode?: Maybe<Scalars['String']['output']>;
-};
-
-/**
- * Input type for creating or updating an Address.
- * Maps to Go model portal/project/storage/address/dto.Input.
- */
-export type ApiAddressInput = {
-  /** The first line of the street address (e.g., house number and street name). */
-  addressLine1: Scalars['String']['input'];
-  /** The second line of the street address (e.g., apartment, suite, unit). */
-  addressLine2?: InputMaybe<Scalars['String']['input']>;
-  /** City where the address is located. */
-  city: Scalars['String']['input'];
-  /** ISO 3166-1 alpha-2 country code (e.g., "US" for United States). */
-  countryCode: CountryCode;
-  /** Contact email for this address. */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** Recipient’s first name. */
-  firstName?: InputMaybe<Scalars['String']['input']>;
-  /** Recipient’s last name. */
-  lastName?: InputMaybe<Scalars['String']['input']>;
-  /** Latitude coordinate of the address location. */
-  latitude?: InputMaybe<Scalars['Float']['input']>;
-  /** Longitude coordinate of the address location. */
-  longitude?: InputMaybe<Scalars['Float']['input']>;
-  /** Arbitrary metadata as JSON (e.g., delivery instructions). */
-  metadata?: InputMaybe<Scalars['JSON']['input']>;
-  /** Recipient’s middle name. */
-  middleName?: InputMaybe<Scalars['String']['input']>;
-  /** Contact phone number for this address. */
-  phone?: InputMaybe<Scalars['String']['input']>;
-  /** Postal or ZIP code. */
-  postalCode?: InputMaybe<Scalars['String']['input']>;
-  /** Province, state or region code (e.g., "CA" for California). */
-  provinceCode?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** A content article. */
-export type ApiArticle = ApiNode & {
-  __typename?: 'Article';
-  /** The type of the article. */
-  articleType: Scalars['String']['output'];
-  /** The cover image for the article. */
-  cover?: Maybe<ApiFile>;
-  /** The date and time when the article was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** The full description of the article. */
-  description: Scalars['String']['output'];
-  /** A short excerpt of the article. */
-  excerpt: Scalars['String']['output'];
-  /** Gallery of additional images with cursor-based pagination. */
-  gallery: ApiGalleryConnection;
-  /** Unique human-readable slug. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The article’s title. */
-  title: Scalars['String']['output'];
-  /** The date and time when the article was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-
-/** A content article. */
-export type ApiArticleGalleryArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-/** Connection type for articles. */
-export type ApiArticleConnection = {
-  __typename?: 'ArticleConnection';
-  /** List of article edges. */
-  edges: Array<ApiArticleEdge>;
-  /** Pagination details. */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in the paginated list of articles. */
-export type ApiArticleEdge = {
-  __typename?: 'ArticleEdge';
-  /** Cursor for pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** The article node. */
-  node: ApiArticle;
-};
-
-export enum ArticleSort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  TitleAsc = 'TITLE_ASC',
-  TitleDesc = 'TITLE_DESC',
-  UpdatedAtAsc = 'UPDATED_AT_ASC',
-  UpdatedAtDesc = 'UPDATED_AT_DESC'
-}
-
-export type ApiCategory = ApiNode & {
-  __typename?: 'Category';
-  /** Breadcrumbs from the root category to this category (inclusive). */
-  breadcrumbs: Array<ApiCategory>;
-  /** Child categories using Relay-style pagination. */
-  children: ApiCategoryConnection;
-  /** The cover image file for the category. */
-  cover?: Maybe<ApiFile>;
-  /** DateTime when the category was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** The category description in the language specified by the Accept-Language header. */
-  description: Scalars['String']['output'];
-  /** A short excerpt of the category in the language specified by the Accept-Language header. */
-  excerpt: Scalars['String']['output'];
-  /** Gallery images using Relay-style pagination. */
-  gallery: ApiGalleryConnection;
-  /** A unique human-readable identifier for the category. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** A preview listing with filters, sorting, and pagination. */
-  listing: ApiListingConnection;
-  /** The listing mode for this category (SMART, STANDARD, CONTAINER). */
-  listingType: ListingType;
-  /** SEO description for the category page. */
-  seoDescription?: Maybe<Scalars['String']['output']>;
-  /** SEO title for the category page. */
-  seoTitle?: Maybe<Scalars['String']['output']>;
-  /** The category title in the language specified by the Accept-Language header. */
-  title: Scalars['String']['output'];
-  /** DateTime when the category was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-
-export type ApiCategoryChildrenArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<CategorySort>;
-};
-
-
-export type ApiCategoryGalleryArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiCategoryListingArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  filters?: InputMaybe<Array<ApiFilterInput>>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ListingSort>;
-};
-
-export type ApiCategoryConnection = {
-  __typename?: 'CategoryConnection';
-  /** List of category edges (each contains a node and a cursor). */
-  edges: Array<ApiCategoryEdge>;
-  /** Pagination metadata (hasNextPage, endCursor, etc.). */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-export type ApiCategoryEdge = {
-  __typename?: 'CategoryEdge';
-  /** Cursor for Relay-style pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** Node containing the category data. */
-  node: ApiCategory;
-};
-
-export enum CategorySort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  TitleAsc = 'TITLE_ASC',
-  TitleDesc = 'TITLE_DESC',
-  UpdatedAtAsc = 'UPDATED_AT_ASC',
-  UpdatedAtDesc = 'UPDATED_AT_DESC'
-}
-
-/** A checkout with multiple items. */
-export type ApiCheckout = ApiNode & {
+export type ApiCheckout = {
   __typename?: 'Checkout';
-  /** Applied promo codes for the checkout. */
-  appliedPromoCodes: Array<ApiCheckoutPromoCode>;
-  /** All cost calculations for the checkout. */
-  cost: ApiCheckoutCost;
-  /** When this checkout was first created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** Customer identity associated with the checkout. */
-  customerIdentity: ApiCheckoutCustomerIdentity;
-  /** Customer note or special instructions for the checkout. */
-  customerNote?: Maybe<Scalars['String']['output']>;
-  /** Delivery groups. */
-  deliveryGroups: Array<ApiCheckoutDeliveryGroup>;
-  /** A globally-unique ID. */
-  id: Scalars['ID']['output'];
-  /** List of items in the checkout (paginated). */
-  lines: Array<ApiCheckoutLine>;
-  /** Notifications for the user regarding the checkout. */
-  notifications: Array<ApiCheckoutNotification>;
   /** Payment aggregate for this checkout. */
   payment: ApiCheckoutPayment;
-  /** Tags that can be used to organize checkout lines. */
-  tags: Array<ApiCheckoutTag>;
-  /** Quantity of the item being purchased. */
-  totalQuantity: Scalars['Int']['output'];
-  /** When this checkout was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
 };
 
 /**
@@ -614,7 +358,6 @@ export type ApiCheckoutLine = ApiNode & {
   originalPrice: ApiMoney;
   /** Price adjustment applied to this line (for child items in bundles). */
   priceConfig?: Maybe<ApiCheckoutLinePriceConfig>;
-  purchasable: ApiProductVariant;
   /** ID of the purchasable. */
   purchasableId: Scalars['ID']['output'];
   /** Purchasable snapshot data at the time of adding to checkout. */
@@ -784,170 +527,13 @@ export type ApiCheckoutLinesUpdatePayload = {
 
 export type ApiCheckoutMutation = {
   __typename?: 'CheckoutMutation';
-  /** Creates a new checkout. */
-  checkoutCreate: ApiCheckout;
-  /** Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR"). */
-  checkoutCurrencyCodeUpdate: ApiCheckout;
-  /**
-   * Updates customer identification data associated with the checkout
-   * (email, customerId and if necessary country/language for calculations).
-   */
-  checkoutCustomerIdentityUpdate: ApiCheckout;
-  /** Updates the customer note attached to the checkout (delivery instructions, etc.). */
-  checkoutCustomerNoteUpdate: ApiCheckout;
-  /** Adds one or more delivery addresses to the checkout (supports multi-shipping). */
-  checkoutDeliveryAddressesAdd: ApiCheckout;
-  /** Removes one or more delivery addresses previously attached to the checkout. */
-  checkoutDeliveryAddressesRemove: ApiCheckout;
-  /** Updates previously added delivery addresses (e.g., correcting postal code or city). */
-  checkoutDeliveryAddressesUpdate: ApiCheckout;
-  /** Selects or changes the delivery method for the entire checkout or specific address. */
-  checkoutDeliveryMethodUpdate: ApiCheckout;
-  /** Adds recipients to delivery groups. */
-  checkoutDeliveryRecipientsAdd: ApiCheckout;
-  /** Removes recipients from delivery groups. */
-  checkoutDeliveryRecipientsRemove: ApiCheckout;
-  /** Updates recipients for delivery groups. */
-  checkoutDeliveryRecipientsUpdate: ApiCheckout;
-  /** Updates the language/locale of the checkout (affects localization and formatting). */
-  checkoutLanguageCodeUpdate: ApiCheckout;
-  /** Adds an item to an existing checkout. */
-  checkoutLinesAdd: ApiCheckoutLinesAddPayload;
-  /** Clears all items from a checkout. */
-  checkoutLinesClear: ApiCheckoutLinesClearPayload;
-  /** Removes a single item from the checkout. */
-  checkoutLinesDelete: ApiCheckoutLinesDeletePayload;
-  /** Replaces one checkout line with another by merging quantities and removing the source line. */
-  checkoutLinesReplace: ApiCheckoutLinesReplacePayload;
-  /** Updates the quantity of a specific checkout item. */
-  checkoutLinesUpdate: ApiCheckoutLinesUpdatePayload;
   /** Selects or changes the payment method for the checkout. */
   checkoutPaymentMethodUpdate: ApiCheckout;
-  /** Applies a promo code/coupon to the checkout. */
-  checkoutPromoCodeAdd: ApiCheckout;
-  /** Removes a previously applied promo code/coupon from the checkout. */
-  checkoutPromoCodeRemove: ApiCheckout;
-  /** Creates a new checkout tag. */
-  checkoutTagCreate: ApiCheckout;
-  /** Deletes a checkout tag. */
-  checkoutTagDelete: ApiCheckout;
-  /** Updates a checkout tag. */
-  checkoutTagUpdate: ApiCheckout;
-};
-
-
-export type ApiCheckoutMutationCheckoutCreateArgs = {
-  input: ApiCheckoutCreateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutCurrencyCodeUpdateArgs = {
-  input: ApiCheckoutCurrencyCodeUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutCustomerIdentityUpdateArgs = {
-  input: ApiCheckoutCustomerIdentityUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutCustomerNoteUpdateArgs = {
-  input: ApiCheckoutCustomerNoteUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryAddressesAddArgs = {
-  input: ApiCheckoutDeliveryAddressesAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryAddressesRemoveArgs = {
-  input: ApiCheckoutDeliveryAddressesRemoveInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryAddressesUpdateArgs = {
-  input: ApiCheckoutDeliveryAddressesUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryMethodUpdateArgs = {
-  input: ApiCheckoutDeliveryMethodUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs = {
-  input: ApiCheckoutDeliveryRecipientsAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs = {
-  input: ApiCheckoutDeliveryRecipientsRemoveInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryRecipientsUpdateArgs = {
-  input: ApiCheckoutDeliveryRecipientsUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs = {
-  input: ApiCheckoutLanguageCodeUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesAddArgs = {
-  input: ApiCheckoutLinesAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesClearArgs = {
-  input: ApiCheckoutLinesClearInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesDeleteArgs = {
-  input: ApiCheckoutLinesDeleteInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesReplaceArgs = {
-  input: ApiCheckoutLinesReplaceInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesUpdateArgs = {
-  input: ApiCheckoutLinesUpdateInput;
 };
 
 
 export type ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs = {
   input: ApiCheckoutPaymentMethodUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutPromoCodeAddArgs = {
-  input: ApiCheckoutPromoCodeAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutPromoCodeRemoveArgs = {
-  input: ApiCheckoutPromoCodeRemoveInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutTagCreateArgs = {
-  input: ApiCheckoutTagCreateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutTagDeleteArgs = {
-  input: ApiCheckoutTagDeleteInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutTagUpdateArgs = {
-  input: ApiCheckoutTagUpdateInput;
 };
 
 /** A non-blocking warning generated by checkout operations. */
@@ -1601,370 +1187,329 @@ export type ApiCreateOrderInput = {
   checkoutId: Scalars['ID']['input'];
 };
 
-/** Input type for submitting a new product review. */
-export type ApiCreateReviewInput = {
-  /**
-   * A summary of key negative points noted by the reviewer.
-   * Use commas or semicolons to separate multiple cons.
-   */
-  cons?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * The publicly displayed name of the reviewer.
-   * This may be a username, nickname, or real name, depending on your policy.
-   */
-  displayName: Scalars['String']['input'];
-  /**
-   * An optional list of image IDs uploaded by the reviewer.
-   * Images should illustrate product features or usage.
-   */
-  images?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** The locale or language code. */
-  locale?: InputMaybe<LocaleCode>;
-  /**
-   * The main body of the review.
-   * Should capture the reviewer's overall experience and opinions.
-   */
-  message: Scalars['String']['input'];
-  /** The unique identifier of the product to which this review belongs. */
-  productId: Scalars['ID']['input'];
-  /**
-   * A summary of key positive points noted by the reviewer.
-   * Use commas or semicolons to separate multiple pros.
-   */
-  pros?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * The numerical rating given by the reviewer.
-   * Valid values typically range from 1.0 (worst) to 5.0 (best).
-   */
-  rating: Scalars['Float']['input'];
-  /**
-   * A brief, descriptive title summarizing the review.
-   * For example: "Excellent quality, highly recommend".
-   */
-  title?: InputMaybe<Scalars['String']['input']>;
-};
-
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
-  /** 2 decimals — UAE Dirham (United Arab Emirates) */
+  /** UAE Dirham (United Arab Emirates) - 2 decimals */
   Aed = 'AED',
-  /** 2 decimals — Afghan Afghani (Afghanistan) */
+  /** Afghan Afghani (Afghanistan) - 0 decimals */
   Afn = 'AFN',
-  /** 2 decimals — Albanian Lek (Albania) */
+  /** Albanian Lek (Albania) - 0 decimals */
   All = 'ALL',
-  /** 2 decimals — Armenian Dram (Armenia) */
+  /** Armenian Dram (Armenia) - 2 decimals */
   Amd = 'AMD',
-  /** 2 decimals — Netherlands Antillean Guilder (Netherlands Antilles) */
+  /** Netherlands Antillean Guilder - 2 decimals */
   Ang = 'ANG',
-  /** 2 decimals — Angolan Kwanza (Angola) */
+  /** Angolan Kwanza (Angola) - 2 decimals */
   Aoa = 'AOA',
-  /** 2 decimals — Argentine Peso (Argentina) */
+  /** Argentine Peso (Argentina) - 2 decimals */
   Ars = 'ARS',
-  /** 2 decimals — Australian Dollar (Australia) */
+  /** Australian Dollar (Australia) - 2 decimals */
   Aud = 'AUD',
-  /** 2 decimals — Aruban Florin (Aruba) */
+  /** Aruban Florin (Aruba) - 2 decimals */
   Awg = 'AWG',
-  /** 2 decimals — Azerbaijani Manat (Azerbaijan) */
+  /** Azerbaijani Manat (Azerbaijan) - 2 decimals */
   Azn = 'AZN',
-  /** 2 decimals — Bosnia-Herzegovina Convertible Mark (Bosnia and Herzegovina) */
+  /** Bosnia-Herzegovina Convertible Mark - 2 decimals */
   Bam = 'BAM',
-  /** 2 decimals — Barbadian Dollar (Barbados) */
+  /** Barbadian Dollar (Barbados) - 2 decimals */
   Bbd = 'BBD',
-  /** 2 decimals — Bangladeshi Taka (Bangladesh) */
+  /** Bangladeshi Taka (Bangladesh) - 2 decimals */
   Bdt = 'BDT',
-  /** 2 decimals — Bulgarian Lev (Bulgaria) */
+  /** Bulgarian Lev (Bulgaria) - 2 decimals */
   Bgn = 'BGN',
-  /** 3 decimals — Bahraini Dinar (Bahrain) */
+  /** Bahraini Dinar (Bahrain) - 3 decimals */
   Bhd = 'BHD',
-  /** 0 decimals — Burundian Franc (Burundi) */
+  /** Burundian Franc (Burundi) - 0 decimals */
   Bif = 'BIF',
-  /** 2 decimals — Bermudian Dollar (Bermuda) */
+  /** Bermudian Dollar (Bermuda) - 2 decimals */
   Bmd = 'BMD',
-  /** 2 decimals — Brunei Dollar (Brunei) */
+  /** Brunei Dollar (Brunei) - 2 decimals */
   Bnd = 'BND',
-  /** 2 decimals — Bolivian Boliviano (Bolivia) */
+  /** Bolivian Boliviano (Bolivia) - 2 decimals */
   Bob = 'BOB',
-  /** 2 decimals — Brazilian Real (Brazil) */
+  /** Brazilian Real (Brazil) - 2 decimals */
   Brl = 'BRL',
-  /** 2 decimals — Bahamian Dollar (Bahamas) */
+  /** Bahamian Dollar (Bahamas) - 2 decimals */
   Bsd = 'BSD',
-  /** 2 decimals — Bhutanese Ngultrum (Bhutan) */
+  /** Bhutanese Ngultrum (Bhutan) - 2 decimals */
   Btn = 'BTN',
-  /** 2 decimals — Botswana Pula (Botswana) */
+  /** Botswana Pula (Botswana) - 2 decimals */
   Bwp = 'BWP',
-  /** 2 decimals — Belarusian Ruble (Belarus) */
+  /** Belarusian Ruble (Belarus) - 2 decimals */
   Byn = 'BYN',
-  /** 2 decimals — Belize Dollar (Belize) */
+  /** Belize Dollar (Belize) - 2 decimals */
   Bzd = 'BZD',
-  /** 2 decimals — Canadian Dollar (Canada) */
+  /** Canadian Dollar (Canada) - 2 decimals */
   Cad = 'CAD',
-  /** 2 decimals — Congolese Franc (Democratic Republic of the Congo) */
+  /** Congolese Franc (DR Congo) - 2 decimals */
   Cdf = 'CDF',
-  /** 2 decimals — Swiss Franc (Switzerland) */
+  /** Swiss Franc (Switzerland) - 2 decimals */
   Chf = 'CHF',
-  /** 0 decimals — Chilean Peso (Chile) */
+  /** Chilean Peso (Chile) - 0 decimals */
   Clp = 'CLP',
-  /** 2 decimals — Chinese Yuan (China) */
+  /** Chinese Yuan (China) - 2 decimals */
   Cny = 'CNY',
-  /** 2 decimals — Colombian Peso (Colombia) */
+  /** Colombian Peso (Colombia) - 2 decimals */
   Cop = 'COP',
-  /** 2 decimals — Costa Rican Colon (Costa Rica) */
+  /** Costa Rican Colon (Costa Rica) - 2 decimals */
   Crc = 'CRC',
-  /** 2 decimals — Cuban Peso (Cuba) */
+  /** Cuban Peso (Cuba) - 2 decimals */
   Cup = 'CUP',
-  /** 2 decimals — Cape Verdean Escudo (Cape Verde) */
+  /** Cape Verdean Escudo (Cape Verde) - 2 decimals */
   Cve = 'CVE',
-  /** 2 decimals — Czech Koruna (Czech Republic) */
+  /** Czech Koruna (Czech Republic) - 2 decimals */
   Czk = 'CZK',
-  /** 0 decimals — Djiboutian Franc (Djibouti) */
+  /** Djiboutian Franc (Djibouti) - 0 decimals */
   Djf = 'DJF',
-  /** 2 decimals — Danish Krone (Denmark) */
+  /** Danish Krone (Denmark) - 2 decimals */
   Dkk = 'DKK',
-  /** 2 decimals — Dominican Peso (Dominican Republic) */
+  /** Dominican Peso (Dominican Republic) - 2 decimals */
   Dop = 'DOP',
-  /** 2 decimals — Algerian Dinar (Algeria) */
+  /** Algerian Dinar (Algeria) - 2 decimals */
   Dzd = 'DZD',
-  /** 2 decimals — Egyptian Pound (Egypt) */
+  /** Egyptian Pound (Egypt) - 2 decimals */
   Egp = 'EGP',
-  /** 2 decimals — Eritrean Nakfa (Eritrea) */
+  /** Eritrean Nakfa (Eritrea) - 2 decimals */
   Ern = 'ERN',
-  /** 2 decimals — Ethiopian Birr (Ethiopia) */
+  /** Ethiopian Birr (Ethiopia) - 2 decimals */
   Etb = 'ETB',
-  /** 2 decimals — Euro (European Union) */
+  /** Euro (European Union) - 2 decimals */
   Eur = 'EUR',
-  /** 2 decimals — Fijian Dollar (Fiji) */
+  /** Fijian Dollar (Fiji) - 2 decimals */
   Fjd = 'FJD',
-  /** 2 decimals — Falkland Islands Pound (Falkland Islands) */
+  /** Falkland Islands Pound - 2 decimals */
   Fkp = 'FKP',
-  /** 2 decimals — Faroese Króna (Faroe Islands) */
+  /** Faroese Króna (Faroe Islands) - 2 decimals */
   Fok = 'FOK',
-  /** 2 decimals — Pound Sterling (United Kingdom) */
+  /** Pound Sterling (United Kingdom) - 2 decimals */
   Gbp = 'GBP',
-  /** 2 decimals — Georgian Lari (Georgia) */
+  /** Georgian Lari (Georgia) - 2 decimals */
   Gel = 'GEL',
-  /** 2 decimals — Guernsey Pound (Guernsey) */
+  /** Guernsey Pound (Guernsey) - 2 decimals */
   Ggp = 'GGP',
-  /** 2 decimals — Ghanaian Cedi (Ghana) */
+  /** Ghanaian Cedi (Ghana) - 2 decimals */
   Ghs = 'GHS',
-  /** 2 decimals — Gibraltar Pound (Gibraltar) */
+  /** Gibraltar Pound (Gibraltar) - 2 decimals */
   Gip = 'GIP',
-  /** 2 decimals — Gambian Dalasi (Gambia) */
+  /** Gambian Dalasi (Gambia) - 2 decimals */
   Gmd = 'GMD',
-  /** 0 decimals — Guinean Franc (Guinea) */
+  /** Guinean Franc (Guinea) - 0 decimals */
   Gnf = 'GNF',
-  /** 2 decimals — Guatemalan Quetzal (Guatemala) */
+  /** Guatemalan Quetzal (Guatemala) - 2 decimals */
   Gtq = 'GTQ',
-  /** 2 decimals — Guyanese Dollar (Guyana) */
+  /** Guyanese Dollar (Guyana) - 2 decimals */
   Gyd = 'GYD',
-  /** 2 decimals — Hong Kong Dollar (Hong Kong) */
+  /** Hong Kong Dollar (Hong Kong) - 2 decimals */
   Hkd = 'HKD',
-  /** 2 decimals — Honduran Lempira (Honduras) */
+  /** Honduran Lempira (Honduras) - 2 decimals */
   Hnl = 'HNL',
-  /** 2 decimals — Croatian Kuna (Croatia) */
+  /** Croatian Kuna (Croatia) - 2 decimals */
   Hrk = 'HRK',
-  /** 2 decimals — Haitian Gourde (Haiti) */
+  /** Haitian Gourde (Haiti) - 2 decimals */
   Htg = 'HTG',
-  /** 2 decimals — Hungarian Forint (Hungary) */
+  /** Hungarian Forint (Hungary) - 2 decimals */
   Huf = 'HUF',
-  /** 0 decimals — Indonesian Rupiah (Indonesia) */
+  /** Indonesian Rupiah (Indonesia) - 0 decimals */
   Idr = 'IDR',
-  /** 2 decimals — Israeli New Shekel (Israel) */
+  /** Israeli New Shekel (Israel) - 2 decimals */
   Ils = 'ILS',
-  /** 2 decimals — Isle of Man Pound (Isle of Man) */
+  /** Isle of Man Pound - 2 decimals */
   Imp = 'IMP',
-  /** 2 decimals — Indian Rupee (India) */
+  /** Indian Rupee (India) - 2 decimals */
   Inr = 'INR',
-  /** 3 decimals — Iraqi Dinar (Iraq) */
+  /** Iraqi Dinar (Iraq) - 3 decimals */
   Iqd = 'IQD',
-  /** 2 decimals — Iranian Rial (Iran) */
+  /** Iranian Rial (Iran) - 2 decimals */
   Irr = 'IRR',
-  /** 0 decimals — Icelandic Króna (Iceland) */
+  /** Icelandic Króna (Iceland) - 0 decimals */
   Isk = 'ISK',
-  /** 2 decimals — Jersey Pound (Jersey) */
+  /** Jersey Pound (Jersey) - 2 decimals */
   Jep = 'JEP',
-  /** 2 decimals — Jamaican Dollar (Jamaica) */
+  /** Jamaican Dollar (Jamaica) - 2 decimals */
   Jmd = 'JMD',
-  /** 3 decimals — Jordanian Dinar (Jordan) */
+  /** Jordanian Dinar (Jordan) - 3 decimals */
   Jod = 'JOD',
-  /** 0 decimals — Japanese Yen (Japan) */
+  /** Japanese Yen (Japan) - 0 decimals */
   Jpy = 'JPY',
-  /** 2 decimals — Kenyan Shilling (Kenya) */
+  /** Kenyan Shilling (Kenya) - 2 decimals */
   Kes = 'KES',
-  /** 2 decimals — Kyrgyzstani Som (Kyrgyzstan) */
+  /** Kyrgyzstani Som (Kyrgyzstan) - 2 decimals */
   Kgs = 'KGS',
-  /** 2 decimals — Cambodian Riel (Cambodia) */
+  /** Cambodian Riel (Cambodia) - 2 decimals */
   Khr = 'KHR',
-  /** 2 decimals — Comorian Franc (Comoros) */
+  /** Comorian Franc (Comoros) - 2 decimals */
   Kmf = 'KMF',
-  /** 2 decimals — North Korean Won (North Korea) */
+  /** North Korean Won (North Korea) - 2 decimals */
   Kpw = 'KPW',
-  /** 2 decimals — South Korean Won (South Korea) */
+  /** South Korean Won (South Korea) - 0 decimals */
   Krw = 'KRW',
-  /** 3 decimals — Kuwaiti Dinar (Kuwait) */
+  /** Kuwaiti Dinar (Kuwait) - 3 decimals */
   Kwd = 'KWD',
-  /** 2 decimals — Cayman Islands Dollar (Cayman Islands) */
+  /** Cayman Islands Dollar - 2 decimals */
   Kyd = 'KYD',
-  /** 2 decimals — Kazakhstani Tenge (Kazakhstan) */
+  /** Kazakhstani Tenge (Kazakhstan) - 2 decimals */
   Kzt = 'KZT',
-  /** 2 decimals — Lao Kip (Laos) */
+  /** Lao Kip (Laos) - 2 decimals */
   Lak = 'LAK',
-  /** 2 decimals — Lebanese Pound (Lebanon) */
+  /** Lebanese Pound (Lebanon) - 2 decimals */
   Lbp = 'LBP',
-  /** 2 decimals — Sri Lankan Rupee (Sri Lanka) */
+  /** Sri Lankan Rupee (Sri Lanka) - 2 decimals */
   Lkr = 'LKR',
-  /** 3 decimals — Liberian Dollar (Liberia) */
+  /** Liberian Dollar (Liberia) - 2 decimals */
   Lrd = 'LRD',
-  /** 3 decimals — Libyan Dinar (Libya) */
+  /** Lesotho Loti (Lesotho) - 2 decimals */
+  Lsl = 'LSL',
+  /** Libyan Dinar (Libya) - 3 decimals */
   Lyd = 'LYD',
-  /** 2 decimals — Moroccan Dirham (Morocco) */
+  /** Moroccan Dirham (Morocco) - 2 decimals */
   Mad = 'MAD',
-  /** 2 decimals — Moldovan Leu (Moldova) */
+  /** Moldovan Leu (Moldova) - 2 decimals */
   Mdl = 'MDL',
-  /** 2 decimals — Malagasy Ariary (Madagascar) */
+  /** Malagasy Ariary (Madagascar) - 2 decimals */
   Mga = 'MGA',
-  /** 2 decimals — Macedonian Denar (North Macedonia) */
+  /** Macedonian Denar (North Macedonia) - 2 decimals */
   Mkd = 'MKD',
-  /** 2 decimals — Burmese Kyat (Myanmar) */
+  /** Burmese Kyat (Myanmar) - 2 decimals */
   Mmk = 'MMK',
-  /** 2 decimals — Mongolian Tögrög (Mongolia) */
+  /** Mongolian Tögrög (Mongolia) - 2 decimals */
   Mnt = 'MNT',
-  /** 2 decimals — Macanese Pataca (Macau) */
+  /** Macanese Pataca (Macau) - 2 decimals */
   Mop = 'MOP',
-  /** 2 decimals — Mauritanian Ouguiya (Mauritania) */
+  /** Mauritanian Ouguiya (Mauritania) - 2 decimals */
   Mru = 'MRU',
-  /** 2 decimals — Mauritian Rupee (Mauritius) */
+  /** Mauritian Rupee (Mauritius) - 2 decimals */
   Mur = 'MUR',
-  /** 2 decimals — Maldivian Rufiyaa (Maldives) */
+  /** Maldivian Rufiyaa (Maldives) - 2 decimals */
   Mvr = 'MVR',
-  /** 2 decimals — Malawian Kwacha (Malawi) */
+  /** Malawian Kwacha (Malawi) - 2 decimals */
   Mwk = 'MWK',
-  /** 2 decimals — Mexican Peso (Mexico) */
+  /** Mexican Peso (Mexico) - 2 decimals */
   Mxn = 'MXN',
-  /** 2 decimals — Malaysian Ringgit (Malaysia) */
+  /** Malaysian Ringgit (Malaysia) - 2 decimals */
   Myr = 'MYR',
-  /** 2 decimals — Mozambican Metical (Mozambique) */
+  /** Mozambican Metical (Mozambique) - 2 decimals */
   Mzn = 'MZN',
-  /** 2 decimals — Namibian Dollar (Namibia) */
+  /** Namibian Dollar (Namibia) - 2 decimals */
   Nad = 'NAD',
-  /** 2 decimals — Nigerian Naira (Nigeria) */
+  /** Nigerian Naira (Nigeria) - 2 decimals */
   Ngn = 'NGN',
-  /** 2 decimals — Nicaraguan Córdoba (Nicaragua) */
+  /** Nicaraguan Córdoba (Nicaragua) - 2 decimals */
   Nio = 'NIO',
-  /** 2 decimals — Norwegian Krone (Norway) */
+  /** Norwegian Krone (Norway) - 2 decimals */
   Nok = 'NOK',
-  /** 2 decimals — Nepalese Rupee (Nepal) */
+  /** Nepalese Rupee (Nepal) - 2 decimals */
   Npr = 'NPR',
-  /** 2 decimals — New Zealand Dollar (New Zealand) */
+  /** New Zealand Dollar (New Zealand) - 2 decimals */
   Nzd = 'NZD',
-  /** 2 decimals — Omani Rial (Oman) */
+  /** Omani Rial (Oman) - 3 decimals */
   Omr = 'OMR',
-  /** 2 decimals — Panamanian Balboa (Panama) */
+  /** Panamanian Balboa (Panama) - 2 decimals */
   Pab = 'PAB',
-  /** 2 decimals — Peruvian Sol (Peru) */
+  /** Peruvian Sol (Peru) - 2 decimals */
   Pen = 'PEN',
-  /** 0 decimals — Papua New Guinean Kina (Papua New Guinea) */
+  /** Papua New Guinean Kina - 2 decimals */
   Pgk = 'PGK',
-  /** 2 decimals — Philippine Peso (Philippines) */
+  /** Philippine Peso (Philippines) - 2 decimals */
   Php = 'PHP',
-  /** 2 decimals — Pakistani Rupee (Pakistan) */
+  /** Pakistani Rupee (Pakistan) - 2 decimals */
   Pkr = 'PKR',
-  /** 0 decimals — Polish Zloty (Poland) */
+  /** Polish Zloty (Poland) - 2 decimals */
   Pln = 'PLN',
-  /** 2 decimals — Paraguayan Guaraní (Paraguay) */
+  /** Paraguayan Guaraní (Paraguay) - 0 decimals */
   Pyg = 'PYG',
-  /** 2 decimals — Qatari Riyal (Qatar) */
+  /** Qatari Riyal (Qatar) - 2 decimals */
   Qar = 'QAR',
-  /** 2 decimals — Romanian Leu (Romania) */
+  /** Romanian Leu (Romania) - 2 decimals */
   Ron = 'RON',
-  /** 2 decimals — Serbian Dinar (Serbia) */
+  /** Serbian Dinar (Serbia) - 2 decimals */
   Rsd = 'RSD',
-  /** 2 decimals — Russian Ruble (Russia) */
+  /** Russian Ruble (Russia) - 2 decimals */
   Rub = 'RUB',
-  /** 2 decimals — Rwandan Franc (Rwanda) */
+  /** Rwandan Franc (Rwanda) - 0 decimals */
   Rwf = 'RWF',
-  /** 2 decimals — Saudi Riyal (Saudi Arabia) */
+  /** Saudi Riyal (Saudi Arabia) - 2 decimals */
   Sar = 'SAR',
-  /** 2 decimals — Solomon Islands Dollar (Solomon Islands) */
+  /** Solomon Islands Dollar - 2 decimals */
   Sbd = 'SBD',
-  /** 2 decimals — Seychelles Rupee (Seychelles) */
+  /** Seychelles Rupee (Seychelles) - 2 decimals */
   Scr = 'SCR',
-  /** 2 decimals — Sudanese Pound (Sudan) */
+  /** Sudanese Pound (Sudan) - 2 decimals */
   Sdg = 'SDG',
-  /** 2 decimals — Swedish Krona (Sweden) */
+  /** Swedish Krona (Sweden) - 2 decimals */
   Sek = 'SEK',
-  /** 2 decimals — Singapore Dollar (Singapore) */
+  /** Singapore Dollar (Singapore) - 2 decimals */
   Sgd = 'SGD',
-  /** 0 decimals — Saint Helena Pound (Saint Helena) */
+  /** Saint Helena Pound - 2 decimals */
   Shp = 'SHP',
-  /** 2 decimals — Sierra Leonean Leone (Sierra Leone) */
+  /** Sierra Leonean Leone - 2 decimals */
   Sle = 'SLE',
-  /** 2 decimals — Somali Shilling (Somalia) */
+  /** Somali Shilling (Somalia) - 2 decimals */
   Sos = 'SOS',
-  /** 2 decimals — Surinamese Dollar (Suriname) */
+  /** Surinamese Dollar (Suriname) - 2 decimals */
   Srd = 'SRD',
-  /** 2 decimals — South Sudanese Pound (South Sudan) */
+  /** South Sudanese Pound - 2 decimals */
   Ssp = 'SSP',
-  /** 2 decimals — São Tomé and Príncipe Dobra (São Tomé and Príncipe) */
+  /** São Tomé and Príncipe Dobra - 2 decimals */
   Stn = 'STN',
-  /** 2 decimals — Salvadoran Colón (El Salvador) */
+  /** Salvadoran Colón (El Salvador) - 2 decimals */
   Svc = 'SVC',
-  /** 2 decimals — Syrian Pound (Syria) */
+  /** Syrian Pound (Syria) - 2 decimals */
   Syp = 'SYP',
-  /** 2 decimals — Eswatini Lilangeni (Eswatini) */
+  /** Eswatini Lilangeni (Eswatini) - 2 decimals */
   Szl = 'SZL',
-  /** 2 decimals — Thai Baht (Thailand) */
+  /** Thai Baht (Thailand) - 2 decimals */
   Thb = 'THB',
-  /** 2 decimals — Tajikistani Somoni (Tajikistan) */
+  /** Tajikistani Somoni (Tajikistan) - 2 decimals */
   Tjs = 'TJS',
-  /** 2 decimals — Turkmenistani Manat (Turkmenistan) */
+  /** Turkmenistani Manat (Turkmenistan) - 2 decimals */
   Tmt = 'TMT',
-  /** 2 decimals — Tunisian Dinar (Tunisia) */
+  /** Tunisian Dinar (Tunisia) - 3 decimals */
   Tnd = 'TND',
-  /** 2 decimals — Tongan Paʻanga (Tonga) */
+  /** Tongan Paʻanga (Tonga) - 2 decimals */
   Top = 'TOP',
-  /** 2 decimals — Turkish Lira (Türkiye) */
+  /** Turkish Lira (Turkey) - 2 decimals */
   Try = 'TRY',
-  /** 2 decimals — Trinidad and Tobago Dollar (Trinidad and Tobago) */
+  /** Trinidad and Tobago Dollar - 2 decimals */
   Ttd = 'TTD',
-  /** 2 decimals — New Taiwan Dollar (Taiwan) */
+  /** New Taiwan Dollar (Taiwan) - 2 decimals */
   Twd = 'TWD',
-  /** 0 decimals — Tanzanian Shilling (Tanzania) */
+  /** Tanzanian Shilling (Tanzania) - 2 decimals */
   Tzs = 'TZS',
-  /** 2 decimals — Ukrainian Hryvnia (Ukraine) */
+  /** Ukrainian Hryvnia (Ukraine) - 2 decimals */
   Uah = 'UAH',
-  /** 2 decimals — Ugandan Shilling (Uganda) */
+  /** Ugandan Shilling (Uganda) - 0 decimals */
   Ugx = 'UGX',
-  /** 2 decimals — United States Dollar (United States) */
+  /** United States Dollar (USA) - 2 decimals */
   Usd = 'USD',
-  /** 2 decimals — Uruguayan Peso (Uruguay) */
+  /** Uruguayan Peso (Uruguay) - 2 decimals */
   Uyu = 'UYU',
-  /** 2 decimals — Uzbekistan Som (Uzbekistan) */
+  /** Uzbekistani Som (Uzbekistan) - 2 decimals */
   Uzs = 'UZS',
-  /** 2 decimals — Venezuelan Bolívar (Venezuela) */
+  /** Venezuelan Bolívar (Venezuela) - 2 decimals */
   Ves = 'VES',
-  /** 0 decimals — Vietnamese Dong (Vietnam) */
+  /** Vietnamese Dong (Vietnam) - 0 decimals */
   Vnd = 'VND',
-  /** 2 decimals — Vanuatu Vatu (Vanuatu) */
+  /** Vanuatu Vatu (Vanuatu) - 0 decimals */
   Vuv = 'VUV',
-  /** 2 decimals — Samoan Tala (Samoa) */
+  /** Samoan Tala (Samoa) - 2 decimals */
   Wst = 'WST',
-  /** 2 decimals — Central African CFA Franc (CEMAC) */
+  /** Central African CFA Franc - 0 decimals */
   Xaf = 'XAF',
-  /** 0 decimals — East Caribbean Dollar (OECS) */
+  /** East Caribbean Dollar - 2 decimals */
   Xcd = 'XCD',
-  /** 0 decimals — Special Drawing Rights (IMF) */
+  /** Special Drawing Rights (IMF) - 0 decimals */
   Xdr = 'XDR',
-  /** 0 decimals — West African CFA Franc (UEMOA) */
+  /** West African CFA Franc - 0 decimals */
   Xof = 'XOF',
-  /** 0 decimals — CFP Franc (French overseas territories) */
+  /** CFP Franc - 0 decimals */
   Xpf = 'XPF',
-  /** 2 decimals — Yemeni Rial (Yemen) */
+  /** Yemeni Rial (Yemen) - 2 decimals */
   Yer = 'YER',
-  /** 2 decimals — South African Rand (South Africa) */
+  /** South African Rand (South Africa) - 2 decimals */
   Zar = 'ZAR',
-  /** 2 decimals — Zambian Kwacha (Zambia) */
+  /** Zambian Kwacha (Zambia) - 2 decimals */
   Zmw = 'ZMW',
-  /** 2 decimals — Zimbabwean Dollar (Zimbabwe) */
+  /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   Zwl = 'ZWL'
 }
 
@@ -1977,173 +1522,52 @@ export type ApiDeliveryCost = {
   paymentModel: ShippingPaymentModel;
 };
 
-/** Error information for a failed field. */
-export type ApiFieldError = {
-  __typename?: 'FieldError';
-  /** Optional machine-readable error code. */
-  code?: Maybe<Scalars['String']['output']>;
-  /** Name of the field that caused the error. */
-  field: Scalars['String']['output'];
-  /** Human-readable error message. */
-  message: Scalars['String']['output'];
-};
-
-/** Represents a file or media resource in the system. */
-export type ApiFile = ApiNode & {
-  __typename?: 'File';
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The origin of the media (e.g., URL, YouTube). */
-  source: MediaSource;
-  /** Direct link to the resource or identifier (for YouTube, the video ID). */
-  url: Scalars['String']['output'];
-};
-
-export type ApiFilter = {
-  /** The handle of the Filter. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier. */
-  id: Scalars['String']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Display title for the Filter. */
-  title: Scalars['String']['output'];
-};
-
-/** Input type for applying a Filter to a listing. */
-export type ApiFilterInput = {
-  /** The handle of the Filter. */
-  handle: Scalars['String']['input'];
-  /** The value handles of the Filter. Ranges accept min, max values. */
-  values: Array<Scalars['String']['input']>;
-};
-
-/** Result of cursor-based pagination for a gallery of files. */
-export type ApiGalleryConnection = {
-  __typename?: 'GalleryConnection';
-  /** List of edges (file nodes with cursors). */
-  edges: Array<ApiGalleryEdge>;
-  /** Pagination information (hasNextPage, hasPreviousPage, start/end cursors). */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in the gallery connection, containing a file and its cursor. */
-export type ApiGalleryEdge = {
-  __typename?: 'GalleryEdge';
-  /** Cursor for pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** The file node. */
-  node: ApiFile;
-};
-
-export type ApiListFilter = ApiFilter & {
-  __typename?: 'ListFilter';
-  handle: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  iid: Scalars['Uuid']['output'];
-  title: Scalars['String']['output'];
-  /** List of available categories for filtering. */
-  values: Array<ApiListFilterValue>;
-};
-
-export type ApiListFilterValue = {
-  __typename?: 'ListFilterValue';
-  /** Number of products associated with this Filter value. */
-  count: Scalars['Int']['output'];
-  /** The handle of the Filter. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier. */
-  id: Scalars['String']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The swatch of the Filter value. Usually used for color filters. */
-  swatch?: Maybe<ApiSwatch>;
-  /** Display title for the Filter. */
-  title: Scalars['String']['output'];
-};
-
-/** A connection object for listings, following the cursor-based pattern. */
-export type ApiListingConnection = {
-  __typename?: 'ListingConnection';
-  /** Show available products first. */
-  availabilitySortApplied: Scalars['Boolean']['output'];
-  /** A list of edges. */
-  edges: Array<ApiListingEdge>;
-  /** filters of the listing. */
-  filters: Array<ApiFilter>;
-  /** Include nested categories. */
-  nestedCategoriesIncluded: Scalars['Boolean']['output'];
-  /** Information to aid in pagination. */
-  pageInfo: ApiPageInfo;
-  /** The sort order that was applied. */
-  sort: ListingSort;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in a listing connection, with the cursor for pagination. */
-export type ApiListingEdge = {
-  __typename?: 'ListingEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** The item at the end of this edge. */
-  node: ApiListingNode;
-};
-
-/** A node in a listing. */
-export type ApiListingNode = ApiProductVariant;
-
-/**
- * Defines the available sorting orders for Listings.
- * Maps to Go enum portal/project/entity/listing/listingOrder.Enum.
- */
-export enum ListingSort {
-  /** Newest first */
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  /** Oldest first */
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  /** Recommended order based on the listing settings */
-  MostRelevant = 'MOST_RELEVANT',
-  /** Price ascending */
-  PriceAsc = 'PRICE_ASC',
-  /** Price descending */
-  PriceDesc = 'PRICE_DESC',
-  /** Title ascending */
-  TitleAsc = 'TITLE_ASC',
-  /** Title descending */
-  TitleDesc = 'TITLE_DESC'
+/** Dimension (length) measurement units */
+export enum DimensionUnit {
+  /** Centimeter */
+  Cm = 'cm',
+  /** Foot */
+  Ft = 'ft',
+  /** Inch */
+  In = 'in',
+  /** Meter */
+  M = 'm',
+  /** Millimeter */
+  Mm = 'mm'
 }
 
-/** Defines the type of listing, determining how products are selected. */
-export enum ListingType {
-  /** Aggregates all products from this category and its subcategories recursively. */
-  Container = 'CONTAINER',
-  /** Automatically generated by applying predefined filters. */
-  Smart = 'SMART',
-  /** Manually curated: admin selects products and defines their order; */
-  Standard = 'STANDARD'
-}
-
-/** Language codes based on ISO 639-1 and BCP 47 */
+/** Language/Locale codes based on ISO 639-1 and BCP 47 */
 export enum LocaleCode {
-  /** Afrikaans */
-  Af = 'af',
+  /** Akan */
+  Ak = 'ak',
   /** Amharic */
   Am = 'am',
   /** Arabic */
   Ar = 'ar',
+  /** Assamese */
+  As = 'as',
   /** Azerbaijani */
   Az = 'az',
+  /** Belarusian */
+  Be = 'be',
   /** Bulgarian */
   Bg = 'bg',
-  /** Bengali */
+  /** Bambara */
+  Bm = 'bm',
+  /** Bangla */
   Bn = 'bn',
+  /** Tibetan */
+  Bo = 'bo',
+  /** Breton */
+  Br = 'br',
+  /** Bosnian */
+  Bs = 'bs',
   /** Catalan */
   Ca = 'ca',
+  /** Chechen */
+  Ce = 'ce',
+  /** Central Kurdish */
+  Ckb = 'ckb',
   /** Czech */
   Cs = 'cs',
   /** Welsh */
@@ -2152,6 +1576,10 @@ export enum LocaleCode {
   Da = 'da',
   /** German */
   De = 'de',
+  /** Dzongkha */
+  Dz = 'dz',
+  /** Ewe */
+  Ee = 'ee',
   /** Greek */
   El = 'el',
   /** English */
@@ -2164,14 +1592,20 @@ export enum LocaleCode {
   Et = 'et',
   /** Basque */
   Eu = 'eu',
-  /** Persian (Farsi) */
+  /** Persian */
   Fa = 'fa',
+  /** Fulah */
+  Ff = 'ff',
   /** Finnish */
   Fi = 'fi',
   /** Filipino */
   Fil = 'fil',
+  /** Faroese */
+  Fo = 'fo',
   /** French */
   Fr = 'fr',
+  /** Western Frisian */
+  Fy = 'fy',
   /** Irish */
   Ga = 'ga',
   /** Scottish Gaelic */
@@ -2180,54 +1614,78 @@ export enum LocaleCode {
   Gl = 'gl',
   /** Gujarati */
   Gu = 'gu',
+  /** Manx */
+  Gv = 'gv',
+  /** Hausa */
+  Ha = 'ha',
   /** Hebrew */
   He = 'he',
   /** Hindi */
   Hi = 'hi',
   /** Croatian */
   Hr = 'hr',
-  /** Haitian Creole */
-  Ht = 'ht',
   /** Hungarian */
   Hu = 'hu',
   /** Armenian */
   Hy = 'hy',
+  /** Interlingua */
+  Ia = 'ia',
   /** Indonesian */
   Id = 'id',
   /** Igbo */
   Ig = 'ig',
+  /** Sichuan Yi */
+  Ii = 'ii',
   /** Icelandic */
   Is = 'is',
   /** Italian */
   It = 'it',
   /** Japanese */
   Ja = 'ja',
+  /** Javanese */
+  Jv = 'jv',
   /** Georgian */
   Ka = 'ka',
+  /** Kikuyu */
+  Ki = 'ki',
   /** Kazakh */
   Kk = 'kk',
+  /** Kalaallisut */
+  Kl = 'kl',
   /** Khmer */
   Km = 'km',
   /** Kannada */
   Kn = 'kn',
   /** Korean */
   Ko = 'ko',
+  /** Kashmiri */
+  Ks = 'ks',
   /** Kurdish */
   Ku = 'ku',
+  /** Cornish */
+  Kw = 'kw',
   /** Kyrgyz */
   Ky = 'ky',
-  /** Latin */
-  La = 'la',
+  /** Luxembourgish */
+  Lb = 'lb',
+  /** Ganda */
+  Lg = 'lg',
+  /** Lingala */
+  Ln = 'ln',
   /** Lao */
   Lo = 'lo',
   /** Lithuanian */
   Lt = 'lt',
+  /** Luba-Katanga */
+  Lu = 'lu',
   /** Latvian */
   Lv = 'lv',
   /** Malagasy */
   Mg = 'mg',
-  /** Maori */
+  /** Māori */
   Mi = 'mi',
+  /** Macedonian */
+  Mk = 'mk',
   /** Malayalam */
   Ml = 'ml',
   /** Mongolian */
@@ -2236,36 +1694,76 @@ export enum LocaleCode {
   Mr = 'mr',
   /** Malay */
   Ms = 'ms',
+  /** Maltese */
+  Mt = 'mt',
   /** Burmese */
   My = 'my',
+  /** Norwegian Bokmål */
+  Nb = 'nb',
+  /** North Ndebele */
+  Nd = 'nd',
   /** Nepali */
   Ne = 'ne',
   /** Dutch */
   Nl = 'nl',
+  /** Norwegian Nynorsk */
+  Nn = 'nn',
   /** Norwegian */
   No = 'no',
+  /** Oromo */
+  Om = 'om',
+  /** Odia */
+  Or = 'or',
+  /** Ossetic */
+  Os = 'os',
   /** Punjabi */
   Pa = 'pa',
   /** Polish */
   Pl = 'pl',
   /** Pashto */
   Ps = 'ps',
-  /** Portuguese (Portugal/Brazil unified) */
-  Pt = 'pt',
+  /** Portuguese (Brazil) */
+  PtBr = 'pt_BR',
+  /** Portuguese (Portugal) */
+  PtPt = 'pt_PT',
+  /** Quechua */
+  Qu = 'qu',
+  /** Romansh */
+  Rm = 'rm',
+  /** Rundi */
+  Rn = 'rn',
   /** Romanian */
   Ro = 'ro',
   /** Russian */
   Ru = 'ru',
+  /** Kinyarwanda */
+  Rw = 'rw',
+  /** Sanskrit */
+  Sa = 'sa',
+  /** Sardinian */
+  Sc = 'sc',
+  /** Sindhi */
+  Sd = 'sd',
+  /** Northern Sami */
+  Se = 'se',
+  /** Sango */
+  Sg = 'sg',
   /** Sinhala */
   Si = 'si',
   /** Slovak */
   Sk = 'sk',
   /** Slovenian */
   Sl = 'sl',
-  /** Samoan */
-  Sm = 'sm',
+  /** Shona */
+  Sn = 'sn',
+  /** Somali */
+  So = 'so',
+  /** Albanian */
+  Sq = 'sq',
   /** Serbian */
   Sr = 'sr',
+  /** Sundanese */
+  Su = 'su',
   /** Swedish */
   Sv = 'sv',
   /** Swahili */
@@ -2278,147 +1776,40 @@ export enum LocaleCode {
   Tg = 'tg',
   /** Thai */
   Th = 'th',
+  /** Tigrinya */
+  Ti = 'ti',
   /** Turkmen */
   Tk = 'tk',
   /** Tongan */
   To = 'to',
   /** Turkish */
   Tr = 'tr',
+  /** Tatar */
+  Tt = 'tt',
+  /** Uyghur */
+  Ug = 'ug',
   /** Ukrainian */
   Uk = 'uk',
+  /** Urdu */
+  Ur = 'ur',
   /** Uzbek */
   Uz = 'uz',
   /** Vietnamese */
   Vi = 'vi',
+  /** Wolof */
+  Wo = 'wo',
   /** Xhosa */
   Xh = 'xh',
+  /** Yiddish */
+  Yi = 'yi',
   /** Yoruba */
   Yo = 'yo',
-  /** Chinese (Simplified, China) */
+  /** Chinese (Simplified) */
   ZhCn = 'zh_CN',
-  /** Chinese (Traditional, Taiwan) */
+  /** Chinese (Traditional) */
   ZhTw = 'zh_TW',
   /** Zulu */
   Zu = 'zu'
-}
-
-/** Source of the media file. */
-export enum MediaSource {
-  /** The file is available at an arbitrary URL. */
-  Url = 'URL',
-  /** YouTube video (the `url` field contains the YouTube Video ID). */
-  Youtube = 'YOUTUBE'
-}
-
-/** A menu. */
-export type ApiMenu = ApiNode & {
-  __typename?: 'Menu';
-  /** Human-friendly unique handle. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Paginated list of menu items. */
-  items: ApiMenuItemConnection;
-  /** The menu's title. */
-  title: Scalars['String']['output'];
-};
-
-
-/** A menu. */
-export type ApiMenuItemsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<MenuItemSort>;
-};
-
-/** Connection type for menus. */
-export type ApiMenuConnection = {
-  __typename?: 'MenuConnection';
-  /** List of edges. */
-  edges: Array<ApiMenuEdge>;
-  /** Pagination information. */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in the Menu connection. */
-export type ApiMenuEdge = {
-  __typename?: 'MenuEdge';
-  /** Cursor for pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** The menu node. */
-  node: ApiMenu;
-};
-
-/** A single menu item. */
-export type ApiMenuItem = ApiNode & {
-  __typename?: 'MenuItem';
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Paginated list of nested menu items. */
-  items: ApiMenuItemConnection;
-  /** The referenced node (Product, Category, Page, or URLNode). */
-  node: ApiMenuNode;
-  /** The item's title. */
-  title: Scalars['String']['output'];
-};
-
-
-/** A single menu item. */
-export type ApiMenuItemItemsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<MenuItemSort>;
-};
-
-/** Connection type for menu items. */
-export type ApiMenuItemConnection = {
-  __typename?: 'MenuItemConnection';
-  /** List of edges. */
-  edges: Array<ApiMenuItemEdge>;
-  /** Pagination information. */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in the MenuItem connection. */
-export type ApiMenuItemEdge = {
-  __typename?: 'MenuItemEdge';
-  /** Cursor for pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** The menu item node. */
-  node: ApiMenuItem;
-};
-
-export enum MenuItemSort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  TitleAsc = 'TITLE_ASC',
-  TitleDesc = 'TITLE_DESC',
-  UpdatedAtAsc = 'UPDATED_AT_ASC',
-  UpdatedAtDesc = 'UPDATED_AT_DESC'
-}
-
-/** A menu node: Product, Category, Page, or URL. */
-export type ApiMenuNode = ApiCategory | ApiPage | ApiProductVariant | ApiUrlNode;
-
-export enum MenuSort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  TitleAsc = 'TITLE_ASC',
-  TitleDesc = 'TITLE_DESC',
-  UpdatedAtAsc = 'UPDATED_AT_ASC',
-  UpdatedAtDesc = 'UPDATED_AT_DESC'
 }
 
 export type ApiMoney = {
@@ -2429,111 +1820,10 @@ export type ApiMoney = {
   currencyCode: CurrencyCode;
 };
 
-export type ApiMoneyInput = {
-  /** The amount of money */
-  amount: Scalars['Decimal']['input'];
-  /** The currency code */
-  currencyCode: CurrencyCode;
-};
-
 export type ApiMutation = {
   __typename?: 'Mutation';
   checkoutMutation: ApiCheckoutMutation;
-  /** Create a review. */
-  createReview: ApiProductReview;
-  /** Delete own review. */
-  deleteReview: Scalars['Boolean']['output'];
   orderMutation: ApiOrderMutation;
-  /** Creates a new session using email and password. */
-  passwordSignIn: ApiPasswordSignInPayload;
-  /** Registers a new user and returns a session. */
-  passwordSignUp: ApiPasswordSignUpPayload;
-  /** Report review abuse. */
-  reportReviewAbuse: Scalars['Boolean']['output'];
-  /** Sends a password recovery email. */
-  requestPasswordRecovery: ApiPasswordRecoveryPayload;
-  /** Resets the user's password with a recovery token. */
-  resetPassword: ApiResetPasswordPayload;
-  /** Reply to review as seller. */
-  sellerReplyToReview: Scalars['Boolean']['output'];
-  /** Signs out the current user. */
-  signOut: Scalars['Boolean']['output'];
-  /** Updates the authenticated user's password. */
-  updatePassword: ApiUpdatePasswordPayload;
-  /** Edit own review. */
-  updateReview: ApiProductReview;
-  /** Updates the authenticated user's profile information. */
-  updateUserProfile: ApiUpdateUserProfilePayload;
-  /** Confirms a user's email address using a token. */
-  verifyEmail: ApiVerifyEmailPayload;
-  /** Mark review as helpful / not helpful. */
-  voteReviewHelpful: Scalars['Boolean']['output'];
-};
-
-
-export type ApiMutationCreateReviewArgs = {
-  input: ApiCreateReviewInput;
-};
-
-
-export type ApiMutationDeleteReviewArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiMutationPasswordSignInArgs = {
-  input: ApiPasswordSignInInput;
-};
-
-
-export type ApiMutationPasswordSignUpArgs = {
-  input: ApiPasswordSignUpInput;
-};
-
-
-export type ApiMutationReportReviewAbuseArgs = {
-  reason: Scalars['String']['input'];
-  reviewId: Scalars['ID']['input'];
-};
-
-
-export type ApiMutationRequestPasswordRecoveryArgs = {
-  input: ApiPasswordRecoveryInput;
-};
-
-
-export type ApiMutationResetPasswordArgs = {
-  input: ApiResetPasswordInput;
-};
-
-
-export type ApiMutationSellerReplyToReviewArgs = {
-  input: ApiSellerReplyInput;
-};
-
-
-export type ApiMutationUpdatePasswordArgs = {
-  input: ApiUpdatePasswordInput;
-};
-
-
-export type ApiMutationUpdateReviewArgs = {
-  input: ApiUpdateReviewInput;
-};
-
-
-export type ApiMutationUpdateUserProfileArgs = {
-  input: ApiUpdateUserProfileInput;
-};
-
-
-export type ApiMutationVerifyEmailArgs = {
-  input: ApiVerifyEmailInput;
-};
-
-
-export type ApiMutationVoteReviewHelpfulArgs = {
-  input: ApiVoteReviewHelpfulInput;
 };
 
 export type ApiNode = {
@@ -2584,7 +1874,6 @@ export type ApiOrderLine = {
   createdAt: Scalars['DateTime']['output'];
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  purchasable: ApiProductVariant;
   /** ID of the purchasable. */
   purchasableId: Scalars['ID']['output'];
   /** Purchasable snapshot data at the time of adding to checkout. */
@@ -2628,145 +1917,6 @@ export enum OrderStatus {
   Draft = 'DRAFT'
 }
 
-/** A content page. */
-export type ApiPage = ApiNode & {
-  __typename?: 'Page';
-  /** The cover image for the page. */
-  cover?: Maybe<ApiFile>;
-  /** The date and time when the page was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** The full description of the page. */
-  description: Scalars['String']['output'];
-  /** A short excerpt of the page. */
-  excerpt: Scalars['String']['output'];
-  /** Gallery of additional images with cursor-based pagination. */
-  gallery: ApiGalleryConnection;
-  /** Unique human-readable slug. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The type of the page (e.g., "page", "article"). */
-  pageType: Scalars['String']['output'];
-  /** The page’s title. */
-  title: Scalars['String']['output'];
-  /** The date and time when the page was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-
-/** A content page. */
-export type ApiPageGalleryArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-/** Connection type for pages. */
-export type ApiPageConnection = {
-  __typename?: 'PageConnection';
-  /** List of page edges. */
-  edges: Array<ApiPageEdge>;
-  /** Pagination details. */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-/** An edge in the paginated list of pages. */
-export type ApiPageEdge = {
-  __typename?: 'PageEdge';
-  /** Cursor for pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** The page node. */
-  node: ApiPage;
-};
-
-/** Pagination information according to the Relay/Shopify spec. */
-export type ApiPageInfo = {
-  __typename?: 'PageInfo';
-  /** The cursor corresponding to the last node in edges. */
-  endCursor?: Maybe<Scalars['String']['output']>;
-  /** When paginating forwards, are there more items? */
-  hasNextPage: Scalars['Boolean']['output'];
-  /** When paginating backwards, are there more items? */
-  hasPreviousPage: Scalars['Boolean']['output'];
-  /** The cursor corresponding to the first node in edges. */
-  startCursor?: Maybe<Scalars['String']['output']>;
-};
-
-export enum PageSort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  TitleAsc = 'TITLE_ASC',
-  TitleDesc = 'TITLE_DESC',
-  UpdatedAtAsc = 'UPDATED_AT_ASC',
-  UpdatedAtDesc = 'UPDATED_AT_DESC'
-}
-
-/** Input data for requesting a password recovery email. */
-export type ApiPasswordRecoveryInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** User's email address. */
-  email: Scalars['Email']['input'];
-};
-
-/** Payload returned after requesting password recovery. */
-export type ApiPasswordRecoveryPayload = {
-  __typename?: 'PasswordRecoveryPayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** True if the recovery email was sent successfully. */
-  success: Scalars['Boolean']['output'];
-};
-
-/** Input data for signing in with email and password. */
-export type ApiPasswordSignInInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** User's email address. */
-  email: Scalars['Email']['input'];
-  /** User's password. */
-  password: Scalars['String']['input'];
-};
-
-/** Payload returned after signing in. */
-export type ApiPasswordSignInPayload = {
-  __typename?: 'PasswordSignInPayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** Newly created session. */
-  session?: Maybe<ApiSession>;
-};
-
-/** Input data for registering a new user. */
-export type ApiPasswordSignUpInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** User's email address. */
-  email: Scalars['Email']['input'];
-  /** User's password. */
-  password: Scalars['String']['input'];
-};
-
-/** Payload returned after signing up. */
-export type ApiPasswordSignUpPayload = {
-  __typename?: 'PasswordSignUpPayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** Newly created session. */
-  session?: Maybe<ApiSession>;
-};
-
 /** Payment flow for the method, aligned with payment-plugin-sdk. */
 export enum PaymentFlow {
   /** Customer pays offline via provider (QR code, display code, etc). */
@@ -2776,416 +1926,6 @@ export enum PaymentFlow {
   /** Customer pays later/on delivery or by invoice (offline instructions). */
   OnDelivery = 'ON_DELIVERY'
 }
-
-/** Input type for executing predictive search (autocomplete suggestions). */
-export type ApiPredictiveSearchInput = {
-  /** The search query string. */
-  query: Scalars['String']['input'];
-};
-
-/** Result of a predictive search: arrays of matching entities for quick suggestions. */
-export type ApiPredictiveSearchResult = {
-  __typename?: 'PredictiveSearchResult';
-  /** Top matching articles. */
-  articles: Array<ApiArticle>;
-  /** Top matching categories. */
-  categories: Array<ApiCategory>;
-  /** Top matching pages. */
-  pages: Array<ApiPage>;
-  /** Top matching products. */
-  products: Array<ApiProductVariant>;
-};
-
-/** Filter representing a price range filter. */
-export type ApiPriceRangeFilter = ApiFilter & {
-  __typename?: 'PriceRangeFilter';
-  /** Count of products in the range. */
-  count: Scalars['Int']['output'];
-  handle: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  iid: Scalars['Uuid']['output'];
-  /** Maximum price in the range. */
-  maxPrice: ApiMoney;
-  /** Minimum price in the range. */
-  minPrice: ApiMoney;
-  title: Scalars['String']['output'];
-};
-
-export type ApiProduct = ApiNode & {
-  __typename?: 'Product';
-  /** Primary category of the product. */
-  category?: Maybe<ApiCategory>;
-  /** DateTime when the category was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** Full description of the product. */
-  description: Scalars['String']['output'];
-  /** Short excerpt or summary of the product. */
-  excerpt: Scalars['String']['output'];
-  /** Feature sections and their values. */
-  features: Array<ApiProductFeature>;
-  /** Groups of related products (e.g., bundles). */
-  groups: Array<ApiProductGroup>;
-  /** URL-friendly slug for the product. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /**
-   * All option groups defined for this product—each group represents a configurable attribute
-   * (for example: color, size, material) and includes the full set of possible values.
-   */
-  options: Array<ApiProductOption>;
-  /** Product rating. */
-  rating: ApiProductRating;
-  /** List of reviews with pagination/filters. */
-  reviews: ApiProductReviewConnection;
-  /** Seo description for the product page. */
-  seoDescription?: Maybe<Scalars['String']['output']>;
-  /** Seo title for the product page. */
-  seoTitle?: Maybe<Scalars['String']['output']>;
-  /** Tags associated with the product. */
-  tags: ApiTagConnection;
-  /** Name of the product. */
-  title: Scalars['String']['output'];
-  /** DateTime when the category was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-  /** Variants of the product (different option combinations). */
-  variants: Array<ApiProductVariant>;
-};
-
-
-export type ApiProductReviewsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ProductReviewSort>;
-};
-
-
-export type ApiProductTagsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<TagSort>;
-};
-
-/** A specific feature of a product, such as "Color" or "Size". */
-export type ApiProductFeature = ApiNode & {
-  __typename?: 'ProductFeature';
-  /** Machine-friendly slug for the feature, e.g., "color" or "size". */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Human-readable name of the feature shown to users. */
-  title: Scalars['String']['output'];
-  /** Available values for this feature. */
-  values: Array<ApiProductFeatureValue>;
-};
-
-/** A single possible value for a product feature, such as "Red" or "Large". */
-export type ApiProductFeatureValue = ApiNode & {
-  __typename?: 'ProductFeatureValue';
-  /** Machine-friendly slug for the value, e.g., "red" or "large". */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Display name of the value shown to users. */
-  title: Scalars['String']['output'];
-};
-
-/** A group of related products (e.g., bundled items). */
-export type ApiProductGroup = ApiNode & {
-  __typename?: 'ProductGroup';
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Whether multiple items can be selected from this group. */
-  isMultiple: Scalars['Boolean']['output'];
-  /** Whether at least one item from this group is required. */
-  isRequired: Scalars['Boolean']['output'];
-  /** List of products in this group. */
-  items: Array<ApiProductGroupItem>;
-  /** Human-readable title of the group. */
-  title: Scalars['String']['output'];
-};
-
-/** An item within a product group, with optional quantity and custom pricing. */
-export type ApiProductGroupItem = {
-  __typename?: 'ProductGroupItem';
-  /** Optional quantity for this item in the group. */
-  maxQuantity?: Maybe<Scalars['Int']['output']>;
-  /** The product included in this group. */
-  node: ApiProductGroupNode;
-  /** Pricing strategy and override values for this item. */
-  price: ApiProductGroupPrice;
-};
-
-export type ApiProductGroupNode = ApiProductVariant;
-
-/** Defines how to calculate the price for a grouped item. */
-export type ApiProductGroupPrice = {
-  __typename?: 'ProductGroupPrice';
-  /**
-   * Fixed amount to add to the product’s base price.
-   * Only used when `type: FIXED`.
-   */
-  amount?: Maybe<ApiMoney>;
-  /**
-   * Percentage to add to the product’s base price (e.g. 10.0 adds 10%).
-   * Only used when `type: PERCENT`.
-   */
-  percentage?: Maybe<Scalars['Float']['output']>;
-  /** Pricing mode to apply. */
-  type: ProductGroupPriceType;
-};
-
-/** Available pricing modes for group items. */
-export enum ProductGroupPriceType {
-  /** Use the product's standard price. */
-  Base = 'BASE',
-  /** Add a fixed markup (the `amount` field) to the base price. */
-  Fixed = 'FIXED',
-  /** Include the item free of charge. */
-  Free = 'FREE',
-  /** Add a percentage markup (the `percentage` field) to the base price. */
-  Percent = 'PERCENT'
-}
-
-/** A group of product options (e.g., "Color", "Size"). */
-export type ApiProductOption = ApiNode & {
-  __typename?: 'ProductOption';
-  /** The display type (color swatch, image, or control). */
-  displayType: ProductOptionDisplayType;
-  /** The slug for this group (e.g., "color", "size"). */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The display name of the option group shown to users. */
-  title: Scalars['String']['output'];
-  /** The selected or available value in this group. */
-  values: Array<ApiProductOptionValue>;
-};
-
-/** How a product option is displayed in the UI. */
-export enum ProductOptionDisplayType {
-  /** Apparel size control (e.g., S, M, L, XL). */
-  ApparelSize = 'APPAREL_SIZE',
-  /** Display options in a dropdown select. */
-  Dropdown = 'DROPDOWN',
-  /** Display dropdown with variant cover image per value. */
-  DropdownVariantCover = 'DROPDOWN_VARIANT_COVER',
-  /** Display options as radio buttons with text. */
-  Radio = 'RADIO',
-  /** Display a swatch (color or image). */
-  Swatch = 'SWATCH',
-  /** Display an image (e.g., picture or video). */
-  VariantCover = 'VARIANT_COVER'
-}
-
-/** A single value for a product option (e.g., "Red", "XL", "Patterned"). */
-export type ApiProductOptionValue = ApiNode & {
-  __typename?: 'ProductOptionValue';
-  /** The human-readable slug used in API/URLs. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Variant cover image. For variant cover display type. */
-  image?: Maybe<ApiFile>;
-  /** The swatch object. For swatch display type. */
-  swatch?: Maybe<ApiSwatch>;
-  /** The display name of the value shown to users. */
-  title: Scalars['String']['output'];
-};
-
-export type ApiProductRating = ApiNode & {
-  __typename?: 'ProductRating';
-  /** Rating breakdown details. */
-  breakdown: Array<ApiRatingBreakdown>;
-  /** Number of approved reviews. */
-  count: Scalars['Int']['output'];
-  /** Global ID of the rating. */
-  id: Scalars['ID']['output'];
-  /** Internal ID of the rating. (product container id) */
-  iid: Scalars['Uuid']['output'];
-  /** Average rating. */
-  rating: Scalars['Float']['output'];
-};
-
-/** ProductReview — user review of a product (Relay-Node). */
-export type ApiProductReview = ApiNode & {
-  __typename?: 'ProductReview';
-  /** Product cons. */
-  cons?: Maybe<Scalars['String']['output']>;
-  /** Creation date. */
-  createdAt: Scalars['DateTime']['output'];
-  /** Author's name. */
-  displayName: Scalars['String']['output'];
-  /** Last edit date. */
-  editedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Total "not helpful" votes. */
-  helpfulNo: Scalars['Int']['output'];
-  /** Total "helpful" votes. */
-  helpfulYes: Scalars['Int']['output'];
-  /** Global ID of the review. */
-  id: Scalars['ID']['output'];
-  /** Internal ID of the review. */
-  iid: Scalars['Uuid']['output'];
-  /** Review language (ISO-639-1). */
-  locale?: Maybe<Scalars['String']['output']>;
-  /** Did the current user mark the review as helpful? */
-  meHelpful: Scalars['Boolean']['output'];
-  /** Attached media files. */
-  media?: Maybe<Array<ApiFile>>;
-  /** Main review text. */
-  message: Scalars['String']['output'];
-  /** Product pros. */
-  pros?: Maybe<Scalars['String']['output']>;
-  /** Number of stars (1–5, step 0.5). */
-  rating: Scalars['Float']['output'];
-  /** Seller reply (if any). */
-  sellerReply?: Maybe<ApiReviewComment>;
-  /** Publication status. */
-  status: ReviewStatus;
-  /** Review title. */
-  title?: Maybe<Scalars['String']['output']>;
-  /** Review author. */
-  user: ApiUser;
-  /** Whether the product was actually purchased by this user. */
-  verifiedPurchase: Scalars['Boolean']['output'];
-};
-
-export type ApiProductReviewConnection = {
-  __typename?: 'ProductReviewConnection';
-  edges: Array<ApiProductReviewEdge>;
-  pageInfo: ApiPageInfo;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type ApiProductReviewEdge = {
-  __typename?: 'ProductReviewEdge';
-  cursor: Scalars['String']['output'];
-  node: ApiProductReview;
-};
-
-export enum ProductReviewSort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  HelpfulYesDesc = 'HELPFUL_YES_DESC',
-  RatingDesc = 'RATING_DESC'
-}
-
-export type ApiProductVariant = ApiNode & {
-  __typename?: 'ProductVariant';
-  /** All categories this product [variant] belongs to. */
-  categories: ApiCategoryConnection;
-  /** Primary category of the product. */
-  category?: Maybe<ApiCategory>;
-  /** Original or list price when on sale. */
-  compareAtPrice?: Maybe<ApiMoney>;
-  /** Primary cover image of the product. */
-  cover?: Maybe<ApiFile>;
-  /** DateTime when the category was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** Full description of the product. */
-  description: Scalars['String']['output'];
-  /** Short excerpt or summary of the product. */
-  excerpt: Scalars['String']['output'];
-  /** Feature sections and their values. */
-  features: Array<ApiProductFeature>;
-  /** Gallery of additional images with cursor-based pagination. */
-  gallery: ApiGalleryConnection;
-  /** Groups of related products (e.g., bundles). */
-  groups: Array<ApiProductGroup>;
-  /** URL-friendly slug for the product. */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /**
-   * All option groups defined for this product—each group represents a configurable attribute
-   * (for example: color, size, material) and includes the full set of possible values.
-   */
-  options: Array<ApiProductOption>;
-  /** Current price of the product, including currency. */
-  price: ApiMoney;
-  /** Product that this variant belongs to. */
-  product: ApiProduct;
-  /** Private field won't be in prod. Used for internal purposes. */
-  productId: Scalars['Uuid']['output'];
-  /** Product rating. */
-  rating: ApiProductRating;
-  /** List of reviews with pagination/filters. */
-  reviews: ApiProductReviewConnection;
-  /**
-   * The ordered list of value handles currently applied to this product configuration.
-   * Each entry is the `handle` of a selected `ProductOptionValue` (for example: ["red", "m", "patterned"]).
-   */
-  selectedOptions: Array<Scalars['String']['output']>;
-  /** Seo description for the product page. */
-  seoDescription?: Maybe<Scalars['String']['output']>;
-  /** Seo title for the product page. */
-  seoTitle?: Maybe<Scalars['String']['output']>;
-  /** Stock keeping unit identifier. */
-  sku?: Maybe<Scalars['String']['output']>;
-  /** Stock availability information. */
-  stockStatus: ApiStockStatus;
-  /** Tags associated with the product. */
-  tags: ApiTagConnection;
-  /** Name of the product. */
-  title: Scalars['String']['output'];
-  /** DateTime when the category was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-  /** Variants of the product (different option combinations). */
-  variants: Array<ApiProductVariant>;
-};
-
-
-export type ApiProductVariantCategoriesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<CategorySort>;
-};
-
-
-export type ApiProductVariantGalleryArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiProductVariantReviewsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ProductReviewSort>;
-};
-
-
-export type ApiProductVariantTagsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<TagSort>;
-};
 
 export type ApiPurchasableSnapshotInput = {
   /** JSON data of the purchasable snapshot. */
@@ -3200,264 +1940,7 @@ export type ApiPurchasableSnapshotInput = {
 
 export type ApiQuery = {
   __typename?: 'Query';
-  /** Retrieve a single article by its slug. */
-  article?: Maybe<ApiArticle>;
-  /** Retrieve a paginated list of articles (Relay Connection). */
-  articles: ApiArticleConnection;
-  /** Retrieve a paginated list of categories. */
-  categories: ApiCategoryConnection;
-  /** Retrieve a single category by its handle. */
-  category?: Maybe<ApiCategory>;
   checkoutQuery: ApiCheckoutQuery;
-  /** Retrieve a single menu by its handle. */
-  menu?: Maybe<ApiMenu>;
-  /** Retrieve a paginated list of menus (Relay Connection). */
-  menus: ApiMenuConnection;
-  node?: Maybe<ApiNode>;
-  /** Retrieve a single page by its slug. */
-  page?: Maybe<ApiPage>;
-  /** Retrieve a paginated list of pages (Relay Connection). */
-  pages: ApiPageConnection;
-  /** Performs a predictive (autocomplete) search and returns a limited list of entities. */
-  predictiveSearch: ApiPredictiveSearchResult;
-  /** Fetch a single product by its handle (slug). */
-  product?: Maybe<ApiProduct>;
-  /** Performs a full search and returns Relay‐style connections for each entity. */
-  search: ApiSearchResult;
-  /** Retrieves the current authentication session. */
-  session?: Maybe<ApiSession>;
-  variant?: Maybe<ApiProductVariant>;
-  variantBySelectedOptions?: Maybe<ApiProductVariant>;
-};
-
-
-export type ApiQueryArticleArgs = {
-  slug: Scalars['String']['input'];
-};
-
-
-export type ApiQueryArticlesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ArticleSort>;
-};
-
-
-export type ApiQueryCategoriesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<CategorySort>;
-};
-
-
-export type ApiQueryCategoryArgs = {
-  handle: Scalars['String']['input'];
-};
-
-
-export type ApiQueryMenuArgs = {
-  handle: Scalars['String']['input'];
-};
-
-
-export type ApiQueryMenusArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<MenuSort>;
-};
-
-
-export type ApiQueryNodeArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiQueryPageArgs = {
-  slug: Scalars['String']['input'];
-};
-
-
-export type ApiQueryPagesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<PageSort>;
-};
-
-
-export type ApiQueryPredictiveSearchArgs = {
-  input: ApiPredictiveSearchInput;
-};
-
-
-export type ApiQueryProductArgs = {
-  handle: Scalars['String']['input'];
-};
-
-
-export type ApiQuerySearchArgs = {
-  input: ApiSearchInput;
-};
-
-
-export type ApiQueryVariantArgs = {
-  handle: Scalars['String']['input'];
-};
-
-
-export type ApiQueryVariantBySelectedOptionsArgs = {
-  selectedOptions: Array<Scalars['String']['input']>;
-};
-
-export type ApiRatingBreakdown = {
-  __typename?: 'RatingBreakdown';
-  /** Number of approved reviews. */
-  count: Scalars['Int']['output'];
-  /** Percentage of approved reviews. */
-  percentage: Scalars['Float']['output'];
-  /** Number of stars (1–5, step 0.5). */
-  star: Scalars['Int']['output'];
-};
-
-/** Filter representing a rating range filter. */
-export type ApiRatingRangeFilter = ApiFilter & {
-  __typename?: 'RatingRangeFilter';
-  /** Count of products in the range. */
-  count: Scalars['Int']['output'];
-  handle: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  iid: Scalars['Uuid']['output'];
-  /** Maximum rating in the range. */
-  maxRate: Scalars['Float']['output'];
-  /** Minimum rating in the range. */
-  minRate: Scalars['Float']['output'];
-  title: Scalars['String']['output'];
-};
-
-/** Input data for resetting a password using a token. */
-export type ApiResetPasswordInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** User's email address. */
-  email: Scalars['Email']['input'];
-  /** New password. */
-  password: Scalars['String']['input'];
-  /** Password reset token sent to the email. */
-  token: Scalars['String']['input'];
-};
-
-/** Payload returned after resetting the password. */
-export type ApiResetPasswordPayload = {
-  __typename?: 'ResetPasswordPayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** True if the password was reset successfully. */
-  success: Scalars['Boolean']['output'];
-};
-
-/** Comment/reply to a review. */
-export type ApiReviewComment = ApiNode & {
-  __typename?: 'ReviewComment';
-  /** Comment author. */
-  author: ApiUser;
-  /** Creation date. */
-  createdAt: Scalars['DateTime']['output'];
-  /** Last edit date. */
-  editedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Global unique identifier. */
-  id: Scalars['ID']['output'];
-  /** Comment message. */
-  message: Scalars['String']['output'];
-};
-
-/** Review status. */
-export enum ReviewStatus {
-  Approved = 'APPROVED',
-  Pending = 'PENDING',
-  Rejected = 'REJECTED'
-}
-
-/** Input type for executing full search. */
-export type ApiSearchInput = {
-  /** The search query string. */
-  query: Scalars['String']['input'];
-};
-
-/** Result of a full search: a set of Relay connections for various entity types. */
-export type ApiSearchResult = {
-  __typename?: 'SearchResult';
-  /** Relay‐style connection for articles. */
-  articles: ApiArticleConnection;
-  /** Relay‐style connection for categories. */
-  categories: ApiCategoryConnection;
-  /** Relay‐style connection for pages. */
-  pages: ApiPageConnection;
-  /** Relay‐style connection for products. */
-  products: ApiListingConnection;
-};
-
-
-/** Result of a full search: a set of Relay connections for various entity types. */
-export type ApiSearchResultArticlesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ArticleSort>;
-};
-
-
-/** Result of a full search: a set of Relay connections for various entity types. */
-export type ApiSearchResultCategoriesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<CategorySort>;
-};
-
-
-/** Result of a full search: a set of Relay connections for various entity types. */
-export type ApiSearchResultPagesArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<PageSort>;
-};
-
-
-/** Result of a full search: a set of Relay connections for various entity types. */
-export type ApiSearchResultProductsArgs = {
-  after?: InputMaybe<Scalars['Cursor']['input']>;
-  before?: InputMaybe<Scalars['Cursor']['input']>;
-  filters?: InputMaybe<Array<ApiFilterInput>>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ListingSort>;
-};
-
-export type ApiSellerReplyInput = {
-  reviewId: Scalars['ID']['input'];
-  text: Scalars['String']['input'];
-};
-
-/** Represents an authentication session. */
-export type ApiSession = {
-  __typename?: 'Session';
-  /** JWT access token for authenticating subsequent requests. */
-  accessToken?: Maybe<Scalars['String']['output']>;
-  /** The authenticated user. */
-  user: ApiUser;
 };
 
 /** Shipping payment model */
@@ -3468,214 +1951,21 @@ export enum ShippingPaymentModel {
   MerchantCollected = 'MERCHANT_COLLECTED'
 }
 
-/** Stock status of the product. */
-export type ApiStockStatus = {
-  __typename?: 'StockStatus';
-  /** Machine-readable status identifier (e.g., "IN_STOCK", "OUT_OF_STOCK"). */
-  handle: Scalars['String']['output'];
-  /** Indicates whether the product is available for purchase. */
-  isAvailable: Scalars['Boolean']['output'];
-};
-
-export type ApiSwatch = {
-  __typename?: 'Swatch';
-  /** The primary color in HEX format, e.g., "#ff0000". */
-  color: Scalars['String']['output'];
-  /** An optional secondary color (e.g., for gradients). */
-  color2?: Maybe<Scalars['String']['output']>;
-  /** The type of swatch. */
-  displayType: SwatchDisplayType;
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The image or video file. */
-  image?: Maybe<ApiFile>;
-};
-
-export enum SwatchDisplayType {
-  Color = 'COLOR',
-  ColorDuo = 'COLOR_DUO',
-  Image = 'IMAGE'
-}
-
-export type ApiTag = ApiNode & {
-  __typename?: 'Tag';
-  /** Slug is a unique identifier for the Tag in the human-readable format */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The title */
-  title: Scalars['String']['output'];
-};
-
-export type ApiTagConnection = {
-  __typename?: 'TagConnection';
-  /** List of category edges (each contains a node and a cursor). */
-  edges: Array<ApiTagEdge>;
-  /** Pagination metadata (hasNextPage, endCursor, etc.). */
-  pageInfo: ApiPageInfo;
-  /** The total number of items. */
-  totalCount: Scalars['Int']['output'];
-};
-
-export type ApiTagEdge = {
-  __typename?: 'TagEdge';
-  /** Cursor for Relay-style pagination. */
-  cursor: Scalars['Cursor']['output'];
-  /** Node containing the category data. */
-  node: ApiTag;
-};
-
-export enum TagSort {
-  CreatedAtAsc = 'CREATED_AT_ASC',
-  CreatedAtDesc = 'CREATED_AT_DESC',
-  TitleAsc = 'TITLE_ASC',
-  TitleDesc = 'TITLE_DESC',
-  UpdatedAtAsc = 'UPDATED_AT_ASC',
-  UpdatedAtDesc = 'UPDATED_AT_DESC'
-}
-
-/** A node representing an arbitrary URL. */
-export type ApiUrlNode = {
-  __typename?: 'URLNode';
-  /** The URL string. */
-  url: Scalars['String']['output'];
-};
-
-/** Input data for changing the password of an authenticated user. */
-export type ApiUpdatePasswordInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** New password. */
-  password: Scalars['String']['input'];
-};
-
-/** Payload returned after updating the password. */
-export type ApiUpdatePasswordPayload = {
-  __typename?: 'UpdatePasswordPayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** True if the password was updated successfully. */
-  success: Scalars['Boolean']['output'];
-};
-
-export type ApiUpdateReviewInput = {
-  cons?: InputMaybe<Scalars['String']['input']>;
-  displayName?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
-  images?: InputMaybe<Array<Scalars['ID']['input']>>;
-  message?: InputMaybe<Scalars['String']['input']>;
-  pros?: InputMaybe<Scalars['String']['input']>;
-  rating?: InputMaybe<Scalars['Float']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Input data for updating the authenticated user's profile. */
-export type ApiUpdateUserProfileInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** New email address (optional). */
-  email?: InputMaybe<Scalars['Email']['input']>;
-  /** Preferred interface language (locale code). */
-  language?: InputMaybe<LocaleCode>;
-  /** User's full name. */
-  name?: InputMaybe<ApiUserNameInput>;
-  /** Phone number in E.164 format. */
-  phone?: InputMaybe<Scalars['Phone']['input']>;
-};
-
-/** Payload returned after updating the user profile. */
-export type ApiUpdateUserProfilePayload = {
-  __typename?: 'UpdateUserProfilePayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** The updated user object. */
-  user?: Maybe<ApiUser>;
-};
-
-/** Represents a user in the system. */
-export type ApiUser = ApiNode & {
+export type ApiUser = {
   __typename?: 'User';
-  /** User's email address. */
-  email: Scalars['Email']['output'];
-  /** Global unique identifier for the address. */
   id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** Whether the user's email has been verified. */
-  isVerified: Scalars['Boolean']['output'];
-  /** Preferred interface language (locale code). */
-  language?: Maybe<LocaleCode>;
-  /** Full name of the user. */
-  name: ApiUserName;
   /** List of the user's orders. */
   orders: Array<ApiOrder>;
-  /** Phone number in E.164 format. */
-  phone?: Maybe<Scalars['Phone']['output']>;
 };
 
-/** Customer's first, middle, and last name. */
-export type ApiUserName = {
-  __typename?: 'UserName';
-  /** First name. */
-  first: Scalars['String']['output'];
-  /** Last name. */
-  last: Scalars['String']['output'];
-  /** Middle name (optional). */
-  middle?: Maybe<Scalars['String']['output']>;
-};
-
-/** Input type for customer's name. */
-export type ApiUserNameInput = {
-  /** First name. */
-  first: Scalars['String']['input'];
-  /** Last name. */
-  last: Scalars['String']['input'];
-  /** Middle name (optional). */
-  middle?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiVendor = ApiNode & {
-  __typename?: 'Vendor';
-  /** Slug is a unique identifier for the Vendor in the human-readable format */
-  handle: Scalars['String']['output'];
-  /** Global unique identifier for the address. */
-  id: Scalars['ID']['output'];
-  /** Object identifier (Internal). */
-  iid: Scalars['Uuid']['output'];
-  /** The title */
-  title: Scalars['String']['output'];
-};
-
-/** Input data for verifying a user's email address. */
-export type ApiVerifyEmailInput = {
-  /** Unique identifier for the client mutation. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
-  /** Email address to verify. */
-  email: Scalars['Email']['input'];
-  /** Verification token sent to the email. */
-  token: Scalars['String']['input'];
-};
-
-/** Payload returned after email verification. */
-export type ApiVerifyEmailPayload = {
-  __typename?: 'VerifyEmailPayload';
-  /** Unique identifier echoed from the input. */
-  clientMutationId?: Maybe<Scalars['String']['output']>;
-  /** List of field-specific errors. */
-  errors?: Maybe<Array<ApiFieldError>>;
-  /** Session created upon successful verification. */
-  session?: Maybe<ApiSession>;
-};
-
-export type ApiVoteReviewHelpfulInput = {
-  helpful: Scalars['Boolean']['input'];
-  reviewId: Scalars['ID']['input'];
-};
+/** Weight measurement units */
+export enum WeightUnit {
+  /** Gram */
+  G = 'g',
+  /** Kilogram */
+  Kg = 'kg',
+  /** Pound */
+  Lb = 'lb',
+  /** Ounce */
+  Oz = 'oz'
+}

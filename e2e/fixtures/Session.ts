@@ -57,10 +57,6 @@ export class SessionFixture {
         input: {
           email: this.tenant.data.email,
           password: this.tenant.data.password,
-          firstName: this.tenant.data.firstName,
-          lastName: this.tenant.data.lastName,
-          language: LocaleCode.En,
-          timezone: Timezone.EUROPE_KIEV,
         },
       },
     });

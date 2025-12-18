@@ -13,22 +13,85 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   BigInt: { input: any; output: any; }
+  /** ISO 8601 date-time string */
   DateTime: { input: string; output: string; }
+  /** Valid email address */
   Email: { input: string; output: string; }
   JSON: { input: object; output: object; }
+  /** Unix timestamp in milliseconds */
   Timestamp: { input: string; output: string; }
+  TransportOptions: { input: any; output: any; }
   Upload: { input: File; output: File; }
 };
 
+/** API key for programmatic access to the project */
 export type ApiApiKey = {
   __typename?: 'ApiKey';
-  createdAt: Scalars['Timestamp']['output'];
-  createdBy: ApiUser;
-  dueDate?: Maybe<Scalars['Timestamp']['output']>;
+  /** Timestamp when the API key was created */
+  createdAt: Scalars['DateTime']['output'];
+  /** ID of the user who created this API key */
+  createdById: Scalars['ID']['output'];
+  /** Optional expiration date for the API key */
+  dueDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Unique identifier of the API key */
   id: Scalars['ID']['output'];
+  /** Whether the API key has been banned by the system */
   isBanned: Scalars['Boolean']['output'];
-  lastUsedAt?: Maybe<Scalars['Timestamp']['output']>;
+  /** The API key value (only shown once upon creation) */
+  key: Scalars['String']['output'];
+  /** Timestamp of the last API call using this key */
+  lastUsedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Human-readable name for the API key */
   name: Scalars['String']['output'];
+  /** Timestamp when the API key was revoked, null if still active */
+  revokedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** Payload returned after an API key action (revoke) */
+export type ApiApiKeyActionPayload = {
+  __typename?: 'ApiKeyActionPayload';
+  /** Whether the action was successful */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the action */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Input for creating a new API key */
+export type ApiApiKeyCreateInput = {
+  /** Optional expiration date for the API key */
+  dueDate?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Human-readable name for the API key */
+  name: Scalars['String']['input'];
+};
+
+/** Payload returned after creating an API key */
+export type ApiApiKeyCreatePayload = {
+  __typename?: 'ApiKeyCreatePayload';
+  /** The newly created API key, null if creation failed */
+  apiKey?: Maybe<ApiApiKey>;
+  /** List of errors that occurred during creation */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Input for deleting an API key */
+export type ApiApiKeyDeleteInput = {
+  /** ID of the API key to delete */
+  id: Scalars['ID']['input'];
+};
+
+/** Payload returned after deleting an API key */
+export type ApiApiKeyDeletePayload = {
+  __typename?: 'ApiKeyDeletePayload';
+  /** ID of the deleted API key, null if deletion failed */
+  deletedApiKeyId?: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during deletion */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Input for revoking an API key */
+export type ApiApiKeyRevokeInput = {
+  /** ID of the API key to revoke */
+  id: Scalars['ID']['input'];
 };
 
 export type ApiApp = {
@@ -62,6 +125,17 @@ export type ApiAppsQuery = {
   apps: Array<ApiApp>;
   /** Get list of installed apps */
   installedApps: Array<ApiInstalledApp>;
+};
+
+/** Authentication tokens. */
+export type ApiAuthToken = {
+  __typename?: 'AuthToken';
+  /** Access token for API requests. */
+  accessToken: Scalars['String']['output'];
+  /** Expiration time in seconds. */
+  expiresIn: Scalars['Int']['output'];
+  /** Refresh token for obtaining new access tokens. */
+  refreshToken: Scalars['String']['output'];
 };
 
 /** Filter operators for Boolean fields */
@@ -129,146 +203,804 @@ export type ApiCollectionMeta = {
   total: Scalars['Int']['output'];
 };
 
-export type ApiCreateApiKeyInput = {
-  dueDate?: InputMaybe<Scalars['Timestamp']['input']>;
-  name: Scalars['String']['input'];
+export enum CountryCode {
+  /** Andorra */
+  Ad = 'AD',
+  /** United Arab Emirates */
+  Ae = 'AE',
+  /** Afghanistan */
+  Af = 'AF',
+  /** Antigua and Barbuda */
+  Ag = 'AG',
+  /** Albania */
+  Al = 'AL',
+  /** Armenia */
+  Am = 'AM',
+  /** Angola */
+  Ao = 'AO',
+  /** Argentina */
+  Ar = 'AR',
+  /** Austria */
+  At = 'AT',
+  /** Australia */
+  Au = 'AU',
+  /** Aruba */
+  Aw = 'AW',
+  /** Åland Islands */
+  Ax = 'AX',
+  /** Azerbaijan */
+  Az = 'AZ',
+  /** Bosnia and Herzegovina */
+  Ba = 'BA',
+  /** Barbados */
+  Bb = 'BB',
+  /** Bangladesh */
+  Bd = 'BD',
+  /** Belgium */
+  Be = 'BE',
+  /** Burkina Faso */
+  Bf = 'BF',
+  /** Bulgaria */
+  Bg = 'BG',
+  /** Bahrain */
+  Bh = 'BH',
+  /** Burundi */
+  Bi = 'BI',
+  /** Benin */
+  Bj = 'BJ',
+  /** Bermuda */
+  Bm = 'BM',
+  /** Brunei */
+  Bn = 'BN',
+  /** Bolivia */
+  Bo = 'BO',
+  /** Brazil */
+  Br = 'BR',
+  /** Bahamas */
+  Bs = 'BS',
+  /** Bhutan */
+  Bt = 'BT',
+  /** Botswana */
+  Bw = 'BW',
+  /** Belarus */
+  By = 'BY',
+  /** Belize */
+  Bz = 'BZ',
+  /** Canada */
+  Ca = 'CA',
+  /** Democratic Republic of the Congo */
+  Cd = 'CD',
+  /** Central African Republic */
+  Cf = 'CF',
+  /** Republic of the Congo */
+  Cg = 'CG',
+  /** Switzerland */
+  Ch = 'CH',
+  /** Ivory Coast */
+  Ci = 'CI',
+  /** Chile */
+  Cl = 'CL',
+  /** Cameroon */
+  Cm = 'CM',
+  /** China */
+  Cn = 'CN',
+  /** Colombia */
+  Co = 'CO',
+  /** Costa Rica */
+  Cr = 'CR',
+  /** Cuba */
+  Cu = 'CU',
+  /** Cape Verde */
+  Cv = 'CV',
+  /** Curaçao */
+  Cw = 'CW',
+  /** Cyprus */
+  Cy = 'CY',
+  /** Czech Republic */
+  Cz = 'CZ',
+  /** Germany */
+  De = 'DE',
+  /** Djibouti */
+  Dj = 'DJ',
+  /** Denmark */
+  Dk = 'DK',
+  /** Dominica */
+  Dm = 'DM',
+  /** Dominican Republic */
+  Do = 'DO',
+  /** Algeria */
+  Dz = 'DZ',
+  /** Ecuador */
+  Ec = 'EC',
+  /** Estonia */
+  Ee = 'EE',
+  /** Egypt */
+  Eg = 'EG',
+  /** Western Sahara */
+  Eh = 'EH',
+  /** Eritrea */
+  Er = 'ER',
+  /** Spain */
+  Es = 'ES',
+  /** Ethiopia */
+  Et = 'ET',
+  /** Finland */
+  Fi = 'FI',
+  /** Fiji */
+  Fj = 'FJ',
+  /** Micronesia */
+  Fm = 'FM',
+  /** Faroe Islands */
+  Fo = 'FO',
+  /** France */
+  Fr = 'FR',
+  /** Gabon */
+  Ga = 'GA',
+  /** United Kingdom */
+  Gb = 'GB',
+  /** Grenada */
+  Gd = 'GD',
+  /** Georgia */
+  Ge = 'GE',
+  /** Guernsey */
+  Gg = 'GG',
+  /** Ghana */
+  Gh = 'GH',
+  /** Greenland */
+  Gl = 'GL',
+  /** Gambia */
+  Gm = 'GM',
+  /** Guinea */
+  Gn = 'GN',
+  /** Equatorial Guinea */
+  Gq = 'GQ',
+  /** Greece */
+  Gr = 'GR',
+  /** Guatemala */
+  Gt = 'GT',
+  /** Guinea-Bissau */
+  Gw = 'GW',
+  /** Guyana */
+  Gy = 'GY',
+  /** Honduras */
+  Hn = 'HN',
+  /** Croatia */
+  Hr = 'HR',
+  /** Haiti */
+  Ht = 'HT',
+  /** Hungary */
+  Hu = 'HU',
+  /** Indonesia */
+  Id = 'ID',
+  /** Ireland */
+  Ie = 'IE',
+  /** Israel */
+  Il = 'IL',
+  /** Isle of Man */
+  Im = 'IM',
+  /** India */
+  In = 'IN',
+  /** Iraq */
+  Iq = 'IQ',
+  /** Iran */
+  Ir = 'IR',
+  /** Iceland */
+  Is = 'IS',
+  /** Italy */
+  It = 'IT',
+  /** Jersey */
+  Je = 'JE',
+  /** Jamaica */
+  Jm = 'JM',
+  /** Jordan */
+  Jo = 'JO',
+  /** Japan */
+  Jp = 'JP',
+  /** Kenya */
+  Ke = 'KE',
+  /** Kyrgyzstan */
+  Kg = 'KG',
+  /** Cambodia */
+  Kh = 'KH',
+  /** Comoros */
+  Km = 'KM',
+  /** Saint Kitts and Nevis */
+  Kn = 'KN',
+  /** North Korea */
+  Kp = 'KP',
+  /** South Korea */
+  Kr = 'KR',
+  /** Kuwait */
+  Kw = 'KW',
+  /** Kazakhstan */
+  Kz = 'KZ',
+  /** Laos */
+  La = 'LA',
+  /** Lebanon */
+  Lb = 'LB',
+  /** Saint Lucia */
+  Lc = 'LC',
+  /** Liechtenstein */
+  Li = 'LI',
+  /** Sri Lanka */
+  Lk = 'LK',
+  /** Liberia */
+  Lr = 'LR',
+  /** Lesotho */
+  Ls = 'LS',
+  /** Lithuania */
+  Lt = 'LT',
+  /** Luxembourg */
+  Lu = 'LU',
+  /** Latvia */
+  Lv = 'LV',
+  /** Morocco */
+  Ma = 'MA',
+  /** Monaco */
+  Mc = 'MC',
+  /** Moldova */
+  Md = 'MD',
+  /** Montenegro */
+  Me = 'ME',
+  /** Madagascar */
+  Mg = 'MG',
+  /** Marshall Islands */
+  Mh = 'MH',
+  /** North Macedonia */
+  Mk = 'MK',
+  /** Mali */
+  Ml = 'ML',
+  /** Myanmar */
+  Mm = 'MM',
+  /** Mongolia */
+  Mn = 'MN',
+  /** Mauritania */
+  Mr = 'MR',
+  /** Malta */
+  Mt = 'MT',
+  /** Mauritius */
+  Mu = 'MU',
+  /** Maldives */
+  Mv = 'MV',
+  /** Malawi */
+  Mw = 'MW',
+  /** Mexico */
+  Mx = 'MX',
+  /** Malaysia */
+  My = 'MY',
+  /** Mozambique */
+  Mz = 'MZ',
+  /** Namibia */
+  Na = 'NA',
+  /** New Caledonia */
+  Nc = 'NC',
+  /** Niger */
+  Ne = 'NE',
+  /** Nigeria */
+  Ng = 'NG',
+  /** Nicaragua */
+  Ni = 'NI',
+  /** Netherlands */
+  Nl = 'NL',
+  /** Norway */
+  No = 'NO',
+  /** Nepal */
+  Np = 'NP',
+  /** New Zealand */
+  Nz = 'NZ',
+  /** Oman */
+  Om = 'OM',
+  /** Panama */
+  Pa = 'PA',
+  /** Peru */
+  Pe = 'PE',
+  /** Papua New Guinea */
+  Pg = 'PG',
+  /** Philippines */
+  Ph = 'PH',
+  /** Pakistan */
+  Pk = 'PK',
+  /** Poland */
+  Pl = 'PL',
+  /** Palestine */
+  Ps = 'PS',
+  /** Portugal */
+  Pt = 'PT',
+  /** Palau */
+  Pw = 'PW',
+  /** Paraguay */
+  Py = 'PY',
+  /** Qatar */
+  Qa = 'QA',
+  /** Romania */
+  Ro = 'RO',
+  /** Serbia */
+  Rs = 'RS',
+  /** Russia */
+  Ru = 'RU',
+  /** Rwanda */
+  Rw = 'RW',
+  /** Saudi Arabia */
+  Sa = 'SA',
+  /** Solomon Islands */
+  Sb = 'SB',
+  /** Seychelles */
+  Sc = 'SC',
+  /** Sudan */
+  Sd = 'SD',
+  /** Sweden */
+  Se = 'SE',
+  /** Singapore */
+  Sg = 'SG',
+  /** Slovenia */
+  Si = 'SI',
+  /** Slovakia */
+  Sk = 'SK',
+  /** Sierra Leone */
+  Sl = 'SL',
+  /** San Marino */
+  Sm = 'SM',
+  /** Senegal */
+  Sn = 'SN',
+  /** Suriname */
+  Sr = 'SR',
+  /** South Sudan */
+  Ss = 'SS',
+  /** El Salvador */
+  Sv = 'SV',
+  /** Syria */
+  Sy = 'SY',
+  /** Swaziland (Eswatini) */
+  Sz = 'SZ',
+  /** Chad */
+  Td = 'TD',
+  /** Togo */
+  Tg = 'TG',
+  /** Thailand */
+  Th = 'TH',
+  /** Tajikistan */
+  Tj = 'TJ',
+  /** Timor-Leste (East Timor) */
+  Tl = 'TL',
+  /** Turkmenistan */
+  Tm = 'TM',
+  /** Tunisia */
+  Tn = 'TN',
+  /** Tonga */
+  To = 'TO',
+  /** Turkey */
+  Tr = 'TR',
+  /** Trinidad and Tobago */
+  Tt = 'TT',
+  /** Tanzania */
+  Tz = 'TZ',
+  /** Ukraine */
+  Ua = 'UA',
+  /** Uganda */
+  Ug = 'UG',
+  /** United States */
+  Us = 'US',
+  /** Uruguay */
+  Uy = 'UY',
+  /** Uzbekistan */
+  Uz = 'UZ',
+  /** Vatican City */
+  Va = 'VA',
+  /** Saint Vincent and the Grenadines */
+  Vc = 'VC',
+  /** Venezuela */
+  Ve = 'VE',
+  /** British Virgin Islands */
+  Vg = 'VG',
+  /** US Virgin Islands */
+  Vi = 'VI',
+  /** Vietnam */
+  Vn = 'VN',
+  /** Vanuatu */
+  Vu = 'VU',
+  /** Samoa */
+  Ws = 'WS',
+  /** Kosovo */
+  Xk = 'XK',
+  /** Yemen */
+  Ye = 'YE',
+  /** South Africa */
+  Za = 'ZA',
+  /** Zambia */
+  Zm = 'ZM',
+  /** Zimbabwe */
+  Zw = 'ZW'
+}
+
+/** Currency configuration for the project */
+export type ApiCurrency = {
+  __typename?: 'Currency';
+  /** ISO 4217 currency code */
+  code: CurrencyCode;
+  /** Exchange rate relative to the base currency */
+  exchangeRate: ApiExchangeRate;
+  /** Whether this currency is currently active for the project */
+  isActive: Scalars['Boolean']['output'];
+  /** Display name of the currency */
+  name: Scalars['String']['output'];
 };
 
-export type ApiCreateCustomerInput = {
-  email: Scalars['String']['input'];
-  firstName: Scalars['String']['input'];
-  isVerified: Scalars['Boolean']['input'];
-  language: Scalars['String']['input'];
-  lastName: Scalars['String']['input'];
-  password?: InputMaybe<Scalars['String']['input']>;
-  phone?: InputMaybe<Scalars['String']['input']>;
-};
+/** Currency codes according to ISO 4217 */
+export enum CurrencyCode {
+  /** UAE Dirham (United Arab Emirates) - 2 decimals */
+  Aed = 'AED',
+  /** Afghan Afghani (Afghanistan) - 0 decimals */
+  Afn = 'AFN',
+  /** Albanian Lek (Albania) - 0 decimals */
+  All = 'ALL',
+  /** Armenian Dram (Armenia) - 2 decimals */
+  Amd = 'AMD',
+  /** Netherlands Antillean Guilder - 2 decimals */
+  Ang = 'ANG',
+  /** Angolan Kwanza (Angola) - 2 decimals */
+  Aoa = 'AOA',
+  /** Argentine Peso (Argentina) - 2 decimals */
+  Ars = 'ARS',
+  /** Australian Dollar (Australia) - 2 decimals */
+  Aud = 'AUD',
+  /** Aruban Florin (Aruba) - 2 decimals */
+  Awg = 'AWG',
+  /** Azerbaijani Manat (Azerbaijan) - 2 decimals */
+  Azn = 'AZN',
+  /** Bosnia-Herzegovina Convertible Mark - 2 decimals */
+  Bam = 'BAM',
+  /** Barbadian Dollar (Barbados) - 2 decimals */
+  Bbd = 'BBD',
+  /** Bangladeshi Taka (Bangladesh) - 2 decimals */
+  Bdt = 'BDT',
+  /** Bulgarian Lev (Bulgaria) - 2 decimals */
+  Bgn = 'BGN',
+  /** Bahraini Dinar (Bahrain) - 3 decimals */
+  Bhd = 'BHD',
+  /** Burundian Franc (Burundi) - 0 decimals */
+  Bif = 'BIF',
+  /** Bermudian Dollar (Bermuda) - 2 decimals */
+  Bmd = 'BMD',
+  /** Brunei Dollar (Brunei) - 2 decimals */
+  Bnd = 'BND',
+  /** Bolivian Boliviano (Bolivia) - 2 decimals */
+  Bob = 'BOB',
+  /** Brazilian Real (Brazil) - 2 decimals */
+  Brl = 'BRL',
+  /** Bahamian Dollar (Bahamas) - 2 decimals */
+  Bsd = 'BSD',
+  /** Bhutanese Ngultrum (Bhutan) - 2 decimals */
+  Btn = 'BTN',
+  /** Botswana Pula (Botswana) - 2 decimals */
+  Bwp = 'BWP',
+  /** Belarusian Ruble (Belarus) - 2 decimals */
+  Byn = 'BYN',
+  /** Belize Dollar (Belize) - 2 decimals */
+  Bzd = 'BZD',
+  /** Canadian Dollar (Canada) - 2 decimals */
+  Cad = 'CAD',
+  /** Congolese Franc (DR Congo) - 2 decimals */
+  Cdf = 'CDF',
+  /** Swiss Franc (Switzerland) - 2 decimals */
+  Chf = 'CHF',
+  /** Chilean Peso (Chile) - 0 decimals */
+  Clp = 'CLP',
+  /** Chinese Yuan (China) - 2 decimals */
+  Cny = 'CNY',
+  /** Colombian Peso (Colombia) - 2 decimals */
+  Cop = 'COP',
+  /** Costa Rican Colon (Costa Rica) - 2 decimals */
+  Crc = 'CRC',
+  /** Cuban Peso (Cuba) - 2 decimals */
+  Cup = 'CUP',
+  /** Cape Verdean Escudo (Cape Verde) - 2 decimals */
+  Cve = 'CVE',
+  /** Czech Koruna (Czech Republic) - 2 decimals */
+  Czk = 'CZK',
+  /** Djiboutian Franc (Djibouti) - 0 decimals */
+  Djf = 'DJF',
+  /** Danish Krone (Denmark) - 2 decimals */
+  Dkk = 'DKK',
+  /** Dominican Peso (Dominican Republic) - 2 decimals */
+  Dop = 'DOP',
+  /** Algerian Dinar (Algeria) - 2 decimals */
+  Dzd = 'DZD',
+  /** Egyptian Pound (Egypt) - 2 decimals */
+  Egp = 'EGP',
+  /** Eritrean Nakfa (Eritrea) - 2 decimals */
+  Ern = 'ERN',
+  /** Ethiopian Birr (Ethiopia) - 2 decimals */
+  Etb = 'ETB',
+  /** Euro (European Union) - 2 decimals */
+  Eur = 'EUR',
+  /** Fijian Dollar (Fiji) - 2 decimals */
+  Fjd = 'FJD',
+  /** Falkland Islands Pound - 2 decimals */
+  Fkp = 'FKP',
+  /** Faroese Króna (Faroe Islands) - 2 decimals */
+  Fok = 'FOK',
+  /** Pound Sterling (United Kingdom) - 2 decimals */
+  Gbp = 'GBP',
+  /** Georgian Lari (Georgia) - 2 decimals */
+  Gel = 'GEL',
+  /** Guernsey Pound (Guernsey) - 2 decimals */
+  Ggp = 'GGP',
+  /** Ghanaian Cedi (Ghana) - 2 decimals */
+  Ghs = 'GHS',
+  /** Gibraltar Pound (Gibraltar) - 2 decimals */
+  Gip = 'GIP',
+  /** Gambian Dalasi (Gambia) - 2 decimals */
+  Gmd = 'GMD',
+  /** Guinean Franc (Guinea) - 0 decimals */
+  Gnf = 'GNF',
+  /** Guatemalan Quetzal (Guatemala) - 2 decimals */
+  Gtq = 'GTQ',
+  /** Guyanese Dollar (Guyana) - 2 decimals */
+  Gyd = 'GYD',
+  /** Hong Kong Dollar (Hong Kong) - 2 decimals */
+  Hkd = 'HKD',
+  /** Honduran Lempira (Honduras) - 2 decimals */
+  Hnl = 'HNL',
+  /** Croatian Kuna (Croatia) - 2 decimals */
+  Hrk = 'HRK',
+  /** Haitian Gourde (Haiti) - 2 decimals */
+  Htg = 'HTG',
+  /** Hungarian Forint (Hungary) - 2 decimals */
+  Huf = 'HUF',
+  /** Indonesian Rupiah (Indonesia) - 0 decimals */
+  Idr = 'IDR',
+  /** Israeli New Shekel (Israel) - 2 decimals */
+  Ils = 'ILS',
+  /** Isle of Man Pound - 2 decimals */
+  Imp = 'IMP',
+  /** Indian Rupee (India) - 2 decimals */
+  Inr = 'INR',
+  /** Iraqi Dinar (Iraq) - 3 decimals */
+  Iqd = 'IQD',
+  /** Iranian Rial (Iran) - 2 decimals */
+  Irr = 'IRR',
+  /** Icelandic Króna (Iceland) - 0 decimals */
+  Isk = 'ISK',
+  /** Jersey Pound (Jersey) - 2 decimals */
+  Jep = 'JEP',
+  /** Jamaican Dollar (Jamaica) - 2 decimals */
+  Jmd = 'JMD',
+  /** Jordanian Dinar (Jordan) - 3 decimals */
+  Jod = 'JOD',
+  /** Japanese Yen (Japan) - 0 decimals */
+  Jpy = 'JPY',
+  /** Kenyan Shilling (Kenya) - 2 decimals */
+  Kes = 'KES',
+  /** Kyrgyzstani Som (Kyrgyzstan) - 2 decimals */
+  Kgs = 'KGS',
+  /** Cambodian Riel (Cambodia) - 2 decimals */
+  Khr = 'KHR',
+  /** Comorian Franc (Comoros) - 2 decimals */
+  Kmf = 'KMF',
+  /** North Korean Won (North Korea) - 2 decimals */
+  Kpw = 'KPW',
+  /** South Korean Won (South Korea) - 0 decimals */
+  Krw = 'KRW',
+  /** Kuwaiti Dinar (Kuwait) - 3 decimals */
+  Kwd = 'KWD',
+  /** Cayman Islands Dollar - 2 decimals */
+  Kyd = 'KYD',
+  /** Kazakhstani Tenge (Kazakhstan) - 2 decimals */
+  Kzt = 'KZT',
+  /** Lao Kip (Laos) - 2 decimals */
+  Lak = 'LAK',
+  /** Lebanese Pound (Lebanon) - 2 decimals */
+  Lbp = 'LBP',
+  /** Sri Lankan Rupee (Sri Lanka) - 2 decimals */
+  Lkr = 'LKR',
+  /** Liberian Dollar (Liberia) - 2 decimals */
+  Lrd = 'LRD',
+  /** Lesotho Loti (Lesotho) - 2 decimals */
+  Lsl = 'LSL',
+  /** Libyan Dinar (Libya) - 3 decimals */
+  Lyd = 'LYD',
+  /** Moroccan Dirham (Morocco) - 2 decimals */
+  Mad = 'MAD',
+  /** Moldovan Leu (Moldova) - 2 decimals */
+  Mdl = 'MDL',
+  /** Malagasy Ariary (Madagascar) - 2 decimals */
+  Mga = 'MGA',
+  /** Macedonian Denar (North Macedonia) - 2 decimals */
+  Mkd = 'MKD',
+  /** Burmese Kyat (Myanmar) - 2 decimals */
+  Mmk = 'MMK',
+  /** Mongolian Tögrög (Mongolia) - 2 decimals */
+  Mnt = 'MNT',
+  /** Macanese Pataca (Macau) - 2 decimals */
+  Mop = 'MOP',
+  /** Mauritanian Ouguiya (Mauritania) - 2 decimals */
+  Mru = 'MRU',
+  /** Mauritian Rupee (Mauritius) - 2 decimals */
+  Mur = 'MUR',
+  /** Maldivian Rufiyaa (Maldives) - 2 decimals */
+  Mvr = 'MVR',
+  /** Malawian Kwacha (Malawi) - 2 decimals */
+  Mwk = 'MWK',
+  /** Mexican Peso (Mexico) - 2 decimals */
+  Mxn = 'MXN',
+  /** Malaysian Ringgit (Malaysia) - 2 decimals */
+  Myr = 'MYR',
+  /** Mozambican Metical (Mozambique) - 2 decimals */
+  Mzn = 'MZN',
+  /** Namibian Dollar (Namibia) - 2 decimals */
+  Nad = 'NAD',
+  /** Nigerian Naira (Nigeria) - 2 decimals */
+  Ngn = 'NGN',
+  /** Nicaraguan Córdoba (Nicaragua) - 2 decimals */
+  Nio = 'NIO',
+  /** Norwegian Krone (Norway) - 2 decimals */
+  Nok = 'NOK',
+  /** Nepalese Rupee (Nepal) - 2 decimals */
+  Npr = 'NPR',
+  /** New Zealand Dollar (New Zealand) - 2 decimals */
+  Nzd = 'NZD',
+  /** Omani Rial (Oman) - 3 decimals */
+  Omr = 'OMR',
+  /** Panamanian Balboa (Panama) - 2 decimals */
+  Pab = 'PAB',
+  /** Peruvian Sol (Peru) - 2 decimals */
+  Pen = 'PEN',
+  /** Papua New Guinean Kina - 2 decimals */
+  Pgk = 'PGK',
+  /** Philippine Peso (Philippines) - 2 decimals */
+  Php = 'PHP',
+  /** Pakistani Rupee (Pakistan) - 2 decimals */
+  Pkr = 'PKR',
+  /** Polish Zloty (Poland) - 2 decimals */
+  Pln = 'PLN',
+  /** Paraguayan Guaraní (Paraguay) - 0 decimals */
+  Pyg = 'PYG',
+  /** Qatari Riyal (Qatar) - 2 decimals */
+  Qar = 'QAR',
+  /** Romanian Leu (Romania) - 2 decimals */
+  Ron = 'RON',
+  /** Serbian Dinar (Serbia) - 2 decimals */
+  Rsd = 'RSD',
+  /** Russian Ruble (Russia) - 2 decimals */
+  Rub = 'RUB',
+  /** Rwandan Franc (Rwanda) - 0 decimals */
+  Rwf = 'RWF',
+  /** Saudi Riyal (Saudi Arabia) - 2 decimals */
+  Sar = 'SAR',
+  /** Solomon Islands Dollar - 2 decimals */
+  Sbd = 'SBD',
+  /** Seychelles Rupee (Seychelles) - 2 decimals */
+  Scr = 'SCR',
+  /** Sudanese Pound (Sudan) - 2 decimals */
+  Sdg = 'SDG',
+  /** Swedish Krona (Sweden) - 2 decimals */
+  Sek = 'SEK',
+  /** Singapore Dollar (Singapore) - 2 decimals */
+  Sgd = 'SGD',
+  /** Saint Helena Pound - 2 decimals */
+  Shp = 'SHP',
+  /** Sierra Leonean Leone - 2 decimals */
+  Sle = 'SLE',
+  /** Somali Shilling (Somalia) - 2 decimals */
+  Sos = 'SOS',
+  /** Surinamese Dollar (Suriname) - 2 decimals */
+  Srd = 'SRD',
+  /** South Sudanese Pound - 2 decimals */
+  Ssp = 'SSP',
+  /** São Tomé and Príncipe Dobra - 2 decimals */
+  Stn = 'STN',
+  /** Salvadoran Colón (El Salvador) - 2 decimals */
+  Svc = 'SVC',
+  /** Syrian Pound (Syria) - 2 decimals */
+  Syp = 'SYP',
+  /** Eswatini Lilangeni (Eswatini) - 2 decimals */
+  Szl = 'SZL',
+  /** Thai Baht (Thailand) - 2 decimals */
+  Thb = 'THB',
+  /** Tajikistani Somoni (Tajikistan) - 2 decimals */
+  Tjs = 'TJS',
+  /** Turkmenistani Manat (Turkmenistan) - 2 decimals */
+  Tmt = 'TMT',
+  /** Tunisian Dinar (Tunisia) - 3 decimals */
+  Tnd = 'TND',
+  /** Tongan Paʻanga (Tonga) - 2 decimals */
+  Top = 'TOP',
+  /** Turkish Lira (Turkey) - 2 decimals */
+  Try = 'TRY',
+  /** Trinidad and Tobago Dollar - 2 decimals */
+  Ttd = 'TTD',
+  /** New Taiwan Dollar (Taiwan) - 2 decimals */
+  Twd = 'TWD',
+  /** Tanzanian Shilling (Tanzania) - 2 decimals */
+  Tzs = 'TZS',
+  /** Ukrainian Hryvnia (Ukraine) - 2 decimals */
+  Uah = 'UAH',
+  /** Ugandan Shilling (Uganda) - 0 decimals */
+  Ugx = 'UGX',
+  /** United States Dollar (USA) - 2 decimals */
+  Usd = 'USD',
+  /** Uruguayan Peso (Uruguay) - 2 decimals */
+  Uyu = 'UYU',
+  /** Uzbekistani Som (Uzbekistan) - 2 decimals */
+  Uzs = 'UZS',
+  /** Venezuelan Bolívar (Venezuela) - 2 decimals */
+  Ves = 'VES',
+  /** Vietnamese Dong (Vietnam) - 0 decimals */
+  Vnd = 'VND',
+  /** Vanuatu Vatu (Vanuatu) - 0 decimals */
+  Vuv = 'VUV',
+  /** Samoan Tala (Samoa) - 2 decimals */
+  Wst = 'WST',
+  /** Central African CFA Franc - 0 decimals */
+  Xaf = 'XAF',
+  /** East Caribbean Dollar - 2 decimals */
+  Xcd = 'XCD',
+  /** Special Drawing Rights (IMF) - 0 decimals */
+  Xdr = 'XDR',
+  /** West African CFA Franc - 0 decimals */
+  Xof = 'XOF',
+  /** CFP Franc - 0 decimals */
+  Xpf = 'XPF',
+  /** Yemeni Rial (Yemen) - 2 decimals */
+  Yer = 'YER',
+  /** South African Rand (South Africa) - 2 decimals */
+  Zar = 'ZAR',
+  /** Zambian Kwacha (Zambia) - 2 decimals */
+  Zmw = 'ZMW',
+  /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
+  Zwl = 'ZWL'
+}
 
-export type ApiCreateLocaleInput = {
-  code: Scalars['String']['input'];
+/** Input for creating a new currency */
+export type ApiCurrencyCreateInput = {
+  /** ISO 4217 currency code to add */
+  code: CurrencyCode;
+  /** Whether the currency should be active upon creation */
   isActive: Scalars['Boolean']['input'];
 };
 
-export type ApiCreateProfileInput = {
-  firstName: Scalars['String']['input'];
-  language: Scalars['String']['input'];
-  lastName: Scalars['String']['input'];
-  timezone: Scalars['String']['input'];
+/** Payload returned after creating a currency */
+export type ApiCurrencyCreatePayload = {
+  __typename?: 'CurrencyCreatePayload';
+  /** The newly created currency, null if creation failed */
+  currency?: Maybe<ApiCurrency>;
+  /** List of errors that occurred during creation */
+  userErrors: Array<ApiUserError>;
 };
 
-export type ApiCreateProjectInput = {
-  country: Scalars['String']['input'];
-  currency: Scalars['String']['input'];
-  email?: InputMaybe<Scalars['String']['input']>;
-  locales: Array<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  phoneNumber?: InputMaybe<Scalars['String']['input']>;
-  status: ProjectStatus;
-  timezone: Scalars['String']['input'];
+/** Input for deleting a currency */
+export type ApiCurrencyDeleteInput = {
+  /** ISO 4217 currency code to delete */
+  code: CurrencyCode;
 };
 
-export type ApiCurrency = {
-  __typename?: 'Currency';
-  code: Scalars['String']['output'];
-  decimalPlaces: Scalars['Int']['output'];
-  decimalSeparator: Scalars['String']['output'];
-  exchangeRate: Scalars['Float']['output'];
-  isActive: Scalars['Boolean']['output'];
-  symbolLeft: Scalars['String']['output'];
-  symbolRight: Scalars['String']['output'];
-  thousandsSeparator: Scalars['String']['output'];
-  title: Scalars['String']['output'];
+/** Payload returned after deleting a currency */
+export type ApiCurrencyDeletePayload = {
+  __typename?: 'CurrencyDeletePayload';
+  /** The code of the deleted currency, null if deletion failed */
+  deletedCurrencyCode?: Maybe<CurrencyCode>;
+  /** List of errors that occurred during deletion */
+  userErrors: Array<ApiUserError>;
 };
 
-/** Supported currency codes. */
-export enum CurrencyCode {
-  Eur = 'EUR',
-  Uah = 'UAH',
-  Usd = 'USD'
-}
+/** Input for setting the default currency */
+export type ApiCurrencySetDefaultInput = {
+  /** ISO 4217 currency code to set as default */
+  currency: CurrencyCode;
+};
+
+/** Payload returned after updating currency settings */
+export type ApiCurrencyUpdatePayload = {
+  __typename?: 'CurrencyUpdatePayload';
+  /** Whether the update was successful */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during update */
+  userErrors: Array<ApiUserError>;
+};
 
 export type ApiCustomer = {
   __typename?: 'Customer';
-  createdAt: Scalars['Timestamp']['output'];
-  email: Scalars['String']['output'];
-  firstName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
-  isBlocked?: Maybe<Scalars['Boolean']['output']>;
-  isVerified: Scalars['Boolean']['output'];
-  language?: Maybe<Scalars['String']['output']>;
-  lastName: Scalars['String']['output'];
-  phone?: Maybe<Scalars['String']['output']>;
-  updatedAt: Scalars['Timestamp']['output'];
-};
-
-export type ApiCustomerMutation = {
-  __typename?: 'CustomerMutation';
-  archive: Scalars['Boolean']['output'];
-  archiveMany: Array<Scalars['Boolean']['output']>;
-  create: Scalars['ID']['output'];
-  delete: Scalars['Boolean']['output'];
-  deleteMany: Array<Scalars['Boolean']['output']>;
-  update: Scalars['Boolean']['output'];
-};
-
-
-export type ApiCustomerMutationArchiveArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCustomerMutationArchiveManyArgs = {
-  ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type ApiCustomerMutationCreateArgs = {
-  input: ApiCreateCustomerInput;
-};
-
-
-export type ApiCustomerMutationDeleteArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCustomerMutationDeleteManyArgs = {
-  ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type ApiCustomerMutationUpdateArgs = {
-  input: ApiUpdateCustomerInput;
-};
-
-export type ApiCustomerQuery = {
-  __typename?: 'CustomerQuery';
-  findMany: ApiCustomersOutput;
-  findOne?: Maybe<ApiCustomer>;
-};
-
-
-export type ApiCustomerQueryFindManyArgs = {
-  input?: InputMaybe<ApiCustomersInput>;
-};
-
-
-export type ApiCustomerQueryFindOneArgs = {
-  id: Scalars['ID']['input'];
-};
-
-export type ApiCustomersInput = {
-  page: Scalars['Int']['input'];
-  pageSize: Scalars['Int']['input'];
-  search?: InputMaybe<Scalars['String']['input']>;
-  sortField?: InputMaybe<Scalars['String']['input']>;
-  sortOrder?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiCustomersOutput = {
-  __typename?: 'CustomersOutput';
-  data: Array<ApiCustomer>;
-  meta: ApiCollectionMeta;
 };
 
 /** Filter operators for DateTime fields */
@@ -318,6 +1050,20 @@ export type ApiDescriptionInput = {
   text: Scalars['String']['input'];
 };
 
+/** Dimension (length) measurement units */
+export enum DimensionUnit {
+  /** Centimeter */
+  Cm = 'cm',
+  /** Foot */
+  Ft = 'ft',
+  /** Inch */
+  In = 'in',
+  /** Meter */
+  M = 'm',
+  /** Millimeter */
+  Mm = 'mm'
+}
+
 /** Input for setting dimensions (in millimeters). */
 export type ApiDimensionsInput = {
   /** Height in millimeters. */
@@ -326,6 +1072,15 @@ export type ApiDimensionsInput = {
   length: Scalars['Int']['input'];
   /** Width in millimeters. */
   width: Scalars['Int']['input'];
+};
+
+/** Exchange rate representation using integer arithmetic for precision */
+export type ApiExchangeRate = {
+  __typename?: 'ExchangeRate';
+  /** The exchange rate value as an integer (divide by 10^scale for actual rate) */
+  amount: Scalars['Int']['output'];
+  /** The number of decimal places in the amount */
+  scale: Scalars['Int']['output'];
 };
 
 /** External media data (YouTube, Vimeo, etc). */
@@ -520,15 +1275,14 @@ export type ApiFloatFilter = {
   _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
 };
 
-export type ApiForgotPasswordInput = {
-  email: Scalars['String']['input'];
-};
-
 /** A generic user error type for mutation responses. */
 export type ApiGenericUserError = ApiUserError & {
   __typename?: 'GenericUserError';
+  /** Machine-readable error code */
   code?: Maybe<Scalars['String']['output']>;
+  /** Path to the field that caused the error */
   field?: Maybe<Array<Scalars['String']['output']>>;
+  /** Human-readable error message */
   message: Scalars['String']['output'];
 };
 
@@ -793,15 +1547,343 @@ export type ApiInventoryQueryWarehousesArgs = {
   where?: InputMaybe<ApiWarehouseWhereInput>;
 };
 
-export type ApiInviteInput = {
-  email: Scalars['String']['input'];
+export type ApiLabel = {
+  __typename?: 'Label';
+  id: Scalars['ID']['output'];
 };
 
+/** Locale configuration for the project */
 export type ApiLocale = {
   __typename?: 'Locale';
-  code: Scalars['String']['output'];
+  /** BCP 47 locale code */
+  code: LocaleCode;
+  /** Whether this locale is currently active for the project */
   isActive: Scalars['Boolean']['output'];
-  title: Scalars['String']['output'];
+  /** Display name of the locale */
+  name: Scalars['String']['output'];
+};
+
+/** Language/Locale codes based on ISO 639-1 and BCP 47 */
+export enum LocaleCode {
+  /** Akan */
+  Ak = 'ak',
+  /** Amharic */
+  Am = 'am',
+  /** Arabic */
+  Ar = 'ar',
+  /** Assamese */
+  As = 'as',
+  /** Azerbaijani */
+  Az = 'az',
+  /** Belarusian */
+  Be = 'be',
+  /** Bulgarian */
+  Bg = 'bg',
+  /** Bambara */
+  Bm = 'bm',
+  /** Bangla */
+  Bn = 'bn',
+  /** Tibetan */
+  Bo = 'bo',
+  /** Breton */
+  Br = 'br',
+  /** Bosnian */
+  Bs = 'bs',
+  /** Catalan */
+  Ca = 'ca',
+  /** Chechen */
+  Ce = 'ce',
+  /** Central Kurdish */
+  Ckb = 'ckb',
+  /** Czech */
+  Cs = 'cs',
+  /** Welsh */
+  Cy = 'cy',
+  /** Danish */
+  Da = 'da',
+  /** German */
+  De = 'de',
+  /** Dzongkha */
+  Dz = 'dz',
+  /** Ewe */
+  Ee = 'ee',
+  /** Greek */
+  El = 'el',
+  /** English */
+  En = 'en',
+  /** Esperanto */
+  Eo = 'eo',
+  /** Spanish */
+  Es = 'es',
+  /** Estonian */
+  Et = 'et',
+  /** Basque */
+  Eu = 'eu',
+  /** Persian */
+  Fa = 'fa',
+  /** Fulah */
+  Ff = 'ff',
+  /** Finnish */
+  Fi = 'fi',
+  /** Filipino */
+  Fil = 'fil',
+  /** Faroese */
+  Fo = 'fo',
+  /** French */
+  Fr = 'fr',
+  /** Western Frisian */
+  Fy = 'fy',
+  /** Irish */
+  Ga = 'ga',
+  /** Scottish Gaelic */
+  Gd = 'gd',
+  /** Galician */
+  Gl = 'gl',
+  /** Gujarati */
+  Gu = 'gu',
+  /** Manx */
+  Gv = 'gv',
+  /** Hausa */
+  Ha = 'ha',
+  /** Hebrew */
+  He = 'he',
+  /** Hindi */
+  Hi = 'hi',
+  /** Croatian */
+  Hr = 'hr',
+  /** Hungarian */
+  Hu = 'hu',
+  /** Armenian */
+  Hy = 'hy',
+  /** Interlingua */
+  Ia = 'ia',
+  /** Indonesian */
+  Id = 'id',
+  /** Igbo */
+  Ig = 'ig',
+  /** Sichuan Yi */
+  Ii = 'ii',
+  /** Icelandic */
+  Is = 'is',
+  /** Italian */
+  It = 'it',
+  /** Japanese */
+  Ja = 'ja',
+  /** Javanese */
+  Jv = 'jv',
+  /** Georgian */
+  Ka = 'ka',
+  /** Kikuyu */
+  Ki = 'ki',
+  /** Kazakh */
+  Kk = 'kk',
+  /** Kalaallisut */
+  Kl = 'kl',
+  /** Khmer */
+  Km = 'km',
+  /** Kannada */
+  Kn = 'kn',
+  /** Korean */
+  Ko = 'ko',
+  /** Kashmiri */
+  Ks = 'ks',
+  /** Kurdish */
+  Ku = 'ku',
+  /** Cornish */
+  Kw = 'kw',
+  /** Kyrgyz */
+  Ky = 'ky',
+  /** Luxembourgish */
+  Lb = 'lb',
+  /** Ganda */
+  Lg = 'lg',
+  /** Lingala */
+  Ln = 'ln',
+  /** Lao */
+  Lo = 'lo',
+  /** Lithuanian */
+  Lt = 'lt',
+  /** Luba-Katanga */
+  Lu = 'lu',
+  /** Latvian */
+  Lv = 'lv',
+  /** Malagasy */
+  Mg = 'mg',
+  /** Māori */
+  Mi = 'mi',
+  /** Macedonian */
+  Mk = 'mk',
+  /** Malayalam */
+  Ml = 'ml',
+  /** Mongolian */
+  Mn = 'mn',
+  /** Marathi */
+  Mr = 'mr',
+  /** Malay */
+  Ms = 'ms',
+  /** Maltese */
+  Mt = 'mt',
+  /** Burmese */
+  My = 'my',
+  /** Norwegian Bokmål */
+  Nb = 'nb',
+  /** North Ndebele */
+  Nd = 'nd',
+  /** Nepali */
+  Ne = 'ne',
+  /** Dutch */
+  Nl = 'nl',
+  /** Norwegian Nynorsk */
+  Nn = 'nn',
+  /** Norwegian */
+  No = 'no',
+  /** Oromo */
+  Om = 'om',
+  /** Odia */
+  Or = 'or',
+  /** Ossetic */
+  Os = 'os',
+  /** Punjabi */
+  Pa = 'pa',
+  /** Polish */
+  Pl = 'pl',
+  /** Pashto */
+  Ps = 'ps',
+  /** Portuguese (Brazil) */
+  PtBr = 'pt_BR',
+  /** Portuguese (Portugal) */
+  PtPt = 'pt_PT',
+  /** Quechua */
+  Qu = 'qu',
+  /** Romansh */
+  Rm = 'rm',
+  /** Rundi */
+  Rn = 'rn',
+  /** Romanian */
+  Ro = 'ro',
+  /** Russian */
+  Ru = 'ru',
+  /** Kinyarwanda */
+  Rw = 'rw',
+  /** Sanskrit */
+  Sa = 'sa',
+  /** Sardinian */
+  Sc = 'sc',
+  /** Sindhi */
+  Sd = 'sd',
+  /** Northern Sami */
+  Se = 'se',
+  /** Sango */
+  Sg = 'sg',
+  /** Sinhala */
+  Si = 'si',
+  /** Slovak */
+  Sk = 'sk',
+  /** Slovenian */
+  Sl = 'sl',
+  /** Shona */
+  Sn = 'sn',
+  /** Somali */
+  So = 'so',
+  /** Albanian */
+  Sq = 'sq',
+  /** Serbian */
+  Sr = 'sr',
+  /** Sundanese */
+  Su = 'su',
+  /** Swedish */
+  Sv = 'sv',
+  /** Swahili */
+  Sw = 'sw',
+  /** Tamil */
+  Ta = 'ta',
+  /** Telugu */
+  Te = 'te',
+  /** Tajik */
+  Tg = 'tg',
+  /** Thai */
+  Th = 'th',
+  /** Tigrinya */
+  Ti = 'ti',
+  /** Turkmen */
+  Tk = 'tk',
+  /** Tongan */
+  To = 'to',
+  /** Turkish */
+  Tr = 'tr',
+  /** Tatar */
+  Tt = 'tt',
+  /** Uyghur */
+  Ug = 'ug',
+  /** Ukrainian */
+  Uk = 'uk',
+  /** Urdu */
+  Ur = 'ur',
+  /** Uzbek */
+  Uz = 'uz',
+  /** Vietnamese */
+  Vi = 'vi',
+  /** Wolof */
+  Wo = 'wo',
+  /** Xhosa */
+  Xh = 'xh',
+  /** Yiddish */
+  Yi = 'yi',
+  /** Yoruba */
+  Yo = 'yo',
+  /** Chinese (Simplified) */
+  ZhCn = 'zh_CN',
+  /** Chinese (Traditional) */
+  ZhTw = 'zh_TW',
+  /** Zulu */
+  Zu = 'zu'
+}
+
+/** Input for creating a new locale */
+export type ApiLocaleCreateInput = {
+  /** BCP 47 locale code to add */
+  code: LocaleCode;
+  /** Whether the locale should be active upon creation */
+  isActive: Scalars['Boolean']['input'];
+};
+
+/** Payload returned after creating a locale */
+export type ApiLocaleCreatePayload = {
+  __typename?: 'LocaleCreatePayload';
+  /** The newly created locale, null if creation failed */
+  locale?: Maybe<ApiLocale>;
+  /** List of errors that occurred during creation */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Input for deleting a locale */
+export type ApiLocaleDeleteInput = {
+  /** BCP 47 locale code to delete */
+  code: LocaleCode;
+};
+
+/** Payload returned after deleting a locale */
+export type ApiLocaleDeletePayload = {
+  __typename?: 'LocaleDeletePayload';
+  /** The code of the deleted locale, null if deletion failed */
+  deletedLocaleCode?: Maybe<LocaleCode>;
+  /** List of errors that occurred during deletion */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Input for setting the default locale */
+export type ApiLocaleSetDefaultInput = {
+  /** BCP 47 locale code to set as default */
+  locale: LocaleCode;
+};
+
+/** Payload returned after updating locale settings */
+export type ApiLocaleUpdatePayload = {
+  __typename?: 'LocaleUpdatePayload';
+  /** Whether the update was successful */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during update */
+  userErrors: Array<ApiUserError>;
 };
 
 /** Image/video dimensions. */
@@ -881,9 +1963,10 @@ export type ApiMediaQueryNodesArgs = {
 export type ApiMutation = {
   __typename?: 'Mutation';
   appsMutation: ApiAppsMutation;
-  customerMutation: ApiCustomerMutation;
   inventoryMutation: ApiInventoryMutation;
   mediaMutation: ApiMediaMutation;
+  orderMutation: ApiOrderMutation;
+  /** Project-related mutations */
   projectMutation: ApiProjectMutation;
   userMutation: ApiUserMutation;
 };
@@ -900,6 +1983,186 @@ export enum OptionDisplayType {
   Dropdown = 'DROPDOWN',
   Swatch = 'SWATCH'
 }
+
+export type ApiOrder = {
+  __typename?: 'Order';
+  adminNote?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: ApiOrderActor;
+  currencyCode: Scalars['String']['output'];
+  customerIdentity: ApiOrderCustomerIdentity;
+  customerNote?: Maybe<Scalars['String']['output']>;
+  customerStatistic: ApiOrderCustomerStatistic;
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  discountTotal?: Maybe<Scalars['BigInt']['output']>;
+  events: Array<ApiOrderEvent>;
+  grandTotal: Scalars['BigInt']['output'];
+  id: Scalars['ID']['output'];
+  labels: Array<ApiLabel>;
+  lines: Array<ApiOrderLine>;
+  number: Scalars['BigInt']['output'];
+  shippingTotal?: Maybe<Scalars['BigInt']['output']>;
+  status: OrderStatus;
+  subtotal: Scalars['BigInt']['output'];
+  tags: Array<ApiTag>;
+  taxTotal?: Maybe<Scalars['BigInt']['output']>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiOrderActor = ApiApiKey | ApiUser;
+
+export type ApiOrderAdminNoteUpdateInput = {
+  note: Scalars['String']['input'];
+  orderId: Scalars['ID']['input'];
+};
+
+export type ApiOrderCancelInput = {
+  comment?: InputMaybe<Scalars['String']['input']>;
+  orderId: Scalars['ID']['input'];
+  reason: OrderCancelReason;
+};
+
+export enum OrderCancelReason {
+  Customer = 'CUSTOMER',
+  Fraud = 'FRAUD',
+  Inventory = 'INVENTORY',
+  Other = 'OTHER',
+  Staff = 'STAFF'
+}
+
+export type ApiOrderCloseInput = {
+  comment?: InputMaybe<Scalars['String']['input']>;
+  orderId: Scalars['ID']['input'];
+};
+
+export type ApiOrderCommentAddInput = {
+  comment: Scalars['String']['input'];
+  orderId: Scalars['ID']['input'];
+};
+
+export type ApiOrderCustomerIdentity = {
+  __typename?: 'OrderCustomerIdentity';
+  countryCode?: Maybe<CountryCode>;
+  customer?: Maybe<ApiCustomer>;
+  data?: Maybe<Scalars['JSON']['output']>;
+  email?: Maybe<Scalars['Email']['output']>;
+  phone?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiOrderCustomerStatistic = {
+  __typename?: 'OrderCustomerStatistic';
+  totalAuthorizedOrders: Scalars['Int']['output'];
+  totalGuestOrders: Scalars['Int']['output'];
+  totalRevenue: Scalars['Int']['output'];
+};
+
+export type ApiOrderDeliveryAddress = {
+  __typename?: 'OrderDeliveryAddress';
+  address1: Scalars['String']['output'];
+  address2?: Maybe<Scalars['String']['output']>;
+  city: Scalars['String']['output'];
+  countryCode: CountryCode;
+  data?: Maybe<Scalars['JSON']['output']>;
+  email?: Maybe<Scalars['Email']['output']>;
+  firstName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  lastName?: Maybe<Scalars['String']['output']>;
+  postalCode?: Maybe<Scalars['String']['output']>;
+  provinceCode?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiOrderEvent = {
+  __typename?: 'OrderEvent';
+  createdAt: Scalars['DateTime']['output'];
+  data?: Maybe<Scalars['JSON']['output']>;
+  eventType: OrderEventType;
+  id: Scalars['String']['output'];
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  performedBy: ApiOrderActor;
+};
+
+export enum OrderEventType {
+  OrderCreated = 'ORDER_CREATED'
+}
+
+export type ApiOrderLine = {
+  __typename?: 'OrderLine';
+  createdAt: Scalars['DateTime']['output'];
+  discountAmount: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
+  purchasableId: Scalars['ID']['output'];
+  quantity: Scalars['Int']['output'];
+  subtotalAmount: Scalars['Int']['output'];
+  taxAmount?: Maybe<Scalars['Int']['output']>;
+  totalAmount: Scalars['Int']['output'];
+  unitComparePrice: Scalars['Int']['output'];
+  unitPrice: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiOrderMutation = {
+  __typename?: 'OrderMutation';
+  orderAdminNoteUpdate: Scalars['Boolean']['output'];
+  orderCancel: Scalars['Boolean']['output'];
+  orderClose: Scalars['Boolean']['output'];
+  orderCommentAdd: Scalars['Boolean']['output'];
+};
+
+
+export type ApiOrderMutationOrderAdminNoteUpdateArgs = {
+  input: ApiOrderAdminNoteUpdateInput;
+};
+
+
+export type ApiOrderMutationOrderCancelArgs = {
+  input: ApiOrderCancelInput;
+};
+
+
+export type ApiOrderMutationOrderCloseArgs = {
+  input: ApiOrderCloseInput;
+};
+
+
+export type ApiOrderMutationOrderCommentAddArgs = {
+  input: ApiOrderCommentAddInput;
+};
+
+export type ApiOrderQuery = {
+  __typename?: 'OrderQuery';
+  order?: Maybe<ApiOrder>;
+  orders: ApiOrdersOutput;
+};
+
+
+export type ApiOrderQueryOrderArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiOrderQueryOrdersArgs = {
+  input?: InputMaybe<ApiOrdersInput>;
+};
+
+export enum OrderStatus {
+  Active = 'ACTIVE',
+  Cancelled = 'CANCELLED',
+  Closed = 'CLOSED',
+  Draft = 'DRAFT'
+}
+
+export type ApiOrdersInput = {
+  order?: InputMaybe<Scalars['String']['input']>;
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiOrdersOutput = {
+  __typename?: 'OrdersOutput';
+  data: Array<ApiOrder>;
+  meta: ApiCollectionMeta;
+};
 
 /** Information about pagination in a connection. */
 export type ApiPageInfo = {
@@ -1346,123 +2609,273 @@ export type ApiProductUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** A project representing a store or application */
 export type ApiProject = {
   __typename?: 'Project';
+  /** Base currency used for exchange rate calculations */
+  baseCurrency: CurrencyCode;
+  /** Timestamp when the project was created */
+  createdAt: Scalars['DateTime']['output'];
+  /** List of enabled currency codes for the project */
+  currencies: Array<CurrencyCode>;
+  /** Default currency for pricing display */
+  defaultCurrency: CurrencyCode;
+  /** Default unit for product dimensions */
+  defaultDimensionUnit: DimensionUnit;
+  /** Default locale for new content */
+  defaultLocale: LocaleCode;
+  /** Default unit for product weights */
+  defaultWeightUnit: WeightUnit;
+  /** Contact email address for the project */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Unique identifier of the project */
   id: Scalars['ID']['output'];
+  /** List of enabled locale codes for the project */
+  locales: Array<LocaleCode>;
+  /** Display name of the project */
   name: Scalars['String']['output'];
+  /** URL-friendly unique identifier */
   slug: Scalars['String']['output'];
+  /** Current operational status of the project */
   status: ProjectStatus;
-};
-
-export type ApiProjectInfo = {
-  __typename?: 'ProjectInfo';
-  country: Scalars['String']['output'];
-  currency: Scalars['String']['output'];
-  email: Scalars['String']['output'];
-  locale: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  phoneNumber: Scalars['String']['output'];
+  /** IANA timezone identifier for the project */
   timezone: Scalars['String']['output'];
+  /** Timestamp when the project was last updated */
+  updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiProjectMutation = {
-  __typename?: 'ProjectMutation';
-  create: ApiProject;
-  createApiKey: Scalars['String']['output'];
-  delete: Scalars['Boolean']['output'];
-  deleteApiKey: Scalars['Boolean']['output'];
-  revokeApiKey: Scalars['Boolean']['output'];
-  update: Scalars['Boolean']['output'];
-  updateCurrencyFormat: Scalars['Boolean']['output'];
-  updateDefaultCurrency: Scalars['Boolean']['output'];
-  updateDefaultLocale: Scalars['Boolean']['output'];
-  updateLocales: Scalars['Boolean']['output'];
+/** Input for creating a new project */
+export type ApiProjectCreateInput = {
+  /** Initial list of currency codes to enable */
+  currencies: Array<CurrencyCode>;
+  /** Default currency for the project */
+  defaultCurrency: CurrencyCode;
+  /** Contact email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Initial list of locale codes to enable */
+  locales: Array<LocaleCode>;
+  /** Display name of the project */
+  name: Scalars['String']['input'];
+  /** URL-friendly unique identifier */
+  slug: Scalars['String']['input'];
+  /** Initial status of the project */
+  status?: InputMaybe<ProjectStatus>;
+  /** IANA timezone identifier */
+  timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
-
-export type ApiProjectMutationCreateArgs = {
-  input: ApiCreateProjectInput;
+/** Payload returned after creating a project */
+export type ApiProjectCreatePayload = {
+  __typename?: 'ProjectCreatePayload';
+  /** The newly created project, null if creation failed */
+  project?: Maybe<ApiProject>;
+  /** List of errors that occurred during creation */
+  userErrors: Array<ApiUserError>;
 };
 
-
-export type ApiProjectMutationCreateApiKeyArgs = {
-  input: ApiCreateApiKeyInput;
-};
-
-
-export type ApiProjectMutationDeleteArgs = {
+/** Input for deleting a project */
+export type ApiProjectDeleteInput = {
+  /** ID of the project to delete */
   id: Scalars['ID']['input'];
 };
 
+/** Payload returned after deleting a project */
+export type ApiProjectDeletePayload = {
+  __typename?: 'ProjectDeletePayload';
+  /** ID of the deleted project, null if deletion failed */
+  deletedProjectId?: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during deletion */
+  userErrors: Array<ApiUserError>;
+};
 
-export type ApiProjectMutationDeleteApiKeyArgs = {
-  input: Scalars['ID']['input'];
+/** Mutations for project management */
+export type ApiProjectMutation = {
+  __typename?: 'ProjectMutation';
+  /** Create a new API key for programmatic access */
+  apiKeyCreate: ApiApiKeyCreatePayload;
+  /** Permanently delete an API key */
+  apiKeyDelete: ApiApiKeyDeletePayload;
+  /** Revoke an API key (soft delete) */
+  apiKeyRevoke: ApiApiKeyActionPayload;
+  /** Add a new currency to the project */
+  currencyCreate: ApiCurrencyCreatePayload;
+  /** Remove a currency from the project */
+  currencyDelete: ApiCurrencyDeletePayload;
+  /** Set the default currency for the project */
+  currencySetDefault: ApiCurrencyUpdatePayload;
+  /** Add a new locale to the project */
+  localeCreate: ApiLocaleCreatePayload;
+  /** Remove a locale from the project */
+  localeDelete: ApiLocaleDeletePayload;
+  /** Set the default locale for the project */
+  localeSetDefault: ApiLocaleUpdatePayload;
+  /** Create a new project */
+  projectCreate: ApiProjectCreatePayload;
+  /** Delete a project */
+  projectDelete: ApiProjectDeletePayload;
+  /** Update an existing project */
+  projectUpdate: ApiProjectUpdatePayload;
 };
 
 
-export type ApiProjectMutationRevokeApiKeyArgs = {
-  input: Scalars['ID']['input'];
+/** Mutations for project management */
+export type ApiProjectMutationApiKeyCreateArgs = {
+  input: ApiApiKeyCreateInput;
 };
 
 
-export type ApiProjectMutationUpdateArgs = {
-  input: ApiUpdateProjectInput;
+/** Mutations for project management */
+export type ApiProjectMutationApiKeyDeleteArgs = {
+  input: ApiApiKeyDeleteInput;
 };
 
 
-export type ApiProjectMutationUpdateCurrencyFormatArgs = {
-  input: ApiUpdateCurrencyFormatInput;
+/** Mutations for project management */
+export type ApiProjectMutationApiKeyRevokeArgs = {
+  input: ApiApiKeyRevokeInput;
 };
 
 
-export type ApiProjectMutationUpdateDefaultCurrencyArgs = {
-  input: Scalars['String']['input'];
+/** Mutations for project management */
+export type ApiProjectMutationCurrencyCreateArgs = {
+  input: ApiCurrencyCreateInput;
 };
 
 
-export type ApiProjectMutationUpdateDefaultLocaleArgs = {
-  input: Scalars['String']['input'];
+/** Mutations for project management */
+export type ApiProjectMutationCurrencyDeleteArgs = {
+  input: ApiCurrencyDeleteInput;
 };
 
 
-export type ApiProjectMutationUpdateLocalesArgs = {
-  input: ApiUpdateLocalesInput;
+/** Mutations for project management */
+export type ApiProjectMutationCurrencySetDefaultArgs = {
+  input: ApiCurrencySetDefaultInput;
 };
 
+
+/** Mutations for project management */
+export type ApiProjectMutationLocaleCreateArgs = {
+  input: ApiLocaleCreateInput;
+};
+
+
+/** Mutations for project management */
+export type ApiProjectMutationLocaleDeleteArgs = {
+  input: ApiLocaleDeleteInput;
+};
+
+
+/** Mutations for project management */
+export type ApiProjectMutationLocaleSetDefaultArgs = {
+  input: ApiLocaleSetDefaultInput;
+};
+
+
+/** Mutations for project management */
+export type ApiProjectMutationProjectCreateArgs = {
+  input: ApiProjectCreateInput;
+};
+
+
+/** Mutations for project management */
+export type ApiProjectMutationProjectDeleteArgs = {
+  input: ApiProjectDeleteInput;
+};
+
+
+/** Mutations for project management */
+export type ApiProjectMutationProjectUpdateArgs = {
+  input: ApiProjectUpdateInput;
+};
+
+/** Queries for project management */
 export type ApiProjectQuery = {
   __typename?: 'ProjectQuery';
+  /** Get all API keys for the current project */
   apiKeys: Array<ApiApiKey>;
-  currencies: Array<ApiCurrency>;
-  current: ApiProjectInfo;
-  findMany: Array<Maybe<ApiProject>>;
-  findOne?: Maybe<ApiProject>;
-  locales: Array<ApiLocale>;
+  /** Get a project by its unique slug */
+  project?: Maybe<ApiProject>;
+  /** Get all projects accessible to the current user */
+  projects: Array<ApiProject>;
 };
 
 
-export type ApiProjectQueryFindOneArgs = {
+/** Queries for project management */
+export type ApiProjectQueryProjectArgs = {
   slug: Scalars['String']['input'];
 };
 
+/** Status of a project */
 export enum ProjectStatus {
-  Active = 'ACTIVE',
-  Inactive = 'INACTIVE'
+  /** Project is active and operational */
+  Active = 'active',
+  /** Project is inactive and not processing requests */
+  Inactive = 'inactive'
 }
+
+/** Input for updating an existing project */
+export type ApiProjectUpdateInput = {
+  /** Updated list of enabled currency codes */
+  currencies?: InputMaybe<Array<CurrencyCode>>;
+  /** New default dimension unit */
+  defaultDimensionUnit?: InputMaybe<DimensionUnit>;
+  /** New default weight unit */
+  defaultWeightUnit?: InputMaybe<WeightUnit>;
+  /** New contact email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Updated list of enabled locale codes */
+  locales?: InputMaybe<Array<LocaleCode>>;
+  /** New display name */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** New IANA timezone identifier */
+  timezone?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload returned after updating a project */
+export type ApiProjectUpdatePayload = {
+  __typename?: 'ProjectUpdatePayload';
+  /** The updated project, null if update failed */
+  project?: Maybe<ApiProject>;
+  /** List of errors that occurred during update */
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiPurchasable = {
+  /** Unique identifier of the purchasable entity. */
+  id: Scalars['ID']['output'];
+};
+
+export type ApiPurchasableSnapshot = ApiPurchasable & {
+  __typename?: 'PurchasableSnapshot';
+  id: Scalars['ID']['output'];
+  purchasableSnapshot: Scalars['JSON']['output'];
+};
 
 export type ApiQuery = {
   __typename?: 'Query';
   appsQuery: ApiAppsQuery;
-  customerQuery: ApiCustomerQuery;
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
+  orderQuery: ApiOrderQuery;
+  /** Project-related queries */
   projectQuery: ApiProjectQuery;
   userQuery: ApiUserQuery;
 };
 
-export type ApiResetPasswordInput = {
-  email: Scalars['String']['input'];
-  password: Scalars['String']['input'];
-  token: Scalars['String']['input'];
+/** Role assigned to a user. */
+export type ApiRole = {
+  __typename?: 'Role';
+  /** Role description. */
+  description?: Maybe<Scalars['String']['output']>;
+  /** Human-readable display name. */
+  displayName?: Maybe<Scalars['String']['output']>;
+  /** Whether the role is enabled. */
+  isEnabled: Scalars['Boolean']['output'];
+  /** Role name/identifier. */
+  name: Scalars['String']['output'];
+  /** Role owner (organization). */
+  owner: Scalars['String']['output'];
 };
 
 /** S3-specific file data. */
@@ -1495,26 +2908,6 @@ export type ApiSelectedOptionInput = {
   optionId: Scalars['ID']['input'];
   /** The ID of the option value. */
   optionValueId: Scalars['ID']['input'];
-};
-
-export type ApiSession = {
-  __typename?: 'Session';
-  jwt: Scalars['String']['output'];
-  user: ApiUser;
-};
-
-export type ApiSignInInput = {
-  email: Scalars['String']['input'];
-  password: Scalars['String']['input'];
-};
-
-export type ApiSignUpInput = {
-  email: Scalars['String']['input'];
-  firstName: Scalars['String']['input'];
-  language: Scalars['String']['input'];
-  lastName: Scalars['String']['input'];
-  password: Scalars['String']['input'];
-  timezone: Scalars['String']['input'];
 };
 
 /** Sort direction */
@@ -1562,82 +2955,40 @@ export enum SwatchType {
   Image = 'IMAGE'
 }
 
-export type ApiUpdateCurrencyFormatInput = {
-  code: Scalars['String']['input'];
-  decimalPlaces?: InputMaybe<Scalars['Int']['input']>;
-  decimalSeparator?: InputMaybe<Scalars['String']['input']>;
-  symbolLeft?: InputMaybe<Scalars['String']['input']>;
-  symbolRight?: InputMaybe<Scalars['String']['input']>;
-  thousandSeparator?: InputMaybe<Scalars['String']['input']>;
+export type ApiTag = {
+  __typename?: 'Tag';
+  id: Scalars['ID']['output'];
 };
 
-export type ApiUpdateCustomerInput = {
-  email?: InputMaybe<Scalars['String']['input']>;
-  firstName?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
-  isVerified?: InputMaybe<Scalars['Boolean']['input']>;
-  language?: InputMaybe<Scalars['String']['input']>;
-  lastName?: InputMaybe<Scalars['String']['input']>;
-  password?: InputMaybe<Scalars['String']['input']>;
-  phone?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiUpdateEmailInput = {
-  email: Scalars['String']['input'];
-};
-
-export type ApiUpdateImageInput = {
-  image: Scalars['ID']['input'];
-};
-
-export type ApiUpdateLocaleInput = {
-  code: Scalars['String']['input'];
-  isActive: Scalars['Boolean']['input'];
-};
-
-export type ApiUpdateLocalesInput = {
-  create: Array<ApiCreateLocaleInput>;
-  delete: Array<Scalars['String']['input']>;
-  update: Array<ApiUpdateLocaleInput>;
-};
-
-export type ApiUpdatePasswordInput = {
-  password: Scalars['String']['input'];
-};
-
-export type ApiUpdatePhoneNumberInput = {
-  phoneNumber: Scalars['String']['input'];
-};
-
-export type ApiUpdateProfileInput = {
-  firstName?: InputMaybe<Scalars['String']['input']>;
-  language?: InputMaybe<Scalars['String']['input']>;
-  lastName?: InputMaybe<Scalars['String']['input']>;
-  timezone?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ApiUpdateProjectInput = {
-  country?: InputMaybe<Scalars['String']['input']>;
-  email?: InputMaybe<Scalars['String']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  phoneNumber?: InputMaybe<Scalars['String']['input']>;
-  timezone?: InputMaybe<Scalars['String']['input']>;
-};
-
+/** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
   __typename?: 'User';
-  createdAt: Scalars['Timestamp']['output'];
-  email: Scalars['String']['output'];
-  firstName: Scalars['String']['output'];
+  /** URL to user's avatar image. */
+  avatar?: Maybe<Scalars['String']['output']>;
+  /** The date and time when the user was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** User's email address. */
+  email: Scalars['Email']['output'];
+  /** Whether the email has been verified. */
+  emailVerified: Scalars['Boolean']['output'];
+  /** User's first name. */
+  firstName?: Maybe<Scalars['String']['output']>;
+  /** The globally unique ID of the user. */
   id: Scalars['ID']['output'];
-  isReady: Scalars['Boolean']['output'];
-  isVerified: Scalars['Boolean']['output'];
-  language: Scalars['String']['output'];
-  lastName: Scalars['String']['output'];
-  phoneNumber?: Maybe<Scalars['String']['output']>;
-  tenantId: Scalars['ID']['output'];
-  timezone: Scalars['String']['output'];
-  updatedAt: Scalars['Timestamp']['output'];
+  /** Whether the user has admin privileges. */
+  isAdmin: Scalars['Boolean']['output'];
+  /** Whether the user account is deleted. */
+  isDeleted: Scalars['Boolean']['output'];
+  /** Whether the user account is forbidden/banned. */
+  isForbidden: Scalars['Boolean']['output'];
+  /** User's last name. */
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** User's locale/language preference. */
+  locale?: Maybe<LocaleCode>;
+  /** User's roles. */
+  roles: Array<ApiRole>;
+  /** The date and time when the user was last updated. */
+  updatedAt: Scalars['DateTime']['output'];
 };
 
 /** A generic user error interface for mutation responses. */
@@ -1652,90 +3003,148 @@ export type ApiUserError = {
 
 export type ApiUserMutation = {
   __typename?: 'UserMutation';
-  createProfile: Scalars['Boolean']['output'];
-  delete: Scalars['Boolean']['output'];
-  forgotPassword: Scalars['Boolean']['output'];
-  googleSignIn: ApiSession;
-  invite?: Maybe<Scalars['Boolean']['output']>;
-  resetPassword: Scalars['Boolean']['output'];
-  signIn: ApiSession;
-  signUp: ApiSession;
-  updateEmail: Scalars['Boolean']['output'];
-  updateImage: Scalars['Boolean']['output'];
-  updatePassword: Scalars['Boolean']['output'];
-  updatePhoneNumber: Scalars['Boolean']['output'];
-  updateProfile: Scalars['Boolean']['output'];
-  verifyEmail: Scalars['Boolean']['output'];
-};
-
-
-export type ApiUserMutationCreateProfileArgs = {
-  input: ApiCreateProfileInput;
-};
-
-
-export type ApiUserMutationForgotPasswordArgs = {
-  input: ApiForgotPasswordInput;
-};
-
-
-export type ApiUserMutationGoogleSignInArgs = {
-  token: Scalars['String']['input'];
-};
-
-
-export type ApiUserMutationInviteArgs = {
-  input: ApiInviteInput;
-};
-
-
-export type ApiUserMutationResetPasswordArgs = {
-  input: ApiResetPasswordInput;
+  signIn: ApiUserSignInPayload;
+  signOut: ApiUserSignOutPayload;
+  tokenRefresh: ApiUserTokenRefreshPayload;
+  userUpdateEmail: ApiUserUpdateEmailPayload;
+  userUpdatePassword: ApiUserUpdatePasswordPayload;
+  userUpdateProfile: ApiUserUpdateProfilePayload;
 };
 
 
 export type ApiUserMutationSignInArgs = {
-  input: ApiSignInInput;
+  input: ApiUserSignInInput;
 };
 
 
-export type ApiUserMutationSignUpArgs = {
-  input: ApiSignUpInput;
+export type ApiUserMutationSignOutArgs = {
+  input: ApiUserSignOutInput;
 };
 
 
-export type ApiUserMutationUpdateEmailArgs = {
-  input: ApiUpdateEmailInput;
+export type ApiUserMutationTokenRefreshArgs = {
+  input: ApiUserTokenRefreshInput;
 };
 
 
-export type ApiUserMutationUpdateImageArgs = {
-  input: ApiUpdateImageInput;
+export type ApiUserMutationUserUpdateEmailArgs = {
+  input: ApiUserUpdateEmailInput;
 };
 
 
-export type ApiUserMutationUpdatePasswordArgs = {
-  input: ApiUpdatePasswordInput;
+export type ApiUserMutationUserUpdatePasswordArgs = {
+  input: ApiUserUpdatePasswordInput;
 };
 
 
-export type ApiUserMutationUpdatePhoneNumberArgs = {
-  input: ApiUpdatePhoneNumberInput;
-};
-
-
-export type ApiUserMutationUpdateProfileArgs = {
-  input: ApiUpdateProfileInput;
-};
-
-
-export type ApiUserMutationVerifyEmailArgs = {
-  input: ApiVerifyEmailInput;
+export type ApiUserMutationUserUpdateProfileArgs = {
+  input: ApiUserUpdateProfileInput;
 };
 
 export type ApiUserQuery = {
   __typename?: 'UserQuery';
-  me: ApiUser;
+  /** Get current authenticated admin user */
+  current?: Maybe<ApiUser>;
+};
+
+/** Input for admin user authentication. */
+export type ApiUserSignInInput = {
+  /** Email address. */
+  email: Scalars['Email']['input'];
+  /** Password. */
+  password: Scalars['String']['input'];
+};
+
+/** Payload for admin user sign in. */
+export type ApiUserSignInPayload = {
+  __typename?: 'UserSignInPayload';
+  /** Authentication tokens. */
+  token?: Maybe<ApiAuthToken>;
+  /** The authenticated user. */
+  user?: Maybe<ApiUser>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for admin user sign out. */
+export type ApiUserSignOutInput = {
+  /** Sign out from all sessions. */
+  allSessions?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Payload for admin user sign out. */
+export type ApiUserSignOutPayload = {
+  __typename?: 'UserSignOutPayload';
+  /** Whether sign out was successful. */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for refreshing admin user access token. */
+export type ApiUserTokenRefreshInput = {
+  /** Refresh token to use for obtaining new access token. */
+  refreshToken: Scalars['String']['input'];
+};
+
+/** Payload for admin user token refresh. */
+export type ApiUserTokenRefreshPayload = {
+  __typename?: 'UserTokenRefreshPayload';
+  /** New authentication tokens. */
+  token?: Maybe<ApiAuthToken>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating user email. */
+export type ApiUserUpdateEmailInput = {
+  /** New email address. */
+  newEmail: Scalars['Email']['input'];
+};
+
+/** Payload for user email update. */
+export type ApiUserUpdateEmailPayload = {
+  __typename?: 'UserUpdateEmailPayload';
+  /** The updated user. */
+  user?: Maybe<ApiUser>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating user password. */
+export type ApiUserUpdatePasswordInput = {
+  /** Current password. */
+  currentPassword: Scalars['String']['input'];
+  /** New password. */
+  newPassword: Scalars['String']['input'];
+};
+
+/** Payload for user password update. */
+export type ApiUserUpdatePasswordPayload = {
+  __typename?: 'UserUpdatePasswordPayload';
+  /** Whether the password was changed successfully. */
+  success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for updating user profile. */
+export type ApiUserUpdateProfileInput = {
+  /** User's first name. */
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  /** User's last name. */
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  /** User's locale/language preference. */
+  locale?: InputMaybe<LocaleCode>;
+};
+
+/** Payload for user profile update. */
+export type ApiUserUpdateProfilePayload = {
+  __typename?: 'UserUpdateProfilePayload';
+  /** The updated user. */
+  user?: Maybe<ApiUser>;
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** A variant represents a specific version of a product, such as a size or color. */
@@ -2081,6 +3490,8 @@ export type ApiVariantSetStockInput = {
 /** Payload for variant stock set. */
 export type ApiVariantSetStockPayload = {
   __typename?: 'VariantSetStockPayload';
+  /** The updated stock record. */
+  stock?: Maybe<ApiWarehouseStock>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
   /** The updated variant. */
@@ -2111,11 +3522,6 @@ export type ApiVariantWeight = {
   value: Scalars['Int']['output'];
 };
 
-export type ApiVerifyEmailInput = {
-  email: Scalars['String']['input'];
-  token: Scalars['String']['input'];
-};
-
 /** A warehouse represents a physical location where inventory is stored. */
 export type ApiWarehouse = ApiNode & {
   __typename?: 'Warehouse';
@@ -2144,6 +3550,8 @@ export type ApiWarehouseStockArgs = {
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiWarehouseStockOrderByInput>>;
+  where?: InputMaybe<ApiWarehouseStockWhereInput>;
 };
 
 /** A connection to a list of Warehouse items. */
@@ -2268,6 +3676,22 @@ export type ApiWarehouseStockConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** Relay-style pagination input for WarehouseStock */
+export type ApiWarehouseStockConnectionInput = {
+  /** Returns items after this cursor */
+  after?: InputMaybe<Scalars['String']['input']>;
+  /** Returns items before this cursor */
+  before?: InputMaybe<Scalars['String']['input']>;
+  /** Returns the first n items */
+  first?: InputMaybe<Scalars['Int']['input']>;
+  /** Returns the last n items */
+  last?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort order */
+  orderBy?: InputMaybe<Array<ApiWarehouseStockOrderByInput>>;
+  /** Filter conditions */
+  where?: InputMaybe<ApiWarehouseStockWhereInput>;
+};
+
 /** An edge in a WarehouseStock connection. */
 export type ApiWarehouseStockEdge = {
   __typename?: 'WarehouseStockEdge';
@@ -2275,6 +3699,52 @@ export type ApiWarehouseStockEdge = {
   cursor: Scalars['String']['output'];
   /** The item at the end of the edge. */
   node: ApiWarehouseStock;
+};
+
+/** Ordering configuration for WarehouseStock */
+export type ApiWarehouseStockOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: WarehouseStockOrderField;
+};
+
+/** Fields available for sorting WarehouseStock */
+export enum WarehouseStockOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by quantityOnHand */
+  QuantityOnHand = 'quantityOnHand',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt',
+  /** Sort by variantId */
+  VariantId = 'variantId',
+  /** Sort by warehouseId */
+  WarehouseId = 'warehouseId'
+}
+
+/** Filter conditions for WarehouseStock */
+export type ApiWarehouseStockWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiWarehouseStockWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiWarehouseStockWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiWarehouseStockWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by quantityOnHand */
+  quantityOnHand?: InputMaybe<ApiIntFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by variantId */
+  variantId?: InputMaybe<ApiIdFilter>;
+  /** Filter by warehouseId */
+  warehouseId?: InputMaybe<ApiIdFilter>;
 };
 
 /** Input for updating a warehouse. */
@@ -2320,8 +3790,26 @@ export type ApiWarehouseWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
+export type ApiWeight = {
+  __typename?: 'Weight';
+  unit: WeightUnit;
+  weight: Scalars['Float']['output'];
+};
+
 /** Input for setting weight (in grams). */
 export type ApiWeightInput = {
   /** Weight in grams. */
   value: Scalars['Int']['input'];
 };
+
+/** Weight measurement units */
+export enum WeightUnit {
+  /** Gram */
+  G = 'g',
+  /** Kilogram */
+  Kg = 'kg',
+  /** Pound */
+  Lb = 'lb',
+  /** Ounce */
+  Oz = 'oz'
+}
