@@ -1,3 +1,4 @@
+import { Client, type AuthConfig } from "@shopana/casdoor-node-sdk";
 import { UserRepository } from "./user/UserRepository.js";
 
 export interface RepositoryConfig {
@@ -14,8 +15,22 @@ export interface RepositoryConfig {
  */
 export class Repository {
   public readonly user: UserRepository;
+  public readonly client: Client;
+  public readonly organization: string;
+  public readonly application: string;
 
-  constructor(_config: RepositoryConfig) {
-    this.user = new UserRepository();
+  constructor(config: RepositoryConfig) {
+    const authConfig: AuthConfig = {
+      endpoint: config.endpoint,
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      certificate: config.certificate ?? "",
+      organizationName: config.organizationName,
+      applicationName: config.applicationName,
+    };
+    this.client = new Client(authConfig);
+    this.organization = config.organizationName;
+    this.application = config.applicationName;
+    this.user = new UserRepository(this.client, this.organization, this.application);
   }
 }

@@ -4,4 +4,5 @@ export {
   type User,
   type UserCreateInput,
   type UserUpdateInput,
+  type SignUpResult,
 } from "./user/UserRepository.js";

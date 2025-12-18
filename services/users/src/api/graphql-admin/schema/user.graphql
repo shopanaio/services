@@ -165,6 +165,41 @@ type UserUpdateEmailPayload {
 # ---- User Auth ----
 
 """
+Input for admin user sign up.
+"""
+input UserSignUpInput {
+  """
+  Email address.
+  """
+  email: Email!
+
+  """
+  Password.
+  """
+  password: String!
+}
+
+"""
+Payload for admin user sign up.
+"""
+type UserSignUpPayload {
+  """
+  The created user.
+  """
+  user: User
+
+  """
+  Authentication tokens.
+  """
+  token: AuthToken
+
+  """
+  List of errors that occurred during the mutation.
+  """
+  userErrors: [GenericUserError!]!
+}
+
+"""
 Input for admin user authentication.
 """
 input UserSignInInput {

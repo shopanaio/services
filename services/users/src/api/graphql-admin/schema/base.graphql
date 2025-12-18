@@ -87,6 +87,7 @@ type UserMutation {
   ): UserUpdatePasswordPayload!
 
   # Auth
+  signUp(input: UserSignUpInput!): UserSignUpPayload!
   signIn(input: UserSignInInput!): UserSignInPayload!
   signOut(input: UserSignOutInput!): UserSignOutPayload!
   tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!

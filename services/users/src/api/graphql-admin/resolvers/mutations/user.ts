@@ -1,32 +1,5 @@
-import type { ServiceContext } from "../../../../context/index.js";
-
-interface UserUpdateProfileInput {
-  firstName?: string | null;
-  lastName?: string | null;
-  locale?: string | null;
-}
-
-interface UserUpdateEmailInput {
-  newEmail: string;
-}
-
-interface UserUpdatePasswordInput {
-  currentPassword: string;
-  newPassword: string;
-}
-
-interface UserSignInInput {
-  email: string;
-  password: string;
-}
-
-interface UserSignOutInput {
-  allSessions?: boolean | null;
-}
-
-interface UserTokenRefreshInput {
-  refreshToken: string;
-}
+import type { UserMutationResolvers } from "../../generated/types.js";
+import { UserSignUpScript } from "../../../../scripts/user/index.js";
 
 export const userMutationResolvers = {
   Mutation: {
@@ -34,11 +7,7 @@ export const userMutationResolvers = {
   },
 
   UserMutation: {
-    userUpdateProfile: async (
-      _parent: unknown,
-      { input: _input }: { input: UserUpdateProfileInput },
-      _ctx: ServiceContext
-    ) => {
+    userUpdateProfile: async (_parent, { input: _input }, _ctx) => {
       // TODO: implement
       return {
         user: null,
@@ -51,11 +20,7 @@ export const userMutationResolvers = {
       };
     },
 
-    userUpdateEmail: async (
-      _parent: unknown,
-      { input: _input }: { input: UserUpdateEmailInput },
-      _ctx: ServiceContext
-    ) => {
+    userUpdateEmail: async (_parent, { input: _input }, _ctx) => {
       // TODO: implement
       return {
         user: null,
@@ -68,11 +33,7 @@ export const userMutationResolvers = {
       };
     },
 
-    userUpdatePassword: async (
-      _parent: unknown,
-      { input: _input }: { input: UserUpdatePasswordInput },
-      _ctx: ServiceContext
-    ) => {
+    userUpdatePassword: async (_parent, { input: _input }, _ctx) => {
       // TODO: implement
       return {
         success: false,
@@ -85,11 +46,20 @@ export const userMutationResolvers = {
       };
     },
 
-    signIn: async (
-      _parent: unknown,
-      { input: _input }: { input: UserSignInInput },
-      _ctx: ServiceContext
-    ) => {
+    signUp: async (_parent, { input }, ctx) => {
+      const result = await ctx.kernel.runScript(UserSignUpScript, {
+        email: input.email,
+        password: input.password,
+      });
+
+      return {
+        user: result.user,
+        token: result.token,
+        userErrors: result.userErrors,
+      };
+    },
+
+    signIn: async (_parent, { input: _input }, _ctx) => {
       // TODO: implement
       return {
         user: null,
@@ -103,11 +73,7 @@ export const userMutationResolvers = {
       };
     },
 
-    signOut: async (
-      _parent: unknown,
-      { input: _input }: { input: UserSignOutInput },
-      _ctx: ServiceContext
-    ) => {
+    signOut: async (_parent, { input: _input }, _ctx) => {
       // TODO: implement
       return {
         success: false,
@@ -120,11 +86,7 @@ export const userMutationResolvers = {
       };
     },
 
-    tokenRefresh: async (
-      _parent: unknown,
-      { input: _input }: { input: UserTokenRefreshInput },
-      _ctx: ServiceContext
-    ) => {
+    tokenRefresh: async (_parent, { input: _input }, _ctx) => {
       // TODO: implement
       return {
         token: null,
@@ -136,5 +98,5 @@ export const userMutationResolvers = {
         ],
       };
     },
-  },
+  } satisfies UserMutationResolvers,
 };

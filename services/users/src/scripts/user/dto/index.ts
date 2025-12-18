@@ -18,3 +18,10 @@ export type {
   UserUpdatePasswordParams,
   UserUpdatePasswordResult,
 } from "./UserUpdatePasswordDto.js";
+
+// User Sign Up DTOs
+export type {
+  UserSignUpParams,
+  UserSignUpResult,
+  AuthToken,
+} from "./UserSignUpDto.js";
