@@ -52,14 +52,6 @@ export class UserRepository {
   }
 
   /**
-   * Find user by ID (name in Casdoor)
-   */
-  async findById(id: string): Promise<User | null> {
-    const response = await this.client.sdk.getUser(id);
-    return response.data?.data ?? null;
-  }
-
-  /**
    * Sign in a user
    */
   async signIn(
@@ -89,11 +81,11 @@ export class UserRepository {
       const accessToken = loginResponse.data.data as string;
       const refreshToken = (loginResponse.data.data2 as string) || "";
 
-      // Parse JWT to get user ID
+      // Parse JWT to get user email
       const jwtUser = this.client.sdk.parseJwtToken(accessToken);
 
-      // Get full user object by ID
-      const user = await this.findById(jwtUser.name);
+      // Get full user object by email
+      const user = await this.findByEmail(jwtUser.email!);
 
       if (!user) {
         return {
@@ -131,15 +123,13 @@ export class UserRepository {
     ctx: RequestContext = {}
   ): Promise<SignUpResult> {
     const { email, password } = input;
-    const username = email.split("@")[0] + "_" + Date.now();
 
     try {
       // 1. Create user via /api/signup
       const signupResponse = await this.client.auth.signup(ctx, {
         application: this.application,
         organization: this.organization,
-        username,
-        name: username,
+
         email,
         password,
       });
