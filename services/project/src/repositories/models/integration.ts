@@ -61,11 +61,11 @@ export const projectIntegration = projectSchema.table(
     config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
 
     /**
-     * Credentials (sensitive data)
-     * Example for IAM: { clientId: "xxx", clientSecret: "yyy" }
-     * TODO: Consider encrypting this field
+     * Credentials (sensitive data, optional)
+     * Note: IAM credentials are managed by IAM service, not stored here.
+     * Used for other integrations like payment providers if needed.
      */
-    credentials: jsonb("credentials").$type<Record<string, unknown>>().notNull().default({}),
+    credentials: jsonb("credentials").$type<Record<string, unknown>>().default({}),
 
     /** Last successful sync/health check */
     lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
@@ -96,10 +96,4 @@ export type IntegrationStatus = "active" | "inactive" | "error";
  */
 export interface IamIntegrationConfig {
   tenantId: string;
-  endpoint?: string;
-}
-
-export interface IamIntegrationCredentials {
-  clientId: string;
-  clientSecret: string;
 }

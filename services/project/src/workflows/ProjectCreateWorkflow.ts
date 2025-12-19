@@ -3,6 +3,8 @@ import type { Repository } from '../repositories/Repository.js';
 import type { CurrencyCode, LocaleCode, ProjectStatus } from '../repositories/models/index.js';
 
 export interface ProjectCreateInput {
+  /** Project ID (UUIDv7) - used as workflowID for idempotency */
+  projectId: string;
   name: string;
   slug: string;
   locales: LocaleCode[];
@@ -18,11 +20,9 @@ export interface ProjectCreateOutput {
   iamTenantId: string;
 }
 
-/** IAM tenant setup result (black box - implementation agnostic) */
+/** IAM tenant setup result */
 interface IamTenantSetupResult {
   tenantId: string;
-  clientId: string;
-  clientSecret: string;
 }
 
 /** Extended services for ProjectCreateWorkflow */
@@ -52,16 +52,19 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
 
   /**
    * Main workflow - orchestrates project creation
+   *
+   * Idempotency: Call with workflowID = input.projectId
+   * Example: DBOS.startWorkflow(workflow, { workflowID: projectId }).run(input)
    */
   @DBOS.workflow()
   async run(input: ProjectCreateInput): Promise<ProjectCreateOutput> {
-    const projectId = crypto.randomUUID();
+    const { projectId } = input;
 
     // Step 1: Create project in database (local)
     await this.createProject(projectId, input);
 
     // Step 2: Provision IAM tenant (external - via broker)
-    const iamTenant = await this.provisionIamTenant(projectId, input);
+    const iamTenant = await this.provisionIamTenant(input);
 
     // Step 3: Save IAM integration (local)
     await this.saveIamIntegration(projectId, iamTenant);
@@ -94,23 +97,18 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
 
   /**
    * Step: Provision IAM tenant (EXTERNAL - via broker)
-   * IAM service handles all identity provider details internally
    */
   @DBOS.step()
-  async provisionIamTenant(
-    projectId: string,
-    input: ProjectCreateInput
-  ): Promise<IamTenantSetupResult> {
+  async provisionIamTenant(input: ProjectCreateInput): Promise<IamTenantSetupResult> {
     return this.broker.call('iam.provisionTenant', {
-      projectId,
       slug: input.slug,
       displayName: input.name,
-      redirectUri: `https://${input.slug}.shopana.io/callback`,
     });
   }
 
   /**
    * Step: Save IAM integration (LOCAL - direct repository call)
+   * Only stores reference to IAM tenant, credentials are managed by IAM service
    */
   @DBOS.step()
   async saveIamIntegration(projectId: string, iamTenant: IamTenantSetupResult) {
@@ -120,10 +118,6 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
       provider: 'casdoor',
       config: {
         tenantId: iamTenant.tenantId,
-      },
-      credentials: {
-        clientId: iamTenant.clientId,
-        clientSecret: iamTenant.clientSecret,
       },
     });
   }
