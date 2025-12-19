@@ -1,10 +1,9 @@
 import { BaseWorkflow, DBOS, type WorkflowServices } from '@shopana/workflows';
+import { v7 as uuidv7 } from 'uuid';
 import type { Repository } from '../repositories/Repository.js';
 import type { CurrencyCode, LocaleCode, ProjectStatus } from '../repositories/models/index.js';
 
 export interface ProjectCreateInput {
-  /** Project ID (UUIDv7) - used as workflowID for idempotency */
-  projectId: string;
   name: string;
   slug: string;
   locales: LocaleCode[];
@@ -41,6 +40,10 @@ export interface ProjectWorkflowServices extends WorkflowServices {
  *
  * Local operations use repository directly.
  * External services (IAM) are called via broker.
+ *
+ * @example
+ * const workflowID = ProjectCreateWorkflow.workflowID(input.slug);
+ * await DBOS.startWorkflow(workflow, { workflowID }).run(input);
  */
 export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices> {
   private readonly repository: Repository;
@@ -51,14 +54,20 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
   }
 
   /**
+   * Generate globally unique workflowID from slug.
+   * Slug must be unique across all projects.
+   */
+  static workflowID(slug: string): string {
+    return `project:create:${slug}`;
+  }
+
+  /**
    * Main workflow - orchestrates project creation
-   *
-   * Idempotency: Call with workflowID = input.projectId
-   * Example: DBOS.startWorkflow(workflow, { workflowID: projectId }).run(input)
    */
   @DBOS.workflow()
   async run(input: ProjectCreateInput): Promise<ProjectCreateOutput> {
-    const { projectId } = input;
+    // Step 0: Generate project ID (must be in step for determinism)
+    const projectId = await this.generateProjectId();
 
     // Step 1: Create project in database (local)
     await this.createProject(projectId, input);
@@ -76,6 +85,15 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
       projectId,
       iamTenantId: iamTenant.tenantId,
     };
+  }
+
+  /**
+   * Step: Generate UUIDv7 for project ID
+   * Must be a step for determinism - result is persisted and reused on recovery
+   */
+  @DBOS.step()
+  async generateProjectId(): Promise<string> {
+    return uuidv7();
   }
 
   /**
