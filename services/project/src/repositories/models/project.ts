@@ -13,7 +13,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema";
+import { projectSchema } from "./schema.js";
 import {
   weightUnitEnum,
   dimensionUnitEnum,

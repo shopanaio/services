@@ -1,7 +1,10 @@
-import { BaseWorkflow, DBOS, type WorkflowServices } from '@shopana/workflows';
-import { v7 as uuidv7 } from 'uuid';
-import type { Repository } from '../repositories/Repository.js';
-import type { CurrencyCode, LocaleCode, ProjectStatus } from '../repositories/models/index.js';
+import { BaseWorkflow, DBOS } from "@shopana/workflows";
+import { v7 as uuidv7 } from "uuid";
+import type {
+  CurrencyCode,
+  LocaleCode,
+  ProjectStatus,
+} from "../repositories/models/index.js";
 
 export interface ProjectCreateInput {
   name: string;
@@ -23,11 +26,6 @@ interface IamTenantSetupResult {
   tenantId: string;
 }
 
-/** Extended services for ProjectCreateWorkflow */
-export interface ProjectWorkflowServices extends WorkflowServices {
-  repository: Repository;
-}
-
 /**
  * Durable workflow for project creation.
  *
@@ -36,17 +34,14 @@ export interface ProjectWorkflowServices extends WorkflowServices {
  * 2. Create project record in database
  * 3. Provision IAM tenant (via broker)
  * 4. Save IAM integration reference
- *
- * @example
- * const workflowID = ProjectCreateWorkflow.workflowID(input.slug);
- * await DBOS.startWorkflow(workflow, { workflowID }).run(input);
  */
-export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices> {
-  private readonly repository: Repository;
+export class ProjectCreateWorkflow extends BaseWorkflow {
+  private get repository() {
+    return (this.kernel.getServices() as any).repository;
+  }
 
-  constructor(services: ProjectWorkflowServices) {
-    super(services);
-    this.repository = services.repository;
+  private get broker() {
+    return this.kernel.getServices().broker;
   }
 
   /**
@@ -110,8 +105,10 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
    * Step: Provision IAM tenant (EXTERNAL - via broker)
    */
   @DBOS.step()
-  async provisionIamTenant(input: ProjectCreateInput): Promise<IamTenantSetupResult> {
-    return this.broker.call('iam.provisionTenant', {
+  async provisionIamTenant(
+    input: ProjectCreateInput
+  ): Promise<IamTenantSetupResult> {
+    return this.broker.call("iam.provisionTenant", {
       slug: input.slug,
       displayName: input.name,
     });
@@ -125,8 +122,8 @@ export class ProjectCreateWorkflow extends BaseWorkflow<ProjectWorkflowServices>
   async saveIamIntegration(projectId: string, iamTenant: IamTenantSetupResult) {
     return this.repository.integration.create({
       projectId,
-      type: 'iam',
-      provider: 'casdoor',
+      type: "iam",
+      provider: "casdoor",
       config: {
         tenantId: iamTenant.tenantId,
       },

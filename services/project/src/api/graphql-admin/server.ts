@@ -21,13 +21,13 @@ import {
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
+import { Repository } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  /** Pre-configured kernel instance (with workflow already set) */
-  kernel: Kernel;
+  databaseUrl?: string;
 }
 
 // Simple console logger for Kernel
@@ -43,7 +43,20 @@ const consoleLogger = {
  * Uses admin context middleware that sets async local storage context
  */
 export async function startServer(serverConfig: ServerConfig) {
-  const kernel = serverConfig.kernel;
+  // Initialize Repository and Kernel
+  const databaseUrl = serverConfig.databaseUrl || process.env.DATABASE_URL || "";
+  let repository: Repository | null = null;
+  let kernel: Kernel | null = null;
+
+  if (databaseUrl) {
+    repository = await Repository.create({ databaseUrl });
+    kernel = new Kernel(repository, consoleLogger, null);
+    console.log("[PROJECT] Database connected, Kernel initialized");
+  } else {
+    console.warn(
+      "[PROJECT] No DATABASE_URL configured, running without database"
+    );
+  }
 
   const app = fastify({
     logger: isDevelopment(global)
