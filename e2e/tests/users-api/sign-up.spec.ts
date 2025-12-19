@@ -18,12 +18,10 @@ test.describe('SignUp API', () => {
     const result = data.userMutation.signUp;
 
     expect(result.userErrors).toHaveLength(0);
-    expect(result.user).not.toBeNull();
-    expect(result.user.email).toBe(user.email);
-    expect(result.token).not.toBeNull();
-    expect(result.token.accessToken).toBeTruthy();
-    expect(result.token.refreshToken).toBeTruthy();
-    expect(result.token.expiresIn).toBeGreaterThan(0);
+    expect(result.user?.email).toBe(user.email);
+    expect(result.token?.accessToken).toBeTruthy();
+    expect(result.token?.refreshToken).toBeTruthy();
+    expect(result.token?.expiresIn).toBeGreaterThan(0);
   });
 
   test('Registration with invalid email format', async ({ api }) => {
