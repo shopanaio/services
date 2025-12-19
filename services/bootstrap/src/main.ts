@@ -3,8 +3,8 @@ import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
-import { BootstrapModule } from './bootstrap.module';
-import { getConfig } from '@shopana/shared-service-config';
+import { BootstrapModule, BootstrapModuleOptions } from './bootstrap.module';
+import { getConfig, getServiceConfig } from '@shopana/shared-service-config';
 
 const logger = new Logger('Bootstrap');
 
@@ -28,12 +28,28 @@ async function bootstrap() {
     logger.warn('RabbitMQ: disabled (RABBITMQ_URL not set)');
   }
 
+  // Build bootstrap options
+  const bootstrapOptions: BootstrapModuleOptions = {
+    rabbitmqUrl,
+    prefetch: 20,
+  };
+
+  // DBOS workflows - read from bootstrap service config or environment
+  const { service: bootstrapConfig } = getServiceConfig('bootstrap');
+  const workflowsDbUrl = bootstrapConfig.workflows?.database_url ?? process.env.DBOS_DATABASE_URL;
+  if (workflowsDbUrl) {
+    bootstrapOptions.workflows = {
+      databaseUrl: workflowsDbUrl,
+      appName: bootstrapConfig.workflows?.app_name ?? 'shopana',
+    };
+    logger.log(`DBOS Workflows: enabled`);
+  } else {
+    logger.warn('DBOS Workflows: disabled (no database URL configured)');
+  }
+
   // Create application context (no HTTP server)
   const app = await NestFactory.createApplicationContext(
-    BootstrapModule.forRoot({
-      rabbitmqUrl,
-      prefetch: 20,
-    }),
+    BootstrapModule.forRoot(bootstrapOptions),
     {
       logger: ['error', 'warn', 'log', 'debug', 'verbose'],
     },

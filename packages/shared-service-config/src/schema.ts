@@ -33,6 +33,11 @@ export const CasdoorConfigSchema = z.object({
   oauth_redirect_uri: z.string().optional(),
 });
 
+export const WorkflowsConfigSchema = z.object({
+  database_url: z.string(),
+  app_name: z.string().optional(),
+});
+
 export const PortsConfigSchema = z.record(
   z.string(),
   z.number().int().positive()
@@ -47,6 +52,7 @@ export const BaseServiceSchema = z.object({
   db: DbConfigSchema.optional(),
   s3: S3ConfigSchema.optional(),
   casdoor: CasdoorConfigSchema.optional(),
+  workflows: WorkflowsConfigSchema.optional(),
 });
 
 // Service config extends base with additional custom fields
@@ -85,4 +91,5 @@ export type ServiceConfig = z.infer<typeof ServiceConfigSchema>;
 export type DbConfig = z.infer<typeof DbConfigSchema>;
 export type S3Config = z.infer<typeof S3ConfigSchema>;
 export type CasdoorConfig = z.infer<typeof CasdoorConfigSchema>;
+export type WorkflowsConfig = z.infer<typeof WorkflowsConfigSchema>;
 export type PortsConfig = z.infer<typeof PortsConfigSchema>;

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BrokerCoreModule, BrokerCoreModuleOptions } from '@shopana/shared-kernel';
+import { WorkflowModule } from '@shopana/workflows';
 import { PaymentsModule } from '@shopana/payments-service';
 import { InventoryModule } from '@shopana/inventory-service';
 import { AppsModule } from '@shopana/apps-service';
@@ -11,6 +12,14 @@ import { PricingModule } from '@shopana/pricing-service';
 import { ProjectModule } from '@shopana/project-service';
 import { IamModule } from '@shopana/iam-service';
 
+export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
+  /** DBOS workflows configuration */
+  workflows?: {
+    databaseUrl: string;
+    appName?: string;
+  };
+}
+
 /**
  * BootstrapModule is the composition root for the NestJS application.
  * It imports BrokerCoreModule.forRoot() with the resolved configuration
@@ -21,22 +30,32 @@ import { IamModule } from '@shopana/iam-service';
  */
 @Module({})
 export class BootstrapModule {
-  static forRoot(options: BrokerCoreModuleOptions): typeof BootstrapModule {
-    @Module({
-      imports: [
-        BrokerCoreModule.forRoot(options),
-        PaymentsModule,
-        InventoryModule,
-        AppsModule,
-        MediaModule,
-        CheckoutModule,
-        DeliveryModule,
-        OrdersModule,
-        PricingModule,
-        ProjectModule,
-        IamModule,
-      ],
-    })
+  static forRoot(options: BootstrapModuleOptions): typeof BootstrapModule {
+    const imports = [
+      BrokerCoreModule.forRoot(options),
+      PaymentsModule,
+      InventoryModule,
+      AppsModule,
+      MediaModule,
+      CheckoutModule,
+      DeliveryModule,
+      OrdersModule,
+      PricingModule,
+      ProjectModule,
+      IamModule,
+    ];
+
+    // Add WorkflowModule if workflows config is provided
+    if (options.workflows) {
+      imports.unshift(
+        WorkflowModule.forRoot({
+          databaseUrl: options.workflows.databaseUrl,
+          appName: options.workflows.appName ?? 'shopana',
+        }),
+      );
+    }
+
+    @Module({ imports })
     class DynamicBootstrapModule {}
 
     return DynamicBootstrapModule as unknown as typeof BootstrapModule;

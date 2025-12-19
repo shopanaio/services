@@ -17,6 +17,7 @@
     "@shopana/drizzle-query": "*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-kernel": "*",
+    "@shopana/workflows": "*",
     "@shopana/shared-references": "*",
     "@shopana/type-resolver": "*",
     "dataloader": "^2.2.3",

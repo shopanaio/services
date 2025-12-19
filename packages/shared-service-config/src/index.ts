@@ -20,6 +20,7 @@ export type {
   DbConfig,
   S3Config,
   CasdoorConfig,
+  WorkflowsConfig,
   PortsConfig,
 } from "./schema.js";
 
@@ -31,6 +32,7 @@ export {
   DbConfigSchema,
   S3ConfigSchema,
   CasdoorConfigSchema,
+  WorkflowsConfigSchema,
   PortsConfigSchema,
 } from "./schema.js";
 
