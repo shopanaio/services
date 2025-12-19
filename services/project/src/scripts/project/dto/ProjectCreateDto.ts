@@ -4,6 +4,7 @@ import type { ProjectPayload } from "./shared.js";
 export interface ProjectCreateParams {
   name: string;
   slug: string;
+  ownerId: string;
   locales: LocaleCode[];
   defaultCurrency: CurrencyCode;
   status?: ProjectStatus;

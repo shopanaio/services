@@ -11,11 +11,13 @@ export abstract class BaseScript<TParams, TResult> {
   protected readonly services: ProjectKernelServices;
   protected readonly repository: ProjectKernelServices["repository"];
   protected readonly logger: ProjectKernelServices["logger"];
+  protected readonly broker: ProjectKernelServices["broker"];
 
   constructor(services: ProjectKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
+    this.broker = services.broker;
   }
 
   /**
