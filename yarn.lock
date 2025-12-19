@@ -5641,14 +5641,15 @@ __metadata:
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/checkout-service": "npm:0.0.1"
     "@shopana/delivery-service": "npm:0.0.1"
+    "@shopana/identity-service": "npm:0.0.1"
     "@shopana/inventory-service": "npm:0.0.1"
     "@shopana/media-service": "npm:0.0.1"
     "@shopana/orders-service": "npm:0.0.1"
     "@shopana/payments-service": "npm:0.0.1"
     "@shopana/pricing-service": "npm:0.0.1"
+    "@shopana/project-service": "npm:0.0.1"
     "@shopana/shared-kernel": "npm:1.0.0"
     "@shopana/shared-service-config": "npm:0.0.1"
-    "@shopana/users-service": "npm:0.0.1"
     "@types/node": "npm:^22.7.4"
     dotenv: "npm:^16.4.5"
     reflect-metadata: "npm:^0.2.2"
@@ -5806,6 +5807,32 @@ __metadata:
     tsx: "npm:^4.20.6"
     typescript: "npm:^5.5.4"
     yaml: "npm:^2.6.1"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/identity-service@npm:0.0.1, @shopana/identity-service@workspace:services/identity":
+  version: 0.0.0-use.local
+  resolution: "@shopana/identity-service@workspace:services/identity"
+  dependencies:
+    "@apollo/server": "npm:^4.11.0"
+    "@apollo/subgraph": "npm:^2.9.0"
+    "@as-integrations/fastify": "npm:^2.1.1"
+    "@golevelup/nestjs-rabbitmq": "npm:^4.0.0"
+    "@graphql-codegen/cli": "npm:^5.0.2"
+    "@graphql-codegen/typescript": "npm:^4.0.8"
+    "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/shared-kernel": "npm:*"
+    "@shopana/shared-service-config": "npm:*"
+    "@types/node": "npm:^20.14.14"
+    "@zaytra/casdoor-node-client-ext": "workspace:*"
+    fastify: "npm:^4.28.1"
+    graphql: "npm:^16.9.0"
+    graphql-tag: "npm:^2.12.6"
+    pino: "npm:^9.3.2"
+    pino-pretty: "npm:^11.2.2"
+    tsx: "npm:^4.16.2"
+    typescript: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
 
@@ -6060,7 +6087,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/project-service@workspace:services/project":
+"@shopana/project-service@npm:0.0.1, @shopana/project-service@workspace:services/project":
   version: 0.0.0-use.local
   resolution: "@shopana/project-service@workspace:services/project"
   dependencies:
@@ -6087,7 +6114,6 @@ __metadata:
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
     postgres: "npm:^3.4.7"
-    rabbitmq-client: "npm:^4.6.0"
     tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
     zod: "npm:^3.23.8"
@@ -6237,7 +6263,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/users-service@npm:0.0.1, @shopana/users-service@workspace:services/users":
+"@shopana/users-service@workspace:services/users":
   version: 0.0.0-use.local
   resolution: "@shopana/users-service@workspace:services/users"
   dependencies:

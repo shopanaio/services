@@ -8,11 +8,15 @@ import {
 } from "@nestjs/common";
 import { SERVICE_BROKER, ServiceBroker } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import {
-  PROJECT_CREATED_ROUTING_KEY,
-  PROJECT_READY_ROUTING_KEY_PREFIX,
-  type ProjectCreatedPayload,
-} from "@shopana/shared-service-events";
+
+const PROJECT_CREATED_ROUTING_KEY = "events.project.created";
+const PROJECT_READY_ROUTING_KEY_PREFIX = "events.project.ready";
+
+interface ProjectCreatedPayload {
+  projectId: string;
+  name: string;
+  ownerId: string;
+}
 import type { FastifyInstance } from "fastify";
 import { CasdoorAdapter } from "./adapters/casdoor/CasdoorAdapter.js";
 import { startServer } from "./api/graphql-admin/server.js";

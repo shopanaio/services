@@ -17,7 +17,6 @@
     "@golevelup/nestjs-rabbitmq": "^4.0.0",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "*",
-    "@shopana/shared-service-events": "*",
     "@zaytra/casdoor-node-client-ext": "workspace:*",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",

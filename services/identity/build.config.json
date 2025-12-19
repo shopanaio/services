@@ -1,0 +1,9 @@
+{
+  "entryPoint": "src/identity.module.ts",
+  "assets": [
+    {
+      "include": "src/api/graphql-admin/schema/**/*.graphql",
+      "outDir": "dist/schema"
+    }
+  ]
+}
