@@ -24,22 +24,17 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject(SERVICE_BROKER) private readonly broker: ServiceBroker,
-    @Optional()
-    @Inject(WORKFLOW_REGISTRY)
-    private readonly workflowRegistry: WorkflowRegistry
+    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry
   ) {}
 
   async onModuleInit() {
-    this.kernel = await Kernel.create(this.broker);
+    this.kernel = await Kernel.create(this.broker, this.workflow);
 
-    if (this.workflowRegistry) {
-      this.kernel.setWorkflow(this.workflowRegistry);
-      this.workflowRegistry.register(
-        "projectCreate",
-        new ProjectCreateWorkflow({ kernel: this.kernel })
-      );
-      this.logger.debug("Registered workflow: projectCreate");
-    }
+    this.workflow.register(
+      "projectCreate",
+      new ProjectCreateWorkflow({ kernel: this.kernel })
+    );
+    this.logger.debug("Registered workflow: projectCreate");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
@@ -49,8 +44,8 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.workflowRegistry) {
-      this.workflowRegistry.deregister("projectCreate");
+    if (this.workflow) {
+      this.workflow.deregister("projectCreate");
     }
 
     if (this.graphqlServer) {

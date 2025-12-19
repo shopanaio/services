@@ -21,7 +21,7 @@ export interface Logger {
  */
 export interface ProjectKernelServices extends BaseKernelServices {
   readonly repository: Repository;
-  readonly workflow?: WorkflowRegistry;
+  readonly workflow: WorkflowRegistry;
 }
 
 /**

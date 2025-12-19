@@ -23,36 +23,42 @@ const consoleLogger: Logger = {
  */
 export class Kernel extends BaseKernel<ProjectKernelServices> {
   private static instance: Kernel | null = null;
-  private repository: Repository | null = null;
+  private repository!: Repository;
+  private workflow!: WorkflowRegistry;
 
-  private constructor(broker: ServiceBroker, logger: Logger, repository: Repository | null) {
-    super(broker, logger, { repository: repository! });
+  private constructor(
+    broker: ServiceBroker,
+    logger: Logger,
+    repository: Repository,
+    workflow: WorkflowRegistry
+  ) {
+    super(broker, logger);
     this.repository = repository;
+    this.workflow = workflow;
   }
 
-  static async create(broker: ServiceBroker): Promise<Kernel> {
+  static async create(
+    broker: ServiceBroker,
+    workflow: WorkflowRegistry
+  ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
 
-    const databaseUrl = service.db ? buildDatabaseUrl(service.db) : "";
-    let repository: Repository | null = null;
+    const repository = await Repository.create({
+      databaseUrl: buildDatabaseUrl(service.db!),
+    });
 
-    if (databaseUrl) {
-      repository = await Repository.create({ databaseUrl });
-      console.log("[PROJECT] Database connected");
-    } else {
-      console.warn("[PROJECT] No DATABASE_URL configured");
-    }
-
-    this.instance = new Kernel(broker, consoleLogger, repository);
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow);
     console.log("[PROJECT] Kernel initialized");
     return this.instance;
   }
 
   static getInstance(): Kernel {
     if (!this.instance) {
-      throw new Error("Kernel not initialized. Call Kernel.create(broker) first.");
+      throw new Error(
+        "Kernel not initialized. Call Kernel.create(broker) first."
+      );
     }
     return this.instance;
   }
@@ -69,24 +75,13 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
   }
 
   /**
-   * Set workflow registry (called after kernel creation when workflows are available)
-   */
-  setWorkflow(workflow: WorkflowRegistry): void {
-    (this.services as any).workflow = workflow;
-  }
-
-  /**
-   * Get workflow registry
-   */
-  get workflow(): WorkflowRegistry | undefined {
-    return this.services.workflow;
-  }
-
-  /**
    * Execute a class-based script with automatic transaction management
    */
   async runScript<TParams, TResult>(
-    ScriptClass: new (services: ProjectKernelServices) => BaseScript<TParams, TResult>,
+    ScriptClass: new (services: ProjectKernelServices) => BaseScript<
+      TParams,
+      TResult
+    >,
     params: TParams
   ): Promise<TResult> {
     const txManager = this.services.repository?.txManager;
@@ -104,6 +99,10 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
   }
 }
 
-export type { ProjectKernelServices, ScriptContext, TransactionScript } from "./types.js";
+export type {
+  ProjectKernelServices,
+  ScriptContext,
+  TransactionScript,
+} from "./types.js";
 export { KernelError } from "./types.js";
 export { BaseScript, type UserError } from "./BaseScript.js";
