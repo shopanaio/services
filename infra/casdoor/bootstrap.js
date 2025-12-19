@@ -168,16 +168,71 @@ async function main() {
       cert: CERT_NAME,
       enablePassword: true,
       enableSignUp: true,
-      enableSigninSession: true,
-      redirectUris: ["http://localhost:3000/callback"],
+      enableSigninSession: false,
+      redirectUris: ["http://localhost:9000/callback"],
       tokenFormat: "JWT-Custom",
       expireInHours: 168,
-      refreshExpireInHours: 720,
+      refreshExpireInHours: 168,
       grantTypes: [
-        "authorization_code",
-        "password",
-        "client_credentials",
-        "refresh_token",
+        "token",
+        "id_token",
+        // "authorization_code",
+        // "password",
+        // "client_credentials",
+        // "refresh_token",
+      ],
+      signinMethods: [
+        {
+          name: "Password",
+          displayName: "Password",
+          rule: "All",
+        },
+      ],
+      signupItems: [
+        {
+          name: "Email",
+          visible: true,
+          required: true,
+          prompted: false,
+          rule: "No verification",
+        },
+        {
+          name: "Password",
+          visible: true,
+          required: true,
+          prompted: false,
+          rule: "None",
+        },
+        {
+          name: "Signup button",
+          visible: false,
+          required: false,
+          prompted: false,
+          rule: "None",
+        },
+      ],
+      signinItems: [
+        {
+          name: "Username",
+          visible: true,
+          label: "",
+          rule: "None",
+          isCustom: false,
+        },
+        {
+          name: "Password",
+          visible: true,
+          label: "",
+          rule: "None",
+          isCustom: false,
+        },
+        {
+          name: "Login button",
+          visible: true,
+          label: "",
+          rule: "None",
+          isCustom: false,
+        },
       ],
     });
     app = await getResource("application", APP_NAME);
@@ -199,7 +254,16 @@ async function main() {
 
   // Minimal JWT claims
   app.tokenFormat = "JWT-Custom";
-  app.tokenFields = ["sub", "iss", "aud", "exp", "iat", "email", "name", "owner"];
+  app.tokenFields = [
+    "sub",
+    "iss",
+    "aud",
+    "exp",
+    "iat",
+    "email",
+    "name",
+    "owner",
+  ];
 
   await api("POST", `update-application?id=admin/${APP_NAME}`, app);
   console.log("   ✓ Configured (org, JWT-Custom, minimal claims)");
@@ -214,25 +278,6 @@ async function main() {
   } else {
     console.log("   ✓ Already set");
   }
-
-  // Output
-  app = await getResource("application", APP_NAME);
-  cert = await getResource("cert", CERT_NAME);
-
-  console.log("\n========================================");
-  console.log("ENV Configuration:");
-  console.log("========================================\n");
-  console.log(`CASDOOR_ENDPOINT=${ENDPOINT}`);
-  console.log(`CASDOOR_ORGANIZATION=${ORG_NAME}`);
-  console.log(`CASDOOR_APPLICATION=${APP_NAME}`);
-  console.log(`CASDOOR_CERT=${CERT_NAME}`);
-  console.log(`CASDOOR_CLIENT_ID=${app.clientId}`);
-  console.log(`CASDOOR_CLIENT_SECRET=${app.clientSecret}`);
-
-  console.log("\n========================================");
-  console.log("Certificate:");
-  console.log("========================================\n");
-  console.log(cert.certificate);
 
   console.log("\n✓ Done!");
 }
