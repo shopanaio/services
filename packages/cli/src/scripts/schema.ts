@@ -16,7 +16,7 @@ import { parse } from "graphql";
 import { findRootDir } from "../utils.js";
 
 const rootDir = findRootDir();
-const federationDir = join(rootDir, "federation");
+const federationDir = join(rootDir, "infra", "federation");
 
 // Subgraph configurations
 const SUBGRAPHS = [

@@ -10,7 +10,13 @@
  */
 
 import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join, resolve, dirname } from "path";
@@ -20,7 +26,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FEDERATION_ROOT = resolve(__dirname, "..");
 const PROJECT_ROOT = resolve(FEDERATION_ROOT, "../.."); // Root of services monorepo
 const SERVICES_ROOT = resolve(PROJECT_ROOT, "services");
-const PLATFORM_ROOT = resolve(PROJECT_ROOT, "..", "platform");
 
 // Schema types that can be defined in build.config.json
 type SchemaType = "admin" | "storefront";
@@ -44,7 +49,10 @@ interface SubgraphResult {
   error?: string;
 }
 
-async function findGraphQLFiles(patterns: string[], basePath: string): Promise<string[]> {
+async function findGraphQLFiles(
+  patterns: string[],
+  basePath: string
+): Promise<string[]> {
   const allFiles: string[] = [];
 
   for (const pattern of patterns) {
@@ -110,7 +118,10 @@ async function exportSubgraph(
   }
 }
 
-async function processService(serviceName: string, servicePath: string): Promise<SubgraphResult[]> {
+async function processService(
+  serviceName: string,
+  servicePath: string
+): Promise<SubgraphResult[]> {
   const configPath = join(servicePath, "build.config.json");
 
   if (!existsSync(configPath)) {
@@ -132,33 +143,26 @@ async function processService(serviceName: string, servicePath: string): Promise
   const results: SubgraphResult[] = [];
 
   if (config.graphql.admin) {
-    results.push(await exportSubgraph(serviceName, servicePath, "admin", config.graphql.admin));
+    results.push(
+      await exportSubgraph(
+        serviceName,
+        servicePath,
+        "admin",
+        config.graphql.admin
+      )
+    );
   }
 
   if (config.graphql.storefront) {
     results.push(
-      await exportSubgraph(serviceName, servicePath, "storefront", config.graphql.storefront)
+      await exportSubgraph(
+        serviceName,
+        servicePath,
+        "storefront",
+        config.graphql.storefront
+      )
     );
   }
-
-  return results;
-}
-
-async function processPlatform(): Promise<SubgraphResult[]> {
-  if (!existsSync(PLATFORM_ROOT)) {
-    console.warn("⚠️  Platform directory not found");
-    return [];
-  }
-
-  const results: SubgraphResult[] = [];
-
-  // Platform admin schema
-  const adminPattern = "project/api/graphql-admin/schema/**/*.graphqls";
-  results.push(await exportSubgraph("platform", PLATFORM_ROOT, "admin", adminPattern));
-
-  // Platform storefront schema
-  const storefrontPattern = "project/api/graphql-client/schema/**/*.graphqls";
-  results.push(await exportSubgraph("platform", PLATFORM_ROOT, "storefront", storefrontPattern));
 
   return results;
 }
@@ -168,14 +172,12 @@ async function main() {
 
   const allResults: SubgraphResult[] = [];
 
-  // Process platform (Go service with hardcoded paths)
-  const platformResults = await processPlatform();
-  allResults.push(...platformResults);
-
   // Discover and process all Node.js services
   if (existsSync(SERVICES_ROOT)) {
     const entries = readdirSync(SERVICES_ROOT, { withFileTypes: true });
-    const serviceDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    const serviceDirs = entries
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
 
     for (const serviceName of serviceDirs) {
       const servicePath = join(SERVICES_ROOT, serviceName);
