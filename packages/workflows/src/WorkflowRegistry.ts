@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DBOS } from '@dbos-inc/dbos-sdk';
-import type { BaseWorkflow } from './BaseWorkflow.js';
-import type { WorkflowHandle, WorkflowStartOptions, DBOSWorkflowStatus } from './types.js';
+import type { WorkflowHandle, DBOSWorkflowStatus } from './types.js';
 
 /**
  * Registry for managing durable workflows.
@@ -30,13 +29,13 @@ import type { WorkflowHandle, WorkflowStartOptions, DBOSWorkflowStatus } from '.
 @Injectable()
 export class WorkflowRegistry {
   private readonly logger = new Logger(WorkflowRegistry.name);
-  private readonly workflows = new Map<string, BaseWorkflow>();
+  private readonly workflows = new Map<string, unknown>();
 
   /**
    * Register workflow instance by name.
    * Called in service's onModuleInit().
    */
-  register(name: string, workflow: BaseWorkflow): void {
+  register(name: string, workflow: unknown): void {
     if (this.workflows.has(name)) {
       throw new Error(`Workflow "${name}" already registered`);
     }
@@ -54,7 +53,7 @@ export class WorkflowRegistry {
   /**
    * Get workflow instance by name
    */
-  get<T extends BaseWorkflow>(name: string): T {
+  get<T>(name: string): T {
     const workflow = this.workflows.get(name);
     if (!workflow) {
       throw new Error(`Workflow "${name}" not found. Available: ${this.list().join(', ')}`);

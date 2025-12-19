@@ -4,6 +4,7 @@ import {
   getServiceConfig,
   buildDatabaseUrl,
 } from "@shopana/shared-service-config";
+import type { WorkflowRegistry } from "@shopana/workflows";
 import type { ProjectKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
@@ -65,6 +66,20 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
       await this.repository.close();
     }
     Kernel.instance = null;
+  }
+
+  /**
+   * Set workflow registry (called after kernel creation when workflows are available)
+   */
+  setWorkflow(workflow: WorkflowRegistry): void {
+    (this.services as any).workflow = workflow;
+  }
+
+  /**
+   * Get workflow registry
+   */
+  get workflow(): WorkflowRegistry | undefined {
+    return this.services.workflow;
   }
 
   /**

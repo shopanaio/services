@@ -33,6 +33,7 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker);
 
     if (this.workflowRegistry) {
+      this.kernel.setWorkflow(this.workflowRegistry);
       this.workflowRegistry.register(
         "projectCreate",
         new ProjectCreateWorkflow({ kernel: this.kernel })
