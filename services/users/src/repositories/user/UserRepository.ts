@@ -18,16 +18,20 @@ export interface UserUpdateInput {
   locale?: string;
 }
 
-export interface SignUpResult {
+export interface AuthTokenResult {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+export interface SignInResult {
   success: boolean;
   user: User | null;
-  token: {
-    accessToken: string;
-    refreshToken: string;
-    expiresIn: number;
-  } | null;
+  token: AuthTokenResult | null;
   error?: string;
 }
+
+export interface SignUpResult extends SignInResult {}
 
 /**
  * Repository for admin users
@@ -45,6 +49,78 @@ export class UserRepository {
   async findByEmail(email: string): Promise<User | null> {
     const response = await this.client.sdk.getUser(email);
     return response.data?.data ?? null;
+  }
+
+  /**
+   * Find user by ID (name in Casdoor)
+   */
+  async findById(id: string): Promise<User | null> {
+    const response = await this.client.sdk.getUser(id);
+    return response.data?.data ?? null;
+  }
+
+  /**
+   * Sign in a user
+   */
+  async signIn(
+    input: UserCreateInput,
+    ctx: RequestContext = {}
+  ): Promise<SignInResult> {
+    const { email, password } = input;
+
+    try {
+      const loginResponse = await this.client.auth.login(ctx, {
+        application: this.application,
+        organization: this.organization,
+        username: email,
+        password,
+        type: "token",
+      });
+
+      if (loginResponse.data.status !== "ok") {
+        return {
+          success: false,
+          user: null,
+          token: null,
+          error: loginResponse.data.msg || "Login failed",
+        };
+      }
+
+      const accessToken = loginResponse.data.data as string;
+      const refreshToken = (loginResponse.data.data2 as string) || "";
+
+      // Parse JWT to get user ID
+      const jwtUser = this.client.sdk.parseJwtToken(accessToken);
+
+      // Get full user object by ID
+      const user = await this.findById(jwtUser.name);
+
+      if (!user) {
+        return {
+          success: false,
+          user: null,
+          token: null,
+          error: "User not found after authentication",
+        };
+      }
+
+      return {
+        success: true,
+        user,
+        token: {
+          accessToken,
+          refreshToken,
+          expiresIn: 7200,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        user: null,
+        token: null,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 
   /**
@@ -77,39 +153,8 @@ export class UserRepository {
         };
       }
 
-      // 2. Login with type: "token" to get tokens
-      const loginResponse = await this.client.auth.login(ctx, {
-        application: this.application,
-        organization: this.organization,
-        username: email,
-        password,
-        type: "token",
-      });
-
-      if (loginResponse.data.status !== "ok") {
-        return {
-          success: false,
-          user: null,
-          token: null,
-          error: loginResponse.data.msg || "Login after signup failed",
-        };
-      }
-
-      const accessToken = loginResponse.data.data as string;
-      const refreshToken = (loginResponse.data.data2 as string) || "";
-
-      // 3. Parse user from token
-      const user = this.client.sdk.parseJwtToken(accessToken);
-
-      return {
-        success: true,
-        user,
-        token: {
-          accessToken,
-          refreshToken,
-          expiresIn: 7200,
-        },
-      };
+      // 2. Sign in to get tokens and full user object
+      return this.signIn(input, ctx);
     } catch (error) {
       return {
         success: false,

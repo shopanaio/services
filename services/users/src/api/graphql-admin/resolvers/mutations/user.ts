@@ -1,5 +1,5 @@
 import type { UserMutationResolvers } from "../../generated/types.js";
-import { UserSignUpScript } from "../../../../scripts/user/index.js";
+import { UserSignUpScript, UserSignInScript } from "../../../../scripts/user/index.js";
 
 export const userMutationResolvers = {
   Mutation: {
@@ -59,17 +59,16 @@ export const userMutationResolvers = {
       };
     },
 
-    signIn: async (_parent, { input: _input }, _ctx) => {
-      // TODO: implement
+    signIn: async (_parent, { input }, ctx) => {
+      const result = await ctx.kernel.runScript(UserSignInScript, {
+        email: input.email,
+        password: input.password,
+      });
+
       return {
-        user: null,
-        token: null,
-        userErrors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "signIn is not implemented yet",
-          },
-        ],
+        user: result.user,
+        token: result.token,
+        userErrors: result.userErrors,
       };
     },
 

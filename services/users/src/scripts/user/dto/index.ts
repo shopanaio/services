@@ -25,3 +25,9 @@ export type {
   UserSignUpResult,
   AuthToken,
 } from "./UserSignUpDto.js";
+
+// User Sign In DTOs
+export type {
+  UserSignInParams,
+  UserSignInResult,
+} from "./UserSignInDto.js";
