@@ -1,0 +1,26 @@
+mutation SignIn($input: UserSignInInput!) {
+  userMutation {
+    signIn(input: $input) {
+      user {
+        id
+        email
+        emailVerified
+        firstName
+        lastName
+        isAdmin
+        createdAt
+        updatedAt
+      }
+      token {
+        accessToken
+        refreshToken
+        expiresIn
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

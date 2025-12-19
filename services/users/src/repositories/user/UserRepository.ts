@@ -1,4 +1,8 @@
-import type { User, CasdoorNodeClient, RequestContext } from "@zaytra/casdoor-node-client-ext";
+import type {
+  User,
+  CasdoorNodeClient,
+  RequestContext,
+} from "@zaytra/casdoor-node-client-ext";
 
 // Re-export User type from SDK
 export type { User };
@@ -44,17 +48,12 @@ export class UserRepository {
   }
 
   /**
-   * Find user by name (username)
-   */
-  async findByName(name: string): Promise<User | null> {
-    const response = await this.client.sdk.getUser(name);
-    return response.data?.data ?? null;
-  }
-
-  /**
    * Sign up a new user
    */
-  async signUp(input: UserCreateInput, ctx: RequestContext = {}): Promise<SignUpResult> {
+  async signUp(
+    input: UserCreateInput,
+    ctx: RequestContext = {}
+  ): Promise<SignUpResult> {
     const { email, password } = input;
     const username = email.split("@")[0] + "_" + Date.now();
 
