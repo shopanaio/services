@@ -102,7 +102,6 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
-      grpcHost: global.platform_grpc_host,
       databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
     });
 
