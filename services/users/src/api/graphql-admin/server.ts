@@ -98,7 +98,7 @@ export async function startServer(serverConfig: ServerConfig) {
   await apollo.start();
 
   // Admin context middleware
-  app.addHook("preHandler", buildAdminContextMiddleware({}));
+  app.addHook("preHandler", buildAdminContextMiddleware({ repository }));
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
@@ -107,6 +107,7 @@ export async function startServer(serverConfig: ServerConfig) {
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
+        currentUser: request.currentUser,
       };
 
       // Set context in AsyncLocalStorage for all resolvers

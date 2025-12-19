@@ -33,6 +33,12 @@ export interface SignInResult {
 
 export interface SignUpResult extends SignInResult {}
 
+export interface GetCurrentUserResult {
+  success: boolean;
+  user: User | null;
+  error?: string;
+}
+
 /**
  * Repository for admin users
  */
@@ -42,6 +48,45 @@ export class UserRepository {
     private readonly organization: string,
     private readonly application: string
   ) {}
+
+  /**
+   * Get current user from JWT token
+   * Returns user if token is valid, null otherwise
+   */
+  async getCurrentUser(jwt: string): Promise<GetCurrentUserResult> {
+    try {
+      const jwtUser = this.client.sdk.parseJwtToken(jwt);
+
+      if (!jwtUser.email) {
+        return {
+          success: false,
+          user: null,
+          error: "Invalid token: no email",
+        };
+      }
+
+      const user = await this.findByEmail(jwtUser.email);
+
+      if (!user) {
+        return {
+          success: false,
+          user: null,
+          error: "User not found",
+        };
+      }
+
+      return {
+        success: true,
+        user,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        user: null,
+        error: error instanceof Error ? error.message : "Invalid token",
+      };
+    }
+  }
 
   /**
    * Find user by email
