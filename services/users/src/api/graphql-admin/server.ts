@@ -38,14 +38,16 @@ const consoleLogger = {
  * Uses admin context middleware that sets async local storage context
  */
 export async function startServer(serverConfig: ServerConfig) {
+  console.log("[USERS] startServer called, repository config:", serverConfig.repository ? "present" : "missing");
+
   // Initialize Repository and Kernel
   let repository: Repository | null = null;
   let kernel: Kernel | null = null;
 
   if (serverConfig.repository) {
-    repository = new Repository(serverConfig.repository);
+    repository = await Repository.create(serverConfig.repository);
     kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[USERS] Repository connected, Kernel initialized");
+    console.log("[USERS] Repository connected, Kernel initialized (certificate fetched from Casdoor)");
   } else {
     console.warn(
       "[USERS] No repository config provided, running without repository"

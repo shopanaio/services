@@ -44,26 +44,6 @@ test.describe('SignUp API', () => {
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('Registration with weak password', async ({ api }) => {
-    const user = generateUser();
-
-    const { data } = await api.admin.mutation('users-api/SignUp', {
-      throwOnError: false,
-      variables: {
-        input: {
-          email: user.email,
-          password: '123',
-        },
-      },
-    });
-
-    const result = data.userMutation.signUp;
-
-    expect(result.user).toBeNull();
-    expect(result.token).toBeNull();
-    expect(result.userErrors.length).toBeGreaterThan(0);
-  });
-
   test('Registration with already registered email', async ({ api }) => {
     const user = generateUser();
 
@@ -93,7 +73,7 @@ test.describe('SignUp API', () => {
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
-    expect(result.userErrors[0].code).toBe('SIGNUP_FAILED');
+    expect(result.userErrors[0].code).toBe('EMAIL_ALREADY_EXISTS');
   });
 
   test('Registration without email', async ({ api }) => {

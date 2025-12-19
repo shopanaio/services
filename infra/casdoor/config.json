@@ -1,9 +1,9 @@
 {
   "user": "admin",
   "password": "123",
-  "organization": "built-in",
-  "app": "app-built-in",
-  "cert": "cert-built-in",
-  "clientId": "app-built-in-client-id",
-  "clientSecret": "app-built-in-client-secret"
+  "organization": "shopana",
+  "app": "app-shopana",
+  "cert": "cert-shopana",
+  "clientId": "app-shopana-client-id",
+  "clientSecret": "app-shopana-client-secret"
 }

@@ -17,7 +17,7 @@ type User @key(fields: "id") {
   """
   Whether the email has been verified.
   """
-  emailVerified: Boolean!
+  emailVerified: Boolean
 
   """
   User's first name.
@@ -42,32 +42,32 @@ type User @key(fields: "id") {
   """
   Whether the user has admin privileges.
   """
-  isAdmin: Boolean!
+  isAdmin: Boolean
 
   """
   Whether the user account is forbidden/banned.
   """
-  isForbidden: Boolean!
+  isForbidden: Boolean
 
   """
   Whether the user account is deleted.
   """
-  isDeleted: Boolean!
+  isDeleted: Boolean
 
   """
   User's roles.
   """
-  roles: [Role!]!
+  roles: [Role!]
 
   """
   The date and time when the user was created.
   """
-  createdAt: DateTime!
+  createdAt: DateTime
 
   """
   The date and time when the user was last updated.
   """
-  updatedAt: DateTime!
+  updatedAt: DateTime
 }
 
 """

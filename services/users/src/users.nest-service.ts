@@ -24,6 +24,7 @@ export class UsersNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     const casdoor = service.casdoor;
+    console.log("[USERS] casdoor config:", casdoor ? "present" : "missing");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,

@@ -101,10 +101,10 @@ services:
       metrics: 3037
     casdoor:
       endpoint: http://localhost:9011
-      client_id: app-built-in-client-id
-      client_secret: app-built-in-client-secret
-      application_name: app-built-in
-      organization_name: built-in
-      certificate: cert-built-in
+      client_id: app-shopana-client-id
+      client_secret: app-shopana-client-secret
+      application_name: app-shopana
+      organization_name: shopana
+      certificate: cert-shopana
       # google_provider: ${CASDOOR_GOOGLE_PROVIDER}
       # oauth_redirect_uri: ${CASDOOR_OAUTH_REDIRECT_URI}
