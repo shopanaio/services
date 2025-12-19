@@ -3005,6 +3005,7 @@ export type ApiUserMutation = {
   __typename?: 'UserMutation';
   signIn: ApiUserSignInPayload;
   signOut: ApiUserSignOutPayload;
+  signUp: ApiUserSignUpPayload;
   tokenRefresh: ApiUserTokenRefreshPayload;
   userUpdateEmail: ApiUserUpdateEmailPayload;
   userUpdatePassword: ApiUserUpdatePasswordPayload;
@@ -3019,6 +3020,11 @@ export type ApiUserMutationSignInArgs = {
 
 export type ApiUserMutationSignOutArgs = {
   input: ApiUserSignOutInput;
+};
+
+
+export type ApiUserMutationSignUpArgs = {
+  input: ApiUserSignUpInput;
 };
 
 
@@ -3077,6 +3083,25 @@ export type ApiUserSignOutPayload = {
   __typename?: 'UserSignOutPayload';
   /** Whether sign out was successful. */
   success: Scalars['Boolean']['output'];
+  /** List of errors that occurred during the mutation. */
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for admin user sign up. */
+export type ApiUserSignUpInput = {
+  /** Email address. */
+  email: Scalars['Email']['input'];
+  /** Password. */
+  password: Scalars['String']['input'];
+};
+
+/** Payload for admin user sign up. */
+export type ApiUserSignUpPayload = {
+  __typename?: 'UserSignUpPayload';
+  /** Authentication tokens. */
+  token?: Maybe<ApiAuthToken>;
+  /** The created user. */
+  user?: Maybe<ApiUser>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
 };

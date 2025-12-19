@@ -4181,6 +4181,7 @@ type UserMutation {
   userUpdateProfile(input: UserUpdateProfileInput!): UserUpdateProfilePayload!
   userUpdateEmail(input: UserUpdateEmailInput!): UserUpdateEmailPayload!
   userUpdatePassword(input: UserUpdatePasswordInput!): UserUpdatePasswordPayload!
+  signUp(input: UserSignUpInput!): UserSignUpPayload!
   signIn(input: UserSignInInput!): UserSignInPayload!
   signOut(input: UserSignOutInput!): UserSignOutPayload!
   tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
@@ -4217,6 +4218,18 @@ type UserUpdateProfilePayload {
 type UserUpdateEmailPayload {
   """The updated user."""
   user: User
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for admin user sign up."""
+type UserSignUpPayload {
+  """The created user."""
+  user: User
+
+  """Authentication tokens."""
+  token: AuthToken
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -4277,6 +4290,15 @@ input UserUpdateProfileInput {
 input UserUpdateEmailInput {
   """New email address."""
   newEmail: Email!
+}
+
+"""Input for admin user sign up."""
+input UserSignUpInput {
+  """Email address."""
+  email: Email!
+
+  """Password."""
+  password: String!
 }
 
 """Input for admin user authentication."""

@@ -42,25 +42,6 @@ interface SubgraphConfig {
 function discoverSubgraphs(): SubgraphConfig[] {
   const subgraphs: SubgraphConfig[] = [];
 
-  // Platform (Go) - hardcoded for now as it doesn't use build.config.json
-  const platformPath = join(rootDir, "..", "platform");
-  if (existsSync(platformPath)) {
-    subgraphs.push({
-      name: "platform-admin",
-      service: "platform",
-      type: "admin",
-      patterns: ["project/api/graphql-admin/schema/**/*.graphqls"],
-      servicePath: platformPath,
-    });
-    subgraphs.push({
-      name: "platform-storefront",
-      service: "platform",
-      type: "storefront",
-      patterns: ["project/api/graphql-client/schema/**/*.graphqls"],
-      servicePath: platformPath,
-    });
-  }
-
   // Node.js services - read from build.config.json
   if (!existsSync(servicesDir)) return subgraphs;
 
