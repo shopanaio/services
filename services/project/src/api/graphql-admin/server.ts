@@ -21,41 +21,25 @@ import {
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
-import { Repository } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  databaseUrl?: string;
 }
-
-// Simple console logger for Kernel
-const consoleLogger = {
-  info: (...args: any[]) => console.log("[INFO]", ...args),
-  warn: (...args: any[]) => console.warn("[WARN]", ...args),
-  error: (...args: any[]) => console.error("[ERROR]", ...args),
-  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
-};
 
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
+ * Kernel is obtained from singleton (must be initialized first)
  */
 export async function startServer(serverConfig: ServerConfig) {
-  // Initialize Repository and Kernel
-  const databaseUrl = serverConfig.databaseUrl || process.env.DATABASE_URL || "";
-  let repository: Repository | null = null;
   let kernel: Kernel | null = null;
 
-  if (databaseUrl) {
-    repository = await Repository.create({ databaseUrl });
-    kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[PROJECT] Database connected, Kernel initialized");
+  if (Kernel.isInitialized()) {
+    kernel = Kernel.getInstance();
   } else {
-    console.warn(
-      "[PROJECT] No DATABASE_URL configured, running without database"
-    );
+    console.warn("[PROJECT] Kernel not initialized");
   }
 
   const app = fastify({
