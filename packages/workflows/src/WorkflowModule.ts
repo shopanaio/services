@@ -58,6 +58,7 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
     DBOS.setConfig({
       databaseUrl: this.config.databaseUrl,
       name: this.config.name ?? 'shopana',
+      systemDatabaseSchemaName: this.config.schema ?? 'dbos',
     });
 
     await DBOS.launch();

@@ -40,6 +40,7 @@ async function bootstrap() {
     bootstrapOptions.workflows = {
       databaseUrl: workflowsDbUrl,
       name: config.workflows?.app_name ?? 'shopana',
+      schema: config.workflows?.schema ?? 'dbos',
     };
     logger.log('DBOS Workflows: enabled');
   } else {

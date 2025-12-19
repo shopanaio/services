@@ -36,6 +36,7 @@ export const CasdoorConfigSchema = z.object({
 export const WorkflowsConfigSchema = z.object({
   database_url: z.string(),
   app_name: z.string().optional(),
+  schema: z.string().optional(), // PostgreSQL schema for DBOS system tables (default: "dbos")
 });
 
 export const PortsConfigSchema = z.record(

@@ -45,4 +45,6 @@ export interface WorkflowModuleConfig {
   databaseUrl: string;
   /** Application name for DBOS (used in system tables) */
   name?: string;
+  /** PostgreSQL schema for DBOS system tables (default: "dbos") */
+  schema?: string;
 }
