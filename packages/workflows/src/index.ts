@@ -9,8 +9,10 @@ export { WorkflowModule, WORKFLOW_REGISTRY, WORKFLOW_CONFIG } from './WorkflowMo
 // Types
 export type {
   WorkflowHandle,
-  WorkflowStatus,
+  WorkflowStatusSimple,
   WorkflowServices,
   WorkflowStartOptions,
   WorkflowModuleConfig,
+  DBOSWorkflowHandle,
+  DBOSWorkflowStatus,
 } from './types.js';

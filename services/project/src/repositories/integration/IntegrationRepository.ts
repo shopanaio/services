@@ -128,8 +128,9 @@ export class IntegrationRepository extends BaseRepository {
           eq(projectIntegration.projectId, projectId),
           eq(projectIntegration.type, type)
         )
-      );
+      )
+      .returning({ id: projectIntegration.id });
 
-    return (result.rowCount ?? 0) > 0;
+    return result.length > 0;
   }
 }

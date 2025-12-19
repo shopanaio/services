@@ -1,7 +1,6 @@
 import {
   uuid,
   varchar,
-  boolean,
   timestamp,
   jsonb,
   index,

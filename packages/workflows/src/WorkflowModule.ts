@@ -18,7 +18,7 @@ export const WORKFLOW_CONFIG = Symbol('WORKFLOW_CONFIG');
  *   imports: [
  *     WorkflowModule.forRoot({
  *       databaseUrl: process.env.DBOS_DATABASE_URL,
- *       appName: 'shopana',
+ *       name: 'shopana',
  *     }),
  *   ],
  * })
@@ -57,7 +57,7 @@ export class WorkflowModule implements OnModuleInit, OnModuleDestroy {
     // Configure and launch DBOS
     DBOS.setConfig({
       databaseUrl: this.config.databaseUrl,
-      appName: this.config.appName ?? 'shopana',
+      name: this.config.name ?? 'shopana',
     });
 
     await DBOS.launch();

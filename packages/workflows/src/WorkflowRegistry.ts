@@ -1,27 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DBOS } from '@dbos-inc/dbos-sdk';
 import type { BaseWorkflow } from './BaseWorkflow.js';
-import type { WorkflowHandle, WorkflowStatus, WorkflowStartOptions } from './types.js';
+import type { WorkflowHandle, WorkflowStartOptions, DBOSWorkflowStatus } from './types.js';
 
 /**
- * Registry for managing and invoking durable workflows.
+ * Registry for managing durable workflows.
  *
- * Workflows are registered by name in service's onModuleInit() alongside broker.register().
- * The registry provides methods to start, call, and monitor workflows.
+ * Workflows are registered by name in service's onModuleInit().
+ * To start a workflow, get the instance and call its run() method directly,
+ * or use DBOS.startWorkflow() for background execution.
  *
  * @example
  * ```typescript
  * // Registration (in onModuleInit)
- * this.workflow.register('projectCreate', new ProjectCreateWorkflow({
+ * this.workflowRegistry.register('projectCreate', new ProjectCreateWorkflow({
  *   broker: this.broker,
  *   logger: this.logger,
+ *   repository: this.repository,
  * }));
  *
- * // Start async (fire-and-forget)
- * const handle = await this.workflow.start('projectCreate', params);
+ * // Get workflow and call directly (waits for result)
+ * const workflow = this.workflowRegistry.get<ProjectCreateWorkflow>('projectCreate');
+ * const result = await workflow.run(params);
  *
- * // Call sync (wait for result)
- * const result = await this.workflow.call('projectCreate', params);
+ * // Or use DBOS.startWorkflow for background execution
+ * const handle = await DBOS.startWorkflow(workflow, { workflowID: 'xyz' }).run(params);
  * ```
  */
 @Injectable()
@@ -31,7 +34,7 @@ export class WorkflowRegistry {
 
   /**
    * Register workflow instance by name.
-   * Called in service's onModuleInit() alongside broker.register().
+   * Called in service's onModuleInit().
    */
   register(name: string, workflow: BaseWorkflow): void {
     if (this.workflows.has(name)) {
@@ -49,6 +52,17 @@ export class WorkflowRegistry {
   }
 
   /**
+   * Get workflow instance by name
+   */
+  get<T extends BaseWorkflow>(name: string): T {
+    const workflow = this.workflows.get(name);
+    if (!workflow) {
+      throw new Error(`Workflow "${name}" not found. Available: ${this.list().join(', ')}`);
+    }
+    return workflow as T;
+  }
+
+  /**
    * Get list of registered workflows
    */
   list(): string[] {
@@ -56,62 +70,23 @@ export class WorkflowRegistry {
   }
 
   /**
-   * Start workflow by name (async, returns handle for monitoring).
-   * Use for fire-and-forget or when workflow control is needed.
+   * Check if workflow is registered
    */
-  async start<TParams, TResult>(
-    name: string,
-    params: TParams,
-    options?: WorkflowStartOptions
-  ): Promise<WorkflowHandle<TResult>> {
-    const workflow = this.workflows.get(name);
-    if (!workflow) {
-      throw new Error(`Workflow "${name}" not found. Available: ${this.list().join(', ')}`);
-    }
-
-    // DBOS startWorkflow returns handle for monitoring
-    const handle = await DBOS.startWorkflow(
-      (workflow as any).run.bind(workflow),
-      params,
-      { workflowID: options?.workflowId }
-    );
-
-    return {
-      workflowId: handle.workflowID,
-      getResult: () => handle.getResult() as Promise<TResult>,
-      getStatus: () => handle.getStatus() as Promise<WorkflowStatus>,
-    };
-  }
-
-  /**
-   * Start workflow and wait for result (blocking).
-   * Use when result is needed immediately.
-   */
-  async call<TParams, TResult>(
-    name: string,
-    params: TParams,
-    options?: WorkflowStartOptions
-  ): Promise<TResult> {
-    const handle = await this.start<TParams, TResult>(name, params, options);
-    return handle.getResult();
+  has(name: string): boolean {
+    return this.workflows.has(name);
   }
 
   /**
    * Get handle to existing workflow by ID.
    * Use for checking status of running workflow.
    */
-  async retrieve<TResult>(workflowId: string): Promise<WorkflowHandle<TResult> | null> {
-    try {
-      const handle = DBOS.retrieveWorkflow(workflowId);
-      if (!handle) return null;
+  retrieve<TResult>(workflowId: string): WorkflowHandle<TResult> {
+    const handle = DBOS.retrieveWorkflow<TResult>(workflowId);
 
-      return {
-        workflowId,
-        getResult: () => handle.getResult() as Promise<TResult>,
-        getStatus: () => handle.getStatus() as Promise<WorkflowStatus>,
-      };
-    } catch {
-      return null;
-    }
+    return {
+      workflowId,
+      getResult: () => handle.getResult(),
+      getStatus: () => handle.getStatus(),
+    };
   }
 }

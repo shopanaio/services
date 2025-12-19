@@ -1,17 +1,24 @@
 import type { ServiceBroker, Logger } from '@shopana/shared-kernel';
+import type {
+  WorkflowHandle as DBOSWorkflowHandle,
+  WorkflowStatus as DBOSWorkflowStatus,
+} from '@dbos-inc/dbos-sdk';
+
+// Re-export DBOS types
+export type { DBOSWorkflowHandle, DBOSWorkflowStatus };
 
 /**
- * Workflow status values
+ * Simplified workflow status for external consumers
  */
-export type WorkflowStatus = 'PENDING' | 'SUCCESS' | 'ERROR' | 'RETRIES_EXCEEDED' | 'CANCELLED';
+export type WorkflowStatusSimple = 'PENDING' | 'SUCCESS' | 'ERROR' | 'RETRIES_EXCEEDED' | 'CANCELLED' | 'UNKNOWN';
 
 /**
- * Handle for monitoring and controlling a running workflow
+ * Simplified handle for monitoring workflows
  */
 export interface WorkflowHandle<TResult> {
   workflowId: string;
   getResult(): Promise<TResult>;
-  getStatus(): Promise<WorkflowStatus>;
+  getStatus(): Promise<DBOSWorkflowStatus | null>;
 }
 
 /**
@@ -37,5 +44,5 @@ export interface WorkflowModuleConfig {
   /** PostgreSQL connection string for DBOS system tables */
   databaseUrl: string;
   /** Application name for DBOS (used in system tables) */
-  appName?: string;
+  name?: string;
 }

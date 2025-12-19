@@ -16,7 +16,7 @@ export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   /** DBOS workflows configuration */
   workflows?: {
     databaseUrl: string;
-    appName?: string;
+    name?: string;
   };
 }
 
@@ -50,7 +50,7 @@ export class BootstrapModule {
       imports.unshift(
         WorkflowModule.forRoot({
           databaseUrl: options.workflows.databaseUrl,
-          appName: options.workflows.appName ?? 'shopana',
+          name: options.workflows.name ?? 'shopana',
         }),
       );
     }
