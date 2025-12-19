@@ -14,7 +14,7 @@ import {
   type ServiceContext,
 } from "../../context/index.js";
 
-const { global } = getServiceConfig("users");
+const { global } = getServiceConfig("iam");
 import { Kernel } from "../../kernel/Kernel.js";
 import { Repository, type RepositoryConfig } from "../../repositories/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
@@ -38,7 +38,7 @@ const consoleLogger = {
  * Uses admin context middleware that sets async local storage context
  */
 export async function startServer(serverConfig: ServerConfig) {
-  console.log("[USERS] startServer called, repository config:", serverConfig.repository ? "present" : "missing");
+  console.log("[IAM] startServer called, repository config:", serverConfig.repository ? "present" : "missing");
 
   // Initialize Repository and Kernel
   let repository: Repository | null = null;
@@ -47,10 +47,10 @@ export async function startServer(serverConfig: ServerConfig) {
   if (serverConfig.repository) {
     repository = await Repository.create(serverConfig.repository);
     kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[USERS] Repository connected, Kernel initialized (certificate fetched from Casdoor)");
+    console.log("[IAM] Repository connected, Kernel initialized (certificate fetched from Casdoor)");
   } else {
     console.warn(
-      "[USERS] No repository config provided, running without repository"
+      "[IAM] No repository config provided, running without repository"
     );
   }
 
@@ -64,7 +64,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[USERS] {msg}',
+              messageFormat: '[IAM] {msg}',
               levelFirst: true,
             },
           },
@@ -121,7 +121,7 @@ export async function startServer(serverConfig: ServerConfig) {
   app.get("/", async (_request, reply) => {
     return reply.send({
       status: "ok",
-      service: "users",
+      service: "iam",
       environment: global.environment,
     });
   });
@@ -129,7 +129,7 @@ export async function startServer(serverConfig: ServerConfig) {
   app.get("/healthz", async (_request, reply) => {
     return reply.send({
       status: "ok",
-      service: "users",
+      service: "iam",
     });
   });
 
@@ -140,7 +140,7 @@ export async function startServer(serverConfig: ServerConfig) {
   });
 
   app.log.info(
-    `users GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
+    `iam GraphQL Admin API ready at http://localhost:${serverConfig.port}/graphql`
   );
 
   return app;

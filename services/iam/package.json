@@ -1,28 +1,32 @@
 {
-  "name": "@shopana/identity-service",
+  "name": "@shopana/iam-service",
   "version": "0.0.1",
-  "description": "Identity microservice for authentication and organization management",
+  "description": "IAM (Identity and Access Management) microservice",
   "type": "module",
   "main": "dist/index.js",
   "exports": {
     ".": {
-      "import": "./dist/identity.module.js",
-      "default": "./src/identity.module.ts"
+      "import": "./dist/iam.module.js",
+      "default": "./src/iam.module.ts"
     }
   },
   "dependencies": {
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
     "@as-integrations/fastify": "^2.1.1",
-    "@golevelup/nestjs-rabbitmq": "^4.0.0",
+    "@shopana/platform-api": "0.0.1",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-config": "*",
+    "@shopana/type-resolver": "*",
     "@zaytra/casdoor-node-client-ext": "workspace:*",
+    "dataloader": "^2.2.3",
+    "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "pino": "^9.3.2",
-    "pino-pretty": "^11.2.2"
+    "pino-pretty": "^11.2.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.2",

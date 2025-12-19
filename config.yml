@@ -104,7 +104,7 @@ services:
     db:
       <<: *db_default
 
-  identity:
+  iam:
     ports:
       admin_graphql: 10010
       metrics: 3037
