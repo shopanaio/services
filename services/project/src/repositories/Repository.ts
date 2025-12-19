@@ -8,6 +8,7 @@ import { ProjectRepository } from "./project/ProjectRepository.js";
 import { LocaleRepository } from "./locale/LocaleRepository.js";
 import { CurrencyRepository } from "./currency/CurrencyRepository.js";
 import { ApiKeyRepository } from "./apiKey/ApiKeyRepository.js";
+import { IntegrationRepository } from "./integration/IntegrationRepository.js";
 
 export interface RepositoryConfig {
   databaseUrl: string;
@@ -18,6 +19,7 @@ export class Repository {
   public readonly locale: LocaleRepository;
   public readonly currency: CurrencyRepository;
   public readonly apiKey: ApiKeyRepository;
+  public readonly integration: IntegrationRepository;
 
   private readonly db: Database;
 
@@ -32,6 +34,7 @@ export class Repository {
     this.locale = new LocaleRepository(this.db, this.txManager);
     this.currency = new CurrencyRepository(this.db, this.txManager);
     this.apiKey = new ApiKeyRepository(this.db, this.txManager);
+    this.integration = new IntegrationRepository(this.db, this.txManager);
   }
 
   static async create(config: RepositoryConfig): Promise<Repository> {

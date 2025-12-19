@@ -21,7 +21,7 @@ export interface ProjectCreateOutput {
 interface IamTenantSetupResult {
   tenantId: string;
   clientId: string;
-  clientSecret?: string;
+  clientSecret: string;
 }
 
 /**
@@ -30,8 +30,8 @@ interface IamTenantSetupResult {
  * This workflow orchestrates the creation of a project across multiple services:
  * 1. Creates the project record in the database
  * 2. Provisions IAM tenant for the project (organization + application)
- * 3. Links the owner to the project
- * 4. Updates the project with IAM data
+ * 3. Saves IAM integration to project_integration table
+ * 4. Links the owner to the project
  *
  * IAM is treated as a black box - the workflow doesn't know the underlying
  * identity provider (Casdoor, Auth0, Keycloak, etc.)
@@ -51,11 +51,11 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
     // Step 2: Provision IAM tenant (black box - handles org + app internally)
     const iamTenant = await this.provisionIamTenant(projectId, input);
 
-    // Step 3: Link owner to project
-    await this.linkOwnerToProject(projectId, input.ownerId);
+    // Step 3: Save IAM integration to project_integration table
+    await this.saveIamIntegration(projectId, iamTenant);
 
-    // Step 4: Update project with IAM data
-    await this.updateProjectWithIamData(projectId, iamTenant);
+    // Step 4: Link owner to project
+    await this.linkOwnerToProject(projectId, input.ownerId);
 
     return {
       projectId,
@@ -98,6 +98,25 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
   }
 
   /**
+   * Step: Save IAM integration to project_integration table
+   */
+  @DBOS.step()
+  async saveIamIntegration(projectId: string, iamTenant: IamTenantSetupResult) {
+    return this.broker.call('project.saveIntegration', {
+      projectId,
+      type: 'iam',
+      provider: 'casdoor',
+      config: {
+        tenantId: iamTenant.tenantId,
+      },
+      credentials: {
+        clientId: iamTenant.clientId,
+        clientSecret: iamTenant.clientSecret,
+      },
+    });
+  }
+
+  /**
    * Step: Link owner to project
    */
   @DBOS.step()
@@ -106,21 +125,6 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
       projectId,
       userId: ownerId,
       role: 'owner',
-    });
-  }
-
-  /**
-   * Step: Update project with IAM data
-   */
-  @DBOS.step()
-  async updateProjectWithIamData(
-    projectId: string,
-    iamTenant: IamTenantSetupResult
-  ) {
-    return this.broker.call('project.update', {
-      id: projectId,
-      iamTenantId: iamTenant.tenantId,
-      iamClientId: iamTenant.clientId,
     });
   }
 }

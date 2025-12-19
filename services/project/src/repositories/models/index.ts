@@ -1,8 +1,11 @@
 // Schema
-export * from "./schema";
+export * from "./schema.js";
 
 // Project, Locale, Currency (combined to avoid circular dependencies)
-export * from "./project";
+export * from "./project.js";
 
 // API Key
-export * from "./apiKey";
+export * from "./apiKey.js";
+
+// Integrations
+export * from "./integration.js";

@@ -24,10 +24,12 @@ interface CreateProjectParams {
   email?: string;
 }
 
-interface UpdateProjectParams {
-  id: string;
-  iamTenantId?: string;
-  iamClientId?: string;
+interface SaveIntegrationParams {
+  projectId: string;
+  type: 'iam' | 'payment' | 'shipping' | 'storage' | 'email' | 'analytics';
+  provider: string;
+  config?: Record<string, unknown>;
+  credentials?: Record<string, unknown>;
 }
 
 interface AddMemberParams {
@@ -84,17 +86,23 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
 
-    this.broker.register<UpdateProjectParams, { id: string }>(
-      'update',
+    this.broker.register<SaveIntegrationParams, { id: string }>(
+      'saveIntegration',
       async (params) => {
         if (!this.repository) {
           throw new Error('Project repository not initialized');
         }
 
-        // TODO: Implement project update with Casdoor fields
-        // For now, just return the ID
-        this.logger.debug(`Updated project: ${params.id}`);
-        return { id: params.id };
+        const integration = await this.repository.integration.upsert({
+          projectId: params.projectId,
+          type: params.type,
+          provider: params.provider,
+          config: params.config,
+          credentials: params.credentials,
+        });
+
+        this.logger.debug(`Saved ${params.type} integration for project ${params.projectId}`);
+        return { id: integration.id };
       }
     );
 
