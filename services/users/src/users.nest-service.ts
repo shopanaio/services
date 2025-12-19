@@ -23,8 +23,20 @@ export class UsersNestService implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
+    const casdoor = service.casdoor;
+
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
+      repository: casdoor
+        ? {
+            endpoint: casdoor.endpoint,
+            clientId: casdoor.client_id,
+            clientSecret: casdoor.client_secret,
+            certificate: casdoor.certificate,
+            organizationName: casdoor.organization_name,
+            applicationName: casdoor.application_name,
+          }
+        : undefined,
     });
 
     this.logger.log("Users service started");

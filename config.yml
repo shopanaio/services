@@ -102,7 +102,7 @@ services:
     casdoor:
       endpoint: http://localhost:9011
       client_id: app-built-in-client-id
-      client_secret: app-built-in-client-secret"
+      client_secret: app-built-in-client-secret
       application_name: app-built-in
       organization_name: built-in
       certificate: cert-built-in

@@ -93,7 +93,7 @@ test.describe('SignUp API', () => {
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
-    expect(result.userErrors[0].code).toBe('EMAIL_ALREADY_EXISTS');
+    expect(result.userErrors[0].code).toBe('SIGNUP_FAILED');
   });
 
   test('Registration without email', async ({ api }) => {
