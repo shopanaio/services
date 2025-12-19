@@ -1,0 +1,28 @@
+mutation ProjectCreate($input: ProjectCreateInput!) {
+  projectMutation {
+    projectCreate(input: $input) {
+      project {
+        id
+        name
+        slug
+        status
+        timezone
+        email
+        locales
+        currencies
+        baseCurrency
+        defaultLocale
+        defaultCurrency
+        defaultWeightUnit
+        defaultDimensionUnit
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}
