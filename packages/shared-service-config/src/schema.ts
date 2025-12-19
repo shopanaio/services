@@ -71,6 +71,7 @@ export const ConfigSchema = z.object({
     .passthrough(), // Allow additional properties
   shared: z.record(z.string(), z.unknown()).optional(),
   services: z.record(z.string(), ServiceConfigSchema),
+  workflows: WorkflowsConfigSchema.optional(),
 });
 
 // ═══════════════════════════════════════════════════════════════════

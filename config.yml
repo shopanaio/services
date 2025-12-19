@@ -110,3 +110,10 @@ services:
       metrics: 3037
     casdoor:
       <<: *casdoor_default
+
+# ═══════════════════════════════════════════════════════════════════
+# WORKFLOWS (DBOS Transact)
+# ═══════════════════════════════════════════════════════════════════
+workflows:
+  database_url: postgresql://postgres:postgres@localhost:5432/portal
+  app_name: shopana

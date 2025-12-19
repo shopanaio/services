@@ -34,15 +34,14 @@ async function bootstrap() {
     prefetch: 20,
   };
 
-  // DBOS workflows - read from bootstrap service config or environment
-  const { service: bootstrapConfig } = getServiceConfig('bootstrap');
-  const workflowsDbUrl = bootstrapConfig.workflows?.database_url ?? process.env.DBOS_DATABASE_URL;
+  // DBOS workflows - read from config.workflows or environment
+  const workflowsDbUrl = config.workflows?.database_url ?? process.env.DBOS_DATABASE_URL;
   if (workflowsDbUrl) {
     bootstrapOptions.workflows = {
       databaseUrl: workflowsDbUrl,
-      name: bootstrapConfig.workflows?.app_name ?? 'shopana',
+      name: config.workflows?.app_name ?? 'shopana',
     };
-    logger.log(`DBOS Workflows: enabled`);
+    logger.log('DBOS Workflows: enabled');
   } else {
     logger.warn('DBOS Workflows: disabled (no database URL configured)');
   }
