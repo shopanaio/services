@@ -103,14 +103,10 @@ services:
       metrics: 3036
     db:
       <<: *db_default
-    casdoor:
-      <<: *casdoor_default
 
-  users:
+  identity:
     ports:
       admin_graphql: 10010
       metrics: 3037
     casdoor:
       <<: *casdoor_default
-      # google_provider: ${CASDOOR_GOOGLE_PROVIDER}
-      # oauth_redirect_uri: ${CASDOOR_OAUTH_REDIRECT_URI}
