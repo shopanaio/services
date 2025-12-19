@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "schema:export": "tsx scripts/export-schemas.ts",
-    "compose:storefront": "mesh-compose -c mesh-storefront.config.ts -o schema/supergraph-storefront.graphql",
-    "compose:admin": "mesh-compose -c mesh-admin.config.ts -o schema/supergraph-admin.graphql",
+    "compose:storefront": "mesh-compose -c mesh-storefront.config.ts -o supergraph-storefront.graphql",
+    "compose:admin": "mesh-compose -c mesh-admin.config.ts -o supergraph-admin.graphql",
     "compose": "yarn compose:storefront; yarn compose:admin; true",
     "build": "yarn schema:export; yarn compose",
-    "gateway:storefront": "hive-gateway supergraph schema/supergraph-storefront.graphql -p 4000",
-    "gateway:admin": "hive-gateway supergraph schema/supergraph-admin.graphql -p 4001",
+    "gateway:storefront": "hive-gateway supergraph supergraph-storefront.graphql -p 4000",
+    "gateway:admin": "hive-gateway supergraph supergraph-admin.graphql -p 4001",
     "dev:storefront": "yarn schema:export && yarn compose:storefront && yarn gateway:storefront",
     "dev:admin": "yarn schema:export && yarn compose:admin && yarn gateway:admin"
   },

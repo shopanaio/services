@@ -11,8 +11,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join } from "path";
-import { federateSubgraphs } from "@wundergraph/composition";
-import { parse } from "graphql";
+import { execSync } from "child_process";
 import { findRootDir } from "../utils.js";
 
 const rootDir = findRootDir();
@@ -36,19 +35,6 @@ interface SubgraphConfig {
   servicePath: string;
 }
 
-// Subgraph routing URLs for federation
-const SUBGRAPH_URLS: Record<string, string> = {
-  "platform-admin": "http://localhost:50051/graphql",
-  "platform-storefront": "http://localhost:50052/graphql",
-  "apps-admin": "http://localhost:10001/graphql",
-  "inventory-admin": "http://localhost:10005/graphql",
-  "media-admin": "http://localhost:10007/graphql",
-  "checkout-storefront": "http://localhost:10002/graphql",
-  "orders-storefront": "http://localhost:10003/graphql",
-  "orders-admin": "http://localhost:10004/graphql",
-  "project-admin": "http://localhost:10006/graphql",
-  "users-admin": "http://localhost:10008/graphql",
-};
 
 /**
  * Discover subgraphs from build.config.json files
@@ -196,11 +182,10 @@ export async function exportSchemas() {
 }
 
 /**
- * Compose supergraph from subgraphs using @wundergraph/composition
+ * Compose supergraph using mesh-compose (calls infra/federation scripts)
  */
 export async function composeSupergraph() {
   const schemaDir = join(federationDir, "schema");
-  const outputFile = join(federationDir, "schema", "supergraph.graphql");
 
   if (!existsSync(schemaDir)) {
     console.error(`❌ Schema directory not found: ${schemaDir}`);
@@ -211,60 +196,13 @@ export async function composeSupergraph() {
   console.log("🔗 Composing supergraph...\n");
 
   try {
-    const discoveredSubgraphs = discoverSubgraphs();
-    const subgraphs: Array<{ name: string; url: string; definitions: ReturnType<typeof parse> }> = [];
+    // Use mesh-compose via yarn scripts in infra/federation
+    execSync("yarn compose", {
+      cwd: federationDir,
+      stdio: "inherit",
+    });
 
-    for (const config of discoveredSubgraphs) {
-      const schemaFile = join(schemaDir, `${config.name}.graphql`);
-
-      if (!existsSync(schemaFile)) {
-        console.warn(`⚠️  Skipping ${config.name}: schema not found`);
-        continue;
-      }
-
-      const sdl = readFileSync(schemaFile, "utf-8");
-      const url = SUBGRAPH_URLS[config.name] || `http://localhost:3000/${config.name}`;
-
-      subgraphs.push({
-        name: config.name,
-        url,
-        definitions: parse(sdl),
-      });
-
-      console.log(`   ✓ ${config.name}`);
-    }
-
-    if (subgraphs.length === 0) {
-      console.error("\n❌ No subgraphs found to compose");
-      return false;
-    }
-
-    console.log(`\n   Composing ${subgraphs.length} subgraphs...`);
-
-    // Compose federation supergraph
-    const result = federateSubgraphs({ subgraphs });
-
-    if (result.errors && result.errors.length > 0) {
-      console.error("\n❌ Composition errors:");
-      for (const error of result.errors) {
-        console.error(`   • ${error.message}`);
-      }
-      return false;
-    }
-
-    if (!result.federatedGraphAST) {
-      console.error("\n❌ Composition produced no output");
-      return false;
-    }
-
-    // Write supergraph SDL
-    const { print } = await import("graphql");
-    const supergraphSDL = print(result.federatedGraphAST);
-
-    writeFileSync(outputFile, supergraphSDL, "utf-8");
-
-    console.log(`\n✅ Supergraph: ${outputFile}`);
-    console.log(`   ${subgraphs.length} subgraphs composed`);
+    console.log("\n✅ Supergraph composed");
     return true;
   } catch (error: any) {
     console.error(`\n❌ Composition failed: ${error.message}`);
@@ -277,15 +215,12 @@ export async function composeSupergraph() {
  */
 export async function buildSchemas() {
   const exportSuccess = await exportSchemas();
-  if (!exportSuccess) {
-    process.exitCode = 1;
-    return;
-  }
 
   console.log();
 
   const composeSuccess = await composeSupergraph();
-  if (!composeSuccess) {
+
+  if (!exportSuccess || !composeSuccess) {
     process.exitCode = 1;
     return;
   }
