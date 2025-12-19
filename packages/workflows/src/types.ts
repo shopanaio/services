@@ -1,8 +1,8 @@
-import type { ServiceBroker, Logger } from '@shopana/shared-kernel';
+import type { Kernel } from "@shopana/shared-kernel";
 import type {
   WorkflowHandle as DBOSWorkflowHandle,
   WorkflowStatus as DBOSWorkflowStatus,
-} from '@dbos-inc/dbos-sdk';
+} from "@dbos-inc/dbos-sdk";
 
 // Re-export DBOS types
 export type { DBOSWorkflowHandle, DBOSWorkflowStatus };
@@ -10,7 +10,13 @@ export type { DBOSWorkflowHandle, DBOSWorkflowStatus };
 /**
  * Simplified workflow status for external consumers
  */
-export type WorkflowStatusSimple = 'PENDING' | 'SUCCESS' | 'ERROR' | 'RETRIES_EXCEEDED' | 'CANCELLED' | 'UNKNOWN';
+export type WorkflowStatusSimple =
+  | "PENDING"
+  | "SUCCESS"
+  | "ERROR"
+  | "RETRIES_EXCEEDED"
+  | "CANCELLED"
+  | "UNKNOWN";
 
 /**
  * Simplified handle for monitoring workflows
@@ -25,8 +31,7 @@ export interface WorkflowHandle<TResult> {
  * Base services available to all workflows
  */
 export interface WorkflowServices {
-  broker: ServiceBroker;
-  logger: Logger;
+  kernel: Kernel;
 }
 
 /**
