@@ -18,13 +18,13 @@ import {
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
-import { Repository } from "../../repositories/Repository.js";
+import { Repository, type RepositoryConfig } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  databaseUrl?: string;
+  repository?: RepositoryConfig;
 }
 
 // Simple console logger for Kernel
@@ -41,17 +41,16 @@ const consoleLogger = {
  */
 export async function startServer(serverConfig: ServerConfig) {
   // Initialize Repository and Kernel
-  const databaseUrl = serverConfig.databaseUrl || process.env.DATABASE_URL || "";
   let repository: Repository | null = null;
   let kernel: Kernel | null = null;
 
-  if (databaseUrl) {
-    repository = new Repository(databaseUrl);
+  if (serverConfig.repository) {
+    repository = await Repository.create(serverConfig.repository);
     kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[PROJECT] Database connected, Kernel initialized");
+    console.log("[PROJECT] Repository connected, Kernel initialized");
   } else {
     console.warn(
-      "[PROJECT] No DATABASE_URL configured, running without database"
+      "[PROJECT] No repository config provided, running without database"
     );
   }
 

@@ -26,6 +26,15 @@ shared:
       region: us-east-1
       path_style: true
 
+  casdoor:
+    default: &casdoor_default
+      endpoint: http://localhost:9011
+      client_id: app-shopana-client-id
+      client_secret: app-shopana-client-secret
+      application_name: app-shopana
+      organization_name: shopana
+      certificate: cert-shopana
+
 # ═══════════════════════════════════════════════════════════════════
 # GATEWAY (GraphQL Federation)
 # ═══════════════════════════════════════════════════════════════════
@@ -94,17 +103,14 @@ services:
       metrics: 3036
     db:
       <<: *db_default
+    casdoor:
+      <<: *casdoor_default
 
   users:
     ports:
       admin_graphql: 10010
       metrics: 3037
     casdoor:
-      endpoint: http://localhost:9011
-      client_id: app-shopana-client-id
-      client_secret: app-shopana-client-secret
-      application_name: app-shopana
-      organization_name: shopana
-      certificate: cert-shopana
+      <<: *casdoor_default
       # google_provider: ${CASDOOR_GOOGLE_PROVIDER}
       # oauth_redirect_uri: ${CASDOOR_OAUTH_REDIRECT_URI}

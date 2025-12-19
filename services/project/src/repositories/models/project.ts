@@ -89,6 +89,8 @@ export const project = projectSchema.table(
   "project",
   {
     id: uuid("id").primaryKey(),
+    externalSystem: varchar("external_system", { length: 64 }),
+    externalId: varchar("external_id", { length: 255 }),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull(),
     status: projectStatusEnum("status").notNull().default("active"),
@@ -112,6 +114,7 @@ export const project = projectSchema.table(
     index("idx_project_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
+    index("idx_project_external").on(table.externalSystem, table.externalId),
     foreignKey({
       columns: [table.id, table.defaultLocale],
       foreignColumns: [locale.projectId, locale.code],

@@ -28,10 +28,16 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.kernel = new Kernel(this.broker, new NestLogger(this.logger));
 
+    const databaseUrl = service.db ? buildDatabaseUrl(service.db) : "";
+
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
-      grpcHost: global.platform_grpc_host,
-      databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
+      repository: databaseUrl
+        ? {
+            databaseUrl,
+            casdoor: service.casdoor,
+          }
+        : undefined,
     });
 
     this.logger.log("Project service started");
