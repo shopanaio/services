@@ -16,21 +16,21 @@ import { Repository } from "./repositories/Repository.js";
 
 const { service } = getServiceConfig("iam");
 
-interface CreateOrganizationParams {
-  name: string;
+/**
+ * Black box interface for provisioning an IAM tenant.
+ * Callers don't need to know about the underlying identity provider.
+ */
+interface ProvisionTenantParams {
+  projectId: string;
+  slug: string;
   displayName: string;
-  owner?: string;
-  websiteUrl?: string;
-  enableSoftDeletion?: boolean;
+  redirectUri?: string;
 }
 
-interface CreateApplicationParams {
-  name: string;
-  displayName: string;
-  organization: string;
-  enablePassword?: boolean;
-  enableSignUp?: boolean;
-  redirectUris?: string[];
+interface ProvisionTenantResult {
+  tenantId: string;
+  clientId: string;
+  clientSecret: string;
 }
 
 @Injectable()
@@ -70,53 +70,54 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
         : undefined,
     });
 
-    // Register broker actions for Casdoor organization and application management
-    this.broker.register<CreateOrganizationParams, { name: string }>(
-      'createOrganization',
+    /**
+     * Provision IAM tenant (black box action)
+     *
+     * Internally creates:
+     * - Casdoor organization for the project
+     * - Casdoor application with OAuth2 credentials
+     *
+     * Callers only see: tenantId, clientId, clientSecret
+     */
+    this.broker.register<ProvisionTenantParams, ProvisionTenantResult>(
+      'provisionTenant',
       async (params) => {
         if (!this.repository) {
           throw new Error('IAM repository not initialized');
         }
 
-        const organization = {
-          owner: params.owner ?? 'admin',
-          name: params.name,
-          displayName: params.displayName,
-          websiteUrl: params.websiteUrl ?? '',
-          favicon: '',
-          enableSoftDeletion: params.enableSoftDeletion ?? true,
-        };
-
-        const result = await this.repository.client.sdk.addOrganization(organization);
-        if (result.data !== 'Affected') {
-          throw new Error(`Failed to create organization: ${result.data}`);
-        }
-
-        this.logger.debug(`Created Casdoor organization: ${params.name}`);
-        return { name: params.name };
-      }
-    );
-
-    this.broker.register<CreateApplicationParams, { name: string; clientId: string }>(
-      'createApplication',
-      async (params) => {
-        if (!this.repository) {
-          throw new Error('IAM repository not initialized');
-        }
-
+        const orgName = params.slug;
+        const appName = `${params.slug}-app`;
         const clientId = crypto.randomUUID();
         const clientSecret = crypto.randomUUID();
 
+        // Step 1: Create Casdoor organization
+        const organization = {
+          owner: 'admin',
+          name: orgName,
+          displayName: params.displayName,
+          websiteUrl: `https://${params.slug}.shopana.io`,
+          favicon: '',
+          enableSoftDeletion: true,
+        };
+
+        const orgResult = await this.repository.client.sdk.addOrganization(organization);
+        if (orgResult.data !== 'Affected') {
+          throw new Error(`Failed to create IAM organization: ${orgResult.data}`);
+        }
+        this.logger.debug(`Created IAM organization: ${orgName}`);
+
+        // Step 2: Create Casdoor application
         const application = {
           owner: 'admin',
-          name: params.name,
-          displayName: params.displayName,
-          organization: params.organization,
+          name: appName,
+          displayName: `${params.displayName} App`,
+          organization: orgName,
           clientId,
           clientSecret,
-          enablePassword: params.enablePassword ?? true,
-          enableSignUp: params.enableSignUp ?? true,
-          redirectUris: params.redirectUris ?? [],
+          enablePassword: true,
+          enableSignUp: true,
+          redirectUris: params.redirectUri ? [params.redirectUri] : [],
           providers: [],
           signupItems: [
             { name: 'ID', visible: false, required: true, rule: 'Random' },
@@ -128,13 +129,24 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
           ],
         };
 
-        const result = await this.repository.client.sdk.addApplication(application);
-        if (result.data !== 'Affected') {
-          throw new Error(`Failed to create application: ${result.data}`);
+        const appResult = await this.repository.client.sdk.addApplication(application);
+        if (appResult.data !== 'Affected') {
+          // Rollback: delete the organization we just created
+          try {
+            await this.repository.client.sdk.deleteOrganization({ owner: 'admin', name: orgName });
+          } catch (e) {
+            this.logger.warn(`Failed to rollback organization ${orgName}: ${e}`);
+          }
+          throw new Error(`Failed to create IAM application: ${appResult.data}`);
         }
+        this.logger.debug(`Created IAM application: ${appName}`);
 
-        this.logger.debug(`Created Casdoor application: ${params.name}`);
-        return { name: params.name, clientId };
+        // Return black box result - no Casdoor-specific details exposed
+        return {
+          tenantId: orgName,  // tenantId is the org name (opaque to caller)
+          clientId,
+          clientSecret,
+        };
       }
     );
 

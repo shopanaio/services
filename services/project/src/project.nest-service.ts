@@ -26,9 +26,8 @@ interface CreateProjectParams {
 
 interface UpdateProjectParams {
   id: string;
-  casdoorOrganization?: string;
-  casdoorApplication?: string;
-  casdoorClientId?: string;
+  iamTenantId?: string;
+  iamClientId?: string;
 }
 
 interface AddMemberParams {

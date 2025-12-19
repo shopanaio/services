@@ -14,7 +14,14 @@ export interface ProjectCreateInput {
 
 export interface ProjectCreateOutput {
   projectId: string;
-  casdoorOrganizationId: string;
+  iamTenantId: string;
+}
+
+/** IAM tenant setup result (black box - implementation agnostic) */
+interface IamTenantSetupResult {
+  tenantId: string;
+  clientId: string;
+  clientSecret?: string;
 }
 
 /**
@@ -22,13 +29,12 @@ export interface ProjectCreateOutput {
  *
  * This workflow orchestrates the creation of a project across multiple services:
  * 1. Creates the project record in the database
- * 2. Creates a Casdoor organization for the project (IAM)
- * 3. Creates a Casdoor application for the project
- * 4. Links the owner to the project
- * 5. Updates the project with Casdoor data
+ * 2. Provisions IAM tenant for the project (organization + application)
+ * 3. Links the owner to the project
+ * 4. Updates the project with IAM data
  *
- * If any step fails, the workflow can be retried and will continue from the
- * last successful checkpoint, ensuring consistency across services.
+ * IAM is treated as a black box - the workflow doesn't know the underlying
+ * identity provider (Casdoor, Auth0, Keycloak, etc.)
  */
 export class ProjectCreateWorkflow extends BaseWorkflow {
 
@@ -42,21 +48,18 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
     // Step 1: Create project in database
     await this.createProject(projectId, input);
 
-    // Step 2: Create Casdoor organization (IAM)
-    const casdoorOrg = await this.createCasdoorOrganization(input);
+    // Step 2: Provision IAM tenant (black box - handles org + app internally)
+    const iamTenant = await this.provisionIamTenant(projectId, input);
 
-    // Step 3: Create Casdoor application
-    const casdoorApp = await this.createCasdoorApplication(input, casdoorOrg.name);
-
-    // Step 4: Link owner to project
+    // Step 3: Link owner to project
     await this.linkOwnerToProject(projectId, input.ownerId);
 
-    // Step 5: Update project with Casdoor data
-    await this.updateProjectWithCasdoorData(projectId, casdoorOrg, casdoorApp);
+    // Step 4: Update project with IAM data
+    await this.updateProjectWithIamData(projectId, iamTenant);
 
     return {
       projectId,
-      casdoorOrganizationId: casdoorOrg.name,
+      iamTenantId: iamTenant.tenantId,
     };
   }
 
@@ -78,34 +81,19 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
   }
 
   /**
-   * Step: Create Casdoor organization via IAM service
+   * Step: Provision IAM tenant via IAM service (black box)
+   * IAM service handles all identity provider details internally
    */
   @DBOS.step()
-  async createCasdoorOrganization(input: ProjectCreateInput): Promise<{ name: string }> {
-    return this.broker.call('iam.createOrganization', {
-      name: input.slug,
+  async provisionIamTenant(
+    projectId: string,
+    input: ProjectCreateInput
+  ): Promise<IamTenantSetupResult> {
+    return this.broker.call('iam.provisionTenant', {
+      projectId,
+      slug: input.slug,
       displayName: input.name,
-      owner: 'admin',
-      websiteUrl: `https://${input.slug}.shopana.io`,
-      enableSoftDeletion: true,
-    });
-  }
-
-  /**
-   * Step: Create Casdoor application
-   */
-  @DBOS.step()
-  async createCasdoorApplication(
-    input: ProjectCreateInput,
-    organizationName: string
-  ): Promise<{ name: string; clientId: string }> {
-    return this.broker.call('iam.createApplication', {
-      name: `${input.slug}-app`,
-      displayName: `${input.name} Application`,
-      organization: organizationName,
-      enablePassword: true,
-      enableSignUp: true,
-      redirectUris: [`https://${input.slug}.shopana.io/callback`],
+      redirectUri: `https://${input.slug}.shopana.io/callback`,
     });
   }
 
@@ -122,19 +110,17 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
   }
 
   /**
-   * Step: Update project with Casdoor data
+   * Step: Update project with IAM data
    */
   @DBOS.step()
-  async updateProjectWithCasdoorData(
+  async updateProjectWithIamData(
     projectId: string,
-    casdoorOrg: { name: string },
-    casdoorApp: { name: string; clientId: string }
+    iamTenant: IamTenantSetupResult
   ) {
     return this.broker.call('project.update', {
       id: projectId,
-      casdoorOrganization: casdoorOrg.name,
-      casdoorApplication: casdoorApp.name,
-      casdoorClientId: casdoorApp.clientId,
+      iamTenantId: iamTenant.tenantId,
+      iamClientId: iamTenant.clientId,
     });
   }
 }
