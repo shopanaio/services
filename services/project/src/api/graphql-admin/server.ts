@@ -8,7 +8,10 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import {
+  getServiceConfig,
+  isDevelopment,
+} from "@shopana/shared-service-config";
 import {
   setContext,
   type ServiceContext,
@@ -18,13 +21,13 @@ import {
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
-import { Repository, type RepositoryConfig } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  repository?: RepositoryConfig;
+  /** Pre-configured kernel instance (with workflow already set) */
+  kernel: Kernel;
 }
 
 // Simple console logger for Kernel
@@ -40,19 +43,7 @@ const consoleLogger = {
  * Uses admin context middleware that sets async local storage context
  */
 export async function startServer(serverConfig: ServerConfig) {
-  // Initialize Repository and Kernel
-  let repository: Repository | null = null;
-  let kernel: Kernel | null = null;
-
-  if (serverConfig.repository) {
-    repository = await Repository.create(serverConfig.repository);
-    kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[PROJECT] Repository connected, Kernel initialized");
-  } else {
-    console.warn(
-      "[PROJECT] No repository config provided, running without database"
-    );
-  }
+  const kernel = serverConfig.kernel;
 
   const app = fastify({
     logger: isDevelopment(global)
@@ -64,7 +55,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[PROJECT] {msg}',
+              messageFormat: "[PROJECT] {msg}",
               levelFirst: true,
             },
           },
