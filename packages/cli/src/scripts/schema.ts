@@ -2,12 +2,12 @@
 
 /**
  * GraphQL Federation schema management
- * - Export subgraph schemas from services
+ * - Export subgraph schemas from services (reads build.config.json)
  * - Compose supergraph using @wundergraph/composition
  */
 
 import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join } from "path";
@@ -17,79 +17,132 @@ import { findRootDir } from "../utils.js";
 
 const rootDir = findRootDir();
 const federationDir = join(rootDir, "infra", "federation");
+const servicesDir = join(rootDir, "services");
 
-// Subgraph configurations
-const SUBGRAPHS = [
-  // Platform (Go)
-  {
-    name: "platform-admin",
-    service: "platform",
-    schemaPath: ["project", "api", "graphql-admin", "schema"],
-    filePattern: "**/*.graphqls",
-  },
-  {
-    name: "platform-storefront",
-    service: "platform",
-    schemaPath: ["project", "api", "graphql-client", "schema"],
-    filePattern: "**/*.graphqls",
-  },
-  // Node.js services
-  {
-    name: "apps-admin",
-    service: "apps",
-    schemaPath: ["src", "api", "schema"],
-    filePattern: "**/*.graphql",
-  },
-  {
-    name: "inventory-admin",
-    service: "inventory",
-    schemaPath: ["src", "api", "graphql-admin"],
-    filePattern: "**/*.graphql",
-  },
-  {
-    name: "media-admin",
-    service: "media",
-    schemaPath: ["src", "api", "graphql-admin"],
-    filePattern: "**/*.graphql",
-  },
-  {
-    name: "checkout-storefront",
-    service: "checkout",
-    schemaPath: ["src", "interfaces", "gql-storefront-api", "schema"],
-    filePattern: "**/*.graphql",
-  },
-  {
-    name: "orders-storefront",
-    service: "orders",
-    schemaPath: ["src", "interfaces", "gql-storefront-api", "schema"],
-    filePattern: "**/*.graphql",
-  },
-];
+type SchemaType = "admin" | "storefront";
 
-async function findGraphQLFiles(directory: string, pattern: string) {
-  if (!existsSync(directory)) return [];
-
-  const files = await glob(join(directory, pattern), {
-    nodir: true,
-    absolute: true,
-  });
-
-  return files.sort();
+interface BuildConfig {
+  graphql?: {
+    admin?: string[];
+    storefront?: string[];
+  };
 }
 
-async function exportSubgraph(config: (typeof SUBGRAPHS)[number]) {
-  const servicePath =
-    config.service === "platform"
-      ? join(rootDir, "..", "platform")
-      : join(rootDir, "services", config.service);
+interface SubgraphConfig {
+  name: string;
+  service: string;
+  type: SchemaType;
+  patterns: string[];
+  servicePath: string;
+}
 
-  if (!existsSync(servicePath)) {
+// Subgraph routing URLs for federation
+const SUBGRAPH_URLS: Record<string, string> = {
+  "platform-admin": "http://localhost:50051/graphql",
+  "platform-storefront": "http://localhost:50052/graphql",
+  "apps-admin": "http://localhost:10001/graphql",
+  "inventory-admin": "http://localhost:10005/graphql",
+  "media-admin": "http://localhost:10007/graphql",
+  "checkout-storefront": "http://localhost:10002/graphql",
+  "orders-storefront": "http://localhost:10003/graphql",
+  "orders-admin": "http://localhost:10004/graphql",
+  "project-admin": "http://localhost:10006/graphql",
+  "users-admin": "http://localhost:10008/graphql",
+};
+
+/**
+ * Discover subgraphs from build.config.json files
+ */
+function discoverSubgraphs(): SubgraphConfig[] {
+  const subgraphs: SubgraphConfig[] = [];
+
+  // Platform (Go) - hardcoded for now as it doesn't use build.config.json
+  const platformPath = join(rootDir, "..", "platform");
+  if (existsSync(platformPath)) {
+    subgraphs.push({
+      name: "platform-admin",
+      service: "platform",
+      type: "admin",
+      patterns: ["project/api/graphql-admin/schema/**/*.graphqls"],
+      servicePath: platformPath,
+    });
+    subgraphs.push({
+      name: "platform-storefront",
+      service: "platform",
+      type: "storefront",
+      patterns: ["project/api/graphql-client/schema/**/*.graphqls"],
+      servicePath: platformPath,
+    });
+  }
+
+  // Node.js services - read from build.config.json
+  if (!existsSync(servicesDir)) return subgraphs;
+
+  const entries = readdirSync(servicesDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const servicePath = join(servicesDir, entry.name);
+    const configPath = join(servicePath, "build.config.json");
+
+    if (!existsSync(configPath)) continue;
+
+    try {
+      const config: BuildConfig = JSON.parse(readFileSync(configPath, "utf-8"));
+      if (!config.graphql) continue;
+
+      // Add admin subgraph if defined
+      if (config.graphql.admin && config.graphql.admin.length > 0) {
+        subgraphs.push({
+          name: `${entry.name}-admin`,
+          service: entry.name,
+          type: "admin",
+          patterns: config.graphql.admin,
+          servicePath,
+        });
+      }
+
+      // Add storefront subgraph if defined
+      if (config.graphql.storefront && config.graphql.storefront.length > 0) {
+        subgraphs.push({
+          name: `${entry.name}-storefront`,
+          service: entry.name,
+          type: "storefront",
+          patterns: config.graphql.storefront,
+          servicePath,
+        });
+      }
+    } catch {
+      console.warn(`⚠️  ${entry.name}: invalid build.config.json`);
+    }
+  }
+
+  return subgraphs;
+}
+
+async function findGraphQLFiles(servicePath: string, patterns: string[]): Promise<string[]> {
+  const allFiles: string[] = [];
+
+  for (const pattern of patterns) {
+    const fullPattern = join(servicePath, pattern);
+    const files = await glob(fullPattern, {
+      nodir: true,
+      absolute: true,
+    });
+    allFiles.push(...files);
+  }
+
+  // Deduplicate and sort
+  return [...new Set(allFiles)].sort();
+}
+
+async function exportSubgraph(config: SubgraphConfig): Promise<boolean> {
+  if (!existsSync(config.servicePath)) {
     console.warn(`⚠️  ${config.name}: service not found`);
     return false;
   }
 
-  const schemaDir = join(servicePath, ...config.schemaPath);
-  const schemaFiles = await findGraphQLFiles(schemaDir, config.filePattern);
+  const schemaFiles = await findGraphQLFiles(config.servicePath, config.patterns);
 
   if (schemaFiles.length === 0) {
     console.warn(`⚠️  ${config.name}: no schema files`);
@@ -124,10 +177,12 @@ async function exportSubgraph(config: (typeof SUBGRAPHS)[number]) {
 export async function exportSchemas() {
   console.log("📋 Exporting subgraph schemas\n");
 
+  const subgraphs = discoverSubgraphs();
+
   let success = 0;
   let failed = 0;
 
-  for (const config of SUBGRAPHS) {
+  for (const config of subgraphs) {
     if (await exportSubgraph(config)) {
       success++;
     } else {
@@ -140,23 +195,12 @@ export async function exportSchemas() {
   return failed === 0;
 }
 
-// Subgraph routing URLs for federation
-const SUBGRAPH_URLS: Record<string, string> = {
-  "platform-admin": "http://localhost:50051/graphql",
-  "platform-storefront": "http://localhost:50052/graphql",
-  "apps-admin": "http://localhost:10001/graphql",
-  "inventory-admin": "http://localhost:10005/graphql",
-  "media-admin": "http://localhost:10007/graphql",
-  "checkout-storefront": "http://localhost:10002/graphql",
-  "orders-storefront": "http://localhost:10003/graphql",
-};
-
 /**
  * Compose supergraph from subgraphs using @wundergraph/composition
  */
 export async function composeSupergraph() {
   const schemaDir = join(federationDir, "schema");
-  const outputFile = join(federationDir, "supergraph.graphql");
+  const outputFile = join(federationDir, "schema", "supergraph.graphql");
 
   if (!existsSync(schemaDir)) {
     console.error(`❌ Schema directory not found: ${schemaDir}`);
@@ -167,10 +211,10 @@ export async function composeSupergraph() {
   console.log("🔗 Composing supergraph...\n");
 
   try {
-    // Load all exported subgraph schemas
+    const discoveredSubgraphs = discoverSubgraphs();
     const subgraphs: Array<{ name: string; url: string; definitions: ReturnType<typeof parse> }> = [];
 
-    for (const config of SUBGRAPHS) {
+    for (const config of discoveredSubgraphs) {
       const schemaFile = join(schemaDir, `${config.name}.graphql`);
 
       if (!existsSync(schemaFile)) {
