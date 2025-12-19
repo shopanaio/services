@@ -1,5 +1,6 @@
-import { BaseWorkflow, DBOS } from "@shopana/workflows";
+import { DBOS } from "@shopana/workflows";
 import { v7 as uuidv7 } from "uuid";
+import { BaseWorkflow } from "./BaseWorkflow.js";
 import type {
   CurrencyCode,
   LocaleCode,
@@ -36,13 +37,6 @@ interface IamTenantSetupResult {
  * 4. Save IAM integration reference
  */
 export class ProjectCreateWorkflow extends BaseWorkflow {
-  private get repository() {
-    return (this.kernel.getServices() as any).repository;
-  }
-
-  private get broker() {
-    return this.kernel.getServices().broker;
-  }
 
   /**
    * Generate globally unique workflowID from slug.

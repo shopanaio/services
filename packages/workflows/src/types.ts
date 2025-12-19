@@ -1,4 +1,3 @@
-import type { Kernel } from "@shopana/shared-kernel";
 import type {
   WorkflowHandle as DBOSWorkflowHandle,
   WorkflowStatus as DBOSWorkflowStatus,
@@ -25,13 +24,6 @@ export interface WorkflowHandle<TResult> {
   workflowId: string;
   getResult(): Promise<TResult>;
   getStatus(): Promise<DBOSWorkflowStatus | null>;
-}
-
-/**
- * Base services available to all workflows
- */
-export interface WorkflowServices {
-  kernel: Kernel;
 }
 
 /**
