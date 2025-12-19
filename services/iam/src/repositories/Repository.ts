@@ -55,12 +55,12 @@ export class Repository {
     let certificate = "";
 
     if (config.certificate) {
-      console.log("[USERS] Fetching certificate:", config.certificate);
+      console.log("[IAM] Fetching certificate:", config.certificate);
       const certResponse = await tempClient.sdk.getCert(config.certificate);
       certificate = certResponse.data?.data?.certificate ?? "";
-      console.log("[USERS] Certificate fetched, length:", certificate.length);
+      console.log("[IAM] Certificate fetched, length:", certificate.length);
     } else {
-      console.warn("[USERS] No certificate name in config");
+      console.warn("[IAM] No certificate name in config");
     }
 
     // Create the actual client with the certificate
