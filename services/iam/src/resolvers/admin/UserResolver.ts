@@ -1,14 +1,18 @@
 import type { User, Role as CasdoorRole } from "@zaytra/casdoor-node-client-ext";
 import type { Role } from "./interfaces/index.js";
-import { UsersType } from "./UsersType.js";
+import { UsersType, Cache } from "./UsersType.js";
 
 /**
  * User resolver - resolves admin user domain interface
  * Uses User type from casdoor-nodejs-sdk
  */
 export class UserResolver extends UsersType<string, User | null> {
+  @Cache({
+    cacheName: "user",
+    key: (resolver: UserResolver) => resolver.value,
+  })
   async loadData() {
-    return this.ctx.loaders.user.load(this.value);
+    return this.ctx.kernel.repository.user.findByEmail(this.value);
   }
 
   id() {
