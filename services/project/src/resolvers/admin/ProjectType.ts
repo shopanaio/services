@@ -2,6 +2,7 @@ import { BaseType } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import type { Project } from "../../repositories/models/project.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
+import { CachedResolver } from "../../kernel/decorators/index.js";
 
 /**
  * Base resolver class with pre-configured ServiceContext
@@ -18,6 +19,10 @@ export abstract class ProjectType<Value, Data = unknown> extends BaseType<
  * Accepts project ID, loads data lazily via repository
  */
 export class ProjectResolver extends ProjectType<string, Project | null> {
+  @CachedResolver({
+    prefix: "project",
+    keyFrom: (resolver: ProjectResolver) => resolver.value,
+  })
   async loadData() {
     const result = await this.ctx.kernel
       .getServices()
@@ -77,6 +82,10 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
     return this.get("updatedAt");
   }
 
+  @CachedResolver({
+    prefix: "project-locales",
+    keyFrom: (resolver: ProjectResolver) => resolver.value,
+  })
   async locales(): Promise<LocaleCode[]> {
     const locales = await this.ctx.kernel
       .getServices()
@@ -84,6 +93,10 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
     return locales?.map((l) => l.code as LocaleCode) ?? [];
   }
 
+  @CachedResolver({
+    prefix: "project-currencies",
+    keyFrom: (resolver: ProjectResolver) => resolver.value,
+  })
   async currencies(): Promise<CurrencyCode[]> {
     const currencies = await this.ctx.kernel
       .getServices()
