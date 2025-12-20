@@ -1,90 +1,38 @@
 import {
   uuid,
   varchar,
-  boolean,
-  bigint,
-  integer,
-  real,
   timestamp,
   index,
   uniqueIndex,
-  primaryKey,
   foreignKey,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { projectSchema } from "./schema.js";
 import {
   weightUnitEnum,
   dimensionUnitEnum,
-  currencyCodeEnum,
-  localeCodeEnum,
   type WeightUnit,
   type DimensionUnit,
-  type CurrencyCode,
+} from "./reference.js";
+import { locale, localeCodeEnum, type LocaleCode } from "./locale.js";
+import { currency, currencyCodeEnum, type CurrencyCode } from "./currency.js";
+
+export {
+  weightUnitEnum,
+  dimensionUnitEnum,
+  localeCodeEnum,
+  currencyCodeEnum,
+  type WeightUnit,
+  type DimensionUnit,
   type LocaleCode,
-} from "./reference";
+  type CurrencyCode,
+};
 
 export const projectStatusEnum = projectSchema.enum("project_status", [
   "active",
   "inactive",
 ]);
 
-export {
-  weightUnitEnum,
-  dimensionUnitEnum,
-  currencyCodeEnum,
-  localeCodeEnum,
-  type WeightUnit,
-  type DimensionUnit,
-  type CurrencyCode,
-  type LocaleCode,
-};
-
-// Locale table (defined first to break circular reference)
-export const locale = projectSchema.table(
-  "locale",
-  {
-    projectId: uuid("project_id")
-      .notNull()
-      .references((): AnyPgColumn => project.id, { onDelete: "cascade" }),
-    code: localeCodeEnum("code").notNull(),
-    isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.projectId, table.code] }),
-    index("idx_locale_project_id").on(table.projectId),
-    index("idx_locale_is_active").on(table.isActive),
-  ]
-);
-
-// Currency table (defined first to break circular reference)
-export const currency = projectSchema.table(
-  "currency",
-  {
-    projectId: uuid("project_id")
-      .notNull()
-      .references((): AnyPgColumn => project.id, { onDelete: "cascade" }),
-    code: currencyCodeEnum("code").notNull(),
-    isActive: boolean("is_active").notNull().default(true),
-    exchangeRateAmount: bigint("exchange_rate_amount", { mode: "bigint" })
-      .notNull()
-      .default(sql`1`),
-    exchangeRateScale: integer("exchange_rate_scale").notNull(),
-    exchangeRate: real("exchange_rate").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.projectId, table.code] }),
-    index("idx_currency_project_id").on(table.projectId),
-    index("idx_currency_is_active").on(table.isActive),
-  ]
-);
-
-// Project table (main table with FK constraints to locale and currency)
 export const project = projectSchema.table(
   "project",
   {
@@ -136,9 +84,3 @@ export const project = projectSchema.table(
 export type Project = typeof project.$inferSelect;
 export type NewProject = typeof project.$inferInsert;
 export type ProjectStatus = "active" | "inactive";
-
-export type Locale = typeof locale.$inferSelect;
-export type NewLocale = typeof locale.$inferInsert;
-
-export type Currency = typeof currency.$inferSelect;
-export type NewCurrency = typeof currency.$inferInsert;

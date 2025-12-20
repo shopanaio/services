@@ -1,7 +1,16 @@
 // Schema
 export * from "./schema.js";
 
-// Project, Locale, Currency (combined to avoid circular dependencies)
+// Reference enums (can be used independently)
+export * from "./reference.js";
+
+// Locale (can be used without project)
+export * from "./locale.js";
+
+// Currency (can be used without project)
+export * from "./currency.js";
+
+// Project (imports locale and currency)
 export * from "./project.js";
 
 // API Key
