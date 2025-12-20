@@ -15,15 +15,10 @@ import {
   GetCurrentUserScript,
   type GetCurrentUserParams,
   type GetCurrentUserResult,
+  ProvisionTenantResult,
 } from "./scripts/index.js";
 
 const { service } = getServiceConfig("iam");
-
-interface ProvisionTenantBrokerResult {
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
-}
 
 @Injectable()
 export class IamNestService implements OnModuleInit, OnModuleDestroy {
@@ -31,7 +26,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
 
-  constructor(@InjectBroker('iam') private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker("iam") private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
     this.logger.debug("IAM onModuleInit started");
@@ -39,23 +34,12 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker);
     this.logger.debug("Kernel created");
 
-    this.broker.register<ProvisionTenantParams, ProvisionTenantBrokerResult>(
+    this.broker.register<ProvisionTenantParams, ProvisionTenantResult>(
       "provisionTenant",
       async (params) => {
-        const result = await this.kernel.runScript(ProvisionTenantScript, params!);
-
-        if (result.userErrors.length > 0) {
-          throw new Error(result.userErrors[0].message);
-        }
-
-        return {
-          tenantId: result.tenantId!,
-          clientId: result.clientId!,
-          clientSecret: result.clientSecret!,
-        };
+        return this.kernel.runScript(ProvisionTenantScript, params!);
       }
     );
-    this.logger.debug("Action iam.provisionTenant registered");
 
     this.broker.register<GetCurrentUserParams, GetCurrentUserResult>(
       "getCurrentUser",
