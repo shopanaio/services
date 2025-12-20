@@ -27,26 +27,29 @@ export class ProvisionTenantScript extends BaseScript<
     const appName = `app-${slug}`;
 
     // Step 1: Create Casdoor organization
-    const organization = {
+    const organization: Organization = {
       owner: this.repository.organization,
       name: orgName,
+      createdTime: new Date().toISOString(),
       displayName,
+      websiteUrl: "",
+      passwordType: "plain",
+      initScore: 0,
       enableSoftDeletion: true,
-    } as Organization;
+      isProfilePublic: false,
+    };
 
     const orgResult = await this.repository.client.sdk.addOrganization(
       organization
     );
-    console.log(orgResult, "res");
-    if ((orgResult.data as any) !== "Affected") {
+    const orgResponse = orgResult.data as any;
+    if (orgResponse?.status !== "ok" || orgResponse?.data !== "Affected") {
       return {
         tenantId: null,
         userErrors: [
           {
             code: "ORG_CREATE_FAILED",
-            message: `Failed to create IAM organization: ${JSON.stringify(
-              orgResult.data
-            )}`,
+            message: `Failed to create IAM organization: ${orgResponse?.msg || JSON.stringify(orgResponse)}`,
           },
         ],
       };
@@ -54,19 +57,24 @@ export class ProvisionTenantScript extends BaseScript<
     this.logger.debug(`Created IAM organization: ${orgName}`);
 
     // Step 2: Create Casdoor application
-    const application: Partial<Application> = {
+    const application: Application = {
       owner: this.repository.organization,
       name: appName,
+      createdTime: new Date().toISOString(),
       displayName: `${displayName} App`,
+      logo: "",
+      homepageUrl: "",
+      description: "",
       organization: orgName,
       enablePassword: true,
       enableSignUp: true,
     };
 
     const appResult = await this.repository.client.sdk.addApplication(
-      application as any
+      application
     );
-    if ((appResult.data as any) !== "Affected") {
+    const appResponse = appResult.data as any;
+    if (appResponse?.status !== "ok" || appResponse?.data !== "Affected") {
       // Rollback: delete the organization we just created
       try {
         await this.repository.client.sdk.deleteOrganization({
@@ -81,9 +89,7 @@ export class ProvisionTenantScript extends BaseScript<
         userErrors: [
           {
             code: "APP_CREATE_FAILED",
-            message: `Failed to create IAM application: ${JSON.stringify(
-              appResult.data
-            )}`,
+            message: `Failed to create IAM application: ${appResponse?.msg || JSON.stringify(appResponse)}`,
           },
         ],
       };
