@@ -79,7 +79,7 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
   }
 
   /**
-   * Step: Create project in database (LOCAL - direct repository call)
+   * Step: Create project in database (LOCAL - @Executable handles transaction)
    */
   @DBOS.step()
   async createProject(projectId: string, input: ProjectCreateInput) {
