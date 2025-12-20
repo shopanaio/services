@@ -4,15 +4,6 @@ import type {
   GetCurrentProjectResult,
 } from "./dto/GetCurrentProjectDto.js";
 
-interface IamCurrentUserResult {
-  user: {
-    owner: string;
-    name: string;
-    email?: string;
-  } | null;
-  userErrors: Array<{ code: string; message: string }>;
-}
-
 export class GetCurrentProjectScript extends BaseScript<
   GetCurrentProjectParams,
   GetCurrentProjectResult
@@ -20,27 +11,9 @@ export class GetCurrentProjectScript extends BaseScript<
   protected async execute(
     params: GetCurrentProjectParams
   ): Promise<GetCurrentProjectResult> {
-    const { accessToken, slug } = params;
+    const { userOwner, slug } = params;
 
-    // 1. Get current user from IAM service
-    const userResult = (await this.broker.call(
-      "iam.getCurrentUser",
-      { accessToken }
-    )) as IamCurrentUserResult;
-
-    if (!userResult.user) {
-      return {
-        project: undefined,
-        userErrors: [
-          {
-            code: "UNAUTHORIZED",
-            message: userResult.userErrors[0]?.message || "Invalid or expired token",
-          },
-        ],
-      };
-    }
-
-    // 2. Find project by slug
+    // 1. Find project by slug
     const project = await this.repository.project.findBySlug(slug);
 
     if (!project) {
@@ -55,7 +28,7 @@ export class GetCurrentProjectScript extends BaseScript<
       };
     }
 
-    // 3. Get IAM integration for this project
+    // 2. Get IAM integration for this project
     const iamIntegration = await this.repository.integration.findByType(
       project.id,
       "iam"
@@ -73,11 +46,10 @@ export class GetCurrentProjectScript extends BaseScript<
       };
     }
 
-    // 4. Check if user's organization matches project's IAM tenant
+    // 3. Check if user's organization matches project's IAM tenant
     const tenantId = iamIntegration.config.tenantId as string | undefined;
-    const userOrganization = userResult.user.owner;
 
-    if (!tenantId || userOrganization !== tenantId) {
+    if (!tenantId || userOwner !== tenantId) {
       return {
         project: undefined,
         userErrors: [
