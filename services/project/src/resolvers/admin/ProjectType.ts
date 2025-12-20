@@ -20,8 +20,8 @@ export abstract class ProjectType<Value, Data = unknown> extends BaseType<
  */
 export class ProjectResolver extends ProjectType<string, Project | null> {
   @CachedResolver({
-    prefix: "project",
-    keyFrom: (resolver: ProjectResolver) => resolver.value,
+    cacheName: "project",
+    key: (resolver: ProjectResolver) => resolver.value,
   })
   async loadData() {
     const result = await this.ctx.kernel
@@ -83,8 +83,8 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
   }
 
   @CachedResolver({
-    prefix: "project-locales",
-    keyFrom: (resolver: ProjectResolver) => resolver.value,
+    cacheName: "project-locales",
+    key: (resolver: ProjectResolver) => resolver.value,
   })
   async locales(): Promise<LocaleCode[]> {
     const locales = await this.ctx.kernel
@@ -94,8 +94,8 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
   }
 
   @CachedResolver({
-    prefix: "project-currencies",
-    keyFrom: (resolver: ProjectResolver) => resolver.value,
+    cacheName: "project-currencies",
+    key: (resolver: ProjectResolver) => resolver.value,
   })
   async currencies(): Promise<CurrencyCode[]> {
     const currencies = await this.ctx.kernel

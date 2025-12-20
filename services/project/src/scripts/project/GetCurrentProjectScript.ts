@@ -1,5 +1,4 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { Cached } from "../../kernel/decorators/index.js";
 import type {
   GetCurrentProjectParams,
   GetCurrentProjectResult,
@@ -18,12 +17,6 @@ export class GetCurrentProjectScript extends BaseScript<
   GetCurrentProjectParams,
   GetCurrentProjectResult
 > {
-  @Cached({
-    prefix: "current-project",
-    ttl: 60 * 1000, // 1 minute
-    keyFrom: (params: GetCurrentProjectParams) =>
-      `${params.accessToken}:${params.slug}`,
-  })
   protected async execute(
     params: GetCurrentProjectParams
   ): Promise<GetCurrentProjectResult> {
