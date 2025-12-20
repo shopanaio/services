@@ -4,6 +4,9 @@
   "description": "Inventory microservice with microkernel + transaction script architecture",
   "type": "module",
   "main": "dist/index.js",
+  "scripts": {
+    "db:generate": "drizzle-kit generate"
+  },
   "exports": {
     ".": {
       "import": "./dist/inventory.module.js",

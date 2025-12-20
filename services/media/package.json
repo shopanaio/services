@@ -4,6 +4,9 @@
   "description": "Media microservice for file and media management",
   "type": "module",
   "main": "dist/index.js",
+  "scripts": {
+    "db:generate": "drizzle-kit generate"
+  },
   "exports": {
     ".": {
       "import": "./dist/media.module.js",

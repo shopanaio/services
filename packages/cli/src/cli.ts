@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { buildCommand } from "./commands/build.js";
 import { codegenCommand } from "./commands/codegen.js";
+import { dbGenerateCommand } from "./commands/db.js";
 import { devCommand } from "./commands/dev.js";
 import { gatewayCommand } from "./commands/gateway.js";
 import { migrateCommand } from "./commands/migrate.js";
@@ -39,6 +40,15 @@ program
   .description("Run database migrations")
   .option("-s, --service <service>", "Migrate specific service only")
   .action(migrateCommand);
+
+// DB commands
+const db = program.command("db").description("Database management commands");
+
+db.command("generate")
+  .description("Generate database migrations from ORM schema")
+  .option("-s, --service <service>", "Generate for specific service only")
+  .option("-l, --list", "List services with db:generate script")
+  .action(dbGenerateCommand);
 
 // Codegen command
 program
