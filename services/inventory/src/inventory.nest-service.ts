@@ -1,6 +1,5 @@
 import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
 import {
-  Inject,
   Injectable,
   Logger,
   OnModuleDestroy,
@@ -11,7 +10,7 @@ import { assertInventoryUpdateTask } from "@shopana/import-plugin-sdk";
 import {
   Kernel,
   NestLogger,
-  SERVICE_BROKER,
+  InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import {
@@ -47,7 +46,7 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
   private storageGateway!: InventoryObjectStorage;
   private graphqlServer: FastifyInstance | null = null;
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('inventory') private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
     this.kernel = new Kernel(this.broker, new NestLogger(this.logger));

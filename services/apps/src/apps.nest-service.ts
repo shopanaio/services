@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Kernel, SERVICE_BROKER, ServiceBroker, NestLogger } from '@shopana/shared-kernel';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Kernel, InjectBroker, ServiceBroker, NestLogger } from '@shopana/shared-kernel';
 import { FastifyInstance } from 'fastify';
 import { dumboPool, knexInstance } from './infrastructure/db/database';
 import { SlotsRepository } from './infrastructure/repositories/slotsRepository';
@@ -13,7 +13,7 @@ export class AppsNestService implements OnModuleInit, OnModuleDestroy {
   private kernel!: Kernel<AppsKernelServices>;
   private graphqlServer!: FastifyInstance;
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('apps') private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
     const db = knexInstance;

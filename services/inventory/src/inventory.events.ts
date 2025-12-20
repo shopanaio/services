@@ -1,6 +1,6 @@
 import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
-import { Inject, Injectable, Logger } from "@nestjs/common";
-import { SERVICE_BROKER, ServiceBroker } from "@shopana/shared-kernel";
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 
 export interface ProductUpdatedEvent {
   productId: string;
@@ -22,7 +22,7 @@ export interface StockChangedEvent {
 export class InventoryEventsHandler {
   private readonly logger = new Logger(InventoryEventsHandler.name);
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('inventory') private readonly broker: ServiceBroker) {}
 
   /**
    * Handle product.updated events from other services or self-published events.

@@ -5,7 +5,7 @@ export { ActionRegistry, type ActionHandler } from './broker/ActionRegistry';
 export { ServiceBroker, type ServiceBrokerOptions } from './broker/ServiceBroker';
 export { BrokerCoreModule, type BrokerCoreModuleOptions } from './broker/BrokerCoreModule';
 export { BrokerModule, type BrokerFeatureOptions } from './broker/BrokerModule';
-export { SERVICE_BROKER, BROKER_AMQP } from './broker/tokens';
+export { SERVICE_BROKER, SERVICE_NAME, BROKER_AMQP, InjectBroker, getBrokerToken } from './broker/tokens';
 export {
   type Logger,
   type BaseKernelServices,

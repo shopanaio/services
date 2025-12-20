@@ -6,7 +6,7 @@ import {
   OnModuleInit,
   Optional,
 } from "@nestjs/common";
-import { SERVICE_BROKER, ServiceBroker } from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
 import type { FastifyInstance } from "fastify";
@@ -23,7 +23,7 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
   private graphqlServer: FastifyInstance | null = null;
 
   constructor(
-    @Inject(SERVICE_BROKER) private readonly broker: ServiceBroker,
+    @InjectBroker('project') private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry
   ) {}
 

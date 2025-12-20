@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { SERVICE_BROKER, ServiceBroker } from '@shopana/shared-kernel';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { InjectBroker, ServiceBroker } from '@shopana/shared-kernel';
 import { FastifyInstance } from 'fastify';
 import 'reflect-metadata';
 import { App } from './ioc/container';
@@ -11,7 +11,7 @@ export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
   private app!: App;
   private graphqlServer!: FastifyInstance;
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('checkout') private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
     this.app = App.create(this.broker as any);

@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Kernel, SERVICE_BROKER, ServiceBroker, NestLogger } from '@shopana/shared-kernel';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Kernel, InjectBroker, ServiceBroker, NestLogger } from '@shopana/shared-kernel';
 import { createDeliveryGroups, type CreateDeliveryGroupsParams, type CreateDeliveryGroupsResult } from './scripts/createDeliveryGroups';
 import { shippingMethods, type GetShippingMethodsParams, type GetShippingMethodsResult } from './scripts/shippingMethods';
 
@@ -8,7 +8,7 @@ export class DeliveryNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DeliveryNestService.name);
   private kernel!: Kernel;
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('shipping') private readonly broker: ServiceBroker) {}
 
   onModuleInit() {
     this.kernel = new Kernel(this.broker, new NestLogger(this.logger));

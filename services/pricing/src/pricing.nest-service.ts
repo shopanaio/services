@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Kernel, SERVICE_BROKER, ServiceBroker, NestLogger } from '@shopana/shared-kernel';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Kernel, InjectBroker, ServiceBroker, NestLogger } from '@shopana/shared-kernel';
 import { getAllDiscounts, validateDiscount, evaluateDiscounts } from './scripts/index';
 
 @Injectable()
@@ -7,7 +7,7 @@ export class PricingNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PricingNestService.name);
   private kernel!: Kernel;
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('pricing') private readonly broker: ServiceBroker) {}
 
   onModuleInit() {
     this.kernel = new Kernel(this.broker, new NestLogger(this.logger));

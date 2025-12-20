@@ -1,11 +1,10 @@
 import {
-  Inject,
   Injectable,
   Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import { SERVICE_BROKER, ServiceBroker } from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
 import { Kernel } from "./kernel/Kernel.js";
@@ -29,7 +28,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
 
-  constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
+  constructor(@InjectBroker('iam') private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
     this.logger.debug("IAM onModuleInit started");
