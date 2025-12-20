@@ -55,7 +55,7 @@ export const userMutationResolvers: Partial<Resolvers> = {
 
       return {
         user: result.user
-          ? await resolveUser(result.user.email!, ctx, info, "user")
+          ? await resolveUser(result.user.id!, ctx, info, "user")
           : null,
         token: result.token,
         userErrors: result.userErrors,
@@ -70,7 +70,7 @@ export const userMutationResolvers: Partial<Resolvers> = {
 
       return {
         user: result.user
-          ? await resolveUser(result.user.email!, ctx, info, "user")
+          ? await resolveUser(result.user.id!, ctx, info, "user")
           : null,
         token: result.token,
         userErrors: result.userErrors,

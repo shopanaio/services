@@ -56,16 +56,17 @@ export class UserRepository {
   async getCurrentUser(jwt: string): Promise<GetCurrentUserResult> {
     try {
       const jwtUser = this.client.sdk.parseJwtToken(jwt);
+      const userId = (jwtUser as any).sub as string;
 
-      if (!jwtUser.email) {
+      if (!userId) {
         return {
           success: false,
           user: null,
-          error: "Invalid token: no email",
+          error: "Invalid token: missing sub",
         };
       }
 
-      const user = await this.findByEmail(jwtUser.email);
+      const user = await this.findById(userId);
 
       if (!user) {
         return {
@@ -89,11 +90,29 @@ export class UserRepository {
   }
 
   /**
+   * Find user by username (name field in Casdoor)
+   */
+  async findByUsername(username: string): Promise<User | null> {
+    const response = await this.client.sdk.getUser(username);
+    return response.data?.data ?? null;
+  }
+
+  /**
+   * Find user by id (sub field from JWT)
+   */
+  async findById(id: string): Promise<User | null> {
+    const response = await this.client.sdk.getUsers();
+    const users = response.data?.data ?? [];
+    return users.find((u) => u.id === id) ?? null;
+  }
+
+  /**
    * Find user by email
    */
   async findByEmail(email: string): Promise<User | null> {
-    const response = await this.client.sdk.getUser(email);
-    return response.data?.data ?? null;
+    const response = await this.client.sdk.getUsers();
+    const users = response.data?.data ?? [];
+    return users.find((u) => u.email === email) ?? null;
   }
 
   /**
@@ -126,11 +145,21 @@ export class UserRepository {
       const accessToken = loginResponse.data.data as string;
       const refreshToken = (loginResponse.data.data2 as string) || "";
 
-      // Parse JWT to get user email
+      // Parse JWT - use sub field as user id
       const jwtUser = this.client.sdk.parseJwtToken(accessToken);
+      const userId = (jwtUser as any).sub as string;
 
-      // Get full user object by email
-      const user = await this.findByEmail(jwtUser.email!);
+      if (!userId) {
+        return {
+          success: false,
+          user: null,
+          token: null,
+          error: "Invalid token: missing sub",
+        };
+      }
+
+      // Get full user object by id
+      const user = await this.findById(userId);
 
       if (!user) {
         return {

@@ -12,7 +12,7 @@ export class UserResolver extends UsersType<string, User | null> {
     key: (resolver: UserResolver) => resolver.value,
   })
   async loadData() {
-    return this.ctx.kernel.repository.user.findByEmail(this.value);
+    return this.ctx.kernel.repository.user.findById(this.value);
   }
 
   id() {
