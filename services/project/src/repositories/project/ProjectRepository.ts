@@ -110,4 +110,13 @@ export class ProjectRepository extends BaseRepository {
       .where(eq(project.id, id));
     return result;
   }
+
+  @ReadOnly()
+  async findBySlug(slug: string): Promise<Project | undefined> {
+    const [result] = await this.connection
+      .select()
+      .from(project)
+      .where(eq(project.slug, slug));
+    return result;
+  }
 }
