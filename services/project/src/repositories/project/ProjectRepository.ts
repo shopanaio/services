@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -48,50 +48,56 @@ export class ProjectRepository extends BaseRepository {
     const now = new Date();
     const defaultLocale = data.locales[0];
 
-    // 1. Create locale records first
-    for (const localeCode of data.locales) {
-      await this.connection.insert(locale).values({
+    // Use transaction with deferred constraints to handle circular FK
+    return await this.db.transaction(async (tx) => {
+      // Defer FK constraint checking until commit
+      await tx.execute(sql`SET CONSTRAINTS ALL DEFERRED`);
+
+      // 1. Create project first
+      const [result] = await tx
+        .insert(project)
+        .values({
+          id: data.id,
+          name: data.name,
+          slug: data.slug,
+          status: data.status ?? "active",
+          timezone: data.timezone ?? "UTC",
+          email: data.email,
+          defaultLocale,
+          baseCurrency: data.defaultCurrency,
+          defaultCurrency: data.defaultCurrency,
+          defaultWeightUnit: data.defaultWeightUnit ?? "kg",
+          defaultDimensionUnit: data.defaultDimensionUnit ?? "cm",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      // 2. Create locale records
+      for (const localeCode of data.locales) {
+        await tx.insert(locale).values({
+          projectId: data.id,
+          code: localeCode,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      // 3. Create currency record
+      await tx.insert(currency).values({
         projectId: data.id,
-        code: localeCode,
+        code: data.defaultCurrency,
         isActive: true,
+        exchangeRateAmount: BigInt(1),
+        exchangeRateScale: 0,
+        exchangeRate: 1,
         createdAt: now,
         updatedAt: now,
       });
-    }
 
-    // 2. Create currency record
-    await this.connection.insert(currency).values({
-      projectId: data.id,
-      code: data.defaultCurrency,
-      isActive: true,
-      exchangeRateAmount: BigInt(1),
-      exchangeRateScale: 0,
-      exchangeRate: 1,
-      createdAt: now,
-      updatedAt: now,
+      return result;
     });
-
-    // 3. Create project
-    const [result] = await this.connection
-      .insert(project)
-      .values({
-        id: data.id,
-        name: data.name,
-        slug: data.slug,
-        status: data.status ?? "active",
-        timezone: data.timezone ?? "UTC",
-        email: data.email,
-        defaultLocale,
-        baseCurrency: data.defaultCurrency,
-        defaultCurrency: data.defaultCurrency,
-        defaultWeightUnit: data.defaultWeightUnit ?? "kg",
-        defaultDimensionUnit: data.defaultDimensionUnit ?? "cm",
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    return result;
   }
 
   async findById(id: string): Promise<Project | undefined> {
