@@ -3,7 +3,7 @@
 
 services:
   # ============================================
-  # PostgreSQL + PgBouncer
+  # PostgreSQL
   # ============================================
   postgres:
     image: postgres:17
@@ -12,37 +12,13 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    expose:
-      - "5432"
+    ports:
+      - "5432:5432"
     volumes:
       - ./.data/postgres:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  pgbouncer:
-    image: edoburu/pgbouncer:latest
-    container_name: shopana-pgbouncer
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 1000
-      DEFAULT_POOL_SIZE: 25
-    ports:
-      - "5432:6432"
-    volumes:
-      - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
-      - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test:
-        ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,7 +37,7 @@ services:
     volumes:
       - ./infra/casdoor/app.conf:/conf/app.conf
     depends_on:
-      pgbouncer:
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9011/ || exit 1"]
