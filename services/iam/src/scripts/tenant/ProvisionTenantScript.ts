@@ -23,7 +23,7 @@ export class ProvisionTenantScript extends BaseScript<
   ): Promise<ProvisionTenantResult> {
     const { displayName, slug } = params;
 
-    const orgName = "slug"; // get
+    const orgName = slug;
     const appName = `app-${slug}`;
 
     // Step 1: Create Casdoor organization
