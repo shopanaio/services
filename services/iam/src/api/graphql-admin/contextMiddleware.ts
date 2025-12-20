@@ -9,7 +9,7 @@ declare module "fastify" {
 }
 
 export interface ContextMiddlewareConfig {
-  repository: Repository;
+  repository?: Repository | null;
 }
 
 /**
@@ -32,6 +32,10 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
     reply: FastifyReply
   ) {
     request.currentUser = null;
+
+    if (!config.repository) {
+      return;
+    }
 
     const token = extractBearerToken(request.headers.authorization);
 

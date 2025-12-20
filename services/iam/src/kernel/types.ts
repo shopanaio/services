@@ -16,11 +16,16 @@ export interface Logger {
 }
 
 /**
- * Extended services for users microservice
+ * Extended services for IAM microservice
  */
-export interface UsersKernelServices extends BaseKernelServices {
+export interface IamKernelServices extends BaseKernelServices {
   readonly repository: Repository;
 }
+
+/**
+ * @deprecated Use IamKernelServices instead
+ */
+export type UsersKernelServices = IamKernelServices;
 
 /**
  * Script context for users service

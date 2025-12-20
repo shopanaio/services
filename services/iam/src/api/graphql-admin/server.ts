@@ -16,42 +16,25 @@ import {
 
 const { global } = getServiceConfig("iam");
 import { Kernel } from "../../kernel/Kernel.js";
-import { Repository, type RepositoryConfig } from "../../repositories/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  repository?: RepositoryConfig;
 }
-
-// Simple console logger for Kernel
-const consoleLogger = {
-  info: (...args: any[]) => console.log("[INFO]", ...args),
-  warn: (...args: any[]) => console.warn("[WARN]", ...args),
-  error: (...args: any[]) => console.error("[ERROR]", ...args),
-  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
-};
 
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
+ * Kernel is obtained from singleton (must be initialized first)
  */
 export async function startServer(serverConfig: ServerConfig) {
-  console.log("[IAM] startServer called, repository config:", serverConfig.repository ? "present" : "missing");
-
-  // Initialize Repository and Kernel
-  let repository: Repository | null = null;
   let kernel: Kernel | null = null;
 
-  if (serverConfig.repository) {
-    repository = await Repository.create(serverConfig.repository);
-    kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[IAM] Repository connected, Kernel initialized (certificate fetched from Casdoor)");
+  if (Kernel.isInitialized()) {
+    kernel = Kernel.getInstance();
   } else {
-    console.warn(
-      "[IAM] No repository config provided, running without repository"
-    );
+    console.warn("[IAM] Kernel not initialized");
   }
 
   const app = fastify({
@@ -98,7 +81,7 @@ export async function startServer(serverConfig: ServerConfig) {
   await apollo.start();
 
   // Admin context middleware
-  app.addHook("preHandler", buildAdminContextMiddleware({ repository }));
+  app.addHook("preHandler", buildAdminContextMiddleware({ repository: kernel?.repository ?? null }));
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {

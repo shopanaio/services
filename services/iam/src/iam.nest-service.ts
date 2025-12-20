@@ -5,14 +5,11 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import {
-  SERVICE_BROKER,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { SERVICE_BROKER, ServiceBroker } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
+import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "./api/graphql-admin/server.js";
-import { Repository } from "./repositories/Repository.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -36,38 +33,16 @@ interface ProvisionTenantResult {
 @Injectable()
 export class IamNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(IamNestService.name);
+  private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
-  private repository: Repository | null = null;
 
   constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
-    const casdoor = service.casdoor;
-    console.log("[IAM] casdoor config:", casdoor ? "present" : "missing");
-
-    if (casdoor) {
-      this.repository = await Repository.create({
-        endpoint: casdoor.endpoint,
-        clientId: casdoor.client_id,
-        clientSecret: casdoor.client_secret,
-        certificate: casdoor.certificate,
-        organizationName: casdoor.organization_name,
-        applicationName: casdoor.application_name,
-      });
-    }
+    this.kernel = await Kernel.create(this.broker);
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
-      repository: casdoor
-        ? {
-            endpoint: casdoor.endpoint,
-            clientId: casdoor.client_id,
-            clientSecret: casdoor.client_secret,
-            certificate: casdoor.certificate,
-            organizationName: casdoor.organization_name,
-            applicationName: casdoor.application_name,
-          }
-        : undefined,
     });
 
     /**
@@ -82,9 +57,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     this.broker.register<ProvisionTenantParams, ProvisionTenantResult>(
       'provisionTenant',
       async (params) => {
-        if (!this.repository) {
-          throw new Error('IAM repository not initialized');
-        }
+        const repository = this.kernel.repository;
 
         const orgName = params.slug;
         const appName = `${params.slug}-app`;
@@ -101,7 +74,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
           enableSoftDeletion: true,
         };
 
-        const orgResult = await this.repository.client.sdk.addOrganization(organization);
+        const orgResult = await repository.client.sdk.addOrganization(organization);
         if (orgResult.data !== 'Affected') {
           throw new Error(`Failed to create IAM organization: ${orgResult.data}`);
         }
@@ -129,11 +102,11 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
           ],
         };
 
-        const appResult = await this.repository.client.sdk.addApplication(application);
+        const appResult = await repository.client.sdk.addApplication(application);
         if (appResult.data !== 'Affected') {
           // Rollback: delete the organization we just created
           try {
-            await this.repository.client.sdk.deleteOrganization({ owner: 'admin', name: orgName });
+            await repository.client.sdk.deleteOrganization({ owner: 'admin', name: orgName });
           } catch (e) {
             this.logger.warn(`Failed to rollback organization ${orgName}: ${e}`);
           }
@@ -157,6 +130,11 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     if (this.graphqlServer) {
       await this.graphqlServer.close();
     }
+
+    if (this.kernel) {
+      await this.kernel.close();
+    }
+
     this.logger.log("IAM service stopped");
   }
 }
