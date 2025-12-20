@@ -1,3 +1,4 @@
+import { Application, Organization } from "@zaytra/casdoor-node-client-ext";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type {
   ProvisionTenantParams,
@@ -11,7 +12,7 @@ import type {
  * - Casdoor organization for the project
  * - Casdoor application with OAuth2 credentials
  *
- * Callers only see: tenantId, clientId, clientSecret
+ * Callers only see: tenantId
  */
 export class ProvisionTenantScript extends BaseScript<
   ProvisionTenantParams,
@@ -20,35 +21,32 @@ export class ProvisionTenantScript extends BaseScript<
   protected async execute(
     params: ProvisionTenantParams
   ): Promise<ProvisionTenantResult> {
-    const { slug, displayName, redirectUri } = params;
+    const { displayName, slug } = params;
 
-    const orgName = slug;
-    const appName = `${slug}-app`;
-    const clientId = crypto.randomUUID();
-    const clientSecret = crypto.randomUUID();
+    const orgName = "slug"; // get
+    const appName = `app-${slug}`;
 
     // Step 1: Create Casdoor organization
     const organization = {
-      owner: "admin",
+      owner: this.repository.organization,
       name: orgName,
-      displayName: displayName,
-      websiteUrl: `https://${slug}.shopana.io`,
-      favicon: "",
+      displayName,
       enableSoftDeletion: true,
-    };
+    } as Organization;
 
     const orgResult = await this.repository.client.sdk.addOrganization(
-      organization as any
+      organization
     );
+    console.log(orgResult, "res");
     if ((orgResult.data as any) !== "Affected") {
       return {
         tenantId: null,
-        clientId: null,
-        clientSecret: null,
         userErrors: [
           {
             code: "ORG_CREATE_FAILED",
-            message: `Failed to create IAM organization: ${orgResult.data}`,
+            message: `Failed to create IAM organization: ${JSON.stringify(
+              orgResult.data
+            )}`,
           },
         ],
       };
@@ -56,30 +54,13 @@ export class ProvisionTenantScript extends BaseScript<
     this.logger.debug(`Created IAM organization: ${orgName}`);
 
     // Step 2: Create Casdoor application
-    const application = {
-      owner: "admin",
+    const application: Partial<Application> = {
+      owner: this.repository.organization,
       name: appName,
       displayName: `${displayName} App`,
       organization: orgName,
-      clientId,
-      clientSecret,
       enablePassword: true,
       enableSignUp: true,
-      redirectUris: redirectUri ? [redirectUri] : [],
-      providers: [],
-      signupItems: [
-        { name: "ID", visible: false, required: true, rule: "Random" },
-        { name: "Username", visible: true, required: true, rule: "None" },
-        { name: "Display name", visible: true, required: true, rule: "None" },
-        { name: "Password", visible: true, required: true, rule: "None" },
-        {
-          name: "Confirm password",
-          visible: true,
-          required: true,
-          rule: "None",
-        },
-        { name: "Email", visible: true, required: true, rule: "None" },
-      ],
     };
 
     const appResult = await this.repository.client.sdk.addApplication(
@@ -97,12 +78,12 @@ export class ProvisionTenantScript extends BaseScript<
       }
       return {
         tenantId: null,
-        clientId: null,
-        clientSecret: null,
         userErrors: [
           {
             code: "APP_CREATE_FAILED",
-            message: `Failed to create IAM application: ${appResult.data}`,
+            message: `Failed to create IAM application: ${JSON.stringify(
+              appResult.data
+            )}`,
           },
         ],
       };
@@ -112,8 +93,6 @@ export class ProvisionTenantScript extends BaseScript<
     // Return black box result - no Casdoor-specific details exposed
     return {
       tenantId: orgName, // tenantId is the org name (opaque to caller)
-      clientId,
-      clientSecret,
       userErrors: [],
     };
   }
@@ -121,8 +100,6 @@ export class ProvisionTenantScript extends BaseScript<
   protected handleError(_error: unknown): ProvisionTenantResult {
     return {
       tenantId: null,
-      clientId: null,
-      clientSecret: null,
       userErrors: [
         {
           code: "INTERNAL_ERROR",
