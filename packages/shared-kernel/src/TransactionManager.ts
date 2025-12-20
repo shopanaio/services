@@ -1,5 +1,59 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+// ============================================================================
+// Decorators
+// ============================================================================
+
+/**
+ * Symbol to access txManager from repository instance
+ */
+const TX_MANAGER_KEY = "txManager";
+
+/**
+ * @Transactional() - Decorator for write operations
+ * Always wraps method execution in a transaction via txManager.run()
+ * If already in transaction - reuses it
+ */
+export function Transactional(): MethodDecorator {
+  return function (
+    _target: object,
+    _propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ) {
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (this: any, ...args: any[]) {
+      const txManager = this[TX_MANAGER_KEY] as TransactionManager<any, any>;
+      if (!txManager) {
+        throw new Error(
+          `@Executable requires '${TX_MANAGER_KEY}' property on class instance`
+        );
+      }
+
+      return txManager.run(() => originalMethod.apply(this, args));
+    };
+
+    return descriptor;
+  };
+}
+
+/**
+ * @ReadOnly() - Decorator for read operations
+ * Uses existing transaction if present, but does NOT start a new one
+ * Method should use this.connection which returns tx or db automatically
+ */
+export function ReadOnly(): MethodDecorator {
+  return function (
+    _target: object,
+    _propertyKey: string | symbol,
+    descriptor: PropertyDescriptor
+  ) {
+    // No-op decorator - just documents intent
+    // Read methods use this.connection which handles tx/db automatically
+    return descriptor;
+  };
+}
+
 /**
  * Store for active transaction in AsyncLocalStorage
  */
