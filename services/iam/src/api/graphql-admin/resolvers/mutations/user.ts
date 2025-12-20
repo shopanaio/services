@@ -1,9 +1,10 @@
-import type { UserMutationResolvers } from "../../generated/types.js";
+import type { Resolvers } from "../../generated/types.js";
 import { UserSignUpScript, UserSignInScript } from "../../../../scripts/user/index.js";
+import { resolveUser } from "../types.js";
 
-export const userMutationResolvers = {
+export const userMutationResolvers: Partial<Resolvers> = {
   Mutation: {
-    userMutation: () => ({}),
+    userMutation: () => ({} as any),
   },
 
   UserMutation: {
@@ -46,27 +47,31 @@ export const userMutationResolvers = {
       };
     },
 
-    signUp: async (_parent, { input }, ctx) => {
+    signUp: async (_parent, { input }, ctx, info) => {
       const result = await ctx.kernel.runScript(UserSignUpScript, {
         email: input.email,
         password: input.password,
       });
 
       return {
-        user: result.user,
+        user: result.user
+          ? await resolveUser(result.user.email!, ctx, info, "user")
+          : null,
         token: result.token,
         userErrors: result.userErrors,
       };
     },
 
-    signIn: async (_parent, { input }, ctx) => {
+    signIn: async (_parent, { input }, ctx, info) => {
       const result = await ctx.kernel.runScript(UserSignInScript, {
         email: input.email,
         password: input.password,
       });
 
       return {
-        user: result.user,
+        user: result.user
+          ? await resolveUser(result.user.email!, ctx, info, "user")
+          : null,
         token: result.token,
         userErrors: result.userErrors,
       };
@@ -97,5 +102,5 @@ export const userMutationResolvers = {
         ],
       };
     },
-  } satisfies UserMutationResolvers,
+  },
 };
