@@ -52,12 +52,12 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     }
 
     const kernel = Kernel.getInstance();
-    const slug = request.headers["x-pj-key"] as string;
+    const slug = request.headers["x-project-name"] as string;
 
     if (!slug) {
       return reply
         .status(400)
-        .send({ data: null, errors: [{ message: "Missing x-pj-key header" }] });
+        .send({ data: null, errors: [{ message: "Missing x-project-name header" }] });
     }
 
     // Extract access token from Authorization header

@@ -108,7 +108,7 @@ export async function startServer(serverConfig: ServerConfig) {
         };
       }
 
-      const slug = request.headers["x-pj-key"] as string;
+      const slug = request.headers["x-project-name"] as string;
 
       // Use project and user from middleware (set by contextMiddleware via GetCurrentProjectScript)
       const ctx: ServiceContext = {
