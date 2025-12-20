@@ -119,4 +119,9 @@ export class ProjectRepository extends BaseRepository {
       .where(eq(project.slug, slug));
     return result;
   }
+
+  @ReadOnly()
+  async getMany(): Promise<Project[]> {
+    return this.connection.select().from(project);
+  }
 }

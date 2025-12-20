@@ -1,13 +1,10 @@
 import type { Resolvers, ProjectMutation } from "../generated/types.js";
-import {
-  CURRENCY_INFO,
-  LOCALE_INFO,
-  type CurrencyCode,
-  type LocaleCode,
-} from "@shopana/shared-references";
 
 // Queries
 import { queryResolvers } from "./queries.js";
+
+// Type resolvers
+import { typeResolvers } from "./types.js";
 
 // Mutations
 import { projectMutationResolvers } from "./mutations/project.js";
@@ -42,27 +39,7 @@ export const resolvers: Resolvers = mergeResolvers(
   },
 
   // Type resolvers
-  {
-    Currency: {
-      name: (parent) => CURRENCY_INFO[parent.code as CurrencyCode]?.name ?? parent.code,
-    },
-    Locale: {
-      name: (parent) => LOCALE_INFO[parent.code as LocaleCode]?.name ?? parent.code,
-    },
-    Project: {
-      locales: async (parent, _args, ctx) => {
-        const locales = await ctx.kernel.repository?.locale.findByProjectId(parent.id);
-        return locales?.map((l) => l.code as LocaleCode) ?? [];
-      },
-      currencies: async (parent, _args, ctx) => {
-        const currencies = await ctx.kernel.repository?.currency.findByProjectId(parent.id);
-        return currencies?.map((c) => c.code as CurrencyCode) ?? [];
-      },
-    },
-    UserError: {
-      __resolveType: () => "GenericUserError",
-    },
-  },
+  typeResolvers,
 
   // Queries
   queryResolvers,

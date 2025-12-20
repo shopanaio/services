@@ -1,21 +1,43 @@
-import type { Resolvers } from "../generated/types.js";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
+import { ProjectResolver } from "../../../resolvers/admin/ProjectType.js";
+import type { QueryResolvers, Resolvers } from "../generated/types.js";
+import { requireContext } from "./utils.js";
 
-export const queryResolvers: Partial<Resolvers> = {
+export const queryResolvers = {
   Query: {
-    projectQuery: () => ({}),
+    projectQuery: () => ({} as any),
   },
 
   ProjectQuery: {
-    projects: async (_parent, _args, ctx) => {
-      return ctx.kernel.getServices().repository.project.getMany();
+    projects: async (_parent, _args, ctx, info) => {
+      const projects = await ctx.kernel
+        .getServices()
+        .repository.project.getMany();
+      const projectIds = projects.map((p) => p.id);
+
+      return ProjectResolver.loadMany(
+        projectIds,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
-    project: async (_parent, { slug }, ctx) => {
-      return ctx.kernel.getServices().repository.project.findBySlug(slug);
+    project: async (_parent, { slug }, ctx, info) => {
+      const project = await ctx.kernel
+        .getServices()
+        .repository.project.findBySlug(slug);
+
+      if (!project) return null;
+
+      return ProjectResolver.load(
+        project.id,
+        parseGraphqlInfo(info),
+        requireContext(ctx)
+      );
     },
 
     apiKeys: async (_parent, _args, ctx) => {
-      return ctx.loaders.apiKeys.load(ctx.project.id);
+      return [];
     },
   },
-};
+} satisfies Partial<Resolvers>;
