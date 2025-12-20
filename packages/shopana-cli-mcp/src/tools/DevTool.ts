@@ -16,7 +16,12 @@ class DevTool extends MCPTool<typeof DevToolSchema> {
   name = 'shopana_dev';
   description = `Start Shopana development environment with hot-reload.
 
-This command starts the development server. By default, it starts all services through the bootstrap orchestrator.
+This command starts the development server with file watching enabled. By default, it starts all services through the bootstrap orchestrator.
+
+Features:
+- Watches for file changes automatically
+- Services restart automatically when code changes are detected
+- No manual restart required during development
 
 Examples:
 - Start all services: {}
