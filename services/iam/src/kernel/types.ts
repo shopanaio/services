@@ -3,6 +3,7 @@ import type {
   ScriptContext as BaseScriptContext,
   TransactionScript as BaseTransactionScript,
 } from "@shopana/shared-kernel";
+import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories/Repository.js";
 
 /**
@@ -20,6 +21,7 @@ export interface Logger {
  */
 export interface IamKernelServices extends BaseKernelServices {
   readonly repository: Repository;
+  readonly cache: Cache;
 }
 
 /**

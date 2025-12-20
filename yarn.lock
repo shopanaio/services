@@ -1303,6 +1303,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cacheable/utils@npm:^2.3.2":
+  version: 2.3.2
+  resolution: "@cacheable/utils@npm:2.3.2"
+  dependencies:
+    hashery: "npm:^1.2.0"
+    keyv: "npm:^5.5.4"
+  checksum: 10/3acb6dea167ccec1eaa3c38e876c81fc2a1442d2818e49c67a5cf9a17fd51595622d02ecbd3110776f987814af7000bec6beea16bf08b47ee58553c71ad8a23d
+  languageName: node
+  linkType: hard
+
 "@colors/colors@npm:1.6.0, @colors/colors@npm:^1.6.0":
   version: 1.6.0
   resolution: "@colors/colors@npm:1.6.0"
@@ -4857,6 +4867,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@keyv/serialize@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "@keyv/serialize@npm:1.1.1"
+  checksum: 10/e3b2cb1377863342acedd5ff785af3e69269bee9b44707c617d1c8bc14eeb5ac763159d6455903ffe92f143c2238e1e783c4f113f9c8910eacccf172894472da
+  languageName: node
+  linkType: hard
+
 "@koa/bodyparser@npm:5.0.0":
   version: 5.0.0
   resolution: "@koa/bodyparser@npm:5.0.0"
@@ -4988,6 +5005,19 @@ __metadata:
     "@emnapi/runtime": "npm:^1.4.3"
     "@tybys/wasm-util": "npm:^0.10.0"
   checksum: 10/5fd518182427980c28bc724adf06c5f32f9a8915763ef560b5f7d73607d30cd15ac86d0cbd2eb80d4cfab23fc80d0876d89ca36a9daadcb864bc00917c94187c
+  languageName: node
+  linkType: hard
+
+"@nestjs/cache-manager@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "@nestjs/cache-manager@npm:3.0.1"
+  peerDependencies:
+    "@nestjs/common": ^9.0.0 || ^10.0.0 || ^11.0.0
+    "@nestjs/core": ^9.0.0 || ^10.0.0 || ^11.0.0
+    cache-manager: ">=6"
+    keyv: ">=5"
+    rxjs: ^7.8.1
+  checksum: 10/4e34d187f749f6c1068eb85966d17304cea1129f2f9edb176511096dc93e42bb45ea4921eb999ebd5c0db3212f4c49b34d1c762e84e3e356495fdae7dd063cac
   languageName: node
   linkType: hard
 
@@ -6246,6 +6276,7 @@ __metadata:
     "@graphql-codegen/cli": "npm:^5.0.2"
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@nestjs/cache-manager": "npm:^3.0.1"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/shared-kernel": "npm:*"
@@ -6253,11 +6284,13 @@ __metadata:
     "@shopana/type-resolver": "npm:*"
     "@types/node": "npm:^20.14.14"
     "@zaytra/casdoor-node-client-ext": "workspace:*"
+    cache-manager: "npm:^7.2.7"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
     graphql-tag: "npm:^2.12.6"
+    keyv: "npm:^5.5.5"
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
     tsx: "npm:^4.16.2"
@@ -6527,6 +6560,7 @@ __metadata:
     "@graphql-codegen/cli": "npm:^5.0.2"
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
+    "@nestjs/cache-manager": "npm:^3.0.1"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
@@ -6535,6 +6569,7 @@ __metadata:
     "@shopana/type-resolver": "npm:*"
     "@shopana/workflows": "npm:*"
     "@types/node": "npm:^20.14.14"
+    cache-manager: "npm:^7.2.7"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
     drizzle-kit: "npm:^0.31.7"
@@ -6542,6 +6577,7 @@ __metadata:
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
     graphql-tag: "npm:^2.12.6"
+    keyv: "npm:^5.5.5"
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
     postgres: "npm:^3.4.7"
@@ -9040,6 +9076,16 @@ __metadata:
   version: 2.0.6
   resolution: "cache-control-parser@npm:2.0.6"
   checksum: 10/04d56869742d90ce3c784fa124ac9486959574131839495fa9f4e364fb32510f188847eb541aaaa2a3509fbdf205fa11bd470e9b40199b4d9bf3046c1ab5a47f
+  languageName: node
+  linkType: hard
+
+"cache-manager@npm:^7.2.7":
+  version: 7.2.7
+  resolution: "cache-manager@npm:7.2.7"
+  dependencies:
+    "@cacheable/utils": "npm:^2.3.2"
+    keyv: "npm:^5.5.4"
+  checksum: 10/57c27e5378ca018c1e03d18c8450c821981190f8a079d49caa7dc13b258dfcdd074dcdb186c5fc1a471b3fd4d3609267fd339825e6b6327a2ed7bd2fb79eff23
   languageName: node
   linkType: hard
 
@@ -12029,6 +12075,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hashery@npm:^1.2.0":
+  version: 1.3.0
+  resolution: "hashery@npm:1.3.0"
+  dependencies:
+    hookified: "npm:^1.13.0"
+  checksum: 10/fac221034b73d86ab23422960869b6a0aab0970ba68ebdd3be599a154b95999d4022a0418d15c7ed0a4366381995d97f76116e6a7213a808ab25b7960cf02e2a
+  languageName: node
+  linkType: hard
+
 "hasown@npm:^2.0.2":
   version: 2.0.2
   resolution: "hasown@npm:2.0.2"
@@ -12052,6 +12107,13 @@ __metadata:
   version: 5.0.0
   resolution: "help-me@npm:5.0.0"
   checksum: 10/5f99bd91dae93d02867175c3856c561d7e3a24f16999b08f5fc79689044b938d7ed58457f4d8c8744c01403e6e0470b7896baa344d112b2355842fd935a75d69
+  languageName: node
+  linkType: hard
+
+"hookified@npm:^1.13.0":
+  version: 1.14.0
+  resolution: "hookified@npm:1.14.0"
+  checksum: 10/ad4d3e84085ef448ddf5b3913e1b4c2629e54456e76408bd5b3cb6fa457968d8fd54e05985117ca79539daba1c6a7c13a6d977b636fbf1dd6b0704d95effcf15
   languageName: node
   linkType: hard
 
@@ -13722,6 +13784,15 @@ __metadata:
   dependencies:
     json-buffer: "npm:3.0.1"
   checksum: 10/167eb6ef64cc84b6fa0780ee50c9de456b422a1e18802209234f7c2cf7eae648c7741f32e50d7e24ccb22b24c13154070b01563d642755b156c357431a191e75
+  languageName: node
+  linkType: hard
+
+"keyv@npm:^5.5.4, keyv@npm:^5.5.5":
+  version: 5.5.5
+  resolution: "keyv@npm:5.5.5"
+  dependencies:
+    "@keyv/serialize": "npm:^1.1.1"
+  checksum: 10/4bbc2119151d67bfc04d3a08fc98f4efac5e171e8c99519fc7bc9ae9e05df4d1c6c835a5d133d563ed109a20db4688f3f9738400cbd3674f6303cdfc4490d429
   languageName: node
   linkType: hard
 

@@ -1,6 +1,7 @@
 import { Kernel as BaseKernel } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
+import { createCache, type Cache } from "cache-manager";
 import type { IamKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
@@ -21,14 +22,17 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   private static instance: Kernel | null = null;
 
   public repository!: Repository;
+  public cache!: Cache;
 
   private constructor(
     broker: ServiceBroker,
     logger: Logger,
-    repository: Repository
+    repository: Repository,
+    cache: Cache
   ) {
-    super(broker, logger, { repository });
+    super(broker, logger, { repository, cache });
     this.repository = repository;
+    this.cache = cache;
   }
 
   static async create(broker: ServiceBroker): Promise<Kernel> {
@@ -50,7 +54,11 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       applicationName: casdoor.application_name,
     });
 
-    this.instance = new Kernel(broker, consoleLogger, repository);
+    const cache = createCache({
+      ttl: 5 * 60 * 1000, // 5 minutes default TTL
+    });
+
+    this.instance = new Kernel(broker, consoleLogger, repository, cache);
     console.log("[IAM] Kernel initialized");
     return this.instance;
   }

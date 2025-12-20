@@ -4,6 +4,7 @@ import {
   getServiceConfig,
   buildDatabaseUrl,
 } from "@shopana/shared-service-config";
+import { createCache, type Cache } from "cache-manager";
 import type { WorkflowRegistry } from "@shopana/workflows";
 import type { ProjectKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
@@ -28,15 +29,19 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
 
   public workflow!: WorkflowRegistry;
 
+  public cache!: Cache;
+
   private constructor(
     broker: ServiceBroker,
     logger: Logger,
     repository: Repository,
-    workflow: WorkflowRegistry
+    workflow: WorkflowRegistry,
+    cache: Cache
   ) {
-    super(broker, logger, { repository, workflow });
+    super(broker, logger, { repository, workflow, cache });
     this.repository = repository;
     this.workflow = workflow;
+    this.cache = cache;
   }
 
   static async create(
@@ -51,7 +56,11 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
       databaseUrl: buildDatabaseUrl(service.db!),
     });
 
-    this.instance = new Kernel(broker, consoleLogger, repository, workflow);
+    const cache = createCache({
+      ttl: 5 * 60 * 1000, // 5 minutes default TTL
+    });
+
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache);
     console.log("[PROJECT] Kernel initialized");
     return this.instance;
   }

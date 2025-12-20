@@ -1,4 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { Cached } from "../../kernel/decorators/index.js";
 import type {
   GetCurrentUserParams,
   GetCurrentUserResult,
@@ -8,6 +9,11 @@ export class GetCurrentUserScript extends BaseScript<
   GetCurrentUserParams,
   GetCurrentUserResult
 > {
+  @Cached({
+    prefix: "current-user",
+    ttl: 60 * 1000, // 1 minute
+    keyFrom: (params: GetCurrentUserParams) => params.accessToken,
+  })
   protected async execute(
     params: GetCurrentUserParams
   ): Promise<GetCurrentUserResult> {
