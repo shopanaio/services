@@ -32,11 +32,10 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(SERVICE_BROKER) private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
-    this.kernel = await Kernel.create(this.broker);
+    this.logger.debug("IAM onModuleInit started");
 
-    this.graphqlServer = await startServer({
-      port: service.ports?.admin_graphql ?? 0,
-    });
+    this.kernel = await Kernel.create(this.broker);
+    this.logger.debug("Kernel created");
 
     this.broker.register<ProvisionTenantParams, ProvisionTenantBrokerResult>(
       "provisionTenant",
@@ -54,6 +53,12 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
         };
       }
     );
+    this.logger.debug("Action iam.provisionTenant registered");
+
+    this.graphqlServer = await startServer({
+      port: service.ports?.admin_graphql ?? 0,
+    });
+    this.logger.debug("GraphQL server started");
 
     this.logger.log("IAM service started");
   }
