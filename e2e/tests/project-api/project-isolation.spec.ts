@@ -1,9 +1,6 @@
 import { test as base } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
-import { generateUser } from '@utils/user';
-import { AdminApiFixture } from '@fixtures/admin/api';
-import { ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
 
 const generateProjectSlug = () => `test-project-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -13,42 +10,39 @@ interface UserSession {
   accessToken: string;
 }
 
-async function createUser(api: AdminApiFixture): Promise<UserSession> {
-  const userData = generateUser();
-
-  const { data } = await api.mutation<ApiUserMutationSignUpArgs>('users-api/SignUp', {
-    variables: {
-      input: {
-        email: userData.email,
-        password: userData.password,
-      },
-    },
-  });
-
-  const result = data.userMutation.signUp;
-  if (!result.token?.accessToken) {
-    throw new Error('Failed to create user');
-  }
-
-  return {
-    email: userData.email,
-    password: userData.password,
-    accessToken: result.token.accessToken,
-  };
-}
-
 const test = base.extend<{
   userA: UserSession;
   userB: UserSession;
 }>({
   userA: async ({ api }, use) => {
-    const user = await createUser(api.admin);
-    api.session.tenant.accessToken = user.accessToken;
-    await use(user);
+    // Setup first user
+    const result = await api.session.setupUser();
+    await use({
+      email: api.session.tenant.data.email,
+      password: api.session.tenant.data.password,
+      accessToken: result.token?.accessToken ?? '',
+    });
   },
   userB: async ({ api }, use) => {
-    const user = await createUser(api.admin);
-    await use(user);
+    // Create second user with new credentials
+    const { generateUser } = await import('@utils/user');
+    const userData = generateUser();
+
+    const { data } = await api.admin.mutation('users-api/SignUp', {
+      variables: {
+        input: {
+          email: userData.email,
+          password: userData.password,
+        },
+      },
+    });
+
+    const result = data.userMutation.signUp;
+    await use({
+      email: userData.email,
+      password: userData.password,
+      accessToken: result.token?.accessToken ?? '',
+    });
   },
 });
 
@@ -86,6 +80,9 @@ test.describe('Project Isolation', () => {
     });
 
     // User B tries to access User A's project - should fail or return null
+    // Set project slug to User A's project while authenticated as User B
+    api.session.project = { slug: slugA, id: '' } as typeof api.session.project;
+
     const { data: projectData } = await api.admin.query('project-api/Project', {
       throwOnError: false,
       variables: {
@@ -97,7 +94,6 @@ test.describe('Project Isolation', () => {
     expect(projectData.projectQuery.project).toBeNull();
   });
 
-  // Project query is not implemented yet
   test.skip('User cannot see other users projects in projects list', async ({ api, userA, userB }) => {
     const slugA = generateProjectSlug();
     const slugB = generateProjectSlug();
@@ -161,6 +157,9 @@ test.describe('Project Isolation', () => {
         },
       },
     });
+
+    // Set project slug for subsequent queries
+    api.session.project = { slug, id: '' } as typeof api.session.project;
 
     // User A should be able to access their own project
     const { data: projectData } = await api.admin.query('project-api/Project', {

@@ -5,6 +5,10 @@ import * as crypto from 'crypto';
 const generateProjectSlug = () => `test-project-${crypto.randomUUID().slice(0, 8)}`;
 
 test.describe('ProjectCreate API', () => {
+  test.beforeEach(async ({ api }) => {
+    await api.session.setupUser();
+  });
+
   test('Create project with minimal required fields', async ({ api }) => {
     const slug = generateProjectSlug();
 
