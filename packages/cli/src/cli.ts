@@ -34,13 +34,6 @@ program
   .option("-s, --service <service>", "Run specific service only")
   .action(devCommand);
 
-// Migrate command
-program
-  .command("migrate")
-  .description("Run database migrations")
-  .option("-s, --service <service>", "Migrate specific service only")
-  .action(migrateCommand);
-
 // DB commands
 const db = program.command("db").description("Database management commands");
 
@@ -49,6 +42,11 @@ db.command("generate")
   .option("-s, --service <service>", "Generate for specific service only")
   .option("-l, --list", "List services with db:generate script")
   .action(dbGenerateCommand);
+
+db.command("migrate")
+  .description("Run database migrations")
+  .option("-s, --service <service>", "Migrate specific service only")
+  .action(migrateCommand);
 
 // Codegen command
 program
