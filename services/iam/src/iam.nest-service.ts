@@ -12,6 +12,9 @@ import { startServer } from "./api/graphql-admin/server.js";
 import {
   ProvisionTenantScript,
   type ProvisionTenantParams,
+  GetCurrentUserScript,
+  type GetCurrentUserParams,
+  type GetCurrentUserResult,
 } from "./scripts/index.js";
 
 const { service } = getServiceConfig("iam");
@@ -53,6 +56,14 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action iam.provisionTenant registered");
+
+    this.broker.register<GetCurrentUserParams, GetCurrentUserResult>(
+      "getCurrentUser",
+      async (params) => {
+        return this.kernel.runScript(GetCurrentUserScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.getCurrentUser registered");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,

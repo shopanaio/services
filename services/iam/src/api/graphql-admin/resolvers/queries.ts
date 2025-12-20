@@ -6,9 +6,8 @@ export const queryResolvers = {
   },
 
   UserQuery: {
-    current: async (_parent: unknown, _args: unknown, _ctx: ServiceContext) => {
-      // TODO: implement - return current authenticated user
-      return null;
+    current: async (_parent: unknown, _args: unknown, ctx: ServiceContext) => {
+      return ctx.currentUser;
     },
   },
 };

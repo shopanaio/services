@@ -31,3 +31,9 @@ export type {
   UserSignInParams,
   UserSignInResult,
 } from "./UserSignInDto.js";
+
+// Get Current User DTOs
+export type {
+  GetCurrentUserParams,
+  GetCurrentUserResult,
+} from "./GetCurrentUserDto.js";
