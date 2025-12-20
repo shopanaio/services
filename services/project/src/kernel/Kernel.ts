@@ -23,8 +23,10 @@ const consoleLogger: Logger = {
  */
 export class Kernel extends BaseKernel<ProjectKernelServices> {
   private static instance: Kernel | null = null;
-  private repository!: Repository;
-  private workflow!: WorkflowRegistry;
+
+  public repository!: Repository;
+
+  public workflow!: WorkflowRegistry;
 
   private constructor(
     broker: ServiceBroker,
@@ -32,7 +34,7 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
     repository: Repository,
     workflow: WorkflowRegistry
   ) {
-    super(broker, logger);
+    super(broker, logger, { repository, workflow });
     this.repository = repository;
     this.workflow = workflow;
   }
