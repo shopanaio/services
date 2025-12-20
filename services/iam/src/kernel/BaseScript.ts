@@ -1,5 +1,5 @@
 import { getContext } from "../context/index.js";
-import type { UsersKernelServices } from "./types.js";
+import type { IamKernelServices } from "./types.js";
 
 export interface UserError {
   message: string;
@@ -8,11 +8,11 @@ export interface UserError {
 }
 
 export abstract class BaseScript<TParams, TResult> {
-  protected readonly services: UsersKernelServices;
-  protected readonly repository: UsersKernelServices["repository"];
-  protected readonly logger: UsersKernelServices["logger"];
+  protected readonly services: IamKernelServices;
+  protected readonly repository: IamKernelServices["repository"];
+  protected readonly logger: IamKernelServices["logger"];
 
-  constructor(services: UsersKernelServices) {
+  constructor(services: IamKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
@@ -72,7 +72,7 @@ export abstract class BaseScript<TParams, TResult> {
    * Helper: execute another script (composition)
    */
   protected executeScript<P, R>(
-    ScriptClass: new (services: UsersKernelServices) => BaseScript<P, R>,
+    ScriptClass: new (services: IamKernelServices) => BaseScript<P, R>,
     params: P
   ): Promise<R> {
     const script = new ScriptClass(this.services);
