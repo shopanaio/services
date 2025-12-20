@@ -1,11 +1,41 @@
+import { z } from "zod";
 import type { Resolvers } from "../../generated/types.js";
 import { ProjectUpdateScript } from "../../../../scripts/project/ProjectUpdateScript.js";
 import { ProjectDeleteScript } from "../../../../scripts/project/ProjectDeleteScript.js";
 import type { ProjectCreateWorkflow } from "../../../../workflows/index.js";
 
+const ProjectCreateInputSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  slug: z.string().min(1, "Slug is required"),
+  locales: z.array(z.string()).min(1, "At least one locale is required"),
+  currencies: z.array(z.string()).min(1, "At least one currency is required"),
+  defaultCurrency: z.string(),
+  status: z.enum(["active", "inactive"]).optional(),
+  timezone: z.string().optional(),
+  email: z.string().email("Invalid email format").optional().nullable(),
+});
+
+function zodErrorsToUserErrors(error: z.ZodError) {
+  return error.errors.map((e) => ({
+    message: e.message,
+    code: "VALIDATION_ERROR",
+    field: e.path.map(String),
+  }));
+}
+
 export const projectMutationResolvers: Partial<Resolvers> = {
   ProjectMutation: {
     projectCreate: async (_parent, { input }, ctx) => {
+      // Validate input with Zod
+      const validation = ProjectCreateInputSchema.safeParse(input);
+
+      if (!validation.success) {
+        return {
+          project: null,
+          userErrors: zodErrorsToUserErrors(validation.error),
+        };
+      }
+
       if (!ctx.kernel.workflow) {
         return {
           project: null,
