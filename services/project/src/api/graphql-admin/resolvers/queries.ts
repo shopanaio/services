@@ -22,21 +22,19 @@ export const queryResolvers = {
       );
     },
 
-    project: async (_parent, { slug }, ctx, info) => {
-      const project = await ctx.kernel
-        .getServices()
-        .repository.project.findBySlug(slug);
-
-      if (!project) return null;
+    project: async (_parent, _args, ctx, info) => {
+      // Project is already loaded and validated in contextMiddleware via GetCurrentProjectScript
+      // The middleware ensures user has access to this project
+      if (!ctx.project?.id) return null;
 
       return ProjectResolver.load(
-        project.id,
+        ctx.project.id,
         parseGraphqlInfo(info),
         requireContext(ctx)
       );
     },
 
-    apiKeys: async (_parent, _args, ctx) => {
+    apiKeys: async (_parent, _args, _ctx) => {
       return [];
     },
   },

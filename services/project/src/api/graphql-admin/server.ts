@@ -15,8 +15,6 @@ import {
 import {
   setContext,
   type ServiceContext,
-  type ContextProject,
-  type ContextUser,
 } from "../../context/index.js";
 
 const { global } = getServiceConfig("project");
@@ -112,21 +110,13 @@ export async function startServer(serverConfig: ServerConfig) {
 
       const slug = request.headers["x-pj-key"] as string;
 
-      // TODO: Implement context fetching
-      const project: ContextProject = {
-        id: "",
-        slug,
-      };
-      const user: ContextUser = {
-        id: "",
-      };
-
+      // Use project and user from middleware (set by contextMiddleware via GetCurrentProjectScript)
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
         slug,
-        project,
-        user,
+        project: request.project,
+        user: request.user,
       };
 
       // Set context in AsyncLocalStorage for all resolvers
