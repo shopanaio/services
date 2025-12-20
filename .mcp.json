@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "shopana-cli": {
+      "command": "node",
+      "args": ["/Users/phl/Projects/shopana-io/services/packages/shopana-cli-mcp/dist/index.js"],
+      "cwd": "/Users/phl/Projects/shopana-io/services/packages/shopana-cli-mcp"
+    }
+  }
+}
