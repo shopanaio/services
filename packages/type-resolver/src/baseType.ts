@@ -1,4 +1,5 @@
 import { load, loadMany } from "./executor.js";
+import type { CacheStore } from "./decorators/Cache.js";
 import type {
   QueryArgs,
   TypeClass,
@@ -95,5 +96,13 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
       return undefined;
     }
     return (data as NonNullable<TData>)[key];
+  }
+
+  /**
+   * Returns cache instance for @Cache decorator.
+   * Override this method in subclass to provide cache implementation.
+   */
+  protected getCache(): CacheStore {
+    throw new Error("getCache() must be implemented to use @Cache decorator");
   }
 }

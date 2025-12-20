@@ -1,8 +1,7 @@
-import { BaseType } from "@shopana/type-resolver";
+import { BaseType, Cache } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 import type { Project } from "../../repositories/models/project.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
-import { CachedResolver } from "../../kernel/decorators/index.js";
 
 /**
  * Base resolver class with pre-configured ServiceContext
@@ -12,14 +11,18 @@ export abstract class ProjectType<Value, Data = unknown> extends BaseType<
   Value,
   Data,
   ServiceContext
-> {}
+> {
+  protected getCache() {
+    return this.ctx.kernel.cache;
+  }
+}
 
 /**
  * Project type resolver - resolves Project GraphQL type
  * Accepts project ID, loads data lazily via repository
  */
 export class ProjectResolver extends ProjectType<string, Project | null> {
-  @CachedResolver({
+  @Cache({
     cacheName: "project",
     key: (resolver: ProjectResolver) => resolver.value,
   })
@@ -82,7 +85,7 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
     return this.get("updatedAt");
   }
 
-  @CachedResolver({
+  @Cache({
     cacheName: "project-locales",
     key: (resolver: ProjectResolver) => resolver.value,
   })
@@ -93,7 +96,7 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
     return locales?.map((l) => l.code as LocaleCode) ?? [];
   }
 
-  @CachedResolver({
+  @Cache({
     cacheName: "project-currencies",
     key: (resolver: ProjectResolver) => resolver.value,
   })

@@ -1,6 +1,9 @@
-import type { Cache } from "cache-manager";
+export interface CacheStore {
+  get<T>(key: string): Promise<T | undefined>;
+  set<T>(key: string, value: T, ttl?: number): Promise<void>;
+}
 
-export interface CachedResolverOptions<TResolver = unknown> {
+export interface CacheOptions<TResolver = unknown> {
   /** Cache name (used as key prefix) */
   cacheName: string;
   /** Function to compute cache key from resolver instance */
@@ -9,12 +12,8 @@ export interface CachedResolverOptions<TResolver = unknown> {
   ttl?: number;
 }
 
-interface ResolverContext {
-  ctx: {
-    kernel: {
-      cache: Cache;
-    };
-  };
+interface HasGetCache {
+  getCache(): CacheStore;
 }
 
 const DEFAULT_TTL = 60 * 1000; // 1 minute
@@ -22,10 +21,9 @@ const DEFAULT_TTL = 60 * 1000; // 1 minute
 /**
  * Method decorator that caches the result of resolver methods.
  * Similar to Spring @Cacheable annotation.
+ * Requires getCache() method to be implemented in the class.
  */
-export function CachedResolver<TResolver>(
-  options: CachedResolverOptions<TResolver>
-) {
+export function Cache<TResolver>(options: CacheOptions<TResolver>) {
   return function <TResult>(
     _target: unknown,
     _propertyKey: string,
@@ -34,9 +32,9 @@ export function CachedResolver<TResolver>(
     const originalMethod = descriptor.value!;
 
     descriptor.value = async function (
-      this: ResolverContext & TResolver
+      this: TResolver & HasGetCache
     ): Promise<TResult> {
-      const cache = this.ctx.kernel.cache;
+      const cache = this.getCache();
       const cacheKey = `${options.cacheName}:${options.key(this)}`;
 
       const cached = await cache.get<TResult>(cacheKey);

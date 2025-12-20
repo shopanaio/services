@@ -4,6 +4,9 @@ export { BaseType } from "./baseType.js";
 // Error type
 export { ResolverError } from "./executor.js";
 
+// Decorators
+export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";
+
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
 
