@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -53,10 +53,30 @@ export class ProjectRepository extends BaseRepository {
     const now = new Date();
     const defaultLocale = data.locales[0];
 
-    // Defer FK constraint checking until commit (handles circular FK)
-    await this.connection.execute(sql`SET CONSTRAINTS ALL DEFERRED`);
+    // 1. Create locale records first (required by project FK)
+    for (const localeCode of data.locales) {
+      await this.connection.insert(locale).values({
+        projectId: data.id,
+        code: localeCode,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
-    // 1. Create project first
+    // 2. Create currency record (required by project FK)
+    await this.connection.insert(currency).values({
+      projectId: data.id,
+      code: data.defaultCurrency,
+      isActive: true,
+      exchangeRateAmount: BigInt(1),
+      exchangeRateScale: 0,
+      exchangeRate: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // 3. Create project (now FK references exist)
     const [result] = await this.connection
       .insert(project)
       .values({
@@ -75,29 +95,6 @@ export class ProjectRepository extends BaseRepository {
         updatedAt: now,
       })
       .returning();
-
-    // 2. Create locale records
-    for (const localeCode of data.locales) {
-      await this.connection.insert(locale).values({
-        projectId: data.id,
-        code: localeCode,
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-
-    // 3. Create currency record
-    await this.connection.insert(currency).values({
-      projectId: data.id,
-      code: data.defaultCurrency,
-      isActive: true,
-      exchangeRateAmount: BigInt(1),
-      exchangeRateScale: 0,
-      exchangeRate: 1,
-      createdAt: now,
-      updatedAt: now,
-    });
 
     return result;
   }
