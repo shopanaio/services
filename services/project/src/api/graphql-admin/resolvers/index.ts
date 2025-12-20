@@ -49,6 +49,9 @@ export const resolvers: Resolvers = mergeResolvers(
     Locale: {
       name: (parent) => LOCALE_INFO[parent.code as LocaleCode]?.name ?? parent.code,
     },
+    UserError: {
+      __resolveType: () => "GenericUserError",
+    },
   },
 
   // Queries
