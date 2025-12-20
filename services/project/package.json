@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "npx --yes tsx ../../node_modules/drizzle-kit/bin.cjs generate"
   },
   "exports": {
     ".": {
