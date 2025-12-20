@@ -49,6 +49,16 @@ export const resolvers: Resolvers = mergeResolvers(
     Locale: {
       name: (parent) => LOCALE_INFO[parent.code as LocaleCode]?.name ?? parent.code,
     },
+    Project: {
+      locales: async (parent, _args, ctx) => {
+        const locales = await ctx.kernel.repository?.locale.findByProjectId(parent.id);
+        return locales?.map((l) => l.code as LocaleCode) ?? [];
+      },
+      currencies: async (parent, _args, ctx) => {
+        const currencies = await ctx.kernel.repository?.currency.findByProjectId(parent.id);
+        return currencies?.map((c) => c.code as CurrencyCode) ?? [];
+      },
+    },
     UserError: {
       __resolveType: () => "GenericUserError",
     },

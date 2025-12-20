@@ -19,6 +19,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
           name: input.name,
           slug: input.slug,
           locales: input.locales as any,
+          currencies: input.currencies as any,
           defaultCurrency: input.defaultCurrency as any,
           status: input.status ?? undefined,
           timezone: input.timezone ?? undefined,

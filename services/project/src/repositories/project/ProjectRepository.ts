@@ -28,6 +28,7 @@ export interface CreateProjectData {
   name: string;
   slug: string;
   locales: LocaleCode[];
+  currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
   status?: ProjectStatus;
   timezone?: string;
@@ -64,17 +65,19 @@ export class ProjectRepository extends BaseRepository {
       });
     }
 
-    // 2. Create currency record (required by project FK)
-    await this.connection.insert(currency).values({
-      projectId: data.id,
-      code: data.defaultCurrency,
-      isActive: true,
-      exchangeRateAmount: BigInt(1),
-      exchangeRateScale: 0,
-      exchangeRate: 1,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // 2. Create currency records (required by project FK)
+    for (const currencyCode of data.currencies) {
+      await this.connection.insert(currency).values({
+        projectId: data.id,
+        code: currencyCode,
+        isActive: true,
+        exchangeRateAmount: BigInt(1),
+        exchangeRateScale: 0,
+        exchangeRate: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
     // 3. Create project (now FK references exist)
     const [result] = await this.connection

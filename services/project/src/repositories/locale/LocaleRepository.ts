@@ -1,4 +1,7 @@
+import { eq } from "drizzle-orm";
+import { ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
+import { locale, type Locale } from "../models/index.js";
 
 export interface CreateLocaleData {
   code: string;
@@ -10,5 +13,11 @@ export interface UpdateLocaleData {
 }
 
 export class LocaleRepository extends BaseRepository {
-  // TODO
+  @ReadOnly()
+  async findByProjectId(projectId: string): Promise<Locale[]> {
+    return this.connection
+      .select()
+      .from(locale)
+      .where(eq(locale.projectId, projectId));
+  }
 }

@@ -11,6 +11,7 @@ export interface ProjectCreateInput {
   name: string;
   slug: string;
   locales: LocaleCode[];
+  currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
   status?: ProjectStatus;
   timezone?: string;
@@ -88,6 +89,7 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
       name: input.name,
       slug: input.slug,
       locales: input.locales,
+      currencies: input.currencies,
       defaultCurrency: input.defaultCurrency,
       status: input.status,
       timezone: input.timezone,
