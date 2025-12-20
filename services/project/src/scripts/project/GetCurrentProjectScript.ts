@@ -3,7 +3,6 @@ import type {
   GetCurrentProjectParams,
   GetCurrentProjectResult,
 } from "./dto/GetCurrentProjectDto.js";
-import type { IamIntegrationConfig } from "../../repositories/models/index.js";
 
 interface IamCurrentUserResult {
   user: {
@@ -75,10 +74,10 @@ export class GetCurrentProjectScript extends BaseScript<
     }
 
     // 4. Check if user's organization matches project's IAM tenant
-    const iamConfig = iamIntegration.config as unknown as IamIntegrationConfig;
+    const tenantId = iamIntegration.config.tenantId as string | undefined;
     const userOrganization = userResult.user.owner;
 
-    if (userOrganization !== iamConfig.tenantId) {
+    if (!tenantId || userOrganization !== tenantId) {
       return {
         project: undefined,
         userErrors: [
