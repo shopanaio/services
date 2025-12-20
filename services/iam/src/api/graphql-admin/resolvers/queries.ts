@@ -1,8 +1,9 @@
-import type { ServiceContext } from "../../../context/index.js";
+import { ServiceContext } from "@src/context/types.js";
+import type { Resolvers } from "../generated/types.js";
 
 export const queryResolvers = {
   Query: {
-    userQuery: () => ({}),
+    userQuery: () => ({} as any),
   },
 
   UserQuery: {
@@ -10,4 +11,4 @@ export const queryResolvers = {
       return ctx.currentUser;
     },
   },
-};
+} satisfies Partial<Resolvers>;
