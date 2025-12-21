@@ -8,6 +8,7 @@ import {
   ROLE_DISPLAY_NAMES,
   ROLE_DESCRIPTIONS,
   ROLE_PERMISSIONS,
+  getTenantOrg,
   type PredefinedRoleName,
 } from "../../constants/index.js";
 
@@ -40,14 +41,21 @@ interface CasdoorEnforcer {
 
 /**
  * AuthorizationRepository handles all Casdoor operations for RBAC
+ *
+ * TENANT ISOLATION:
+ * Each tenant has its own Organization, Model, Enforcer, Roles, and Permissions.
+ * The `tenantOrg` parameter identifies the tenant's Casdoor organization.
  */
 export class AuthorizationRepository {
-  private modelInitialized = false;
-  private enforcerInitialized = false;
+  /** Track initialized models per tenant */
+  private initializedModels: Set<string> = new Set();
+  /** Track initialized enforcers per tenant */
+  private initializedEnforcers: Set<string> = new Set();
 
   constructor(
     private readonly client: CasdoorNodeClient,
-    private readonly organization: string
+    /** Admin organization - used for creating new tenant orgs */
+    private readonly adminOrganization: string
   ) {}
 
   // ============================================================================
@@ -55,30 +63,33 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Ensure Casbin model exists in Casdoor
-   * Creates the RBAC with domains model if it doesn't exist
+   * Ensure Casbin model exists for a tenant organization
+   * Creates the RBAC model in the tenant's organization if it doesn't exist
+   *
+   * @param tenantOrg - Tenant organization name (e.g., "org-project-a")
    */
-  async ensureModelExists(): Promise<{ success: boolean; error?: string }> {
-    if (this.modelInitialized) {
+  async ensureModelExists(tenantOrg: string): Promise<{ success: boolean; error?: string }> {
+    if (this.initializedModels.has(tenantOrg)) {
       return { success: true };
     }
 
     try {
       // Check if model already exists
-      const existingModel = await this.getModel(CASBIN_MODEL_NAME);
+      const modelId = `${tenantOrg}/${CASBIN_MODEL_NAME}`;
+      const existingModel = await this.getModel(modelId);
       if (existingModel) {
-        console.log(`[AuthorizationRepository] Model ${CASBIN_MODEL_NAME} already exists`);
-        this.modelInitialized = true;
+        console.log(`[AuthorizationRepository] Model ${modelId} already exists`);
+        this.initializedModels.add(tenantOrg);
         return { success: true };
       }
 
-      // Create the model
+      // Create the model for this tenant
       const model: CasdoorModel = {
-        owner: this.organization,
+        owner: tenantOrg,
         name: CASBIN_MODEL_NAME,
         createdTime: new Date().toISOString(),
-        displayName: "RBAC with Domains",
-        description: "RBAC model with domain/tenant support for multi-tenant SaaS",
+        displayName: "RBAC Model",
+        description: "RBAC model for tenant authorization",
         modelText: CASBIN_MODEL_TEXT,
       };
 
@@ -86,8 +97,8 @@ export class AuthorizationRepository {
       const data = response.data as any;
 
       if (data?.status === "ok") {
-        console.log(`[AuthorizationRepository] Created model: ${CASBIN_MODEL_NAME}`);
-        this.modelInitialized = true;
+        console.log(`[AuthorizationRepository] Created model: ${modelId}`);
+        this.initializedModels.add(tenantOrg);
         return { success: true };
       }
 
@@ -105,11 +116,11 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Get Casbin model by name
+   * Get Casbin model by full ID (owner/name)
    */
-  async getModel(modelName: string): Promise<CasdoorModel | null> {
+  async getModel(modelId: string): Promise<CasdoorModel | null> {
     try {
-      const response = await this.client.sdk.getModel(modelName);
+      const response = await this.client.sdk.getModel(modelId);
       return (response.data as any)?.data ?? null;
     } catch (error) {
       // Model not found returns error
@@ -118,37 +129,40 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Ensure Casbin enforcer exists in Casdoor
-   * Creates the enforcer if it doesn't exist
+   * Ensure Casbin enforcer exists for a tenant organization
+   * Creates the enforcer in the tenant's organization if it doesn't exist
+   *
+   * @param tenantOrg - Tenant organization name (e.g., "org-project-a")
    */
-  async ensureEnforcerExists(): Promise<{ success: boolean; error?: string }> {
-    if (this.enforcerInitialized) {
+  async ensureEnforcerExists(tenantOrg: string): Promise<{ success: boolean; error?: string }> {
+    if (this.initializedEnforcers.has(tenantOrg)) {
       return { success: true };
     }
 
     try {
-      // First ensure model exists
-      const modelResult = await this.ensureModelExists();
+      // First ensure model exists for this tenant
+      const modelResult = await this.ensureModelExists(tenantOrg);
       if (!modelResult.success) {
         return modelResult;
       }
 
       // Check if enforcer already exists
-      const existingEnforcer = await this.getEnforcer(CASBIN_ENFORCER_NAME);
+      const enforcerId = `${tenantOrg}/${CASBIN_ENFORCER_NAME}`;
+      const existingEnforcer = await this.getEnforcer(enforcerId);
       if (existingEnforcer) {
-        console.log(`[AuthorizationRepository] Enforcer ${CASBIN_ENFORCER_NAME} already exists`);
-        this.enforcerInitialized = true;
+        console.log(`[AuthorizationRepository] Enforcer ${enforcerId} already exists`);
+        this.initializedEnforcers.add(tenantOrg);
         return { success: true };
       }
 
-      // Create the enforcer
+      // Create the enforcer for this tenant
       const enforcer: CasdoorEnforcer = {
-        owner: this.organization,
+        owner: tenantOrg,
         name: CASBIN_ENFORCER_NAME,
         createdTime: new Date().toISOString(),
-        displayName: "Shopana Enforcer",
-        description: "Main enforcer for Shopana authorization",
-        model: `${this.organization}/${CASBIN_MODEL_NAME}`,
+        displayName: "Tenant Enforcer",
+        description: "Enforcer for tenant authorization",
+        model: `${tenantOrg}/${CASBIN_MODEL_NAME}`,
         adapter: "", // Empty adapter - policies stored in Casdoor
         isEnabled: true,
       };
@@ -157,8 +171,8 @@ export class AuthorizationRepository {
       const data = response.data as any;
 
       if (data?.status === "ok") {
-        console.log(`[AuthorizationRepository] Created enforcer: ${CASBIN_ENFORCER_NAME}`);
-        this.enforcerInitialized = true;
+        console.log(`[AuthorizationRepository] Created enforcer: ${enforcerId}`);
+        this.initializedEnforcers.add(tenantOrg);
         return { success: true };
       }
 
@@ -176,11 +190,11 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Get Casbin enforcer by name
+   * Get Casbin enforcer by full ID (owner/name)
    */
-  async getEnforcer(enforcerName: string): Promise<CasdoorEnforcer | null> {
+  async getEnforcer(enforcerId: string): Promise<CasdoorEnforcer | null> {
     try {
-      const response = await this.client.sdk.getEnforcer(enforcerName);
+      const response = await this.client.sdk.getEnforcer(enforcerId);
       return (response.data as any)?.data ?? null;
     } catch (error) {
       // Enforcer not found returns error
@@ -189,16 +203,17 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Initialize authorization infrastructure
-   * Call this on service startup to ensure model and enforcer exist
+   * Initialize authorization infrastructure for a tenant
+   *
+   * @param tenantOrg - Tenant organization name (e.g., "org-project-a")
    */
-  async initialize(): Promise<{ success: boolean; error?: string }> {
-    const enforcerResult = await this.ensureEnforcerExists();
+  async initialize(tenantOrg: string): Promise<{ success: boolean; error?: string }> {
+    const enforcerResult = await this.ensureEnforcerExists(tenantOrg);
     if (!enforcerResult.success) {
       return enforcerResult;
     }
 
-    console.log("[AuthorizationRepository] Authorization infrastructure initialized");
+    console.log(`[AuthorizationRepository] Authorization infrastructure initialized for ${tenantOrg}`);
     return { success: true };
   }
 
@@ -209,25 +224,25 @@ export class AuthorizationRepository {
   /**
    * Check if user is authorized to perform action on resource
    *
+   * @param tenantOrg - Tenant organization name (e.g., "org-project-a")
    * @param userId - User ID (subject)
-   * @param projectId - Project ID (domain)
    * @param resource - Resource name (object)
    * @param action - Action name (act)
    * @returns true if authorized
    */
   async enforce(
+    tenantOrg: string,
     userId: string,
-    projectId: string,
     resource: string,
     action: string
   ): Promise<boolean> {
-    // Build permission name for project
-    const permissionId = `${this.organization}/${PERMISSION_PREFIX}-${projectId}`;
-    const modelId = `${this.organization}/${CASBIN_MODEL_NAME}`;
-    const enforcerId = `${this.organization}/${CASBIN_ENFORCER_NAME}`;
+    // Build IDs for tenant organization
+    const permissionId = `${tenantOrg}/${PERMISSION_PREFIX}`;
+    const modelId = `${tenantOrg}/${CASBIN_MODEL_NAME}`;
+    const enforcerId = `${tenantOrg}/${CASBIN_ENFORCER_NAME}`;
 
-    // Casbin request: [sub, dom, obj, act]
-    const casbinRequest = [userId, projectId, resource, action];
+    // Casbin request: [sub, obj, act] - no domain needed
+    const casbinRequest = [userId, resource, action];
 
     try {
       const allowed = await this.client.sdk.enforce(
@@ -235,7 +250,7 @@ export class AuthorizationRepository {
         modelId,
         "", // resourceId not used in our model
         enforcerId,
-        this.organization,
+        tenantOrg,
         casbinRequest
       );
       return allowed;
@@ -248,24 +263,23 @@ export class AuthorizationRepository {
   /**
    * Batch check multiple authorizations
    *
+   * @param tenantOrg - Tenant organization name
    * @param userId - User ID
-   * @param projectId - Project ID
    * @param requests - Array of {resource, action}
    * @returns Array of boolean results
    */
   async batchEnforce(
+    tenantOrg: string,
     userId: string,
-    projectId: string,
     requests: Array<{ resource: string; action: string }>
   ): Promise<boolean[]> {
-    const permissionId = `${this.organization}/${PERMISSION_PREFIX}-${projectId}`;
-    const modelId = `${this.organization}/${CASBIN_MODEL_NAME}`;
-    const enforcerId = `${this.organization}/${CASBIN_ENFORCER_NAME}`;
+    const permissionId = `${tenantOrg}/${PERMISSION_PREFIX}`;
+    const modelId = `${tenantOrg}/${CASBIN_MODEL_NAME}`;
+    const enforcerId = `${tenantOrg}/${CASBIN_ENFORCER_NAME}`;
 
-    // Build Casbin requests
+    // Build Casbin requests: [sub, obj, act] - no domain
     const casbinRequests = requests.map((req) => [
       userId,
-      projectId,
       req.resource,
       req.action,
     ]);
@@ -276,7 +290,7 @@ export class AuthorizationRepository {
         modelId,
         "",
         enforcerId,
-        this.organization,
+        tenantOrg,
         casbinRequests
       );
 
@@ -293,19 +307,17 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Get all roles for a project
+   * Get all roles for a tenant
+   *
+   * @param tenantOrg - Tenant organization name
    */
-  async getRoles(projectId: string): Promise<Role[]> {
+  async getRoles(tenantOrg: string): Promise<Role[]> {
     try {
       const response = await this.client.sdk.getRoles();
       const allRoles = response.data?.data ?? [];
 
-      // Filter roles for this project (roles are stored with project as domain)
-      return allRoles.filter(
-        (role) =>
-          role.owner === this.organization &&
-          role.domains?.includes(projectId)
-      );
+      // Filter roles for this tenant organization
+      return allRoles.filter((role) => role.owner === tenantOrg);
     } catch (error) {
       console.error("[AuthorizationRepository] getRoles error:", error);
       return [];
@@ -314,10 +326,13 @@ export class AuthorizationRepository {
 
   /**
    * Get a specific role
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name (e.g., "owner", "admin")
    */
-  async getRole(projectId: string, roleName: string): Promise<Role | null> {
+  async getRole(tenantOrg: string, roleName: string): Promise<Role | null> {
     try {
-      const roleId = `${this.organization}/${roleName}`;
+      const roleId = `${tenantOrg}/${roleName}`;
       const response = await this.client.sdk.getRole(roleId);
       return response.data?.data ?? null;
     } catch (error) {
@@ -328,20 +343,25 @@ export class AuthorizationRepository {
 
   /**
    * Create a role in Casdoor
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name (e.g., "owner", "admin")
+   * @param displayName - Human-readable name
+   * @param description - Role description
    */
   async createRole(
-    projectId: string,
+    tenantOrg: string,
     roleName: string,
     displayName: string,
     description: string = ""
   ): Promise<boolean> {
     const role: Role = {
-      owner: this.organization,
+      owner: tenantOrg,
       name: roleName,
       createdTime: new Date().toISOString(),
       displayName,
       description,
-      domains: [projectId],
+      domains: [], // No domains needed - isolation via tenant org
       isEnabled: true,
     };
 
@@ -357,9 +377,13 @@ export class AuthorizationRepository {
 
   /**
    * Update a role in Casdoor
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name
+   * @param updates - Fields to update
    */
   async updateRole(
-    projectId: string,
+    tenantOrg: string,
     roleName: string,
     updates: {
       displayName?: string;
@@ -367,9 +391,9 @@ export class AuthorizationRepository {
     }
   ): Promise<boolean> {
     try {
-      const role = await this.getRole(projectId, roleName);
+      const role = await this.getRole(tenantOrg, roleName);
       if (!role) {
-        console.error(`[AuthorizationRepository] Role ${roleName} not found`);
+        console.error(`[AuthorizationRepository] Role ${roleName} not found in ${tenantOrg}`);
         return false;
       }
 
@@ -390,11 +414,14 @@ export class AuthorizationRepository {
 
   /**
    * Delete a role from Casdoor
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name
    */
-  async deleteRole(roleName: string): Promise<boolean> {
+  async deleteRole(tenantOrg: string, roleName: string): Promise<boolean> {
     try {
       const response = await this.client.sdk.deleteRole({
-        owner: this.organization,
+        owner: tenantOrg,
         name: roleName,
       } as Role);
       const data = response.data as any;
@@ -407,12 +434,11 @@ export class AuthorizationRepository {
 
   /**
    * Check if role is a predefined system role
+   *
+   * @param roleName - Simple role name (e.g., "owner", "admin")
    */
-  isSystemRole(roleName: string, projectId: string): boolean {
-    const systemRoleNames = Object.values(PREDEFINED_ROLES).map(
-      (role) => `${projectId}-${role}`
-    );
-    return systemRoleNames.includes(roleName);
+  isSystemRole(roleName: string): boolean {
+    return Object.values(PREDEFINED_ROLES).includes(roleName as PredefinedRoleName);
   }
 
   // ============================================================================
@@ -420,15 +446,17 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Get user's roles in a project
+   * Get user's roles in a tenant
    *
-   * Checks the Role.users array to find roles where user is a member
+   * @param tenantOrg - Tenant organization name
+   * @param userId - User ID
+   * @returns Array of role names the user has
    */
-  async getUserRoles(userId: string, projectId: string): Promise<string[]> {
+  async getUserRoles(tenantOrg: string, userId: string): Promise<string[]> {
     try {
-      const roles = await this.getRoles(projectId);
+      const roles = await this.getRoles(tenantOrg);
       return roles
-        .filter((role) => role.users?.includes(`${this.organization}/${userId}`))
+        .filter((role) => role.users?.includes(`${tenantOrg}/${userId}`))
         .map((role) => role.name);
     } catch (error) {
       console.error("[AuthorizationRepository] getUserRoles error:", error);
@@ -437,23 +465,25 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Attach user to a role in a project
+   * Attach user to a role in a tenant
    *
-   * Updates the Role.users array
+   * @param tenantOrg - Tenant organization name
+   * @param userId - User ID
+   * @param roleName - Simple role name
    */
   async attachUserRole(
+    tenantOrg: string,
     userId: string,
-    projectId: string,
     roleName: string
   ): Promise<boolean> {
     try {
-      const role = await this.getRole(projectId, roleName);
+      const role = await this.getRole(tenantOrg, roleName);
       if (!role) {
-        console.error(`[AuthorizationRepository] Role ${roleName} not found`);
+        console.error(`[AuthorizationRepository] Role ${roleName} not found in ${tenantOrg}`);
         return false;
       }
 
-      const userFullName = `${this.organization}/${userId}`;
+      const userFullName = `${tenantOrg}/${userId}`;
 
       // Check if user already has this role
       if (role.users?.includes(userFullName)) {
@@ -476,21 +506,25 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Detach user from a role in a project
+   * Detach user from a role in a tenant
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param userId - User ID
+   * @param roleName - Simple role name
    */
   async detachUserRole(
+    tenantOrg: string,
     userId: string,
-    projectId: string,
     roleName: string
   ): Promise<boolean> {
     try {
-      const role = await this.getRole(projectId, roleName);
+      const role = await this.getRole(tenantOrg, roleName);
       if (!role) {
-        console.error(`[AuthorizationRepository] Role ${roleName} not found`);
+        console.error(`[AuthorizationRepository] Role ${roleName} not found in ${tenantOrg}`);
         return false;
       }
 
-      const userFullName = `${this.organization}/${userId}`;
+      const userFullName = `${tenantOrg}/${userId}`;
 
       // Remove user from role
       const updatedRole: Role = {
@@ -514,26 +548,31 @@ export class AuthorizationRepository {
   /**
    * Create a permission in Casdoor
    *
-   * Permissions are Casbin policies attached to roles
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name
+   * @param resource - Resource type
+   * @param actions - Array of actions
+   * @param effect - Allow or Deny
    */
   async createPermission(
-    projectId: string,
+    tenantOrg: string,
     roleName: string,
     resource: string,
     actions: string[],
     effect: "Allow" | "Deny" = "Allow"
   ): Promise<boolean> {
-    const permissionName = `${PERMISSION_PREFIX}-${projectId}-${roleName}-${resource}-${effect.toLowerCase()}`;
+    // Simple permission name without projectId prefix
+    const permissionName = `${PERMISSION_PREFIX}-${roleName}-${resource}-${effect.toLowerCase()}`;
 
     const permission: Permission = {
-      owner: this.organization,
+      owner: tenantOrg,
       name: permissionName,
       createdTime: new Date().toISOString(),
       displayName: `${roleName} - ${resource}`,
       description: `${effect} ${actions.join(", ")} on ${resource}`,
-      roles: [`${this.organization}/${roleName}`],
-      domains: [projectId],
-      model: `${this.organization}/${CASBIN_MODEL_NAME}`,
+      roles: [`${tenantOrg}/${roleName}`],
+      domains: [], // No domains needed - isolation via tenant org
+      model: `${tenantOrg}/${CASBIN_MODEL_NAME}`,
       resourceType: resource,
       resources: [resource],
       actions,
@@ -553,21 +592,23 @@ export class AuthorizationRepository {
 
   /**
    * Get all permissions for a role
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name
    */
   async getRolePermissions(
-    projectId: string,
+    tenantOrg: string,
     roleName: string
   ): Promise<Permission[]> {
     try {
       const response = await this.client.sdk.getPermissions();
       const allPermissions = (response.data as any)?.data ?? [];
 
-      // Filter permissions for this role
-      const roleFullName = `${this.organization}/${roleName}`;
+      // Filter permissions for this role in the tenant
+      const roleFullName = `${tenantOrg}/${roleName}`;
       return allPermissions.filter(
         (perm: Permission) =>
-          perm.owner === this.organization &&
-          perm.domains?.includes(projectId) &&
+          perm.owner === tenantOrg &&
           perm.roles?.includes(roleFullName)
       );
     } catch (error) {
@@ -578,11 +619,14 @@ export class AuthorizationRepository {
 
   /**
    * Delete a permission
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param permissionName - Permission name
    */
-  async deletePermission(permissionName: string): Promise<boolean> {
+  async deletePermission(tenantOrg: string, permissionName: string): Promise<boolean> {
     try {
       const response = await this.client.sdk.deletePermission({
-        owner: this.organization,
+        owner: tenantOrg,
         name: permissionName,
       } as Permission);
       const data = response.data as any;
@@ -596,9 +640,13 @@ export class AuthorizationRepository {
   /**
    * Update role permissions
    * Replaces all permissions for a role with new ones
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param roleName - Simple role name
+   * @param permissions - New permissions array
    */
   async updateRolePermissions(
-    projectId: string,
+    tenantOrg: string,
     roleName: string,
     permissions: Array<{
       resource: string;
@@ -608,11 +656,11 @@ export class AuthorizationRepository {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Get existing permissions
-      const existingPermissions = await this.getRolePermissions(projectId, roleName);
+      const existingPermissions = await this.getRolePermissions(tenantOrg, roleName);
 
       // Delete all existing permissions
       for (const perm of existingPermissions) {
-        const deleted = await this.deletePermission(perm.name);
+        const deleted = await this.deletePermission(tenantOrg, perm.name);
         if (!deleted) {
           return {
             success: false,
@@ -624,7 +672,7 @@ export class AuthorizationRepository {
       // Create new permissions
       for (const perm of permissions) {
         const created = await this.createPermission(
-          projectId,
+          tenantOrg,
           roleName,
           perm.resource,
           perm.actions,
@@ -650,25 +698,28 @@ export class AuthorizationRepository {
   }
 
   // ============================================================================
-  // Project Provisioning
+  // Tenant Provisioning
   // ============================================================================
 
   /**
-   * Provision all predefined roles and permissions for a new project
+   * Provision all predefined roles and permissions for a new tenant
+   *
+   * @param tenantOrg - Tenant organization name (e.g., "org-project-a")
+   * @param ownerId - User ID of the tenant owner
    */
-  async provisionProjectRoles(
-    projectId: string,
+  async provisionTenantRoles(
+    tenantOrg: string,
     ownerId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Create all predefined roles
+      // Create all predefined roles with simple names
       for (const roleName of Object.values(PREDEFINED_ROLES)) {
         const displayName = ROLE_DISPLAY_NAMES[roleName];
         const description = ROLE_DESCRIPTIONS[roleName];
 
         const created = await this.createRole(
-          projectId,
-          `${projectId}-${roleName}`,
+          tenantOrg,
+          roleName, // Simple name: "owner", "admin", etc.
           displayName,
           description
         );
@@ -685,8 +736,8 @@ export class AuthorizationRepository {
 
         for (const perm of permissions.allow) {
           const created = await this.createPermission(
-            projectId,
-            `${projectId}-${roleName}`,
+            tenantOrg,
+            roleName, // Simple name
             perm.resource,
             perm.actions,
             "Allow"
@@ -704,8 +755,8 @@ export class AuthorizationRepository {
         if (permissions.deny) {
           for (const perm of permissions.deny) {
             const created = await this.createPermission(
-              projectId,
-              `${projectId}-${roleName}`,
+              tenantOrg,
+              roleName, // Simple name
               perm.resource,
               perm.actions,
               "Deny"
@@ -721,9 +772,12 @@ export class AuthorizationRepository {
         }
       }
 
-      // Attach owner role to the project creator
-      const ownerRoleName = `${projectId}-${PREDEFINED_ROLES.OWNER}`;
-      const attached = await this.attachUserRole(ownerId, projectId, ownerRoleName);
+      // Attach owner role to the tenant creator
+      const attached = await this.attachUserRole(
+        tenantOrg,
+        ownerId,
+        PREDEFINED_ROLES.OWNER // Simple name: "owner"
+      );
 
       if (!attached) {
         return {
@@ -734,7 +788,7 @@ export class AuthorizationRepository {
 
       return { success: true };
     } catch (error) {
-      console.error("[AuthorizationRepository] provisionProjectRoles error:", error);
+      console.error("[AuthorizationRepository] provisionTenantRoles error:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -743,21 +797,29 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Deprovision all roles and permissions for a project
+   * Deprovision all roles and permissions for a tenant
+   *
+   * @param tenantOrg - Tenant organization name
    */
-  async deprovisionProjectRoles(projectId: string): Promise<boolean> {
+  async deprovisionTenantRoles(tenantOrg: string): Promise<boolean> {
     try {
-      // Get all roles for this project
-      const roles = await this.getRoles(projectId);
+      // Get all roles for this tenant
+      const roles = await this.getRoles(tenantOrg);
 
-      // Delete each role (this should also clean up permissions)
+      // Delete each role and its permissions
       for (const role of roles) {
-        await this.deleteRole(role.name);
+        // Delete permissions first
+        const permissions = await this.getRolePermissions(tenantOrg, role.name);
+        for (const perm of permissions) {
+          await this.deletePermission(tenantOrg, perm.name);
+        }
+        // Delete the role
+        await this.deleteRole(tenantOrg, role.name);
       }
 
       return true;
     } catch (error) {
-      console.error("[AuthorizationRepository] deprovisionProjectRoles error:", error);
+      console.error("[AuthorizationRepository] deprovisionTenantRoles error:", error);
       return false;
     }
   }

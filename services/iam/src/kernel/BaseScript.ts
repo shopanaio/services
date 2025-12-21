@@ -57,10 +57,10 @@ export abstract class BaseScript<TParams, TResult> {
   }
 
   /**
-   * Helper: get organization name for casdoor
+   * Helper: get admin organization name for casdoor
    */
-  protected getOrganization(): string {
-    return this.repository.organization;
+  protected getAdminOrganization(): string {
+    return this.repository.adminOrganization;
   }
 
   /**

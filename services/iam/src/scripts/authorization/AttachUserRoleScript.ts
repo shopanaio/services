@@ -1,12 +1,17 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { getTenantOrg } from "../../constants/index.js";
 import type { AttachUserRoleParams, AttachUserRoleResult } from "./dto/index.js";
 
 /**
  * AttachUserRole - Assign a role to a user for a project
  *
+ * TENANT ISOLATION:
+ * Uses projectId to compute tenantOrg for role assignment.
+ *
  * Implementation:
- * 1. Call Casdoor to add user to role
- * 2. Invalidate cache for this user
+ * 1. Compute tenantOrg from projectId
+ * 2. Call Casdoor to add user to role
+ * 3. Invalidate cache for this user
  */
 export class AttachUserRoleScript extends BaseScript<
   AttachUserRoleParams,
@@ -17,10 +22,13 @@ export class AttachUserRoleScript extends BaseScript<
   ): Promise<AttachUserRoleResult> {
     const { userId, projectId, roleName } = params;
 
+    // Compute tenant organization from projectId
+    const tenantOrg = getTenantOrg(projectId);
+
     try {
       const attached = await this.repository.authorization.attachUserRole(
+        tenantOrg,
         userId,
-        projectId,
         roleName
       );
 
@@ -37,10 +45,10 @@ export class AttachUserRoleScript extends BaseScript<
       }
 
       // Invalidate cache for this user
-      this.authCache.onUserRoleChange(projectId, userId);
+      this.authCache.onUserRoleChange(tenantOrg, userId);
 
       this.logger.info(
-        { userId, projectId, roleName },
+        { userId, projectId, roleName, tenantOrg },
         "AttachUserRoleScript: Role attached successfully"
       );
 

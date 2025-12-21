@@ -21,19 +21,20 @@ export class Repository {
   public readonly user: UserRepository;
   public readonly authorization: AuthorizationRepository;
   public readonly client: CasdoorNodeClient;
-  public readonly organization: string;
+  /** Admin organization name (e.g., "shopana") */
+  public readonly adminOrganization: string;
   public readonly application: string;
 
   private constructor(
     client: CasdoorNodeClient,
-    organization: string,
+    adminOrganization: string,
     application: string
   ) {
     this.client = client;
-    this.organization = organization;
+    this.adminOrganization = adminOrganization;
     this.application = application;
-    this.user = new UserRepository(client, organization, application);
-    this.authorization = new AuthorizationRepository(client, organization);
+    this.user = new UserRepository(client, adminOrganization, application);
+    this.authorization = new AuthorizationRepository(client, adminOrganization);
   }
 
   /**

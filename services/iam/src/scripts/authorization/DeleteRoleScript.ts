@@ -1,8 +1,12 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { getTenantOrg } from "../../constants/index.js";
 import type { DeleteRoleParams, DeleteRoleResult } from "./dto/index.js";
 
 /**
  * DeleteRole - Delete a custom role from a project
+ *
+ * TENANT ISOLATION:
+ * Uses projectId to compute tenantOrg for role deletion.
  *
  * System roles cannot be deleted.
  * Roles with assigned users cannot be deleted.
@@ -14,10 +18,13 @@ export class DeleteRoleScript extends BaseScript<
   protected async execute(params: DeleteRoleParams): Promise<DeleteRoleResult> {
     const { projectId, roleName } = params;
 
+    // Compute tenant organization from projectId
+    const tenantOrg = getTenantOrg(projectId);
+
     try {
       // Check if role exists
       const existingRole = await this.repository.authorization.getRole(
-        projectId,
+        tenantOrg,
         roleName
       );
 
@@ -35,7 +42,7 @@ export class DeleteRoleScript extends BaseScript<
       }
 
       // Check if it's a system role
-      const isSystem = this.repository.authorization.isSystemRole(roleName, projectId);
+      const isSystem = this.repository.authorization.isSystemRole(roleName);
       if (isSystem) {
         return {
           deleted: false,
@@ -65,16 +72,16 @@ export class DeleteRoleScript extends BaseScript<
 
       // Delete all permissions for this role first
       const permissions = await this.repository.authorization.getRolePermissions(
-        projectId,
+        tenantOrg,
         roleName
       );
 
       for (const perm of permissions) {
-        await this.repository.authorization.deletePermission(perm.name);
+        await this.repository.authorization.deletePermission(tenantOrg, perm.name);
       }
 
       // Delete the role
-      const deleted = await this.repository.authorization.deleteRole(roleName);
+      const deleted = await this.repository.authorization.deleteRole(tenantOrg, roleName);
 
       if (!deleted) {
         return {
@@ -89,10 +96,10 @@ export class DeleteRoleScript extends BaseScript<
       }
 
       // Invalidate cache
-      this.authCache.onRoleDelete(projectId, roleName);
+      this.authCache.onRoleDelete(tenantOrg, roleName);
 
       this.logger.info(
-        { projectId, roleName },
+        { projectId, tenantOrg, roleName },
         "DeleteRoleScript: Role deleted successfully"
       );
 

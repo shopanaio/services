@@ -2,43 +2,74 @@
  * RBAC Constants for IAM Authorization
  *
  * Defines the Casbin model and predefined roles.
+ *
+ * TENANT ISOLATION:
+ * Each tenant (project) has its own Casdoor Organization with:
+ * - Own Model (model-rbac)
+ * - Own Enforcer (enforcer-main)
+ * - Own Roles (owner, admin, etc. - simple names)
+ * - Own Permissions
+ *
+ * This provides physical isolation at Casdoor level.
  */
 
 /**
- * Casbin Model for RBAC with domains/tenants
+ * Casbin Model for RBAC (per-tenant)
  *
- * This model supports multi-tenant authorization where:
+ * Simplified model without domains - isolation is achieved through
+ * separate tenant organizations in Casdoor.
+ *
  * - sub: subject (user ID)
- * - dom: domain (project ID)
  * - obj: object (resource: product, order, etc.)
  * - act: action (read, write, delete, etc.)
  */
 export const CASBIN_MODEL_TEXT = `
 [request_definition]
-r = sub, dom, obj, act
+r = sub, obj, act
 
 [policy_definition]
-p = sub, dom, obj, act
+p = sub, obj, act
 
 [role_definition]
-g = _, _, _
+g = _, _
 
 [policy_effect]
 e = some(where (p.eft == allow))
 
 [matchers]
-m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj == p.obj && r.act == p.act
+m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 `.trim();
 
 /**
- * Model name used in Casdoor
+ * Model name used in Casdoor (per tenant)
  */
-export const CASBIN_MODEL_NAME = "model-rbac-domains";
+export const CASBIN_MODEL_NAME = "model-rbac";
 
 /**
- * Enforcer name used in Casdoor
+ * Enforcer name used in Casdoor (per tenant)
  */
-export const CASBIN_ENFORCER_NAME = "enforcer-shopana";
+export const CASBIN_ENFORCER_NAME = "enforcer-main";
+
+// ============================================================================
+// Tenant Organization Helpers
+// ============================================================================
+
+/**
+ * Get tenant organization name from project ID
+ */
+export const getTenantOrg = (projectId: string): string => `org-${projectId}`;
+
+/**
+ * Get full model ID for a tenant
+ */
+export const getModelId = (tenantOrg: string): string =>
+  `${tenantOrg}/${CASBIN_MODEL_NAME}`;
+
+/**
+ * Get full enforcer ID for a tenant
+ */
+export const getEnforcerId = (tenantOrg: string): string =>
+  `${tenantOrg}/${CASBIN_ENFORCER_NAME}`;
 
 /**
  * Permission name prefix for project permissions

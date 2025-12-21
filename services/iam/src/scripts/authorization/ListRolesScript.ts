@@ -1,4 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { getTenantOrg } from "../../constants/index.js";
 import type {
   ListRolesParams,
   ListRolesResult,
@@ -9,6 +10,9 @@ import type {
 /**
  * ListRoles - List all roles for a project
  *
+ * TENANT ISOLATION:
+ * Uses projectId to compute tenantOrg for role listing.
+ *
  * Returns both system and custom roles with their permissions.
  */
 export class ListRolesScript extends BaseScript<
@@ -18,15 +22,18 @@ export class ListRolesScript extends BaseScript<
   protected async execute(params: ListRolesParams): Promise<ListRolesResult> {
     const { projectId } = params;
 
+    // Compute tenant organization from projectId
+    const tenantOrg = getTenantOrg(projectId);
+
     try {
-      const roles = await this.repository.authorization.getRoles(projectId);
+      const roles = await this.repository.authorization.getRoles(tenantOrg);
 
       const roleInfos: RoleInfo[] = [];
 
       for (const role of roles) {
         // Get permissions for this role
         const permissions = await this.repository.authorization.getRolePermissions(
-          projectId,
+          tenantOrg,
           role.name
         );
 
@@ -36,10 +43,7 @@ export class ListRolesScript extends BaseScript<
           effect: (p.effect as "Allow" | "Deny") ?? "Allow",
         }));
 
-        const isSystem = this.repository.authorization.isSystemRole(
-          role.name,
-          projectId
-        );
+        const isSystem = this.repository.authorization.isSystemRole(role.name);
 
         roleInfos.push({
           name: role.name,

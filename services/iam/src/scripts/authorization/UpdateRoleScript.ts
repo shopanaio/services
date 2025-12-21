@@ -1,4 +1,5 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { getTenantOrg } from "../../constants/index.js";
 import type {
   UpdateRoleParams,
   UpdateRoleResult,
@@ -8,6 +9,9 @@ import type {
 
 /**
  * UpdateRole - Update role metadata and/or permissions
+ *
+ * TENANT ISOLATION:
+ * Uses projectId to compute tenantOrg for role updates.
  *
  * Can update both system and custom roles.
  * System roles can have their permissions modified per project.
@@ -19,10 +23,13 @@ export class UpdateRoleScript extends BaseScript<
   protected async execute(params: UpdateRoleParams): Promise<UpdateRoleResult> {
     const { projectId, roleName, displayName, description, permissions } = params;
 
+    // Compute tenant organization from projectId
+    const tenantOrg = getTenantOrg(projectId);
+
     try {
       // Get existing role
       const existingRole = await this.repository.authorization.getRole(
-        projectId,
+        tenantOrg,
         roleName
       );
 
@@ -42,7 +49,7 @@ export class UpdateRoleScript extends BaseScript<
       // Update role metadata if provided
       if (displayName !== undefined || description !== undefined) {
         const updated = await this.repository.authorization.updateRole(
-          projectId,
+          tenantOrg,
           roleName,
           {
             displayName,
@@ -66,7 +73,7 @@ export class UpdateRoleScript extends BaseScript<
       // Update permissions if provided
       if (permissions !== undefined) {
         const result = await this.repository.authorization.updateRolePermissions(
-          projectId,
+          tenantOrg,
           roleName,
           permissions
         );
@@ -85,11 +92,11 @@ export class UpdateRoleScript extends BaseScript<
       }
 
       // Invalidate cache
-      this.authCache.onRoleUpdate(projectId, roleName);
+      this.authCache.onRoleUpdate(tenantOrg, roleName);
 
       // Get updated permissions
       const rolePermissions = await this.repository.authorization.getRolePermissions(
-        projectId,
+        tenantOrg,
         roleName
       );
 
@@ -100,11 +107,11 @@ export class UpdateRoleScript extends BaseScript<
       }));
 
       // Get member count
-      const roles = await this.repository.authorization.getRoles(projectId);
+      const roles = await this.repository.authorization.getRoles(tenantOrg);
       const role = roles.find((r) => r.name === roleName);
       const memberCount = role?.users?.length ?? 0;
 
-      const isSystem = this.repository.authorization.isSystemRole(roleName, projectId);
+      const isSystem = this.repository.authorization.isSystemRole(roleName);
 
       const roleInfo: RoleInfo = {
         name: roleName,
@@ -116,7 +123,7 @@ export class UpdateRoleScript extends BaseScript<
       };
 
       this.logger.info(
-        { projectId, roleName },
+        { projectId, tenantOrg, roleName },
         "UpdateRoleScript: Role updated successfully"
       );
 

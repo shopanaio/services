@@ -1,13 +1,18 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { getTenantOrg } from "../../constants/index.js";
 import type { BatchAuthorizeParams, BatchAuthorizeResult } from "./dto/index.js";
 
 /**
  * BatchAuthorize - Check multiple authorizations in one call
  *
+ * TENANT ISOLATION:
+ * Uses projectId to compute tenantOrg for isolated authorization checks.
+ *
  * Implementation:
- * 1. Check Redis cache for each request
- * 2. For cache misses → call Casdoor batchEnforce() API
- * 3. Cache results, return
+ * 1. Compute tenantOrg from projectId
+ * 2. Check Redis cache for each request
+ * 3. For cache misses → call Casdoor batchEnforce() API
+ * 4. Cache results, return
  */
 export class BatchAuthorizeScript extends BaseScript<
   BatchAuthorizeParams,
@@ -25,13 +30,16 @@ export class BatchAuthorizeScript extends BaseScript<
       };
     }
 
+    // Compute tenant organization from projectId
+    const tenantOrg = getTenantOrg(projectId);
+
     // TODO: Add caching layer (Phase 1.6)
     // For now, go directly to Casdoor
 
     try {
       const allowedResults = await this.repository.authorization.batchEnforce(
+        tenantOrg,
         userId,
-        projectId,
         requests
       );
 

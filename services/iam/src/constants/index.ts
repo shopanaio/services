@@ -9,6 +9,10 @@ export {
   ROLE_PERMISSIONS,
   CACHE_TTL,
   CACHE_KEYS,
+  // Tenant isolation helpers
+  getTenantOrg,
+  getModelId,
+  getEnforcerId,
 } from "./rbac.js";
 
 export type { PredefinedRoleName, RolePermissionDef } from "./rbac.js";

@@ -4,17 +4,19 @@ import type {
   ProvisionTenantParams,
   ProvisionTenantResult,
 } from "./dto/ProvisionTenantDto.js";
-import { PREDEFINED_ROLES } from "../../constants/index.js";
+import { PREDEFINED_ROLES, getTenantOrg } from "../../constants/index.js";
 
 /**
  * Provision IAM tenant (black box action)
  *
- * Internally creates:
- * - Casdoor organization for the project
- * - Casdoor application with OAuth2 credentials
- * - Predefined roles (owner, admin, manager, support, viewer)
- * - Casbin policies for each role
- * - Owner role assignment to the project creator
+ * TENANT ISOLATION:
+ * Each tenant gets its own Casdoor Organization with:
+ * - Organization: org-{slug}
+ * - Application: app-{slug}
+ * - Model: model-rbac (owned by tenant org)
+ * - Enforcer: enforcer-main (owned by tenant org)
+ * - Roles: owner, admin, manager, support, viewer (simple names)
+ * - Permissions: owned by tenant org
  *
  * Callers only see: tenantId, roles
  */
@@ -27,28 +29,14 @@ export class ProvisionTenantScript extends BaseScript<
   ): Promise<ProvisionTenantResult> {
     const { displayName, slug, ownerId } = params;
 
-    const orgName = slug;
+    // Tenant organization name: org-{slug}
+    const tenantOrg = getTenantOrg(slug);
     const appName = `app-${slug}`;
 
-    // Step 0: Ensure Casbin model and enforcer exist
-    const initResult = await this.repository.authorization.initialize();
-    if (!initResult.success) {
-      return {
-        tenantId: null,
-        roles: [],
-        userErrors: [
-          {
-            code: "INIT_FAILED",
-            message: `Failed to initialize authorization infrastructure: ${initResult.error}`,
-          },
-        ],
-      };
-    }
-
-    // Step 1: Create Casdoor organization
+    // Step 1: Create Casdoor organization for tenant
     const organization: Organization = {
-      owner: this.repository.organization,
-      name: orgName,
+      owner: this.repository.adminOrganization,
+      name: tenantOrg,
       createdTime: new Date().toISOString(),
       displayName,
       websiteUrl: "",
@@ -74,18 +62,54 @@ export class ProvisionTenantScript extends BaseScript<
         ],
       };
     }
-    this.logger.debug(`Created IAM organization: ${orgName}`);
+    this.logger.debug(`Created IAM organization: ${tenantOrg}`);
 
-    // Step 2: Create Casdoor application
+    // Step 2: Create Model for this tenant
+    const modelResult = await this.repository.authorization.ensureModelExists(tenantOrg);
+    if (!modelResult.success) {
+      // Rollback: delete the organization
+      await this.rollbackOrganization(tenantOrg);
+      return {
+        tenantId: null,
+        roles: [],
+        userErrors: [
+          {
+            code: "MODEL_CREATE_FAILED",
+            message: `Failed to create model: ${modelResult.error}`,
+          },
+        ],
+      };
+    }
+    this.logger.debug(`Created Model for tenant: ${tenantOrg}`);
+
+    // Step 3: Create Enforcer for this tenant
+    const enforcerResult = await this.repository.authorization.ensureEnforcerExists(tenantOrg);
+    if (!enforcerResult.success) {
+      // Rollback: delete the organization
+      await this.rollbackOrganization(tenantOrg);
+      return {
+        tenantId: null,
+        roles: [],
+        userErrors: [
+          {
+            code: "ENFORCER_CREATE_FAILED",
+            message: `Failed to create enforcer: ${enforcerResult.error}`,
+          },
+        ],
+      };
+    }
+    this.logger.debug(`Created Enforcer for tenant: ${tenantOrg}`);
+
+    // Step 4: Create Casdoor application
     const application: Application = {
-      owner: this.repository.organization,
+      owner: tenantOrg,
       name: appName,
       createdTime: new Date().toISOString(),
       displayName: `${displayName} App`,
       logo: "",
       homepageUrl: "",
       description: "",
-      organization: orgName,
+      organization: tenantOrg,
       enablePassword: true,
       enableSignUp: true,
     };
@@ -95,15 +119,8 @@ export class ProvisionTenantScript extends BaseScript<
     );
     const appResponse = appResult.data as any;
     if (appResponse?.status !== "ok" || appResponse?.data !== "Affected") {
-      // Rollback: delete the organization we just created
-      try {
-        await this.repository.client.sdk.deleteOrganization({
-          owner: "admin",
-          name: orgName,
-        } as any);
-      } catch (e) {
-        this.logger.warn(`Failed to rollback organization ${orgName}: ${e}`);
-      }
+      // Rollback: delete the organization
+      await this.rollbackOrganization(tenantOrg);
       return {
         tenantId: null,
         roles: [],
@@ -117,27 +134,16 @@ export class ProvisionTenantScript extends BaseScript<
     }
     this.logger.debug(`Created IAM application: ${appName}`);
 
-    // Step 3: Create predefined roles and permissions
-    const projectId = orgName; // projectId is the same as orgName
-    const rolesResult = await this.repository.authorization.provisionProjectRoles(
-      projectId,
+    // Step 5: Create predefined roles and permissions
+    const rolesResult = await this.repository.authorization.provisionTenantRoles(
+      tenantOrg,
       ownerId
     );
 
     if (!rolesResult.success) {
       // Rollback: delete application and organization
-      try {
-        await this.repository.client.sdk.deleteApplication({
-          owner: this.repository.organization,
-          name: appName,
-        } as any);
-        await this.repository.client.sdk.deleteOrganization({
-          owner: "admin",
-          name: orgName,
-        } as any);
-      } catch (e) {
-        this.logger.warn(`Failed to rollback on roles error: ${e}`);
-      }
+      await this.rollbackApplication(tenantOrg, appName);
+      await this.rollbackOrganization(tenantOrg);
 
       return {
         tenantId: null,
@@ -150,19 +156,45 @@ export class ProvisionTenantScript extends BaseScript<
         ],
       };
     }
-    this.logger.debug(`Created predefined roles for project: ${projectId}`);
+    this.logger.debug(`Created predefined roles for tenant: ${tenantOrg}`);
 
-    // Build role names
-    const roleNames = Object.values(PREDEFINED_ROLES).map(
-      (role) => `${projectId}-${role}`
-    );
+    // Return simple role names (not prefixed with projectId anymore)
+    const roleNames = Object.values(PREDEFINED_ROLES);
 
     // Return black box result - no Casdoor-specific details exposed
     return {
-      tenantId: orgName, // tenantId is the org name (opaque to caller)
+      tenantId: tenantOrg, // tenantId is the tenant org name
       roles: roleNames,
       userErrors: [],
     };
+  }
+
+  /**
+   * Rollback helper: delete organization
+   */
+  private async rollbackOrganization(tenantOrg: string): Promise<void> {
+    try {
+      await this.repository.client.sdk.deleteOrganization({
+        owner: "admin",
+        name: tenantOrg,
+      } as any);
+    } catch (e) {
+      this.logger.warn(`Failed to rollback organization ${tenantOrg}: ${e}`);
+    }
+  }
+
+  /**
+   * Rollback helper: delete application
+   */
+  private async rollbackApplication(tenantOrg: string, appName: string): Promise<void> {
+    try {
+      await this.repository.client.sdk.deleteApplication({
+        owner: tenantOrg,
+        name: appName,
+      } as any);
+    } catch (e) {
+      this.logger.warn(`Failed to rollback application ${appName}: ${e}`);
+    }
   }
 
   protected handleError(_error: unknown): ProvisionTenantResult {
