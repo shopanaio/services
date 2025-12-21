@@ -4,7 +4,7 @@
 
 GraphQL API for role and permission management in IAM service. Hybrid approach (like AWS IAM, GCP, Stripe):
 - Resources = API endpoints with operations
-- Permissions = resource + actions + scope (own/all)
+- Permissions = resource + actions + effect
 - Roles = predefined permission sets
 - **Permission Overrides = per-user permission adjustments**
 
@@ -53,7 +53,6 @@ GraphQL API for role and permission management in IAM service. Hybrid approach (
 |---------|-------------|---------|
 | Resource | API entity | `product`, `order`, `category` |
 | Action | Operation on resource | `create`, `read`, `update`, `delete`, `publish` |
-| Scope | Access scope | `OWN` (only owned), `ALL` (all resources) |
 | Effect | Allow or deny | `ALLOW`, `DENY` |
 | Override | Per-user permission adjustment | Deny payments for specific admin |
 
@@ -63,7 +62,6 @@ GraphQL API for role and permission management in IAM service. Hybrid approach (
 interface RolePermission {
   resource: string;      // "product", "order/*", "*"
   actions: string[];     // ["create", "read", "update", "delete"]
-  scope: "OWN" | "ALL";  // access scope
   effect: "ALLOW" | "DENY";
 }
 ```
@@ -79,9 +77,9 @@ Like AWS IAM User Policies or Stripe permission overrides:
   role: "admin",
   permissionOverrides: [
     // Deny payments access specifically for Igor
-    { resource: "payments", actions: ["*"], scope: "ALL", effect: "DENY" },
+    { resource: "payments", actions: ["*"], effect: "DENY" },
     // Deny billing access
-    { resource: "project/billing", actions: ["*"], scope: "ALL", effect: "DENY" }
+    { resource: "project/billing", actions: ["*"], effect: "DENY" }
   ]
 }
 ```
@@ -253,7 +251,7 @@ type ProjectRole {
 }
 
 """
-Role permission - access to resource with specific actions and scope.
+Role permission - access to resource with specific actions.
 """
 type RolePermission {
   """
@@ -269,30 +267,10 @@ type RolePermission {
   actions: [String!]!
 
   """
-  Access scope: OWN (only owned resources) or ALL (all resources).
-  """
-  scope: PermissionScope!
-
-  """
   Effect: ALLOW or DENY.
   DENY takes priority over ALLOW.
   """
   effect: PermissionEffect!
-}
-
-"""
-Permission scope.
-"""
-enum PermissionScope {
-  """
-  Access only to resources owned by the user.
-  """
-  OWN
-
-  """
-  Access to all resources regardless of owner.
-  """
-  ALL
 }
 
 """
@@ -365,11 +343,6 @@ type ResourceDefinition {
   Available actions for resource.
   """
   actions: [String!]!
-
-  """
-  Whether resource supports OWN scope.
-  """
-  supportsOwnScope: Boolean!
 
   """
   Display name.
@@ -502,11 +475,6 @@ input RolePermissionInput {
   Actions (create, read, update, delete, *).
   """
   actions: [String!]!
-
-  """
-  Scope: OWN or ALL.
-  """
-  scope: PermissionScope!
 
   """
   Effect: ALLOW or DENY.
@@ -642,12 +610,6 @@ input AuthorizeInput {
   Action to check.
   """
   action: String!
-
-  """
-  Owner ID for scope check.
-  Required when checking OWN scope permissions.
-  """
-  ownerId: ID
 }
 
 # ============================================================================
@@ -694,11 +656,6 @@ type AuthorizePayload {
   Reason for denial (if denied).
   """
   deniedReason: String
-
-  """
-  Matched scope (OWN or ALL).
-  """
-  scope: PermissionScope
 }
 
 # ============================================================================
@@ -708,7 +665,7 @@ type AuthorizePayload {
 extend type Query {
   """
   Check authorization for current user.
-  Used for server-side permission checks with ownerId.
+  Used for server-side permission checks.
   For client-side checks, use project.roles + user.projectRole + user.permissionOverrides.
   """
   authorize(input: AuthorizeInput!): AuthorizePayload!
@@ -799,7 +756,6 @@ interface Role {
 interface Permission {
   resource: string;
   actions: string[];
-  scope: "OWN" | "ALL";
   effect: "ALLOW" | "DENY";
 }
 
@@ -845,8 +801,7 @@ function hasPermission(
   member: Member,
   allRoles: Role[],
   resource: string,
-  action: string,
-  scope: "OWN" | "ALL" = "ALL"
+  action: string
 ): boolean {
   const permissions = getAllPermissions(member, allRoles);
 
@@ -854,8 +809,7 @@ function hasPermission(
   const denied = permissions.some(p =>
     p.effect === "DENY" &&
     matchResource(p.resource, resource) &&
-    matchAction(p.actions, action) &&
-    (p.scope === "ALL" || p.scope === scope)
+    matchAction(p.actions, action)
   );
 
   if (denied) return false;
@@ -864,8 +818,7 @@ function hasPermission(
   return permissions.some(p =>
     p.effect === "ALLOW" &&
     matchResource(p.resource, resource) &&
-    matchAction(p.actions, action) &&
-    (p.scope === "ALL" || scope === "OWN")
+    matchAction(p.actions, action)
   );
 }
 
@@ -903,7 +856,6 @@ query GetProjectWithRoles($projectId: ID!) {
       permissions {
         resource
         actions
-        scope
         effect
       }
     }
@@ -918,7 +870,6 @@ query GetProjectWithRoles($projectId: ID!) {
       permissionOverrides {  # personal restrictions
         resource
         actions
-        scope
         effect
       }
     }
@@ -948,7 +899,6 @@ query GetTeamMembers($projectId: ID!) {
           permissionOverrides {
             resource
             actions
-            scope
             effect
           }
           grantedAt
@@ -969,7 +919,6 @@ mutation RestrictPaymentsForIgor($userId: ID!) {
       permission: {
         resource: "payments"
         actions: ["*"]
-        scope: ALL
         effect: DENY
       }
     }) {
@@ -1003,9 +952,9 @@ mutation SetMemberRestrictions($userId: ID!) {
     memberSetOverrides(input: {
       userId: $userId
       overrides: [
-        { resource: "payments", actions: ["*"], scope: ALL, effect: DENY }
-        { resource: "project/billing", actions: ["*"], scope: ALL, effect: DENY }
-        { resource: "project/team", actions: ["remove"], scope: ALL, effect: DENY }
+        { resource: "payments", actions: ["*"], effect: DENY }
+        { resource: "project/billing", actions: ["*"], effect: DENY }
+        { resource: "project/team", actions: ["remove"], effect: DENY }
       ]
     }) {
       member {
@@ -1038,19 +987,16 @@ mutation CreateContentEditorRole {
         {
           resource: "product"
           actions: ["create", "update", "publish"]
-          scope: ALL
           effect: ALLOW
         }
         {
           resource: "category"
           actions: ["create", "update"]
-          scope: ALL
           effect: ALLOW
         }
         {
           resource: "media"
           actions: ["upload", "delete"]
-          scope: OWN
           effect: ALLOW
         }
       ]
@@ -1061,7 +1007,6 @@ mutation CreateContentEditorRole {
         permissions {
           resource
           actions
-          scope
           effect
         }
       }
@@ -1084,7 +1029,7 @@ Team:
 ├── Anna (owner)     — Full access
 ├── Igor (admin)     — Admin with payment restrictions
 ├── Maria (manager)  — Content management
-├── Oleg (support)   — Order processing (own orders only)
+├── Alex (support)   — Order processing
 └── Peter (viewer)   — Read-only
 ```
 
@@ -1097,11 +1042,9 @@ member:
   permissionOverrides:
     - resource: payments
       actions: ["*"]
-      scope: ALL
       effect: DENY
     - resource: project/billing
       actions: ["*"]
-      scope: ALL
       effect: DENY
 
 # Result:
@@ -1110,22 +1053,23 @@ member:
 # ❌ Cannot access billing
 ```
 
-#### Oleg: Support with Own Orders
+#### Alex: Standard Support Role
 
 ```yaml
 member:
-  user: oleg
+  user: alex
   role: support
   permissionOverrides: []  # no overrides, standard support role
 
 # Role "support" has:
-# - order:read (ALL)
-# - order:update (OWN) ← only assigned orders
+# - *:read (read all)
+# - order:update
+# - customer:update
 
 # Result:
-# ✅ Can read all orders
-# ✅ Can update orders assigned to him
-# ❌ Cannot update others' orders
+# ✅ Can read all data
+# ✅ Can update orders and customers
+# ❌ Cannot manage products, settings
 ```
 
 ### UI: Edit Member Permissions
@@ -1174,59 +1118,48 @@ Default roles created during project provisioning:
 viewer:
   - resource: "*"
     actions: [read]
-    scope: ALL
     effect: ALLOW
 
 support:
   # inherits viewer
   - resource: order
     actions: [update]
-    scope: OWN
     effect: ALLOW
   - resource: customer
     actions: [read, update]
-    scope: ALL
     effect: ALLOW
 
 manager:
   # inherits support
   - resource: product
     actions: [create, update, delete, publish]
-    scope: ALL
     effect: ALLOW
   - resource: category
     actions: [create, update, delete]
-    scope: ALL
     effect: ALLOW
   - resource: media
     actions: [upload, delete]
-    scope: ALL
     effect: ALLOW
   - resource: order
     actions: [update, fulfill]
-    scope: ALL
     effect: ALLOW
 
 admin:
   # inherits manager
   - resource: "*"
     actions: ["*"]
-    scope: ALL
     effect: ALLOW
   - resource: project
     actions: [delete]
-    scope: ALL
     effect: DENY
   - resource: project/billing
     actions: ["*"]
-    scope: ALL
     effect: DENY
 
 owner:
   # inherits admin, removes DENY restrictions
   - resource: "*"
     actions: ["*"]
-    scope: ALL
     effect: ALLOW
 ```
 
@@ -1280,9 +1213,8 @@ owner:
 ## Implementation Plan
 
 ### Step 1: Update DTO Types
-1. Add `scope` field to `RolePermission` in `RoleDto.ts`
-2. Add `permissionOverrides` to member DTOs
-3. Update `AuthorizeParams` to include `ownerId`
+1. Add `permissionOverrides` to member DTOs
+2. Ensure `RolePermission` has `effect` field (already exists)
 
 ### Step 2: Add Override Scripts
 1. Create `AddPermissionOverrideScript`
@@ -1308,18 +1240,6 @@ owner:
 1. Load project and tenantId in context middleware
 2. Add authorize helper to context
 
-### Step 6: Update Casbin Model (if needed)
-Add scope to policy definition:
-
-```ini
-[policy_definition]
-p = sub, obj, act, scope, eft
-
-[matchers]
-m = (g(r.sub, p.sub) || r.sub == p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act) \
-    && (p.scope == "ALL" || (p.scope == "OWN" && r.owner == r.sub))
-```
-
 ## Script Mapping
 
 | GraphQL Operation | Script | Notes |
@@ -1329,9 +1249,9 @@ m = (g(r.sub, p.sub) || r.sub == p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.
 | `Project.availableResources` | `ListResourcesScript` | Calls services |
 | `User.projectRole` | `GetUserRoleScript` | Returns role name |
 | `User.permissionOverrides` | `GetUserOverridesScript` | Returns user's overrides |
-| `authorize` | `AuthorizeScript` | With ownerId support |
-| `roleCreate` | `CreateRoleScript` | With scope support |
-| `roleUpdate` | `UpdateRoleScript` | With scope support |
+| `authorize` | `AuthorizeScript` | Permission check |
+| `roleCreate` | `CreateRoleScript` | - |
+| `roleUpdate` | `UpdateRoleScript` | - |
 | `roleDelete` | `DeleteRoleScript` | - |
 | `memberRoleChange` | `DetachUserRoleScript` + `AttachUserRoleScript` | - |
 | `memberRemove` | `DetachUserRoleScript` | - |
@@ -1349,4 +1269,3 @@ m = (g(r.sub, p.sub) || r.sub == p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.
 | User Policies | ✅ Overrides | ✅ User Policies | ✅ Collaborators | ✅ Overrides |
 | DENY Effect | ✅ | ✅ | ❌ | ✅ |
 | Resource Policies | ❌ | ✅ | ✅ | ❌ |
-| Scope (OWN/ALL) | ✅ | Via conditions | ❌ | ❌ |
