@@ -65,9 +65,6 @@ extend type Query {
   userQuery: UserQuery!
 }
 
-extend type Mutation {
-  userMutation: UserMutation!
-}
 
 # ---- Admin Users Namespace ----
 

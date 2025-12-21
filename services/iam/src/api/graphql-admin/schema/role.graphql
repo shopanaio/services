@@ -163,16 +163,8 @@ extend type Project @key(fields: "id") {
 }
 
 # ============================================================================
-# EXTEND USER TYPE
+# NOTE: User.role field is defined in user.graphql to avoid federation conflicts
 # ============================================================================
-
-extend type User {
-  """
-  User's role name in current project context.
-  Returns null if no project context.
-  """
-  role: String
-}
 
 # ============================================================================
 # INPUTS
@@ -363,6 +355,11 @@ extend type Query {
 }
 
 extend type Mutation {
+  """
+  User management mutations.
+  """
+  userMutation: UserMutation!
+
   """
   Role management mutations.
   """
