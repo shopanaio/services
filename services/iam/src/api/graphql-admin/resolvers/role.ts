@@ -241,7 +241,7 @@ export const roleResolvers: Partial<Resolvers> = {
       if (!tenantId) {
         return {
           allowed: false,
-          deniedReason: "No project context. Please provide X-Project-Id header.",
+          deniedReason: "No project context. Please provide X-Project-Name header.",
         };
       }
 

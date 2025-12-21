@@ -8,4 +8,9 @@ export const resolvers = {
   ...userMutationResolvers,
   ...roleMutationResolvers,
   ...roleResolvers,
+  // Merge Mutation resolvers from both user and role
+  Mutation: {
+    ...userMutationResolvers.Mutation,
+    ...roleMutationResolvers.Mutation,
+  },
 };

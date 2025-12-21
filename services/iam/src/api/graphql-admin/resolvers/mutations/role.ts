@@ -62,7 +62,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
           userErrors: [
             {
               code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Id header.",
+              message: "No project context. Please provide X-Project-Name header.",
             },
           ],
         };
@@ -95,7 +95,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
           userErrors: [
             {
               code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Id header.",
+              message: "No project context. Please provide X-Project-Name header.",
             },
           ],
         };
@@ -128,7 +128,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
           userErrors: [
             {
               code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Id header.",
+              message: "No project context. Please provide X-Project-Name header.",
             },
           ],
         };
@@ -153,7 +153,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
           userErrors: [
             {
               code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Id header.",
+              message: "No project context. Please provide X-Project-Name header.",
             },
           ],
         };
@@ -215,7 +215,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
           userErrors: [
             {
               code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Id header.",
+              message: "No project context. Please provide X-Project-Name header.",
             },
           ],
         };

@@ -92,7 +92,7 @@ export async function startServer(serverConfig: ServerConfig) {
         requestId: request.id as string,
         kernel: kernel!,
         currentUser: request.currentUser,
-        projectId: request.projectId,
+        projectSlug: request.projectSlug,
         tenantId: request.tenantId,
       };
 

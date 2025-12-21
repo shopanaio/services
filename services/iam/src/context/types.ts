@@ -14,6 +14,6 @@ export interface ServiceContext {
   currentUser: User | null;
   /** Current tenant/project ID (Casdoor organization name) */
   tenantId: string | null;
-  /** Current project ID (for federation) */
-  projectId: string | null;
+  /** Current project slug from X-Project-Name header */
+  projectSlug: string | null;
 }
