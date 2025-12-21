@@ -1,0 +1,24 @@
+mutation RoleCreate($input: RoleCreateInput!) {
+  roleMutation {
+    roleCreate(input: $input) {
+      role {
+        name
+        displayName
+        description
+        isSystem
+        inherits
+        permissions {
+          resource
+          actions
+          effect
+        }
+        createdAt
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+query ProjectAvailableResources($slug: String!) {
+  projectQuery {
+    project(slug: $slug) {
+      id
+      availableResources {
+        service
+        name
+        actions
+        displayName
+      }
+    }
+  }
+}

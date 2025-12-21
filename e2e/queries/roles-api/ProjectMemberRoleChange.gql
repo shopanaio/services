@@ -1,0 +1,23 @@
+mutation ProjectMemberRoleChange($input: ProjectMemberRoleChangeInput!) {
+  roleMutation {
+    projectMemberRoleChange(input: $input) {
+      member {
+        id
+        user {
+          id
+          email
+        }
+        role {
+          name
+          displayName
+        }
+        grantedAt
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

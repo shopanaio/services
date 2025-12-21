@@ -1,0 +1,6 @@
+query Authorize($input: AuthorizeInput!) {
+  authorize(input: $input) {
+    allowed
+    deniedReason
+  }
+}

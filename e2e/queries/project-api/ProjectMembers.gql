@@ -1,0 +1,24 @@
+query ProjectMembers($slug: String!) {
+  projectQuery {
+    project(slug: $slug) {
+      id
+      name
+      slug
+      members {
+        id
+        user {
+          id
+          email
+          firstName
+          lastName
+        }
+        role {
+          name
+          displayName
+          isSystem
+        }
+        grantedAt
+      }
+    }
+  }
+}

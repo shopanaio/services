@@ -1,0 +1,12 @@
+mutation ProjectMemberRemove($input: ProjectMemberRemoveInput!) {
+  roleMutation {
+    projectMemberRemove(input: $input) {
+      removedUserId
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+mutation RoleDelete($input: RoleDeleteInput!) {
+  roleMutation {
+    roleDelete(input: $input) {
+      deletedRoleName
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}
