@@ -13,6 +13,13 @@ interface IamCurrentUserResult {
   userErrors: Array<{ code: string; message: string }>;
 }
 
+export class ForbiddenError extends Error {
+  constructor(message: string = "Access denied") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
 declare module "fastify" {
   interface FastifyRequest {
     project: ContextProject;
@@ -127,16 +134,19 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
         .send({ data: null, errors: [{ message: error.message, code: error.code }] });
     }
 
-    if (!result.project) {
+    if (!result.project || !result.project.integrations.iam) {
       return reply
         .status(404)
         .send({ data: null, errors: [{ message: "Project not found" }] });
     }
 
-    // Set project on request
+    const tenantId = result.project.integrations.iam.config.tenantId;
+
+    // Set project on request (including tenantId)
     request.project = {
       id: result.project.id,
       slug: result.project.slug,
+      tenantId,
     };
   };
 }

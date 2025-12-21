@@ -6,13 +6,39 @@ import {
   project,
   locale,
   currency,
+  projectIntegration,
   type Project,
+  type ProjectIntegration,
   type ProjectStatus,
   type WeightUnit,
   type DimensionUnit,
   type CurrencyCode,
   type LocaleCode,
+  type IamIntegrationConfig,
 } from "../models/index.js";
+
+/**
+ * Base integration info
+ */
+export interface IntegrationInfo<TConfig = Record<string, unknown>> {
+  provider: string;
+  status: ProjectIntegration["status"];
+  config: TConfig;
+}
+
+/**
+ * Project with loaded integrations
+ */
+export interface ProjectWithIntegrations extends Project {
+  integrations: {
+    iam?: IntegrationInfo<IamIntegrationConfig>;
+    payment?: IntegrationInfo;
+    shipping?: IntegrationInfo;
+    storage?: IntegrationInfo;
+    email?: IntegrationInfo;
+    analytics?: IntegrationInfo;
+  };
+}
 
 export interface ProjectQueryInput {}
 export interface ProjectRelayInput {}
@@ -46,6 +72,55 @@ export interface UpdateProjectData {
 }
 
 export class ProjectRepository extends BaseRepository {
+  /**
+   * Load integrations for a project and attach to project object
+   */
+  private async loadIntegrations(proj: Project): Promise<ProjectWithIntegrations> {
+    const integrations = await this.connection
+      .select()
+      .from(projectIntegration)
+      .where(eq(projectIntegration.projectId, proj.id));
+
+    const result: ProjectWithIntegrations = {
+      ...proj,
+      integrations: {},
+    };
+
+    for (const integration of integrations) {
+      const info = {
+        provider: integration.provider,
+        status: integration.status,
+        config: integration.config,
+      };
+
+      switch (integration.type) {
+        case "iam":
+          result.integrations.iam = {
+            ...info,
+            config: info.config as unknown as IamIntegrationConfig,
+          };
+          break;
+        case "payment":
+          result.integrations.payment = info;
+          break;
+        case "shipping":
+          result.integrations.shipping = info;
+          break;
+        case "storage":
+          result.integrations.storage = info;
+          break;
+        case "email":
+          result.integrations.email = info;
+          break;
+        case "analytics":
+          result.integrations.analytics = info;
+          break;
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Create a new project with locales and default currency.
    */
@@ -103,25 +178,30 @@ export class ProjectRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findById(id: string): Promise<Project | undefined> {
+  async findById(id: string): Promise<ProjectWithIntegrations | undefined> {
     const [result] = await this.connection
       .select()
       .from(project)
       .where(eq(project.id, id));
-    return result;
+
+    if (!result) return undefined;
+    return this.loadIntegrations(result);
   }
 
   @ReadOnly()
-  async findBySlug(slug: string): Promise<Project | undefined> {
+  async findBySlug(slug: string): Promise<ProjectWithIntegrations | undefined> {
     const [result] = await this.connection
       .select()
       .from(project)
       .where(eq(project.slug, slug));
-    return result;
+
+    if (!result) return undefined;
+    return this.loadIntegrations(result);
   }
 
   @ReadOnly()
-  async getMany(): Promise<Project[]> {
-    return this.connection.select().from(project);
+  async getMany(): Promise<ProjectWithIntegrations[]> {
+    const projects = await this.connection.select().from(project);
+    return Promise.all(projects.map((p) => this.loadIntegrations(p)));
   }
 }

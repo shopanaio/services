@@ -6,6 +6,8 @@ import type { Kernel } from "../kernel/Kernel.js";
 export interface ContextProject {
   id: string;
   slug: string;
+  /** Tenant ID from IAM integration (Casdoor organization name) */
+  tenantId: string;
 }
 
 /**

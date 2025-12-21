@@ -13,7 +13,7 @@ export class GetCurrentProjectScript extends BaseScript<
   ): Promise<GetCurrentProjectResult> {
     const { userOwner, slug } = params;
 
-    // 1. Find project by slug
+    // 1. Find project by slug (includes integrations)
     const project = await this.repository.project.findBySlug(slug);
 
     if (!project) {
@@ -28,13 +28,8 @@ export class GetCurrentProjectScript extends BaseScript<
       };
     }
 
-    // 2. Get IAM integration for this project
-    const iamIntegration = await this.repository.integration.findByType(
-      project.id,
-      "iam"
-    );
-
-    if (!iamIntegration) {
+    // 2. Check IAM integration exists
+    if (!project.integrations.iam) {
       return {
         project: undefined,
         userErrors: [
@@ -47,9 +42,9 @@ export class GetCurrentProjectScript extends BaseScript<
     }
 
     // 3. Check if user's organization matches project's IAM tenant
-    const tenantId = iamIntegration.config.tenantId as string | undefined;
+    const tenantId = project.integrations.iam.config.tenantId;
 
-    if (!tenantId || userOwner !== tenantId) {
+    if (userOwner !== tenantId) {
       return {
         project: undefined,
         userErrors: [
