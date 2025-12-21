@@ -52,7 +52,15 @@ function startGateway(
 
   const child = spawn(
     "npx",
-    ["hive-gateway", "supergraph", supergraphFile, "-p", String(port)],
+    [
+      "hive-gateway",
+      "supergraph",
+      supergraphFile,
+      "-p",
+      String(port),
+      "-c",
+      "gateway.config.ts",
+    ],
     {
       cwd: federationDir,
       stdio: "inherit",

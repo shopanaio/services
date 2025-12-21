@@ -10,8 +10,8 @@
     "compose:admin": "mesh-compose -c mesh-admin.config.ts -o supergraph-admin.graphql",
     "compose": "yarn compose:storefront; yarn compose:admin; true",
     "build": "yarn schema:export; yarn compose",
-    "gateway:storefront": "hive-gateway supergraph supergraph-storefront.graphql -p 4000",
-    "gateway:admin": "hive-gateway supergraph supergraph-admin.graphql -p 4001",
+    "gateway:storefront": "hive-gateway supergraph supergraph-storefront.graphql -p 4000 -c gateway.config.ts",
+    "gateway:admin": "hive-gateway supergraph supergraph-admin.graphql -p 4001 -c gateway.config.ts",
     "dev:storefront": "yarn schema:export && yarn compose:storefront && yarn gateway:storefront",
     "dev:admin": "yarn schema:export && yarn compose:admin && yarn gateway:admin"
   },
