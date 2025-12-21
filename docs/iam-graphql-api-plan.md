@@ -2,16 +2,15 @@
 
 ## Overview
 
-GraphQL API for role and permission management in IAM service. Hybrid approach (like AWS IAM, GCP, Stripe):
+GraphQL API for role and permission management in IAM service. Strapi-style approach:
 - Resources = API endpoints with operations
 - Permissions = resource + actions + effect
-- Roles = predefined permission sets
-- **Permission Overrides = per-user permission adjustments**
+- Roles = predefined permission sets (system + custom)
 
 **Key principle:**
 - **Project** contains all roles with their permissions (for admins and role editor UI)
-- **User** has role + personal permission overrides
-- Frontend computes effective permissions locally from roles + overrides
+- **User** has assigned role in current project
+- Frontend computes effective permissions locally from user's role + inheritance
 
 ## Architecture
 
@@ -20,16 +19,14 @@ GraphQL API for role and permission management in IAM service. Hybrid approach (
 │  Admin UI                                                    │
 │  ├── Team Members page                                      │
 │  ├── Role Editor                                            │
-│  ├── Member Permission Overrides                            │
-│  └── Permission checks (computed locally)                   │
+│  └── Permission checks (computed locally from role)         │
 └─────────────────────────────────────────────────────────────┘
                               │
               ┌───────────────┴───────────────┐
               ▼                               ▼
 ┌─────────────────────────┐     ┌─────────────────────────────┐
-│  project.roles          │     │  project.members            │
-│  (all roles + perms)    │     │  ├── role                   │
-│                         │     │  └── permissionOverrides    │
+│  project.roles          │     │  user.projectRole           │
+│  (all roles + perms)    │     │  (role name)                │
 └─────────────────────────┘     └─────────────────────────────┘
               │                               │
               └───────────────┬───────────────┘
@@ -37,10 +34,9 @@ GraphQL API for role and permission management in IAM service. Hybrid approach (
 ┌─────────────────────────────────────────────────────────────┐
 │  Frontend computes effective permissions:                    │
 │                                                             │
-│  effectivePerms = computePermissions(                       │
-│    member.role,                    // base role             │
-│    project.roles,                  // for inheritance       │
-│    member.permissionOverrides      // personal overrides    │
+│  const userRole = allRoles.find(r => r.name === roleName);  │
+│  const effectivePerms = getPermissionsWithInheritance(      │
+│    userRole, allRoles                                       │
 │  );                                                         │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -54,7 +50,6 @@ GraphQL API for role and permission management in IAM service. Hybrid approach (
 | Resource | API entity | `product`, `order`, `category` |
 | Action | Operation on resource | `create`, `read`, `update`, `delete`, `publish` |
 | Effect | Allow or deny | `ALLOW`, `DENY` |
-| Override | Per-user permission adjustment | Deny payments for specific admin |
 
 ### Permission Structure
 
@@ -66,133 +61,55 @@ interface RolePermission {
 }
 ```
 
-### Permission Override (per-user)
-
-Like AWS IAM User Policies or Stripe permission overrides:
-
-```typescript
-// Member with role + personal overrides
-{
-  user: "igor",
-  role: "admin",
-  permissionOverrides: [
-    // Deny payments access specifically for Igor
-    { resource: "payments", actions: ["*"], effect: "DENY" },
-    // Deny billing access
-    { resource: "project/billing", actions: ["*"], effect: "DENY" }
-  ]
-}
-```
-
 ### Effective Permission Calculation
 
 ```
-Effective = Role Permissions + Inherited Permissions + Personal Overrides
+Effective = Role Permissions + Inherited Role Permissions
 
 Priority: DENY always wins over ALLOW
-Order: Overrides are applied last
 ```
 
 ```typescript
-// Igor is admin but has payment restrictions
-role: admin → { resource: "*", actions: ["*"], effect: "ALLOW" }
-override:    → { resource: "payments", actions: ["*"], effect: "DENY" }
-
-// Check: can Igor access payments?
-// 1. Role says ALLOW (admin has *)
-// 2. Override says DENY
-// 3. Result: DENY (override wins, DENY priority)
+// Manager inherits from support, support inherits from viewer
+// Effective permissions = manager + support + viewer permissions
+// Any DENY in the chain blocks access
 ```
 
 ## Casdoor Implementation
 
-### How Overrides Work in Casdoor
-
-Casdoor supports policies on both roles and users:
+### Structure in Casdoor
 
 ```
 Tenant: org-my-shop
 │
 ├── Roles
+│   ├── owner
 │   ├── admin
-│   └── manager
+│   ├── manager
+│   ├── support
+│   ├── viewer
+│   └── customer    (for storefront users)
 │
-├── Permissions (on roles)
+├── Permissions (bound to roles)
+│   ├── perm-owner-all         → roles: [owner]
 │   ├── perm-admin-all         → roles: [admin]
-│   └── perm-manager-products  → roles: [manager]
+│   ├── perm-manager-products  → roles: [manager]
+│   └── ...
 │
-├── Permissions (on users = overrides)
-│   ├── user-igor-payments-deny   → users: [igor], roles: []
-│   └── user-igor-billing-deny    → users: [igor], roles: []
-│
-└── Grouping
-    └── g, igor, admin
+└── Grouping (user → role)
+    ├── g, anna, owner
+    ├── g, igor, admin
+    └── g, customer1, customer
 ```
 
 ### Casdoor enforce() Flow
 
 ```
-Request: user-igor, payments, read
+Request: user-igor, product, update
 
-1. Check user policies: p, user-igor, payments, * → DENY
-2. Check role policies via grouping: p, admin, *, * → ALLOW
-3. Apply DENY priority → Result: DENY
-```
-
-**Key:** Casdoor `enforce()` automatically considers both role and user policies. No changes needed in AuthorizeScript!
-
-### API Implementation
-
-```typescript
-// Add permission override to user
-async addPermissionOverride(params: {
-  tenantId: string;
-  userId: string;
-  permission: RolePermission;
-}) {
-  await this.casdoor.addPermission({
-    owner: params.tenantId,
-    name: `override-${params.userId}-${params.permission.resource}`,
-
-    resources: [params.permission.resource],
-    actions: params.permission.actions,
-    effect: params.permission.effect.toLowerCase(),
-
-    // Key: bind to user, not role
-    users: [params.userId],
-    roles: [],  // empty = direct user policy
-  });
-}
-
-// Remove permission override
-async removePermissionOverride(params: {
-  tenantId: string;
-  userId: string;
-  permissionName: string;
-}) {
-  await this.casdoor.deletePermission({
-    owner: params.tenantId,
-    name: params.permissionName,
-  });
-}
-
-// Get member with overrides
-async getMemberWithOverrides(tenantId: string, userId: string) {
-  const roles = await this.casdoor.getRolesForUser(userId, tenantId);
-  const allPermissions = await this.casdoor.getPermissions(tenantId);
-
-  // Filter: permissions bound to user (not via role)
-  const overrides = allPermissions.filter(p =>
-    p.users?.includes(userId) &&
-    (p.roles?.length === 0 || !p.roles)
-  );
-
-  return {
-    userId,
-    role: roles[0],
-    permissionOverrides: overrides.map(mapToPermission),
-  };
-}
+1. Find user's role via grouping: g, igor, admin
+2. Find role's permissions: p, admin, *, * → ALLOW
+3. Result: ALLOW
 ```
 
 ## GraphQL Schema
@@ -224,7 +141,7 @@ type ProjectRole {
   description: String
 
   """
-  System role (owner, admin, manager, support, viewer) cannot be deleted.
+  System role (owner, admin, manager, support, viewer, customer) cannot be deleted.
   """
   isSystem: Boolean!
 
@@ -289,7 +206,7 @@ enum PermissionEffect {
 }
 
 """
-Project team member with role and personal overrides.
+Project team member with assigned role.
 """
 type ProjectMember {
   """
@@ -306,13 +223,6 @@ type ProjectMember {
   Assigned role.
   """
   role: ProjectRole!
-
-  """
-  Personal permission overrides.
-  Applied after role permissions, DENY takes priority.
-  Used to restrict or extend specific user's access.
-  """
-  permissionOverrides: [RolePermission!]!
 
   """
   Date when role was assigned.
@@ -378,7 +288,7 @@ extend type Project {
   availableResources: [ResourceDefinition!]!
 
   """
-  Project team members with roles and overrides.
+  Project team members with roles.
   Requires: project.team:read permission.
   """
   members(
@@ -398,12 +308,6 @@ extend type User {
   Returns null if no project context.
   """
   projectRole: String
-
-  """
-  User's permission overrides in current project.
-  Returns null if no project context.
-  """
-  permissionOverrides: [RolePermission!]
 }
 
 # ============================================================================
@@ -548,56 +452,6 @@ input MemberRemoveInput {
 }
 
 """
-Input for adding permission override to a member.
-"""
-input MemberAddOverrideInput {
-  """
-  User ID.
-  """
-  userId: ID!
-
-  """
-  Permission to add as override.
-  """
-  permission: RolePermissionInput!
-}
-
-"""
-Input for removing permission override from a member.
-"""
-input MemberRemoveOverrideInput {
-  """
-  User ID.
-  """
-  userId: ID!
-
-  """
-  Resource to remove override for.
-  """
-  resource: String!
-
-  """
-  Actions to remove (if empty, removes all actions for resource).
-  """
-  actions: [String!]
-}
-
-"""
-Input for setting all overrides for a member (replaces existing).
-"""
-input MemberSetOverridesInput {
-  """
-  User ID.
-  """
-  userId: ID!
-
-  """
-  New overrides (replaces all existing).
-  """
-  overrides: [RolePermissionInput!]!
-}
-
-"""
 Input for authorize check.
 """
 input AuthorizeInput {
@@ -641,11 +495,6 @@ type MemberRemovePayload {
   userErrors: [GenericUserError!]!
 }
 
-type MemberOverridePayload {
-  member: ProjectMember
-  userErrors: [GenericUserError!]!
-}
-
 type AuthorizePayload {
   """
   Whether access is allowed.
@@ -666,7 +515,7 @@ extend type Query {
   """
   Check authorization for current user.
   Used for server-side permission checks.
-  For client-side checks, use project.roles + user.projectRole + user.permissionOverrides.
+  For client-side checks, use project.roles + user.projectRole.
   """
   authorize(input: AuthorizeInput!): AuthorizePayload!
 }
@@ -718,32 +567,12 @@ type RoleMutation {
   Cannot remove project owner.
   """
   memberRemove(input: MemberRemoveInput!): MemberRemovePayload!
-
-  """
-  Add permission override for a member.
-  Requires: project.team:write permission.
-  Cannot add override to self.
-  Cannot add override that grants more than own permissions.
-  """
-  memberAddOverride(input: MemberAddOverrideInput!): MemberOverridePayload!
-
-  """
-  Remove permission override from a member.
-  Requires: project.team:write permission.
-  """
-  memberRemoveOverride(input: MemberRemoveOverrideInput!): MemberOverridePayload!
-
-  """
-  Set all permission overrides for a member (replaces existing).
-  Requires: project.team:write permission.
-  """
-  memberSetOverrides(input: MemberSetOverridesInput!): MemberOverridePayload!
 }
 ```
 
 ## Frontend Permission Computation
 
-Frontend receives roles, overrides and computes permissions locally:
+Frontend receives roles and computes permissions locally:
 
 ```typescript
 // Types
@@ -757,11 +586,6 @@ interface Permission {
   resource: string;
   actions: string[];
   effect: "ALLOW" | "DENY";
-}
-
-interface Member {
-  role: string;
-  permissionOverrides: Permission[];
 }
 
 // Get all inherited roles recursively
@@ -784,28 +608,22 @@ function getAllRoles(roleName: string, allRoles: Role[]): Role[] {
   return result;
 }
 
-// Get all permissions (role + inherited + overrides)
-function getAllPermissions(
-  member: Member,
-  allRoles: Role[]
-): Permission[] {
-  const roles = getAllRoles(member.role, allRoles);
-  const rolePermissions = roles.flatMap(r => r.permissions);
-
-  // Overrides come last (higher priority for matching)
-  return [...rolePermissions, ...member.permissionOverrides];
+// Get all permissions from role + inherited roles
+function getAllPermissions(roleName: string, allRoles: Role[]): Permission[] {
+  const roles = getAllRoles(roleName, allRoles);
+  return roles.flatMap(r => r.permissions);
 }
 
 // Check permission with DENY priority
 function hasPermission(
-  member: Member,
+  roleName: string,
   allRoles: Role[],
   resource: string,
   action: string
 ): boolean {
-  const permissions = getAllPermissions(member, allRoles);
+  const permissions = getAllPermissions(roleName, allRoles);
 
-  // Check for explicit DENY first (including overrides)
+  // Check for explicit DENY first
   const denied = permissions.some(p =>
     p.effect === "DENY" &&
     matchResource(p.resource, resource) &&
@@ -861,23 +679,18 @@ query GetProjectWithRoles($projectId: ID!) {
     }
   }
 
-  # Current user info with role and overrides
+  # Current user info with role
   userQuery {
     current {
       id
       email
-      projectRole          # "admin"
-      permissionOverrides {  # personal restrictions
-        resource
-        actions
-        effect
-      }
+      projectRole  # "admin"
     }
   }
 }
 ```
 
-### Query: Get Team Members with Overrides
+### Query: Get Team Members
 
 ```graphql
 query GetTeamMembers($projectId: ID!) {
@@ -896,11 +709,6 @@ query GetTeamMembers($projectId: ID!) {
             name
             displayName
           }
-          permissionOverrides {
-            resource
-            actions
-            effect
-          }
           grantedAt
         }
       }
@@ -909,18 +717,14 @@ query GetTeamMembers($projectId: ID!) {
 }
 ```
 
-### Mutation: Add Permission Override to Member
+### Mutation: Change Member Role
 
 ```graphql
-mutation RestrictPaymentsForIgor($userId: ID!) {
+mutation ChangeUserRole($userId: ID!) {
   roleMutation {
-    memberAddOverride(input: {
+    memberRoleChange(input: {
       userId: $userId
-      permission: {
-        resource: "payments"
-        actions: ["*"]
-        effect: DENY
-      }
+      newRole: "manager"
     }) {
       member {
         user {
@@ -928,40 +732,7 @@ mutation RestrictPaymentsForIgor($userId: ID!) {
         }
         role {
           name
-        }
-        permissionOverrides {
-          resource
-          actions
-          effect
-        }
-      }
-      userErrors {
-        code
-        message
-      }
-    }
-  }
-}
-```
-
-### Mutation: Set All Overrides for Member
-
-```graphql
-mutation SetMemberRestrictions($userId: ID!) {
-  roleMutation {
-    memberSetOverrides(input: {
-      userId: $userId
-      overrides: [
-        { resource: "payments", actions: ["*"], effect: DENY }
-        { resource: "project/billing", actions: ["*"], effect: DENY }
-        { resource: "project/team", actions: ["remove"], effect: DENY }
-      ]
-    }) {
-      member {
-        permissionOverrides {
-          resource
-          actions
-          effect
+          displayName
         }
       }
       userErrors {
@@ -1020,97 +791,18 @@ mutation CreateContentEditorRole {
 }
 ```
 
-## Real-World Examples
-
-### Example: Fashion Store Team
-
-```
-Team:
-├── Anna (owner)     — Full access
-├── Igor (admin)     — Admin with payment restrictions
-├── Maria (manager)  — Content management
-├── Alex (support)   — Order processing
-└── Peter (viewer)   — Read-only
-```
-
-#### Igor: Admin with Restrictions
-
-```yaml
-member:
-  user: igor
-  role: admin
-  permissionOverrides:
-    - resource: payments
-      actions: ["*"]
-      effect: DENY
-    - resource: project/billing
-      actions: ["*"]
-      effect: DENY
-
-# Result:
-# ✅ Can manage products, orders, team
-# ❌ Cannot access payments
-# ❌ Cannot access billing
-```
-
-#### Alex: Standard Support Role
-
-```yaml
-member:
-  user: alex
-  role: support
-  permissionOverrides: []  # no overrides, standard support role
-
-# Role "support" has:
-# - *:read (read all)
-# - order:update
-# - customer:update
-
-# Result:
-# ✅ Can read all data
-# ✅ Can update orders and customers
-# ❌ Cannot manage products, settings
-```
-
-### UI: Edit Member Permissions
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Edit Member: Igor                                            │
-├─────────────────────────────────────────────────────────────┤
-│ Email: igor@company.com                                      │
-│                                                             │
-│ Role: [Admin ▼]                                              │
-│                                                             │
-│ Permission Overrides:                                        │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ ⊖ Payments: All actions             DENY    [Remove]   │ │
-│ │ ⊖ Billing: All actions              DENY    [Remove]   │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ [+ Add Override]                                            │
-│                                                             │
-│ Effective Permissions:  [View Details]                      │
-│ • Products: Full access                                     │
-│ • Orders: Full access                                       │
-│ • Payments: ❌ No access                                    │
-│ • Billing: ❌ No access                                     │
-│                                                             │
-│                              [Cancel]  [Save Changes]       │
-└─────────────────────────────────────────────────────────────┘
-```
-
 ## System Roles
 
 Default roles created during project provisioning:
 
-| Role | Inherits | Description |
-|------|----------|-------------|
-| `owner` | `admin` | Full access, cannot be removed |
-| `admin` | `manager` | Full access except project delete/billing |
-| `manager` | `support` | Product/category/media management |
-| `support` | `viewer` | Order/customer management |
-| `viewer` | - | Read-only access |
+| Role | Inherits | Type | Description |
+|------|----------|------|-------------|
+| `owner` | `admin` | Team | Full access, cannot be removed |
+| `admin` | `manager` | Team | Full access except project delete/billing |
+| `manager` | `support` | Team | Product/category/media management |
+| `support` | `viewer` | Team | Order/customer management |
+| `viewer` | - | Team | Read-only access to admin |
+| `customer` | - | Storefront | Read public data, manage own profile |
 
 ### Default Permissions
 
@@ -1161,6 +853,27 @@ owner:
   - resource: "*"
     actions: ["*"]
     effect: ALLOW
+
+customer:
+  # Storefront role - no inheritance
+  - resource: "storefront/product"
+    actions: [read]
+    effect: ALLOW
+  - resource: "storefront/collection"
+    actions: [read]
+    effect: ALLOW
+  - resource: "storefront/customer"
+    actions: [read, update]
+    effect: ALLOW
+  - resource: "storefront/order"
+    actions: [read]
+    effect: ALLOW
+  - resource: "storefront/address"
+    actions: [read, create, update, delete]
+    effect: ALLOW
+  - resource: "storefront/cart"
+    actions: [read, create, update, delete]
+    effect: ALLOW
 ```
 
 ## Business Rules
@@ -1198,74 +911,81 @@ owner:
 - Cannot remove project owner
 - Cannot remove user with higher role
 
-### Override Management
+## Customer Registration
 
-**Add Override:**
-- Requires `project.team:write` permission
-- Cannot add override to self
-- Cannot add ALLOW override that grants more than own permissions
-- Can add any DENY override (restricting is always allowed)
+When a customer registers, they automatically get the `customer` role:
 
-**Remove Override:**
-- Requires `project.team:write` permission
-- Cannot modify overrides of user with higher role
+```typescript
+// RegisterCustomerScript
+async execute(params: RegisterCustomerParams) {
+  // 1. Create user in Casdoor
+  const user = await this.casdoor.createUser({
+    owner: params.tenantId,
+    name: params.email,
+    email: params.email,
+    password: params.password,
+  });
+
+  // 2. Assign customer role
+  await this.casdoor.addUserToRole({
+    owner: params.tenantId,
+    userId: user.id,
+    roleName: "customer",
+  });
+
+  return { user };
+}
+```
 
 ## Implementation Plan
 
 ### Step 1: Update DTO Types
-1. Add `permissionOverrides` to member DTOs
-2. Ensure `RolePermission` has `effect` field (already exists)
+1. Ensure `RolePermission` has `effect` field (already exists)
+2. Add `inherits` field to role DTOs
 
-### Step 2: Add Override Scripts
-1. Create `AddPermissionOverrideScript`
-2. Create `RemovePermissionOverrideScript`
-3. Create `SetPermissionOverridesScript`
-4. Update `ListTenantMembersScript` to include overrides
-
-### Step 3: Update GraphQL Schema
+### Step 2: Update GraphQL Schema
 1. Create `schema/role.graphql`
 2. Extend Project and User types
 3. Run codegen
 
-### Step 4: Implement Resolvers
+### Step 3: Implement Resolvers
 1. `Project.roles` resolver
-2. `Project.members` resolver (with overrides)
+2. `Project.members` resolver
 3. `Project.availableResources` resolver
 4. `User.projectRole` resolver
-5. `User.permissionOverrides` resolver
-6. `authorize` query resolver
-7. All `roleMutation` resolvers including override mutations
+5. `authorize` query resolver
+6. All `roleMutation` resolvers
 
-### Step 5: Update Context
+### Step 4: Update Context
 1. Load project and tenantId in context middleware
 2. Add authorize helper to context
+
+### Step 5: Create System Roles on Project Provisioning
+1. Create all system roles (owner, admin, manager, support, viewer, customer)
+2. Assign owner role to project creator
 
 ## Script Mapping
 
 | GraphQL Operation | Script | Notes |
 |-------------------|--------|-------|
 | `Project.roles` | `ListRolesScript` | Returns full role details |
-| `Project.members` | `ListTenantMembersScript` | With pagination and overrides |
+| `Project.members` | `ListTenantMembersScript` | With pagination |
 | `Project.availableResources` | `ListResourcesScript` | Calls services |
 | `User.projectRole` | `GetUserRoleScript` | Returns role name |
-| `User.permissionOverrides` | `GetUserOverridesScript` | Returns user's overrides |
 | `authorize` | `AuthorizeScript` | Permission check |
 | `roleCreate` | `CreateRoleScript` | - |
 | `roleUpdate` | `UpdateRoleScript` | - |
 | `roleDelete` | `DeleteRoleScript` | - |
 | `memberRoleChange` | `DetachUserRoleScript` + `AttachUserRoleScript` | - |
 | `memberRemove` | `DetachUserRoleScript` | - |
-| `memberAddOverride` | `AddPermissionOverrideScript` | NEW |
-| `memberRemoveOverride` | `RemovePermissionOverrideScript` | NEW |
-| `memberSetOverrides` | `SetPermissionOverridesScript` | NEW |
 
 ## Comparison with Other Systems
 
-| Feature | Shopana | AWS IAM | GitHub | Stripe |
-|---------|---------|---------|--------|--------|
-| Roles | ✅ | ✅ | ✅ Org roles | ✅ |
-| Role Inheritance | ✅ | ❌ | ❌ | ❌ |
-| Groups/Teams | ❌ | ✅ Groups | ✅ Teams | ❌ |
-| User Policies | ✅ Overrides | ✅ User Policies | ✅ Collaborators | ✅ Overrides |
-| DENY Effect | ✅ | ✅ | ❌ | ✅ |
-| Resource Policies | ❌ | ✅ | ✅ | ❌ |
+| Feature | Shopana | AWS IAM | GitHub | Stripe | Strapi |
+|---------|---------|---------|--------|--------|--------|
+| Roles | ✅ | ✅ | ✅ Org roles | ✅ | ✅ |
+| Role Inheritance | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Custom Roles | ✅ | ✅ | ❌ | ❌ | ✅ |
+| DENY Effect | ✅ | ✅ | ❌ | ✅ | ❌ |
+| User Policies | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Resource Policies | ❌ | ✅ | ✅ | ❌ | ❌ |
