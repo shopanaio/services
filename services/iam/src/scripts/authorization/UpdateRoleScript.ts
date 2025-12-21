@@ -68,10 +68,16 @@ export class UpdateRoleScript extends BaseScript<
 
       // Update permissions if provided
       if (permissions !== undefined) {
+        // Map DTO format (ALLOW/DENY) to Casdoor format (Allow/Deny)
+        const casdoorPermissions = permissions.map((p) => ({
+          resource: p.resource,
+          actions: p.actions,
+          effect: p.effect,
+        }));
         const result = await this.repository.authorization.updateRolePermissions(
           tenantId,
           roleName,
-          permissions
+          casdoorPermissions
         );
 
         if (!result.success) {
@@ -102,20 +108,25 @@ export class UpdateRoleScript extends BaseScript<
         effect: (p.effect as "Allow" | "Deny") ?? "Allow",
       }));
 
-      // Get member count
+      const isSystem = this.repository.authorization.isSystemRole(roleName);
+
+      // Get role for inherits info
       const roles = await this.repository.authorization.getRoles(tenantId);
       const role = roles.find((r) => r.name === roleName);
-      const memberCount = role?.users?.length ?? 0;
 
-      const isSystem = this.repository.authorization.isSystemRole(roleName);
+      // Extract inherited role names
+      const inherits = (role?.roles ?? []).map((r) => {
+        const parts = r.split("/");
+        return parts[parts.length - 1];
+      });
 
       const roleInfo: RoleInfo = {
         name: roleName,
         displayName: displayName ?? existingRole.displayName,
         description: description ?? existingRole.description,
         isSystem,
+        inherits,
         permissions: permissions ?? mappedPermissions,
-        memberCount,
       };
 
       this.logger.info(

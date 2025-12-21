@@ -12,4 +12,8 @@ export interface ServiceContext {
   kernel: Kernel;
   /** Current authenticated user (null if not authenticated) */
   currentUser: User | null;
+  /** Current tenant/project ID (Casdoor organization name) */
+  tenantId: string | null;
+  /** Current project ID (for federation) */
+  projectId: string | null;
 }

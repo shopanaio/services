@@ -17,8 +17,10 @@ export interface RoleInfo {
   displayName: string;
   description: string;
   isSystem: boolean;
+  /** Roles this role inherits from (for hierarchy) */
+  inherits: string[];
   permissions: RolePermission[];
-  memberCount: number;
+  createdAt?: Date;
 }
 
 /**
@@ -29,6 +31,8 @@ export interface CreateRoleParams {
   name: string;
   displayName: string;
   description?: string;
+  /** Roles to inherit from */
+  inherits?: string[];
   permissions: RolePermission[];
 }
 
@@ -45,6 +49,8 @@ export interface UpdateRoleParams {
   roleName: string;
   displayName?: string;
   description?: string;
+  /** Roles to inherit from */
+  inherits?: string[];
   permissions?: RolePermission[];
 }
 

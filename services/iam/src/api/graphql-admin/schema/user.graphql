@@ -55,11 +55,6 @@ type User @key(fields: "id") {
   isDeleted: Boolean
 
   """
-  User's roles.
-  """
-  roles: [Role!]
-
-  """
   The date and time when the user was created.
   """
   createdAt: DateTime
@@ -68,36 +63,6 @@ type User @key(fields: "id") {
   The date and time when the user was last updated.
   """
   updatedAt: DateTime
-}
-
-"""
-Role assigned to a user.
-"""
-type Role {
-  """
-  Role owner (organization).
-  """
-  owner: String!
-
-  """
-  Role name/identifier.
-  """
-  name: String!
-
-  """
-  Human-readable display name.
-  """
-  displayName: String
-
-  """
-  Role description.
-  """
-  description: String
-
-  """
-  Whether the role is enabled.
-  """
-  isEnabled: Boolean!
 }
 
 # ---- User Inputs ----

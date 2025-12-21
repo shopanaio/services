@@ -26,9 +26,9 @@ export type {
   AttachUserRoleResult,
   DetachUserRoleParams,
   DetachUserRoleResult,
-  ListProjectMembersParams,
-  ListProjectMembersResult,
-  ProjectMember,
+  ListTenantMembersParams,
+  ListTenantMembersResult,
+  TenantMember,
   // Role management types
   RolePermission,
   RoleInfo,

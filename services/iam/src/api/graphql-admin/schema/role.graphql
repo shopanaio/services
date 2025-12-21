@@ -1,0 +1,412 @@
+# ============================================================================
+# ROLE & PERMISSION TYPES
+# ============================================================================
+
+"""
+Project role with permissions.
+"""
+type Role {
+  """
+  Unique role name (e.g.: owner, admin, content-editor).
+  """
+  name: String!
+
+  """
+  Human-readable display name.
+  """
+  displayName: String!
+
+  """
+  Role description.
+  """
+  description: String
+
+  """
+  System role (owner, admin, manager, support, viewer) cannot be deleted.
+  """
+  isSystem: Boolean!
+
+  """
+  Roles this role inherits from (for hierarchy).
+  E.g., manager inherits from support.
+  """
+  inherits: [String!]!
+
+  """
+  Role permissions.
+  """
+  permissions: [RolePermission!]!
+
+  """
+  Role creation date.
+  """
+  createdAt: DateTime
+}
+
+"""
+Role permission - access to resource with specific actions.
+"""
+type RolePermission {
+  """
+  Resource name (e.g.: product, order, project/settings).
+  Supports wildcards: *, product/*, order/*.
+  """
+  resource: String!
+
+  """
+  Allowed actions (e.g.: create, read, update, delete).
+  Supports wildcard: *.
+  """
+  actions: [String!]!
+
+  """
+  Effect: ALLOW or DENY.
+  DENY takes priority over ALLOW.
+  """
+  effect: PermissionEffect!
+}
+
+"""
+Permission effect.
+"""
+enum PermissionEffect {
+  """
+  Allow the action.
+  """
+  ALLOW
+
+  """
+  Deny the action (takes priority over ALLOW).
+  """
+  DENY
+}
+
+"""
+Project team member with assigned role.
+"""
+type ProjectMember {
+  """
+  User ID.
+  """
+  id: ID!
+
+  """
+  User.
+  """
+  user: User!
+
+  """
+  Assigned role.
+  """
+  role: Role!
+
+  """
+  Date when role was assigned.
+  """
+  grantedAt: DateTime
+
+  """
+  Who assigned the role.
+  """
+  grantedBy: User
+}
+
+"""
+Resource definition for role editor UI.
+"""
+type ResourceDefinition {
+  """
+  Service name (inventory, orders, etc.).
+  """
+  service: String!
+
+  """
+  Resource name (product, order, etc.).
+  """
+  name: String!
+
+  """
+  Available actions for resource.
+  """
+  actions: [String!]!
+
+  """
+  Display name.
+  """
+  displayName: String
+}
+
+# ============================================================================
+# EXTEND PROJECT TYPE (from project service)
+# ============================================================================
+
+extend type Project @key(fields: "id") {
+  id: ID! @external
+
+  """
+  All project roles with permissions.
+  Used by frontend to compute effective permissions.
+  """
+  roles: [Role!]!
+
+  """
+  Available resources for role editor.
+  Requires: project:admin permission.
+  """
+  availableResources: [ResourceDefinition!]!
+
+  """
+  Project team members with roles.
+  Requires: project.team:read permission.
+  """
+  members: [ProjectMember!]!
+}
+
+# ============================================================================
+# EXTEND USER TYPE
+# ============================================================================
+
+extend type User {
+  """
+  User's role name in current project context.
+  Returns null if no project context.
+  """
+  role: String
+}
+
+# ============================================================================
+# INPUTS
+# ============================================================================
+
+"""
+Input for creating a role.
+"""
+input RoleCreateInput {
+  """
+  Unique role name (slug).
+  """
+  name: String!
+
+  """
+  Display name.
+  """
+  displayName: String!
+
+  """
+  Description.
+  """
+  description: String
+
+  """
+  Roles to inherit from.
+  """
+  inherits: [String!]
+
+  """
+  Role permissions.
+  """
+  permissions: [RolePermissionInput!]!
+}
+
+"""
+Input for role permission.
+"""
+input RolePermissionInput {
+  """
+  Resource (product, order, *, product/*).
+  """
+  resource: String!
+
+  """
+  Actions (create, read, update, delete, *).
+  """
+  actions: [String!]!
+
+  """
+  Effect: ALLOW or DENY.
+  """
+  effect: PermissionEffect!
+}
+
+"""
+Input for updating a role.
+"""
+input RoleUpdateInput {
+  """
+  Role name to update.
+  """
+  name: String!
+
+  """
+  New display name.
+  """
+  displayName: String
+
+  """
+  New description.
+  """
+  description: String
+
+  """
+  Roles to inherit from.
+  """
+  inherits: [String!]
+
+  """
+  New permissions (completely replaces existing).
+  """
+  permissions: [RolePermissionInput!]
+}
+
+"""
+Input for deleting a role.
+"""
+input RoleDeleteInput {
+  """
+  Role name to delete.
+  """
+  name: String!
+}
+
+"""
+Input for changing member role.
+"""
+input ProjectMemberRoleChangeInput {
+  """
+  User ID.
+  """
+  userId: ID!
+
+  """
+  New role name.
+  """
+  newRole: String!
+}
+
+"""
+Input for removing a member.
+"""
+input ProjectMemberRemoveInput {
+  """
+  User ID to remove.
+  """
+  userId: ID!
+}
+
+"""
+Input for authorize check.
+"""
+input AuthorizeInput {
+  """
+  Resource to check.
+  """
+  resource: String!
+
+  """
+  Action to check.
+  """
+  action: String!
+}
+
+# ============================================================================
+# PAYLOADS
+# ============================================================================
+
+type RoleCreatePayload {
+  role: Role
+  userErrors: [GenericUserError!]!
+}
+
+type RoleUpdatePayload {
+  role: Role
+  userErrors: [GenericUserError!]!
+}
+
+type RoleDeletePayload {
+  deletedRoleName: String
+  userErrors: [GenericUserError!]!
+}
+
+type ProjectMemberRoleChangePayload {
+  member: ProjectMember
+  userErrors: [GenericUserError!]!
+}
+
+type ProjectMemberRemovePayload {
+  removedUserId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type AuthorizePayload {
+  """
+  Whether access is allowed.
+  """
+  allowed: Boolean!
+
+  """
+  Reason for denial (if denied).
+  """
+  deniedReason: String
+}
+
+# ============================================================================
+# QUERIES & MUTATIONS
+# ============================================================================
+
+extend type Query {
+  """
+  Check authorization for current user.
+  Used for server-side permission checks.
+  For client-side checks, use project.roles + user.role.
+  """
+  authorize(input: AuthorizeInput!): AuthorizePayload!
+}
+
+extend type Mutation {
+  """
+  Role management mutations.
+  """
+  roleMutation: RoleMutation!
+}
+
+"""
+Role mutations.
+"""
+type RoleMutation {
+  """
+  Create custom role.
+  Requires: project:admin permission.
+  """
+  roleCreate(input: RoleCreateInput!): RoleCreatePayload!
+
+  """
+  Update role.
+  Requires: project:admin permission.
+  System roles cannot be modified.
+  """
+  roleUpdate(input: RoleUpdateInput!): RoleUpdatePayload!
+
+  """
+  Delete custom role.
+  Requires: project:admin permission.
+  System roles cannot be deleted.
+  Roles with assigned users cannot be deleted.
+  """
+  roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
+
+  """
+  Change member's role.
+  Requires: project.team:write permission.
+  Cannot change own role.
+  Cannot assign role higher than own.
+  """
+  projectMemberRoleChange(input: ProjectMemberRoleChangeInput!): ProjectMemberRoleChangePayload!
+
+  """
+  Remove member from team.
+  Requires: project.team:remove permission.
+  Cannot remove self (use leaveProject).
+  Cannot remove project owner.
+  """
+  projectMemberRemove(input: ProjectMemberRemoveInput!): ProjectMemberRemovePayload!
+}

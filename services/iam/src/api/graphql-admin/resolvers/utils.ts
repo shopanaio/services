@@ -20,7 +20,7 @@ export function requireKernel(ctx: ServiceContext): Kernel {
 }
 
 export function requireContext(ctx: ServiceContext): ServiceContext {
-  if (!ctx.project) {
+  if (!ctx.projectId) {
     throw new NoKernelError();
   }
   return ctx;

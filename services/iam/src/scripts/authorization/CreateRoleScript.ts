@@ -107,8 +107,8 @@ export class CreateRoleScript extends BaseScript<
         displayName,
         description: description ?? "",
         isSystem: false,
+        inherits: [],
         permissions,
-        memberCount: 0,
       };
 
       this.logger.info(

@@ -64,6 +64,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "shared-units.graphql",
     "base.graphql",
     "user.graphql",
+    "role.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({
@@ -91,6 +92,8 @@ export async function startServer(serverConfig: ServerConfig) {
         requestId: request.id as string,
         kernel: kernel!,
         currentUser: request.currentUser,
+        projectId: request.projectId,
+        tenantId: request.tenantId,
       };
 
       // Set context in AsyncLocalStorage for all resolvers

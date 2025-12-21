@@ -5,6 +5,10 @@ import type { User } from "../../repositories/index.js";
 declare module "fastify" {
   interface FastifyRequest {
     currentUser: User | null;
+    /** Project ID from X-Project-Id header */
+    projectId: string | null;
+    /** Tenant ID (Casdoor org name) derived from projectId */
+    tenantId: string | null;
   }
 }
 
@@ -23,8 +27,24 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 }
 
 /**
+ * Extract project ID from X-Project-Id header
+ */
+function extractProjectId(header: string | string[] | undefined): string | null {
+  if (!header) return null;
+  return Array.isArray(header) ? header[0] : header;
+}
+
+/**
+ * Convert project ID to tenant org name (Casdoor organization)
+ */
+function projectIdToTenantId(projectId: string): string {
+  return `org-${projectId}`;
+}
+
+/**
  * Build admin context middleware
  * Extracts JWT from Authorization header and fetches current user
+ * Also extracts project context from X-Project-Id header
  */
 export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
   return async function adminContextMiddleware(
@@ -32,6 +52,15 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
     reply: FastifyReply
   ) {
     request.currentUser = null;
+    request.projectId = null;
+    request.tenantId = null;
+
+    // Extract project context from header
+    const projectId = extractProjectId(request.headers["x-project-id"]);
+    if (projectId) {
+      request.projectId = projectId;
+      request.tenantId = projectIdToTenantId(projectId);
+    }
 
     if (!config.repository) {
       return;

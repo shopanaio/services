@@ -41,13 +41,21 @@ export class ListRolesScript extends BaseScript<
 
         const isSystem = this.repository.authorization.isSystemRole(role.name);
 
+        // Extract inherited role names (remove tenant prefix)
+        const inherits = (role.roles ?? []).map((r) => {
+          // Role format: "tenantOrg/roleName" - extract just the roleName
+          const parts = r.split("/");
+          return parts[parts.length - 1];
+        });
+
         roleInfos.push({
           name: role.name,
           displayName: role.displayName,
           description: role.description,
           isSystem,
+          inherits,
           permissions: mappedPermissions,
-          memberCount: role.users?.length ?? 0,
+          createdAt: role.createdTime ? new Date(role.createdTime) : undefined,
         });
       }
 

@@ -46,14 +46,14 @@ export abstract class BaseScript<TParams, TResult> {
    * Helper: get current locale
    */
   protected getLocale(): string {
-    return getContext().locale ?? "uk";
+    return "en"; // Default locale
   }
 
   /**
    * Helper: get current project ID
    */
-  protected getProjectId(): string {
-    return getContext().project.id;
+  protected getProjectId(): string | null {
+    return getContext().projectId;
   }
 
   /**

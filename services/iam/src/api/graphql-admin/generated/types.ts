@@ -1,5 +1,4 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { User as CasdoorUser } from '@zaytra/casdoor-node-client-ext';
 import { ServiceContext } from '../../../context/index.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -8,7 +7,6 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
-export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -32,6 +30,22 @@ export type AuthToken = {
   expiresIn: Scalars['Int']['output'];
   /** Refresh token for obtaining new access tokens. */
   refreshToken: Scalars['String']['output'];
+};
+
+/** Input for authorize check. */
+export type AuthorizeInput = {
+  /** Action to check. */
+  action: Scalars['String']['input'];
+  /** Resource to check. */
+  resource: Scalars['String']['input'];
+};
+
+export type AuthorizePayload = {
+  __typename?: 'AuthorizePayload';
+  /** Whether access is allowed. */
+  allowed: Scalars['Boolean']['output'];
+  /** Reason for denial (if denied). */
+  deniedReason?: Maybe<Scalars['String']['output']>;
 };
 
 /** Currency codes according to ISO 4217 */
@@ -660,27 +674,278 @@ export enum LocaleCode {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  /** Role management mutations. */
+  roleMutation: RoleMutation;
   userMutation: UserMutation;
+};
+
+/** Permission effect. */
+export enum PermissionEffect {
+  /** Allow the action. */
+  Allow = 'ALLOW',
+  /** Deny the action (takes priority over ALLOW). */
+  Deny = 'DENY'
+}
+
+export type Project = {
+  __typename?: 'Project';
+  /**
+   * Available resources for role editor.
+   * Requires: project:admin permission.
+   */
+  availableResources: Array<ResourceDefinition>;
+  id: Scalars['ID']['output'];
+  /**
+   * Project team members with roles.
+   * Requires: project.team:read permission.
+   */
+  members: Array<ProjectMember>;
+  /**
+   * All project roles with permissions.
+   * Used by frontend to compute effective permissions.
+   */
+  roles: Array<Role>;
+};
+
+/** Project team member with assigned role. */
+export type ProjectMember = {
+  __typename?: 'ProjectMember';
+  /** Date when role was assigned. */
+  grantedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Who assigned the role. */
+  grantedBy?: Maybe<User>;
+  /** User ID. */
+  id: Scalars['ID']['output'];
+  /** Assigned role. */
+  role: Role;
+  /** User. */
+  user: User;
+};
+
+/** Input for removing a member. */
+export type ProjectMemberRemoveInput = {
+  /** User ID to remove. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ProjectMemberRemovePayload = {
+  __typename?: 'ProjectMemberRemovePayload';
+  removedUserId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for changing member role. */
+export type ProjectMemberRoleChangeInput = {
+  /** New role name. */
+  newRole: Scalars['String']['input'];
+  /** User ID. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ProjectMemberRoleChangePayload = {
+  __typename?: 'ProjectMemberRoleChangePayload';
+  member?: Maybe<ProjectMember>;
+  userErrors: Array<GenericUserError>;
 };
 
 export type Query = {
   __typename?: 'Query';
+  /**
+   * Check authorization for current user.
+   * Used for server-side permission checks.
+   * For client-side checks, use project.roles + user.role.
+   */
+  authorize: AuthorizePayload;
   userQuery: UserQuery;
 };
 
-/** Role assigned to a user. */
+
+export type QueryAuthorizeArgs = {
+  input: AuthorizeInput;
+};
+
+/** Resource definition for role editor UI. */
+export type ResourceDefinition = {
+  __typename?: 'ResourceDefinition';
+  /** Available actions for resource. */
+  actions: Array<Scalars['String']['output']>;
+  /** Display name. */
+  displayName?: Maybe<Scalars['String']['output']>;
+  /** Resource name (product, order, etc.). */
+  name: Scalars['String']['output'];
+  /** Service name (inventory, orders, etc.). */
+  service: Scalars['String']['output'];
+};
+
+/** Project role with permissions. */
 export type Role = {
   __typename?: 'Role';
+  /** Role creation date. */
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** Role description. */
   description?: Maybe<Scalars['String']['output']>;
   /** Human-readable display name. */
-  displayName?: Maybe<Scalars['String']['output']>;
-  /** Whether the role is enabled. */
-  isEnabled: Scalars['Boolean']['output'];
-  /** Role name/identifier. */
+  displayName: Scalars['String']['output'];
+  /**
+   * Roles this role inherits from (for hierarchy).
+   * E.g., manager inherits from support.
+   */
+  inherits: Array<Scalars['String']['output']>;
+  /** System role (owner, admin, manager, support, viewer) cannot be deleted. */
+  isSystem: Scalars['Boolean']['output'];
+  /** Unique role name (e.g.: owner, admin, content-editor). */
   name: Scalars['String']['output'];
-  /** Role owner (organization). */
-  owner: Scalars['String']['output'];
+  /** Role permissions. */
+  permissions: Array<RolePermission>;
+};
+
+/** Input for creating a role. */
+export type RoleCreateInput = {
+  /** Description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** Display name. */
+  displayName: Scalars['String']['input'];
+  /** Roles to inherit from. */
+  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Unique role name (slug). */
+  name: Scalars['String']['input'];
+  /** Role permissions. */
+  permissions: Array<RolePermissionInput>;
+};
+
+export type RoleCreatePayload = {
+  __typename?: 'RoleCreatePayload';
+  role?: Maybe<Role>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for deleting a role. */
+export type RoleDeleteInput = {
+  /** Role name to delete. */
+  name: Scalars['String']['input'];
+};
+
+export type RoleDeletePayload = {
+  __typename?: 'RoleDeletePayload';
+  deletedRoleName?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Role mutations. */
+export type RoleMutation = {
+  __typename?: 'RoleMutation';
+  /**
+   * Remove member from team.
+   * Requires: project.team:remove permission.
+   * Cannot remove self (use leaveProject).
+   * Cannot remove project owner.
+   */
+  projectMemberRemove: ProjectMemberRemovePayload;
+  /**
+   * Change member's role.
+   * Requires: project.team:write permission.
+   * Cannot change own role.
+   * Cannot assign role higher than own.
+   */
+  projectMemberRoleChange: ProjectMemberRoleChangePayload;
+  /**
+   * Create custom role.
+   * Requires: project:admin permission.
+   */
+  roleCreate: RoleCreatePayload;
+  /**
+   * Delete custom role.
+   * Requires: project:admin permission.
+   * System roles cannot be deleted.
+   * Roles with assigned users cannot be deleted.
+   */
+  roleDelete: RoleDeletePayload;
+  /**
+   * Update role.
+   * Requires: project:admin permission.
+   * System roles cannot be modified.
+   */
+  roleUpdate: RoleUpdatePayload;
+};
+
+
+/** Role mutations. */
+export type RoleMutationProjectMemberRemoveArgs = {
+  input: ProjectMemberRemoveInput;
+};
+
+
+/** Role mutations. */
+export type RoleMutationProjectMemberRoleChangeArgs = {
+  input: ProjectMemberRoleChangeInput;
+};
+
+
+/** Role mutations. */
+export type RoleMutationRoleCreateArgs = {
+  input: RoleCreateInput;
+};
+
+
+/** Role mutations. */
+export type RoleMutationRoleDeleteArgs = {
+  input: RoleDeleteInput;
+};
+
+
+/** Role mutations. */
+export type RoleMutationRoleUpdateArgs = {
+  input: RoleUpdateInput;
+};
+
+/** Role permission - access to resource with specific actions. */
+export type RolePermission = {
+  __typename?: 'RolePermission';
+  /**
+   * Allowed actions (e.g.: create, read, update, delete).
+   * Supports wildcard: *.
+   */
+  actions: Array<Scalars['String']['output']>;
+  /**
+   * Effect: ALLOW or DENY.
+   * DENY takes priority over ALLOW.
+   */
+  effect: PermissionEffect;
+  /**
+   * Resource name (e.g.: product, order, project/settings).
+   * Supports wildcards: *, product/*, order/*.
+   */
+  resource: Scalars['String']['output'];
+};
+
+/** Input for role permission. */
+export type RolePermissionInput = {
+  /** Actions (create, read, update, delete, *). */
+  actions: Array<Scalars['String']['input']>;
+  /** Effect: ALLOW or DENY. */
+  effect: PermissionEffect;
+  /** Resource (product, order, *, product/*). */
+  resource: Scalars['String']['input'];
+};
+
+/** Input for updating a role. */
+export type RoleUpdateInput = {
+  /** New description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** New display name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Roles to inherit from. */
+  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Role name to update. */
+  name: Scalars['String']['input'];
+  /** New permissions (completely replaces existing). */
+  permissions?: InputMaybe<Array<RolePermissionInput>>;
+};
+
+export type RoleUpdatePayload = {
+  __typename?: 'RoleUpdatePayload';
+  role?: Maybe<Role>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** User type representing admin users (CMS/backoffice). */
@@ -689,29 +954,32 @@ export type User = {
   /** URL to user's avatar image. */
   avatar?: Maybe<Scalars['String']['output']>;
   /** The date and time when the user was created. */
-  createdAt: Scalars['DateTime']['output'];
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** User's email address. */
   email: Scalars['Email']['output'];
   /** Whether the email has been verified. */
-  emailVerified: Scalars['Boolean']['output'];
+  emailVerified?: Maybe<Scalars['Boolean']['output']>;
   /** User's first name. */
   firstName?: Maybe<Scalars['String']['output']>;
   /** The globally unique ID of the user. */
   id: Scalars['ID']['output'];
   /** Whether the user has admin privileges. */
-  isAdmin: Scalars['Boolean']['output'];
+  isAdmin?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is deleted. */
-  isDeleted: Scalars['Boolean']['output'];
+  isDeleted?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is forbidden/banned. */
-  isForbidden: Scalars['Boolean']['output'];
+  isForbidden?: Maybe<Scalars['Boolean']['output']>;
   /** User's last name. */
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
   locale?: Maybe<LocaleCode>;
-  /** User's roles. */
-  roles: Array<Role>;
+  /**
+   * User's role name in current project context.
+   * Returns null if no project context.
+   */
+  role?: Maybe<Scalars['String']['output']>;
   /** The date and time when the user was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 /** A generic user error interface for mutation responses. */
@@ -997,6 +1265,9 @@ export type ResolversTypes = ResolversObject<{
   AuthToken: ResolverTypeWrapper<AuthToken>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  AuthorizeInput: AuthorizeInput;
+  AuthorizePayload: ResolverTypeWrapper<AuthorizePayload>;
+  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DimensionUnit: DimensionUnit;
@@ -1005,28 +1276,44 @@ export type ResolversTypes = ResolversObject<{
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Mutation: ResolverTypeWrapper<{}>;
-  Query: ResolverTypeWrapper<{}>;
-  Role: ResolverTypeWrapper<Role>;
-  Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  User: ResolverTypeWrapper<CasdoorUser>;
+  PermissionEffect: PermissionEffect;
+  Project: ResolverTypeWrapper<Project>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  ProjectMember: ResolverTypeWrapper<ProjectMember>;
+  ProjectMemberRemoveInput: ProjectMemberRemoveInput;
+  ProjectMemberRemovePayload: ResolverTypeWrapper<ProjectMemberRemovePayload>;
+  ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
+  ProjectMemberRoleChangePayload: ResolverTypeWrapper<ProjectMemberRoleChangePayload>;
+  Query: ResolverTypeWrapper<{}>;
+  ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
+  Role: ResolverTypeWrapper<Role>;
+  RoleCreateInput: RoleCreateInput;
+  RoleCreatePayload: ResolverTypeWrapper<RoleCreatePayload>;
+  RoleDeleteInput: RoleDeleteInput;
+  RoleDeletePayload: ResolverTypeWrapper<RoleDeletePayload>;
+  RoleMutation: ResolverTypeWrapper<RoleMutation>;
+  RolePermission: ResolverTypeWrapper<RolePermission>;
+  RolePermissionInput: RolePermissionInput;
+  RoleUpdateInput: RoleUpdateInput;
+  RoleUpdatePayload: ResolverTypeWrapper<RoleUpdatePayload>;
+  User: ResolverTypeWrapper<User>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
-  UserMutation: ResolverTypeWrapper<Omit<UserMutation, 'signIn' | 'signUp' | 'userUpdateEmail' | 'userUpdateProfile'> & { signIn: ResolversTypes['UserSignInPayload'], signUp: ResolversTypes['UserSignUpPayload'], userUpdateEmail: ResolversTypes['UserUpdateEmailPayload'], userUpdateProfile: ResolversTypes['UserUpdateProfilePayload'] }>;
-  UserQuery: ResolverTypeWrapper<Omit<UserQuery, 'current'> & { current?: Maybe<ResolversTypes['User']> }>;
+  UserMutation: ResolverTypeWrapper<UserMutation>;
+  UserQuery: ResolverTypeWrapper<UserQuery>;
   UserSignInInput: UserSignInInput;
-  UserSignInPayload: ResolverTypeWrapper<Omit<UserSignInPayload, 'user'> & { user?: Maybe<ResolversTypes['User']> }>;
+  UserSignInPayload: ResolverTypeWrapper<UserSignInPayload>;
   UserSignOutInput: UserSignOutInput;
   UserSignOutPayload: ResolverTypeWrapper<UserSignOutPayload>;
   UserSignUpInput: UserSignUpInput;
-  UserSignUpPayload: ResolverTypeWrapper<Omit<UserSignUpPayload, 'user'> & { user?: Maybe<ResolversTypes['User']> }>;
+  UserSignUpPayload: ResolverTypeWrapper<UserSignUpPayload>;
   UserTokenRefreshInput: UserTokenRefreshInput;
   UserTokenRefreshPayload: ResolverTypeWrapper<UserTokenRefreshPayload>;
   UserUpdateEmailInput: UserUpdateEmailInput;
-  UserUpdateEmailPayload: ResolverTypeWrapper<Omit<UserUpdateEmailPayload, 'user'> & { user?: Maybe<ResolversTypes['User']> }>;
+  UserUpdateEmailPayload: ResolverTypeWrapper<UserUpdateEmailPayload>;
   UserUpdatePasswordInput: UserUpdatePasswordInput;
   UserUpdatePasswordPayload: ResolverTypeWrapper<UserUpdatePasswordPayload>;
   UserUpdateProfileInput: UserUpdateProfileInput;
-  UserUpdateProfilePayload: ResolverTypeWrapper<Omit<UserUpdateProfilePayload, 'user'> & { user?: Maybe<ResolversTypes['User']> }>;
+  UserUpdateProfilePayload: ResolverTypeWrapper<UserUpdateProfilePayload>;
   WeightUnit: WeightUnit;
 }>;
 
@@ -1035,39 +1322,63 @@ export type ResolversParentTypes = ResolversObject<{
   AuthToken: AuthToken;
   String: Scalars['String']['output'];
   Int: Scalars['Int']['output'];
+  AuthorizeInput: AuthorizeInput;
+  AuthorizePayload: AuthorizePayload;
+  Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
   Email: Scalars['Email']['output'];
   GenericUserError: GenericUserError;
   JSON: Scalars['JSON']['output'];
   Mutation: {};
-  Query: {};
-  Role: Role;
-  Boolean: Scalars['Boolean']['output'];
-  User: CasdoorUser;
+  Project: Project;
   ID: Scalars['ID']['output'];
+  ProjectMember: ProjectMember;
+  ProjectMemberRemoveInput: ProjectMemberRemoveInput;
+  ProjectMemberRemovePayload: ProjectMemberRemovePayload;
+  ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
+  ProjectMemberRoleChangePayload: ProjectMemberRoleChangePayload;
+  Query: {};
+  ResourceDefinition: ResourceDefinition;
+  Role: Role;
+  RoleCreateInput: RoleCreateInput;
+  RoleCreatePayload: RoleCreatePayload;
+  RoleDeleteInput: RoleDeleteInput;
+  RoleDeletePayload: RoleDeletePayload;
+  RoleMutation: RoleMutation;
+  RolePermission: RolePermission;
+  RolePermissionInput: RolePermissionInput;
+  RoleUpdateInput: RoleUpdateInput;
+  RoleUpdatePayload: RoleUpdatePayload;
+  User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
-  UserMutation: Omit<UserMutation, 'signIn' | 'signUp' | 'userUpdateEmail' | 'userUpdateProfile'> & { signIn: ResolversParentTypes['UserSignInPayload'], signUp: ResolversParentTypes['UserSignUpPayload'], userUpdateEmail: ResolversParentTypes['UserUpdateEmailPayload'], userUpdateProfile: ResolversParentTypes['UserUpdateProfilePayload'] };
-  UserQuery: Omit<UserQuery, 'current'> & { current?: Maybe<ResolversParentTypes['User']> };
+  UserMutation: UserMutation;
+  UserQuery: UserQuery;
   UserSignInInput: UserSignInInput;
-  UserSignInPayload: Omit<UserSignInPayload, 'user'> & { user?: Maybe<ResolversParentTypes['User']> };
+  UserSignInPayload: UserSignInPayload;
   UserSignOutInput: UserSignOutInput;
   UserSignOutPayload: UserSignOutPayload;
   UserSignUpInput: UserSignUpInput;
-  UserSignUpPayload: Omit<UserSignUpPayload, 'user'> & { user?: Maybe<ResolversParentTypes['User']> };
+  UserSignUpPayload: UserSignUpPayload;
   UserTokenRefreshInput: UserTokenRefreshInput;
   UserTokenRefreshPayload: UserTokenRefreshPayload;
   UserUpdateEmailInput: UserUpdateEmailInput;
-  UserUpdateEmailPayload: Omit<UserUpdateEmailPayload, 'user'> & { user?: Maybe<ResolversParentTypes['User']> };
+  UserUpdateEmailPayload: UserUpdateEmailPayload;
   UserUpdatePasswordInput: UserUpdatePasswordInput;
   UserUpdatePasswordPayload: UserUpdatePasswordPayload;
   UserUpdateProfileInput: UserUpdateProfileInput;
-  UserUpdateProfilePayload: Omit<UserUpdateProfilePayload, 'user'> & { user?: Maybe<ResolversParentTypes['User']> };
+  UserUpdateProfilePayload: UserUpdateProfilePayload;
 }>;
 
 export type AuthTokenResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthToken'] = ResolversParentTypes['AuthToken']> = ResolversObject<{
   accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   expiresIn?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AuthorizePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthorizePayload'] = ResolversParentTypes['AuthorizePayload']> = ResolversObject<{
+  allowed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  deniedReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1091,37 +1402,113 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 }
 
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  roleMutation?: Resolver<ResolversTypes['RoleMutation'], ParentType, ContextType>;
   userMutation?: Resolver<ResolversTypes['UserMutation'], ParentType, ContextType>;
 }>;
 
+export type ProjectResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Project']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  availableResources?: Resolver<Array<ResolversTypes['ResourceDefinition']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+
+  members?: Resolver<Array<ResolversTypes['ProjectMember']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  roles?: Resolver<Array<ResolversTypes['Role']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProjectMemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMember'] = ResolversParentTypes['ProjectMember']> = ResolversObject<{
+  grantedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  role?: Resolver<ResolversTypes['Role'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProjectMemberRemovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMemberRemovePayload'] = ResolversParentTypes['ProjectMemberRemovePayload']> = ResolversObject<{
+  removedUserId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProjectMemberRoleChangePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMemberRoleChangePayload'] = ResolversParentTypes['ProjectMemberRoleChangePayload']> = ResolversObject<{
+  member?: Resolver<Maybe<ResolversTypes['ProjectMember']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
+  authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<QueryAuthorizeArgs, 'input'>>;
   userQuery?: Resolver<ResolversTypes['UserQuery'], ParentType, ContextType>;
 }>;
 
-export type RoleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Role'] = ResolversParentTypes['Role']> = ResolversObject<{
-  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ResourceDefinition'] = ResolversParentTypes['ResourceDefinition']> = ResolversObject<{
+  actions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  isEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  owner?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  service?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RoleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Role'] = ResolversParentTypes['Role']> = ResolversObject<{
+  createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  inherits?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  isSystem?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  permissions?: Resolver<Array<ResolversTypes['RolePermission']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RoleCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RoleCreatePayload'] = ResolversParentTypes['RoleCreatePayload']> = ResolversObject<{
+  role?: Resolver<Maybe<ResolversTypes['Role']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RoleDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RoleDeletePayload'] = ResolversParentTypes['RoleDeletePayload']> = ResolversObject<{
+  deletedRoleName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RoleMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RoleMutation'] = ResolversParentTypes['RoleMutation']> = ResolversObject<{
+  projectMemberRemove?: Resolver<ResolversTypes['ProjectMemberRemovePayload'], ParentType, ContextType, RequireFields<RoleMutationProjectMemberRemoveArgs, 'input'>>;
+  projectMemberRoleChange?: Resolver<ResolversTypes['ProjectMemberRoleChangePayload'], ParentType, ContextType, RequireFields<RoleMutationProjectMemberRoleChangeArgs, 'input'>>;
+  roleCreate?: Resolver<ResolversTypes['RoleCreatePayload'], ParentType, ContextType, RequireFields<RoleMutationRoleCreateArgs, 'input'>>;
+  roleDelete?: Resolver<ResolversTypes['RoleDeletePayload'], ParentType, ContextType, RequireFields<RoleMutationRoleDeleteArgs, 'input'>>;
+  roleUpdate?: Resolver<ResolversTypes['RoleUpdatePayload'], ParentType, ContextType, RequireFields<RoleMutationRoleUpdateArgs, 'input'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RolePermissionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RolePermission'] = ResolversParentTypes['RolePermission']> = ResolversObject<{
+  actions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  effect?: Resolver<ResolversTypes['PermissionEffect'], ParentType, ContextType>;
+  resource?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RoleUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RoleUpdatePayload'] = ResolversParentTypes['RoleUpdatePayload']> = ResolversObject<{
+  role?: Resolver<Maybe<ResolversTypes['Role']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type UserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   avatar?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['Email'], ParentType, ContextType>;
-  emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  emailVerified?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   firstName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  isAdmin?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  isDeleted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  isForbidden?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isAdmin?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  isDeleted?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  isForbidden?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   locale?: Resolver<Maybe<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
-  roles?: Resolver<Array<ResolversTypes['Role']>, ParentType, ContextType>;
-  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  role?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1194,13 +1581,24 @@ export type UserUpdateProfilePayloadResolvers<ContextType = ServiceContext, Pare
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   AuthToken?: AuthTokenResolvers<ContextType>;
+  AuthorizePayload?: AuthorizePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   Mutation?: MutationResolvers<ContextType>;
+  Project?: ProjectResolvers<ContextType>;
+  ProjectMember?: ProjectMemberResolvers<ContextType>;
+  ProjectMemberRemovePayload?: ProjectMemberRemovePayloadResolvers<ContextType>;
+  ProjectMemberRoleChangePayload?: ProjectMemberRoleChangePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  ResourceDefinition?: ResourceDefinitionResolvers<ContextType>;
   Role?: RoleResolvers<ContextType>;
+  RoleCreatePayload?: RoleCreatePayloadResolvers<ContextType>;
+  RoleDeletePayload?: RoleDeletePayloadResolvers<ContextType>;
+  RoleMutation?: RoleMutationResolvers<ContextType>;
+  RolePermission?: RolePermissionResolvers<ContextType>;
+  RoleUpdatePayload?: RoleUpdatePayloadResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   UserMutation?: UserMutationResolvers<ContextType>;
