@@ -16,6 +16,9 @@ import {
   GetCurrentProjectScript,
   type GetCurrentProjectParams,
   type GetCurrentProjectResult,
+  GetResourcesScript,
+  type GetResourcesParams,
+  type GetResourcesResult,
 } from "./scripts/index.js";
 
 const { service } = getServiceConfig("project");
@@ -47,6 +50,14 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action project.getCurrentProject registered");
+
+    this.broker.register<GetResourcesParams, GetResourcesResult>(
+      "getResources",
+      async () => {
+        return this.kernel.runScript(GetResourcesScript, undefined);
+      }
+    );
+    this.logger.debug("Action project.getResources registered");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
