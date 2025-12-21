@@ -6,40 +6,81 @@ Implementation of AWS IAM-style authorization model where:
 - Users register in the main organization
 - Child organization is created when project is created
 - Each service registers its resources and privileges in IAM
-- Casdoor manages access rights through Permissions
+- **Casdoor is the SINGLE SOURCE OF TRUTH** for all authorization data
 - Access checks happen via Casdoor `enforce` API
+
+## Key Principle: Casdoor as Source of Truth
+
+> **IMPORTANT**: All roles, permissions, user-role assignments, and access checks are stored and managed **ONLY in Casdoor**.
+> The IAM service is a **thin wrapper** that calls Casdoor REST API.
+> IAM service does NOT duplicate authorization data in its own database.
+
+**What lives in Casdoor:**
+- Organizations (projects = child organizations)
+- Users (synced from main organization)
+- Roles (owner, admin, manager, support, viewer, custom roles)
+- Permissions (Casbin policies: `p, role, project, resource, action`)
+- Grouping policies (`g, userId, roleName, projectId`)
+- Access enforcement via `enforce` API
+
+**What lives in IAM service database (minimal):**
+- `service_resources` — registry of resources for UI/validation (NOT for authorization)
+- `project_invitations` — invitation workflow (Casdoor doesn't support this)
+- `iam_audit_log` — audit trail for compliance
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                              IAM Service                                 │
+│                         CASDOOR (Source of Truth)                        │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                    Resource Registry                               │  │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐  │  │
-│  │  │   project   │ │  inventory  │ │   orders    │ │   media     │  │  │
-│  │  │  resources  │ │  resources  │ │  resources  │ │  resources  │  │  │
-│  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘  │  │
+│  │  Organizations (projects)                                          │  │
+│  │  Users                                                             │  │
+│  │  Roles (owner, admin, manager, support, viewer, custom)           │  │
+│  │  Permissions (Casbin policies)                                     │  │
+│  │  Grouping policies (user → role → project)                        │  │
+│  │  Model: RBAC with domains/tenants                                 │  │
+│  │  enforce() API for access checks                                   │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
-│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    ▲
+                                    │ REST API calls
+                                    │
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     IAM Service (Thin Wrapper)                           │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │                    Casdoor + Casbin                                │  │
-│  │  ├── Organizations                                                 │  │
-│  │  ├── Users                                                         │  │
-│  │  ├── Roles                                                         │  │
-│  │  ├── Permissions                                                   │  │
-│  │  ├── Model: RBAC with domains/tenants                             │  │
-│  │  └── Policies (Enforce)                                            │  │
+│  │  • Calls Casdoor API for all role/permission operations           │  │
+│  │  • Caches enforce() results in Redis (L1 + L2)                    │  │
+│  │  • Manages invitations (own DB table)                             │  │
+│  │  • Writes audit log (own DB table)                                │  │
+│  │  • Resource registry for UI/validation (own DB table)             │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
          ▲                    ▲                    ▲
          │                    │                    │
    RegisterResources      Authorize          AttachUserRole
+   (saves to IAM DB)   (calls Casdoor     (calls Casdoor API
+                        enforce API)       to add policy)
          │                    │                    │
 ┌────────┴────────┐  ┌───────┴───────┐  ┌────────┴────────┐
 │ Project Service │  │ Order Service │  │ Media Service   │
 └─────────────────┘  └───────────────┘  └─────────────────┘
 ```
+
+## What Each Operation Does
+
+| IAM Service Action | What it does |
+|--------------------|--------------|
+| `Authorize` | Calls Casdoor `enforce(userId, projectId, resource, action)` API |
+| `BatchAuthorize` | Calls Casdoor `batchEnforce()` API |
+| `CreateRole` | Calls Casdoor API to create Role + Permission policies |
+| `UpdateRole` | Calls Casdoor API to update Permission policies |
+| `DeleteRole` | Calls Casdoor API to delete Role + policies |
+| `AttachUserRole` | Calls Casdoor API to add grouping policy `g, userId, role, projectId` |
+| `DetachUserRole` | Calls Casdoor API to remove grouping policy |
+| `GetUserRole` | Calls Casdoor API to get user's roles in project |
+| `ListRoles` | Calls Casdoor API to list roles for organization |
+| `ProvisionProject` | Calls Casdoor API to create Organization + default Roles + policies |
 
 ## Casbin Access Model
 
@@ -479,90 +520,64 @@ broker.register("GetUserInvitations", async (params: {
 
 ---
 
-## Casdoor Synchronization and Reconciliation
+## Casdoor API Integration
 
-### Sync Strategy
+### Architecture: Casdoor is Source of Truth
 
-IAM service maintains its own database as source of truth, with Casdoor as the enforcement engine. Data flows:
+> **Casdoor stores ALL authorization data**. IAM service is a thin wrapper that calls Casdoor REST API.
 
 ```
-┌─────────────┐         ┌─────────────┐         ┌─────────────┐
-│  IAM DB     │ ──────► │  IAM Svc    │ ──────► │  Casdoor    │
-│  (source)   │         │  (sync)     │         │  (enforce)  │
-└─────────────┘         └─────────────┘         └─────────────┘
+┌─────────────┐         ┌─────────────┐
+│  IAM Svc    │ ──────► │  Casdoor    │
+│  (wrapper)  │  REST   │  (source    │
+│             │  API    │   of truth) │
+└─────────────┘         └─────────────┘
+       │
+       ▼
+┌─────────────┐
+│  Redis      │
+│  (cache)    │
+└─────────────┘
 ```
 
-### Sync Operations
+### Casdoor API Calls by Operation
 
-| Operation | IAM DB | Casdoor |
-|-----------|--------|---------|
-| CreateRole | Insert role | Create Casdoor role + policies |
-| UpdateRole | Update role | Update Casdoor policies |
-| DeleteRole | Delete role | Delete Casdoor role + policies |
-| AttachUserRole | Insert member | Add grouping policy (g) |
-| DetachUserRole | Update member | Remove grouping policy |
-
-### Reconciliation
-
-Periodic job to ensure consistency:
-
-```typescript
-/**
- * ReconcileProject - Sync IAM DB state to Casdoor for a project
- * Run on demand or scheduled
- */
-broker.register("ReconcileProject", async (params: {
-  projectId: string;
-}) => {
-  rolesFixed: number;
-  membersFixed: number;
-  policiesFixed: number;
-})
-
-/**
- * ReconcileAll - Full reconciliation across all projects
- * Run during maintenance window
- */
-broker.register("ReconcileAll", async () => {
-  projectsProcessed: number;
-  errorsCount: number;
-})
-```
+| IAM Action | Casdoor API Endpoint | Description |
+|------------|---------------------|-------------|
+| `Authorize` | `POST /api/enforce` | Check access with Casbin |
+| `BatchAuthorize` | `POST /api/batch-enforce` | Batch check access |
+| `CreateRole` | `POST /api/add-role` + `POST /api/add-permission` | Create role and its policies |
+| `UpdateRole` | `PUT /api/update-permission` | Update permission policies |
+| `DeleteRole` | `DELETE /api/delete-role` + policies | Remove role and policies |
+| `AttachUserRole` | `POST /api/add-policy` | Add `g, userId, role, projectId` |
+| `DetachUserRole` | `POST /api/remove-policy` | Remove grouping policy |
+| `GetUserRole` | `GET /api/get-roles` | Get user's roles for org |
+| `ListRoles` | `GET /api/get-roles` | List all roles in org |
+| `ProvisionProject` | `POST /api/add-organization` + roles + policies | Create org with defaults |
 
 ### Health Check
 
 ```typescript
 /**
- * HealthCheck - Verify Casdoor connectivity and model
+ * HealthCheck - Verify Casdoor connectivity
  */
 broker.register("HealthCheck", async () => {
   casdoorConnected: boolean;
   modelValid: boolean;
-  lastSyncAt: Date;
-  pendingSyncs: number;
 })
 ```
 
 ### Failure Handling
 
+> **If Casdoor is down, authorization doesn't work. Period.**
+> No fallbacks, no queues, no degraded mode.
+
 When Casdoor is unavailable:
+- All `Authorize` calls fail → requests denied
+- All role management operations fail
+- Service is effectively down for authorization
 
-1. **Writes**: Queue in Redis, retry with exponential backoff
-2. **Reads (Authorize)**: Fail-closed (deny access)
-3. **Recovery**: Process queue when Casdoor returns, then reconcile
-
-```typescript
-interface SyncQueueItem {
-  id: string;
-  operation: "createRole" | "updateRole" | "deleteRole" | "attachUser" | "detachUser";
-  payload: unknown;
-  projectId: string;
-  attempts: number;
-  createdAt: Date;
-  lastAttemptAt: Date;
-  error?: string;
-}
-```
+This is intentional — Casdoor is critical infrastructure, like the database.
 
 ---
 
@@ -1188,15 +1203,19 @@ roles:
 
 ### Broker Actions (AWS-style naming)
 
+> **All role/permission operations call Casdoor REST API.**
+> IAM service is a thin wrapper with caching.
+
 ```typescript
 // ============================================================================
-// Resource Management
+// Resource Management (stored in IAM DB for UI/validation)
 // ============================================================================
 
 /**
  * RegisterResources - Register service resources in IAM registry
  * Called by each service on startup
- * Similar to: AWS IAM resource registration
+ * Storage: IAM DB (service_resources table)
+ * NOT used for authorization - only for UI resource picker
  */
 broker.register("RegisterResources", async (params: {
   service: string;
@@ -1207,7 +1226,7 @@ broker.register("RegisterResources", async (params: {
 
 /**
  * ListResources - List all registered resources
- * Similar to: AWS IAM ListPolicies
+ * Storage: IAM DB
  */
 broker.register("ListResources", async (params: {
   service?: string;  // optional: filter by service
@@ -1220,13 +1239,18 @@ broker.register("ListResources", async (params: {
 })
 
 // ============================================================================
-// Authorization
+// Authorization (calls Casdoor API)
 // ============================================================================
 
 /**
  * Authorize - Check if user is authorized to perform action on resource
- * Similar to: AWS IAM IsAuthorized / STS GetCallerIdentity + policy check
- * Uses: Casdoor enforce API with RBAC domains model
+ *
+ * Implementation:
+ * 1. Check Redis cache (L1 in-memory → L2 Redis)
+ * 2. If miss → POST /api/enforce to Casdoor
+ * 3. Cache result, return
+ *
+ * Casdoor API: POST /api/enforce
  */
 broker.register("Authorize", async (params: {
   userId: string;
@@ -1242,7 +1266,8 @@ broker.register("Authorize", async (params: {
 
 /**
  * BatchAuthorize - Check multiple authorizations in one call
- * Similar to: AWS IAM BatchGetPolicy evaluation
+ *
+ * Casdoor API: POST /api/batch-enforce
  */
 broker.register("BatchAuthorize", async (params: {
   userId: string;
@@ -1260,12 +1285,17 @@ broker.register("BatchAuthorize", async (params: {
 })
 
 // ============================================================================
-// Role Management
+// Role Management (all operations via Casdoor API)
 // ============================================================================
 
 /**
  * CreateRole - Create a new custom role for a project
- * Similar to: AWS IAM CreateRole
+ *
+ * Casdoor API calls:
+ * 1. POST /api/add-role - create role in org
+ * 2. POST /api/add-permission - create Casbin policies for role
+ *
+ * Invalidates: role version in Redis cache
  */
 broker.register("CreateRole", async (params: {
   projectId: string;
@@ -1284,7 +1314,8 @@ broker.register("CreateRole", async (params: {
 
 /**
  * GetRole - Get role details
- * Similar to: AWS IAM GetRole
+ *
+ * Casdoor API: GET /api/get-role
  */
 broker.register("GetRole", async (params: {
   projectId: string;
@@ -1295,7 +1326,12 @@ broker.register("GetRole", async (params: {
 
 /**
  * UpdateRole - Update role permissions
- * Similar to: AWS IAM UpdateRole + PutRolePolicy
+ *
+ * Casdoor API:
+ * 1. DELETE /api/delete-permission - remove old policies
+ * 2. POST /api/add-permission - add new policies
+ *
+ * Invalidates: role version in Redis cache
  */
 broker.register("UpdateRole", async (params: {
   projectId: string;
@@ -1313,7 +1349,12 @@ broker.register("UpdateRole", async (params: {
 
 /**
  * DeleteRole - Delete a custom role
- * Similar to: AWS IAM DeleteRole
+ *
+ * Casdoor API:
+ * 1. DELETE /api/delete-permission - remove policies
+ * 2. DELETE /api/delete-role - remove role
+ *
+ * Invalidates: role version in Redis cache
  */
 broker.register("DeleteRole", async (params: {
   projectId: string;
@@ -1324,7 +1365,8 @@ broker.register("DeleteRole", async (params: {
 
 /**
  * ListRoles - List all roles in a project
- * Similar to: AWS IAM ListRoles
+ *
+ * Casdoor API: GET /api/get-roles?owner={orgName}
  */
 broker.register("ListRoles", async (params: {
   projectId: string;
@@ -1334,13 +1376,16 @@ broker.register("ListRoles", async (params: {
 })
 
 // ============================================================================
-// User-Role Assignment
+// User-Role Assignment (all operations via Casdoor API)
 // ============================================================================
 
 /**
  * AttachUserRole - Assign a role to a user for a project
- * Similar to: AWS IAM AttachUserPolicy / AddUserToGroup
- * Creates: g, userId, roleName, projectId (Casbin grouping policy)
+ *
+ * Casdoor API: POST /api/add-policy
+ * Adds grouping policy: g, userId, roleName, projectId
+ *
+ * Invalidates: user version in Redis cache
  */
 broker.register("AttachUserRole", async (params: {
   userId: string;
@@ -1353,7 +1398,11 @@ broker.register("AttachUserRole", async (params: {
 
 /**
  * DetachUserRole - Remove a role from a user
- * Similar to: AWS IAM DetachUserPolicy / RemoveUserFromGroup
+ *
+ * Casdoor API: POST /api/remove-policy
+ * Removes grouping policy: g, userId, roleName, projectId
+ *
+ * Invalidates: user version in Redis cache
  */
 broker.register("DetachUserRole", async (params: {
   userId: string;
@@ -1365,7 +1414,8 @@ broker.register("DetachUserRole", async (params: {
 
 /**
  * GetUserRole - Get user's role in a project
- * Similar to: AWS IAM ListAttachedUserPolicies
+ *
+ * Casdoor API: GET /api/get-roles-for-user
  */
 broker.register("GetUserRole", async (params: {
   userId: string;
@@ -1379,7 +1429,9 @@ broker.register("GetUserRole", async (params: {
 
 /**
  * ListProjectMembers - List all users with roles in a project
- * Similar to: AWS IAM GetGroup (list group members)
+ *
+ * Casdoor API: GET /api/get-users?owner={orgName}
+ * + GET /api/get-roles-for-user for each user
  */
 broker.register("ListProjectMembers", async (params: {
   projectId: string;
@@ -1395,13 +1447,19 @@ broker.register("ListProjectMembers", async (params: {
 })
 
 // ============================================================================
-// Project Provisioning
+// Project Provisioning (all operations via Casdoor API)
 // ============================================================================
 
 /**
  * ProvisionProject - Setup IAM resources for a new project
- * Creates organization, default roles, and assigns owner
- * Similar to: AWS Organizations CreateAccount + IAM setup
+ *
+ * Casdoor API calls:
+ * 1. POST /api/add-organization - create child org
+ * 2. POST /api/add-role (x5) - create predefined roles
+ * 3. POST /api/add-permission (for each role) - create Casbin policies
+ * 4. POST /api/add-policy - assign owner role to creator
+ *
+ * All data stored in Casdoor, not in IAM DB.
  */
 broker.register("ProvisionProject", async (params: {
   projectId: string;
@@ -1415,7 +1473,11 @@ broker.register("ProvisionProject", async (params: {
 
 /**
  * DeprovisionProject - Remove all IAM resources for a project
- * Similar to: AWS Organizations CloseAccount
+ *
+ * Casdoor API calls:
+ * 1. DELETE /api/delete-permission - remove all policies
+ * 2. DELETE /api/delete-role - remove all roles
+ * 3. DELETE /api/delete-organization - remove org
  */
 broker.register("DeprovisionProject", async (params: {
   projectId: string;
@@ -1488,11 +1550,23 @@ User → GET /graphql/inventory (x-project-name: my-store)
 ┌─────────────────────────────────────────────────────────────┐
 │  IAM Service                                                │
 │                                                             │
-│  1. Get user's role (GetUserRole)                          │
-│  2. Get permissions for that role (GetRole)                │
-│  3. Call Casdoor enforce API:                              │
-│     enforce(userId, projectId, "product", "read")          │
-│  4. Return result                                           │
+│  1. Check Redis cache (L1 in-memory → L2 Redis)            │
+│  2. If cache miss → call Casdoor REST API:                 │
+│     POST /api/enforce                                       │
+│     { userId, projectId, "product", "read" }               │
+│  3. Cache result in Redis                                   │
+│  4. Return { allowed: true/false }                         │
+└─────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  CASDOOR (Source of Truth)                                  │
+│                                                             │
+│  Casbin enforce():                                          │
+│  1. Look up grouping policy: g, userId, role, projectId    │
+│  2. Look up permission policy: p, role, projectId, *, *    │
+│  3. Match against request (product, read)                  │
+│  4. Return allow/deny                                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1508,33 +1582,64 @@ User A → projectCreate mutation
 │  1. Generate project ID                                     │
 │  2. Create project record in DB                             │
 │  3. Call iam.ProvisionProject                              │
-│     │                                                       │
-│     ▼                                                       │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  IAM Service: ProvisionProject                        │ │
-│  │                                                        │ │
-│  │  a) Create organization in Casdoor (for customers)    │ │
-│  │  b) Create predefined roles (CreateRole):             │ │
-│  │     - {project-id}:owner                              │ │
-│  │     - {project-id}:admin                              │ │
-│  │     - {project-id}:manager                            │ │
-│  │     - {project-id}:support                            │ │
-│  │     - {project-id}:viewer                             │ │
-│  │  c) Assign User A owner role (AttachUserRole)         │ │
-│  │     → Casbin: g, user-a, owner, proj-123              │ │
-│  │  d) Create Permission policies in Casdoor             │ │
-│  └───────────────────────────────────────────────────────┘ │
-│  4. Save integration (tenantId)                            │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  IAM Service: ProvisionProject                              │
+│  (All operations via Casdoor REST API)                      │
+│                                                             │
+│  1. POST /api/add-organization                              │
+│     → Create child org "proj-123" in Casdoor               │
+│                                                             │
+│  2. POST /api/add-role (x5)                                 │
+│     → Create roles: owner, admin, manager, support, viewer │
+│                                                             │
+│  3. POST /api/add-permission (for each role)                │
+│     → Create Casbin policies:                              │
+│        p, owner, proj-123, *, *                            │
+│        p, admin, proj-123, product, read                   │
+│        p, admin, proj-123, product, write                  │
+│        ... etc                                             │
+│                                                             │
+│  4. POST /api/add-policy                                    │
+│     → Add grouping policy: g, user-a, owner, proj-123      │
+│     → User A is now owner of proj-123                      │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  CASDOOR now has:                                           │
+│  • Organization: proj-123                                   │
+│  • Roles: owner, admin, manager, support, viewer           │
+│  • Policies: p, owner, proj-123, *, * (etc.)               │
+│  • Grouping: g, user-a, owner, proj-123                    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Storage
 
-### IAM Service Database
+### What is stored WHERE
+
+| Data | Storage | Notes |
+|------|---------|-------|
+| Organizations | **Casdoor** | Projects as child orgs |
+| Users | **Casdoor** | Synced from main org |
+| Roles | **Casdoor** | owner, admin, manager, support, viewer, custom |
+| Permissions (policies) | **Casdoor** | Casbin policies `p, role, project, resource, action` |
+| User-Role assignments | **Casdoor** | Grouping policies `g, userId, role, projectId` |
+| Resource registry | IAM DB | For UI/validation only |
+| Invitations | IAM DB | Casdoor doesn't support invitations |
+| Audit log | IAM DB | Compliance/security |
+
+### IAM Service Database (Minimal)
+
+> **NOTE**: Roles, permissions, and user-role assignments are NOT stored here.
+> They live in Casdoor. IAM DB only stores supporting data.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  service_resources                                          │
+│  service_resources (for UI/validation, NOT authorization)   │
 │  ├── id                                                     │
 │  ├── service_name (project, inventory, orders, ...)        │
 │  ├── resource_name (product, order, category, ...)         │
@@ -1543,27 +1648,58 @@ User A → projectCreate mutation
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│  project_roles                                              │
+│  project_invitations (Casdoor doesn't support this)         │
 │  ├── id                                                     │
 │  ├── project_id                                             │
-│  ├── role_name (owner, admin, custom-role-1)               │
-│  ├── display_name                                           │
-│  ├── description                                            │
-│  ├── permissions (jsonb)                                    │
-│  ├── is_system (true for owner/admin/manager)              │
-│  ├── created_by                                             │
-│  └── created_at                                             │
+│  ├── email                                                  │
+│  ├── role_name                                              │
+│  ├── status                                                 │
+│  ├── token                                                  │
+│  ├── invited_by                                             │
+│  ├── expires_at                                             │
+│  └── ...                                                    │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│  project_members                                            │
+│  iam_audit_log (for compliance)                             │
 │  ├── id                                                     │
+│  ├── event_type                                             │
+│  ├── actor_id                                               │
 │  ├── project_id                                             │
-│  ├── user_id                                                │
-│  ├── role_name                                              │
-│  ├── granted_by (user_id)                                  │
-│  ├── granted_at                                             │
-│  └── revoked_at (null if active)                           │
+│  ├── details (jsonb)                                        │
+│  └── ...                                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### What is stored in Casdoor
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Casdoor Organizations                                       │
+│  ├── shopana (main org for platform users)                  │
+│  ├── proj-123 (child org = project)                         │
+│  ├── proj-456 (child org = project)                         │
+│  └── ...                                                    │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Casdoor Roles (per organization/project)                    │
+│  ├── proj-123/owner                                         │
+│  ├── proj-123/admin                                         │
+│  ├── proj-123/manager                                       │
+│  ├── proj-123/support                                       │
+│  ├── proj-123/viewer                                        │
+│  └── proj-123/custom-role-1                                 │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Casdoor Permissions (Casbin policies)                       │
+│  ├── p, owner, proj-123, *, *                               │
+│  ├── p, admin, proj-123, product, read                      │
+│  ├── p, admin, proj-123, product, write                     │
+│  ├── g, user-alice, owner, proj-123                         │
+│  ├── g, user-bob, admin, proj-123                           │
+│  └── ...                                                    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1627,76 +1763,75 @@ async orderUpdate(parent, args, ctx) {
 
 ## Implementation Order
 
-### Phase 1: Basic Infrastructure
-1. [ ] Create Casbin model (RBAC with domains) in Casdoor
-2. [ ] Create tables in IAM service:
-   - [ ] `service_resources`
-   - [ ] `project_roles`
-   - [ ] `project_members`
-   - [ ] `project_invitations`
-   - [ ] `service_accounts`
-3. [ ] Implement `RegisterResources` action
-4. [ ] Implement `Authorize` action (uses Casdoor enforce API)
-5. [ ] Implement `BatchAuthorize` action
-6. [ ] Implement `GetUserRole` action
-7. [ ] Update `ProvisionTenant` → `ProvisionProject` with role creation
-8. [ ] Set up Redis cache for authorization results
-9. [ ] Implement cache invalidation on role changes
+### Phase 1: Casdoor Setup & Basic Infrastructure
+1. [ ] Configure Casbin model (RBAC with domains) in Casdoor admin panel
+2. [ ] Create IAM service tables (minimal, NOT for authorization):
+   - [ ] `service_resources` — resource registry for UI
+   - [ ] `project_invitations` — invitation workflow
+   - [ ] `iam_audit_log` — audit trail
+3. [ ] Implement Casdoor API client wrapper
+4. [ ] Implement `Authorize` action → calls Casdoor `enforce` API
+5. [ ] Implement `BatchAuthorize` action → calls Casdoor `batchEnforce` API
+6. [ ] Implement `GetUserRole` action → calls Casdoor API
+7. [ ] Update `ProvisionProject`:
+   - [ ] Create organization in Casdoor
+   - [ ] Create predefined roles in Casdoor (owner, admin, manager, support, viewer)
+   - [ ] Create Casbin policies for each role in Casdoor
+   - [ ] Assign owner role via Casdoor API
+8. [ ] Set up Redis cache for `enforce` results
+9. [ ] Implement cache invalidation (version-based)
 
 ### Phase 2: Service Integration
-1. [ ] Update Project Service for resource registration
-2. [ ] Update contextMiddleware to call Authorize
-3. [ ] Add `ctx.authorize()` and `ctx.checkPermission()` helpers
-4. [ ] Add resource registration to Inventory Service
-5. [ ] Add resource registration to Orders Service
-6. [ ] Create @Authorize decorator
-7. [ ] Create @AuthorizeAny decorator
+1. [ ] Implement `RegisterResources` action (saves to IAM DB for UI)
+2. [ ] Update Project Service for resource registration on startup
+3. [ ] Update contextMiddleware to call `Authorize`
+4. [ ] Add `ctx.authorize()` and `ctx.checkPermission()` helpers
+5. [ ] Add resource registration to Inventory, Orders, Media services
+6. [ ] Create `@Authorize` decorator
+7. [ ] Create `@AuthorizeAny` decorator
 
-### Phase 3: Team Management & Invitations
-1. [ ] GraphQL mutations: AttachUserRole, DetachUserRole
-2. [ ] Implement invitation flow:
+### Phase 3: Role Management (via Casdoor)
+1. [ ] Implement `CreateRole` → creates Role + Permission in Casdoor
+2. [ ] Implement `UpdateRole` → updates Permission in Casdoor
+3. [ ] Implement `DeleteRole` → deletes Role + policies in Casdoor
+4. [ ] Implement `ListRoles` → fetches from Casdoor
+5. [ ] Implement `AttachUserRole` → adds grouping policy in Casdoor
+6. [ ] Implement `DetachUserRole` → removes grouping policy in Casdoor
+7. [ ] Implement `ListProjectMembers` → fetches from Casdoor
+8. [ ] GraphQL mutations for role management
+
+### Phase 4: Team Invitations (IAM DB)
+1. [ ] Implement invitation flow (stored in IAM DB):
    - [ ] `CreateInvitation` action
-   - [ ] `AcceptInvitation` action
+   - [ ] `AcceptInvitation` action → then calls Casdoor to attach role
    - [ ] `DeclineInvitation` action
    - [ ] `RevokeInvitation` action
    - [ ] `ListInvitations` action
    - [ ] `GetUserInvitations` action
-3. [ ] Email notifications on invite (integration with email service)
-4. [ ] Handle invitation for non-registered users (signup with token)
-5. [ ] UI: Team page in admin panel
-6. [ ] UI: Pending invitations list
-7. [ ] Invitation expiration cron job
+2. [ ] Email notifications on invite
+3. [ ] Handle invitation for non-registered users
+4. [ ] Invitation expiration cron job
 
-### Phase 4: Service-to-Service Auth
+### Phase 5: Service-to-Service Auth
 1. [ ] Create service accounts configuration
 2. [ ] Implement `GetServiceToken` action
 3. [ ] Implement `AuthorizeService` action
 4. [ ] Update broker to pass service tokens in meta
 5. [ ] Add service token verification middleware
 
-### Phase 5: Custom Roles
-1. [ ] CRUD for custom roles (CreateRole, UpdateRole, DeleteRole)
-2. [ ] UI for creating custom roles
-3. [ ] Granular permission editor with resource/action matrix
-4. [ ] Role cloning from predefined roles
-
-### Phase 6: Casdoor Sync & Resilience
-1. [ ] Implement sync queue (Redis)
-2. [ ] Implement `ReconcileProject` action
-3. [ ] Implement `ReconcileAll` action
-4. [ ] Implement `HealthCheck` action
-5. [ ] Add retry logic with exponential backoff
-6. [ ] Add reconciliation cron job (daily)
-7. [ ] Monitoring and alerts for sync failures
+### Phase 6: Monitoring
+1. [ ] Implement `HealthCheck` action
+2. [ ] Add monitoring for Casdoor connectivity
+3. [ ] Alerts when Casdoor is unavailable
 
 ### Phase 7: Scopes (own vs all)
-1. [ ] Extend Authorize to support scope checking
-2. [ ] Update policies to use scope modifiers
-3. [ ] Add `resourceOwnerId` parameter to @Authorize decorator
+1. [ ] Extend `Authorize` to support scope checking
+2. [ ] Update Casdoor policies to use scope modifiers
+3. [ ] Add `resourceOwnerId` parameter to `@Authorize` decorator
 4. [ ] Update resolvers to pass ownership info
 
-### Phase 8: ABAC (optional)
-1. [ ] Extend Casbin model for attribute support
+### Phase 8: ABAC (optional, future)
+1. [ ] Extend Casbin model for attribute support in Casdoor
 2. [ ] Add ownership check (order.assignee == user.id)
 3. [ ] Add time restrictions (business hours)
 4. [ ] Add IP-based restrictions
