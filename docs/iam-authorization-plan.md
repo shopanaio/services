@@ -4,10 +4,11 @@
 
 Implementation of AWS IAM-style authorization model where:
 - Users register in the main organization
-- Child organization is created when project is created
+- Child organization is created when project is created (stored as `tenantId` in project integrations)
 - Each service registers its resources and privileges in IAM
 - **Casdoor is the SINGLE SOURCE OF TRUTH** for all authorization data
 - Access checks happen via Casdoor `enforce` API
+- **Calling services pass `tenantId` (from integrations) instead of computing it**
 
 ## Key Principle: Casdoor as Source of Truth
 
@@ -25,40 +26,103 @@ Implementation of AWS IAM-style authorization model where:
 
 **IAM service has NO database tables.** Resource definitions are fetched from services on demand.
 
+## Tenant Isolation Model
+
+### Physical Isolation via Casdoor Organizations
+
+Each project/tenant gets its own **isolated Casdoor Organization** with dedicated Model, Enforcer, Roles, and Permissions. This provides **physical isolation** at the Casdoor level, not just logical filtering.
+
+```
+Casdoor (admin org: shopana)
+│
+├── Tenant Organization: org-shop-a        ← Project A's isolated org
+│   ├── Model: model-rbac                  owner: org-shop-a
+│   ├── Enforcer: enforcer-main            owner: org-shop-a
+│   ├── Role: owner                        owner: org-shop-a
+│   ├── Role: admin                        owner: org-shop-a
+│   ├── Role: manager                      owner: org-shop-a
+│   ├── Role: support                      owner: org-shop-a
+│   ├── Role: viewer                       owner: org-shop-a
+│   └── Permissions...                     owner: org-shop-a
+│
+├── Tenant Organization: org-shop-b        ← Project B's isolated org
+│   ├── Model: model-rbac                  owner: org-shop-b
+│   ├── Enforcer: enforcer-main            owner: org-shop-b
+│   ├── Role: owner                        owner: org-shop-b  ← same name, different org!
+│   └── ...
+│
+└── ...
+```
+
+### How Isolation Works
+
+1. **Each entity has `owner`** — when a role `owner` is created for `org-shop-a`, its `owner = "org-shop-a"`
+2. **Casdoor filters by owner** — when querying roles for `org-shop-a`, Casdoor returns only roles with `owner = "org-shop-a"`
+3. **Enforcer is per-org** — enforce requests go through `org-shop-a/enforcer-main`, which sees only policies of its organization
+4. **Simple role names** — roles are named `owner`, `admin`, etc. (not `shop-a-owner`) because isolation is via `owner` field
+
+### Benefits of Physical Isolation
+
+| Aspect | Old (Logical) | New (Physical) |
+|--------|---------------|----------------|
+| Isolation | Filter by `domains` field | Separate Casdoor org per tenant |
+| Role names | `{projectId}-owner` | `owner` (simple) |
+| Risk of data leak | Higher (code error) | Lower (Casdoor enforces) |
+| Scalability | All in one org | Independent orgs |
+
+### tenantId Storage
+
+The `tenantId` (Casdoor organization name, e.g., `org-shop-a`) is:
+1. **Generated** during `ProvisionTenant` using `getTenantOrg(slug)`
+2. **Stored** in `project_integration` table:
+   ```typescript
+   {
+     projectId: "uuid-...",
+     type: "iam",
+     provider: "casdoor",
+     config: { tenantId: "org-shop-a" }
+   }
+   ```
+3. **Passed** by calling services to all IAM operations
+
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         CASDOOR (Source of Truth)                        │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  Organizations (projects)                                          │  │
-│  │  Users                                                             │  │
-│  │  Roles (owner, admin, manager, support, viewer, custom)           │  │
-│  │  Permissions (Casbin policies)                                     │  │
-│  │  Grouping policies (user → role → project)                        │  │
-│  │  Model: RBAC with domains/tenants                                 │  │
+│  │  Organizations (one per tenant, e.g., org-shop-a, org-shop-b)    │  │
+│  │  Each org contains:                                               │  │
+│  │    • Model: model-rbac (owner = org-xxx)                         │  │
+│  │    • Enforcer: enforcer-main (owner = org-xxx)                   │  │
+│  │    • Roles: owner, admin, manager, support, viewer (owner=org-xxx)│  │
+│  │    • Permissions (Casbin policies, owner = org-xxx)              │  │
+│  │    • Grouping policies (user → role)                             │  │
 │  │  enforce() API for access checks                                   │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
                                     ▲
-                                    │ REST API calls
+                                    │ REST API calls (with tenantId)
                                     │
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                     IAM Service (Thin Wrapper)                           │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  • Calls Casdoor API for all role/permission operations           │  │
-│  │  • Caches enforce() results in Redis (L1 + L2)                    │  │
+│  │  • Receives tenantId from calling service                         │  │
+│  │  • Calls Casdoor API with tenantId as org name                   │  │
+│  │  • Caches enforce() results (L1 in-memory)                       │  │
 │  │  • Fetches resource definitions from services on demand           │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
          ▲                    ▲                    ▲
          │                    │                    │
    ListResources        Authorize          AttachUserRole
-   (calls services)   (calls Casdoor     (calls Casdoor API
-                        enforce API)       to add policy)
+   (calls services)   (tenantId from      (tenantId from
+                       integrations)        integrations)
          │                    │                    │
 ┌────────┴────────┐  ┌───────┴───────┐  ┌────────┴────────┐
 │ Project Service │  │ Order Service │  │ Media Service   │
+│ (stores tenantId│  │ (reads tenantId│ │ (reads tenantId│
+│  in integration)│  │  from ctx)     │ │  from ctx)     │
 └─────────────────┘  └───────────────┘  └─────────────────┘
 ```
 
@@ -66,16 +130,49 @@ Implementation of AWS IAM-style authorization model where:
 
 | IAM Service Action | What it does |
 |--------------------|--------------|
-| `Authorize` | Calls Casdoor `enforce(userId, projectId, resource, action)` API |
+| `Authorize` | Calls Casdoor `enforce(tenantId, userId, resource, action)` API |
 | `BatchAuthorize` | Calls Casdoor `batchEnforce()` API |
 | `CreateRole` | Calls Casdoor API to create Role + Permission policies |
 | `UpdateRole` | Calls Casdoor API to update Permission policies |
 | `DeleteRole` | Calls Casdoor API to delete Role + policies |
-| `AttachUserRole` | Calls Casdoor API to add grouping policy `g, userId, role, projectId` |
+| `AttachUserRole` | Calls Casdoor API to add grouping policy `g, userId, role, tenantId` |
 | `DetachUserRole` | Calls Casdoor API to remove grouping policy |
-| `GetUserRole` | Calls Casdoor API to get user's roles in project |
+| `GetUserRole` | Calls Casdoor API to get user's roles in tenant |
 | `ListRoles` | Calls Casdoor API to list roles for organization |
-| `ProvisionProject` | Calls Casdoor API to create Organization + default Roles + policies |
+| `ProvisionTenant` | Calls Casdoor API to create Organization + default Roles + policies, returns `tenantId` |
+
+## Tenant ID Flow
+
+> **IMPORTANT**: `tenantId` is the Casdoor organization name (e.g., `org-my-shop`). It is:
+> 1. **Generated** during `ProvisionTenant` using `getTenantOrg(slug)` → `org-{slug}`
+> 2. **Stored** in `project_integration.config.tenantId` (type: `iam`, provider: `casdoor`)
+> 3. **Passed** by calling services to all IAM operations (not computed by IAM)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Project Creation                                            │
+│                                                             │
+│  1. ProjectCreateWorkflow calls iam.provisionTenant         │
+│  2. IAM generates tenantId = getTenantOrg(slug) = "org-xxx" │
+│  3. IAM creates Casdoor org, returns tenantId               │
+│  4. Project saves tenantId in project_integration           │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Authorization Check                                         │
+│                                                             │
+│  1. Service reads tenantId from project_integration         │
+│  2. Service calls iam.authorize({ tenantId, userId, ... })  │
+│  3. IAM uses tenantId directly (no computation)             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why not compute `tenantId` in IAM?
+
+1. **Decoupling** — IAM doesn't know how tenantId was generated
+2. **Flexibility** — tenantId format can change without updating IAM
+3. **Slug changes** — if project slug changes, tenantId in integrations stays the same
+4. **Single source** — tenantId is stored once, not computed multiple times
 
 ## Casbin Access Model
 
@@ -480,7 +577,8 @@ export function Authorize(options: AuthorizeOptions | AuthorizeOptions[]) {
       const [parent, resolverArgs, ctx, info] = args;
 
       // Ensure context has required data
-      if (!ctx.user?.id || !ctx.project?.id) {
+      // tenantId is loaded from project_integration during context setup
+      if (!ctx.user?.id || !ctx.project?.tenantId) {
         throw new UnauthorizedError('Authentication required');
       }
 
@@ -490,7 +588,7 @@ export function Authorize(options: AuthorizeOptions | AuthorizeOptions[]) {
       if (checks.length > 1) {
         const result = await ctx.broker.call('iam.BatchAuthorize', {
           userId: ctx.user.id,
-          projectId: ctx.project.id,
+          tenantId: ctx.project.tenantId,  // from project_integration
           requests: checks.map(opt => ({
             resource: opt.resource,
             action: opt.action,
@@ -507,7 +605,7 @@ export function Authorize(options: AuthorizeOptions | AuthorizeOptions[]) {
         const opt = checks[0];
         const result = await ctx.broker.call('iam.Authorize', {
           userId: ctx.user.id,
-          projectId: ctx.project.id,
+          tenantId: ctx.project.tenantId,  // from project_integration
           resource: opt.resource,
           action: opt.action,
           resourceId: resolveValue(opt.resourceId, resolverArgs),
@@ -551,13 +649,13 @@ export function AuthorizeAny(options: AuthorizeOptions[]) {
     descriptor.value = async function (...args: any[]) {
       const [parent, resolverArgs, ctx, info] = args;
 
-      if (!ctx.user?.id || !ctx.project?.id) {
+      if (!ctx.user?.id || !ctx.project?.tenantId) {
         throw new UnauthorizedError('Authentication required');
       }
 
       const result = await ctx.broker.call('iam.BatchAuthorize', {
         userId: ctx.user.id,
-        projectId: ctx.project.id,
+        tenantId: ctx.project.tenantId,  // from project_integration
         requests: options.map(opt => ({
           resource: opt.resource,
           action: opt.action,
@@ -587,6 +685,10 @@ export function AuthorizeAny(options: AuthorizeOptions[]) {
 export async function contextMiddleware(ctx: Context, next: () => Promise<void>) {
   // ... existing auth code ...
 
+  // Get tenantId from project integration
+  // ctx.project.tenantId is loaded from project_integration.config.tenantId
+  // during project resolution in the middleware
+
   // Add authorization helper to context
   ctx.authorize = async (resource: string, action: string, opts?: {
     resourceId?: string;
@@ -594,7 +696,7 @@ export async function contextMiddleware(ctx: Context, next: () => Promise<void>)
   }) => {
     const result = await ctx.broker.call('iam.Authorize', {
       userId: ctx.user.id,
-      projectId: ctx.project.id,
+      tenantId: ctx.project.tenantId,  // from project_integration
       resource,
       action,
       ...opts,
@@ -608,7 +710,7 @@ export async function contextMiddleware(ctx: Context, next: () => Promise<void>)
   ctx.checkPermission = async (resource: string, action: string): Promise<boolean> => {
     const result = await ctx.broker.call('iam.Authorize', {
       userId: ctx.user.id,
-      projectId: ctx.project.id,
+      tenantId: ctx.project.tenantId,  // from project_integration
       resource,
       action,
     });
@@ -881,15 +983,16 @@ broker.register("ListResources", async (params: {
  * Authorize - Check if user is authorized to perform action on resource
  *
  * Implementation:
- * 1. Check Redis cache (L1 in-memory → L2 Redis)
- * 2. If miss → POST /api/enforce to Casdoor
- * 3. Cache result, return
+ * 1. Use tenantId directly (passed from caller, stored in project_integration)
+ * 2. Check Redis cache (L1 in-memory → L2 Redis)
+ * 3. If miss → POST /api/enforce to Casdoor
+ * 4. Cache result, return
  *
  * Casdoor API: POST /api/enforce
  */
 broker.register("Authorize", async (params: {
   userId: string;
-  projectId: string;     // domain in RBAC
+  tenantId: string;      // Casdoor organization name from project_integration.config.tenantId
   resource: string;      // "product", "order", etc.
   action: string;        // "read", "write", etc.
   resourceId?: string;   // optional: specific resource ID (ARN)
@@ -906,7 +1009,7 @@ broker.register("Authorize", async (params: {
  */
 broker.register("BatchAuthorize", async (params: {
   userId: string;
-  projectId: string;
+  tenantId: string;      // Casdoor organization name from project_integration.config.tenantId
   requests: Array<{
     resource: string;
     action: string;
@@ -924,7 +1027,7 @@ broker.register("BatchAuthorize", async (params: {
 // ============================================================================
 
 /**
- * CreateRole - Create a new custom role for a project
+ * CreateRole - Create a new custom role for a tenant
  *
  * Casdoor API calls:
  * 1. POST /api/add-role - create role in org
@@ -933,18 +1036,18 @@ broker.register("BatchAuthorize", async (params: {
  * Invalidates: role version in Redis cache
  */
 broker.register("CreateRole", async (params: {
-  projectId: string;
-  roleName: string;
+  tenantId: string;        // Casdoor organization name from project_integration.config.tenantId
+  name: string;
   displayName: string;
   description?: string;
   permissions: Array<{
     resource: string;
     actions: string[];
-    effect: "allow" | "deny";
+    effect: "Allow" | "Deny";
   }>;
-  createdBy: string;
 }) => {
   role: Role;
+  userErrors: UserError[];
 })
 
 /**
@@ -953,7 +1056,7 @@ broker.register("CreateRole", async (params: {
  * Casdoor API: GET /api/get-role
  */
 broker.register("GetRole", async (params: {
-  projectId: string;
+  tenantId: string;        // Casdoor organization name from project_integration.config.tenantId
   roleName: string;
 }) => {
   role: Role | null;
@@ -969,17 +1072,18 @@ broker.register("GetRole", async (params: {
  * Invalidates: role version in Redis cache
  */
 broker.register("UpdateRole", async (params: {
-  projectId: string;
+  tenantId: string;        // Casdoor organization name from project_integration.config.tenantId
   roleName: string;
   permissions?: Array<{
     resource: string;
     actions: string[];
-    effect: "allow" | "deny";
+    effect: "Allow" | "Deny";
   }>;
   displayName?: string;
   description?: string;
 }) => {
   role: Role;
+  userErrors: UserError[];
 })
 
 /**
@@ -992,22 +1096,23 @@ broker.register("UpdateRole", async (params: {
  * Invalidates: role version in Redis cache
  */
 broker.register("DeleteRole", async (params: {
-  projectId: string;
+  tenantId: string;        // Casdoor organization name from project_integration.config.tenantId
   roleName: string;
 }) => {
   deleted: boolean;
+  userErrors: UserError[];
 })
 
 /**
- * ListRoles - List all roles in a project
+ * ListRoles - List all roles in a tenant
  *
  * Casdoor API: GET /api/get-roles?owner={orgName}
  */
 broker.register("ListRoles", async (params: {
-  projectId: string;
-  includeSystem?: boolean;  // include owner, admin, etc.
+  tenantId: string;        // Casdoor organization name from project_integration.config.tenantId
 }) => {
   roles: Role[];
+  userErrors: UserError[];
 })
 
 // ============================================================================
@@ -1015,70 +1120,72 @@ broker.register("ListRoles", async (params: {
 // ============================================================================
 
 /**
- * AttachUserRole - Assign a role to a user for a project
+ * AttachUserRole - Assign a role to a user for a tenant
  *
  * Casdoor API: POST /api/add-policy
- * Adds grouping policy: g, userId, roleName, projectId
+ * Adds grouping policy: g, userId, roleName, tenantId
  *
  * Invalidates: user version in Redis cache
  */
 broker.register("AttachUserRole", async (params: {
   userId: string;
-  projectId: string;
+  tenantId: string;    // Casdoor organization name from project_integration.config.tenantId
   roleName: string;
   grantedBy: string;
 }) => {
   attached: boolean;
+  userErrors: UserError[];
 })
 
 /**
  * DetachUserRole - Remove a role from a user
  *
  * Casdoor API: POST /api/remove-policy
- * Removes grouping policy: g, userId, roleName, projectId
+ * Removes grouping policy: g, userId, roleName, tenantId
  *
  * Invalidates: user version in Redis cache
  */
 broker.register("DetachUserRole", async (params: {
   userId: string;
-  projectId: string;
+  tenantId: string;    // Casdoor organization name from project_integration.config.tenantId
   revokedBy: string;
 }) => {
   detached: boolean;
+  userErrors: UserError[];
 })
 
 /**
- * GetUserRole - Get user's role in a project
+ * GetUserRole - Get user's role in a tenant
  *
  * Casdoor API: GET /api/get-roles-for-user
  */
 broker.register("GetUserRole", async (params: {
   userId: string;
-  projectId: string;
+  tenantId: string;    // Casdoor organization name from project_integration.config.tenantId
 }) => {
   role: string | null;
   permissions: string[];
-  grantedAt?: Date;
-  grantedBy?: string;
+  userErrors: UserError[];
 })
 
 /**
- * ListProjectMembers - List all users with roles in a project
+ * ListTenantMembers - List all users with roles in a tenant
  *
  * Casdoor API: GET /api/get-users?owner={orgName}
  * + GET /api/get-roles-for-user for each user
  */
-broker.register("ListProjectMembers", async (params: {
-  projectId: string;
+broker.register("ListTenantMembers", async (params: {
+  tenantId: string;    // Casdoor organization name from project_integration.config.tenantId
 }) => {
   members: Array<{
     userId: string;
     userName: string;
     email: string;
     role: string;
-    grantedAt: Date;
-    grantedBy: string;
+    grantedAt?: Date;
+    grantedBy?: string;
   }>;
+  userErrors: UserError[];
 })
 
 // ============================================================================
@@ -1086,38 +1193,44 @@ broker.register("ListProjectMembers", async (params: {
 // ============================================================================
 
 /**
- * ProvisionProject - Setup IAM resources for a new project
+ * ProvisionTenant - Setup IAM resources for a new project/tenant
+ *
+ * Generates tenantId = getTenantOrg(slug) = "org-{slug}"
  *
  * Casdoor API calls:
- * 1. POST /api/add-organization - create child org
- * 2. POST /api/add-role (x5) - create predefined roles
- * 3. POST /api/add-permission (for each role) - create Casbin policies
- * 4. POST /api/add-policy - assign owner role to creator
+ * 1. POST /api/add-organization - create child org with name = tenantId
+ * 2. Ensure Model exists for this org
+ * 3. Ensure Enforcer exists for this org
+ * 4. POST /api/add-role (x5) - create predefined roles (owner, admin, manager, support, viewer)
+ * 5. POST /api/add-permission (for each role) - create Casbin policies
+ * 6. POST /api/add-policy - assign owner role to creator
  *
  * All data stored in Casdoor, not in IAM DB.
+ * The returned tenantId should be stored in project_integration.config.tenantId
  */
-broker.register("ProvisionProject", async (params: {
-  projectId: string;
-  projectSlug: string;
-  projectName: string;
-  ownerId: string;
+broker.register("ProvisionTenant", async (params: {
+  slug: string;         // project slug, used to generate tenantId
+  displayName: string;  // project name for display
+  ownerId: string;      // user ID of project creator, will get owner role
 }) => {
-  tenantId: string;
-  roles: string[];
+  tenantId: string;     // Casdoor organization name, e.g., "org-my-shop"
+  roles: string[];      // ["owner", "admin", "manager", "support", "viewer"]
+  userErrors: UserError[];
 })
 
 /**
- * DeprovisionProject - Remove all IAM resources for a project
+ * DeprovisionTenant - Remove all IAM resources for a tenant
  *
  * Casdoor API calls:
  * 1. DELETE /api/delete-permission - remove all policies
  * 2. DELETE /api/delete-role - remove all roles
  * 3. DELETE /api/delete-organization - remove org
  */
-broker.register("DeprovisionProject", async (params: {
-  projectId: string;
+broker.register("DeprovisionTenant", async (params: {
+  tenantId: string;     // Casdoor organization name from project_integration.config.tenantId
 }) => {
   deprovisioned: boolean;
+  userErrors: UserError[];
 })
 ```
 
@@ -1174,7 +1287,8 @@ User → GET /graphql/inventory (x-project-name: my-store)
 ┌─────────────────────────────────────────────────────────────┐
 │  Gateway / Context Middleware                               │
 │  1. Authentication (iam.GetCurrentUser)                     │
-│  2. Get project by slug                                      │
+│  2. Get project by slug                                     │
+│  3. Get tenantId from project_integration                   │
 └─────────────────────────────────────────────────────────────┘
        │
        ▼
@@ -1182,10 +1296,10 @@ User → GET /graphql/inventory (x-project-name: my-store)
 │  Inventory Service Resolver                                 │
 │                                                             │
 │  async products(ctx) {                                      │
-│    // Check resource access                                 │
+│    // Check resource access using tenantId from context     │
 │    const access = await ctx.broker.call("iam.Authorize", { │
 │      userId: ctx.user.id,                                   │
-│      projectId: ctx.project.id,                             │
+│      tenantId: ctx.project.tenantId,  // from integrations │
 │      resource: "product",                                   │
 │      action: "read"                                         │
 │    });                                                      │
@@ -1202,12 +1316,13 @@ User → GET /graphql/inventory (x-project-name: my-store)
 ┌─────────────────────────────────────────────────────────────┐
 │  IAM Service                                                │
 │                                                             │
-│  1. Check Redis cache (L1 in-memory → L2 Redis)            │
-│  2. If cache miss → call Casdoor REST API:                 │
+│  1. Use tenantId directly (passed from caller)             │
+│  2. Check Redis cache (L1 in-memory → L2 Redis)            │
+│  3. If cache miss → call Casdoor REST API:                 │
 │     POST /api/enforce                                       │
-│     { userId, projectId, "product", "read" }               │
-│  3. Cache result in Redis                                   │
-│  4. Return { allowed: true/false }                         │
+│     { tenantId, userId, "product", "read" }                │
+│  4. Cache result in Redis                                   │
+│  5. Return { allowed: true/false }                         │
 └─────────────────────────────────────────────────────────────┘
        │
        ▼
@@ -1215,8 +1330,8 @@ User → GET /graphql/inventory (x-project-name: my-store)
 │  CASDOOR (Source of Truth)                                  │
 │                                                             │
 │  Casbin enforce():                                          │
-│  1. Look up grouping policy: g, userId, role, projectId    │
-│  2. Look up permission policy: p, role, projectId, *, *    │
+│  1. Look up grouping policy: g, userId, role, tenantId     │
+│  2. Look up permission policy: p, role, resource, action   │
 │  3. Match against request (product, read)                  │
 │  4. Return allow/deny                                       │
 └─────────────────────────────────────────────────────────────┘
@@ -1225,7 +1340,7 @@ User → GET /graphql/inventory (x-project-name: my-store)
 ## Flow: Project Creation with Owner Assignment
 
 ```
-User A → projectCreate mutation
+User A → projectCreate mutation (slug: "my-shop")
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -1233,39 +1348,59 @@ User A → projectCreate mutation
 │                                                             │
 │  1. Generate project ID                                     │
 │  2. Create project record in DB                             │
-│  3. Call iam.ProvisionProject                              │
+│  3. Call iam.ProvisionTenant({ slug, displayName, ownerId })│
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  IAM Service: ProvisionProject                              │
+│  IAM Service: ProvisionTenant                               │
 │  (All operations via Casdoor REST API)                      │
 │                                                             │
-│  1. POST /api/add-organization                              │
-│     → Create child org "proj-123" in Casdoor               │
+│  1. Generate tenantId = getTenantOrg(slug) = "org-my-shop" │
 │                                                             │
-│  2. POST /api/add-role (x5)                                 │
+│  2. POST /api/add-organization                              │
+│     → Create org "org-my-shop" in Casdoor                  │
+│                                                             │
+│  3. Ensure Model/Enforcer exist for this org               │
+│                                                             │
+│  4. POST /api/add-role (x5)                                 │
 │     → Create roles: owner, admin, manager, support, viewer │
 │                                                             │
-│  3. POST /api/add-permission (for each role)                │
+│  5. POST /api/add-permission (for each role)                │
 │     → Create Casbin policies:                              │
-│        p, owner, proj-123, *, *                            │
-│        p, admin, proj-123, product, read                   │
-│        p, admin, proj-123, product, write                  │
-│        ... etc                                             │
+│        p, owner, *, *                                       │
+│        p, admin, product, read                              │
+│        ... etc                                              │
 │                                                             │
-│  4. POST /api/add-policy                                    │
-│     → Add grouping policy: g, user-a, owner, proj-123      │
-│     → User A is now owner of proj-123                      │
+│  6. POST /api/add-policy                                    │
+│     → Add grouping policy: g, user-a, owner                │
+│     → User A is now owner                                   │
+│                                                             │
+│  7. Return { tenantId: "org-my-shop", roles: [...] }       │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ProjectCreateWorkflow (continued)                          │
+│                                                             │
+│  4. Save tenantId in project_integration:                   │
+│     {                                                       │
+│       projectId: "uuid-...",                                │
+│       type: "iam",                                          │
+│       provider: "casdoor",                                  │
+│       config: { tenantId: "org-my-shop" }                   │
+│     }                                                       │
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  CASDOOR now has:                                           │
-│  • Organization: proj-123                                   │
+│  • Organization: org-my-shop (owner field = org-my-shop)   │
+│  • Model: model-rbac (owner = org-my-shop)                 │
+│  • Enforcer: enforcer-main (owner = org-my-shop)           │
 │  • Roles: owner, admin, manager, support, viewer           │
-│  • Policies: p, owner, proj-123, *, * (etc.)               │
-│  • Grouping: g, user-a, owner, proj-123                    │
+│  • Policies: p, owner, *, * (etc.)                         │
+│  • Grouping: g, user-a, owner                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1275,50 +1410,77 @@ User A → projectCreate mutation
 
 | Data | Storage | Notes |
 |------|---------|-------|
-| Organizations | **Casdoor** | Projects as child orgs |
-| Users | **Casdoor** | Synced from main org |
-| Roles | **Casdoor** | owner, admin, manager, support, viewer, custom |
-| Permissions (policies) | **Casdoor** | Casbin policies `p, role, project, resource, action` |
-| User-Role assignments | **Casdoor** | Grouping policies `g, userId, role, projectId` |
+| Tenant Organizations | **Casdoor** | One org per project (e.g., `org-my-shop`) |
+| Model & Enforcer | **Casdoor** | Per tenant org (`model-rbac`, `enforcer-main`) |
+| Roles | **Casdoor** | Simple names: `owner`, `admin`, etc. (owner = tenant org) |
+| Permissions (policies) | **Casdoor** | Casbin policies `p, role, resource, action` (owner = tenant org) |
+| User-Role assignments | **Casdoor** | Grouping policies `g, userId, role` (owner = tenant org) |
+| tenantId reference | **project_integration** | Links project to Casdoor org |
 | Resource definitions | **Each service** | Fetched via `{service}.GetResources` on demand |
 
 ### IAM Service Database
 
 > **IAM service has NO database tables.**
 > All authorization data is in Casdoor.
+> `tenantId` is stored in `project_integration` (project service DB).
 > Resource definitions are fetched from services on demand.
 
-### What is stored in Casdoor
+### What is stored in Casdoor (Physical Isolation)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Casdoor Organizations                                       │
-│  ├── shopana (main org for platform users)                  │
-│  ├── proj-123 (child org = project)                         │
-│  ├── proj-456 (child org = project)                         │
+│  Casdoor Organizations (one per tenant)                      │
+│  ├── shopana (admin org for platform)                       │
+│  ├── org-my-shop (tenant org for project "my-shop")         │
+│  ├── org-acme-store (tenant org for project "acme-store")   │
 │  └── ...                                                    │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│  Casdoor Roles (per organization/project)                    │
-│  ├── proj-123/owner                                         │
-│  ├── proj-123/admin                                         │
-│  ├── proj-123/manager                                       │
-│  ├── proj-123/support                                       │
-│  ├── proj-123/viewer                                        │
-│  └── proj-123/custom-role-1                                 │
+│  Tenant: org-my-shop                                         │
+│  ├── Model: model-rbac           (owner: org-my-shop)       │
+│  ├── Enforcer: enforcer-main     (owner: org-my-shop)       │
+│  ├── Role: owner                 (owner: org-my-shop)       │
+│  ├── Role: admin                 (owner: org-my-shop)       │
+│  ├── Role: manager               (owner: org-my-shop)       │
+│  ├── Role: support               (owner: org-my-shop)       │
+│  ├── Role: viewer                (owner: org-my-shop)       │
+│  ├── Role: custom-role-1         (owner: org-my-shop)       │
+│  ├── Permission: perm-owner-*-allow    (owner: org-my-shop) │
+│  ├── Permission: perm-admin-product-allow                   │
+│  └── Grouping: g, user-alice, owner                         │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│  Casdoor Permissions (Casbin policies)                       │
-│  ├── p, owner, proj-123, *, *                               │
-│  ├── p, admin, proj-123, product, read                      │
-│  ├── p, admin, proj-123, product, write                     │
-│  ├── g, user-alice, owner, proj-123                         │
-│  ├── g, user-bob, admin, proj-123                           │
+│  Tenant: org-acme-store (completely isolated!)               │
+│  ├── Model: model-rbac           (owner: org-acme-store)    │
+│  ├── Role: owner                 (owner: org-acme-store)    │
+│  │   ↑ Same name "owner" but different org!                 │
 │  └── ...                                                    │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### What is stored in project_integration
+
+```typescript
+// project_integration table
+{
+  id: "uuid-...",
+  projectId: "project-uuid-...",
+  type: "iam",
+  provider: "casdoor",
+  config: {
+    tenantId: "org-my-shop"  // ← Casdoor org name
+  },
+  createdAt: "2024-...",
+  updatedAt: "2024-..."
+}
+```
+
+This `tenantId` is:
+- Generated once during `ProvisionTenant`
+- Never changes (even if project slug changes)
+- Passed to all IAM operations by calling services
 
 ## Access Check Decorator
 
@@ -1380,35 +1542,47 @@ async orderUpdate(parent, args, ctx) {
 
 ## Implementation Order
 
-### Phase 1: Casdoor Setup & Basic Infrastructure
-1. [ ] Configure Casbin model (RBAC with domains) in Casdoor admin panel
-2. [ ] Implement `Authorize` action → calls `sdk.enforce()`
-3. [ ] Implement `BatchAuthorize` action → calls `sdk.batchEnforce()`
-4. [ ] Implement `GetUserRole` action → calls `sdk.getRolesForUser()`
-5. [ ] Update `ProvisionProject`:
-   - [ ] Create organization in Casdoor
-   - [ ] Create predefined roles in Casdoor (owner, admin, manager, support, viewer)
-   - [ ] Create Casbin policies for each role in Casdoor
-   - [ ] Assign owner role via `sdk.addPolicy()`
-6. [ ] Set up Redis cache for `enforce` results
-7. [ ] Implement cache invalidation (version-based)
+### Phase 1: Casdoor Setup & Basic Infrastructure ✅ DONE
+1. [x] Configure Casbin model (RBAC) in Casdoor admin panel
+2. [x] Implement `Authorize` action → calls `sdk.enforce()`
+3. [x] Implement `BatchAuthorize` action → calls `sdk.batchEnforce()`
+4. [x] Implement `GetUserRole` action → calls `sdk.getRolesForUser()`
+5. [x] Update `ProvisionTenant`:
+   - [x] Create organization in Casdoor
+   - [x] Ensure Model/Enforcer exist for tenant org
+   - [x] Create predefined roles in Casdoor (owner, admin, manager, support, viewer)
+   - [x] Create Casbin policies for each role in Casdoor
+   - [x] Assign owner role to creator
+   - [x] Return tenantId for storage in project_integration
+6. [x] Set up in-memory cache for `enforce` results (L1)
+7. [x] Implement cache invalidation (version-based)
+
+### Phase 1.5: Tenant ID Refactoring ✅ DONE
+1. [x] Update all IAM scripts to accept `tenantId` instead of computing from `projectId`
+2. [x] Remove `getTenantOrg()` calls from authorization scripts (keep only in ProvisionTenant)
+3. [x] Update DTOs: `projectId` → `tenantId` in all params
+4. [x] Project service stores `tenantId` in `project_integration.config.tenantId`
+5. [x] Calling services read `tenantId` from integrations and pass to IAM
 
 ### Phase 2: Service Integration
 1. [ ] Implement `GetResources` action in each service (project, inventory, orders, media, etc.)
 2. [ ] Implement `ListResources` action in IAM (calls services, caches in memory)
-3. [ ] Update contextMiddleware to call `Authorize`
+3. [ ] Update contextMiddleware to:
+   - [ ] Load tenantId from project_integration
+   - [ ] Add tenantId to ctx.project
+   - [ ] Call `Authorize` with tenantId
 4. [ ] Add `ctx.authorize()` and `ctx.checkPermission()` helpers
 5. [ ] Create `@Authorize` decorator
 6. [ ] Create `@AuthorizeAny` decorator
 
-### Phase 3: Role Management (via Casdoor SDK)
-1. [ ] Implement `CreateRole` → `sdk.addRole()` + `sdk.addPermission()`
-2. [ ] Implement `UpdateRole` → `sdk.updatePermission()`
-3. [ ] Implement `DeleteRole` → `sdk.deleteRole()`
-4. [ ] Implement `ListRoles` → `sdk.getRoles()`
-5. [ ] Implement `AttachUserRole` → `sdk.addPolicy()`
-6. [ ] Implement `DetachUserRole` → `sdk.removePolicy()`
-7. [ ] Implement `ListProjectMembers` → `sdk.getUsers()` + `sdk.getRolesForUser()`
+### Phase 3: Role Management (via Casdoor SDK) ✅ DONE
+1. [x] Implement `CreateRole` → `sdk.addRole()` + `sdk.addPermission()`
+2. [x] Implement `UpdateRole` → `sdk.updatePermission()`
+3. [x] Implement `DeleteRole` → `sdk.deleteRole()`
+4. [x] Implement `ListRoles` → `sdk.getRoles()`
+5. [x] Implement `AttachUserRole` → `sdk.addPolicy()`
+6. [x] Implement `DetachUserRole` → `sdk.removePolicy()`
+7. [x] Implement `ListTenantMembers` → `sdk.getUsers()` + `sdk.getRolesForUser()`
 8. [ ] GraphQL mutations for role management
 
 ### Phase 4: Service-to-Service Auth
@@ -1423,13 +1597,18 @@ async orderUpdate(parent, args, ctx) {
 2. [ ] Add monitoring for Casdoor connectivity
 3. [ ] Alerts when Casdoor is unavailable
 
-### Phase 6: Scopes (own vs all)
+### Phase 6: L2 Cache (Redis)
+1. [ ] Add Redis L2 cache for enforce results
+2. [ ] Implement pub/sub for L1 cache invalidation across instances
+3. [ ] Add version counters in Redis
+
+### Phase 7: Scopes (own vs all)
 1. [ ] Extend `Authorize` to support scope checking
 2. [ ] Update Casdoor policies to use scope modifiers
 3. [ ] Add `resourceOwnerId` parameter to `@Authorize` decorator
 4. [ ] Update resolvers to pass ownership info
 
-### Phase 7: ABAC (optional, future)
+### Phase 8: ABAC (optional, future)
 1. [ ] Extend Casbin model for attribute support in Casdoor
 2. [ ] Add ownership check (order.assignee == user.id)
 3. [ ] Add time restrictions (business hours)
