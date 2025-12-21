@@ -23,10 +23,7 @@ Implementation of AWS IAM-style authorization model where:
 - Grouping policies (`g, userId, roleName, projectId`)
 - Access enforcement via `enforce` API
 
-**What lives in IAM service database (minimal):**
-- `service_resources` — registry of resources for UI/validation (NOT for authorization)
-- `project_invitations` — invitation workflow (Casdoor doesn't support this)
-- `iam_audit_log` — audit trail for compliance
+**IAM service has NO database tables.** Resource definitions are fetched from services on demand.
 
 ## Architecture
 
@@ -51,15 +48,13 @@ Implementation of AWS IAM-style authorization model where:
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │  • Calls Casdoor API for all role/permission operations           │  │
 │  │  • Caches enforce() results in Redis (L1 + L2)                    │  │
-│  │  • Manages invitations (own DB table)                             │  │
-│  │  • Writes audit log (own DB table)                                │  │
-│  │  • Resource registry for UI/validation (own DB table)             │  │
+│  │  • Fetches resource definitions from services on demand           │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
          ▲                    ▲                    ▲
          │                    │                    │
-   RegisterResources      Authorize          AttachUserRole
-   (saves to IAM DB)   (calls Casdoor     (calls Casdoor API
+   ListResources        Authorize          AttachUserRole
+   (calls services)   (calls Casdoor     (calls Casdoor API
                         enforce API)       to add policy)
          │                    │                    │
 ┌────────┴────────┐  ┌───────┴───────┐  ┌────────┴────────┐
@@ -393,144 +388,18 @@ broker.register("GetServiceToken", async (params: {
 
 ---
 
-## Team Invitations
-
-### Invitation Flow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Owner/Admin invites user@example.com to project            │
-│                                                             │
-│  1. Check inviter has permission: project.team:invite       │
-│  2. Create invitation record                                │
-│  3. Send invitation email                                   │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Invitation States                                          │
-│                                                             │
-│  pending   → User hasn't responded yet                      │
-│  accepted  → User accepted, role assigned                   │
-│  declined  → User declined invitation                       │
-│  expired   → TTL exceeded (7 days default)                  │
-│  revoked   → Admin cancelled invitation                     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Invitation for Non-Registered Users
-
-When inviting a user who doesn't have a Shopana account:
-
-```
-1. Create invitation with email (no userId yet)
-2. Send invitation email with signup link
-3. User clicks link → redirects to signup with invitation token
-4. After signup, token is validated and role is assigned
-5. User gains access to project
-```
-
-### Data Model
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  project_invitations                                        │
-│  ├── id                                                     │
-│  ├── project_id                                             │
-│  ├── email                                                  │
-│  ├── user_id (null until accepted by existing user)        │
-│  ├── role_name                                              │
-│  ├── status (pending | accepted | declined | expired | revoked)│
-│  ├── token (unique, for email link)                        │
-│  ├── invited_by (user_id)                                  │
-│  ├── invited_at                                             │
-│  ├── expires_at                                             │
-│  ├── accepted_at                                            │
-│  └── revoked_at                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### IAM Service API for Invitations
-
-```typescript
-/**
- * CreateInvitation - Invite user to project
- */
-broker.register("CreateInvitation", async (params: {
-  projectId: string;
-  email: string;
-  roleName: string;
-  invitedBy: string;
-  expiresInDays?: number;  // default: 7
-}) => {
-  invitation: Invitation;
-  token: string;
-})
-
-/**
- * AcceptInvitation - Accept invitation and join project
- */
-broker.register("AcceptInvitation", async (params: {
-  token: string;
-  userId: string;
-}) => {
-  success: boolean;
-  projectId: string;
-  role: string;
-})
-
-/**
- * DeclineInvitation - Decline invitation
- */
-broker.register("DeclineInvitation", async (params: {
-  token: string;
-}) => {
-  success: boolean;
-})
-
-/**
- * RevokeInvitation - Cancel pending invitation
- */
-broker.register("RevokeInvitation", async (params: {
-  invitationId: string;
-  revokedBy: string;
-}) => {
-  success: boolean;
-})
-
-/**
- * ListInvitations - List pending invitations for a project
- */
-broker.register("ListInvitations", async (params: {
-  projectId: string;
-  status?: "pending" | "all";
-}) => {
-  invitations: Invitation[];
-})
-
-/**
- * GetUserInvitations - Get invitations for a user by email
- */
-broker.register("GetUserInvitations", async (params: {
-  email: string;
-}) => {
-  invitations: Invitation[];
-})
-```
-
----
-
-## Casdoor API Integration
+## Casdoor SDK Integration
 
 ### Architecture: Casdoor is Source of Truth
 
-> **Casdoor stores ALL authorization data**. IAM service is a thin wrapper that calls Casdoor REST API.
+> **Casdoor stores ALL authorization data**. IAM service is a thin wrapper that uses Casdoor Node.js SDK.
+> **Casdoor SDK is already configured in IAM service** — no need to write a custom client.
 
 ```
 ┌─────────────┐         ┌─────────────┐
 │  IAM Svc    │ ──────► │  Casdoor    │
-│  (wrapper)  │  REST   │  (source    │
-│             │  API    │   of truth) │
+│  (wrapper)  │  SDK    │  (source    │
+│             │         │   of truth) │
 └─────────────┘         └─────────────┘
        │
        ▼
@@ -540,20 +409,23 @@ broker.register("GetUserInvitations", async (params: {
 └─────────────┘
 ```
 
-### Casdoor API Calls by Operation
+### Casdoor SDK Methods
 
-| IAM Action | Casdoor API Endpoint | Description |
-|------------|---------------------|-------------|
-| `Authorize` | `POST /api/enforce` | Check access with Casbin |
-| `BatchAuthorize` | `POST /api/batch-enforce` | Batch check access |
-| `CreateRole` | `POST /api/add-role` + `POST /api/add-permission` | Create role and its policies |
-| `UpdateRole` | `PUT /api/update-permission` | Update permission policies |
-| `DeleteRole` | `DELETE /api/delete-role` + policies | Remove role and policies |
-| `AttachUserRole` | `POST /api/add-policy` | Add `g, userId, role, projectId` |
-| `DetachUserRole` | `POST /api/remove-policy` | Remove grouping policy |
-| `GetUserRole` | `GET /api/get-roles` | Get user's roles for org |
-| `ListRoles` | `GET /api/get-roles` | List all roles in org |
-| `ProvisionProject` | `POST /api/add-organization` + roles + policies | Create org with defaults |
+> **NOTE**: Casdoor Node.js SDK (`casdoor-nodejs-sdk`) is already installed and configured in IAM service.
+> Use the existing SDK instance, do not create a new HTTP client.
+
+| IAM Action | Casdoor SDK Method | Description |
+|------------|-------------------|-------------|
+| `Authorize` | `sdk.enforce()` | Check access with Casbin |
+| `BatchAuthorize` | `sdk.batchEnforce()` | Batch check access |
+| `CreateRole` | `sdk.addRole()` + `sdk.addPermission()` | Create role and its policies |
+| `UpdateRole` | `sdk.updatePermission()` | Update permission policies |
+| `DeleteRole` | `sdk.deleteRole()` | Remove role and policies |
+| `AttachUserRole` | `sdk.addPolicy()` | Add `g, userId, role, projectId` |
+| `DetachUserRole` | `sdk.removePolicy()` | Remove grouping policy |
+| `GetUserRole` | `sdk.getRolesForUser()` | Get user's roles for org |
+| `ListRoles` | `sdk.getRoles()` | List all roles in org |
+| `ProvisionProject` | `sdk.addOrganization()` + roles + policies | Create org with defaults |
 
 ### Health Check
 
@@ -578,249 +450,6 @@ When Casdoor is unavailable:
 - Service is effectively down for authorization
 
 This is intentional — Casdoor is critical infrastructure, like the database.
-
----
-
-## Cache Strategy with Versioning
-
-### Overview
-
-Cache uses **version-based invalidation** instead of active cache deletion. This approach:
-- Avoids O(n) Redis operations when updating roles
-- Eliminates expensive `KEYS` pattern matching
-- Prevents race conditions during invalidation
-- Uses TTL for automatic memory cleanup
-
-### Cache Layers
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Request Flow                                               │
-│                                                             │
-│  Authorize ──► L1 Cache ──► L2 Cache ──► Casdoor           │
-│               (in-memory)   (Redis)      (enforce)          │
-│               TTL: 10s      TTL: 5min                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Cache Keys
-
-```
-# Role version (incremented on role changes)
-iam:version:role:{projectId}:{roleName} → 42
-
-# User membership version (incremented on attach/detach)
-iam:version:user:{projectId}:{userId} → 17
-
-# User role cache (includes version at cache time)
-iam:role:{projectId}:{userId} → {
-  role,
-  permissions,
-  grantedAt,
-  userVersion: 17,      # version when cached
-  roleVersion: 42       # version when cached
-}
-
-# Authorization result cache (includes versions)
-iam:auth:{projectId}:{userId}:{resource}:{action} → {
-  allowed,
-  checkedAt,
-  userVersion: 17,
-  roleVersion: 42
-}
-
-# Role definition cache
-iam:roledef:{projectId}:{roleName} → {
-  permissions,
-  isSystem,
-  version: 42
-}
-```
-
-### TTL Configuration
-
-| Cache Type | L1 (in-memory) | L2 (Redis) | Purpose |
-|------------|----------------|------------|---------|
-| Role version | - | No TTL | Permanent counter |
-| User version | - | No TTL | Permanent counter |
-| User role | 10s | 5min | Memory cleanup |
-| Auth result | 10s | 5min | Memory cleanup |
-| Role definition | 30s | 10min | Memory cleanup |
-
-**Note**: TTL is for memory management only. Version comparison handles freshness.
-
-### Version-Based Validation
-
-```typescript
-interface CachedAuthResult {
-  allowed: boolean;
-  checkedAt: Date;
-  userVersion: number;
-  roleVersion: number;
-}
-
-async function checkCache(
-  projectId: string,
-  userId: string,
-  roleName: string,
-  resource: string,
-  action: string
-): Promise<{ hit: boolean; allowed?: boolean }> {
-  const cacheKey = `iam:auth:${projectId}:${userId}:${resource}:${action}`;
-
-  // Try L1 cache first
-  const l1Result = this.l1Cache.get(cacheKey);
-  if (l1Result) {
-    const isValid = await this.validateVersions(projectId, userId, roleName, l1Result);
-    if (isValid) {
-      return { hit: true, allowed: l1Result.allowed };
-    }
-    // Version mismatch - invalidate L1
-    this.l1Cache.delete(cacheKey);
-  }
-
-  // Try L2 cache (Redis)
-  const l2Result = await this.redis.get(cacheKey);
-  if (l2Result) {
-    const parsed: CachedAuthResult = JSON.parse(l2Result);
-    const isValid = await this.validateVersions(projectId, userId, roleName, parsed);
-    if (isValid) {
-      // Populate L1
-      this.l1Cache.set(cacheKey, parsed, { ttl: 10_000 });
-      return { hit: true, allowed: parsed.allowed };
-    }
-    // Version mismatch - Redis TTL will clean up automatically
-  }
-
-  return { hit: false };
-}
-
-async function validateVersions(
-  projectId: string,
-  userId: string,
-  roleName: string,
-  cached: CachedAuthResult
-): Promise<boolean> {
-  // Batch fetch current versions (uses Redis MGET - single round trip)
-  const [currentUserVersion, currentRoleVersion] = await this.redis.mget([
-    `iam:version:user:${projectId}:${userId}`,
-    `iam:version:role:${projectId}:${roleName}`
-  ]);
-
-  return (
-    cached.userVersion === (parseInt(currentUserVersion) || 0) &&
-    cached.roleVersion === (parseInt(currentRoleVersion) || 0)
-  );
-}
-```
-
-### Version Increment Operations
-
-| Event | Operation | Redis Commands |
-|-------|-----------|----------------|
-| AttachUserRole | Increment user version | `INCR iam:version:user:{projectId}:{userId}` |
-| DetachUserRole | Increment user version | `INCR iam:version:user:{projectId}:{userId}` |
-| UpdateRole | Increment role version | `INCR iam:version:role:{projectId}:{roleName}` |
-| DeleteRole | Increment role version | `INCR iam:version:role:{projectId}:{roleName}` |
-
-**Cost**: 1 Redis operation per change (vs O(n) in deletion-based approach).
-
-### Implementation
-
-```typescript
-async function onAttachUserRole(projectId: string, userId: string) {
-  // Single Redis operation - increment version
-  await this.redis.incr(`iam:version:user:${projectId}:${userId}`);
-
-  // Invalidate local L1 cache for this user (optional, TTL will handle it)
-  this.l1Cache.delete(`role:${projectId}:${userId}`);
-
-  // Publish event for other instances to clear their L1 cache
-  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
-    type: 'user',
-    projectId,
-    userId
-  }));
-}
-
-async function onDetachUserRole(projectId: string, userId: string) {
-  await this.redis.incr(`iam:version:user:${projectId}:${userId}`);
-  this.l1Cache.delete(`role:${projectId}:${userId}`);
-
-  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
-    type: 'user',
-    projectId,
-    userId
-  }));
-}
-
-async function onUpdateRole(projectId: string, roleName: string) {
-  // Single Redis operation - no need to find all users with this role!
-  await this.redis.incr(`iam:version:role:${projectId}:${roleName}`);
-
-  // Invalidate role definition in L1
-  this.l1Cache.delete(`roledef:${projectId}:${roleName}`);
-
-  // Publish for L1 invalidation across instances
-  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
-    type: 'role',
-    projectId,
-    roleName
-  }));
-}
-
-async function onDeleteRole(projectId: string, roleName: string) {
-  // Same as update - version increment invalidates all cached results
-  await this.redis.incr(`iam:version:role:${projectId}:${roleName}`);
-
-  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
-    type: 'role',
-    projectId,
-    roleName
-  }));
-}
-```
-
-### L1 Cache Pub/Sub Listener
-
-Each service instance subscribes to invalidation events for L1 cache:
-
-```typescript
-// On service startup
-this.redis.subscribe('iam:cache:invalidate', (message) => {
-  const event = JSON.parse(message);
-
-  if (event.type === 'user') {
-    // Clear all L1 entries for this user (pattern match in memory is fast)
-    this.l1Cache.deleteByPrefix(`${event.projectId}:${event.userId}`);
-  } else if (event.type === 'role') {
-    // Clear role definition
-    this.l1Cache.delete(`roledef:${event.projectId}:${event.roleName}`);
-    // Note: Auth results for users with this role will be invalidated
-    // on next access via version check
-  }
-});
-```
-
-### Performance Comparison
-
-| Operation | Old (deletion-based) | New (version-based) |
-|-----------|---------------------|---------------------|
-| AttachUserRole | 2+ Redis ops + KEYS scan | 1 INCR |
-| DetachUserRole | 2+ Redis ops + KEYS scan | 1 INCR |
-| UpdateRole (1000 users) | 2000+ Redis ops | 1 INCR |
-| DeleteRole (1000 users) | 2000+ Redis ops | 1 INCR |
-| Cache check | 1 GET | 1 GET + 1 MGET (versions) |
-
-**Trade-off**: Cache check requires additional version fetch, but this is negligible compared to the massive reduction in write operations.
-
-### Memory Management
-
-TTL ensures automatic cleanup:
-- Stale cache entries expire naturally (5min for auth results)
-- Version counters are small (8 bytes) and don't need TTL
-- No manual garbage collection needed
-- Redis memory usage is predictable
 
 ---
 
@@ -996,9 +625,21 @@ export async function contextMiddleware(ctx: Context, next: () => Promise<void>)
 
 ### Service Resource Definition
 
-Each service registers its resources in IAM on startup:
+Each service exposes its resources via `GetResources` broker action. IAM fetches on demand.
 
 ```typescript
+// Each service implements this action
+broker.register("GetResources", async () => {
+  return {
+    service: "inventory",
+    resources: [
+      { name: "product", actions: ["read", "write", "delete", "publish"] },
+      { name: "category", actions: ["read", "write", "delete"] },
+      { name: "stock", actions: ["read", "write", "adjust"] }
+    ]
+  };
+});
+
 interface ServiceResourceDefinition {
   service: string;           // "project" | "inventory" | "orders" | ...
   resources: ResourceType[];
@@ -1208,25 +849,19 @@ roles:
 
 ```typescript
 // ============================================================================
-// Resource Management (stored in IAM DB for UI/validation)
+// Resource Discovery (fetched from services on demand)
 // ============================================================================
 
 /**
- * RegisterResources - Register service resources in IAM registry
- * Called by each service on startup
- * Storage: IAM DB (service_resources table)
- * NOT used for authorization - only for UI resource picker
- */
-broker.register("RegisterResources", async (params: {
-  service: string;
-  resources: ResourceType[];
-}) => {
-  registered: boolean;
-})
-
-/**
- * ListResources - List all registered resources
- * Storage: IAM DB
+ * ListResources - Collect resources from all services
+ *
+ * Implementation:
+ * 1. Call {service}.GetResources for each known service
+ * 2. Aggregate results
+ * 3. Cache in memory (TTL: 5 min)
+ *
+ * Used for: UI role editor, validation
+ * NOT used for authorization
  */
 broker.register("ListResources", async (params: {
   service?: string;  // optional: filter by service
@@ -1486,32 +1121,49 @@ broker.register("DeprovisionProject", async (params: {
 })
 ```
 
-## Flow: Service Resource Registration
+## Flow: Resource Discovery
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Service Startup (e.g., Inventory Service)                  │
+│  UI: Admin opens role editor                                 │
 │                                                             │
-│  onModuleInit() {                                           │
-│    await broker.call("iam.RegisterResources", {             │
-│      service: "inventory",                                  │
-│      resources: [                                           │
-│        { name: "product", actions: ["read", "write", ...] },│
-│        { name: "category", actions: ["read", "write", ...] }│
-│      ]                                                      │
-│    });                                                      │
-│  }                                                          │
+│  → Calls iam.ListResources                                  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  IAM Service                                                │
+│  IAM Service: ListResources                                  │
 │                                                             │
-│  1. Save resource definitions in registry                   │
-│  2. Update Casdoor model/permissions if needed              │
-│  3. Return confirmation                                      │
+│  1. Check in-memory cache (TTL: 5 min)                      │
+│  2. If miss → call each service:                            │
+│     • inventory.GetResources                                │
+│     • orders.GetResources                                   │
+│     • media.GetResources                                    │
+│     • project.GetResources                                  │
+│     • ...                                                   │
+│  3. Aggregate and cache results                             │
+│  4. Return combined resource list                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Each Service (e.g., Inventory)                             │
+│                                                             │
+│  broker.register("GetResources", async () => ({             │
+│    service: "inventory",                                    │
+│    resources: [                                             │
+│      { name: "product", actions: ["read", "write", ...] },  │
+│      { name: "category", actions: ["read", "write", ...] }, │
+│    ]                                                        │
+│  }));                                                       │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Benefits:**
+- No database tables in IAM service
+- Single source of truth — resources defined where they're used
+- Always up-to-date — no sync issues
+- Simpler deployments — no migrations needed
 
 ## Flow: Access Check
 
@@ -1628,48 +1280,13 @@ User A → projectCreate mutation
 | Roles | **Casdoor** | owner, admin, manager, support, viewer, custom |
 | Permissions (policies) | **Casdoor** | Casbin policies `p, role, project, resource, action` |
 | User-Role assignments | **Casdoor** | Grouping policies `g, userId, role, projectId` |
-| Resource registry | IAM DB | For UI/validation only |
-| Invitations | IAM DB | Casdoor doesn't support invitations |
-| Audit log | IAM DB | Compliance/security |
+| Resource definitions | **Each service** | Fetched via `{service}.GetResources` on demand |
 
-### IAM Service Database (Minimal)
+### IAM Service Database
 
-> **NOTE**: Roles, permissions, and user-role assignments are NOT stored here.
-> They live in Casdoor. IAM DB only stores supporting data.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  service_resources (for UI/validation, NOT authorization)   │
-│  ├── id                                                     │
-│  ├── service_name (project, inventory, orders, ...)        │
-│  ├── resource_name (product, order, category, ...)         │
-│  ├── actions (jsonb: ["read", "write", "delete"])          │
-│  └── registered_at                                          │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│  project_invitations (Casdoor doesn't support this)         │
-│  ├── id                                                     │
-│  ├── project_id                                             │
-│  ├── email                                                  │
-│  ├── role_name                                              │
-│  ├── status                                                 │
-│  ├── token                                                  │
-│  ├── invited_by                                             │
-│  ├── expires_at                                             │
-│  └── ...                                                    │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│  iam_audit_log (for compliance)                             │
-│  ├── id                                                     │
-│  ├── event_type                                             │
-│  ├── actor_id                                               │
-│  ├── project_id                                             │
-│  ├── details (jsonb)                                        │
-│  └── ...                                                    │
-└─────────────────────────────────────────────────────────────┘
-```
+> **IAM service has NO database tables.**
+> All authorization data is in Casdoor.
+> Resource definitions are fetched from services on demand.
 
 ### What is stored in Casdoor
 
@@ -1765,72 +1382,54 @@ async orderUpdate(parent, args, ctx) {
 
 ### Phase 1: Casdoor Setup & Basic Infrastructure
 1. [ ] Configure Casbin model (RBAC with domains) in Casdoor admin panel
-2. [ ] Create IAM service tables (minimal, NOT for authorization):
-   - [ ] `service_resources` — resource registry for UI
-   - [ ] `project_invitations` — invitation workflow
-   - [ ] `iam_audit_log` — audit trail
-3. [ ] Implement Casdoor API client wrapper
-4. [ ] Implement `Authorize` action → calls Casdoor `enforce` API
-5. [ ] Implement `BatchAuthorize` action → calls Casdoor `batchEnforce` API
-6. [ ] Implement `GetUserRole` action → calls Casdoor API
-7. [ ] Update `ProvisionProject`:
+2. [ ] Implement `Authorize` action → calls `sdk.enforce()`
+3. [ ] Implement `BatchAuthorize` action → calls `sdk.batchEnforce()`
+4. [ ] Implement `GetUserRole` action → calls `sdk.getRolesForUser()`
+5. [ ] Update `ProvisionProject`:
    - [ ] Create organization in Casdoor
    - [ ] Create predefined roles in Casdoor (owner, admin, manager, support, viewer)
    - [ ] Create Casbin policies for each role in Casdoor
-   - [ ] Assign owner role via Casdoor API
-8. [ ] Set up Redis cache for `enforce` results
-9. [ ] Implement cache invalidation (version-based)
+   - [ ] Assign owner role via `sdk.addPolicy()`
+6. [ ] Set up Redis cache for `enforce` results
+7. [ ] Implement cache invalidation (version-based)
 
 ### Phase 2: Service Integration
-1. [ ] Implement `RegisterResources` action (saves to IAM DB for UI)
-2. [ ] Update Project Service for resource registration on startup
+1. [ ] Implement `GetResources` action in each service (project, inventory, orders, media, etc.)
+2. [ ] Implement `ListResources` action in IAM (calls services, caches in memory)
 3. [ ] Update contextMiddleware to call `Authorize`
 4. [ ] Add `ctx.authorize()` and `ctx.checkPermission()` helpers
-5. [ ] Add resource registration to Inventory, Orders, Media services
-6. [ ] Create `@Authorize` decorator
-7. [ ] Create `@AuthorizeAny` decorator
+5. [ ] Create `@Authorize` decorator
+6. [ ] Create `@AuthorizeAny` decorator
 
-### Phase 3: Role Management (via Casdoor)
-1. [ ] Implement `CreateRole` → creates Role + Permission in Casdoor
-2. [ ] Implement `UpdateRole` → updates Permission in Casdoor
-3. [ ] Implement `DeleteRole` → deletes Role + policies in Casdoor
-4. [ ] Implement `ListRoles` → fetches from Casdoor
-5. [ ] Implement `AttachUserRole` → adds grouping policy in Casdoor
-6. [ ] Implement `DetachUserRole` → removes grouping policy in Casdoor
-7. [ ] Implement `ListProjectMembers` → fetches from Casdoor
+### Phase 3: Role Management (via Casdoor SDK)
+1. [ ] Implement `CreateRole` → `sdk.addRole()` + `sdk.addPermission()`
+2. [ ] Implement `UpdateRole` → `sdk.updatePermission()`
+3. [ ] Implement `DeleteRole` → `sdk.deleteRole()`
+4. [ ] Implement `ListRoles` → `sdk.getRoles()`
+5. [ ] Implement `AttachUserRole` → `sdk.addPolicy()`
+6. [ ] Implement `DetachUserRole` → `sdk.removePolicy()`
+7. [ ] Implement `ListProjectMembers` → `sdk.getUsers()` + `sdk.getRolesForUser()`
 8. [ ] GraphQL mutations for role management
 
-### Phase 4: Team Invitations (IAM DB)
-1. [ ] Implement invitation flow (stored in IAM DB):
-   - [ ] `CreateInvitation` action
-   - [ ] `AcceptInvitation` action → then calls Casdoor to attach role
-   - [ ] `DeclineInvitation` action
-   - [ ] `RevokeInvitation` action
-   - [ ] `ListInvitations` action
-   - [ ] `GetUserInvitations` action
-2. [ ] Email notifications on invite
-3. [ ] Handle invitation for non-registered users
-4. [ ] Invitation expiration cron job
-
-### Phase 5: Service-to-Service Auth
+### Phase 4: Service-to-Service Auth
 1. [ ] Create service accounts configuration
 2. [ ] Implement `GetServiceToken` action
 3. [ ] Implement `AuthorizeService` action
 4. [ ] Update broker to pass service tokens in meta
 5. [ ] Add service token verification middleware
 
-### Phase 6: Monitoring
+### Phase 5: Monitoring
 1. [ ] Implement `HealthCheck` action
 2. [ ] Add monitoring for Casdoor connectivity
 3. [ ] Alerts when Casdoor is unavailable
 
-### Phase 7: Scopes (own vs all)
+### Phase 6: Scopes (own vs all)
 1. [ ] Extend `Authorize` to support scope checking
 2. [ ] Update Casdoor policies to use scope modifiers
 3. [ ] Add `resourceOwnerId` parameter to `@Authorize` decorator
 4. [ ] Update resolvers to pass ownership info
 
-### Phase 8: ABAC (optional, future)
+### Phase 7: ABAC (optional, future)
 1. [ ] Extend Casbin model for attribute support in Casdoor
 2. [ ] Add ownership check (order.assignee == user.id)
 3. [ ] Add time restrictions (business hours)
@@ -1839,106 +1438,9 @@ async orderUpdate(parent, args, ctx) {
 ## Security
 
 1. **Caching**: Redis cache for Authorize results (TTL: 60 sec)
-2. **Audit log**: All role changes are logged
-3. **Rate limiting**: Limit on Authorize calls
-4. **Fail-closed**: Deny access when IAM is unavailable
-5. **Principle of least privilege**: New users get minimal role (viewer)
-
----
-
-## Audit Logging
-
-### Audit Events
-
-All IAM operations are logged for security and compliance:
-
-```typescript
-interface AuditEvent {
-  id: string;
-  timestamp: Date;
-  eventType: AuditEventType;
-  actorId: string;           // user or service that performed action
-  actorType: "user" | "service" | "system";
-  projectId: string;
-  targetUserId?: string;     // for user-related events
-  targetRole?: string;       // for role-related events
-  details: Record<string, unknown>;
-  ip?: string;
-  userAgent?: string;
-}
-
-type AuditEventType =
-  // Role events
-  | "role.created"
-  | "role.updated"
-  | "role.deleted"
-  // Member events
-  | "member.added"
-  | "member.removed"
-  | "member.role_changed"
-  // Invitation events
-  | "invitation.created"
-  | "invitation.accepted"
-  | "invitation.declined"
-  | "invitation.revoked"
-  | "invitation.expired"
-  // Authorization events (optional, high volume)
-  | "authorization.denied"
-  // Project events
-  | "project.provisioned"
-  | "project.deprovisioned";
-```
-
-### Data Model
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  iam_audit_log                                              │
-│  ├── id                                                     │
-│  ├── timestamp                                              │
-│  ├── event_type                                             │
-│  ├── actor_id                                               │
-│  ├── actor_type                                             │
-│  ├── project_id                                             │
-│  ├── target_user_id                                         │
-│  ├── target_role                                            │
-│  ├── details (jsonb)                                        │
-│  ├── ip                                                     │
-│  └── user_agent                                             │
-└─────────────────────────────────────────────────────────────┘
-
--- Index for common queries
-CREATE INDEX idx_audit_project_time ON iam_audit_log(project_id, timestamp DESC);
-CREATE INDEX idx_audit_actor ON iam_audit_log(actor_id, timestamp DESC);
-CREATE INDEX idx_audit_target_user ON iam_audit_log(target_user_id, timestamp DESC);
-```
-
-### IAM Service API for Audit
-
-```typescript
-/**
- * ListAuditEvents - Query audit log for a project
- */
-broker.register("ListAuditEvents", async (params: {
-  projectId: string;
-  eventTypes?: AuditEventType[];
-  actorId?: string;
-  targetUserId?: string;
-  from?: Date;
-  to?: Date;
-  limit?: number;  // default: 50, max: 200
-  cursor?: string;
-}) => {
-  events: AuditEvent[];
-  nextCursor?: string;
-})
-```
-
-### Retention Policy
-
-- **Hot storage** (PostgreSQL): 90 days
-- **Cold storage** (S3/archive): 2 years
-- **Deletion**: After retention period, unless legal hold
+2. **Rate limiting**: Limit on Authorize calls
+3. **Fail-closed**: Deny access when IAM is unavailable
+4. **Principle of least privilege**: New users get minimal role (viewer)
 
 ---
 
@@ -1975,24 +1477,6 @@ enum PermissionEffect {
   DENY
 }
 
-type ProjectInvitation {
-  id: ID!
-  email: String!
-  role: ProjectRole!
-  status: InvitationStatus!
-  invitedBy: User!
-  invitedAt: DateTime!
-  expiresAt: DateTime!
-}
-
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
-  REVOKED
-}
-
 type UserPermissions {
   role: ProjectRole
   canRead: [String!]!    # list of resources user can read
@@ -2023,25 +1507,6 @@ type Query {
     projectId: ID!
     includeSystem: Boolean = true
   ): [ProjectRole!]!
-
-  # List pending invitations (requires project.team:read)
-  projectInvitations(
-    projectId: ID!
-    status: InvitationStatus
-  ): [ProjectInvitation!]!
-
-  # List invitations for current user
-  myInvitations: [ProjectInvitation!]!
-
-  # Audit log (requires project:admin or owner)
-  auditLog(
-    projectId: ID!
-    eventTypes: [String!]
-    from: DateTime
-    to: DateTime
-    first: Int
-    after: String
-  ): AuditEventConnection!
 }
 ```
 
@@ -2049,18 +1514,6 @@ type Query {
 
 ```graphql
 type Mutation {
-  # Invite user to project (requires project.team:invite)
-  inviteToProject(input: InviteToProjectInput!): ProjectInvitation!
-
-  # Accept invitation (authenticated user)
-  acceptInvitation(token: String!): AcceptInvitationPayload!
-
-  # Decline invitation (authenticated user)
-  declineInvitation(token: String!): Boolean!
-
-  # Revoke invitation (requires project.team:invite)
-  revokeInvitation(invitationId: ID!): Boolean!
-
   # Change member role (requires project.team:write)
   changeMemberRole(input: ChangeMemberRoleInput!): ProjectMember!
 
@@ -2078,13 +1531,6 @@ type Mutation {
 
   # Leave project (self)
   leaveProject(projectId: ID!): Boolean!
-}
-
-input InviteToProjectInput {
-  projectId: ID!
-  email: String!
-  roleName: String!
-  message: String  # optional personal message in email
 }
 
 input ChangeMemberRoleInput {
@@ -2112,12 +1558,6 @@ input UpdateRoleInput {
   description: String
   permissions: [PermissionInput!]
 }
-
-type AcceptInvitationPayload {
-  success: Boolean!
-  project: Project
-  role: ProjectRole
-}
 ```
 
 ## Documentation References
@@ -2139,3 +1579,246 @@ type AcceptInvitationPayload {
 ### AWS IAM (for comparison)
 - [AWS IAM API Reference](https://docs.aws.amazon.com/IAM/latest/APIReference/) — CreateRole, AttachPolicy and others
 - [AWS IAM Best Practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html)
+
+---
+
+## Cache Strategy with Versioning
+
+### Overview
+
+Cache uses **version-based invalidation** instead of active cache deletion. This approach:
+- Avoids O(n) Redis operations when updating roles
+- Eliminates expensive `KEYS` pattern matching
+- Prevents race conditions during invalidation
+- Uses TTL for automatic memory cleanup
+
+### Cache Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Request Flow                                               │
+│                                                             │
+│  Authorize ──► L1 Cache ──► L2 Cache ──► Casdoor           │
+│               (in-memory)   (Redis)      (enforce)          │
+│               TTL: 10s      TTL: 5min                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Cache Keys
+
+```
+# Role version (incremented on role changes)
+iam:version:role:{projectId}:{roleName} → 42
+
+# User membership version (incremented on attach/detach)
+iam:version:user:{projectId}:{userId} → 17
+
+# User role cache (includes version at cache time)
+iam:role:{projectId}:{userId} → {
+  role,
+  permissions,
+  grantedAt,
+  userVersion: 17,      # version when cached
+  roleVersion: 42       # version when cached
+}
+
+# Authorization result cache (includes versions)
+iam:auth:{projectId}:{userId}:{resource}:{action} → {
+  allowed,
+  checkedAt,
+  userVersion: 17,
+  roleVersion: 42
+}
+
+# Role definition cache
+iam:roledef:{projectId}:{roleName} → {
+  permissions,
+  isSystem,
+  version: 42
+}
+```
+
+### TTL Configuration
+
+| Cache Type | L1 (in-memory) | L2 (Redis) | Purpose |
+|------------|----------------|------------|---------|
+| Role version | - | No TTL | Permanent counter |
+| User version | - | No TTL | Permanent counter |
+| User role | 10s | 5min | Memory cleanup |
+| Auth result | 10s | 5min | Memory cleanup |
+| Role definition | 30s | 10min | Memory cleanup |
+
+**Note**: TTL is for memory management only. Version comparison handles freshness.
+
+### Version-Based Validation
+
+```typescript
+interface CachedAuthResult {
+  allowed: boolean;
+  checkedAt: Date;
+  userVersion: number;
+  roleVersion: number;
+}
+
+async function checkCache(
+  projectId: string,
+  userId: string,
+  roleName: string,
+  resource: string,
+  action: string
+): Promise<{ hit: boolean; allowed?: boolean }> {
+  const cacheKey = `iam:auth:${projectId}:${userId}:${resource}:${action}`;
+
+  // Try L1 cache first
+  const l1Result = this.l1Cache.get(cacheKey);
+  if (l1Result) {
+    const isValid = await this.validateVersions(projectId, userId, roleName, l1Result);
+    if (isValid) {
+      return { hit: true, allowed: l1Result.allowed };
+    }
+    // Version mismatch - invalidate L1
+    this.l1Cache.delete(cacheKey);
+  }
+
+  // Try L2 cache (Redis)
+  const l2Result = await this.redis.get(cacheKey);
+  if (l2Result) {
+    const parsed: CachedAuthResult = JSON.parse(l2Result);
+    const isValid = await this.validateVersions(projectId, userId, roleName, parsed);
+    if (isValid) {
+      // Populate L1
+      this.l1Cache.set(cacheKey, parsed, { ttl: 10_000 });
+      return { hit: true, allowed: parsed.allowed };
+    }
+    // Version mismatch - Redis TTL will clean up automatically
+  }
+
+  return { hit: false };
+}
+
+async function validateVersions(
+  projectId: string,
+  userId: string,
+  roleName: string,
+  cached: CachedAuthResult
+): Promise<boolean> {
+  // Batch fetch current versions (uses Redis MGET - single round trip)
+  const [currentUserVersion, currentRoleVersion] = await this.redis.mget([
+    `iam:version:user:${projectId}:${userId}`,
+    `iam:version:role:${projectId}:${roleName}`
+  ]);
+
+  return (
+    cached.userVersion === (parseInt(currentUserVersion) || 0) &&
+    cached.roleVersion === (parseInt(currentRoleVersion) || 0)
+  );
+}
+```
+
+### Version Increment Operations
+
+| Event | Operation | Redis Commands |
+|-------|-----------|----------------|
+| AttachUserRole | Increment user version | `INCR iam:version:user:{projectId}:{userId}` |
+| DetachUserRole | Increment user version | `INCR iam:version:user:{projectId}:{userId}` |
+| UpdateRole | Increment role version | `INCR iam:version:role:{projectId}:{roleName}` |
+| DeleteRole | Increment role version | `INCR iam:version:role:{projectId}:{roleName}` |
+
+**Cost**: 1 Redis operation per change (vs O(n) in deletion-based approach).
+
+### Implementation
+
+```typescript
+async function onAttachUserRole(projectId: string, userId: string) {
+  // Single Redis operation - increment version
+  await this.redis.incr(`iam:version:user:${projectId}:${userId}`);
+
+  // Invalidate local L1 cache for this user (optional, TTL will handle it)
+  this.l1Cache.delete(`role:${projectId}:${userId}`);
+
+  // Publish event for other instances to clear their L1 cache
+  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
+    type: 'user',
+    projectId,
+    userId
+  }));
+}
+
+async function onDetachUserRole(projectId: string, userId: string) {
+  await this.redis.incr(`iam:version:user:${projectId}:${userId}`);
+  this.l1Cache.delete(`role:${projectId}:${userId}`);
+
+  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
+    type: 'user',
+    projectId,
+    userId
+  }));
+}
+
+async function onUpdateRole(projectId: string, roleName: string) {
+  // Single Redis operation - no need to find all users with this role!
+  await this.redis.incr(`iam:version:role:${projectId}:${roleName}`);
+
+  // Invalidate role definition in L1
+  this.l1Cache.delete(`roledef:${projectId}:${roleName}`);
+
+  // Publish for L1 invalidation across instances
+  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
+    type: 'role',
+    projectId,
+    roleName
+  }));
+}
+
+async function onDeleteRole(projectId: string, roleName: string) {
+  // Same as update - version increment invalidates all cached results
+  await this.redis.incr(`iam:version:role:${projectId}:${roleName}`);
+
+  await this.redis.publish('iam:cache:invalidate', JSON.stringify({
+    type: 'role',
+    projectId,
+    roleName
+  }));
+}
+```
+
+### L1 Cache Pub/Sub Listener
+
+Each service instance subscribes to invalidation events for L1 cache:
+
+```typescript
+// On service startup
+this.redis.subscribe('iam:cache:invalidate', (message) => {
+  const event = JSON.parse(message);
+
+  if (event.type === 'user') {
+    // Clear all L1 entries for this user (pattern match in memory is fast)
+    this.l1Cache.deleteByPrefix(`${event.projectId}:${event.userId}`);
+  } else if (event.type === 'role') {
+    // Clear role definition
+    this.l1Cache.delete(`roledef:${event.projectId}:${event.roleName}`);
+    // Note: Auth results for users with this role will be invalidated
+    // on next access via version check
+  }
+});
+```
+
+### Performance Comparison
+
+| Operation | Old (deletion-based) | New (version-based) |
+|-----------|---------------------|---------------------|
+| AttachUserRole | 2+ Redis ops + KEYS scan | 1 INCR |
+| DetachUserRole | 2+ Redis ops + KEYS scan | 1 INCR |
+| UpdateRole (1000 users) | 2000+ Redis ops | 1 INCR |
+| DeleteRole (1000 users) | 2000+ Redis ops | 1 INCR |
+| Cache check | 1 GET | 1 GET + 1 MGET (versions) |
+
+**Trade-off**: Cache check requires additional version fetch, but this is negligible compared to the massive reduction in write operations.
+
+### Memory Management
+
+TTL ensures automatic cleanup:
+- Stale cache entries expire naturally (5min for auth results)
+- Version counters are small (8 bytes) and don't need TTL
+- No manual garbage collection needed
+- Redis memory usage is predictable
