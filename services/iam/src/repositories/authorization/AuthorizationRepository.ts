@@ -464,6 +464,48 @@ export class AuthorizationRepository {
   }
 
   /**
+   * Get all members (users with roles) in a tenant
+   *
+   * @param tenantOrg - Tenant organization name
+   * @returns Array of user IDs with their role names
+   */
+  async getTenantMembers(tenantOrg: string): Promise<Array<{
+    userId: string;
+    roleName: string;
+    roleDisplayName: string;
+  }>> {
+    try {
+      const roles = await this.getRoles(tenantOrg);
+      const members: Array<{
+        userId: string;
+        roleName: string;
+        roleDisplayName: string;
+      }> = [];
+
+      for (const role of roles) {
+        if (!role.users || role.users.length === 0) continue;
+
+        for (const userFullName of role.users) {
+          // User format: "tenantOrg/userId" - extract just the userId
+          const parts = userFullName.split("/");
+          const userId = parts[parts.length - 1];
+
+          members.push({
+            userId,
+            roleName: role.name,
+            roleDisplayName: role.displayName ?? role.name,
+          });
+        }
+      }
+
+      return members;
+    } catch (error) {
+      console.error("[AuthorizationRepository] getTenantMembers error:", error);
+      return [];
+    }
+  }
+
+  /**
    * Attach user to a role in a tenant
    *
    * @param tenantOrg - Tenant organization name

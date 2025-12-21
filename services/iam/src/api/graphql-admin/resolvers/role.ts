@@ -10,6 +10,7 @@ import {
   ListRolesScript,
   GetUserRoleScript,
   AuthorizeScript,
+  ListTenantMembersScript,
 } from "../../../scripts/authorization/index.js";
 // Note: ListRolesScript is used in Project.roles resolver
 // AuthorizeScript is used in Query.authorize resolver
@@ -165,25 +166,39 @@ export const roleResolvers: Partial<Resolvers> = {
     members: async (parent, _args, ctx): Promise<ProjectMember[]> => {
       const tenantId = ctx.tenantId ?? `org-${parent.id}`;
 
-      // Get all roles to find users
+      // Get all members with their roles
+      const membersResult = await ctx.kernel.runScript(ListTenantMembersScript, {
+        tenantId,
+      });
+
+      if (membersResult.userErrors.length > 0) {
+        console.error("[Project.members] Error:", membersResult.userErrors);
+        return [];
+      }
+
+      // Get all roles for role details
       const rolesResult = await ctx.kernel.runScript(ListRolesScript, {
         tenantId,
       });
 
-      if (rolesResult.userErrors.length > 0) {
-        console.error("[Project.members] Error:", rolesResult.userErrors);
-        return [];
-      }
+      const rolesMap = new Map(
+        rolesResult.roles.map((r) => [r.name, mapRoleInfoToRole(r)])
+      );
 
-      // Collect all members from roles
-      // This is a simplified implementation - in production you would
-      // query the user repository for full user details
-      const members: ProjectMember[] = [];
-
-      for (const role of rolesResult.roles) {
-        // The members would come from role.users in a full implementation
-        // For now, this is a placeholder
-      }
+      // Map members to ProjectMember type
+      const members: ProjectMember[] = membersResult.members.map((m) => ({
+        id: m.userId,
+        user: { id: m.userId } as any, // Will be resolved by User resolver via federation
+        role: rolesMap.get(m.role) ?? {
+          name: m.role,
+          displayName: m.role,
+          isSystem: false,
+          inherits: [],
+          permissions: [],
+        },
+        grantedAt: m.grantedAt?.toISOString() ?? null,
+        grantedBy: m.grantedBy ? { id: m.grantedBy } as any : null,
+      }));
 
       return members;
     },

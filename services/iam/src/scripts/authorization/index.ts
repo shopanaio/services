@@ -6,6 +6,7 @@ export { GetUserRoleScript } from "./GetUserRoleScript.js";
 // User-role assignment scripts
 export { AttachUserRoleScript } from "./AttachUserRoleScript.js";
 export { DetachUserRoleScript } from "./DetachUserRoleScript.js";
+export { ListTenantMembersScript } from "./ListTenantMembersScript.js";
 
 // Role management scripts
 export { CreateRoleScript } from "./CreateRoleScript.js";
