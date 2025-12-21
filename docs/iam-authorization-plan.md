@@ -202,43 +202,73 @@ Casbin supports multiple access control models. For SaaS multi-tenant applicatio
 
 ```ini
 [request_definition]
-r = sub, dom, obj, act
+r = sub, obj, act
 
 [policy_definition]
-p = sub, dom, obj, act
+p = sub, obj, act, eft
 
 [role_definition]
-g = _, _, _
+g = _, _
 
 [policy_effect]
-e = some(where (p.eft == allow))
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 
 [matchers]
-m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj == p.obj && r.act == p.act
+m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 ```
 
 Where:
 - `sub` — subject (user ID)
-- `dom` — domain (project ID)
 - `obj` — object (resource: product, order, etc.)
 - `act` — action (read, write, delete, etc.)
+- `eft` — effect (allow or deny)
+
+**Key Features:**
+- **No domains** — tenant isolation via separate Casdoor organizations
+- **keyMatch** — wildcard support for resources and actions
+- **Deny override** — deny rules take precedence over allow
+- **Role hierarchy** — via `g = _, _` (up to 10 levels)
 
 ### Policy Examples
 
 ```csv
-# Roles in project proj-123
-g, user-alice, owner, proj-123
-g, user-bob, admin, proj-123
-g, user-charlie, viewer, proj-123
+# User-role assignments (in tenant org-my-shop)
+g, user-alice, owner
+g, user-bob, admin
+g, user-charlie, viewer
 
-# Policies for roles
-p, owner, proj-123, *, *
-p, admin, proj-123, product, read
-p, admin, proj-123, product, write
-p, admin, proj-123, order, read
-p, admin, proj-123, order, write
-p, viewer, proj-123, *, read
+# Role hierarchy (owner includes admin, admin includes manager, etc.)
+# Stored in role.roles[] field in Casdoor
+owner.roles = [admin]
+admin.roles = [manager]
+manager.roles = [support]
+support.roles = [viewer]
+
+# Permission policies with keyMatch wildcards
+p, viewer, *, read, allow           # read everything
+p, support, order/*, write, allow   # write orders
+p, support, customer/*, write, allow
+p, manager, product/*, write, allow # write products
+p, manager, product/*, publish, allow
+p, manager, category/*, write, allow
+p, manager, media/*, upload, allow
+p, manager, order/*, fulfill, allow
+p, admin, *, *, allow               # full access
+p, admin, project, delete, deny     # except project delete
+p, admin, project/billing, *, deny  # except billing
+p, owner, *, *, allow               # full access (no deny)
 ```
+
+### Wildcard Patterns (keyMatch)
+
+| Pattern | Request | Match |
+|---------|---------|-------|
+| `*` | `product` | ✓ |
+| `*` | `order` | ✓ |
+| `product/*` | `product` | ✓ |
+| `product/*` | `product/123` | ✓ |
+| `product/*` | `product/123/variant` | ✓ |
+| `order/*` | `product` | ✗ |
 
 ### Extension to ABAC (future)
 
@@ -259,63 +289,84 @@ Example ABAC use cases:
 
 ## Permission Inheritance and Wildcards
 
-### Wildcard Resolution
+### keyMatch Wildcard Resolution
 
-The system supports wildcards (`*`) for resources and actions. Resolution follows these rules:
+The system uses Casbin's `keyMatch` function for pattern matching:
 
-1. **Exact match first**: `product:read` takes priority over `*:read` or `product:*`
-2. **Resource wildcard**: `*:read` grants read access to all resources
-3. **Action wildcard**: `product:*` grants all actions on product
-4. **Full wildcard**: `*:*` grants all access (owner role)
+| Pattern | Matches | Does NOT Match |
+|---------|---------|----------------|
+| `*` | `product`, `order`, anything | - |
+| `product/*` | `product`, `product/123`, `product/123/variant` | `order` |
+| `order/*` | `order`, `order/456` | `product` |
 
-### Hierarchical Resources
+**Note**: `keyMatch` matches path-style patterns. Use `/` as separator, not `.`
 
-Resources can have hierarchies using dot notation:
+### Resource Naming Convention
+
+Resources use slash notation for hierarchy:
 
 ```
 project
-project.settings
-project.billing
-project.team
+project/settings
+project/billing
+project/team
 order
-order.comment
-order.tag
+order/comment
+order/tag
+product
+product/variant
 ```
 
-**Inheritance rules:**
-- Permission on parent does NOT automatically grant access to children
-- Each sub-resource requires explicit permission
-- Example: `project:write` does NOT grant `project.billing:write`
+**Inheritance via hierarchy:**
+- `product/*` grants access to `product`, `product/123`, `product/variant`
+- Each level can have separate permissions
 
-**Rationale**: Explicit > implicit. Billing and team management are sensitive operations that should require explicit grants, even for admins.
+### Policy Evaluation Order
+
+1. Check for explicit DENY with `eft=deny` → if matches, deny immediately
+2. Check for explicit ALLOW with `eft=allow` → if matches, allow
+3. Check role hierarchy (via `g(r.sub, p.sub)`) for inherited permissions
+4. If no match → implicit deny
+
+**Policy effect rule:**
+```
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
+```
 
 ### Wildcard Examples
 
 ```csv
-# Owner: full access to everything
-p, owner, proj-123, *, *
-
-# Admin: full access except specific denies
-p, admin, proj-123, *, *
-p, admin, proj-123, project, !delete        # deny delete
-p, admin, proj-123, project.billing, !*     # deny all billing
-
-# Manager: specific resources only
-p, manager, proj-123, product, *            # all product actions
-p, manager, proj-123, order, read
-p, manager, proj-123, order, write
-p, manager, proj-123, order, fulfill
-
 # Viewer: read-only on everything
-p, viewer, proj-123, *, read
+p, viewer, *, read, allow
+
+# Support: inherits viewer, adds order/customer write
+p, support, order/*, write, allow
+p, support, customer/*, write, allow
+
+# Manager: inherits support, adds product management
+p, manager, product/*, write, allow
+p, manager, product/*, publish, allow
+p, manager, category/*, write, allow
+p, manager, media/*, upload, allow
+p, manager, order/*, fulfill, allow
+
+# Admin: full access with restrictions
+p, admin, *, *, allow
+p, admin, project, delete, deny           # cannot delete project
+p, admin, project/billing, *, deny        # no billing access
+
+# Owner: unrestricted full access
+p, owner, *, *, allow
 ```
 
-### Policy Evaluation Order
+### Role Hierarchy in Action
 
-1. Check for explicit DENY → if found, deny immediately
-2. Check for explicit ALLOW → if found, allow
-3. Check wildcard policies (from most specific to least specific)
-4. If no match → implicit deny
+When user has role `manager`:
+1. Casbin checks `g(user, manager)` → true
+2. Casbin checks policies for `manager` directly
+3. Casbin follows `manager.roles = [support]` → checks `support` policies
+4. Casbin follows `support.roles = [viewer]` → checks `viewer` policies
+5. Combined permissions = manager + support + viewer
 
 ---
 
@@ -887,60 +938,113 @@ arn:shopana:media:proj-123:file/*
 
 ## Predefined Roles
 
+### Role Hierarchy
+
+Roles inherit permissions from sub-roles via Casdoor's `role.roles[]` field:
+
+```
+owner ─► admin ─► manager ─► support ─► viewer
+  │        │         │          │          │
+  │        │         │          │          └─ read: *
+  │        │         │          └─ + order/*, customer/* write
+  │        │         └─ + product/*, category/*, media/*, order/* fulfill
+  │        └─ + *:* (with deny on project delete/billing)
+  └─ + *:* (no deny restrictions)
+```
+
 ### Project-level Roles
 
 ```yaml
 roles:
-  - name: owner
-    displayName: "Owner"
-    description: "Full access to all resources"
+  # Base role: read-only access
+  - name: viewer
+    displayName: "Viewer"
+    description: "Read-only access"
+    inherits: []  # no parent
     permissions:
       - resource: "*"
-        actions: ["*"]
+        actions: ["read"]
 
+  # Inherits from viewer, adds order management
+  - name: support
+    displayName: "Customer Support"
+    description: "Handle orders and customer inquiries"
+    inherits: [viewer]
+    permissions:
+      - resource: "order/*"
+        actions: ["write"]
+      - resource: "customer/*"
+        actions: ["read", "write"]
+
+  # Inherits from support, adds product/category/media management
+  - name: manager
+    displayName: "Manager"
+    description: "Manage products, orders, and content"
+    inherits: [support]
+    permissions:
+      - resource: "product/*"
+        actions: ["write", "publish"]
+      - resource: "category/*"
+        actions: ["write"]
+      - resource: "media/*"
+        actions: ["upload", "delete"]
+      - resource: "order/*"
+        actions: ["fulfill"]
+
+  # Inherits from manager, adds full access with restrictions
   - name: admin
     displayName: "Administrator"
     description: "Full access except project deletion and billing"
+    inherits: [manager]
     permissions:
       - resource: "*"
         actions: ["*"]
     deny:
       - resource: "project"
         actions: ["delete"]
-      - resource: "project.billing"
+      - resource: "project/billing"
         actions: ["*"]
 
-  - name: manager
-    displayName: "Manager"
-    description: "Manage products, orders, and content"
-    permissions:
-      - resource: "product"
-        actions: ["read", "write", "publish"]
-      - resource: "category"
-        actions: ["read", "write"]
-      - resource: "order"
-        actions: ["read", "write", "fulfill"]
-      - resource: "media"
-        actions: ["read", "upload"]
-
-  - name: support
-    displayName: "Customer Support"
-    description: "Handle orders and customer inquiries"
-    permissions:
-      - resource: "order"
-        actions: ["read", "write"]
-      - resource: "order.comment"
-        actions: ["read", "write"]
-      - resource: "product"
-        actions: ["read"]
-
-  - name: viewer
-    displayName: "Viewer"
-    description: "Read-only access"
+  # Inherits from admin, removes deny restrictions
+  - name: owner
+    displayName: "Owner"
+    description: "Full access to all resources"
+    inherits: [admin]
     permissions:
       - resource: "*"
-        actions: ["read"]
+        actions: ["*"]
 ```
+
+### How Hierarchy Works in Casdoor
+
+Role inheritance is stored in `role.roles[]` array:
+
+```typescript
+// owner role object
+{
+  owner: "org-my-shop",
+  name: "owner",
+  roles: ["org-my-shop/admin"],  // owner includes admin
+  // ...
+}
+
+// admin role object
+{
+  owner: "org-my-shop",
+  name: "admin",
+  roles: ["org-my-shop/manager"],  // admin includes manager
+  // ...
+}
+```
+
+When checking permissions for `owner`:
+1. Check owner's direct permissions
+2. Check admin's permissions (via roles[])
+3. Check manager's permissions (via admin.roles[])
+4. Check support's permissions (via manager.roles[])
+5. Check viewer's permissions (via support.roles[])
+
+This is handled automatically by Casbin's `g(r.sub, p.sub)` matcher.
 
 ## IAM Service API
 
@@ -1203,7 +1307,12 @@ broker.register("ListTenantMembers", async (params: {
  * 3. Ensure Enforcer exists for this org
  * 4. POST /api/add-role (x5) - create predefined roles (owner, admin, manager, support, viewer)
  * 5. POST /api/add-permission (for each role) - create Casbin policies
- * 6. POST /api/add-policy - assign owner role to creator
+ * 6. Setup role hierarchy via role.roles[] field:
+ *    - owner.roles = [admin]
+ *    - admin.roles = [manager]
+ *    - manager.roles = [support]
+ *    - support.roles = [viewer]
+ * 7. POST /api/add-policy - assign owner role to creator
  *
  * All data stored in Casdoor, not in IAM DB.
  * The returned tenantId should be stored in project_integration.config.tenantId
@@ -1367,16 +1476,25 @@ User A → projectCreate mutation (slug: "my-shop")
 │     → Create roles: owner, admin, manager, support, viewer │
 │                                                             │
 │  5. POST /api/add-permission (for each role)                │
-│     → Create Casbin policies:                              │
-│        p, owner, *, *                                       │
-│        p, admin, product, read                              │
-│        ... etc                                              │
+│     → Create Casbin policies with keyMatch wildcards:      │
+│        p, viewer, *, read, allow                            │
+│        p, support, order/*, write, allow                    │
+│        p, manager, product/*, write, allow                  │
+│        p, admin, *, *, allow                                │
+│        p, admin, project, delete, deny                      │
+│        p, owner, *, *, allow                                │
 │                                                             │
-│  6. POST /api/add-policy                                    │
+│  6. Setup role hierarchy via role.roles[]:                  │
+│     owner.roles = [admin]                                   │
+│     admin.roles = [manager]                                 │
+│     manager.roles = [support]                               │
+│     support.roles = [viewer]                                │
+│                                                             │
+│  7. POST /api/add-policy                                    │
 │     → Add grouping policy: g, user-a, owner                │
 │     → User A is now owner                                   │
 │                                                             │
-│  7. Return { tenantId: "org-my-shop", roles: [...] }       │
+│  8. Return { tenantId: "org-my-shop", roles: [...] }       │
 └─────────────────────────────────────────────────────────────┘
          │
          ▼

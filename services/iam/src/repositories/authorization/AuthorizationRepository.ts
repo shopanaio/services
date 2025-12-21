@@ -697,6 +697,100 @@ export class AuthorizationRepository {
   }
 
   // ============================================================================
+  // Role Hierarchy
+  // ============================================================================
+
+  /**
+   * Role hierarchy definition
+   * Each entry: [parentRole, childRole] means parentRole includes childRole
+   *
+   * In Casdoor, role.roles[] contains SUB-roles (children), not parent roles.
+   * So owner.roles = [admin], admin.roles = [manager], etc.
+   *
+   * Hierarchy: owner > admin > manager > support > viewer
+   */
+  private static readonly ROLE_HIERARCHY: Array<[string, string]> = [
+    ["owner", "admin"],
+    ["admin", "manager"],
+    ["manager", "support"],
+    ["support", "viewer"],
+  ];
+
+  /**
+   * Provision role hierarchy for a tenant
+   * Sets up inheritance: owner > admin > manager > support > viewer
+   *
+   * @param tenantOrg - Tenant organization name
+   */
+  async provisionRoleHierarchy(
+    tenantOrg: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      for (const [parentRole, childRole] of AuthorizationRepository.ROLE_HIERARCHY) {
+        const updated = await this.addChildRole(tenantOrg, parentRole, childRole);
+        if (!updated) {
+          return {
+            success: false,
+            error: `Failed to add ${childRole} as sub-role of ${parentRole}`,
+          };
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      console.error("[AuthorizationRepository] provisionRoleHierarchy error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * Add a child role to a parent role (role inheritance)
+   *
+   * In Casdoor, role.roles[] contains sub-roles that the role includes.
+   * E.g., owner.roles = ["org/admin"] means owner includes admin's permissions.
+   *
+   * @param tenantOrg - Tenant organization name
+   * @param parentRole - Role that will include the child
+   * @param childRole - Role to be included
+   */
+  async addChildRole(
+    tenantOrg: string,
+    parentRole: string,
+    childRole: string
+  ): Promise<boolean> {
+    try {
+      const role = await this.getRole(tenantOrg, parentRole);
+      if (!role) {
+        console.error(`[AuthorizationRepository] Role ${parentRole} not found in ${tenantOrg}`);
+        return false;
+      }
+
+      // Add child role to the roles array (sub-roles in Casdoor)
+      const childRoleId = `${tenantOrg}/${childRole}`;
+      const currentRoles = role.roles ?? [];
+
+      // Avoid duplicates
+      if (currentRoles.includes(childRoleId)) {
+        return true; // Already has this child
+      }
+
+      const updatedRole: Role = {
+        ...role,
+        roles: [...currentRoles, childRoleId],
+      };
+
+      const response = await this.client.sdk.updateRole(updatedRole);
+      const data = response.data as any;
+      return data?.status === "ok";
+    } catch (error) {
+      console.error("[AuthorizationRepository] addChildRole error:", error);
+      return false;
+    }
+  }
+
+  // ============================================================================
   // Tenant Provisioning
   // ============================================================================
 

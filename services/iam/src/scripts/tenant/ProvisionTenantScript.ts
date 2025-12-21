@@ -158,6 +158,28 @@ export class ProvisionTenantScript extends BaseScript<
     }
     this.logger.debug(`Created predefined roles for tenant: ${tenantOrg}`);
 
+    // Step 6: Set up role hierarchy (viewer < support < manager < admin < owner)
+    const hierarchyResult = await this.repository.authorization.provisionRoleHierarchy(tenantOrg);
+
+    if (!hierarchyResult.success) {
+      // Rollback: delete roles, application and organization
+      await this.repository.authorization.deprovisionTenantRoles(tenantOrg);
+      await this.rollbackApplication(tenantOrg, appName);
+      await this.rollbackOrganization(tenantOrg);
+
+      return {
+        tenantId: null,
+        roles: [],
+        userErrors: [
+          {
+            code: "HIERARCHY_CREATE_FAILED",
+            message: `Failed to create role hierarchy: ${hierarchyResult.error}`,
+          },
+        ],
+      };
+    }
+    this.logger.debug(`Created role hierarchy for tenant: ${tenantOrg}`);
+
     // Return simple role names (not prefixed with projectId anymore)
     const roleNames = Object.values(PREDEFINED_ROLES);
 

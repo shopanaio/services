@@ -22,22 +22,28 @@
  * - sub: subject (user ID)
  * - obj: object (resource: product, order, etc.)
  * - act: action (read, write, delete, etc.)
+ * - eft: effect (allow or deny)
+ *
+ * Features:
+ * - keyMatch for wildcard resource matching (e.g., "*" matches all, "product/*" matches "product/123")
+ * - Role hierarchy support via g = _, _ (up to 10 levels)
+ * - Deny rules override allow rules
  */
 export const CASBIN_MODEL_TEXT = `
 [request_definition]
 r = sub, obj, act
 
 [policy_definition]
-p = sub, obj, act
+p = sub, obj, act, eft
 
 [role_definition]
 g = _, _
 
 [policy_effect]
-e = some(where (p.eft == allow))
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 
 [matchers]
-m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
+m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 `.trim();
 
 /**
@@ -131,34 +137,52 @@ export interface RolePermissionDef {
   }>;
 }
 
+/**
+ * Role permissions with hierarchy support
+ *
+ * Hierarchy: owner > admin > manager > support > viewer
+ * Each role inherits all permissions from roles below it.
+ *
+ * With keyMatch wildcards:
+ * - "*" matches any resource
+ * - "product/*" matches "product", "product/123", "product/123/variant"
+ */
 export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
-  owner: {
-    allow: [{ resource: "*", actions: ["*"] }],
+  // Base role: read-only access to everything
+  viewer: {
+    allow: [{ resource: "*", actions: ["read"] }],
   },
+
+  // Inherits from viewer, adds order management
+  support: {
+    allow: [
+      { resource: "order/*", actions: ["write"] },
+      { resource: "customer/*", actions: ["read", "write"] },
+    ],
+  },
+
+  // Inherits from support, adds product/category/media management
+  manager: {
+    allow: [
+      { resource: "product/*", actions: ["write", "publish"] },
+      { resource: "category/*", actions: ["write"] },
+      { resource: "media/*", actions: ["upload", "delete"] },
+      { resource: "order/*", actions: ["fulfill"] },
+    ],
+  },
+
+  // Inherits from manager, adds full access with restrictions
   admin: {
     allow: [{ resource: "*", actions: ["*"] }],
     deny: [
       { resource: "project", actions: ["delete"] },
-      { resource: "project.billing", actions: ["*"] },
+      { resource: "project/billing", actions: ["*"] },
     ],
   },
-  manager: {
-    allow: [
-      { resource: "product", actions: ["read", "write", "publish"] },
-      { resource: "category", actions: ["read", "write"] },
-      { resource: "order", actions: ["read", "write", "fulfill"] },
-      { resource: "media", actions: ["read", "upload"] },
-    ],
-  },
-  support: {
-    allow: [
-      { resource: "order", actions: ["read", "write"] },
-      { resource: "order.comment", actions: ["read", "write"] },
-      { resource: "product", actions: ["read"] },
-    ],
-  },
-  viewer: {
-    allow: [{ resource: "*", actions: ["read"] }],
+
+  // Inherits from admin, removes deny restrictions (full access)
+  owner: {
+    allow: [{ resource: "*", actions: ["*"] }],
   },
 };
 
