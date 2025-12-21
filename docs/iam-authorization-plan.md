@@ -728,50 +728,6 @@ export function AuthorizeAny(options: AuthorizeOptions[]) {
 }
 ```
 
-### Context Middleware Integration
-
-```typescript
-// packages/service-broker/src/context/contextMiddleware.ts
-
-export async function contextMiddleware(ctx: Context, next: () => Promise<void>) {
-  // ... existing auth code ...
-
-  // Get tenantId from project integration
-  // ctx.project.tenantId is loaded from project_integration.config.tenantId
-  // during project resolution in the middleware
-
-  // Add authorization helper to context
-  ctx.authorize = async (resource: string, action: string, opts?: {
-    resourceId?: string;
-    resourceOwnerId?: string;
-  }) => {
-    const result = await ctx.broker.call('iam.Authorize', {
-      userId: ctx.user.id,
-      tenantId: ctx.project.tenantId,  // from project_integration
-      resource,
-      action,
-      ...opts,
-    });
-
-    if (!result.allowed) {
-      throw new ForbiddenError(result.deniedReason || 'Access denied');
-    }
-  };
-
-  ctx.checkPermission = async (resource: string, action: string): Promise<boolean> => {
-    const result = await ctx.broker.call('iam.Authorize', {
-      userId: ctx.user.id,
-      tenantId: ctx.project.tenantId,  // from project_integration
-      resource,
-      action,
-    });
-    return result.allowed;
-  };
-
-  await next();
-}
-```
-
 ---
 
 ## Service Resource Model
@@ -1688,10 +1644,8 @@ async orderUpdate(parent, args, ctx) {
 3. [ ] Update contextMiddleware to:
    - [ ] Load tenantId from project_integration
    - [ ] Add tenantId to ctx.project
-   - [ ] Call `Authorize` with tenantId
-4. [ ] Add `ctx.authorize()` and `ctx.checkPermission()` helpers
-5. [ ] Create `@Authorize` decorator
-6. [ ] Create `@AuthorizeAny` decorator
+4. [ ] Create `@Authorize` decorator
+5. [ ] Create `@AuthorizeAny` decorator
 
 ### Phase 3: Role Management (via Casdoor SDK) ✅ DONE
 1. [x] Implement `CreateRole` → `sdk.addRole()` + `sdk.addPermission()`
