@@ -72,7 +72,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
           project: (await ProjectResolver.load(
             result.projectId,
             projectFieldInfo,
-            requireContext(ctx)
+            ctx
           )) as Project,
           userErrors: [],
         };

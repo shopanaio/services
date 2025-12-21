@@ -1,34 +1,30 @@
 import type { ServiceContext } from "../../../context/index.js";
 import type { Kernel } from "../../../kernel/Kernel.js";
 
-const NO_DATABASE_ERROR = {
-  message: "Database not configured",
-  code: "NO_DATABASE",
-} as const;
+export class KernelNotInitializedError extends Error {
+  constructor() {
+    super("Kernel not initialized");
+    this.name = "KernelNotInitializedError";
+  }
+}
 
-export function noDatabaseError<T extends Record<string, unknown>>(
-  nullFields: T
-) {
-  return { ...nullFields, userErrors: [NO_DATABASE_ERROR] };
+export class ProjectNotInContextError extends Error {
+  constructor() {
+    super("Project not found in request context. Ensure x-project-name header is set.");
+    this.name = "ProjectNotInContextError";
+  }
 }
 
 export function requireKernel(ctx: ServiceContext): Kernel {
   if (!ctx.kernel) {
-    throw new NoDatabaseError();
+    throw new KernelNotInitializedError();
   }
   return ctx.kernel;
 }
 
 export function requireContext(ctx: ServiceContext): ServiceContext {
   if (!ctx.project) {
-    throw new NoDatabaseError();
+    throw new ProjectNotInContextError();
   }
   return ctx;
-}
-
-export class NoDatabaseError extends Error {
-  constructor() {
-    super("Database not configured");
-    this.name = "NoDatabaseError";
-  }
 }
