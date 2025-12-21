@@ -134,10 +134,12 @@ export const roleResolvers: Partial<Resolvers> = {
      * Resolve roles for a project.
      * Uses the project ID to get the tenant org name.
      */
-    roles: async (parent, _args, ctx) => {
-      // In federation, parent.id comes from the Project service
-      // We need to convert project ID to tenant org name
-      const tenantId = ctx.tenantId ?? `org-${parent.id}`;
+    roles: async (_parent, _args, ctx) => {
+      const tenantId = ctx.tenantId;
+      if (!tenantId) {
+        console.error("[Project.roles] No tenantId in context");
+        return [];
+      }
 
       const result = await ctx.kernel.runScript(ListRolesScript, {
         tenantId,
@@ -163,8 +165,12 @@ export const roleResolvers: Partial<Resolvers> = {
     /**
      * Resolve project members with roles.
      */
-    members: async (parent, _args, ctx): Promise<ProjectMember[]> => {
-      const tenantId = ctx.tenantId ?? `org-${parent.id}`;
+    members: async (_parent, _args, ctx): Promise<ProjectMember[]> => {
+      const tenantId = ctx.tenantId;
+      if (!tenantId) {
+        console.error("[Project.members] No tenantId in context");
+        return [];
+      }
 
       // Get all members with their roles
       const membersResult = await ctx.kernel.runScript(ListTenantMembersScript, {
