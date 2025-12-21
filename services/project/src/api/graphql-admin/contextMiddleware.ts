@@ -32,11 +32,18 @@ function headerIsTrue(value: unknown): boolean {
 }
 
 /**
- * Checks if request is a GraphQL introspection query
+ * Checks if request should skip authentication (health checks, introspection)
  */
-function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
-  const isGraphqlPath =
-    typeof request.url === "string" && request.url.startsWith("/graphql");
+function shouldSkipAuth(request: FastifyRequest): boolean {
+  const url = request.url;
+
+  // Skip auth for health check and root endpoints
+  if (url === "/" || url === "/healthz") {
+    return true;
+  }
+
+  // Check for GraphQL introspection
+  const isGraphqlPath = typeof url === "string" && url.startsWith("/graphql");
   if (!isGraphqlPath) return false;
 
   if (request.headers["user-agent"]?.includes("rover")) {
@@ -57,7 +64,11 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     request: FastifyRequest,
     reply: FastifyReply
   ) {
-    if (isGraphqlIntrospectionRequest(request)) {
+    console.log('[PROJECT contextMiddleware] URL:', request.url);
+    console.log('[PROJECT contextMiddleware] Headers:', JSON.stringify(request.headers, null, 2));
+
+    if (shouldSkipAuth(request)) {
+      console.log('[PROJECT contextMiddleware] Skipping auth');
       return;
     }
 
@@ -66,7 +77,10 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
 
     // Extract access token from Authorization header
     const authHeader = request.headers.authorization;
+    console.log('[PROJECT contextMiddleware] Authorization header:', authHeader ? `${authHeader.slice(0, 30)}...` : 'MISSING');
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log('[PROJECT contextMiddleware] REJECTING - no auth header');
       return reply
         .status(401)
         .send({ data: null, errors: [{ message: "Missing or invalid Authorization header" }] });
