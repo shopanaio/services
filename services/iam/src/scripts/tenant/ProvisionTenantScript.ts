@@ -30,6 +30,21 @@ export class ProvisionTenantScript extends BaseScript<
     const orgName = slug;
     const appName = `app-${slug}`;
 
+    // Step 0: Ensure Casbin model and enforcer exist
+    const initResult = await this.repository.authorization.initialize();
+    if (!initResult.success) {
+      return {
+        tenantId: null,
+        roles: [],
+        userErrors: [
+          {
+            code: "INIT_FAILED",
+            message: `Failed to initialize authorization infrastructure: ${initResult.error}`,
+          },
+        ],
+      };
+    }
+
     // Step 1: Create Casdoor organization
     const organization: Organization = {
       owner: this.repository.organization,

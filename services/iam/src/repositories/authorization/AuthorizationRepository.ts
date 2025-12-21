@@ -1,6 +1,7 @@
 import type { CasdoorNodeClient, Permission, Role } from "@zaytra/casdoor-node-client-ext";
 import {
   CASBIN_MODEL_NAME,
+  CASBIN_MODEL_TEXT,
   CASBIN_ENFORCER_NAME,
   PERMISSION_PREFIX,
   PREDEFINED_ROLES,
@@ -11,13 +12,195 @@ import {
 } from "../../constants/index.js";
 
 /**
+ * Casdoor Model type
+ */
+interface CasdoorModel {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  displayName?: string;
+  description?: string;
+  modelText: string;
+}
+
+/**
+ * Casdoor Enforcer type
+ */
+interface CasdoorEnforcer {
+  owner: string;
+  name: string;
+  createdTime?: string;
+  updatedTime?: string;
+  displayName?: string;
+  description?: string;
+  model: string;
+  adapter: string;
+  isEnabled?: boolean;
+}
+
+/**
  * AuthorizationRepository handles all Casdoor operations for RBAC
  */
 export class AuthorizationRepository {
+  private modelInitialized = false;
+  private enforcerInitialized = false;
+
   constructor(
     private readonly client: CasdoorNodeClient,
     private readonly organization: string
   ) {}
+
+  // ============================================================================
+  // Model & Enforcer Setup Methods
+  // ============================================================================
+
+  /**
+   * Ensure Casbin model exists in Casdoor
+   * Creates the RBAC with domains model if it doesn't exist
+   */
+  async ensureModelExists(): Promise<{ success: boolean; error?: string }> {
+    if (this.modelInitialized) {
+      return { success: true };
+    }
+
+    try {
+      // Check if model already exists
+      const existingModel = await this.getModel(CASBIN_MODEL_NAME);
+      if (existingModel) {
+        console.log(`[AuthorizationRepository] Model ${CASBIN_MODEL_NAME} already exists`);
+        this.modelInitialized = true;
+        return { success: true };
+      }
+
+      // Create the model
+      const model: CasdoorModel = {
+        owner: this.organization,
+        name: CASBIN_MODEL_NAME,
+        createdTime: new Date().toISOString(),
+        displayName: "RBAC with Domains",
+        description: "RBAC model with domain/tenant support for multi-tenant SaaS",
+        modelText: CASBIN_MODEL_TEXT,
+      };
+
+      const response = await this.client.sdk.addModel(model as any);
+      const data = response.data as any;
+
+      if (data?.status === "ok") {
+        console.log(`[AuthorizationRepository] Created model: ${CASBIN_MODEL_NAME}`);
+        this.modelInitialized = true;
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: `Failed to create model: ${data?.msg || JSON.stringify(data)}`,
+      };
+    } catch (error) {
+      console.error("[AuthorizationRepository] ensureModelExists error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * Get Casbin model by name
+   */
+  async getModel(modelName: string): Promise<CasdoorModel | null> {
+    try {
+      const response = await this.client.sdk.getModel(modelName);
+      return (response.data as any)?.data ?? null;
+    } catch (error) {
+      // Model not found returns error
+      return null;
+    }
+  }
+
+  /**
+   * Ensure Casbin enforcer exists in Casdoor
+   * Creates the enforcer if it doesn't exist
+   */
+  async ensureEnforcerExists(): Promise<{ success: boolean; error?: string }> {
+    if (this.enforcerInitialized) {
+      return { success: true };
+    }
+
+    try {
+      // First ensure model exists
+      const modelResult = await this.ensureModelExists();
+      if (!modelResult.success) {
+        return modelResult;
+      }
+
+      // Check if enforcer already exists
+      const existingEnforcer = await this.getEnforcer(CASBIN_ENFORCER_NAME);
+      if (existingEnforcer) {
+        console.log(`[AuthorizationRepository] Enforcer ${CASBIN_ENFORCER_NAME} already exists`);
+        this.enforcerInitialized = true;
+        return { success: true };
+      }
+
+      // Create the enforcer
+      const enforcer: CasdoorEnforcer = {
+        owner: this.organization,
+        name: CASBIN_ENFORCER_NAME,
+        createdTime: new Date().toISOString(),
+        displayName: "Shopana Enforcer",
+        description: "Main enforcer for Shopana authorization",
+        model: `${this.organization}/${CASBIN_MODEL_NAME}`,
+        adapter: "", // Empty adapter - policies stored in Casdoor
+        isEnabled: true,
+      };
+
+      const response = await this.client.sdk.addEnforcer(enforcer as any);
+      const data = response.data as any;
+
+      if (data?.status === "ok") {
+        console.log(`[AuthorizationRepository] Created enforcer: ${CASBIN_ENFORCER_NAME}`);
+        this.enforcerInitialized = true;
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: `Failed to create enforcer: ${data?.msg || JSON.stringify(data)}`,
+      };
+    } catch (error) {
+      console.error("[AuthorizationRepository] ensureEnforcerExists error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  /**
+   * Get Casbin enforcer by name
+   */
+  async getEnforcer(enforcerName: string): Promise<CasdoorEnforcer | null> {
+    try {
+      const response = await this.client.sdk.getEnforcer(enforcerName);
+      return (response.data as any)?.data ?? null;
+    } catch (error) {
+      // Enforcer not found returns error
+      return null;
+    }
+  }
+
+  /**
+   * Initialize authorization infrastructure
+   * Call this on service startup to ensure model and enforcer exist
+   */
+  async initialize(): Promise<{ success: boolean; error?: string }> {
+    const enforcerResult = await this.ensureEnforcerExists();
+    if (!enforcerResult.success) {
+      return enforcerResult;
+    }
+
+    console.log("[AuthorizationRepository] Authorization infrastructure initialized");
+    return { success: true };
+  }
 
   // ============================================================================
   // Enforce Methods
@@ -173,6 +356,39 @@ export class AuthorizationRepository {
   }
 
   /**
+   * Update a role in Casdoor
+   */
+  async updateRole(
+    projectId: string,
+    roleName: string,
+    updates: {
+      displayName?: string;
+      description?: string;
+    }
+  ): Promise<boolean> {
+    try {
+      const role = await this.getRole(projectId, roleName);
+      if (!role) {
+        console.error(`[AuthorizationRepository] Role ${roleName} not found`);
+        return false;
+      }
+
+      const updatedRole: Role = {
+        ...role,
+        displayName: updates.displayName ?? role.displayName,
+        description: updates.description ?? role.description,
+      };
+
+      const response = await this.client.sdk.updateRole(updatedRole);
+      const data = response.data as any;
+      return data?.status === "ok";
+    } catch (error) {
+      console.error("[AuthorizationRepository] updateRole error:", error);
+      return false;
+    }
+  }
+
+  /**
    * Delete a role from Casdoor
    */
   async deleteRole(roleName: string): Promise<boolean> {
@@ -187,6 +403,16 @@ export class AuthorizationRepository {
       console.error("[AuthorizationRepository] deleteRole error:", error);
       return false;
     }
+  }
+
+  /**
+   * Check if role is a predefined system role
+   */
+  isSystemRole(roleName: string, projectId: string): boolean {
+    const systemRoleNames = Object.values(PREDEFINED_ROLES).map(
+      (role) => `${projectId}-${role}`
+    );
+    return systemRoleNames.includes(roleName);
   }
 
   // ============================================================================
@@ -297,7 +523,7 @@ export class AuthorizationRepository {
     actions: string[],
     effect: "Allow" | "Deny" = "Allow"
   ): Promise<boolean> {
-    const permissionName = `${PERMISSION_PREFIX}-${projectId}-${roleName}-${resource}`;
+    const permissionName = `${PERMISSION_PREFIX}-${projectId}-${roleName}-${resource}-${effect.toLowerCase()}`;
 
     const permission: Permission = {
       owner: this.organization,
@@ -322,6 +548,104 @@ export class AuthorizationRepository {
     } catch (error) {
       console.error("[AuthorizationRepository] createPermission error:", error);
       return false;
+    }
+  }
+
+  /**
+   * Get all permissions for a role
+   */
+  async getRolePermissions(
+    projectId: string,
+    roleName: string
+  ): Promise<Permission[]> {
+    try {
+      const response = await this.client.sdk.getPermissions();
+      const allPermissions = (response.data as any)?.data ?? [];
+
+      // Filter permissions for this role
+      const roleFullName = `${this.organization}/${roleName}`;
+      return allPermissions.filter(
+        (perm: Permission) =>
+          perm.owner === this.organization &&
+          perm.domains?.includes(projectId) &&
+          perm.roles?.includes(roleFullName)
+      );
+    } catch (error) {
+      console.error("[AuthorizationRepository] getRolePermissions error:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete a permission
+   */
+  async deletePermission(permissionName: string): Promise<boolean> {
+    try {
+      const response = await this.client.sdk.deletePermission({
+        owner: this.organization,
+        name: permissionName,
+      } as Permission);
+      const data = response.data as any;
+      return data?.status === "ok";
+    } catch (error) {
+      console.error("[AuthorizationRepository] deletePermission error:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Update role permissions
+   * Replaces all permissions for a role with new ones
+   */
+  async updateRolePermissions(
+    projectId: string,
+    roleName: string,
+    permissions: Array<{
+      resource: string;
+      actions: string[];
+      effect: "Allow" | "Deny";
+    }>
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get existing permissions
+      const existingPermissions = await this.getRolePermissions(projectId, roleName);
+
+      // Delete all existing permissions
+      for (const perm of existingPermissions) {
+        const deleted = await this.deletePermission(perm.name);
+        if (!deleted) {
+          return {
+            success: false,
+            error: `Failed to delete existing permission: ${perm.name}`,
+          };
+        }
+      }
+
+      // Create new permissions
+      for (const perm of permissions) {
+        const created = await this.createPermission(
+          projectId,
+          roleName,
+          perm.resource,
+          perm.actions,
+          perm.effect
+        );
+
+        if (!created) {
+          return {
+            success: false,
+            error: `Failed to create permission for ${perm.resource}`,
+          };
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("[AuthorizationRepository] updateRolePermissions error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
   }
 

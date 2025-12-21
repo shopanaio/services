@@ -16,3 +16,18 @@ export type {
   ListProjectMembersResult,
   ProjectMember,
 } from "./RoleManagementDto.js";
+
+export type {
+  RolePermission,
+  RoleInfo,
+  CreateRoleParams,
+  CreateRoleResult,
+  UpdateRoleParams,
+  UpdateRoleResult,
+  DeleteRoleParams,
+  DeleteRoleResult,
+  ListRolesParams,
+  ListRolesResult,
+  GetRoleParams,
+  GetRoleResult,
+} from "./RoleDto.js";

@@ -32,6 +32,19 @@ import {
   DetachUserRoleScript,
   type DetachUserRoleParams,
   type DetachUserRoleResult,
+  // Role management scripts
+  CreateRoleScript,
+  type CreateRoleParams,
+  type CreateRoleResult,
+  UpdateRoleScript,
+  type UpdateRoleParams,
+  type UpdateRoleResult,
+  DeleteRoleScript,
+  type DeleteRoleParams,
+  type DeleteRoleResult,
+  ListRolesScript,
+  type ListRolesParams,
+  type ListRolesResult,
 } from "./scripts/index.js";
 
 const { service } = getServiceConfig("iam");
@@ -105,6 +118,39 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action iam.detachUserRole registered");
+
+    // Register role management actions
+    this.broker.register<CreateRoleParams, CreateRoleResult>(
+      "createRole",
+      async (params) => {
+        return this.kernel.runScript(CreateRoleScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.createRole registered");
+
+    this.broker.register<UpdateRoleParams, UpdateRoleResult>(
+      "updateRole",
+      async (params) => {
+        return this.kernel.runScript(UpdateRoleScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.updateRole registered");
+
+    this.broker.register<DeleteRoleParams, DeleteRoleResult>(
+      "deleteRole",
+      async (params) => {
+        return this.kernel.runScript(DeleteRoleScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.deleteRole registered");
+
+    this.broker.register<ListRolesParams, ListRolesResult>(
+      "listRoles",
+      async (params) => {
+        return this.kernel.runScript(ListRolesScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.listRoles registered");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
