@@ -1,5 +1,4 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getTenantOrg } from "../../constants/index.js";
 import type {
   ListRolesParams,
   ListRolesResult,
@@ -8,10 +7,10 @@ import type {
 } from "./dto/index.js";
 
 /**
- * ListRoles - List all roles for a project
+ * ListRoles - List all roles for a tenant
  *
  * TENANT ISOLATION:
- * Uses projectId to compute tenantOrg for role listing.
+ * Uses tenantId (Casdoor organization name from integrations) for role listing.
  *
  * Returns both system and custom roles with their permissions.
  */
@@ -20,20 +19,17 @@ export class ListRolesScript extends BaseScript<
   ListRolesResult
 > {
   protected async execute(params: ListRolesParams): Promise<ListRolesResult> {
-    const { projectId } = params;
-
-    // Compute tenant organization from projectId
-    const tenantOrg = getTenantOrg(projectId);
+    const { tenantId } = params;
 
     try {
-      const roles = await this.repository.authorization.getRoles(tenantOrg);
+      const roles = await this.repository.authorization.getRoles(tenantId);
 
       const roleInfos: RoleInfo[] = [];
 
       for (const role of roles) {
         // Get permissions for this role
         const permissions = await this.repository.authorization.getRolePermissions(
-          tenantOrg,
+          tenantId,
           role.name
         );
 

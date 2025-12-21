@@ -1,11 +1,11 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 
 /**
- * AttachUserRole - Assign a role to a user for a project
+ * AttachUserRole - Assign a role to a user for a tenant
  */
 export interface AttachUserRoleParams {
   userId: string;
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   roleName: string;
   grantedBy: string;
 }
@@ -20,7 +20,7 @@ export interface AttachUserRoleResult {
  */
 export interface DetachUserRoleParams {
   userId: string;
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   revokedBy: string;
 }
 
@@ -30,13 +30,13 @@ export interface DetachUserRoleResult {
 }
 
 /**
- * ListProjectMembers - List all users with roles in a project
+ * ListTenantMembers - List all users with roles in a tenant
  */
-export interface ListProjectMembersParams {
-  projectId: string;
+export interface ListTenantMembersParams {
+  tenantId: string; // Casdoor organization name (from integrations)
 }
 
-export interface ProjectMember {
+export interface TenantMember {
   userId: string;
   userName: string;
   email: string;
@@ -45,7 +45,7 @@ export interface ProjectMember {
   grantedBy?: string;
 }
 
-export interface ListProjectMembersResult {
-  members: ProjectMember[];
+export interface ListTenantMembersResult {
+  members: TenantMember[];
   userErrors: UserError[];
 }

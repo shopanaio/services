@@ -1,12 +1,11 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getTenantOrg } from "../../constants/index.js";
 import type { DeleteRoleParams, DeleteRoleResult } from "./dto/index.js";
 
 /**
- * DeleteRole - Delete a custom role from a project
+ * DeleteRole - Delete a custom role from a tenant
  *
  * TENANT ISOLATION:
- * Uses projectId to compute tenantOrg for role deletion.
+ * Uses tenantId (Casdoor organization name from integrations) for role deletion.
  *
  * System roles cannot be deleted.
  * Roles with assigned users cannot be deleted.
@@ -16,15 +15,12 @@ export class DeleteRoleScript extends BaseScript<
   DeleteRoleResult
 > {
   protected async execute(params: DeleteRoleParams): Promise<DeleteRoleResult> {
-    const { projectId, roleName } = params;
-
-    // Compute tenant organization from projectId
-    const tenantOrg = getTenantOrg(projectId);
+    const { tenantId, roleName } = params;
 
     try {
       // Check if role exists
       const existingRole = await this.repository.authorization.getRole(
-        tenantOrg,
+        tenantId,
         roleName
       );
 
@@ -34,7 +30,7 @@ export class DeleteRoleScript extends BaseScript<
           userErrors: [
             {
               code: "ROLE_NOT_FOUND",
-              message: `Role "${roleName}" not found in this project`,
+              message: `Role "${roleName}" not found in this tenant`,
               field: ["roleName"],
             },
           ],
@@ -72,16 +68,16 @@ export class DeleteRoleScript extends BaseScript<
 
       // Delete all permissions for this role first
       const permissions = await this.repository.authorization.getRolePermissions(
-        tenantOrg,
+        tenantId,
         roleName
       );
 
       for (const perm of permissions) {
-        await this.repository.authorization.deletePermission(tenantOrg, perm.name);
+        await this.repository.authorization.deletePermission(tenantId, perm.name);
       }
 
       // Delete the role
-      const deleted = await this.repository.authorization.deleteRole(tenantOrg, roleName);
+      const deleted = await this.repository.authorization.deleteRole(tenantId, roleName);
 
       if (!deleted) {
         return {
@@ -96,10 +92,10 @@ export class DeleteRoleScript extends BaseScript<
       }
 
       // Invalidate cache
-      this.authCache.onRoleDelete(tenantOrg, roleName);
+      this.authCache.onRoleDelete(tenantId, roleName);
 
       this.logger.info(
-        { projectId, tenantOrg, roleName },
+        { tenantId, roleName },
         "DeleteRoleScript: Role deleted successfully"
       );
 

@@ -1,5 +1,4 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getTenantOrg } from "../../constants/index.js";
 import type {
   CreateRoleParams,
   CreateRoleResult,
@@ -7,21 +6,18 @@ import type {
 } from "./dto/index.js";
 
 /**
- * CreateRole - Create a custom role for a project
+ * CreateRole - Create a custom role for a tenant
  *
  * TENANT ISOLATION:
  * Custom roles are created in the tenant's Casdoor organization.
- * Role names are simple (no projectId prefix needed).
+ * Role names are simple (no tenantId prefix needed).
  */
 export class CreateRoleScript extends BaseScript<
   CreateRoleParams,
   CreateRoleResult
 > {
   protected async execute(params: CreateRoleParams): Promise<CreateRoleResult> {
-    const { projectId, name, displayName, description, permissions } = params;
-
-    // Compute tenant organization from projectId
-    const tenantOrg = getTenantOrg(projectId);
+    const { tenantId, name, displayName, description, permissions } = params;
 
     // Validate role name (no special characters, alphanumeric + hyphen)
     if (!/^[a-z][a-z0-9-]*$/.test(name)) {
@@ -41,7 +37,7 @@ export class CreateRoleScript extends BaseScript<
     try {
       // Check if role already exists
       const existingRole = await this.repository.authorization.getRole(
-        tenantOrg,
+        tenantId,
         name
       );
 
@@ -51,7 +47,7 @@ export class CreateRoleScript extends BaseScript<
           userErrors: [
             {
               code: "ROLE_EXISTS",
-              message: `Role "${name}" already exists in this project`,
+              message: `Role "${name}" already exists in this tenant`,
               field: ["name"],
             },
           ],
@@ -60,7 +56,7 @@ export class CreateRoleScript extends BaseScript<
 
       // Create the role with simple name
       const created = await this.repository.authorization.createRole(
-        tenantOrg,
+        tenantId,
         name,
         displayName,
         description ?? ""
@@ -81,7 +77,7 @@ export class CreateRoleScript extends BaseScript<
       // Create permissions for the role
       for (const perm of permissions) {
         const permCreated = await this.repository.authorization.createPermission(
-          tenantOrg,
+          tenantId,
           name,
           perm.resource,
           perm.actions,
@@ -90,7 +86,7 @@ export class CreateRoleScript extends BaseScript<
 
         if (!permCreated) {
           // Rollback: delete the role
-          await this.repository.authorization.deleteRole(tenantOrg, name);
+          await this.repository.authorization.deleteRole(tenantId, name);
           return {
             role: null,
             userErrors: [
@@ -104,7 +100,7 @@ export class CreateRoleScript extends BaseScript<
       }
 
       // Invalidate cache for this tenant's roles
-      this.authCache.onRoleUpdate(tenantOrg, name);
+      this.authCache.onRoleUpdate(tenantId, name);
 
       const roleInfo: RoleInfo = {
         name,
@@ -116,7 +112,7 @@ export class CreateRoleScript extends BaseScript<
       };
 
       this.logger.info(
-        { projectId, tenantOrg, roleName: name },
+        { tenantId, roleName: name },
         "CreateRoleScript: Role created successfully"
       );
 

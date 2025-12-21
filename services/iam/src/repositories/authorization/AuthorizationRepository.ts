@@ -8,7 +8,6 @@ import {
   ROLE_DISPLAY_NAMES,
   ROLE_DESCRIPTIONS,
   ROLE_PERMISSIONS,
-  getTenantOrg,
   type PredefinedRoleName,
 } from "../../constants/index.js";
 

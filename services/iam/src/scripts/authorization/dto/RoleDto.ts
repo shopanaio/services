@@ -22,10 +22,10 @@ export interface RoleInfo {
 }
 
 /**
- * CreateRole - Create a custom role for a project
+ * CreateRole - Create a custom role for a tenant
  */
 export interface CreateRoleParams {
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   name: string;
   displayName: string;
   description?: string;
@@ -41,7 +41,7 @@ export interface CreateRoleResult {
  * UpdateRole - Update role metadata and permissions
  */
 export interface UpdateRoleParams {
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   roleName: string;
   displayName?: string;
   description?: string;
@@ -57,7 +57,7 @@ export interface UpdateRoleResult {
  * DeleteRole - Delete a custom role
  */
 export interface DeleteRoleParams {
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   roleName: string;
 }
 
@@ -67,10 +67,10 @@ export interface DeleteRoleResult {
 }
 
 /**
- * ListRoles - List all roles for a project
+ * ListRoles - List all roles for a tenant
  */
 export interface ListRolesParams {
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
 }
 
 export interface ListRolesResult {
@@ -82,7 +82,7 @@ export interface ListRolesResult {
  * GetRole - Get a single role by name
  */
 export interface GetRoleParams {
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   roleName: string;
 }
 

@@ -7,7 +7,7 @@ import type { UserError } from "../../../kernel/BaseScript.js";
  */
 export interface AuthorizeParams {
   userId: string;
-  projectId: string; // domain in RBAC
+  tenantId: string; // Casdoor organization name (from integrations)
   resource: string; // "product", "order", etc.
   action: string; // "read", "write", etc.
   resourceId?: string; // optional: specific resource ID (ARN)
@@ -27,7 +27,7 @@ export interface AuthorizeResult {
  */
 export interface BatchAuthorizeParams {
   userId: string;
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
   requests: Array<{
     resource: string;
     action: string;
@@ -44,13 +44,13 @@ export interface BatchAuthorizeResult {
 }
 
 /**
- * GetUserRole - Get user's role in a project
+ * GetUserRole - Get user's role in a tenant
  *
  * Calls Casdoor getRolesForUser() API
  */
 export interface GetUserRoleParams {
   userId: string;
-  projectId: string;
+  tenantId: string; // Casdoor organization name (from integrations)
 }
 
 export interface GetUserRoleResult {

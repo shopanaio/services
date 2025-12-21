@@ -1,15 +1,14 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getTenantOrg } from "../../constants/index.js";
 import type { DetachUserRoleParams, DetachUserRoleResult } from "./dto/index.js";
 
 /**
  * DetachUserRole - Remove a role from a user
  *
  * TENANT ISOLATION:
- * Uses projectId to compute tenantOrg for role detachment.
+ * Uses tenantId (Casdoor organization name from integrations) for role detachment.
  *
  * Implementation:
- * 1. Compute tenantOrg from projectId
+ * 1. Use tenantId directly (passed from caller)
  * 2. Get user's current role
  * 3. Call Casdoor to remove user from role
  * 4. Invalidate cache for this user
@@ -21,15 +20,12 @@ export class DetachUserRoleScript extends BaseScript<
   protected async execute(
     params: DetachUserRoleParams
   ): Promise<DetachUserRoleResult> {
-    const { userId, projectId } = params;
-
-    // Compute tenant organization from projectId
-    const tenantOrg = getTenantOrg(projectId);
+    const { userId, tenantId } = params;
 
     try {
       // Get user's current role
       const userRoles = await this.repository.authorization.getUserRoles(
-        tenantOrg,
+        tenantId,
         userId
       );
 
@@ -39,7 +35,7 @@ export class DetachUserRoleScript extends BaseScript<
           userErrors: [
             {
               code: "NO_ROLE",
-              message: `User ${userId} has no role in project ${projectId}`,
+              message: `User ${userId} has no role in tenant ${tenantId}`,
             },
           ],
         };
@@ -48,7 +44,7 @@ export class DetachUserRoleScript extends BaseScript<
       const roleName = userRoles[0];
 
       const detached = await this.repository.authorization.detachUserRole(
-        tenantOrg,
+        tenantId,
         userId,
         roleName
       );
@@ -66,10 +62,10 @@ export class DetachUserRoleScript extends BaseScript<
       }
 
       // Invalidate cache for this user
-      this.authCache.onUserRoleChange(tenantOrg, userId);
+      this.authCache.onUserRoleChange(tenantId, userId);
 
       this.logger.info(
-        { userId, projectId, roleName, tenantOrg },
+        { userId, tenantId, roleName },
         "DetachUserRoleScript: Role detached successfully"
       );
 

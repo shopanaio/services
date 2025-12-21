@@ -1,16 +1,15 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getTenantOrg } from "../../constants/index.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/index.js";
 
 /**
  * Authorize - Check if user is authorized to perform action on resource
  *
  * TENANT ISOLATION:
- * Uses projectId to compute tenantOrg, then checks authorization
- * within the tenant's isolated Casdoor organization.
+ * Uses tenantId (Casdoor organization name from integrations) to check
+ * authorization within the tenant's isolated Casdoor organization.
  *
  * Implementation:
- * 1. Compute tenantOrg from projectId
+ * 1. Use tenantId directly (passed from caller)
  * 2. Check cache (L1 in-memory with version validation)
  * 3. If miss → call Casdoor enforce() API
  * 4. Cache result, return
@@ -20,22 +19,19 @@ export class AuthorizeScript extends BaseScript<
   AuthorizeResult
 > {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const { userId, projectId, resource, action } = params;
-
-    // Compute tenant organization from projectId
-    const tenantOrg = getTenantOrg(projectId);
+    const { userId, tenantId, resource, action } = params;
 
     try {
       // First, get user's role to validate cache versions
       const userRoles = await this.repository.authorization.getUserRoles(
-        tenantOrg,
+        tenantId,
         userId
       );
       const roleName = userRoles[0] ?? ""; // Primary role
 
       // Check cache first
       const cached = await this.authCache.getAuthResult(
-        tenantOrg,
+        tenantId,
         userId,
         roleName,
         resource,
@@ -52,7 +48,7 @@ export class AuthorizeScript extends BaseScript<
 
       // Cache miss - call Casdoor
       const allowed = await this.repository.authorization.enforce(
-        tenantOrg,
+        tenantId,
         userId,
         resource,
         action
@@ -60,7 +56,7 @@ export class AuthorizeScript extends BaseScript<
 
       // Cache the result
       await this.authCache.setAuthResult(
-        tenantOrg,
+        tenantId,
         userId,
         roleName,
         resource,

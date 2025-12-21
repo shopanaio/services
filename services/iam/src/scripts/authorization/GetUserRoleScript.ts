@@ -1,31 +1,27 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { getTenantOrg } from "../../constants/index.js";
 import type { GetUserRoleParams, GetUserRoleResult } from "./dto/index.js";
 
 /**
- * GetUserRole - Get user's role in a project
+ * GetUserRole - Get user's role in a tenant
  *
  * TENANT ISOLATION:
- * Uses projectId to compute tenantOrg for role lookup.
+ * Uses tenantId (Casdoor organization name from integrations) for role lookup.
  *
  * Implementation:
- * 1. Compute tenantOrg from projectId
+ * 1. Use tenantId directly (passed from caller)
  * 2. Call Casdoor to get user's roles for the tenant
- * 3. Return the first role (users typically have one role per project)
+ * 3. Return the first role (users typically have one role per tenant)
  */
 export class GetUserRoleScript extends BaseScript<
   GetUserRoleParams,
   GetUserRoleResult
 > {
   protected async execute(params: GetUserRoleParams): Promise<GetUserRoleResult> {
-    const { userId, projectId } = params;
-
-    // Compute tenant organization from projectId
-    const tenantOrg = getTenantOrg(projectId);
+    const { userId, tenantId } = params;
 
     try {
       const roles = await this.repository.authorization.getUserRoles(
-        tenantOrg,
+        tenantId,
         userId
       );
 
