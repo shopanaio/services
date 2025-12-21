@@ -5,6 +5,7 @@ import type {
 } from "@shopana/shared-kernel";
 import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories/Repository.js";
+import type { AuthorizationCache } from "../cache/index.js";
 
 /**
  * Logger interface for the users service
@@ -22,6 +23,7 @@ export interface Logger {
 export interface IamKernelServices extends BaseKernelServices {
   readonly repository: Repository;
   readonly cache: Cache;
+  readonly authCache: AuthorizationCache;
 }
 
 /**

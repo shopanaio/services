@@ -11,11 +11,13 @@ export abstract class BaseScript<TParams, TResult> {
   protected readonly services: IamKernelServices;
   protected readonly repository: IamKernelServices["repository"];
   protected readonly logger: IamKernelServices["logger"];
+  protected readonly authCache: IamKernelServices["authCache"];
 
   constructor(services: IamKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
+    this.authCache = services.authCache;
   }
 
   /**

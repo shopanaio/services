@@ -3,6 +3,7 @@ import {
   type CasdoorNodeClientConfig,
 } from "@zaytra/casdoor-node-client-ext";
 import { UserRepository } from "./user/UserRepository.js";
+import { AuthorizationRepository } from "./authorization/AuthorizationRepository.js";
 
 export interface RepositoryConfig {
   endpoint: string;
@@ -14,10 +15,11 @@ export interface RepositoryConfig {
 }
 
 /**
- * Repository aggregator for users service
+ * Repository aggregator for IAM service
  */
 export class Repository {
   public readonly user: UserRepository;
+  public readonly authorization: AuthorizationRepository;
   public readonly client: CasdoorNodeClient;
   public readonly organization: string;
   public readonly application: string;
@@ -31,6 +33,7 @@ export class Repository {
     this.organization = organization;
     this.application = application;
     this.user = new UserRepository(client, organization, application);
+    this.authorization = new AuthorizationRepository(client, organization);
   }
 
   /**

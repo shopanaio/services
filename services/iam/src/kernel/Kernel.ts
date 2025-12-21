@@ -5,6 +5,7 @@ import { createCache, type Cache } from "cache-manager";
 import type { IamKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
+import { AuthorizationCache } from "../cache/index.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -23,16 +24,19 @@ export class Kernel extends BaseKernel<IamKernelServices> {
 
   public repository!: Repository;
   public cache!: Cache;
+  public authCache!: AuthorizationCache;
 
   private constructor(
     broker: ServiceBroker,
     logger: Logger,
     repository: Repository,
-    cache: Cache
+    cache: Cache,
+    authCache: AuthorizationCache
   ) {
-    super(broker, logger, { repository, cache });
+    super(broker, logger, { repository, cache, authCache });
     this.repository = repository;
     this.cache = cache;
+    this.authCache = authCache;
   }
 
   static async create(broker: ServiceBroker): Promise<Kernel> {
@@ -58,7 +62,9 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
     });
 
-    this.instance = new Kernel(broker, consoleLogger, repository, cache);
+    const authCache = new AuthorizationCache();
+
+    this.instance = new Kernel(broker, consoleLogger, repository, cache, authCache);
     console.log("[IAM] Kernel initialized");
     return this.instance;
   }
