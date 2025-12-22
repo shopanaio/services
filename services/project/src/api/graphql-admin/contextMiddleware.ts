@@ -6,10 +6,15 @@ import { GetCurrentProjectScript } from "../../scripts/index.js";
 interface IamCurrentUserResult {
   user: {
     id: string;
-    owner: string;
     name: string;
     email?: string;
   } | null;
+  userErrors: Array<{ code: string; message: string }>;
+}
+
+interface IamGetUserRoleResult {
+  role: string | null;
+  permissions: string[];
   userErrors: Array<{ code: string; message: string }>;
 }
 
@@ -96,12 +101,16 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     const accessToken = authHeader.slice(7); // Remove "Bearer " prefix
 
     // 1. Always authenticate user via IAM
+    console.log('[PROJECT contextMiddleware] Calling iam.getCurrentUser with token:', accessToken.slice(0, 20) + '...');
     const userResult = await kernel.getServices().broker.call(
       "iam.getCurrentUser",
       { accessToken }
     ) as IamCurrentUserResult;
 
+    console.log('[PROJECT contextMiddleware] iam.getCurrentUser result:', JSON.stringify(userResult, null, 2));
+
     if (!userResult.user) {
+      console.log('[PROJECT contextMiddleware] REJECTING - no user from IAM');
       return reply
         .status(401)
         .send({ data: null, errors: [{ message: userResult.userErrors[0]?.message || "Unauthorized" }] });
@@ -119,9 +128,8 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
       return;
     }
 
-    // 3. Load project and validate access using user's owner (tenant)
+    // 3. Load project by slug
     const result = await kernel.runScript(GetCurrentProjectScript, {
-      userOwner: userResult.user.owner,
       slug,
     });
 
@@ -141,6 +149,18 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     }
 
     const tenantId = result.project.integrations.iam.config.tenantId;
+
+    // 4. Check user has role in this project via IAM
+    const roleResult = await kernel.getServices().broker.call(
+      "iam.getUserRole",
+      { userId: userResult.user.id, tenantId }
+    ) as IamGetUserRoleResult;
+
+    if (!roleResult.role) {
+      return reply
+        .status(403)
+        .send({ data: null, errors: [{ message: "Access denied", code: "ACCESS_DENIED" }] });
+    }
 
     // Set project on request (including tenantId)
     request.project = {

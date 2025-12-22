@@ -11,7 +11,7 @@ export class GetCurrentProjectScript extends BaseScript<
   protected async execute(
     params: GetCurrentProjectParams
   ): Promise<GetCurrentProjectResult> {
-    const { userOwner, slug } = params;
+    const { slug } = params;
 
     // 1. Find project by slug (includes integrations)
     const project = await this.repository.project.findBySlug(slug);
@@ -41,21 +41,7 @@ export class GetCurrentProjectScript extends BaseScript<
       };
     }
 
-    // 3. Check if user's organization matches project's IAM tenant
-    const tenantId = project.integrations.iam.config.tenantId;
-
-    if (userOwner !== tenantId) {
-      return {
-        project: undefined,
-        userErrors: [
-          {
-            code: "ACCESS_DENIED",
-            message: "You do not have access to this project",
-          },
-        ],
-      };
-    }
-
+    // Access check is now done in contextMiddleware via iam.getUserRole
     return {
       project,
       userErrors: [],
