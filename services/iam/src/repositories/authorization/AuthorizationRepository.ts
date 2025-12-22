@@ -317,23 +317,25 @@ export class AuthorizationRepository {
   /**
    * Initialize tenant (alias for provisionTenantRoles without owner)
    */
-  async initialize(tenantId: string): Promise<{ success: boolean; error?: string }> {
-    return this.provisionTenantRoles(tenantId);
+  async initialize(): Promise<{ success: boolean; tenantId?: string; error?: string }> {
+    return this.provisionTenantRoles();
   }
 
   /**
-   * Provision all predefined roles and permissions for a tenant.
+   * Provision all predefined roles and permissions for a new tenant.
    *
-   * @param tenantId - The tenant ID (same as project ID from project service)
+   * Creates a new tenant with auto-generated UUIDv7 and sets up roles.
+   *
    * @param ownerId - Optional owner user ID to assign owner role
+   * @returns Created tenantId on success
    */
   async provisionTenantRoles(
-    tenantId: string,
     ownerId?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; tenantId?: string; error?: string }> {
     try {
-      // Ensure tenant exists (creates with provided ID)
-      await this.tenantRepo.getOrCreate(tenantId);
+      // Create new tenant (ID generated as UUIDv7)
+      const newTenant = await this.tenantRepo.create();
+      const tenantId = newTenant.id;
 
       // Create predefined roles
       for (const roleName of Object.values(PREDEFINED_ROLES)) {
@@ -379,7 +381,7 @@ export class AuthorizationRepository {
         await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
       }
 
-      return { success: true };
+      return { success: true, tenantId };
     } catch (error) {
       console.error("[AuthorizationRepository] provisionTenantRoles error:", error);
       return { success: false, error: String(error) };

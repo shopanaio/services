@@ -9,12 +9,12 @@ import type {
  * ProvisionTenantScript - Create a new tenant with predefined roles
  *
  * This script creates:
- * 1. A tenant record in iam.tenant (with ID matching project ID)
+ * 1. A tenant record in iam.tenant (ID auto-generated)
  * 2. Predefined roles (owner, admin, manager, support, viewer)
  * 3. Role hierarchy
  * 4. Optionally assigns owner role to the specified ownerId
  *
- * The tenantId should be the same as project ID from project service.
+ * Returns the created tenantId to be stored by the caller (e.g., project service).
  * The ownerId should be a Better Auth user ID.
  */
 export class ProvisionTenantScript extends BaseScript<
@@ -24,22 +24,21 @@ export class ProvisionTenantScript extends BaseScript<
   protected async execute(
     params: ProvisionTenantParams
   ): Promise<ProvisionTenantResult> {
-    const { tenantId, ownerId } = params;
+    const { ownerId } = params;
 
     try {
       this.logger.info(
-        { tenantId, ownerId },
+        { ownerId },
         "ProvisionTenantScript: Starting tenant provisioning"
       );
 
       const result = await this.repository.authorization.provisionTenantRoles(
-        tenantId,
         ownerId
       );
 
-      if (!result.success) {
+      if (!result.success || !result.tenantId) {
         this.logger.error(
-          { tenantId, error: result.error },
+          { error: result.error },
           "ProvisionTenantScript: Failed to provision tenant roles"
         );
 
@@ -56,12 +55,12 @@ export class ProvisionTenantScript extends BaseScript<
       }
 
       this.logger.info(
-        { tenantId, ownerId },
+        { tenantId: result.tenantId, ownerId },
         "ProvisionTenantScript: Tenant provisioned successfully"
       );
 
       return {
-        tenantId,
+        tenantId: result.tenantId,
         roles: Object.values(PREDEFINED_ROLES),
         userErrors: [],
       };

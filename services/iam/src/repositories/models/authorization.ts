@@ -13,13 +13,13 @@ import { iamSchema } from "./schema.js";
 // ============================================================================
 // Tenant table
 // Note: slug and display name are stored in project service (project.project table)
-// Tenant ID equals Project ID - created when project is provisioned
+// IAM only stores the tenant record for authorization purposes
 // ============================================================================
 
 export const tenant = iamSchema.table(
   "tenant",
   {
-    id: uuid("id").primaryKey(), // Same as project.id from project service
+    id: uuid("id").primaryKey().defaultRandom(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   }

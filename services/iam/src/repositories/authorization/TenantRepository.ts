@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { v7 as uuidv7 } from "uuid";
 import { tenant } from "../models/authorization.js";
 import type { Database } from "../../db/database.js";
 import type { Tenant } from "../models/authorization.js";
@@ -6,8 +7,8 @@ import type { Tenant } from "../models/authorization.js";
 /**
  * Repository for managing tenants in PostgreSQL.
  *
- * Note: Tenant ID equals Project ID from project service.
- * Slug and display name are stored in project.project table.
+ * Note: Slug and display name are stored in project service (project.project table).
+ * IAM only stores tenant record for authorization purposes.
  */
 export class TenantRepository {
   constructor(private readonly db: Database) {}
@@ -32,25 +33,15 @@ export class TenantRepository {
   }
 
   /**
-   * Create a new tenant with specified ID (same as project ID)
+   * Create a new tenant with UUIDv7
    */
-  async create(id: string): Promise<Tenant> {
+  async create(): Promise<Tenant> {
+    const id = uuidv7();
     const [result] = await this.db
       .insert(tenant)
       .values({ id })
       .returning();
     return result;
-  }
-
-  /**
-   * Get or create tenant by ID
-   */
-  async getOrCreate(id: string): Promise<Tenant> {
-    const existing = await this.findById(id);
-    if (existing) {
-      return existing;
-    }
-    return this.create(id);
   }
 
   /**

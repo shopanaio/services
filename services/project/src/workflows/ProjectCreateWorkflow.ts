@@ -20,6 +20,7 @@ export interface ProjectCreateInput {
 
 export interface ProjectCreateOutput {
   projectId: string;
+  iamTenantId: string;
 }
 
 /** IAM tenant provisioning result */
@@ -33,8 +34,8 @@ interface IamProvisionResult {
  * Steps:
  * 1. Generate project ID (UUIDv7)
  * 2. Create project record in database
- * 3. Provision IAM tenant with same ID (via broker)
- * 4. Save IAM integration reference
+ * 3. Provision IAM tenant (via broker) - returns new tenantId
+ * 4. Save IAM integration reference with returned tenantId
  */
 export class ProjectCreateWorkflow extends BaseWorkflow {
 
@@ -57,13 +58,13 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
     // Step 1: Create project in database (local)
     await this.createProject(projectId, input);
 
-    // Step 2: Provision IAM tenant with same ID as project (external - via broker)
-    await this.provisionIamTenant(projectId);
+    // Step 2: Provision IAM tenant (external - via broker)
+    const iamResult = await this.provisionIamTenant();
 
-    // Step 3: Save IAM integration (local)
-    await this.saveIamIntegration(projectId);
+    // Step 3: Save IAM integration with returned tenantId (local)
+    await this.saveIamIntegration(projectId, iamResult.tenantId);
 
-    return { projectId };
+    return { projectId, iamTenantId: iamResult.tenantId };
   }
 
   /**
@@ -95,28 +96,24 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
 
   /**
    * Step: Provision IAM tenant (EXTERNAL - via broker)
-   * Uses projectId as tenantId - they are the same
+   * IAM creates tenant with auto-generated UUIDv7 and returns tenantId
    */
   @DBOS.step()
-  async provisionIamTenant(projectId: string): Promise<IamProvisionResult> {
-    return this.broker.call("iam.provisionTenant", {
-      tenantId: projectId,
-    });
+  async provisionIamTenant(): Promise<IamProvisionResult> {
+    return this.broker.call("iam.provisionTenant", {});
   }
 
   /**
    * Step: Save IAM integration (LOCAL - direct repository call)
-   * Only stores reference to IAM tenant (same ID as project)
+   * Stores reference to IAM tenant returned by provisioning
    */
   @DBOS.step()
-  async saveIamIntegration(projectId: string) {
+  async saveIamIntegration(projectId: string, tenantId: string) {
     return this.repository.integration.create({
       projectId,
       type: "iam",
       provider: "internal",
-      config: {
-        tenantId: projectId, // Same as projectId
-      },
+      config: { tenantId },
     });
   }
 }
