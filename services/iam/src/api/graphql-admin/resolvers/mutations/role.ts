@@ -11,6 +11,7 @@ import {
   DeleteRoleScript,
   AttachUserRoleScript,
   DetachUserRoleScript,
+  ListRolesScript,
 } from "../../../../scripts/authorization/index.js";
 import type { RoleInfo, RolePermission as DtoRolePermission } from "../../../../scripts/authorization/dto/index.js";
 
@@ -194,12 +195,45 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         };
       }
 
-      // Return member info (simplified - in real implementation, fetch full member data)
+      // Fetch user data to include in response (required for non-nullable fields)
+      const user = await ctx.kernel.repository.user.findById(input.userId);
+      if (!user) {
+        return {
+          member: null,
+          userErrors: [{ code: "USER_NOT_FOUND", message: "User not found." }],
+        };
+      }
+
+      // Fetch role info to include full role data
+      const rolesResult = await ctx.kernel.runScript(ListRolesScript, { tenantId });
+      const roleInfo = rolesResult.roles.find((r) => r.name === input.newRole);
+      if (!roleInfo) {
+        return {
+          member: null,
+          userErrors: [{ code: "ROLE_NOT_FOUND", message: `Role "${input.newRole}" not found.` }],
+        };
+      }
+
+      // Return member info with full user and role data
       return {
         member: {
           id: input.userId,
-          user: { id: input.userId } as any,
-          role: { name: input.newRole } as any,
+          user: {
+            id: user.id,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            firstName: user.name?.split(" ")[0] ?? null,
+            lastName: user.name?.split(" ").slice(1).join(" ") ?? null,
+            avatar: user.image,
+            locale: null,
+            isAdmin: false,
+            isForbidden: false,
+            isDeleted: false,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            role: input.newRole,
+          } as any,
+          role: mapRoleInfoToRole(roleInfo),
           grantedAt: new Date().toISOString(),
           grantedBy: null,
         },

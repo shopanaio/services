@@ -5,6 +5,7 @@ import type {
   ProjectMember,
   ResourceDefinition,
 } from "../generated/types.js";
+import type { ServiceContext } from "@src/context/types.js";
 import { PermissionEffect } from "../generated/types.js";
 import {
   ListRolesScript,
@@ -229,7 +230,7 @@ export const roleResolvers: Partial<Resolvers> = {
         // Map members to ProjectMember type
         const members: ProjectMember[] = membersResult.members.map((m) => ({
           id: m.userId,
-          user: { id: m.userId } as any, // Will be resolved by User resolver via federation
+          user: { __typename: 'User', id: m.userId } as any, // Federation entity reference
           role: rolesMap.get(m.role) ?? {
             name: m.role,
             displayName: m.role,
@@ -238,7 +239,7 @@ export const roleResolvers: Partial<Resolvers> = {
             permissions: [],
           },
           grantedAt: m.grantedAt?.toISOString() ?? null,
-          grantedBy: m.grantedBy ? { id: m.grantedBy } as any : null,
+          grantedBy: m.grantedBy ? { __typename: 'User', id: m.grantedBy } as any : null,
         }));
 
         console.log("[Project.members] Returning members:", members.length);
