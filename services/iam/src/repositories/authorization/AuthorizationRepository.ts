@@ -209,7 +209,7 @@ export class AuthorizationRepository {
   /**
    * Delete a specific permission (not used directly, but kept for compatibility)
    */
-  async deletePermission(tenantId: string, _permissionName: string): Promise<boolean> {
+  async deletePermission(_tenantId: string, _permissionName: string): Promise<boolean> {
     // In the new system, permissions are managed per-role
     console.warn("[AuthorizationRepository] deletePermission() - use deleteRolePermissions() instead");
     return false;

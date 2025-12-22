@@ -70,17 +70,7 @@ export class DeleteRoleScript extends BaseScript<
         };
       }
 
-      // Delete all permissions for this role first
-      const permissions = await this.repository.authorization.getRolePermissions(
-        tenantId,
-        roleName
-      );
-
-      for (const perm of permissions) {
-        await this.repository.authorization.deletePermission(tenantId, perm.name);
-      }
-
-      // Delete the role
+      // Delete the role (also removes all Casbin policies for this role)
       const deleted = await this.repository.authorization.deleteRole(tenantId, roleName);
 
       if (!deleted) {
