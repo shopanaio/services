@@ -31,6 +31,8 @@ export class ListTenantMembersScript extends BaseScript<
         userName: m.userId, // Will be enriched by resolver if needed
         email: "", // Will be enriched by resolver if needed
         role: m.roleName,
+        grantedAt: m.grantedAt,
+        grantedBy: m.grantedBy ?? undefined,
       }));
 
       return {

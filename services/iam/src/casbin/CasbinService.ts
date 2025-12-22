@@ -383,6 +383,26 @@ export class CasbinService {
   }
 
   /**
+   * Get roles that inherit from a given role (reverse lookup).
+   *
+   * Returns parent roles that have this role in their inherits.
+   */
+  async getRolesInheritingFrom(tenantId: string, childRoleName: string): Promise<string[]> {
+    const enforcer = await this.getEnforcer(tenantId);
+    const groupings = await enforcer.getGroupingPolicy();
+
+    // Filter groupings where second element is the child role
+    // Format in enforcer: [parentRole, childRole] (no tenantId)
+    const parents: string[] = [];
+    for (const grouping of groupings) {
+      if (grouping[1] === childRoleName) {
+        parents.push(grouping[0]);
+      }
+    }
+    return parents;
+  }
+
+  /**
    * Remove role hierarchy
    */
   async removeRoleHierarchy(

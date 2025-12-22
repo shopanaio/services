@@ -67,6 +67,7 @@ export class AuthorizeScript extends BaseScript<
       return {
         allowed,
         implicitDeny: !allowed,
+        deniedReason: allowed ? undefined : "Permission denied by policy",
         userErrors: [],
       };
     } catch (error) {
