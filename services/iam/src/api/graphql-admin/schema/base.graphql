@@ -61,11 +61,6 @@ type AuthToken {
   expiresIn: Int!
 }
 
-extend type Query {
-  userQuery: UserQuery!
-}
-
-
 # ---- Admin Users Namespace ----
 
 type UserQuery {
