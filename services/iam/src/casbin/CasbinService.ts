@@ -60,6 +60,10 @@ export class CasbinService {
     // Create enforcer with model and adapter
     const enforcer = await newEnforcer(model, this.adapter);
 
+    // Disable auto-save - we manage persistence manually via adapter
+    // This is required because filtered enforcers cannot use savePolicy()
+    enforcer.enableAutoSave(false);
+
     // Load only policies for this tenant (v4 = tenantId)
     await this.loadFilteredPolicies(enforcer, tenantId);
 
@@ -77,11 +81,44 @@ export class CasbinService {
     // Clear existing policies
     enforcer.clearPolicy();
 
-    // Load filtered policies (v4 = tenantId for policies, v2 = tenantId for groupings)
-    await enforcer.loadFilteredPolicy({
-      p: ["", "", "", "", tenantId], // p: sub, obj, act, eft, tenantId
-      g: ["", "", tenantId], // g: user, role, tenantId
-    });
+    // Load all policies from database
+    await enforcer.loadPolicy();
+
+    // Get all policies and filter by tenantId
+    let allPolicies: string[][] = [];
+    let allGroupings: string[][] = [];
+
+    try {
+      allPolicies = (await enforcer.getPolicy()) || [];
+      allGroupings = (await enforcer.getGroupingPolicy()) || [];
+    } catch (e) {
+      console.error(`[CasbinService.loadFilteredPolicies] Error getting policies:`, e);
+      allPolicies = [];
+      allGroupings = [];
+    }
+
+    console.log(`[CasbinService.loadFilteredPolicies] tenantId=${tenantId}, allPolicies=${allPolicies.length}, allGroupings=${allGroupings.length}`);
+
+    // Clear and re-add only policies for this tenant
+    enforcer.clearPolicy();
+
+    // Add filtered policies (v4 = tenantId)
+    for (const policy of allPolicies) {
+      if (policy[4] === tenantId) {
+        await enforcer.addPolicy(...policy);
+      }
+    }
+
+    // Add filtered groupings (v2 = tenantId)
+    for (const grouping of allGroupings) {
+      if (grouping[2] === tenantId) {
+        await enforcer.addGroupingPolicy(...grouping);
+      }
+    }
+
+    const filteredPolicies = (await enforcer.getPolicy()) || [];
+    const filteredGroupings = (await enforcer.getGroupingPolicy()) || [];
+    console.log(`[CasbinService.loadFilteredPolicies] filtered: policies=${filteredPolicies.length}, groupings=${filteredGroupings.length}`);
   }
 
   /**
@@ -134,6 +171,7 @@ export class CasbinService {
 
   /**
    * Add a policy rule
+   * Note: Saves to DB first, then adds to enforcer memory
    */
   async addPolicy(
     tenantId: string,
@@ -142,22 +180,30 @@ export class CasbinService {
     action: string,
     effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(tenantId);
-    const added = await enforcer.addPolicy(
-      role,
-      resource,
-      action,
-      effect,
-      tenantId
-    );
-    if (added) {
-      await enforcer.savePolicy();
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
     }
-    return added;
+
+    // First persist to database
+    try {
+      await this.adapter.addPolicy("p", "p", [role, resource, action, effect, tenantId]);
+    } catch (error: any) {
+      // Ignore duplicate key errors - policy already exists
+      if (error?.code !== "23505") {
+        throw error;
+      }
+      return false;
+    }
+
+    // Then add to enforcer memory
+    const enforcer = await this.getEnforcer(tenantId);
+    await enforcer.addPolicy(role, resource, action, effect, tenantId);
+    return true;
   }
 
   /**
    * Remove a policy rule
+   * Note: Removes from DB first, then from enforcer memory
    */
   async removePolicy(
     tenantId: string,
@@ -166,63 +212,85 @@ export class CasbinService {
     action: string,
     effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(tenantId);
-    const removed = await enforcer.removePolicy(
-      role,
-      resource,
-      action,
-      effect,
-      tenantId
-    );
-    if (removed) {
-      await enforcer.savePolicy();
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
     }
-    return removed;
+
+    // First remove from database
+    await this.adapter.removePolicy("p", "p", [role, resource, action, effect, tenantId]);
+
+    // Then remove from enforcer memory
+    const enforcer = await this.getEnforcer(tenantId);
+    await enforcer.removePolicy(role, resource, action, effect, tenantId);
+    return true;
   }
 
   /**
    * Remove all policies for a role in tenant
+   * Note: Removes from DB first, then from enforcer memory
    */
   async removeFilteredPolicy(tenantId: string, role: string): Promise<boolean> {
-    const enforcer = await this.getEnforcer(tenantId);
-    // Remove policies where v0 (subject) = role and v4 (tenant) = tenantId
-    const removed = await enforcer.removeFilteredPolicy(0, role);
-    if (removed) {
-      await enforcer.savePolicy();
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
     }
-    return removed;
+
+    // First remove from database - filter by role (v0) and tenantId (v4)
+    await this.adapter.removeFilteredPolicy("p", "p", 0, role, "", "", "", tenantId);
+
+    // Then remove from enforcer memory
+    const enforcer = await this.getEnforcer(tenantId);
+    await enforcer.removeFilteredPolicy(0, role);
+    return true;
   }
 
   /**
    * Add user to role (grouping policy)
+   * Note: Saves to DB first, then invalidates enforcer cache
    */
   async addRoleForUser(
     tenantId: string,
     userId: string,
     role: string
   ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(tenantId);
-    const added = await enforcer.addGroupingPolicy(userId, role, tenantId);
-    if (added) {
-      await enforcer.savePolicy();
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
     }
-    return added;
+
+    // First persist to database
+    try {
+      await this.adapter.addPolicy("g", "g", [userId, role, tenantId]);
+    } catch (error: any) {
+      // Ignore duplicate key errors - assignment already exists
+      if (error?.code !== "23505") {
+        throw error;
+      }
+      return false;
+    }
+
+    // Invalidate enforcer cache so next request loads fresh data from DB
+    await this.invalidateEnforcer(tenantId);
+    return true;
   }
 
   /**
    * Remove user from role
+   * Note: Removes from DB first, then invalidates enforcer cache
    */
   async removeRoleForUser(
     tenantId: string,
     userId: string,
     role: string
   ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(tenantId);
-    const removed = await enforcer.removeGroupingPolicy(userId, role, tenantId);
-    if (removed) {
-      await enforcer.savePolicy();
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
     }
-    return removed;
+
+    // First remove from database
+    await this.adapter.removePolicy("g", "g", [userId, role, tenantId]);
+
+    // Invalidate enforcer cache so next request loads fresh data from DB
+    await this.invalidateEnforcer(tenantId);
+    return true;
   }
 
   /**
@@ -230,8 +298,15 @@ export class CasbinService {
    */
   async getRolesForUser(tenantId: string, userId: string): Promise<string[]> {
     const enforcer = await this.getEnforcer(tenantId);
+
+    // Debug: show all groupings in enforcer
+    const allGroupings = await enforcer.getGroupingPolicy();
+    console.log(`[CasbinService.getRolesForUser] tenantId=${tenantId}, userId=${userId}`);
+    console.log(`[CasbinService.getRolesForUser] All groupings in enforcer:`, JSON.stringify(allGroupings));
+
     // Get roles where user is assigned (g: userId, role, tenantId)
     const roles = await enforcer.getRolesForUser(userId, tenantId);
+    console.log(`[CasbinService.getRolesForUser] Result roles:`, roles);
     return roles;
   }
 
@@ -245,23 +320,32 @@ export class CasbinService {
 
   /**
    * Add role hierarchy (parent inherits child permissions)
+   * Note: Saves to DB first, then adds to enforcer memory
    */
   async addRoleHierarchy(
     tenantId: string,
     parentRole: string,
     childRole: string
   ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(tenantId);
-    // In Casbin: g, parentRole, childRole, tenantId
-    const added = await enforcer.addGroupingPolicy(
-      parentRole,
-      childRole,
-      tenantId
-    );
-    if (added) {
-      await enforcer.savePolicy();
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
     }
-    return added;
+
+    // First persist to database
+    try {
+      await this.adapter.addPolicy("g", "g", [parentRole, childRole, tenantId]);
+    } catch (error: any) {
+      // Ignore duplicate key errors - hierarchy already exists
+      if (error?.code !== "23505") {
+        throw error;
+      }
+      return false;
+    }
+
+    // Then add to enforcer memory
+    const enforcer = await this.getEnforcer(tenantId);
+    await enforcer.addGroupingPolicy(parentRole, childRole, tenantId);
+    return true;
   }
 
   /**

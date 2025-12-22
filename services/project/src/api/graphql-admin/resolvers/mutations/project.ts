@@ -64,6 +64,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
           status: input.status ?? undefined,
           timezone: input.timezone ?? undefined,
           email: input.email ?? undefined,
+          userId: ctx.user.id, // Creator gets owner role
         });
 
         const projectFieldInfo = parseGraphqlInfo(info, "project");

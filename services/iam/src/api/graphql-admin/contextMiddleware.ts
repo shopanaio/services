@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { Repository, User } from "../../repositories/index.js";
 
 declare module "fastify" {
@@ -13,6 +14,7 @@ declare module "fastify" {
 
 export interface ContextMiddlewareConfig {
   repository?: Repository | null;
+  broker?: ServiceBroker | null;
 }
 
 /**
@@ -33,11 +35,51 @@ function extractProjectSlug(header: string | string[] | undefined): string | nul
   return Array.isArray(header) ? header[0] : header;
 }
 
+/** Result type from project.getCurrentProject */
+interface GetCurrentProjectResult {
+  project?: {
+    id: string;
+    slug: string;
+    integrations: {
+      iam?: {
+        config: {
+          tenantId: string;
+        };
+      };
+    };
+  };
+  userErrors: Array<{ code: string; message: string }>;
+}
+
 /**
- * Convert project slug to tenant ID for RBAC
+ * Resolve tenantId from project slug via broker call to project service
  */
-function projectSlugToTenantId(projectSlug: string): string {
-  return projectSlug; // Now just use slug directly, no org- prefix needed
+async function resolveProjectTenantId(
+  broker: ServiceBroker,
+  projectSlug: string
+): Promise<string | null> {
+  try {
+    const result = await broker.call<{ slug: string }, GetCurrentProjectResult>(
+      "project.getCurrentProject",
+      { slug: projectSlug }
+    );
+
+    if (result.userErrors.length > 0 || !result.project) {
+      console.warn(`[IAM contextMiddleware] Failed to resolve project: ${projectSlug}`, result.userErrors);
+      return null;
+    }
+
+    const tenantId = result.project.integrations.iam?.config.tenantId;
+    if (!tenantId) {
+      console.warn(`[IAM contextMiddleware] Project ${projectSlug} has no IAM integration`);
+      return null;
+    }
+
+    return tenantId;
+  } catch (error) {
+    console.error(`[IAM contextMiddleware] Error resolving project tenantId:`, error);
+    return null;
+  }
 }
 
 /**
@@ -54,11 +96,21 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
     request.projectSlug = null;
     request.tenantId = null;
 
+    console.log(`[IAM contextMiddleware] URL: ${request.url}`);
+    console.log(`[IAM contextMiddleware] x-project-name: ${request.headers["x-project-name"]}`);
+
     // Extract project context from header
     const projectSlug = extractProjectSlug(request.headers["x-project-name"]);
     if (projectSlug) {
       request.projectSlug = projectSlug;
-      request.tenantId = projectSlugToTenantId(projectSlug);
+
+      // Resolve tenantId from project service via broker
+      if (config.broker) {
+        request.tenantId = await resolveProjectTenantId(config.broker, projectSlug);
+        console.log(`[IAM contextMiddleware] Resolved tenantId: ${request.tenantId}`);
+      } else {
+        console.warn(`[IAM contextMiddleware] No broker available to resolve tenantId`);
+      }
     }
 
     if (!config.repository) {

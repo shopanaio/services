@@ -16,6 +16,9 @@ import {
   GetCurrentProjectScript,
   type GetCurrentProjectParams,
   type GetCurrentProjectResult,
+  GetProjectByIdScript,
+  type GetProjectByIdParams,
+  type GetProjectByIdResult,
   GetResourcesScript,
   type GetResourcesParams,
   type GetResourcesResult,
@@ -50,6 +53,14 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action project.getCurrentProject registered");
+
+    this.broker.register<GetProjectByIdParams, GetProjectByIdResult>(
+      "getProjectById",
+      async (params) => {
+        return this.kernel.runScript(GetProjectByIdScript, params!);
+      }
+    );
+    this.logger.debug("Action project.getProjectById registered");
 
     this.broker.register<GetResourcesParams, GetResourcesResult>(
       "getResources",

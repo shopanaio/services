@@ -126,7 +126,10 @@ export class AuthorizationRepository {
    * Get user's roles in a tenant
    */
   async getUserRoles(tenantId: string, userId: string): Promise<string[]> {
-    return this.casbin.getRolesForUser(tenantId, userId);
+    console.log(`[AuthorizationRepository.getUserRoles] tenantId=${tenantId}, userId=${userId}`);
+    const roles = await this.casbin.getRolesForUser(tenantId, userId);
+    console.log(`[AuthorizationRepository.getUserRoles] Found roles: ${JSON.stringify(roles)}`);
+    return roles;
   }
 
   /**
@@ -138,12 +141,15 @@ export class AuthorizationRepository {
     roleName: string,
     grantedBy?: string
   ): Promise<boolean> {
+    console.log(`[AuthorizationRepository.attachUserRole] tenantId=${tenantId}, userId=${userId}, roleName=${roleName}`);
+
     // Get role from database
     const role = await this.roleRepo.findByName(tenantId, roleName);
     if (!role) {
       console.warn(`[AuthorizationRepository] Role "${roleName}" not found in tenant ${tenantId}`);
       return false;
     }
+    console.log(`[AuthorizationRepository.attachUserRole] Found role: ${role.id}`);
 
     // Save to database (user-role mapping)
     await this.userRoleRepo.upsert({
@@ -152,9 +158,12 @@ export class AuthorizationRepository {
       roleId: role.id,
       grantedBy,
     });
+    console.log(`[AuthorizationRepository.attachUserRole] User-role saved to DB`);
 
     // Add to Casbin (for enforcement)
-    return this.casbin.addRoleForUser(tenantId, userId, roleName);
+    const result = await this.casbin.addRoleForUser(tenantId, userId, roleName);
+    console.log(`[AuthorizationRepository.attachUserRole] Casbin addRoleForUser result: ${result}`);
+    return result;
   }
 
   /**
@@ -378,7 +387,9 @@ export class AuthorizationRepository {
 
       // Assign owner role to creator if provided
       if (ownerId) {
-        await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
+        console.log(`[AuthorizationRepository.provisionTenantRoles] Assigning owner role to ${ownerId} in tenant ${tenantId}`);
+        const attached = await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
+        console.log(`[AuthorizationRepository.provisionTenantRoles] Owner role attached: ${attached}`);
       }
 
       return { success: true, tenantId };

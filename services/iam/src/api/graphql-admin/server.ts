@@ -82,7 +82,10 @@ export async function startServer(serverConfig: ServerConfig) {
   await apollo.start();
 
   // Admin context middleware
-  app.addHook("preHandler", buildAdminContextMiddleware({ repository: kernel?.repository ?? null }));
+  app.addHook("preHandler", buildAdminContextMiddleware({
+    repository: kernel?.repository ?? null,
+    broker: kernel?.getServices().broker ?? null,
+  }));
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {

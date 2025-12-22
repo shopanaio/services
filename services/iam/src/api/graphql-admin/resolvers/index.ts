@@ -13,4 +13,9 @@ export const resolvers = {
     ...userMutationResolvers.Mutation,
     ...roleMutationResolvers.Mutation,
   },
+  // Merge User resolvers (federation + role field)
+  User: {
+    ...queryResolvers.User,
+    ...roleResolvers.User,
+  },
 };

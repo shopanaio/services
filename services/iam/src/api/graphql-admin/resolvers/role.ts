@@ -131,6 +131,37 @@ export const roleResolvers: Partial<Resolvers> = {
   // Extend Project type with roles, members, availableResources
   Project: {
     /**
+     * Federation resolver for Project entity.
+     * Resolves tenantId from project ID and attaches to context for field resolvers.
+     */
+    __resolveReference: async (reference: { id: string }, ctx: ServiceContext) => {
+      console.log("[Project.__resolveReference] id:", reference.id, "existing tenantId:", ctx.tenantId);
+
+      // Always try to resolve tenantId from project service for federation requests
+      try {
+        const broker = ctx.kernel.getServices().broker;
+        console.log("[Project.__resolveReference] Calling project.getProjectById...");
+        const result = await broker.call<{ id: string }, { project?: { integrations: { iam?: { config: { tenantId: string } } } }; userErrors: any[] }>(
+          "project.getProjectById",
+          { id: reference.id }
+        );
+        console.log("[Project.__resolveReference] Result:", JSON.stringify(result));
+
+        if (result.project?.integrations?.iam?.config?.tenantId) {
+          // Mutate context to set tenantId for field resolvers
+          (ctx as any).tenantId = result.project.integrations.iam.config.tenantId;
+          console.log("[Project.__resolveReference] Set tenantId:", ctx.tenantId);
+        } else {
+          console.warn("[Project.__resolveReference] No tenantId in project result");
+        }
+      } catch (error) {
+        console.error("[Project.__resolveReference] Error resolving tenantId:", error);
+      }
+
+      return { id: reference.id };
+    },
+
+    /**
      * Resolve roles for a project.
      * Uses the project ID to get the tenant org name.
      */
@@ -166,47 +197,56 @@ export const roleResolvers: Partial<Resolvers> = {
      * Resolve project members with roles.
      */
     members: async (_parent, _args, ctx): Promise<ProjectMember[]> => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        console.error("[Project.members] No tenantId in context");
-        return [];
+      try {
+        const tenantId = ctx.tenantId;
+        console.log("[Project.members] tenantId:", tenantId);
+        if (!tenantId) {
+          console.error("[Project.members] No tenantId in context");
+          return [];
+        }
+
+        // Get all members with their roles
+        const membersResult = await ctx.kernel.runScript(ListTenantMembersScript, {
+          tenantId,
+        });
+
+        console.log("[Project.members] membersResult:", JSON.stringify(membersResult));
+
+        if (membersResult.userErrors.length > 0) {
+          console.error("[Project.members] Error:", membersResult.userErrors);
+          return [];
+        }
+
+        // Get all roles for role details
+        const rolesResult = await ctx.kernel.runScript(ListRolesScript, {
+          tenantId,
+        });
+
+        const rolesMap = new Map(
+          rolesResult.roles.map((r) => [r.name, mapRoleInfoToRole(r)])
+        );
+
+        // Map members to ProjectMember type
+        const members: ProjectMember[] = membersResult.members.map((m) => ({
+          id: m.userId,
+          user: { id: m.userId } as any, // Will be resolved by User resolver via federation
+          role: rolesMap.get(m.role) ?? {
+            name: m.role,
+            displayName: m.role,
+            isSystem: false,
+            inherits: [],
+            permissions: [],
+          },
+          grantedAt: m.grantedAt?.toISOString() ?? null,
+          grantedBy: m.grantedBy ? { id: m.grantedBy } as any : null,
+        }));
+
+        console.log("[Project.members] Returning members:", members.length);
+        return members;
+      } catch (error) {
+        console.error("[Project.members] Exception:", error);
+        throw error;
       }
-
-      // Get all members with their roles
-      const membersResult = await ctx.kernel.runScript(ListTenantMembersScript, {
-        tenantId,
-      });
-
-      if (membersResult.userErrors.length > 0) {
-        console.error("[Project.members] Error:", membersResult.userErrors);
-        return [];
-      }
-
-      // Get all roles for role details
-      const rolesResult = await ctx.kernel.runScript(ListRolesScript, {
-        tenantId,
-      });
-
-      const rolesMap = new Map(
-        rolesResult.roles.map((r) => [r.name, mapRoleInfoToRole(r)])
-      );
-
-      // Map members to ProjectMember type
-      const members: ProjectMember[] = membersResult.members.map((m) => ({
-        id: m.userId,
-        user: { id: m.userId } as any, // Will be resolved by User resolver via federation
-        role: rolesMap.get(m.role) ?? {
-          name: m.role,
-          displayName: m.role,
-          isSystem: false,
-          inherits: [],
-          permissions: [],
-        },
-        grantedAt: m.grantedAt?.toISOString() ?? null,
-        grantedBy: m.grantedBy ? { id: m.grantedBy } as any : null,
-      }));
-
-      return members;
     },
   },
 
