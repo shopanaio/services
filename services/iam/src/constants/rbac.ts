@@ -28,7 +28,7 @@
  */
 export const CASBIN_MODEL_TEXT = `
 [request_definition]
-r = sub, obj, act
+r = sub, obj, act, dom
 
 [policy_definition]
 p = sub, obj, act, eft
@@ -40,7 +40,7 @@ g = _, _, _
 e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 
 [matchers]
-m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
+m = g(r.sub, p.sub, r.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 `.trim();
 
 /**

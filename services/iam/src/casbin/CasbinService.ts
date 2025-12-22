@@ -109,10 +109,10 @@ export class CasbinService {
       }
     }
 
-    // Add filtered groupings (v2 = tenantId)
+    // Add filtered groupings (v2 = tenantId) - add all 3 elements (user, role, tenantId)
     for (const grouping of allGroupings) {
       if (grouping[2] === tenantId) {
-        await enforcer.addGroupingPolicy(...grouping);
+        await enforcer.addGroupingPolicy(grouping[0], grouping[1], grouping[2]);
       }
     }
 
@@ -131,7 +131,8 @@ export class CasbinService {
     action: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer(tenantId);
-    return enforcer.enforce(userId, resource, action);
+    // Pass domain (tenantId) as 4th argument for domain-based RBAC
+    return enforcer.enforce(userId, resource, action, tenantId);
   }
 
   /**
@@ -146,7 +147,7 @@ export class CasbinService {
     const results: boolean[] = [];
 
     for (const req of requests) {
-      results.push(await enforcer.enforce(userId, req.resource, req.action));
+      results.push(await enforcer.enforce(userId, req.resource, req.action, tenantId));
     }
 
     return results;
@@ -304,7 +305,7 @@ export class CasbinService {
     console.log(`[CasbinService.getRolesForUser] tenantId=${tenantId}, userId=${userId}`);
     console.log(`[CasbinService.getRolesForUser] All groupings in enforcer:`, JSON.stringify(allGroupings));
 
-    // Get roles where user is assigned (g: userId, role, tenantId)
+    // Get roles where user is assigned (g: userId, role, domain)
     const roles = await enforcer.getRolesForUser(userId, tenantId);
     console.log(`[CasbinService.getRolesForUser] Result roles:`, roles);
     return roles;
@@ -342,7 +343,7 @@ export class CasbinService {
       return false;
     }
 
-    // Then add to enforcer memory
+    // Then add to enforcer memory with domain
     const enforcer = await this.getEnforcer(tenantId);
     await enforcer.addGroupingPolicy(parentRole, childRole, tenantId);
     return true;
