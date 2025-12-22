@@ -141,17 +141,22 @@ interface MigrationResult {
 
 async function runDrizzleMigration(
   connectionString: string,
-  migrationsFolder: string
+  migrationsFolder: string,
+  serviceName: string
 ): Promise<void> {
   const { drizzle } = await import("drizzle-orm/postgres-js");
   const { migrate } = await import("drizzle-orm/postgres-js/migrator");
   const postgres = (await import("postgres")).default;
 
   const cleanUrl = connectionString.replace(/[?&]schema=[^&]+/g, "");
-  const sql = postgres(cleanUrl, { max: 1 });
+  const sql = postgres(cleanUrl, { max: 1, onnotice: () => {} });
   const db = drizzle(sql);
 
-  await migrate(db, { migrationsFolder });
+  await migrate(db, {
+    migrationsFolder,
+    migrationsTable: `__drizzle_migrations_${serviceName}`,
+    migrationsSchema: "drizzle"
+  });
   await sql.end();
 }
 
@@ -173,7 +178,7 @@ async function migrateService(
 
   try {
     if (config.type === "drizzle") {
-      await runDrizzleMigration(databaseUrl, fullMigrationsPath);
+      await runDrizzleMigration(databaseUrl, fullMigrationsPath, serviceName);
     } else {
       return {
         service: serviceName,

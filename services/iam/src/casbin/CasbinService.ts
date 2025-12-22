@@ -1,6 +1,10 @@
 import { newEnforcer, Enforcer, newModelFromString } from "casbin";
-import PostgresAdapter from "casbin-pg-adapter";
+import pg from "casbin-pg-adapter";
 import path from "path";
+
+// Handle CommonJS default export in ESM context
+// @ts-expect-error
+const PostgresAdapter = pg.default ?? pg;
 import { fileURLToPath } from "url";
 import { CASBIN_MODEL_TEXT } from "../constants/rbac.js";
 
@@ -15,7 +19,7 @@ const __dirname = path.dirname(__filename);
  */
 export class CasbinService {
   private enforcers: Map<string, Enforcer> = new Map();
-  private adapter: PostgresAdapter | null = null;
+  private adapter: InstanceType<typeof PostgresAdapter> | null = null;
   private initialized = false;
 
   constructor(private readonly connectionString: string) {}
@@ -40,7 +44,9 @@ export class CasbinService {
    */
   async getEnforcer(tenantId: string): Promise<Enforcer> {
     if (!this.initialized || !this.adapter) {
-      throw new Error("CasbinService not initialized. Call initialize() first.");
+      throw new Error(
+        "CasbinService not initialized. Call initialize() first."
+      );
     }
 
     const cached = this.enforcers.get(tenantId);
@@ -137,7 +143,13 @@ export class CasbinService {
     effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer(tenantId);
-    const added = await enforcer.addPolicy(role, resource, action, effect, tenantId);
+    const added = await enforcer.addPolicy(
+      role,
+      resource,
+      action,
+      effect,
+      tenantId
+    );
     if (added) {
       await enforcer.savePolicy();
     }
@@ -155,7 +167,13 @@ export class CasbinService {
     effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer(tenantId);
-    const removed = await enforcer.removePolicy(role, resource, action, effect, tenantId);
+    const removed = await enforcer.removePolicy(
+      role,
+      resource,
+      action,
+      effect,
+      tenantId
+    );
     if (removed) {
       await enforcer.savePolicy();
     }
@@ -235,7 +253,11 @@ export class CasbinService {
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer(tenantId);
     // In Casbin: g, parentRole, childRole, tenantId
-    const added = await enforcer.addGroupingPolicy(parentRole, childRole, tenantId);
+    const added = await enforcer.addGroupingPolicy(
+      parentRole,
+      childRole,
+      tenantId
+    );
     if (added) {
       await enforcer.savePolicy();
     }
