@@ -1,5 +1,6 @@
 {
   "entryPoint": "src/iam.module.ts",
+  "migrations": { "path": "migrations", "type": "drizzle" },
   "graphql": {
     "admin": [
       "src/api/graphql-admin/schema/**/*.graphql",
