@@ -8,6 +8,11 @@ export const resolvers = {
   ...userMutationResolvers,
   ...roleMutationResolvers,
   ...roleResolvers,
+  // Merge Query resolvers from queries and role
+  Query: {
+    ...queryResolvers.Query,
+    ...roleResolvers.Query,
+  },
   // Merge Mutation resolvers from both user and role
   Mutation: {
     ...userMutationResolvers.Mutation,
