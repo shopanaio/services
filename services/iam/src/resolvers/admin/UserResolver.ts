@@ -1,10 +1,10 @@
-import type { User, Role as CasdoorRole } from "@zaytra/casdoor-node-client-ext";
+import type { User } from "../../repositories/user/UserRepository.js";
 import type { Role } from "./interfaces/index.js";
 import { UsersType, Cache } from "./UsersType.js";
 
 /**
  * User resolver - resolves admin user domain interface
- * Uses User type from casdoor-nodejs-sdk
+ * Uses local User type from UserRepository
  */
 export class UserResolver extends UsersType<string, User | null> {
   @Cache({
@@ -24,62 +24,30 @@ export class UserResolver extends UsersType<string, User | null> {
   }
 
   async emailVerified() {
-    return this.get("emailVerified");
+    return this.get("emailVerified") ?? false;
   }
 
-  async firstName() {
-    return this.get("firstName");
+  async name() {
+    return this.get("name");
   }
 
-  async lastName() {
-    return this.get("lastName");
-  }
-
-  async avatar() {
-    return this.get("avatar");
-  }
-
-  async phone() {
-    return this.get("phone");
-  }
-
-  async locale() {
-    return this.get("language");
-  }
-
-  async isAdmin() {
-    return this.get("isAdmin");
-  }
-
-  async isForbidden() {
-    return this.get("isForbidden");
-  }
-
-  async isDeleted() {
-    return this.get("isDeleted");
-  }
-
-  async roles(): Promise<Role[]> {
-    const casdoorRoles = await this.get("roles");
-    return this.mapRoles(casdoorRoles);
+  async image() {
+    return this.get("image");
   }
 
   async createdAt() {
-    return this.get("createdTime");
+    const date = await this.get("createdAt");
+    return date?.toISOString() ?? null;
   }
 
   async updatedAt() {
-    return this.get("updatedTime");
+    const date = await this.get("updatedAt");
+    return date?.toISOString() ?? null;
   }
 
-  private mapRoles(roles?: CasdoorRole[]): Role[] {
-    if (!roles) return [];
-    return roles.map((r) => ({
-      owner: r.owner,
-      name: r.name,
-      displayName: r.displayName || null,
-      description: r.description || null,
-      isEnabled: r.isEnabled ?? true,
-    }));
+  // Note: Role management is pending migration to node-casbin
+  async roles(): Promise<Role[]> {
+    // Stub - will be implemented with node-casbin migration
+    return [];
   }
 }

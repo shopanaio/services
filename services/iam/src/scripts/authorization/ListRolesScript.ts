@@ -42,7 +42,7 @@ export class ListRolesScript extends BaseScript<
         const isSystem = this.repository.authorization.isSystemRole(role.name);
 
         // Extract inherited role names (remove tenant prefix)
-        const inherits = (role.roles ?? []).map((r) => {
+        const inherits = (role.roles ?? []).map((r: string) => {
           // Role format: "tenantOrg/roleName" - extract just the roleName
           const parts = r.split("/");
           return parts[parts.length - 1];

@@ -1,87 +1,33 @@
-import {
-  CasdoorNodeClient,
-  type CasdoorNodeClientConfig,
-} from "@zaytra/casdoor-node-client-ext";
-import { UserRepository } from "./user/UserRepository.js";
+import { UserRepository, type User } from "./user/UserRepository.js";
 import { AuthorizationRepository } from "./authorization/AuthorizationRepository.js";
+import type { Database } from "../db/database.js";
+import type { Auth } from "../auth/auth.js";
+
+// Re-export User type
+export type { User };
 
 export interface RepositoryConfig {
-  endpoint: string;
-  clientId: string;
-  clientSecret: string;
-  certificate?: string;
-  organizationName: string;
-  applicationName: string;
+  db: Database;
+  auth: Auth;
 }
 
 /**
- * Repository aggregator for IAM service
+ * Repository aggregator for IAM service.
+ * Manages access to user and authorization repositories.
  */
 export class Repository {
   public readonly user: UserRepository;
   public readonly authorization: AuthorizationRepository;
-  public readonly client: CasdoorNodeClient;
-  /** Admin organization name (e.g., "shopana") */
-  public readonly adminOrganization: string;
-  public readonly application: string;
 
-  private constructor(
-    client: CasdoorNodeClient,
-    adminOrganization: string,
-    application: string
-  ) {
-    this.client = client;
-    this.adminOrganization = adminOrganization;
-    this.application = application;
-    this.user = new UserRepository(client, adminOrganization, application);
-    this.authorization = new AuthorizationRepository(client, adminOrganization);
+  private constructor(config: RepositoryConfig) {
+    this.user = new UserRepository(config.db, config.auth);
+    this.authorization = new AuthorizationRepository();
   }
 
   /**
-   * Create Repository with auto-fetched certificate from Casdoor
+   * Create Repository with database and auth instances
    */
-  static async create(config: RepositoryConfig): Promise<Repository> {
-    // First create a temporary client to fetch the certificate
-    const tempClient = new CasdoorNodeClient({
-      casdoorBaseUrl: config.endpoint,
-      sdkConfig: {
-        endpoint: config.endpoint,
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        certificate: "",
-        orgName: config.organizationName,
-        appName: config.applicationName,
-      },
-      cookie: { mode: "forward" },
-    });
-
-    // Fetch certificate by name from config
-    let certificate = "";
-
-    if (config.certificate) {
-      console.log("[IAM] Fetching certificate:", config.certificate);
-      const certResponse = await tempClient.sdk.getCert(config.certificate);
-      certificate = certResponse.data?.data?.certificate ?? "";
-      console.log("[IAM] Certificate fetched, length:", certificate.length);
-    } else {
-      console.warn("[IAM] No certificate name in config");
-    }
-
-    // Create the actual client with the certificate
-    const clientConfig: CasdoorNodeClientConfig = {
-      casdoorBaseUrl: config.endpoint,
-      sdkConfig: {
-        endpoint: config.endpoint,
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        certificate,
-        orgName: config.organizationName,
-        appName: config.applicationName,
-      },
-      cookie: { mode: "forward" },
-    };
-
-    const client = new CasdoorNodeClient(clientConfig);
-    return new Repository(client, config.organizationName, config.applicationName);
+  static create(config: RepositoryConfig): Repository {
+    return new Repository(config);
   }
 }

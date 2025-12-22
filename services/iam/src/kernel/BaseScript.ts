@@ -50,24 +50,17 @@ export abstract class BaseScript<TParams, TResult> {
   }
 
   /**
-   * Helper: get current project ID
+   * Helper: get current tenant ID (project slug)
    */
-  protected getProjectId(): string | null {
-    return getContext().projectId;
+  protected getTenantId(): string | null {
+    return getContext()?.tenantId ?? null;
   }
 
   /**
-   * Helper: get admin organization name for casdoor
+   * Helper: get current project slug
    */
-  protected getAdminOrganization(): string {
-    return this.repository.adminOrganization;
-  }
-
-  /**
-   * Helper: get application name for casdoor
-   */
-  protected getApplication(): string {
-    return this.repository.application;
+  protected getProjectSlug(): string | null {
+    return getContext()?.projectSlug ?? null;
   }
 
   /**

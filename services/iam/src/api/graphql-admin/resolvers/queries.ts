@@ -8,7 +8,8 @@ export const queryResolvers = {
 
   UserQuery: {
     current: async (_parent: unknown, _args: unknown, ctx: ServiceContext) => {
-      return ctx.currentUser;
+      // Return current user - type cast needed until codegen is updated
+      return ctx.currentUser as any;
     },
   },
 } satisfies Partial<Resolvers>;

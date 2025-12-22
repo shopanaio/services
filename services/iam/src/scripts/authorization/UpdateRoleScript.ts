@@ -112,10 +112,10 @@ export class UpdateRoleScript extends BaseScript<
 
       // Get role for inherits info
       const roles = await this.repository.authorization.getRoles(tenantId);
-      const role = roles.find((r) => r.name === roleName);
+      const role = roles.find((r: any) => r.name === roleName);
 
       // Extract inherited role names
-      const inherits = (role?.roles ?? []).map((r) => {
+      const inherits = (role?.roles ?? []).map((r: string) => {
         const parts = r.split("/");
         return parts[parts.length - 1];
       });

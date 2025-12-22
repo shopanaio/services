@@ -3,7 +3,8 @@ export {
   UserRepository,
   type User,
   type UserCreateInput,
-  type UserUpdateInput,
+  type AuthTokenResult,
+  type SignInResult,
   type SignUpResult,
   type GetCurrentUserResult,
 } from "./user/UserRepository.js";

@@ -1,8 +1,8 @@
-import type { User } from "@zaytra/casdoor-node-client-ext";
+import type { User } from "../../../repositories/user/UserRepository.js";
 import type { UserResultBase } from "./shared.js";
 
 export interface GetCurrentUserParams {
-  /** JWT access token */
+  /** Session access token */
   accessToken: string;
 }
 

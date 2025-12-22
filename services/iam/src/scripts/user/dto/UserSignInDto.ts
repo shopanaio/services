@@ -1,4 +1,4 @@
-import type { User } from "@zaytra/casdoor-node-client-ext";
+import type { User } from "../../../repositories/user/UserRepository.js";
 import type { UserResultBase } from "./shared.js";
 import type { AuthToken } from "./UserSignUpDto.js";
 

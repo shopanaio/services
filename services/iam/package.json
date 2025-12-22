@@ -4,6 +4,9 @@
   "description": "IAM (Identity and Access Management) microservice",
   "type": "module",
   "main": "dist/index.js",
+  "scripts": {
+    "db:generate": "npx --yes tsx ../../node_modules/drizzle-kit/bin.cjs generate"
+  },
   "exports": {
     ".": {
       "import": "./dist/iam.module.js",
@@ -20,15 +23,18 @@
     "@shopana/shared-service-config": "*",
     "@shopana/type-resolver": "*",
     "@zaytra/casdoor-node-client-ext": "workspace:*",
+    "better-auth": "^1.4.7",
     "cache-manager": "^7.2.7",
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
     "keyv": "^5.5.5",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
+    "postgres": "^3.4.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -37,6 +43,7 @@
     "@graphql-codegen/typescript-resolvers": "^4.0.9",
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^20.14.14",
+    "drizzle-kit": "^0.31.8",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   },

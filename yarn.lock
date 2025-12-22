@@ -1296,6 +1296,49 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@better-auth/core@npm:1.4.7":
+  version: 1.4.7
+  resolution: "@better-auth/core@npm:1.4.7"
+  dependencies:
+    "@standard-schema/spec": "npm:^1.0.0"
+    zod: "npm:^4.1.12"
+  peerDependencies:
+    "@better-auth/utils": 0.3.0
+    "@better-fetch/fetch": 1.1.21
+    better-call: 1.1.5
+    jose: ^6.1.0
+    kysely: ^0.28.5
+    nanostores: ^1.0.1
+  checksum: 10/7bccae60f06dcd1c3b110f21dacbaf68aa3b799902c265782d27a12f965585f3c45f3ec6ab3fce98ef75789e7b50833b564581b0695dcecd260d2fadf4014773
+  languageName: node
+  linkType: hard
+
+"@better-auth/telemetry@npm:1.4.7":
+  version: 1.4.7
+  resolution: "@better-auth/telemetry@npm:1.4.7"
+  dependencies:
+    "@better-auth/utils": "npm:0.3.0"
+    "@better-fetch/fetch": "npm:1.1.21"
+  peerDependencies:
+    "@better-auth/core": 1.4.7
+  checksum: 10/3d5946d47748645fd626a47278a0182101c4929ac0c56eadde1a3c6a73c7d6e3343f6b735d19324789f841aca1bfdf8e06d5ee6e829002bfd871b76cf97034e6
+  languageName: node
+  linkType: hard
+
+"@better-auth/utils@npm:0.3.0, @better-auth/utils@npm:^0.3.0":
+  version: 0.3.0
+  resolution: "@better-auth/utils@npm:0.3.0"
+  checksum: 10/21aeb2186f6a38975ff2206e609fa127ec9ce32b2e3572c8afce0a3e004fa364777d5058eb10e200dfa9eb34ee1e11028e76e30d91419c0e7cee0e904b5a1182
+  languageName: node
+  linkType: hard
+
+"@better-fetch/fetch@npm:1.1.21, @better-fetch/fetch@npm:^1.1.4":
+  version: 1.1.21
+  resolution: "@better-fetch/fetch@npm:1.1.21"
+  checksum: 10/87e1ff8ae61f7312f613330753f1f894f66f4f537cba5a34553139474206540024b4500aaa8c7dde47495a629ef9e9189ed1c6f38e651c20640bb900adce1e12
+  languageName: node
+  linkType: hard
+
 "@borewit/text-codec@npm:^0.1.0":
   version: 0.1.1
   resolution: "@borewit/text-codec@npm:0.1.1"
@@ -5096,10 +5139,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/ciphers@npm:^2.0.0":
+  version: 2.1.1
+  resolution: "@noble/ciphers@npm:2.1.1"
+  checksum: 10/efca189b2719ed7309616a6824328d713bd37156e1bcead453725e51fc93311fb2f54e4d46bef0391fa17ce18bd9c2364511290774504a8600264b572f6a1db5
+  languageName: node
+  linkType: hard
+
 "@noble/hashes@npm:^1.1.5":
   version: 1.8.0
   resolution: "@noble/hashes@npm:1.8.0"
   checksum: 10/474b7f56bc6fb2d5b3a42132561e221b0ea4f91e590f4655312ca13667840896b34195e2b53b7f097ec080a1fdd3b58d902c2a8d0fbdf51d2e238b53808a177e
+  languageName: node
+  linkType: hard
+
+"@noble/hashes@npm:^2.0.0":
+  version: 2.0.1
+  resolution: "@noble/hashes@npm:2.0.1"
+  checksum: 10/f4d00e7564eb4ff4e6d16be151dd0e404aede35f91e4372b0a8a6ec888379c1dd1e02c721b480af8e7853bea9637185b5cb9533970c5b77d60c254ead0cfd8f7
   languageName: node
   linkType: hard
 
@@ -6284,15 +6341,19 @@ __metadata:
     "@shopana/type-resolver": "npm:*"
     "@types/node": "npm:^20.14.14"
     "@zaytra/casdoor-node-client-ext": "workspace:*"
+    better-auth: "npm:^1.4.7"
     cache-manager: "npm:^7.2.7"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
+    drizzle-kit: "npm:^0.31.8"
+    drizzle-orm: "npm:^0.45.1"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
     graphql-tag: "npm:^2.12.6"
     keyv: "npm:^5.5.5"
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"
+    postgres: "npm:^3.4.7"
     tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
     zod: "npm:^3.23.8"
@@ -7313,6 +7374,13 @@ __metadata:
     color: "npm:^5.0.2"
     text-hex: "npm:1.0.x"
   checksum: 10/fc3285e5cb9a458d255aa678d9453174ca40689a4c692f1617907996ab8eb78839542439604ced484c4f674a5297f7ba8b0e63fcfe901174f43c3d9c3c881b52
+  languageName: node
+  linkType: hard
+
+"@standard-schema/spec@npm:^1.0.0":
+  version: 1.1.0
+  resolution: "@standard-schema/spec@npm:1.1.0"
+  checksum: 10/a209615c9e8b2ea535d7db0a5f6aa0f962fd4ab73ee86a46c100fb78116964af1f55a27c1794d4801e534a196794223daa25ff5135021e03c7828aa3d95e1763
   languageName: node
   linkType: hard
 
@@ -8794,6 +8862,99 @@ __metadata:
   languageName: node
   linkType: hard
 
+"better-auth@npm:^1.4.7":
+  version: 1.4.7
+  resolution: "better-auth@npm:1.4.7"
+  dependencies:
+    "@better-auth/core": "npm:1.4.7"
+    "@better-auth/telemetry": "npm:1.4.7"
+    "@better-auth/utils": "npm:0.3.0"
+    "@better-fetch/fetch": "npm:1.1.21"
+    "@noble/ciphers": "npm:^2.0.0"
+    "@noble/hashes": "npm:^2.0.0"
+    better-call: "npm:1.1.5"
+    defu: "npm:^6.1.4"
+    jose: "npm:^6.1.0"
+    kysely: "npm:^0.28.5"
+    nanostores: "npm:^1.0.1"
+    zod: "npm:^4.1.12"
+  peerDependencies:
+    "@lynx-js/react": "*"
+    "@prisma/client": ^5.22.0
+    "@sveltejs/kit": ^2.0.0
+    "@tanstack/react-start": ^1.0.0
+    better-sqlite3: ^12.4.1
+    drizzle-kit: ^0.31.4
+    drizzle-orm: ^0.41.0
+    mongodb: ^6.18.0
+    mysql2: ^3.14.4
+    next: ^14.0.0 || ^15.0.0 || ^16.0.0
+    pg: ^8.16.3
+    prisma: ^5.22.0
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+    solid-js: ^1.0.0
+    svelte: ^4.0.0 || ^5.0.0
+    vitest: ^4.0.15
+    vue: ^3.0.0
+  peerDependenciesMeta:
+    "@lynx-js/react":
+      optional: true
+    "@prisma/client":
+      optional: true
+    "@sveltejs/kit":
+      optional: true
+    "@tanstack/react-start":
+      optional: true
+    better-sqlite3:
+      optional: true
+    drizzle-kit:
+      optional: true
+    drizzle-orm:
+      optional: true
+    mongodb:
+      optional: true
+    mysql2:
+      optional: true
+    next:
+      optional: true
+    pg:
+      optional: true
+    prisma:
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    solid-js:
+      optional: true
+    svelte:
+      optional: true
+    vitest:
+      optional: true
+    vue:
+      optional: true
+  checksum: 10/99c1c56599d9ad5d91502b4ddc91cb0c6a5dc91c3d19327b181a0dafed8e9fec1f66f21c77c53d50d266b7bb6ba0b032f839e575e842fececf95a463e252f1c4
+  languageName: node
+  linkType: hard
+
+"better-call@npm:1.1.5":
+  version: 1.1.5
+  resolution: "better-call@npm:1.1.5"
+  dependencies:
+    "@better-auth/utils": "npm:^0.3.0"
+    "@better-fetch/fetch": "npm:^1.1.4"
+    rou3: "npm:^0.7.10"
+    set-cookie-parser: "npm:^2.7.1"
+  peerDependencies:
+    zod: ^4.0.0
+  peerDependenciesMeta:
+    zod:
+      optional: true
+  checksum: 10/a66a355f5fff270a5d26dce6ca6ab4cff068ea03134ec6a229fe515c0557fe318a0c9a069218ed8934a956c3366f11f217d2bfec5f10a724738d78d707ac4f60
+  languageName: node
+  linkType: hard
+
 "binary-extensions@npm:^2.0.0":
   version: 2.3.0
   resolution: "binary-extensions@npm:2.3.0"
@@ -10065,6 +10226,13 @@ __metadata:
     es-errors: "npm:^1.3.0"
     gopd: "npm:^1.0.1"
   checksum: 10/abdcb2505d80a53524ba871273e5da75e77e52af9e15b3aa65d8aad82b8a3a424dad7aee2cc0b71470ac7acf501e08defac362e8b6a73cdb4309f028061df4ae
+  languageName: node
+  linkType: hard
+
+"defu@npm:^6.1.4":
+  version: 6.1.4
+  resolution: "defu@npm:6.1.4"
+  checksum: 10/aeffdb47300f45b4fdef1c5bd3880ac18ea7a1fd5b8a8faf8df29350ff03bf16dd34f9800205cab513d476e4c0a3783aa0cff0a433aff0ac84a67ddc4c8a2d64
   languageName: node
   linkType: hard
 
@@ -13500,7 +13668,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jose@npm:^6.1.1":
+"jose@npm:^6.1.0, jose@npm:^6.1.1":
   version: 6.1.3
   resolution: "jose@npm:6.1.3"
   checksum: 10/9626c51e8c3792b505e954f3094698c182208617b62dfb27269230f31e57560b083985ed8128b8a9753aa92daf18d3a2341cc826d149503f14569abe87d42389
@@ -13894,6 +14062,13 @@ __metadata:
   version: 2.0.0
   resolution: "kuler@npm:2.0.0"
   checksum: 10/9e10b5a1659f9ed8761d38df3c35effabffbd19fc6107324095238e4ef0ff044392cae9ac64a1c2dda26e532426485342226b93806bd97504b174b0dcf04ed81
+  languageName: node
+  linkType: hard
+
+"kysely@npm:^0.28.5":
+  version: 0.28.9
+  resolution: "kysely@npm:0.28.9"
+  checksum: 10/df37b4f3d9b038a37d2aa05af8cb7d338b5310cf264f26b652b440c6038bf065975c6b845972118eaa81e47d9a760ba1ebe60368dadf3fcf7db7c9c70bf5206a
   languageName: node
   linkType: hard
 
@@ -14769,6 +14944,13 @@ __metadata:
   bin:
     nanoid: bin/nanoid.cjs
   checksum: 10/73b5afe5975a307aaa3c95dfe3334c52cdf9ae71518176895229b8d65ab0d1c0417dd081426134eb7571c055720428ea5d57c645138161e7d10df80815527c48
+  languageName: node
+  linkType: hard
+
+"nanostores@npm:^1.0.1":
+  version: 1.1.0
+  resolution: "nanostores@npm:1.1.0"
+  checksum: 10/94f7fa5064cd4d54903609f9f3da7e62ae7ac757337e8aaba32778a952bf18cc3166aa50bd8a2b6547073ee5fe390037de9d7ab3950d3b3d27c101a29762b155
   languageName: node
   linkType: hard
 
@@ -16466,6 +16648,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"rou3@npm:^0.7.10":
+  version: 0.7.12
+  resolution: "rou3@npm:0.7.12"
+  checksum: 10/567969f8bb5ebcc9a0c5a1b6964d90ca6883a9e17302b0e66a263b415da4291d8a3c421e8f4214fe290386311c13fdd73db2729bc96bbac0e2dd502d41c25980
+  languageName: node
+  linkType: hard
+
 "router@npm:^2.2.0":
   version: 2.2.0
   resolution: "router@npm:2.2.0"
@@ -16702,7 +16891,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"set-cookie-parser@npm:^2.6.0":
+"set-cookie-parser@npm:^2.6.0, set-cookie-parser@npm:^2.7.1":
   version: 2.7.2
   resolution: "set-cookie-parser@npm:2.7.2"
   checksum: 10/4b6f5ec4e3fa1aef471d9207117704d217ba6bb6443400b41f5ea945c4a7f6fc08e405a122c1a32b4ebde41f06dea75e02c2af87cee9abb27f3e3fe911e5839b
@@ -18803,7 +18992,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25 || ^4.0":
+"zod@npm:^3.25 || ^4.0, zod@npm:^4.1.12":
   version: 4.2.1
   resolution: "zod@npm:4.2.1"
   checksum: 10/f21d106ce31e0f24040aa13b13fdd1300fcc8119622b28ca1b1b726ff70b75190dbcfeb927d34f19174683afa298e5df4d806f622abe9b037a0aadb9cdef6443

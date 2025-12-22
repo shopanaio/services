@@ -1,13 +1,12 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { Repository } from "../../repositories/index.js";
-import type { User } from "../../repositories/index.js";
+import type { Repository, User } from "../../repositories/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
     currentUser: User | null;
     /** Project slug from X-Project-Name header */
     projectSlug: string | null;
-    /** Tenant ID (Casdoor org name) derived from projectSlug */
+    /** Tenant ID derived from projectSlug (for RBAC) */
     tenantId: string | null;
   }
 }
@@ -35,16 +34,16 @@ function extractProjectSlug(header: string | string[] | undefined): string | nul
 }
 
 /**
- * Convert project slug to tenant org name (Casdoor organization)
+ * Convert project slug to tenant ID for RBAC
  */
 function projectSlugToTenantId(projectSlug: string): string {
-  return `org-${projectSlug}`;
+  return projectSlug; // Now just use slug directly, no org- prefix needed
 }
 
 /**
- * Build admin context middleware
- * Extracts JWT from Authorization header and fetches current user
- * Also extracts project context from X-Project-Name header
+ * Build admin context middleware.
+ * Extracts session token from Authorization header and validates session via Better Auth.
+ * Also extracts project context from X-Project-Name header.
  */
 export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
   return async function adminContextMiddleware(
@@ -72,10 +71,12 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
       return;
     }
 
+    // Validate session token via Better Auth
     const result = await config.repository.user.getCurrentUser(token);
 
     if (!result.success) {
-      reply.code(401).send({ error: result.error || "Unauthorized" });
+      // Don't fail request - just leave user as null
+      // GraphQL resolvers can handle auth requirements
       return;
     }
 

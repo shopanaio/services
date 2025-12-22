@@ -1,21 +1,26 @@
-import type {
-  User,
-  CasdoorNodeClient,
-  RequestContext,
-} from "@zaytra/casdoor-node-client-ext";
+import { eq } from "drizzle-orm";
+import type { Database } from "../../db/database.js";
+import { user, session } from "../../db/schema/auth.js";
+import type { Auth } from "../../auth/auth.js";
 
-// Re-export User type from SDK
-export type { User };
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  emailVerified: boolean;
+  image: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface UserCreateInput {
   email: string;
   password: string;
-}
-
-export interface UserUpdateInput {
-  firstName?: string;
-  lastName?: string;
-  locale?: string;
+  name?: string;
 }
 
 export interface AuthTokenResult {
@@ -39,144 +44,57 @@ export interface GetCurrentUserResult {
   error?: string;
 }
 
+// ============================================================================
+// Repository
+// ============================================================================
+
 /**
- * Repository for admin users
+ * Repository for user authentication and management.
+ * Uses Better Auth for auth operations and Drizzle for direct DB access.
  */
 export class UserRepository {
   constructor(
-    private readonly client: CasdoorNodeClient,
-    private readonly organization: string,
-    private readonly application: string
+    private readonly db: Database,
+    private readonly auth: Auth
   ) {}
 
-  /**
-   * Get current user from JWT token
-   * Returns user if token is valid, null otherwise
-   */
-  async getCurrentUser(jwt: string): Promise<GetCurrentUserResult> {
-    try {
-      const jwtUser = this.client.sdk.parseJwtToken(jwt);
-      const userId = (jwtUser as any).sub as string;
-
-      if (!userId) {
-        return {
-          success: false,
-          user: null,
-          error: "Invalid token: missing sub",
-        };
-      }
-
-      const user = await this.findById(userId);
-
-      if (!user) {
-        return {
-          success: false,
-          user: null,
-          error: "User not found",
-        };
-      }
-
-      return {
-        success: true,
-        user,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        user: null,
-        error: error instanceof Error ? error.message : "Invalid token",
-      };
-    }
-  }
+  // ==========================================================================
+  // Auth Operations (via Better Auth API)
+  // ==========================================================================
 
   /**
-   * Find user by username (name field in Casdoor)
+   * Sign in a user with email and password
    */
-  async findByUsername(username: string): Promise<User | null> {
-    const response = await this.client.sdk.getUser(username);
-    return response.data?.data ?? null;
-  }
-
-  /**
-   * Find user by id (sub field from JWT)
-   */
-  async findById(id: string): Promise<User | null> {
-    const response = await this.client.sdk.getUsers();
-    const users = response.data?.data ?? [];
-    return users.find((u) => u.id === id) ?? null;
-  }
-
-  /**
-   * Find user by email
-   */
-  async findByEmail(email: string): Promise<User | null> {
-    const response = await this.client.sdk.getUsers();
-    const users = response.data?.data ?? [];
-    return users.find((u) => u.email === email) ?? null;
-  }
-
-  /**
-   * Sign in a user
-   */
-  async signIn(
-    input: UserCreateInput,
-    ctx: RequestContext = {}
-  ): Promise<SignInResult> {
+  async signIn(input: UserCreateInput): Promise<SignInResult> {
     const { email, password } = input;
 
     try {
-      const loginResponse = await this.client.auth.login(ctx, {
-        application: this.application,
-        organization: this.organization,
-        username: email,
-        password,
-        type: "token",
+      const result = await this.auth.api.signInEmail({
+        body: {
+          email,
+          password,
+        },
       });
 
-      if (loginResponse.data.status !== "ok") {
+      if (!result.user || !result.token) {
         return {
           success: false,
           user: null,
           token: null,
-          error: loginResponse.data.msg || "Login failed",
+          error: "Invalid credentials",
         };
       }
 
-      const accessToken = loginResponse.data.data as string;
-      const refreshToken = (loginResponse.data.data2 as string) || "";
-
-      // Parse JWT - use sub field as user id
-      const jwtUser = this.client.sdk.parseJwtToken(accessToken);
-      const userId = (jwtUser as any).sub as string;
-
-      if (!userId) {
-        return {
-          success: false,
-          user: null,
-          token: null,
-          error: "Invalid token: missing sub",
-        };
-      }
-
-      // Get full user object by id
-      const user = await this.findById(userId);
-
-      if (!user) {
-        return {
-          success: false,
-          user: null,
-          token: null,
-          error: "User not found after authentication",
-        };
-      }
+      // Calculate expiration from session (default 7 days)
+      const expiresIn = 60 * 60 * 24 * 7;
 
       return {
         success: true,
-        user,
+        user: this.mapUser(result.user),
         token: {
-          accessToken,
-          refreshToken,
-          expiresIn: 7200,
+          accessToken: result.token,
+          refreshToken: "", // Better Auth uses session tokens
+          expiresIn,
         },
       };
     } catch (error) {
@@ -184,7 +102,7 @@ export class UserRepository {
         success: false,
         user: null,
         token: null,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Sign in failed",
       };
     }
   }
@@ -192,40 +110,219 @@ export class UserRepository {
   /**
    * Sign up a new user
    */
-  async signUp(
-    input: UserCreateInput,
-    ctx: RequestContext = {}
-  ): Promise<SignUpResult> {
-    const { email, password } = input;
+  async signUp(input: UserCreateInput): Promise<SignUpResult> {
+    const { email, password, name } = input;
 
     try {
-      // 1. Create user via /api/signup
-      const signupResponse = await this.client.auth.signup(ctx, {
-        application: this.application,
-        organization: this.organization,
-
-        email,
-        password,
+      const result = await this.auth.api.signUpEmail({
+        body: {
+          email,
+          password,
+          name: name || email.split("@")[0], // Default name from email
+        },
       });
 
-      if (signupResponse.data.status !== "ok") {
+      if (!result.user) {
         return {
           success: false,
           user: null,
           token: null,
-          error: signupResponse.data.msg || "Signup failed",
+          error: "Sign up failed",
         };
       }
 
-      // 2. Sign in to get tokens and full user object
-      return this.signIn(input, ctx);
+      // Calculate expiration (default 7 days)
+      const expiresIn = 60 * 60 * 24 * 7;
+
+      return {
+        success: true,
+        user: this.mapUser(result.user),
+        token: result.token ? {
+          accessToken: result.token,
+          refreshToken: "",
+          expiresIn,
+        } : null,
+      };
     } catch (error) {
       return {
         success: false,
         user: null,
         token: null,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Sign up failed",
       };
     }
+  }
+
+  /**
+   * Get current user from session token
+   */
+  async getCurrentUser(sessionToken: string): Promise<GetCurrentUserResult> {
+    try {
+      const result = await this.auth.api.getSession({
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+        },
+      });
+
+      if (!result || !result.user) {
+        return {
+          success: false,
+          user: null,
+          error: "Invalid or expired session",
+        };
+      }
+
+      return {
+        success: true,
+        user: this.mapUser(result.user),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        user: null,
+        error: error instanceof Error ? error.message : "Session validation failed",
+      };
+    }
+  }
+
+  /**
+   * Sign out - revoke session
+   */
+  async signOut(sessionToken: string): Promise<boolean> {
+    try {
+      await this.auth.api.signOut({
+        headers: {
+          authorization: `Bearer ${sessionToken}`,
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ==========================================================================
+  // Direct DB Operations (via Drizzle)
+  // ==========================================================================
+
+  /**
+   * Find user by ID
+   */
+  async findById(id: string): Promise<User | null> {
+    const [result] = await this.db
+      .select()
+      .from(user)
+      .where(eq(user.id, id));
+
+    return result ? this.mapDbUser(result) : null;
+  }
+
+  /**
+   * Find user by email
+   */
+  async findByEmail(email: string): Promise<User | null> {
+    const [result] = await this.db
+      .select()
+      .from(user)
+      .where(eq(user.email, email.toLowerCase()));
+
+    return result ? this.mapDbUser(result) : null;
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(
+    userId: string,
+    updates: { name?: string; image?: string }
+  ): Promise<User | null> {
+    const [result] = await this.db
+      .update(user)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return result ? this.mapDbUser(result) : null;
+  }
+
+  /**
+   * Update user email
+   */
+  async updateEmail(userId: string, newEmail: string): Promise<User | null> {
+    const [result] = await this.db
+      .update(user)
+      .set({
+        email: newEmail.toLowerCase(),
+        emailVerified: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return result ? this.mapDbUser(result) : null;
+  }
+
+  /**
+   * Delete user and all associated data
+   */
+  async delete(userId: string): Promise<boolean> {
+    // Cascade delete handles sessions and accounts
+    const result = await this.db.delete(user).where(eq(user.id, userId));
+    return (result as any).rowCount > 0;
+  }
+
+  /**
+   * Get all sessions for a user
+   */
+  async getUserSessions(userId: string) {
+    return this.db.select().from(session).where(eq(session.userId, userId));
+  }
+
+  /**
+   * Revoke a specific session
+   */
+  async revokeSession(sessionId: string): Promise<boolean> {
+    const result = await this.db
+      .delete(session)
+      .where(eq(session.id, sessionId));
+    return (result as any).rowCount > 0;
+  }
+
+  /**
+   * Revoke all sessions for a user
+   */
+  async revokeAllSessions(userId: string): Promise<number> {
+    const result = await this.db
+      .delete(session)
+      .where(eq(session.userId, userId));
+    return (result as any).rowCount ?? 0;
+  }
+
+  // ==========================================================================
+  // Helpers
+  // ==========================================================================
+
+  private mapUser(u: any): User {
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      emailVerified: u.emailVerified ?? false,
+      image: u.image ?? null,
+      createdAt: new Date(u.createdAt),
+      updatedAt: new Date(u.updatedAt),
+    };
+  }
+
+  private mapDbUser(u: typeof user.$inferSelect): User {
+    return {
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      emailVerified: u.emailVerified,
+      image: u.image,
+      createdAt: u.createdAt!,
+      updatedAt: u.updatedAt!,
+    };
   }
 }

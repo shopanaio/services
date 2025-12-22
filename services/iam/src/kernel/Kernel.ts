@@ -1,13 +1,12 @@
 import { Kernel as BaseKernel } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
-import { getServiceConfig } from "@shopana/shared-service-config";
 import { createCache, type Cache } from "cache-manager";
 import type { IamKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
 import { AuthorizationCache } from "../cache/index.js";
-
-const { service } = getServiceConfig("iam");
+import { initDatabase, type Database } from "../db/database.js";
+import { createAuth, type Auth } from "../auth/auth.js";
 
 const consoleLogger: Logger = {
   info: (...args: any[]) => console.log("[INFO]", ...args),
@@ -25,18 +24,24 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public repository!: Repository;
   public cache!: Cache;
   public authCache!: AuthorizationCache;
+  public db!: Database;
+  public auth!: Auth;
 
   private constructor(
     broker: ServiceBroker,
     logger: Logger,
     repository: Repository,
     cache: Cache,
-    authCache: AuthorizationCache
+    authCache: AuthorizationCache,
+    db: Database,
+    auth: Auth
   ) {
     super(broker, logger, { repository, cache, authCache });
     this.repository = repository;
     this.cache = cache;
     this.authCache = authCache;
+    this.db = db;
+    this.auth = auth;
   }
 
   static async create(broker: ServiceBroker): Promise<Kernel> {
@@ -44,19 +49,21 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       return this.instance;
     }
 
-    const casdoor = service.casdoor;
-    if (!casdoor) {
-      throw new Error("Casdoor config is required for IAM service");
+    // Initialize database connection from environment variable
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error("DATABASE_URL environment variable is required for IAM service");
     }
 
-    const repository = await Repository.create({
-      endpoint: casdoor.endpoint,
-      clientId: casdoor.client_id,
-      clientSecret: casdoor.client_secret,
-      certificate: casdoor.certificate,
-      organizationName: casdoor.organization_name,
-      applicationName: casdoor.application_name,
-    });
+    console.log("[IAM] Initializing database connection...");
+    const db = initDatabase(databaseUrl);
+
+    // Initialize Better Auth
+    console.log("[IAM] Initializing Better Auth...");
+    const auth = createAuth();
+
+    // Create repository with database and auth
+    const repository = Repository.create({ db, auth });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -64,8 +71,16 @@ export class Kernel extends BaseKernel<IamKernelServices> {
 
     const authCache = new AuthorizationCache();
 
-    this.instance = new Kernel(broker, consoleLogger, repository, cache, authCache);
-    console.log("[IAM] Kernel initialized");
+    this.instance = new Kernel(
+      broker,
+      consoleLogger,
+      repository,
+      cache,
+      authCache,
+      db,
+      auth
+    );
+    console.log("[IAM] Kernel initialized with Better Auth");
     return this.instance;
   }
 
