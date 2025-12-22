@@ -1,16 +1,20 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { PREDEFINED_ROLES } from "../../constants/index.js";
 import type {
   ProvisionTenantParams,
   ProvisionTenantResult,
 } from "./dto/ProvisionTenantDto.js";
 
 /**
- * Provision IAM tenant (stub - pending migration to node-casbin)
+ * ProvisionTenantScript - Create a new tenant with predefined roles
  *
- * This script will be fully implemented during the node-casbin migration.
- * For now, it returns a stub response.
+ * This script creates:
+ * 1. A tenant record in iam.tenant
+ * 2. Predefined roles (owner, admin, manager, support, viewer)
+ * 3. Role hierarchy
+ * 4. Assigns owner role to the specified ownerId
  *
- * @see docs/migration-node-casbin.md
+ * The ownerId should be a Better Auth user ID.
  */
 export class ProvisionTenantScript extends BaseScript<
   ProvisionTenantParams,
@@ -19,24 +23,66 @@ export class ProvisionTenantScript extends BaseScript<
   protected async execute(
     params: ProvisionTenantParams
   ): Promise<ProvisionTenantResult> {
-    const { slug } = params;
+    const { slug, displayName, ownerId } = params;
 
-    // Stub implementation - will be replaced with node-casbin
-    console.warn(
-      `[ProvisionTenantScript] Tenant provisioning not implemented - migration to node-casbin pending. Slug: ${slug}`
-    );
+    try {
+      this.logger.info(
+        { slug, ownerId },
+        "ProvisionTenantScript: Starting tenant provisioning"
+      );
 
-    return {
-      tenantId: null,
-      roles: [],
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message:
-            "Tenant provisioning is pending migration to node-casbin. See docs/migration-node-casbin.md",
-        },
-      ],
-    };
+      // Use slug as tenantId for the authorization system
+      // The actual tenant record will be created by provisionTenantRoles
+      const result = await this.repository.authorization.provisionTenantRoles(
+        slug,
+        ownerId
+      );
+
+      if (!result.success) {
+        this.logger.error(
+          { slug, error: result.error },
+          "ProvisionTenantScript: Failed to provision tenant roles"
+        );
+
+        return {
+          tenantId: null,
+          roles: [],
+          userErrors: [
+            {
+              code: "PROVISION_FAILED",
+              message: result.error ?? "Failed to provision tenant roles",
+            },
+          ],
+        };
+      }
+
+      this.logger.info(
+        { slug, ownerId },
+        "ProvisionTenantScript: Tenant provisioned successfully"
+      );
+
+      return {
+        tenantId: slug,
+        roles: Object.values(PREDEFINED_ROLES),
+        userErrors: [],
+      };
+    } catch (error) {
+      this.logger.error(
+        { error, params },
+        "ProvisionTenantScript: Unexpected error during provisioning"
+      );
+
+      return {
+        tenantId: null,
+        roles: [],
+        userErrors: [
+          {
+            code: "INTERNAL_ERROR",
+            message: "An unexpected error occurred during tenant provisioning",
+          },
+        ],
+      };
+    }
   }
 
   protected handleError(_error: unknown): ProvisionTenantResult {

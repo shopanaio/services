@@ -10,7 +10,7 @@ import type {
  * ListRoles - List all roles for a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for role listing.
+ * Uses tenantId for role listing from local PostgreSQL.
  *
  * Returns both system and custom roles with their permissions.
  */
@@ -27,35 +27,46 @@ export class ListRolesScript extends BaseScript<
       const roleInfos: RoleInfo[] = [];
 
       for (const role of roles) {
-        // Get permissions for this role
-        const permissions = await this.repository.authorization.getRolePermissions(
+        // Get permissions for this role (returns Casbin policy arrays)
+        const policies = await this.repository.authorization.getRolePermissions(
           tenantId,
           role.name
         );
 
-        const mappedPermissions: RolePermission[] = permissions.map((p) => ({
-          resource: p.resources?.[0] ?? p.resourceType,
-          actions: p.actions ?? [],
-          effect: (p.effect as "Allow" | "Deny") ?? "Allow",
-        }));
+        // Map Casbin policies [role, resource, action, effect, tenant] to RolePermission
+        const permissionMap = new Map<string, { actions: string[]; effect: "Allow" | "Deny" }>();
 
-        const isSystem = this.repository.authorization.isSystemRole(role.name);
+        for (const policy of policies) {
+          const [, resource, action, effect] = policy;
+          const key = `${resource}:${effect}`;
 
-        // Extract inherited role names (remove tenant prefix)
-        const inherits = (role.roles ?? []).map((r: string) => {
-          // Role format: "tenantOrg/roleName" - extract just the roleName
-          const parts = r.split("/");
-          return parts[parts.length - 1];
-        });
+          if (!permissionMap.has(key)) {
+            permissionMap.set(key, {
+              actions: [],
+              effect: effect === "deny" ? "Deny" : "Allow",
+            });
+          }
+          permissionMap.get(key)!.actions.push(action);
+        }
+
+        const mappedPermissions: RolePermission[] = [];
+        for (const [key, value] of permissionMap) {
+          const resource = key.split(":")[0];
+          mappedPermissions.push({
+            resource,
+            actions: value.actions,
+            effect: value.effect,
+          });
+        }
 
         roleInfos.push({
           name: role.name,
-          displayName: role.displayName,
-          description: role.description,
-          isSystem,
-          inherits,
+          displayName: role.displayName ?? role.name,
+          description: role.description ?? "",
+          isSystem: role.isSystem,
+          inherits: [], // TODO: fetch from role_hierarchy if needed
           permissions: mappedPermissions,
-          createdAt: role.createdTime ? new Date(role.createdTime) : undefined,
+          createdAt: role.createdAt,
         });
       }
 

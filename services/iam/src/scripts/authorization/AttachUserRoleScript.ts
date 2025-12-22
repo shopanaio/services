@@ -19,13 +19,14 @@ export class AttachUserRoleScript extends BaseScript<
   protected async execute(
     params: AttachUserRoleParams
   ): Promise<AttachUserRoleResult> {
-    const { userId, tenantId, roleName } = params;
+    const { userId, tenantId, roleName, grantedBy } = params;
 
     try {
       const attached = await this.repository.authorization.attachUserRole(
         tenantId,
         userId,
-        roleName
+        roleName,
+        grantedBy
       );
 
       if (!attached) {

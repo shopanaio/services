@@ -76,12 +76,13 @@ export class CreateRoleScript extends BaseScript<
 
       // Create permissions for the role
       for (const perm of permissions) {
+        const effect = perm.effect.toLowerCase() as "allow" | "deny";
         const permCreated = await this.repository.authorization.createPermission(
           tenantId,
           name,
           perm.resource,
           perm.actions,
-          perm.effect
+          effect
         );
 
         if (!permCreated) {

@@ -10,7 +10,7 @@ import type {
  * UpdateRole - Update role metadata and/or permissions
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for role updates.
+ * Uses tenantId for role updates in local PostgreSQL.
  *
  * Can update both system and custom roles.
  * System roles can have their permissions modified per tenant.
@@ -68,16 +68,10 @@ export class UpdateRoleScript extends BaseScript<
 
       // Update permissions if provided
       if (permissions !== undefined) {
-        // Map DTO format (ALLOW/DENY) to Casdoor format (Allow/Deny)
-        const casdoorPermissions = permissions.map((p) => ({
-          resource: p.resource,
-          actions: p.actions,
-          effect: p.effect,
-        }));
         const result = await this.repository.authorization.updateRolePermissions(
           tenantId,
           roleName,
-          casdoorPermissions
+          permissions
         );
 
         if (!result.success) {
@@ -96,37 +90,48 @@ export class UpdateRoleScript extends BaseScript<
       // Invalidate cache
       this.authCache.onRoleUpdate(tenantId, roleName);
 
-      // Get updated permissions
-      const rolePermissions = await this.repository.authorization.getRolePermissions(
+      // Get updated permissions from Casbin policies
+      const policies = await this.repository.authorization.getRolePermissions(
         tenantId,
         roleName
       );
 
-      const mappedPermissions: RolePermission[] = rolePermissions.map((p) => ({
-        resource: p.resources?.[0] ?? p.resourceType,
-        actions: p.actions ?? [],
-        effect: (p.effect as "Allow" | "Deny") ?? "Allow",
-      }));
+      // Map Casbin policies [role, resource, action, effect, tenant] to RolePermission
+      const permissionMap = new Map<string, { actions: string[]; effect: "Allow" | "Deny" }>();
+
+      for (const policy of policies) {
+        const [, resource, action, effect] = policy;
+        const key = `${resource}:${effect}`;
+
+        if (!permissionMap.has(key)) {
+          permissionMap.set(key, {
+            actions: [],
+            effect: effect === "deny" ? "Deny" : "Allow",
+          });
+        }
+        permissionMap.get(key)!.actions.push(action);
+      }
+
+      const mappedPermissions: RolePermission[] = [];
+      for (const [key, value] of permissionMap) {
+        const resource = key.split(":")[0];
+        mappedPermissions.push({
+          resource,
+          actions: value.actions,
+          effect: value.effect,
+        });
+      }
 
       const isSystem = this.repository.authorization.isSystemRole(roleName);
 
-      // Get role for inherits info
-      const roles = await this.repository.authorization.getRoles(tenantId);
-      const role = roles.find((r: any) => r.name === roleName);
-
-      // Extract inherited role names
-      const inherits = (role?.roles ?? []).map((r: string) => {
-        const parts = r.split("/");
-        return parts[parts.length - 1];
-      });
-
       const roleInfo: RoleInfo = {
         name: roleName,
-        displayName: displayName ?? existingRole.displayName,
-        description: description ?? existingRole.description,
+        displayName: displayName ?? existingRole.displayName ?? roleName,
+        description: description ?? existingRole.description ?? "",
         isSystem,
-        inherits,
+        inherits: [], // TODO: fetch from role_hierarchy if needed
         permissions: permissions ?? mappedPermissions,
+        createdAt: existingRole.createdAt,
       };
 
       this.logger.info(
