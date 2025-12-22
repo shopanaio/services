@@ -1,6 +1,7 @@
 import { Kernel as BaseKernel } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
+import { getServiceConfig, buildDbUrl } from "@shopana/shared-service-config";
 import type { IamKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
@@ -49,11 +50,12 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       return this.instance;
     }
 
-    // Initialize database connection from environment variable
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL environment variable is required for IAM service");
+    // Load database configuration from config.yml
+    const { service } = getServiceConfig("iam");
+    if (!service.db) {
+      throw new Error("Database configuration is required for IAM service in config.yml");
     }
+    const databaseUrl = buildDbUrl(service.db);
 
     console.log("[IAM] Initializing database connection...");
     const db = initDatabase(databaseUrl);
