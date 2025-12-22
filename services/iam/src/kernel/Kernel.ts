@@ -62,8 +62,9 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     console.log("[IAM] Initializing Better Auth...");
     const auth = createAuth();
 
-    // Create repository with database and auth
-    const repository = Repository.create({ db, auth });
+    // Create repository with database, auth, and casbin
+    console.log("[IAM] Initializing Casbin authorization...");
+    const repository = await Repository.create({ db, auth, databaseUrl });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -80,7 +81,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       db,
       auth
     );
-    console.log("[IAM] Kernel initialized with Better Auth");
+    console.log("[IAM] Kernel initialized with Better Auth and Casbin");
     return this.instance;
   }
 

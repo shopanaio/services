@@ -1,203 +1,410 @@
+import { CasbinService } from "../../casbin/CasbinService.js";
+import { RoleRepository } from "./RoleRepository.js";
+import { UserRoleRepository } from "./UserRoleRepository.js";
+import { TenantRepository } from "./TenantRepository.js";
 import {
   PREDEFINED_ROLES,
+  ROLE_PERMISSIONS,
+  ROLE_DISPLAY_NAMES,
+  ROLE_DESCRIPTIONS,
   type PredefinedRoleName,
 } from "../../constants/index.js";
 
 /**
- * Temporary stub for AuthorizationRepository.
- * Will be replaced with node-casbin implementation in Phase 2 migration.
+ * AuthorizationRepository - Main facade for authorization operations.
  *
- * @see docs/migration-node-casbin.md
+ * Combines CasbinService (policy enforcement) with database repositories
+ * (RoleRepository, UserRoleRepository, TenantRepository) to provide
+ * a unified API for role-based access control.
  */
 export class AuthorizationRepository {
-  constructor() {}
+  constructor(
+    private readonly casbin: CasbinService,
+    private readonly roleRepo: RoleRepository,
+    private readonly userRoleRepo: UserRoleRepository,
+    private readonly tenantRepo: TenantRepository
+  ) {}
 
   // ============================================================================
-  // Enforce Methods (stub - will be implemented with node-casbin)
+  // Enforce Methods
   // ============================================================================
 
+  /**
+   * Check if user has permission for resource/action in tenant
+   */
   async enforce(
-    _tenantId: string,
-    _userId: string,
-    _resource: string,
-    _action: string
+    tenantId: string,
+    userId: string,
+    resource: string,
+    action: string
   ): Promise<boolean> {
-    console.warn("[AuthorizationRepository] enforce() not implemented - migration to node-casbin pending");
-    return false;
+    return this.casbin.enforce(tenantId, userId, resource, action);
   }
 
+  /**
+   * Batch check permissions
+   */
   async batchEnforce(
-    _tenantId: string,
-    _userId: string,
+    tenantId: string,
+    userId: string,
     requests: Array<{ resource: string; action: string }>
   ): Promise<boolean[]> {
-    console.warn("[AuthorizationRepository] batchEnforce() not implemented - migration to node-casbin pending");
-    return requests.map(() => false);
+    return this.casbin.batchEnforce(tenantId, userId, requests);
   }
 
   // ============================================================================
-  // Role Methods (stub)
+  // Role Methods
   // ============================================================================
 
-  async getRoles(_tenantId: string): Promise<any[]> {
-    console.warn("[AuthorizationRepository] getRoles() not implemented - migration to node-casbin pending");
-    return [];
+  /**
+   * Get all roles for a tenant
+   */
+  async getRoles(tenantId: string) {
+    return this.roleRepo.findByTenant(tenantId);
   }
 
-  async getRole(_tenantId: string, _roleName: string): Promise<any | null> {
-    console.warn("[AuthorizationRepository] getRole() not implemented - migration to node-casbin pending");
-    return null;
+  /**
+   * Get a specific role by name
+   */
+  async getRole(tenantId: string, roleName: string) {
+    return this.roleRepo.findByName(tenantId, roleName);
   }
 
+  /**
+   * Create a new role
+   */
   async createRole(
-    _tenantId: string,
-    _roleName: string,
-    _displayName: string,
-    _description: string = ""
-  ): Promise<boolean> {
-    console.warn("[AuthorizationRepository] createRole() not implemented - migration to node-casbin pending");
-    return false;
+    tenantId: string,
+    roleName: string,
+    displayName: string,
+    description: string = "",
+    isSystem: boolean = false
+  ) {
+    return this.roleRepo.create({
+      tenantId,
+      name: roleName,
+      displayName,
+      description,
+      isSystem,
+    });
   }
 
+  /**
+   * Update a role
+   */
   async updateRole(
-    _tenantId: string,
-    _roleName: string,
-    _updates: { displayName?: string; description?: string }
-  ): Promise<boolean> {
-    console.warn("[AuthorizationRepository] updateRole() not implemented - migration to node-casbin pending");
-    return false;
+    tenantId: string,
+    roleName: string,
+    updates: { displayName?: string; description?: string }
+  ) {
+    return this.roleRepo.update(tenantId, roleName, updates);
   }
 
-  async deleteRole(_tenantId: string, _roleName: string): Promise<boolean> {
-    console.warn("[AuthorizationRepository] deleteRole() not implemented - migration to node-casbin pending");
-    return false;
+  /**
+   * Delete a role and all its policies
+   */
+  async deleteRole(tenantId: string, roleName: string): Promise<boolean> {
+    // Remove all policies for this role
+    await this.casbin.removeFilteredPolicy(tenantId, roleName);
+
+    // Delete role from database
+    return this.roleRepo.delete(tenantId, roleName);
   }
 
+  /**
+   * Check if role is a system/predefined role
+   */
   isSystemRole(roleName: string): boolean {
     return Object.values(PREDEFINED_ROLES).includes(roleName as PredefinedRoleName);
   }
 
   // ============================================================================
-  // User-Role Assignment Methods (stub)
+  // User-Role Methods
   // ============================================================================
 
-  async getUserRoles(_tenantId: string, _userId: string): Promise<string[]> {
-    console.warn("[AuthorizationRepository] getUserRoles() not implemented - migration to node-casbin pending");
-    return [];
+  /**
+   * Get user's roles in a tenant
+   */
+  async getUserRoles(tenantId: string, userId: string): Promise<string[]> {
+    return this.casbin.getRolesForUser(tenantId, userId);
   }
 
-  async getTenantMembers(_tenantId: string): Promise<Array<{
-    userId: string;
-    roleName: string;
-    roleDisplayName: string;
-  }>> {
-    console.warn("[AuthorizationRepository] getTenantMembers() not implemented - migration to node-casbin pending");
-    return [];
-  }
-
+  /**
+   * Attach a role to user in tenant
+   */
   async attachUserRole(
-    _tenantId: string,
-    _userId: string,
-    _roleName: string
+    tenantId: string,
+    userId: string,
+    roleName: string,
+    grantedBy?: string
   ): Promise<boolean> {
-    console.warn("[AuthorizationRepository] attachUserRole() not implemented - migration to node-casbin pending");
-    return false;
+    // Get role from database
+    const role = await this.roleRepo.findByName(tenantId, roleName);
+    if (!role) {
+      console.warn(`[AuthorizationRepository] Role "${roleName}" not found in tenant ${tenantId}`);
+      return false;
+    }
+
+    // Save to database (user-role mapping)
+    await this.userRoleRepo.upsert({
+      tenantId,
+      userId,
+      roleId: role.id,
+      grantedBy,
+    });
+
+    // Add to Casbin (for enforcement)
+    return this.casbin.addRoleForUser(tenantId, userId, roleName);
   }
 
+  /**
+   * Detach a role from user in tenant
+   */
   async detachUserRole(
-    _tenantId: string,
-    _userId: string,
-    _roleName: string
+    tenantId: string,
+    userId: string,
+    roleName: string
   ): Promise<boolean> {
-    console.warn("[AuthorizationRepository] detachUserRole() not implemented - migration to node-casbin pending");
-    return false;
+    // Remove from database
+    await this.userRoleRepo.delete(tenantId, userId);
+
+    // Remove from Casbin
+    return this.casbin.removeRoleForUser(tenantId, userId, roleName);
+  }
+
+  /**
+   * Get all members of a tenant with their roles
+   */
+  async getTenantMembers(tenantId: string) {
+    return this.userRoleRepo.findByTenant(tenantId);
   }
 
   // ============================================================================
-  // Permission Methods (stub)
+  // Permission Methods
   // ============================================================================
 
-  async getRolePermissions(
-    _tenantId: string,
-    _roleName: string
-  ): Promise<any[]> {
-    console.warn("[AuthorizationRepository] getRolePermissions() not implemented - migration to node-casbin pending");
-    return [];
+  /**
+   * Get permissions for a role
+   */
+  async getRolePermissions(tenantId: string, roleName: string) {
+    const policies = await this.casbin.getPolicies(tenantId);
+    return policies.filter((p) => p[0] === roleName);
   }
 
-  async deletePermission(_tenantId: string, _permissionName: string): Promise<boolean> {
-    console.warn("[AuthorizationRepository] deletePermission() not implemented - migration to node-casbin pending");
-    return false;
-  }
-
+  /**
+   * Create a permission for a role
+   */
   async createPermission(
-    _tenantId: string,
-    _roleName: string,
-    _resource: string,
-    _actions: string[],
-    _effect: "Allow" | "Deny" = "Allow"
+    tenantId: string,
+    roleName: string,
+    resource: string,
+    actions: string[],
+    effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
-    console.warn("[AuthorizationRepository] createPermission() not implemented - migration to node-casbin pending");
+    for (const action of actions) {
+      await this.casbin.addPolicy(tenantId, roleName, resource, action, effect);
+    }
+    return true;
+  }
+
+  /**
+   * Delete a specific permission (not used directly, but kept for compatibility)
+   */
+  async deletePermission(tenantId: string, _permissionName: string): Promise<boolean> {
+    // In the new system, permissions are managed per-role
+    console.warn("[AuthorizationRepository] deletePermission() - use deleteRolePermissions() instead");
     return false;
   }
 
+  /**
+   * Delete all permissions for a role
+   */
+  async deleteRolePermissions(tenantId: string, roleName: string): Promise<boolean> {
+    return this.casbin.removeFilteredPolicy(tenantId, roleName);
+  }
+
+  /**
+   * Update role permissions (replace all)
+   */
   async updateRolePermissions(
-    _tenantId: string,
-    _roleName: string,
-    _permissions: Array<{
+    tenantId: string,
+    roleName: string,
+    permissions: Array<{
       resource: string;
       actions: string[];
       effect: "Allow" | "Deny";
     }>
   ): Promise<{ success: boolean; error?: string }> {
-    console.warn("[AuthorizationRepository] updateRolePermissions() not implemented - migration to node-casbin pending");
-    return { success: false, error: "Not implemented - migration to node-casbin pending" };
+    try {
+      // Delete existing permissions
+      await this.deleteRolePermissions(tenantId, roleName);
+
+      // Create new permissions
+      for (const perm of permissions) {
+        const effect = perm.effect.toLowerCase() as "allow" | "deny";
+        await this.createPermission(tenantId, roleName, perm.resource, perm.actions, effect);
+      }
+
+      // Invalidate enforcer cache
+      await this.casbin.invalidateEnforcer(tenantId);
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
   }
 
   // ============================================================================
-  // Role Hierarchy (stub)
+  // Role Hierarchy
   // ============================================================================
 
+  /**
+   * Add role hierarchy (parent inherits child permissions)
+   */
+  async addRoleHierarchy(
+    tenantId: string,
+    parentRole: string,
+    childRole: string
+  ): Promise<boolean> {
+    return this.casbin.addRoleHierarchy(tenantId, parentRole, childRole);
+  }
+
+  /**
+   * Provision standard role hierarchy
+   */
   async provisionRoleHierarchy(
-    _tenantId: string
+    tenantId: string
   ): Promise<{ success: boolean; error?: string }> {
-    console.warn("[AuthorizationRepository] provisionRoleHierarchy() not implemented - migration to node-casbin pending");
-    return { success: false, error: "Not implemented - migration to node-casbin pending" };
+    const hierarchy: [string, string][] = [
+      [PREDEFINED_ROLES.OWNER, PREDEFINED_ROLES.ADMIN],
+      [PREDEFINED_ROLES.ADMIN, PREDEFINED_ROLES.MANAGER],
+      [PREDEFINED_ROLES.MANAGER, PREDEFINED_ROLES.SUPPORT],
+      [PREDEFINED_ROLES.SUPPORT, PREDEFINED_ROLES.VIEWER],
+    ];
+
+    try {
+      for (const [parent, child] of hierarchy) {
+        await this.addRoleHierarchy(tenantId, parent, child);
+      }
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
   }
 
   // ============================================================================
-  // Model & Enforcer Setup (stub - for Casdoor compatibility)
+  // Model & Enforcer Setup (for Casdoor compatibility)
   // ============================================================================
 
+  /**
+   * Ensure model exists (no-op in new system, model is embedded)
+   */
   async ensureModelExists(_tenantId: string): Promise<{ success: boolean; error?: string }> {
-    console.warn("[AuthorizationRepository] ensureModelExists() not implemented - migration to node-casbin pending");
-    return { success: false, error: "Not implemented - migration to node-casbin pending" };
+    return { success: true };
   }
 
+  /**
+   * Ensure enforcer exists (no-op in new system, created on demand)
+   */
   async ensureEnforcerExists(_tenantId: string): Promise<{ success: boolean; error?: string }> {
-    console.warn("[AuthorizationRepository] ensureEnforcerExists() not implemented - migration to node-casbin pending");
-    return { success: false, error: "Not implemented - migration to node-casbin pending" };
+    return { success: true };
   }
 
   // ============================================================================
-  // Tenant Provisioning (stub)
+  // Tenant Provisioning
   // ============================================================================
 
-  async initialize(_tenantId: string): Promise<{ success: boolean; error?: string }> {
-    console.warn("[AuthorizationRepository] initialize() not implemented - migration to node-casbin pending");
-    return { success: false, error: "Not implemented - migration to node-casbin pending" };
+  /**
+   * Initialize tenant (alias for provisionTenantRoles)
+   */
+  async initialize(tenantId: string): Promise<{ success: boolean; error?: string }> {
+    // Just ensure tenant exists, roles are provisioned separately
+    try {
+      await this.tenantRepo.getOrCreate(tenantId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
   }
 
+  /**
+   * Provision all predefined roles and permissions for a tenant
+   */
   async provisionTenantRoles(
-    _tenantId: string,
-    _ownerId: string
+    tenantId: string,
+    ownerId: string
   ): Promise<{ success: boolean; error?: string }> {
-    console.warn("[AuthorizationRepository] provisionTenantRoles() not implemented - migration to node-casbin pending");
-    return { success: false, error: "Not implemented - migration to node-casbin pending" };
+    try {
+      // Ensure tenant exists
+      await this.tenantRepo.getOrCreate(tenantId);
+
+      // Create predefined roles
+      for (const roleName of Object.values(PREDEFINED_ROLES)) {
+        await this.createRole(
+          tenantId,
+          roleName,
+          ROLE_DISPLAY_NAMES[roleName],
+          ROLE_DESCRIPTIONS[roleName],
+          true // isSystem
+        );
+
+        // Create permissions for role
+        const permissions = ROLE_PERMISSIONS[roleName];
+
+        for (const perm of permissions.allow) {
+          await this.createPermission(
+            tenantId,
+            roleName,
+            perm.resource,
+            perm.actions,
+            "allow"
+          );
+        }
+
+        if (permissions.deny) {
+          for (const perm of permissions.deny) {
+            await this.createPermission(
+              tenantId,
+              roleName,
+              perm.resource,
+              perm.actions,
+              "deny"
+            );
+          }
+        }
+      }
+
+      // Setup role hierarchy
+      await this.provisionRoleHierarchy(tenantId);
+
+      // Assign owner role to creator
+      await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
+
+      return { success: true };
+    } catch (error) {
+      console.error("[AuthorizationRepository] provisionTenantRoles error:", error);
+      return { success: false, error: String(error) };
+    }
   }
 
-  async deprovisionTenantRoles(_tenantId: string): Promise<boolean> {
-    console.warn("[AuthorizationRepository] deprovisionTenantRoles() not implemented - migration to node-casbin pending");
-    return false;
+  /**
+   * Deprovision all roles and permissions for a tenant
+   */
+  async deprovisionTenantRoles(tenantId: string): Promise<boolean> {
+    try {
+      // Delete all user-role assignments
+      await this.userRoleRepo.deleteByTenant(tenantId);
+
+      // Delete all roles
+      await this.roleRepo.deleteByTenant(tenantId);
+
+      // Invalidate enforcer cache
+      await this.casbin.invalidateEnforcer(tenantId);
+
+      return true;
+    } catch (error) {
+      console.error("[AuthorizationRepository] deprovisionTenantRoles error:", error);
+      return false;
+    }
   }
 }
