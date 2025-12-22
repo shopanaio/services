@@ -12,20 +12,17 @@ import { iamSchema } from "./schema.js";
 
 // ============================================================================
 // Tenant table
+// Note: slug and display name are stored in project service (project.project table)
+// Tenant ID equals Project ID - created when project is provisioned
 // ============================================================================
 
 export const tenant = iamSchema.table(
   "tenant",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    slug: varchar("slug", { length: 64 }).notNull().unique(),
-    name: varchar("name", { length: 256 }).notNull(),
+    id: uuid("id").primaryKey(), // Same as project.id from project service
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_tenant_slug").on(table.slug),
-  ]
+  }
 );
 
 export type Tenant = typeof tenant.$inferSelect;

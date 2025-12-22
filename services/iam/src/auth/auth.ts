@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getDatabase } from "../db/database.js";
-import * as schema from "../db/schema/index.js";
+import * as schema from "../repositories/models/index.js";
 
 /**
  * Better Auth instance for IAM service.

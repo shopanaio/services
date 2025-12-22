@@ -315,27 +315,24 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Initialize tenant (alias for provisionTenantRoles)
+   * Initialize tenant (alias for provisionTenantRoles without owner)
    */
   async initialize(tenantId: string): Promise<{ success: boolean; error?: string }> {
-    // Just ensure tenant exists, roles are provisioned separately
-    try {
-      await this.tenantRepo.getOrCreate(tenantId);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
+    return this.provisionTenantRoles(tenantId);
   }
 
   /**
-   * Provision all predefined roles and permissions for a tenant
+   * Provision all predefined roles and permissions for a tenant.
+   *
+   * @param tenantId - The tenant ID (same as project ID from project service)
+   * @param ownerId - Optional owner user ID to assign owner role
    */
   async provisionTenantRoles(
     tenantId: string,
-    ownerId: string
+    ownerId?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Ensure tenant exists
+      // Ensure tenant exists (creates with provided ID)
       await this.tenantRepo.getOrCreate(tenantId);
 
       // Create predefined roles
@@ -377,8 +374,10 @@ export class AuthorizationRepository {
       // Setup role hierarchy
       await this.provisionRoleHierarchy(tenantId);
 
-      // Assign owner role to creator
-      await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
+      // Assign owner role to creator if provided
+      if (ownerId) {
+        await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
+      }
 
       return { success: true };
     } catch (error) {

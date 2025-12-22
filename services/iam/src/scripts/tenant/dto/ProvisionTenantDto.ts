@@ -1,10 +1,10 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 
 export interface ProvisionTenantParams {
-  slug: string;
-  displayName: string;
+  /** Tenant ID - same as project ID from project service */
+  tenantId: string;
   /** Owner user ID - will be assigned the owner role */
-  ownerId: string;
+  ownerId?: string;
 }
 
 export interface ProvisionTenantResult {

@@ -1,15 +1,13 @@
 import { eq } from "drizzle-orm";
-import { tenant } from "../../db/schema/authorization.js";
+import { tenant } from "../models/authorization.js";
 import type { Database } from "../../db/database.js";
-import type { Tenant, NewTenant } from "../../db/schema/authorization.js";
-
-export interface CreateTenantInput {
-  slug: string;
-  name: string;
-}
+import type { Tenant } from "../models/authorization.js";
 
 /**
- * Repository for managing tenants in PostgreSQL
+ * Repository for managing tenants in PostgreSQL.
+ *
+ * Note: Tenant ID equals Project ID from project service.
+ * Slug and display name are stored in project.project table.
  */
 export class TenantRepository {
   constructor(private readonly db: Database) {}
@@ -26,43 +24,33 @@ export class TenantRepository {
   }
 
   /**
-   * Find tenant by slug
+   * Check if tenant exists by ID
    */
-  async findBySlug(slug: string): Promise<Tenant | null> {
-    const [result] = await this.db
-      .select()
-      .from(tenant)
-      .where(eq(tenant.slug, slug));
-    return result ?? null;
+  async exists(id: string): Promise<boolean> {
+    const result = await this.findById(id);
+    return result !== null;
   }
 
   /**
-   * Create a new tenant
+   * Create a new tenant with specified ID (same as project ID)
    */
-  async create(input: CreateTenantInput): Promise<Tenant> {
+  async create(id: string): Promise<Tenant> {
     const [result] = await this.db
       .insert(tenant)
-      .values({
-        slug: input.slug,
-        name: input.name,
-      })
+      .values({ id })
       .returning();
     return result;
   }
 
   /**
-   * Update tenant
+   * Get or create tenant by ID
    */
-  async update(id: string, updates: Partial<CreateTenantInput>): Promise<Tenant | null> {
-    const [result] = await this.db
-      .update(tenant)
-      .set({
-        ...updates,
-        updatedAt: new Date(),
-      })
-      .where(eq(tenant.id, id))
-      .returning();
-    return result ?? null;
+  async getOrCreate(id: string): Promise<Tenant> {
+    const existing = await this.findById(id);
+    if (existing) {
+      return existing;
+    }
+    return this.create(id);
   }
 
   /**
@@ -71,24 +59,5 @@ export class TenantRepository {
   async delete(id: string): Promise<boolean> {
     await this.db.delete(tenant).where(eq(tenant.id, id));
     return true;
-  }
-
-  /**
-   * Check if tenant exists by slug
-   */
-  async existsBySlug(slug: string): Promise<boolean> {
-    const result = await this.findBySlug(slug);
-    return result !== null;
-  }
-
-  /**
-   * Get or create tenant by slug
-   */
-  async getOrCreate(slug: string, name?: string): Promise<Tenant> {
-    const existing = await this.findBySlug(slug);
-    if (existing) {
-      return existing;
-    }
-    return this.create({ slug, name: name ?? slug });
   }
 }

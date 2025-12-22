@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
-import { userRole, role } from "../../db/schema/authorization.js";
+import { userRole, role } from "../models/authorization.js";
 import type { Database } from "../../db/database.js";
-import type { UserRole, NewUserRole } from "../../db/schema/authorization.js";
+import type { UserRole, NewUserRole } from "../models/authorization.js";
 
 export interface CreateUserRoleInput {
   tenantId: string;

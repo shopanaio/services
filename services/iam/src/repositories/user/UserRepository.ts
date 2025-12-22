@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "../../db/database.js";
-import { user, session } from "../../db/schema/auth.js";
+import { user, session } from "../models/auth.js";
 import type { Auth } from "../../auth/auth.js";
 
 // ============================================================================
