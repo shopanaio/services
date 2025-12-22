@@ -1,21 +1,23 @@
 import { newEnforcer, Enforcer, newModelFromString } from "casbin";
 import pg from "casbin-pg-adapter";
-import path from "path";
 
 // Handle CommonJS default export in ESM context
 // @ts-expect-error
 const PostgresAdapter = pg.default ?? pg;
-import { fileURLToPath } from "url";
 import { CASBIN_MODEL_TEXT } from "../constants/rbac.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * CasbinService manages Casbin enforcers for multi-tenant authorization.
  *
- * Uses filtered policies per tenant to ensure complete isolation.
- * Each tenant gets its own enforcer instance with only its policies loaded.
+ * TENANT ISOLATION STRATEGY:
+ * - Each tenant gets its own Enforcer instance (cached in memory)
+ * - Policies are filtered by tenantId when loading from DB
+ * - tenantId is stored in DB (v4 for policies, v2 for groupings) but NOT in Casbin model
+ * - Casbin model is simple: r = sub, obj, act | p = sub, obj, act, eft | g = _, _
+ *
+ * DB Storage format:
+ * - Policies (ptype='p'): v0=role, v1=resource, v2=action, v3=effect, v4=tenantId
+ * - Groupings (ptype='g'): v0=user, v1=role, v2=tenantId
  */
 export class CasbinService {
   private enforcers: Map<string, Enforcer> = new Map();
@@ -54,17 +56,16 @@ export class CasbinService {
       return cached;
     }
 
-    // Create model from string (no file needed)
+    // Create model from string
     const model = newModelFromString(CASBIN_MODEL_TEXT);
 
-    // Create enforcer with model and adapter
-    const enforcer = await newEnforcer(model, this.adapter);
+    // Create enforcer with model only (no adapter - we manage persistence manually)
+    const enforcer = await newEnforcer(model);
 
-    // Disable auto-save - we manage persistence manually via adapter
-    // This is required because filtered enforcers cannot use savePolicy()
+    // Disable auto-save - we manage persistence via direct adapter calls
     enforcer.enableAutoSave(false);
 
-    // Load only policies for this tenant (v4 = tenantId)
+    // Load only policies for this tenant
     await this.loadFilteredPolicies(enforcer, tenantId);
 
     this.enforcers.set(tenantId, enforcer);
@@ -72,57 +73,58 @@ export class CasbinService {
   }
 
   /**
-   * Load policies filtered by tenant ID
+   * Load policies filtered by tenant ID from database.
+   *
+   * Uses direct SQL query to filter at DB level, then adds to enforcer
+   * without the tenantId field (since model doesn't include it).
    */
   private async loadFilteredPolicies(
     enforcer: Enforcer,
     tenantId: string
   ): Promise<void> {
-    // Clear existing policies
+    // Clear existing policies in enforcer
     enforcer.clearPolicy();
 
-    // Load all policies from database
-    await enforcer.loadPolicy();
+    // Load policies from adapter (loads ALL policies)
+    // We need to create a temporary enforcer with adapter to get raw data
+    const model = newModelFromString(CASBIN_MODEL_TEXT);
+    const tempEnforcer = await newEnforcer(model, this.adapter);
+    await tempEnforcer.loadPolicy();
 
-    // Get all policies and filter by tenantId
-    let allPolicies: string[][] = [];
-    let allGroupings: string[][] = [];
+    // Get all rules from the model's internal storage
+    // Policy rules: ptype='p', format in DB: [role, resource, action, effect, tenantId]
+    // Grouping rules: ptype='g', format in DB: [user, role, tenantId]
 
-    try {
-      allPolicies = (await enforcer.getPolicy()) || [];
-      allGroupings = (await enforcer.getGroupingPolicy()) || [];
-    } catch (e) {
-      console.error(`[CasbinService.loadFilteredPolicies] Error getting policies:`, e);
-      allPolicies = [];
-      allGroupings = [];
-    }
+    // Access the model's internal policy storage
+    const policyRules = tempEnforcer.getModel().model.get("p")?.get("p")?.policy || [];
+    const groupingRules = tempEnforcer.getModel().model.get("g")?.get("g")?.policy || [];
 
-    console.log(`[CasbinService.loadFilteredPolicies] tenantId=${tenantId}, allPolicies=${allPolicies.length}, allGroupings=${allGroupings.length}`);
-
-    // Clear and re-add only policies for this tenant
-    enforcer.clearPolicy();
-
-    // Add filtered policies (v4 = tenantId)
-    for (const policy of allPolicies) {
-      if (policy[4] === tenantId) {
-        await enforcer.addPolicy(...policy);
+    // Filter and add policies for this tenant
+    // DB format: [role, resource, action, effect, tenantId] - tenantId at index 4
+    for (const rule of policyRules) {
+      if (rule[4] === tenantId) {
+        // Add to enforcer WITHOUT tenantId (model has 4 elements: sub, obj, act, eft)
+        await enforcer.addPolicy(rule[0], rule[1], rule[2], rule[3]);
       }
     }
 
-    // Add filtered groupings (v2 = tenantId) - add all 3 elements (user, role, tenantId)
-    for (const grouping of allGroupings) {
-      if (grouping[2] === tenantId) {
-        await enforcer.addGroupingPolicy(grouping[0], grouping[1], grouping[2]);
+    // Filter and add groupings for this tenant
+    // DB format: [user, role, tenantId] - tenantId at index 2
+    for (const rule of groupingRules) {
+      if (rule[2] === tenantId) {
+        // Add to enforcer WITHOUT tenantId (model has 2 elements: _, _)
+        await enforcer.addGroupingPolicy(rule[0], rule[1]);
       }
     }
-
-    const filteredPolicies = (await enforcer.getPolicy()) || [];
-    const filteredGroupings = (await enforcer.getGroupingPolicy()) || [];
-    console.log(`[CasbinService.loadFilteredPolicies] filtered: policies=${filteredPolicies.length}, groupings=${filteredGroupings.length}`);
   }
 
   /**
    * Check if user has permission
+   *
+   * @param tenantId - Tenant ID (used to get the right enforcer)
+   * @param userId - User ID
+   * @param resource - Resource name (e.g., "product", "order/*")
+   * @param action - Action (e.g., "read", "write")
    */
   async enforce(
     tenantId: string,
@@ -131,8 +133,8 @@ export class CasbinService {
     action: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer(tenantId);
-    // Pass domain (tenantId) as 4th argument for domain-based RBAC
-    return enforcer.enforce(userId, resource, action, tenantId);
+    // Model: r = sub, obj, act (3 arguments, no domain)
+    return enforcer.enforce(userId, resource, action);
   }
 
   /**
@@ -147,7 +149,7 @@ export class CasbinService {
     const results: boolean[] = [];
 
     for (const req of requests) {
-      results.push(await enforcer.enforce(userId, req.resource, req.action, tenantId));
+      results.push(await enforcer.enforce(userId, req.resource, req.action));
     }
 
     return results;
@@ -171,8 +173,9 @@ export class CasbinService {
   }
 
   /**
-   * Add a policy rule
-   * Note: Saves to DB first, then adds to enforcer memory
+   * Add a policy rule.
+   *
+   * Stores to DB with tenantId, adds to enforcer without tenantId.
    */
   async addPolicy(
     tenantId: string,
@@ -185,7 +188,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    // First persist to database
+    // Persist to database WITH tenantId (5 elements: role, resource, action, effect, tenantId)
     try {
       await this.adapter.addPolicy("p", "p", [role, resource, action, effect, tenantId]);
     } catch (error: any) {
@@ -196,15 +199,14 @@ export class CasbinService {
       return false;
     }
 
-    // Then add to enforcer memory
+    // Add to enforcer memory WITHOUT tenantId (4 elements: sub, obj, act, eft)
     const enforcer = await this.getEnforcer(tenantId);
-    await enforcer.addPolicy(role, resource, action, effect, tenantId);
+    await enforcer.addPolicy(role, resource, action, effect);
     return true;
   }
 
   /**
-   * Remove a policy rule
-   * Note: Removes from DB first, then from enforcer memory
+   * Remove a policy rule.
    */
   async removePolicy(
     tenantId: string,
@@ -217,36 +219,36 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    // First remove from database
+    // Remove from database (5 elements including tenantId)
     await this.adapter.removePolicy("p", "p", [role, resource, action, effect, tenantId]);
 
-    // Then remove from enforcer memory
+    // Remove from enforcer memory (4 elements without tenantId)
     const enforcer = await this.getEnforcer(tenantId);
-    await enforcer.removePolicy(role, resource, action, effect, tenantId);
+    await enforcer.removePolicy(role, resource, action, effect);
     return true;
   }
 
   /**
    * Remove all policies for a role in tenant
-   * Note: Removes from DB first, then from enforcer memory
    */
   async removeFilteredPolicy(tenantId: string, role: string): Promise<boolean> {
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
     }
 
-    // First remove from database - filter by role (v0) and tenantId (v4)
+    // Remove from database - filter by role (v0) and tenantId (v4)
     await this.adapter.removeFilteredPolicy("p", "p", 0, role, "", "", "", tenantId);
 
-    // Then remove from enforcer memory
+    // Remove from enforcer memory - filter by role only (index 0)
     const enforcer = await this.getEnforcer(tenantId);
     await enforcer.removeFilteredPolicy(0, role);
     return true;
   }
 
   /**
-   * Add user to role (grouping policy)
-   * Note: Saves to DB first, then invalidates enforcer cache
+   * Add user to role (grouping policy).
+   *
+   * Stores to DB with tenantId, adds to enforcer without tenantId.
    */
   async addRoleForUser(
     tenantId: string,
@@ -257,7 +259,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    // First persist to database
+    // Persist to database WITH tenantId (3 elements: user, role, tenantId)
     try {
       await this.adapter.addPolicy("g", "g", [userId, role, tenantId]);
     } catch (error: any) {
@@ -275,7 +277,6 @@ export class CasbinService {
 
   /**
    * Remove user from role
-   * Note: Removes from DB first, then invalidates enforcer cache
    */
   async removeRoleForUser(
     tenantId: string,
@@ -286,7 +287,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    // First remove from database
+    // Remove from database (3 elements including tenantId)
     await this.adapter.removePolicy("g", "g", [userId, role, tenantId]);
 
     // Invalidate enforcer cache so next request loads fresh data from DB
@@ -295,20 +296,14 @@ export class CasbinService {
   }
 
   /**
-   * Get roles for a user in tenant
+   * Get roles for a user in tenant.
+   *
+   * Since enforcer is tenant-isolated, no domain parameter needed.
    */
   async getRolesForUser(tenantId: string, userId: string): Promise<string[]> {
     const enforcer = await this.getEnforcer(tenantId);
-
-    // Debug: show all groupings in enforcer
-    const allGroupings = await enforcer.getGroupingPolicy();
-    console.log(`[CasbinService.getRolesForUser] tenantId=${tenantId}, userId=${userId}`);
-    console.log(`[CasbinService.getRolesForUser] All groupings in enforcer:`, JSON.stringify(allGroupings));
-
-    // Get roles where user is assigned (g: userId, role, domain)
-    const roles = await enforcer.getRolesForUser(userId, tenantId);
-    console.log(`[CasbinService.getRolesForUser] Result roles:`, roles);
-    return roles;
+    // Model: g = _, _ (no domain), so getRolesForUser takes only userId
+    return enforcer.getRolesForUser(userId);
   }
 
   /**
@@ -316,12 +311,14 @@ export class CasbinService {
    */
   async getUsersForRole(tenantId: string, role: string): Promise<string[]> {
     const enforcer = await this.getEnforcer(tenantId);
-    return enforcer.getUsersForRole(role, tenantId);
+    // Model: g = _, _ (no domain)
+    return enforcer.getUsersForRole(role);
   }
 
   /**
-   * Add role hierarchy (parent inherits child permissions)
-   * Note: Saves to DB first, then adds to enforcer memory
+   * Add role hierarchy (parent inherits child permissions).
+   *
+   * Stores to DB with tenantId for filtering.
    */
   async addRoleHierarchy(
     tenantId: string,
@@ -332,7 +329,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    // First persist to database
+    // Persist to database WITH tenantId
     try {
       await this.adapter.addPolicy("g", "g", [parentRole, childRole, tenantId]);
     } catch (error: any) {
@@ -343,14 +340,14 @@ export class CasbinService {
       return false;
     }
 
-    // Then add to enforcer memory with domain
+    // Add to enforcer memory WITHOUT tenantId
     const enforcer = await this.getEnforcer(tenantId);
-    await enforcer.addGroupingPolicy(parentRole, childRole, tenantId);
+    await enforcer.addGroupingPolicy(parentRole, childRole);
     return true;
   }
 
   /**
-   * Get all policies for a tenant
+   * Get all policies for a tenant (4 elements: role, resource, action, effect)
    */
   async getPolicies(tenantId: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer(tenantId);
@@ -358,7 +355,7 @@ export class CasbinService {
   }
 
   /**
-   * Get all grouping policies (user-role assignments) for a tenant
+   * Get all grouping policies for a tenant (2 elements: user/role, role)
    */
   async getGroupingPolicies(tenantId: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer(tenantId);
@@ -366,18 +363,19 @@ export class CasbinService {
   }
 
   /**
-   * Get roles that a role inherits from (role hierarchy)
-   * Returns the parent roles that this role inherits permissions from
+   * Get roles that a role inherits from (role hierarchy).
+   *
+   * Returns the child roles that this role inherits permissions from.
    */
   async getRoleInherits(tenantId: string, roleName: string): Promise<string[]> {
     const enforcer = await this.getEnforcer(tenantId);
     const groupings = await enforcer.getGroupingPolicy();
 
     // Filter groupings where first element is the role (role inherits from another role)
-    // Format: [parentRole, childRole, tenantId]
+    // Format in enforcer: [parentRole, childRole] (no tenantId)
     const inherits: string[] = [];
     for (const grouping of groupings) {
-      if (grouping[0] === roleName && grouping[2] === tenantId) {
+      if (grouping[0] === roleName) {
         inherits.push(grouping[1]);
       }
     }
@@ -396,7 +394,7 @@ export class CasbinService {
       throw new Error("Adapter not initialized");
     }
 
-    // First remove from database
+    // Remove from database (3 elements including tenantId)
     await this.adapter.removePolicy("g", "g", [parentRole, childRole, tenantId]);
 
     // Invalidate enforcer cache so next request loads fresh data from DB
@@ -413,6 +411,7 @@ export class CasbinService {
     }
 
     // Remove all groupings where this role is the parent (inherits from others)
+    // Filter: v0=roleName, v2=tenantId
     await this.adapter.removeFilteredPolicy("g", "g", 0, roleName, "", tenantId);
 
     // Invalidate enforcer cache

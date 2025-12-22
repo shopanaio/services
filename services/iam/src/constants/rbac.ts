@@ -11,12 +11,12 @@
  */
 
 /**
- * Casbin Model for RBAC (per-tenant)
+ * Casbin Model for RBAC (per-tenant isolated enforcers)
  *
- * Simplified model without domains - isolation is achieved through
- * filtered policies per tenant (v4 = tenantId).
+ * Each tenant gets its own enforcer instance with filtered policies.
+ * Tenant isolation is achieved at the enforcer level, not in the model.
  *
- * - sub: subject (user ID)
+ * - sub: subject (user ID or role name)
  * - obj: object (resource: product, order, etc.)
  * - act: action (read, write, delete, etc.)
  * - eft: effect (allow or deny)
@@ -25,22 +25,27 @@
  * - keyMatch for wildcard resource matching (e.g., "*" matches all, "product/*" matches "product/123")
  * - Role hierarchy support via g = _, _ (up to 10 levels)
  * - Deny rules override allow rules
+ *
+ * Database storage (not part of Casbin model):
+ * - Policies: [role, resource, action, effect, tenantId] stored in v0-v4
+ * - Groupings: [user, role, tenantId] stored in v0-v2
+ * - tenantId fields are used for DB filtering only, not in Casbin enforcement
  */
 export const CASBIN_MODEL_TEXT = `
 [request_definition]
-r = sub, obj, act, dom
+r = sub, obj, act
 
 [policy_definition]
 p = sub, obj, act, eft
 
 [role_definition]
-g = _, _, _
+g = _, _
 
 [policy_effect]
 e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 
 [matchers]
-m = g(r.sub, p.sub, r.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
+m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 `.trim();
 
 /**
