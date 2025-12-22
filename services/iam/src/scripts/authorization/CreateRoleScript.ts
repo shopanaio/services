@@ -17,7 +17,21 @@ export class CreateRoleScript extends BaseScript<
   CreateRoleResult
 > {
   protected async execute(params: CreateRoleParams): Promise<CreateRoleResult> {
-    const { tenantId, name, displayName, description, permissions } = params;
+    const { tenantId, name, displayName, description, permissions, inherits } = params;
+
+    // Validate role name is not empty
+    if (!name || name.trim() === "") {
+      return {
+        role: null,
+        userErrors: [
+          {
+            code: "INVALID_ROLE_NAME",
+            message: "Role name is required",
+            field: ["name"],
+          },
+        ],
+      };
+    }
 
     // Validate role name (no special characters, alphanumeric + hyphen)
     if (!/^[a-z][a-z0-9-]*$/.test(name)) {
@@ -34,7 +48,63 @@ export class CreateRoleScript extends BaseScript<
       };
     }
 
+    // Validate displayName is not empty
+    if (!displayName || displayName.trim() === "") {
+      return {
+        role: null,
+        userErrors: [
+          {
+            code: "INVALID_DISPLAY_NAME",
+            message: "Display name is required",
+            field: ["displayName"],
+          },
+        ],
+      };
+    }
+
+    // Validate permissions is not empty
+    if (!permissions || permissions.length === 0) {
+      return {
+        role: null,
+        userErrors: [
+          {
+            code: "INVALID_PERMISSIONS",
+            message: "At least one permission is required",
+            field: ["permissions"],
+          },
+        ],
+      };
+    }
+
     try {
+      // Validate inherits references exist
+      const validatedInherits: string[] = [];
+      if (inherits && inherits.length > 0) {
+        for (const inheritRole of inherits) {
+          // Check if inherited role exists (system or custom)
+          const isSystem = this.repository.authorization.isSystemRole(inheritRole);
+          if (!isSystem) {
+            const inheritedRole = await this.repository.authorization.getRole(
+              tenantId,
+              inheritRole
+            );
+            if (!inheritedRole) {
+              return {
+                role: null,
+                userErrors: [
+                  {
+                    code: "INVALID_INHERIT_REFERENCE",
+                    message: `Role "${inheritRole}" does not exist and cannot be inherited`,
+                    field: ["inherits"],
+                  },
+                ],
+              };
+            }
+          }
+          validatedInherits.push(inheritRole);
+        }
+      }
+
       // Check if role already exists
       const existingRole = await this.repository.authorization.getRole(
         tenantId,
@@ -100,6 +170,15 @@ export class CreateRoleScript extends BaseScript<
         }
       }
 
+      // Create role hierarchy for inherits
+      for (const inheritRole of validatedInherits) {
+        await this.repository.authorization.addRoleHierarchy(
+          tenantId,
+          name,
+          inheritRole
+        );
+      }
+
       // Invalidate cache for this tenant's roles
       this.authCache.onRoleUpdate(tenantId, name);
 
@@ -108,7 +187,7 @@ export class CreateRoleScript extends BaseScript<
         displayName,
         description: description ?? "",
         isSystem: false,
-        inherits: [],
+        inherits: validatedInherits,
         permissions,
       };
 

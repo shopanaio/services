@@ -52,14 +52,18 @@ export class DeleteRoleScript extends BaseScript<
         };
       }
 
-      // Check if role has members
-      if (existingRole.users && existingRole.users.length > 0) {
+      // Check if role has members (users assigned to this role)
+      const usersWithRole = await this.repository.casbin.getUsersForRole(
+        tenantId,
+        roleName
+      );
+      if (usersWithRole && usersWithRole.length > 0) {
         return {
           deleted: false,
           userErrors: [
             {
               code: "ROLE_HAS_MEMBERS",
-              message: `Role "${roleName}" has ${existingRole.users.length} member(s). Remove all members before deleting.`,
+              message: `Role "${roleName}" has ${usersWithRole.length} member(s). Remove all members before deleting.`,
               field: ["roleName"],
             },
           ],

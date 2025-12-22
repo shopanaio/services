@@ -279,6 +279,36 @@ export class AuthorizationRepository {
   }
 
   /**
+   * Get roles that a role inherits from
+   */
+  async getRoleInherits(tenantId: string, roleName: string): Promise<string[]> {
+    return this.casbin.getRoleInherits(tenantId, roleName);
+  }
+
+  /**
+   * Update role hierarchy (replace all inherits)
+   */
+  async updateRoleInherits(
+    tenantId: string,
+    roleName: string,
+    inherits: string[]
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Remove existing inherits
+      await this.casbin.removeAllRoleHierarchy(tenantId, roleName);
+
+      // Add new inherits
+      for (const inheritRole of inherits) {
+        await this.casbin.addRoleHierarchy(tenantId, roleName, inheritRole);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  /**
    * Provision standard role hierarchy
    */
   async provisionRoleHierarchy(

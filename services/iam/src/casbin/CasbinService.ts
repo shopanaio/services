@@ -363,4 +363,59 @@ export class CasbinService {
     const enforcer = await this.getEnforcer(tenantId);
     return enforcer.getGroupingPolicy();
   }
+
+  /**
+   * Get roles that a role inherits from (role hierarchy)
+   * Returns the parent roles that this role inherits permissions from
+   */
+  async getRoleInherits(tenantId: string, roleName: string): Promise<string[]> {
+    const enforcer = await this.getEnforcer(tenantId);
+    const groupings = await enforcer.getGroupingPolicy();
+
+    // Filter groupings where first element is the role (role inherits from another role)
+    // Format: [parentRole, childRole, tenantId]
+    const inherits: string[] = [];
+    for (const grouping of groupings) {
+      if (grouping[0] === roleName && grouping[2] === tenantId) {
+        inherits.push(grouping[1]);
+      }
+    }
+    return inherits;
+  }
+
+  /**
+   * Remove role hierarchy
+   */
+  async removeRoleHierarchy(
+    tenantId: string,
+    parentRole: string,
+    childRole: string
+  ): Promise<boolean> {
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    // First remove from database
+    await this.adapter.removePolicy("g", "g", [parentRole, childRole, tenantId]);
+
+    // Invalidate enforcer cache so next request loads fresh data from DB
+    await this.invalidateEnforcer(tenantId);
+    return true;
+  }
+
+  /**
+   * Remove all role hierarchy for a role (when updating inherits)
+   */
+  async removeAllRoleHierarchy(tenantId: string, roleName: string): Promise<boolean> {
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    // Remove all groupings where this role is the parent (inherits from others)
+    await this.adapter.removeFilteredPolicy("g", "g", 0, roleName, "", tenantId);
+
+    // Invalidate enforcer cache
+    await this.invalidateEnforcer(tenantId);
+    return true;
+  }
 }

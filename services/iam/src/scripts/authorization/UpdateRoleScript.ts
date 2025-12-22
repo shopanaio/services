@@ -20,9 +20,24 @@ export class UpdateRoleScript extends BaseScript<
   UpdateRoleResult
 > {
   protected async execute(params: UpdateRoleParams): Promise<UpdateRoleResult> {
-    const { tenantId, roleName, displayName, description, permissions } = params;
+    const { tenantId, roleName, displayName, description, permissions, inherits } = params;
 
     try {
+      // Check if it's a system role - system roles cannot be modified
+      const isSystem = this.repository.authorization.isSystemRole(roleName);
+      if (isSystem) {
+        return {
+          role: null,
+          userErrors: [
+            {
+              code: "CANNOT_MODIFY_SYSTEM_ROLE",
+              message: "System roles cannot be modified",
+              field: ["roleName"],
+            },
+          ],
+        };
+      }
+
       // Get existing role
       const existingRole = await this.repository.authorization.getRole(
         tenantId,
@@ -87,6 +102,27 @@ export class UpdateRoleScript extends BaseScript<
         }
       }
 
+      // Update inherits if provided
+      if (inherits !== undefined) {
+        const result = await this.repository.authorization.updateRoleInherits(
+          tenantId,
+          roleName,
+          inherits
+        );
+
+        if (!result.success) {
+          return {
+            role: null,
+            userErrors: [
+              {
+                code: "INHERITS_UPDATE_FAILED",
+                message: result.error ?? "Failed to update role hierarchy",
+              },
+            ],
+          };
+        }
+      }
+
       // Invalidate cache
       this.authCache.onRoleUpdate(tenantId, roleName);
 
@@ -122,14 +158,18 @@ export class UpdateRoleScript extends BaseScript<
         });
       }
 
-      const isSystem = this.repository.authorization.isSystemRole(roleName);
+      // Get updated inherits
+      const updatedInherits = await this.repository.authorization.getRoleInherits(
+        tenantId,
+        roleName
+      );
 
       const roleInfo: RoleInfo = {
         name: roleName,
         displayName: displayName ?? existingRole.displayName ?? roleName,
         description: description ?? existingRole.description ?? "",
-        isSystem,
-        inherits: [], // TODO: fetch from role_hierarchy if needed
+        isSystem: false, // Only custom roles can be updated
+        inherits: updatedInherits,
         permissions: permissions ?? mappedPermissions,
         createdAt: existingRole.createdAt,
       };
