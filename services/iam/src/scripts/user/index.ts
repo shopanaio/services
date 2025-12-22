@@ -5,6 +5,7 @@ export { UserUpdatePasswordScript } from "./UserUpdatePasswordScript.js";
 export { UserSignUpScript } from "./UserSignUpScript.js";
 export { UserSignInScript } from "./UserSignInScript.js";
 export { GetCurrentUserScript } from "./GetCurrentUserScript.js";
+export { TokenRefreshScript } from "./TokenRefreshScript.js";
 
 // DTOs
 export * from "./dto/index.js";

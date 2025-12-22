@@ -85,16 +85,23 @@ export class UserRepository {
         };
       }
 
-      // Calculate expiration from session (default 7 days)
-      const expiresIn = 60 * 60 * 24 * 7;
+      // Get JWT access token using the session token
+      const jwtResult = await this.auth.api.getToken({
+        headers: {
+          authorization: `Bearer ${result.token}`,
+        },
+      });
+
+      // Access token expires in 15 minutes (900 seconds)
+      const accessTokenExpiresIn = 60 * 15;
 
       return {
         success: true,
         user: this.mapUser(result.user),
         token: {
-          accessToken: result.token,
-          refreshToken: "", // Better Auth uses session tokens
-          expiresIn,
+          accessToken: jwtResult.token, // Short-lived JWT
+          refreshToken: result.token, // Session token as refresh token
+          expiresIn: accessTokenExpiresIn,
         },
       };
     } catch (error) {
@@ -131,17 +138,29 @@ export class UserRepository {
         };
       }
 
-      // Calculate expiration (default 7 days)
-      const expiresIn = 60 * 60 * 24 * 7;
+      // If we have a session token, get JWT access token
+      let tokenResult: AuthTokenResult | null = null;
+      if (result.token) {
+        const jwtResult = await this.auth.api.getToken({
+          headers: {
+            authorization: `Bearer ${result.token}`,
+          },
+        });
+
+        // Access token expires in 15 minutes (900 seconds)
+        const accessTokenExpiresIn = 60 * 15;
+
+        tokenResult = {
+          accessToken: jwtResult.token, // Short-lived JWT
+          refreshToken: result.token, // Session token as refresh token
+          expiresIn: accessTokenExpiresIn,
+        };
+      }
 
       return {
         success: true,
         user: this.mapUser(result.user),
-        token: result.token ? {
-          accessToken: result.token,
-          refreshToken: "",
-          expiresIn,
-        } : null,
+        token: tokenResult,
       };
     } catch (error) {
       return {
@@ -198,6 +217,57 @@ export class UserRepository {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Refresh access token using refresh token (session token)
+   */
+  async refreshToken(refreshToken: string): Promise<{
+    success: boolean;
+    token: AuthTokenResult | null;
+    error?: string;
+  }> {
+    try {
+      // Validate the session token first
+      const sessionResult = await this.auth.api.getSession({
+        headers: {
+          authorization: `Bearer ${refreshToken}`,
+        },
+      });
+
+      if (!sessionResult || !sessionResult.session) {
+        return {
+          success: false,
+          token: null,
+          error: "Invalid or expired refresh token",
+        };
+      }
+
+      // Get new JWT access token
+      const jwtResult = await this.auth.api.getToken({
+        headers: {
+          authorization: `Bearer ${refreshToken}`,
+        },
+      });
+
+      // Access token expires in 15 minutes (900 seconds)
+      const accessTokenExpiresIn = 60 * 15;
+
+      return {
+        success: true,
+        token: {
+          accessToken: jwtResult.token,
+          refreshToken: refreshToken, // Same refresh token (session persists)
+          expiresIn: accessTokenExpiresIn,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        token: null,
+        error: error instanceof Error ? error.message : "Token refresh failed",
+      };
     }
   }
 

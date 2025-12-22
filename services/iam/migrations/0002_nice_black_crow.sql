@@ -1,0 +1,1 @@
+ALTER TABLE "iam"."jwks" ADD COLUMN "expires_at" timestamp with time zone;

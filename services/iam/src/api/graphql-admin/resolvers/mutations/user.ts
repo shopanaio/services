@@ -1,5 +1,5 @@
 import type { Resolvers } from "../../generated/types.js";
-import { UserSignUpScript, UserSignInScript } from "../../../../scripts/user/index.js";
+import { UserSignUpScript, UserSignInScript, TokenRefreshScript } from "../../../../scripts/user/index.js";
 import { resolveUser } from "../types.js";
 
 export const userMutationResolvers: Partial<Resolvers> = {
@@ -90,16 +90,14 @@ export const userMutationResolvers: Partial<Resolvers> = {
       };
     },
 
-    tokenRefresh: async (_parent, { input: _input }, _ctx) => {
-      // TODO: implement
+    tokenRefresh: async (_parent, { input }, ctx) => {
+      const result = await ctx.kernel.runScript(TokenRefreshScript, {
+        refreshToken: input.refreshToken,
+      });
+
       return {
-        token: null,
-        userErrors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "tokenRefresh is not implemented yet",
-          },
-        ],
+        token: result.token,
+        userErrors: result.userErrors,
       };
     },
   },

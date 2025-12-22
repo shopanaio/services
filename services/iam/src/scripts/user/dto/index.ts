@@ -37,3 +37,9 @@ export type {
   GetCurrentUserParams,
   GetCurrentUserResult,
 } from "./GetCurrentUserDto.js";
+
+// Token Refresh DTOs
+export type {
+  TokenRefreshParams,
+  TokenRefreshResult,
+} from "./TokenRefreshDto.js";

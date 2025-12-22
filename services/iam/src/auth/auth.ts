@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { bearer, jwt } from "better-auth/plugins";
 import { getDatabase } from "../db/database.js";
 import * as schema from "../repositories/models/index.js";
 
@@ -24,6 +25,7 @@ export function createAuth() {
         session: schema.session,
         account: schema.account,
         verification: schema.verification,
+        jwks: schema.jwks,
       },
     }),
 
@@ -47,6 +49,34 @@ export function createAuth() {
       window: 60, // 1 minute window
       max: 100, // 100 requests per window
     },
+
+    // Plugins
+    plugins: [
+      // Bearer plugin for token-based authentication
+      bearer(),
+
+      // JWT plugin for short-lived access tokens
+      jwt({
+        jwt: {
+          expirationTime: "15m", // 15 minutes
+          issuer: process.env.JWT_ISSUER || "shopana-iam",
+          audience: process.env.JWT_AUDIENCE || "shopana-api",
+          definePayload: ({ user }) => ({
+            sub: user.id,
+            email: user.email,
+            name: user.name,
+          }),
+        },
+        jwks: {
+          keyPairConfig: {
+            alg: "EdDSA",
+            crv: "Ed25519",
+          },
+          rotationInterval: 60 * 60 * 24 * 30, // 30 days
+          gracePeriod: 60 * 60 * 24 * 7, // 7 days grace period
+        },
+      }),
+    ],
   });
 }
 

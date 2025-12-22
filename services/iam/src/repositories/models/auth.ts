@@ -113,3 +113,21 @@ export const verification = iamSchema.table(
 
 export type Verification = typeof verification.$inferSelect;
 export type NewVerification = typeof verification.$inferInsert;
+
+// ============================================================================
+// JWKS table (for JWT plugin key storage)
+// ============================================================================
+
+export const jwks = iamSchema.table(
+  "jwks",
+  {
+    id: text("id").primaryKey(),
+    publicKey: text("public_key").notNull(),
+    privateKey: text("private_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  }
+);
+
+export type Jwks = typeof jwks.$inferSelect;
+export type NewJwks = typeof jwks.$inferInsert;
