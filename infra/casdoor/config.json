@@ -1,9 +1,0 @@
-{
-  "user": "admin",
-  "password": "123",
-  "organization": "shopana",
-  "app": "app-shopana",
-  "cert": "cert-shopana",
-  "clientId": "app-shopana-client-id",
-  "clientSecret": "app-shopana-client-secret"
-}

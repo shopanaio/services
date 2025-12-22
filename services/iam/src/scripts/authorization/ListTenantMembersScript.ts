@@ -9,7 +9,7 @@ import type {
  * ListTenantMembers - List all users with roles in a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name) to list members.
+ * Uses tenantId (project slug) to list members.
  * Returns all users who have been assigned a role in the tenant.
  */
 export class ListTenantMembersScript extends BaseScript<

@@ -5,11 +5,11 @@ import type { GetUserRoleParams, GetUserRoleResult } from "./dto/index.js";
  * GetUserRole - Get user's role in a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for role lookup.
+ * Uses tenantId (project slug) for role lookup.
  *
  * Implementation:
  * 1. Use tenantId directly (passed from caller)
- * 2. Call Casdoor to get user's roles for the tenant
+ * 2. Get user's roles from Casbin via CasbinService
  * 3. Return the first role (users typically have one role per tenant)
  */
 export class GetUserRoleScript extends BaseScript<

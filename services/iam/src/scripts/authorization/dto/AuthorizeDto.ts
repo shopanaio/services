@@ -3,11 +3,11 @@ import type { UserError } from "../../../kernel/BaseScript.js";
 /**
  * Authorize - Check if user is authorized to perform action on resource
  *
- * Calls Casdoor enforce() API
+ * Uses Casbin enforce() via CasbinService
  */
 export interface AuthorizeParams {
   userId: string;
-  tenantId: string; // Casdoor organization name (from integrations)
+  tenantId: string; // Tenant identifier (project slug)
   resource: string; // "product", "order", etc.
   action: string; // "read", "write", etc.
   resourceId?: string; // optional: specific resource ID (ARN)
@@ -23,11 +23,11 @@ export interface AuthorizeResult {
 /**
  * BatchAuthorize - Check multiple authorizations in one call
  *
- * Calls Casdoor batchEnforce() API
+ * Uses Casbin batchEnforce() via CasbinService
  */
 export interface BatchAuthorizeParams {
   userId: string;
-  tenantId: string; // Casdoor organization name (from integrations)
+  tenantId: string; // Tenant identifier (project slug)
   requests: Array<{
     resource: string;
     action: string;
@@ -46,11 +46,11 @@ export interface BatchAuthorizeResult {
 /**
  * GetUserRole - Get user's role in a tenant
  *
- * Calls Casdoor getRolesForUser() API
+ * Uses Casbin getRolesForUser() via CasbinService
  */
 export interface GetUserRoleParams {
   userId: string;
-  tenantId: string; // Casdoor organization name (from integrations)
+  tenantId: string; // Tenant identifier (project slug)
 }
 
 export interface GetUserRoleResult {

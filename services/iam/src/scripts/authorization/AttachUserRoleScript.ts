@@ -5,11 +5,11 @@ import type { AttachUserRoleParams, AttachUserRoleResult } from "./dto/index.js"
  * AttachUserRole - Assign a role to a user for a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for role assignment.
+ * Uses tenantId (project slug) for role assignment.
  *
  * Implementation:
  * 1. Use tenantId directly (passed from caller)
- * 2. Call Casdoor to add user to role
+ * 2. Save to DB and add Casbin grouping policy
  * 3. Invalidate cache for this user
  */
 export class AttachUserRoleScript extends BaseScript<

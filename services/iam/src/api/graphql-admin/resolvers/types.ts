@@ -6,7 +6,7 @@ import type { Resolvers, User } from "../generated/types.js";
 
 /**
  * Resolves user using UserResolver
- * @param userId - The Casdoor user id (sub field from JWT)
+ * @param userId - The user id (from better-auth)
  */
 export async function resolveUser(
   userId: string,

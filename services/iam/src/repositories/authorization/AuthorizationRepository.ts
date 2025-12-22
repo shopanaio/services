@@ -293,7 +293,7 @@ export class AuthorizationRepository {
   }
 
   // ============================================================================
-  // Model & Enforcer Setup (for Casdoor compatibility)
+  // Model & Enforcer Setup (legacy compatibility methods)
   // ============================================================================
 
   /**

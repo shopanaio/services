@@ -5,13 +5,13 @@ import type { AuthorizeParams, AuthorizeResult } from "./dto/index.js";
  * Authorize - Check if user is authorized to perform action on resource
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) to check
- * authorization within the tenant's isolated Casdoor organization.
+ * Uses tenantId (project slug) to check authorization within
+ * the tenant's isolated Casbin policies.
  *
  * Implementation:
  * 1. Use tenantId directly (passed from caller)
  * 2. Check cache (L1 in-memory with version validation)
- * 3. If miss → call Casdoor enforce() API
+ * 3. If miss → call Casbin enforce() via CasbinService
  * 4. Cache result, return
  */
 export class AuthorizeScript extends BaseScript<
@@ -46,7 +46,7 @@ export class AuthorizeScript extends BaseScript<
         };
       }
 
-      // Cache miss - call Casdoor
+      // Cache miss - call Casbin
       const allowed = await this.repository.authorization.enforce(
         tenantId,
         userId,

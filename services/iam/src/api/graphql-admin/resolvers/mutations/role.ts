@@ -54,7 +54,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
 
   RoleMutation: {
     roleCreate: async (_parent, { input }, ctx) => {
-      // Get tenantId from context (project's Casdoor org)
+      // Get tenantId from context (project slug)
       const tenantId = ctx.tenantId;
       if (!tenantId) {
         return {

@@ -4,20 +4,17 @@
  * Defines the Casbin model and predefined roles.
  *
  * TENANT ISOLATION:
- * Each tenant (project) has its own Casdoor Organization with:
- * - Own Model (model-rbac)
- * - Own Enforcer (enforcer-main)
+ * Each tenant (project) has isolated Casbin policies via:
+ * - Filtered policies by tenantId (v4 field in casbin_rule)
  * - Own Roles (owner, admin, etc. - simple names)
- * - Own Permissions
- *
- * This provides physical isolation at Casdoor level.
+ * - Own Permissions stored in PostgreSQL
  */
 
 /**
  * Casbin Model for RBAC (per-tenant)
  *
  * Simplified model without domains - isolation is achieved through
- * separate tenant organizations in Casdoor.
+ * filtered policies per tenant (v4 = tenantId).
  *
  * - sub: subject (user ID)
  * - obj: object (resource: product, order, etc.)
@@ -47,12 +44,12 @@ m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 `.trim();
 
 /**
- * Model name used in Casdoor (per tenant)
+ * Model name (used for identification)
  */
 export const CASBIN_MODEL_NAME = "model-rbac";
 
 /**
- * Enforcer name used in Casdoor (per tenant)
+ * Enforcer name (used for identification)
  */
 export const CASBIN_ENFORCER_NAME = "enforcer-main";
 

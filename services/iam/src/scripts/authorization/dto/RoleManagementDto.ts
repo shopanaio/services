@@ -5,7 +5,7 @@ import type { UserError } from "../../../kernel/BaseScript.js";
  */
 export interface AttachUserRoleParams {
   userId: string;
-  tenantId: string; // Casdoor organization name (from integrations)
+  tenantId: string; // Tenant identifier (project slug)
   roleName: string;
   grantedBy: string;
 }
@@ -20,7 +20,7 @@ export interface AttachUserRoleResult {
  */
 export interface DetachUserRoleParams {
   userId: string;
-  tenantId: string; // Casdoor organization name (from integrations)
+  tenantId: string; // Tenant identifier (project slug)
   revokedBy: string;
 }
 
@@ -33,7 +33,7 @@ export interface DetachUserRoleResult {
  * ListTenantMembers - List all users with roles in a tenant
  */
 export interface ListTenantMembersParams {
-  tenantId: string; // Casdoor organization name (from integrations)
+  tenantId: string; // Tenant identifier (project slug)
 }
 
 export interface TenantMember {

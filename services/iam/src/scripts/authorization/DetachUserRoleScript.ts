@@ -5,12 +5,12 @@ import type { DetachUserRoleParams, DetachUserRoleResult } from "./dto/index.js"
  * DetachUserRole - Remove a role from a user
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for role detachment.
+ * Uses tenantId (project slug) for role detachment.
  *
  * Implementation:
  * 1. Use tenantId directly (passed from caller)
  * 2. Get user's current role
- * 3. Call Casdoor to remove user from role
+ * 3. Remove from DB and Casbin grouping policy
  * 4. Invalidate cache for this user
  */
 export class DetachUserRoleScript extends BaseScript<

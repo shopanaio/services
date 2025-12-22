@@ -1,19 +1,11 @@
 /**
  * Admin view interfaces
  *
- * Re-export types from Casdoor SDK and define view-specific types
+ * Define view-specific types for the admin API
  */
 
 import type { TypeResult } from "@shopana/type-resolver";
-import type { User as CasdoorUser, Role as CasdoorRole } from "@zaytra/casdoor-node-client-ext";
 import type { UserResolver } from "../UserResolver.js";
-
-// ============================================================================
-// Re-export types from Casdoor SDK
-// ============================================================================
-
-/** User type from Casdoor SDK */
-export type { User as CasdoorUser, Role as CasdoorRole } from "@zaytra/casdoor-node-client-ext";
 
 // ============================================================================
 // Derived types from Resolver classes (auto-generated from TypeResult)
@@ -30,19 +22,19 @@ export type User = TypeResult<typeof UserResolver>;
 export type LocaleCode = "en" | "uk" | "ru" | "de" | "fr" | "es" | "pl";
 
 /**
- * Role view type (simplified from CasdoorRole)
+ * Role view type
  */
 export interface Role {
-  /** Role owner (organization) */
-  owner: string;
+  /** Tenant ID (project slug) */
+  tenantId: string;
   /** Role name/identifier */
   name: string;
   /** Human-readable display name */
   displayName: string | null;
   /** Role description */
   description: string | null;
-  /** Whether the role is enabled */
-  isEnabled: boolean;
+  /** Whether this is a system role */
+  isSystem: boolean;
 }
 
 /**

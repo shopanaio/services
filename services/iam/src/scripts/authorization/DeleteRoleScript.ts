@@ -5,7 +5,7 @@ import type { DeleteRoleParams, DeleteRoleResult } from "./dto/index.js";
  * DeleteRole - Delete a custom role from a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for role deletion.
+ * Uses tenantId (project slug) for role deletion.
  *
  * System roles cannot be deleted.
  * Roles with assigned users cannot be deleted.

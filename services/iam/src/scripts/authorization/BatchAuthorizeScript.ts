@@ -5,12 +5,12 @@ import type { BatchAuthorizeParams, BatchAuthorizeResult } from "./dto/index.js"
  * BatchAuthorize - Check multiple authorizations in one call
  *
  * TENANT ISOLATION:
- * Uses tenantId (Casdoor organization name from integrations) for isolated authorization checks.
+ * Uses tenantId (project slug) for isolated authorization checks.
  *
  * Implementation:
  * 1. Use tenantId directly (passed from caller)
- * 2. Check Redis cache for each request
- * 3. For cache misses → call Casdoor batchEnforce() API
+ * 2. Check cache for each request
+ * 3. For cache misses → call Casbin batchEnforce() via CasbinService
  * 4. Cache results, return
  */
 export class BatchAuthorizeScript extends BaseScript<
@@ -29,8 +29,8 @@ export class BatchAuthorizeScript extends BaseScript<
       };
     }
 
-    // TODO: Add caching layer (Phase 1.6)
-    // For now, go directly to Casdoor
+    // TODO: Add caching layer
+    // For now, go directly to Casbin
 
     try {
       const allowedResults = await this.repository.authorization.batchEnforce(

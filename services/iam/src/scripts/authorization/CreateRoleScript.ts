@@ -9,7 +9,7 @@ import type {
  * CreateRole - Create a custom role for a tenant
  *
  * TENANT ISOLATION:
- * Custom roles are created in the tenant's Casdoor organization.
+ * Custom roles are created in the tenant's isolated Casbin policies.
  * Role names are simple (no tenantId prefix needed).
  */
 export class CreateRoleScript extends BaseScript<
