@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1766402966341,
-      "tag": "0000_omniscient_mastermind",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1766404579643,
-      "tag": "0001_strong_black_bird",
+      "when": 1766407115345,
+      "tag": "0000_tiresome_gambit",
       "breakpoints": true
     }
   ]
