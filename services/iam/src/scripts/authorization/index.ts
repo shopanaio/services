@@ -33,7 +33,6 @@ export type {
   // Domain member types
   GetMembersForDomainParams,
   GetMembersForDomainResult,
-  DomainMember,
   // Role management types
   RolePermission,
   RoleInfo,

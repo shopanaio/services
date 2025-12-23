@@ -36,9 +36,10 @@ export class GetMembersForDomainScript extends BaseScript<
     }
 
     try {
+      const domainPath = this.repository.casbin.buildPath(domain);
       const members = await this.repository.authorization.getMembersForDomain(
         organizationId,
-        domain
+        domainPath
       );
 
       return {

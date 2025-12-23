@@ -1,4 +1,5 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
+import type { ScopePart } from "../../../casbin/CasbinService.js";
 
 /**
  * AttachUserRole - Assign a role to a user in an organization
@@ -55,7 +56,7 @@ export interface ListOrgMembersResult {
  */
 export interface GetMembersForDomainParams {
   organizationId: string;
-  domain: string; // e.g., "project:abc-123"
+  domain: ScopePart[]; // e.g., [["project", "abc-123"]]
 }
 
 export interface DomainMember {
