@@ -58,16 +58,57 @@ extend type User @key(fields: "id") {
   id: ID! @external
 }
 
-"""A member with access to a specific project"""
-type ProjectMember {
+# Role entity (extended from IAM service)
+extend type Role @key(fields: "name") {
+  name: String! @external
+}
+
+# ============================================================================
+# PROJECT MEMBER TYPES
+# ============================================================================
+
+"""Project team member with assigned role"""
+type ProjectMember @key(fields: "id") {
+  """Unique identifier"""
+  id: ID!
   """The user who has access"""
   user: User!
-  """The role name assigned to this user in the project"""
-  role: String!
+  """Assigned role"""
+  role: Role!
   """When the role was granted"""
   grantedAt: DateTime
   """Who granted this role"""
   grantedBy: User
+}
+
+"""Input for changing member role"""
+input ProjectMemberRoleChangeInput {
+  """User ID"""
+  userId: ID!
+  """New role name"""
+  newRole: String!
+}
+
+"""Input for removing a member"""
+input ProjectMemberRemoveInput {
+  """User ID to remove"""
+  userId: ID!
+}
+
+"""Payload returned after changing member role"""
+type ProjectMemberRoleChangePayload {
+  """The updated member"""
+  member: ProjectMember
+  """List of errors that occurred"""
+  userErrors: [UserError!]!
+}
+
+"""Payload returned after removing a member"""
+type ProjectMemberRemovePayload {
+  """ID of the removed user"""
+  removedUserId: ID
+  """List of errors that occurred"""
+  userErrors: [UserError!]!
 }
 
 """Input for creating a new project"""

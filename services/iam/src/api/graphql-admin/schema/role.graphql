@@ -5,7 +5,7 @@
 """
 Project role with permissions.
 """
-type Role {
+type Role @key(fields: "name") {
   """
   Unique role name (e.g.: owner, admin, content-editor).
   """
@@ -73,36 +73,6 @@ enum PermissionEffect {
   Deny the action (takes priority over ALLOW).
   """
   DENY
-}
-
-"""
-Project team member with assigned role.
-"""
-type ProjectMember {
-  """
-  User ID.
-  """
-  id: ID!
-
-  """
-  User.
-  """
-  user: User!
-
-  """
-  Assigned role.
-  """
-  role: Role!
-
-  """
-  Date when role was assigned.
-  """
-  grantedAt: DateTime
-
-  """
-  Who assigned the role.
-  """
-  grantedBy: User
 }
 
 """
@@ -221,31 +191,6 @@ input RoleDeleteInput {
 }
 
 """
-Input for changing member role.
-"""
-input ProjectMemberRoleChangeInput {
-  """
-  User ID.
-  """
-  userId: ID!
-
-  """
-  New role name.
-  """
-  newRole: String!
-}
-
-"""
-Input for removing a member.
-"""
-input ProjectMemberRemoveInput {
-  """
-  User ID to remove.
-  """
-  userId: ID!
-}
-
-"""
 Input for authorize check.
 """
 input AuthorizeInput {
@@ -276,16 +221,6 @@ type RoleUpdatePayload {
 
 type RoleDeletePayload {
   deletedRoleName: String
-  userErrors: [GenericUserError!]!
-}
-
-type ProjectMemberRoleChangePayload {
-  member: ProjectMember
-  userErrors: [GenericUserError!]!
-}
-
-type ProjectMemberRemovePayload {
-  removedUserId: ID
   userErrors: [GenericUserError!]!
 }
 
@@ -355,20 +290,4 @@ type RoleMutation {
   Roles with assigned users cannot be deleted.
   """
   roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
-
-  """
-  Change member's role.
-  Requires: project.team:write permission.
-  Cannot change own role.
-  Cannot assign role higher than own.
-  """
-  projectMemberRoleChange(input: ProjectMemberRoleChangeInput!): ProjectMemberRoleChangePayload!
-
-  """
-  Remove member from team.
-  Requires: project.team:remove permission.
-  Cannot remove self (use leaveProject).
-  Cannot remove project owner.
-  """
-  projectMemberRemove(input: ProjectMemberRemoveInput!): ProjectMemberRemovePayload!
 }

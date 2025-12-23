@@ -77,4 +77,10 @@ type ProjectMutation {
   apiKeyRevoke(input: ApiKeyRevokeInput!): ApiKeyActionPayload!
   """Permanently delete an API key"""
   apiKeyDelete(input: ApiKeyDeleteInput!): ApiKeyDeletePayload!
+
+  # Project Member mutations
+  """Change a member's role. Requires project.team:write permission."""
+  projectMemberRoleChange(input: ProjectMemberRoleChangeInput!): ProjectMemberRoleChangePayload!
+  """Remove a member from the project. Requires project.team:remove permission."""
+  projectMemberRemove(input: ProjectMemberRemoveInput!): ProjectMemberRemovePayload!
 }
