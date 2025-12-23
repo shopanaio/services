@@ -1,10 +1,8 @@
 import { newEnforcer, Enforcer, newModelFromString } from "casbin";
-import pg from "casbin-pg-adapter";
-
-// Handle CommonJS default export in ESM context
-// @ts-expect-error
-const PostgresAdapter = pg.default ?? pg;
+import DrizzleAdapter from "drizzle-adapter";
 import { CASBIN_MODEL_TEXT } from "../constants/rbac.js";
+import { casbinRule } from "../repositories/models/authorization.js";
+import type { Database } from "../db/database.js";
 
 /**
  * Shared type for scope parts - with or without ID
@@ -32,21 +30,22 @@ export type ScopePart =
  */
 export class CasbinService {
   private enforcers: Map<string, Enforcer> = new Map();
-  private adapter: InstanceType<typeof PostgresAdapter> | null = null;
+  private adapter: DrizzleAdapter | null = null;
   private initialized = false;
 
-  constructor(private readonly connectionString: string) {}
+  constructor(private readonly db: Database) {}
 
   /**
-   * Initialize the PostgreSQL adapter
+   * Initialize the Drizzle adapter for Casbin
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    this.adapter = await PostgresAdapter.newAdapter({
-      connectionString: this.connectionString,
-      schemaName: "iam",
-      tableName: "casbin_rule",
+    // Use type assertion because drizzle-adapter expects schema: undefined
+    // but our table is in the 'iam' schema. The adapter works correctly regardless.
+    this.adapter = await DrizzleAdapter.newAdapter({
+      db: this.db as any,
+      table: casbinRule as any,
     });
 
     this.initialized = true;

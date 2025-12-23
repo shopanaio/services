@@ -4,7 +4,7 @@ import type { Database } from "../../db/database.js";
 import type { Role, NewRole } from "../models/authorization.js";
 
 export interface CreateRoleInput {
-  tenantId: string;
+  organizationId: string;
   name: string;
   displayName?: string;
   description?: string;
@@ -25,21 +25,21 @@ export class RoleRepository {
   /**
    * Find all roles for a tenant
    */
-  async findByTenant(tenantId: string): Promise<Role[]> {
+  async findByTenant(organizationId: string): Promise<Role[]> {
     return this.db
       .select()
       .from(role)
-      .where(eq(role.tenantId, tenantId));
+      .where(eq(role.organizationId, organizationId));
   }
 
   /**
    * Find a role by name within a tenant
    */
-  async findByName(tenantId: string, name: string): Promise<Role | null> {
+  async findByName(organizationId: string, name: string): Promise<Role | null> {
     const [result] = await this.db
       .select()
       .from(role)
-      .where(and(eq(role.tenantId, tenantId), eq(role.name, name)));
+      .where(and(eq(role.organizationId, organizationId), eq(role.name, name)));
     return result ?? null;
   }
 
@@ -61,7 +61,7 @@ export class RoleRepository {
     const [result] = await this.db
       .insert(role)
       .values({
-        tenantId: input.tenantId,
+        organizationId: input.organizationId,
         name: input.name,
         displayName: input.displayName ?? input.name,
         description: input.description ?? "",
@@ -75,7 +75,7 @@ export class RoleRepository {
    * Update a role
    */
   async update(
-    tenantId: string,
+    organizationId: string,
     name: string,
     updates: UpdateRoleInput
   ): Promise<Role | null> {
@@ -85,7 +85,7 @@ export class RoleRepository {
         ...updates,
         updatedAt: new Date(),
       })
-      .where(and(eq(role.tenantId, tenantId), eq(role.name, name)))
+      .where(and(eq(role.organizationId, organizationId), eq(role.name, name)))
       .returning();
     return result ?? null;
   }
@@ -93,25 +93,25 @@ export class RoleRepository {
   /**
    * Delete a role by name
    */
-  async delete(tenantId: string, name: string): Promise<boolean> {
+  async delete(organizationId: string, name: string): Promise<boolean> {
     const result = await this.db
       .delete(role)
-      .where(and(eq(role.tenantId, tenantId), eq(role.name, name)));
+      .where(and(eq(role.organizationId, organizationId), eq(role.name, name)));
     return true;
   }
 
   /**
    * Delete all roles for a tenant
    */
-  async deleteByTenant(tenantId: string): Promise<void> {
-    await this.db.delete(role).where(eq(role.tenantId, tenantId));
+  async deleteByTenant(organizationId: string): Promise<void> {
+    await this.db.delete(role).where(eq(role.organizationId, organizationId));
   }
 
   /**
    * Check if role exists
    */
-  async exists(tenantId: string, name: string): Promise<boolean> {
-    const result = await this.findByName(tenantId, name);
+  async exists(organizationId: string, name: string): Promise<boolean> {
+    const result = await this.findByName(organizationId, name);
     return result !== null;
   }
 }

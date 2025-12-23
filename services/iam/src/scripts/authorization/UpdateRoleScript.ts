@@ -10,7 +10,7 @@ import type {
  * UpdateRole - Update role metadata and/or permissions
  *
  * TENANT ISOLATION:
- * Uses tenantId for role updates in local PostgreSQL.
+ * Uses organizationId for role updates in local PostgreSQL.
  *
  * Can update both system and custom roles.
  * System roles can have their permissions modified per tenant.
@@ -20,7 +20,7 @@ export class UpdateRoleScript extends BaseScript<
   UpdateRoleResult
 > {
   protected async execute(params: UpdateRoleParams): Promise<UpdateRoleResult> {
-    const { tenantId, roleName, displayName, description, permissions, inherits } = params;
+    const { organizationId, roleName, displayName, description, permissions, inherits } = params;
 
     try {
       // Check if it's a system role - system roles cannot be modified
@@ -40,7 +40,7 @@ export class UpdateRoleScript extends BaseScript<
 
       // Get existing role
       const existingRole = await this.repository.authorization.getRole(
-        tenantId,
+        organizationId,
         roleName
       );
 
@@ -60,7 +60,7 @@ export class UpdateRoleScript extends BaseScript<
       // Update role metadata if provided
       if (displayName !== undefined || description !== undefined) {
         const updated = await this.repository.authorization.updateRole(
-          tenantId,
+          organizationId,
           roleName,
           {
             displayName,
@@ -84,7 +84,7 @@ export class UpdateRoleScript extends BaseScript<
       // Update permissions if provided
       if (permissions !== undefined) {
         const result = await this.repository.authorization.updateRolePermissions(
-          tenantId,
+          organizationId,
           roleName,
           permissions
         );
@@ -105,7 +105,7 @@ export class UpdateRoleScript extends BaseScript<
       // Update inherits if provided
       if (inherits !== undefined) {
         const result = await this.repository.authorization.updateRoleInherits(
-          tenantId,
+          organizationId,
           roleName,
           inherits
         );
@@ -124,11 +124,11 @@ export class UpdateRoleScript extends BaseScript<
       }
 
       // Invalidate cache
-      this.authCache.onRoleUpdate(tenantId, roleName);
+      this.authCache.onRoleUpdate(organizationId, roleName);
 
       // Get updated permissions from Casbin policies
       const policies = await this.repository.authorization.getRolePermissions(
-        tenantId,
+        organizationId,
         roleName
       );
 
@@ -160,7 +160,7 @@ export class UpdateRoleScript extends BaseScript<
 
       // Get updated inherits
       const updatedInherits = await this.repository.authorization.getRoleInherits(
-        tenantId,
+        organizationId,
         roleName
       );
 
@@ -175,7 +175,7 @@ export class UpdateRoleScript extends BaseScript<
       };
 
       this.logger.info(
-        { tenantId, roleName },
+        { organizationId, roleName },
         "UpdateRoleScript: Role updated successfully"
       );
 

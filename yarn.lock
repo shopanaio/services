@@ -6352,9 +6352,9 @@ __metadata:
     better-auth: "npm:^1.4.7"
     cache-manager: "npm:^7.2.7"
     casbin: "npm:^5.32.0"
-    casbin-pg-adapter: "npm:^1.4.0"
     dataloader: "npm:^2.2.3"
     dotenv: "npm:^16.4.5"
+    drizzle-adapter: "npm:^1.4.0"
     drizzle-kit: "npm:^0.31.8"
     drizzle-orm: "npm:^0.45.1"
     fastify: "npm:^4.28.1"
@@ -7778,17 +7778,6 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.21.0"
   checksum: 10/66e240c06a94859d0e1dce76b2055501cb9ec386c0028e687479625a2f1cd3dda0b089278b2767044dff51b07beaf439df6b8b3ce99d5cbeacf243988bd7aa86
-  languageName: node
-  linkType: hard
-
-"@types/pg@npm:^8.0.0":
-  version: 8.16.0
-  resolution: "@types/pg@npm:8.16.0"
-  dependencies:
-    "@types/node": "npm:*"
-    pg-protocol: "npm:*"
-    pg-types: "npm:^2.2.0"
-  checksum: 10/c03346fbe87728a237f30a3d0a436b86ede88e1dc471782bf679a4d74d67ee2a96f953e7c04d73841d21b9db43a5bf2ccdf2cd4c75450ea57efd947049809b3a
   languageName: node
   linkType: hard
 
@@ -9408,18 +9397,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"casbin-pg-adapter@npm:^1.4.0":
-  version: 1.4.0
-  resolution: "casbin-pg-adapter@npm:1.4.0"
-  dependencies:
-    casbin: "npm:^5.0.4"
-    node-pg-migrate: "npm:^5.1.0"
-    pg: "npm:^8.2.1"
-  checksum: 10/7a98ebd2488e7755b311333eb2bd1ec006547b673fda1264c474ca0ce1c51f09f9177d0c64393052b51db98f70214c24a4948bf8123b8790d5e87beebcc4843d
-  languageName: node
-  linkType: hard
-
-"casbin@npm:^5.0.4, casbin@npm:^5.32.0":
+"casbin@npm:^5.32.0":
   version: 5.45.1
   resolution: "casbin@npm:5.45.1"
   dependencies:
@@ -9683,17 +9661,6 @@ __metadata:
   version: 4.1.0
   resolution: "cli-width@npm:4.1.0"
   checksum: 10/b58876fbf0310a8a35c79b72ecfcf579b354e18ad04e6b20588724ea2b522799a758507a37dfe132fafaf93a9922cafd9514d9e1598e6b2cd46694853aed099f
-  languageName: node
-  linkType: hard
-
-"cliui@npm:^7.0.2":
-  version: 7.0.4
-  resolution: "cliui@npm:7.0.4"
-  dependencies:
-    string-width: "npm:^4.2.0"
-    strip-ansi: "npm:^6.0.0"
-    wrap-ansi: "npm:^7.0.0"
-  checksum: 10/db858c49af9d59a32d603987e6fddaca2ce716cd4602ba5a2bb3a5af1351eebe82aba8dff3ef3e1b331f7fa9d40ca66e67bdf8e7c327ce0ea959747ead65c0ef
   languageName: node
   linkType: hard
 
@@ -10209,13 +10176,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"decamelize@npm:^5.0.0":
-  version: 5.0.1
-  resolution: "decamelize@npm:5.0.1"
-  checksum: 10/643e88804c538a334fae303ae1da8b30193b81dad8689643b35e6ab8ab60a3b03492cab6096d8163bd41fd384d969485f0634c000f80af502aa7f4047258d5b4
-  languageName: node
-  linkType: hard
-
 "decimal.js@npm:^10.4.3, decimal.js@npm:^10.6.0":
   version: 10.6.0
   resolution: "decimal.js@npm:10.6.0"
@@ -10434,6 +10394,16 @@ __metadata:
   version: 17.2.3
   resolution: "dotenv@npm:17.2.3"
   checksum: 10/f8b78626ebfff6e44420f634773375c9651808b3e1a33df6d4cc19120968eea53e100f59f04ec35f2a20b2beb334b6aba4f24040b2f8ad61773f158ac042a636
+  languageName: node
+  linkType: hard
+
+"drizzle-adapter@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "drizzle-adapter@npm:1.4.0"
+  peerDependencies:
+    casbin: ^5.0.0
+    drizzle-orm: ">=0.29.0"
+  checksum: 10/dca75b50ee6461c87baee36e2fa94994432066d7453ca598b564ccf24f3b8bc058c6dab28b583cde2e64c73bb2f6e72cdb09facbb34e7a09a948db8eee3f9b0a
   languageName: node
   linkType: hard
 
@@ -14948,15 +14918,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mkdirp@npm:~1.0.0":
-  version: 1.0.4
-  resolution: "mkdirp@npm:1.0.4"
-  bin:
-    mkdirp: bin/cmd.js
-  checksum: 10/d71b8dcd4b5af2fe13ecf3bd24070263489404fe216488c5ba7e38ece1f54daf219e72a833a3a2dc404331e870e9f44963a33399589490956bff003a3404d3b2
-  languageName: node
-  linkType: hard
-
 "mnemonist@npm:0.39.6":
   version: 0.39.6
   resolution: "mnemonist@npm:0.39.6"
@@ -15190,22 +15151,6 @@ __metadata:
   version: 0.4.0
   resolution: "node-int64@npm:0.4.0"
   checksum: 10/b7afc2b65e56f7035b1a2eec57ae0fbdee7d742b1cdcd0f4387562b6527a011ab1cbe9f64cc8b3cca61e3297c9637c8bf61cec2e6b8d3a711d4b5267dfafbe02
-  languageName: node
-  linkType: hard
-
-"node-pg-migrate@npm:^5.1.0":
-  version: 5.10.0
-  resolution: "node-pg-migrate@npm:5.10.0"
-  dependencies:
-    "@types/pg": "npm:^8.0.0"
-    decamelize: "npm:^5.0.0"
-    mkdirp: "npm:~1.0.0"
-    yargs: "npm:~16.2.0"
-  peerDependencies:
-    pg: ">=4.3.0 <9.0.0"
-  bin:
-    node-pg-migrate: bin/node-pg-migrate
-  checksum: 10/2a50f7c43dc4bfbfcf1252c92ccf3e54c81adbdeb26b480dd274c32e0283d01222513db7be3185b2a6f36147566cc732b425975af83a9fa036fdd6ae766f2f2b
   languageName: node
   linkType: hard
 
@@ -15771,14 +15716,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg-protocol@npm:*, pg-protocol@npm:^1.10.3, pg-protocol@npm:^1.6.0, pg-protocol@npm:^1.6.1":
+"pg-protocol@npm:^1.10.3, pg-protocol@npm:^1.6.0, pg-protocol@npm:^1.6.1":
   version: 1.10.3
   resolution: "pg-protocol@npm:1.10.3"
   checksum: 10/31da85319084c03f403efee7accce9786964df82a7feb60e6bd77b71f1e622c74a2a644a2bc434389d0ab92e5abdeedea69ebdb53b1897d9f01d2a1f51a8a2fe
   languageName: node
   linkType: hard
 
-"pg-types@npm:2.2.0, pg-types@npm:^2.1.0, pg-types@npm:^2.2.0":
+"pg-types@npm:2.2.0, pg-types@npm:^2.1.0":
   version: 2.2.0
   resolution: "pg-types@npm:2.2.0"
   dependencies:
@@ -15815,7 +15760,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pg@npm:^8.16.3, pg@npm:^8.2.1":
+"pg@npm:^8.16.3":
   version: 8.16.3
   resolution: "pg@npm:8.16.3"
   dependencies:
@@ -19016,13 +18961,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs-parser@npm:^20.2.2":
-  version: 20.2.9
-  resolution: "yargs-parser@npm:20.2.9"
-  checksum: 10/0188f430a0f496551d09df6719a9132a3469e47fe2747208b1dd0ab2bb0c512a95d0b081628bbca5400fb20dbf2fabe63d22badb346cecadffdd948b049f3fcc
-  languageName: node
-  linkType: hard
-
 "yargs-parser@npm:^21.1.1":
   version: 21.1.1
   resolution: "yargs-parser@npm:21.1.1"
@@ -19042,21 +18980,6 @@ __metadata:
     y18n: "npm:^5.0.5"
     yargs-parser: "npm:^21.1.1"
   checksum: 10/abb3e37678d6e38ea85485ed86ebe0d1e3464c640d7d9069805ea0da12f69d5a32df8e5625e370f9c96dd1c2dc088ab2d0a4dd32af18222ef3c4224a19471576
-  languageName: node
-  linkType: hard
-
-"yargs@npm:~16.2.0":
-  version: 16.2.0
-  resolution: "yargs@npm:16.2.0"
-  dependencies:
-    cliui: "npm:^7.0.2"
-    escalade: "npm:^3.1.1"
-    get-caller-file: "npm:^2.0.5"
-    require-directory: "npm:^2.1.1"
-    string-width: "npm:^4.2.0"
-    y18n: "npm:^5.0.5"
-    yargs-parser: "npm:^20.2.2"
-  checksum: 10/807fa21211d2117135d557f95fcd3c3d390530cda2eca0c840f1d95f0f40209dcfeb5ec18c785a1f3425896e623e3b2681e8bb7b6600060eda1c3f4804e7957e
   languageName: node
   linkType: hard
 

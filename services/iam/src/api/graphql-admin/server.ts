@@ -82,10 +82,9 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware
+  // Admin context middleware - extracts organizationId from JWT
   app.addHook("preHandler", buildAdminContextMiddleware({
     repository: kernel?.repository ?? null,
-    broker: kernel?.getServices().broker ?? null,
   }));
 
   // GraphQL endpoint
@@ -97,8 +96,6 @@ export async function startServer(serverConfig: ServerConfig) {
         kernel: kernel!,
         currentUser: request.currentUser,
         organizationId: request.organizationId,
-        projectSlug: request.projectSlug,
-        tenantId: request.tenantId,
       };
 
       // Set context in AsyncLocalStorage for all resolvers

@@ -19,16 +19,23 @@ export function requireKernel(ctx: ServiceContext): Kernel {
   return ctx.kernel;
 }
 
-export function requireContext(ctx: ServiceContext): ServiceContext {
-  if (!ctx.projectSlug) {
-    throw new NoKernelError();
+export function requireOrganization(ctx: ServiceContext): string {
+  if (!ctx.organizationId) {
+    throw new NoOrgContextError();
   }
-  return ctx;
+  return ctx.organizationId;
 }
 
 export class NoKernelError extends Error {
   constructor() {
     super("Service not configured");
     this.name = "NoKernelError";
+  }
+}
+
+export class NoOrgContextError extends Error {
+  constructor() {
+    super("Organization context required. Use switchOrganization mutation to set org in JWT.");
+    this.name = "NoOrgContextError";
   }
 }

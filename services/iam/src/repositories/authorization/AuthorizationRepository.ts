@@ -33,23 +33,23 @@ export class AuthorizationRepository {
    * Check if user has permission for resource/action in tenant
    */
   async enforce(
-    tenantId: string,
+    organizationId: string,
     userId: string,
     resource: string,
     action: string
   ): Promise<boolean> {
-    return this.casbin.enforce(tenantId, userId, resource, action);
+    return this.casbin.enforce(organizationId, userId, resource, action);
   }
 
   /**
    * Batch check permissions
    */
   async batchEnforce(
-    tenantId: string,
+    organizationId: string,
     userId: string,
     requests: Array<{ resource: string; action: string }>
   ): Promise<boolean[]> {
-    return this.casbin.batchEnforce(tenantId, userId, requests);
+    return this.casbin.batchEnforce(organizationId, userId, requests);
   }
 
   // ============================================================================
@@ -59,29 +59,29 @@ export class AuthorizationRepository {
   /**
    * Get all roles for a tenant
    */
-  async getRoles(tenantId: string) {
-    return this.roleRepo.findByTenant(tenantId);
+  async getRoles(organizationId: string) {
+    return this.roleRepo.findByTenant(organizationId);
   }
 
   /**
    * Get a specific role by name
    */
-  async getRole(tenantId: string, roleName: string) {
-    return this.roleRepo.findByName(tenantId, roleName);
+  async getRole(organizationId: string, roleName: string) {
+    return this.roleRepo.findByName(organizationId, roleName);
   }
 
   /**
    * Create a new role
    */
   async createRole(
-    tenantId: string,
+    organizationId: string,
     roleName: string,
     displayName: string,
     description: string = "",
     isSystem: boolean = false
   ) {
     return this.roleRepo.create({
-      tenantId,
+      organizationId,
       name: roleName,
       displayName,
       description,
@@ -93,22 +93,22 @@ export class AuthorizationRepository {
    * Update a role
    */
   async updateRole(
-    tenantId: string,
+    organizationId: string,
     roleName: string,
     updates: { displayName?: string; description?: string }
   ) {
-    return this.roleRepo.update(tenantId, roleName, updates);
+    return this.roleRepo.update(organizationId, roleName, updates);
   }
 
   /**
    * Delete a role and all its policies
    */
-  async deleteRole(tenantId: string, roleName: string): Promise<boolean> {
+  async deleteRole(organizationId: string, roleName: string): Promise<boolean> {
     // Remove all policies for this role
-    await this.casbin.removeFilteredPolicy(tenantId, roleName);
+    await this.casbin.removeFilteredPolicy(organizationId, roleName);
 
     // Delete role from database
-    return this.roleRepo.delete(tenantId, roleName);
+    return this.roleRepo.delete(organizationId, roleName);
   }
 
   /**
@@ -125,15 +125,15 @@ export class AuthorizationRepository {
   /**
    * Get user's roles in a tenant
    */
-  async getUserRoles(tenantId: string, userId: string): Promise<string[]> {
-    return this.casbin.getRolesForUser(tenantId, userId);
+  async getUserRoles(organizationId: string, userId: string): Promise<string[]> {
+    return this.casbin.getRolesForUser(organizationId, userId);
   }
 
   /**
    * Get user's role with details in a tenant
    */
-  async getUserRole(tenantId: string, userId: string) {
-    const result = await this.userRoleRepo.findByTenantAndUser(tenantId, userId);
+  async getUserRole(organizationId: string, userId: string) {
+    const result = await this.userRoleRepo.findByTenantAndUser(organizationId, userId);
     return result?.role ?? null;
   }
 
@@ -141,49 +141,49 @@ export class AuthorizationRepository {
    * Attach a role to user in tenant
    */
   async attachUserRole(
-    tenantId: string,
+    organizationId: string,
     userId: string,
     roleName: string,
     grantedBy?: string
   ): Promise<boolean> {
     // Get role from database
-    const role = await this.roleRepo.findByName(tenantId, roleName);
+    const role = await this.roleRepo.findByName(organizationId, roleName);
     if (!role) {
       return false;
     }
 
     // Save to database (user-role mapping)
     await this.userRoleRepo.upsert({
-      tenantId,
+      organizationId,
       userId,
       roleId: role.id,
       grantedBy,
     });
 
     // Add to Casbin (for enforcement)
-    return this.casbin.addRoleForUser(tenantId, userId, roleName);
+    return this.casbin.addRoleForUser(organizationId, userId, roleName);
   }
 
   /**
    * Detach a role from user in tenant
    */
   async detachUserRole(
-    tenantId: string,
+    organizationId: string,
     userId: string,
     roleName: string
   ): Promise<boolean> {
     // Remove from database
-    await this.userRoleRepo.delete(tenantId, userId);
+    await this.userRoleRepo.delete(organizationId, userId);
 
     // Remove from Casbin
-    return this.casbin.removeRoleForUser(tenantId, userId, roleName);
+    return this.casbin.removeRoleForUser(organizationId, userId, roleName);
   }
 
   /**
    * Get all members of a tenant with their roles
    */
-  async getTenantMembers(tenantId: string) {
-    return this.userRoleRepo.findByTenant(tenantId);
+  async getTenantMembers(organizationId: string) {
+    return this.userRoleRepo.findByTenant(organizationId);
   }
 
   // ============================================================================
@@ -193,8 +193,8 @@ export class AuthorizationRepository {
   /**
    * Get permissions for a role
    */
-  async getRolePermissions(tenantId: string, roleName: string) {
-    const policies = await this.casbin.getPolicies(tenantId);
+  async getRolePermissions(organizationId: string, roleName: string) {
+    const policies = await this.casbin.getPolicies(organizationId);
     return policies.filter((p) => p[0] === roleName);
   }
 
@@ -202,14 +202,14 @@ export class AuthorizationRepository {
    * Create a permission for a role
    */
   async createPermission(
-    tenantId: string,
+    organizationId: string,
     roleName: string,
     resource: string,
     actions: string[],
     effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
     for (const action of actions) {
-      await this.casbin.addPolicy(tenantId, roleName, resource, action, effect);
+      await this.casbin.addPolicy(organizationId, roleName, resource, action, effect);
     }
     return true;
   }
@@ -217,7 +217,7 @@ export class AuthorizationRepository {
   /**
    * Delete a specific permission (not used directly, but kept for compatibility)
    */
-  async deletePermission(_tenantId: string, _permissionName: string): Promise<boolean> {
+  async deletePermission(_organizationId: string, _permissionName: string): Promise<boolean> {
     // In the new system, permissions are managed per-role
     console.warn("[AuthorizationRepository] deletePermission() - use deleteRolePermissions() instead");
     return false;
@@ -226,15 +226,15 @@ export class AuthorizationRepository {
   /**
    * Delete all permissions for a role
    */
-  async deleteRolePermissions(tenantId: string, roleName: string): Promise<boolean> {
-    return this.casbin.removeFilteredPolicy(tenantId, roleName);
+  async deleteRolePermissions(organizationId: string, roleName: string): Promise<boolean> {
+    return this.casbin.removeFilteredPolicy(organizationId, roleName);
   }
 
   /**
    * Update role permissions (replace all)
    */
   async updateRolePermissions(
-    tenantId: string,
+    organizationId: string,
     roleName: string,
     permissions: Array<{
       resource: string;
@@ -244,16 +244,16 @@ export class AuthorizationRepository {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Delete existing permissions
-      await this.deleteRolePermissions(tenantId, roleName);
+      await this.deleteRolePermissions(organizationId, roleName);
 
       // Create new permissions
       for (const perm of permissions) {
         const effect = perm.effect.toLowerCase() as "allow" | "deny";
-        await this.createPermission(tenantId, roleName, perm.resource, perm.actions, effect);
+        await this.createPermission(organizationId, roleName, perm.resource, perm.actions, effect);
       }
 
       // Invalidate enforcer cache
-      await this.casbin.invalidateEnforcer(tenantId);
+      await this.casbin.invalidateEnforcer(organizationId);
 
       return { success: true };
     } catch (error) {
@@ -269,35 +269,35 @@ export class AuthorizationRepository {
    * Add role hierarchy (parent inherits child permissions)
    */
   async addRoleHierarchy(
-    tenantId: string,
+    organizationId: string,
     parentRole: string,
     childRole: string
   ): Promise<boolean> {
-    return this.casbin.addRoleHierarchy(tenantId, parentRole, childRole);
+    return this.casbin.addRoleHierarchy(organizationId, parentRole, childRole);
   }
 
   /**
    * Get roles that a role inherits from
    */
-  async getRoleInherits(tenantId: string, roleName: string): Promise<string[]> {
-    return this.casbin.getRoleInherits(tenantId, roleName);
+  async getRoleInherits(organizationId: string, roleName: string): Promise<string[]> {
+    return this.casbin.getRoleInherits(organizationId, roleName);
   }
 
   /**
    * Update role hierarchy (replace all inherits)
    */
   async updateRoleInherits(
-    tenantId: string,
+    organizationId: string,
     roleName: string,
     inherits: string[]
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Remove existing inherits
-      await this.casbin.removeAllRoleHierarchy(tenantId, roleName);
+      await this.casbin.removeAllRoleHierarchy(organizationId, roleName);
 
       // Add new inherits
       for (const inheritRole of inherits) {
-        await this.casbin.addRoleHierarchy(tenantId, roleName, inheritRole);
+        await this.casbin.addRoleHierarchy(organizationId, roleName, inheritRole);
       }
 
       return { success: true };
@@ -313,14 +313,14 @@ export class AuthorizationRepository {
   /**
    * Ensure model exists (no-op in new system, model is embedded)
    */
-  async ensureModelExists(_tenantId: string): Promise<{ success: boolean; error?: string }> {
+  async ensureModelExists(_organizationId: string): Promise<{ success: boolean; error?: string }> {
     return { success: true };
   }
 
   /**
    * Ensure enforcer exists (no-op in new system, created on demand)
    */
-  async ensureEnforcerExists(_tenantId: string): Promise<{ success: boolean; error?: string }> {
+  async ensureEnforcerExists(_organizationId: string): Promise<{ success: boolean; error?: string }> {
     return { success: true };
   }
 
@@ -331,7 +331,7 @@ export class AuthorizationRepository {
   /**
    * Initialize tenant (alias for provisionTenantRoles without owner)
    */
-  async initialize(): Promise<{ success: boolean; tenantId?: string; error?: string }> {
+  async initialize(): Promise<{ success: boolean; organizationId?: string; error?: string }> {
     return this.provisionTenantRoles();
   }
 
@@ -341,20 +341,20 @@ export class AuthorizationRepository {
    * Creates a new tenant with auto-generated UUIDv7 and sets up roles.
    *
    * @param ownerId - Optional owner user ID to assign owner role
-   * @returns Created tenantId on success
+   * @returns Created organizationId on success
    */
   async provisionTenantRoles(
     ownerId?: string
-  ): Promise<{ success: boolean; tenantId?: string; error?: string }> {
+  ): Promise<{ success: boolean; organizationId?: string; error?: string }> {
     try {
       // Create new tenant (ID generated as UUIDv7)
       const newTenant = await this.tenantRepo.create();
-      const tenantId = newTenant.id;
+      const organizationId = newTenant.id;
 
       // Create predefined roles
       for (const roleName of Object.values(PREDEFINED_ROLES)) {
         await this.createRole(
-          tenantId,
+          organizationId,
           roleName,
           ROLE_DISPLAY_NAMES[roleName],
           ROLE_DESCRIPTIONS[roleName],
@@ -366,7 +366,7 @@ export class AuthorizationRepository {
 
         for (const perm of permissions.allow) {
           await this.createPermission(
-            tenantId,
+            organizationId,
             roleName,
             perm.resource,
             perm.actions,
@@ -377,7 +377,7 @@ export class AuthorizationRepository {
         if (permissions.deny) {
           for (const perm of permissions.deny) {
             await this.createPermission(
-              tenantId,
+              organizationId,
               roleName,
               perm.resource,
               perm.actions,
@@ -389,10 +389,10 @@ export class AuthorizationRepository {
 
       // Assign owner role to creator if provided
       if (ownerId) {
-        await this.attachUserRole(tenantId, ownerId, PREDEFINED_ROLES.OWNER);
+        await this.attachUserRole(organizationId, ownerId, PREDEFINED_ROLES.OWNER);
       }
 
-      return { success: true, tenantId };
+      return { success: true, organizationId };
     } catch (error) {
       console.error("[AuthorizationRepository] provisionTenantRoles error:", error);
       return { success: false, error: String(error) };
@@ -402,16 +402,16 @@ export class AuthorizationRepository {
   /**
    * Deprovision all roles and permissions for a tenant
    */
-  async deprovisionTenantRoles(tenantId: string): Promise<boolean> {
+  async deprovisionTenantRoles(organizationId: string): Promise<boolean> {
     try {
       // Delete all user-role assignments
-      await this.userRoleRepo.deleteByTenant(tenantId);
+      await this.userRoleRepo.deleteByTenant(organizationId);
 
       // Delete all roles
-      await this.roleRepo.deleteByTenant(tenantId);
+      await this.roleRepo.deleteByTenant(organizationId);
 
       // Invalidate enforcer cache
-      await this.casbin.invalidateEnforcer(tenantId);
+      await this.casbin.invalidateEnforcer(organizationId);
 
       return true;
     } catch (error) {

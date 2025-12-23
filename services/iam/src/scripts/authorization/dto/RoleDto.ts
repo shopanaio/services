@@ -36,9 +36,6 @@ export interface CreateRoleParams {
   /** Roles to inherit from */
   inherits?: string[];
   permissions: RolePermission[];
-
-  // Legacy support (deprecated)
-  tenantId?: string;
 }
 
 export interface CreateRoleResult {
@@ -57,9 +54,6 @@ export interface UpdateRoleParams {
   /** Roles to inherit from */
   inherits?: string[];
   permissions?: RolePermission[];
-
-  // Legacy support (deprecated)
-  tenantId?: string;
 }
 
 export interface UpdateRoleResult {
@@ -73,9 +67,6 @@ export interface UpdateRoleResult {
 export interface DeleteRoleParams {
   organizationId: string;
   roleName: string;
-
-  // Legacy support (deprecated)
-  tenantId?: string;
 }
 
 export interface DeleteRoleResult {
@@ -88,9 +79,6 @@ export interface DeleteRoleResult {
  */
 export interface ListRolesParams {
   organizationId: string;
-
-  // Legacy support (deprecated)
-  tenantId?: string;
 }
 
 export interface ListRolesResult {
@@ -104,9 +92,6 @@ export interface ListRolesResult {
 export interface GetRoleParams {
   organizationId: string;
   roleName: string;
-
-  // Legacy support (deprecated)
-  tenantId?: string;
 }
 
 export interface GetRoleResult {

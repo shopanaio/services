@@ -5,7 +5,7 @@ import type { DeleteRoleParams, DeleteRoleResult } from "./dto/index.js";
  * DeleteRole - Delete a custom role from a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId (project slug) for role deletion.
+ * Uses organizationId (project slug) for role deletion.
  *
  * System roles cannot be deleted.
  * Roles with assigned users cannot be deleted.
@@ -15,12 +15,12 @@ export class DeleteRoleScript extends BaseScript<
   DeleteRoleResult
 > {
   protected async execute(params: DeleteRoleParams): Promise<DeleteRoleResult> {
-    const { tenantId, roleName } = params;
+    const { organizationId, roleName } = params;
 
     try {
       // Check if role exists
       const existingRole = await this.repository.authorization.getRole(
-        tenantId,
+        organizationId,
         roleName
       );
 
@@ -54,7 +54,7 @@ export class DeleteRoleScript extends BaseScript<
 
       // Check if role has members (users assigned to this role)
       const usersWithRole = await this.repository.casbin.getUsersForRole(
-        tenantId,
+        organizationId,
         roleName
       );
       if (usersWithRole && usersWithRole.length > 0) {
@@ -72,15 +72,15 @@ export class DeleteRoleScript extends BaseScript<
 
       // Remove this role from inherits of other roles that inherit from it
       const rolesInheritingThis = await this.repository.casbin.getRolesInheritingFrom(
-        tenantId,
+        organizationId,
         roleName
       );
       for (const parentRole of rolesInheritingThis) {
-        await this.repository.casbin.removeRoleHierarchy(tenantId, parentRole, roleName);
+        await this.repository.casbin.removeRoleHierarchy(organizationId, parentRole, roleName);
       }
 
       // Delete the role (also removes all Casbin policies for this role)
-      const deleted = await this.repository.authorization.deleteRole(tenantId, roleName);
+      const deleted = await this.repository.authorization.deleteRole(organizationId, roleName);
 
       if (!deleted) {
         return {
@@ -95,10 +95,10 @@ export class DeleteRoleScript extends BaseScript<
       }
 
       // Invalidate cache
-      this.authCache.onRoleDelete(tenantId, roleName);
+      this.authCache.onRoleDelete(organizationId, roleName);
 
       this.logger.info(
-        { tenantId, roleName },
+        { organizationId, roleName },
         "DeleteRoleScript: Role deleted successfully"
       );
 

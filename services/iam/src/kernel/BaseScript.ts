@@ -57,20 +57,6 @@ export abstract class BaseScript<TParams, TResult> {
   }
 
   /**
-   * Helper: get current tenant ID (deprecated - use getOrganizationId)
-   */
-  protected getTenantId(): string | null {
-    return getContext()?.tenantId ?? null;
-  }
-
-  /**
-   * Helper: get current project slug (for domain scoping)
-   */
-  protected getProjectSlug(): string | null {
-    return getContext()?.projectSlug ?? null;
-  }
-
-  /**
    * Helper: execute another script (composition)
    */
   protected executeScript<P, R>(

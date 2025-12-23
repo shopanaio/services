@@ -12,9 +12,9 @@ export type {
   AttachUserRoleResult,
   DetachUserRoleParams,
   DetachUserRoleResult,
-  ListTenantMembersParams,
-  ListTenantMembersResult,
-  TenantMember,
+  ListOrgMembersParams,
+  ListOrgMembersResult,
+  OrgMember,
 } from "./RoleManagementDto.js";
 
 export type {

@@ -10,14 +10,14 @@ import type {
  *
  * TENANT ISOLATION:
  * Custom roles are created in the tenant's isolated Casbin policies.
- * Role names are simple (no tenantId prefix needed).
+ * Role names are simple (no organizationId prefix needed).
  */
 export class CreateRoleScript extends BaseScript<
   CreateRoleParams,
   CreateRoleResult
 > {
   protected async execute(params: CreateRoleParams): Promise<CreateRoleResult> {
-    const { tenantId, name, displayName, description, permissions, inherits } = params;
+    const { organizationId, name, displayName, description, permissions, inherits } = params;
 
     // Validate role name is not empty
     if (!name || name.trim() === "") {
@@ -85,7 +85,7 @@ export class CreateRoleScript extends BaseScript<
           const isSystem = this.repository.authorization.isSystemRole(inheritRole);
           if (!isSystem) {
             const inheritedRole = await this.repository.authorization.getRole(
-              tenantId,
+              organizationId,
               inheritRole
             );
             if (!inheritedRole) {
@@ -107,7 +107,7 @@ export class CreateRoleScript extends BaseScript<
 
       // Check if role already exists
       const existingRole = await this.repository.authorization.getRole(
-        tenantId,
+        organizationId,
         name
       );
 
@@ -126,7 +126,7 @@ export class CreateRoleScript extends BaseScript<
 
       // Create the role with simple name
       const created = await this.repository.authorization.createRole(
-        tenantId,
+        organizationId,
         name,
         displayName,
         description ?? ""
@@ -148,7 +148,7 @@ export class CreateRoleScript extends BaseScript<
       for (const perm of permissions) {
         const effect = perm.effect.toLowerCase() as "allow" | "deny";
         const permCreated = await this.repository.authorization.createPermission(
-          tenantId,
+          organizationId,
           name,
           perm.resource,
           perm.actions,
@@ -157,7 +157,7 @@ export class CreateRoleScript extends BaseScript<
 
         if (!permCreated) {
           // Rollback: delete the role
-          await this.repository.authorization.deleteRole(tenantId, name);
+          await this.repository.authorization.deleteRole(organizationId, name);
           return {
             role: null,
             userErrors: [
@@ -173,14 +173,14 @@ export class CreateRoleScript extends BaseScript<
       // Create role hierarchy for inherits
       for (const inheritRole of validatedInherits) {
         await this.repository.authorization.addRoleHierarchy(
-          tenantId,
+          organizationId,
           name,
           inheritRole
         );
       }
 
       // Invalidate cache for this tenant's roles
-      this.authCache.onRoleUpdate(tenantId, name);
+      this.authCache.onRoleUpdate(organizationId, name);
 
       const roleInfo: RoleInfo = {
         name,
@@ -192,7 +192,7 @@ export class CreateRoleScript extends BaseScript<
       };
 
       this.logger.info(
-        { tenantId, roleName: name },
+        { organizationId, roleName: name },
         "CreateRoleScript: Role created successfully"
       );
 

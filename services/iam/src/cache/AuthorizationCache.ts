@@ -24,8 +24,8 @@ interface CachedUserRole {
 /**
  * AuthorizationCache implements version-based cache invalidation
  *
- * TENANT ISOLATION:
- * Cache keys use tenantOrg instead of projectId for proper isolation.
+ * ORGANIZATION ISOLATION:
+ * Cache keys use organizationId for proper isolation.
  *
  * Cache uses version-based invalidation instead of active cache deletion:
  * - Avoids O(n) Redis operations when updating roles
@@ -56,39 +56,39 @@ export class AuthorizationCache {
 
   /**
    * Cache key for authorization result
-   * @param tenantOrg - Tenant organization (e.g., "org-project-a")
+   * @param organizationId - Tenant organization (e.g., "org-project-a")
    */
   private authCacheKey(
-    tenantOrg: string,
+    organizationId: string,
     userId: string,
     resource: string,
     action: string
   ): string {
-    return `${CACHE_KEYS.AUTH}:${tenantOrg}:${userId}:${resource}:${action}`;
+    return `${CACHE_KEYS.AUTH}:${organizationId}:${userId}:${resource}:${action}`;
   }
 
   /**
    * Cache key for user role
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  private userRoleCacheKey(tenantOrg: string, userId: string): string {
-    return `${CACHE_KEYS.USER_ROLE}:${tenantOrg}:${userId}`;
+  private userRoleCacheKey(organizationId: string, userId: string): string {
+    return `${CACHE_KEYS.USER_ROLE}:${organizationId}:${userId}`;
   }
 
   /**
    * Version key for role
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  private roleVersionKey(tenantOrg: string, roleName: string): string {
-    return `${CACHE_KEYS.ROLE_VERSION}:${tenantOrg}:${roleName}`;
+  private roleVersionKey(organizationId: string, roleName: string): string {
+    return `${CACHE_KEYS.ROLE_VERSION}:${organizationId}:${roleName}`;
   }
 
   /**
    * Version key for user
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  private userVersionKey(tenantOrg: string, userId: string): string {
-    return `${CACHE_KEYS.USER_VERSION}:${tenantOrg}:${userId}`;
+  private userVersionKey(organizationId: string, userId: string): string {
+    return `${CACHE_KEYS.USER_VERSION}:${organizationId}:${userId}`;
   }
 
   // ============================================================================
@@ -97,28 +97,28 @@ export class AuthorizationCache {
 
   /**
    * Get current role version
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  getRoleVersion(tenantOrg: string, roleName: string): number {
-    const key = this.roleVersionKey(tenantOrg, roleName);
+  getRoleVersion(organizationId: string, roleName: string): number {
+    const key = this.roleVersionKey(organizationId, roleName);
     return this.roleVersions.get(key) ?? 0;
   }
 
   /**
    * Get current user version
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  getUserVersion(tenantOrg: string, userId: string): number {
-    const key = this.userVersionKey(tenantOrg, userId);
+  getUserVersion(organizationId: string, userId: string): number {
+    const key = this.userVersionKey(organizationId, userId);
     return this.userVersions.get(key) ?? 0;
   }
 
   /**
    * Increment role version (on role update/delete)
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  incrementRoleVersion(tenantOrg: string, roleName: string): number {
-    const key = this.roleVersionKey(tenantOrg, roleName);
+  incrementRoleVersion(organizationId: string, roleName: string): number {
+    const key = this.roleVersionKey(organizationId, roleName);
     const newVersion = (this.roleVersions.get(key) ?? 0) + 1;
     this.roleVersions.set(key, newVersion);
     return newVersion;
@@ -126,10 +126,10 @@ export class AuthorizationCache {
 
   /**
    * Increment user version (on attach/detach role)
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  incrementUserVersion(tenantOrg: string, userId: string): number {
-    const key = this.userVersionKey(tenantOrg, userId);
+  incrementUserVersion(organizationId: string, userId: string): number {
+    const key = this.userVersionKey(organizationId, userId);
     const newVersion = (this.userVersions.get(key) ?? 0) + 1;
     this.userVersions.set(key, newVersion);
     return newVersion;
@@ -142,17 +142,17 @@ export class AuthorizationCache {
   /**
    * Get cached authorization result
    *
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    * Returns null if cache miss or version mismatch
    */
   async getAuthResult(
-    tenantOrg: string,
+    organizationId: string,
     userId: string,
     roleName: string,
     resource: string,
     action: string
   ): Promise<{ hit: boolean; allowed?: boolean }> {
-    const cacheKey = this.authCacheKey(tenantOrg, userId, resource, action);
+    const cacheKey = this.authCacheKey(organizationId, userId, resource, action);
 
     const cached = await this.l1Cache.get<CachedAuthResult>(cacheKey);
     if (!cached) {
@@ -160,7 +160,7 @@ export class AuthorizationCache {
     }
 
     // Validate versions
-    const isValid = this.validateVersions(tenantOrg, userId, roleName, cached);
+    const isValid = this.validateVersions(organizationId, userId, roleName, cached);
     if (!isValid) {
       // Version mismatch - invalidate cache
       await this.l1Cache.del(cacheKey);
@@ -172,23 +172,23 @@ export class AuthorizationCache {
 
   /**
    * Set cached authorization result
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
   async setAuthResult(
-    tenantOrg: string,
+    organizationId: string,
     userId: string,
     roleName: string,
     resource: string,
     action: string,
     allowed: boolean
   ): Promise<void> {
-    const cacheKey = this.authCacheKey(tenantOrg, userId, resource, action);
+    const cacheKey = this.authCacheKey(organizationId, userId, resource, action);
 
     const cached: CachedAuthResult = {
       allowed,
       checkedAt: Date.now(),
-      userVersion: this.getUserVersion(tenantOrg, userId),
-      roleVersion: this.getRoleVersion(tenantOrg, roleName),
+      userVersion: this.getUserVersion(organizationId, userId),
+      roleVersion: this.getRoleVersion(organizationId, roleName),
     };
 
     await this.l1Cache.set(cacheKey, cached);
@@ -200,14 +200,14 @@ export class AuthorizationCache {
 
   /**
    * Get cached user role
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
   async getUserRole(
-    tenantOrg: string,
+    organizationId: string,
     userId: string,
     roleName: string
   ): Promise<CachedUserRole | null> {
-    const cacheKey = this.userRoleCacheKey(tenantOrg, userId);
+    const cacheKey = this.userRoleCacheKey(organizationId, userId);
 
     const cached = await this.l1Cache.get<CachedUserRole>(cacheKey);
     if (!cached) {
@@ -215,7 +215,7 @@ export class AuthorizationCache {
     }
 
     // Validate versions
-    const isValid = this.validateVersions(tenantOrg, userId, roleName, cached);
+    const isValid = this.validateVersions(organizationId, userId, roleName, cached);
     if (!isValid) {
       await this.l1Cache.del(cacheKey);
       return null;
@@ -226,22 +226,22 @@ export class AuthorizationCache {
 
   /**
    * Set cached user role
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
   async setUserRole(
-    tenantOrg: string,
+    organizationId: string,
     userId: string,
     roleName: string,
     role: string | null,
     permissions: string[]
   ): Promise<void> {
-    const cacheKey = this.userRoleCacheKey(tenantOrg, userId);
+    const cacheKey = this.userRoleCacheKey(organizationId, userId);
 
     const cached: CachedUserRole = {
       role,
       permissions,
-      userVersion: this.getUserVersion(tenantOrg, userId),
-      roleVersion: this.getRoleVersion(tenantOrg, roleName),
+      userVersion: this.getUserVersion(organizationId, userId),
+      roleVersion: this.getRoleVersion(organizationId, roleName),
     };
 
     await this.l1Cache.set(cacheKey, cached);
@@ -253,29 +253,29 @@ export class AuthorizationCache {
 
   /**
    * Invalidate cache on user role change (attach/detach)
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  onUserRoleChange(tenantOrg: string, userId: string): void {
-    this.incrementUserVersion(tenantOrg, userId);
+  onUserRoleChange(organizationId: string, userId: string): void {
+    this.incrementUserVersion(organizationId, userId);
     // L1 cache will be invalidated on next access via version check
   }
 
   /**
    * Invalidate cache on role update
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  onRoleUpdate(tenantOrg: string, roleName: string): void {
-    this.incrementRoleVersion(tenantOrg, roleName);
+  onRoleUpdate(organizationId: string, roleName: string): void {
+    this.incrementRoleVersion(organizationId, roleName);
     // All cached auth results for users with this role will be invalidated
     // on next access via version check
   }
 
   /**
    * Invalidate cache on role delete
-   * @param tenantOrg - Tenant organization
+   * @param organizationId - Tenant organization
    */
-  onRoleDelete(tenantOrg: string, roleName: string): void {
-    this.incrementRoleVersion(tenantOrg, roleName);
+  onRoleDelete(organizationId: string, roleName: string): void {
+    this.incrementRoleVersion(organizationId, roleName);
   }
 
   // ============================================================================
@@ -283,13 +283,13 @@ export class AuthorizationCache {
   // ============================================================================
 
   private validateVersions(
-    tenantOrg: string,
+    organizationId: string,
     userId: string,
     roleName: string,
     cached: { userVersion: number; roleVersion: number }
   ): boolean {
-    const currentUserVersion = this.getUserVersion(tenantOrg, userId);
-    const currentRoleVersion = this.getRoleVersion(tenantOrg, roleName);
+    const currentUserVersion = this.getUserVersion(organizationId, userId);
+    const currentRoleVersion = this.getRoleVersion(organizationId, roleName);
 
     return (
       cached.userVersion === currentUserVersion &&

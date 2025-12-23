@@ -5,10 +5,10 @@ import type { BatchAuthorizeParams, BatchAuthorizeResult } from "./dto/index.js"
  * BatchAuthorize - Check multiple authorizations in one call
  *
  * TENANT ISOLATION:
- * Uses tenantId (project slug) for isolated authorization checks.
+ * Uses organizationId (project slug) for isolated authorization checks.
  *
  * Implementation:
- * 1. Use tenantId directly (passed from caller)
+ * 1. Use organizationId directly (passed from caller)
  * 2. Check cache for each request
  * 3. For cache misses → call Casbin batchEnforce() via CasbinService
  * 4. Cache results, return
@@ -20,7 +20,7 @@ export class BatchAuthorizeScript extends BaseScript<
   protected async execute(
     params: BatchAuthorizeParams
   ): Promise<BatchAuthorizeResult> {
-    const { userId, tenantId, requests } = params;
+    const { userId, organizationId, requests } = params;
 
     if (requests.length === 0) {
       return {
@@ -34,7 +34,7 @@ export class BatchAuthorizeScript extends BaseScript<
 
     try {
       const allowedResults = await this.repository.authorization.batchEnforce(
-        tenantId,
+        organizationId,
         userId,
         requests
       );

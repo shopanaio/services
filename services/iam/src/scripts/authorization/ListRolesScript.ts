@@ -10,7 +10,7 @@ import type {
  * ListRoles - List all roles for a tenant
  *
  * TENANT ISOLATION:
- * Uses tenantId for role listing from local PostgreSQL.
+ * Uses organizationId for role listing from local PostgreSQL.
  *
  * Returns both system and custom roles with their permissions.
  */
@@ -19,17 +19,17 @@ export class ListRolesScript extends BaseScript<
   ListRolesResult
 > {
   protected async execute(params: ListRolesParams): Promise<ListRolesResult> {
-    const { tenantId } = params;
+    const { organizationId } = params;
 
     try {
-      const roles = await this.repository.authorization.getRoles(tenantId);
+      const roles = await this.repository.authorization.getRoles(organizationId);
 
       const roleInfos: RoleInfo[] = [];
 
       for (const role of roles) {
         // Get permissions for this role (returns Casbin policy arrays)
         const policies = await this.repository.authorization.getRolePermissions(
-          tenantId,
+          organizationId,
           role.name
         );
 
@@ -61,7 +61,7 @@ export class ListRolesScript extends BaseScript<
 
         // Get inherits (role hierarchy)
         const inherits = await this.repository.authorization.getRoleInherits(
-          tenantId,
+          organizationId,
           role.name
         );
 

@@ -1,11 +1,11 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 
 /**
- * AttachUserRole - Assign a role to a user for a tenant
+ * AttachUserRole - Assign a role to a user in an organization
  */
 export interface AttachUserRoleParams {
   userId: string;
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
   roleName: string;
   grantedBy: string;
 }
@@ -20,7 +20,7 @@ export interface AttachUserRoleResult {
  */
 export interface DetachUserRoleParams {
   userId: string;
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
   revokedBy: string;
 }
 
@@ -30,13 +30,13 @@ export interface DetachUserRoleResult {
 }
 
 /**
- * ListTenantMembers - List all users with roles in a tenant
+ * ListOrgMembers - List all users with roles in an organization
  */
-export interface ListTenantMembersParams {
-  tenantId: string; // Tenant identifier (project slug)
+export interface ListOrgMembersParams {
+  organizationId: string;
 }
 
-export interface TenantMember {
+export interface OrgMember {
   userId: string;
   userName: string;
   email: string;
@@ -45,7 +45,7 @@ export interface TenantMember {
   grantedBy?: string;
 }
 
-export interface ListTenantMembersResult {
-  members: TenantMember[];
+export interface ListOrgMembersResult {
+  members: OrgMember[];
   userErrors: UserError[];
 }

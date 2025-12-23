@@ -3,13 +3,13 @@ import type { GetUserRoleParams, GetUserRoleResult } from "./dto/index.js";
 import type { ScopePart } from "../../casbin/CasbinService.js";
 
 /**
- * GetUserRole - Get user's role in an organization/project
+ * GetUserRole - Get user's role in an organization
  *
  * ORGANIZATION + DOMAIN ISOLATION:
- * Uses organizationId and optional projectId for role lookup.
+ * Uses organizationId and optional domain for role lookup.
  *
  * Implementation:
- * 1. Get organizationId (required) and projectId (optional domain)
+ * 1. Get organizationId (required) and domain (optional)
  * 2. Get user's roles from Casbin via CasbinService
  * 3. Return the first role in the specified domain, or all roles
  */
@@ -18,10 +18,7 @@ export class GetUserRoleScript extends BaseScript<
   GetUserRoleResult
 > {
   protected async execute(params: GetUserRoleParams): Promise<GetUserRoleResult> {
-    const { userId, projectId } = params;
-
-    // Support both new organizationId and legacy tenantId
-    const organizationId = params.organizationId || params.tenantId;
+    const { userId, organizationId, domain } = params;
 
     if (!organizationId) {
       return {
@@ -32,14 +29,14 @@ export class GetUserRoleScript extends BaseScript<
     }
 
     try {
-      // Build domain scope
-      const domain: ScopePart[] = projectId ? [["project", projectId]] : [];
+      // Domain scope (empty = org-wide)
+      const domainScope: ScopePart[] = domain ?? [];
 
       // Get roles in specific domain
       const rolesInDomain = await this.repository.casbin.getRolesForUserInDomain(
         organizationId,
         userId,
-        domain
+        domainScope
       );
 
       // Also get all roles across all domains
@@ -57,7 +54,7 @@ export class GetUserRoleScript extends BaseScript<
         };
       }
 
-      // Return the first role in the domain (primary role for this project)
+      // Return the first role in the domain (primary role)
       const roleName = rolesInDomain.length > 0 ? rolesInDomain[0] : allRoles[0]?.role ?? null;
 
       return {

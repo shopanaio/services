@@ -5,10 +5,10 @@ import type { DetachUserRoleParams, DetachUserRoleResult } from "./dto/index.js"
  * DetachUserRole - Remove a role from a user
  *
  * TENANT ISOLATION:
- * Uses tenantId (project slug) for role detachment.
+ * Uses organizationId (project slug) for role detachment.
  *
  * Implementation:
- * 1. Use tenantId directly (passed from caller)
+ * 1. Use organizationId directly (passed from caller)
  * 2. Get user's current role
  * 3. Remove from DB and Casbin grouping policy
  * 4. Invalidate cache for this user
@@ -20,12 +20,12 @@ export class DetachUserRoleScript extends BaseScript<
   protected async execute(
     params: DetachUserRoleParams
   ): Promise<DetachUserRoleResult> {
-    const { userId, tenantId } = params;
+    const { userId, organizationId } = params;
 
     try {
       // Get user's current role
       const userRoles = await this.repository.authorization.getUserRoles(
-        tenantId,
+        organizationId,
         userId
       );
 
@@ -35,7 +35,7 @@ export class DetachUserRoleScript extends BaseScript<
           userErrors: [
             {
               code: "NO_ROLE",
-              message: `User ${userId} has no role in tenant ${tenantId}`,
+              message: `User ${userId} has no role in tenant ${organizationId}`,
             },
           ],
         };
@@ -44,7 +44,7 @@ export class DetachUserRoleScript extends BaseScript<
       const roleName = userRoles[0];
 
       const detached = await this.repository.authorization.detachUserRole(
-        tenantId,
+        organizationId,
         userId,
         roleName
       );
@@ -62,10 +62,10 @@ export class DetachUserRoleScript extends BaseScript<
       }
 
       // Invalidate cache for this user
-      this.authCache.onUserRoleChange(tenantId, userId);
+      this.authCache.onUserRoleChange(organizationId, userId);
 
       this.logger.info(
-        { userId, tenantId, roleName },
+        { userId, organizationId, roleName },
         "DetachUserRoleScript: Role detached successfully"
       );
 

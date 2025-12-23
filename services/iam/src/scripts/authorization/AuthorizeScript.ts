@@ -6,11 +6,11 @@ import type { ScopePart } from "../../casbin/CasbinService.js";
  * Authorize - Check if user is authorized to perform action on resource
  *
  * ORGANIZATION + DOMAIN ISOLATION:
- * Uses organizationId (from JWT) and projectId (domain) to check authorization.
+ * Uses organizationId (from JWT) and optional domain for scoping.
  * The Casbin model uses 4 parameters: (sub, dom, obj, act)
  *
  * Implementation:
- * 1. Get organizationId (required) and projectId (optional domain)
+ * 1. Get organizationId (required) and domain (optional)
  * 2. Check cache (L1 in-memory with version validation)
  * 3. If miss → call Casbin enforce() via CasbinService
  * 4. Cache result, return
@@ -20,10 +20,7 @@ export class AuthorizeScript extends BaseScript<
   AuthorizeResult
 > {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const { userId, resource, action, resourceId, projectId } = params;
-
-    // Support both new organizationId and legacy tenantId
-    const organizationId = params.organizationId || params.tenantId;
+    const { userId, organizationId, resource, action, resourceId, domain } = params;
 
     if (!organizationId) {
       return {
@@ -34,8 +31,8 @@ export class AuthorizeScript extends BaseScript<
     }
 
     try {
-      // Build domain scope
-      const domain: ScopePart[] = projectId ? [["project", projectId]] : [];
+      // Domain scope (empty = org-wide)
+      const domainScope: ScopePart[] = domain ?? [];
 
       // Build resource path
       const resourcePath: ScopePart[] = resourceId
@@ -46,12 +43,13 @@ export class AuthorizeScript extends BaseScript<
       const userRoles = await this.repository.casbin.getRolesForUserInDomain(
         organizationId,
         userId,
-        domain
+        domainScope
       );
       const roleName = userRoles[0] ?? "";
 
       // Build cache key with domain
-      const cacheKey = projectId ? `${projectId}:${resource}` : resource;
+      const domainKey = this.repository.casbin.buildPath(domainScope);
+      const cacheKey = domainKey !== "*" ? `${domainKey}:${resource}` : resource;
 
       // Check cache first
       const cached = await this.authCache.getAuthResult(
@@ -74,7 +72,7 @@ export class AuthorizeScript extends BaseScript<
       const allowed = await this.repository.casbin.enforce(
         organizationId,
         userId,
-        domain,
+        domainScope,
         resourcePath,
         action
       );

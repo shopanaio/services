@@ -4,7 +4,7 @@ import type { Database } from "../../db/database.js";
 import type { UserRole, NewUserRole } from "../models/authorization.js";
 
 export interface CreateUserRoleInput {
-  tenantId: string;
+  organizationId: string;
   userId: string;
   roleId: string;
   grantedBy?: string;
@@ -19,7 +19,7 @@ export interface TenantMember {
 }
 
 export interface UserTenantRole {
-  tenantId: string;
+  organizationId: string;
   roleName: string;
   roleDisplayName: string | null;
 }
@@ -34,13 +34,13 @@ export class UserRoleRepository {
    * Find user-role assignment for a specific user in a tenant
    */
   async findByTenantAndUser(
-    tenantId: string,
+    organizationId: string,
     userId: string
   ): Promise<(UserRole & { role: { name: string; displayName: string | null } }) | null> {
     const [result] = await this.db
       .select({
         id: userRole.id,
-        tenantId: userRole.tenantId,
+        organizationId: userRole.organizationId,
         userId: userRole.userId,
         roleId: userRole.roleId,
         grantedBy: userRole.grantedBy,
@@ -52,7 +52,7 @@ export class UserRoleRepository {
       })
       .from(userRole)
       .innerJoin(role, eq(userRole.roleId, role.id))
-      .where(and(eq(userRole.tenantId, tenantId), eq(userRole.userId, userId)));
+      .where(and(eq(userRole.organizationId, organizationId), eq(userRole.userId, userId)));
 
     return result ?? null;
   }
@@ -60,7 +60,7 @@ export class UserRoleRepository {
   /**
    * Find all members of a tenant
    */
-  async findByTenant(tenantId: string): Promise<TenantMember[]> {
+  async findByTenant(organizationId: string): Promise<TenantMember[]> {
     return this.db
       .select({
         userId: userRole.userId,
@@ -71,7 +71,7 @@ export class UserRoleRepository {
       })
       .from(userRole)
       .innerJoin(role, eq(userRole.roleId, role.id))
-      .where(eq(userRole.tenantId, tenantId));
+      .where(eq(userRole.organizationId, organizationId));
   }
 
   /**
@@ -80,7 +80,7 @@ export class UserRoleRepository {
   async findByUser(userId: string): Promise<UserTenantRole[]> {
     return this.db
       .select({
-        tenantId: userRole.tenantId,
+        organizationId: userRole.organizationId,
         roleName: role.name,
         roleDisplayName: role.displayName,
       })
@@ -94,13 +94,13 @@ export class UserRoleRepository {
    */
   async upsert(input: CreateUserRoleInput): Promise<UserRole> {
     // Delete existing assignment if any
-    await this.delete(input.tenantId, input.userId);
+    await this.delete(input.organizationId, input.userId);
 
     // Insert new assignment
     const [result] = await this.db
       .insert(userRole)
       .values({
-        tenantId: input.tenantId,
+        organizationId: input.organizationId,
         userId: input.userId,
         roleId: input.roleId,
         grantedBy: input.grantedBy,
@@ -113,18 +113,18 @@ export class UserRoleRepository {
   /**
    * Delete user-role assignment
    */
-  async delete(tenantId: string, userId: string): Promise<boolean> {
+  async delete(organizationId: string, userId: string): Promise<boolean> {
     await this.db
       .delete(userRole)
-      .where(and(eq(userRole.tenantId, tenantId), eq(userRole.userId, userId)));
+      .where(and(eq(userRole.organizationId, organizationId), eq(userRole.userId, userId)));
     return true;
   }
 
   /**
    * Delete all user-role assignments for a tenant
    */
-  async deleteByTenant(tenantId: string): Promise<void> {
-    await this.db.delete(userRole).where(eq(userRole.tenantId, tenantId));
+  async deleteByTenant(organizationId: string): Promise<void> {
+    await this.db.delete(userRole).where(eq(userRole.organizationId, organizationId));
   }
 
   /**
@@ -137,16 +137,16 @@ export class UserRoleRepository {
   /**
    * Check if user has a role in tenant
    */
-  async hasRole(tenantId: string, userId: string): Promise<boolean> {
-    const result = await this.findByTenantAndUser(tenantId, userId);
+  async hasRole(organizationId: string, userId: string): Promise<boolean> {
+    const result = await this.findByTenantAndUser(organizationId, userId);
     return result !== null;
   }
 
   /**
    * Count members in a tenant
    */
-  async countByTenant(tenantId: string): Promise<number> {
-    const members = await this.findByTenant(tenantId);
+  async countByTenant(organizationId: string): Promise<number> {
+    const members = await this.findByTenant(organizationId);
     return members.length;
   }
 }

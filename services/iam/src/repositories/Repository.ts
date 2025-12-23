@@ -51,8 +51,8 @@ export class Repository {
   static async create(config: RepositoryConfig): Promise<Repository> {
     const { db, auth, databaseUrl } = config;
 
-    // Initialize Casbin service
-    const casbinService = new CasbinService(databaseUrl);
+    // Initialize Casbin service with Drizzle DB instance
+    const casbinService = new CasbinService(db);
     await casbinService.initialize();
 
     // Create database repositories

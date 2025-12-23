@@ -32,7 +32,7 @@ async function checkAuthorization(
   action: string
 ): Promise<AuthError | null> {
   const userId = ctx.currentUser?.id;
-  const tenantId = ctx.tenantId;
+  const organizationId = ctx.organizationId;
 
   if (!userId) {
     return {
@@ -41,16 +41,16 @@ async function checkAuthorization(
     };
   }
 
-  if (!tenantId) {
+  if (!organizationId) {
     return {
-      code: "NO_PROJECT_CONTEXT",
-      message: "No project context. Please provide X-Project-Name header.",
+      code: "NO_ORG_CONTEXT",
+      message: "Organization context required. Use switchOrganization mutation to set org in JWT.",
     };
   }
 
   const result = await ctx.kernel.runScript(AuthorizeScript, {
     userId,
-    tenantId,
+    organizationId,
     resource,
     action,
   });
@@ -111,9 +111,9 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         return { role: null, userErrors: [authError] };
       }
 
-      const tenantId = ctx.tenantId!;
+      const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(CreateRoleScript, {
-        tenantId,
+        organizationId,
         name: input.name,
         displayName: input.displayName,
         description: input.description ?? undefined,
@@ -138,9 +138,9 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         return { role: null, userErrors: [authError] };
       }
 
-      const tenantId = ctx.tenantId!;
+      const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(UpdateRoleScript, {
-        tenantId,
+        organizationId,
         roleName: input.name,
         displayName: input.displayName ?? undefined,
         description: input.description ?? undefined,
@@ -165,9 +165,9 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         return { deletedRoleName: null, userErrors: [authError] };
       }
 
-      const tenantId = ctx.tenantId!;
+      const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(DeleteRoleScript, {
-        tenantId,
+        organizationId,
         roleName: input.name,
       });
 
@@ -184,7 +184,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         return { member: null, userErrors: [authError] };
       }
 
-      const tenantId = ctx.tenantId!;
+      const organizationId = ctx.organizationId!;
       const currentUserId = ctx.currentUser!.id;
 
       // Cannot change own role
@@ -198,7 +198,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       // Check if trying to assign owner role - only owner can do this
       if (input.newRole === "owner") {
         // Get current user's role
-        const currentUserRole = await ctx.kernel.repository.authorization.getUserRole(tenantId, currentUserId);
+        const currentUserRole = await ctx.kernel.repository.authorization.getUserRole(organizationId, currentUserId);
         if (currentUserRole?.name !== "owner") {
           return {
             member: null,
@@ -210,14 +210,14 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       // First, detach current role (if any)
       await ctx.kernel.runScript(DetachUserRoleScript, {
         userId: input.userId,
-        tenantId,
+        organizationId,
         revokedBy: currentUserId,
       });
 
       // Then attach new role
       const attachResult = await ctx.kernel.runScript(AttachUserRoleScript, {
         userId: input.userId,
-        tenantId,
+        organizationId,
         roleName: input.newRole,
         grantedBy: currentUserId,
       });
@@ -239,7 +239,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       }
 
       // Fetch role info to include full role data
-      const rolesResult = await ctx.kernel.runScript(ListRolesScript, { tenantId });
+      const rolesResult = await ctx.kernel.runScript(ListRolesScript, { organizationId });
       const roleInfo = rolesResult.roles.find((r) => r.name === input.newRole);
       if (!roleInfo) {
         return {
@@ -282,29 +282,29 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         return { removedUserId: null, userErrors: [authError] };
       }
 
-      const tenantId = ctx.tenantId!;
+      const organizationId = ctx.organizationId!;
       const currentUserId = ctx.currentUser!.id;
 
       // Cannot remove self
       if (input.userId === currentUserId) {
         return {
           removedUserId: null,
-          userErrors: [{ code: "CANNOT_REMOVE_SELF", message: "Cannot remove yourself from the project." }],
+          userErrors: [{ code: "CANNOT_REMOVE_SELF", message: "Cannot remove yourself." }],
         };
       }
 
-      // Cannot remove project owner
-      const targetUserRole = await ctx.kernel.repository.authorization.getUserRole(tenantId, input.userId);
+      // Cannot remove owner
+      const targetUserRole = await ctx.kernel.repository.authorization.getUserRole(organizationId, input.userId);
       if (targetUserRole?.name === "owner") {
         return {
           removedUserId: null,
-          userErrors: [{ code: "CANNOT_REMOVE_OWNER", message: "Cannot remove project owner." }],
+          userErrors: [{ code: "CANNOT_REMOVE_OWNER", message: "Cannot remove organization owner." }],
         };
       }
 
       const result = await ctx.kernel.runScript(DetachUserRoleScript, {
         userId: input.userId,
-        tenantId,
+        organizationId,
         revokedBy: currentUserId,
       });
 

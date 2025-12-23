@@ -62,7 +62,6 @@ export const roleResolvers: Partial<Resolvers> = {
       const result = await ctx.kernel.runScript(GetUserRoleScript, {
         userId,
         organizationId,
-        projectId: ctx.projectSlug ?? undefined,
       });
 
       if (result.userErrors.length > 0) {
@@ -97,7 +96,6 @@ export const roleResolvers: Partial<Resolvers> = {
       const result = await ctx.kernel.runScript(AuthorizeScript, {
         userId,
         organizationId,
-        projectId: ctx.projectSlug ?? undefined,
         resource: input.resource,
         action: input.action,
       });

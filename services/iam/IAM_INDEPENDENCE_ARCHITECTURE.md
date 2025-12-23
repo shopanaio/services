@@ -817,7 +817,7 @@ query {
 ## Migration Plan
 
 ### Phase 1: Fix Casbin Adapter
-1. Install `drizzle-adapter` for Casbin
+1. Install `drizzle-adapter` for Casbin https://github.com/node-casbin/drizzle-adapter
 2. Update CasbinService to use DrizzleAdapter with `iam.casbin_rule` table
 3. Migrate data from `public.casbin` (JSONB) to `iam.casbin_rule` (v0-v5)
 4. Remove `casbin-pg-adapter` dependency
@@ -860,7 +860,7 @@ query {
 
 | File | Change |
 |------|--------|
-| `package.json` | Add `drizzle-adapter`, remove `casbin-pg-adapter` |
+| `package.json` | Add `drizzle-adapter https://github.com/node-casbin/drizzle-adapter`, remove `casbin-pg-adapter` |
 | `src/casbin/CasbinService.ts` | Use DrizzleAdapter with `iam.casbin_rule` |
 | `src/casbin/model.conf` | Add domain parameter (sub, dom, obj, act) |
 | `src/api/graphql-admin/contextMiddleware.ts` | Read organizationId from JWT |
