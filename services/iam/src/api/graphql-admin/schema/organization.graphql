@@ -39,12 +39,6 @@ type Organization @key(fields: "id") {
   availableResources: [ResourceDefinition!]!
 
   """
-  Projects in this organization.
-  Resolved via federation from Project service.
-  """
-  projects: [Project!]!
-
-  """
   Timestamp when the organization was created.
   """
   createdAt: DateTime!
@@ -75,9 +69,9 @@ type Member @key(fields: "id") {
   orgRole: OrgRole!
 
   """
-  Project-specific access and roles.
+  Domain-scoped role assignments (e.g., per-project roles).
   """
-  projectAccess: [ProjectAccess!]!
+  domainAccess: [DomainAccess!]!
 
   """
   Timestamp when the member joined.
@@ -106,44 +100,21 @@ enum OrgRole {
 }
 
 """
-Project access with role.
+Domain-scoped role assignment.
+Represents user's role in a specific domain (e.g., project).
 """
-type ProjectAccess {
+type DomainAccess {
   """
-  Project reference (null if allProjects is true).
+  Domain path (e.g., "project:abc-123" or "*" for all).
   """
-  project: Project
+  domain: String!
 
   """
-  Role in this project.
+  Role in this domain.
   """
-  role: ProjectRole!
-
-  """
-  True if access applies to all projects.
-  """
-  allProjects: Boolean!
+  role: String!
 }
 
-"""
-Project-level role.
-"""
-enum ProjectRole {
-  """
-  Full project control.
-  """
-  ADMIN
-
-  """
-  Create/edit content.
-  """
-  EDITOR
-
-  """
-  Read-only access.
-  """
-  VIEWER
-}
 
 """
 Authentication tokens returned after organization switch.
@@ -215,38 +186,38 @@ input UpdateOrganizationInput {
 }
 
 """
-Input for assigning project role.
+Input for assigning domain role.
 """
-input AssignProjectRoleInput {
+input AssignDomainRoleInput {
   """
   Member ID.
   """
   memberId: ID!
 
   """
-  Project ID, or "all" for all projects.
+  Domain path (e.g., "project:abc-123" or "*" for all).
   """
-  projectId: ID!
+  domain: String!
 
   """
   Role to assign.
   """
-  role: ProjectRole!
+  role: String!
 }
 
 """
-Input for removing project access.
+Input for removing domain access.
 """
-input RemoveProjectAccessInput {
+input RemoveDomainAccessInput {
   """
   Member ID.
   """
   memberId: ID!
 
   """
-  Project ID to remove access from.
+  Domain path to remove access from.
   """
-  projectId: ID!
+  domain: String!
 }
 
 # ============================================================================
@@ -278,12 +249,12 @@ type RemoveMemberPayload {
   userErrors: [GenericUserError!]!
 }
 
-type AssignProjectRolePayload {
+type AssignDomainRolePayload {
   member: Member
   userErrors: [GenericUserError!]!
 }
 
-type RemoveProjectAccessPayload {
+type RemoveDomainAccessPayload {
   member: Member
   userErrors: [GenericUserError!]!
 }
@@ -372,14 +343,14 @@ type OrganizationMutation {
   removeMember(memberId: ID!): RemoveMemberPayload!
 
   """
-  Assign project role to member.
-  Requires: org admin or project admin.
+  Assign domain role to member.
+  Requires: org admin.
   """
-  assignProjectRole(input: AssignProjectRoleInput!): AssignProjectRolePayload!
+  assignDomainRole(input: AssignDomainRoleInput!): AssignDomainRolePayload!
 
   """
-  Remove project access from member.
-  Requires: org admin or project admin.
+  Remove domain access from member.
+  Requires: org admin.
   """
-  removeProjectAccess(input: RemoveProjectAccessInput!): RemoveProjectAccessPayload!
+  removeDomainAccess(input: RemoveDomainAccessInput!): RemoveDomainAccessPayload!
 }

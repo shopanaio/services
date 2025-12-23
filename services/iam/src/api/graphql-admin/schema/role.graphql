@@ -131,22 +131,9 @@ type ResourceDefinition {
 }
 
 # ============================================================================
-# FEDERATION: Project type stub
-# Project.members resolved via IAM (members with access to specific project)
-# ============================================================================
-
-extend type Project @key(fields: "id") {
-  id: ID! @external
-
-  """
-  Members with access to THIS project.
-  Resolved via IAM domain-based roles.
-  """
-  members: [ProjectMember!]!
-}
-
-# ============================================================================
-# NOTE: User.role field is defined in user.graphql to avoid federation conflicts
+# NOTE: Project type is NO LONGER extended by IAM
+# Project.members should be resolved via Organization.members + domain filtering
+# User.role field is defined in user.graphql
 # ============================================================================
 
 # ============================================================================

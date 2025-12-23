@@ -21,6 +21,33 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/** Input for assigning domain role. */
+export type AssignDomainRoleInput = {
+  /** Domain path (e.g., "project:abc-123" or "*" for all). */
+  domain: Scalars['String']['input'];
+  /** Member ID. */
+  memberId: Scalars['ID']['input'];
+  /** Role to assign. */
+  role: Scalars['String']['input'];
+};
+
+export type AssignDomainRolePayload = {
+  __typename?: 'AssignDomainRolePayload';
+  member?: Maybe<Member>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Authentication tokens returned after organization switch. */
+export type AuthPayload = {
+  __typename?: 'AuthPayload';
+  /** JWT access token with organizationId claim. */
+  accessToken: Scalars['String']['output'];
+  /** Token expiration time in seconds. */
+  expiresIn: Scalars['Int']['output'];
+  /** Refresh token for obtaining new access tokens. */
+  refreshToken: Scalars['String']['output'];
+};
+
 /** Authentication tokens. */
 export type AuthToken = {
   __typename?: 'AuthToken';
@@ -48,345 +75,37 @@ export type AuthorizePayload = {
   deniedReason?: Maybe<Scalars['String']['output']>;
 };
 
-/** Currency codes according to ISO 4217 */
-export enum CurrencyCode {
-  /** UAE Dirham (United Arab Emirates) - 2 decimals */
-  Aed = 'AED',
-  /** Afghan Afghani (Afghanistan) - 0 decimals */
-  Afn = 'AFN',
-  /** Albanian Lek (Albania) - 0 decimals */
-  All = 'ALL',
-  /** Armenian Dram (Armenia) - 2 decimals */
-  Amd = 'AMD',
-  /** Netherlands Antillean Guilder - 2 decimals */
-  Ang = 'ANG',
-  /** Angolan Kwanza (Angola) - 2 decimals */
-  Aoa = 'AOA',
-  /** Argentine Peso (Argentina) - 2 decimals */
-  Ars = 'ARS',
-  /** Australian Dollar (Australia) - 2 decimals */
-  Aud = 'AUD',
-  /** Aruban Florin (Aruba) - 2 decimals */
-  Awg = 'AWG',
-  /** Azerbaijani Manat (Azerbaijan) - 2 decimals */
-  Azn = 'AZN',
-  /** Bosnia-Herzegovina Convertible Mark - 2 decimals */
-  Bam = 'BAM',
-  /** Barbadian Dollar (Barbados) - 2 decimals */
-  Bbd = 'BBD',
-  /** Bangladeshi Taka (Bangladesh) - 2 decimals */
-  Bdt = 'BDT',
-  /** Bulgarian Lev (Bulgaria) - 2 decimals */
-  Bgn = 'BGN',
-  /** Bahraini Dinar (Bahrain) - 3 decimals */
-  Bhd = 'BHD',
-  /** Burundian Franc (Burundi) - 0 decimals */
-  Bif = 'BIF',
-  /** Bermudian Dollar (Bermuda) - 2 decimals */
-  Bmd = 'BMD',
-  /** Brunei Dollar (Brunei) - 2 decimals */
-  Bnd = 'BND',
-  /** Bolivian Boliviano (Bolivia) - 2 decimals */
-  Bob = 'BOB',
-  /** Brazilian Real (Brazil) - 2 decimals */
-  Brl = 'BRL',
-  /** Bahamian Dollar (Bahamas) - 2 decimals */
-  Bsd = 'BSD',
-  /** Bhutanese Ngultrum (Bhutan) - 2 decimals */
-  Btn = 'BTN',
-  /** Botswana Pula (Botswana) - 2 decimals */
-  Bwp = 'BWP',
-  /** Belarusian Ruble (Belarus) - 2 decimals */
-  Byn = 'BYN',
-  /** Belize Dollar (Belize) - 2 decimals */
-  Bzd = 'BZD',
-  /** Canadian Dollar (Canada) - 2 decimals */
-  Cad = 'CAD',
-  /** Congolese Franc (DR Congo) - 2 decimals */
-  Cdf = 'CDF',
-  /** Swiss Franc (Switzerland) - 2 decimals */
-  Chf = 'CHF',
-  /** Chilean Peso (Chile) - 0 decimals */
-  Clp = 'CLP',
-  /** Chinese Yuan (China) - 2 decimals */
-  Cny = 'CNY',
-  /** Colombian Peso (Colombia) - 2 decimals */
-  Cop = 'COP',
-  /** Costa Rican Colon (Costa Rica) - 2 decimals */
-  Crc = 'CRC',
-  /** Cuban Peso (Cuba) - 2 decimals */
-  Cup = 'CUP',
-  /** Cape Verdean Escudo (Cape Verde) - 2 decimals */
-  Cve = 'CVE',
-  /** Czech Koruna (Czech Republic) - 2 decimals */
-  Czk = 'CZK',
-  /** Djiboutian Franc (Djibouti) - 0 decimals */
-  Djf = 'DJF',
-  /** Danish Krone (Denmark) - 2 decimals */
-  Dkk = 'DKK',
-  /** Dominican Peso (Dominican Republic) - 2 decimals */
-  Dop = 'DOP',
-  /** Algerian Dinar (Algeria) - 2 decimals */
-  Dzd = 'DZD',
-  /** Egyptian Pound (Egypt) - 2 decimals */
-  Egp = 'EGP',
-  /** Eritrean Nakfa (Eritrea) - 2 decimals */
-  Ern = 'ERN',
-  /** Ethiopian Birr (Ethiopia) - 2 decimals */
-  Etb = 'ETB',
-  /** Euro (European Union) - 2 decimals */
-  Eur = 'EUR',
-  /** Fijian Dollar (Fiji) - 2 decimals */
-  Fjd = 'FJD',
-  /** Falkland Islands Pound - 2 decimals */
-  Fkp = 'FKP',
-  /** Faroese Króna (Faroe Islands) - 2 decimals */
-  Fok = 'FOK',
-  /** Pound Sterling (United Kingdom) - 2 decimals */
-  Gbp = 'GBP',
-  /** Georgian Lari (Georgia) - 2 decimals */
-  Gel = 'GEL',
-  /** Guernsey Pound (Guernsey) - 2 decimals */
-  Ggp = 'GGP',
-  /** Ghanaian Cedi (Ghana) - 2 decimals */
-  Ghs = 'GHS',
-  /** Gibraltar Pound (Gibraltar) - 2 decimals */
-  Gip = 'GIP',
-  /** Gambian Dalasi (Gambia) - 2 decimals */
-  Gmd = 'GMD',
-  /** Guinean Franc (Guinea) - 0 decimals */
-  Gnf = 'GNF',
-  /** Guatemalan Quetzal (Guatemala) - 2 decimals */
-  Gtq = 'GTQ',
-  /** Guyanese Dollar (Guyana) - 2 decimals */
-  Gyd = 'GYD',
-  /** Hong Kong Dollar (Hong Kong) - 2 decimals */
-  Hkd = 'HKD',
-  /** Honduran Lempira (Honduras) - 2 decimals */
-  Hnl = 'HNL',
-  /** Croatian Kuna (Croatia) - 2 decimals */
-  Hrk = 'HRK',
-  /** Haitian Gourde (Haiti) - 2 decimals */
-  Htg = 'HTG',
-  /** Hungarian Forint (Hungary) - 2 decimals */
-  Huf = 'HUF',
-  /** Indonesian Rupiah (Indonesia) - 0 decimals */
-  Idr = 'IDR',
-  /** Israeli New Shekel (Israel) - 2 decimals */
-  Ils = 'ILS',
-  /** Isle of Man Pound - 2 decimals */
-  Imp = 'IMP',
-  /** Indian Rupee (India) - 2 decimals */
-  Inr = 'INR',
-  /** Iraqi Dinar (Iraq) - 3 decimals */
-  Iqd = 'IQD',
-  /** Iranian Rial (Iran) - 2 decimals */
-  Irr = 'IRR',
-  /** Icelandic Króna (Iceland) - 0 decimals */
-  Isk = 'ISK',
-  /** Jersey Pound (Jersey) - 2 decimals */
-  Jep = 'JEP',
-  /** Jamaican Dollar (Jamaica) - 2 decimals */
-  Jmd = 'JMD',
-  /** Jordanian Dinar (Jordan) - 3 decimals */
-  Jod = 'JOD',
-  /** Japanese Yen (Japan) - 0 decimals */
-  Jpy = 'JPY',
-  /** Kenyan Shilling (Kenya) - 2 decimals */
-  Kes = 'KES',
-  /** Kyrgyzstani Som (Kyrgyzstan) - 2 decimals */
-  Kgs = 'KGS',
-  /** Cambodian Riel (Cambodia) - 2 decimals */
-  Khr = 'KHR',
-  /** Comorian Franc (Comoros) - 2 decimals */
-  Kmf = 'KMF',
-  /** North Korean Won (North Korea) - 2 decimals */
-  Kpw = 'KPW',
-  /** South Korean Won (South Korea) - 0 decimals */
-  Krw = 'KRW',
-  /** Kuwaiti Dinar (Kuwait) - 3 decimals */
-  Kwd = 'KWD',
-  /** Cayman Islands Dollar - 2 decimals */
-  Kyd = 'KYD',
-  /** Kazakhstani Tenge (Kazakhstan) - 2 decimals */
-  Kzt = 'KZT',
-  /** Lao Kip (Laos) - 2 decimals */
-  Lak = 'LAK',
-  /** Lebanese Pound (Lebanon) - 2 decimals */
-  Lbp = 'LBP',
-  /** Sri Lankan Rupee (Sri Lanka) - 2 decimals */
-  Lkr = 'LKR',
-  /** Liberian Dollar (Liberia) - 2 decimals */
-  Lrd = 'LRD',
-  /** Lesotho Loti (Lesotho) - 2 decimals */
-  Lsl = 'LSL',
-  /** Libyan Dinar (Libya) - 3 decimals */
-  Lyd = 'LYD',
-  /** Moroccan Dirham (Morocco) - 2 decimals */
-  Mad = 'MAD',
-  /** Moldovan Leu (Moldova) - 2 decimals */
-  Mdl = 'MDL',
-  /** Malagasy Ariary (Madagascar) - 2 decimals */
-  Mga = 'MGA',
-  /** Macedonian Denar (North Macedonia) - 2 decimals */
-  Mkd = 'MKD',
-  /** Burmese Kyat (Myanmar) - 2 decimals */
-  Mmk = 'MMK',
-  /** Mongolian Tögrög (Mongolia) - 2 decimals */
-  Mnt = 'MNT',
-  /** Macanese Pataca (Macau) - 2 decimals */
-  Mop = 'MOP',
-  /** Mauritanian Ouguiya (Mauritania) - 2 decimals */
-  Mru = 'MRU',
-  /** Mauritian Rupee (Mauritius) - 2 decimals */
-  Mur = 'MUR',
-  /** Maldivian Rufiyaa (Maldives) - 2 decimals */
-  Mvr = 'MVR',
-  /** Malawian Kwacha (Malawi) - 2 decimals */
-  Mwk = 'MWK',
-  /** Mexican Peso (Mexico) - 2 decimals */
-  Mxn = 'MXN',
-  /** Malaysian Ringgit (Malaysia) - 2 decimals */
-  Myr = 'MYR',
-  /** Mozambican Metical (Mozambique) - 2 decimals */
-  Mzn = 'MZN',
-  /** Namibian Dollar (Namibia) - 2 decimals */
-  Nad = 'NAD',
-  /** Nigerian Naira (Nigeria) - 2 decimals */
-  Ngn = 'NGN',
-  /** Nicaraguan Córdoba (Nicaragua) - 2 decimals */
-  Nio = 'NIO',
-  /** Norwegian Krone (Norway) - 2 decimals */
-  Nok = 'NOK',
-  /** Nepalese Rupee (Nepal) - 2 decimals */
-  Npr = 'NPR',
-  /** New Zealand Dollar (New Zealand) - 2 decimals */
-  Nzd = 'NZD',
-  /** Omani Rial (Oman) - 3 decimals */
-  Omr = 'OMR',
-  /** Panamanian Balboa (Panama) - 2 decimals */
-  Pab = 'PAB',
-  /** Peruvian Sol (Peru) - 2 decimals */
-  Pen = 'PEN',
-  /** Papua New Guinean Kina - 2 decimals */
-  Pgk = 'PGK',
-  /** Philippine Peso (Philippines) - 2 decimals */
-  Php = 'PHP',
-  /** Pakistani Rupee (Pakistan) - 2 decimals */
-  Pkr = 'PKR',
-  /** Polish Zloty (Poland) - 2 decimals */
-  Pln = 'PLN',
-  /** Paraguayan Guaraní (Paraguay) - 0 decimals */
-  Pyg = 'PYG',
-  /** Qatari Riyal (Qatar) - 2 decimals */
-  Qar = 'QAR',
-  /** Romanian Leu (Romania) - 2 decimals */
-  Ron = 'RON',
-  /** Serbian Dinar (Serbia) - 2 decimals */
-  Rsd = 'RSD',
-  /** Russian Ruble (Russia) - 2 decimals */
-  Rub = 'RUB',
-  /** Rwandan Franc (Rwanda) - 0 decimals */
-  Rwf = 'RWF',
-  /** Saudi Riyal (Saudi Arabia) - 2 decimals */
-  Sar = 'SAR',
-  /** Solomon Islands Dollar - 2 decimals */
-  Sbd = 'SBD',
-  /** Seychelles Rupee (Seychelles) - 2 decimals */
-  Scr = 'SCR',
-  /** Sudanese Pound (Sudan) - 2 decimals */
-  Sdg = 'SDG',
-  /** Swedish Krona (Sweden) - 2 decimals */
-  Sek = 'SEK',
-  /** Singapore Dollar (Singapore) - 2 decimals */
-  Sgd = 'SGD',
-  /** Saint Helena Pound - 2 decimals */
-  Shp = 'SHP',
-  /** Sierra Leonean Leone - 2 decimals */
-  Sle = 'SLE',
-  /** Somali Shilling (Somalia) - 2 decimals */
-  Sos = 'SOS',
-  /** Surinamese Dollar (Suriname) - 2 decimals */
-  Srd = 'SRD',
-  /** South Sudanese Pound - 2 decimals */
-  Ssp = 'SSP',
-  /** São Tomé and Príncipe Dobra - 2 decimals */
-  Stn = 'STN',
-  /** Salvadoran Colón (El Salvador) - 2 decimals */
-  Svc = 'SVC',
-  /** Syrian Pound (Syria) - 2 decimals */
-  Syp = 'SYP',
-  /** Eswatini Lilangeni (Eswatini) - 2 decimals */
-  Szl = 'SZL',
-  /** Thai Baht (Thailand) - 2 decimals */
-  Thb = 'THB',
-  /** Tajikistani Somoni (Tajikistan) - 2 decimals */
-  Tjs = 'TJS',
-  /** Turkmenistani Manat (Turkmenistan) - 2 decimals */
-  Tmt = 'TMT',
-  /** Tunisian Dinar (Tunisia) - 3 decimals */
-  Tnd = 'TND',
-  /** Tongan Paʻanga (Tonga) - 2 decimals */
-  Top = 'TOP',
-  /** Turkish Lira (Turkey) - 2 decimals */
-  Try = 'TRY',
-  /** Trinidad and Tobago Dollar - 2 decimals */
-  Ttd = 'TTD',
-  /** New Taiwan Dollar (Taiwan) - 2 decimals */
-  Twd = 'TWD',
-  /** Tanzanian Shilling (Tanzania) - 2 decimals */
-  Tzs = 'TZS',
-  /** Ukrainian Hryvnia (Ukraine) - 2 decimals */
-  Uah = 'UAH',
-  /** Ugandan Shilling (Uganda) - 0 decimals */
-  Ugx = 'UGX',
-  /** United States Dollar (USA) - 2 decimals */
-  Usd = 'USD',
-  /** Uruguayan Peso (Uruguay) - 2 decimals */
-  Uyu = 'UYU',
-  /** Uzbekistani Som (Uzbekistan) - 2 decimals */
-  Uzs = 'UZS',
-  /** Venezuelan Bolívar (Venezuela) - 2 decimals */
-  Ves = 'VES',
-  /** Vietnamese Dong (Vietnam) - 0 decimals */
-  Vnd = 'VND',
-  /** Vanuatu Vatu (Vanuatu) - 0 decimals */
-  Vuv = 'VUV',
-  /** Samoan Tala (Samoa) - 2 decimals */
-  Wst = 'WST',
-  /** Central African CFA Franc - 0 decimals */
-  Xaf = 'XAF',
-  /** East Caribbean Dollar - 2 decimals */
-  Xcd = 'XCD',
-  /** Special Drawing Rights (IMF) - 0 decimals */
-  Xdr = 'XDR',
-  /** West African CFA Franc - 0 decimals */
-  Xof = 'XOF',
-  /** CFP Franc - 0 decimals */
-  Xpf = 'XPF',
-  /** Yemeni Rial (Yemen) - 2 decimals */
-  Yer = 'YER',
-  /** South African Rand (South Africa) - 2 decimals */
-  Zar = 'ZAR',
-  /** Zambian Kwacha (Zambia) - 2 decimals */
-  Zmw = 'ZMW',
-  /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
-  Zwl = 'ZWL'
-}
+/** Input for creating an organization. */
+export type CreateOrganizationInput = {
+  /** Organization name. */
+  name: Scalars['String']['input'];
+  /** URL-friendly unique identifier. */
+  slug: Scalars['String']['input'];
+};
 
-/** Dimension (length) measurement units */
-export enum DimensionUnit {
-  /** Centimeter */
-  Cm = 'cm',
-  /** Foot */
-  Ft = 'ft',
-  /** Inch */
-  In = 'in',
-  /** Meter */
-  M = 'm',
-  /** Millimeter */
-  Mm = 'mm'
-}
+export type CreateOrganizationPayload = {
+  __typename?: 'CreateOrganizationPayload';
+  organization?: Maybe<Organization>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type DeleteOrganizationPayload = {
+  __typename?: 'DeleteOrganizationPayload';
+  deletedOrganizationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+/**
+ * Domain-scoped role assignment.
+ * Represents user's role in a specific domain (e.g., project).
+ */
+export type DomainAccess = {
+  __typename?: 'DomainAccess';
+  /** Domain path (e.g., "project:abc-123" or "*" for all). */
+  domain: Scalars['String']['output'];
+  /** Role in this domain. */
+  role: Scalars['String']['output'];
+};
 
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
@@ -396,288 +115,181 @@ export type GenericUserError = UserError & {
   message: Scalars['String']['output'];
 };
 
-/** Language/Locale codes based on ISO 639-1 and BCP 47 */
+/** Input for inviting a member to organization. */
+export type InviteMemberInput = {
+  /** Email address of the user to invite. */
+  email: Scalars['Email']['input'];
+  /** Organization-level role. */
+  orgRole: OrgRole;
+  /** Optional role IDs to assign. */
+  roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+export type InviteMemberPayload = {
+  __typename?: 'InviteMemberPayload';
+  member?: Maybe<Member>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Locale/language code. */
 export enum LocaleCode {
-  /** Akan */
-  Ak = 'ak',
-  /** Amharic */
-  Am = 'am',
-  /** Arabic */
-  Ar = 'ar',
-  /** Assamese */
-  As = 'as',
-  /** Azerbaijani */
-  Az = 'az',
-  /** Belarusian */
-  Be = 'be',
-  /** Bulgarian */
-  Bg = 'bg',
-  /** Bambara */
-  Bm = 'bm',
-  /** Bangla */
-  Bn = 'bn',
-  /** Tibetan */
-  Bo = 'bo',
-  /** Breton */
-  Br = 'br',
-  /** Bosnian */
-  Bs = 'bs',
-  /** Catalan */
-  Ca = 'ca',
-  /** Chechen */
-  Ce = 'ce',
-  /** Central Kurdish */
-  Ckb = 'ckb',
-  /** Czech */
-  Cs = 'cs',
-  /** Welsh */
-  Cy = 'cy',
-  /** Danish */
-  Da = 'da',
-  /** German */
   De = 'de',
-  /** Dzongkha */
-  Dz = 'dz',
-  /** Ewe */
-  Ee = 'ee',
-  /** Greek */
-  El = 'el',
-  /** English */
   En = 'en',
-  /** Esperanto */
-  Eo = 'eo',
-  /** Spanish */
   Es = 'es',
-  /** Estonian */
-  Et = 'et',
-  /** Basque */
-  Eu = 'eu',
-  /** Persian */
-  Fa = 'fa',
-  /** Fulah */
-  Ff = 'ff',
-  /** Finnish */
-  Fi = 'fi',
-  /** Filipino */
-  Fil = 'fil',
-  /** Faroese */
-  Fo = 'fo',
-  /** French */
   Fr = 'fr',
-  /** Western Frisian */
-  Fy = 'fy',
-  /** Irish */
-  Ga = 'ga',
-  /** Scottish Gaelic */
-  Gd = 'gd',
-  /** Galician */
-  Gl = 'gl',
-  /** Gujarati */
-  Gu = 'gu',
-  /** Manx */
-  Gv = 'gv',
-  /** Hausa */
-  Ha = 'ha',
-  /** Hebrew */
-  He = 'he',
-  /** Hindi */
-  Hi = 'hi',
-  /** Croatian */
-  Hr = 'hr',
-  /** Hungarian */
-  Hu = 'hu',
-  /** Armenian */
-  Hy = 'hy',
-  /** Interlingua */
-  Ia = 'ia',
-  /** Indonesian */
-  Id = 'id',
-  /** Igbo */
-  Ig = 'ig',
-  /** Sichuan Yi */
-  Ii = 'ii',
-  /** Icelandic */
-  Is = 'is',
-  /** Italian */
-  It = 'it',
-  /** Japanese */
-  Ja = 'ja',
-  /** Javanese */
-  Jv = 'jv',
-  /** Georgian */
-  Ka = 'ka',
-  /** Kikuyu */
-  Ki = 'ki',
-  /** Kazakh */
-  Kk = 'kk',
-  /** Kalaallisut */
-  Kl = 'kl',
-  /** Khmer */
-  Km = 'km',
-  /** Kannada */
-  Kn = 'kn',
-  /** Korean */
-  Ko = 'ko',
-  /** Kashmiri */
-  Ks = 'ks',
-  /** Kurdish */
-  Ku = 'ku',
-  /** Cornish */
-  Kw = 'kw',
-  /** Kyrgyz */
-  Ky = 'ky',
-  /** Luxembourgish */
-  Lb = 'lb',
-  /** Ganda */
-  Lg = 'lg',
-  /** Lingala */
-  Ln = 'ln',
-  /** Lao */
-  Lo = 'lo',
-  /** Lithuanian */
-  Lt = 'lt',
-  /** Luba-Katanga */
-  Lu = 'lu',
-  /** Latvian */
-  Lv = 'lv',
-  /** Malagasy */
-  Mg = 'mg',
-  /** Māori */
-  Mi = 'mi',
-  /** Macedonian */
-  Mk = 'mk',
-  /** Malayalam */
-  Ml = 'ml',
-  /** Mongolian */
-  Mn = 'mn',
-  /** Marathi */
-  Mr = 'mr',
-  /** Malay */
-  Ms = 'ms',
-  /** Maltese */
-  Mt = 'mt',
-  /** Burmese */
-  My = 'my',
-  /** Norwegian Bokmål */
-  Nb = 'nb',
-  /** North Ndebele */
-  Nd = 'nd',
-  /** Nepali */
-  Ne = 'ne',
-  /** Dutch */
-  Nl = 'nl',
-  /** Norwegian Nynorsk */
-  Nn = 'nn',
-  /** Norwegian */
-  No = 'no',
-  /** Oromo */
-  Om = 'om',
-  /** Odia */
-  Or = 'or',
-  /** Ossetic */
-  Os = 'os',
-  /** Punjabi */
-  Pa = 'pa',
-  /** Polish */
   Pl = 'pl',
-  /** Pashto */
-  Ps = 'ps',
-  /** Portuguese (Brazil) */
-  PtBr = 'pt_BR',
-  /** Portuguese (Portugal) */
-  PtPt = 'pt_PT',
-  /** Quechua */
-  Qu = 'qu',
-  /** Romansh */
-  Rm = 'rm',
-  /** Rundi */
-  Rn = 'rn',
-  /** Romanian */
-  Ro = 'ro',
-  /** Russian */
   Ru = 'ru',
-  /** Kinyarwanda */
-  Rw = 'rw',
-  /** Sanskrit */
-  Sa = 'sa',
-  /** Sardinian */
-  Sc = 'sc',
-  /** Sindhi */
-  Sd = 'sd',
-  /** Northern Sami */
-  Se = 'se',
-  /** Sango */
-  Sg = 'sg',
-  /** Sinhala */
-  Si = 'si',
-  /** Slovak */
-  Sk = 'sk',
-  /** Slovenian */
-  Sl = 'sl',
-  /** Shona */
-  Sn = 'sn',
-  /** Somali */
-  So = 'so',
-  /** Albanian */
-  Sq = 'sq',
-  /** Serbian */
-  Sr = 'sr',
-  /** Sundanese */
-  Su = 'su',
-  /** Swedish */
-  Sv = 'sv',
-  /** Swahili */
-  Sw = 'sw',
-  /** Tamil */
-  Ta = 'ta',
-  /** Telugu */
-  Te = 'te',
-  /** Tajik */
-  Tg = 'tg',
-  /** Thai */
-  Th = 'th',
-  /** Tigrinya */
-  Ti = 'ti',
-  /** Turkmen */
-  Tk = 'tk',
-  /** Tongan */
-  To = 'to',
-  /** Turkish */
-  Tr = 'tr',
-  /** Tatar */
-  Tt = 'tt',
-  /** Uyghur */
-  Ug = 'ug',
-  /** Ukrainian */
-  Uk = 'uk',
-  /** Urdu */
-  Ur = 'ur',
-  /** Uzbek */
-  Uz = 'uz',
-  /** Vietnamese */
-  Vi = 'vi',
-  /** Wolof */
-  Wo = 'wo',
-  /** Xhosa */
-  Xh = 'xh',
-  /** Yiddish */
-  Yi = 'yi',
-  /** Yoruba */
-  Yo = 'yo',
-  /** Chinese (Simplified) */
-  ZhCn = 'zh_CN',
-  /** Chinese (Traditional) */
-  ZhTw = 'zh_TW',
-  /** Zulu */
-  Zu = 'zu'
+  Uk = 'uk'
 }
+
+/** Member of an organization with org-level role and project access. */
+export type Member = {
+  __typename?: 'Member';
+  /** Timestamp when the member joined. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Domain-scoped role assignments (e.g., per-project roles). */
+  domainAccess: Array<DomainAccess>;
+  /** Unique identifier. */
+  id: Scalars['ID']['output'];
+  /** Organization-level role (owner, admin, member). */
+  orgRole: OrgRole;
+  /** User reference. */
+  user: User;
+};
 
 export type Mutation = {
   __typename?: 'Mutation';
+  /** Organization management mutations. */
+  organizationMutation: OrganizationMutation;
   /** Role management mutations. */
   roleMutation: RoleMutation;
   /** User management mutations. */
   userMutation: UserMutation;
+};
+
+/** Organization-level role. */
+export enum OrgRole {
+  /** Manage org settings and members. */
+  Admin = 'ADMIN',
+  /** Basic org access, needs project roles for resource access. */
+  Member = 'MEMBER',
+  /** Full org control - billing, delete org, transfer ownership. */
+  Owner = 'OWNER'
+}
+
+/**
+ * Organization - top level entity for multi-tenancy.
+ * Users belong to organizations, organizations contain projects.
+ */
+export type Organization = {
+  __typename?: 'Organization';
+  /**
+   * Available resources for role editor.
+   * Aggregated from all registered services.
+   */
+  availableResources: Array<ResourceDefinition>;
+  /** Timestamp when the organization was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Unique identifier. */
+  id: Scalars['ID']['output'];
+  /** All members of this organization. */
+  members: Array<Member>;
+  /** Organization name (e.g., "Acme Corp"). */
+  name: Scalars['String']['output'];
+  /** All roles defined in this organization. */
+  roles: Array<Role>;
+  /** URL-friendly unique identifier. */
+  slug: Scalars['String']['output'];
+  /** Timestamp when the organization was last updated. */
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** Organization mutations. */
+export type OrganizationMutation = {
+  __typename?: 'OrganizationMutation';
+  /**
+   * Assign domain role to member.
+   * Requires: org admin.
+   */
+  assignDomainRole: AssignDomainRolePayload;
+  /**
+   * Create a new organization.
+   * Current user becomes the owner.
+   */
+  createOrganization: CreateOrganizationPayload;
+  /**
+   * Delete organization.
+   * Requires: org owner.
+   */
+  deleteOrganization: DeleteOrganizationPayload;
+  /**
+   * Invite member to organization.
+   * Requires: org admin or owner.
+   */
+  inviteMember: InviteMemberPayload;
+  /**
+   * Remove domain access from member.
+   * Requires: org admin.
+   */
+  removeDomainAccess: RemoveDomainAccessPayload;
+  /**
+   * Remove member from organization.
+   * Requires: org admin or owner.
+   * Cannot remove self or owner.
+   */
+  removeMember: RemoveMemberPayload;
+  /**
+   * Switch organization context.
+   * Returns new JWT tokens with organizationId claim.
+   */
+  switchOrganization: SwitchOrganizationPayload;
+  /**
+   * Update organization.
+   * Requires: org admin or owner.
+   */
+  updateOrganization: UpdateOrganizationPayload;
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationAssignDomainRoleArgs = {
+  input: AssignDomainRoleInput;
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationCreateOrganizationArgs = {
+  input: CreateOrganizationInput;
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationInviteMemberArgs = {
+  input: InviteMemberInput;
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationRemoveDomainAccessArgs = {
+  input: RemoveDomainAccessInput;
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationRemoveMemberArgs = {
+  memberId: Scalars['ID']['input'];
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationSwitchOrganizationArgs = {
+  organizationId: Scalars['ID']['input'];
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationUpdateOrganizationArgs = {
+  input: UpdateOrganizationInput;
 };
 
 /** Permission effect. */
@@ -687,26 +299,6 @@ export enum PermissionEffect {
   /** Deny the action (takes priority over ALLOW). */
   Deny = 'DENY'
 }
-
-export type Project = {
-  __typename?: 'Project';
-  /**
-   * Available resources for role editor.
-   * Requires: project:admin permission.
-   */
-  availableResources: Array<ResourceDefinition>;
-  id: Scalars['ID']['output'];
-  /**
-   * Project team members with roles.
-   * Requires: project.team:read permission.
-   */
-  members: Array<ProjectMember>;
-  /**
-   * All project roles with permissions.
-   * Used by frontend to compute effective permissions.
-   */
-  roles: Array<Role>;
-};
 
 /** Project team member with assigned role. */
 export type ProjectMember = {
@@ -757,6 +349,12 @@ export type Query = {
    * For client-side checks, use project.roles + user.role.
    */
   authorize: AuthorizePayload;
+  /** Get current organization context (from JWT). */
+  currentOrganization?: Maybe<Organization>;
+  /** Get current user's organizations. */
+  myOrganizations: Array<Organization>;
+  /** Get organization by ID (if user has access). */
+  organization?: Maybe<Organization>;
   /** Get current authenticated user. */
   userQuery: UserQuery;
 };
@@ -764,6 +362,31 @@ export type Query = {
 
 export type QueryAuthorizeArgs = {
   input: AuthorizeInput;
+};
+
+
+export type QueryOrganizationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+/** Input for removing domain access. */
+export type RemoveDomainAccessInput = {
+  /** Domain path to remove access from. */
+  domain: Scalars['String']['input'];
+  /** Member ID. */
+  memberId: Scalars['ID']['input'];
+};
+
+export type RemoveDomainAccessPayload = {
+  __typename?: 'RemoveDomainAccessPayload';
+  member?: Maybe<Member>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type RemoveMemberPayload = {
+  __typename?: 'RemoveMemberPayload';
+  removedMemberId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** Resource definition for role editor UI. */
@@ -938,6 +561,27 @@ export type RoleUpdateInput = {
 export type RoleUpdatePayload = {
   __typename?: 'RoleUpdatePayload';
   role?: Maybe<Role>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type SwitchOrganizationPayload = {
+  __typename?: 'SwitchOrganizationPayload';
+  /** New tokens with organizationId claim. */
+  auth?: Maybe<AuthPayload>;
+  /** The organization switched to. */
+  organization?: Maybe<Organization>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for updating organization. */
+export type UpdateOrganizationInput = {
+  /** New name. */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateOrganizationPayload = {
+  __typename?: 'UpdateOrganizationPayload';
+  organization?: Maybe<Organization>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -1156,18 +800,6 @@ export type UserUpdateProfilePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Weight measurement units */
-export enum WeightUnit {
-  /** Gram */
-  G = 'g',
-  /** Kilogram */
-  Kg = 'kg',
-  /** Pound */
-  Lb = 'lb',
-  /** Ounce */
-  Oz = 'oz'
-}
-
 export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
 
@@ -1255,29 +887,42 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
-  AuthToken: ResolverTypeWrapper<AuthToken>;
+  AssignDomainRoleInput: AssignDomainRoleInput;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  AssignDomainRolePayload: ResolverTypeWrapper<AssignDomainRolePayload>;
+  AuthPayload: ResolverTypeWrapper<AuthPayload>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  AuthToken: ResolverTypeWrapper<AuthToken>;
   AuthorizeInput: AuthorizeInput;
   AuthorizePayload: ResolverTypeWrapper<AuthorizePayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  CurrencyCode: CurrencyCode;
+  CreateOrganizationInput: CreateOrganizationInput;
+  CreateOrganizationPayload: ResolverTypeWrapper<CreateOrganizationPayload>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
-  DimensionUnit: DimensionUnit;
+  DeleteOrganizationPayload: ResolverTypeWrapper<DeleteOrganizationPayload>;
+  DomainAccess: ResolverTypeWrapper<DomainAccess>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
+  InviteMemberInput: InviteMemberInput;
+  InviteMemberPayload: ResolverTypeWrapper<InviteMemberPayload>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
+  Member: ResolverTypeWrapper<Member>;
   Mutation: ResolverTypeWrapper<{}>;
+  OrgRole: OrgRole;
+  Organization: ResolverTypeWrapper<Organization>;
+  OrganizationMutation: ResolverTypeWrapper<OrganizationMutation>;
   PermissionEffect: PermissionEffect;
-  Project: ResolverTypeWrapper<Project>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   ProjectMember: ResolverTypeWrapper<ProjectMember>;
   ProjectMemberRemoveInput: ProjectMemberRemoveInput;
   ProjectMemberRemovePayload: ResolverTypeWrapper<ProjectMemberRemovePayload>;
   ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
   ProjectMemberRoleChangePayload: ResolverTypeWrapper<ProjectMemberRoleChangePayload>;
   Query: ResolverTypeWrapper<{}>;
+  RemoveDomainAccessInput: RemoveDomainAccessInput;
+  RemoveDomainAccessPayload: ResolverTypeWrapper<RemoveDomainAccessPayload>;
+  RemoveMemberPayload: ResolverTypeWrapper<RemoveMemberPayload>;
   ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
   Role: ResolverTypeWrapper<Role>;
   RoleCreateInput: RoleCreateInput;
@@ -1289,6 +934,9 @@ export type ResolversTypes = ResolversObject<{
   RolePermissionInput: RolePermissionInput;
   RoleUpdateInput: RoleUpdateInput;
   RoleUpdatePayload: ResolverTypeWrapper<RoleUpdatePayload>;
+  SwitchOrganizationPayload: ResolverTypeWrapper<SwitchOrganizationPayload>;
+  UpdateOrganizationInput: UpdateOrganizationInput;
+  UpdateOrganizationPayload: ResolverTypeWrapper<UpdateOrganizationPayload>;
   User: ResolverTypeWrapper<User>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   UserMutation: ResolverTypeWrapper<UserMutation>;
@@ -1307,30 +955,43 @@ export type ResolversTypes = ResolversObject<{
   UserUpdatePasswordPayload: ResolverTypeWrapper<UserUpdatePasswordPayload>;
   UserUpdateProfileInput: UserUpdateProfileInput;
   UserUpdateProfilePayload: ResolverTypeWrapper<UserUpdateProfilePayload>;
-  WeightUnit: WeightUnit;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
-  AuthToken: AuthToken;
+  AssignDomainRoleInput: AssignDomainRoleInput;
   String: Scalars['String']['output'];
+  ID: Scalars['ID']['output'];
+  AssignDomainRolePayload: AssignDomainRolePayload;
+  AuthPayload: AuthPayload;
   Int: Scalars['Int']['output'];
+  AuthToken: AuthToken;
   AuthorizeInput: AuthorizeInput;
   AuthorizePayload: AuthorizePayload;
   Boolean: Scalars['Boolean']['output'];
+  CreateOrganizationInput: CreateOrganizationInput;
+  CreateOrganizationPayload: CreateOrganizationPayload;
   DateTime: Scalars['DateTime']['output'];
+  DeleteOrganizationPayload: DeleteOrganizationPayload;
+  DomainAccess: DomainAccess;
   Email: Scalars['Email']['output'];
   GenericUserError: GenericUserError;
+  InviteMemberInput: InviteMemberInput;
+  InviteMemberPayload: InviteMemberPayload;
   JSON: Scalars['JSON']['output'];
+  Member: Member;
   Mutation: {};
-  Project: Project;
-  ID: Scalars['ID']['output'];
+  Organization: Organization;
+  OrganizationMutation: OrganizationMutation;
   ProjectMember: ProjectMember;
   ProjectMemberRemoveInput: ProjectMemberRemoveInput;
   ProjectMemberRemovePayload: ProjectMemberRemovePayload;
   ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
   ProjectMemberRoleChangePayload: ProjectMemberRoleChangePayload;
   Query: {};
+  RemoveDomainAccessInput: RemoveDomainAccessInput;
+  RemoveDomainAccessPayload: RemoveDomainAccessPayload;
+  RemoveMemberPayload: RemoveMemberPayload;
   ResourceDefinition: ResourceDefinition;
   Role: Role;
   RoleCreateInput: RoleCreateInput;
@@ -1342,6 +1003,9 @@ export type ResolversParentTypes = ResolversObject<{
   RolePermissionInput: RolePermissionInput;
   RoleUpdateInput: RoleUpdateInput;
   RoleUpdatePayload: RoleUpdatePayload;
+  SwitchOrganizationPayload: SwitchOrganizationPayload;
+  UpdateOrganizationInput: UpdateOrganizationInput;
+  UpdateOrganizationPayload: UpdateOrganizationPayload;
   User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
   UserMutation: UserMutation;
@@ -1362,6 +1026,19 @@ export type ResolversParentTypes = ResolversObject<{
   UserUpdateProfilePayload: UserUpdateProfilePayload;
 }>;
 
+export type AssignDomainRolePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AssignDomainRolePayload'] = ResolversParentTypes['AssignDomainRolePayload']> = ResolversObject<{
+  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AuthPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthPayload'] = ResolversParentTypes['AuthPayload']> = ResolversObject<{
+  accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  expiresIn?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type AuthTokenResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthToken'] = ResolversParentTypes['AuthToken']> = ResolversObject<{
   accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   expiresIn?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -1375,9 +1052,27 @@ export type AuthorizePayloadResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CreateOrganizationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CreateOrganizationPayload'] = ResolversParentTypes['CreateOrganizationPayload']> = ResolversObject<{
+  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
+
+export type DeleteOrganizationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DeleteOrganizationPayload'] = ResolversParentTypes['DeleteOrganizationPayload']> = ResolversObject<{
+  deletedOrganizationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type DomainAccessResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DomainAccess'] = ResolversParentTypes['DomainAccess']> = ResolversObject<{
+  domain?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
   name: 'Email';
@@ -1390,21 +1085,54 @@ export type GenericUserErrorResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type InviteMemberPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['InviteMemberPayload'] = ResolversParentTypes['InviteMemberPayload']> = ResolversObject<{
+  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['JSON'], any> {
   name: 'JSON';
 }
 
+export type MemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Member'] = ResolversParentTypes['Member']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Member']>, { __typename: 'Member' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  domainAccess?: Resolver<Array<ResolversTypes['DomainAccess']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  orgRole?: Resolver<ResolversTypes['OrgRole'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  organizationMutation?: Resolver<ResolversTypes['OrganizationMutation'], ParentType, ContextType>;
   roleMutation?: Resolver<ResolversTypes['RoleMutation'], ParentType, ContextType>;
   userMutation?: Resolver<ResolversTypes['UserMutation'], ParentType, ContextType>;
 }>;
 
-export type ProjectResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Project']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  availableResources?: Resolver<Array<ResolversTypes['ResourceDefinition']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, { __typename: 'Organization' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  availableResources?: Resolver<Array<ResolversTypes['ResourceDefinition']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  members?: Resolver<Array<ResolversTypes['Member']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  roles?: Resolver<Array<ResolversTypes['Role']>, ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
-  members?: Resolver<Array<ResolversTypes['ProjectMember']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  roles?: Resolver<Array<ResolversTypes['Role']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationMutation'] = ResolversParentTypes['OrganizationMutation']> = ResolversObject<{
+  assignDomainRole?: Resolver<ResolversTypes['AssignDomainRolePayload'], ParentType, ContextType, RequireFields<OrganizationMutationAssignDomainRoleArgs, 'input'>>;
+  createOrganization?: Resolver<ResolversTypes['CreateOrganizationPayload'], ParentType, ContextType, RequireFields<OrganizationMutationCreateOrganizationArgs, 'input'>>;
+  deleteOrganization?: Resolver<ResolversTypes['DeleteOrganizationPayload'], ParentType, ContextType>;
+  inviteMember?: Resolver<ResolversTypes['InviteMemberPayload'], ParentType, ContextType, RequireFields<OrganizationMutationInviteMemberArgs, 'input'>>;
+  removeDomainAccess?: Resolver<ResolversTypes['RemoveDomainAccessPayload'], ParentType, ContextType, RequireFields<OrganizationMutationRemoveDomainAccessArgs, 'input'>>;
+  removeMember?: Resolver<ResolversTypes['RemoveMemberPayload'], ParentType, ContextType, RequireFields<OrganizationMutationRemoveMemberArgs, 'memberId'>>;
+  switchOrganization?: Resolver<ResolversTypes['SwitchOrganizationPayload'], ParentType, ContextType, RequireFields<OrganizationMutationSwitchOrganizationArgs, 'organizationId'>>;
+  updateOrganization?: Resolver<ResolversTypes['UpdateOrganizationPayload'], ParentType, ContextType, RequireFields<OrganizationMutationUpdateOrganizationArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1431,7 +1159,22 @@ export type ProjectMemberRoleChangePayloadResolvers<ContextType = ServiceContext
 
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<QueryAuthorizeArgs, 'input'>>;
+  currentOrganization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
+  myOrganizations?: Resolver<Array<ResolversTypes['Organization']>, ParentType, ContextType>;
+  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType, RequireFields<QueryOrganizationArgs, 'id'>>;
   userQuery?: Resolver<ResolversTypes['UserQuery'], ParentType, ContextType>;
+}>;
+
+export type RemoveDomainAccessPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RemoveDomainAccessPayload'] = ResolversParentTypes['RemoveDomainAccessPayload']> = ResolversObject<{
+  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RemoveMemberPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RemoveMemberPayload'] = ResolversParentTypes['RemoveMemberPayload']> = ResolversObject<{
+  removedMemberId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ResourceDefinition'] = ResolversParentTypes['ResourceDefinition']> = ResolversObject<{
@@ -1482,6 +1225,19 @@ export type RolePermissionResolvers<ContextType = ServiceContext, ParentType ext
 
 export type RoleUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RoleUpdatePayload'] = ResolversParentTypes['RoleUpdatePayload']> = ResolversObject<{
   role?: Resolver<Maybe<ResolversTypes['Role']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SwitchOrganizationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SwitchOrganizationPayload'] = ResolversParentTypes['SwitchOrganizationPayload']> = ResolversObject<{
+  auth?: Resolver<Maybe<ResolversTypes['AuthPayload']>, ParentType, ContextType>;
+  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type UpdateOrganizationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UpdateOrganizationPayload'] = ResolversParentTypes['UpdateOrganizationPayload']> = ResolversObject<{
+  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1572,18 +1328,28 @@ export type UserUpdateProfilePayloadResolvers<ContextType = ServiceContext, Pare
 }>;
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
+  AssignDomainRolePayload?: AssignDomainRolePayloadResolvers<ContextType>;
+  AuthPayload?: AuthPayloadResolvers<ContextType>;
   AuthToken?: AuthTokenResolvers<ContextType>;
   AuthorizePayload?: AuthorizePayloadResolvers<ContextType>;
+  CreateOrganizationPayload?: CreateOrganizationPayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
+  DeleteOrganizationPayload?: DeleteOrganizationPayloadResolvers<ContextType>;
+  DomainAccess?: DomainAccessResolvers<ContextType>;
   Email?: GraphQLScalarType;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
+  InviteMemberPayload?: InviteMemberPayloadResolvers<ContextType>;
   JSON?: GraphQLScalarType;
+  Member?: MemberResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
-  Project?: ProjectResolvers<ContextType>;
+  Organization?: OrganizationResolvers<ContextType>;
+  OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
   ProjectMember?: ProjectMemberResolvers<ContextType>;
   ProjectMemberRemovePayload?: ProjectMemberRemovePayloadResolvers<ContextType>;
   ProjectMemberRoleChangePayload?: ProjectMemberRoleChangePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  RemoveDomainAccessPayload?: RemoveDomainAccessPayloadResolvers<ContextType>;
+  RemoveMemberPayload?: RemoveMemberPayloadResolvers<ContextType>;
   ResourceDefinition?: ResourceDefinitionResolvers<ContextType>;
   Role?: RoleResolvers<ContextType>;
   RoleCreatePayload?: RoleCreatePayloadResolvers<ContextType>;
@@ -1591,6 +1357,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   RoleMutation?: RoleMutationResolvers<ContextType>;
   RolePermission?: RolePermissionResolvers<ContextType>;
   RoleUpdatePayload?: RoleUpdatePayloadResolvers<ContextType>;
+  SwitchOrganizationPayload?: SwitchOrganizationPayloadResolvers<ContextType>;
+  UpdateOrganizationPayload?: UpdateOrganizationPayloadResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
   UserMutation?: UserMutationResolvers<ContextType>;

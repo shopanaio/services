@@ -1,6 +1,5 @@
-import type { Resolvers, Organization, Member, ProjectAccess } from "../generated/types.js";
-import { OrgRole, ProjectRole } from "../generated/types.js";
-import type { ScopePart } from "../../../casbin/CasbinService.js";
+import type { Resolvers, Organization, Member, DomainAccess } from "../generated/types.js";
+import { OrgRole } from "../generated/types.js";
 
 /**
  * Map organization DB entity to GraphQL type
@@ -35,19 +34,6 @@ function mapOrgRole(role: string): OrgRole {
   }
 }
 
-/**
- * Map project role string to enum
- */
-function mapProjectRole(role: string): ProjectRole {
-  switch (role.toLowerCase()) {
-    case "admin":
-      return ProjectRole.Admin;
-    case "editor":
-      return ProjectRole.Editor;
-    default:
-      return ProjectRole.Viewer;
-  }
-}
 
 export const organizationResolvers: Partial<Resolvers> = {
   Query: {
@@ -331,7 +317,7 @@ export const organizationResolvers: Partial<Resolvers> = {
           id: member.id,
           user: { __typename: "User", id: invitedUser.id } as any,
           orgRole: mapOrgRole(member.orgRole),
-          projectAccess: [],
+          domainAccess: [],
           createdAt: member.createdAt.toISOString(),
         },
         userErrors: [],
@@ -390,7 +376,8 @@ export const organizationResolvers: Partial<Resolvers> = {
       const casbin = ctx.kernel.repository.casbin;
       const roles = await casbin.getRolesForUser(organizationId, member.userId);
       for (const { role, domain } of roles) {
-        await casbin.removeRole(organizationId, member.userId, role, domain === "*" ? [] : [[domain]]);
+        const domainParts = domain === "*" ? [] : [[domain.split(":")[0], domain.split(":")[1]] as [string, string]];
+        await casbin.removeRole(organizationId, member.userId, role, domainParts);
       }
 
       return {
@@ -400,9 +387,9 @@ export const organizationResolvers: Partial<Resolvers> = {
     },
 
     /**
-     * Assign project role to member
+     * Assign domain role to member
      */
-    assignProjectRole: async (_parent, { input }, ctx) => {
+    assignDomainRole: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -429,20 +416,17 @@ export const organizationResolvers: Partial<Resolvers> = {
         };
       }
 
-      // Determine domain
-      const domain: ScopePart[] = input.projectId === "all" ? [] : [["project", input.projectId]];
-      const roleStr = input.role.toLowerCase();
-
-      // Assign role in casbin
+      // Assign role in casbin using domain string directly
       const casbin = ctx.kernel.repository.casbin;
-      await casbin.assignRole(organizationId, member.userId, roleStr, domain);
+      // Parse domain string to ScopePart array
+      const domainParts = input.domain === "*" ? [] : [[input.domain.split(":")[0], input.domain.split(":")[1]] as [string, string]];
+      await casbin.assignRole(organizationId, member.userId, input.role, domainParts);
 
       // Get updated roles for response
       const roles = await casbin.getRolesForUser(organizationId, member.userId);
-      const projectAccess: ProjectAccess[] = roles.map(({ role, domain }) => ({
-        project: domain === "*" ? null : { __typename: "Project", id: domain.split(":")[1] } as any,
-        role: mapProjectRole(role),
-        allProjects: domain === "*",
+      const domainAccess: DomainAccess[] = roles.map(({ role, domain }) => ({
+        domain,
+        role,
       }));
 
       return {
@@ -450,7 +434,7 @@ export const organizationResolvers: Partial<Resolvers> = {
           id: member.id,
           user: { __typename: "User", id: member.userId } as any,
           orgRole: mapOrgRole(member.orgRole),
-          projectAccess,
+          domainAccess,
           createdAt: member.createdAt.toISOString(),
         },
         userErrors: [],
@@ -458,9 +442,9 @@ export const organizationResolvers: Partial<Resolvers> = {
     },
 
     /**
-     * Remove project access from member
+     * Remove domain access from member
      */
-    removeProjectAccess: async (_parent, { input }, ctx) => {
+    removeDomainAccess: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -487,22 +471,21 @@ export const organizationResolvers: Partial<Resolvers> = {
         };
       }
 
-      // Get current roles for user in this project
-      const domain: ScopePart[] = [["project", input.projectId]];
+      // Parse domain string to ScopePart array
+      const domainParts = input.domain === "*" ? [] : [[input.domain.split(":")[0], input.domain.split(":")[1]] as [string, string]];
       const casbin = ctx.kernel.repository.casbin;
-      const rolesInDomain = await casbin.getRolesForUserInDomain(organizationId, member.userId, domain);
+      const rolesInDomain = await casbin.getRolesForUserInDomain(organizationId, member.userId, domainParts);
 
       // Remove all roles in this domain
       for (const role of rolesInDomain) {
-        await casbin.removeRole(organizationId, member.userId, role, domain);
+        await casbin.removeRole(organizationId, member.userId, role, domainParts);
       }
 
       // Get updated roles for response
       const roles = await casbin.getRolesForUser(organizationId, member.userId);
-      const projectAccess: ProjectAccess[] = roles.map(({ role, domain }) => ({
-        project: domain === "*" ? null : { __typename: "Project", id: domain.split(":")[1] } as any,
-        role: mapProjectRole(role),
-        allProjects: domain === "*",
+      const domainAccess: DomainAccess[] = roles.map(({ role, domain }) => ({
+        domain,
+        role,
       }));
 
       return {
@@ -510,7 +493,7 @@ export const organizationResolvers: Partial<Resolvers> = {
           id: member.id,
           user: { __typename: "User", id: member.userId } as any,
           orgRole: mapOrgRole(member.orgRole),
-          projectAccess,
+          domainAccess,
           createdAt: member.createdAt.toISOString(),
         },
         userErrors: [],
@@ -530,17 +513,16 @@ export const organizationResolvers: Partial<Resolvers> = {
 
       for (const m of orgMembers) {
         const roles = await casbin.getRolesForUser(parent.id, m.userId);
-        const projectAccess: ProjectAccess[] = roles.map(({ role, domain }) => ({
-          project: domain === "*" ? null : { __typename: "Project", id: domain.split(":")[1] } as any,
-          role: mapProjectRole(role),
-          allProjects: domain === "*",
+        const domainAccess: DomainAccess[] = roles.map(({ role, domain }) => ({
+          domain,
+          role,
         }));
 
         members.push({
           id: m.id,
           user: { __typename: "User", id: m.userId } as any,
           orgRole: mapOrgRole(m.orgRole),
-          projectAccess,
+          domainAccess,
           createdAt: m.createdAt.toISOString(),
         });
       }
@@ -561,15 +543,6 @@ export const organizationResolvers: Partial<Resolvers> = {
      */
     availableResources: async (_parent, _args, ctx) => {
       return ctx.kernel.repository.resource.getAllResources();
-    },
-
-    /**
-     * Get projects in organization (federation reference)
-     */
-    projects: async (parent, _args, _ctx) => {
-      // This will be resolved by the Project service via federation
-      // Return a reference that the gateway can resolve
-      return [{ __typename: "Project", id: parent.id }] as any;
     },
   },
 
