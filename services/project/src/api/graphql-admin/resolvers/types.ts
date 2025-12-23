@@ -70,7 +70,7 @@ export const typeResolvers: Partial<Resolvers> = {
         "iam.getMembersForDomain",
         {
           organizationId: parent.organizationId,
-          domain: `project:${parent.id}`,
+          domain: [["project", parent.id]],
         }
       );
 
