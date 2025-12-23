@@ -49,3 +49,23 @@ export interface ListOrgMembersResult {
   members: OrgMember[];
   userErrors: UserError[];
 }
+
+/**
+ * GetMembersForDomain - Get members with access to a specific domain (e.g., project)
+ */
+export interface GetMembersForDomainParams {
+  organizationId: string;
+  domain: string; // e.g., "project:abc-123"
+}
+
+export interface DomainMember {
+  userId: string;
+  role: string;
+  grantedAt?: Date;
+  grantedBy?: string;
+}
+
+export interface GetMembersForDomainResult {
+  members: DomainMember[];
+  userErrors: UserError[];
+}

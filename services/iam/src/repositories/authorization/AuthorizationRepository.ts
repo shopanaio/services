@@ -201,6 +201,14 @@ export class AuthorizationRepository {
     return this.userRoleRepo.findByTenant(organizationId);
   }
 
+  /**
+   * Get members for a specific domain (e.g., project)
+   * Returns members with access to the specified domain or all domains (*)
+   */
+  async getMembersForDomain(organizationId: string, domain: string) {
+    return this.userRoleRepo.findByTenantAndDomain(organizationId, domain);
+  }
+
   // ============================================================================
   // Permission Methods
   // ============================================================================

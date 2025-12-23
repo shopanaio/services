@@ -26,6 +26,9 @@ import {
   GetUserRoleScript,
   type GetUserRoleParams,
   type GetUserRoleResult,
+  GetMembersForDomainScript,
+  type GetMembersForDomainParams,
+  type GetMembersForDomainResult,
   AttachUserRoleScript,
   type AttachUserRoleParams,
   type AttachUserRoleResult,
@@ -113,6 +116,14 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action iam.getUserRole registered");
+
+    this.broker.register<GetMembersForDomainParams, GetMembersForDomainResult>(
+      "getMembersForDomain",
+      async (params) => {
+        return this.kernel.runScript(GetMembersForDomainScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.getMembersForDomain registered");
 
     this.broker.register<AttachUserRoleParams, AttachUserRoleResult>(
       "attachUserRole",

@@ -56,6 +56,35 @@ export const typeResolvers: Partial<Resolvers> = {
       // Return federation reference - gateway will resolve from IAM service
       return { __typename: "Organization", id: parent.organizationId };
     },
+    // Members field resolver - gets project members from IAM
+    members: async (
+      parent: { id: string; organizationId?: string | null },
+      _args: unknown,
+      ctx: ServiceContext
+    ) => {
+      if (!parent.organizationId) {
+        return [];
+      }
+
+      const result = await ctx.kernel.getServices().broker.call(
+        "iam.getMembersForDomain",
+        {
+          organizationId: parent.organizationId,
+          domain: `project:${parent.id}`,
+        }
+      );
+
+      if (!result || result.userErrors?.length > 0) {
+        return [];
+      }
+
+      return result.members.map((m: { userId: string; role: string; grantedAt?: Date; grantedBy?: string }) => ({
+        user: { __typename: "User", id: m.userId },
+        role: m.role,
+        grantedAt: m.grantedAt ?? null,
+        grantedBy: m.grantedBy ? { __typename: "User", id: m.grantedBy } : null,
+      }));
+    },
   },
 
   // UserError interface resolver

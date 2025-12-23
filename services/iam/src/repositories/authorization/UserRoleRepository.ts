@@ -77,6 +77,30 @@ export class UserRoleRepository {
   }
 
   /**
+   * Find all members of a tenant for a specific domain (e.g., project)
+   * Returns members with domain="*" (all projects) or matching domain
+   */
+  async findByTenantAndDomain(organizationId: string, domain: string): Promise<TenantMember[]> {
+    const { or } = await import("drizzle-orm");
+    return this.db
+      .select({
+        userId: userRole.userId,
+        roleName: role.name,
+        roleDisplayName: role.displayName,
+        grantedBy: userRole.grantedBy,
+        grantedAt: userRole.grantedAt,
+      })
+      .from(userRole)
+      .innerJoin(role, eq(userRole.roleId, role.id))
+      .where(
+        and(
+          eq(userRole.organizationId, organizationId),
+          or(eq(userRole.domain, domain), eq(userRole.domain, "*"))
+        )
+      );
+  }
+
+  /**
    * Find all tenant roles for a user
    */
   async findByUser(userId: string): Promise<UserTenantRole[]> {

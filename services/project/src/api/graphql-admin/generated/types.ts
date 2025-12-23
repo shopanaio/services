@@ -855,6 +855,11 @@ export type Mutation = {
   projectMutation: ProjectMutation;
 };
 
+export type Organization = {
+  __typename?: 'Organization';
+  id: Scalars['ID']['output'];
+};
+
 /** A project representing a store or application */
 export type Project = {
   __typename?: 'Project';
@@ -878,8 +883,14 @@ export type Project = {
   id: Scalars['ID']['output'];
   /** List of enabled locale codes for the project */
   locales: Array<LocaleCode>;
+  /** Members with access to this project */
+  members: Array<ProjectMember>;
   /** Display name of the project */
   name: Scalars['String']['output'];
+  /** Organization that owns this project (federation reference) */
+  organization: Maybe<Organization>;
+  /** Organization ID that owns this project */
+  organizationId: Maybe<Scalars['ID']['output']>;
   /** URL-friendly unique identifier */
   slug: Scalars['String']['output'];
   /** Current operational status of the project */
@@ -932,6 +943,19 @@ export type ProjectDeletePayload = {
   deletedProjectId: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during deletion */
   userErrors: Array<UserError>;
+};
+
+/** A member with access to a specific project */
+export type ProjectMember = {
+  __typename?: 'ProjectMember';
+  /** When the role was granted */
+  grantedAt: Maybe<Scalars['DateTime']['output']>;
+  /** Who granted this role */
+  grantedBy: Maybe<User>;
+  /** The role name assigned to this user in the project */
+  role: Scalars['String']['output'];
+  /** The user who has access */
+  user: User;
 };
 
 /** Mutations for project management */
@@ -1093,6 +1117,11 @@ export type Query = {
   projectQuery: ProjectQuery;
 };
 
+export type User = {
+  __typename?: 'User';
+  id: Scalars['ID']['output'];
+};
+
 /** Represents a user-facing error */
 export type UserError = {
   /** Machine-readable error code */
@@ -1235,11 +1264,13 @@ export type ResolversTypes = ResolversObject<{
   LocaleSetDefaultInput: LocaleSetDefaultInput;
   LocaleUpdatePayload: ResolverTypeWrapper<Omit<LocaleUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Mutation: ResolverTypeWrapper<{}>;
+  Organization: ResolverTypeWrapper<Organization>;
   Project: ResolverTypeWrapper<Project>;
   ProjectCreateInput: ProjectCreateInput;
   ProjectCreatePayload: ResolverTypeWrapper<Omit<ProjectCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   ProjectDeleteInput: ProjectDeleteInput;
   ProjectDeletePayload: ResolverTypeWrapper<Omit<ProjectDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  ProjectMember: ResolverTypeWrapper<ProjectMember>;
   ProjectMutation: ResolverTypeWrapper<Omit<ProjectMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'projectCreate' | 'projectDelete' | 'projectUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], currencyCreate: ResolversTypes['CurrencyCreatePayload'], currencyDelete: ResolversTypes['CurrencyDeletePayload'], currencySetDefault: ResolversTypes['CurrencyUpdatePayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], projectCreate: ResolversTypes['ProjectCreatePayload'], projectDelete: ResolversTypes['ProjectDeletePayload'], projectUpdate: ResolversTypes['ProjectUpdatePayload'] }>;
   ProjectQuery: ResolverTypeWrapper<ProjectQuery>;
   ProjectStatus: ProjectStatus;
@@ -1247,6 +1278,7 @@ export type ResolversTypes = ResolversObject<{
   ProjectUpdatePayload: ResolverTypeWrapper<Omit<ProjectUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Query: ResolverTypeWrapper<{}>;
   Timestamp: ResolverTypeWrapper<Scalars['Timestamp']['output']>;
+  User: ResolverTypeWrapper<User>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   WeightUnit: WeightUnit;
 }>;
@@ -1283,17 +1315,20 @@ export type ResolversParentTypes = ResolversObject<{
   LocaleSetDefaultInput: LocaleSetDefaultInput;
   LocaleUpdatePayload: Omit<LocaleUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Mutation: {};
+  Organization: Organization;
   Project: Project;
   ProjectCreateInput: ProjectCreateInput;
   ProjectCreatePayload: Omit<ProjectCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   ProjectDeleteInput: ProjectDeleteInput;
   ProjectDeletePayload: Omit<ProjectDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  ProjectMember: ProjectMember;
   ProjectMutation: Omit<ProjectMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'projectCreate' | 'projectDelete' | 'projectUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], currencyCreate: ResolversParentTypes['CurrencyCreatePayload'], currencyDelete: ResolversParentTypes['CurrencyDeletePayload'], currencySetDefault: ResolversParentTypes['CurrencyUpdatePayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], projectCreate: ResolversParentTypes['ProjectCreatePayload'], projectDelete: ResolversParentTypes['ProjectDeletePayload'], projectUpdate: ResolversParentTypes['ProjectUpdatePayload'] };
   ProjectQuery: ProjectQuery;
   ProjectUpdateInput: ProjectUpdateInput;
   ProjectUpdatePayload: Omit<ProjectUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Query: {};
   Timestamp: Scalars['Timestamp']['output'];
+  User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;
 
@@ -1405,7 +1440,14 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
   projectMutation?: Resolver<ResolversTypes['ProjectMutation'], ParentType, ContextType>;
 }>;
 
+export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, { __typename: 'Organization' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type ProjectResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Project']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   baseCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   currencies?: Resolver<Array<ResolversTypes['CurrencyCode']>, ParentType, ContextType>;
@@ -1416,7 +1458,10 @@ export type ProjectResolvers<ContextType = ServiceContext, ParentType extends Re
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   locales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
+  members?: Resolver<Array<ResolversTypes['ProjectMember']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
+  organizationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ProjectStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1433,6 +1478,14 @@ export type ProjectCreatePayloadResolvers<ContextType = ServiceContext, ParentTy
 export type ProjectDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectDeletePayload'] = ResolversParentTypes['ProjectDeletePayload']> = ResolversObject<{
   deletedProjectId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProjectMemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMember'] = ResolversParentTypes['ProjectMember']> = ResolversObject<{
+  grantedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1473,6 +1526,12 @@ export interface TimestampScalarConfig extends GraphQLScalarTypeConfig<Resolvers
   name: 'Timestamp';
 }
 
+export type UserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
   __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1498,14 +1557,17 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   LocaleDeletePayload?: LocaleDeletePayloadResolvers<ContextType>;
   LocaleUpdatePayload?: LocaleUpdatePayloadResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
+  Organization?: OrganizationResolvers<ContextType>;
   Project?: ProjectResolvers<ContextType>;
   ProjectCreatePayload?: ProjectCreatePayloadResolvers<ContextType>;
   ProjectDeletePayload?: ProjectDeletePayloadResolvers<ContextType>;
+  ProjectMember?: ProjectMemberResolvers<ContextType>;
   ProjectMutation?: ProjectMutationResolvers<ContextType>;
   ProjectQuery?: ProjectQueryResolvers<ContextType>;
   ProjectUpdatePayload?: ProjectUpdatePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Timestamp?: GraphQLScalarType;
+  User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;
 

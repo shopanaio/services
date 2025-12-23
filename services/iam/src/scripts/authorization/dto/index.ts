@@ -15,6 +15,9 @@ export type {
   ListOrgMembersParams,
   ListOrgMembersResult,
   OrgMember,
+  GetMembersForDomainParams,
+  GetMembersForDomainResult,
+  DomainMember,
 } from "./RoleManagementDto.js";
 
 export type {

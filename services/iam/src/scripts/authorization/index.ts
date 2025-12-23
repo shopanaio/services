@@ -2,6 +2,7 @@
 export { AuthorizeScript } from "./AuthorizeScript.js";
 export { BatchAuthorizeScript } from "./BatchAuthorizeScript.js";
 export { GetUserRoleScript } from "./GetUserRoleScript.js";
+export { GetMembersForDomainScript } from "./GetMembersForDomainScript.js";
 
 // User-role assignment scripts
 export { AttachUserRoleScript } from "./AttachUserRoleScript.js";
@@ -29,6 +30,10 @@ export type {
   ListOrgMembersParams,
   ListOrgMembersResult,
   OrgMember,
+  // Domain member types
+  GetMembersForDomainParams,
+  GetMembersForDomainResult,
+  DomainMember,
   // Role management types
   RolePermission,
   RoleInfo,

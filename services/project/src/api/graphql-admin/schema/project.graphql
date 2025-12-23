@@ -44,11 +44,30 @@ type Project @key(fields: "id") {
   createdAt: DateTime!
   """Timestamp when the project was last updated"""
   updatedAt: DateTime!
+  """Members with access to this project"""
+  members: [ProjectMember!]!
 }
 
-"""Organization entity (extended from IAM service)"""
+# Organization entity (extended from IAM service)
 extend type Organization @key(fields: "id") {
   id: ID! @external
+}
+
+# User entity (extended from IAM service)
+extend type User @key(fields: "id") {
+  id: ID! @external
+}
+
+"""A member with access to a specific project"""
+type ProjectMember {
+  """The user who has access"""
+  user: User!
+  """The role name assigned to this user in the project"""
+  role: String!
+  """When the role was granted"""
+  grantedAt: DateTime
+  """Who granted this role"""
+  grantedBy: User
 }
 
 """Input for creating a new project"""
