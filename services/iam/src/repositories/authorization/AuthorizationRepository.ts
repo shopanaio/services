@@ -306,29 +306,6 @@ export class AuthorizationRepository {
     }
   }
 
-  /**
-   * Provision standard role hierarchy
-   */
-  async provisionRoleHierarchy(
-    tenantId: string
-  ): Promise<{ success: boolean; error?: string }> {
-    const hierarchy: [string, string][] = [
-      [PREDEFINED_ROLES.OWNER, PREDEFINED_ROLES.ADMIN],
-      [PREDEFINED_ROLES.ADMIN, PREDEFINED_ROLES.MANAGER],
-      [PREDEFINED_ROLES.MANAGER, PREDEFINED_ROLES.SUPPORT],
-      [PREDEFINED_ROLES.SUPPORT, PREDEFINED_ROLES.VIEWER],
-    ];
-
-    try {
-      for (const [parent, child] of hierarchy) {
-        await this.addRoleHierarchy(tenantId, parent, child);
-      }
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  }
-
   // ============================================================================
   // Model & Enforcer Setup (legacy compatibility methods)
   // ============================================================================
@@ -409,9 +386,6 @@ export class AuthorizationRepository {
           }
         }
       }
-
-      // Setup role hierarchy
-      await this.provisionRoleHierarchy(tenantId);
 
       // Assign owner role to creator if provided
       if (ownerId) {

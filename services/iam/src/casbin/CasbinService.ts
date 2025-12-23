@@ -133,7 +133,6 @@ export class CasbinService {
     action: string
   ): Promise<boolean> {
     const enforcer = await this.getEnforcer(tenantId);
-    // Model: r = sub, obj, act (3 arguments, no domain)
     return enforcer.enforce(userId, resource, action);
   }
 

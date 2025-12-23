@@ -91,7 +91,8 @@ test.describe('Project Isolation', () => {
     });
 
     // User B should NOT be able to see User A's project
-    expect(projectData.projectQuery.project).toBeNull();
+    // Either data is null (error) or project is null (access denied)
+    expect(projectData?.projectQuery?.project ?? null).toBeNull();
   });
 
   test.skip('User cannot see other users projects in projects list', async ({ api, userA, userB }) => {
