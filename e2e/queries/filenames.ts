@@ -5,6 +5,8 @@ export type GraphQLFileName =
   | 'users-api/UserCurrent'
   // project-api
   | 'project-api/ProjectCreate'
+  | 'project-api/ProjectUpdate'
+  | 'project-api/ProjectDelete'
   | 'project-api/Project'
   | 'project-api/Projects'
   | 'project-api/ProjectRoles'

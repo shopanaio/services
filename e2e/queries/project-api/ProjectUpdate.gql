@@ -1,0 +1,18 @@
+mutation ProjectUpdate($input: ProjectUpdateInput!) {
+  projectMutation {
+    projectUpdate(input: $input) {
+      project {
+        id
+        name
+        slug
+        email
+        timezone
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

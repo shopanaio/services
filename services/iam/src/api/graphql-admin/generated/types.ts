@@ -676,6 +676,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   /** Role management mutations. */
   roleMutation: RoleMutation;
+  /** User management mutations. */
   userMutation: UserMutation;
 };
 
@@ -756,6 +757,7 @@ export type Query = {
    * For client-side checks, use project.roles + user.role.
    */
   authorize: AuthorizePayload;
+  /** Get current authenticated user. */
   userQuery: UserQuery;
 };
 

@@ -1,0 +1,12 @@
+mutation ProjectDelete($input: ProjectDeleteInput!) {
+  projectMutation {
+    projectDelete(input: $input) {
+      deletedProjectId
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}
