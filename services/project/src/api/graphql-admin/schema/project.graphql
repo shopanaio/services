@@ -9,7 +9,7 @@ enum ProjectStatus {
 # WeightUnit, DimensionUnit, CurrencyCode, LocaleCode enums are defined in shared-references
 
 """A project representing a store or application"""
-type Project {
+type Project @key(fields: "id") {
   """Unique identifier of the project"""
   id: ID!
   """Display name of the project"""
