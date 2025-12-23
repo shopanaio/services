@@ -79,11 +79,36 @@ export const typeResolvers: Partial<Resolvers> = {
       }
 
       return result.members.map((m: { userId: string; role: string; grantedAt?: Date; grantedBy?: string }) => ({
+        id: m.userId, // ProjectMember id is the userId
         user: { __typename: "User", id: m.userId },
-        role: m.role,
+        role: { __typename: "Role", name: m.role }, // Federation reference to Role
         grantedAt: m.grantedAt ?? null,
         grantedBy: m.grantedBy ? { __typename: "User", id: m.grantedBy } : null,
       }));
+    },
+  },
+
+  // ProjectMember type resolver
+  ProjectMember: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    user: (parent: any) => {
+      // Return federation reference
+      const userId = parent.user?.id ?? parent.id;
+      return { __typename: "User", id: userId };
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    role: (parent: any) => {
+      // Return federation reference to Role
+      const roleName = typeof parent.role === "string" ? parent.role : parent.role?.name;
+      return { __typename: "Role", name: roleName };
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    grantedBy: (parent: any) => {
+      if (!parent.grantedBy) return null;
+      const grantedById = typeof parent.grantedBy === "string"
+        ? parent.grantedBy
+        : parent.grantedBy.id;
+      return { __typename: "User", id: grantedById };
     },
   },
 

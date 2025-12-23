@@ -2,9 +2,9 @@ import type {
   Resolvers,
   Role,
   RolePermission,
-  ProjectMember,
 } from "../generated/types.js";
 import { PermissionEffect } from "../generated/types.js";
+import type { ServiceContext } from "../../../context/index.js";
 import {
   ListRolesScript,
   GetUserRoleScript,
@@ -107,30 +107,33 @@ export const roleResolvers: Partial<Resolvers> = {
     },
   },
 
-  // ProjectMember type resolvers
-  ProjectMember: {
-    user: (parent) => {
-      // Return federation reference - gateway will resolve User fields
-      return {
-        id: parent.user.id,
-        email: parent.user.email,
-      };
+  // Role type resolver for federation
+  Role: {
+    __resolveReference: async (
+      reference: { name: string },
+      ctx: ServiceContext
+    ): Promise<Role | null> => {
+      const organizationId = ctx.organizationId;
+      if (!organizationId) {
+        return null;
+      }
+
+      // Get all roles and find by name
+      const result = await ctx.kernel.runScript(ListRolesScript, {
+        organizationId,
+      });
+
+      if (result.userErrors.length > 0) {
+        console.error("[Role.__resolveReference] Error:", result.userErrors);
+        return null;
+      }
+
+      const role = result.roles.find((r) => r.name === reference.name);
+      if (!role) {
+        return null;
+      }
+
+      return mapRoleInfoToRole(role);
     },
-    role: (parent) => {
-      // Role is already resolved in parent
-      return parent.role;
-    },
-    grantedBy: (parent) => {
-      if (!parent.grantedBy) return null;
-      // Return federation reference - gateway will resolve full User
-      const grantedById =
-        typeof parent.grantedBy === "string"
-          ? parent.grantedBy
-          : parent.grantedBy.id;
-      return {
-        id: grantedById,
-        email: "",
-      };
-    },
-  } as Resolvers["ProjectMember"],
+  },
 };

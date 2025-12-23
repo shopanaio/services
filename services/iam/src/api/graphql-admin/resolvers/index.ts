@@ -27,6 +27,10 @@ export const resolvers = {
     ...queryResolvers.User,
     ...roleResolvers.User,
   },
+  // Role type resolver (federation)
+  Role: {
+    ...roleResolvers.Role,
+  },
   // Organization type resolvers
   Organization: {
     ...organizationResolvers.Organization,
