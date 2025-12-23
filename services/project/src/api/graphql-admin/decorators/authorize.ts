@@ -6,7 +6,7 @@ export interface AuthorizeOptions {
   resource: string;
   action: string;
   resourceId?: string | ((args: Record<string, unknown>) => string);
-  resourceOwnerId?: string | ((args: Record<string, unknown>, ctx: ServiceContext) => string);
+  resourceOwnerId?: string | ((args: Record<string, unknown>, ctx?: ServiceContext) => string);
 }
 
 interface IamAuthorizeResult {
@@ -76,6 +76,11 @@ async function checkPermission(
   resourceId?: string,
   resourceOwnerId?: string
 ): Promise<boolean> {
+  // User must be authenticated (checked by caller)
+  if (!ctx.user) {
+    return false;
+  }
+
   const result = await ctx.kernel.getServices().broker.call("iam.authorize", {
     userId: ctx.user.id,
     organizationId: ctx.project.organizationId,
