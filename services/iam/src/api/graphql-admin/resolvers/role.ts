@@ -182,6 +182,20 @@ export const roleResolvers: Partial<Resolvers> = {
         return [];
       }
 
+      // Collect all user IDs (members + grantedBy)
+      const userIds = new Set<string>();
+      for (const member of membersResult.members) {
+        userIds.add(member.userId);
+        if (member.grantedBy) {
+          userIds.add(member.grantedBy);
+        }
+      }
+
+      // Batch load all users
+      const usersMap = await ctx.kernel.repository.user.findByIds(
+        Array.from(userIds)
+      );
+
       // Create a map of role name -> RoleInfo for quick lookup
       const rolesMap = new Map<string, RoleInfo>();
       for (const role of rolesResult.roles) {
@@ -190,23 +204,37 @@ export const roleResolvers: Partial<Resolvers> = {
 
       return membersResult.members.map((member) => {
         const roleInfo = rolesMap.get(member.role);
+        const user = usersMap.get(member.userId);
+        const grantedByUser = member.grantedBy
+          ? usersMap.get(member.grantedBy)
+          : null;
+
         return {
           id: member.userId,
-          // Federation reference - gateway will resolve full User
           user: {
             id: member.userId,
-            email: member.email,
+            email: user?.email ?? "",
+            firstName: user?.name?.split(" ")[0] ?? null,
+            lastName: user?.name?.split(" ").slice(1).join(" ") ?? null,
+            avatar: user?.image ?? null,
           },
-          role: roleInfo ? mapRoleInfoToRole(roleInfo) : {
-            name: member.role,
-            displayName: member.role,
-            isSystem: false,
-            permissions: [],
-          },
+          role: roleInfo
+            ? mapRoleInfoToRole(roleInfo)
+            : {
+                name: member.role,
+                displayName: member.role,
+                isSystem: false,
+                permissions: [],
+              },
           grantedAt: member.grantedAt?.toISOString(),
-          // Federation reference for grantedBy
-          grantedBy: member.grantedBy
-            ? { id: member.grantedBy, email: "" }
+          grantedBy: grantedByUser
+            ? {
+                id: grantedByUser.id,
+                email: grantedByUser.email,
+                firstName: grantedByUser.name?.split(" ")[0] ?? null,
+                lastName: grantedByUser.name?.split(" ").slice(1).join(" ") ?? null,
+                avatar: grantedByUser.image ?? null,
+              }
             : null,
         } as ProjectMember;
       });

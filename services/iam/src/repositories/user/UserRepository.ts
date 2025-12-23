@@ -434,6 +434,27 @@ export class UserRepository {
   }
 
   /**
+   * Find multiple users by IDs
+   */
+  async findByIds(ids: string[]): Promise<Map<string, User>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const { inArray } = await import("drizzle-orm");
+    const results = await this.db
+      .select()
+      .from(user)
+      .where(inArray(user.id, ids));
+
+    const userMap = new Map<string, User>();
+    for (const u of results) {
+      userMap.set(u.id, this.mapDbUser(u));
+    }
+    return userMap;
+  }
+
+  /**
    * Find user by email
    */
   async findByEmail(email: string): Promise<User | null> {
