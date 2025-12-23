@@ -12,8 +12,7 @@ import {
   AuthorizeScript,
   ListTenantMembersScript,
 } from "../../../scripts/authorization/index.js";
-// Note: ListRolesScript is used in Project.roles resolver
-// AuthorizeScript is used in Query.authorize resolver
+import { ListResourcesScript } from "../../../scripts/resources/index.js";
 import type {
   RoleInfo,
   RolePermission as DtoRolePermission,
@@ -45,90 +44,6 @@ function mapRoleInfoToRole(role: RoleInfo): Role {
   };
 }
 
-/**
- * Available resources for role editor.
- * This is a static list of resources available in the system.
- * In a full implementation, this could be dynamically fetched from each service.
- */
-const AVAILABLE_RESOURCES: ResourceDefinition[] = [
-  // Inventory service
-  {
-    service: "inventory",
-    name: "product",
-    actions: ["create", "read", "update", "delete", "publish"],
-    displayName: "Products",
-  },
-  {
-    service: "inventory",
-    name: "category",
-    actions: ["create", "read", "update", "delete"],
-    displayName: "Categories",
-  },
-  {
-    service: "inventory",
-    name: "collection",
-    actions: ["create", "read", "update", "delete"],
-    displayName: "Collections",
-  },
-  // Media service
-  {
-    service: "media",
-    name: "media",
-    actions: ["upload", "read", "delete"],
-    displayName: "Media",
-  },
-  // Orders service
-  {
-    service: "orders",
-    name: "order",
-    actions: ["read", "update", "fulfill", "cancel", "refund"],
-    displayName: "Orders",
-  },
-  {
-    service: "orders",
-    name: "customer",
-    actions: ["read", "update", "delete"],
-    displayName: "Customers",
-  },
-  // Project service
-  {
-    service: "project",
-    name: "project",
-    actions: ["read", "update", "delete"],
-    displayName: "Project Settings",
-  },
-  {
-    service: "project",
-    name: "project/team",
-    actions: ["read", "write", "remove"],
-    displayName: "Team Management",
-  },
-  {
-    service: "project",
-    name: "project/billing",
-    actions: ["read", "update"],
-    displayName: "Billing",
-  },
-  {
-    service: "project",
-    name: "project/apiKey",
-    actions: ["create", "read", "revoke", "delete"],
-    displayName: "API Keys",
-  },
-  // Pricing service
-  {
-    service: "pricing",
-    name: "priceList",
-    actions: ["create", "read", "update", "delete"],
-    displayName: "Price Lists",
-  },
-  {
-    service: "pricing",
-    name: "discount",
-    actions: ["create", "read", "update", "delete"],
-    displayName: "Discounts",
-  },
-];
 
 export const roleResolvers: Partial<Resolvers> = {
   // Extend Project type from project-service
@@ -158,9 +73,22 @@ export const roleResolvers: Partial<Resolvers> = {
 
     /**
      * Get available resources for role editor.
+     * Dynamically fetches from all services via broker.
      */
-    availableResources: () => {
-      return AVAILABLE_RESOURCES;
+    availableResources: async (_parent, _args, ctx) => {
+      const result = await ctx.kernel.runScript(ListResourcesScript, {});
+
+      if (result.userErrors.length > 0) {
+        console.warn("[Project.availableResources] Partial failure:", result.userErrors);
+      }
+
+      // Map to GraphQL ResourceDefinition format
+      return result.resources.map((r): ResourceDefinition => ({
+        service: r.service,
+        name: r.name,
+        displayName: r.displayName,
+        actions: r.actions,
+      }));
     },
 
     /**

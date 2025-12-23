@@ -32,6 +32,8 @@ import {
   type GetOffersParams,
   type GetOffersResult,
 } from "./scripts/getOffers";
+import { getResources } from "./scripts/resources/index";
+import type { GetResourcesResult } from "@shopana/shared-kernel";
 import { InventoryObjectStorage } from "./storage";
 
 export interface EmitTestEventParams {
@@ -98,6 +100,10 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
       }
       return { status: "disconnected", message: "RabbitMQ not connected" };
     });
+
+    // Resource discovery for IAM service
+    this.broker.register<void, GetResourcesResult>("getResources", getResources);
+    this.logger.debug("Action inventory.getResources registered");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,

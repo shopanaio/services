@@ -2,7 +2,7 @@ import { BaseScript } from "../../kernel/BaseScript.js";
 import type {
   GetResourcesParams,
   GetResourcesResult,
-} from "./dto/GetResourcesDto.js";
+} from "@shopana/shared-kernel";
 
 /**
  * Returns the list of resources and actions exposed by the project service.
@@ -15,36 +15,56 @@ export class GetResourcesScript extends BaseScript<
   protected async execute(_params: GetResourcesParams): Promise<GetResourcesResult> {
     return {
       service: "project",
+      displayName: "Project",
       resources: [
         {
           name: "project",
-          actions: ["read", "write", "delete"],
-        },
-        {
-          name: "project.settings",
-          actions: ["read", "write"],
-        },
-        {
-          name: "project.billing",
-          actions: ["read", "write"],
+          displayName: "Project Settings",
+          description: "General project configuration",
+          actions: [
+            { name: "read", displayName: "View", description: "View project settings" },
+            { name: "update", displayName: "Edit", description: "Edit project settings" },
+            { name: "delete", displayName: "Delete", description: "Delete the project" },
+          ],
         },
         {
           name: "project.team",
-          actions: ["read", "write", "invite", "remove"],
+          displayName: "Team",
+          description: "Team member management",
+          actions: [
+            { name: "read", displayName: "View", description: "View team members" },
+            { name: "invite", displayName: "Invite", description: "Invite new team members" },
+            { name: "update", displayName: "Edit", description: "Edit team member roles" },
+            { name: "remove", displayName: "Remove", description: "Remove team members" },
+          ],
+        },
+        {
+          name: "project.billing",
+          displayName: "Billing",
+          description: "Billing and subscription management",
+          actions: [
+            { name: "read", displayName: "View", description: "View billing information" },
+            { name: "update", displayName: "Edit", description: "Update billing settings" },
+          ],
         },
         {
           name: "project.apiKey",
-          actions: ["read", "create", "revoke"],
+          displayName: "API Keys",
+          description: "API key management",
+          actions: [
+            { name: "read", displayName: "View", description: "View API keys" },
+            { name: "create", displayName: "Create", description: "Create new API keys" },
+            { name: "revoke", displayName: "Revoke", description: "Revoke API keys" },
+          ],
         },
       ],
     };
   }
 
   protected handleError(_error: unknown): GetResourcesResult {
-    // Even on error, return empty resources rather than throwing
-    // This allows IAM to continue aggregating from other services
     return {
       service: "project",
+      displayName: "Project",
       resources: [],
     };
   }
