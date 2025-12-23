@@ -40,35 +40,6 @@ Organization (1) ──▶ Projects (many)
 
 ## Solution: OrganizationId in JWT Token
 
-### Auth Flow
-
-```
-┌────────────────────────────────────────────────────────┐
-│                    Auth Flow                            │
-└────────────────────────────────────────────────────────┘
-
-1. User login → receives base token (no org)
-2. User selects Organization → gets organizationId
-3. Client requests scoped token with organizationId
-4. All subsequent requests contain organizationId in JWT
-
-┌────────┐    login     ┌─────┐
-│ Client │─────────────▶│ IAM │──▶ JWT { userId }
-└────────┘              └─────┘
-     │
-     │  myOrganizations()
-     ▼
-┌─────┐
-│ IAM │──▶ [{ id, name }, ...]
-└─────┘
-     │
-     │  switchOrganization(organizationId)
-     ▼
-┌─────┐
-│ IAM │──▶ JWT { userId, organizationId }
-└─────┘
-```
-
 ### JWT Structure
 
 ```json
@@ -340,48 +311,22 @@ await broker.call("iam.registerResources", {
 
 ```graphql
 type Query {
-  # Get current user's organizations
-  myOrganizations: [Organization!]!
-
   # Get organization by id (if user has access)
   organization(id: ID!): Organization
+
+  # Get current organization (from JWT)
+  currentOrganization: Organization
 }
 
 type Mutation {
   # Create new organization
   createOrganization(input: CreateOrganizationInput!): Organization!
 
-  # Switch organization context, returns new JWT
-  switchOrganization(organizationId: ID!): AuthPayload!
-
   # Invite member to organization
   inviteMember(organizationId: ID!, email: String!, roleIds: [ID!]!): Member!
-}
 
-type AuthPayload {
-  accessToken: String!
-  refreshToken: String!
-}
-```
-
-```typescript
-// iam/resolvers/organization.ts
-async switchOrganization(_, { organizationId }, ctx) {
-  // 1. Verify user has access to this organization
-  const hasAccess = await ctx.services.member.userHasAccessToOrg(
-    ctx.userId,
-    organizationId
-  );
-
-  if (!hasAccess) {
-    throw new ForbiddenError("No access to this organization");
-  }
-
-  // 2. Generate new tokens with organizationId
-  return ctx.services.auth.generateTokens({
-    userId: ctx.userId,
-    organizationId
-  });
+  # Assign domain role to member
+  assignDomainRole(memberId: ID!, domain: String!, role: String!): Member!
 }
 ```
 
@@ -412,7 +357,6 @@ async switchOrganization(_, { organizationId }, ctx) {
 │  - Members          │   │    via federation   │
 │  - Policies         │   │                     │
 │  - Permissions      │   │                     │
-│  - switchOrg()      │   │                     │
 │                     │   │                     │
 │  NO dependency on   │   │  DEPENDS on IAM     │
 │  Project            │   │                     │

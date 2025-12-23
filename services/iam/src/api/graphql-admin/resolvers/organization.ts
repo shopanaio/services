@@ -38,19 +38,6 @@ function mapOrgRole(role: string): OrgRole {
 export const organizationResolvers: Partial<Resolvers> = {
   Query: {
     /**
-     * Get current user's organizations
-     */
-    myOrganizations: async (_parent, _args, ctx) => {
-      const userId = ctx.currentUser?.id;
-      if (!userId) {
-        return [];
-      }
-
-      const organizations = await ctx.kernel.repository.organization.getOrganizationsForUser(userId);
-      return organizations.map(mapOrganization);
-    },
-
-    /**
      * Get organization by ID (if user has access)
      */
     organization: async (_parent, { id }, ctx) => {
@@ -212,51 +199,6 @@ export const organizationResolvers: Partial<Resolvers> = {
 
       return {
         deletedOrganizationId: organizationId,
-        userErrors: [],
-      };
-    },
-
-    /**
-     * Switch organization context - returns new JWT tokens
-     */
-    switchOrganization: async (_parent, { organizationId }, ctx) => {
-      const userId = ctx.currentUser?.id;
-      if (!userId) {
-        return {
-          auth: null,
-          organization: null,
-          userErrors: [{ message: "User not authenticated", code: "UNAUTHENTICATED" }],
-        };
-      }
-
-      const hasAccess = await ctx.kernel.repository.organization.userHasAccessToOrg(userId, organizationId);
-      if (!hasAccess) {
-        return {
-          auth: null,
-          organization: null,
-          userErrors: [{ message: "No access to this organization", code: "FORBIDDEN" }],
-        };
-      }
-
-      const org = await ctx.kernel.repository.organization.findById(organizationId);
-      if (!org) {
-        return {
-          auth: null,
-          organization: null,
-          userErrors: [{ message: "Organization not found", code: "NOT_FOUND" }],
-        };
-      }
-
-      // Generate new tokens with organizationId claim
-      // Note: This requires integration with Better Auth JWT plugin
-      // For now, return placeholder - actual implementation depends on auth setup
-      return {
-        auth: {
-          accessToken: `org-scoped-token-${organizationId}`, // Placeholder
-          refreshToken: `refresh-token-${organizationId}`, // Placeholder
-          expiresIn: 900, // 15 minutes
-        },
-        organization: mapOrganization(org),
         userErrors: [],
       };
     },

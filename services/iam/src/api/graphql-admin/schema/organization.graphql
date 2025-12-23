@@ -259,37 +259,18 @@ type RemoveDomainAccessPayload {
   userErrors: [GenericUserError!]!
 }
 
-type SwitchOrganizationPayload {
-  """
-  New tokens with organizationId claim.
-  """
-  auth: AuthPayload
-
-  """
-  The organization switched to.
-  """
-  organization: Organization
-
-  userErrors: [GenericUserError!]!
-}
-
 # ============================================================================
 # QUERIES & MUTATIONS
 # ============================================================================
 
 extend type Query {
   """
-  Get current user's organizations.
-  """
-  myOrganizations: [Organization!]!
-
-  """
   Get organization by ID (if user has access).
   """
   organization(id: ID!): Organization
 
   """
-  Get current organization context (from JWT).
+  Get current organization context (resolved from project).
   """
   currentOrganization: Organization
 }
@@ -322,12 +303,6 @@ type OrganizationMutation {
   Requires: org owner.
   """
   deleteOrganization: DeleteOrganizationPayload!
-
-  """
-  Switch organization context.
-  Returns new JWT tokens with organizationId claim.
-  """
-  switchOrganization(organizationId: ID!): SwitchOrganizationPayload!
 
   """
   Invite member to organization.
