@@ -212,6 +212,69 @@ export class AuthorizationRepository {
     return this.userRoleRepo.findByTenantAndDomain(organizationId, domain);
   }
 
+  /**
+   * Attach a role to user for a specific domain (e.g., project)
+   * @param domainParts - Domain as ScopePart[] (e.g., [["project", "abc-123"]])
+   */
+  async attachUserRoleForDomain(
+    organizationId: string,
+    userId: string,
+    roleName: string,
+    domainParts: Array<[string] | [string, string]>,
+    grantedBy?: string
+  ): Promise<{ success: boolean; grantedAt?: Date }> {
+    // Get role from database
+    const role = await this.roleRepo.findByName(organizationId, roleName);
+    if (!role) {
+      return { success: false };
+    }
+
+    // Build domain path string for DB storage
+    const domainPath = this.casbin.buildPath(domainParts);
+
+    // Save to database with domain
+    const result = await this.userRoleRepo.upsertWithDomain({
+      organizationId,
+      userId,
+      roleId: role.id,
+      domain: domainPath,
+      grantedBy,
+    });
+
+    // Add to Casbin with domain parts
+    await this.casbin.assignRole(organizationId, userId, roleName, domainParts);
+
+    return { success: true, grantedAt: result.grantedAt };
+  }
+
+  /**
+   * Detach a role from user for a specific domain
+   * @param domainParts - Domain as ScopePart[] (e.g., [["project", "abc-123"]])
+   */
+  async detachUserRoleFromDomain(
+    organizationId: string,
+    userId: string,
+    domainParts: Array<[string] | [string, string]>
+  ): Promise<boolean> {
+    // Build domain path string for DB lookup
+    const domainPath = this.casbin.buildPath(domainParts);
+
+    // Get user's current role for this domain
+    const members = await this.userRoleRepo.findByTenantAndDomain(organizationId, domainPath);
+    const member = members.find(m => m.userId === userId);
+    if (!member) {
+      return false;
+    }
+
+    // Remove from database
+    await this.userRoleRepo.deleteByDomain(organizationId, userId, domainPath);
+
+    // Remove from Casbin
+    await this.casbin.removeRole(organizationId, userId, member.roleName, domainParts);
+
+    return true;
+  }
+
   // ============================================================================
   // Permission Methods
   // ============================================================================

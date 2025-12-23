@@ -18,6 +18,10 @@ export type {
   GetMembersForDomainParams,
   GetMembersForDomainResult,
   DomainMember,
+  ChangeRoleForDomainParams,
+  ChangeRoleForDomainResult,
+  RemoveMemberFromDomainParams,
+  RemoveMemberFromDomainResult,
 } from "./RoleManagementDto.js";
 
 export type {

@@ -62,14 +62,23 @@ export const typeResolvers: Partial<Resolvers> = {
       _args: unknown,
       ctx: ServiceContext
     ) => {
-      if (!parent.organizationId) {
+      // Get organizationId - might be on parent or need to be loaded from project
+      let organizationId = parent.organizationId;
+
+      if (!organizationId) {
+        // Load project to get organizationId
+        const project = await ctx.kernel.getServices().repository.project.findById(parent.id);
+        organizationId = project?.organizationId ?? null;
+      }
+
+      if (!organizationId) {
         return [];
       }
 
       const result = await ctx.kernel.getServices().broker.call(
         "iam.getMembersForDomain",
         {
-          organizationId: parent.organizationId,
+          organizationId,
           domain: [["project", parent.id]],
         }
       );
@@ -78,10 +87,10 @@ export const typeResolvers: Partial<Resolvers> = {
         return [];
       }
 
-      return result.members.map((m: { userId: string; role: string; grantedAt?: Date; grantedBy?: string }) => ({
+      return result.members.map((m: { userId: string; role: string; roleDisplayName?: string | null; roleIsSystem?: boolean; grantedAt?: Date; grantedBy?: string }) => ({
         id: m.userId, // ProjectMember id is the userId
         user: { __typename: "User", id: m.userId },
-        role: { __typename: "Role", name: m.role }, // Federation reference to Role
+        role: { __typename: "Role", name: m.role, displayName: m.roleDisplayName ?? m.role, isSystem: m.roleIsSystem ?? false },
         grantedAt: m.grantedAt ?? null,
         grantedBy: m.grantedBy ? { __typename: "User", id: m.grantedBy } : null,
       }));

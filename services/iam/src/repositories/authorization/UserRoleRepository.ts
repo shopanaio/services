@@ -14,6 +14,7 @@ export interface TenantMember {
   userId: string;
   roleName: string;
   roleDisplayName: string | null;
+  roleIsSystem: boolean;
   grantedBy: string | null;
   grantedAt: Date;
 }
@@ -87,6 +88,7 @@ export class UserRoleRepository {
         userId: userRole.userId,
         roleName: role.name,
         roleDisplayName: role.displayName,
+        roleIsSystem: role.isSystem,
         grantedBy: userRole.grantedBy,
         grantedAt: userRole.grantedAt,
       })
@@ -144,6 +146,45 @@ export class UserRoleRepository {
     await this.db
       .delete(userRole)
       .where(and(eq(userRole.organizationId, organizationId), eq(userRole.userId, userId)));
+    return true;
+  }
+
+  /**
+   * Create or update user-role assignment for a specific domain
+   */
+  async upsertWithDomain(input: CreateUserRoleInput & { domain: string }): Promise<UserRole> {
+    // Delete existing assignment for this domain
+    await this.deleteByDomain(input.organizationId, input.userId, input.domain);
+
+    // Insert new assignment
+    const [result] = await this.db
+      .insert(userRole)
+      .values({
+        organizationId: input.organizationId,
+        userId: input.userId,
+        roleId: input.roleId,
+        domain: input.domain,
+        grantedBy: input.grantedBy,
+        grantedAt: new Date(),
+      })
+      .returning();
+
+    return result;
+  }
+
+  /**
+   * Delete user-role assignment for a specific domain
+   */
+  async deleteByDomain(organizationId: string, userId: string, domain: string): Promise<boolean> {
+    await this.db
+      .delete(userRole)
+      .where(
+        and(
+          eq(userRole.organizationId, organizationId),
+          eq(userRole.userId, userId),
+          eq(userRole.domain, domain)
+        )
+      );
     return true;
   }
 

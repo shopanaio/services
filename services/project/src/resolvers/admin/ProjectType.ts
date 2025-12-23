@@ -85,6 +85,10 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
     return this.get("updatedAt");
   }
 
+  async organizationId() {
+    return this.get("organizationId");
+  }
+
   @Cache({
     cacheName: "project-locales",
     key: (resolver: ProjectResolver) => resolver.value,

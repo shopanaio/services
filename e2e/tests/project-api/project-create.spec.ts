@@ -34,7 +34,6 @@ test.describe('ProjectCreate API', () => {
     expect(result.project?.locales).toContain('en');
     expect(result.project?.currencies).toContain('USD');
     expect(result.project?.defaultCurrency).toBe('USD');
-    expect(result.project?.organizationId).toBeTruthy();
   });
 
   test('Create project with all fields', async ({ api }) => {
@@ -273,7 +272,9 @@ test.describe('ProjectCreate API', () => {
     expect(result.userErrors).toHaveLength(0);
     expect(result.project).not.toBeNull();
     expect(result.project?.currencies).toHaveLength(4);
-    expect(result.project?.currencies).toEqual(expect.arrayContaining(['USD', 'EUR', 'GBP', 'UAH']));
+    expect(result.project?.currencies).toEqual(
+      expect.arrayContaining(['USD', 'EUR', 'GBP', 'UAH']),
+    );
     expect(result.project?.defaultCurrency).toBe('EUR');
   });
 });

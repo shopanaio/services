@@ -46,6 +46,8 @@ export class GetMembersForDomainScript extends BaseScript<
         members: members.map((m) => ({
           userId: m.userId,
           role: m.roleName,
+          roleDisplayName: m.roleDisplayName ?? null,
+          roleIsSystem: m.roleIsSystem,
           grantedAt: m.grantedAt,
           grantedBy: m.grantedBy ?? undefined,
         })),

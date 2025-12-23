@@ -62,11 +62,44 @@ export interface GetMembersForDomainParams {
 export interface DomainMember {
   userId: string;
   role: string;
+  roleDisplayName?: string | null;
+  roleIsSystem?: boolean;
   grantedAt?: Date;
   grantedBy?: string;
 }
 
 export interface GetMembersForDomainResult {
   members: DomainMember[];
+  userErrors: UserError[];
+}
+
+/**
+ * ChangeRoleForDomain - Change a user's role in a specific domain (e.g., project)
+ */
+export interface ChangeRoleForDomainParams {
+  organizationId: string;
+  userId: string;
+  domain: ScopePart[]; // e.g., [["project", "abc-123"]]
+  newRole: string;
+  grantedBy?: string;
+}
+
+export interface ChangeRoleForDomainResult {
+  success: boolean;
+  grantedAt?: Date;
+  userErrors: UserError[];
+}
+
+/**
+ * RemoveMemberFromDomain - Remove a user from a specific domain (e.g., project)
+ */
+export interface RemoveMemberFromDomainParams {
+  organizationId: string;
+  userId: string;
+  domain: ScopePart[]; // e.g., [["project", "abc-123"]]
+}
+
+export interface RemoveMemberFromDomainResult {
+  success: boolean;
   userErrors: UserError[];
 }

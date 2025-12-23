@@ -1,5 +1,5 @@
 mutation ProjectMemberRemove($input: ProjectMemberRemoveInput!) {
-  roleMutation {
+  projectMutation {
     projectMemberRemove(input: $input) {
       removedUserId
       userErrors {

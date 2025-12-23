@@ -1,5 +1,5 @@
 mutation ProjectMemberRoleChange($input: ProjectMemberRoleChangeInput!) {
-  roleMutation {
+  projectMutation {
     projectMemberRoleChange(input: $input) {
       member {
         id

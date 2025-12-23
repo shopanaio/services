@@ -35,6 +35,13 @@ import {
   DetachUserRoleScript,
   type DetachUserRoleParams,
   type DetachUserRoleResult,
+  // Domain-specific role scripts
+  ChangeRoleForDomainScript,
+  type ChangeRoleForDomainParams,
+  type ChangeRoleForDomainResult,
+  RemoveMemberFromDomainScript,
+  type RemoveMemberFromDomainParams,
+  type RemoveMemberFromDomainResult,
   // Role management scripts
   CreateRoleScript,
   type CreateRoleParams,
@@ -140,6 +147,23 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action iam.detachUserRole registered");
+
+    // Register domain-specific role actions
+    this.broker.register<ChangeRoleForDomainParams, ChangeRoleForDomainResult>(
+      "changeRoleForDomain",
+      async (params) => {
+        return this.kernel.runScript(ChangeRoleForDomainScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.changeRoleForDomain registered");
+
+    this.broker.register<RemoveMemberFromDomainParams, RemoveMemberFromDomainResult>(
+      "removeMemberFromDomain",
+      async (params) => {
+        return this.kernel.runScript(RemoveMemberFromDomainScript, params!);
+      }
+    );
+    this.logger.debug("Action iam.removeMemberFromDomain registered");
 
     // Register role management actions
     this.broker.register<CreateRoleParams, CreateRoleResult>(

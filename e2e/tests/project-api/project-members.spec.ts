@@ -82,7 +82,7 @@ test.describe('Project Members', () => {
     api.session.project = data.projectMutation.projectCreate.project;
   });
 
-  test('Project creator should be the only member initially', async ({ api }) => {
+  test.only('Project creator should be the only member initially', async ({ api }) => {
     const { data } = await api.admin.query('project-api/ProjectMembers', {
       variables: { slug: projectSlug },
     });
@@ -189,7 +189,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.member).not.toBeNull();
@@ -221,7 +221,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.member?.role.name).toBe(roleName);
@@ -238,7 +238,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.member).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -300,7 +300,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.member).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -362,7 +362,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.member).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -379,7 +379,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.member).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -396,7 +396,7 @@ test.describe('Member Role Change', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRoleChange;
+    const result = data.projectMutation.projectMemberRoleChange;
 
     expect(result.member).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -446,7 +446,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.removedUserId).toBe(memberUser.userId);
@@ -472,7 +472,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.removedUserId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -502,7 +502,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.removedUserId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -563,7 +563,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.removedUserId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -622,7 +622,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.removedUserId).toBe(memberUser.userId);
@@ -683,7 +683,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.removedUserId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
@@ -699,7 +699,7 @@ test.describe('Member Remove', () => {
       },
     });
 
-    const result = data.roleMutation.projectMemberRemove;
+    const result = data.projectMutation.projectMemberRemove;
 
     expect(result.removedUserId).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);

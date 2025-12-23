@@ -8,6 +8,10 @@ export { GetMembersForDomainScript } from "./GetMembersForDomainScript.js";
 export { AttachUserRoleScript } from "./AttachUserRoleScript.js";
 export { DetachUserRoleScript } from "./DetachUserRoleScript.js";
 
+// Domain-specific role scripts
+export { ChangeRoleForDomainScript } from "./ChangeRoleForDomainScript.js";
+export { RemoveMemberFromDomainScript } from "./RemoveMemberFromDomainScript.js";
+
 // Role management scripts
 export { CreateRoleScript } from "./CreateRoleScript.js";
 export { UpdateRoleScript } from "./UpdateRoleScript.js";
@@ -33,6 +37,11 @@ export type {
   // Domain member types
   GetMembersForDomainParams,
   GetMembersForDomainResult,
+  // Domain-specific role types
+  ChangeRoleForDomainParams,
+  ChangeRoleForDomainResult,
+  RemoveMemberFromDomainParams,
+  RemoveMemberFromDomainResult,
   // Role management types
   RolePermission,
   RoleInfo,
