@@ -1,13 +1,13 @@
 import type { Kernel } from "../kernel/Kernel.js";
+import type { ProjectWithIntegrations } from "../repositories/index.js";
 
 /**
- * Project entity from context
+ * Project entity from context - full project with integrations
+ * organizationId is extracted from integrations.iam.config for convenience
  */
-export interface ContextProject {
-  id: string;
-  slug: string;
-  /** Tenant ID from IAM integration (Casdoor organization name) */
-  tenantId: string;
+export interface ContextProject extends ProjectWithIntegrations {
+  /** Organization ID from IAM integration (shortcut) */
+  organizationId: string;
 }
 
 /**
@@ -28,8 +28,8 @@ export interface ServiceContext {
   slug: string;
   /** Current project - required for all operations */
   project: ContextProject;
-  /** Authenticated user for admin API */
-  user: ContextUser;
+  /** Authenticated user (optional - may be API key auth) */
+  user?: ContextUser;
   /** Current locale for translations (default: 'uk') */
   locale?: string;
   /** Kernel for business logic */

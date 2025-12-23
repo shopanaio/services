@@ -148,23 +148,22 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
         .send({ data: null, errors: [{ message: "Project not found" }] });
     }
 
-    const tenantId = result.project.integrations.iam.config.tenantId;
+    const organizationId = result.project.integrations.iam.config.organizationId;
 
     // 4. Check user has role in this project via IAM
     const roleResult = await kernel.getServices().broker.call(
       "iam.getUserRole",
-      { userId: userResult.user.id, tenantId }
+      { userId: userResult.user.id, organizationId }
     ) as IamGetUserRoleResult;
 
     if (!roleResult.role) {
       throw new ForbiddenError("Access denied to this project");
     }
 
-    // Set project on request (including tenantId)
+    // Set full project on request with organizationId shortcut
     request.project = {
-      id: result.project.id,
-      slug: result.project.slug,
-      tenantId,
+      ...result.project,
+      organizationId,
     };
   };
 }

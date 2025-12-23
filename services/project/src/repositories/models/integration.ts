@@ -56,7 +56,7 @@ export const projectIntegration = projectSchema.table(
 
     /**
      * Public configuration (non-sensitive)
-     * Example for IAM: { tenantId: "my-store", endpoint: "https://auth.shopana.io" }
+     * Example for IAM: { organizationId: "uuid", endpoint: "https://auth.shopana.io" }
      */
     config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
 
@@ -95,5 +95,5 @@ export type IntegrationStatus = "active" | "inactive" | "error";
  * Type-safe config interfaces for each integration type
  */
 export interface IamIntegrationConfig {
-  tenantId: string;
+  organizationId: string;
 }

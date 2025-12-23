@@ -3,9 +3,9 @@
  *
  * Defines the Casbin model and predefined roles.
  *
- * TENANT ISOLATION:
- * Each tenant (project) has isolated Casbin policies via:
- * - Filtered policies by tenantId (v4 field in casbin_rule)
+ * ORGANIZATION ISOLATION:
+ * Each organization has isolated Casbin policies via:
+ * - Filtered policies by organizationId (v5 field in casbin_rule)
  * - Own Roles (owner, admin, etc. - simple names)
  * - Own Permissions stored in PostgreSQL
  */

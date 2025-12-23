@@ -9,7 +9,7 @@ Project ← IAM (reverse dependency)
    └── IAM extends type Project
 ```
 
-IAM depends on Project to resolve `projectSlug` → `tenantId` on every request.
+IAM depends on Project to resolve `projectSlug` → `organizationId` on every request.
 
 ---
 
@@ -56,7 +56,7 @@ Organization (1) ──▶ Projects (many)
 ```typescript
 // Before (src/api/graphql-admin/contextMiddleware.ts:63)
 const projectSlug = req.headers["x-project-name"];
-const { tenantId } = await broker.call("project.getCurrentProject", { slug: projectSlug });
+const { organizationId } = await broker.call("project.getCurrentProject", { slug: projectSlug });
 
 // After
 const organizationId = ctx.jwt.org; // Already in token, no lookup needed

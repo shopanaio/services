@@ -22,12 +22,12 @@ export interface ProjectCreateInput {
 
 export interface ProjectCreateOutput {
   projectId: string;
-  iamTenantId: string;
+  organizationId: string;
 }
 
 /** IAM tenant provisioning result */
 interface IamProvisionResult {
-  tenantId: string | null;
+  organizationId: string | null;
   roles: string[];
   userErrors: Array<{ code: string; message: string }>;
 }
@@ -38,8 +38,8 @@ interface IamProvisionResult {
  * Steps:
  * 1. Generate project ID (UUIDv7)
  * 2. Create project record in database
- * 3. Provision IAM tenant (via broker) - returns new tenantId, assigns owner role
- * 4. Save IAM integration reference with returned tenantId
+ * 3. Provision IAM organization (via broker) - returns new organizationId, assigns owner role
+ * 4. Save IAM integration reference with returned organizationId
  */
 export class ProjectCreateWorkflow extends BaseWorkflow {
 
@@ -66,14 +66,14 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
     const iamResult = await this.provisionIamTenant(input.userId);
 
     // Verify tenant was created successfully
-    if (!iamResult.tenantId) {
+    if (!iamResult.organizationId) {
       throw new Error("Failed to provision IAM tenant: " + JSON.stringify(iamResult.userErrors));
     }
 
-    // Step 3: Save IAM integration with returned tenantId (local)
-    await this.saveIamIntegration(projectId, iamResult.tenantId);
+    // Step 3: Save IAM integration with returned organizationId
+    await this.saveIamIntegration(projectId, iamResult.organizationId);
 
-    return { projectId, iamTenantId: iamResult.tenantId };
+    return { projectId, organizationId: iamResult.organizationId };
   }
 
   /**
@@ -105,7 +105,7 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
 
   /**
    * Step: Provision IAM tenant (EXTERNAL - via broker)
-   * IAM creates tenant with auto-generated UUIDv7 and returns tenantId
+   * IAM creates tenant with auto-generated UUIDv7 and returns organizationId
    * Also assigns owner role to the specified user
    */
   @DBOS.step()
@@ -118,16 +118,16 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
 
   /**
    * Step: Save IAM integration (LOCAL - direct repository call)
-   * Stores reference to IAM tenant returned by provisioning
+   * Stores reference to IAM organization returned by provisioning
    */
   @DBOS.step()
-  async saveIamIntegration(projectId: string, tenantId: string) {
-    console.log(`[ProjectCreateWorkflow.saveIamIntegration] projectId=${projectId}, tenantId=${tenantId}`);
+  async saveIamIntegration(projectId: string, organizationId: string) {
+    console.log(`[ProjectCreateWorkflow.saveIamIntegration] projectId=${projectId}, organizationId=${organizationId}`);
     const result = await this.repository.integration.create({
       projectId,
       type: "iam",
       provider: "internal",
-      config: { tenantId },
+      config: { organizationId },
     });
     console.log(`[ProjectCreateWorkflow.saveIamIntegration] Created integration:`, JSON.stringify(result));
     return result;

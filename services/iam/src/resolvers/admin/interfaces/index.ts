@@ -25,8 +25,8 @@ export type LocaleCode = "en" | "uk" | "ru" | "de" | "fr" | "es" | "pl";
  * Role view type
  */
 export interface Role {
-  /** Tenant ID (project slug) */
-  tenantId: string;
+  /** Organization ID */
+  organizationId: string;
   /** Role name/identifier */
   name: string;
   /** Human-readable display name */

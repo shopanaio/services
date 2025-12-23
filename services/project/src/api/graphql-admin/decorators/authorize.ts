@@ -49,7 +49,7 @@ export async function checkAuthorization(
   resource: string,
   action: string
 ): Promise<AuthorizationError | null> {
-  if (!ctx.user?.id || !ctx.project?.tenantId) {
+  if (!ctx.user?.id || !ctx.project?.organizationId) {
     return {
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -78,7 +78,7 @@ async function checkPermission(
 ): Promise<boolean> {
   const result = await ctx.kernel.getServices().broker.call("iam.authorize", {
     userId: ctx.user.id,
-    tenantId: ctx.project.tenantId,
+    organizationId: ctx.project.organizationId,
     resource,
     action,
     resourceId,
@@ -124,7 +124,7 @@ export function Authorize<TParent, TArgs extends Record<string, unknown>, TResul
       info: GraphQLResolveInfo
     ): Promise<TResult> {
       // Ensure context has required data
-      if (!ctx.user?.id || !ctx.project?.tenantId) {
+      if (!ctx.user?.id || !ctx.project?.organizationId) {
         throw new ForbiddenError("Authentication required");
       }
 
@@ -173,7 +173,7 @@ export function AuthorizeAny<TParent, TArgs extends Record<string, unknown>, TRe
       info: GraphQLResolveInfo
     ): Promise<TResult> {
       // Ensure context has required data
-      if (!ctx.user?.id || !ctx.project?.tenantId) {
+      if (!ctx.user?.id || !ctx.project?.organizationId) {
         throw new ForbiddenError("Authentication required");
       }
 
