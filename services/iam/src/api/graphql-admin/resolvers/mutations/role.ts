@@ -187,6 +187,26 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       const tenantId = ctx.tenantId!;
       const currentUserId = ctx.currentUser!.id;
 
+      // Cannot change own role
+      if (input.userId === currentUserId) {
+        return {
+          member: null,
+          userErrors: [{ code: "CANNOT_CHANGE_OWN_ROLE", message: "Cannot change your own role." }],
+        };
+      }
+
+      // Check if trying to assign owner role - only owner can do this
+      if (input.newRole === "owner") {
+        // Get current user's role
+        const currentUserRole = await ctx.kernel.repository.authorization.getUserRole(tenantId, currentUserId);
+        if (currentUserRole?.name !== "owner") {
+          return {
+            member: null,
+            userErrors: [{ code: "CANNOT_ASSIGN_OWNER", message: "Only owner can assign owner role." }],
+          };
+        }
+      }
+
       // First, detach current role (if any)
       await ctx.kernel.runScript(DetachUserRoleScript, {
         userId: input.userId,
@@ -264,6 +284,23 @@ export const roleMutationResolvers: Partial<Resolvers> = {
 
       const tenantId = ctx.tenantId!;
       const currentUserId = ctx.currentUser!.id;
+
+      // Cannot remove self
+      if (input.userId === currentUserId) {
+        return {
+          removedUserId: null,
+          userErrors: [{ code: "CANNOT_REMOVE_SELF", message: "Cannot remove yourself from the project." }],
+        };
+      }
+
+      // Cannot remove project owner
+      const targetUserRole = await ctx.kernel.repository.authorization.getUserRole(tenantId, input.userId);
+      if (targetUserRole?.name === "owner") {
+        return {
+          removedUserId: null,
+          userErrors: [{ code: "CANNOT_REMOVE_OWNER", message: "Cannot remove project owner." }],
+        };
+      }
 
       const result = await ctx.kernel.runScript(DetachUserRoleScript, {
         userId: input.userId,

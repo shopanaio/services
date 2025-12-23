@@ -40,7 +40,6 @@ function mapRoleInfoToRole(role: RoleInfo): Role {
     displayName: role.displayName,
     description: role.description,
     isSystem: role.isSystem,
-    inherits: role.inherits,
     permissions: role.permissions.map(mapRolePermission),
     createdAt: role.createdAt?.toISOString(),
   };
@@ -137,9 +136,11 @@ export const roleResolvers: Partial<Resolvers> = {
     /**
      * Get all roles for the project.
      */
-    roles: async (parent, _args, ctx) => {
-      const tenantId = parent.id;
+    roles: async (_parent, _args, ctx) => {
+      // ctx.tenantId is resolved from X-Project-Name header via contextMiddleware
+      const tenantId = ctx.tenantId;
       if (!tenantId) {
+        console.error("[Project.roles] No tenantId in context");
         return [];
       }
 
@@ -165,9 +166,11 @@ export const roleResolvers: Partial<Resolvers> = {
     /**
      * Get project team members with roles.
      */
-    members: async (parent, _args, ctx) => {
-      const tenantId = parent.id;
+    members: async (_parent, _args, ctx) => {
+      // ctx.tenantId is resolved from X-Project-Name header via contextMiddleware
+      const tenantId = ctx.tenantId;
       if (!tenantId) {
+        console.error("[Project.members] No tenantId in context");
         return [];
       }
 

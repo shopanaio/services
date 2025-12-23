@@ -130,6 +130,14 @@ export class AuthorizationRepository {
   }
 
   /**
+   * Get user's role with details in a tenant
+   */
+  async getUserRole(tenantId: string, userId: string) {
+    const result = await this.userRoleRepo.findByTenantAndUser(tenantId, userId);
+    return result?.role ?? null;
+  }
+
+  /**
    * Attach a role to user in tenant
    */
   async attachUserRole(

@@ -788,11 +788,6 @@ export type Role = {
   description?: Maybe<Scalars['String']['output']>;
   /** Human-readable display name. */
   displayName: Scalars['String']['output'];
-  /**
-   * Roles this role inherits from (for hierarchy).
-   * E.g., manager inherits from support.
-   */
-  inherits: Array<Scalars['String']['output']>;
   /** System role (owner, admin, manager, support, viewer) cannot be deleted. */
   isSystem: Scalars['Boolean']['output'];
   /** Unique role name (e.g.: owner, admin, content-editor). */
@@ -807,8 +802,6 @@ export type RoleCreateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** Display name. */
   displayName: Scalars['String']['input'];
-  /** Roles to inherit from. */
-  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Unique role name (slug). */
   name: Scalars['String']['input'];
   /** Role permissions. */
@@ -936,8 +929,6 @@ export type RoleUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New display name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
-  /** Roles to inherit from. */
-  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Role name to update. */
   name: Scalars['String']['input'];
   /** New permissions (completely replaces existing). */
@@ -1455,7 +1446,6 @@ export type RoleResolvers<ContextType = ServiceContext, ParentType extends Resol
   createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  inherits?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   isSystem?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   permissions?: Resolver<Array<ResolversTypes['RolePermission']>, ParentType, ContextType>;
