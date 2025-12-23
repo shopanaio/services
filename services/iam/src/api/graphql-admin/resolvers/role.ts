@@ -5,7 +5,6 @@ import type {
   ProjectMember,
   ResourceDefinition,
 } from "../generated/types.js";
-import type { ServiceContext } from "@src/context/types.js";
 import { PermissionEffect } from "../generated/types.js";
 import {
   ListRolesScript,
@@ -15,7 +14,10 @@ import {
 } from "../../../scripts/authorization/index.js";
 // Note: ListRolesScript is used in Project.roles resolver
 // AuthorizeScript is used in Query.authorize resolver
-import type { RoleInfo, RolePermission as DtoRolePermission } from "../../../scripts/authorization/dto/index.js";
+import type {
+  RoleInfo,
+  RolePermission as DtoRolePermission,
+} from "../../../scripts/authorization/dto/index.js";
 
 /**
  * Map DTO RolePermission to GraphQL RolePermission
@@ -24,7 +26,8 @@ function mapRolePermission(perm: DtoRolePermission): RolePermission {
   return {
     resource: perm.resource,
     actions: perm.actions,
-    effect: perm.effect === "Allow" ? PermissionEffect.Allow : PermissionEffect.Deny,
+    effect:
+      perm.effect === "Allow" ? PermissionEffect.Allow : PermissionEffect.Deny,
   };
 }
 
@@ -129,47 +132,14 @@ const AVAILABLE_RESOURCES: ResourceDefinition[] = [
 ];
 
 export const roleResolvers: Partial<Resolvers> = {
-  // Extend Project type with roles, members, availableResources
+  // Extend Project type from project-service
   Project: {
     /**
-     * Federation resolver for Project entity.
-     * Resolves tenantId from project ID and attaches to context for field resolvers.
+     * Get all roles for the project.
      */
-    __resolveReference: async (reference: { id: string }, ctx: ServiceContext) => {
-      console.log("[Project.__resolveReference] id:", reference.id, "existing tenantId:", ctx.tenantId);
-
-      // Always try to resolve tenantId from project service for federation requests
-      try {
-        const broker = ctx.kernel.getServices().broker;
-        console.log("[Project.__resolveReference] Calling project.getProjectById...");
-        const result = await broker.call<{ id: string }, { project?: { integrations: { iam?: { config: { tenantId: string } } } }; userErrors: any[] }>(
-          "project.getProjectById",
-          { id: reference.id }
-        );
-        console.log("[Project.__resolveReference] Result:", JSON.stringify(result));
-
-        if (result.project?.integrations?.iam?.config?.tenantId) {
-          // Mutate context to set tenantId for field resolvers
-          (ctx as any).tenantId = result.project.integrations.iam.config.tenantId;
-          console.log("[Project.__resolveReference] Set tenantId:", ctx.tenantId);
-        } else {
-          console.warn("[Project.__resolveReference] No tenantId in project result");
-        }
-      } catch (error) {
-        console.error("[Project.__resolveReference] Error resolving tenantId:", error);
-      }
-
-      return { id: reference.id };
-    },
-
-    /**
-     * Resolve roles for a project.
-     * Uses the project ID to get the tenant org name.
-     */
-    roles: async (_parent, _args, ctx) => {
-      const tenantId = ctx.tenantId;
+    roles: async (parent, _args, ctx) => {
+      const tenantId = parent.id;
       if (!tenantId) {
-        console.error("[Project.roles] No tenantId in context");
         return [];
       }
 
@@ -186,68 +156,60 @@ export const roleResolvers: Partial<Resolvers> = {
     },
 
     /**
-     * Resolve available resources for role editor.
+     * Get available resources for role editor.
      */
-    availableResources: async (_parent, _args, _ctx) => {
-      // Return static list of resources
-      // In a full implementation, this could query each service for its resources
+    availableResources: () => {
       return AVAILABLE_RESOURCES;
     },
 
     /**
-     * Resolve project members with roles.
+     * Get project team members with roles.
      */
-    members: async (_parent, _args, ctx): Promise<ProjectMember[]> => {
-      try {
-        const tenantId = ctx.tenantId;
-        console.log("[Project.members] tenantId:", tenantId);
-        if (!tenantId) {
-          console.error("[Project.members] No tenantId in context");
-          return [];
-        }
+    members: async (parent, _args, ctx) => {
+      const tenantId = parent.id;
+      if (!tenantId) {
+        return [];
+      }
 
-        // Get all members with their roles
-        const membersResult = await ctx.kernel.runScript(ListTenantMembersScript, {
-          tenantId,
-        });
+      // Get members and roles in parallel
+      const [membersResult, rolesResult] = await Promise.all([
+        ctx.kernel.runScript(ListTenantMembersScript, { tenantId }),
+        ctx.kernel.runScript(ListRolesScript, { tenantId }),
+      ]);
 
-        console.log("[Project.members] membersResult:", JSON.stringify(membersResult));
+      if (membersResult.userErrors.length > 0) {
+        console.error("[Project.members] Error:", membersResult.userErrors);
+        return [];
+      }
 
-        if (membersResult.userErrors.length > 0) {
-          console.error("[Project.members] Error:", membersResult.userErrors);
-          return [];
-        }
+      // Create a map of role name -> RoleInfo for quick lookup
+      const rolesMap = new Map<string, RoleInfo>();
+      for (const role of rolesResult.roles) {
+        rolesMap.set(role.name, role);
+      }
 
-        // Get all roles for role details
-        const rolesResult = await ctx.kernel.runScript(ListRolesScript, {
-          tenantId,
-        });
-
-        const rolesMap = new Map(
-          rolesResult.roles.map((r) => [r.name, mapRoleInfoToRole(r)])
-        );
-
-        // Map members to ProjectMember type
-        const members: ProjectMember[] = membersResult.members.map((m) => ({
-          id: m.userId,
-          user: { __typename: 'User', id: m.userId } as any, // Federation entity reference
-          role: rolesMap.get(m.role) ?? {
-            name: m.role,
-            displayName: m.role,
+      return membersResult.members.map((member) => {
+        const roleInfo = rolesMap.get(member.role);
+        return {
+          id: member.userId,
+          // Federation reference - gateway will resolve full User
+          user: {
+            id: member.userId,
+            email: member.email,
+          },
+          role: roleInfo ? mapRoleInfoToRole(roleInfo) : {
+            name: member.role,
+            displayName: member.role,
             isSystem: false,
-            inherits: [],
             permissions: [],
           },
-          grantedAt: m.grantedAt?.toISOString() ?? null,
-          grantedBy: m.grantedBy ? { __typename: 'User', id: m.grantedBy } as any : null,
-        }));
-
-        console.log("[Project.members] Returning members:", members.length);
-        return members;
-      } catch (error) {
-        console.error("[Project.members] Exception:", error);
-        throw error;
-      }
+          grantedAt: member.grantedAt?.toISOString(),
+          // Federation reference for grantedBy
+          grantedBy: member.grantedBy
+            ? { id: member.grantedBy, email: "" }
+            : null,
+        } as ProjectMember;
+      });
     },
   },
 
@@ -288,7 +250,8 @@ export const roleResolvers: Partial<Resolvers> = {
       if (!tenantId) {
         return {
           allowed: false,
-          deniedReason: "No project context. Please provide X-Project-Name header.",
+          deniedReason:
+            "No project context. Please provide X-Project-Name header.",
         };
       }
 
@@ -313,4 +276,31 @@ export const roleResolvers: Partial<Resolvers> = {
       };
     },
   },
+
+  // ProjectMember type resolvers
+  ProjectMember: {
+    user: (parent) => {
+      // Return federation reference - gateway will resolve User fields
+      return {
+        id: parent.user.id,
+        email: parent.user.email,
+      };
+    },
+    role: (parent) => {
+      // Role is already resolved in parent
+      return parent.role;
+    },
+    grantedBy: (parent) => {
+      if (!parent.grantedBy) return null;
+      // Return federation reference - gateway will resolve full User
+      const grantedById =
+        typeof parent.grantedBy === "string"
+          ? parent.grantedBy
+          : parent.grantedBy.id;
+      return {
+        id: grantedById,
+        email: "",
+      };
+    },
+  } as Resolvers["ProjectMember"],
 };

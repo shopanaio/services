@@ -23,4 +23,12 @@ export const resolvers = {
     ...queryResolvers.User,
     ...roleResolvers.User,
   },
+  // Project entity extension (from project-service)
+  Project: {
+    ...roleResolvers.Project,
+  },
+  // ProjectMember type resolvers
+  ProjectMember: {
+    ...roleResolvers.ProjectMember,
+  },
 };
