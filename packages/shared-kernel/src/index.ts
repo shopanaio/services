@@ -1,11 +1,28 @@
-export { Kernel } from './Kernel';
-export { NestLogger } from './NestLogger';
-export { TransactionManager, type TransactionalDatabase, Transactional, ReadOnly } from './TransactionManager';
-export { ActionRegistry, type ActionHandler } from './broker/ActionRegistry';
-export { ServiceBroker, type ServiceBrokerOptions } from './broker/ServiceBroker';
-export { BrokerCoreModule, type BrokerCoreModuleOptions } from './broker/BrokerCoreModule';
-export { BrokerModule, type BrokerFeatureOptions } from './broker/BrokerModule';
-export { SERVICE_BROKER, SERVICE_NAME, BROKER_AMQP, InjectBroker, getBrokerToken } from './broker/tokens';
+export { Kernel } from "./Kernel";
+export { NestLogger } from "./NestLogger";
+export {
+  TransactionManager,
+  type TransactionalDatabase,
+  Transactional,
+  ReadOnly,
+} from "./TransactionManager";
+export { ActionRegistry, type ActionHandler } from "./broker/ActionRegistry";
+export {
+  ServiceBroker,
+  type ServiceBrokerOptions,
+} from "./broker/ServiceBroker";
+export {
+  BrokerCoreModule,
+  type BrokerCoreModuleOptions,
+} from "./broker/BrokerCoreModule";
+export { BrokerModule, type BrokerFeatureOptions } from "./broker/BrokerModule";
+export {
+  SERVICE_BROKER,
+  SERVICE_NAME,
+  BROKER_AMQP,
+  InjectBroker,
+  getBrokerToken,
+} from "./broker/tokens";
 export {
   type Logger,
   type BaseKernelServices,
@@ -14,4 +31,16 @@ export {
   type ScriptContext,
   type ScriptResult,
   KernelError,
-} from './types';
+} from "./types";
+
+// Resource discovery types
+export {
+  type ResourceAction,
+  type ResourceActionDefinition,
+  type ResourceDefinition,
+  type ServiceResourceDeclaration,
+  type GetResourcesParams,
+  type GetResourcesResult,
+  type AggregatedResources,
+  type FlatResourceDefinition,
+} from "./resources/types";
