@@ -83,7 +83,7 @@ test.describe('Project Isolation', () => {
     // Set project slug to User A's project while authenticated as User B
     api.session.project = { slug: slugA, id: '' } as typeof api.session.project;
 
-    const { data: projectData } = await api.admin.query('project-api/Project', {
+    const { data: projectData, errors } = await api.admin.query('project-api/Project', {
       throwOnError: false,
       variables: {
         slug: slugA,
@@ -91,8 +91,10 @@ test.describe('Project Isolation', () => {
     });
 
     // User B should NOT be able to see User A's project
-    // Either data is null (error) or project is null (access denied)
-    expect(projectData?.projectQuery?.project ?? null).toBeNull();
+    // contextMiddleware throws ForbiddenError when user has no access
+    expect(errors).toBeDefined();
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].extensions?.code).toBe('FORBIDDEN');
   });
 
   test.skip('User cannot see other users projects in projects list', async ({ api, userA, userB }) => {

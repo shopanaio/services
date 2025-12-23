@@ -19,7 +19,7 @@ import {
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
-import { buildAdminContextMiddleware } from "./contextMiddleware.js";
+import { buildAdminContextMiddleware, ForbiddenError } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
@@ -82,12 +82,42 @@ export async function startServer(serverConfig: ServerConfig) {
     introspection: true,
     schema: buildSubgraphSchema(modules),
     plugins: [fastifyApolloDrainPlugin(app)],
+    formatError: (formattedError, error) => {
+      // Handle ForbiddenError from context middleware
+      const originalError = error instanceof Error ? error : (error as any)?.originalError;
+      if (originalError instanceof ForbiddenError) {
+        return {
+          ...formattedError,
+          message: originalError.message,
+          extensions: {
+            ...formattedError.extensions,
+            code: "FORBIDDEN",
+          },
+        };
+      }
+      return formattedError;
+    },
   });
 
   await apollo.start();
 
-  // Admin context middleware
-  app.addHook("preHandler", buildAdminContextMiddleware({}));
+  // Admin context middleware with error handling
+  app.addHook("preHandler", async (request, reply) => {
+    try {
+      await buildAdminContextMiddleware({})(request, reply);
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
+        return reply.status(200).send({
+          data: null,
+          errors: [{
+            message: error.message,
+            extensions: { code: "FORBIDDEN" }
+          }]
+        });
+      }
+      throw error;
+    }
+  });
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {

@@ -157,9 +157,7 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     ) as IamGetUserRoleResult;
 
     if (!roleResult.role) {
-      return reply
-        .status(403)
-        .send({ data: null, errors: [{ message: "Access denied", code: "ACCESS_DENIED" }] });
+      throw new ForbiddenError("Access denied to this project");
     }
 
     // Set project on request (including tenantId)
