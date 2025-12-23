@@ -872,35 +872,41 @@ query {
 
 ## Migration Plan
 
-### Phase 1: Add Organization Entity
-1. Create `Organization` type in IAM schema
-2. Add `organizationId` claim support in JWT
-3. Add `myOrganizations` query
-4. Add `switchOrganization` mutation
-5. Keep existing `X-Project-Name` flow working (parallel)
+### Phase 1: Fix Casbin Adapter
+1. Install `drizzle-adapter` for Casbin
+2. Update CasbinService to use DrizzleAdapter with `iam.casbin_rule` table
+3. Migrate data from `public.casbin` (JSONB) to `iam.casbin_rule` (v0-v5)
+4. Remove `casbin-pg-adapter` dependency
 
-### Phase 2: Update Casbin Model (Domain)
-6. Update `model.conf` to add domain parameter
-7. Migrate casbin_rule table schema (add domain column)
-8. Update CasbinService to use 4-param enforce
-9. Add `assignProjectRole` / `removeProjectAccess` mutations
-10. Migrate existing policies: set domain = "*" (all projects)
+### Phase 2: Add Organization Entity
+5. Create `Organization` type in IAM schema
+6. Add `organizationId` claim support in JWT
+7. Add `myOrganizations` query
+8. Add `switchOrganization` mutation
+9. Keep existing `X-Project-Name` flow working (parallel)
 
-### Phase 3: Update Project Service
-11. Add `organizationId` column to Project table
-12. Add `organization` field resolver (federation reference)
-13. Migrate existing projects to organizations
+### Phase 3: Update Casbin Model (Domain)
+10. Update `model.conf` to add domain parameter
+11. Add domain column to `iam.casbin_rule` (v6 or separate column)
+12. Update CasbinService to use 4-param enforce
+13. Add `assignRole` / `removeRole` mutations with domain
+14. Migrate existing policies: set domain = "*" (all projects)
 
-### Phase 4: Cleanup IAM
-14. Remove `extend type Project` from IAM
-15. Remove `project.getCurrentProject` broker call
-16. Remove `X-Project-Name` header support
-17. Read `organizationId` from JWT only
+### Phase 4: Update Project Service
+15. Add `organizationId` column to Project table
+16. Add `organization` field resolver (federation reference)
+17. Migrate existing projects to organizations
 
-### Phase 5: Resource Registration
-18. Add `iam.registerResources` action
-19. Update services to register on startup
-20. Remove polling from IAM
+### Phase 5: Cleanup IAM
+18. Remove `extend type Project` from IAM
+19. Remove `project.getCurrentProject` broker call
+20. Remove `X-Project-Name` header support
+21. Read `organizationId` from JWT only
+
+### Phase 6: Resource Registration
+22. Add `iam.registerResources` action
+23. Update services to register on startup
+24. Remove polling from IAM
 
 ---
 
@@ -910,8 +916,9 @@ query {
 
 | File | Change |
 |------|--------|
+| `package.json` | Add `drizzle-adapter`, remove `casbin-pg-adapter` |
+| `src/casbin/CasbinService.ts` | Use DrizzleAdapter with `iam.casbin_rule` |
 | `src/casbin/model.conf` | Add domain parameter (sub, dom, obj, act) |
-| `src/casbin/CasbinService.ts` | Update enforce() to 4 params |
 | `src/api/graphql-admin/contextMiddleware.ts` | Read organizationId from JWT |
 | `src/api/graphql-admin/schema/role.graphql` | Remove `extend type Project` |
 | `src/api/graphql-admin/schema/organization.graphql` | NEW: Organization type, ProjectAccess |
@@ -944,6 +951,7 @@ query {
 
 | Aspect | Before | After |
 |--------|--------|-------|
+| Casbin adapter | `casbin-pg-adapter` (public.casbin, JSONB) | `drizzle-adapter` (iam.casbin_rule, v0-v5) |
 | Org resolution | IAM calls Project | JWT contains organizationId |
 | Federation | IAM extends Project | IAM owns Organization, Project references it |
 | Resource discovery | IAM polls services | Services register to IAM |
