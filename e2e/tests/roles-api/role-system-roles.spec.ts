@@ -8,9 +8,14 @@ const generateProjectSlug = () => `test-project-${crypto.randomUUID().slice(0, 8
  * System Roles Tests
  *
  * Tests that verify system roles are properly created when a project is provisioned.
+ * According to the new Casbin/IAM architecture:
+ * - System roles are scoped to organization (organizationId)
+ * - Role assignments are domain-scoped (project-level)
+ * - Policies use 4-parameter format: (sub, dom, obj, act, eft)
+ *
  * System roles are flat (no inheritance):
- * - owner: full access
- * - admin: full access except project delete/billing
+ * - owner: full access (*:* wildcard)
+ * - admin: full access except project delete/billing (with DENY rules)
  * - manager: product/category/media management
  * - support: order/customer management
  * - viewer: read-only access

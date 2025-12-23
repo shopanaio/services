@@ -9,10 +9,13 @@ const generateRoleName = () => `custom-role-${crypto.randomUUID().slice(0, 8)}`;
  * Role Update and Delete Tests
  *
  * Tests for updating and deleting roles via roleMutation.roleUpdate and roleMutation.roleDelete.
- * According to the IAM plan:
+ * According to the new Casbin/IAM architecture:
+ * - Roles are scoped to organization (organizationId)
+ * - Policy updates trigger cache invalidation (invalidateEnforcer)
+ * - Deleting roles uses removeFilteredPolicy(organizationId, roleName)
  * - Requires project:admin permission
  * - System roles cannot be modified or deleted
- * - Roles with assigned users cannot be deleted
+ * - Roles with assigned users (grouping rules) cannot be deleted
  */
 test.describe('Role Update', () => {
   let projectSlug: string;

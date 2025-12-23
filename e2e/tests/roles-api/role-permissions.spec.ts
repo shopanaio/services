@@ -30,10 +30,13 @@ const test = base.extend<{
  * Role Permissions and Authorization Tests
  *
  * Tests for the authorize query that checks user permissions.
- * According to the IAM plan:
- * - DENY always wins over ALLOW
+ * According to the new Casbin/IAM architecture:
+ * - 4-parameter model: (sub, dom, obj, act)
+ * - Domain parameter specifies project scope: [["project", projectId]]
+ * - DENY always wins over ALLOW (policy_effect unchanged)
  * - Permissions are checked with role + inherited role permissions
- * - Wildcard patterns (* and resource/*) are supported
+ * - Wildcard patterns (* and resource/*) are supported via keyMatch
+ * - OrganizationId is required for authorization context
  */
 test.describe('Authorization Checks', () => {
   let projectSlug: string;

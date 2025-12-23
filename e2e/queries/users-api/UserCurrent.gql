@@ -5,6 +5,7 @@ query UserCurrent {
       email
       firstName
       lastName
+      organizationId
       role
     }
   }

@@ -8,6 +8,7 @@ export interface GqlRequestSession {
   apiKey: string;
   accessToken: string | null;
   scope: 'tenant' | 'customer';
+  organizationId: string | null;
 }
 
 export class BaseGqlRequest<QueryType, MutationType> {

@@ -5,6 +5,7 @@ export interface UserSession {
   data: UserData;
   accessToken: string;
   userId: string;
+  organizationId?: string;
 }
 
 export class UserFixture {
@@ -26,7 +27,7 @@ export class UserFixture {
       data as {
         userMutation: {
           signUp: {
-            user: { id: string; email: string } | null;
+            user: { id: string; email: string; organizationId?: string } | null;
             token: { accessToken: string; refreshToken: string } | null;
             userErrors: { code: string; message: string; field: string }[];
           };
@@ -46,6 +47,7 @@ export class UserFixture {
       },
       accessToken: result.token.accessToken,
       userId: result.user.id,
+      organizationId: result.user.organizationId,
     };
   };
 }

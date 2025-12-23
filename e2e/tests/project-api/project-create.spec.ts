@@ -34,6 +34,7 @@ test.describe('ProjectCreate API', () => {
     expect(result.project?.locales).toContain('en');
     expect(result.project?.currencies).toContain('USD');
     expect(result.project?.defaultCurrency).toBe('USD');
+    expect(result.project?.organizationId).toBe(api.session.organizationId);
   });
 
   test('Create project with all fields', async ({ api }) => {

@@ -14,6 +14,7 @@ query Project($slug: String!) {
       defaultCurrency
       defaultWeightUnit
       defaultDimensionUnit
+      organizationId
       createdAt
       updatedAt
     }

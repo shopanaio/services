@@ -1,5 +1,8 @@
 import { newEnforcer, Enforcer, newModelFromString } from "casbin";
-import DrizzleAdapter from "drizzle-adapter";
+import DrizzleAdapterModule from "drizzle-adapter";
+
+// Handle CJS/ESM interop - drizzle-adapter is CJS with exports.default
+const DrizzleAdapter = (DrizzleAdapterModule as any).default ?? DrizzleAdapterModule;
 import { CASBIN_MODEL_TEXT } from "../constants/rbac.js";
 import { casbinRule } from "../repositories/models/authorization.js";
 import type { Database } from "../db/database.js";
@@ -30,7 +33,7 @@ export type ScopePart =
  */
 export class CasbinService {
   private enforcers: Map<string, Enforcer> = new Map();
-  private adapter: DrizzleAdapter | null = null;
+  private adapter: InstanceType<typeof DrizzleAdapter> | null = null;
   private initialized = false;
 
   constructor(private readonly db: Database) {}

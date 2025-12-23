@@ -15,6 +15,7 @@ mutation ProjectCreate($input: ProjectCreateInput!) {
         defaultCurrency
         defaultWeightUnit
         defaultDimensionUnit
+        organizationId
         createdAt
         updatedAt
       }

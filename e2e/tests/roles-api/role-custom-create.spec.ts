@@ -8,9 +8,12 @@ const generateRoleName = () => `custom-role-${crypto.randomUUID().slice(0, 8)}`;
  * Custom Role Creation Tests
  *
  * Tests for creating custom roles via roleMutation.roleCreate.
- * According to the IAM plan:
- * - Requires project:admin permission
- * - Name must be unique within project
+ * According to the new Casbin/IAM architecture:
+ * - Custom roles are created within organization scope (organizationId)
+ * - Permissions use 5-field format: (role, domain, resource, action, effect)
+ * - Domain parameter allows project-specific permissions
+ * - Requires project:admin permission to create roles
+ * - Name must be unique within organization
  * - Name cannot match system roles
  * - Name must be valid slug (a-z0-9-_)
  */

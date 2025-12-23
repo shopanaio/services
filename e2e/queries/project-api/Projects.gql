@@ -14,6 +14,7 @@ query Projects {
       defaultCurrency
       defaultWeightUnit
       defaultDimensionUnit
+      organizationId
       createdAt
       updatedAt
     }

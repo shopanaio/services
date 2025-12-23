@@ -9,14 +9,17 @@ export class SessionFixture {
     client: StorefrontApiFixture;
   };
 
-  project!: ApiProject;
+  project!: Partial<ApiProject> & { id: string; slug: string; name: string };
 
   apiKey!: string;
+
+  organizationId: string | null = null;
 
   tenant: {
     data: UserData;
     accessToken?: string;
     userId?: string;
+    organizationId?: string;
   };
 
   get projectSlug(): string {
@@ -46,10 +49,13 @@ export class SessionFixture {
 
     this.tenant.accessToken = session.accessToken;
     this.tenant.userId = session.userId;
+    this.tenant.organizationId = session.organizationId;
+    this.organizationId = session.organizationId ?? null;
 
     return {
       user: { id: session.userId },
       token: { accessToken: session.accessToken },
+      organizationId: session.organizationId,
     };
   }
 

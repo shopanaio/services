@@ -26,6 +26,12 @@ const test = base.extend<{
  * Project Access Permission Tests
  *
  * Tests that verify users cannot perform actions without proper permissions.
+ * According to the new Casbin/IAM architecture:
+ * - Permission checks use domain parameter: [["project", projectId]]
+ * - enforce(organizationId, userId, domain, resource, action)
+ * - Role assignments are domain-scoped for project-level isolation
+ * - Cache invalidation is required after role changes
+ *
  * These tests actually attempt operations and verify they fail with FORBIDDEN error.
  */
 test.describe('Project Access Permissions', () => {
