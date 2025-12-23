@@ -56,7 +56,6 @@ test.describe('Custom Role Creation', () => {
           name: roleName,
           displayName: 'Content Editor',
           description: 'Can edit products and categories',
-          inherits: ['viewer'],
           permissions: [
             {
               resource: 'product',
@@ -84,7 +83,6 @@ test.describe('Custom Role Creation', () => {
     expect(result.role?.name).toBe(roleName);
     expect(result.role?.displayName).toBe('Content Editor');
     expect(result.role?.description).toBe('Can edit products and categories');
-    expect(result.role?.inherits).toContain('viewer');
     expect(result.role?.isSystem).toBe(false);
     expect(result.role?.permissions.length).toBe(3);
   });
@@ -97,8 +95,12 @@ test.describe('Custom Role Creation', () => {
         input: {
           name: roleName,
           displayName: 'Limited Manager',
-          inherits: ['manager'],
           permissions: [
+            {
+              resource: 'product',
+              actions: ['read', 'update'],
+              effect: 'ALLOW',
+            },
             {
               resource: 'product',
               actions: ['delete'],
@@ -294,27 +296,6 @@ test.describe('Custom Role Creation', () => {
     }
   });
 
-  test('Should fail when creating role with invalid inherits reference', async ({ api }) => {
-    const roleName = generateRoleName();
-
-    const { data } = await api.admin.mutation('roles-api/RoleCreate', {
-      throwOnError: false,
-      variables: {
-        input: {
-          name: roleName,
-          displayName: 'Invalid Inherit Role',
-          inherits: ['non-existent-role'],
-          permissions: [{ resource: 'product', actions: ['read'], effect: 'ALLOW' }],
-        },
-      },
-    });
-
-    const result = data.roleMutation.roleCreate;
-
-    expect(result.role).toBeNull();
-    expect(result.userErrors.length).toBeGreaterThan(0);
-  });
-
   test('Created custom role should appear in project roles list', async ({ api }) => {
     const roleName = generateRoleName();
 
@@ -338,37 +319,5 @@ test.describe('Custom Role Creation', () => {
     const customRole = roles.find((r: { name: string }) => r.name === roleName);
     expect(customRole).toBeDefined();
     expect(customRole?.isSystem).toBe(false);
-  });
-
-  test('Should create role with multiple inheritance', async ({ api }) => {
-    // First create a custom role
-    const baseRoleName = generateRoleName();
-    await api.admin.mutation('roles-api/RoleCreate', {
-      variables: {
-        input: {
-          name: baseRoleName,
-          displayName: 'Base Custom Role',
-          permissions: [{ resource: 'media', actions: ['read'], effect: 'ALLOW' }],
-        },
-      },
-    });
-
-    // Create another role that inherits from both viewer and custom role
-    const roleName = generateRoleName();
-    const { data } = await api.admin.mutation('roles-api/RoleCreate', {
-      variables: {
-        input: {
-          name: roleName,
-          displayName: 'Multi Inherit Role',
-          inherits: ['viewer', baseRoleName],
-          permissions: [{ resource: 'product', actions: ['read'], effect: 'ALLOW' }],
-        },
-      },
-    });
-
-    const result = data.roleMutation.roleCreate;
-    expect(result.userErrors).toHaveLength(0);
-    expect(result.role?.inherits).toContain('viewer');
-    expect(result.role?.inherits).toContain(baseRoleName);
   });
 });

@@ -139,38 +139,6 @@ test.describe('Role Update', () => {
     expect(productPerm?.actions).toContain('update');
   });
 
-  test('Should update custom role inherits', async ({ api }) => {
-    const roleName = generateRoleName();
-
-    // Create custom role
-    await api.admin.mutation('roles-api/RoleCreate', {
-      variables: {
-        input: {
-          name: roleName,
-          displayName: 'Test Role',
-          inherits: ['viewer'],
-          permissions: [{ resource: 'product', actions: ['read'], effect: 'ALLOW' }],
-        },
-      },
-    });
-
-    // Update inherits
-    const { data } = await api.admin.mutation('roles-api/RoleUpdate', {
-      variables: {
-        input: {
-          name: roleName,
-          inherits: ['support'],
-        },
-      },
-    });
-
-    const result = data.roleMutation.roleUpdate;
-
-    expect(result.userErrors).toHaveLength(0);
-    expect(result.role?.inherits).toContain('support');
-    expect(result.role?.inherits).not.toContain('viewer');
-  });
-
   test('Should fail when updating system role', async ({ api }) => {
     const systemRoles = ['owner', 'admin', 'manager', 'support', 'viewer'];
 
@@ -365,49 +333,4 @@ test.describe('Role Delete', () => {
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('Deleting role should remove it from inherits of other roles', async ({ api }) => {
-    const baseRoleName = generateRoleName();
-    const childRoleName = generateRoleName();
-
-    // Create base role
-    await api.admin.mutation('roles-api/RoleCreate', {
-      variables: {
-        input: {
-          name: baseRoleName,
-          displayName: 'Base Role',
-          permissions: [{ resource: 'media', actions: ['read'], effect: 'ALLOW' }],
-        },
-      },
-    });
-
-    // Create child role that inherits from base
-    await api.admin.mutation('roles-api/RoleCreate', {
-      variables: {
-        input: {
-          name: childRoleName,
-          displayName: 'Child Role',
-          inherits: [baseRoleName],
-          permissions: [{ resource: 'product', actions: ['read'], effect: 'ALLOW' }],
-        },
-      },
-    });
-
-    // Delete base role
-    await api.admin.mutation('roles-api/RoleDelete', {
-      variables: {
-        input: { name: baseRoleName },
-      },
-    });
-
-    // Check child role no longer inherits from deleted role
-    const { data } = await api.admin.query('project-api/ProjectRoles', {
-      variables: { slug: projectSlug },
-    });
-
-    const roles = data.projectQuery.project?.roles ?? [];
-    const childRole = roles.find((r: { name: string }) => r.name === childRoleName);
-
-    expect(childRole).toBeDefined();
-    expect(childRole?.inherits).not.toContain(baseRoleName);
-  });
 });

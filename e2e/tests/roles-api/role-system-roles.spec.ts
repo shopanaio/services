@@ -8,12 +8,12 @@ const generateProjectSlug = () => `test-project-${crypto.randomUUID().slice(0, 8
  * System Roles Tests
  *
  * Tests that verify system roles are properly created when a project is provisioned.
- * According to the IAM plan:
- * - owner: inherits admin, full access
- * - admin: inherits manager, full access except project delete/billing
- * - manager: inherits support, product/category/media management
- * - support: inherits viewer, order/customer management
- * - viewer: no inheritance, read-only access
+ * System roles are flat (no inheritance):
+ * - owner: full access
+ * - admin: full access except project delete/billing
+ * - manager: product/category/media management
+ * - support: order/customer management
+ * - viewer: read-only access
  */
 test.describe('System Roles', () => {
   let projectSlug: string;
@@ -69,28 +69,6 @@ test.describe('System Roles', () => {
       expect(role).toBeDefined();
       expect(role?.isSystem).toBe(true);
     }
-  });
-
-  test('System roles should have correct inheritance hierarchy', async ({ api }) => {
-    const { data } = await api.admin.query('project-api/ProjectRoles', {
-      variables: { slug: projectSlug },
-    });
-
-    const roles = data.projectQuery.project?.roles ?? [];
-    const getRoleByName = (name: string) => roles.find((r: { name: string }) => r.name === name);
-
-    // Check inheritance chain: owner -> admin -> manager -> support -> viewer
-    const owner = getRoleByName('owner');
-    const admin = getRoleByName('admin');
-    const manager = getRoleByName('manager');
-    const support = getRoleByName('support');
-    const viewer = getRoleByName('viewer');
-
-    expect(owner?.inherits).toContain('admin');
-    expect(admin?.inherits).toContain('manager');
-    expect(manager?.inherits).toContain('support');
-    expect(support?.inherits).toContain('viewer');
-    expect(viewer?.inherits).toHaveLength(0);
   });
 
   test('Owner role should have full access permissions', async ({ api }) => {

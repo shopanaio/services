@@ -9,7 +9,6 @@ query ProjectRoles($slug: String!) {
         displayName
         description
         isSystem
-        inherits
         permissions {
           resource
           actions

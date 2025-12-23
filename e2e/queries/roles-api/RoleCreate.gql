@@ -6,7 +6,6 @@ mutation RoleCreate($input: RoleCreateInput!) {
         displayName
         description
         isSystem
-        inherits
         permissions {
           resource
           actions

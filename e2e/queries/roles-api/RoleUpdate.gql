@@ -6,7 +6,6 @@ mutation RoleUpdate($input: RoleUpdateInput!) {
         displayName
         description
         isSystem
-        inherits
         permissions {
           resource
           actions

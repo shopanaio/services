@@ -27,12 +27,6 @@ type Role {
   isSystem: Boolean!
 
   """
-  Roles this role inherits from (for hierarchy).
-  E.g., manager inherits from support.
-  """
-  inherits: [String!]!
-
-  """
   Role permissions.
   """
   permissions: [RolePermission!]!
@@ -190,11 +184,6 @@ input RoleCreateInput {
   description: String
 
   """
-  Roles to inherit from.
-  """
-  inherits: [String!]
-
-  """
   Role permissions.
   """
   permissions: [RolePermissionInput!]!
@@ -238,11 +227,6 @@ input RoleUpdateInput {
   New description.
   """
   description: String
-
-  """
-  Roles to inherit from.
-  """
-  inherits: [String!]
 
   """
   New permissions (completely replaces existing).
