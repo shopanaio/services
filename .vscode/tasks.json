@@ -135,6 +135,25 @@
     {
       "label": "Claude",
       "type": "shell",
+      "command": "claude",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/zsh",
+          "args": ["-c"]
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Claude (*)",
+      "type": "shell",
       "command": "claude --dangerously-skip-permissions",
       "presentation": {
         "reveal": "always",
