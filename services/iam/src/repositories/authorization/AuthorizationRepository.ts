@@ -1,7 +1,9 @@
+import { v7 as uuidv7 } from "uuid";
 import { CasbinService } from "../../casbin/CasbinService.js";
 import { RoleRepository } from "./RoleRepository.js";
 import { UserRoleRepository } from "./UserRoleRepository.js";
 import { TenantRepository } from "./TenantRepository.js";
+import { OrganizationRepository } from "../organization/OrganizationRepository.js";
 import {
   PREDEFINED_ROLES,
   ROLE_PERMISSIONS,
@@ -22,7 +24,8 @@ export class AuthorizationRepository {
     private readonly casbin: CasbinService,
     private readonly roleRepo: RoleRepository,
     private readonly userRoleRepo: UserRoleRepository,
-    private readonly tenantRepo: TenantRepository
+    private readonly tenantRepo: TenantRepository,
+    private readonly organizationRepo: OrganizationRepository
   ) {}
 
   // ============================================================================
@@ -317,7 +320,7 @@ export class AuthorizationRepository {
   /**
    * Provision all predefined roles and permissions for a new tenant.
    *
-   * Creates a new tenant with auto-generated UUIDv7 and sets up roles.
+   * Creates a new organization with auto-generated UUIDv7 and sets up roles.
    *
    * @param ownerId - Optional owner user ID to assign owner role
    * @returns Created organizationId on success
@@ -326,9 +329,18 @@ export class AuthorizationRepository {
     ownerId?: string
   ): Promise<{ success: boolean; organizationId?: string; error?: string }> {
     try {
-      // Create new tenant (ID generated as UUIDv7)
-      const newTenant = await this.tenantRepo.create();
-      const organizationId = newTenant.id;
+      // Create new organization (ID generated as UUIDv7)
+      const orgId = uuidv7();
+      const now = new Date();
+      const newOrg = await this.organizationRepo.create({
+        id: orgId,
+        name: `Organization ${orgId}`,
+        slug: `org-${orgId}`,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      });
+      const organizationId = newOrg.id;
 
       // Create predefined roles
       for (const roleName of Object.values(PREDEFINED_ROLES)) {

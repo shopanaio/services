@@ -19,7 +19,6 @@ test.describe('SignUp API', () => {
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.user?.email).toBe(user.email);
-    expect(result.user?.organizationId).toBeTruthy();
     expect(result.token?.accessToken).toBeTruthy();
     expect(result.token?.refreshToken).toBeTruthy();
     expect(result.token?.expiresIn).toBeGreaterThan(0);

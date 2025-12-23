@@ -67,7 +67,8 @@ export class Repository {
       casbinService,
       roleRepo,
       userRoleRepo,
-      tenantRepo
+      tenantRepo,
+      organizationRepo
     );
 
     // Create user repository

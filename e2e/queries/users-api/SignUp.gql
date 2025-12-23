@@ -8,7 +8,6 @@ mutation SignUp($input: UserSignUpInput!) {
         firstName
         lastName
         isAdmin
-        organizationId
         createdAt
         updatedAt
       }

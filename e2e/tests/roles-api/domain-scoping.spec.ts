@@ -10,7 +10,6 @@ interface UserSession {
   password: string;
   accessToken: string;
   userId: string;
-  organizationId: string;
 }
 
 const test = base.extend<{
@@ -21,9 +20,8 @@ const test = base.extend<{
     await use({
       email: api.session.tenant.data.email,
       password: api.session.tenant.data.password,
-      accessToken: result.token?.accessToken ?? '',
-      userId: result.user?.id ?? '',
-      organizationId: result.organizationId ?? '',
+      accessToken: result.token.accessToken,
+      userId: result.user.id,
     });
   },
 });
@@ -42,7 +40,6 @@ const test = base.extend<{
 test.describe('Domain Scoping', () => {
   test('Domain wildcard (*) grants access to all projects', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
 
     // Create two projects
     const slugA = generateProjectSlug();
@@ -92,7 +89,6 @@ test.describe('Domain Scoping', () => {
 
   test('Specific domain restricts access to that project only', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
 
     // Create two projects
     const slugA = generateProjectSlug();
@@ -160,7 +156,6 @@ test.describe('Domain Scoping', () => {
 
   test('User can have different roles in different domains', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
 
     // Create two projects
     const slugA = generateProjectSlug();
@@ -244,7 +239,6 @@ test.describe('Domain Scoping', () => {
 
   test('Multiple domains per user accumulate correctly', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
 
     // Create multiple projects
     const projects = await Promise.all(
@@ -299,7 +293,6 @@ test.describe('Domain Scoping', () => {
 test.describe('Domain-Scoped vs Org-Wide Roles', () => {
   test('Organization-wide roles apply across all domains', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
 
     // Create a project
     await api.session.setupProject();
@@ -315,7 +308,6 @@ test.describe('Domain-Scoped vs Org-Wide Roles', () => {
 
   test('Domain-scoped role assignments use grouping rules', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
 
     await api.session.setupProject();
 

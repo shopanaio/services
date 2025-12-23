@@ -58,6 +58,7 @@ export class RoleRepository {
    * Create a new role
    */
   async create(input: CreateRoleInput): Promise<Role> {
+    const now = new Date();
     const [result] = await this.db
       .insert(role)
       .values({
@@ -66,6 +67,8 @@ export class RoleRepository {
         displayName: input.displayName ?? input.name,
         description: input.description ?? "",
         isSystem: input.isSystem ?? false,
+        createdAt: now,
+        updatedAt: now,
       })
       .returning();
     return result;

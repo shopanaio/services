@@ -51,6 +51,7 @@ export interface ProjectConnectionResult {
 
 export interface CreateProjectData {
   id: string;
+  organizationId: string;
   name: string;
   slug: string;
   locales: LocaleCode[];
@@ -159,11 +160,14 @@ export class ProjectRepository extends BaseRepository {
       .insert(project)
       .values({
         id: data.id,
+        organizationId: data.organizationId,
+        externalSystem: null,
+        externalId: null,
         name: data.name,
         slug: data.slug,
         status: data.status ?? "active",
         timezone: data.timezone ?? "UTC",
-        email: data.email,
+        email: data.email ?? null,
         defaultLocale,
         baseCurrency: data.defaultCurrency,
         defaultCurrency: data.defaultCurrency,
@@ -171,6 +175,7 @@ export class ProjectRepository extends BaseRepository {
         defaultDimensionUnit: data.defaultDimensionUnit ?? "cm",
         createdAt: now,
         updatedAt: now,
+        deletedAt: null,
       })
       .returning();
 

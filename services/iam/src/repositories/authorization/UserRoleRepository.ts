@@ -130,6 +130,7 @@ export class UserRoleRepository {
         userId: input.userId,
         roleId: input.roleId,
         grantedBy: input.grantedBy,
+        grantedAt: new Date(),
       })
       .returning();
 

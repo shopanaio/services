@@ -10,7 +10,6 @@ interface UserSession {
   password: string;
   accessToken: string;
   userId: string;
-  organizationId: string;
 }
 
 const test = base.extend<{
@@ -21,9 +20,8 @@ const test = base.extend<{
     await use({
       email: api.session.tenant.data.email,
       password: api.session.tenant.data.password,
-      accessToken: result.token?.accessToken ?? '',
-      userId: result.user?.id ?? '',
-      organizationId: result.organizationId ?? '',
+      accessToken: result.token.accessToken,
+      userId: result.user.id,
     });
   },
 });
@@ -41,7 +39,6 @@ const test = base.extend<{
 test.describe('Cache Behavior', () => {
   test('Cache invalidation on role change takes effect immediately', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
     await api.session.setupProject();
 
     // Create a viewer user
@@ -87,7 +84,6 @@ test.describe('Cache Behavior', () => {
 
   test('Cache invalidation on policy change', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
     await api.session.setupProject();
 
     const roleName = generateRoleName();
@@ -150,7 +146,6 @@ test.describe('Cache Behavior', () => {
 
   test('Other users unaffected by unrelated cache invalidation', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
     await api.session.setupProject();
 
     // Create two users with admin role
@@ -226,7 +221,6 @@ test.describe('Cache Behavior', () => {
 test.describe('Version-Based Invalidation', () => {
   test('Role removal invalidates cache correctly', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
     await api.session.setupProject();
 
     // Create user with admin role
@@ -272,7 +266,6 @@ test.describe('Version-Based Invalidation', () => {
 
   test('Custom role deletion invalidates cache for assigned users', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
     await api.session.setupProject();
 
     const roleName = generateRoleName();
@@ -342,7 +335,6 @@ test.describe('Version-Based Invalidation', () => {
 test.describe('Concurrent Access', () => {
   test('Multiple simultaneous authorization checks work correctly', async ({ api, ownerUser }) => {
     api.session.tenant.accessToken = ownerUser.accessToken;
-    api.session.organizationId = ownerUser.organizationId;
     await api.session.setupProject();
 
     // Perform multiple authorization checks in parallel

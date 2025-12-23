@@ -59,16 +59,16 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
     // Step 0: Generate project ID (must be in step for determinism)
     const projectId = await this.generateProjectId();
 
-    // Step 1: Create project in database (local)
-    await this.createProject(projectId, input);
-
-    // Step 2: Provision IAM tenant (external - via broker)
+    // Step 1: Provision IAM tenant first to get organizationId
     const iamResult = await this.provisionIamTenant(input.userId);
 
     // Verify tenant was created successfully
     if (!iamResult.organizationId) {
       throw new Error("Failed to provision IAM tenant: " + JSON.stringify(iamResult.userErrors));
     }
+
+    // Step 2: Create project in database with organizationId
+    await this.createProject(projectId, input, iamResult.organizationId);
 
     // Step 3: Save IAM integration with returned organizationId
     await this.saveIamIntegration(projectId, iamResult.organizationId);
@@ -89,9 +89,10 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
    * Step: Create project in database (LOCAL - @Executable handles transaction)
    */
   @DBOS.step()
-  async createProject(projectId: string, input: ProjectCreateInput) {
+  async createProject(projectId: string, input: ProjectCreateInput, organizationId: string) {
     return this.repository.project.create({
       id: projectId,
+      organizationId,
       name: input.name,
       slug: input.slug,
       locales: input.locales,

@@ -4,7 +4,7 @@ import { expect } from '@playwright/test';
 test.describe('SignIn API', () => {
   test('Successful sign in with registered user', async ({ api }) => {
     // First create a user via setupUser
-    const setupResult = await api.session.setupUser();
+    await api.session.setupUser();
     const { email, password } = api.session.tenant.data;
 
     const { data } = await api.admin.mutation('users-api/SignIn', {
@@ -21,8 +21,6 @@ test.describe('SignIn API', () => {
     expect(result.userErrors).toHaveLength(0);
     expect(result.user).not.toBeNull();
     expect(result.user?.email).toBe(email);
-    expect(result.user?.organizationId).toBeTruthy();
-    expect(result.user?.organizationId).toBe(setupResult.organizationId);
     expect(result.token).not.toBeNull();
     expect(result.token?.accessToken).toBeTruthy();
     expect(result.token?.refreshToken).toBeTruthy();
