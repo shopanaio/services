@@ -5,6 +5,8 @@ import {
   UserRoleRepository,
   TenantRepository,
 } from "./authorization/index.js";
+import { OrganizationRepository } from "./organization/index.js";
+import { ResourceRepository } from "./resource/index.js";
 import { CasbinService } from "../casbin/CasbinService.js";
 import type { Database } from "../db/database.js";
 import type { Auth } from "../auth/auth.js";
@@ -20,20 +22,26 @@ export interface RepositoryConfig {
 
 /**
  * Repository aggregator for IAM service.
- * Manages access to user and authorization repositories.
+ * Manages access to user, organization, and authorization repositories.
  */
 export class Repository {
   public readonly user: UserRepository;
   public readonly authorization: AuthorizationRepository;
+  public readonly organization: OrganizationRepository;
+  public readonly resource: ResourceRepository;
   public readonly casbin: CasbinService;
 
   private constructor(
     user: UserRepository,
     authorization: AuthorizationRepository,
+    organization: OrganizationRepository,
+    resource: ResourceRepository,
     casbin: CasbinService
   ) {
     this.user = user;
     this.authorization = authorization;
+    this.organization = organization;
+    this.resource = resource;
     this.casbin = casbin;
   }
 
@@ -51,6 +59,8 @@ export class Repository {
     const roleRepo = new RoleRepository(db);
     const userRoleRepo = new UserRoleRepository(db);
     const tenantRepo = new TenantRepository(db);
+    const organizationRepo = new OrganizationRepository(db);
+    const resourceRepo = new ResourceRepository(db);
 
     // Create authorization repository (facade)
     const authorizationRepo = new AuthorizationRepository(
@@ -63,6 +73,12 @@ export class Repository {
     // Create user repository
     const userRepo = new UserRepository(db, auth);
 
-    return new Repository(userRepo, authorizationRepo, casbinService);
+    return new Repository(
+      userRepo,
+      authorizationRepo,
+      organizationRepo,
+      resourceRepo,
+      casbinService
+    );
   }
 }

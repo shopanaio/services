@@ -37,6 +37,8 @@ export const project = projectSchema.table(
   "project",
   {
     id: uuid("id").primaryKey(),
+    // Organization that owns this project (from IAM)
+    organizationId: uuid("organization_id"),
     externalSystem: varchar("external_system", { length: 64 }),
     externalId: varchar("external_id", { length: 255 }),
     name: varchar("name", { length: 255 }).notNull(),
@@ -63,6 +65,7 @@ export const project = projectSchema.table(
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
     index("idx_project_external").on(table.externalSystem, table.externalId),
+    index("idx_project_organization").on(table.organizationId),
     foreignKey({
       columns: [table.id, table.defaultLocale],
       foreignColumns: [locale.projectId, locale.code],

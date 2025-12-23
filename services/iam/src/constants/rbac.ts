@@ -11,41 +11,49 @@
  */
 
 /**
- * Casbin Model for RBAC (per-tenant isolated enforcers)
+ * Casbin Model for RBAC with Domain (Organization + Project scope)
  *
- * Each tenant gets its own enforcer instance with filtered policies.
- * Tenant isolation is achieved at the enforcer level, not in the model.
+ * Each organization gets its own enforcer instance with filtered policies.
+ * Domain parameter enables per-project role assignments within an organization.
  *
- * - sub: subject (user ID or role name)
- * - obj: object (resource: product, order, etc.)
- * - act: action (read, write, delete, etc.)
+ * Request format: (sub, dom, obj, act)
+ * - sub: subject (user ID or role name, e.g., "user:123")
+ * - dom: domain (project scope, e.g., "project:abc-123" or "*" for all)
+ * - obj: object (resource path, e.g., "product:456" or "warehouse:W1/product")
+ * - act: action (read, write, delete, create, etc.)
+ *
+ * Policy format: (sub, dom, obj, act, eft)
  * - eft: effect (allow or deny)
  *
+ * Grouping format: (user, role, domain)
+ * - Assigns a user to a role within a specific domain (project)
+ * - Domain "*" means all projects
+ *
  * Features:
- * - keyMatch for wildcard resource matching (e.g., "*" matches all, "product/*" matches "product/123")
- * - Role hierarchy support via g = _, _ (up to 10 levels)
+ * - keyMatch for wildcard resource matching (e.g., "*" matches all)
+ * - Domain-scoped role assignments (user can be admin in one project, viewer in another)
+ * - Role hierarchy support via g = _, _, _
  * - Deny rules override allow rules
  *
- * Database storage (not part of Casbin model):
- * - Policies: [role, resource, action, effect, tenantId] stored in v0-v4
- * - Groupings: [user, role, tenantId] stored in v0-v2
- * - tenantId fields are used for DB filtering only, not in Casbin enforcement
+ * Database storage (iam.casbin_rule):
+ * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, v5=orgId
+ * - Groupings (ptype='g'): v0=user, v1=role, v2=domain, v3=orgId
  */
 export const CASBIN_MODEL_TEXT = `
 [request_definition]
-r = sub, obj, act
+r = sub, dom, obj, act
 
 [policy_definition]
-p = sub, obj, act, eft
+p = sub, dom, obj, act, eft
 
 [role_definition]
-g = _, _
+g = _, _, _
 
 [policy_effect]
 e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 
 [matchers]
-m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
+m = g(r.sub, p.sub, r.dom) && (p.dom == "*" || p.dom == r.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 `.trim();
 
 /**

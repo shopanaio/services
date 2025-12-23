@@ -65,6 +65,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "base.graphql",
     "user.graphql",
     "role.graphql",
+    "organization.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({
@@ -95,6 +96,7 @@ export async function startServer(serverConfig: ServerConfig) {
         requestId: request.id as string,
         kernel: kernel!,
         currentUser: request.currentUser,
+        organizationId: request.organizationId,
         projectSlug: request.projectSlug,
         tenantId: request.tenantId,
       };

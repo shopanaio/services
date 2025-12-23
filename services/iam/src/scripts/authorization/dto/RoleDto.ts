@@ -7,6 +7,8 @@ export interface RolePermission {
   resource: string;
   actions: string[];
   effect: "Allow" | "Deny";
+  /** Optional domain scope for the permission */
+  domain?: string;
 }
 
 /**
@@ -24,16 +26,19 @@ export interface RoleInfo {
 }
 
 /**
- * CreateRole - Create a custom role for a tenant
+ * CreateRole - Create a custom role for an organization
  */
 export interface CreateRoleParams {
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
   name: string;
   displayName: string;
   description?: string;
   /** Roles to inherit from */
   inherits?: string[];
   permissions: RolePermission[];
+
+  // Legacy support (deprecated)
+  tenantId?: string;
 }
 
 export interface CreateRoleResult {
@@ -45,13 +50,16 @@ export interface CreateRoleResult {
  * UpdateRole - Update role metadata and permissions
  */
 export interface UpdateRoleParams {
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
   roleName: string;
   displayName?: string;
   description?: string;
   /** Roles to inherit from */
   inherits?: string[];
   permissions?: RolePermission[];
+
+  // Legacy support (deprecated)
+  tenantId?: string;
 }
 
 export interface UpdateRoleResult {
@@ -63,8 +71,11 @@ export interface UpdateRoleResult {
  * DeleteRole - Delete a custom role
  */
 export interface DeleteRoleParams {
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
   roleName: string;
+
+  // Legacy support (deprecated)
+  tenantId?: string;
 }
 
 export interface DeleteRoleResult {
@@ -73,10 +84,13 @@ export interface DeleteRoleResult {
 }
 
 /**
- * ListRoles - List all roles for a tenant
+ * ListRoles - List all roles for an organization
  */
 export interface ListRolesParams {
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
+
+  // Legacy support (deprecated)
+  tenantId?: string;
 }
 
 export interface ListRolesResult {
@@ -88,8 +102,11 @@ export interface ListRolesResult {
  * GetRole - Get a single role by name
  */
 export interface GetRoleParams {
-  tenantId: string; // Tenant identifier (project slug)
+  organizationId: string;
   roleName: string;
+
+  // Legacy support (deprecated)
+  tenantId?: string;
 }
 
 export interface GetRoleResult {

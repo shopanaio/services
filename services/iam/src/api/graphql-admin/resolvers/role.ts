@@ -3,16 +3,13 @@ import type {
   Role,
   RolePermission,
   ProjectMember,
-  ResourceDefinition,
 } from "../generated/types.js";
 import { PermissionEffect } from "../generated/types.js";
 import {
   ListRolesScript,
   GetUserRoleScript,
   AuthorizeScript,
-  ListTenantMembersScript,
 } from "../../../scripts/authorization/index.js";
-import { ListResourcesScript } from "../../../scripts/resources/index.js";
 import type {
   RoleInfo,
   RolePermission as DtoRolePermission,
@@ -46,80 +43,36 @@ function mapRoleInfoToRole(role: RoleInfo): Role {
 
 
 export const roleResolvers: Partial<Resolvers> = {
-  // Extend Project type from project-service
+  // Extend Project type - resolve members with access to this specific project
   Project: {
     /**
-     * Get all roles for the project.
+     * Get members with access to THIS project.
+     * Uses domain-based role resolution from casbin.
      */
-    roles: async (_parent, _args, ctx) => {
-      // ctx.tenantId is resolved from X-Project-Name header via contextMiddleware
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        console.error("[Project.roles] No tenantId in context");
+    members: async (parent, _args, ctx) => {
+      const organizationId = ctx.organizationId;
+      if (!organizationId) {
+        console.error("[Project.members] No organizationId in context");
         return [];
       }
 
-      const result = await ctx.kernel.runScript(ListRolesScript, {
-        tenantId,
+      const projectId = parent.id;
+
+      // Get members with roles in this project domain
+      const membersWithRoles = await ctx.kernel.repository.casbin.getMembersForDomain(
+        organizationId,
+        [["project", projectId]]
+      );
+
+      // Get roles for this organization
+      const rolesResult = await ctx.kernel.runScript(ListRolesScript, {
+        organizationId,
       });
 
-      if (result.userErrors.length > 0) {
-        console.error("[Project.roles] Error:", result.userErrors);
-        return [];
-      }
-
-      return result.roles.map(mapRoleInfoToRole);
-    },
-
-    /**
-     * Get available resources for role editor.
-     * Dynamically fetches from all services via broker.
-     */
-    availableResources: async (_parent, _args, ctx) => {
-      const result = await ctx.kernel.runScript(ListResourcesScript, {});
-
-      if (result.userErrors.length > 0) {
-        console.warn("[Project.availableResources] Partial failure:", result.userErrors);
-      }
-
-      // Map to GraphQL ResourceDefinition format
-      return result.resources.map((r): ResourceDefinition => ({
-        service: r.service,
-        name: r.name,
-        displayName: r.displayName,
-        actions: r.actions,
-      }));
-    },
-
-    /**
-     * Get project team members with roles.
-     */
-    members: async (_parent, _args, ctx) => {
-      // ctx.tenantId is resolved from X-Project-Name header via contextMiddleware
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        console.error("[Project.members] No tenantId in context");
-        return [];
-      }
-
-      // Get members and roles in parallel
-      const [membersResult, rolesResult] = await Promise.all([
-        ctx.kernel.runScript(ListTenantMembersScript, { tenantId }),
-        ctx.kernel.runScript(ListRolesScript, { tenantId }),
-      ]);
-
-      if (membersResult.userErrors.length > 0) {
-        console.error("[Project.members] Error:", membersResult.userErrors);
-        return [];
-      }
-
-      // Collect all user IDs (members + grantedBy)
+      // Collect all user IDs
       const userIds = new Set<string>();
-      for (const member of membersResult.members) {
+      for (const member of membersWithRoles) {
         userIds.add(member.userId);
-        if (member.grantedBy) {
-          userIds.add(member.grantedBy);
-        }
       }
 
       // Batch load all users
@@ -133,12 +86,9 @@ export const roleResolvers: Partial<Resolvers> = {
         rolesMap.set(role.name, role);
       }
 
-      return membersResult.members.map((member) => {
+      return membersWithRoles.map((member) => {
         const roleInfo = rolesMap.get(member.role);
         const user = usersMap.get(member.userId);
-        const grantedByUser = member.grantedBy
-          ? usersMap.get(member.grantedBy)
-          : null;
 
         return {
           id: member.userId,
@@ -157,16 +107,8 @@ export const roleResolvers: Partial<Resolvers> = {
                 isSystem: false,
                 permissions: [],
               },
-          grantedAt: member.grantedAt?.toISOString(),
-          grantedBy: grantedByUser
-            ? {
-                id: grantedByUser.id,
-                email: grantedByUser.email,
-                firstName: grantedByUser.name?.split(" ")[0] ?? null,
-                lastName: grantedByUser.name?.split(" ").slice(1).join(" ") ?? null,
-                avatar: grantedByUser.image ?? null,
-              }
-            : null,
+          grantedAt: undefined,
+          grantedBy: null,
         } as ProjectMember;
       });
     },
@@ -175,11 +117,11 @@ export const roleResolvers: Partial<Resolvers> = {
   // Extend User type with role
   User: {
     /**
-     * Resolve user's role in current project context.
+     * Resolve user's role in current organization/project context.
      */
     role: async (parent, _args, ctx) => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
+      const organizationId = ctx.organizationId;
+      if (!organizationId) {
         return null;
       }
 
@@ -190,7 +132,8 @@ export const roleResolvers: Partial<Resolvers> = {
 
       const result = await ctx.kernel.runScript(GetUserRoleScript, {
         userId,
-        tenantId,
+        organizationId,
+        projectId: ctx.projectSlug ?? undefined,
       });
 
       if (result.userErrors.length > 0) {
@@ -205,12 +148,12 @@ export const roleResolvers: Partial<Resolvers> = {
   // Query.authorize
   Query: {
     authorize: async (_parent, { input }, ctx) => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
+      const organizationId = ctx.organizationId;
+      if (!organizationId) {
         return {
           allowed: false,
           deniedReason:
-            "No project context. Please provide X-Project-Name header.",
+            "No organization context. Please provide valid JWT with org claim.",
         };
       }
 
@@ -224,7 +167,8 @@ export const roleResolvers: Partial<Resolvers> = {
 
       const result = await ctx.kernel.runScript(AuthorizeScript, {
         userId,
-        tenantId,
+        organizationId,
+        projectId: ctx.projectSlug ?? undefined,
         resource: input.resource,
         action: input.action,
       });

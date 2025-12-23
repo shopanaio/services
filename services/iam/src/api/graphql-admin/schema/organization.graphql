@@ -1,0 +1,385 @@
+# ============================================================================
+# ORGANIZATION TYPES
+# ============================================================================
+
+"""
+Organization - top level entity for multi-tenancy.
+Users belong to organizations, organizations contain projects.
+"""
+type Organization @key(fields: "id") {
+  """
+  Unique identifier.
+  """
+  id: ID!
+
+  """
+  Organization name (e.g., "Acme Corp").
+  """
+  name: String!
+
+  """
+  URL-friendly unique identifier.
+  """
+  slug: String!
+
+  """
+  All members of this organization.
+  """
+  members: [Member!]!
+
+  """
+  All roles defined in this organization.
+  """
+  roles: [Role!]!
+
+  """
+  Available resources for role editor.
+  Aggregated from all registered services.
+  """
+  availableResources: [ResourceDefinition!]!
+
+  """
+  Projects in this organization.
+  Resolved via federation from Project service.
+  """
+  projects: [Project!]!
+
+  """
+  Timestamp when the organization was created.
+  """
+  createdAt: DateTime!
+
+  """
+  Timestamp when the organization was last updated.
+  """
+  updatedAt: DateTime
+}
+
+"""
+Member of an organization with org-level role and project access.
+"""
+type Member @key(fields: "id") {
+  """
+  Unique identifier.
+  """
+  id: ID!
+
+  """
+  User reference.
+  """
+  user: User!
+
+  """
+  Organization-level role (owner, admin, member).
+  """
+  orgRole: OrgRole!
+
+  """
+  Project-specific access and roles.
+  """
+  projectAccess: [ProjectAccess!]!
+
+  """
+  Timestamp when the member joined.
+  """
+  createdAt: DateTime!
+}
+
+"""
+Organization-level role.
+"""
+enum OrgRole {
+  """
+  Full org control - billing, delete org, transfer ownership.
+  """
+  OWNER
+
+  """
+  Manage org settings and members.
+  """
+  ADMIN
+
+  """
+  Basic org access, needs project roles for resource access.
+  """
+  MEMBER
+}
+
+"""
+Project access with role.
+"""
+type ProjectAccess {
+  """
+  Project reference (null if allProjects is true).
+  """
+  project: Project
+
+  """
+  Role in this project.
+  """
+  role: ProjectRole!
+
+  """
+  True if access applies to all projects.
+  """
+  allProjects: Boolean!
+}
+
+"""
+Project-level role.
+"""
+enum ProjectRole {
+  """
+  Full project control.
+  """
+  ADMIN
+
+  """
+  Create/edit content.
+  """
+  EDITOR
+
+  """
+  Read-only access.
+  """
+  VIEWER
+}
+
+"""
+Authentication tokens returned after organization switch.
+"""
+type AuthPayload {
+  """
+  JWT access token with organizationId claim.
+  """
+  accessToken: String!
+
+  """
+  Refresh token for obtaining new access tokens.
+  """
+  refreshToken: String!
+
+  """
+  Token expiration time in seconds.
+  """
+  expiresIn: Int!
+}
+
+# ============================================================================
+# INPUTS
+# ============================================================================
+
+"""
+Input for creating an organization.
+"""
+input CreateOrganizationInput {
+  """
+  Organization name.
+  """
+  name: String!
+
+  """
+  URL-friendly unique identifier.
+  """
+  slug: String!
+}
+
+"""
+Input for inviting a member to organization.
+"""
+input InviteMemberInput {
+  """
+  Email address of the user to invite.
+  """
+  email: Email!
+
+  """
+  Organization-level role.
+  """
+  orgRole: OrgRole!
+
+  """
+  Optional role IDs to assign.
+  """
+  roleIds: [ID!]
+}
+
+"""
+Input for updating organization.
+"""
+input UpdateOrganizationInput {
+  """
+  New name.
+  """
+  name: String
+}
+
+"""
+Input for assigning project role.
+"""
+input AssignProjectRoleInput {
+  """
+  Member ID.
+  """
+  memberId: ID!
+
+  """
+  Project ID, or "all" for all projects.
+  """
+  projectId: ID!
+
+  """
+  Role to assign.
+  """
+  role: ProjectRole!
+}
+
+"""
+Input for removing project access.
+"""
+input RemoveProjectAccessInput {
+  """
+  Member ID.
+  """
+  memberId: ID!
+
+  """
+  Project ID to remove access from.
+  """
+  projectId: ID!
+}
+
+# ============================================================================
+# PAYLOADS
+# ============================================================================
+
+type CreateOrganizationPayload {
+  organization: Organization
+  userErrors: [GenericUserError!]!
+}
+
+type UpdateOrganizationPayload {
+  organization: Organization
+  userErrors: [GenericUserError!]!
+}
+
+type DeleteOrganizationPayload {
+  deletedOrganizationId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type InviteMemberPayload {
+  member: Member
+  userErrors: [GenericUserError!]!
+}
+
+type RemoveMemberPayload {
+  removedMemberId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type AssignProjectRolePayload {
+  member: Member
+  userErrors: [GenericUserError!]!
+}
+
+type RemoveProjectAccessPayload {
+  member: Member
+  userErrors: [GenericUserError!]!
+}
+
+type SwitchOrganizationPayload {
+  """
+  New tokens with organizationId claim.
+  """
+  auth: AuthPayload
+
+  """
+  The organization switched to.
+  """
+  organization: Organization
+
+  userErrors: [GenericUserError!]!
+}
+
+# ============================================================================
+# QUERIES & MUTATIONS
+# ============================================================================
+
+extend type Query {
+  """
+  Get current user's organizations.
+  """
+  myOrganizations: [Organization!]!
+
+  """
+  Get organization by ID (if user has access).
+  """
+  organization(id: ID!): Organization
+
+  """
+  Get current organization context (from JWT).
+  """
+  currentOrganization: Organization
+}
+
+extend type Mutation {
+  """
+  Organization management mutations.
+  """
+  organizationMutation: OrganizationMutation!
+}
+
+"""
+Organization mutations.
+"""
+type OrganizationMutation {
+  """
+  Create a new organization.
+  Current user becomes the owner.
+  """
+  createOrganization(input: CreateOrganizationInput!): CreateOrganizationPayload!
+
+  """
+  Update organization.
+  Requires: org admin or owner.
+  """
+  updateOrganization(input: UpdateOrganizationInput!): UpdateOrganizationPayload!
+
+  """
+  Delete organization.
+  Requires: org owner.
+  """
+  deleteOrganization: DeleteOrganizationPayload!
+
+  """
+  Switch organization context.
+  Returns new JWT tokens with organizationId claim.
+  """
+  switchOrganization(organizationId: ID!): SwitchOrganizationPayload!
+
+  """
+  Invite member to organization.
+  Requires: org admin or owner.
+  """
+  inviteMember(input: InviteMemberInput!): InviteMemberPayload!
+
+  """
+  Remove member from organization.
+  Requires: org admin or owner.
+  Cannot remove self or owner.
+  """
+  removeMember(memberId: ID!): RemoveMemberPayload!
+
+  """
+  Assign project role to member.
+  Requires: org admin or project admin.
+  """
+  assignProjectRole(input: AssignProjectRoleInput!): AssignProjectRolePayload!
+
+  """
+  Remove project access from member.
+  Requires: org admin or project admin.
+  """
+  removeProjectAccess(input: RemoveProjectAccessInput!): RemoveProjectAccessPayload!
+}

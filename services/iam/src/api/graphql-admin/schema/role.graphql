@@ -131,27 +131,16 @@ type ResourceDefinition {
 }
 
 # ============================================================================
-# EXTEND PROJECT TYPE (from project service)
+# FEDERATION: Project type stub
+# Project.members resolved via IAM (members with access to specific project)
 # ============================================================================
 
 extend type Project @key(fields: "id") {
   id: ID! @external
 
   """
-  All project roles with permissions.
-  Used by frontend to compute effective permissions.
-  """
-  roles: [Role!]!
-
-  """
-  Available resources for role editor.
-  Requires: project:admin permission.
-  """
-  availableResources: [ResourceDefinition!]!
-
-  """
-  Project team members with roles.
-  Requires: project.team:read permission.
+  Members with access to THIS project.
+  Resolved via IAM domain-based roles.
   """
   members: [ProjectMember!]!
 }

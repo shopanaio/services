@@ -47,6 +47,17 @@ import {
   type ListRolesResult,
 } from "./scripts/index.js";
 
+// Resource registration types (for broker action)
+interface RegisterResourcesParams {
+  service: string;
+  resources: Array<{ name: string; displayName?: string; actions: string[] }>;
+}
+
+interface RegisterResourcesResult {
+  success: boolean;
+  userErrors: Array<{ code: string; message: string }>;
+}
+
 const { service } = getServiceConfig("iam");
 
 @Injectable()
@@ -151,6 +162,39 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action iam.listRoles registered");
+
+    // Register resource registration action
+    this.broker.register<RegisterResourcesParams, RegisterResourcesResult>(
+      "registerResources",
+      async (params) => {
+        if (!params?.service || !params.resources) {
+          return {
+            success: false,
+            userErrors: [{ code: "INVALID_PARAMS", message: "service and resources are required" }],
+          };
+        }
+        try {
+          await this.kernel.repository.resource.register(params.service, params.resources);
+          return { success: true, userErrors: [] };
+        } catch (error) {
+          return {
+            success: false,
+            userErrors: [{ code: "INTERNAL_ERROR", message: error instanceof Error ? error.message : "Unknown error" }],
+          };
+        }
+      }
+    );
+    this.logger.debug("Action iam.registerResources registered");
+
+    // Get resources action (for role editor)
+    this.broker.register<Record<string, never>, { resources: Array<{ service: string; name: string; displayName?: string; actions: string[] }> }>(
+      "getResources",
+      async () => {
+        const resources = await this.kernel.repository.resource.getAllResources();
+        return { resources };
+      }
+    );
+    this.logger.debug("Action iam.getResources registered");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,

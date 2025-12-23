@@ -1,15 +1,16 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/index.js";
+import type { ScopePart } from "../../casbin/CasbinService.js";
 
 /**
  * Authorize - Check if user is authorized to perform action on resource
  *
- * TENANT ISOLATION:
- * Uses tenantId (project slug) to check authorization within
- * the tenant's isolated Casbin policies.
+ * ORGANIZATION + DOMAIN ISOLATION:
+ * Uses organizationId (from JWT) and projectId (domain) to check authorization.
+ * The Casbin model uses 4 parameters: (sub, dom, obj, act)
  *
  * Implementation:
- * 1. Use tenantId directly (passed from caller)
+ * 1. Get organizationId (required) and projectId (optional domain)
  * 2. Check cache (L1 in-memory with version validation)
  * 3. If miss → call Casbin enforce() via CasbinService
  * 4. Cache result, return
@@ -19,22 +20,45 @@ export class AuthorizeScript extends BaseScript<
   AuthorizeResult
 > {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const { userId, tenantId, resource, action } = params;
+    const { userId, resource, action, resourceId, projectId } = params;
+
+    // Support both new organizationId and legacy tenantId
+    const organizationId = params.organizationId || params.tenantId;
+
+    if (!organizationId) {
+      return {
+        allowed: false,
+        deniedReason: "Organization context required",
+        userErrors: [{ code: "NO_ORG_CONTEXT", message: "organizationId is required" }],
+      };
+    }
 
     try {
-      // First, get user's role to validate cache versions
-      const userRoles = await this.repository.authorization.getUserRoles(
-        tenantId,
-        userId
+      // Build domain scope
+      const domain: ScopePart[] = projectId ? [["project", projectId]] : [];
+
+      // Build resource path
+      const resourcePath: ScopePart[] = resourceId
+        ? [[resource, resourceId]]
+        : [[resource]];
+
+      // Get user's roles for cache key
+      const userRoles = await this.repository.casbin.getRolesForUserInDomain(
+        organizationId,
+        userId,
+        domain
       );
-      const roleName = userRoles[0] ?? ""; // Primary role
+      const roleName = userRoles[0] ?? "";
+
+      // Build cache key with domain
+      const cacheKey = projectId ? `${projectId}:${resource}` : resource;
 
       // Check cache first
       const cached = await this.authCache.getAuthResult(
-        tenantId,
+        organizationId,
         userId,
         roleName,
-        resource,
+        cacheKey,
         action
       );
 
@@ -46,20 +70,21 @@ export class AuthorizeScript extends BaseScript<
         };
       }
 
-      // Cache miss - call Casbin
-      const allowed = await this.repository.authorization.enforce(
-        tenantId,
+      // Cache miss - call Casbin with domain support
+      const allowed = await this.repository.casbin.enforce(
+        organizationId,
         userId,
-        resource,
+        domain,
+        resourcePath,
         action
       );
 
       // Cache the result
       await this.authCache.setAuthResult(
-        tenantId,
+        organizationId,
         userId,
         roleName,
-        resource,
+        cacheKey,
         action,
         allowed
       );

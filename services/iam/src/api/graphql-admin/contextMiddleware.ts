@@ -5,9 +5,11 @@ import type { Repository, User } from "../../repositories/index.js";
 declare module "fastify" {
   interface FastifyRequest {
     currentUser: User | null;
-    /** Project slug from X-Project-Name header */
+    /** Organization ID from JWT org claim */
+    organizationId: string | null;
+    /** Project slug from X-Project-Name header (for domain scoping) */
     projectSlug: string | null;
-    /** Tenant ID derived from projectSlug (for RBAC) */
+    /** Tenant ID (deprecated - use organizationId) */
     tenantId: string | null;
   }
 }
@@ -35,11 +37,27 @@ function extractProjectSlug(header: string | string[] | undefined): string | nul
   return Array.isArray(header) ? header[0] : header;
 }
 
+/**
+ * Decode JWT payload without verification (verification done by Better Auth)
+ * Used to extract organizationId claim
+ */
+function decodeJwtPayload(token: string): { org?: string; sub?: string } | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = Buffer.from(parts[1], "base64").toString("utf-8");
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+}
+
 /** Result type from project.getCurrentProject */
 interface GetCurrentProjectResult {
   project?: {
     id: string;
     slug: string;
+    organizationId?: string;
     integrations: {
       iam?: {
         config: {
@@ -53,11 +71,12 @@ interface GetCurrentProjectResult {
 
 /**
  * Resolve tenantId from project slug via broker call to project service
+ * (Legacy support - will be deprecated)
  */
 async function resolveProjectTenantId(
   broker: ServiceBroker,
   projectSlug: string
-): Promise<string | null> {
+): Promise<{ tenantId: string | null; organizationId: string | null }> {
   try {
     const result = await broker.call<{ slug: string }, GetCurrentProjectResult>(
       "project.getCurrentProject",
@@ -66,26 +85,27 @@ async function resolveProjectTenantId(
 
     if (result.userErrors.length > 0 || !result.project) {
       console.warn(`[IAM contextMiddleware] Failed to resolve project: ${projectSlug}`, result.userErrors);
-      return null;
+      return { tenantId: null, organizationId: null };
     }
 
-    const tenantId = result.project.integrations.iam?.config.tenantId;
-    if (!tenantId) {
+    const tenantId = result.project.integrations.iam?.config.tenantId ?? null;
+    const organizationId = result.project.organizationId ?? null;
+
+    if (!tenantId && !organizationId) {
       console.warn(`[IAM contextMiddleware] Project ${projectSlug} has no IAM integration`);
-      return null;
     }
 
-    return tenantId;
+    return { tenantId, organizationId };
   } catch (error) {
     console.error(`[IAM contextMiddleware] Error resolving project tenantId:`, error);
-    return null;
+    return { tenantId: null, organizationId: null };
   }
 }
 
 /**
  * Build admin context middleware.
  * Extracts session token from Authorization header and validates session via Better Auth.
- * Also extracts project context from X-Project-Name header.
+ * Extracts organizationId from JWT or falls back to X-Project-Name header resolution.
  */
 export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
   return async function adminContextMiddleware(
@@ -93,31 +113,41 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
     reply: FastifyReply
   ) {
     request.currentUser = null;
+    request.organizationId = null;
     request.projectSlug = null;
     request.tenantId = null;
 
-    console.log(`[IAM contextMiddleware] URL: ${request.url}`);
-    console.log(`[IAM contextMiddleware] x-project-name: ${request.headers["x-project-name"]}`);
+    const token = extractBearerToken(request.headers.authorization);
 
-    // Extract project context from header
+    // Try to extract organizationId from JWT first (new flow)
+    if (token) {
+      const jwtPayload = decodeJwtPayload(token);
+      if (jwtPayload?.org) {
+        request.organizationId = jwtPayload.org;
+        console.log(`[IAM contextMiddleware] organizationId from JWT: ${request.organizationId}`);
+      }
+    }
+
+    // Extract project context from header (for domain scoping)
     const projectSlug = extractProjectSlug(request.headers["x-project-name"]);
     if (projectSlug) {
       request.projectSlug = projectSlug;
 
-      // Resolve tenantId from project service via broker
-      if (config.broker) {
-        request.tenantId = await resolveProjectTenantId(config.broker, projectSlug);
-        console.log(`[IAM contextMiddleware] Resolved tenantId: ${request.tenantId}`);
-      } else {
-        console.warn(`[IAM contextMiddleware] No broker available to resolve tenantId`);
+      // If no organizationId from JWT, resolve from project service (legacy flow)
+      if (!request.organizationId && config.broker) {
+        const { tenantId, organizationId } = await resolveProjectTenantId(config.broker, projectSlug);
+        request.tenantId = tenantId;
+        if (organizationId) {
+          request.organizationId = organizationId;
+        }
+        console.log(`[IAM contextMiddleware] Resolved from project: orgId=${request.organizationId}, tenantId=${request.tenantId}`);
       }
     }
 
+    // Validate user session
     if (!config.repository) {
       return;
     }
-
-    const token = extractBearerToken(request.headers.authorization);
 
     if (!token) {
       return;

@@ -12,6 +12,10 @@ enum ProjectStatus {
 type Project @key(fields: "id") {
   """Unique identifier of the project"""
   id: ID!
+  """Organization that owns this project (federation reference)"""
+  organization: Organization
+  """Organization ID that owns this project"""
+  organizationId: ID
   """Display name of the project"""
   name: String!
   """URL-friendly unique identifier"""
@@ -40,6 +44,11 @@ type Project @key(fields: "id") {
   createdAt: DateTime!
   """Timestamp when the project was last updated"""
   updatedAt: DateTime!
+}
+
+"""Organization entity (extended from IAM service)"""
+extend type Organization @key(fields: "id") {
+  id: ID! @external
 }
 
 """Input for creating a new project"""

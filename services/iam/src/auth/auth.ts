@@ -61,11 +61,23 @@ export function createAuth() {
           expirationTime: "15m", // 15 minutes
           issuer: process.env.JWT_ISSUER || "shopana-iam",
           audience: process.env.JWT_AUDIENCE || "shopana-api",
-          definePayload: ({ user }) => ({
-            sub: user.id,
-            email: user.email,
-            name: user.name,
-          }),
+          definePayload: ({ user, session }) => {
+            // Base payload
+            const payload: Record<string, unknown> = {
+              sub: user.id,
+              email: user.email,
+              name: user.name,
+            };
+
+            // Add organization claim if present in session data
+            // This is set by switchOrganization mutation
+            const sessionData = session as { organizationId?: string } | undefined;
+            if (sessionData?.organizationId) {
+              payload.org = sessionData.organizationId;
+            }
+
+            return payload;
+          },
         },
         jwks: {
           keyPairConfig: {

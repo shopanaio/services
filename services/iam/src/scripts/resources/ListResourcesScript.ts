@@ -6,100 +6,90 @@ import type {
 import type {
   ServiceResourceDeclaration,
   FlatResourceDefinition,
-  GetResourcesResult,
 } from "@shopana/shared-kernel";
 
 /**
- * Services that expose resources via getResources broker action.
- */
-const RESOURCE_PROVIDER_SERVICES = ["inventory", "media", "project"] as const;
-
-/**
- * ListResources - Aggregate resources from all services.
+ * ListResources - Aggregate resources from registered resources table.
  *
- * Queries each service's getResources broker action and aggregates the results.
- * Used by the role editor to display available resources and actions.
+ * Resources are registered by services via iam.registerResources broker action.
+ * This script fetches from the local database instead of querying each service.
  */
 export class ListResourcesScript extends BaseScript<
   ListResourcesParams,
   ListResourcesResult
 > {
   protected async execute(_params: ListResourcesParams): Promise<ListResourcesResult> {
-    const services: ServiceResourceDeclaration[] = [];
     const resources: FlatResourceDefinition[] = [];
-    const errors: Array<{ service: string; error: string }> = [];
+    const services: ServiceResourceDeclaration[] = [];
+    const serviceMap = new Map<string, ServiceResourceDeclaration>();
 
-    // Query each service in parallel
-    const results = await Promise.allSettled(
-      RESOURCE_PROVIDER_SERVICES.map(async (serviceName) => {
-        try {
-          const result = await this.services.broker.call<GetResourcesResult>(
-            `${serviceName}.getResources`
-          );
-          return { serviceName, result };
-        } catch (error) {
-          throw { serviceName, error };
+    try {
+      // Get all registered resources from database
+      const registeredResources = await this.repository.resource.getAllResources();
+
+      // Build resources and services lists
+      for (const r of registeredResources) {
+        // Add to flat resources list
+        resources.push({
+          service: r.service,
+          name: r.name,
+          displayName: r.displayName ?? r.name,
+          actions: r.actions,
+        });
+
+        // Group by service for ServiceResourceDeclaration
+        if (!serviceMap.has(r.service)) {
+          serviceMap.set(r.service, {
+            service: r.service,
+            displayName: r.service.charAt(0).toUpperCase() + r.service.slice(1),
+            resources: [],
+          });
         }
-      })
-    );
-
-    // Process results
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        const { result: serviceResources } = result.value;
-
-        if (serviceResources && serviceResources.resources.length > 0) {
-          services.push(serviceResources);
-
-          // Create flat resources for easy consumption
-          for (const resource of serviceResources.resources) {
-            resources.push({
-              service: serviceResources.service,
-              name: resource.name,
-              displayName: resource.displayName,
-              actions: resource.actions.map((a) => a.name),
-            });
-          }
-        }
-      } else {
-        const { serviceName, error } = result.reason as {
-          serviceName: string;
-          error: unknown;
-        };
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-
-        this.logger.warn(
-          { service: serviceName, error: errorMessage },
-          "ListResourcesScript: Failed to fetch resources from service"
-        );
-
-        errors.push({ service: serviceName, error: errorMessage });
+        const serviceDecl = serviceMap.get(r.service)!;
+        serviceDecl.resources.push({
+          name: r.name,
+          displayName: r.displayName ?? r.name,
+          actions: r.actions.map((a) => ({ name: a, displayName: a })),
+        });
       }
+
+      // Convert service map to array
+      for (const service of serviceMap.values()) {
+        services.push(service);
+      }
+
+      // Sort alphabetically
+      services.sort((a, b) => a.displayName.localeCompare(b.displayName));
+      resources.sort((a, b) => {
+        if (a.service !== b.service) {
+          return a.service.localeCompare(b.service);
+        }
+        return a.displayName.localeCompare(b.displayName);
+      });
+
+      return {
+        services,
+        resources,
+        userErrors: [],
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        { error: errorMessage },
+        "ListResourcesScript: Failed to fetch registered resources"
+      );
+
+      return {
+        services: [],
+        resources: [],
+        userErrors: [
+          {
+            code: "FETCH_FAILED",
+            message: "Failed to fetch registered resources",
+          },
+        ],
+      };
     }
-
-    // Sort services alphabetically
-    services.sort((a, b) => a.displayName.localeCompare(b.displayName));
-    resources.sort((a, b) => {
-      if (a.service !== b.service) {
-        return a.service.localeCompare(b.service);
-      }
-      return a.displayName.localeCompare(b.displayName);
-    });
-
-    return {
-      services,
-      resources,
-      userErrors:
-        errors.length > 0
-          ? [
-              {
-                code: "PARTIAL_FAILURE",
-                message: `Failed to fetch resources from: ${errors.map((e) => e.service).join(", ")}`,
-              },
-            ]
-          : [],
-    };
   }
 
   protected handleError(error: unknown): ListResourcesResult {

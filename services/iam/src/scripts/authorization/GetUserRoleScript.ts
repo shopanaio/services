@@ -1,48 +1,68 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { GetUserRoleParams, GetUserRoleResult } from "./dto/index.js";
+import type { ScopePart } from "../../casbin/CasbinService.js";
 
 /**
- * GetUserRole - Get user's role in a tenant
+ * GetUserRole - Get user's role in an organization/project
  *
- * TENANT ISOLATION:
- * Uses tenantId (project slug) for role lookup.
+ * ORGANIZATION + DOMAIN ISOLATION:
+ * Uses organizationId and optional projectId for role lookup.
  *
  * Implementation:
- * 1. Use tenantId directly (passed from caller)
+ * 1. Get organizationId (required) and projectId (optional domain)
  * 2. Get user's roles from Casbin via CasbinService
- * 3. Return the first role (users typically have one role per tenant)
+ * 3. Return the first role in the specified domain, or all roles
  */
 export class GetUserRoleScript extends BaseScript<
   GetUserRoleParams,
   GetUserRoleResult
 > {
   protected async execute(params: GetUserRoleParams): Promise<GetUserRoleResult> {
-    const { userId, tenantId } = params;
+    const { userId, projectId } = params;
+
+    // Support both new organizationId and legacy tenantId
+    const organizationId = params.organizationId || params.tenantId;
+
+    if (!organizationId) {
+      return {
+        role: null,
+        permissions: [],
+        userErrors: [{ code: "NO_ORG_CONTEXT", message: "organizationId is required" }],
+      };
+    }
 
     try {
-      const roles = await this.repository.authorization.getUserRoles(
-        tenantId,
+      // Build domain scope
+      const domain: ScopePart[] = projectId ? [["project", projectId]] : [];
+
+      // Get roles in specific domain
+      const rolesInDomain = await this.repository.casbin.getRolesForUserInDomain(
+        organizationId,
+        userId,
+        domain
+      );
+
+      // Also get all roles across all domains
+      const allRoles = await this.repository.casbin.getRolesForUser(
+        organizationId,
         userId
       );
 
-      if (roles.length === 0) {
+      if (rolesInDomain.length === 0 && allRoles.length === 0) {
         return {
           role: null,
+          roles: [],
           permissions: [],
           userErrors: [],
         };
       }
 
-      // Return the first role (primary role)
-      // Users typically have one role per project
-      const roleName = roles[0];
-
-      // TODO: Fetch permissions for this role
-      // For now, return empty permissions array
-      // This will be populated when we implement permission fetching
+      // Return the first role in the domain (primary role for this project)
+      const roleName = rolesInDomain.length > 0 ? rolesInDomain[0] : allRoles[0]?.role ?? null;
 
       return {
         role: roleName,
+        roles: allRoles,
         permissions: [],
         userErrors: [],
       };

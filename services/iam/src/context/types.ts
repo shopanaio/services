@@ -12,8 +12,10 @@ export interface ServiceContext {
   kernel: Kernel;
   /** Current authenticated user (null if not authenticated) */
   currentUser: User | null;
-  /** Current tenant/project ID (project slug) */
-  tenantId: string | null;
-  /** Current project slug from X-Project-Name header */
+  /** Organization ID from JWT or project resolution */
+  organizationId: string | null;
+  /** Current project slug from X-Project-Name header (for domain scoping) */
   projectSlug: string | null;
+  /** Current tenant/project ID (deprecated - use organizationId) */
+  tenantId: string | null;
 }

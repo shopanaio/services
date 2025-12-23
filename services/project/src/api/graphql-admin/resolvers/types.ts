@@ -48,6 +48,14 @@ export const typeResolvers: Partial<Resolvers> = {
     ): Promise<any> => {
       return resolveProject(reference.id, ctx, info);
     },
+    // Organization field resolver - returns federation reference
+    organization: (parent: { organizationId?: string | null }) => {
+      if (!parent.organizationId) {
+        return null;
+      }
+      // Return federation reference - gateway will resolve from IAM service
+      return { __typename: "Organization", id: parent.organizationId };
+    },
   },
 
   // UserError interface resolver
