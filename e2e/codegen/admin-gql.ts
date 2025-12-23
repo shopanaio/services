@@ -138,6 +138,22 @@ export type ApiAuthToken = {
   refreshToken: Scalars['String']['output'];
 };
 
+/** Input for authorize check. */
+export type ApiAuthorizeInput = {
+  /** Action to check. */
+  action: Scalars['String']['input'];
+  /** Resource to check. */
+  resource: Scalars['String']['input'];
+};
+
+export type ApiAuthorizePayload = {
+  __typename?: 'AuthorizePayload';
+  /** Whether access is allowed. */
+  allowed: Scalars['Boolean']['output'];
+  /** Reason for denial (if denied). */
+  deniedReason?: Maybe<Scalars['String']['output']>;
+};
+
 /** Filter operators for Boolean fields */
 export type ApiBooleanFilter = {
   /** Equals */
@@ -1968,6 +1984,9 @@ export type ApiMutation = {
   orderMutation: ApiOrderMutation;
   /** Project-related mutations */
   projectMutation: ApiProjectMutation;
+  /** Role management mutations. */
+  roleMutation: ApiRoleMutation;
+  /** User management mutations. */
   userMutation: ApiUserMutation;
 };
 
@@ -2176,6 +2195,14 @@ export type ApiPageInfo = {
   /** When paginating backwards, the cursor to continue. */
   startCursor?: Maybe<Scalars['String']['output']>;
 };
+
+/** Permission effect. */
+export enum PermissionEffect {
+  /** Allow the action. */
+  Allow = 'ALLOW',
+  /** Deny the action (takes priority over ALLOW). */
+  Deny = 'DENY'
+}
 
 /** A product represents an item that can be sold. */
 export type ApiProduct = ApiNode & {
@@ -2612,6 +2639,11 @@ export type ApiProductUpdatePayload = {
 /** A project representing a store or application */
 export type ApiProject = {
   __typename?: 'Project';
+  /**
+   * Available resources for role editor.
+   * Requires: project:admin permission.
+   */
+  availableResources: Array<ApiResourceDefinition>;
   /** Base currency used for exchange rate calculations */
   baseCurrency: CurrencyCode;
   /** Timestamp when the project was created */
@@ -2632,8 +2664,18 @@ export type ApiProject = {
   id: Scalars['ID']['output'];
   /** List of enabled locale codes for the project */
   locales: Array<LocaleCode>;
+  /**
+   * Project team members with roles.
+   * Requires: project.team:read permission.
+   */
+  members: Array<ApiProjectMember>;
   /** Display name of the project */
   name: Scalars['String']['output'];
+  /**
+   * All project roles with permissions.
+   * Used by frontend to compute effective permissions.
+   */
+  roles: Array<ApiRole>;
   /** URL-friendly unique identifier */
   slug: Scalars['String']['output'];
   /** Current operational status of the project */
@@ -2686,6 +2728,47 @@ export type ApiProjectDeletePayload = {
   deletedProjectId?: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during deletion */
   userErrors: Array<ApiUserError>;
+};
+
+/** Project team member with assigned role. */
+export type ApiProjectMember = {
+  __typename?: 'ProjectMember';
+  /** Date when role was assigned. */
+  grantedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Who assigned the role. */
+  grantedBy?: Maybe<ApiUser>;
+  /** User ID. */
+  id: Scalars['ID']['output'];
+  /** Assigned role. */
+  role: ApiRole;
+  /** User. */
+  user: ApiUser;
+};
+
+/** Input for removing a member. */
+export type ApiProjectMemberRemoveInput = {
+  /** User ID to remove. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ApiProjectMemberRemovePayload = {
+  __typename?: 'ProjectMemberRemovePayload';
+  removedUserId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for changing member role. */
+export type ApiProjectMemberRoleChangeInput = {
+  /** New role name. */
+  newRole: Scalars['String']['input'];
+  /** User ID. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ApiProjectMemberRoleChangePayload = {
+  __typename?: 'ProjectMemberRoleChangePayload';
+  member?: Maybe<ApiProjectMember>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Mutations for project management */
@@ -2855,27 +2938,208 @@ export type ApiPurchasableSnapshot = ApiPurchasable & {
 export type ApiQuery = {
   __typename?: 'Query';
   appsQuery: ApiAppsQuery;
+  /**
+   * Check authorization for current user.
+   * Used for server-side permission checks.
+   * For client-side checks, use project.roles + user.role.
+   */
+  authorize: ApiAuthorizePayload;
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
   /** Project-related queries */
   projectQuery: ApiProjectQuery;
+  /** Get current authenticated user. */
   userQuery: ApiUserQuery;
 };
 
-/** Role assigned to a user. */
+
+export type ApiQueryAuthorizeArgs = {
+  input: ApiAuthorizeInput;
+};
+
+/** Resource definition for role editor UI. */
+export type ApiResourceDefinition = {
+  __typename?: 'ResourceDefinition';
+  /** Available actions for resource. */
+  actions: Array<Scalars['String']['output']>;
+  /** Display name. */
+  displayName?: Maybe<Scalars['String']['output']>;
+  /** Resource name (product, order, etc.). */
+  name: Scalars['String']['output'];
+  /** Service name (inventory, orders, etc.). */
+  service: Scalars['String']['output'];
+};
+
+/** Project role with permissions. */
 export type ApiRole = {
   __typename?: 'Role';
+  /** Role creation date. */
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** Role description. */
   description?: Maybe<Scalars['String']['output']>;
   /** Human-readable display name. */
-  displayName?: Maybe<Scalars['String']['output']>;
-  /** Whether the role is enabled. */
-  isEnabled: Scalars['Boolean']['output'];
-  /** Role name/identifier. */
+  displayName: Scalars['String']['output'];
+  /**
+   * Roles this role inherits from (for hierarchy).
+   * E.g., manager inherits from support.
+   */
+  inherits: Array<Scalars['String']['output']>;
+  /** System role (owner, admin, manager, support, viewer) cannot be deleted. */
+  isSystem: Scalars['Boolean']['output'];
+  /** Unique role name (e.g.: owner, admin, content-editor). */
   name: Scalars['String']['output'];
-  /** Role owner (organization). */
-  owner: Scalars['String']['output'];
+  /** Role permissions. */
+  permissions: Array<ApiRolePermission>;
+};
+
+/** Input for creating a role. */
+export type ApiRoleCreateInput = {
+  /** Description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** Display name. */
+  displayName: Scalars['String']['input'];
+  /** Roles to inherit from. */
+  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Unique role name (slug). */
+  name: Scalars['String']['input'];
+  /** Role permissions. */
+  permissions: Array<ApiRolePermissionInput>;
+};
+
+export type ApiRoleCreatePayload = {
+  __typename?: 'RoleCreatePayload';
+  role?: Maybe<ApiRole>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for deleting a role. */
+export type ApiRoleDeleteInput = {
+  /** Role name to delete. */
+  name: Scalars['String']['input'];
+};
+
+export type ApiRoleDeletePayload = {
+  __typename?: 'RoleDeletePayload';
+  deletedRoleName?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Role mutations. */
+export type ApiRoleMutation = {
+  __typename?: 'RoleMutation';
+  /**
+   * Remove member from team.
+   * Requires: project.team:remove permission.
+   * Cannot remove self (use leaveProject).
+   * Cannot remove project owner.
+   */
+  projectMemberRemove: ApiProjectMemberRemovePayload;
+  /**
+   * Change member's role.
+   * Requires: project.team:write permission.
+   * Cannot change own role.
+   * Cannot assign role higher than own.
+   */
+  projectMemberRoleChange: ApiProjectMemberRoleChangePayload;
+  /**
+   * Create custom role.
+   * Requires: project:admin permission.
+   */
+  roleCreate: ApiRoleCreatePayload;
+  /**
+   * Delete custom role.
+   * Requires: project:admin permission.
+   * System roles cannot be deleted.
+   * Roles with assigned users cannot be deleted.
+   */
+  roleDelete: ApiRoleDeletePayload;
+  /**
+   * Update role.
+   * Requires: project:admin permission.
+   * System roles cannot be modified.
+   */
+  roleUpdate: ApiRoleUpdatePayload;
+};
+
+
+/** Role mutations. */
+export type ApiRoleMutationProjectMemberRemoveArgs = {
+  input: ApiProjectMemberRemoveInput;
+};
+
+
+/** Role mutations. */
+export type ApiRoleMutationProjectMemberRoleChangeArgs = {
+  input: ApiProjectMemberRoleChangeInput;
+};
+
+
+/** Role mutations. */
+export type ApiRoleMutationRoleCreateArgs = {
+  input: ApiRoleCreateInput;
+};
+
+
+/** Role mutations. */
+export type ApiRoleMutationRoleDeleteArgs = {
+  input: ApiRoleDeleteInput;
+};
+
+
+/** Role mutations. */
+export type ApiRoleMutationRoleUpdateArgs = {
+  input: ApiRoleUpdateInput;
+};
+
+/** Role permission - access to resource with specific actions. */
+export type ApiRolePermission = {
+  __typename?: 'RolePermission';
+  /**
+   * Allowed actions (e.g.: create, read, update, delete).
+   * Supports wildcard: *.
+   */
+  actions: Array<Scalars['String']['output']>;
+  /**
+   * Effect: ALLOW or DENY.
+   * DENY takes priority over ALLOW.
+   */
+  effect: PermissionEffect;
+  /**
+   * Resource name (e.g.: product, order, project/settings).
+   * Supports wildcards: *, product/*, order/*.
+   */
+  resource: Scalars['String']['output'];
+};
+
+/** Input for role permission. */
+export type ApiRolePermissionInput = {
+  /** Actions (create, read, update, delete, *). */
+  actions: Array<Scalars['String']['input']>;
+  /** Effect: ALLOW or DENY. */
+  effect: PermissionEffect;
+  /** Resource (product, order, *, product/*). */
+  resource: Scalars['String']['input'];
+};
+
+/** Input for updating a role. */
+export type ApiRoleUpdateInput = {
+  /** New description. */
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** New display name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Roles to inherit from. */
+  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Role name to update. */
+  name: Scalars['String']['input'];
+  /** New permissions (completely replaces existing). */
+  permissions?: InputMaybe<Array<ApiRolePermissionInput>>;
+};
+
+export type ApiRoleUpdatePayload = {
+  __typename?: 'RoleUpdatePayload';
+  role?: Maybe<ApiRole>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** S3-specific file data. */
@@ -2966,29 +3230,32 @@ export type ApiUser = {
   /** URL to user's avatar image. */
   avatar?: Maybe<Scalars['String']['output']>;
   /** The date and time when the user was created. */
-  createdAt: Scalars['DateTime']['output'];
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
   /** User's email address. */
   email: Scalars['Email']['output'];
   /** Whether the email has been verified. */
-  emailVerified: Scalars['Boolean']['output'];
+  emailVerified?: Maybe<Scalars['Boolean']['output']>;
   /** User's first name. */
   firstName?: Maybe<Scalars['String']['output']>;
   /** The globally unique ID of the user. */
   id: Scalars['ID']['output'];
   /** Whether the user has admin privileges. */
-  isAdmin: Scalars['Boolean']['output'];
+  isAdmin?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is deleted. */
-  isDeleted: Scalars['Boolean']['output'];
+  isDeleted?: Maybe<Scalars['Boolean']['output']>;
   /** Whether the user account is forbidden/banned. */
-  isForbidden: Scalars['Boolean']['output'];
+  isForbidden?: Maybe<Scalars['Boolean']['output']>;
   /** User's last name. */
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
   locale?: Maybe<LocaleCode>;
-  /** User's roles. */
-  roles: Array<ApiRole>;
+  /**
+   * User's role name in current project context.
+   * Returns null if no project context.
+   */
+  role?: Maybe<Scalars['String']['output']>;
   /** The date and time when the user was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 /** A generic user error interface for mutation responses. */

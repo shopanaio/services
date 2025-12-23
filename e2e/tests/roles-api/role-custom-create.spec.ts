@@ -2,7 +2,6 @@ import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 
-const generateProjectSlug = () => `test-project-${crypto.randomUUID().slice(0, 8)}`;
 const generateRoleName = () => `custom-role-${crypto.randomUUID().slice(0, 8)}`;
 
 /**
@@ -16,27 +15,9 @@ const generateRoleName = () => `custom-role-${crypto.randomUUID().slice(0, 8)}`;
  * - Name must be valid slug (a-z0-9-_)
  */
 test.describe('Custom Role Creation', () => {
-  let projectSlug: string;
-
   test.beforeEach(async ({ api }) => {
     await api.session.setupUser();
-
-    // Create a project
-    projectSlug = generateProjectSlug();
-    const { data } = await api.admin.mutation('project-api/ProjectCreate', {
-      variables: {
-        input: {
-          name: 'Role Test Project',
-          slug: projectSlug,
-          locales: ['en'],
-          currencies: ['USD'],
-          defaultCurrency: 'USD',
-        },
-      },
-    });
-
-    expect(data.projectMutation.projectCreate.userErrors).toHaveLength(0);
-    api.session.project = data.projectMutation.projectCreate.project;
+    await api.session.setupProject();
   });
 
   test('Should create a custom role with minimal fields', async ({ api }) => {
@@ -61,7 +42,6 @@ test.describe('Custom Role Creation', () => {
     const result = data.roleMutation.roleCreate;
 
     expect(result.userErrors).toHaveLength(0);
-    expect(result.role).not.toBeNull();
     expect(result.role?.name).toBe(roleName);
     expect(result.role?.displayName).toBe('Custom Role');
     expect(result.role?.isSystem).toBe(false);
@@ -101,7 +81,6 @@ test.describe('Custom Role Creation', () => {
     const result = data.roleMutation.roleCreate;
 
     expect(result.userErrors).toHaveLength(0);
-    expect(result.role).not.toBeNull();
     expect(result.role?.name).toBe(roleName);
     expect(result.role?.displayName).toBe('Content Editor');
     expect(result.role?.description).toBe('Can edit products and categories');
@@ -131,12 +110,10 @@ test.describe('Custom Role Creation', () => {
     });
 
     const result = data.roleMutation.roleCreate;
-
     expect(result.userErrors).toHaveLength(0);
-    expect(result.role).not.toBeNull();
 
     const denyPerm = result.role?.permissions.find(
-      (p: { resource: string; effect: string }) => p.resource === 'product' && p.effect === 'DENY'
+      (p: { resource: string; effect: string }) => p.resource === 'product' && p.effect === 'DENY',
     );
     expect(denyPerm).toBeDefined();
     expect(denyPerm?.actions).toContain('delete');
@@ -164,10 +141,8 @@ test.describe('Custom Role Creation', () => {
     const result = data.roleMutation.roleCreate;
 
     expect(result.userErrors).toHaveLength(0);
-    expect(result.role).not.toBeNull();
-
     const wildcardPerm = result.role?.permissions.find(
-      (p: { resource: string }) => p.resource === '*'
+      (p: { resource: string }) => p.resource === '*',
     );
     expect(wildcardPerm).toBeDefined();
   });
@@ -194,10 +169,8 @@ test.describe('Custom Role Creation', () => {
     const result = data.roleMutation.roleCreate;
 
     expect(result.userErrors).toHaveLength(0);
-    expect(result.role).not.toBeNull();
-
     const productPerm = result.role?.permissions.find(
-      (p: { resource: string }) => p.resource === 'product'
+      (p: { resource: string }) => p.resource === 'product',
     );
     expect(productPerm?.actions).toContain('*');
   });
@@ -229,7 +202,6 @@ test.describe('Custom Role Creation', () => {
     });
 
     const result = data.roleMutation.roleCreate;
-
     expect(result.role).toBeNull();
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
@@ -250,7 +222,6 @@ test.describe('Custom Role Creation', () => {
       });
 
       const result = data.roleMutation.roleCreate;
-
       expect(result.role).toBeNull();
       expect(result.userErrors.length).toBeGreaterThan(0);
     }
@@ -360,12 +331,11 @@ test.describe('Custom Role Creation', () => {
 
     // Fetch project roles
     const { data } = await api.admin.query('project-api/ProjectRoles', {
-      variables: { slug: projectSlug },
+      variables: { slug: api.session.projectSlug },
     });
 
     const roles = data.projectQuery.project?.roles ?? [];
     const customRole = roles.find((r: { name: string }) => r.name === roleName);
-
     expect(customRole).toBeDefined();
     expect(customRole?.isSystem).toBe(false);
   });
@@ -397,9 +367,7 @@ test.describe('Custom Role Creation', () => {
     });
 
     const result = data.roleMutation.roleCreate;
-
     expect(result.userErrors).toHaveLength(0);
-    expect(result.role).not.toBeNull();
     expect(result.role?.inherits).toContain('viewer');
     expect(result.role?.inherits).toContain(baseRoleName);
   });

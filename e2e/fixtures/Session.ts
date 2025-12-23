@@ -1,6 +1,5 @@
-import { generateUser, UserData, Timezone } from '@utils/user';
-import { ApiProject, ApiSession, ApiUserMutationSignUpArgs } from '@codegen/admin-gql';
-import { LocaleCode } from '@codegen/client-gql';
+import { generateUser, UserData } from '@utils/user';
+import { ApiProject } from '@codegen/admin-gql';
 import { StorefrontApiFixture } from '@fixtures/storefront/api';
 import { AdminApiFixture } from '@fixtures/admin/api';
 
@@ -10,36 +9,22 @@ export class SessionFixture {
     client: StorefrontApiFixture;
   };
 
-  scope: 'tenant' | 'customer' = 'tenant';
+  project!: ApiProject;
+
+  apiKey!: string;
 
   tenant: {
     data: UserData;
     accessToken?: string;
+    userId?: string;
   };
-
-  customer: {
-    data: UserData;
-    accessToken?: string;
-  };
-
-  project = {} as ApiProject;
-
-  apiKey!: string;
 
   get projectSlug(): string {
     return this.project.slug;
   }
 
   get user() {
-    if (this.scope === 'tenant') {
-      return this.tenant;
-    }
-
-    if (this.scope === 'customer') {
-      return this.customer;
-    }
-
-    throw new Error('Unexpected scope');
+    return this.tenant;
   }
 
   get accessToken(): string | null {
@@ -48,33 +33,34 @@ export class SessionFixture {
 
   constructor() {
     this.tenant = { data: generateUser() };
-    this.customer = { data: generateUser() };
   }
 
+  /**
+   * Creates and authenticates a new user, storing credentials in session
+   */
   async setupUser() {
-    const { data } = await this.api.admin.mutation<ApiUserMutationSignUpArgs>('users-api/SignUp', {
-      variables: {
-        input: {
-          email: this.tenant.data.email,
-          password: this.tenant.data.password,
-        },
-      },
+    const session = await this.api.admin.user.create({
+      email: this.tenant.data.email,
+      password: this.tenant.data.password,
     });
 
-    const result = data.userMutation.signUp;
-    this.tenant.accessToken = result.token?.accessToken;
-    return result;
+    this.tenant.accessToken = session.accessToken;
+    this.tenant.userId = session.userId;
+
+    return {
+      user: { id: session.userId },
+      token: { accessToken: session.accessToken },
+    };
   }
+
+  /**
+   * Creates a new project and stores it in session
+   */
+  setupProject = async ({ name, slug }: { name?: string; slug?: string } = {}) => {
+    this.project = await this.api.admin.project.create({ name, slug });
+  };
 
   setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {
     this.api = api;
-  }
-
-  setTenantScope() {
-    this.scope = 'tenant';
-  }
-
-  setCustomerScope() {
-    this.scope = 'customer';
   }
 }

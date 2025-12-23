@@ -1,23 +1,37 @@
 type Query {
   appsQuery: AppsQuery!
+
+  """Get current authenticated user."""
+  userQuery: UserQuery!
+
+  """
+  Check authorization for current user.
+  Used for server-side permission checks.
+  For client-side checks, use project.roles + user.role.
+  """
+  authorize(input: AuthorizeInput!): AuthorizePayload!
   inventoryQuery: InventoryQuery!
   mediaQuery: MediaQuery!
   orderQuery: OrderQuery!
 
   """Project-related queries"""
   projectQuery: ProjectQuery!
-  userQuery: UserQuery!
 }
 
 type Mutation {
   appsMutation: AppsMutation!
+
+  """User management mutations."""
+  userMutation: UserMutation!
+
+  """Role management mutations."""
+  roleMutation: RoleMutation!
   inventoryMutation: InventoryMutation!
   mediaMutation: MediaMutation!
   orderMutation: OrderMutation!
 
   """Project-related mutations"""
   projectMutation: ProjectMutation!
-  userMutation: UserMutation!
 }
 
 scalar JSON
@@ -992,6 +1006,537 @@ scalar DateTime
 """Valid email address"""
 scalar Email
 
+"""A generic user error type for mutation responses."""
+type GenericUserError implements UserError {
+  """Human-readable error message"""
+  message: String!
+
+  """Path to the field that caused the error"""
+  field: [String!]
+
+  """Machine-readable error code"""
+  code: String
+}
+
+"""Authentication tokens."""
+type AuthToken {
+  """Access token for API requests."""
+  accessToken: String!
+
+  """Refresh token for obtaining new access tokens."""
+  refreshToken: String!
+
+  """Expiration time in seconds."""
+  expiresIn: Int!
+}
+
+type UserQuery {
+  """Get current authenticated admin user"""
+  current: User
+}
+
+type UserMutation {
+  userUpdateProfile(input: UserUpdateProfileInput!): UserUpdateProfilePayload!
+  userUpdateEmail(input: UserUpdateEmailInput!): UserUpdateEmailPayload!
+  userUpdatePassword(input: UserUpdatePasswordInput!): UserUpdatePasswordPayload!
+  signUp(input: UserSignUpInput!): UserSignUpPayload!
+  signIn(input: UserSignInInput!): UserSignInPayload!
+  signOut(input: UserSignOutInput!): UserSignOutPayload!
+  tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
+}
+
+"""Project role with permissions."""
+type Role {
+  """Unique role name (e.g.: owner, admin, content-editor)."""
+  name: String!
+
+  """Human-readable display name."""
+  displayName: String!
+
+  """Role description."""
+  description: String
+
+  """
+  System role (owner, admin, manager, support, viewer) cannot be deleted.
+  """
+  isSystem: Boolean!
+
+  """
+  Roles this role inherits from (for hierarchy).
+  E.g., manager inherits from support.
+  """
+  inherits: [String!]!
+
+  """Role permissions."""
+  permissions: [RolePermission!]!
+
+  """Role creation date."""
+  createdAt: DateTime
+}
+
+"""Role permission - access to resource with specific actions."""
+type RolePermission {
+  """
+  Resource name (e.g.: product, order, project/settings).
+  Supports wildcards: *, product/*, order/*.
+  """
+  resource: String!
+
+  """
+  Allowed actions (e.g.: create, read, update, delete).
+  Supports wildcard: *.
+  """
+  actions: [String!]!
+
+  """
+  Effect: ALLOW or DENY.
+  DENY takes priority over ALLOW.
+  """
+  effect: PermissionEffect!
+}
+
+"""Project team member with assigned role."""
+type ProjectMember {
+  """User ID."""
+  id: ID!
+
+  """User."""
+  user: User!
+
+  """Assigned role."""
+  role: Role!
+
+  """Date when role was assigned."""
+  grantedAt: DateTime
+
+  """Who assigned the role."""
+  grantedBy: User
+}
+
+"""Resource definition for role editor UI."""
+type ResourceDefinition {
+  """Service name (inventory, orders, etc.)."""
+  service: String!
+
+  """Resource name (product, order, etc.)."""
+  name: String!
+
+  """Available actions for resource."""
+  actions: [String!]!
+
+  """Display name."""
+  displayName: String
+}
+
+type RoleCreatePayload {
+  role: Role
+  userErrors: [GenericUserError!]!
+}
+
+type RoleUpdatePayload {
+  role: Role
+  userErrors: [GenericUserError!]!
+}
+
+type RoleDeletePayload {
+  deletedRoleName: String
+  userErrors: [GenericUserError!]!
+}
+
+type ProjectMemberRoleChangePayload {
+  member: ProjectMember
+  userErrors: [GenericUserError!]!
+}
+
+type ProjectMemberRemovePayload {
+  removedUserId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type AuthorizePayload {
+  """Whether access is allowed."""
+  allowed: Boolean!
+
+  """Reason for denial (if denied)."""
+  deniedReason: String
+}
+
+"""Role mutations."""
+type RoleMutation {
+  """
+  Create custom role.
+  Requires: project:admin permission.
+  """
+  roleCreate(input: RoleCreateInput!): RoleCreatePayload!
+
+  """
+  Update role.
+  Requires: project:admin permission.
+  System roles cannot be modified.
+  """
+  roleUpdate(input: RoleUpdateInput!): RoleUpdatePayload!
+
+  """
+  Delete custom role.
+  Requires: project:admin permission.
+  System roles cannot be deleted.
+  Roles with assigned users cannot be deleted.
+  """
+  roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
+
+  """
+  Change member's role.
+  Requires: project.team:write permission.
+  Cannot change own role.
+  Cannot assign role higher than own.
+  """
+  projectMemberRoleChange(input: ProjectMemberRoleChangeInput!): ProjectMemberRoleChangePayload!
+
+  """
+  Remove member from team.
+  Requires: project.team:remove permission.
+  Cannot remove self (use leaveProject).
+  Cannot remove project owner.
+  """
+  projectMemberRemove(input: ProjectMemberRemoveInput!): ProjectMemberRemovePayload!
+}
+
+"""User type representing admin users (CMS/backoffice)."""
+type User {
+  """The globally unique ID of the user."""
+  id: ID!
+
+  """User's email address."""
+  email: Email!
+
+  """Whether the email has been verified."""
+  emailVerified: Boolean
+
+  """User's first name."""
+  firstName: String
+
+  """User's last name."""
+  lastName: String
+
+  """URL to user's avatar image."""
+  avatar: String
+
+  """User's locale/language preference."""
+  locale: LocaleCode
+
+  """Whether the user has admin privileges."""
+  isAdmin: Boolean
+
+  """Whether the user account is forbidden/banned."""
+  isForbidden: Boolean
+
+  """Whether the user account is deleted."""
+  isDeleted: Boolean
+
+  """The date and time when the user was created."""
+  createdAt: DateTime
+
+  """The date and time when the user was last updated."""
+  updatedAt: DateTime
+
+  """
+  User's role name in current project context.
+  Returns null if no project context.
+  """
+  role: String
+}
+
+"""Payload for user profile update."""
+type UserUpdateProfilePayload {
+  """The updated user."""
+  user: User
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for user email update."""
+type UserUpdateEmailPayload {
+  """The updated user."""
+  user: User
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for admin user sign up."""
+type UserSignUpPayload {
+  """The created user."""
+  user: User
+
+  """Authentication tokens."""
+  token: AuthToken
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for admin user sign in."""
+type UserSignInPayload {
+  """The authenticated user."""
+  user: User
+
+  """Authentication tokens."""
+  token: AuthToken
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for admin user sign out."""
+type UserSignOutPayload {
+  """Whether sign out was successful."""
+  success: Boolean!
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for admin user token refresh."""
+type UserTokenRefreshPayload {
+  """New authentication tokens."""
+  token: AuthToken
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""Payload for user password update."""
+type UserUpdatePasswordPayload {
+  """Whether the password was changed successfully."""
+  success: Boolean!
+
+  """List of errors that occurred during the mutation."""
+  userErrors: [GenericUserError!]!
+}
+
+"""A project representing a store or application"""
+type Project {
+  """Unique identifier of the project"""
+  id: ID!
+
+  """
+  All project roles with permissions.
+  Used by frontend to compute effective permissions.
+  """
+  roles: [Role!]!
+
+  """
+  Available resources for role editor.
+  Requires: project:admin permission.
+  """
+  availableResources: [ResourceDefinition!]!
+
+  """
+  Project team members with roles.
+  Requires: project.team:read permission.
+  """
+  members: [ProjectMember!]!
+
+  """Display name of the project"""
+  name: String!
+
+  """URL-friendly unique identifier"""
+  slug: String!
+
+  """Current operational status of the project"""
+  status: ProjectStatus!
+
+  """IANA timezone identifier for the project"""
+  timezone: String!
+
+  """Contact email address for the project"""
+  email: String
+
+  """List of enabled locale codes for the project"""
+  locales: [LocaleCode!]!
+
+  """List of enabled currency codes for the project"""
+  currencies: [CurrencyCode!]!
+
+  """Base currency used for exchange rate calculations"""
+  baseCurrency: CurrencyCode!
+
+  """Default locale for new content"""
+  defaultLocale: LocaleCode!
+
+  """Default currency for pricing display"""
+  defaultCurrency: CurrencyCode!
+
+  """Default unit for product weights"""
+  defaultWeightUnit: WeightUnit!
+
+  """Default unit for product dimensions"""
+  defaultDimensionUnit: DimensionUnit!
+
+  """Timestamp when the project was created"""
+  createdAt: DateTime!
+
+  """Timestamp when the project was last updated"""
+  updatedAt: DateTime!
+}
+
+"""A generic user error interface for mutation responses."""
+interface UserError {
+  """The error message."""
+  message: String!
+
+  """The path to the input field that caused the error."""
+  field: [String!]
+
+  """An error code for programmatic handling."""
+  code: String
+}
+
+"""Permission effect."""
+enum PermissionEffect {
+  """Allow the action."""
+  ALLOW
+
+  """Deny the action (takes priority over ALLOW)."""
+  DENY
+}
+
+"""Input for creating a role."""
+input RoleCreateInput {
+  """Unique role name (slug)."""
+  name: String!
+
+  """Display name."""
+  displayName: String!
+
+  """Description."""
+  description: String
+
+  """Roles to inherit from."""
+  inherits: [String!]
+
+  """Role permissions."""
+  permissions: [RolePermissionInput!]!
+}
+
+"""Input for role permission."""
+input RolePermissionInput {
+  """Resource (product, order, *, product/*)."""
+  resource: String!
+
+  """Actions (create, read, update, delete, *)."""
+  actions: [String!]!
+
+  """Effect: ALLOW or DENY."""
+  effect: PermissionEffect!
+}
+
+"""Input for updating a role."""
+input RoleUpdateInput {
+  """Role name to update."""
+  name: String!
+
+  """New display name."""
+  displayName: String
+
+  """New description."""
+  description: String
+
+  """Roles to inherit from."""
+  inherits: [String!]
+
+  """New permissions (completely replaces existing)."""
+  permissions: [RolePermissionInput!]
+}
+
+"""Input for deleting a role."""
+input RoleDeleteInput {
+  """Role name to delete."""
+  name: String!
+}
+
+"""Input for changing member role."""
+input ProjectMemberRoleChangeInput {
+  """User ID."""
+  userId: ID!
+
+  """New role name."""
+  newRole: String!
+}
+
+"""Input for removing a member."""
+input ProjectMemberRemoveInput {
+  """User ID to remove."""
+  userId: ID!
+}
+
+"""Input for authorize check."""
+input AuthorizeInput {
+  """Resource to check."""
+  resource: String!
+
+  """Action to check."""
+  action: String!
+}
+
+"""Input for updating user profile."""
+input UserUpdateProfileInput {
+  """User's first name."""
+  firstName: String
+
+  """User's last name."""
+  lastName: String
+
+  """User's locale/language preference."""
+  locale: LocaleCode
+}
+
+"""Input for updating user email."""
+input UserUpdateEmailInput {
+  """New email address."""
+  newEmail: Email!
+}
+
+"""Input for admin user sign up."""
+input UserSignUpInput {
+  """Email address."""
+  email: Email!
+
+  """Password."""
+  password: String!
+}
+
+"""Input for admin user authentication."""
+input UserSignInInput {
+  """Email address."""
+  email: Email!
+
+  """Password."""
+  password: String!
+}
+
+"""Input for admin user sign out."""
+input UserSignOutInput {
+  """Sign out from all sessions."""
+  allSessions: Boolean
+}
+
+"""Input for refreshing admin user access token."""
+input UserTokenRefreshInput {
+  """Refresh token to use for obtaining new access token."""
+  refreshToken: String!
+}
+
+"""Input for updating user password."""
+input UserUpdatePasswordInput {
+  """Current password."""
+  currentPassword: String!
+
+  """New password."""
+  newPassword: String!
+}
+
 scalar BigInt
 
 type InventoryQuery {
@@ -1518,18 +2063,6 @@ type PageInfo {
   endCursor: String
 }
 
-"""A generic user error type for mutation responses."""
-type GenericUserError implements UserError {
-  """Human-readable error message"""
-  message: String!
-
-  """Path to the field that caused the error"""
-  field: [String!]
-
-  """Machine-readable error code"""
-  code: String
-}
-
 """A warehouse represents a physical location where inventory is stored."""
 type Warehouse implements Node {
   """The globally unique ID of the warehouse."""
@@ -1870,18 +2403,6 @@ The Node interface is implemented by all types that have a globally unique ID.
 interface Node {
   """The globally unique ID of the object."""
   id: ID!
-}
-
-"""A generic user error interface for mutation responses."""
-interface UserError {
-  """The error message."""
-  message: String!
-
-  """The path to the input field that caused the error."""
-  field: [String!]
-
-  """An error code for programmatic handling."""
-  code: String
 }
 
 """Sort direction"""
@@ -3061,48 +3582,6 @@ type ApiKey {
   revokedAt: DateTime
 }
 
-"""User type representing admin users (CMS/backoffice)."""
-type User {
-  """The globally unique ID of the user."""
-  id: ID!
-
-  """User's email address."""
-  email: Email!
-
-  """Whether the email has been verified."""
-  emailVerified: Boolean!
-
-  """User's first name."""
-  firstName: String
-
-  """User's last name."""
-  lastName: String
-
-  """URL to user's avatar image."""
-  avatar: String
-
-  """User's locale/language preference."""
-  locale: LocaleCode
-
-  """Whether the user has admin privileges."""
-  isAdmin: Boolean!
-
-  """Whether the user account is forbidden/banned."""
-  isForbidden: Boolean!
-
-  """Whether the user account is deleted."""
-  isDeleted: Boolean!
-
-  """User's roles."""
-  roles: [Role!]!
-
-  """The date and time when the user was created."""
-  createdAt: DateTime!
-
-  """The date and time when the user was last updated."""
-  updatedAt: DateTime!
-}
-
 type Customer {
   id: ID!
 }
@@ -3956,54 +4435,6 @@ type LocaleUpdatePayload {
   userErrors: [UserError!]!
 }
 
-"""A project representing a store or application"""
-type Project {
-  """Unique identifier of the project"""
-  id: ID!
-
-  """Display name of the project"""
-  name: String!
-
-  """URL-friendly unique identifier"""
-  slug: String!
-
-  """Current operational status of the project"""
-  status: ProjectStatus!
-
-  """IANA timezone identifier for the project"""
-  timezone: String!
-
-  """Contact email address for the project"""
-  email: String
-
-  """List of enabled locale codes for the project"""
-  locales: [LocaleCode!]!
-
-  """List of enabled currency codes for the project"""
-  currencies: [CurrencyCode!]!
-
-  """Base currency used for exchange rate calculations"""
-  baseCurrency: CurrencyCode!
-
-  """Default locale for new content"""
-  defaultLocale: LocaleCode!
-
-  """Default currency for pricing display"""
-  defaultCurrency: CurrencyCode!
-
-  """Default unit for product weights"""
-  defaultWeightUnit: WeightUnit!
-
-  """Default unit for product dimensions"""
-  defaultDimensionUnit: DimensionUnit!
-
-  """Timestamp when the project was created"""
-  createdAt: DateTime!
-
-  """Timestamp when the project was last updated"""
-  updatedAt: DateTime!
-}
-
 """Payload returned after creating a project"""
 type ProjectCreatePayload {
   """The newly created project, null if creation failed"""
@@ -4158,175 +4589,4 @@ input ProjectUpdateInput {
 input ProjectDeleteInput {
   """ID of the project to delete"""
   id: ID!
-}
-
-"""Authentication tokens."""
-type AuthToken {
-  """Access token for API requests."""
-  accessToken: String!
-
-  """Refresh token for obtaining new access tokens."""
-  refreshToken: String!
-
-  """Expiration time in seconds."""
-  expiresIn: Int!
-}
-
-type UserQuery {
-  """Get current authenticated admin user"""
-  current: User
-}
-
-type UserMutation {
-  userUpdateProfile(input: UserUpdateProfileInput!): UserUpdateProfilePayload!
-  userUpdateEmail(input: UserUpdateEmailInput!): UserUpdateEmailPayload!
-  userUpdatePassword(input: UserUpdatePasswordInput!): UserUpdatePasswordPayload!
-  signUp(input: UserSignUpInput!): UserSignUpPayload!
-  signIn(input: UserSignInInput!): UserSignInPayload!
-  signOut(input: UserSignOutInput!): UserSignOutPayload!
-  tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
-}
-
-"""Role assigned to a user."""
-type Role {
-  """Role owner (organization)."""
-  owner: String!
-
-  """Role name/identifier."""
-  name: String!
-
-  """Human-readable display name."""
-  displayName: String
-
-  """Role description."""
-  description: String
-
-  """Whether the role is enabled."""
-  isEnabled: Boolean!
-}
-
-"""Payload for user profile update."""
-type UserUpdateProfilePayload {
-  """The updated user."""
-  user: User
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for user email update."""
-type UserUpdateEmailPayload {
-  """The updated user."""
-  user: User
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for admin user sign up."""
-type UserSignUpPayload {
-  """The created user."""
-  user: User
-
-  """Authentication tokens."""
-  token: AuthToken
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for admin user sign in."""
-type UserSignInPayload {
-  """The authenticated user."""
-  user: User
-
-  """Authentication tokens."""
-  token: AuthToken
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for admin user sign out."""
-type UserSignOutPayload {
-  """Whether sign out was successful."""
-  success: Boolean!
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for admin user token refresh."""
-type UserTokenRefreshPayload {
-  """New authentication tokens."""
-  token: AuthToken
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Payload for user password update."""
-type UserUpdatePasswordPayload {
-  """Whether the password was changed successfully."""
-  success: Boolean!
-
-  """List of errors that occurred during the mutation."""
-  userErrors: [GenericUserError!]!
-}
-
-"""Input for updating user profile."""
-input UserUpdateProfileInput {
-  """User's first name."""
-  firstName: String
-
-  """User's last name."""
-  lastName: String
-
-  """User's locale/language preference."""
-  locale: LocaleCode
-}
-
-"""Input for updating user email."""
-input UserUpdateEmailInput {
-  """New email address."""
-  newEmail: Email!
-}
-
-"""Input for admin user sign up."""
-input UserSignUpInput {
-  """Email address."""
-  email: Email!
-
-  """Password."""
-  password: String!
-}
-
-"""Input for admin user authentication."""
-input UserSignInInput {
-  """Email address."""
-  email: Email!
-
-  """Password."""
-  password: String!
-}
-
-"""Input for admin user sign out."""
-input UserSignOutInput {
-  """Sign out from all sessions."""
-  allSessions: Boolean
-}
-
-"""Input for refreshing admin user access token."""
-input UserTokenRefreshInput {
-  """Refresh token to use for obtaining new access token."""
-  refreshToken: String!
-}
-
-"""Input for updating user password."""
-input UserUpdatePasswordInput {
-  """Current password."""
-  currentPassword: String!
-
-  """New password."""
-  newPassword: String!
 }

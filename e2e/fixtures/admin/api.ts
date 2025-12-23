@@ -1,6 +1,8 @@
 import { BaseGqlRequest, GqlRequestSession } from '@fixtures/api/gqlRequest';
 import { ApiMutation, ApiQuery } from '@codegen/admin-gql';
 import { APIRequestContext } from '@playwright/test';
+import { ProjectFixture } from './project';
+import { UserFixture } from './user';
 
 class AdminGqlRequest extends BaseGqlRequest<ApiQuery, ApiMutation> {
   constructor(request: APIRequestContext, session: GqlRequestSession) {
@@ -13,7 +15,12 @@ class AdminGqlRequest extends BaseGqlRequest<ApiQuery, ApiMutation> {
 }
 
 export class AdminApiFixture extends AdminGqlRequest {
+  public readonly project: ProjectFixture;
+  public readonly user: UserFixture;
+
   constructor({ request, session }: { session: GqlRequestSession; request: APIRequestContext }) {
     super(request, session);
+    this.project = new ProjectFixture(this);
+    this.user = new UserFixture(this);
   }
 }
