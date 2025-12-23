@@ -339,3 +339,238 @@ test.describe('Role Permission Updates', () => {
     expect(errorsAfter[0].code).toBe('FORBIDDEN');
   });
 });
+
+test.describe('Member Management Authorization', () => {
+  test('Viewer should NOT be able to add members', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    await api.session.setupProject();
+
+    // Create a viewer user
+    const viewer = await api.admin.user.create();
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: viewer.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Create another user to try adding
+    const newUser = await api.admin.user.create();
+
+    // Switch to viewer and try to add member
+    api.session.tenant.accessToken = viewer.accessToken;
+    const { data } = await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      throwOnError: false,
+      variables: {
+        input: {
+          userId: newUser.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    const errors = data.roleMutation?.projectMemberRoleChange?.userErrors ?? [];
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].code).toBe('FORBIDDEN');
+  });
+
+  test('Viewer should NOT be able to remove members', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    await api.session.setupProject();
+
+    // Create a viewer user
+    const viewer = await api.admin.user.create();
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: viewer.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Create another member
+    const member = await api.admin.user.create();
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: member.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Switch to viewer and try to remove member
+    api.session.tenant.accessToken = viewer.accessToken;
+    const { data } = await api.admin.mutation('roles-api/ProjectMemberRemove', {
+      throwOnError: false,
+      variables: {
+        input: {
+          userId: member.userId,
+        },
+      },
+    });
+
+    const errors = data.roleMutation?.projectMemberRemove?.userErrors ?? [];
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].code).toBe('FORBIDDEN');
+  });
+
+  test('Admin should be able to add members', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    await api.session.setupProject();
+
+    // Create an admin user
+    const admin = await api.admin.user.create();
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: admin.userId,
+          newRole: 'admin',
+        },
+      },
+    });
+
+    // Create another user to add
+    const newUser = await api.admin.user.create();
+
+    // Switch to admin and add member
+    api.session.tenant.accessToken = admin.accessToken;
+    const { data } = await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      throwOnError: false,
+      variables: {
+        input: {
+          userId: newUser.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    const errors = data.roleMutation?.projectMemberRoleChange?.userErrors ?? [];
+    expect(errors).toHaveLength(0);
+  });
+
+  test('Owner should be able to manage all members', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    await api.session.setupProject();
+
+    // Create users
+    const admin = await api.admin.user.create();
+    const viewer = await api.admin.user.create();
+
+    // Owner adds admin
+    const { data: addAdmin } = await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      throwOnError: false,
+      variables: {
+        input: {
+          userId: admin.userId,
+          newRole: 'admin',
+        },
+      },
+    });
+    expect(addAdmin.roleMutation?.projectMemberRoleChange?.userErrors ?? []).toHaveLength(0);
+
+    // Owner adds viewer
+    const { data: addViewer } = await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      throwOnError: false,
+      variables: {
+        input: {
+          userId: viewer.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+    expect(addViewer.roleMutation?.projectMemberRoleChange?.userErrors ?? []).toHaveLength(0);
+
+    // Owner removes viewer
+    const { data: removeViewer } = await api.admin.mutation('roles-api/ProjectMemberRemove', {
+      throwOnError: false,
+      variables: {
+        input: {
+          userId: viewer.userId,
+        },
+      },
+    });
+    expect(removeViewer.roleMutation?.projectMemberRemove?.userErrors ?? []).toHaveLength(0);
+  });
+});
+
+test.describe('Role Management Authorization', () => {
+  test('Viewer should NOT be able to create roles', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    await api.session.setupProject();
+
+    // Create viewer
+    const viewer = await api.admin.user.create();
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: viewer.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Switch to viewer and try to create role
+    api.session.tenant.accessToken = viewer.accessToken;
+    const { data } = await api.admin.mutation('roles-api/RoleCreate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          name: 'custom-role',
+          displayName: 'Custom Role',
+          permissions: [
+            { resource: 'product', actions: ['read'], effect: 'ALLOW' },
+          ],
+        },
+      },
+    });
+
+    const errors = data.roleMutation?.roleCreate?.userErrors ?? [];
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].code).toBe('FORBIDDEN');
+  });
+
+  test('Admin should be able to create roles', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    await api.session.setupProject();
+
+    // Create admin
+    const admin = await api.admin.user.create();
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: admin.userId,
+          newRole: 'admin',
+        },
+      },
+    });
+
+    // Switch to admin and create role
+    api.session.tenant.accessToken = admin.accessToken;
+    const { data } = await api.admin.mutation('roles-api/RoleCreate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          name: 'custom-editor',
+          displayName: 'Custom Editor',
+          permissions: [
+            { resource: 'product', actions: ['read', 'write'], effect: 'ALLOW' },
+          ],
+        },
+      },
+    });
+
+    const errors = data.roleMutation?.roleCreate?.userErrors ?? [];
+    expect(errors).toHaveLength(0);
+    expect(data.roleMutation?.roleCreate?.role?.name).toBe('custom-editor');
+  });
+});

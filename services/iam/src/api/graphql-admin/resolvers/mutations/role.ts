@@ -12,8 +12,58 @@ import {
   AttachUserRoleScript,
   DetachUserRoleScript,
   ListRolesScript,
+  AuthorizeScript,
 } from "../../../../scripts/authorization/index.js";
 import type { RoleInfo, RolePermission as DtoRolePermission } from "../../../../scripts/authorization/dto/index.js";
+import type { ServiceContext } from "../../../../context/index.js";
+
+interface AuthError {
+  code: string;
+  message: string;
+}
+
+/**
+ * Check if user has permission to perform action on resource
+ * Returns null if authorized, error object if denied
+ */
+async function checkAuthorization(
+  ctx: ServiceContext,
+  resource: string,
+  action: string
+): Promise<AuthError | null> {
+  const userId = ctx.currentUser?.id;
+  const tenantId = ctx.tenantId;
+
+  if (!userId) {
+    return {
+      code: "UNAUTHENTICATED",
+      message: "Authentication required",
+    };
+  }
+
+  if (!tenantId) {
+    return {
+      code: "NO_PROJECT_CONTEXT",
+      message: "No project context. Please provide X-Project-Name header.",
+    };
+  }
+
+  const result = await ctx.kernel.runScript(AuthorizeScript, {
+    userId,
+    tenantId,
+    resource,
+    action,
+  });
+
+  if (!result.allowed) {
+    return {
+      code: "FORBIDDEN",
+      message: `Access denied: ${resource}:${action}`,
+    };
+  }
+
+  return null;
+}
 
 /**
  * Map DTO RolePermission to GraphQL RolePermission
@@ -55,20 +105,13 @@ export const roleMutationResolvers: Partial<Resolvers> = {
 
   RoleMutation: {
     roleCreate: async (_parent, { input }, ctx) => {
-      // Get tenantId from context (project slug)
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        return {
-          role: null,
-          userErrors: [
-            {
-              code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Name header.",
-            },
-          ],
-        };
+      // Check authorization
+      const authError = await checkAuthorization(ctx, "role", "create");
+      if (authError) {
+        return { role: null, userErrors: [authError] };
       }
 
+      const tenantId = ctx.tenantId!;
       const result = await ctx.kernel.runScript(CreateRoleScript, {
         tenantId,
         name: input.name,
@@ -89,19 +132,13 @@ export const roleMutationResolvers: Partial<Resolvers> = {
     },
 
     roleUpdate: async (_parent, { input }, ctx) => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        return {
-          role: null,
-          userErrors: [
-            {
-              code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Name header.",
-            },
-          ],
-        };
+      // Check authorization
+      const authError = await checkAuthorization(ctx, "role", "update");
+      if (authError) {
+        return { role: null, userErrors: [authError] };
       }
 
+      const tenantId = ctx.tenantId!;
       const result = await ctx.kernel.runScript(UpdateRoleScript, {
         tenantId,
         roleName: input.name,
@@ -122,19 +159,13 @@ export const roleMutationResolvers: Partial<Resolvers> = {
     },
 
     roleDelete: async (_parent, { input }, ctx) => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        return {
-          deletedRoleName: null,
-          userErrors: [
-            {
-              code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Name header.",
-            },
-          ],
-        };
+      // Check authorization
+      const authError = await checkAuthorization(ctx, "role", "delete");
+      if (authError) {
+        return { deletedRoleName: null, userErrors: [authError] };
       }
 
+      const tenantId = ctx.tenantId!;
       const result = await ctx.kernel.runScript(DeleteRoleScript, {
         tenantId,
         roleName: input.name,
@@ -147,31 +178,14 @@ export const roleMutationResolvers: Partial<Resolvers> = {
     },
 
     projectMemberRoleChange: async (_parent, { input }, ctx) => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        return {
-          member: null,
-          userErrors: [
-            {
-              code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Name header.",
-            },
-          ],
-        };
+      // Check authorization for member management
+      const authError = await checkAuthorization(ctx, "member", "update");
+      if (authError) {
+        return { member: null, userErrors: [authError] };
       }
 
-      const currentUserId = ctx.currentUser?.id;
-      if (!currentUserId) {
-        return {
-          member: null,
-          userErrors: [
-            {
-              code: "UNAUTHENTICATED",
-              message: "You must be logged in to change member roles.",
-            },
-          ],
-        };
-      }
+      const tenantId = ctx.tenantId!;
+      const currentUserId = ctx.currentUser!.id;
 
       // First, detach current role (if any)
       await ctx.kernel.runScript(DetachUserRoleScript, {
@@ -242,31 +256,14 @@ export const roleMutationResolvers: Partial<Resolvers> = {
     },
 
     projectMemberRemove: async (_parent, { input }, ctx) => {
-      const tenantId = ctx.tenantId;
-      if (!tenantId) {
-        return {
-          removedUserId: null,
-          userErrors: [
-            {
-              code: "NO_PROJECT_CONTEXT",
-              message: "No project context. Please provide X-Project-Name header.",
-            },
-          ],
-        };
+      // Check authorization for member management
+      const authError = await checkAuthorization(ctx, "member", "delete");
+      if (authError) {
+        return { removedUserId: null, userErrors: [authError] };
       }
 
-      const currentUserId = ctx.currentUser?.id;
-      if (!currentUserId) {
-        return {
-          removedUserId: null,
-          userErrors: [
-            {
-              code: "UNAUTHENTICATED",
-              message: "You must be logged in to remove members.",
-            },
-          ],
-        };
-      }
+      const tenantId = ctx.tenantId!;
+      const currentUserId = ctx.currentUser!.id;
 
       const result = await ctx.kernel.runScript(DetachUserRoleScript, {
         userId: input.userId,

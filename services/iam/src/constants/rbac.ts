@@ -148,11 +148,18 @@ export interface RolePermissionDef {
  * With keyMatch wildcards:
  * - "*" matches any resource
  * - "product/*" matches "product", "product/123", "product/123/variant"
+ *
+ * Protected resources:
+ * - member: manage project members (invite, remove, change roles)
+ * - role: manage custom roles (create, update, delete)
+ * - project: project settings and deletion
  */
 export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
   // Base role: read-only access to everything
   viewer: {
     allow: [{ resource: "*", actions: ["read"] }],
+    // Note: No deny rules here - viewer simply doesn't have member/role permissions
+    // Higher roles (admin, owner) explicitly grant these permissions
   },
 
   // Inherits from viewer, adds order management
@@ -175,16 +182,26 @@ export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
 
   // Inherits from manager, adds full access with restrictions
   admin: {
-    allow: [{ resource: "*", actions: ["*"] }],
+    allow: [
+      { resource: "*", actions: ["*"] },
+      { resource: "member", actions: ["read", "create", "update"] }, // Can manage members but not remove owner
+      { resource: "role", actions: ["read", "create", "update"] }, // Can manage custom roles
+    ],
     deny: [
       { resource: "project", actions: ["delete"] },
       { resource: "project/billing", actions: ["*"] },
+      { resource: "member/owner", actions: ["*"] }, // Cannot modify owner
+      { resource: "role/system", actions: ["update", "delete"] }, // Cannot modify system roles
     ],
   },
 
   // Inherits from admin, removes deny restrictions (full access)
   owner: {
-    allow: [{ resource: "*", actions: ["*"] }],
+    allow: [
+      { resource: "*", actions: ["*"] },
+      { resource: "member", actions: ["*"] },
+      { resource: "role", actions: ["*"] },
+    ],
   },
 };
 
