@@ -204,4 +204,26 @@ export class ProjectRepository extends BaseRepository {
     const projects = await this.connection.select().from(project);
     return Promise.all(projects.map((p) => this.loadIntegrations(p)));
   }
+
+  @Transactional()
+  async update(id: string, data: UpdateProjectData): Promise<ProjectWithIntegrations | undefined> {
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.timezone !== undefined) updateData.timezone = data.timezone;
+    if (data.defaultWeightUnit !== undefined) updateData.defaultWeightUnit = data.defaultWeightUnit;
+    if (data.defaultDimensionUnit !== undefined) updateData.defaultDimensionUnit = data.defaultDimensionUnit;
+
+    const [result] = await this.connection
+      .update(project)
+      .set(updateData)
+      .where(eq(project.id, id))
+      .returning();
+
+    if (!result) return undefined;
+    return this.loadIntegrations(result);
+  }
 }

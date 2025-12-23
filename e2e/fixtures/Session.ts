@@ -20,7 +20,7 @@ export class SessionFixture {
   };
 
   get projectSlug(): string {
-    return this.project.slug;
+    return this.project?.slug ?? '';
   }
 
   get user() {

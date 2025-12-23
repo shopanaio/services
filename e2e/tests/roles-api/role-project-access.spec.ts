@@ -1,23 +1,45 @@
-import { test } from '@fixtures/base.extend';
+import { test as base } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+
+interface UserSession {
+  email: string;
+  password: string;
+  accessToken: string;
+  userId: string;
+}
+
+const test = base.extend<{
+  ownerUser: UserSession;
+}>({
+  ownerUser: async ({ api }, use) => {
+    const result = await api.session.setupUser();
+    await use({
+      email: api.session.tenant.data.email,
+      password: api.session.tenant.data.password,
+      accessToken: result.token?.accessToken ?? '',
+      userId: result.user?.id ?? '',
+    });
+  },
+});
 
 /**
  * Project Access Permission Tests
  *
  * Tests that verify users cannot perform actions without proper permissions.
- * These tests actually attempt operations and verify they fail.
+ * These tests actually attempt operations and verify they fail with FORBIDDEN error.
  */
 test.describe('Project Access Permissions', () => {
-  test.beforeEach(async ({ api }) => {
-    await api.session.setupUser();
+  test.beforeEach(async ({ api, ownerUser }) => {
+    api.session.tenant.accessToken = ownerUser.accessToken;
     await api.session.setupProject();
   });
 
-  test('Viewer should NOT be able to update project', async ({ api }) => {
+  test('Viewer should NOT be able to update project', async ({ api, ownerUser }) => {
     // Create a viewer user
     const viewer = await api.admin.user.create();
 
     // Assign viewer role (owner does this)
+    api.session.tenant.accessToken = ownerUser.accessToken;
     await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
       variables: {
         input: {
@@ -40,24 +62,21 @@ test.describe('Project Access Permissions', () => {
       },
     });
 
-    // Should have permission error
-    const errors = data.projectMutation?.projectUpdate?.userErrors ?? [];
-    expect(errors.length).toBeGreaterThan(0);
-
-    const hasPermissionError = errors.some(
-      (e: { code?: string | null }) =>
-        e.code && ['FORBIDDEN', 'PERMISSION_DENIED', 'UNAUTHORIZED', 'ACCESS_DENIED'].includes(e.code)
-    );
-    expect(hasPermissionError).toBe(true);
+    // Should have FORBIDDEN userError
+    const userErrors = data.projectMutation?.projectUpdate?.userErrors ?? [];
+    expect(userErrors.length).toBeGreaterThan(0);
+    expect(userErrors[0].code).toBe('FORBIDDEN');
+    expect(userErrors[0].message).toContain('Access denied');
   });
 
-  test('Viewer should NOT be able to delete project', async ({ api }) => {
+  test('Viewer should NOT be able to delete project', async ({ api, ownerUser }) => {
     const projectId = api.session.project.id;
 
     // Create a viewer user
     const viewer = await api.admin.user.create();
 
     // Assign viewer role
+    api.session.tenant.accessToken = ownerUser.accessToken;
     await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
       variables: {
         input: {
@@ -80,24 +99,21 @@ test.describe('Project Access Permissions', () => {
       },
     });
 
-    // Should have permission error
-    const errors = data.projectMutation?.projectDelete?.userErrors ?? [];
-    expect(errors.length).toBeGreaterThan(0);
-
-    const hasPermissionError = errors.some(
-      (e: { code?: string | null }) =>
-        e.code && ['FORBIDDEN', 'PERMISSION_DENIED', 'UNAUTHORIZED', 'ACCESS_DENIED'].includes(e.code)
-    );
-    expect(hasPermissionError).toBe(true);
+    // Should have FORBIDDEN userError
+    const userErrors = data.projectMutation?.projectDelete?.userErrors ?? [];
+    expect(userErrors.length).toBeGreaterThan(0);
+    expect(userErrors[0].code).toBe('FORBIDDEN');
+    expect(userErrors[0].message).toContain('Access denied');
   });
 
-  test('Admin should NOT be able to delete project', async ({ api }) => {
+  test('Admin should NOT be able to delete project', async ({ api, ownerUser }) => {
     const projectId = api.session.project.id;
 
     // Create an admin user
     const admin = await api.admin.user.create();
 
     // Assign admin role
+    api.session.tenant.accessToken = ownerUser.accessToken;
     await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
       variables: {
         input: {
@@ -120,20 +136,17 @@ test.describe('Project Access Permissions', () => {
       },
     });
 
-    // Should have permission error
-    const errors = data.projectMutation?.projectDelete?.userErrors ?? [];
-    expect(errors.length).toBeGreaterThan(0);
-
-    const hasPermissionError = errors.some(
-      (e: { code?: string | null }) =>
-        e.code && ['FORBIDDEN', 'PERMISSION_DENIED', 'UNAUTHORIZED', 'ACCESS_DENIED'].includes(e.code)
-    );
-    expect(hasPermissionError).toBe(true);
+    // Should have FORBIDDEN userError
+    const userErrors = data.projectMutation?.projectDelete?.userErrors ?? [];
+    expect(userErrors.length).toBeGreaterThan(0);
+    expect(userErrors[0].code).toBe('FORBIDDEN');
+    expect(userErrors[0].message).toContain('Access denied');
   });
 
   test('Owner should be able to update project', async ({ api }) => {
     // Owner updates project - should succeed
     const { data } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
       variables: {
         input: {
           name: 'Updated Project Name',
@@ -141,8 +154,188 @@ test.describe('Project Access Permissions', () => {
       },
     });
 
-    const errors = data.projectMutation?.projectUpdate?.userErrors ?? [];
-    expect(errors).toHaveLength(0);
+    const userErrors = data.projectMutation?.projectUpdate?.userErrors ?? [];
+    expect(userErrors).toHaveLength(0);
     expect(data.projectMutation?.projectUpdate?.project?.name).toBe('Updated Project Name');
+  });
+});
+
+test.describe('Multi-Project Role Isolation', () => {
+  test('User should have different permissions in different projects', async ({ api }) => {
+    // Create owner user
+    await api.session.setupUser();
+    const ownerToken = api.session.tenant.accessToken ?? '';
+
+    // Create first project where user will be admin
+    await api.session.setupProject({ name: 'Project A' });
+    const projectA = api.session.project;
+
+    // Create second project where same user will be viewer
+    await api.session.setupProject({ name: 'Project B' });
+    const projectB = api.session.project;
+
+    // Create a test user
+    const testUser = await api.admin.user.create();
+
+    // Assign admin role in Project A (as owner)
+    api.session.tenant.accessToken = ownerToken;
+    api.session.project = projectA;
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: testUser.userId,
+          newRole: 'admin',
+        },
+      },
+    });
+
+    // Assign viewer role in Project B
+    api.session.project = projectB;
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: testUser.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Switch to test user
+    api.session.tenant.accessToken = testUser.accessToken;
+
+    // Test user should be able to update Project A (admin role)
+    api.session.project = projectA;
+    const { data: updateA } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          name: 'Updated Project A',
+        },
+      },
+    });
+    const errorsA = updateA.projectMutation?.projectUpdate?.userErrors ?? [];
+    expect(errorsA).toHaveLength(0);
+
+    // Test user should NOT be able to update Project B (viewer role)
+    api.session.project = projectB;
+    const { data: updateB } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          name: 'Hacked Project B',
+        },
+      },
+    });
+    const errorsB = updateB.projectMutation?.projectUpdate?.userErrors ?? [];
+    expect(errorsB.length).toBeGreaterThan(0);
+    expect(errorsB[0].code).toBe('FORBIDDEN');
+  });
+});
+
+test.describe('Role Permission Updates', () => {
+  test('Upgrading role should grant new permissions', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    const ownerToken = api.session.tenant.accessToken ?? '';
+    await api.session.setupProject();
+
+    // Create a viewer user
+    const viewer = await api.admin.user.create();
+
+    // Assign viewer role
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: viewer.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Verify viewer cannot update
+    api.session.tenant.accessToken = viewer.accessToken;
+    const { data: beforeUpgrade } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
+      variables: {
+        input: { name: 'Attempt 1' },
+      },
+    });
+    expect(beforeUpgrade.projectMutation?.projectUpdate?.userErrors?.[0]?.code).toBe('FORBIDDEN');
+
+    // Owner upgrades viewer to admin
+    api.session.tenant.accessToken = ownerToken;
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: viewer.userId,
+          newRole: 'admin',
+        },
+      },
+    });
+
+    // Now the user (now admin) should be able to update
+    api.session.tenant.accessToken = viewer.accessToken;
+    const { data: afterUpgrade } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
+      variables: {
+        input: { name: 'Updated by new admin' },
+      },
+    });
+    const errorsAfter = afterUpgrade.projectMutation?.projectUpdate?.userErrors ?? [];
+    expect(errorsAfter).toHaveLength(0);
+    expect(afterUpgrade.projectMutation?.projectUpdate?.project?.name).toBe('Updated by new admin');
+  });
+
+  test('Downgrading role should revoke permissions', async ({ api }) => {
+    // Setup owner and project
+    await api.session.setupUser();
+    const ownerToken = api.session.tenant.accessToken ?? '';
+    await api.session.setupProject();
+
+    // Create an admin user
+    const admin = await api.admin.user.create();
+
+    // Assign admin role
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: admin.userId,
+          newRole: 'admin',
+        },
+      },
+    });
+
+    // Verify admin can update
+    api.session.tenant.accessToken = admin.accessToken;
+    const { data: beforeDowngrade } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
+      variables: {
+        input: { name: 'Updated by admin' },
+      },
+    });
+    expect(beforeDowngrade.projectMutation?.projectUpdate?.userErrors ?? []).toHaveLength(0);
+
+    // Owner downgrades admin to viewer
+    api.session.tenant.accessToken = ownerToken;
+    await api.admin.mutation('roles-api/ProjectMemberRoleChange', {
+      variables: {
+        input: {
+          userId: admin.userId,
+          newRole: 'viewer',
+        },
+      },
+    });
+
+    // Now the user (now viewer) should NOT be able to update
+    api.session.tenant.accessToken = admin.accessToken;
+    const { data: afterDowngrade } = await api.admin.mutation('project-api/ProjectUpdate', {
+      throwOnError: false,
+      variables: {
+        input: { name: 'Attempt after downgrade' },
+      },
+    });
+    const errorsAfter = afterDowngrade.projectMutation?.projectUpdate?.userErrors ?? [];
+    expect(errorsAfter.length).toBeGreaterThan(0);
+    expect(errorsAfter[0].code).toBe('FORBIDDEN');
   });
 });

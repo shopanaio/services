@@ -6,6 +6,7 @@ import { ProjectDeleteScript } from "../../../../scripts/project/ProjectDeleteSc
 import { ProjectResolver } from "../../../../resolvers/admin/ProjectType.js";
 import { requireContext } from "../utils.js";
 import type { ProjectCreateWorkflow } from "../../../../workflows/index.js";
+import { checkAuthorization } from "../../decorators/authorize.js";
 
 const ProjectCreateInputSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -87,7 +88,15 @@ export const projectMutationResolvers: Partial<Resolvers> = {
       }
     },
 
-    projectUpdate: async (_parent, { input }, ctx, info) => {
+    projectUpdate: async (_parent, { input }, ctx) => {
+      const authError = await checkAuthorization(ctx, "project", "update");
+      if (authError) {
+        return {
+          project: null,
+          userErrors: [authError],
+        };
+      }
+
       const result = await ctx.kernel.runScript(ProjectUpdateScript, {
         id: ctx.project.id,
         name: input.name ?? undefined,
@@ -97,21 +106,21 @@ export const projectMutationResolvers: Partial<Resolvers> = {
         defaultDimensionUnit: input.defaultDimensionUnit ?? undefined,
       });
 
-      const projectFieldInfo = parseGraphqlInfo(info, "project");
-
       return {
-        project: result.project
-          ? ((await ProjectResolver.load(
-              result.project.id,
-              projectFieldInfo,
-              requireContext(ctx)
-            )) as Project)
-          : null,
+        project: result.project ?? null,
         userErrors: result.userErrors,
       };
     },
 
     projectDelete: async (_parent, { input }, ctx) => {
+      const authError = await checkAuthorization(ctx, "project", "delete");
+      if (authError) {
+        return {
+          deletedProjectId: null,
+          userErrors: [authError],
+        };
+      }
+
       const result = await ctx.kernel.runScript(ProjectDeleteScript, {
         id: input.id,
       });

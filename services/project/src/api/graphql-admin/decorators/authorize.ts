@@ -34,9 +34,41 @@ function resolveValue(
   return value;
 }
 
+export interface AuthorizationError {
+  code: string;
+  message: string;
+  field: string[] | null;
+}
+
 /**
- * Call IAM authorize action
+ * Check authorization and return error if denied
+ * Returns null if authorized, error object if denied
  */
+export async function checkAuthorization(
+  ctx: ServiceContext,
+  resource: string,
+  action: string
+): Promise<AuthorizationError | null> {
+  if (!ctx.user?.id || !ctx.project?.tenantId) {
+    return {
+      code: "UNAUTHORIZED",
+      message: "Authentication required",
+      field: null,
+    };
+  }
+
+  const allowed = await checkPermission(ctx, resource, action);
+  if (!allowed) {
+    return {
+      code: "FORBIDDEN",
+      message: `Access denied: ${resource}:${action}`,
+      field: null,
+    };
+  }
+
+  return null;
+}
+
 async function checkPermission(
   ctx: ServiceContext,
   resource: string,
