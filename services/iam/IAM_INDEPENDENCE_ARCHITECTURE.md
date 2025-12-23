@@ -141,10 +141,22 @@ type Project @key(fields: "id") {
   name: String!
   slug: String!
   organization: Organization!  # federation reference to IAM
+  members: [ProjectMember!]!   # only members with access to THIS project
+}
+
+type ProjectMember {
+  user: User!
+  role: ProjectRole!           # role in this project (admin, editor, viewer)
+}
+
+enum ProjectRole {
+  ADMIN
+  EDITOR
+  VIEWER
 }
 ```
 
-### Project Resolver
+### Project Resolvers
 
 ```typescript
 // project/resolvers/project.ts
@@ -153,6 +165,19 @@ const ProjectResolvers = {
     organization(project) {
       // Federation reference - IAM resolves the rest
       return { __typename: "Organization", id: project.organizationId };
+    },
+
+    async members(project, _, ctx) {
+      // Get members with access to THIS project (filter by domain)
+      const roles = await ctx.broker.call("iam.getMembersForDomain", {
+        organizationId: project.organizationId,
+        domain: [["project", project.id]]
+      });
+
+      return roles.map(r => ({
+        user: { __typename: "User", id: r.userId },
+        role: r.role
+      }));
     }
   }
 };
@@ -164,9 +189,17 @@ const ProjectResolvers = {
 query {
   project(slug: "my-store") {
     name
+
+    # Only members with access to THIS project
+    members {
+      user { email }
+      role  # ADMIN, EDITOR, VIEWER
+    }
+
+    # All organization members (for admin UI)
     organization {
       name
-      members { user { email } roles { name } }
+      members { user { email } }  # everyone in org
       roles { name permissions }
     }
   }
@@ -177,10 +210,17 @@ query {
     id
     name
     projects { id name slug }
-    members { user { email } }
+    members { user { email } }  # all org members
   }
 }
 ```
+
+**Difference:**
+
+| Field | Returns |
+|-------|---------|
+| `project.members` | Only users with role in this project |
+| `organization.members` | All members of organization |
 
 ---
 
@@ -207,6 +247,7 @@ type ScopePart =
 "iam.assignRole"              // { organizationId, userId, domain: ScopePart[], role } → void
 "iam.removeRole"              // { organizationId, userId, domain: ScopePart[] } → void
 "iam.getRolesForUser"         // { organizationId, userId } → { domain: ScopePart[], role }[]
+"iam.getMembersForDomain"     // { organizationId, domain: ScopePart[] } → { userId, role }[]
 
 // Permissions (type-safe)
 "iam.checkPermission"         // { organizationId, domain: ScopePart[], resource: ScopePart[], userId, action } → boolean
