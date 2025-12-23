@@ -32,7 +32,6 @@
  * Features:
  * - keyMatch for wildcard resource matching (e.g., "*" matches all)
  * - Domain-scoped role assignments (user can be admin in one project, viewer in another)
- * - Role hierarchy support via g = _, _, _
  * - Deny rules override allow rules
  *
  * Database storage (iam.casbin_rule):
@@ -148,10 +147,7 @@ export interface RolePermissionDef {
 }
 
 /**
- * Role permissions with hierarchy support
- *
- * Hierarchy: owner > admin > manager > support > viewer
- * Each role inherits all permissions from roles below it.
+ * Role permissions
  *
  * With keyMatch wildcards:
  * - "*" matches any resource
@@ -163,47 +159,43 @@ export interface RolePermissionDef {
  * - project: project settings and deletion
  */
 export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
-  // Base role: read-only access to everything
   viewer: {
     allow: [{ resource: "*", actions: ["read"] }],
-    // Note: No deny rules here - viewer simply doesn't have member/role permissions
-    // Higher roles (admin, owner) explicitly grant these permissions
   },
 
-  // Inherits from viewer, adds order management
   support: {
     allow: [
+      { resource: "*", actions: ["read"] },
       { resource: "order/*", actions: ["write"] },
       { resource: "customer/*", actions: ["read", "write"] },
     ],
   },
 
-  // Inherits from support, adds product/category/media management
   manager: {
     allow: [
+      { resource: "*", actions: ["read"] },
       { resource: "product/*", actions: ["write", "publish"] },
       { resource: "category/*", actions: ["write"] },
       { resource: "media/*", actions: ["upload", "delete"] },
-      { resource: "order/*", actions: ["fulfill"] },
+      { resource: "order/*", actions: ["write", "fulfill"] },
+      { resource: "customer/*", actions: ["read", "write"] },
     ],
   },
 
-  // Inherits from manager, adds full access with restrictions
   admin: {
     allow: [
       { resource: "*", actions: ["*"] },
-      { resource: "member", actions: ["read", "create", "update"] }, // Can manage members but not remove owner
-      { resource: "role", actions: ["read", "create", "update"] }, // Can manage custom roles
+      { resource: "member", actions: ["read", "create", "update"] },
+      { resource: "role", actions: ["read", "create", "update"] },
     ],
     deny: [
       { resource: "project", actions: ["delete"] },
       { resource: "project/billing", actions: ["*"] },
-      { resource: "member/owner", actions: ["*"] }, // Cannot modify owner
-      { resource: "role/system", actions: ["update", "delete"] }, // Cannot modify system roles
+      { resource: "member/owner", actions: ["*"] },
+      { resource: "role/system", actions: ["update", "delete"] },
     ],
   },
 
-  // Inherits from admin, removes deny restrictions (full access)
   owner: {
     allow: [
       { resource: "*", actions: ["*"] },

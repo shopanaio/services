@@ -482,43 +482,6 @@ export class CasbinService {
   }
 
   /**
-   * Add role hierarchy (parent inherits child permissions).
-   */
-  async addRoleHierarchy(
-    organizationId: string,
-    parentRole: string,
-    childRole: string,
-    domain: ScopePart[]
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    const domainPath = this.buildPath(domain);
-
-    // Persist to database WITH organizationId
-    try {
-      await this.adapter.addPolicy("g", "g", [
-        parentRole,
-        childRole,
-        domainPath,
-        organizationId
-      ]);
-    } catch (error: any) {
-      // Ignore duplicate key errors
-      if (error?.code !== "23505") {
-        throw error;
-      }
-      return false;
-    }
-
-    // Add to enforcer memory WITHOUT organizationId
-    const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.addGroupingPolicy(parentRole, childRole, domainPath);
-    return true;
-  }
-
-  /**
    * Get all policies for an organization (5 elements: role, domain, resource, action, effect)
    */
   async getPolicies(organizationId: string): Promise<string[][]> {
@@ -532,74 +495,5 @@ export class CasbinService {
   async getGroupingPolicies(organizationId: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer(organizationId);
     return enforcer.getGroupingPolicy();
-  }
-
-  /**
-   * Get roles that a role inherits from (role hierarchy).
-   */
-  async getRoleInherits(
-    organizationId: string,
-    roleName: string,
-    domain: ScopePart[]
-  ): Promise<string[]> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const groupings = await enforcer.getGroupingPolicy();
-    const domainPath = this.buildPath(domain);
-
-    const inherits: string[] = [];
-    for (const grouping of groupings) {
-      // grouping: [parentRole, childRole, domain]
-      if (grouping[0] === roleName && (grouping[2] === domainPath || grouping[2] === "*")) {
-        inherits.push(grouping[1]);
-      }
-    }
-    return inherits;
-  }
-
-  /**
-   * Remove role hierarchy
-   */
-  async removeRoleHierarchy(
-    organizationId: string,
-    parentRole: string,
-    childRole: string,
-    domain: ScopePart[]
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    const domainPath = this.buildPath(domain);
-
-    // Remove from database (4 elements including organizationId)
-    await this.adapter.removePolicy("g", "g", [
-      parentRole,
-      childRole,
-      domainPath,
-      organizationId
-    ]);
-
-    // Invalidate enforcer cache
-    await this.invalidateEnforcer(organizationId);
-    return true;
-  }
-
-  /**
-   * Remove all role hierarchy for a role (when updating inherits)
-   */
-  async removeAllRoleHierarchy(
-    organizationId: string,
-    roleName: string
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    // Remove all groupings where this role is the parent
-    await this.adapter.removeFilteredPolicy("g", "g", 0, roleName, "", "", organizationId);
-
-    // Invalidate enforcer cache
-    await this.invalidateEnforcer(organizationId);
-    return true;
   }
 }

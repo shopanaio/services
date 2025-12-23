@@ -59,18 +59,11 @@ export class ListRolesScript extends BaseScript<
           });
         }
 
-        // Get inherits (role hierarchy)
-        const inherits = await this.repository.authorization.getRoleInherits(
-          organizationId,
-          role.name
-        );
-
         roleInfos.push({
           name: role.name,
           displayName: role.displayName ?? role.name,
           description: role.description ?? "",
           isSystem: role.isSystem,
-          inherits,
           permissions: mappedPermissions,
           createdAt: role.createdAt,
         });

@@ -17,7 +17,7 @@ export class CreateRoleScript extends BaseScript<
   CreateRoleResult
 > {
   protected async execute(params: CreateRoleParams): Promise<CreateRoleResult> {
-    const { organizationId, name, displayName, description, permissions, inherits } = params;
+    const { organizationId, name, displayName, description, permissions } = params;
 
     // Validate role name is not empty
     if (!name || name.trim() === "") {
@@ -77,34 +77,6 @@ export class CreateRoleScript extends BaseScript<
     }
 
     try {
-      // Validate inherits references exist
-      const validatedInherits: string[] = [];
-      if (inherits && inherits.length > 0) {
-        for (const inheritRole of inherits) {
-          // Check if inherited role exists (system or custom)
-          const isSystem = this.repository.authorization.isSystemRole(inheritRole);
-          if (!isSystem) {
-            const inheritedRole = await this.repository.authorization.getRole(
-              organizationId,
-              inheritRole
-            );
-            if (!inheritedRole) {
-              return {
-                role: null,
-                userErrors: [
-                  {
-                    code: "INVALID_INHERIT_REFERENCE",
-                    message: `Role "${inheritRole}" does not exist and cannot be inherited`,
-                    field: ["inherits"],
-                  },
-                ],
-              };
-            }
-          }
-          validatedInherits.push(inheritRole);
-        }
-      }
-
       // Check if role already exists
       const existingRole = await this.repository.authorization.getRole(
         organizationId,
@@ -170,15 +142,6 @@ export class CreateRoleScript extends BaseScript<
         }
       }
 
-      // Create role hierarchy for inherits
-      for (const inheritRole of validatedInherits) {
-        await this.repository.authorization.addRoleHierarchy(
-          organizationId,
-          name,
-          inheritRole
-        );
-      }
-
       // Invalidate cache for this tenant's roles
       this.authCache.onRoleUpdate(organizationId, name);
 
@@ -187,7 +150,6 @@ export class CreateRoleScript extends BaseScript<
         displayName,
         description: description ?? "",
         isSystem: false,
-        inherits: validatedInherits,
         permissions,
       };
 

@@ -30,7 +30,7 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Check if user has permission for resource/action in tenant
+   * Check if user has permission for resource/action in organization (org-wide, no domain)
    */
   async enforce(
     organizationId: string,
@@ -38,18 +38,25 @@ export class AuthorizationRepository {
     resource: string,
     action: string
   ): Promise<boolean> {
-    return this.casbin.enforce(organizationId, userId, resource, action);
+    // Use empty domain for org-wide permissions
+    return this.casbin.enforce(organizationId, userId, [], [[resource]], action);
   }
 
   /**
-   * Batch check permissions
+   * Batch check permissions (org-wide, no domain)
    */
   async batchEnforce(
     organizationId: string,
     userId: string,
     requests: Array<{ resource: string; action: string }>
   ): Promise<boolean[]> {
-    return this.casbin.batchEnforce(organizationId, userId, requests);
+    // Use empty domain for org-wide permissions
+    return this.casbin.batchEnforce(
+      organizationId,
+      userId,
+      [],
+      requests.map(r => ({ resource: [[r.resource]], action: r.action }))
+    );
   }
 
   // ============================================================================
@@ -57,10 +64,17 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Get all roles for a tenant
+   * Get all roles for an organization
    */
   async getRoles(organizationId: string) {
     return this.roleRepo.findByTenant(organizationId);
+  }
+
+  /**
+   * Alias for getRoles (for compatibility)
+   */
+  async listRoles(organizationId: string) {
+    return this.getRoles(organizationId);
   }
 
   /**
@@ -123,10 +137,11 @@ export class AuthorizationRepository {
   // ============================================================================
 
   /**
-   * Get user's roles in a tenant
+   * Get user's roles in organization (returns role names only)
    */
   async getUserRoles(organizationId: string, userId: string): Promise<string[]> {
-    return this.casbin.getRolesForUser(organizationId, userId);
+    const roles = await this.casbin.getRolesForUser(organizationId, userId);
+    return roles.map(r => r.role);
   }
 
   /**
@@ -138,7 +153,7 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Attach a role to user in tenant
+   * Attach a role to user in organization (org-wide, no domain)
    */
   async attachUserRole(
     organizationId: string,
@@ -160,12 +175,12 @@ export class AuthorizationRepository {
       grantedBy,
     });
 
-    // Add to Casbin (for enforcement)
-    return this.casbin.addRoleForUser(organizationId, userId, roleName);
+    // Add to Casbin (for enforcement) - empty domain for org-wide
+    return this.casbin.assignRole(organizationId, userId, roleName, []);
   }
 
   /**
-   * Detach a role from user in tenant
+   * Detach a role from user in organization
    */
   async detachUserRole(
     organizationId: string,
@@ -175,8 +190,8 @@ export class AuthorizationRepository {
     // Remove from database
     await this.userRoleRepo.delete(organizationId, userId);
 
-    // Remove from Casbin
-    return this.casbin.removeRoleForUser(organizationId, userId, roleName);
+    // Remove from Casbin - empty domain for org-wide
+    return this.casbin.removeRole(organizationId, userId, roleName, []);
   }
 
   /**
@@ -199,7 +214,7 @@ export class AuthorizationRepository {
   }
 
   /**
-   * Create a permission for a role
+   * Create a permission for a role (org-wide, no domain)
    */
   async createPermission(
     organizationId: string,
@@ -209,7 +224,8 @@ export class AuthorizationRepository {
     effect: "allow" | "deny" = "allow"
   ): Promise<boolean> {
     for (const action of actions) {
-      await this.casbin.addPolicy(organizationId, roleName, resource, action, effect);
+      // Use empty domain and resource as ScopePart[]
+      await this.casbin.addPolicy(organizationId, roleName, [], [[resource]], action, effect);
     }
     return true;
   }
@@ -254,51 +270,6 @@ export class AuthorizationRepository {
 
       // Invalidate enforcer cache
       await this.casbin.invalidateEnforcer(organizationId);
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  }
-
-  // ============================================================================
-  // Role Hierarchy
-  // ============================================================================
-
-  /**
-   * Add role hierarchy (parent inherits child permissions)
-   */
-  async addRoleHierarchy(
-    organizationId: string,
-    parentRole: string,
-    childRole: string
-  ): Promise<boolean> {
-    return this.casbin.addRoleHierarchy(organizationId, parentRole, childRole);
-  }
-
-  /**
-   * Get roles that a role inherits from
-   */
-  async getRoleInherits(organizationId: string, roleName: string): Promise<string[]> {
-    return this.casbin.getRoleInherits(organizationId, roleName);
-  }
-
-  /**
-   * Update role hierarchy (replace all inherits)
-   */
-  async updateRoleInherits(
-    organizationId: string,
-    roleName: string,
-    inherits: string[]
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Remove existing inherits
-      await this.casbin.removeAllRoleHierarchy(organizationId, roleName);
-
-      // Add new inherits
-      for (const inheritRole of inherits) {
-        await this.casbin.addRoleHierarchy(organizationId, roleName, inheritRole);
-      }
 
       return { success: true };
     } catch (error) {

@@ -6,8 +6,8 @@ export interface ProvisionTenantParams {
 }
 
 export interface ProvisionTenantResult {
-  /** Created tenant ID */
-  tenantId: string | null;
+  /** Created organization ID */
+  organizationId: string | null;
   /** List of created role names */
   roles: string[];
   userErrors: UserError[];

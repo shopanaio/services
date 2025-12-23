@@ -85,7 +85,6 @@ function mapRoleInfoToRole(role: RoleInfo): Role {
     displayName: role.displayName,
     description: role.description,
     isSystem: role.isSystem,
-    inherits: role.inherits,
     permissions: role.permissions.map(mapRolePermission),
     createdAt: role.createdAt?.toISOString(),
   };
@@ -117,7 +116,6 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         name: input.name,
         displayName: input.displayName,
         description: input.description ?? undefined,
-        inherits: input.inherits ?? undefined,
         permissions: input.permissions.map((p) => ({
           resource: p.resource,
           actions: p.actions,
@@ -144,7 +142,6 @@ export const roleMutationResolvers: Partial<Resolvers> = {
         roleName: input.name,
         displayName: input.displayName ?? undefined,
         description: input.description ?? undefined,
-        inherits: input.inherits ?? undefined,
         permissions: input.permissions?.map((p) => ({
           resource: p.resource,
           actions: p.actions,

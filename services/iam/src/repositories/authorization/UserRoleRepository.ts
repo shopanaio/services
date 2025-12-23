@@ -41,8 +41,10 @@ export class UserRoleRepository {
       .select({
         id: userRole.id,
         organizationId: userRole.organizationId,
+        tenantId: userRole.tenantId,
         userId: userRole.userId,
         roleId: userRole.roleId,
+        domain: userRole.domain,
         grantedBy: userRole.grantedBy,
         grantedAt: userRole.grantedAt,
         role: {

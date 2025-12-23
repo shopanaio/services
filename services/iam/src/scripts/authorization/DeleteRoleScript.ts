@@ -70,15 +70,6 @@ export class DeleteRoleScript extends BaseScript<
         };
       }
 
-      // Remove this role from inherits of other roles that inherit from it
-      const rolesInheritingThis = await this.repository.casbin.getRolesInheritingFrom(
-        organizationId,
-        roleName
-      );
-      for (const parentRole of rolesInheritingThis) {
-        await this.repository.casbin.removeRoleHierarchy(organizationId, parentRole, roleName);
-      }
-
       // Delete the role (also removes all Casbin policies for this role)
       const deleted = await this.repository.authorization.deleteRole(organizationId, roleName);
 

@@ -6,15 +6,14 @@ import type {
 } from "./dto/ProvisionTenantDto.js";
 
 /**
- * ProvisionTenantScript - Create a new tenant with predefined roles
+ * ProvisionTenantScript - Create a new organization with predefined roles
  *
  * This script creates:
- * 1. A tenant record in iam.tenant (ID auto-generated)
+ * 1. An organization record in iam.tenant (ID auto-generated)
  * 2. Predefined roles (owner, admin, manager, support, viewer)
- * 3. Role hierarchy
- * 4. Optionally assigns owner role to the specified ownerId
+ * 3. Optionally assigns owner role to the specified ownerId
  *
- * Returns the created tenantId to be stored by the caller (e.g., project service).
+ * Returns the created organizationId to be stored by the caller.
  * The ownerId should be a Better Auth user ID.
  */
 export class ProvisionTenantScript extends BaseScript<
@@ -29,38 +28,38 @@ export class ProvisionTenantScript extends BaseScript<
     try {
       this.logger.info(
         { ownerId },
-        "ProvisionTenantScript: Starting tenant provisioning"
+        "ProvisionTenantScript: Starting organization provisioning"
       );
 
       const result = await this.repository.authorization.provisionTenantRoles(
         ownerId
       );
 
-      if (!result.success || !result.tenantId) {
+      if (!result.success || !result.organizationId) {
         this.logger.error(
           { error: result.error },
-          "ProvisionTenantScript: Failed to provision tenant roles"
+          "ProvisionTenantScript: Failed to provision organization roles"
         );
 
         return {
-          tenantId: null,
+          organizationId: null,
           roles: [],
           userErrors: [
             {
               code: "PROVISION_FAILED",
-              message: result.error ?? "Failed to provision tenant roles",
+              message: result.error ?? "Failed to provision organization roles",
             },
           ],
         };
       }
 
       this.logger.info(
-        { tenantId: result.tenantId, ownerId },
-        "ProvisionTenantScript: Tenant provisioned successfully"
+        { organizationId: result.organizationId, ownerId },
+        "ProvisionTenantScript: Organization provisioned successfully"
       );
 
       return {
-        tenantId: result.tenantId,
+        organizationId: result.organizationId,
         roles: Object.values(PREDEFINED_ROLES),
         userErrors: [],
       };
@@ -71,12 +70,12 @@ export class ProvisionTenantScript extends BaseScript<
       );
 
       return {
-        tenantId: null,
+        organizationId: null,
         roles: [],
         userErrors: [
           {
             code: "INTERNAL_ERROR",
-            message: "An unexpected error occurred during tenant provisioning",
+            message: "An unexpected error occurred during organization provisioning",
           },
         ],
       };
@@ -85,12 +84,12 @@ export class ProvisionTenantScript extends BaseScript<
 
   protected handleError(_error: unknown): ProvisionTenantResult {
     return {
-      tenantId: null,
+      organizationId: null,
       roles: [],
       userErrors: [
         {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred during tenant provisioning",
+          message: "An unexpected error occurred during organization provisioning",
         },
       ],
     };

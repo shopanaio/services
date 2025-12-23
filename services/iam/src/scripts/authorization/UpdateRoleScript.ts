@@ -20,7 +20,7 @@ export class UpdateRoleScript extends BaseScript<
   UpdateRoleResult
 > {
   protected async execute(params: UpdateRoleParams): Promise<UpdateRoleResult> {
-    const { organizationId, roleName, displayName, description, permissions, inherits } = params;
+    const { organizationId, roleName, displayName, description, permissions } = params;
 
     try {
       // Check if it's a system role - system roles cannot be modified
@@ -102,27 +102,6 @@ export class UpdateRoleScript extends BaseScript<
         }
       }
 
-      // Update inherits if provided
-      if (inherits !== undefined) {
-        const result = await this.repository.authorization.updateRoleInherits(
-          organizationId,
-          roleName,
-          inherits
-        );
-
-        if (!result.success) {
-          return {
-            role: null,
-            userErrors: [
-              {
-                code: "INHERITS_UPDATE_FAILED",
-                message: result.error ?? "Failed to update role hierarchy",
-              },
-            ],
-          };
-        }
-      }
-
       // Invalidate cache
       this.authCache.onRoleUpdate(organizationId, roleName);
 
@@ -158,18 +137,11 @@ export class UpdateRoleScript extends BaseScript<
         });
       }
 
-      // Get updated inherits
-      const updatedInherits = await this.repository.authorization.getRoleInherits(
-        organizationId,
-        roleName
-      );
-
       const roleInfo: RoleInfo = {
         name: roleName,
         displayName: displayName ?? existingRole.displayName ?? roleName,
         description: description ?? existingRole.description ?? "",
         isSystem: false, // Only custom roles can be updated
-        inherits: updatedInherits,
         permissions: permissions ?? mappedPermissions,
         createdAt: existingRole.createdAt,
       };
