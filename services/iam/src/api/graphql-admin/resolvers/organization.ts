@@ -34,19 +34,9 @@ export const organizationResolvers: Partial<Resolvers> = {
 
   OrganizationQuery: {
     /**
-     * Get organization by ID (if user has access)
+     * Get organization by ID
      */
     organization: async (_parent, { id }, ctx) => {
-      const userId = ctx.currentUser?.id;
-      if (!userId) {
-        return null;
-      }
-
-      const hasAccess = await ctx.kernel.repository.organization.userHasAccessToOrg(userId, id);
-      if (!hasAccess) {
-        return null;
-      }
-
       const org = await ctx.kernel.repository.organization.findById(id);
       if (!org) {
         return null;
@@ -109,21 +99,12 @@ export const organizationResolvers: Partial<Resolvers> = {
      * Update organization
      */
     organizationUpdate: async (_parent, { input }, ctx) => {
-      const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
-      if (!userId || !organizationId) {
+      if (!organizationId) {
         return {
           organization: null,
           userErrors: [{ message: "Organization context required", code: "NO_ORG_CONTEXT" }],
-        };
-      }
-
-      const isAdmin = await ctx.kernel.repository.organization.isAdmin(userId, organizationId);
-      if (!isAdmin) {
-        return {
-          organization: null,
-          userErrors: [{ message: "Admin access required", code: "FORBIDDEN" }],
         };
       }
 
@@ -145,24 +126,15 @@ export const organizationResolvers: Partial<Resolvers> = {
     },
 
     /**
-     * Delete organization (owner only)
+     * Delete organization
      */
     organizationDelete: async (_parent, _args, ctx) => {
-      const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
-      if (!userId || !organizationId) {
+      if (!organizationId) {
         return {
           deletedOrganizationId: null,
           userErrors: [{ message: "Organization context required", code: "NO_ORG_CONTEXT" }],
-        };
-      }
-
-      const isOwner = await ctx.kernel.repository.organization.isOwner(userId, organizationId);
-      if (!isOwner) {
-        return {
-          deletedOrganizationId: null,
-          userErrors: [{ message: "Owner access required", code: "FORBIDDEN" }],
         };
       }
 
@@ -185,14 +157,6 @@ export const organizationResolvers: Partial<Resolvers> = {
         return {
           member: null,
           userErrors: [{ message: "Organization context required", code: "NO_ORG_CONTEXT" }],
-        };
-      }
-
-      const isAdmin = await ctx.kernel.repository.organization.isAdmin(userId, organizationId);
-      if (!isAdmin) {
-        return {
-          member: null,
-          userErrors: [{ message: "Admin access required", code: "FORBIDDEN" }],
         };
       }
 
@@ -274,14 +238,6 @@ export const organizationResolvers: Partial<Resolvers> = {
         };
       }
 
-      const isAdmin = await ctx.kernel.repository.organization.isAdmin(userId, organizationId);
-      if (!isAdmin) {
-        return {
-          removedMemberId: null,
-          userErrors: [{ message: "Admin access required", code: "FORBIDDEN" }],
-        };
-      }
-
       const member = await ctx.kernel.repository.organization.findMemberById(memberId);
       if (!member || member.organizationId !== organizationId) {
         return {
@@ -329,21 +285,12 @@ export const organizationResolvers: Partial<Resolvers> = {
       { input }: { input: MemberRoleChangeInput },
       ctx: ServiceContext
     ) => {
-      const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
-      if (!userId || !organizationId) {
+      if (!organizationId) {
         return {
           member: null,
           userErrors: [{ message: "Organization context required", code: "NO_ORG_CONTEXT" }],
-        };
-      }
-
-      const isAdmin = await ctx.kernel.repository.organization.isAdmin(userId, organizationId);
-      if (!isAdmin) {
-        return {
-          member: null,
-          userErrors: [{ message: "Admin access required", code: "FORBIDDEN" }],
         };
       }
 
@@ -388,21 +335,12 @@ export const organizationResolvers: Partial<Resolvers> = {
       { input }: { input: MemberAccessRemoveInput },
       ctx: ServiceContext
     ) => {
-      const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
-      if (!userId || !organizationId) {
+      if (!organizationId) {
         return {
           success: false,
           userErrors: [{ message: "Organization context required", code: "NO_ORG_CONTEXT" }],
-        };
-      }
-
-      const isAdmin = await ctx.kernel.repository.organization.isAdmin(userId, organizationId);
-      if (!isAdmin) {
-        return {
-          success: false,
-          userErrors: [{ message: "Admin access required", code: "FORBIDDEN" }],
         };
       }
 

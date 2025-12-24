@@ -9,58 +9,8 @@ import {
   CreateRoleScript,
   UpdateRoleScript,
   DeleteRoleScript,
-  AuthorizeScript,
 } from "../../../../scripts/authorization/index.js";
 import type { RoleInfo, RolePermission as DtoRolePermission } from "../../../../scripts/authorization/dto/index.js";
-import type { ServiceContext } from "../../../../context/index.js";
-
-interface AuthError {
-  code: string;
-  message: string;
-}
-
-/**
- * Check if user has permission to perform action on resource
- * Returns null if authorized, error object if denied
- */
-async function checkAuthorization(
-  ctx: ServiceContext,
-  resource: string,
-  action: string
-): Promise<AuthError | null> {
-  const userId = ctx.currentUser?.id;
-  const organizationId = ctx.organizationId;
-
-  if (!userId) {
-    return {
-      code: "UNAUTHENTICATED",
-      message: "Authentication required",
-    };
-  }
-
-  if (!organizationId) {
-    return {
-      code: "NO_ORG_CONTEXT",
-      message: "Organization context required. Use switchOrganization mutation to set org in JWT.",
-    };
-  }
-
-  const result = await ctx.kernel.runScript(AuthorizeScript, {
-    userId,
-    organizationId,
-    resource,
-    action,
-  });
-
-  if (!result.allowed) {
-    return {
-      code: "FORBIDDEN",
-      message: `Access denied: ${resource}:${action}`,
-    };
-  }
-
-  return null;
-}
 
 /**
  * Map DTO RolePermission to GraphQL RolePermission
@@ -103,12 +53,6 @@ export const roleMutationResolvers: Partial<Resolvers> = {
 
   RoleMutation: {
     roleCreate: async (_parent, { input }, ctx) => {
-      // Check authorization
-      const authError = await checkAuthorization(ctx, "role", "create");
-      if (authError) {
-        return { role: null, userErrors: [authError] };
-      }
-
       const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(CreateRoleScript, {
         organizationId,
@@ -130,12 +74,6 @@ export const roleMutationResolvers: Partial<Resolvers> = {
     },
 
     roleUpdate: async (_parent, { input }, ctx) => {
-      // Check authorization
-      const authError = await checkAuthorization(ctx, "role", "update");
-      if (authError) {
-        return { role: null, userErrors: [authError] };
-      }
-
       const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(UpdateRoleScript, {
         organizationId,
@@ -157,12 +95,6 @@ export const roleMutationResolvers: Partial<Resolvers> = {
     },
 
     roleDelete: async (_parent, { input }, ctx) => {
-      // Check authorization
-      const authError = await checkAuthorization(ctx, "role", "delete");
-      if (authError) {
-        return { deletedRoleName: null, userErrors: [authError] };
-      }
-
       const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(DeleteRoleScript, {
         organizationId,
