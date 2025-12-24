@@ -17,19 +17,19 @@ function mapOrganization(org: {
   slug: string;
   createdAt: Date;
   updatedAt: Date;
-}): Partial<Organization> {
+}): Organization {
   return {
     id: org.id,
     name: org.name,
     slug: org.slug,
     createdAt: org.createdAt.toISOString(),
     updatedAt: org.updatedAt?.toISOString(),
-  };
+  } as Organization;
 }
 
 export const organizationResolvers: Partial<Resolvers> = {
   Query: {
-    organizationQuery: () => ({}),
+    organizationQuery: () => ({}) as any,
   },
 
   OrganizationQuery: {
@@ -57,7 +57,7 @@ export const organizationResolvers: Partial<Resolvers> = {
   },
 
   Mutation: {
-    organizationMutation: () => ({}),
+    organizationMutation: () => ({}) as any,
   },
 
   OrganizationMutation: {
@@ -422,8 +422,8 @@ export const organizationResolvers: Partial<Resolvers> = {
      * Return Federation reference for membership.
      * IAM resolves via Membership.__resolveReference.
      */
-    membership: (org: Organization): Partial<Membership> => {
-      return { domain: org.id };  // domain = orgId
+    membership: (org: Organization): Membership => {
+      return { domain: org.id } as Membership;  // domain = orgId
     },
   },
 
