@@ -1,4 +1,4 @@
-import { newEnforcer, Enforcer, newModelFromString, keyMatchFunc } from "casbin";
+import { newEnforcer, Enforcer, newModelFromString, Util } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
 
 // Handle CJS/ESM interop - drizzle-adapter is CJS with exports.default
@@ -14,8 +14,8 @@ import type { Database } from "../db/database.js";
 export interface EnforceParams {
   organizationId: string;
   userId: string;
-  domain: string;
-  resource: string;
+  domain: ScopePart[];
+  resource: ScopePart[];
   action: string;
 }
 
@@ -23,29 +23,58 @@ export interface AssignRoleParams {
   organizationId: string;
   userId: string;
   role: string;
-  domain: string;
+  domain: ScopePart[];
 }
 
 export interface AddPolicyParams {
   organizationId: string;
   role: string;
-  domain: string;
-  resource: string;
+  domain: ScopePart[];
+  resource: ScopePart[];
   action: string;
   effect?: "allow" | "deny";
 }
 
 export interface GetMembersParams {
   organizationId: string;
-  domain: string;
+  domain: ScopePart[];
 }
 
 /**
- * Shared type for scope parts - with or without ID
+ * Scope part - type with optional ID
+ *
+ * Used for both domains and resources:
+ * - ["org"] or ["store"] - type only, becomes "org:*" or "store:*"
+ * - ["org", "uuid"] or ["store", "uuid"] - type + id, becomes "org:uuid" or "store:uuid"
  */
 export type ScopePart =
-  | [type: string]              // type only: ["product"] - for create/list
-  | [type: string, id: string]; // type + id: ["product", "123"] - for read/update/delete
+  | [type: string]              // type only: ["org"] → "org:*"
+  | [type: string, id: string]; // type + id: ["org", "123"] → "org:123"
+
+/**
+ * Build scope string from parts
+ *
+ * @param parts - Array of scope parts
+ * @param separator - Separator between parts (default: "/")
+ * @returns Formatted scope string
+ *
+ * Examples:
+ * - [] → "*"
+ * - [["org"]] → "org:*"
+ * - [["org", "uuid"]] → "org:uuid"
+ * - [["store", "123"]] → "store:123"
+ * - [["warehouse", "W1"], ["product"]] → "warehouse:W1/product:*"
+ * - [["warehouse", "W1"], ["product", "456"]] → "warehouse:W1/product:456"
+ */
+export function buildScope(parts: ScopePart[], separator = "/"): string {
+  if (parts.length === 0) return "*";
+
+  return parts.map(part =>
+    part.length === 1
+      ? `${part[0]}:*`              // "org:*"
+      : `${part[0]}:${part[1]}`     // "org:123"
+  ).join(separator);
+}
 
 /**
  * CasbinService manages Casbin enforcers for multi-organization authorization.
@@ -93,26 +122,6 @@ export class CasbinService {
   }
 
   /**
-   * Build path from typed parts (with or without ID)
-   *
-   * Examples:
-   * - [["product"]] → "product"
-   * - [["product", "456"]] → "product:456"
-   * - [["warehouse", "W1"], ["product"]] → "warehouse:W1/product"
-   * - [["warehouse", "W1"], ["product", "456"]] → "warehouse:W1/product:456"
-   * - [] → "*"
-   */
-  buildPath(parts: ScopePart[]): string {
-    if (parts.length === 0) return "*";
-
-    return parts.map(part =>
-      part.length === 1
-        ? part[0]                    // "product"
-        : `${part[0]}:${part[1]}`    // "product:456"
-    ).join("/");
-  }
-
-  /**
    * Get enforcer for a specific organization (with caching)
    */
   async getEnforcer(organizationId: string): Promise<Enforcer> {
@@ -137,7 +146,7 @@ export class CasbinService {
     enforcer.enableAutoSave(false);
 
     // Enable domain pattern matching (e.g., "store:*" matches "store:123")
-    await enforcer.addNamedDomainMatchingFunc("g", keyMatchFunc);
+    await enforcer.addNamedDomainMatchingFunc("g", Util.keyMatchFunc);
 
     // Load only policies for this organization
     await this.loadFilteredPolicies(enforcer, organizationId);
@@ -236,16 +245,22 @@ export class CasbinService {
   async enforce(params: EnforceParams): Promise<boolean> {
     const { organizationId, userId, domain, resource, action } = params;
     const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.enforce(`user:${userId}`, domain, resource, action);
+    return enforcer.enforce(
+      `user:${userId}`,
+      buildScope(domain),
+      buildScope(resource),
+      action
+    );
   }
 
   /**
    * Assign role to user in specific domain.
    *
-   * @param params.domain - Required. Format: "prefix:id" or "prefix:*" for wildcard.
+   * @param params.domain - Required. Format: [["prefix", "id"]] or [["prefix"]] for wildcard.
    */
   async assignRole(params: AssignRoleParams): Promise<boolean> {
     const { organizationId, userId, role, domain } = params;
+    const domainStr = buildScope(domain);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -255,7 +270,7 @@ export class CasbinService {
       await this.adapter.addPolicy("g", "g", [
         `user:${userId}`,
         role,
-        domain,
+        domainStr,
         organizationId,
       ]);
     } catch (error: any) {
@@ -272,6 +287,7 @@ export class CasbinService {
    */
   async removeRole(params: AssignRoleParams): Promise<boolean> {
     const { organizationId, userId, role, domain } = params;
+    const domainStr = buildScope(domain);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -280,7 +296,7 @@ export class CasbinService {
     await this.adapter.removePolicy("g", "g", [
       `user:${userId}`,
       role,
-      domain,
+      domainStr,
       organizationId,
     ]);
 
@@ -293,12 +309,13 @@ export class CasbinService {
    */
   async removeAllRolesInDomain(params: Omit<AssignRoleParams, "role">): Promise<boolean> {
     const { organizationId, userId, domain } = params;
+    const domainStr = buildScope(domain);
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
     const userPrefix = `user:${userId}`;
 
     for (const grouping of groupings) {
-      if (grouping[0] === userPrefix && grouping[2] === domain) {
+      if (grouping[0] === userPrefix && grouping[2] === domainStr) {
         await this.removeRole({ organizationId, userId, role: grouping[1], domain });
       }
     }
@@ -311,6 +328,8 @@ export class CasbinService {
    */
   async addPolicy(params: AddPolicyParams): Promise<boolean> {
     const { organizationId, role, domain, resource, action, effect = "allow" } = params;
+    const domainStr = buildScope(domain);
+    const resourceStr = buildScope(resource);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -319,8 +338,8 @@ export class CasbinService {
     try {
       await this.adapter.addPolicy("p", "p", [
         role,
-        domain,
-        resource,
+        domainStr,
+        resourceStr,
         action,
         effect,
         organizationId,
@@ -331,7 +350,7 @@ export class CasbinService {
     }
 
     const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.addPolicy(role, domain, resource, action, effect);
+    await enforcer.addPolicy(role, domainStr, resourceStr, action, effect);
     return true;
   }
 
@@ -340,6 +359,8 @@ export class CasbinService {
    */
   async removePolicy(params: AddPolicyParams): Promise<boolean> {
     const { organizationId, role, domain, resource, action, effect = "allow" } = params;
+    const domainStr = buildScope(domain);
+    const resourceStr = buildScope(resource);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -347,32 +368,33 @@ export class CasbinService {
 
     await this.adapter.removePolicy("p", "p", [
       role,
-      domain,
-      resource,
+      domainStr,
+      resourceStr,
       action,
       effect,
       organizationId,
     ]);
 
     const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.removePolicy(role, domain, resource, action, effect);
+    await enforcer.removePolicy(role, domainStr, resourceStr, action, effect);
     return true;
   }
 
   /**
    * Get members for specific domain.
    *
-   * @param params.domain - Required. Format: "prefix:id" (e.g., "org:uuid", "store:uuid").
+   * @param params.domain - Required. Format: [["prefix", "id"]] (e.g., [["org", "uuid"]]).
    */
   async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
     const { organizationId, domain } = params;
+    const domainStr = buildScope(domain);
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
 
     const members: Array<{ userId: string; role: string }> = [];
 
     for (const grouping of groupings) {
-      if (grouping[2] === domain) {
+      if (grouping[2] === domainStr) {
         const userId = grouping[0].startsWith("user:")
           ? grouping[0].substring(5)
           : grouping[0];

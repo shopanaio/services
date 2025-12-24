@@ -53,6 +53,19 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         };
       }
 
+      if (!ctx.user?.id) {
+        return {
+          store: null,
+          userErrors: [
+            {
+              message: "Authentication required",
+              code: "UNAUTHENTICATED",
+              field: null,
+            },
+          ],
+        };
+      }
+
       try {
         const workflow =
           ctx.kernel.workflow.get<StoreCreateWorkflow>("storeCreate");

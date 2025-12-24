@@ -12,12 +12,6 @@ interface IamCurrentUserResult {
   userErrors: Array<{ code: string; message: string }>;
 }
 
-interface IamGetUserRoleResult {
-  role: string | null;
-  permissions: string[];
-  userErrors: Array<{ code: string; message: string }>;
-}
-
 export class ForbiddenError extends Error {
   constructor(message: string = "Access denied") {
     super(message);
@@ -150,17 +144,8 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
 
     const organizationId = result.store.integrations.iam.config.organizationId;
 
-    // 4. Check user has role in this store via IAM
-    const roleResult = await kernel.getServices().broker.call(
-      "iam.getUserRole",
-      { userId: userResult.user.id, organizationId }
-    ) as IamGetUserRoleResult;
-
-    if (!roleResult.role) {
-      throw new ForbiddenError("Access denied to this store");
-    }
-
     // Set full store on request with organizationId shortcut
+    // Authorization checks are done in resolvers via checkAuthorization/Authorize decorator
     request.store = {
       ...result.store,
       organizationId,
