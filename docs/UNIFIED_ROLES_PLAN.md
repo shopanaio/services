@@ -282,43 +282,85 @@ extend type Mutation {
 
 ---
 
-## Phase 2: Update Casbin
+## Phase 2: Update Casbin & IAM Resources
 
-### 2.1 Resource Constants
+### 2.1 IAM getResources (org-level resources)
+
+**File:** `services/iam/src/scripts/resources/getResources.ts`
+
+The IAM service declares its resources via `getResources` — just like other services.
+These are organization-level resources, they work with `domain = organizationId`.
+
+```typescript
+import type { GetResourcesResult } from "@shopana/shared-kernel";
+
+/**
+ * Returns the list of resources and actions exposed by the IAM service.
+ * These are organization-level resources (domain = organizationId).
+ */
+export async function getResources(): Promise<GetResourcesResult> {
+  return {
+    service: "iam",
+    displayName: "Organization",
+    resources: [
+      {
+        name: "organization",
+        displayName: "Organization",
+        description: "Organization settings and management",
+        actions: [
+          { name: "read", displayName: "View", description: "View organization details" },
+          { name: "update", displayName: "Edit", description: "Edit organization settings" },
+          { name: "delete", displayName: "Delete", description: "Delete organization" },
+        ],
+      },
+      {
+        name: "organization/billing",
+        displayName: "Billing",
+        description: "Billing and subscription management",
+        actions: [
+          { name: "read", displayName: "View", description: "View billing information" },
+          { name: "update", displayName: "Manage", description: "Manage billing settings" },
+        ],
+      },
+      {
+        name: "member",
+        displayName: "Members",
+        description: "Organization member management",
+        actions: [
+          { name: "read", displayName: "View", description: "View members list" },
+          { name: "invite", displayName: "Invite", description: "Invite new members" },
+          { name: "remove", displayName: "Remove", description: "Remove members" },
+          { name: "update", displayName: "Change Role", description: "Change member roles" },
+        ],
+      },
+      {
+        name: "role",
+        displayName: "Roles",
+        description: "Role and permission management",
+        actions: [
+          { name: "read", displayName: "View", description: "View roles" },
+          { name: "create", displayName: "Create", description: "Create custom roles" },
+          { name: "update", displayName: "Edit", description: "Edit role permissions" },
+          { name: "delete", displayName: "Delete", description: "Delete custom roles" },
+        ],
+      },
+    ],
+  };
+}
+```
+
+### 2.2 Predefined Role Permissions (org-level only)
 
 **File:** `services/iam/src/constants/rbac.ts`
 
+Predefined roles work with `domain = organizationId` and have access only to IAM resources.
+For store-level resources, custom roles with `domain = storeId` are used.
+
 ```typescript
 /**
- * Organization-level resources (accessible when domain = orgId)
- */
-export const ORG_RESOURCES = [
-  "organization",
-  "organization/settings",
-  "organization/billing",
-  "member",
-  "member/invite",
-  "member/remove",
-  "role",
-] as const;
-
-/**
- * Store-level resources (accessible when domain = storeId)
- */
-export const STORE_RESOURCES = [
-  "product",
-  "product/variant",
-  "order",
-  "order/fulfill",
-  "inventory",
-  "customer",
-  "media",
-  "category",
-] as const;
-
-/**
- * Predefined role permissions
- * These apply regardless of domain - domain determines which resources exist
+ * Predefined role permissions for organization-level resources.
+ * These roles manage the organization itself (members, billing, stores).
+ * Store-level permissions are assigned via custom roles with domain = storeId.
  */
 export const ROLE_PERMISSIONS: Record<string, RolePermissionDef> = {
   owner: {
@@ -326,35 +368,17 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissionDef> = {
   },
 
   admin: {
-    allow: [
-      { resource: "*", actions: ["*"] },
-    ],
+    allow: [{ resource: "*", actions: ["*"] }],
     deny: [
       { resource: "organization", actions: ["delete"] },
       { resource: "organization/billing", actions: ["*"] },
     ],
   },
 
-  manager: {
+  member: {
     allow: [
-      { resource: "*", actions: ["read"] },
-      { resource: "product/*", actions: ["*"] },
-      { resource: "category/*", actions: ["*"] },
-      { resource: "order/*", actions: ["*"] },
-      { resource: "media/*", actions: ["*"] },
+      { resource: "organization", actions: ["read"] },
     ],
-  },
-
-  support: {
-    allow: [
-      { resource: "*", actions: ["read"] },
-      { resource: "order/*", actions: ["update"] },
-      { resource: "customer/*", actions: ["read", "update"] },
-    ],
-  },
-
-  viewer: {
-    allow: [{ resource: "*", actions: ["read"] }],
   },
 };
 ```
@@ -647,8 +671,9 @@ export const MutationResolver = {
 - [ ] Update `InviteMemberInput` (uses `[RoleAssignment!]!`)
 - [ ] Run codegen
 
-### Phase 2: Casbin
-- [ ] Add `ORG_RESOURCES` constants
+### Phase 2: Casbin & IAM Resources
+- [ ] Add `getResources` script to IAM service (org-level resources)
+- [ ] Update `ROLE_PERMISSIONS` — only org-level, predefined roles: owner, admin, member
 - [ ] Update `assignRole()` for simple domain string
 - [ ] Update `enforce()` for simple domain string
 - [ ] Add `getOrgMembers()`
@@ -667,59 +692,70 @@ export const MutationResolver = {
 
 ## Notes
 
-1. **Backward Compatibility:**
-   - `organization_member.orgRole` remains for quick lookup
-   - Source of truth for permissions — `user_role` + Casbin
+1. **Resource Discovery via getResources:**
+   - Each service exposes resources via `getResources` broker action
+   - IAM service exposes org-level resources: `organization`, `organization/billing`, `member`, `role`
+   - Project service exposes: `store`, `store/settings`
+   - Other services expose store-level resources: `product`, `order`, `inventory`, etc.
+   - IAM aggregates all resources for role editor UI
 
-2. **Domain Convention:**
+2. **Predefined Roles (org-level only):**
+   - `owner` — full access to all org-level resources
+   - `admin` — full access except org deletion and billing
+   - `member` — read-only access to organization
+   - These roles do NOT include store-level permissions
+   - Store-level access is granted via custom roles with `domain = storeId`
+
+3. **Domain Convention:**
    - `domain = organizationId` → org-level (member, billing, settings)
    - `domain = storeId` → store-level (product, order, etc.)
    - `domain = *` → all stores
 
-3. **Role Scoping:**
+4. **Role Scoping:**
    - Roles can be **global** (`domain = "*"`) — available everywhere
    - Roles can be **domain-specific** (`domain = storeId`) — only in that store
    - Same role name can exist in different domains (e.g., "editor" in store-A and store-B)
    - Unique constraint: `(organization_id, domain, name)`
 
-4. **Federation:**
+5. **Federation:**
    - `Role @key(fields: "id")` — reference from other services
    - `Member @key(fields: "id")` — unified type for all memberships
    - `Membership @key(fields: "domain")` — unified container for org and store
 
-5. **Visualization:**
+6. **Visualization:**
 ```
 Organization: "Acme Corp" (org-123)
 │
-├── Global roles (domain = "*"):
-│   └── owner, admin, manager, support, viewer (system)
+├── Predefined roles (domain = org-123):
+│   └── owner, admin, member (system)
 │
 ├── membership: Membership (domain = org-123)
-│   ├── roles: [global roles]
+│   ├── roles: [predefined roles]
 │   ├── members: [Member!]!
 │   │   ├── { user: alice, role: "owner" }
 │   │   └── { user: bob, role: "admin" }
-│   └── availableResources: [ResourceDefinition!]
+│   └── availableResources: [IAM resources via getResources]
 │
 ├── Store "US" (store-A)
-│   ├── Store-specific roles (domain = "store-A"):
-│   │   └── content-editor, warehouse-manager
+│   ├── Custom roles (domain = "store-A"):
+│   │   └── manager, content-editor, warehouse-manager
 │   └── membership: Membership (domain = store-A)
-│       ├── roles: [global + store-A specific]
-│       └── members: [Member!]!
-│           ├── { user: charlie, role: "manager" }        (global role)
-│           └── { user: dave, role: "content-editor" }    (store-A role)
+│       ├── roles: [store-A custom roles]
+│       ├── members: [Member!]!
+│       │   ├── { user: charlie, role: "manager" }
+│       │   └── { user: dave, role: "content-editor" }
+│       └── availableResources: [inventory, media, orders via getResources]
 │
 └── Store "EU" (store-B)
-    ├── Store-specific roles (domain = "store-B"):
-    │   └── content-editor, translator   ← different "content-editor"!
+    ├── Custom roles (domain = "store-B"):
+    │   └── manager, translator   ← different permissions than store-A!
     └── membership: Membership (domain = store-B)
-        ├── roles: [global + store-B specific]
+        ├── roles: [store-B custom roles]
         └── members: [Member!]!
-            └── { user: eve, role: "content-editor" }     (store-B role)
+            └── { user: eve, role: "manager" }
 ```
 
-6. **Unification:**
+7. **Unification:**
    - `Membership` — unified container for org and store
    - `Member` — unified type for all memberships
    - Domain determines context (orgId vs storeId)
