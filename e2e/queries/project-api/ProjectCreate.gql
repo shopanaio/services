@@ -1,7 +1,7 @@
-mutation ProjectCreate($input: ProjectCreateInput!) {
-  projectMutation {
-    projectCreate(input: $input) {
-      project {
+mutation StoreCreate($input: StoreCreateInput!) {
+  storeMutation {
+    storeCreate(input: $input) {
+      store {
         id
         name
         slug
@@ -15,7 +15,6 @@ mutation ProjectCreate($input: ProjectCreateInput!) {
         defaultCurrency
         defaultWeightUnit
         defaultDimensionUnit
-        organizationId
         createdAt
         updatedAt
       }
