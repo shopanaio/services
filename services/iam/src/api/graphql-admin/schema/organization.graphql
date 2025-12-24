@@ -66,55 +66,18 @@ type Member @key(fields: "id") {
   """
   Organization-level role (owner, admin, member).
   """
-  orgRole: OrgRole!
-
-  """
-  Domain-scoped role assignments (e.g., per-project roles).
-  """
-  domainAccess: [DomainAccess!]!
+  role: String!
 
   """
   Timestamp when the member joined.
   """
-  createdAt: DateTime!
+  grantedAt: DateTime!
+
+  """
+  Granted by user.
+  """
+  grantedBy: User!
 }
-
-"""
-Organization-level role.
-"""
-enum OrgRole {
-  """
-  Full org control - billing, delete org, transfer ownership.
-  """
-  OWNER
-
-  """
-  Manage org settings and members.
-  """
-  ADMIN
-
-  """
-  Basic org access, needs project roles for resource access.
-  """
-  MEMBER
-}
-
-"""
-Domain-scoped role assignment.
-Represents user's role in a specific domain (e.g., project).
-"""
-type DomainAccess {
-  """
-  Domain path (e.g., "project:abc-123" or "*" for all).
-  """
-  domain: String!
-
-  """
-  Role in this domain.
-  """
-  role: String!
-}
-
 
 """
 Authentication tokens returned after organization switch.
@@ -290,13 +253,17 @@ type OrganizationMutation {
   Create a new organization.
   Current user becomes the owner.
   """
-  createOrganization(input: CreateOrganizationInput!): CreateOrganizationPayload!
+  createOrganization(
+    input: CreateOrganizationInput!
+  ): CreateOrganizationPayload!
 
   """
   Update organization.
   Requires: org admin or owner.
   """
-  updateOrganization(input: UpdateOrganizationInput!): UpdateOrganizationPayload!
+  updateOrganization(
+    input: UpdateOrganizationInput!
+  ): UpdateOrganizationPayload!
 
   """
   Delete organization.
@@ -327,5 +294,7 @@ type OrganizationMutation {
   Remove domain access from member.
   Requires: org admin.
   """
-  removeDomainAccess(input: RemoveDomainAccessInput!): RemoveDomainAccessPayload!
+  removeDomainAccess(
+    input: RemoveDomainAccessInput!
+  ): RemoveDomainAccessPayload!
 }

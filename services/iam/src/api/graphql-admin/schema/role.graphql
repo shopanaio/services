@@ -80,11 +80,6 @@ Resource definition for role editor UI.
 """
 type ResourceDefinition {
   """
-  Service name (inventory, orders, etc.).
-  """
-  service: String!
-
-  """
   Resource name (product, order, etc.).
   """
   name: String!

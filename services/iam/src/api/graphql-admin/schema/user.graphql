@@ -63,12 +63,6 @@ type User @key(fields: "id") {
   The date and time when the user was last updated.
   """
   updatedAt: DateTime
-
-  """
-  User's role name in current project context.
-  Returns null if no project context.
-  """
-  role: String
 }
 
 # ---- User Inputs ----
