@@ -19,33 +19,44 @@ Implementation of a unified custom role system that can be used at both the orga
 ### Target State
 
 **Unified System:**
-- `Role` — universal roles at the organization level (without `type`)
+- `Role` — roles with optional domain scope (global or domain-specific)
 - `Member` — single type for org-level and domain-level membership
 - `domain = organizationId` for org-level
 - `domain = storeId` for store-level
-- `domain = *` for all stores
+- `domain = *` for all domains (global roles)
 - Resources define what is available in each context
+
+**Role Scoping:**
+- Roles can be **global** (`domain = "*"`) — available in all domains
+- Roles can be **domain-specific** (`domain = storeId`) — only in that store
+- System roles are always global
+- Custom roles can be either global or domain-specific
 
 ### Data Structure
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  role table — roles are DEFINED at the organization level       │
-│  (same roles for all domains within org)                        │
-├─────────────────────────────────────────────────────────────────┤
-│  id   │ organization_id │ name      │ display_name              │
-│  r1   │ org-123         │ admin     │ Administrator             │
-│  r2   │ org-123         │ manager   │ Manager                   │
-│  r3   │ org-123         │ viewer    │ Viewer                    │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  role table — roles DEFINED with optional domain scope                   │
+│  unique constraint: (organization_id, domain, name)                      │
+├──────────────────────────────────────────────────────────────────────────┤
+│  id   │ organization_id │ domain    │ name      │ display_name           │
+│  r1   │ org-123         │ *         │ admin     │ Administrator (global) │
+│  r2   │ org-123         │ *         │ viewer    │ Viewer (global)        │
+│  r3   │ org-123         │ store-A   │ editor    │ Editor (store-A only)  │
+│  r4   │ org-123         │ store-B   │ editor    │ Editor (store-B only)  │
+│  r5   │ org-123         │ store-A   │ manager   │ Manager (store-A only) │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Note: "editor" can exist in both store-A and store-B as separate roles
+      because unique constraint is (org_id, domain, name)
 
 ┌─────────────────────────────────────────────────────────────────┐
 │  user_role table — roles are ASSIGNED in domain context         │
 ├─────────────────────────────────────────────────────────────────┤
 │  user_id │ role_id │ domain      │ meaning                      │
 │  alice   │ r1      │ org-123     │ org admin (domain = orgId)   │
-│  bob     │ r2      │ store-A     │ manager in store A           │
-│  bob     │ r3      │ store-B     │ viewer in store B            │
+│  bob     │ r3      │ store-A     │ editor in store A            │
+│  bob     │ r4      │ store-B     │ editor in store B            │
 │  charlie │ r1      │ *           │ admin in ALL stores          │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -135,7 +146,7 @@ Domain determines context: orgId for org-level, storeId for store-level.
 """
 type Membership @key(fields: "domain") {
   """Domain identifier (orgId or storeId)."""
-  domain: ID!
+  domain: String!
 
   """All roles available in this organization."""
   roles: [Role!]!
@@ -197,7 +208,7 @@ Role assignment - assigns role to user in specific domain.
 """
 input RoleAssignment {
   """Domain ID (orgId, storeId, or '*' for all stores)."""
-  domain: ID!
+  domain: String!
 
   """Role name."""
   role: String!
@@ -222,7 +233,7 @@ input ChangeRoleInput {
   userId: ID!
 
   """Domain (orgId, storeId, or '*' for all)."""
-  domain: ID!
+  domain: String!
 
   """New role name."""
   role: String!
@@ -241,7 +252,7 @@ input RemoveAccessInput {
   userId: ID!
 
   """Domain to remove access from."""
-  domain: ID!
+  domain: String!
 }
 
 type RemoveAccessPayload {
@@ -271,158 +282,9 @@ extend type Mutation {
 
 ---
 
-## Phase 2: Update Repository
+## Phase 2: Update Casbin
 
-### 2.1 UserRoleRepository
-
-**File:** `services/iam/src/repositories/authorization/UserRoleRepository.ts`
-
-```typescript
-export class UserRoleRepository {
-  constructor(private readonly db: Database) {}
-
-  /**
-   * Get all roles in organization (for role editor UI)
-   */
-  async findByOrganization(organizationId: string): Promise<Role[]> {
-    return this.db
-      .select()
-      .from(role)
-      .where(eq(role.organizationId, organizationId));
-  }
-
-  /**
-   * Get org-level members (domain = organizationId)
-   */
-  async findOrgMembers(organizationId: string): Promise<UserRoleWithRole[]> {
-    return this.db
-      .select({
-        id: userRole.id,
-        userId: userRole.userId,
-        domain: userRole.domain,
-        grantedAt: userRole.grantedAt,
-        grantedBy: userRole.grantedBy,
-        role: role,
-      })
-      .from(userRole)
-      .innerJoin(role, eq(userRole.roleId, role.id))
-      .where(
-        and(
-          eq(userRole.organizationId, organizationId),
-          eq(userRole.domain, organizationId) // domain = orgId
-        )
-      );
-  }
-
-  /**
-   * Get domain members (domain = storeId OR domain = '*')
-   */
-  async findDomainMembers(
-    organizationId: string,
-    domain: string
-  ): Promise<UserRoleWithRole[]> {
-    return this.db
-      .select({
-        id: userRole.id,
-        userId: userRole.userId,
-        domain: userRole.domain,
-        grantedAt: userRole.grantedAt,
-        grantedBy: userRole.grantedBy,
-        role: role,
-      })
-      .from(userRole)
-      .innerJoin(role, eq(userRole.roleId, role.id))
-      .where(
-        and(
-          eq(userRole.organizationId, organizationId),
-          or(
-            eq(userRole.domain, domain), // specific store
-            eq(userRole.domain, "*")     // wildcard - all stores
-          )
-        )
-      );
-  }
-
-  /**
-   * Get all roles for a user in organization
-   */
-  async findUserRoles(
-    organizationId: string,
-    userId: string
-  ): Promise<Array<{ domain: string; role: Role }>> {
-    return this.db
-      .select({
-        domain: userRole.domain,
-        role: role,
-      })
-      .from(userRole)
-      .innerJoin(role, eq(userRole.roleId, role.id))
-      .where(
-        and(
-          eq(userRole.organizationId, organizationId),
-          eq(userRole.userId, userId)
-        )
-      );
-  }
-
-  /**
-   * Assign role to user in domain
-   */
-  async assignRole(
-    organizationId: string,
-    userId: string,
-    roleId: string,
-    domain: string,
-    grantedBy?: string
-  ): Promise<UserRole> {
-    const [result] = await this.db
-      .insert(userRole)
-      .values({
-        organizationId,
-        userId,
-        roleId,
-        domain,
-        grantedBy,
-        grantedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: [userRole.organizationId, userRole.userId, userRole.domain],
-        set: { roleId, grantedBy, grantedAt: new Date() },
-      })
-      .returning();
-
-    return result;
-  }
-
-  /**
-   * Remove role from user in domain
-   */
-  async removeRole(
-    organizationId: string,
-    userId: string,
-    domain: string
-  ): Promise<boolean> {
-    const result = await this.db
-      .delete(userRole)
-      .where(
-        and(
-          eq(userRole.organizationId, organizationId),
-          eq(userRole.userId, userId),
-          eq(userRole.domain, domain)
-        )
-      )
-      .returning();
-
-    return result.length > 0;
-  }
-}
-```
-
----
-
-## Phase 3: Update Casbin
-
-### 3.1 Resource Constants
+### 2.1 Resource Constants
 
 **File:** `services/iam/src/constants/rbac.ts`
 
@@ -497,7 +359,7 @@ export const ROLE_PERMISSIONS: Record<string, RolePermissionDef> = {
 };
 ```
 
-### 3.2 CasbinService Methods
+### 2.2 CasbinService Methods
 
 **File:** `services/iam/src/casbin/CasbinService.ts`
 
@@ -588,9 +450,9 @@ async getOrgMembers(
 
 ---
 
-## Phase 4: Update Resolvers
+## Phase 3: Update Resolvers
 
-### 4.1 Organization Resolver
+### 3.1 Organization Resolver
 
 **File:** `services/iam/src/api/graphql-admin/resolvers/organization.ts`
 
@@ -605,7 +467,7 @@ export const OrganizationResolver = {
 };
 ```
 
-### 4.2 Store Resolver (in Project Service)
+### 3.2 Store Resolver (in Project Service)
 
 **File:** `services/project/src/api/graphql-admin/resolvers/store.ts`
 
@@ -620,7 +482,7 @@ export const StoreResolver = {
 };
 ```
 
-### 4.3 Membership Resolver
+### 3.3 Membership Resolver
 
 **File:** `services/iam/src/api/graphql-admin/resolvers/membership.ts`
 
@@ -657,7 +519,7 @@ export const MembershipResolver = {
 };
 ```
 
-### 4.4 Member Resolver
+### 3.4 Member Resolver
 
 **File:** `services/iam/src/api/graphql-admin/resolvers/member.ts`
 
@@ -675,7 +537,7 @@ export const MemberResolver = {
 };
 ```
 
-### 4.5 Mutation Resolvers
+### 3.5 Mutation Resolvers
 
 ```typescript
 export const MutationResolver = {
@@ -771,285 +633,6 @@ export const MutationResolver = {
 
 ---
 
-## Phase 5: Data Migration
-
-### 5.1 Create System Roles for Each Organization
-
-```typescript
-// scripts/create-system-roles.ts
-async function createSystemRoles(organizationId: string) {
-  const systemRoles = [
-    { name: "owner", displayName: "Owner", isSystem: true },
-    { name: "admin", displayName: "Administrator", isSystem: true },
-    { name: "manager", displayName: "Manager", isSystem: true },
-    { name: "support", displayName: "Support", isSystem: true },
-    { name: "viewer", displayName: "Viewer", isSystem: true },
-  ];
-
-  for (const roleData of systemRoles) {
-    // Create role
-    const role = await roleRepo.create({ organizationId, ...roleData });
-
-    // Add Casbin policies
-    const permissions = ROLE_PERMISSIONS[roleData.name];
-    if (permissions) {
-      for (const perm of permissions.allow) {
-        for (const action of perm.actions) {
-          await casbin.addPolicy(
-            organizationId,
-            roleData.name,
-            "*", // applies to all domains
-            perm.resource,
-            action,
-            "allow"
-          );
-        }
-      }
-    }
-  }
-}
-```
-
-### 5.2 Migrate Existing organization_member
-
-```typescript
-// scripts/migrate-org-members.ts
-async function migrateOrgMembers(organizationId: string) {
-  const members = await orgRepo.getMembersForOrg(organizationId);
-
-  for (const member of members) {
-    // Find role by name
-    const role = await roleRepo.findByName(organizationId, member.orgRole);
-
-    if (role) {
-      // Create user_role entry with domain = orgId
-      await userRoleRepo.assignRole(
-        organizationId,
-        member.userId,
-        role.id,
-        organizationId, // domain = orgId for org-level
-        member.invitedBy
-      );
-
-      // Add Casbin grouping
-      await casbin.assignRole(
-        organizationId,
-        member.userId,
-        member.orgRole,
-        organizationId
-      );
-    }
-  }
-}
-```
-
-### 5.3 SQL Migration
-
-```sql
--- migrations/XXXX_unified_roles.sql
-
--- 1. Ensure role table has id as primary key (already exists)
-
--- 2. Create system roles for each organization (if not exist)
-INSERT INTO iam.role (organization_id, name, display_name, is_system, created_at, updated_at)
-SELECT o.id, 'owner', 'Owner', true, NOW(), NOW()
-FROM iam.organization o
-WHERE NOT EXISTS (
-  SELECT 1 FROM iam.role r WHERE r.organization_id = o.id AND r.name = 'owner'
-);
-
-INSERT INTO iam.role (organization_id, name, display_name, is_system, created_at, updated_at)
-SELECT o.id, 'admin', 'Administrator', true, NOW(), NOW()
-FROM iam.organization o
-WHERE NOT EXISTS (
-  SELECT 1 FROM iam.role r WHERE r.organization_id = o.id AND r.name = 'admin'
-);
-
-INSERT INTO iam.role (organization_id, name, display_name, is_system, created_at, updated_at)
-SELECT o.id, 'manager', 'Manager', true, NOW(), NOW()
-FROM iam.organization o
-WHERE NOT EXISTS (
-  SELECT 1 FROM iam.role r WHERE r.organization_id = o.id AND r.name = 'manager'
-);
-
-INSERT INTO iam.role (organization_id, name, display_name, is_system, created_at, updated_at)
-SELECT o.id, 'support', 'Support', true, NOW(), NOW()
-FROM iam.organization o
-WHERE NOT EXISTS (
-  SELECT 1 FROM iam.role r WHERE r.organization_id = o.id AND r.name = 'support'
-);
-
-INSERT INTO iam.role (organization_id, name, display_name, is_system, created_at, updated_at)
-SELECT o.id, 'viewer', 'Viewer', true, NOW(), NOW()
-FROM iam.organization o
-WHERE NOT EXISTS (
-  SELECT 1 FROM iam.role r WHERE r.organization_id = o.id AND r.name = 'viewer'
-);
-
--- 3. Migrate existing org members to user_role table (orgId as domain for org-level)
-INSERT INTO iam.user_role (organization_id, user_id, role_id, domain, granted_by, granted_at)
-SELECT
-  om.organization_id,
-  om.user_id,
-  r.id,
-  om.organization_id, -- domain = orgId for org-level access
-  om.invited_by,
-  om.created_at
-FROM iam.organization_member om
-JOIN iam.role r ON r.organization_id = om.organization_id AND r.name = om.org_role
-ON CONFLICT (organization_id, user_id, domain) DO NOTHING;
-```
-
----
-
-## Phase 6: Testing
-
-### 6.1 Unit Tests
-
-```typescript
-describe("Unified Roles", () => {
-  describe("Role assignment", () => {
-    it("should assign same role at org and store level", async () => {
-      // Assign admin at org level
-      await casbin.assignRole(orgId, userId, "admin", orgId);
-
-      // Assign admin at store level
-      await casbin.assignRole(orgId, userId, "admin", storeId);
-
-      // Both should work
-      const orgRoles = await casbin.getRolesForUserInDomain(orgId, userId, orgId);
-      const storeRoles = await casbin.getRolesForUserInDomain(orgId, userId, storeId);
-
-      expect(orgRoles).toContain("admin");
-      expect(storeRoles).toContain("admin");
-    });
-
-    it("should enforce permissions based on domain context", async () => {
-      await casbin.assignRole(orgId, userId, "admin", orgId);
-
-      // Org-level: can manage members
-      const canInvite = await casbin.enforce(orgId, userId, orgId, "member", "invite");
-      expect(canInvite).toBe(true);
-
-      // Store-level: no access (not assigned)
-      const canProduct = await casbin.enforce(orgId, userId, storeId, "product", "update");
-      expect(canProduct).toBe(false);
-    });
-  });
-
-  describe("Member queries", () => {
-    it("should return org members with domain = orgId", async () => {
-      await userRoleRepo.assignRole(orgId, userId, roleId, orgId);
-
-      const members = await userRoleRepo.findOrgMembers(orgId);
-      expect(members).toHaveLength(1);
-      expect(members[0].domain).toBe(orgId);
-    });
-
-    it("should return store members including wildcard", async () => {
-      await userRoleRepo.assignRole(orgId, "alice", roleId, storeId);
-      await userRoleRepo.assignRole(orgId, "bob", roleId, "*");
-
-      const members = await userRoleRepo.findDomainMembers(orgId, storeId);
-      expect(members).toHaveLength(2);
-    });
-  });
-});
-```
-
-### 6.2 Integration Tests
-
-```graphql
-# Create custom role
-mutation {
-  roleMutation {
-    roleCreate(input: {
-      name: "content-editor"
-      displayName: "Content Editor"
-      permissions: [
-        { resource: "product", actions: ["read", "update"], effect: ALLOW }
-        { resource: "category", actions: ["read"], effect: ALLOW }
-      ]
-    }) {
-      role { id name }
-      userErrors { message }
-    }
-  }
-}
-
-# Invite member with roles
-mutation {
-  inviteMember(input: {
-    email: "user@example.com"
-    roles: [
-      { domain: "org-uuid", role: "admin" }      # org level
-      { domain: "store-uuid", role: "manager" }  # store level
-    ]
-  }) {
-    member { id user { email } }
-    userErrors { message }
-  }
-}
-
-# Change role (works for any domain)
-mutation {
-  changeRole(input: {
-    userId: "user-123"
-    domain: "org-uuid"  # or store-uuid
-    role: "admin"
-  }) {
-    member { id role }
-    userErrors { message }
-  }
-}
-
-# Remove access from domain
-mutation {
-  removeAccess(input: {
-    userId: "user-123"
-    domain: "store-uuid"
-  }) {
-    success
-    userErrors { message }
-  }
-}
-
-# Query org membership
-query {
-  organization(id: "org-uuid") {
-    membership {
-      domain
-      members {
-        id
-        user { id email }
-        role  # String! - role name
-        grantedAt
-      }
-      roles { id name displayName isSystem }
-      availableResources { name actions }  # only for org-level
-    }
-  }
-}
-
-# Query store membership (same Membership type)
-query {
-  store(id: "store-uuid") {
-    membership {
-      domain
-      members {
-        id
-        user { id email }
-        role
-      }
-      roles { id name displayName }
-      # availableResources: null for store-level
-    }
-  }
-}
-```
-
----
-
 ## Checklist
 
 ### Phase 1: GraphQL Schema
@@ -1064,21 +647,14 @@ query {
 - [ ] Update `InviteMemberInput` (uses `[RoleAssignment!]!`)
 - [ ] Run codegen
 
-### Phase 2: Repository
-- [ ] Add `findOrgMembers()` to UserRoleRepository
-- [ ] Add `findDomainMembers()` to UserRoleRepository
-- [ ] Add `findUserRoles()` to UserRoleRepository
-- [ ] Add `assignRole()` with upsert
-- [ ] Add `removeRole()`
-
-### Phase 3: Casbin
+### Phase 2: Casbin
 - [ ] Add `ORG_RESOURCES` constants
 - [ ] Update `assignRole()` for simple domain string
 - [ ] Update `enforce()` for simple domain string
 - [ ] Add `getOrgMembers()`
 - [ ] Add `getMembersForDomain()`
 
-### Phase 4: Resolvers
+### Phase 3: Resolvers
 - [ ] `OrganizationResolver.membership` → return `{ domain: orgId }`
 - [ ] `StoreResolver.membership` → return `{ domain: storeId }`
 - [ ] `MembershipResolver.__resolveReference` — unified resolver
@@ -1086,18 +662,6 @@ query {
 - [ ] Add `inviteMember` mutation
 - [ ] Add `changeRole` mutation
 - [ ] Add `removeAccess` mutation
-
-### Phase 5: Migration
-- [ ] SQL: create system roles
-- [ ] SQL: migrate organization_member → user_role
-- [ ] Script: create Casbin policies for roles
-- [ ] Script: create Casbin groupings for members
-
-### Phase 6: Testing
-- [ ] Unit tests for role assignment
-- [ ] Unit tests for member queries
-- [ ] GraphQL integration tests
-- [ ] E2E tests
 
 ---
 
@@ -1112,9 +676,11 @@ query {
    - `domain = storeId` → store-level (product, order, etc.)
    - `domain = *` → all stores
 
-3. **Role Universality:**
-   - The same role "admin" can be assigned at any level
-   - Permissions are the same, but resources differ in different contexts
+3. **Role Scoping:**
+   - Roles can be **global** (`domain = "*"`) — available everywhere
+   - Roles can be **domain-specific** (`domain = storeId`) — only in that store
+   - Same role name can exist in different domains (e.g., "editor" in store-A and store-B)
+   - Unique constraint: `(organization_id, domain, name)`
 
 4. **Federation:**
    - `Role @key(fields: "id")` — reference from other services
@@ -1125,28 +691,32 @@ query {
 ```
 Organization: "Acme Corp" (org-123)
 │
+├── Global roles (domain = "*"):
+│   └── owner, admin, manager, support, viewer (system)
+│
 ├── membership: Membership (domain = org-123)
-│   ├── roles: [Role!]!
-│   │   ├── owner, admin, manager, support, viewer (system)
-│   │   └── content-editor, finance-admin (custom)
+│   ├── roles: [global roles]
 │   ├── members: [Member!]!
-│   │   ├── { id: m1, user: alice, role: "owner" }
-│   │   └── { id: m2, user: bob, role: "admin" }
-│   └── availableResources: [ResourceDefinition!]  ← only org-level
+│   │   ├── { user: alice, role: "owner" }
+│   │   └── { user: bob, role: "admin" }
+│   └── availableResources: [ResourceDefinition!]
 │
-├── Store "US"
+├── Store "US" (store-A)
+│   ├── Store-specific roles (domain = "store-A"):
+│   │   └── content-editor, warehouse-manager
 │   └── membership: Membership (domain = store-A)
-│       ├── roles: [Role!]!  ← same roles
+│       ├── roles: [global + store-A specific]
 │       └── members: [Member!]!
-│           ├── { id: m3, user: charlie, role: "manager" }
-│           └── { id: m4, user: alice, role: "admin" }  (via domain=*)
+│           ├── { user: charlie, role: "manager" }        (global role)
+│           └── { user: dave, role: "content-editor" }    (store-A role)
 │
-└── Store "EU"
+└── Store "EU" (store-B)
+    ├── Store-specific roles (domain = "store-B"):
+    │   └── content-editor, translator   ← different "content-editor"!
     └── membership: Membership (domain = store-B)
-        ├── roles: [Role!]!  ← same roles
+        ├── roles: [global + store-B specific]
         └── members: [Member!]!
-            ├── { id: m5, user: dave, role: "viewer" }
-            └── { id: m4, user: alice, role: "admin" }  (via domain=*)
+            └── { user: eve, role: "content-editor" }     (store-B role)
 ```
 
 6. **Unification:**
