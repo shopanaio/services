@@ -49,51 +49,75 @@ export const typeResolvers: Partial<Resolvers> = {
       return resolveProject(reference.id, ctx, info);
     },
     // Organization field resolver - returns federation reference
-    organization: (parent: { organizationId?: string | null }) => {
-      if (!parent.organizationId) {
-        return null;
-      }
-      // Return federation reference - gateway will resolve from IAM service
-      return { __typename: "Organization", id: parent.organizationId };
-    },
-    // Members field resolver - gets project members from IAM
-    members: async (
-      parent: { id: string; organizationId?: string | null },
+    organization: async (
+      parent: { id: string },
       _args: unknown,
       ctx: ServiceContext
     ) => {
-      // Get organizationId - might be on parent or need to be loaded from project
-      let organizationId = parent.organizationId;
+      // Load project to get organizationId
+      const project = await ctx.kernel
+        .getServices()
+        .repository.project.findById(parent.id);
+      const organizationId = project?.organizationId ?? null;
 
       if (!organizationId) {
-        // Load project to get organizationId
-        const project = await ctx.kernel.getServices().repository.project.findById(parent.id);
-        organizationId = project?.organizationId ?? null;
+        return null;
       }
+      // Return federation reference - gateway will resolve from IAM service
+      return { __typename: "Organization", id: organizationId };
+    },
+    // Members field resolver - gets project members from IAM
+    members: async (
+      parent: { id: string },
+      _args: unknown,
+      ctx: ServiceContext
+    ) => {
+      // Load project to get organizationId
+      const project = await ctx.kernel
+        .getServices()
+        .repository.project.findById(parent.id);
+      const organizationId = project?.organizationId ?? null;
+
+      console.log("Resolving members for project:", JSON.stringify(parent));
 
       if (!organizationId) {
         return [];
       }
 
-      const result = await ctx.kernel.getServices().broker.call(
-        "iam.getMembersForDomain",
-        {
+      const result = await ctx.kernel
+        .getServices()
+        .broker.call("iam.getMembersForDomain", {
           organizationId,
           domain: [["project", parent.id]],
-        }
-      );
+        });
 
       if (!result || result.userErrors?.length > 0) {
         return [];
       }
 
-      return result.members.map((m: { userId: string; role: string; roleDisplayName?: string | null; roleIsSystem?: boolean; grantedAt?: Date; grantedBy?: string }) => ({
-        id: m.userId, // ProjectMember id is the userId
-        user: { __typename: "User", id: m.userId },
-        role: { __typename: "Role", name: m.role, displayName: m.roleDisplayName ?? m.role, isSystem: m.roleIsSystem ?? false },
-        grantedAt: m.grantedAt ?? null,
-        grantedBy: m.grantedBy ? { __typename: "User", id: m.grantedBy } : null,
-      }));
+      return result.members.map(
+        (m: {
+          userId: string;
+          role: string;
+          roleDisplayName?: string | null;
+          roleIsSystem?: boolean;
+          grantedAt?: Date;
+          grantedBy?: string;
+        }) => ({
+          id: m.userId, // ProjectMember id is the userId
+          user: { __typename: "User", id: m.userId },
+          role: {
+            __typename: "Role",
+            name: m.role,
+            displayName: m.roleDisplayName ?? m.role,
+            isSystem: m.roleIsSystem ?? false,
+          },
+          grantedAt: m.grantedAt ?? null,
+          grantedBy: m.grantedBy
+            ? { __typename: "User", id: m.grantedBy }
+            : null,
+        })
+      );
     },
   },
 
@@ -108,15 +132,17 @@ export const typeResolvers: Partial<Resolvers> = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     role: (parent: any) => {
       // Return federation reference to Role
-      const roleName = typeof parent.role === "string" ? parent.role : parent.role?.name;
+      const roleName =
+        typeof parent.role === "string" ? parent.role : parent.role?.name;
       return { __typename: "Role", name: roleName };
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     grantedBy: (parent: any) => {
       if (!parent.grantedBy) return null;
-      const grantedById = typeof parent.grantedBy === "string"
-        ? parent.grantedBy
-        : parent.grantedBy.id;
+      const grantedById =
+        typeof parent.grantedBy === "string"
+          ? parent.grantedBy
+          : parent.grantedBy.id;
       return { __typename: "User", id: grantedById };
     },
   },

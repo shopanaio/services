@@ -889,8 +889,6 @@ export type Project = {
   name: Scalars['String']['output'];
   /** Organization that owns this project (federation reference) */
   organization: Maybe<Organization>;
-  /** Organization ID that owns this project */
-  organizationId: Maybe<Scalars['ID']['output']>;
   /** URL-friendly unique identifier */
   slug: Scalars['String']['output'];
   /** Current operational status of the project */
@@ -1526,7 +1524,6 @@ export type ProjectResolvers<ContextType = ServiceContext, ParentType extends Re
   members?: Resolver<Array<ResolversTypes['ProjectMember']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
-  organizationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ProjectStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

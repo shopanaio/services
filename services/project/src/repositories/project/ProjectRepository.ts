@@ -76,7 +76,9 @@ export class ProjectRepository extends BaseRepository {
   /**
    * Load integrations for a project and attach to project object
    */
-  private async loadIntegrations(proj: Project): Promise<ProjectWithIntegrations> {
+  private async loadIntegrations(
+    proj: Project
+  ): Promise<ProjectWithIntegrations> {
     const integrations = await this.connection
       .select()
       .from(projectIntegration)
@@ -190,6 +192,7 @@ export class ProjectRepository extends BaseRepository {
       .where(eq(project.id, id));
 
     if (!result) return undefined;
+
     return this.loadIntegrations(result);
   }
 
@@ -211,7 +214,10 @@ export class ProjectRepository extends BaseRepository {
   }
 
   @Transactional()
-  async update(id: string, data: UpdateProjectData): Promise<ProjectWithIntegrations | undefined> {
+  async update(
+    id: string,
+    data: UpdateProjectData
+  ): Promise<ProjectWithIntegrations | undefined> {
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
@@ -219,8 +225,10 @@ export class ProjectRepository extends BaseRepository {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.timezone !== undefined) updateData.timezone = data.timezone;
-    if (data.defaultWeightUnit !== undefined) updateData.defaultWeightUnit = data.defaultWeightUnit;
-    if (data.defaultDimensionUnit !== undefined) updateData.defaultDimensionUnit = data.defaultDimensionUnit;
+    if (data.defaultWeightUnit !== undefined)
+      updateData.defaultWeightUnit = data.defaultWeightUnit;
+    if (data.defaultDimensionUnit !== undefined)
+      updateData.defaultDimensionUnit = data.defaultDimensionUnit;
 
     const [result] = await this.connection
       .update(project)
