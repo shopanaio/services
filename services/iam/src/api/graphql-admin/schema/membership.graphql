@@ -1,0 +1,35 @@
+# ============================================================================
+# MEMBERSHIP TYPES (Domain-scoped access)
+# ============================================================================
+
+"""
+Container for all members and roles of a domain (e.g., store).
+Resolved via Federation by domain ID.
+"""
+type Membership @key(fields: "domain") {
+  """Domain identifier (e.g., store UUID)"""
+  domain: ID!
+
+  """All roles available in this domain's organization"""
+  roles: [Role!]!
+
+  """All members with access to this domain"""
+  members: [DomainMember!]!
+}
+
+"""
+A member with role assignment in a specific domain.
+"""
+type DomainMember {
+  """User who has access"""
+  user: User!
+
+  """Role name assigned in this domain"""
+  role: String!
+
+  """When access was granted"""
+  grantedAt: DateTime
+
+  """User who granted access"""
+  grantedBy: User
+}

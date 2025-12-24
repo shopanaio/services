@@ -25,7 +25,7 @@ type Organization @key(fields: "id") {
   """
   All members of this organization.
   """
-  members: [Member!]!
+  members: [OrganizationMember!]!
 
   """
   All roles defined in this organization.
@@ -52,7 +52,7 @@ type Organization @key(fields: "id") {
 """
 Member of an organization with org-level role and project access.
 """
-type Member @key(fields: "id") {
+type OrganizationMember @key(fields: "id") {
   """
   Unique identifier.
   """
@@ -130,12 +130,12 @@ input InviteMemberInput {
   """
   Organization-level role.
   """
-  orgRole: OrgRole!
+  role: String!
 
   """
-  Optional role IDs to assign.
+  Optional roles to assign.
   """
-  roleIds: [ID!]
+  roles: [String!]!
 }
 
 """

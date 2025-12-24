@@ -77,10 +77,4 @@ type StoreMutation {
   apiKeyRevoke(input: ApiKeyRevokeInput!): ApiKeyActionPayload!
   """Permanently delete an API key"""
   apiKeyDelete(input: ApiKeyDeleteInput!): ApiKeyDeletePayload!
-
-  # Store Member mutations
-  """Change a member's role. Requires store.team:write permission."""
-  storeMemberRoleChange(input: StoreMemberRoleChangeInput!): StoreMemberRoleChangePayload!
-  """Remove a member from the store. Requires store.team:remove permission."""
-  storeMemberRemove(input: StoreMemberRemoveInput!): StoreMemberRemovePayload!
 }

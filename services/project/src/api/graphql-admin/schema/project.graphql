@@ -42,8 +42,8 @@ type Store @key(fields: "id") {
   createdAt: DateTime!
   """Timestamp when the store was last updated"""
   updatedAt: DateTime!
-  """Members with access to this store"""
-  members: [StoreMember!]!
+  """Membership info (resolved from IAM by domain)"""
+  membership: Membership!
 }
 
 # Organization entity (extended from IAM service)
@@ -56,57 +56,9 @@ extend type User @key(fields: "id") {
   id: ID! @external
 }
 
-# Role entity (extended from IAM service)
-extend type Role @key(fields: "name") {
-  name: String! @external
-}
-
-# ============================================================================
-# STORE MEMBER TYPES
-# ============================================================================
-
-"""Store team member with assigned role"""
-type StoreMember @key(fields: "id") {
-  """Unique identifier"""
-  id: ID!
-  """The user who has access"""
-  user: User!
-  """Assigned role"""
-  role: Role!
-  """When the role was granted"""
-  grantedAt: DateTime
-  """Who granted this role"""
-  grantedBy: User
-}
-
-"""Input for changing member role"""
-input StoreMemberRoleChangeInput {
-  """User ID"""
-  userId: ID!
-  """New role name"""
-  newRole: String!
-}
-
-"""Input for removing a member"""
-input StoreMemberRemoveInput {
-  """User ID to remove"""
-  userId: ID!
-}
-
-"""Payload returned after changing member role"""
-type StoreMemberRoleChangePayload {
-  """The updated member"""
-  member: StoreMember
-  """List of errors that occurred"""
-  userErrors: [UserError!]!
-}
-
-"""Payload returned after removing a member"""
-type StoreMemberRemovePayload {
-  """ID of the removed user"""
-  removedUserId: ID
-  """List of errors that occurred"""
-  userErrors: [UserError!]!
+# Membership entity (extended from IAM service)
+extend type Membership @key(fields: "domain") {
+  domain: ID! @external
 }
 
 """Input for creating a new store"""

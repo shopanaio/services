@@ -849,10 +849,15 @@ export type LocaleUpdatePayload = {
   userErrors: Array<UserError>;
 };
 
+export type Membership = {
+  __typename?: 'Membership';
+  domain: Scalars['ID']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
-  /** Project-related mutations */
-  projectMutation: ProjectMutation;
+  /** Store-related mutations */
+  storeMutation: StoreMutation;
 };
 
 export type Organization = {
@@ -860,14 +865,20 @@ export type Organization = {
   id: Scalars['ID']['output'];
 };
 
-/** A project representing a store or application */
-export type Project = {
-  __typename?: 'Project';
+export type Query = {
+  __typename?: 'Query';
+  /** Store-related queries */
+  storeQuery: StoreQuery;
+};
+
+/** A store */
+export type Store = {
+  __typename?: 'Store';
   /** Base currency used for exchange rate calculations */
   baseCurrency: CurrencyCode;
-  /** Timestamp when the project was created */
+  /** Timestamp when the store was created */
   createdAt: Scalars['DateTime']['output'];
-  /** List of enabled currency codes for the project */
+  /** List of enabled currency codes for the store */
   currencies: Array<CurrencyCode>;
   /** Default currency for pricing display */
   defaultCurrency: CurrencyCode;
@@ -877,263 +888,200 @@ export type Project = {
   defaultLocale: LocaleCode;
   /** Default unit for product weights */
   defaultWeightUnit: WeightUnit;
-  /** Contact email address for the project */
+  /** Contact email address for the store */
   email: Maybe<Scalars['String']['output']>;
-  /** Unique identifier of the project */
+  /** Unique identifier of the store */
   id: Scalars['ID']['output'];
-  /** List of enabled locale codes for the project */
+  /** List of enabled locale codes for the store */
   locales: Array<LocaleCode>;
-  /** Members with access to this project */
-  members: Array<ProjectMember>;
-  /** Display name of the project */
+  /** Membership info (resolved from IAM by domain) */
+  membership: Membership;
+  /** Display name of the store */
   name: Scalars['String']['output'];
-  /** Organization that owns this project (federation reference) */
+  /** Organization that owns this store (federation reference) */
   organization: Maybe<Organization>;
   /** URL-friendly unique identifier */
   slug: Scalars['String']['output'];
-  /** Current operational status of the project */
-  status: ProjectStatus;
-  /** IANA timezone identifier for the project */
+  /** Current operational status of the store */
+  status: StoreStatus;
+  /** IANA timezone identifier for the store */
   timezone: Scalars['String']['output'];
-  /** Timestamp when the project was last updated */
+  /** Timestamp when the store was last updated */
   updatedAt: Scalars['DateTime']['output'];
 };
 
-/** Input for creating a new project */
-export type ProjectCreateInput = {
+/** Input for creating a new store */
+export type StoreCreateInput = {
   /** Initial list of currency codes to enable */
   currencies: Array<CurrencyCode>;
-  /** Default currency for the project */
+  /** Default currency for the store */
   defaultCurrency: CurrencyCode;
   /** Contact email address */
   email?: InputMaybe<Scalars['String']['input']>;
   /** Initial list of locale codes to enable */
   locales: Array<LocaleCode>;
-  /** Display name of the project */
+  /** Display name of the store */
   name: Scalars['String']['input'];
   /** URL-friendly unique identifier */
   slug: Scalars['String']['input'];
-  /** Initial status of the project */
-  status?: InputMaybe<ProjectStatus>;
+  /** Initial status of the store */
+  status?: InputMaybe<StoreStatus>;
   /** IANA timezone identifier */
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Payload returned after creating a project */
-export type ProjectCreatePayload = {
-  __typename?: 'ProjectCreatePayload';
-  /** The newly created project, null if creation failed */
-  project: Maybe<Project>;
+/** Payload returned after creating a store */
+export type StoreCreatePayload = {
+  __typename?: 'StoreCreatePayload';
+  /** The newly created store, null if creation failed */
+  store: Maybe<Store>;
   /** List of errors that occurred during creation */
   userErrors: Array<UserError>;
 };
 
-/** Input for deleting a project */
-export type ProjectDeleteInput = {
-  /** ID of the project to delete */
+/** Input for deleting a store */
+export type StoreDeleteInput = {
+  /** ID of the store to delete */
   id: Scalars['ID']['input'];
 };
 
-/** Payload returned after deleting a project */
-export type ProjectDeletePayload = {
-  __typename?: 'ProjectDeletePayload';
-  /** ID of the deleted project, null if deletion failed */
-  deletedProjectId: Maybe<Scalars['ID']['output']>;
+/** Payload returned after deleting a store */
+export type StoreDeletePayload = {
+  __typename?: 'StoreDeletePayload';
+  /** ID of the deleted store, null if deletion failed */
+  deletedStoreId: Maybe<Scalars['ID']['output']>;
   /** List of errors that occurred during deletion */
   userErrors: Array<UserError>;
 };
 
-/** Project team member with assigned role */
-export type ProjectMember = {
-  __typename?: 'ProjectMember';
-  /** When the role was granted */
-  grantedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Who granted this role */
-  grantedBy: Maybe<User>;
-  /** Unique identifier */
-  id: Scalars['ID']['output'];
-  /** Assigned role */
-  role: Role;
-  /** The user who has access */
-  user: User;
-};
-
-/** Input for removing a member */
-export type ProjectMemberRemoveInput = {
-  /** User ID to remove */
-  userId: Scalars['ID']['input'];
-};
-
-/** Payload returned after removing a member */
-export type ProjectMemberRemovePayload = {
-  __typename?: 'ProjectMemberRemovePayload';
-  /** ID of the removed user */
-  removedUserId: Maybe<Scalars['ID']['output']>;
-  /** List of errors that occurred */
-  userErrors: Array<UserError>;
-};
-
-/** Input for changing member role */
-export type ProjectMemberRoleChangeInput = {
-  /** New role name */
-  newRole: Scalars['String']['input'];
-  /** User ID */
-  userId: Scalars['ID']['input'];
-};
-
-/** Payload returned after changing member role */
-export type ProjectMemberRoleChangePayload = {
-  __typename?: 'ProjectMemberRoleChangePayload';
-  /** The updated member */
-  member: Maybe<ProjectMember>;
-  /** List of errors that occurred */
-  userErrors: Array<UserError>;
-};
-
-/** Mutations for project management */
-export type ProjectMutation = {
-  __typename?: 'ProjectMutation';
+/** Mutations for store management */
+export type StoreMutation = {
+  __typename?: 'StoreMutation';
   /** Create a new API key for programmatic access */
   apiKeyCreate: ApiKeyCreatePayload;
   /** Permanently delete an API key */
   apiKeyDelete: ApiKeyDeletePayload;
   /** Revoke an API key (soft delete) */
   apiKeyRevoke: ApiKeyActionPayload;
-  /** Add a new currency to the project */
+  /** Add a new currency to the store */
   currencyCreate: CurrencyCreatePayload;
-  /** Remove a currency from the project */
+  /** Remove a currency from the store */
   currencyDelete: CurrencyDeletePayload;
-  /** Set the default currency for the project */
+  /** Set the default currency for the store */
   currencySetDefault: CurrencyUpdatePayload;
-  /** Add a new locale to the project */
+  /** Add a new locale to the store */
   localeCreate: LocaleCreatePayload;
-  /** Remove a locale from the project */
+  /** Remove a locale from the store */
   localeDelete: LocaleDeletePayload;
-  /** Set the default locale for the project */
+  /** Set the default locale for the store */
   localeSetDefault: LocaleUpdatePayload;
-  /** Create a new project */
-  projectCreate: ProjectCreatePayload;
-  /** Delete a project */
-  projectDelete: ProjectDeletePayload;
-  /** Remove a member from the project. Requires project.team:remove permission. */
-  projectMemberRemove: ProjectMemberRemovePayload;
-  /** Change a member's role. Requires project.team:write permission. */
-  projectMemberRoleChange: ProjectMemberRoleChangePayload;
-  /** Update an existing project */
-  projectUpdate: ProjectUpdatePayload;
+  /** Create a new store */
+  storeCreate: StoreCreatePayload;
+  /** Delete a store */
+  storeDelete: StoreDeletePayload;
+  /** Update an existing store */
+  storeUpdate: StoreUpdatePayload;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationApiKeyCreateArgs = {
+/** Mutations for store management */
+export type StoreMutationApiKeyCreateArgs = {
   input: ApiKeyCreateInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationApiKeyDeleteArgs = {
+/** Mutations for store management */
+export type StoreMutationApiKeyDeleteArgs = {
   input: ApiKeyDeleteInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationApiKeyRevokeArgs = {
+/** Mutations for store management */
+export type StoreMutationApiKeyRevokeArgs = {
   input: ApiKeyRevokeInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationCurrencyCreateArgs = {
+/** Mutations for store management */
+export type StoreMutationCurrencyCreateArgs = {
   input: CurrencyCreateInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationCurrencyDeleteArgs = {
+/** Mutations for store management */
+export type StoreMutationCurrencyDeleteArgs = {
   input: CurrencyDeleteInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationCurrencySetDefaultArgs = {
+/** Mutations for store management */
+export type StoreMutationCurrencySetDefaultArgs = {
   input: CurrencySetDefaultInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationLocaleCreateArgs = {
+/** Mutations for store management */
+export type StoreMutationLocaleCreateArgs = {
   input: LocaleCreateInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationLocaleDeleteArgs = {
+/** Mutations for store management */
+export type StoreMutationLocaleDeleteArgs = {
   input: LocaleDeleteInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationLocaleSetDefaultArgs = {
+/** Mutations for store management */
+export type StoreMutationLocaleSetDefaultArgs = {
   input: LocaleSetDefaultInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationProjectCreateArgs = {
-  input: ProjectCreateInput;
+/** Mutations for store management */
+export type StoreMutationStoreCreateArgs = {
+  input: StoreCreateInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationProjectDeleteArgs = {
-  input: ProjectDeleteInput;
+/** Mutations for store management */
+export type StoreMutationStoreDeleteArgs = {
+  input: StoreDeleteInput;
 };
 
 
-/** Mutations for project management */
-export type ProjectMutationProjectMemberRemoveArgs = {
-  input: ProjectMemberRemoveInput;
+/** Mutations for store management */
+export type StoreMutationStoreUpdateArgs = {
+  input: StoreUpdateInput;
 };
 
-
-/** Mutations for project management */
-export type ProjectMutationProjectMemberRoleChangeArgs = {
-  input: ProjectMemberRoleChangeInput;
-};
-
-
-/** Mutations for project management */
-export type ProjectMutationProjectUpdateArgs = {
-  input: ProjectUpdateInput;
-};
-
-/** Queries for project management */
-export type ProjectQuery = {
-  __typename?: 'ProjectQuery';
-  /** Get all API keys for the current project */
+/** Queries for store management */
+export type StoreQuery = {
+  __typename?: 'StoreQuery';
+  /** Get all API keys for the current store */
   apiKeys: Array<ApiKey>;
-  /** Get a project by its unique slug */
-  project: Maybe<Project>;
-  /** Get all projects accessible to the current user */
-  projects: Array<Project>;
+  /** Get a store by its unique slug */
+  store: Maybe<Store>;
+  /** Get all stores accessible to the current user */
+  stores: Array<Store>;
 };
 
 
-/** Queries for project management */
-export type ProjectQueryProjectArgs = {
+/** Queries for store management */
+export type StoreQueryStoreArgs = {
   slug: Scalars['String']['input'];
 };
 
-/** Status of a project */
-export enum ProjectStatus {
-  /** Project is active and operational */
+/** Status of a store */
+export enum StoreStatus {
+  /** Store is active and operational */
   Active = 'active',
-  /** Project is inactive and not processing requests */
+  /** Store is inactive and not processing requests */
   Inactive = 'inactive'
 }
 
-/** Input for updating an existing project */
-export type ProjectUpdateInput = {
+/** Input for updating an existing store */
+export type StoreUpdateInput = {
   /** Updated list of enabled currency codes */
   currencies?: InputMaybe<Array<CurrencyCode>>;
   /** New default dimension unit */
@@ -1150,24 +1098,13 @@ export type ProjectUpdateInput = {
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Payload returned after updating a project */
-export type ProjectUpdatePayload = {
-  __typename?: 'ProjectUpdatePayload';
-  /** The updated project, null if update failed */
-  project: Maybe<Project>;
+/** Payload returned after updating a store */
+export type StoreUpdatePayload = {
+  __typename?: 'StoreUpdatePayload';
+  /** The updated store, null if update failed */
+  store: Maybe<Store>;
   /** List of errors that occurred during update */
   userErrors: Array<UserError>;
-};
-
-export type Query = {
-  __typename?: 'Query';
-  /** Project-related queries */
-  projectQuery: ProjectQuery;
-};
-
-export type Role = {
-  __typename?: 'Role';
-  name: Scalars['String']['output'];
 };
 
 export type User = {
@@ -1316,25 +1253,20 @@ export type ResolversTypes = ResolversObject<{
   LocaleDeletePayload: ResolverTypeWrapper<Omit<LocaleDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   LocaleSetDefaultInput: LocaleSetDefaultInput;
   LocaleUpdatePayload: ResolverTypeWrapper<Omit<LocaleUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  Membership: ResolverTypeWrapper<Membership>;
   Mutation: ResolverTypeWrapper<{}>;
   Organization: ResolverTypeWrapper<Organization>;
-  Project: ResolverTypeWrapper<Project>;
-  ProjectCreateInput: ProjectCreateInput;
-  ProjectCreatePayload: ResolverTypeWrapper<Omit<ProjectCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  ProjectDeleteInput: ProjectDeleteInput;
-  ProjectDeletePayload: ResolverTypeWrapper<Omit<ProjectDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  ProjectMember: ResolverTypeWrapper<ProjectMember>;
-  ProjectMemberRemoveInput: ProjectMemberRemoveInput;
-  ProjectMemberRemovePayload: ResolverTypeWrapper<Omit<ProjectMemberRemovePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
-  ProjectMemberRoleChangePayload: ResolverTypeWrapper<Omit<ProjectMemberRoleChangePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
-  ProjectMutation: ResolverTypeWrapper<Omit<ProjectMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'projectCreate' | 'projectDelete' | 'projectMemberRemove' | 'projectMemberRoleChange' | 'projectUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], currencyCreate: ResolversTypes['CurrencyCreatePayload'], currencyDelete: ResolversTypes['CurrencyDeletePayload'], currencySetDefault: ResolversTypes['CurrencyUpdatePayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], projectCreate: ResolversTypes['ProjectCreatePayload'], projectDelete: ResolversTypes['ProjectDeletePayload'], projectMemberRemove: ResolversTypes['ProjectMemberRemovePayload'], projectMemberRoleChange: ResolversTypes['ProjectMemberRoleChangePayload'], projectUpdate: ResolversTypes['ProjectUpdatePayload'] }>;
-  ProjectQuery: ResolverTypeWrapper<ProjectQuery>;
-  ProjectStatus: ProjectStatus;
-  ProjectUpdateInput: ProjectUpdateInput;
-  ProjectUpdatePayload: ResolverTypeWrapper<Omit<ProjectUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Query: ResolverTypeWrapper<{}>;
-  Role: ResolverTypeWrapper<Role>;
+  Store: ResolverTypeWrapper<Store>;
+  StoreCreateInput: StoreCreateInput;
+  StoreCreatePayload: ResolverTypeWrapper<Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  StoreDeleteInput: StoreDeleteInput;
+  StoreDeletePayload: ResolverTypeWrapper<Omit<StoreDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  StoreMutation: ResolverTypeWrapper<Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversTypes['ApiKeyActionPayload'], currencyCreate: ResolversTypes['CurrencyCreatePayload'], currencyDelete: ResolversTypes['CurrencyDeletePayload'], currencySetDefault: ResolversTypes['CurrencyUpdatePayload'], localeCreate: ResolversTypes['LocaleCreatePayload'], localeDelete: ResolversTypes['LocaleDeletePayload'], localeSetDefault: ResolversTypes['LocaleUpdatePayload'], storeCreate: ResolversTypes['StoreCreatePayload'], storeDelete: ResolversTypes['StoreDeletePayload'], storeUpdate: ResolversTypes['StoreUpdatePayload'] }>;
+  StoreQuery: ResolverTypeWrapper<StoreQuery>;
+  StoreStatus: StoreStatus;
+  StoreUpdateInput: StoreUpdateInput;
+  StoreUpdatePayload: ResolverTypeWrapper<Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Timestamp: ResolverTypeWrapper<Scalars['Timestamp']['output']>;
   User: ResolverTypeWrapper<User>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
@@ -1372,24 +1304,19 @@ export type ResolversParentTypes = ResolversObject<{
   LocaleDeletePayload: Omit<LocaleDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   LocaleSetDefaultInput: LocaleSetDefaultInput;
   LocaleUpdatePayload: Omit<LocaleUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  Membership: Membership;
   Mutation: {};
   Organization: Organization;
-  Project: Project;
-  ProjectCreateInput: ProjectCreateInput;
-  ProjectCreatePayload: Omit<ProjectCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  ProjectDeleteInput: ProjectDeleteInput;
-  ProjectDeletePayload: Omit<ProjectDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  ProjectMember: ProjectMember;
-  ProjectMemberRemoveInput: ProjectMemberRemoveInput;
-  ProjectMemberRemovePayload: Omit<ProjectMemberRemovePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
-  ProjectMemberRoleChangePayload: Omit<ProjectMemberRoleChangePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  ProjectMutation: Omit<ProjectMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'projectCreate' | 'projectDelete' | 'projectMemberRemove' | 'projectMemberRoleChange' | 'projectUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], currencyCreate: ResolversParentTypes['CurrencyCreatePayload'], currencyDelete: ResolversParentTypes['CurrencyDeletePayload'], currencySetDefault: ResolversParentTypes['CurrencyUpdatePayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], projectCreate: ResolversParentTypes['ProjectCreatePayload'], projectDelete: ResolversParentTypes['ProjectDeletePayload'], projectMemberRemove: ResolversParentTypes['ProjectMemberRemovePayload'], projectMemberRoleChange: ResolversParentTypes['ProjectMemberRoleChangePayload'], projectUpdate: ResolversParentTypes['ProjectUpdatePayload'] };
-  ProjectQuery: ProjectQuery;
-  ProjectUpdateInput: ProjectUpdateInput;
-  ProjectUpdatePayload: Omit<ProjectUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Query: {};
-  Role: Role;
+  Store: Store;
+  StoreCreateInput: StoreCreateInput;
+  StoreCreatePayload: Omit<StoreCreatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  StoreDeleteInput: StoreDeleteInput;
+  StoreDeletePayload: Omit<StoreDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  StoreMutation: Omit<StoreMutation, 'apiKeyCreate' | 'apiKeyDelete' | 'apiKeyRevoke' | 'currencyCreate' | 'currencyDelete' | 'currencySetDefault' | 'localeCreate' | 'localeDelete' | 'localeSetDefault' | 'storeCreate' | 'storeDelete' | 'storeUpdate'> & { apiKeyCreate: ResolversParentTypes['ApiKeyCreatePayload'], apiKeyDelete: ResolversParentTypes['ApiKeyDeletePayload'], apiKeyRevoke: ResolversParentTypes['ApiKeyActionPayload'], currencyCreate: ResolversParentTypes['CurrencyCreatePayload'], currencyDelete: ResolversParentTypes['CurrencyDeletePayload'], currencySetDefault: ResolversParentTypes['CurrencyUpdatePayload'], localeCreate: ResolversParentTypes['LocaleCreatePayload'], localeDelete: ResolversParentTypes['LocaleDeletePayload'], localeSetDefault: ResolversParentTypes['LocaleUpdatePayload'], storeCreate: ResolversParentTypes['StoreCreatePayload'], storeDelete: ResolversParentTypes['StoreDeletePayload'], storeUpdate: ResolversParentTypes['StoreUpdatePayload'] };
+  StoreQuery: StoreQuery;
+  StoreUpdateInput: StoreUpdateInput;
+  StoreUpdatePayload: Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Timestamp: Scalars['Timestamp']['output'];
   User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
@@ -1499,8 +1426,14 @@ export type LocaleUpdatePayloadResolvers<ContextType = ServiceContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type MembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Membership'] = ResolversParentTypes['Membership']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true}>, ContextType>;
+
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
-  projectMutation?: Resolver<ResolversTypes['ProjectMutation'], ParentType, ContextType>;
+  storeMutation?: Resolver<ResolversTypes['StoreMutation'], ParentType, ContextType>;
 }>;
 
 export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
@@ -1509,8 +1442,12 @@ export type OrganizationResolvers<ContextType = ServiceContext, ParentType exten
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Project']>, { __typename: 'Project' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
+  storeQuery?: Resolver<ResolversTypes['StoreQuery'], ParentType, ContextType>;
+}>;
+
+export type StoreResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Store'] = ResolversParentTypes['Store']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Store']>, { __typename: 'Store' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   baseCurrency?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   currencies?: Resolver<Array<ResolversTypes['CurrencyCode']>, ParentType, ContextType>;
@@ -1521,88 +1458,54 @@ export type ProjectResolvers<ContextType = ServiceContext, ParentType extends Re
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   locales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
-  members?: Resolver<Array<ResolversTypes['ProjectMember']>, ParentType, ContextType>;
+  membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  status?: Resolver<ResolversTypes['ProjectStatus'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['StoreStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectCreatePayload'] = ResolversParentTypes['ProjectCreatePayload']> = ResolversObject<{
-  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
+export type StoreCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreCreatePayload'] = ResolversParentTypes['StoreCreatePayload']> = ResolversObject<{
+  store?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectDeletePayload'] = ResolversParentTypes['ProjectDeletePayload']> = ResolversObject<{
-  deletedProjectId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+export type StoreDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreDeletePayload'] = ResolversParentTypes['StoreDeletePayload']> = ResolversObject<{
+  deletedStoreId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectMemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMember'] = ResolversParentTypes['ProjectMember']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProjectMember']>, { __typename: 'ProjectMember' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  grantedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  role?: Resolver<ResolversTypes['Role'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+export type StoreMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreMutation'] = ResolversParentTypes['StoreMutation']> = ResolversObject<{
+  apiKeyCreate?: Resolver<ResolversTypes['ApiKeyCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationApiKeyCreateArgs, 'input'>>;
+  apiKeyDelete?: Resolver<ResolversTypes['ApiKeyDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationApiKeyDeleteArgs, 'input'>>;
+  apiKeyRevoke?: Resolver<ResolversTypes['ApiKeyActionPayload'], ParentType, ContextType, RequireFields<StoreMutationApiKeyRevokeArgs, 'input'>>;
+  currencyCreate?: Resolver<ResolversTypes['CurrencyCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationCurrencyCreateArgs, 'input'>>;
+  currencyDelete?: Resolver<ResolversTypes['CurrencyDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationCurrencyDeleteArgs, 'input'>>;
+  currencySetDefault?: Resolver<ResolversTypes['CurrencyUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationCurrencySetDefaultArgs, 'input'>>;
+  localeCreate?: Resolver<ResolversTypes['LocaleCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleCreateArgs, 'input'>>;
+  localeDelete?: Resolver<ResolversTypes['LocaleDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleDeleteArgs, 'input'>>;
+  localeSetDefault?: Resolver<ResolversTypes['LocaleUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleSetDefaultArgs, 'input'>>;
+  storeCreate?: Resolver<ResolversTypes['StoreCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreCreateArgs, 'input'>>;
+  storeDelete?: Resolver<ResolversTypes['StoreDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreDeleteArgs, 'input'>>;
+  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectMemberRemovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMemberRemovePayload'] = ResolversParentTypes['ProjectMemberRemovePayload']> = ResolversObject<{
-  removedUserId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProjectMemberRoleChangePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMemberRoleChangePayload'] = ResolversParentTypes['ProjectMemberRoleChangePayload']> = ResolversObject<{
-  member?: Resolver<Maybe<ResolversTypes['ProjectMember']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProjectMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMutation'] = ResolversParentTypes['ProjectMutation']> = ResolversObject<{
-  apiKeyCreate?: Resolver<ResolversTypes['ApiKeyCreatePayload'], ParentType, ContextType, RequireFields<ProjectMutationApiKeyCreateArgs, 'input'>>;
-  apiKeyDelete?: Resolver<ResolversTypes['ApiKeyDeletePayload'], ParentType, ContextType, RequireFields<ProjectMutationApiKeyDeleteArgs, 'input'>>;
-  apiKeyRevoke?: Resolver<ResolversTypes['ApiKeyActionPayload'], ParentType, ContextType, RequireFields<ProjectMutationApiKeyRevokeArgs, 'input'>>;
-  currencyCreate?: Resolver<ResolversTypes['CurrencyCreatePayload'], ParentType, ContextType, RequireFields<ProjectMutationCurrencyCreateArgs, 'input'>>;
-  currencyDelete?: Resolver<ResolversTypes['CurrencyDeletePayload'], ParentType, ContextType, RequireFields<ProjectMutationCurrencyDeleteArgs, 'input'>>;
-  currencySetDefault?: Resolver<ResolversTypes['CurrencyUpdatePayload'], ParentType, ContextType, RequireFields<ProjectMutationCurrencySetDefaultArgs, 'input'>>;
-  localeCreate?: Resolver<ResolversTypes['LocaleCreatePayload'], ParentType, ContextType, RequireFields<ProjectMutationLocaleCreateArgs, 'input'>>;
-  localeDelete?: Resolver<ResolversTypes['LocaleDeletePayload'], ParentType, ContextType, RequireFields<ProjectMutationLocaleDeleteArgs, 'input'>>;
-  localeSetDefault?: Resolver<ResolversTypes['LocaleUpdatePayload'], ParentType, ContextType, RequireFields<ProjectMutationLocaleSetDefaultArgs, 'input'>>;
-  projectCreate?: Resolver<ResolversTypes['ProjectCreatePayload'], ParentType, ContextType, RequireFields<ProjectMutationProjectCreateArgs, 'input'>>;
-  projectDelete?: Resolver<ResolversTypes['ProjectDeletePayload'], ParentType, ContextType, RequireFields<ProjectMutationProjectDeleteArgs, 'input'>>;
-  projectMemberRemove?: Resolver<ResolversTypes['ProjectMemberRemovePayload'], ParentType, ContextType, RequireFields<ProjectMutationProjectMemberRemoveArgs, 'input'>>;
-  projectMemberRoleChange?: Resolver<ResolversTypes['ProjectMemberRoleChangePayload'], ParentType, ContextType, RequireFields<ProjectMutationProjectMemberRoleChangeArgs, 'input'>>;
-  projectUpdate?: Resolver<ResolversTypes['ProjectUpdatePayload'], ParentType, ContextType, RequireFields<ProjectMutationProjectUpdateArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProjectQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectQuery'] = ResolversParentTypes['ProjectQuery']> = ResolversObject<{
+export type StoreQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreQuery'] = ResolversParentTypes['StoreQuery']> = ResolversObject<{
   apiKeys?: Resolver<Array<ResolversTypes['ApiKey']>, ParentType, ContextType>;
-  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<ProjectQueryProjectArgs, 'slug'>>;
-  projects?: Resolver<Array<ResolversTypes['Project']>, ParentType, ContextType>;
+  store?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType, RequireFields<StoreQueryStoreArgs, 'slug'>>;
+  stores?: Resolver<Array<ResolversTypes['Store']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectUpdatePayload'] = ResolversParentTypes['ProjectUpdatePayload']> = ResolversObject<{
-  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
+export type StoreUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreUpdatePayload'] = ResolversParentTypes['StoreUpdatePayload']> = ResolversObject<{
+  store?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
-  projectQuery?: Resolver<ResolversTypes['ProjectQuery'], ParentType, ContextType>;
-}>;
-
-export type RoleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Role'] = ResolversParentTypes['Role']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Role']>, { __typename: 'Role' } & GraphQLRecursivePick<ParentType, {"name":true}>, ContextType>;
-
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1640,19 +1543,16 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   LocaleCreatePayload?: LocaleCreatePayloadResolvers<ContextType>;
   LocaleDeletePayload?: LocaleDeletePayloadResolvers<ContextType>;
   LocaleUpdatePayload?: LocaleUpdatePayloadResolvers<ContextType>;
+  Membership?: MembershipResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Organization?: OrganizationResolvers<ContextType>;
-  Project?: ProjectResolvers<ContextType>;
-  ProjectCreatePayload?: ProjectCreatePayloadResolvers<ContextType>;
-  ProjectDeletePayload?: ProjectDeletePayloadResolvers<ContextType>;
-  ProjectMember?: ProjectMemberResolvers<ContextType>;
-  ProjectMemberRemovePayload?: ProjectMemberRemovePayloadResolvers<ContextType>;
-  ProjectMemberRoleChangePayload?: ProjectMemberRoleChangePayloadResolvers<ContextType>;
-  ProjectMutation?: ProjectMutationResolvers<ContextType>;
-  ProjectQuery?: ProjectQueryResolvers<ContextType>;
-  ProjectUpdatePayload?: ProjectUpdatePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
-  Role?: RoleResolvers<ContextType>;
+  Store?: StoreResolvers<ContextType>;
+  StoreCreatePayload?: StoreCreatePayloadResolvers<ContextType>;
+  StoreDeletePayload?: StoreDeletePayloadResolvers<ContextType>;
+  StoreMutation?: StoreMutationResolvers<ContextType>;
+  StoreQuery?: StoreQueryResolvers<ContextType>;
+  StoreUpdatePayload?: StoreUpdatePayloadResolvers<ContextType>;
   Timestamp?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;

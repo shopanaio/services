@@ -435,16 +435,17 @@ export enum DimensionUnit {
   Mm = 'mm'
 }
 
-/**
- * Domain-scoped role assignment.
- * Represents user's role in a specific domain (e.g., project).
- */
-export type DomainAccess = {
-  __typename?: 'DomainAccess';
-  /** Domain path (e.g., "project:abc-123" or "*" for all). */
-  domain: Scalars['String']['output'];
-  /** Role in this domain. */
+/** A member with role assignment in a specific domain. */
+export type DomainMember = {
+  __typename?: 'DomainMember';
+  /** When access was granted */
+  grantedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** User who granted access */
+  grantedBy?: Maybe<User>;
+  /** Role name assigned in this domain */
   role: Scalars['String']['output'];
+  /** User who has access */
+  user: User;
 };
 
 /** A generic user error type for mutation responses. */
@@ -751,15 +752,29 @@ export enum LocaleCode {
 export type Member = {
   __typename?: 'Member';
   /** Timestamp when the member joined. */
-  createdAt: Scalars['DateTime']['output'];
-  /** Domain-scoped role assignments (e.g., per-project roles). */
-  domainAccess: Array<DomainAccess>;
+  grantedAt: Scalars['DateTime']['output'];
+  /** Granted by user. */
+  grantedBy: User;
   /** Unique identifier. */
   id: Scalars['ID']['output'];
   /** Organization-level role (owner, admin, member). */
-  orgRole: OrgRole;
+  role: Scalars['String']['output'];
   /** User reference. */
   user: User;
+};
+
+/**
+ * Container for all members and roles of a domain (e.g., store).
+ * Resolved via Federation by domain ID.
+ */
+export type Membership = {
+  __typename?: 'Membership';
+  /** Domain identifier (e.g., store UUID) */
+  domain: Scalars['ID']['output'];
+  /** All members with access to this domain */
+  members: Array<DomainMember>;
+  /** All roles available in this domain's organization */
+  roles: Array<Role>;
 };
 
 export type Mutation = {
@@ -894,47 +909,6 @@ export enum PermissionEffect {
   Deny = 'DENY'
 }
 
-/** Project team member with assigned role. */
-export type ProjectMember = {
-  __typename?: 'ProjectMember';
-  /** Date when role was assigned. */
-  grantedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Who assigned the role. */
-  grantedBy?: Maybe<User>;
-  /** User ID. */
-  id: Scalars['ID']['output'];
-  /** Assigned role. */
-  role: Role;
-  /** User. */
-  user: User;
-};
-
-/** Input for removing a member. */
-export type ProjectMemberRemoveInput = {
-  /** User ID to remove. */
-  userId: Scalars['ID']['input'];
-};
-
-export type ProjectMemberRemovePayload = {
-  __typename?: 'ProjectMemberRemovePayload';
-  removedUserId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
-/** Input for changing member role. */
-export type ProjectMemberRoleChangeInput = {
-  /** New role name. */
-  newRole: Scalars['String']['input'];
-  /** User ID. */
-  userId: Scalars['ID']['input'];
-};
-
-export type ProjectMemberRoleChangePayload = {
-  __typename?: 'ProjectMemberRoleChangePayload';
-  member?: Maybe<ProjectMember>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type Query = {
   __typename?: 'Query';
   /**
@@ -990,8 +964,6 @@ export type ResourceDefinition = {
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
   name: Scalars['String']['output'];
-  /** Service name (inventory, orders, etc.). */
-  service: Scalars['String']['output'];
 };
 
 /** Project role with permissions. */
@@ -1045,20 +1017,6 @@ export type RoleDeletePayload = {
 export type RoleMutation = {
   __typename?: 'RoleMutation';
   /**
-   * Remove member from team.
-   * Requires: project.team:remove permission.
-   * Cannot remove self (use leaveProject).
-   * Cannot remove project owner.
-   */
-  projectMemberRemove: ProjectMemberRemovePayload;
-  /**
-   * Change member's role.
-   * Requires: project.team:write permission.
-   * Cannot change own role.
-   * Cannot assign role higher than own.
-   */
-  projectMemberRoleChange: ProjectMemberRoleChangePayload;
-  /**
    * Create custom role.
    * Requires: project:admin permission.
    */
@@ -1076,18 +1034,6 @@ export type RoleMutation = {
    * System roles cannot be modified.
    */
   roleUpdate: RoleUpdatePayload;
-};
-
-
-/** Role mutations. */
-export type RoleMutationProjectMemberRemoveArgs = {
-  input: ProjectMemberRemoveInput;
-};
-
-
-/** Role mutations. */
-export type RoleMutationProjectMemberRoleChangeArgs = {
-  input: ProjectMemberRoleChangeInput;
 };
 
 
@@ -1193,11 +1139,6 @@ export type User = {
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
   locale?: Maybe<LocaleCode>;
-  /**
-   * User's role name in current project context.
-   * Returns null if no project context.
-   */
-  role?: Maybe<Scalars['String']['output']>;
   /** The date and time when the user was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
@@ -1498,7 +1439,7 @@ export type ResolversTypes = ResolversObject<{
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DeleteOrganizationPayload: ResolverTypeWrapper<DeleteOrganizationPayload>;
   DimensionUnit: DimensionUnit;
-  DomainAccess: ResolverTypeWrapper<DomainAccess>;
+  DomainMember: ResolverTypeWrapper<DomainMember>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   InviteMemberInput: InviteMemberInput;
@@ -1506,16 +1447,12 @@ export type ResolversTypes = ResolversObject<{
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Member: ResolverTypeWrapper<Member>;
+  Membership: ResolverTypeWrapper<Membership>;
   Mutation: ResolverTypeWrapper<{}>;
   OrgRole: OrgRole;
   Organization: ResolverTypeWrapper<Organization>;
   OrganizationMutation: ResolverTypeWrapper<OrganizationMutation>;
   PermissionEffect: PermissionEffect;
-  ProjectMember: ResolverTypeWrapper<ProjectMember>;
-  ProjectMemberRemoveInput: ProjectMemberRemoveInput;
-  ProjectMemberRemovePayload: ResolverTypeWrapper<ProjectMemberRemovePayload>;
-  ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
-  ProjectMemberRoleChangePayload: ResolverTypeWrapper<ProjectMemberRoleChangePayload>;
   Query: ResolverTypeWrapper<{}>;
   RemoveDomainAccessInput: RemoveDomainAccessInput;
   RemoveDomainAccessPayload: ResolverTypeWrapper<RemoveDomainAccessPayload>;
@@ -1570,21 +1507,17 @@ export type ResolversParentTypes = ResolversObject<{
   CreateOrganizationPayload: CreateOrganizationPayload;
   DateTime: Scalars['DateTime']['output'];
   DeleteOrganizationPayload: DeleteOrganizationPayload;
-  DomainAccess: DomainAccess;
+  DomainMember: DomainMember;
   Email: Scalars['Email']['output'];
   GenericUserError: GenericUserError;
   InviteMemberInput: InviteMemberInput;
   InviteMemberPayload: InviteMemberPayload;
   JSON: Scalars['JSON']['output'];
   Member: Member;
+  Membership: Membership;
   Mutation: {};
   Organization: Organization;
   OrganizationMutation: OrganizationMutation;
-  ProjectMember: ProjectMember;
-  ProjectMemberRemoveInput: ProjectMemberRemoveInput;
-  ProjectMemberRemovePayload: ProjectMemberRemovePayload;
-  ProjectMemberRoleChangeInput: ProjectMemberRoleChangeInput;
-  ProjectMemberRoleChangePayload: ProjectMemberRoleChangePayload;
   Query: {};
   RemoveDomainAccessInput: RemoveDomainAccessInput;
   RemoveDomainAccessPayload: RemoveDomainAccessPayload;
@@ -1664,9 +1597,11 @@ export type DeleteOrganizationPayloadResolvers<ContextType = ServiceContext, Par
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type DomainAccessResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DomainAccess'] = ResolversParentTypes['DomainAccess']> = ResolversObject<{
-  domain?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+export type DomainMemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DomainMember'] = ResolversParentTypes['DomainMember']> = ResolversObject<{
+  grantedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1693,11 +1628,19 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 
 export type MemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Member'] = ResolversParentTypes['Member']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Member']>, { __typename: 'Member' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  domainAccess?: Resolver<Array<ResolversTypes['DomainAccess']>, ParentType, ContextType>;
+  grantedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  grantedBy?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  orgRole?: Resolver<ResolversTypes['OrgRole'], ParentType, ContextType>;
+  role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Membership'] = ResolversParentTypes['Membership']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true}>, ContextType>;
+  domain?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  members?: Resolver<Array<ResolversTypes['DomainMember']>, ParentType, ContextType>;
+  roles?: Resolver<Array<ResolversTypes['Role']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1731,27 +1674,6 @@ export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProjectMemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMember'] = ResolversParentTypes['ProjectMember']> = ResolversObject<{
-  grantedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  role?: Resolver<ResolversTypes['Role'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProjectMemberRemovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMemberRemovePayload'] = ResolversParentTypes['ProjectMemberRemovePayload']> = ResolversObject<{
-  removedUserId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ProjectMemberRoleChangePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProjectMemberRoleChangePayload'] = ResolversParentTypes['ProjectMemberRoleChangePayload']> = ResolversObject<{
-  member?: Resolver<Maybe<ResolversTypes['ProjectMember']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
   authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<QueryAuthorizeArgs, 'input'>>;
   currentOrganization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
@@ -1775,11 +1697,11 @@ export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType
   actions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  service?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type RoleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Role'] = ResolversParentTypes['Role']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Role']>, { __typename: 'Role' } & GraphQLRecursivePick<ParentType, {"name":true}>, ContextType>;
   createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1802,8 +1724,6 @@ export type RoleDeletePayloadResolvers<ContextType = ServiceContext, ParentType 
 }>;
 
 export type RoleMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RoleMutation'] = ResolversParentTypes['RoleMutation']> = ResolversObject<{
-  projectMemberRemove?: Resolver<ResolversTypes['ProjectMemberRemovePayload'], ParentType, ContextType, RequireFields<RoleMutationProjectMemberRemoveArgs, 'input'>>;
-  projectMemberRoleChange?: Resolver<ResolversTypes['ProjectMemberRoleChangePayload'], ParentType, ContextType, RequireFields<RoleMutationProjectMemberRoleChangeArgs, 'input'>>;
   roleCreate?: Resolver<ResolversTypes['RoleCreatePayload'], ParentType, ContextType, RequireFields<RoleMutationRoleCreateArgs, 'input'>>;
   roleDelete?: Resolver<ResolversTypes['RoleDeletePayload'], ParentType, ContextType, RequireFields<RoleMutationRoleDeleteArgs, 'input'>>;
   roleUpdate?: Resolver<ResolversTypes['RoleUpdatePayload'], ParentType, ContextType, RequireFields<RoleMutationRoleUpdateArgs, 'input'>>;
@@ -1842,7 +1762,6 @@ export type UserResolvers<ContextType = ServiceContext, ParentType extends Resol
   isForbidden?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   locale?: Resolver<Maybe<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
-  role?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1922,18 +1841,16 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CreateOrganizationPayload?: CreateOrganizationPayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   DeleteOrganizationPayload?: DeleteOrganizationPayloadResolvers<ContextType>;
-  DomainAccess?: DomainAccessResolvers<ContextType>;
+  DomainMember?: DomainMemberResolvers<ContextType>;
   Email?: GraphQLScalarType;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   InviteMemberPayload?: InviteMemberPayloadResolvers<ContextType>;
   JSON?: GraphQLScalarType;
   Member?: MemberResolvers<ContextType>;
+  Membership?: MembershipResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Organization?: OrganizationResolvers<ContextType>;
   OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
-  ProjectMember?: ProjectMemberResolvers<ContextType>;
-  ProjectMemberRemovePayload?: ProjectMemberRemovePayloadResolvers<ContextType>;
-  ProjectMemberRoleChangePayload?: ProjectMemberRoleChangePayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   RemoveDomainAccessPayload?: RemoveDomainAccessPayloadResolvers<ContextType>;
   RemoveMemberPayload?: RemoveMemberPayloadResolvers<ContextType>;

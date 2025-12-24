@@ -11,7 +11,6 @@ import { storeMutationResolvers } from "./mutations/store.js";
 import { localeMutationResolvers } from "./mutations/locale.js";
 import { currencyMutationResolvers } from "./mutations/currency.js";
 import { apiKeyMutationResolvers } from "./mutations/apiKey.js";
-import { storeMemberMutationResolvers } from "./mutations/storeMember.js";
 
 /**
  * Deep merge resolvers - combines multiple resolver objects into one
@@ -49,6 +48,5 @@ export const resolvers: Resolvers = mergeResolvers(
   storeMutationResolvers,
   localeMutationResolvers,
   currencyMutationResolvers,
-  apiKeyMutationResolvers,
-  storeMemberMutationResolvers
+  apiKeyMutationResolvers
 );

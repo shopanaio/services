@@ -66,84 +66,10 @@ export const typeResolvers: Partial<Resolvers> = {
       // Return federation reference - gateway will resolve from IAM service
       return { __typename: "Organization", id: organizationId };
     },
-    // Members field resolver - gets store members from IAM
-    members: async (
-      parent: { id: string },
-      _args: unknown,
-      ctx: ServiceContext
-    ) => {
-      // Load store to get organizationId
-      const store = await ctx.kernel
-        .getServices()
-        .repository.store.findById(parent.id);
-      const organizationId = store?.organizationId ?? null;
-
-      console.log("Resolving members for store:", JSON.stringify(parent));
-
-      if (!organizationId) {
-        return [];
-      }
-
-      const result = await ctx.kernel
-        .getServices()
-        .broker.call("iam.getMembersForDomain", {
-          organizationId,
-          domain: [["store", parent.id]],
-        });
-
-      if (!result || result.userErrors?.length > 0) {
-        return [];
-      }
-
-      return result.members.map(
-        (m: {
-          userId: string;
-          role: string;
-          roleDisplayName?: string | null;
-          roleIsSystem?: boolean;
-          grantedAt?: Date;
-          grantedBy?: string;
-        }) => ({
-          id: m.userId, // StoreMember id is the userId
-          user: { __typename: "User", id: m.userId },
-          role: {
-            __typename: "Role",
-            name: m.role,
-            displayName: m.roleDisplayName ?? m.role,
-            isSystem: m.roleIsSystem ?? false,
-          },
-          grantedAt: m.grantedAt ?? null,
-          grantedBy: m.grantedBy
-            ? { __typename: "User", id: m.grantedBy }
-            : null,
-        })
-      );
-    },
-  },
-
-  // StoreMember type resolver
-  StoreMember: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    user: (parent: any) => {
-      // Return federation reference
-      const userId = parent.user?.id ?? parent.id;
-      return { __typename: "User", id: userId };
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    role: (parent: any) => {
-      // Return federation reference to Role
-      const roleName =
-        typeof parent.role === "string" ? parent.role : parent.role?.name;
-      return { __typename: "Role", name: roleName };
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    grantedBy: (parent: any) => {
-      if (!parent.grantedBy) return null;
-      const grantedById =
-        typeof parent.grantedBy === "string"
-          ? parent.grantedBy
-          : parent.grantedBy.id;
-      return { __typename: "User", id: grantedById };
+    // Membership field resolver - returns Federation reference to IAM Membership
+    membership: (parent: { id: string }) => {
+      // Return Federation reference - IAM resolves by domain (store.id)
+      return { __typename: "Membership", domain: parent.id };
     },
   },
 

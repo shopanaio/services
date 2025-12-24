@@ -3,6 +3,7 @@ import { userMutationResolvers } from "./mutations/user.js";
 import { roleMutationResolvers } from "./mutations/role.js";
 import { roleResolvers } from "./role.js";
 import { organizationResolvers } from "./organization.js";
+import { membershipResolvers } from "./membership.js";
 
 export const resolvers = {
   ...queryResolvers,
@@ -10,6 +11,7 @@ export const resolvers = {
   ...roleMutationResolvers,
   ...roleResolvers,
   ...organizationResolvers,
+  ...membershipResolvers,
   // Merge Query resolvers from queries, role, and organization
   Query: {
     ...queryResolvers.Query,
@@ -42,5 +44,13 @@ export const resolvers = {
   // Member type resolvers
   Member: {
     ...organizationResolvers.Member,
+  },
+  // Membership type resolvers (federation)
+  Membership: {
+    ...membershipResolvers.Membership,
+  },
+  // DomainMember type resolvers
+  DomainMember: {
+    ...membershipResolvers.DomainMember,
   },
 };
