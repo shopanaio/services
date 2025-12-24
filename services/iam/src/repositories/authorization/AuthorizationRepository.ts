@@ -82,23 +82,27 @@ export class AuthorizationRepository {
 
   /**
    * Get a specific role by name
+   * @param domain - Domain scope (default: "*" for global roles)
    */
-  async getRole(organizationId: string, roleName: string) {
-    return this.roleRepo.findByName(organizationId, roleName);
+  async getRole(organizationId: string, roleName: string, domain: string = "*") {
+    return this.roleRepo.findByName(organizationId, roleName, domain);
   }
 
   /**
    * Create a new role
+   * @param domain - Domain scope (default: "*" for global roles)
    */
   async createRole(
     organizationId: string,
     roleName: string,
     displayName: string,
     description: string = "",
-    isSystem: boolean = false
+    isSystem: boolean = false,
+    domain: string = "*"
   ) {
     return this.roleRepo.create({
       organizationId,
+      domain,
       name: roleName,
       displayName,
       description,
@@ -108,24 +112,27 @@ export class AuthorizationRepository {
 
   /**
    * Update a role
+   * @param domain - Domain scope (default: "*" for global roles)
    */
   async updateRole(
     organizationId: string,
     roleName: string,
-    updates: { displayName?: string; description?: string }
+    updates: { displayName?: string; description?: string },
+    domain: string = "*"
   ) {
-    return this.roleRepo.update(organizationId, roleName, updates);
+    return this.roleRepo.update(organizationId, roleName, updates, domain);
   }
 
   /**
    * Delete a role and all its policies
+   * @param domain - Domain scope (default: "*" for global roles)
    */
-  async deleteRole(organizationId: string, roleName: string): Promise<boolean> {
+  async deleteRole(organizationId: string, roleName: string, domain: string = "*"): Promise<boolean> {
     // Remove all policies for this role
     await this.casbin.removeFilteredPolicy(organizationId, roleName);
 
     // Delete role from database
-    return this.roleRepo.delete(organizationId, roleName);
+    return this.roleRepo.delete(organizationId, roleName, domain);
   }
 
   /**

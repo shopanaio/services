@@ -17,6 +17,8 @@ export interface RolePermission {
 export interface RoleInfo {
   /** Unique identifier (UUID for custom roles, name for system roles) */
   id?: string;
+  /** Domain scope: "*" for global, storeId for store-specific */
+  domain?: string;
   name: string;
   displayName: string;
   description: string;
@@ -30,6 +32,8 @@ export interface RoleInfo {
  */
 export interface CreateRoleParams {
   organizationId: string;
+  /** Domain scope: "*" for global, storeId for store-specific (default: "*") */
+  domain?: string;
   name: string;
   displayName: string;
   description?: string;
@@ -46,6 +50,8 @@ export interface CreateRoleResult {
  */
 export interface UpdateRoleParams {
   organizationId: string;
+  /** Domain scope: "*" for global, storeId for store-specific (default: "*") */
+  domain?: string;
   roleName: string;
   displayName?: string;
   description?: string;
@@ -62,6 +68,8 @@ export interface UpdateRoleResult {
  */
 export interface DeleteRoleParams {
   organizationId: string;
+  /** Domain scope: "*" for global, storeId for store-specific (default: "*") */
+  domain?: string;
   roleName: string;
 }
 
@@ -87,6 +95,8 @@ export interface ListRolesResult {
  */
 export interface GetRoleParams {
   organizationId: string;
+  /** Domain scope: "*" for global, storeId for store-specific (default: "*") */
+  domain?: string;
   roleName: string;
 }
 

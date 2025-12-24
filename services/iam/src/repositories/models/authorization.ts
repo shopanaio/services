@@ -124,6 +124,8 @@ export const role = iamSchema.table(
     // Keep tenantId for backward compatibility during migration
     tenantId: uuid("tenant_id")
       .references(() => tenant.id, { onDelete: "cascade" }),
+    // Domain scope: "*" for global (all stores), storeId for store-specific
+    domain: varchar("domain", { length: 128 }).notNull().default("*"),
     name: varchar("name", { length: 64 }).notNull(),
     displayName: varchar("display_name", { length: 256 }),
     description: text("description"),
@@ -134,7 +136,9 @@ export const role = iamSchema.table(
   (table) => [
     index("idx_role_org").on(table.organizationId),
     index("idx_role_tenant").on(table.tenantId),
-    uniqueIndex("idx_role_org_name").on(table.organizationId, table.name),
+    index("idx_role_domain").on(table.organizationId, table.domain),
+    // Same role name can exist in different domains
+    uniqueIndex("idx_role_org_domain_name").on(table.organizationId, table.domain, table.name),
   ]
 );
 

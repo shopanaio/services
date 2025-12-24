@@ -20,7 +20,7 @@ export class UpdateRoleScript extends BaseScript<
   UpdateRoleResult
 > {
   protected async execute(params: UpdateRoleParams): Promise<UpdateRoleResult> {
-    const { organizationId, roleName, displayName, description, permissions } = params;
+    const { organizationId, domain = "*", roleName, displayName, description, permissions } = params;
 
     try {
       // Check if it's a system role - system roles cannot be modified
@@ -41,7 +41,8 @@ export class UpdateRoleScript extends BaseScript<
       // Get existing role
       const existingRole = await this.repository.authorization.getRole(
         organizationId,
-        roleName
+        roleName,
+        domain
       );
 
       if (!existingRole) {
@@ -65,7 +66,8 @@ export class UpdateRoleScript extends BaseScript<
           {
             displayName,
             description,
-          }
+          },
+          domain
         );
 
         if (!updated) {
@@ -138,6 +140,8 @@ export class UpdateRoleScript extends BaseScript<
       }
 
       const roleInfo: RoleInfo = {
+        id: existingRole.id,
+        domain,
         name: roleName,
         displayName: displayName ?? existingRole.displayName ?? roleName,
         description: description ?? existingRole.description ?? "",

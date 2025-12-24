@@ -60,6 +60,8 @@ export class ListRolesScript extends BaseScript<
         }
 
         roleInfos.push({
+          id: role.id,
+          domain: role.domain,
           name: role.name,
           displayName: role.displayName ?? role.name,
           description: role.description ?? "",

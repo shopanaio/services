@@ -34,6 +34,7 @@ function mapRolePermission(perm: DtoRolePermission): RolePermission {
 function mapRoleInfoToRole(role: RoleInfo): Role {
   return {
     id: role.id ?? role.name, // Use name as fallback for system roles
+    domain: role.domain ?? "*",
     name: role.name,
     displayName: role.displayName,
     description: role.description,

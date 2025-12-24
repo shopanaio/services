@@ -81,6 +81,8 @@ function mapRolePermission(perm: DtoRolePermission): RolePermission {
  */
 function mapRoleInfoToRole(role: RoleInfo): Role {
   return {
+    id: role.id ?? role.name, // Use name as fallback for system roles
+    domain: role.domain ?? "*",
     name: role.name,
     displayName: role.displayName,
     description: role.description,
@@ -113,6 +115,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(CreateRoleScript, {
         organizationId,
+        domain: input.domain ?? "*",
         name: input.name,
         displayName: input.displayName,
         description: input.description ?? undefined,
@@ -139,6 +142,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(UpdateRoleScript, {
         organizationId,
+        domain: input.domain ?? "*",
         roleName: input.name,
         displayName: input.displayName ?? undefined,
         description: input.description ?? undefined,
@@ -165,6 +169,7 @@ export const roleMutationResolvers: Partial<Resolvers> = {
       const organizationId = ctx.organizationId!;
       const result = await ctx.kernel.runScript(DeleteRoleScript, {
         organizationId,
+        domain: input.domain ?? "*",
         roleName: input.name,
       });
 

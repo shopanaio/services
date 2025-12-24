@@ -17,7 +17,7 @@ export class CreateRoleScript extends BaseScript<
   CreateRoleResult
 > {
   protected async execute(params: CreateRoleParams): Promise<CreateRoleResult> {
-    const { organizationId, name, displayName, description, permissions } = params;
+    const { organizationId, domain = "*", name, displayName, description, permissions } = params;
 
     // Validate role name is not empty
     if (!name || name.trim() === "") {
@@ -77,10 +77,11 @@ export class CreateRoleScript extends BaseScript<
     }
 
     try {
-      // Check if role already exists
+      // Check if role already exists (in the same domain)
       const existingRole = await this.repository.authorization.getRole(
         organizationId,
-        name
+        name,
+        domain
       );
 
       if (existingRole) {
@@ -89,19 +90,21 @@ export class CreateRoleScript extends BaseScript<
           userErrors: [
             {
               code: "ROLE_EXISTS",
-              message: `Role "${name}" already exists in this tenant`,
+              message: `Role "${name}" already exists in domain "${domain}"`,
               field: ["name"],
             },
           ],
         };
       }
 
-      // Create the role with simple name
+      // Create the role with domain
       const created = await this.repository.authorization.createRole(
         organizationId,
         name,
         displayName,
-        description ?? ""
+        description ?? "",
+        false, // isSystem
+        domain
       );
 
       if (!created) {
@@ -129,7 +132,7 @@ export class CreateRoleScript extends BaseScript<
 
         if (!permCreated) {
           // Rollback: delete the role
-          await this.repository.authorization.deleteRole(organizationId, name);
+          await this.repository.authorization.deleteRole(organizationId, name, domain);
           return {
             role: null,
             userErrors: [
@@ -146,6 +149,8 @@ export class CreateRoleScript extends BaseScript<
       this.authCache.onRoleUpdate(organizationId, name);
 
       const roleInfo: RoleInfo = {
+        id: created.id,
+        domain,
         name,
         displayName,
         description: description ?? "",

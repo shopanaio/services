@@ -15,13 +15,14 @@ export class DeleteRoleScript extends BaseScript<
   DeleteRoleResult
 > {
   protected async execute(params: DeleteRoleParams): Promise<DeleteRoleResult> {
-    const { organizationId, roleName } = params;
+    const { organizationId, domain = "*", roleName } = params;
 
     try {
       // Check if role exists
       const existingRole = await this.repository.authorization.getRole(
         organizationId,
-        roleName
+        roleName,
+        domain
       );
 
       if (!existingRole) {
@@ -71,7 +72,7 @@ export class DeleteRoleScript extends BaseScript<
       }
 
       // Delete the role (also removes all Casbin policies for this role)
-      const deleted = await this.repository.authorization.deleteRole(organizationId, roleName);
+      const deleted = await this.repository.authorization.deleteRole(organizationId, roleName, domain);
 
       if (!deleted) {
         return {

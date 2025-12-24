@@ -9,6 +9,8 @@ export interface CreateRoleInput {
   displayName?: string;
   description?: string;
   isSystem?: boolean;
+  /** Domain scope: "*" for global, storeId for store-specific */
+  domain?: string;
 }
 
 export interface UpdateRoleInput {
@@ -24,8 +26,15 @@ export class RoleRepository {
 
   /**
    * Find all roles for a tenant
+   * @param domain - Optional domain filter. If not provided, returns all roles.
    */
-  async findByTenant(organizationId: string): Promise<Role[]> {
+  async findByTenant(organizationId: string, domain?: string): Promise<Role[]> {
+    if (domain) {
+      return this.db
+        .select()
+        .from(role)
+        .where(and(eq(role.organizationId, organizationId), eq(role.domain, domain)));
+    }
     return this.db
       .select()
       .from(role)
@@ -34,12 +43,17 @@ export class RoleRepository {
 
   /**
    * Find a role by name within a tenant
+   * @param domain - Domain scope (default: "*" for global roles)
    */
-  async findByName(organizationId: string, name: string): Promise<Role | null> {
+  async findByName(organizationId: string, name: string, domain: string = "*"): Promise<Role | null> {
     const [result] = await this.db
       .select()
       .from(role)
-      .where(and(eq(role.organizationId, organizationId), eq(role.name, name)));
+      .where(and(
+        eq(role.organizationId, organizationId),
+        eq(role.domain, domain),
+        eq(role.name, name)
+      ));
     return result ?? null;
   }
 
@@ -63,6 +77,7 @@ export class RoleRepository {
       .insert(role)
       .values({
         organizationId: input.organizationId,
+        domain: input.domain ?? "*",
         name: input.name,
         displayName: input.displayName ?? input.name,
         description: input.description ?? "",
@@ -76,11 +91,13 @@ export class RoleRepository {
 
   /**
    * Update a role
+   * @param domain - Domain scope (default: "*" for global roles)
    */
   async update(
     organizationId: string,
     name: string,
-    updates: UpdateRoleInput
+    updates: UpdateRoleInput,
+    domain: string = "*"
   ): Promise<Role | null> {
     const [result] = await this.db
       .update(role)
@@ -88,18 +105,27 @@ export class RoleRepository {
         ...updates,
         updatedAt: new Date(),
       })
-      .where(and(eq(role.organizationId, organizationId), eq(role.name, name)))
+      .where(and(
+        eq(role.organizationId, organizationId),
+        eq(role.domain, domain),
+        eq(role.name, name)
+      ))
       .returning();
     return result ?? null;
   }
 
   /**
    * Delete a role by name
+   * @param domain - Domain scope (default: "*" for global roles)
    */
-  async delete(organizationId: string, name: string): Promise<boolean> {
-    const result = await this.db
+  async delete(organizationId: string, name: string, domain: string = "*"): Promise<boolean> {
+    await this.db
       .delete(role)
-      .where(and(eq(role.organizationId, organizationId), eq(role.name, name)));
+      .where(and(
+        eq(role.organizationId, organizationId),
+        eq(role.domain, domain),
+        eq(role.name, name)
+      ));
     return true;
   }
 
@@ -112,9 +138,10 @@ export class RoleRepository {
 
   /**
    * Check if role exists
+   * @param domain - Domain scope (default: "*" for global roles)
    */
-  async exists(organizationId: string, name: string): Promise<boolean> {
-    const result = await this.findByName(organizationId, name);
+  async exists(organizationId: string, name: string, domain: string = "*"): Promise<boolean> {
+    const result = await this.findByName(organizationId, name, domain);
     return result !== null;
   }
 }

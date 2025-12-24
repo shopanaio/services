@@ -442,6 +442,40 @@ export const organizationResolvers: Partial<Resolvers> = {
 
   Member: {
     /**
+     * Resolve Member by id for Federation.
+     */
+    __resolveReference: async (
+      reference: { id: string },
+      ctx: ServiceContext
+    ): Promise<Member | null> => {
+      const organizationId = ctx.organizationId;
+      if (!organizationId) {
+        return null;
+      }
+
+      // Find member by id in organization_member table
+      const member = await ctx.kernel.repository.organization.findMemberById(reference.id);
+      if (!member || member.organizationId !== organizationId) {
+        return null;
+      }
+
+      // Get role from Casbin
+      const casbin = ctx.kernel.repository.casbin;
+      const roles = await casbin.getRolesForUser(organizationId, member.userId);
+      const role = roles.length > 0 ? roles[0].role : "member";
+
+      return {
+        id: member.id,
+        user: { __typename: "User", id: member.userId } as any,
+        role,
+        grantedAt: member.createdAt.toISOString(),
+        grantedBy: member.invitedBy
+          ? ({ __typename: "User", id: member.invitedBy } as any)
+          : null,
+      };
+    },
+
+    /**
      * Resolve user reference
      */
     user: (parent) => {
