@@ -67,9 +67,45 @@ Returns:
           'schema compose': 'Compose supergraph from subgraphs',
           'schema build': 'Export + compose schemas',
           'db generate': 'Generate database migrations from ORM schema',
-          'db migrate': 'Run database migrations'
+          'db migrate': 'Run database migrations',
+          'test': 'Run Playwright e2e tests'
         },
         usage: 'yarn shopana <command> [options]'
+      },
+
+      testing: {
+        description: 'Playwright is the PRIMARY method for testing all API functionality. Tests are located in the e2e/ directory and MUST be run from within that directory.',
+        framework: 'Playwright',
+        directory: 'e2e/',
+        configFile: 'e2e/playwright.config.ts',
+        important: 'All commands must be executed from the e2e/ directory. Navigate there first: cd e2e',
+        quickStart: 'cd e2e && npx playwright test',
+        commands: {
+          'Run all tests': 'cd e2e && npx playwright test',
+          'Run specific test': 'cd e2e && npx playwright test tests/users-api/sign-in.spec.ts',
+          'Run tests in directory': 'cd e2e && npx playwright test tests/users-api',
+          'Run with pattern': 'cd e2e && npx playwright test --grep "sign-in"',
+          'Run in headed mode': 'cd e2e && npx playwright test --headed',
+          'Run in debug mode': 'cd e2e && npx playwright test --debug',
+          'Run single worker': 'cd e2e && npx playwright test --workers=1',
+          'Show HTML report': 'cd e2e && npx playwright show-report'
+        },
+        testSuites: {
+          'users-api': 'User authentication (sign-in, sign-up)',
+          'project-api': 'Project management (create, members, isolation)',
+          'roles-api': 'RBAC (permissions, system roles, organization isolation)'
+        },
+        environment: {
+          'BASE_URL': 'API base URL (already configured in e2e/.env)',
+          'CI': 'Set to "true" for CI mode (enables retries)',
+          'WORKERS': 'Number of parallel workers (default: 5)'
+        },
+        notes: [
+          'Playwright tests are the main way to test API endpoints',
+          'Tests run against a live API, so services must be running',
+          'Always run from e2e/ directory where playwright.config.ts is located',
+          'Environment is already configured - no additional setup needed'
+        ]
       },
 
       workflow: {
@@ -91,6 +127,11 @@ Returns:
           '1. Modify Drizzle schema in service',
           '2. yarn shopana db generate -s <service>',
           '3. yarn shopana migrate -s <service>'
+        ],
+        testing: [
+          '1. Start services: yarn shopana dev',
+          '2. Run tests: cd e2e && npx playwright test',
+          '3. View report (optional): cd e2e && npx playwright show-report'
         ]
       },
 
