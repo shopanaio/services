@@ -1,6 +1,6 @@
-query Project($slug: String!) {
-  projectQuery {
-    project(slug: $slug) {
+query Store($slug: String!) {
+  storeQuery {
+    store(slug: $slug) {
       id
       name
       slug
@@ -14,7 +14,6 @@ query Project($slug: String!) {
       defaultCurrency
       defaultWeightUnit
       defaultDimensionUnit
-      organizationId
       createdAt
       updatedAt
     }

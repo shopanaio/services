@@ -1,12 +1,13 @@
-query ProjectAvailableResources($slug: String!) {
-  projectQuery {
-    project(slug: $slug) {
+query StoreAvailableResources($slug: String!) {
+  storeQuery {
+    store(slug: $slug) {
       id
-      availableResources {
-        service
-        name
-        actions
-        displayName
+      membership {
+        availableResources {
+          name
+          actions
+          displayName
+        }
       }
     }
   }

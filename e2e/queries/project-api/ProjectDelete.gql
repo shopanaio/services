@@ -1,7 +1,7 @@
-mutation ProjectDelete($input: ProjectDeleteInput!) {
-  projectMutation {
-    projectDelete(input: $input) {
-      deletedProjectId
+mutation StoreDelete($input: StoreDeleteInput!) {
+  storeMutation {
+    storeDelete(input: $input) {
+      deletedStoreId
       userErrors {
         code
         message

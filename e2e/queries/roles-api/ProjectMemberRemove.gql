@@ -1,7 +1,7 @@
-mutation ProjectMemberRemove($input: ProjectMemberRemoveInput!) {
-  projectMutation {
-    projectMemberRemove(input: $input) {
-      removedUserId
+mutation MemberAccessRemove($input: MemberAccessRemoveInput!) {
+  organizationMutation {
+    memberAccessRemove(input: $input) {
+      success
       userErrors {
         code
         message

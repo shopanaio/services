@@ -1,23 +1,21 @@
-query ProjectMembers($slug: String!) {
-  projectQuery {
-    project(slug: $slug) {
+query StoreMembers($slug: String!) {
+  storeQuery {
+    store(slug: $slug) {
       id
       name
       slug
-      members {
-        id
-        user {
+      membership {
+        members {
           id
-          email
-          firstName
-          lastName
+          user {
+            id
+            email
+            firstName
+            lastName
+          }
+          role
+          grantedAt
         }
-        role {
-          name
-          displayName
-          isSystem
-        }
-        grantedAt
       }
     }
   }

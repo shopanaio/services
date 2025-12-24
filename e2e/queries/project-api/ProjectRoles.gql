@@ -1,20 +1,23 @@
-query ProjectRoles($slug: String!) {
-  projectQuery {
-    project(slug: $slug) {
+query StoreRoles($slug: String!) {
+  storeQuery {
+    store(slug: $slug) {
       id
       name
       slug
-      roles {
-        name
-        displayName
-        description
-        isSystem
-        permissions {
-          resource
-          actions
-          effect
+      membership {
+        roles {
+          id
+          name
+          displayName
+          description
+          isSystem
+          permissions {
+            resource
+            actions
+            effect
+          }
+          createdAt
         }
-        createdAt
       }
     }
   }

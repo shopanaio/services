@@ -1,7 +1,7 @@
-mutation ProjectUpdate($input: ProjectUpdateInput!) {
-  projectMutation {
-    projectUpdate(input: $input) {
-      project {
+mutation StoreUpdate($input: StoreUpdateInput!) {
+  storeMutation {
+    storeUpdate(input: $input) {
+      store {
         id
         name
         slug
