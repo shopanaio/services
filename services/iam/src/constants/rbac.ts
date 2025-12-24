@@ -92,14 +92,14 @@ export const getEnforcerId = (tenantOrg: string): string =>
 export const PERMISSION_PREFIX = "perm";
 
 /**
- * Predefined role names
+ * Predefined role names for organization-level access.
+ * These roles manage the organization itself (members, billing, settings).
+ * Store-level access is granted via custom roles with domain = storeId.
  */
 export const PREDEFINED_ROLES = {
   OWNER: "owner",
   ADMIN: "admin",
-  MANAGER: "manager",
-  SUPPORT: "support",
-  VIEWER: "viewer",
+  MEMBER: "member",
 } as const;
 
 export type PredefinedRoleName =
@@ -111,20 +111,16 @@ export type PredefinedRoleName =
 export const ROLE_DISPLAY_NAMES: Record<PredefinedRoleName, string> = {
   owner: "Owner",
   admin: "Administrator",
-  manager: "Manager",
-  support: "Customer Support",
-  viewer: "Viewer",
+  member: "Member",
 };
 
 /**
  * Role descriptions
  */
 export const ROLE_DESCRIPTIONS: Record<PredefinedRoleName, string> = {
-  owner: "Full access to all resources",
-  admin: "Full access except project deletion and billing",
-  manager: "Manage products, orders, and content",
-  support: "Handle orders and customer inquiries",
-  viewer: "Read-only access",
+  owner: "Full access to all organization resources",
+  admin: "Full access except organization deletion and billing",
+  member: "Read-only access to organization",
 };
 
 /**
@@ -147,60 +143,30 @@ export interface RolePermissionDef {
 }
 
 /**
- * Role permissions
+ * Predefined role permissions for organization-level resources.
+ * These roles manage the organization itself (members, billing, settings).
+ * Store-level permissions are assigned via custom roles with domain = storeId.
  *
  * With keyMatch wildcards:
  * - "*" matches any resource
- * - "product/*" matches "product", "product/123", "product/123/variant"
- *
- * Protected resources:
- * - member: manage project members (invite, remove, change roles)
- * - role: manage custom roles (create, update, delete)
- * - project: project settings and deletion
+ * - "organization/*" matches "organization", "organization/billing", etc.
  */
 export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
-  viewer: {
-    allow: [{ resource: "*", actions: ["read"] }],
-  },
-
-  support: {
-    allow: [
-      { resource: "*", actions: ["read"] },
-      { resource: "order/*", actions: ["write"] },
-      { resource: "customer/*", actions: ["read", "write"] },
-    ],
-  },
-
-  manager: {
-    allow: [
-      { resource: "*", actions: ["read"] },
-      { resource: "product/*", actions: ["write", "publish"] },
-      { resource: "category/*", actions: ["write"] },
-      { resource: "media/*", actions: ["upload", "delete"] },
-      { resource: "order/*", actions: ["write", "fulfill"] },
-      { resource: "customer/*", actions: ["read", "write"] },
-    ],
+  owner: {
+    allow: [{ resource: "*", actions: ["*"] }],
   },
 
   admin: {
-    allow: [
-      { resource: "*", actions: ["*"] },
-      { resource: "member", actions: ["read", "create", "update"] },
-      { resource: "role", actions: ["read", "create", "update"] },
-    ],
+    allow: [{ resource: "*", actions: ["*"] }],
     deny: [
-      { resource: "project", actions: ["delete"] },
-      { resource: "project/billing", actions: ["*"] },
-      { resource: "member/owner", actions: ["*"] },
-      { resource: "role/system", actions: ["update", "delete"] },
+      { resource: "organization", actions: ["delete"] },
+      { resource: "organization/billing", actions: ["*"] },
     ],
   },
 
-  owner: {
+  member: {
     allow: [
-      { resource: "*", actions: ["*"] },
-      { resource: "member", actions: ["*"] },
-      { resource: "role", actions: ["*"] },
+      { resource: "organization", actions: ["read"] },
     ],
   },
 };

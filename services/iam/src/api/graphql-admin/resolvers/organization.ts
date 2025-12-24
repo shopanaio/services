@@ -1,5 +1,4 @@
-import type { Resolvers, Organization, Member, DomainAccess } from "../generated/types.js";
-import { OrgRole } from "../generated/types.js";
+import type { Resolvers, Organization, Member, Membership } from "../generated/types.js";
 
 /**
  * Map organization DB entity to GraphQL type
@@ -19,21 +18,6 @@ function mapOrganization(org: {
     updatedAt: org.updatedAt?.toISOString(),
   };
 }
-
-/**
- * Map org role string to enum
- */
-function mapOrgRole(role: string): OrgRole {
-  switch (role.toLowerCase()) {
-    case "owner":
-      return OrgRole.Owner;
-    case "admin":
-      return OrgRole.Admin;
-    default:
-      return OrgRole.Member;
-  }
-}
-
 
 export const organizationResolvers: Partial<Resolvers> = {
   Query: {
@@ -109,24 +93,16 @@ export const organizationResolvers: Partial<Resolvers> = {
         slug: input.slug,
       });
 
-      // Add current user as owner
+      // Add current user as owner in organization_member table
       await ctx.kernel.repository.organization.addMember({
         organizationId: org.id,
         userId,
         orgRole: "owner",
       });
 
-      // Initialize default roles for the organization
+      // Assign owner role in Casbin (domain = orgId for org-level)
       const casbin = ctx.kernel.repository.casbin;
-
-      // Add default policies for system roles (all domains)
-      await casbin.addPolicy(org.id, "admin", [], [["*"]], "*", "allow");
-      await casbin.addPolicy(org.id, "editor", [], [["product", "*"]], "write", "allow");
-      await casbin.addPolicy(org.id, "editor", [], [["product", "*"]], "read", "allow");
-      await casbin.addPolicy(org.id, "viewer", [], [["*"]], "read", "allow");
-
-      // Assign owner role to creator (all domains)
-      await casbin.assignRole(org.id, userId, "admin", []);
+      await casbin.assignRoleSimple(org.id, userId, "owner", org.id);
 
       return {
         organization: mapOrganization(org),
@@ -204,7 +180,7 @@ export const organizationResolvers: Partial<Resolvers> = {
     },
 
     /**
-     * Invite member to organization
+     * Invite member to organization with role assignments
      */
     inviteMember: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
@@ -246,21 +222,44 @@ export const organizationResolvers: Partial<Resolvers> = {
         };
       }
 
-      // Add member
+      // Validate at least one role assignment
+      if (!input.roles || input.roles.length === 0) {
+        return {
+          member: null,
+          userErrors: [{ message: "At least one role assignment is required", code: "NO_ROLES" }],
+        };
+      }
+
+      // Get first role to determine org-level role for organization_member table
+      const firstOrgRole = input.roles.find(r => r.domain === organizationId);
+      const orgRole = firstOrgRole?.role ?? "member";
+
+      // Add member to organization_member table
       const member = await ctx.kernel.repository.organization.addMember({
         organizationId,
         userId: invitedUser.id,
-        orgRole: input.orgRole.toLowerCase(),
+        orgRole,
         invitedBy: userId,
       });
+
+      // Assign all roles in Casbin
+      const casbin = ctx.kernel.repository.casbin;
+      for (const assignment of input.roles) {
+        await casbin.assignRoleSimple(
+          organizationId,
+          invitedUser.id,
+          assignment.role,
+          assignment.domain
+        );
+      }
 
       return {
         member: {
           id: member.id,
           user: { __typename: "User", id: invitedUser.id } as any,
-          orgRole: mapOrgRole(member.orgRole),
-          domainAccess: [],
-          createdAt: member.createdAt.toISOString(),
+          role: orgRole,
+          grantedAt: member.createdAt.toISOString(),
+          grantedBy: { __typename: "User", id: userId } as any,
         },
         userErrors: [],
       };
@@ -314,12 +313,11 @@ export const organizationResolvers: Partial<Resolvers> = {
 
       await ctx.kernel.repository.organization.removeMember(memberId);
 
-      // Also remove all casbin role assignments for this user
+      // Remove all casbin role assignments for this user in all domains
       const casbin = ctx.kernel.repository.casbin;
       const roles = await casbin.getRolesForUser(organizationId, member.userId);
       for (const { role, domain } of roles) {
-        const domainParts = domain === "*" ? [] : [[domain.split(":")[0], domain.split(":")[1]] as [string, string]];
-        await casbin.removeRole(organizationId, member.userId, role, domainParts);
+        await casbin.removeRoleSimple(organizationId, member.userId, role, domain);
       }
 
       return {
@@ -329,9 +327,9 @@ export const organizationResolvers: Partial<Resolvers> = {
     },
 
     /**
-     * Assign domain role to member
+     * Change role for a member in specific domain
      */
-    assignDomainRole: async (_parent, { input }, ctx) => {
+    changeRole: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -350,49 +348,49 @@ export const organizationResolvers: Partial<Resolvers> = {
         };
       }
 
-      const member = await ctx.kernel.repository.organization.findMemberById(input.memberId);
-      if (!member || member.organizationId !== organizationId) {
+      // Find member by userId
+      const member = await ctx.kernel.repository.organization.findMember(
+        organizationId,
+        input.userId
+      );
+      if (!member) {
         return {
           member: null,
           userErrors: [{ message: "Member not found", code: "NOT_FOUND" }],
         };
       }
 
-      // Assign role in casbin using domain string directly
+      // Update role in Casbin
       const casbin = ctx.kernel.repository.casbin;
-      // Parse domain string to ScopePart array
-      const domainParts = input.domain === "*" ? [] : [[input.domain.split(":")[0], input.domain.split(":")[1]] as [string, string]];
-      await casbin.assignRole(organizationId, member.userId, input.role, domainParts);
 
-      // Get updated roles for response
-      const roles = await casbin.getRolesForUser(organizationId, member.userId);
-      const domainAccess: DomainAccess[] = roles.map(({ role, domain }) => ({
-        domain,
-        role,
-      }));
+      // Remove existing roles in this domain first
+      await casbin.removeAllRolesInDomain(organizationId, input.userId, input.domain);
+
+      // Assign new role
+      await casbin.assignRoleSimple(organizationId, input.userId, input.role, input.domain);
 
       return {
         member: {
           id: member.id,
-          user: { __typename: "User", id: member.userId } as any,
-          orgRole: mapOrgRole(member.orgRole),
-          domainAccess,
-          createdAt: member.createdAt.toISOString(),
+          user: { __typename: "User", id: input.userId } as any,
+          role: input.role,
+          grantedAt: member.createdAt.toISOString(),
+          grantedBy: member.invitedBy ? { __typename: "User", id: member.invitedBy } as any : null,
         },
         userErrors: [],
       };
     },
 
     /**
-     * Remove domain access from member
+     * Remove member's access from domain
      */
-    removeDomainAccess: async (_parent, { input }, ctx) => {
+    removeAccess: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
       if (!userId || !organizationId) {
         return {
-          member: null,
+          success: false,
           userErrors: [{ message: "Organization context required", code: "NO_ORG_CONTEXT" }],
         };
       }
@@ -400,44 +398,17 @@ export const organizationResolvers: Partial<Resolvers> = {
       const isAdmin = await ctx.kernel.repository.organization.isAdmin(userId, organizationId);
       if (!isAdmin) {
         return {
-          member: null,
+          success: false,
           userErrors: [{ message: "Admin access required", code: "FORBIDDEN" }],
         };
       }
 
-      const member = await ctx.kernel.repository.organization.findMemberById(input.memberId);
-      if (!member || member.organizationId !== organizationId) {
-        return {
-          member: null,
-          userErrors: [{ message: "Member not found", code: "NOT_FOUND" }],
-        };
-      }
-
-      // Parse domain string to ScopePart array
-      const domainParts = input.domain === "*" ? [] : [[input.domain.split(":")[0], input.domain.split(":")[1]] as [string, string]];
-      const casbin = ctx.kernel.repository.casbin;
-      const rolesInDomain = await casbin.getRolesForUserInDomain(organizationId, member.userId, domainParts);
-
       // Remove all roles in this domain
-      for (const role of rolesInDomain) {
-        await casbin.removeRole(organizationId, member.userId, role, domainParts);
-      }
-
-      // Get updated roles for response
-      const roles = await casbin.getRolesForUser(organizationId, member.userId);
-      const domainAccess: DomainAccess[] = roles.map(({ role, domain }) => ({
-        domain,
-        role,
-      }));
+      const casbin = ctx.kernel.repository.casbin;
+      await casbin.removeAllRolesInDomain(organizationId, input.userId, input.domain);
 
       return {
-        member: {
-          id: member.id,
-          user: { __typename: "User", id: member.userId } as any,
-          orgRole: mapOrgRole(member.orgRole),
-          domainAccess,
-          createdAt: member.createdAt.toISOString(),
-        },
+        success: true,
         userErrors: [],
       };
     },
@@ -445,46 +416,11 @@ export const organizationResolvers: Partial<Resolvers> = {
 
   Organization: {
     /**
-     * Get all members of organization
+     * Return Federation reference for membership.
+     * IAM resolves via Membership.__resolveReference.
      */
-    members: async (parent, _args, ctx) => {
-      const orgMembers = await ctx.kernel.repository.organization.getMembersForOrg(parent.id);
-      const casbin = ctx.kernel.repository.casbin;
-
-      const members: Member[] = [];
-
-      for (const m of orgMembers) {
-        const roles = await casbin.getRolesForUser(parent.id, m.userId);
-        const domainAccess: DomainAccess[] = roles.map(({ role, domain }) => ({
-          domain,
-          role,
-        }));
-
-        members.push({
-          id: m.id,
-          user: { __typename: "User", id: m.userId } as any,
-          orgRole: mapOrgRole(m.orgRole),
-          domainAccess,
-          createdAt: m.createdAt.toISOString(),
-        });
-      }
-
-      return members;
-    },
-
-    /**
-     * Get all roles defined in organization
-     */
-    roles: async (parent, _args, ctx) => {
-      const result = await ctx.kernel.repository.authorization.listRoles(parent.id);
-      return result;
-    },
-
-    /**
-     * Get available resources for role editor
-     */
-    availableResources: async (_parent, _args, ctx) => {
-      return ctx.kernel.repository.resource.getAllResources();
+    membership: (org): Partial<Membership> => {
+      return { domain: org.id };  // domain = orgId
     },
   },
 
@@ -493,7 +429,17 @@ export const organizationResolvers: Partial<Resolvers> = {
      * Resolve user reference
      */
     user: (parent) => {
-      return { __typename: "User", id: parent.user.id } as any;
+      const userId = (parent.user as any)?.id ?? parent.user;
+      return { __typename: "User", id: userId } as any;
+    },
+
+    /**
+     * Resolve grantedBy reference
+     */
+    grantedBy: (parent) => {
+      if (!parent.grantedBy) return null;
+      const grantedById = (parent.grantedBy as any)?.id ?? parent.grantedBy;
+      return { __typename: "User", id: grantedById } as any;
     },
   },
 };

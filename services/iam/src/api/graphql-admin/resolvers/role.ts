@@ -32,6 +32,7 @@ function mapRolePermission(perm: DtoRolePermission): RolePermission {
  */
 function mapRoleInfoToRole(role: RoleInfo): Role {
   return {
+    id: role.id ?? role.name, // Use name as fallback for system roles
     name: role.name,
     displayName: role.displayName,
     description: role.description,
@@ -110,7 +111,7 @@ export const roleResolvers: Partial<Resolvers> = {
   // Role type resolver for federation
   Role: {
     __resolveReference: async (
-      reference: { name: string },
+      reference: { id: string },
       ctx: ServiceContext
     ): Promise<Role | null> => {
       const organizationId = ctx.organizationId;
@@ -118,7 +119,7 @@ export const roleResolvers: Partial<Resolvers> = {
         return null;
       }
 
-      // Get all roles and find by name
+      // Get all roles and find by id (or name for system roles)
       const result = await ctx.kernel.runScript(ListRolesScript, {
         organizationId,
       });
@@ -128,7 +129,8 @@ export const roleResolvers: Partial<Resolvers> = {
         return null;
       }
 
-      const role = result.roles.find((r) => r.name === reference.name);
+      // Try to find by id first, then by name (for system roles)
+      const role = result.roles.find((r) => r.id === reference.id || r.name === reference.id);
       if (!role) {
         return null;
       }

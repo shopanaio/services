@@ -1,6 +1,6 @@
-import type { Resolvers, Membership, DomainMember, Role } from "../generated/types.js";
+import type { Resolvers, Membership, Member, Role } from "../generated/types.js";
 import type { ServiceContext } from "../../../context/index.js";
-import { ListRolesScript, GetMembersForDomainScript } from "../../../scripts/authorization/index.js";
+import { ListRolesScript } from "../../../scripts/authorization/index.js";
 import { PermissionEffect } from "../generated/types.js";
 import type { RoleInfo } from "../../../scripts/authorization/dto/index.js";
 
@@ -9,6 +9,7 @@ import type { RoleInfo } from "../../../scripts/authorization/dto/index.js";
  */
 function mapRole(role: RoleInfo): Role {
   return {
+    id: role.id ?? role.name, // Use name as fallback for system roles
     name: role.name,
     displayName: role.displayName,
     description: role.description,
@@ -25,7 +26,7 @@ function mapRole(role: RoleInfo): Role {
 export const membershipResolvers: Partial<Resolvers> = {
   /**
    * Membership type resolver for Federation.
-   * Resolves membership data for a specific domain (e.g., store UUID).
+   * Resolves membership data for a specific domain (orgId or storeId).
    */
   Membership: {
     __resolveReference: async (
@@ -43,6 +44,7 @@ export const membershipResolvers: Partial<Resolvers> = {
         domain: reference.domain,
         roles: [],
         members: [],
+        availableResources: null,
       };
     },
 
@@ -70,47 +72,57 @@ export const membershipResolvers: Partial<Resolvers> = {
     /**
      * Resolve members with access to this domain.
      */
-    members: async (parent, _args, ctx): Promise<DomainMember[]> => {
+    members: async (parent, _args, ctx): Promise<Member[]> => {
       const organizationId = ctx.organizationId;
       if (!organizationId) {
         return [];
       }
 
-      // Domain is the store UUID - build domain path as [["store", storeId]]
       const domain = parent.domain;
+      const casbin = ctx.kernel.repository.casbin;
 
-      const result = await ctx.kernel.runScript(GetMembersForDomainScript, {
-        organizationId,
-        domain: [["store", domain]],
-      });
+      // Get members for this domain using simplified API
+      const casbinMembers = await casbin.getMembersForDomainSimple(organizationId, domain);
 
-      if (result.userErrors.length > 0) {
-        console.error("[Membership.members] Error:", result.userErrors);
-        return [];
+      // Get organization members to map userId to member records
+      const orgMembers = await ctx.kernel.repository.organization.getMembersForOrg(organizationId);
+      const memberMap = new Map(orgMembers.map(m => [m.userId, m]));
+
+      const members: Member[] = [];
+
+      for (const cm of casbinMembers) {
+        const orgMember = memberMap.get(cm.userId);
+        if (orgMember) {
+          members.push({
+            id: orgMember.id,
+            user: { __typename: "User", id: cm.userId } as any,
+            role: cm.role,
+            grantedAt: orgMember.createdAt.toISOString(),
+            grantedBy: orgMember.invitedBy
+              ? ({ __typename: "User", id: orgMember.invitedBy } as any)
+              : null,
+          });
+        }
       }
 
-      return result.members.map((m) => ({
-        user: { __typename: "User", id: m.userId } as any,
-        role: m.role,
-        grantedAt: m.grantedAt ?? null,
-        grantedBy: m.grantedBy ? ({ __typename: "User", id: m.grantedBy } as any) : null,
-      }));
+      return members;
     },
-  },
 
-  /**
-   * DomainMember type resolver.
-   */
-  DomainMember: {
-    user: (parent) => {
-      // Return Federation reference
-      const userId = (parent.user as any)?.id ?? parent.user;
-      return { __typename: "User", id: userId } as any;
-    },
-    grantedBy: (parent) => {
-      if (!parent.grantedBy) return null;
-      const grantedById = (parent.grantedBy as any)?.id ?? parent.grantedBy;
-      return { __typename: "User", id: grantedById } as any;
+    /**
+     * Resolve available resources for role editor (org-level only).
+     */
+    availableResources: async (parent, _args, ctx) => {
+      const organizationId = ctx.organizationId;
+      if (!organizationId) {
+        return null;
+      }
+
+      // Only return resources for org-level membership (domain === organizationId)
+      if (parent.domain !== organizationId) {
+        return null;
+      }
+
+      return ctx.kernel.repository.resource.getAllResources();
     },
   },
 };

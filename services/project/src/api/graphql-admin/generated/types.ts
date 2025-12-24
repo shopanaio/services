@@ -851,7 +851,7 @@ export type LocaleUpdatePayload = {
 
 export type Membership = {
   __typename?: 'Membership';
-  domain: Scalars['ID']['output'];
+  domain: Scalars['String']['output'];
 };
 
 export type Mutation = {

@@ -55,6 +55,8 @@ import {
   ListRolesScript,
   type ListRolesParams,
   type ListRolesResult,
+  // Resources
+  getResources,
 } from "./scripts/index.js";
 
 // Resource registration types (for broker action)
@@ -230,6 +232,18 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
     this.logger.debug("Action iam.getResources registered");
+
+    // Register IAM's own org-level resources
+    const iamResources = await getResources();
+    await this.kernel.repository.resource.register(
+      iamResources.service,
+      iamResources.resources.map((r) => ({
+        name: r.name,
+        displayName: r.displayName,
+        actions: r.actions.map((a) => a.name),
+      }))
+    );
+    this.logger.debug("IAM org-level resources registered");
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,

@@ -41,16 +41,12 @@ export const resolvers = {
   OrganizationMutation: {
     ...organizationResolvers.OrganizationMutation,
   },
-  // Member type resolvers
+  // Member type resolvers (unified for org and store levels)
   Member: {
     ...organizationResolvers.Member,
   },
   // Membership type resolvers (federation)
   Membership: {
     ...membershipResolvers.Membership,
-  },
-  // DomainMember type resolvers
-  DomainMember: {
-    ...membershipResolvers.DomainMember,
   },
 };

@@ -3,33 +3,41 @@
 # ============================================================================
 
 """
-Container for all members and roles of a domain (e.g., store).
-Resolved via Federation by domain ID.
+Member with role assignment.
+Used for both org-level (domain = orgId) and domain-level (domain = storeId).
 """
-type Membership @key(fields: "domain") {
-  """Domain identifier (e.g., store UUID)"""
-  domain: ID!
+type Member @key(fields: "id") {
+  """Unique identifier."""
+  id: ID!
 
-  """All roles available in this domain's organization"""
-  roles: [Role!]!
+  """User reference."""
+  user: User!
 
-  """All members with access to this domain"""
-  members: [DomainMember!]!
+  """Role name."""
+  role: String!
+
+  """When access was granted."""
+  grantedAt: DateTime!
+
+  """User who granted access."""
+  grantedBy: User
 }
 
 """
-A member with role assignment in a specific domain.
+Membership — universal container for members and roles.
+Used for both Organization and Store.
+Domain determines context: orgId for org-level, storeId for store-level.
 """
-type DomainMember {
-  """User who has access"""
-  user: User!
+type Membership @key(fields: "domain") {
+  """Domain identifier (orgId or storeId)."""
+  domain: String!
 
-  """Role name assigned in this domain"""
-  role: String!
+  """All roles available in this organization."""
+  roles: [Role!]!
 
-  """When access was granted"""
-  grantedAt: DateTime
+  """All members with access to this domain."""
+  members: [Member!]!
 
-  """User who granted access"""
-  grantedBy: User
+  """Available resources for role editor (org-level only)."""
+  availableResources: [ResourceDefinition!]
 }

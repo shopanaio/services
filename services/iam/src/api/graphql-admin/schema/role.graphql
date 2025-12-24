@@ -3,37 +3,28 @@
 # ============================================================================
 
 """
-Project role with permissions.
+Role with permissions - universal, can be assigned at any level.
 """
-type Role @key(fields: "name") {
-  """
-  Unique role name (e.g.: owner, admin, content-editor).
-  """
+type Role @key(fields: "id") {
+  """Unique identifier."""
+  id: ID!
+
+  """Unique role name within organization (e.g.: admin, manager, viewer)."""
   name: String!
 
-  """
-  Human-readable display name.
-  """
+  """Human-readable display name."""
   displayName: String!
 
-  """
-  Role description.
-  """
+  """Role description."""
   description: String
 
-  """
-  System role (owner, admin, manager, support, viewer) cannot be deleted.
-  """
+  """System role cannot be deleted or modified."""
   isSystem: Boolean!
 
-  """
-  Role permissions.
-  """
+  """Role permissions."""
   permissions: [RolePermission!]!
 
-  """
-  Role creation date.
-  """
+  """Role creation date."""
   createdAt: DateTime
 }
 

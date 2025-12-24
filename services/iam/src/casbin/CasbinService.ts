@@ -499,4 +499,136 @@ export class CasbinService {
     const enforcer = await this.getEnforcer(organizationId);
     return enforcer.getGroupingPolicy();
   }
+
+  // ============================================================================
+  // Simplified methods for unified domain model (domain as string)
+  // ============================================================================
+
+  /**
+   * Assign role to user in specific domain (simplified API).
+   *
+   * @param organizationId - Organization ID
+   * @param userId - User ID
+   * @param role - Role name
+   * @param domain - Domain: orgId for org-level, storeId for store-level, "*" for all
+   */
+  async assignRoleSimple(
+    organizationId: string,
+    userId: string,
+    role: string,
+    domain: string
+  ): Promise<boolean> {
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    try {
+      await this.adapter.addPolicy("g", "g", [
+        `user:${userId}`,
+        role,
+        domain,
+        organizationId,
+      ]);
+    } catch (error: any) {
+      if (error?.code !== "23505") throw error;
+      return false;
+    }
+
+    await this.invalidateEnforcer(organizationId);
+    return true;
+  }
+
+  /**
+   * Remove role from user in specific domain (simplified API).
+   */
+  async removeRoleSimple(
+    organizationId: string,
+    userId: string,
+    role: string,
+    domain: string
+  ): Promise<boolean> {
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    await this.adapter.removePolicy("g", "g", [
+      `user:${userId}`,
+      role,
+      domain,
+      organizationId,
+    ]);
+
+    await this.invalidateEnforcer(organizationId);
+    return true;
+  }
+
+  /**
+   * Remove all roles for user in specific domain (simplified API).
+   */
+  async removeAllRolesInDomain(
+    organizationId: string,
+    userId: string,
+    domain: string
+  ): Promise<boolean> {
+    const enforcer = await this.getEnforcer(organizationId);
+    const groupings = await enforcer.getGroupingPolicy();
+    const userPrefix = `user:${userId}`;
+
+    for (const grouping of groupings) {
+      if (grouping[0] === userPrefix && grouping[2] === domain) {
+        await this.removeRoleSimple(organizationId, userId, grouping[1], domain);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Check permission in specific domain context (simplified API).
+   */
+  async enforceSimple(
+    organizationId: string,
+    userId: string,
+    domain: string,
+    resource: string,
+    action: string
+  ): Promise<boolean> {
+    const enforcer = await this.getEnforcer(organizationId);
+    return enforcer.enforce(`user:${userId}`, domain, resource, action);
+  }
+
+  /**
+   * Get members for specific domain (simplified API).
+   * Returns users with direct domain assignment + wildcard (*) assignment.
+   */
+  async getMembersForDomainSimple(
+    organizationId: string,
+    domain: string
+  ): Promise<Array<{ userId: string; role: string }>> {
+    const enforcer = await this.getEnforcer(organizationId);
+    const groupings = await enforcer.getGroupingPolicy();
+
+    const members: Array<{ userId: string; role: string }> = [];
+
+    for (const grouping of groupings) {
+      // grouping: [user, role, domain]
+      if (grouping[2] === domain || grouping[2] === "*") {
+        const userId = grouping[0].startsWith("user:")
+          ? grouping[0].substring(5)
+          : grouping[0];
+        members.push({ userId, role: grouping[1] });
+      }
+    }
+
+    return members;
+  }
+
+  /**
+   * Get org-level members (domain = organizationId).
+   */
+  async getOrgMembers(
+    organizationId: string
+  ): Promise<Array<{ userId: string; role: string }>> {
+    return this.getMembersForDomainSimple(organizationId, organizationId);
+  }
 }
