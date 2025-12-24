@@ -181,13 +181,6 @@ type OrganizationQuery {
   organization(id: ID!): Organization
 }
 
-extend type Mutation {
-  """
-  Organization management mutations.
-  """
-  organizationMutation: OrganizationMutation!
-}
-
 """
 Organization mutations.
 """

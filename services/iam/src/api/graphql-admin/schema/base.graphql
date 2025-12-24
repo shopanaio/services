@@ -118,6 +118,10 @@ extend type Mutation {
   Authentication mutations.
   """
   authMutation: AuthMutation!
+  """
+  Organization management mutations.
+  """
+  organizationMutation: OrganizationMutation!
 }
 
 """

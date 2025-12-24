@@ -1,9 +1,10 @@
 import type { Resolvers } from "../../generated/types.js";
 
-export const userMutationResolvers: Partial<Resolvers> = {
+export const mutationResolvers: Partial<Resolvers> = {
   Mutation: {
     userMutation: () => ({} as any),
     authMutation: () => ({} as any),
+    roleMutation: () => ({} as any),
   },
 
   UserMutation: {
@@ -41,6 +42,23 @@ export const userMutationResolvers: Partial<Resolvers> = {
 
     tokenRefresh: async (_parent, { input: _input }, _ctx) => {
       // Refresh access token using refresh token
+      throw new Error("Not implemented");
+    },
+  },
+
+  RoleMutation: {
+    roleCreate: async (_parent, { input: _input }, _ctx) => {
+      // Create a new role with permissions for the organization
+      throw new Error("Not implemented");
+    },
+
+    roleUpdate: async (_parent, { input: _input }, _ctx) => {
+      // Update an existing role's display name, description, or permissions
+      throw new Error("Not implemented");
+    },
+
+    roleDelete: async (_parent, { input: _input }, _ctx) => {
+      // Delete a custom role from the organization
       throw new Error("Not implemented");
     },
   },
