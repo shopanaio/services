@@ -1,6 +1,4 @@
 import type { Resolvers } from "../../generated/types.js";
-import { UserSignUpScript, UserSignInScript, TokenRefreshScript } from "../../../../scripts/user/index.js";
-import { resolveUser } from "../types.js";
 
 export const userMutationResolvers: Partial<Resolvers> = {
   Mutation: {
@@ -10,98 +8,40 @@ export const userMutationResolvers: Partial<Resolvers> = {
 
   UserMutation: {
     userUpdateProfile: async (_parent, { input: _input }, _ctx) => {
-      // TODO: implement
-      return {
-        user: null,
-        userErrors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "userUpdateProfile is not implemented yet",
-          },
-        ],
-      };
+      // Update user's profile (firstName, lastName, avatar, locale)
+      throw new Error("Not implemented");
     },
 
     userUpdateEmail: async (_parent, { input: _input }, _ctx) => {
-      // TODO: implement
-      return {
-        user: null,
-        userErrors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "userUpdateEmail is not implemented yet",
-          },
-        ],
-      };
+      // Update user's email address with verification
+      throw new Error("Not implemented");
     },
 
     userUpdatePassword: async (_parent, { input: _input }, _ctx) => {
-      // TODO: implement
-      return {
-        success: false,
-        userErrors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "userUpdatePassword is not implemented yet",
-          },
-        ],
-      };
+      // Update user's password (requires current password)
+      throw new Error("Not implemented");
     },
   },
 
   AuthMutation: {
-    signUp: async (_parent, { input }, ctx, info) => {
-      const result = await ctx.kernel.runScript(UserSignUpScript, {
-        email: input.email,
-        password: input.password,
-      });
-
-      return {
-        user: result.user
-          ? await resolveUser(result.user.id!, ctx, info, "user")
-          : null,
-        token: result.token,
-        userErrors: result.userErrors,
-      };
+    signUp: async (_parent, { input: _input }, _ctx) => {
+      // Register a new user with email and password
+      throw new Error("Not implemented");
     },
 
-    signIn: async (_parent, { input }, ctx, info) => {
-      const result = await ctx.kernel.runScript(UserSignInScript, {
-        email: input.email,
-        password: input.password,
-      });
-
-      return {
-        user: result.user
-          ? await resolveUser(result.user.id!, ctx, info, "user")
-          : null,
-        token: result.token,
-        userErrors: result.userErrors,
-      };
+    signIn: async (_parent, { input: _input }, _ctx) => {
+      // Authenticate user with email and password, return JWT tokens
+      throw new Error("Not implemented");
     },
 
     signOut: async (_parent, { input: _input }, _ctx) => {
-      // TODO: implement
-      return {
-        success: false,
-        userErrors: [
-          {
-            code: "NOT_IMPLEMENTED",
-            message: "signOut is not implemented yet",
-          },
-        ],
-      };
+      // Invalidate user's session/refresh token
+      throw new Error("Not implemented");
     },
 
-    tokenRefresh: async (_parent, { input }, ctx) => {
-      const result = await ctx.kernel.runScript(TokenRefreshScript, {
-        refreshToken: input.refreshToken,
-      });
-
-      return {
-        token: result.token,
-        userErrors: result.userErrors,
-      };
+    tokenRefresh: async (_parent, { input: _input }, _ctx) => {
+      // Refresh access token using refresh token
+      throw new Error("Not implemented");
     },
   },
 };
