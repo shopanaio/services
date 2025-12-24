@@ -127,9 +127,37 @@ export type ApiAppsQuery = {
   installedApps: Array<ApiInstalledApp>;
 };
 
+export type ApiAuthMutation = {
+  __typename?: 'AuthMutation';
+  signIn: ApiUserSignInPayload;
+  signOut: ApiUserSignOutPayload;
+  signUp: ApiUserSignUpPayload;
+  tokenRefresh: ApiUserTokenRefreshPayload;
+};
+
+
+export type ApiAuthMutationSignInArgs = {
+  input: ApiUserSignInInput;
+};
+
+
+export type ApiAuthMutationSignOutArgs = {
+  input: ApiUserSignOutInput;
+};
+
+
+export type ApiAuthMutationSignUpArgs = {
+  input: ApiUserSignUpInput;
+};
+
+
+export type ApiAuthMutationTokenRefreshArgs = {
+  input: ApiUserTokenRefreshInput;
+};
+
 /** Authentication tokens. */
-export type ApiAuthToken = {
-  __typename?: 'AuthToken';
+export type ApiAuthTokenPayload = {
+  __typename?: 'AuthTokenPayload';
   /** Access token for API requests. */
   accessToken: Scalars['String']['output'];
   /** Expiration time in seconds. */
@@ -1976,16 +2004,105 @@ export type ApiMediaQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
 
+/**
+ * Member with role assignment.
+ * Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+ */
+export type ApiMember = {
+  __typename?: 'Member';
+  /** When access was granted. */
+  grantedAt: Scalars['DateTime']['output'];
+  /** User who granted access. */
+  grantedBy?: Maybe<ApiUser>;
+  /** Unique identifier. */
+  id: Scalars['ID']['output'];
+  /** Role name. */
+  role: Scalars['String']['output'];
+  /** User reference. */
+  user: ApiUser;
+};
+
+/** Input for removing member's access. */
+export type ApiMemberAccessRemoveInput = {
+  /** Domain to remove access from. */
+  domain: Scalars['String']['input'];
+  /** User ID. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ApiMemberAccessRemovePayload = {
+  __typename?: 'MemberAccessRemovePayload';
+  success: Scalars['Boolean']['output'];
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for inviting a member to organization. */
+export type ApiMemberInviteInput = {
+  /** Email address of the user to invite. */
+  email: Scalars['Email']['input'];
+  /** Role assignments (at least one required). */
+  roles: Array<ApiRoleAssignment>;
+};
+
+export type ApiMemberInvitePayload = {
+  __typename?: 'MemberInvitePayload';
+  member?: Maybe<ApiMember>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiMemberRemovePayload = {
+  __typename?: 'MemberRemovePayload';
+  removedMemberId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for changing member's role. */
+export type ApiMemberRoleChangeInput = {
+  /** Domain (orgId, storeId, or '*' for all). */
+  domain: Scalars['String']['input'];
+  /** New role name. */
+  role: Scalars['String']['input'];
+  /** User ID. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ApiMemberRoleChangePayload = {
+  __typename?: 'MemberRoleChangePayload';
+  member?: Maybe<ApiMember>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/**
+ * Membership — universal container for members and roles.
+ * Used for both Organization and Store.
+ * Domain determines context: orgId for org-level, storeId for store-level.
+ */
+export type ApiMembership = {
+  __typename?: 'Membership';
+  /** Available resources for role editor (org-level only). */
+  availableResources?: Maybe<Array<ApiResourceDefinition>>;
+  /** Domain identifier (orgId or storeId). */
+  domain: Scalars['String']['output'];
+  /** All members with access to this domain. */
+  members: Array<ApiMember>;
+  /** All roles available in this organization. */
+  roles: Array<ApiRole>;
+};
+
 export type ApiMutation = {
   __typename?: 'Mutation';
   appsMutation: ApiAppsMutation;
+  /** Authentication mutations. */
+  authMutation: ApiAuthMutation;
   inventoryMutation: ApiInventoryMutation;
   mediaMutation: ApiMediaMutation;
   orderMutation: ApiOrderMutation;
-  /** Project-related mutations */
-  projectMutation: ApiProjectMutation;
+  /** Organization management mutations. */
+  organizationMutation: ApiOrganizationMutation;
   /** Role management mutations. */
   roleMutation: ApiRoleMutation;
+  /** Store-related mutations */
+  storeMutation: ApiStoreMutation;
   /** User management mutations. */
   userMutation: ApiUserMutation;
 };
@@ -2181,6 +2298,136 @@ export type ApiOrdersOutput = {
   __typename?: 'OrdersOutput';
   data: Array<ApiOrder>;
   meta: ApiCollectionMeta;
+};
+
+/**
+ * Organization - top level entity for multi-tenancy.
+ * Users belong to organizations, organizations contain stores.
+ */
+export type ApiOrganization = {
+  __typename?: 'Organization';
+  /** Timestamp when the organization was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Unique identifier. */
+  id: Scalars['ID']['output'];
+  /** Membership info (members + roles). Domain = orgId. */
+  membership: ApiMembership;
+  /** Organization name (e.g., "Acme Corp"). */
+  name: Scalars['String']['output'];
+  /** URL-friendly unique identifier. */
+  slug: Scalars['String']['output'];
+  /** Timestamp when the organization was last updated. */
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** Input for creating an organization. */
+export type ApiOrganizationCreateInput = {
+  /** Organization name. */
+  name: Scalars['String']['input'];
+  /** URL-friendly unique identifier. */
+  slug: Scalars['String']['input'];
+};
+
+export type ApiOrganizationCreatePayload = {
+  __typename?: 'OrganizationCreatePayload';
+  organization?: Maybe<ApiOrganization>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOrganizationDeletePayload = {
+  __typename?: 'OrganizationDeletePayload';
+  deletedOrganizationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Organization mutations. */
+export type ApiOrganizationMutation = {
+  __typename?: 'OrganizationMutation';
+  /** Remove member's access from domain. */
+  memberAccessRemove: ApiMemberAccessRemovePayload;
+  /** Invite member to organization with role assignments. */
+  memberInvite: ApiMemberInvitePayload;
+  /**
+   * Remove member from organization.
+   * Requires: org admin or owner.
+   * Cannot remove self or owner.
+   */
+  memberRemove: ApiMemberRemovePayload;
+  /** Change role for a member in specific domain. */
+  memberRoleChange: ApiMemberRoleChangePayload;
+  /**
+   * Create a new organization.
+   * Current user becomes the owner.
+   */
+  organizationCreate: ApiOrganizationCreatePayload;
+  /** Delete organization. Requires: org owner. */
+  organizationDelete: ApiOrganizationDeletePayload;
+  /**
+   * Update organization.
+   * Requires: org admin or owner.
+   */
+  organizationUpdate: ApiOrganizationUpdatePayload;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationMemberAccessRemoveArgs = {
+  input: ApiMemberAccessRemoveInput;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationMemberInviteArgs = {
+  input: ApiMemberInviteInput;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationMemberRemoveArgs = {
+  memberId: Scalars['ID']['input'];
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationMemberRoleChangeArgs = {
+  input: ApiMemberRoleChangeInput;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationOrganizationCreateArgs = {
+  input: ApiOrganizationCreateInput;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationOrganizationUpdateArgs = {
+  input: ApiOrganizationUpdateInput;
+};
+
+/** Organization queries. */
+export type ApiOrganizationQuery = {
+  __typename?: 'OrganizationQuery';
+  /** Get organization by ID (if user has access). */
+  organization?: Maybe<ApiOrganization>;
+};
+
+
+/** Organization queries. */
+export type ApiOrganizationQueryOrganizationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+/** Input for updating organization. */
+export type ApiOrganizationUpdateInput = {
+  /** New name. */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiOrganizationUpdatePayload = {
+  __typename?: 'OrganizationUpdatePayload';
+  organization?: Maybe<ApiOrganization>;
+  userErrors: Array<ApiGenericUserError>;
 };
 
 /** Information about pagination in a connection. */
@@ -2636,294 +2883,6 @@ export type ApiProductUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-/** A project representing a store or application */
-export type ApiProject = {
-  __typename?: 'Project';
-  /**
-   * Available resources for role editor.
-   * Requires: project:admin permission.
-   */
-  availableResources: Array<ApiResourceDefinition>;
-  /** Base currency used for exchange rate calculations */
-  baseCurrency: CurrencyCode;
-  /** Timestamp when the project was created */
-  createdAt: Scalars['DateTime']['output'];
-  /** List of enabled currency codes for the project */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for pricing display */
-  defaultCurrency: CurrencyCode;
-  /** Default unit for product dimensions */
-  defaultDimensionUnit: DimensionUnit;
-  /** Default locale for new content */
-  defaultLocale: LocaleCode;
-  /** Default unit for product weights */
-  defaultWeightUnit: WeightUnit;
-  /** Contact email address for the project */
-  email?: Maybe<Scalars['String']['output']>;
-  /** Unique identifier of the project */
-  id: Scalars['ID']['output'];
-  /** List of enabled locale codes for the project */
-  locales: Array<LocaleCode>;
-  /**
-   * Project team members with roles.
-   * Requires: project.team:read permission.
-   */
-  members: Array<ApiProjectMember>;
-  /** Display name of the project */
-  name: Scalars['String']['output'];
-  /**
-   * All project roles with permissions.
-   * Used by frontend to compute effective permissions.
-   */
-  roles: Array<ApiRole>;
-  /** URL-friendly unique identifier */
-  slug: Scalars['String']['output'];
-  /** Current operational status of the project */
-  status: ProjectStatus;
-  /** IANA timezone identifier for the project */
-  timezone: Scalars['String']['output'];
-  /** Timestamp when the project was last updated */
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-/** Input for creating a new project */
-export type ApiProjectCreateInput = {
-  /** Initial list of currency codes to enable */
-  currencies: Array<CurrencyCode>;
-  /** Default currency for the project */
-  defaultCurrency: CurrencyCode;
-  /** Contact email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** Initial list of locale codes to enable */
-  locales: Array<LocaleCode>;
-  /** Display name of the project */
-  name: Scalars['String']['input'];
-  /** URL-friendly unique identifier */
-  slug: Scalars['String']['input'];
-  /** Initial status of the project */
-  status?: InputMaybe<ProjectStatus>;
-  /** IANA timezone identifier */
-  timezone?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Payload returned after creating a project */
-export type ApiProjectCreatePayload = {
-  __typename?: 'ProjectCreatePayload';
-  /** The newly created project, null if creation failed */
-  project?: Maybe<ApiProject>;
-  /** List of errors that occurred during creation */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Input for deleting a project */
-export type ApiProjectDeleteInput = {
-  /** ID of the project to delete */
-  id: Scalars['ID']['input'];
-};
-
-/** Payload returned after deleting a project */
-export type ApiProjectDeletePayload = {
-  __typename?: 'ProjectDeletePayload';
-  /** ID of the deleted project, null if deletion failed */
-  deletedProjectId?: Maybe<Scalars['ID']['output']>;
-  /** List of errors that occurred during deletion */
-  userErrors: Array<ApiUserError>;
-};
-
-/** Project team member with assigned role. */
-export type ApiProjectMember = {
-  __typename?: 'ProjectMember';
-  /** Date when role was assigned. */
-  grantedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Who assigned the role. */
-  grantedBy?: Maybe<ApiUser>;
-  /** User ID. */
-  id: Scalars['ID']['output'];
-  /** Assigned role. */
-  role: ApiRole;
-  /** User. */
-  user: ApiUser;
-};
-
-/** Input for removing a member. */
-export type ApiProjectMemberRemoveInput = {
-  /** User ID to remove. */
-  userId: Scalars['ID']['input'];
-};
-
-export type ApiProjectMemberRemovePayload = {
-  __typename?: 'ProjectMemberRemovePayload';
-  removedUserId?: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-/** Input for changing member role. */
-export type ApiProjectMemberRoleChangeInput = {
-  /** New role name. */
-  newRole: Scalars['String']['input'];
-  /** User ID. */
-  userId: Scalars['ID']['input'];
-};
-
-export type ApiProjectMemberRoleChangePayload = {
-  __typename?: 'ProjectMemberRoleChangePayload';
-  member?: Maybe<ApiProjectMember>;
-  userErrors: Array<ApiGenericUserError>;
-};
-
-/** Mutations for project management */
-export type ApiProjectMutation = {
-  __typename?: 'ProjectMutation';
-  /** Create a new API key for programmatic access */
-  apiKeyCreate: ApiApiKeyCreatePayload;
-  /** Permanently delete an API key */
-  apiKeyDelete: ApiApiKeyDeletePayload;
-  /** Revoke an API key (soft delete) */
-  apiKeyRevoke: ApiApiKeyActionPayload;
-  /** Add a new currency to the project */
-  currencyCreate: ApiCurrencyCreatePayload;
-  /** Remove a currency from the project */
-  currencyDelete: ApiCurrencyDeletePayload;
-  /** Set the default currency for the project */
-  currencySetDefault: ApiCurrencyUpdatePayload;
-  /** Add a new locale to the project */
-  localeCreate: ApiLocaleCreatePayload;
-  /** Remove a locale from the project */
-  localeDelete: ApiLocaleDeletePayload;
-  /** Set the default locale for the project */
-  localeSetDefault: ApiLocaleUpdatePayload;
-  /** Create a new project */
-  projectCreate: ApiProjectCreatePayload;
-  /** Delete a project */
-  projectDelete: ApiProjectDeletePayload;
-  /** Update an existing project */
-  projectUpdate: ApiProjectUpdatePayload;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationApiKeyCreateArgs = {
-  input: ApiApiKeyCreateInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationApiKeyDeleteArgs = {
-  input: ApiApiKeyDeleteInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationApiKeyRevokeArgs = {
-  input: ApiApiKeyRevokeInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationCurrencyCreateArgs = {
-  input: ApiCurrencyCreateInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationCurrencyDeleteArgs = {
-  input: ApiCurrencyDeleteInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationCurrencySetDefaultArgs = {
-  input: ApiCurrencySetDefaultInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationLocaleCreateArgs = {
-  input: ApiLocaleCreateInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationLocaleDeleteArgs = {
-  input: ApiLocaleDeleteInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationLocaleSetDefaultArgs = {
-  input: ApiLocaleSetDefaultInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationProjectCreateArgs = {
-  input: ApiProjectCreateInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationProjectDeleteArgs = {
-  input: ApiProjectDeleteInput;
-};
-
-
-/** Mutations for project management */
-export type ApiProjectMutationProjectUpdateArgs = {
-  input: ApiProjectUpdateInput;
-};
-
-/** Queries for project management */
-export type ApiProjectQuery = {
-  __typename?: 'ProjectQuery';
-  /** Get all API keys for the current project */
-  apiKeys: Array<ApiApiKey>;
-  /** Get a project by its unique slug */
-  project?: Maybe<ApiProject>;
-  /** Get all projects accessible to the current user */
-  projects: Array<ApiProject>;
-};
-
-
-/** Queries for project management */
-export type ApiProjectQueryProjectArgs = {
-  slug: Scalars['String']['input'];
-};
-
-/** Status of a project */
-export enum ProjectStatus {
-  /** Project is active and operational */
-  Active = 'active',
-  /** Project is inactive and not processing requests */
-  Inactive = 'inactive'
-}
-
-/** Input for updating an existing project */
-export type ApiProjectUpdateInput = {
-  /** Updated list of enabled currency codes */
-  currencies?: InputMaybe<Array<CurrencyCode>>;
-  /** New default dimension unit */
-  defaultDimensionUnit?: InputMaybe<DimensionUnit>;
-  /** New default weight unit */
-  defaultWeightUnit?: InputMaybe<WeightUnit>;
-  /** New contact email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** Updated list of enabled locale codes */
-  locales?: InputMaybe<Array<LocaleCode>>;
-  /** New display name */
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** New IANA timezone identifier */
-  timezone?: InputMaybe<Scalars['String']['input']>;
-};
-
-/** Payload returned after updating a project */
-export type ApiProjectUpdatePayload = {
-  __typename?: 'ProjectUpdatePayload';
-  /** The updated project, null if update failed */
-  project?: Maybe<ApiProject>;
-  /** List of errors that occurred during update */
-  userErrors: Array<ApiUserError>;
-};
-
 export type ApiPurchasable = {
   /** Unique identifier of the purchasable entity. */
   id: Scalars['ID']['output'];
@@ -2938,24 +2897,13 @@ export type ApiPurchasableSnapshot = ApiPurchasable & {
 export type ApiQuery = {
   __typename?: 'Query';
   appsQuery: ApiAppsQuery;
-  /**
-   * Check authorization for current user.
-   * Used for server-side permission checks.
-   * For client-side checks, use project.roles + user.role.
-   */
-  authorize: ApiAuthorizePayload;
   inventoryQuery: ApiInventoryQuery;
   mediaQuery: ApiMediaQuery;
   orderQuery: ApiOrderQuery;
-  /** Project-related queries */
-  projectQuery: ApiProjectQuery;
-  /** Get current authenticated user. */
-  userQuery: ApiUserQuery;
-};
-
-
-export type ApiQueryAuthorizeArgs = {
-  input: ApiAuthorizeInput;
+  /** Organization queries namespace. */
+  organizationQuery: ApiOrganizationQuery;
+  /** Store-related queries */
+  storeQuery: ApiStoreQuery;
 };
 
 /** Resource definition for role editor UI. */
@@ -2967,11 +2915,9 @@ export type ApiResourceDefinition = {
   displayName?: Maybe<Scalars['String']['output']>;
   /** Resource name (product, order, etc.). */
   name: Scalars['String']['output'];
-  /** Service name (inventory, orders, etc.). */
-  service: Scalars['String']['output'];
 };
 
-/** Project role with permissions. */
+/** Role with permissions - universal, can be assigned at any level. */
 export type ApiRole = {
   __typename?: 'Role';
   /** Role creation date. */
@@ -2981,16 +2927,27 @@ export type ApiRole = {
   /** Human-readable display name. */
   displayName: Scalars['String']['output'];
   /**
-   * Roles this role inherits from (for hierarchy).
-   * E.g., manager inherits from support.
+   * Domain scope for this role.
+   * "*" = global (all stores)
+   * storeId = store-specific role
    */
-  inherits: Array<Scalars['String']['output']>;
-  /** System role (owner, admin, manager, support, viewer) cannot be deleted. */
+  domain: Scalars['String']['output'];
+  /** Unique identifier. */
+  id: Scalars['ID']['output'];
+  /** System role cannot be deleted or modified. */
   isSystem: Scalars['Boolean']['output'];
-  /** Unique role name (e.g.: owner, admin, content-editor). */
+  /** Unique role name within organization (e.g.: admin, manager, viewer). */
   name: Scalars['String']['output'];
   /** Role permissions. */
   permissions: Array<ApiRolePermission>;
+};
+
+/** Role assignment - assigns role to user in specific domain. */
+export type ApiRoleAssignment = {
+  /** Domain ID (orgId, storeId, or '*' for all stores). */
+  domain: Scalars['String']['input'];
+  /** Role name. */
+  role: Scalars['String']['input'];
 };
 
 /** Input for creating a role. */
@@ -2999,8 +2956,12 @@ export type ApiRoleCreateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** Display name. */
   displayName: Scalars['String']['input'];
-  /** Roles to inherit from. */
-  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
+  /**
+   * Domain scope for role.
+   * "*" = global (all stores), default
+   * storeId = store-specific role
+   */
+  domain?: InputMaybe<Scalars['String']['input']>;
   /** Unique role name (slug). */
   name: Scalars['String']['input'];
   /** Role permissions. */
@@ -3015,6 +2976,12 @@ export type ApiRoleCreatePayload = {
 
 /** Input for deleting a role. */
 export type ApiRoleDeleteInput = {
+  /**
+   * Domain scope for role lookup.
+   * "*" = global (default)
+   * storeId = store-specific
+   */
+  domain?: InputMaybe<Scalars['String']['input']>;
   /** Role name to delete. */
   name: Scalars['String']['input'];
 };
@@ -3028,20 +2995,6 @@ export type ApiRoleDeletePayload = {
 /** Role mutations. */
 export type ApiRoleMutation = {
   __typename?: 'RoleMutation';
-  /**
-   * Remove member from team.
-   * Requires: project.team:remove permission.
-   * Cannot remove self (use leaveProject).
-   * Cannot remove project owner.
-   */
-  projectMemberRemove: ApiProjectMemberRemovePayload;
-  /**
-   * Change member's role.
-   * Requires: project.team:write permission.
-   * Cannot change own role.
-   * Cannot assign role higher than own.
-   */
-  projectMemberRoleChange: ApiProjectMemberRoleChangePayload;
   /**
    * Create custom role.
    * Requires: project:admin permission.
@@ -3060,18 +3013,6 @@ export type ApiRoleMutation = {
    * System roles cannot be modified.
    */
   roleUpdate: ApiRoleUpdatePayload;
-};
-
-
-/** Role mutations. */
-export type ApiRoleMutationProjectMemberRemoveArgs = {
-  input: ApiProjectMemberRemoveInput;
-};
-
-
-/** Role mutations. */
-export type ApiRoleMutationProjectMemberRoleChangeArgs = {
-  input: ApiProjectMemberRoleChangeInput;
 };
 
 
@@ -3128,8 +3069,12 @@ export type ApiRoleUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New display name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
-  /** Roles to inherit from. */
-  inherits?: InputMaybe<Array<Scalars['String']['input']>>;
+  /**
+   * Domain scope for role lookup.
+   * "*" = global (default)
+   * storeId = store-specific
+   */
+  domain?: InputMaybe<Scalars['String']['input']>;
   /** Role name to update. */
   name: Scalars['String']['input'];
   /** New permissions (completely replaces existing). */
@@ -3179,6 +3124,242 @@ export enum SortDirection {
   Asc = 'asc',
   Desc = 'desc'
 }
+
+/** A store */
+export type ApiStore = {
+  __typename?: 'Store';
+  /** Base currency used for exchange rate calculations */
+  baseCurrency: CurrencyCode;
+  /** Timestamp when the store was created */
+  createdAt: Scalars['DateTime']['output'];
+  /** List of enabled currency codes for the store */
+  currencies: Array<CurrencyCode>;
+  /** Default currency for pricing display */
+  defaultCurrency: CurrencyCode;
+  /** Default unit for product dimensions */
+  defaultDimensionUnit: DimensionUnit;
+  /** Default locale for new content */
+  defaultLocale: LocaleCode;
+  /** Default unit for product weights */
+  defaultWeightUnit: WeightUnit;
+  /** Contact email address for the store */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Unique identifier of the store */
+  id: Scalars['ID']['output'];
+  /** List of enabled locale codes for the store */
+  locales: Array<LocaleCode>;
+  /** Membership info (resolved from IAM by domain) */
+  membership: ApiMembership;
+  /** Display name of the store */
+  name: Scalars['String']['output'];
+  /** Organization that owns this store (federation reference) */
+  organization?: Maybe<ApiOrganization>;
+  /** URL-friendly unique identifier */
+  slug: Scalars['String']['output'];
+  /** Current operational status of the store */
+  status: StoreStatus;
+  /** IANA timezone identifier for the store */
+  timezone: Scalars['String']['output'];
+  /** Timestamp when the store was last updated */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Input for creating a new store */
+export type ApiStoreCreateInput = {
+  /** Initial list of currency codes to enable */
+  currencies: Array<CurrencyCode>;
+  /** Default currency for the store */
+  defaultCurrency: CurrencyCode;
+  /** Contact email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Initial list of locale codes to enable */
+  locales: Array<LocaleCode>;
+  /** Display name of the store */
+  name: Scalars['String']['input'];
+  /** URL-friendly unique identifier */
+  slug: Scalars['String']['input'];
+  /** Initial status of the store */
+  status?: InputMaybe<StoreStatus>;
+  /** IANA timezone identifier */
+  timezone?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload returned after creating a store */
+export type ApiStoreCreatePayload = {
+  __typename?: 'StoreCreatePayload';
+  /** The newly created store, null if creation failed */
+  store?: Maybe<ApiStore>;
+  /** List of errors that occurred during creation */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Input for deleting a store */
+export type ApiStoreDeleteInput = {
+  /** ID of the store to delete */
+  id: Scalars['ID']['input'];
+};
+
+/** Payload returned after deleting a store */
+export type ApiStoreDeletePayload = {
+  __typename?: 'StoreDeletePayload';
+  /** ID of the deleted store, null if deletion failed */
+  deletedStoreId?: Maybe<Scalars['ID']['output']>;
+  /** List of errors that occurred during deletion */
+  userErrors: Array<ApiUserError>;
+};
+
+/** Mutations for store management */
+export type ApiStoreMutation = {
+  __typename?: 'StoreMutation';
+  /** Create a new API key for programmatic access */
+  apiKeyCreate: ApiApiKeyCreatePayload;
+  /** Permanently delete an API key */
+  apiKeyDelete: ApiApiKeyDeletePayload;
+  /** Revoke an API key (soft delete) */
+  apiKeyRevoke: ApiApiKeyActionPayload;
+  /** Add a new currency to the store */
+  currencyCreate: ApiCurrencyCreatePayload;
+  /** Remove a currency from the store */
+  currencyDelete: ApiCurrencyDeletePayload;
+  /** Set the default currency for the store */
+  currencySetDefault: ApiCurrencyUpdatePayload;
+  /** Add a new locale to the store */
+  localeCreate: ApiLocaleCreatePayload;
+  /** Remove a locale from the store */
+  localeDelete: ApiLocaleDeletePayload;
+  /** Set the default locale for the store */
+  localeSetDefault: ApiLocaleUpdatePayload;
+  /** Create a new store */
+  storeCreate: ApiStoreCreatePayload;
+  /** Delete a store */
+  storeDelete: ApiStoreDeletePayload;
+  /** Update an existing store */
+  storeUpdate: ApiStoreUpdatePayload;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationApiKeyCreateArgs = {
+  input: ApiApiKeyCreateInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationApiKeyDeleteArgs = {
+  input: ApiApiKeyDeleteInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationApiKeyRevokeArgs = {
+  input: ApiApiKeyRevokeInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationCurrencyCreateArgs = {
+  input: ApiCurrencyCreateInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationCurrencyDeleteArgs = {
+  input: ApiCurrencyDeleteInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationCurrencySetDefaultArgs = {
+  input: ApiCurrencySetDefaultInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationLocaleCreateArgs = {
+  input: ApiLocaleCreateInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationLocaleDeleteArgs = {
+  input: ApiLocaleDeleteInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationLocaleSetDefaultArgs = {
+  input: ApiLocaleSetDefaultInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationStoreCreateArgs = {
+  input: ApiStoreCreateInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationStoreDeleteArgs = {
+  input: ApiStoreDeleteInput;
+};
+
+
+/** Mutations for store management */
+export type ApiStoreMutationStoreUpdateArgs = {
+  input: ApiStoreUpdateInput;
+};
+
+/** Queries for store management */
+export type ApiStoreQuery = {
+  __typename?: 'StoreQuery';
+  /** Get all API keys for the current store */
+  apiKeys: Array<ApiApiKey>;
+  /** Get a store by its unique slug */
+  store?: Maybe<ApiStore>;
+  /** Get all stores accessible to the current user */
+  stores: Array<ApiStore>;
+};
+
+
+/** Queries for store management */
+export type ApiStoreQueryStoreArgs = {
+  slug: Scalars['String']['input'];
+};
+
+/** Status of a store */
+export enum StoreStatus {
+  /** Store is active and operational */
+  Active = 'active',
+  /** Store is inactive and not processing requests */
+  Inactive = 'inactive'
+}
+
+/** Input for updating an existing store */
+export type ApiStoreUpdateInput = {
+  /** Updated list of enabled currency codes */
+  currencies?: InputMaybe<Array<CurrencyCode>>;
+  /** New default dimension unit */
+  defaultDimensionUnit?: InputMaybe<DimensionUnit>;
+  /** New default weight unit */
+  defaultWeightUnit?: InputMaybe<WeightUnit>;
+  /** New contact email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Updated list of enabled locale codes */
+  locales?: InputMaybe<Array<LocaleCode>>;
+  /** New display name */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** New IANA timezone identifier */
+  timezone?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Payload returned after updating a store */
+export type ApiStoreUpdatePayload = {
+  __typename?: 'StoreUpdatePayload';
+  /** The updated store, null if update failed */
+  store?: Maybe<ApiStore>;
+  /** List of errors that occurred during update */
+  userErrors: Array<ApiUserError>;
+};
 
 /** Filter operators for String fields */
 export type ApiStringFilter = {
@@ -3249,11 +3430,6 @@ export type ApiUser = {
   lastName?: Maybe<Scalars['String']['output']>;
   /** User's locale/language preference. */
   locale?: Maybe<LocaleCode>;
-  /**
-   * User's role name in current project context.
-   * Returns null if no project context.
-   */
-  role?: Maybe<Scalars['String']['output']>;
   /** The date and time when the user was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
@@ -3270,33 +3446,9 @@ export type ApiUserError = {
 
 export type ApiUserMutation = {
   __typename?: 'UserMutation';
-  signIn: ApiUserSignInPayload;
-  signOut: ApiUserSignOutPayload;
-  signUp: ApiUserSignUpPayload;
-  tokenRefresh: ApiUserTokenRefreshPayload;
   userUpdateEmail: ApiUserUpdateEmailPayload;
   userUpdatePassword: ApiUserUpdatePasswordPayload;
   userUpdateProfile: ApiUserUpdateProfilePayload;
-};
-
-
-export type ApiUserMutationSignInArgs = {
-  input: ApiUserSignInInput;
-};
-
-
-export type ApiUserMutationSignOutArgs = {
-  input: ApiUserSignOutInput;
-};
-
-
-export type ApiUserMutationSignUpArgs = {
-  input: ApiUserSignUpInput;
-};
-
-
-export type ApiUserMutationTokenRefreshArgs = {
-  input: ApiUserTokenRefreshInput;
 };
 
 
@@ -3316,8 +3468,19 @@ export type ApiUserMutationUserUpdateProfileArgs = {
 
 export type ApiUserQuery = {
   __typename?: 'UserQuery';
+  /**
+   * Check authorization for current user.
+   * Used for server-side permission checks.
+   * For client-side checks, use project.roles + user.role.
+   */
+  authorize: ApiAuthorizePayload;
   /** Get current authenticated admin user */
   current?: Maybe<ApiUser>;
+};
+
+
+export type ApiUserQueryAuthorizeArgs = {
+  input: ApiAuthorizeInput;
 };
 
 /** Input for admin user authentication. */
@@ -3332,7 +3495,7 @@ export type ApiUserSignInInput = {
 export type ApiUserSignInPayload = {
   __typename?: 'UserSignInPayload';
   /** Authentication tokens. */
-  token?: Maybe<ApiAuthToken>;
+  token?: Maybe<ApiAuthTokenPayload>;
   /** The authenticated user. */
   user?: Maybe<ApiUser>;
   /** List of errors that occurred during the mutation. */
@@ -3366,7 +3529,7 @@ export type ApiUserSignUpInput = {
 export type ApiUserSignUpPayload = {
   __typename?: 'UserSignUpPayload';
   /** Authentication tokens. */
-  token?: Maybe<ApiAuthToken>;
+  token?: Maybe<ApiAuthTokenPayload>;
   /** The created user. */
   user?: Maybe<ApiUser>;
   /** List of errors that occurred during the mutation. */
@@ -3383,7 +3546,7 @@ export type ApiUserTokenRefreshInput = {
 export type ApiUserTokenRefreshPayload = {
   __typename?: 'UserTokenRefreshPayload';
   /** New authentication tokens. */
-  token?: Maybe<ApiAuthToken>;
+  token?: Maybe<ApiAuthTokenPayload>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<ApiGenericUserError>;
 };

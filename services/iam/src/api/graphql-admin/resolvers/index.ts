@@ -15,6 +15,7 @@ export const resolvers = {
   },
   Mutation: {
     ...mutationResolvers.Mutation,
+    ...organizationResolvers.Mutation,
   },
   UserQuery: {
     ...queryResolvers.UserQuery,

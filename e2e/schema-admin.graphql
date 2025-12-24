@@ -1,21 +1,14 @@
 type Query {
   appsQuery: AppsQuery!
 
-  """Get current authenticated user."""
-  userQuery: UserQuery!
-
-  """
-  Check authorization for current user.
-  Used for server-side permission checks.
-  For client-side checks, use project.roles + user.role.
-  """
-  authorize(input: AuthorizeInput!): AuthorizePayload!
+  """Organization queries namespace."""
+  organizationQuery: OrganizationQuery!
   inventoryQuery: InventoryQuery!
   mediaQuery: MediaQuery!
   orderQuery: OrderQuery!
 
-  """Project-related queries"""
-  projectQuery: ProjectQuery!
+  """Store-related queries"""
+  storeQuery: StoreQuery!
 }
 
 type Mutation {
@@ -26,12 +19,18 @@ type Mutation {
 
   """Role management mutations."""
   roleMutation: RoleMutation!
+
+  """Authentication mutations."""
+  authMutation: AuthMutation!
+
+  """Organization management mutations."""
+  organizationMutation: OrganizationMutation!
   inventoryMutation: InventoryMutation!
   mediaMutation: MediaMutation!
   orderMutation: OrderMutation!
 
-  """Project-related mutations"""
-  projectMutation: ProjectMutation!
+  """Store-related mutations"""
+  storeMutation: StoreMutation!
 }
 
 scalar JSON
@@ -1019,7 +1018,7 @@ type GenericUserError implements UserError {
 }
 
 """Authentication tokens."""
-type AuthToken {
+type AuthTokenPayload {
   """Access token for API requests."""
   accessToken: String!
 
@@ -1033,21 +1032,204 @@ type AuthToken {
 type UserQuery {
   """Get current authenticated admin user"""
   current: User
+
+  """
+  Check authorization for current user.
+  Used for server-side permission checks.
+  For client-side checks, use project.roles + user.role.
+  """
+  authorize(input: AuthorizeInput!): AuthorizePayload!
 }
 
 type UserMutation {
   userUpdateProfile(input: UserUpdateProfileInput!): UserUpdateProfilePayload!
   userUpdateEmail(input: UserUpdateEmailInput!): UserUpdateEmailPayload!
   userUpdatePassword(input: UserUpdatePasswordInput!): UserUpdatePasswordPayload!
+}
+
+type AuthMutation {
   signUp(input: UserSignUpInput!): UserSignUpPayload!
   signIn(input: UserSignInInput!): UserSignInPayload!
   signOut(input: UserSignOutInput!): UserSignOutPayload!
   tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
 }
 
-"""Project role with permissions."""
+"""Role mutations."""
+type RoleMutation {
+  """
+  Create custom role.
+  Requires: project:admin permission.
+  """
+  roleCreate(input: RoleCreateInput!): RoleCreatePayload!
+
+  """
+  Update role.
+  Requires: project:admin permission.
+  System roles cannot be modified.
+  """
+  roleUpdate(input: RoleUpdateInput!): RoleUpdatePayload!
+
+  """
+  Delete custom role.
+  Requires: project:admin permission.
+  System roles cannot be deleted.
+  Roles with assigned users cannot be deleted.
+  """
+  roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
+}
+
+"""
+Member with role assignment.
+Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+"""
+type Member {
+  """Unique identifier."""
+  id: ID!
+
+  """User reference."""
+  user: User!
+
+  """Role name."""
+  role: String!
+
+  """When access was granted."""
+  grantedAt: DateTime!
+
+  """User who granted access."""
+  grantedBy: User
+}
+
+"""
+Membership — universal container for members and roles.
+Used for both Organization and Store.
+Domain determines context: orgId for org-level, storeId for store-level.
+"""
+type Membership {
+  """Domain identifier (orgId or storeId)."""
+  domain: String!
+
+  """All roles available in this organization."""
+  roles: [Role!]!
+
+  """All members with access to this domain."""
+  members: [Member!]!
+
+  """Available resources for role editor (org-level only)."""
+  availableResources: [ResourceDefinition!]
+}
+
+"""
+Organization - top level entity for multi-tenancy.
+Users belong to organizations, organizations contain stores.
+"""
+type Organization {
+  """Unique identifier."""
+  id: ID!
+
+  """Organization name (e.g., "Acme Corp")."""
+  name: String!
+
+  """URL-friendly unique identifier."""
+  slug: String!
+
+  """Membership info (members + roles). Domain = orgId."""
+  membership: Membership!
+
+  """Timestamp when the organization was created."""
+  createdAt: DateTime!
+
+  """Timestamp when the organization was last updated."""
+  updatedAt: DateTime
+}
+
+type OrganizationCreatePayload {
+  organization: Organization
+  userErrors: [GenericUserError!]!
+}
+
+type OrganizationUpdatePayload {
+  organization: Organization
+  userErrors: [GenericUserError!]!
+}
+
+type OrganizationDeletePayload {
+  deletedOrganizationId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type MemberInvitePayload {
+  member: Member
+  userErrors: [GenericUserError!]!
+}
+
+type MemberRemovePayload {
+  removedMemberId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type MemberRoleChangePayload {
+  member: Member
+  userErrors: [GenericUserError!]!
+}
+
+type MemberAccessRemovePayload {
+  success: Boolean!
+  userErrors: [GenericUserError!]!
+}
+
+"""Organization queries."""
+type OrganizationQuery {
+  """Get organization by ID (if user has access)."""
+  organization(id: ID!): Organization
+}
+
+"""Organization mutations."""
+type OrganizationMutation {
+  """
+  Create a new organization.
+  Current user becomes the owner.
+  """
+  organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
+
+  """
+  Update organization.
+  Requires: org admin or owner.
+  """
+  organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
+
+  """Delete organization. Requires: org owner."""
+  organizationDelete: OrganizationDeletePayload!
+
+  """Invite member to organization with role assignments."""
+  memberInvite(input: MemberInviteInput!): MemberInvitePayload!
+
+  """
+  Remove member from organization.
+  Requires: org admin or owner.
+  Cannot remove self or owner.
+  """
+  memberRemove(memberId: ID!): MemberRemovePayload!
+
+  """Change role for a member in specific domain."""
+  memberRoleChange(input: MemberRoleChangeInput!): MemberRoleChangePayload!
+
+  """Remove member's access from domain."""
+  memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
+}
+
+"""Role with permissions - universal, can be assigned at any level."""
 type Role {
-  """Unique role name (e.g.: owner, admin, content-editor)."""
+  """Unique identifier."""
+  id: ID!
+
+  """
+  Domain scope for this role.
+  "*" = global (all stores)
+  storeId = store-specific role
+  """
+  domain: String!
+
+  """Unique role name within organization (e.g.: admin, manager, viewer)."""
   name: String!
 
   """Human-readable display name."""
@@ -1056,16 +1238,8 @@ type Role {
   """Role description."""
   description: String
 
-  """
-  System role (owner, admin, manager, support, viewer) cannot be deleted.
-  """
+  """System role cannot be deleted or modified."""
   isSystem: Boolean!
-
-  """
-  Roles this role inherits from (for hierarchy).
-  E.g., manager inherits from support.
-  """
-  inherits: [String!]!
 
   """Role permissions."""
   permissions: [RolePermission!]!
@@ -1095,29 +1269,8 @@ type RolePermission {
   effect: PermissionEffect!
 }
 
-"""Project team member with assigned role."""
-type ProjectMember {
-  """User ID."""
-  id: ID!
-
-  """User."""
-  user: User!
-
-  """Assigned role."""
-  role: Role!
-
-  """Date when role was assigned."""
-  grantedAt: DateTime
-
-  """Who assigned the role."""
-  grantedBy: User
-}
-
 """Resource definition for role editor UI."""
 type ResourceDefinition {
-  """Service name (inventory, orders, etc.)."""
-  service: String!
-
   """Resource name (product, order, etc.)."""
   name: String!
 
@@ -1143,62 +1296,12 @@ type RoleDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-type ProjectMemberRoleChangePayload {
-  member: ProjectMember
-  userErrors: [GenericUserError!]!
-}
-
-type ProjectMemberRemovePayload {
-  removedUserId: ID
-  userErrors: [GenericUserError!]!
-}
-
 type AuthorizePayload {
   """Whether access is allowed."""
   allowed: Boolean!
 
   """Reason for denial (if denied)."""
   deniedReason: String
-}
-
-"""Role mutations."""
-type RoleMutation {
-  """
-  Create custom role.
-  Requires: project:admin permission.
-  """
-  roleCreate(input: RoleCreateInput!): RoleCreatePayload!
-
-  """
-  Update role.
-  Requires: project:admin permission.
-  System roles cannot be modified.
-  """
-  roleUpdate(input: RoleUpdateInput!): RoleUpdatePayload!
-
-  """
-  Delete custom role.
-  Requires: project:admin permission.
-  System roles cannot be deleted.
-  Roles with assigned users cannot be deleted.
-  """
-  roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
-
-  """
-  Change member's role.
-  Requires: project.team:write permission.
-  Cannot change own role.
-  Cannot assign role higher than own.
-  """
-  projectMemberRoleChange(input: ProjectMemberRoleChangeInput!): ProjectMemberRoleChangePayload!
-
-  """
-  Remove member from team.
-  Requires: project.team:remove permission.
-  Cannot remove self (use leaveProject).
-  Cannot remove project owner.
-  """
-  projectMemberRemove(input: ProjectMemberRemoveInput!): ProjectMemberRemovePayload!
 }
 
 """User type representing admin users (CMS/backoffice)."""
@@ -1238,12 +1341,6 @@ type User {
 
   """The date and time when the user was last updated."""
   updatedAt: DateTime
-
-  """
-  User's role name in current project context.
-  Returns null if no project context.
-  """
-  role: String
 }
 
 """Payload for user profile update."""
@@ -1270,7 +1367,7 @@ type UserSignUpPayload {
   user: User
 
   """Authentication tokens."""
-  token: AuthToken
+  token: AuthTokenPayload
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -1282,7 +1379,7 @@ type UserSignInPayload {
   user: User
 
   """Authentication tokens."""
-  token: AuthToken
+  token: AuthTokenPayload
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -1300,7 +1397,7 @@ type UserSignOutPayload {
 """Payload for admin user token refresh."""
 type UserTokenRefreshPayload {
   """New authentication tokens."""
-  token: AuthToken
+  token: AuthTokenPayload
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
@@ -1313,72 +1410,6 @@ type UserUpdatePasswordPayload {
 
   """List of errors that occurred during the mutation."""
   userErrors: [GenericUserError!]!
-}
-
-"""A project representing a store or application"""
-type Project {
-  """Unique identifier of the project"""
-  id: ID!
-
-  """
-  All project roles with permissions.
-  Used by frontend to compute effective permissions.
-  """
-  roles: [Role!]!
-
-  """
-  Available resources for role editor.
-  Requires: project:admin permission.
-  """
-  availableResources: [ResourceDefinition!]!
-
-  """
-  Project team members with roles.
-  Requires: project.team:read permission.
-  """
-  members: [ProjectMember!]!
-
-  """Display name of the project"""
-  name: String!
-
-  """URL-friendly unique identifier"""
-  slug: String!
-
-  """Current operational status of the project"""
-  status: ProjectStatus!
-
-  """IANA timezone identifier for the project"""
-  timezone: String!
-
-  """Contact email address for the project"""
-  email: String
-
-  """List of enabled locale codes for the project"""
-  locales: [LocaleCode!]!
-
-  """List of enabled currency codes for the project"""
-  currencies: [CurrencyCode!]!
-
-  """Base currency used for exchange rate calculations"""
-  baseCurrency: CurrencyCode!
-
-  """Default locale for new content"""
-  defaultLocale: LocaleCode!
-
-  """Default currency for pricing display"""
-  defaultCurrency: CurrencyCode!
-
-  """Default unit for product weights"""
-  defaultWeightUnit: WeightUnit!
-
-  """Default unit for product dimensions"""
-  defaultDimensionUnit: DimensionUnit!
-
-  """Timestamp when the project was created"""
-  createdAt: DateTime!
-
-  """Timestamp when the project was last updated"""
-  updatedAt: DateTime!
 }
 
 """A generic user error interface for mutation responses."""
@@ -1402,8 +1433,69 @@ enum PermissionEffect {
   DENY
 }
 
+"""Input for creating an organization."""
+input OrganizationCreateInput {
+  """Organization name."""
+  name: String!
+
+  """URL-friendly unique identifier."""
+  slug: String!
+}
+
+"""Role assignment - assigns role to user in specific domain."""
+input RoleAssignment {
+  """Domain ID (orgId, storeId, or '*' for all stores)."""
+  domain: String!
+
+  """Role name."""
+  role: String!
+}
+
+"""Input for inviting a member to organization."""
+input MemberInviteInput {
+  """Email address of the user to invite."""
+  email: Email!
+
+  """Role assignments (at least one required)."""
+  roles: [RoleAssignment!]!
+}
+
+"""Input for changing member's role."""
+input MemberRoleChangeInput {
+  """User ID."""
+  userId: ID!
+
+  """Domain (orgId, storeId, or '*' for all)."""
+  domain: String!
+
+  """New role name."""
+  role: String!
+}
+
+"""Input for removing member's access."""
+input MemberAccessRemoveInput {
+  """User ID."""
+  userId: ID!
+
+  """Domain to remove access from."""
+  domain: String!
+}
+
+"""Input for updating organization."""
+input OrganizationUpdateInput {
+  """New name."""
+  name: String
+}
+
 """Input for creating a role."""
 input RoleCreateInput {
+  """
+  Domain scope for role.
+  "*" = global (all stores), default
+  storeId = store-specific role
+  """
+  domain: String
+
   """Unique role name (slug)."""
   name: String!
 
@@ -1412,9 +1504,6 @@ input RoleCreateInput {
 
   """Description."""
   description: String
-
-  """Roles to inherit from."""
-  inherits: [String!]
 
   """Role permissions."""
   permissions: [RolePermissionInput!]!
@@ -1434,6 +1523,13 @@ input RolePermissionInput {
 
 """Input for updating a role."""
 input RoleUpdateInput {
+  """
+  Domain scope for role lookup.
+  "*" = global (default)
+  storeId = store-specific
+  """
+  domain: String
+
   """Role name to update."""
   name: String!
 
@@ -1443,32 +1539,21 @@ input RoleUpdateInput {
   """New description."""
   description: String
 
-  """Roles to inherit from."""
-  inherits: [String!]
-
   """New permissions (completely replaces existing)."""
   permissions: [RolePermissionInput!]
 }
 
 """Input for deleting a role."""
 input RoleDeleteInput {
+  """
+  Domain scope for role lookup.
+  "*" = global (default)
+  storeId = store-specific
+  """
+  domain: String
+
   """Role name to delete."""
   name: String!
-}
-
-"""Input for changing member role."""
-input ProjectMemberRoleChangeInput {
-  """User ID."""
-  userId: ID!
-
-  """New role name."""
-  newRole: String!
-}
-
-"""Input for removing a member."""
-input ProjectMemberRemoveInput {
-  """User ID to remove."""
-  userId: ID!
 }
 
 """Input for authorize check."""
@@ -4289,48 +4374,48 @@ type ApiKeyDeletePayload {
   userErrors: [UserError!]!
 }
 
-"""Queries for project management"""
-type ProjectQuery {
-  """Get all projects accessible to the current user"""
-  projects: [Project!]!
+"""Queries for store management"""
+type StoreQuery {
+  """Get all stores accessible to the current user"""
+  stores: [Store!]!
 
-  """Get a project by its unique slug"""
-  project(
-    """URL-friendly identifier of the project"""
+  """Get a store by its unique slug"""
+  store(
+    """URL-friendly identifier of the store"""
     slug: String!
-  ): Project
+  ): Store
 
-  """Get all API keys for the current project"""
+  """Get all API keys for the current store"""
   apiKeys: [ApiKey!]!
 }
 
-"""Mutations for project management"""
-type ProjectMutation {
-  """Create a new project"""
-  projectCreate(input: ProjectCreateInput!): ProjectCreatePayload!
+"""Mutations for store management"""
+type StoreMutation {
+  """Create a new store"""
+  storeCreate(input: StoreCreateInput!): StoreCreatePayload!
 
-  """Update an existing project"""
-  projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
+  """Update an existing store"""
+  storeUpdate(input: StoreUpdateInput!): StoreUpdatePayload!
 
-  """Delete a project"""
-  projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
+  """Delete a store"""
+  storeDelete(input: StoreDeleteInput!): StoreDeletePayload!
 
-  """Add a new currency to the project"""
+  """Add a new currency to the store"""
   currencyCreate(input: CurrencyCreateInput!): CurrencyCreatePayload!
 
-  """Remove a currency from the project"""
+  """Remove a currency from the store"""
   currencyDelete(input: CurrencyDeleteInput!): CurrencyDeletePayload!
 
-  """Set the default currency for the project"""
+  """Set the default currency for the store"""
   currencySetDefault(input: CurrencySetDefaultInput!): CurrencyUpdatePayload!
 
-  """Add a new locale to the project"""
+  """Add a new locale to the store"""
   localeCreate(input: LocaleCreateInput!): LocaleCreatePayload!
 
-  """Remove a locale from the project"""
+  """Remove a locale from the store"""
   localeDelete(input: LocaleDeleteInput!): LocaleDeletePayload!
 
-  """Set the default locale for the project"""
+  """Set the default locale for the store"""
   localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
 
   """Create a new API key for programmatic access"""
@@ -4435,39 +4520,93 @@ type LocaleUpdatePayload {
   userErrors: [UserError!]!
 }
 
-"""Payload returned after creating a project"""
-type ProjectCreatePayload {
-  """The newly created project, null if creation failed"""
-  project: Project
+"""A store"""
+type Store {
+  """Unique identifier of the store"""
+  id: ID!
+
+  """Organization that owns this store (federation reference)"""
+  organization: Organization
+
+  """Display name of the store"""
+  name: String!
+
+  """URL-friendly unique identifier"""
+  slug: String!
+
+  """Current operational status of the store"""
+  status: StoreStatus!
+
+  """IANA timezone identifier for the store"""
+  timezone: String!
+
+  """Contact email address for the store"""
+  email: String
+
+  """List of enabled locale codes for the store"""
+  locales: [LocaleCode!]!
+
+  """List of enabled currency codes for the store"""
+  currencies: [CurrencyCode!]!
+
+  """Base currency used for exchange rate calculations"""
+  baseCurrency: CurrencyCode!
+
+  """Default locale for new content"""
+  defaultLocale: LocaleCode!
+
+  """Default currency for pricing display"""
+  defaultCurrency: CurrencyCode!
+
+  """Default unit for product weights"""
+  defaultWeightUnit: WeightUnit!
+
+  """Default unit for product dimensions"""
+  defaultDimensionUnit: DimensionUnit!
+
+  """Timestamp when the store was created"""
+  createdAt: DateTime!
+
+  """Timestamp when the store was last updated"""
+  updatedAt: DateTime!
+
+  """Membership info (resolved from IAM by domain)"""
+  membership: Membership!
+}
+
+"""Payload returned after creating a store"""
+type StoreCreatePayload {
+  """The newly created store, null if creation failed"""
+  store: Store
 
   """List of errors that occurred during creation"""
   userErrors: [UserError!]!
 }
 
-"""Payload returned after updating a project"""
-type ProjectUpdatePayload {
-  """The updated project, null if update failed"""
-  project: Project
+"""Payload returned after updating a store"""
+type StoreUpdatePayload {
+  """The updated store, null if update failed"""
+  store: Store
 
   """List of errors that occurred during update"""
   userErrors: [UserError!]!
 }
 
-"""Payload returned after deleting a project"""
-type ProjectDeletePayload {
-  """ID of the deleted project, null if deletion failed"""
-  deletedProjectId: ID
+"""Payload returned after deleting a store"""
+type StoreDeletePayload {
+  """ID of the deleted store, null if deletion failed"""
+  deletedStoreId: ID
 
   """List of errors that occurred during deletion"""
   userErrors: [UserError!]!
 }
 
-"""Status of a project"""
-enum ProjectStatus {
-  """Project is active and operational"""
+"""Status of a store"""
+enum StoreStatus {
+  """Store is active and operational"""
   active
 
-  """Project is inactive and not processing requests"""
+  """Store is inactive and not processing requests"""
   inactive
 }
 
@@ -4534,9 +4673,9 @@ input LocaleSetDefaultInput {
   locale: LocaleCode!
 }
 
-"""Input for creating a new project"""
-input ProjectCreateInput {
-  """Display name of the project"""
+"""Input for creating a new store"""
+input StoreCreateInput {
+  """Display name of the store"""
   name: String!
 
   """URL-friendly unique identifier"""
@@ -4548,11 +4687,11 @@ input ProjectCreateInput {
   """Initial list of currency codes to enable"""
   currencies: [CurrencyCode!]!
 
-  """Default currency for the project"""
+  """Default currency for the store"""
   defaultCurrency: CurrencyCode!
 
-  """Initial status of the project"""
-  status: ProjectStatus
+  """Initial status of the store"""
+  status: StoreStatus
 
   """IANA timezone identifier"""
   timezone: String
@@ -4561,8 +4700,8 @@ input ProjectCreateInput {
   email: String
 }
 
-"""Input for updating an existing project"""
-input ProjectUpdateInput {
+"""Input for updating an existing store"""
+input StoreUpdateInput {
   """New display name"""
   name: String
 
@@ -4585,8 +4724,8 @@ input ProjectUpdateInput {
   defaultDimensionUnit: DimensionUnit
 }
 
-"""Input for deleting a project"""
-input ProjectDeleteInput {
-  """ID of the project to delete"""
+"""Input for deleting a store"""
+input StoreDeleteInput {
+  """ID of the store to delete"""
   id: ID!
 }
