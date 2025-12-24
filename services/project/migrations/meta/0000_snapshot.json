@@ -1,15 +1,15 @@
 {
-  "id": "abba5906-ca29-47a6-8ec5-4019164acbe2",
+  "id": "6d440541-6bec-41dd-8445-0f5dfd6856c5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "project.locale": {
+    "store.locale": {
       "name": "locale",
-      "schema": "project",
+      "schema": "store",
       "columns": {
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -42,11 +42,11 @@
         }
       },
       "indexes": {
-        "idx_locale_project_id": {
-          "name": "idx_locale_project_id",
+        "idx_locale_store_id": {
+          "name": "idx_locale_store_id",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -75,10 +75,10 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "locale_project_id_code_pk": {
-          "name": "locale_project_id_code_pk",
+        "locale_store_id_code_pk": {
+          "name": "locale_store_id_code_pk",
           "columns": [
-            "project_id",
+            "store_id",
             "code"
           ]
         }
@@ -88,12 +88,12 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "project.currency": {
+    "store.currency": {
       "name": "currency",
-      "schema": "project",
+      "schema": "store",
       "columns": {
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -145,11 +145,11 @@
         }
       },
       "indexes": {
-        "idx_currency_project_id": {
-          "name": "idx_currency_project_id",
+        "idx_currency_store_id": {
+          "name": "idx_currency_store_id",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -178,10 +178,10 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "currency_project_id_code_pk": {
-          "name": "currency_project_id_code_pk",
+        "currency_store_id_code_pk": {
+          "name": "currency_store_id_code_pk",
           "columns": [
-            "project_id",
+            "store_id",
             "code"
           ]
         }
@@ -191,15 +191,21 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "project.project": {
-      "name": "project",
-      "schema": "project",
+    "store.store": {
+      "name": "store",
+      "schema": "store",
       "columns": {
         "id": {
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
           "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "external_system": {
           "name": "external_system",
@@ -227,8 +233,8 @@
         },
         "status": {
           "name": "status",
-          "type": "project_status",
-          "typeSchema": "project",
+          "type": "store_status",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true,
           "default": "'active'"
@@ -301,8 +307,8 @@
         }
       },
       "indexes": {
-        "project_slug_key": {
-          "name": "project_slug_key",
+        "store_slug_key": {
+          "name": "store_slug_key",
           "columns": [
             {
               "expression": "slug",
@@ -317,8 +323,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_status": {
-          "name": "idx_project_status",
+        "idx_store_status": {
+          "name": "idx_store_status",
           "columns": [
             {
               "expression": "status",
@@ -332,8 +338,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_created_at": {
-          "name": "idx_project_created_at",
+        "idx_store_created_at": {
+          "name": "idx_store_created_at",
           "columns": [
             {
               "expression": "created_at",
@@ -347,8 +353,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_deleted_at": {
-          "name": "idx_project_deleted_at",
+        "idx_store_deleted_at": {
+          "name": "idx_store_deleted_at",
           "columns": [
             {
               "expression": "deleted_at",
@@ -363,8 +369,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_external": {
-          "name": "idx_project_external",
+        "idx_store_external": {
+          "name": "idx_store_external",
           "columns": [
             {
               "expression": "external_system",
@@ -383,52 +389,67 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "idx_store_organization": {
+          "name": "idx_store_organization",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "project_id_default_locale_locale_project_id_code_fk": {
-          "name": "project_id_default_locale_locale_project_id_code_fk",
-          "tableFrom": "project",
+        "store_id_default_locale_locale_store_id_code_fk": {
+          "name": "store_id_default_locale_locale_store_id_code_fk",
+          "tableFrom": "store",
           "tableTo": "locale",
-          "schemaTo": "project",
+          "schemaTo": "store",
           "columnsFrom": [
             "id",
             "default_locale"
           ],
           "columnsTo": [
-            "project_id",
+            "store_id",
             "code"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "project_id_base_currency_currency_project_id_code_fk": {
-          "name": "project_id_base_currency_currency_project_id_code_fk",
-          "tableFrom": "project",
+        "store_id_base_currency_currency_store_id_code_fk": {
+          "name": "store_id_base_currency_currency_store_id_code_fk",
+          "tableFrom": "store",
           "tableTo": "currency",
-          "schemaTo": "project",
+          "schemaTo": "store",
           "columnsFrom": [
             "id",
             "base_currency"
           ],
           "columnsTo": [
-            "project_id",
+            "store_id",
             "code"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "project_id_default_currency_currency_project_id_code_fk": {
-          "name": "project_id_default_currency_currency_project_id_code_fk",
-          "tableFrom": "project",
+        "store_id_default_currency_currency_store_id_code_fk": {
+          "name": "store_id_default_currency_currency_store_id_code_fk",
+          "tableFrom": "store",
           "tableTo": "currency",
-          "schemaTo": "project",
+          "schemaTo": "store",
           "columnsFrom": [
             "id",
             "default_currency"
           ],
           "columnsTo": [
-            "project_id",
+            "store_id",
             "code"
           ],
           "onDelete": "no action",
@@ -441,9 +462,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "project.api_key": {
+    "store.api_key": {
       "name": "api_key",
-      "schema": "project",
+      "schema": "store",
       "columns": {
         "id": {
           "name": "id",
@@ -451,8 +472,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -531,11 +552,11 @@
           "method": "btree",
           "with": {}
         },
-        "idx_api_key_project_id": {
-          "name": "idx_api_key_project_id",
+        "idx_api_key_store_id": {
+          "name": "idx_api_key_store_id",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -579,13 +600,13 @@
         }
       },
       "foreignKeys": {
-        "api_key_project_id_project_id_fk": {
-          "name": "api_key_project_id_project_id_fk",
+        "api_key_store_id_store_id_fk": {
+          "name": "api_key_store_id_store_id_fk",
           "tableFrom": "api_key",
-          "tableTo": "project",
-          "schemaTo": "project",
+          "tableTo": "store",
+          "schemaTo": "store",
           "columnsFrom": [
-            "project_id"
+            "store_id"
           ],
           "columnsTo": [
             "id"
@@ -600,9 +621,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "project.project_integration": {
-      "name": "project_integration",
-      "schema": "project",
+    "store.store_integration": {
+      "name": "store_integration",
+      "schema": "store",
       "columns": {
         "id": {
           "name": "id",
@@ -611,8 +632,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "project_id": {
-          "name": "project_id",
+        "store_id": {
+          "name": "store_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -620,7 +641,7 @@
         "type": {
           "name": "type",
           "type": "integration_type",
-          "typeSchema": "project",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true
         },
@@ -633,7 +654,7 @@
         "status": {
           "name": "status",
           "type": "integration_status",
-          "typeSchema": "project",
+          "typeSchema": "store",
           "primaryKey": false,
           "notNull": true,
           "default": "'active'"
@@ -680,11 +701,11 @@
         }
       },
       "indexes": {
-        "idx_project_integration_unique": {
-          "name": "idx_project_integration_unique",
+        "idx_store_integration_unique": {
+          "name": "idx_store_integration_unique",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -701,11 +722,11 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_integration_project_id": {
-          "name": "idx_project_integration_project_id",
+        "idx_store_integration_store_id": {
+          "name": "idx_store_integration_store_id",
           "columns": [
             {
-              "expression": "project_id",
+              "expression": "store_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -716,8 +737,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_integration_type": {
-          "name": "idx_project_integration_type",
+        "idx_store_integration_type": {
+          "name": "idx_store_integration_type",
           "columns": [
             {
               "expression": "type",
@@ -731,8 +752,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_project_integration_status": {
-          "name": "idx_project_integration_status",
+        "idx_store_integration_status": {
+          "name": "idx_store_integration_status",
           "columns": [
             {
               "expression": "status",
@@ -748,13 +769,13 @@
         }
       },
       "foreignKeys": {
-        "project_integration_project_id_project_id_fk": {
-          "name": "project_integration_project_id_project_id_fk",
-          "tableFrom": "project_integration",
-          "tableTo": "project",
-          "schemaTo": "project",
+        "store_integration_store_id_store_id_fk": {
+          "name": "store_integration_store_id_store_id_fk",
+          "tableFrom": "store_integration",
+          "tableTo": "store",
+          "schemaTo": "store",
           "columnsFrom": [
-            "project_id"
+            "store_id"
           ],
           "columnsTo": [
             "id"
@@ -1101,26 +1122,26 @@
         "oz"
       ]
     },
-    "project.project_status": {
-      "name": "project_status",
-      "schema": "project",
+    "store.store_status": {
+      "name": "store_status",
+      "schema": "store",
       "values": [
         "active",
         "inactive"
       ]
     },
-    "project.integration_status": {
+    "store.integration_status": {
       "name": "integration_status",
-      "schema": "project",
+      "schema": "store",
       "values": [
         "active",
         "inactive",
         "error"
       ]
     },
-    "project.integration_type": {
+    "store.integration_type": {
       "name": "integration_type",
-      "schema": "project",
+      "schema": "store",
       "values": [
         "iam",
         "payment",
@@ -1132,7 +1153,7 @@
     }
   },
   "schemas": {
-    "project": "project",
+    "store": "store",
     "reference": "reference"
   },
   "sequences": {},
