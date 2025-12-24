@@ -8,11 +8,11 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import {
-  setContext,
-  type ServiceContext,
-} from "../../context/index.js";
+  getServiceConfig,
+  isDevelopment,
+} from "@shopana/shared-service-config";
+import { setContext, type ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("iam");
 import { Kernel } from "../../kernel/Kernel.js";
@@ -47,7 +47,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[IAM] {msg}',
+              messageFormat: "[IAM] {msg}",
               levelFirst: true,
             },
           },
@@ -66,6 +66,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "user.graphql",
     "role.graphql",
     "organization.graphql",
+    "membership.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({
@@ -83,9 +84,12 @@ export async function startServer(serverConfig: ServerConfig) {
   await apollo.start();
 
   // Admin context middleware - extracts organizationId from JWT
-  app.addHook("preHandler", buildAdminContextMiddleware({
-    repository: kernel?.repository ?? null,
-  }));
+  app.addHook(
+    "preHandler",
+    buildAdminContextMiddleware({
+      repository: kernel?.repository ?? null,
+    })
+  );
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
