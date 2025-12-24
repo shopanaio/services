@@ -240,6 +240,7 @@ export class UserRepository {
     try {
       // Check if it looks like a JWT (has 3 parts separated by dots)
       if (!token.includes(".") || token.split(".").length !== 3) {
+        console.log('[IAM verifyJwtToken] Not a JWT token');
         return { success: false, user: null, error: "Not a JWT token" };
       }
 
@@ -267,6 +268,7 @@ export class UserRepository {
       // Fetch full user data from database
       const userRecord = await this.findById(jwtPayload.sub);
       if (!userRecord) {
+        console.log('[IAM verifyJwtToken] User not found:', jwtPayload.sub);
         return { success: false, user: null, error: "User not found" };
       }
 
@@ -319,6 +321,7 @@ export class UserRepository {
             }
             return parsed;
           } catch (e) {
+            console.log('[IAM getLocalJWKS] Failed to parse key:', e);
             return null;
           }
         })
@@ -337,6 +340,7 @@ export class UserRepository {
 
       return this.jwksCache;
     } catch (error) {
+      console.error("Failed to load JWKS from database:", error);
       return null;
     }
   }
