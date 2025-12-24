@@ -26,7 +26,7 @@ export const checkoutTagDelete = async (
       checkoutId: dto.checkoutId,
       tagId: dto.tagId,
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

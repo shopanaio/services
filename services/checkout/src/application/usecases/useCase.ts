@@ -99,7 +99,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
       apiKey: ctx.apiKey,
       contractVersion: 3,
       now: new Date(),
-      projectId: ctx.project.id,
+      projectId: ctx.store.id,
       userId: ctx.user?.id,
     } as const;
   }
@@ -125,7 +125,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
    */
   protected validateTenantAccess(state: CheckoutState, context: CheckoutContext): void {
     const ctx = context;
-    if (state.projectId && state.projectId !== ctx.project.id) {
+    if (state.projectId && state.projectId !== ctx.store.id) {
       throw new Error("Forbidden");
     }
   }

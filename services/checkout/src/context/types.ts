@@ -1,4 +1,4 @@
-import type { CoreCustomer, CoreProject, CoreUser } from "@shopana/platform-api";
+import type { CoreCustomer, CoreStore, CoreUser } from "@shopana/platform-api";
 
 /**
  * Checkout service execution context
@@ -7,8 +7,8 @@ import type { CoreCustomer, CoreProject, CoreUser } from "@shopana/platform-api"
 export interface CheckoutContext {
   /** API key for the request */
   apiKey: string;
-  /** Current project - required for all operations */
-  project: CoreProject;
+  /** Current store - required for all operations */
+  store: CoreStore;
   /** Optional authenticated user */
   user?: CoreUser | null;
   /** Optional customer context */

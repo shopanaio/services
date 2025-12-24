@@ -1,11 +1,11 @@
 import type { Kernel } from "../kernel/Kernel.js";
-import type { ProjectWithIntegrations } from "../repositories/index.js";
+import type { StoreWithIntegrations } from "../repositories/index.js";
 
 /**
- * Project entity from context - full project with integrations
+ * Store entity from context - full store with integrations
  * organizationId is extracted from integrations.iam.config for convenience
  */
-export interface ContextProject extends ProjectWithIntegrations {
+export interface ContextStore extends StoreWithIntegrations {
   /** Organization ID from IAM integration (shortcut) */
   organizationId: string;
 }
@@ -24,10 +24,10 @@ export interface ContextUser {
 export interface ServiceContext {
   /** Unique request identifier */
   requestId: string;
-  /** Project slug from header */
+  /** Store slug from header */
   slug: string;
-  /** Current project - required for all operations */
-  project: ContextProject;
+  /** Current store - required for all operations */
+  store: ContextStore;
   /** Authenticated user (optional - may be API key auth) */
   user?: ContextUser;
   /** Current locale for translations (default: 'uk') */

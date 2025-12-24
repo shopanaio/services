@@ -41,7 +41,7 @@ export const checkoutDeliveryAddressesAdd = async (
         phone: addressInput.phone,
         data: addressInput.data,
         apiKey: ctx.apiKey,
-        project: ctx.project,
+        store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });

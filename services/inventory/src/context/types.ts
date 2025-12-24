@@ -1,4 +1,4 @@
-import type { CoreProject, CoreUser } from "@shopana/platform-api";
+import type { CoreStore, CoreUser } from "@shopana/platform-api";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
@@ -9,10 +9,10 @@ import type { Loader } from "../loaders/Loader.js";
 export interface ServiceContext {
   /** Unique request identifier */
   requestId: string;
-  /** Project slug from header */
+  /** Store slug from header */
   slug: string;
-  /** Current project - required for all operations */
-  project: CoreProject;
+  /** Current store - required for all operations */
+  store: CoreStore;
   /** Authenticated user for admin API */
   user: CoreUser;
   /** Current locale for translations (default: 'uk') */

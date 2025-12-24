@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { ContextProject, ContextUser } from "../../context/index.js";
+import type { ContextStore, ContextUser } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
-import { GetCurrentProjectScript } from "../../scripts/index.js";
+import { GetCurrentStoreScript } from "../../scripts/index.js";
 
 interface IamCurrentUserResult {
   user: {
@@ -27,7 +27,7 @@ export class ForbiddenError extends Error {
 
 declare module "fastify" {
   interface FastifyRequest {
-    project: ContextProject;
+    store: ContextStore;
     user: ContextUser;
     accessToken?: string;
   }
@@ -69,30 +69,30 @@ function shouldSkipAuth(request: FastifyRequest): boolean {
 
 /**
  * Build admin context middleware
- * Authenticates user via IAM and validates project access
+ * Authenticates user via IAM and validates store access
  */
 export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
   return async function adminContextMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
   ) {
-    console.log('[PROJECT contextMiddleware] URL:', request.url);
-    console.log('[PROJECT contextMiddleware] Headers:', JSON.stringify(request.headers, null, 2));
+    console.log('[STORE contextMiddleware] URL:', request.url);
+    console.log('[STORE contextMiddleware] Headers:', JSON.stringify(request.headers, null, 2));
 
     if (shouldSkipAuth(request)) {
-      console.log('[PROJECT contextMiddleware] Skipping auth');
+      console.log('[STORE contextMiddleware] Skipping auth');
       return;
     }
 
     const kernel = Kernel.getInstance();
-    const slug = request.headers["x-project-name"] as string | undefined;
+    const slug = request.headers["x-store-name"] as string | undefined;
 
     // Extract access token from Authorization header
     const authHeader = request.headers.authorization;
-    console.log('[PROJECT contextMiddleware] Authorization header:', authHeader ? `${authHeader.slice(0, 30)}...` : 'MISSING');
+    console.log('[STORE contextMiddleware] Authorization header:', authHeader ? `${authHeader.slice(0, 30)}...` : 'MISSING');
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.log('[PROJECT contextMiddleware] REJECTING - no auth header');
+      console.log('[STORE contextMiddleware] REJECTING - no auth header');
       return reply
         .status(401)
         .send({ data: null, errors: [{ message: "Missing or invalid Authorization header" }] });
@@ -101,16 +101,16 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     const accessToken = authHeader.slice(7); // Remove "Bearer " prefix
 
     // 1. Always authenticate user via IAM
-    console.log('[PROJECT contextMiddleware] Calling iam.getCurrentUser with token:', accessToken.slice(0, 20) + '...');
+    console.log('[STORE contextMiddleware] Calling iam.getCurrentUser with token:', accessToken.slice(0, 20) + '...');
     const userResult = await kernel.getServices().broker.call(
       "iam.getCurrentUser",
       { accessToken }
     ) as IamCurrentUserResult;
 
-    console.log('[PROJECT contextMiddleware] iam.getCurrentUser result:', JSON.stringify(userResult, null, 2));
+    console.log('[STORE contextMiddleware] iam.getCurrentUser result:', JSON.stringify(userResult, null, 2));
 
     if (!userResult.user) {
-      console.log('[PROJECT contextMiddleware] REJECTING - no user from IAM');
+      console.log('[STORE contextMiddleware] REJECTING - no user from IAM');
       return reply
         .status(401)
         .send({ data: null, errors: [{ message: userResult.userErrors[0]?.message || "Unauthorized" }] });
@@ -122,47 +122,47 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     };
     request.accessToken = accessToken;
 
-    // 2. If no project slug provided, skip project validation (for project creation)
+    // 2. If no store slug provided, skip store validation (for store creation)
     if (!slug) {
-      request.project = null as unknown as ContextProject;
+      request.store = null as unknown as ContextStore;
       return;
     }
 
-    // 3. Load project by slug
-    const result = await kernel.runScript(GetCurrentProjectScript, {
+    // 3. Load store by slug
+    const result = await kernel.runScript(GetCurrentStoreScript, {
       slug,
     });
 
     if (result.userErrors.length > 0) {
       const error = result.userErrors[0];
       const statusCode = error.code === "ACCESS_DENIED" ? 403 :
-                        error.code === "PROJECT_NOT_FOUND" ? 404 : 400;
+                        error.code === "STORE_NOT_FOUND" ? 404 : 400;
       return reply
         .status(statusCode)
         .send({ data: null, errors: [{ message: error.message, code: error.code }] });
     }
 
-    if (!result.project || !result.project.integrations.iam) {
+    if (!result.store || !result.store.integrations.iam) {
       return reply
         .status(404)
-        .send({ data: null, errors: [{ message: "Project not found" }] });
+        .send({ data: null, errors: [{ message: "Store not found" }] });
     }
 
-    const organizationId = result.project.integrations.iam.config.organizationId;
+    const organizationId = result.store.integrations.iam.config.organizationId;
 
-    // 4. Check user has role in this project via IAM
+    // 4. Check user has role in this store via IAM
     const roleResult = await kernel.getServices().broker.call(
       "iam.getUserRole",
       { userId: userResult.user.id, organizationId }
     ) as IamGetUserRoleResult;
 
     if (!roleResult.role) {
-      throw new ForbiddenError("Access denied to this project");
+      throw new ForbiddenError("Access denied to this store");
     }
 
-    // Set full project on request with organizationId shortcut
-    request.project = {
-      ...result.project,
+    // Set full store on request with organizationId shortcut
+    request.store = {
+      ...result.store,
       organizationId,
     };
   };

@@ -28,7 +28,7 @@ export const checkoutTagUpdate = async (
       slug: dto.slug,
       isUnique: dto.unique,
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

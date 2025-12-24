@@ -27,7 +27,7 @@ export const checkoutCurrencyCodeUpdate = async (
       checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       currencyCode: dto.currencyCode,
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

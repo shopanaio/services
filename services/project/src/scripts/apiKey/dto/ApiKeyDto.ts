@@ -3,7 +3,7 @@ import type { ApiKey } from "../../../repositories/models/index.js";
 import type { ApiKeyActionPayload } from "./shared.js";
 
 export interface ApiKeyCreateParams {
-  projectId: string;
+  storeId: string;
   name: string;
   createdById: string;
   dueDate?: Date;

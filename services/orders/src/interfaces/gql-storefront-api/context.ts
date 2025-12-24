@@ -1,4 +1,4 @@
-import type { CoreCustomer, CoreProject, CoreUser } from "@shopana/platform-api";
+import type { CoreCustomer, CoreStore, CoreUser } from "@shopana/platform-api";
 
 /**
  * GraphQL context for order service
@@ -15,9 +15,9 @@ export type GraphQLContext = {
    */
   apiKey: string;
   /**
-   * Current project. Required for all operations.
+   * Current store. Required for all operations.
    */
-  project: CoreProject;
+  store: CoreStore;
   user?: CoreUser | null;
   customer?: CoreCustomer | null;
 };

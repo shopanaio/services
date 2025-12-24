@@ -1,5 +1,5 @@
 export {
-  ProjectCreateWorkflow,
-  type ProjectCreateInput,
-  type ProjectCreateOutput,
-} from './ProjectCreateWorkflow.js';
+  StoreCreateWorkflow,
+  type StoreCreateInput,
+  type StoreCreateOutput,
+} from './StoreCreateWorkflow.js';

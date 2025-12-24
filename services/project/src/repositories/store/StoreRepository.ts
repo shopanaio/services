@@ -3,13 +3,13 @@ import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  project,
+  store,
   locale,
   currency,
-  projectIntegration,
-  type Project,
-  type ProjectIntegration,
-  type ProjectStatus,
+  storeIntegration,
+  type Store,
+  type StoreIntegration,
+  type StoreStatus,
   type WeightUnit,
   type DimensionUnit,
   type CurrencyCode,
@@ -22,14 +22,14 @@ import {
  */
 export interface IntegrationInfo<TConfig = Record<string, unknown>> {
   provider: string;
-  status: ProjectIntegration["status"];
+  status: StoreIntegration["status"];
   config: TConfig;
 }
 
 /**
- * Project with loaded integrations
+ * Store with loaded integrations
  */
-export interface ProjectWithIntegrations extends Project {
+export interface StoreWithIntegrations extends Store {
   integrations: {
     iam?: IntegrationInfo<IamIntegrationConfig>;
     payment?: IntegrationInfo;
@@ -40,16 +40,16 @@ export interface ProjectWithIntegrations extends Project {
   };
 }
 
-export interface ProjectQueryInput {}
-export interface ProjectRelayInput {}
+export interface StoreQueryInput {}
+export interface StoreRelayInput {}
 
-export interface ProjectConnectionResult {
+export interface StoreConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
   totalCount: number;
 }
 
-export interface CreateProjectData {
+export interface CreateStoreData {
   id: string;
   organizationId: string;
   name: string;
@@ -57,14 +57,14 @@ export interface CreateProjectData {
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
-  status?: ProjectStatus;
+  status?: StoreStatus;
   timezone?: string;
   email?: string | null;
   defaultWeightUnit?: WeightUnit;
   defaultDimensionUnit?: DimensionUnit;
 }
 
-export interface UpdateProjectData {
+export interface UpdateStoreData {
   name?: string;
   email?: string | null;
   timezone?: string;
@@ -72,20 +72,20 @@ export interface UpdateProjectData {
   defaultDimensionUnit?: DimensionUnit;
 }
 
-export class ProjectRepository extends BaseRepository {
+export class StoreRepository extends BaseRepository {
   /**
-   * Load integrations for a project and attach to project object
+   * Load integrations for a store and attach to store object
    */
   private async loadIntegrations(
-    proj: Project
-  ): Promise<ProjectWithIntegrations> {
+    storeRecord: Store
+  ): Promise<StoreWithIntegrations> {
     const integrations = await this.connection
       .select()
-      .from(projectIntegration)
-      .where(eq(projectIntegration.projectId, proj.id));
+      .from(storeIntegration)
+      .where(eq(storeIntegration.storeId, storeRecord.id));
 
-    const result: ProjectWithIntegrations = {
-      ...proj,
+    const result: StoreWithIntegrations = {
+      ...storeRecord,
       integrations: {},
     };
 
@@ -125,17 +125,17 @@ export class ProjectRepository extends BaseRepository {
   }
 
   /**
-   * Create a new project with locales and default currency.
+   * Create a new store with locales and default currency.
    */
   @Transactional()
-  async create(data: CreateProjectData): Promise<Project> {
+  async create(data: CreateStoreData): Promise<Store> {
     const now = new Date();
     const defaultLocale = data.locales[0];
 
-    // 1. Create locale records first (required by project FK)
+    // 1. Create locale records first (required by store FK)
     for (const localeCode of data.locales) {
       await this.connection.insert(locale).values({
-        projectId: data.id,
+        storeId: data.id,
         code: localeCode,
         isActive: true,
         createdAt: now,
@@ -143,10 +143,10 @@ export class ProjectRepository extends BaseRepository {
       });
     }
 
-    // 2. Create currency records (required by project FK)
+    // 2. Create currency records (required by store FK)
     for (const currencyCode of data.currencies) {
       await this.connection.insert(currency).values({
-        projectId: data.id,
+        storeId: data.id,
         code: currencyCode,
         isActive: true,
         exchangeRateAmount: BigInt(1),
@@ -157,9 +157,9 @@ export class ProjectRepository extends BaseRepository {
       });
     }
 
-    // 3. Create project (now FK references exist)
+    // 3. Create store (now FK references exist)
     const [result] = await this.connection
-      .insert(project)
+      .insert(store)
       .values({
         id: data.id,
         organizationId: data.organizationId,
@@ -185,11 +185,11 @@ export class ProjectRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findById(id: string): Promise<ProjectWithIntegrations | undefined> {
+  async findById(id: string): Promise<StoreWithIntegrations | undefined> {
     const [result] = await this.connection
       .select()
-      .from(project)
-      .where(eq(project.id, id));
+      .from(store)
+      .where(eq(store.id, id));
 
     if (!result) return undefined;
 
@@ -197,27 +197,27 @@ export class ProjectRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findBySlug(slug: string): Promise<ProjectWithIntegrations | undefined> {
+  async findBySlug(slug: string): Promise<StoreWithIntegrations | undefined> {
     const [result] = await this.connection
       .select()
-      .from(project)
-      .where(eq(project.slug, slug));
+      .from(store)
+      .where(eq(store.slug, slug));
 
     if (!result) return undefined;
     return this.loadIntegrations(result);
   }
 
   @ReadOnly()
-  async getMany(): Promise<ProjectWithIntegrations[]> {
-    const projects = await this.connection.select().from(project);
-    return Promise.all(projects.map((p) => this.loadIntegrations(p)));
+  async getMany(): Promise<StoreWithIntegrations[]> {
+    const stores = await this.connection.select().from(store);
+    return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
 
   @Transactional()
   async update(
     id: string,
-    data: UpdateProjectData
-  ): Promise<ProjectWithIntegrations | undefined> {
+    data: UpdateStoreData
+  ): Promise<StoreWithIntegrations | undefined> {
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
@@ -231,9 +231,9 @@ export class ProjectRepository extends BaseRepository {
       updateData.defaultDimensionUnit = data.defaultDimensionUnit;
 
     const [result] = await this.connection
-      .update(project)
+      .update(store)
       .set(updateData)
-      .where(eq(project.id, id))
+      .where(eq(store.id, id))
       .returning();
 
     if (!result) return undefined;

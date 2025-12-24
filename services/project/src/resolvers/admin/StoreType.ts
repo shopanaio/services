@@ -1,13 +1,13 @@
 import { BaseType, Cache } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
-import type { Project } from "../../repositories/models/project.js";
+import type { Store } from "../../repositories/models/store.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
 
 /**
  * Base resolver class with pre-configured ServiceContext
  * Eliminates the need to specify context type parameter in every resolver
  */
-export abstract class ProjectType<Value, Data = unknown> extends BaseType<
+export abstract class StoreType<Value, Data = unknown> extends BaseType<
   Value,
   Data,
   ServiceContext
@@ -18,18 +18,18 @@ export abstract class ProjectType<Value, Data = unknown> extends BaseType<
 }
 
 /**
- * Project type resolver - resolves Project GraphQL type
- * Accepts project ID, loads data lazily via repository
+ * Store type resolver - resolves Store GraphQL type
+ * Accepts store ID, loads data lazily via repository
  */
-export class ProjectResolver extends ProjectType<string, Project | null> {
+export class StoreResolver extends StoreType<string, Store | null> {
   @Cache({
-    cacheName: "project",
-    key: (resolver: ProjectResolver) => resolver.value,
+    cacheName: "store",
+    key: (resolver: StoreResolver) => resolver.value,
   })
   async loadData() {
     const result = await this.ctx.kernel
       .getServices()
-      .repository.project.findById(this.value);
+      .repository.store.findById(this.value);
     return result ?? null;
   }
 
@@ -86,24 +86,24 @@ export class ProjectResolver extends ProjectType<string, Project | null> {
   }
 
   @Cache({
-    cacheName: "project-locales",
-    key: (resolver: ProjectResolver) => resolver.value,
+    cacheName: "store-locales",
+    key: (resolver: StoreResolver) => resolver.value,
   })
   async locales(): Promise<LocaleCode[]> {
     const locales = await this.ctx.kernel
       .getServices()
-      .repository.locale.findByProjectId(this.value);
+      .repository.locale.findByStoreId(this.value);
     return locales?.map((l) => l.code as LocaleCode) ?? [];
   }
 
   @Cache({
-    cacheName: "project-currencies",
-    key: (resolver: ProjectResolver) => resolver.value,
+    cacheName: "store-currencies",
+    key: (resolver: StoreResolver) => resolver.value,
   })
   async currencies(): Promise<CurrencyCode[]> {
     const currencies = await this.ctx.kernel
       .getServices()
-      .repository.currency.findByProjectId(this.value);
+      .repository.currency.findByStoreId(this.value);
     return currencies?.map((c) => c.code as CurrencyCode) ?? [];
   }
 }

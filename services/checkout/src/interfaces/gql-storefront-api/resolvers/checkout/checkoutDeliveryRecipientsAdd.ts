@@ -34,7 +34,7 @@ export const checkoutDeliveryRecipientsAdd = async (
           phone: recipientInput.recipient.phone,
         },
         apiKey: ctx.apiKey,
-        project: ctx.project,
+        store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });

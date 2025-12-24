@@ -1,4 +1,4 @@
-import type { Resolvers, ProjectMutation } from "../generated/types.js";
+import type { Resolvers, StoreMutation } from "../generated/types.js";
 
 // Queries
 import { queryResolvers } from "./queries.js";
@@ -7,11 +7,11 @@ import { queryResolvers } from "./queries.js";
 import { typeResolvers } from "./types.js";
 
 // Mutations
-import { projectMutationResolvers } from "./mutations/project.js";
+import { storeMutationResolvers } from "./mutations/store.js";
 import { localeMutationResolvers } from "./mutations/locale.js";
 import { currencyMutationResolvers } from "./mutations/currency.js";
 import { apiKeyMutationResolvers } from "./mutations/apiKey.js";
-import { projectMemberMutationResolvers } from "./mutations/projectMember.js";
+import { storeMemberMutationResolvers } from "./mutations/storeMember.js";
 
 /**
  * Deep merge resolvers - combines multiple resolver objects into one
@@ -35,7 +35,7 @@ export const resolvers: Resolvers = mergeResolvers(
   // Base mutation wrapper
   {
     Mutation: {
-      projectMutation: () => ({}) as ProjectMutation,
+      storeMutation: () => ({}) as StoreMutation,
     },
   },
 
@@ -46,9 +46,9 @@ export const resolvers: Resolvers = mergeResolvers(
   queryResolvers,
 
   // Mutations by domain
-  projectMutationResolvers,
+  storeMutationResolvers,
   localeMutationResolvers,
   currencyMutationResolvers,
   apiKeyMutationResolvers,
-  projectMemberMutationResolvers
+  storeMemberMutationResolvers
 );

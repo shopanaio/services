@@ -29,7 +29,7 @@ export const checkoutTagCreate = async (
         isUnique: dto.tag.unique,
       },
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

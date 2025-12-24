@@ -20,54 +20,54 @@ scalar Email
 scalar Timestamp
 
 extend type Query {
-  """Project-related queries"""
-  projectQuery: ProjectQuery!
+  """Store-related queries"""
+  storeQuery: StoreQuery!
 }
 
 extend type Mutation {
-  """Project-related mutations"""
-  projectMutation: ProjectMutation!
+  """Store-related mutations"""
+  storeMutation: StoreMutation!
 }
 
-"""Queries for project management"""
-type ProjectQuery {
-  """Get all projects accessible to the current user"""
-  projects: [Project!]!
+"""Queries for store management"""
+type StoreQuery {
+  """Get all stores accessible to the current user"""
+  stores: [Store!]!
 
-  """Get a project by its unique slug"""
-  project(
-    """URL-friendly identifier of the project"""
+  """Get a store by its unique slug"""
+  store(
+    """URL-friendly identifier of the store"""
     slug: String!
-  ): Project
+  ): Store
 
-  """Get all API keys for the current project"""
+  """Get all API keys for the current store"""
   apiKeys: [ApiKey!]!
 }
 
-"""Mutations for project management"""
-type ProjectMutation {
-  # Project mutations
-  """Create a new project"""
-  projectCreate(input: ProjectCreateInput!): ProjectCreatePayload!
-  """Update an existing project"""
-  projectUpdate(input: ProjectUpdateInput!): ProjectUpdatePayload!
-  """Delete a project"""
-  projectDelete(input: ProjectDeleteInput!): ProjectDeletePayload!
+"""Mutations for store management"""
+type StoreMutation {
+  # Store mutations
+  """Create a new store"""
+  storeCreate(input: StoreCreateInput!): StoreCreatePayload!
+  """Update an existing store"""
+  storeUpdate(input: StoreUpdateInput!): StoreUpdatePayload!
+  """Delete a store"""
+  storeDelete(input: StoreDeleteInput!): StoreDeletePayload!
 
   # Currency mutations
-  """Add a new currency to the project"""
+  """Add a new currency to the store"""
   currencyCreate(input: CurrencyCreateInput!): CurrencyCreatePayload!
-  """Remove a currency from the project"""
+  """Remove a currency from the store"""
   currencyDelete(input: CurrencyDeleteInput!): CurrencyDeletePayload!
-  """Set the default currency for the project"""
+  """Set the default currency for the store"""
   currencySetDefault(input: CurrencySetDefaultInput!): CurrencyUpdatePayload!
 
   # Locale mutations
-  """Add a new locale to the project"""
+  """Add a new locale to the store"""
   localeCreate(input: LocaleCreateInput!): LocaleCreatePayload!
-  """Remove a locale from the project"""
+  """Remove a locale from the store"""
   localeDelete(input: LocaleDeleteInput!): LocaleDeletePayload!
-  """Set the default locale for the project"""
+  """Set the default locale for the store"""
   localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
 
   # API Key mutations
@@ -78,9 +78,9 @@ type ProjectMutation {
   """Permanently delete an API key"""
   apiKeyDelete(input: ApiKeyDeleteInput!): ApiKeyDeletePayload!
 
-  # Project Member mutations
-  """Change a member's role. Requires project.team:write permission."""
-  projectMemberRoleChange(input: ProjectMemberRoleChangeInput!): ProjectMemberRoleChangePayload!
-  """Remove a member from the project. Requires project.team:remove permission."""
-  projectMemberRemove(input: ProjectMemberRemoveInput!): ProjectMemberRemovePayload!
+  # Store Member mutations
+  """Change a member's role. Requires store.team:write permission."""
+  storeMemberRoleChange(input: StoreMemberRoleChangeInput!): StoreMemberRoleChangePayload!
+  """Remove a member from the store. Requires store.team:remove permission."""
+  storeMemberRemove(input: StoreMemberRemoveInput!): StoreMemberRemovePayload!
 }

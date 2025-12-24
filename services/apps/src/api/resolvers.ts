@@ -31,7 +31,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
       // Getting available apps
       apps: async (_p, _a, ctx) => {
         const result = await kernel.executeScript(getAvailableAppsScript, {
-          projectId: ctx.project.id,
+          storeId: ctx.store.id,
         });
 
         return result.apps.map((a) => ({
@@ -44,7 +44,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
       // Getting installed apps
       installedApps: async (_p, _a, ctx) => {
         const result = await kernel.executeScript(getInstalledAppsScript, {
-          projectId: ctx.project.id,
+          storeId: ctx.store.id,
         });
 
         return result.apps.map((a) => ({
@@ -63,7 +63,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
       install: async (_p, args: { code: string }, ctx) => {
         const result = await kernel.executeScript(installAppScript, {
           appCode: args.code,
-          projectId: ctx.project.id,
+          storeId: ctx.store.id,
         });
 
         return result.success;
@@ -73,7 +73,7 @@ export function createResolvers(kernel: Kernel): Resolvers {
       uninstall: async (_p, args: { code: string }, ctx) => {
         const result = await kernel.executeScript(uninstallAppScript, {
           appCode: args.code,
-          projectId: ctx.project.id,
+          storeId: ctx.store.id,
         });
 
         return result.success;

@@ -7,16 +7,16 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema";
-import { project } from "./project";
+import { storeSchema } from "./schema";
+import { store } from "./store";
 
-export const apiKey = projectSchema.table(
+export const apiKey = storeSchema.table(
   "api_key",
   {
     id: uuid("id").primaryKey(),
-    projectId: uuid("project_id")
+    storeId: uuid("store_id")
       .notNull()
-      .references(() => project.id, { onDelete: "cascade" }),
+      .references(() => store.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     key: varchar("key", { length: 64 }).notNull(),
     createdById: uuid("created_by_id").notNull(),
@@ -33,7 +33,7 @@ export const apiKey = projectSchema.table(
     uniqueIndex("api_key_key_unique")
       .on(table.key)
       .where(sql`deleted_at IS NULL`),
-    index("idx_api_key_project_id").on(table.projectId),
+    index("idx_api_key_store_id").on(table.storeId),
     index("idx_api_key_created_by_id").on(table.createdById),
     index("idx_api_key_deleted_at")
       .on(table.deletedAt)

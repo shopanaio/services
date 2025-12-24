@@ -1,10 +1,10 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 
-export interface ProjectDeleteParams {
+export interface StoreDeleteParams {
   id: string;
 }
 
-export interface ProjectDeleteResult {
-  deletedProjectId?: string;
+export interface StoreDeleteResult {
+  deletedStoreId?: string;
   userErrors: UserError[];
 }

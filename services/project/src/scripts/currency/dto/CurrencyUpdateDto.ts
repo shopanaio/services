@@ -2,7 +2,7 @@ import type { CurrencyCode } from "../../../repositories/models/index.js";
 import type { CurrencyUpdatePayload } from "./shared.js";
 
 export interface CurrencySetDefaultParams {
-  projectId: string;
+  storeId: string;
   currency: CurrencyCode;
 }
 

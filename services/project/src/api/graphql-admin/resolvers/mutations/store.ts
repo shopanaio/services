@@ -1,14 +1,14 @@
 import { z } from "zod";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import type { Resolvers, Project } from "../../generated/types.js";
-import { ProjectUpdateScript } from "../../../../scripts/project/ProjectUpdateScript.js";
-import { ProjectDeleteScript } from "../../../../scripts/project/ProjectDeleteScript.js";
-import { ProjectResolver } from "../../../../resolvers/admin/ProjectType.js";
+import type { Resolvers, Store } from "../../generated/types.js";
+import { StoreUpdateScript } from "../../../../scripts/store/StoreUpdateScript.js";
+import { StoreDeleteScript } from "../../../../scripts/store/StoreDeleteScript.js";
+import { StoreResolver } from "../../../../resolvers/admin/StoreType.js";
 import { requireContext } from "../utils.js";
-import type { ProjectCreateWorkflow } from "../../../../workflows/index.js";
+import type { StoreCreateWorkflow } from "../../../../workflows/index.js";
 import { checkAuthorization } from "../../decorators/authorize.js";
 
-const ProjectCreateInputSchema = z.object({
+const StoreCreateInputSchema = z.object({
   name: z.string().min(1, "Name is required"),
   slug: z.string().min(1, "Slug is required"),
   locales: z.array(z.string()).min(1, "At least one locale is required"),
@@ -27,22 +27,22 @@ function zodErrorsToUserErrors(error: z.ZodError) {
   }));
 }
 
-export const projectMutationResolvers: Partial<Resolvers> = {
-  ProjectMutation: {
-    projectCreate: async (_parent, { input }, ctx, info) => {
+export const storeMutationResolvers: Partial<Resolvers> = {
+  StoreMutation: {
+    storeCreate: async (_parent, { input }, ctx, info) => {
       // Validate input with Zod
-      const validation = ProjectCreateInputSchema.safeParse(input);
+      const validation = StoreCreateInputSchema.safeParse(input);
 
       if (!validation.success) {
         return {
-          project: null,
+          store: null,
           userErrors: zodErrorsToUserErrors(validation.error),
         };
       }
 
       if (!ctx.kernel.workflow) {
         return {
-          project: null,
+          store: null,
           userErrors: [
             {
               message: "Workflow not available",
@@ -55,7 +55,7 @@ export const projectMutationResolvers: Partial<Resolvers> = {
 
       try {
         const workflow =
-          ctx.kernel.workflow.get<ProjectCreateWorkflow>("projectCreate");
+          ctx.kernel.workflow.get<StoreCreateWorkflow>("storeCreate");
         const result = await workflow.run({
           name: input.name,
           slug: input.slug,
@@ -68,37 +68,37 @@ export const projectMutationResolvers: Partial<Resolvers> = {
           userId: ctx.user.id, // Creator gets owner role
         });
 
-        const projectFieldInfo = parseGraphqlInfo(info, "project");
+        const storeFieldInfo = parseGraphqlInfo(info, "store");
 
         return {
-          project: (await ProjectResolver.load(
-            result.projectId,
-            projectFieldInfo,
+          store: (await StoreResolver.load(
+            result.storeId,
+            storeFieldInfo,
             ctx
-          )) as Project,
+          )) as Store,
           userErrors: [],
         };
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Unknown error";
         return {
-          project: null,
+          store: null,
           userErrors: [{ message, code: "WORKFLOW_ERROR", field: null }],
         };
       }
     },
 
-    projectUpdate: async (_parent, { input }, ctx) => {
-      const authError = await checkAuthorization(ctx, "project", "update");
+    storeUpdate: async (_parent, { input }, ctx) => {
+      const authError = await checkAuthorization(ctx, "store", "update");
       if (authError) {
         return {
-          project: null,
+          store: null,
           userErrors: [authError],
         };
       }
 
-      const result = await ctx.kernel.runScript(ProjectUpdateScript, {
-        id: ctx.project.id,
+      const result = await ctx.kernel.runScript(StoreUpdateScript, {
+        id: ctx.store.id,
         name: input.name ?? undefined,
         email: input.email ?? undefined,
         timezone: input.timezone ?? undefined,
@@ -107,26 +107,26 @@ export const projectMutationResolvers: Partial<Resolvers> = {
       });
 
       return {
-        project: result.project ?? null,
+        store: result.store ?? null,
         userErrors: result.userErrors,
       };
     },
 
-    projectDelete: async (_parent, { input }, ctx) => {
-      const authError = await checkAuthorization(ctx, "project", "delete");
+    storeDelete: async (_parent, { input }, ctx) => {
+      const authError = await checkAuthorization(ctx, "store", "delete");
       if (authError) {
         return {
-          deletedProjectId: null,
+          deletedStoreId: null,
           userErrors: [authError],
         };
       }
 
-      const result = await ctx.kernel.runScript(ProjectDeleteScript, {
+      const result = await ctx.kernel.runScript(StoreDeleteScript, {
         id: input.id,
       });
 
       return {
-        deletedProjectId: result.deletedProjectId ?? null,
+        deletedStoreId: result.deletedStoreId ?? null,
         userErrors: result.userErrors,
       };
     },

@@ -23,7 +23,7 @@ export type Scalars = {
 export type CoreContext = {
   __typename?: 'Context';
   customer?: Maybe<CoreCustomer>;
-  project?: Maybe<CoreProject>;
+  store?: Maybe<CoreStore>;
   tenant?: Maybe<CoreUser>;
 };
 
@@ -178,8 +178,8 @@ export type CoreProductOptionGroup = {
   title: Scalars['String']['output'];
 };
 
-export type CoreProject = {
-  __typename?: 'Project';
+export type CoreStore = {
+  __typename?: 'Store';
   country: Scalars['String']['output'];
   currencies: Array<CoreCurrency>;
   currency: Scalars['String']['output'];
@@ -193,7 +193,7 @@ export type CoreProject = {
   timezone: Scalars['String']['output'];
 };
 
-export enum CoreProjectStatus {
+export enum CoreStoreStatus {
   Active = 'ACTIVE',
   Inactive = 'INACTIVE'
 }

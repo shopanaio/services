@@ -2,10 +2,10 @@ import type { Resolvers } from "../../generated/types.js";
 import { LocaleSetDefaultScript } from "../../../../scripts/locale/LocaleSetDefaultScript.js";
 
 export const localeMutationResolvers: Partial<Resolvers> = {
-  ProjectMutation: {
+  StoreMutation: {
     localeSetDefault: async (_parent, { input }, ctx) => {
       const result = await ctx.kernel.runScript(LocaleSetDefaultScript, {
-        projectId: ctx.project.id,
+        storeId: ctx.store.id,
         locale: input.locale,
       });
 

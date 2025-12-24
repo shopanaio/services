@@ -38,7 +38,7 @@ export const checkoutLinesReplace = async (
         quantity: l.quantity,
       })),
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

@@ -1,7 +1,7 @@
 import type { WeightUnit, DimensionUnit } from "../../../repositories/models/index.js";
-import type { ProjectPayload } from "./shared.js";
+import type { StorePayload } from "./shared.js";
 
-export interface ProjectUpdateParams {
+export interface StoreUpdateParams {
   id: string;
   name?: string;
   email?: string;
@@ -10,4 +10,4 @@ export interface ProjectUpdateParams {
   defaultDimensionUnit?: DimensionUnit;
 }
 
-export type ProjectUpdateResult = ProjectPayload;
+export type StoreUpdateResult = StorePayload;

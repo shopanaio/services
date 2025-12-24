@@ -50,10 +50,10 @@ export abstract class BaseScript<TParams, TResult> {
   }
 
   /**
-   * Helper: get current project ID
+   * Helper: get current store ID
    */
-  protected getProjectId(): string {
-    return getContext().project.id;
+  protected getStoreId(): string {
+    return getContext().store.id;
   }
 
   /**

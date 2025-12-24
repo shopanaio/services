@@ -42,7 +42,7 @@ export const checkoutDeliveryAddressesUpdate = async (
         phone: updateItem.address.phone,
         data: updateItem.address.data,
         apiKey: ctx.apiKey,
-        project: ctx.project,
+        store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });

@@ -77,7 +77,7 @@ export const resolvers = {
       }
 
       const services = getServices();
-      const projectId = ctx.project.id;
+      const projectId = ctx.store.id;
 
       if (decoded.type === "File") {
         const file = await services.repository.file.findById(
@@ -99,7 +99,7 @@ export const resolvers = {
       ctx: GraphQLContext
     ) => {
       const services = getServices();
-      const projectId = ctx.project.id;
+      const projectId = ctx.store.id;
 
       // Group IDs by type
       const fileIds: string[] = [];
@@ -150,7 +150,7 @@ export const resolvers = {
 
       const services = getServices();
       const file = await services.repository.file.findById(
-        ctx.project.id,
+        ctx.store.id,
         decoded.id
       );
 
@@ -192,7 +192,7 @@ export const resolvers = {
 
       if (result.bucket) {
         const bucket = await services.repository.bucket.findById(
-          ctx.project.id,
+          ctx.store.id,
           result.bucket.id
         );
         return {
@@ -242,7 +242,7 @@ export const resolvers = {
 
       if (result.file) {
         const file = await services.repository.file.findById(
-          ctx.project.id,
+          ctx.store.id,
           result.file.id
         );
         return {
@@ -286,7 +286,7 @@ export const resolvers = {
 
       if (result.file) {
         const file = await services.repository.file.findById(
-          ctx.project.id,
+          ctx.store.id,
           result.file.id
         );
         return {
@@ -346,7 +346,7 @@ export const resolvers = {
 
       if (result.file) {
         const file = await services.repository.file.findById(
-          ctx.project.id,
+          ctx.store.id,
           result.file.id
         );
         return {
@@ -402,7 +402,7 @@ export const resolvers = {
 
       if (result.file) {
         const file = await services.repository.file.findById(
-          ctx.project.id,
+          ctx.store.id,
           result.file.id
         );
         return {
@@ -484,7 +484,7 @@ export const resolvers = {
 
       const services = getServices();
       const file = await services.repository.file.findById(
-        ctx.project.id,
+        ctx.store.id,
         decoded.id
       );
       return file ? dbFileToGraphQL(file) : null;
@@ -522,7 +522,7 @@ export const resolvers = {
       }
 
       const services = getServices();
-      return services.repository.s3Object.findByFileId(ctx.project.id, rawId);
+      return services.repository.s3Object.findByFileId(ctx.store.id, rawId);
     },
 
     /**
@@ -548,7 +548,7 @@ export const resolvers = {
 
       const services = getServices();
       return services.repository.externalMedia.findByFileId(
-        ctx.project.id,
+        ctx.store.id,
         rawId
       );
     },

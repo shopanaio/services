@@ -1,10 +1,10 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { type CoreCustomer, type CoreProject, type FetchContextHeaders, createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
+import { type CoreCustomer, type CoreStore, type FetchContextHeaders, createCoreContextClient, type GrpcConfigPort } from "@shopana/platform-api";
 import { setContext } from "@src/context/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
-    project: CoreProject;
+    store: CoreStore;
     customer: CoreCustomer | null;
   }
 }
@@ -64,13 +64,13 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
           .send({ data: null, errors: [{ message: "Unauthorized" }] });
       }
 
-      request.project = ctx.project!;
+      request.store = ctx.store!;
       request.customer = ctx.customer || null;
 
       // Set context in async local storage
       setContext({
         apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
-        project: ctx.project!,
+        store: ctx.store!,
         customer: ctx.customer || null,
         user: null, // TODO: Add user support if needed
       });

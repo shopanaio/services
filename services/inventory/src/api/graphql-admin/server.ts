@@ -139,7 +139,7 @@ export async function startServer(serverConfig: ServerConfig) {
         requestId: request.id as string,
         kernel: kernel!,
         slug: request.headers["x-pj-key"] as string,
-        project: request.project,
+        store: request.store,
         user: request.user,
         // Create loaders per request for proper batching
         loaders: new Loader(kernel!.getServices().repository),

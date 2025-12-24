@@ -4,7 +4,7 @@ import type { Database } from "../infrastructure/db/database";
 
 /**
  * Base repository class that provides access to database and context
- * All repositories should extend this class to get automatic projectId from context
+ * All repositories should extend this class to get automatic storeId from context
  */
 export abstract class BaseRepository {
   constructor(
@@ -28,10 +28,10 @@ export abstract class BaseRepository {
   }
 
   /**
-   * Get projectId from async local storage context
+   * Get storeId from async local storage context
    * Throws if context is not available
    */
-  protected get projectId(): string {
-    return this.ctx.project.id;
+  protected get storeId(): string {
+    return this.ctx.store.id;
   }
 }

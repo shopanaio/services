@@ -8,10 +8,10 @@ export class KernelNotInitializedError extends Error {
   }
 }
 
-export class ProjectNotInContextError extends Error {
+export class StoreNotInContextError extends Error {
   constructor() {
-    super("Project not found in request context. Ensure x-project-name header is set.");
-    this.name = "ProjectNotInContextError";
+    super("Store not found in request context. Ensure x-store-name header is set.");
+    this.name = "StoreNotInContextError";
   }
 }
 
@@ -23,8 +23,8 @@ export function requireKernel(ctx: ServiceContext): Kernel {
 }
 
 export function requireContext(ctx: ServiceContext): ServiceContext {
-  if (!ctx.project) {
-    throw new ProjectNotInContextError();
+  if (!ctx.store) {
+    throw new StoreNotInContextError();
   }
   return ctx;
 }

@@ -89,7 +89,7 @@ export async function startServer(broker: ServiceBroker, kernel: Kernel) {
         // Moleculer will handle internal tracing via ctx.requestID, ctx.parentID
         const ctx = {
           // Core business context from middleware
-          project: request.project,
+          store: request.store,
           customer: request.customer,
           // No correlation fields - Moleculer handles this internally
         } satisfies GraphQLContext;

@@ -37,7 +37,7 @@ export const checkoutCustomerIdentityUpdate = async (
         lastName: dto.lastName,
         middleName: dto.middleName,
         apiKey: ctx.apiKey,
-        project: ctx.project,
+        store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });

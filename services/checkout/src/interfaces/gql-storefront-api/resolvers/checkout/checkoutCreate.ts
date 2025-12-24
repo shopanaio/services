@@ -43,7 +43,7 @@ export const checkoutCreate = async (
         isUnique: tag.unique,
       })),
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });
@@ -59,7 +59,7 @@ export const checkoutCreate = async (
           tagSlug: item.tagSlug ?? null,
         })),
         apiKey: ctx.apiKey,
-        project: ctx.project,
+        store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });

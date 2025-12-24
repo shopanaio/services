@@ -4,24 +4,24 @@ import { BaseWorkflow } from "./BaseWorkflow.js";
 import type {
   CurrencyCode,
   LocaleCode,
-  ProjectStatus,
+  StoreStatus,
 } from "../repositories/models/index.js";
 
-export interface ProjectCreateInput {
+export interface StoreCreateInput {
   name: string;
   slug: string;
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
-  status?: ProjectStatus;
+  status?: StoreStatus;
   timezone?: string;
   email?: string;
   /** User ID of the creator - will be assigned owner role */
   userId: string;
 }
 
-export interface ProjectCreateOutput {
-  projectId: string;
+export interface StoreCreateOutput {
+  storeId: string;
   organizationId: string;
 }
 
@@ -33,31 +33,31 @@ interface IamProvisionResult {
 }
 
 /**
- * Durable workflow for project creation.
+ * Durable workflow for store creation.
  *
  * Steps:
- * 1. Generate project ID (UUIDv7)
- * 2. Create project record in database
+ * 1. Generate store ID (UUIDv7)
+ * 2. Create store record in database
  * 3. Provision IAM organization (via broker) - returns new organizationId, assigns owner role
  * 4. Save IAM integration reference with returned organizationId
  */
-export class ProjectCreateWorkflow extends BaseWorkflow {
+export class StoreCreateWorkflow extends BaseWorkflow {
 
   /**
    * Generate globally unique workflowID from slug.
-   * Slug must be unique across all projects.
+   * Slug must be unique across all stores.
    */
   static workflowID(slug: string): string {
-    return `project:create:${slug}`;
+    return `store:create:${slug}`;
   }
 
   /**
-   * Main workflow - orchestrates project creation
+   * Main workflow - orchestrates store creation
    */
   @DBOS.workflow()
-  async run(input: ProjectCreateInput): Promise<ProjectCreateOutput> {
-    // Step 0: Generate project ID (must be in step for determinism)
-    const projectId = await this.generateProjectId();
+  async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
+    // Step 0: Generate store ID (must be in step for determinism)
+    const storeId = await this.generateStoreId();
 
     // Step 1: Provision IAM tenant first to get organizationId
     const iamResult = await this.provisionIamTenant(input.userId);
@@ -67,31 +67,31 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
       throw new Error("Failed to provision IAM tenant: " + JSON.stringify(iamResult.userErrors));
     }
 
-    // Step 2: Create project in database with organizationId
-    await this.createProject(projectId, input, iamResult.organizationId);
+    // Step 2: Create store in database with organizationId
+    await this.createStore(storeId, input, iamResult.organizationId);
 
     // Step 3: Save IAM integration with returned organizationId
-    await this.saveIamIntegration(projectId, iamResult.organizationId);
+    await this.saveIamIntegration(storeId, iamResult.organizationId);
 
-    return { projectId, organizationId: iamResult.organizationId };
+    return { storeId, organizationId: iamResult.organizationId };
   }
 
   /**
-   * Step: Generate UUIDv7 for project ID
+   * Step: Generate UUIDv7 for store ID
    * Must be a step for determinism - result is persisted and reused on recovery
    */
   @DBOS.step()
-  async generateProjectId(): Promise<string> {
+  async generateStoreId(): Promise<string> {
     return uuidv7();
   }
 
   /**
-   * Step: Create project in database (LOCAL - @Executable handles transaction)
+   * Step: Create store in database (LOCAL - @Executable handles transaction)
    */
   @DBOS.step()
-  async createProject(projectId: string, input: ProjectCreateInput, organizationId: string) {
-    return this.repository.project.create({
-      id: projectId,
+  async createStore(storeId: string, input: StoreCreateInput, organizationId: string) {
+    return this.repository.store.create({
+      id: storeId,
       organizationId,
       name: input.name,
       slug: input.slug,
@@ -111,9 +111,9 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
    */
   @DBOS.step()
   async provisionIamTenant(ownerId: string): Promise<IamProvisionResult> {
-    console.log(`[ProjectCreateWorkflow.provisionIamTenant] Calling iam.provisionTenant with ownerId=${ownerId}`);
+    console.log(`[StoreCreateWorkflow.provisionIamTenant] Calling iam.provisionTenant with ownerId=${ownerId}`);
     const result = await this.broker.call("iam.provisionTenant", { ownerId });
-    console.log(`[ProjectCreateWorkflow.provisionIamTenant] Result:`, JSON.stringify(result));
+    console.log(`[StoreCreateWorkflow.provisionIamTenant] Result:`, JSON.stringify(result));
     return result;
   }
 
@@ -122,15 +122,15 @@ export class ProjectCreateWorkflow extends BaseWorkflow {
    * Stores reference to IAM organization returned by provisioning
    */
   @DBOS.step()
-  async saveIamIntegration(projectId: string, organizationId: string) {
-    console.log(`[ProjectCreateWorkflow.saveIamIntegration] projectId=${projectId}, organizationId=${organizationId}`);
+  async saveIamIntegration(storeId: string, organizationId: string) {
+    console.log(`[StoreCreateWorkflow.saveIamIntegration] storeId=${storeId}, organizationId=${organizationId}`);
     const result = await this.repository.integration.create({
-      projectId,
+      storeId,
       type: "iam",
       provider: "internal",
       config: { organizationId },
     });
-    console.log(`[ProjectCreateWorkflow.saveIamIntegration] Created integration:`, JSON.stringify(result));
+    console.log(`[StoreCreateWorkflow.saveIamIntegration] Created integration:`, JSON.stringify(result));
     return result;
   }
 }

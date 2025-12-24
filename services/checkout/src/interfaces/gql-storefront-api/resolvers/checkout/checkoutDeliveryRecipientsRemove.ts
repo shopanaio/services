@@ -28,7 +28,7 @@ export const checkoutDeliveryRecipientsRemove = async (
         checkoutId: dto.checkoutId,
         deliveryGroupId: deliveryGroupId,
         apiKey: ctx.apiKey,
-        project: ctx.project,
+        store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });

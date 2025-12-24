@@ -107,7 +107,7 @@ export async function startServer(broker: ServiceBroker) {
         const ctx = {
           requestId: request.id as string,
           apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
-          project: request.project,
+          store: request.store,
           user: null,
           customer: request.customer,
         } satisfies GraphQLContext;
@@ -153,7 +153,7 @@ export async function startServer(broker: ServiceBroker) {
         const ctx = {
           requestId: request.id as string,
           apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
-          project: request.project,
+          store: request.store,
           user: null,
           customer: request.customer,
         } satisfies GraphQLContext;

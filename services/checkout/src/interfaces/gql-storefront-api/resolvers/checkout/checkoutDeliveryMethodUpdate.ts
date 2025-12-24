@@ -30,7 +30,7 @@ export const checkoutDeliveryMethodUpdate = async (
       checkoutId: dto.checkoutId, // Already decoded by validator
       data: dto.data,
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

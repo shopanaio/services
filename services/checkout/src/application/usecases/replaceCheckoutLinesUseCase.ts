@@ -103,7 +103,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      projectId: ctx.project.id,
+      storeId: ctx.store.id,
       items: mergedLines.map((l) => ({
         lineId: l.lineId,
         purchasableId: l.unit.id,

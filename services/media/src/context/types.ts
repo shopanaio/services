@@ -1,14 +1,14 @@
-import type { CoreProject, CoreUser } from "@shopana/platform-api";
+import type { CoreStore, CoreUser } from "@shopana/platform-api";
 
 /**
  * Media service execution context
  * Contains essential business context data available throughout request lifecycle
  */
 export interface MediaContext {
-  /** Project slug from header */
+  /** Store slug from header */
   slug: string;
-  /** Current project - required for all operations */
-  project: CoreProject;
+  /** Current store - required for all operations */
+  store: CoreStore;
   /** Authenticated user for admin API */
   user: CoreUser;
 }

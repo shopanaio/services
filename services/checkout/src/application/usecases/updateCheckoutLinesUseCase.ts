@@ -74,7 +74,7 @@ export class UpdateCheckoutLinesUseCase extends UseCase<
     const { offers } = await this.checkoutService.getOffers({
       apiKey: ctx.apiKey,
       currency: state.currencyCode,
-      projectId: ctx.project.id,
+      storeId: ctx.store.id,
       items: updatedLines.map((l) => ({
         lineId: l.lineId,
         purchasableId: l.unit.id,

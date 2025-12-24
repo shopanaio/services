@@ -39,34 +39,34 @@ function mapTimestamp(timestamp: any): string {
  * Map gRPC response to CoreContext types
  */
 function mapGrpcContextToCore(grpcContext: any): Required<CoreContext> | null {
-  if (!grpcContext || !grpcContext.project) {
+  if (!grpcContext || !grpcContext.store) {
     return null;
   }
 
   const result: Required<CoreContext> = {
     __typename: "Context",
-    project: {
-      __typename: "Project",
-      id: grpcContext.project.id || "",
-      name: grpcContext.project.name || "",
-      locale: grpcContext.project.locale || "",
-      currency: grpcContext.project.currency || "",
-      timezone: grpcContext.project.timezone || "",
-      email: grpcContext.project.email || "",
-      phoneNumber: grpcContext.project.phone_number || "",
-      country: grpcContext.project.country || "",
-      locales: (grpcContext.project.locales || []).map((l: any) => ({
+    store: {
+      __typename: "Store",
+      id: grpcContext.store.id || "",
+      name: grpcContext.store.name || "",
+      locale: grpcContext.store.locale || "",
+      currency: grpcContext.store.currency || "",
+      timezone: grpcContext.store.timezone || "",
+      email: grpcContext.store.email || "",
+      phoneNumber: grpcContext.store.phone_number || "",
+      country: grpcContext.store.country || "",
+      locales: (grpcContext.store.locales || []).map((l: any) => ({
         __typename: "Locale",
         code: l.code || "",
         isActive: l.is_active || false,
       })),
-      currencies: (grpcContext.project.currencies || []).map((c: any) => ({
+      currencies: (grpcContext.store.currencies || []).map((c: any) => ({
         __typename: "Currency",
         code: c.code || "",
         isActive: c.is_active || false,
         exchangeRate: c.exchange_rate || 1.0,
       })),
-      stockStatuses: (grpcContext.project.stock_statuses || []).map((s: any) => ({
+      stockStatuses: (grpcContext.store.stock_statuses || []).map((s: any) => ({
         __typename: "StockStatus",
         code: s.code || "",
       })),
@@ -205,7 +205,7 @@ export function createBrokerContextClient(broker: ServiceBroker) {
 
     try {
       const data = await broker.call("platform.context", safeHeaders) as Required<CoreContext>;
-      if (!data.project) return null;
+      if (!data.store) return null;
       return data;
     } catch (e) {
       console.error("Failed to fetch context via broker:", e);

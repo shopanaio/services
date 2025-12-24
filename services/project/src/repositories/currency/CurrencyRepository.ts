@@ -13,10 +13,10 @@ export interface CreateCurrencyData {
 
 export class CurrencyRepository extends BaseRepository {
   @ReadOnly()
-  async findByProjectId(projectId: string): Promise<Currency[]> {
+  async findByStoreId(storeId: string): Promise<Currency[]> {
     return this.connection
       .select()
       .from(currency)
-      .where(eq(currency.projectId, projectId));
+      .where(eq(currency.storeId, storeId));
   }
 }

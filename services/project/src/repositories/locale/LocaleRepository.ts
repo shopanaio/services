@@ -14,10 +14,10 @@ export interface UpdateLocaleData {
 
 export class LocaleRepository extends BaseRepository {
   @ReadOnly()
-  async findByProjectId(projectId: string): Promise<Locale[]> {
+  async findByStoreId(storeId: string): Promise<Locale[]> {
     return this.connection
       .select()
       .from(locale)
-      .where(eq(locale.projectId, projectId));
+      .where(eq(locale.storeId, storeId));
   }
 }

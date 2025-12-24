@@ -1,4 +1,4 @@
-import type { CoreProject, CoreUser } from "@shopana/platform-api";
+import type { CoreStore, CoreUser } from "@shopana/platform-api";
 import {
   createCoreContextClient,
   type GrpcConfigPort,
@@ -7,7 +7,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 
 declare module "fastify" {
   interface FastifyRequest {
-    project: CoreProject;
+    store: CoreStore;
     user: CoreUser;
   }
 }
@@ -92,13 +92,13 @@ export function buildAdminContextMiddleware(grpcConfig: GrpcConfigPort) {
           | undefined,
       });
 
-      if (!ctx || !ctx.project || !ctx.tenant) {
+      if (!ctx || !ctx.store || !ctx.tenant) {
         return reply
           .status(401)
           .send({ data: null, errors: [{ message: "Unauthorized" }] });
       }
 
-      request.project = ctx.project;
+      request.store = ctx.store;
       request.user = ctx.tenant;
     } catch (error) {
       console.error("Failed to fetch admin context via gRPC:", error);

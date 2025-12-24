@@ -1,34 +1,34 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import { ProjectResolver } from "../../../resolvers/admin/ProjectType.js";
+import { StoreResolver } from "../../../resolvers/admin/StoreType.js";
 import type { QueryResolvers, Resolvers } from "../generated/types.js";
 import { requireContext } from "./utils.js";
 
 export const queryResolvers = {
   Query: {
-    projectQuery: () => ({} as any),
+    storeQuery: () => ({} as any),
   },
 
-  ProjectQuery: {
-    projects: async (_parent, _args, ctx, info) => {
-      const projects = await ctx.kernel
+  StoreQuery: {
+    stores: async (_parent, _args, ctx, info) => {
+      const stores = await ctx.kernel
         .getServices()
-        .repository.project.getMany();
-      const projectIds = projects.map((p) => p.id);
+        .repository.store.getMany();
+      const storeIds = stores.map((s) => s.id);
 
-      return ProjectResolver.loadMany(
-        projectIds,
+      return StoreResolver.loadMany(
+        storeIds,
         parseGraphqlInfo(info),
         requireContext(ctx)
       );
     },
 
-    project: async (_parent, _args, ctx, info) => {
-      // Project is already loaded and validated in contextMiddleware via GetCurrentProjectScript
-      // The middleware ensures user has access to this project
-      if (!ctx.project?.id) return null;
+    store: async (_parent, _args, ctx, info) => {
+      // Store is already loaded and validated in contextMiddleware via GetCurrentStoreScript
+      // The middleware ensures user has access to this store
+      if (!ctx.store?.id) return null;
 
-      return ProjectResolver.load(
-        ctx.project.id,
+      return StoreResolver.load(
+        ctx.store.id,
         parseGraphqlInfo(info),
         requireContext(ctx)
       );

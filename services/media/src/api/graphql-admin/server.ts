@@ -162,7 +162,7 @@ export async function startServer(serverConfig: ServerConfig) {
         return {
           requestId: request.id as string,
           slug: "",
-          project: null as any,
+          store: null as any,
           user: null as any,
           loaders: null,
         };
@@ -171,14 +171,14 @@ export async function startServer(serverConfig: ServerConfig) {
       // Create DataLoaders for this request
       const services = getServices();
       const loaders = createDataLoaders(
-        request.project.id,
+        request.store.id,
         services.repository
       );
 
       return {
         requestId: request.id as string,
         slug: request.headers["x-pj-key"] as string,
-        project: request.project,
+        store: request.store,
         user: request.user,
         loaders,
       };

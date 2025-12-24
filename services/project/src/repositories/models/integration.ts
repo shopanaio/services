@@ -7,13 +7,13 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema.js";
-import { project } from "./project.js";
+import { storeSchema } from "./schema.js";
+import { store } from "./store.js";
 
 /**
  * Integration types supported by the platform
  */
-export const integrationTypeEnum = projectSchema.enum("integration_type", [
+export const integrationTypeEnum = storeSchema.enum("integration_type", [
   "iam",        // Identity & Access Management (Casdoor, Auth0, etc.)
   "payment",    // Payment providers (Stripe, LiqPay, etc.)
   "shipping",   // Shipping providers (NovaPoshta, Meest, etc.)
@@ -25,25 +25,25 @@ export const integrationTypeEnum = projectSchema.enum("integration_type", [
 /**
  * Integration status
  */
-export const integrationStatusEnum = projectSchema.enum("integration_status", [
+export const integrationStatusEnum = storeSchema.enum("integration_status", [
   "active",
   "inactive",
   "error",
 ]);
 
 /**
- * Project integrations table
+ * Store integrations table
  *
- * Stores external service integrations for each project.
- * Each project can have one integration per type.
+ * Stores external service integrations for each store.
+ * Each store can have one integration per type.
  */
-export const projectIntegration = projectSchema.table(
-  "project_integration",
+export const storeIntegration = storeSchema.table(
+  "store_integration",
   {
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-    projectId: uuid("project_id")
+    storeId: uuid("store_id")
       .notNull()
-      .references(() => project.id, { onDelete: "cascade" }),
+      .references(() => store.id, { onDelete: "cascade" }),
 
     /** Integration type (iam, payment, shipping, etc.) */
     type: integrationTypeEnum("type").notNull(),
@@ -77,17 +77,17 @@ export const projectIntegration = projectSchema.table(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   },
   (table) => [
-    // Each project can have only one integration per type
-    uniqueIndex("idx_project_integration_unique")
-      .on(table.projectId, table.type),
-    index("idx_project_integration_project_id").on(table.projectId),
-    index("idx_project_integration_type").on(table.type),
-    index("idx_project_integration_status").on(table.status),
+    // Each store can have only one integration per type
+    uniqueIndex("idx_store_integration_unique")
+      .on(table.storeId, table.type),
+    index("idx_store_integration_store_id").on(table.storeId),
+    index("idx_store_integration_type").on(table.type),
+    index("idx_store_integration_status").on(table.status),
   ]
 );
 
-export type ProjectIntegration = typeof projectIntegration.$inferSelect;
-export type NewProjectIntegration = typeof projectIntegration.$inferInsert;
+export type StoreIntegration = typeof storeIntegration.$inferSelect;
+export type NewStoreIntegration = typeof storeIntegration.$inferInsert;
 export type IntegrationType = "iam" | "payment" | "shipping" | "storage" | "email" | "analytics";
 export type IntegrationStatus = "active" | "inactive" | "error";
 

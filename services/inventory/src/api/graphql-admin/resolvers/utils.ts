@@ -20,7 +20,7 @@ export function requireKernel(ctx: ServiceContext): Kernel {
 }
 
 export function requireContext(ctx: ServiceContext): ServiceContext {
-  if (!ctx.project) {
+  if (!ctx.store) {
     throw new NoDatabaseError();
   }
   return ctx;

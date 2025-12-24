@@ -4,7 +4,7 @@ import {
   closeDatabaseConnection,
   type Database,
 } from "../infrastructure/db/database.js";
-import { ProjectRepository } from "./project/ProjectRepository.js";
+import { StoreRepository } from "./store/StoreRepository.js";
 import { LocaleRepository } from "./locale/LocaleRepository.js";
 import { CurrencyRepository } from "./currency/CurrencyRepository.js";
 import { ApiKeyRepository } from "./apiKey/ApiKeyRepository.js";
@@ -15,7 +15,7 @@ export interface RepositoryConfig {
 }
 
 export class Repository {
-  public readonly project: ProjectRepository;
+  public readonly store: StoreRepository;
   public readonly locale: LocaleRepository;
   public readonly currency: CurrencyRepository;
   public readonly apiKey: ApiKeyRepository;
@@ -30,7 +30,7 @@ export class Repository {
     this.db = db;
     this.txManager = txManager;
 
-    this.project = new ProjectRepository(this.db, this.txManager);
+    this.store = new StoreRepository(this.db, this.txManager);
     this.locale = new LocaleRepository(this.db, this.txManager);
     this.currency = new CurrencyRepository(this.db, this.txManager);
     this.apiKey = new ApiKeyRepository(this.db, this.txManager);

@@ -5,7 +5,7 @@ import type {
 } from "@shopana/shared-kernel";
 
 /**
- * Returns the list of resources and actions exposed by the project service.
+ * Returns the list of resources and actions exposed by the store service.
  * Used by IAM service for resource discovery (ListResources action).
  */
 export class GetResourcesScript extends BaseScript<
@@ -14,21 +14,21 @@ export class GetResourcesScript extends BaseScript<
 > {
   protected async execute(_params: GetResourcesParams): Promise<GetResourcesResult> {
     return {
-      service: "project",
-      displayName: "Project",
+      service: "store",
+      displayName: "Store",
       resources: [
         {
-          name: "project",
-          displayName: "Project Settings",
-          description: "General project configuration",
+          name: "store",
+          displayName: "Store Settings",
+          description: "General store configuration",
           actions: [
-            { name: "read", displayName: "View", description: "View project settings" },
-            { name: "update", displayName: "Edit", description: "Edit project settings" },
-            { name: "delete", displayName: "Delete", description: "Delete the project" },
+            { name: "read", displayName: "View", description: "View store settings" },
+            { name: "update", displayName: "Edit", description: "Edit store settings" },
+            { name: "delete", displayName: "Delete", description: "Delete the store" },
           ],
         },
         {
-          name: "project.team",
+          name: "store.team",
           displayName: "Team",
           description: "Team member management",
           actions: [
@@ -39,7 +39,7 @@ export class GetResourcesScript extends BaseScript<
           ],
         },
         {
-          name: "project.billing",
+          name: "store.billing",
           displayName: "Billing",
           description: "Billing and subscription management",
           actions: [
@@ -48,7 +48,7 @@ export class GetResourcesScript extends BaseScript<
           ],
         },
         {
-          name: "project.apiKey",
+          name: "store.apiKey",
           displayName: "API Keys",
           description: "API key management",
           actions: [
@@ -63,8 +63,8 @@ export class GetResourcesScript extends BaseScript<
 
   protected handleError(_error: unknown): GetResourcesResult {
     return {
-      service: "project",
-      displayName: "Project",
+      service: "store",
+      displayName: "Store",
       resources: [],
     };
   }

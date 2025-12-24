@@ -25,7 +25,7 @@ export const checkoutPaymentMethodUpdate = async (
       provider: dto.provider,
       data: dto.data,
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

@@ -181,7 +181,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
       apiKey: ctx.apiKey,
       contractVersion: OrderEventsContractVersion,
       now: new Date(),
-      projectId: ctx.project.id,
+      projectId: ctx.store.id,
       userId: ctx.user?.id,
       ...(idempotencyKey && { idempotencyKey }),
     };
@@ -208,7 +208,7 @@ export abstract class UseCase<TInput = any, TOutput = any> {
    */
   protected validateTenantAccess(state: OrderState, context: OrderContext): void {
     const ctx = context;
-    if (state.projectId && state.projectId !== ctx.project.id) {
+    if (state.projectId && state.projectId !== ctx.store.id) {
       throw new Error("Forbidden");
     }
   }

@@ -49,7 +49,7 @@ export async function checkAuthorization(
   resource: string,
   action: string
 ): Promise<AuthorizationError | null> {
-  if (!ctx.user?.id || !ctx.project?.organizationId) {
+  if (!ctx.user?.id || !ctx.store?.organizationId) {
     return {
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -83,7 +83,7 @@ async function checkPermission(
 
   const result = await ctx.kernel.getServices().broker.call("iam.authorize", {
     userId: ctx.user.id,
-    organizationId: ctx.project.organizationId,
+    organizationId: ctx.store.organizationId,
     resource,
     action,
     resourceId,
@@ -99,7 +99,7 @@ async function checkPermission(
  *
  * @example
  * // Single permission check
- * projectUpdate: Authorize({ resource: "project", action: "write" })(
+ * storeUpdate: Authorize({ resource: "store", action: "write" })(
  *   async (_parent, { input }, ctx, info) => { ... }
  * )
  *
@@ -112,8 +112,8 @@ async function checkPermission(
  *
  * @example
  * // Dynamic resourceId
- * projectDelete: Authorize({
- *   resource: "project",
+ * storeDelete: Authorize({
+ *   resource: "store",
  *   action: "delete",
  *   resourceId: (args) => args.input.id
  * })(async (_parent, { input }, ctx, info) => { ... })
@@ -129,7 +129,7 @@ export function Authorize<TParent, TArgs extends Record<string, unknown>, TResul
       info: GraphQLResolveInfo
     ): Promise<TResult> {
       // Ensure context has required data
-      if (!ctx.user?.id || !ctx.project?.organizationId) {
+      if (!ctx.user?.id || !ctx.store?.organizationId) {
         throw new ForbiddenError("Authentication required");
       }
 
@@ -178,7 +178,7 @@ export function AuthorizeAny<TParent, TArgs extends Record<string, unknown>, TRe
       info: GraphQLResolveInfo
     ): Promise<TResult> {
       // Ensure context has required data
-      if (!ctx.user?.id || !ctx.project?.organizationId) {
+      if (!ctx.user?.id || !ctx.store?.organizationId) {
         throw new ForbiddenError("Authentication required");
       }
 

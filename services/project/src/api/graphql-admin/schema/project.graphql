@@ -1,32 +1,32 @@
-"""Status of a project"""
-enum ProjectStatus {
-  """Project is active and operational"""
+"""Status of a store"""
+enum StoreStatus {
+  """Store is active and operational"""
   active
-  """Project is inactive and not processing requests"""
+  """Store is inactive and not processing requests"""
   inactive
 }
 
 # WeightUnit, DimensionUnit, CurrencyCode, LocaleCode enums are defined in shared-references
 
-"""A project representing a store or application"""
-type Project @key(fields: "id") {
-  """Unique identifier of the project"""
+"""A store"""
+type Store @key(fields: "id") {
+  """Unique identifier of the store"""
   id: ID!
-  """Organization that owns this project (federation reference)"""
+  """Organization that owns this store (federation reference)"""
   organization: Organization
-  """Display name of the project"""
+  """Display name of the store"""
   name: String!
   """URL-friendly unique identifier"""
   slug: String!
-  """Current operational status of the project"""
-  status: ProjectStatus!
-  """IANA timezone identifier for the project"""
+  """Current operational status of the store"""
+  status: StoreStatus!
+  """IANA timezone identifier for the store"""
   timezone: String!
-  """Contact email address for the project"""
+  """Contact email address for the store"""
   email: String
-  """List of enabled locale codes for the project"""
+  """List of enabled locale codes for the store"""
   locales: [LocaleCode!]!
-  """List of enabled currency codes for the project"""
+  """List of enabled currency codes for the store"""
   currencies: [CurrencyCode!]!
   """Base currency used for exchange rate calculations"""
   baseCurrency: CurrencyCode!
@@ -38,12 +38,12 @@ type Project @key(fields: "id") {
   defaultWeightUnit: WeightUnit!
   """Default unit for product dimensions"""
   defaultDimensionUnit: DimensionUnit!
-  """Timestamp when the project was created"""
+  """Timestamp when the store was created"""
   createdAt: DateTime!
-  """Timestamp when the project was last updated"""
+  """Timestamp when the store was last updated"""
   updatedAt: DateTime!
-  """Members with access to this project"""
-  members: [ProjectMember!]!
+  """Members with access to this store"""
+  members: [StoreMember!]!
 }
 
 # Organization entity (extended from IAM service)
@@ -62,11 +62,11 @@ extend type Role @key(fields: "name") {
 }
 
 # ============================================================================
-# PROJECT MEMBER TYPES
+# STORE MEMBER TYPES
 # ============================================================================
 
-"""Project team member with assigned role"""
-type ProjectMember @key(fields: "id") {
+"""Store team member with assigned role"""
+type StoreMember @key(fields: "id") {
   """Unique identifier"""
   id: ID!
   """The user who has access"""
@@ -80,7 +80,7 @@ type ProjectMember @key(fields: "id") {
 }
 
 """Input for changing member role"""
-input ProjectMemberRoleChangeInput {
+input StoreMemberRoleChangeInput {
   """User ID"""
   userId: ID!
   """New role name"""
@@ -88,30 +88,30 @@ input ProjectMemberRoleChangeInput {
 }
 
 """Input for removing a member"""
-input ProjectMemberRemoveInput {
+input StoreMemberRemoveInput {
   """User ID to remove"""
   userId: ID!
 }
 
 """Payload returned after changing member role"""
-type ProjectMemberRoleChangePayload {
+type StoreMemberRoleChangePayload {
   """The updated member"""
-  member: ProjectMember
+  member: StoreMember
   """List of errors that occurred"""
   userErrors: [UserError!]!
 }
 
 """Payload returned after removing a member"""
-type ProjectMemberRemovePayload {
+type StoreMemberRemovePayload {
   """ID of the removed user"""
   removedUserId: ID
   """List of errors that occurred"""
   userErrors: [UserError!]!
 }
 
-"""Input for creating a new project"""
-input ProjectCreateInput {
-  """Display name of the project"""
+"""Input for creating a new store"""
+input StoreCreateInput {
+  """Display name of the store"""
   name: String!
   """URL-friendly unique identifier"""
   slug: String!
@@ -119,18 +119,18 @@ input ProjectCreateInput {
   locales: [LocaleCode!]!
   """Initial list of currency codes to enable"""
   currencies: [CurrencyCode!]!
-  """Default currency for the project"""
+  """Default currency for the store"""
   defaultCurrency: CurrencyCode!
-  """Initial status of the project"""
-  status: ProjectStatus
+  """Initial status of the store"""
+  status: StoreStatus
   """IANA timezone identifier"""
   timezone: String
   """Contact email address"""
   email: String
 }
 
-"""Input for updating an existing project"""
-input ProjectUpdateInput {
+"""Input for updating an existing store"""
+input StoreUpdateInput {
   """New display name"""
   name: String
   """New contact email address"""
@@ -147,9 +147,9 @@ input ProjectUpdateInput {
   defaultDimensionUnit: DimensionUnit
 }
 
-"""Input for deleting a project"""
-input ProjectDeleteInput {
-  """ID of the project to delete"""
+"""Input for deleting a store"""
+input StoreDeleteInput {
+  """ID of the store to delete"""
   id: ID!
 }
 
@@ -173,26 +173,26 @@ type GenericUserError implements UserError @shareable {
   code: String
 }
 
-"""Payload returned after creating a project"""
-type ProjectCreatePayload {
-  """The newly created project, null if creation failed"""
-  project: Project
+"""Payload returned after creating a store"""
+type StoreCreatePayload {
+  """The newly created store, null if creation failed"""
+  store: Store
   """List of errors that occurred during creation"""
   userErrors: [UserError!]!
 }
 
-"""Payload returned after updating a project"""
-type ProjectUpdatePayload {
-  """The updated project, null if update failed"""
-  project: Project
+"""Payload returned after updating a store"""
+type StoreUpdatePayload {
+  """The updated store, null if update failed"""
+  store: Store
   """List of errors that occurred during update"""
   userErrors: [UserError!]!
 }
 
-"""Payload returned after deleting a project"""
-type ProjectDeletePayload {
-  """ID of the deleted project, null if deletion failed"""
-  deletedProjectId: ID
+"""Payload returned after deleting a store"""
+type StoreDeletePayload {
+  """ID of the deleted store, null if deletion failed"""
+  deletedStoreId: ID
   """List of errors that occurred during deletion"""
   userErrors: [UserError!]!
 }

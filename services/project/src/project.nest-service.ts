@@ -11,14 +11,14 @@ import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
 import type { FastifyInstance } from "fastify";
 import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "./api/graphql-admin/server.js";
-import { ProjectCreateWorkflow } from "./workflows/index.js";
+import { StoreCreateWorkflow } from "./workflows/index.js";
 import {
-  GetCurrentProjectScript,
-  type GetCurrentProjectParams,
-  type GetCurrentProjectResult,
-  GetProjectByIdScript,
-  type GetProjectByIdParams,
-  type GetProjectByIdResult,
+  GetCurrentStoreScript,
+  type GetCurrentStoreParams,
+  type GetCurrentStoreResult,
+  GetStoreByIdScript,
+  type GetStoreByIdParams,
+  type GetStoreByIdResult,
   GetResourcesScript,
   type GetResourcesParams,
   type GetResourcesResult,
@@ -41,26 +41,26 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
     this.kernel = await Kernel.create(this.broker, this.workflow);
 
     this.workflow.register(
-      "projectCreate",
-      new ProjectCreateWorkflow("projectCreate", { kernel: this.kernel })
+      "storeCreate",
+      new StoreCreateWorkflow("storeCreate", { kernel: this.kernel })
     );
-    this.logger.debug("Registered workflow: projectCreate");
+    this.logger.debug("Registered workflow: storeCreate");
 
-    this.broker.register<GetCurrentProjectParams, GetCurrentProjectResult>(
-      "getCurrentProject",
+    this.broker.register<GetCurrentStoreParams, GetCurrentStoreResult>(
+      "getCurrentStore",
       async (params) => {
-        return this.kernel.runScript(GetCurrentProjectScript, params!);
+        return this.kernel.runScript(GetCurrentStoreScript, params!);
       }
     );
-    this.logger.debug("Action project.getCurrentProject registered");
+    this.logger.debug("Action project.getCurrentStore registered");
 
-    this.broker.register<GetProjectByIdParams, GetProjectByIdResult>(
-      "getProjectById",
+    this.broker.register<GetStoreByIdParams, GetStoreByIdResult>(
+      "getStoreById",
       async (params) => {
-        return this.kernel.runScript(GetProjectByIdScript, params!);
+        return this.kernel.runScript(GetStoreByIdScript, params!);
       }
     );
-    this.logger.debug("Action project.getProjectById registered");
+    this.logger.debug("Action project.getStoreById registered");
 
     this.broker.register<GetResourcesParams, GetResourcesResult>(
       "getResources",
@@ -79,7 +79,7 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     if (this.workflow) {
-      this.workflow.deregister("projectCreate");
+      this.workflow.deregister("storeCreate");
     }
 
     if (this.graphqlServer) {

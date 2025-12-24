@@ -138,14 +138,14 @@ export async function startServer(serverConfig: ServerConfig) {
         };
       }
 
-      const slug = request.headers["x-project-name"] as string;
+      const slug = request.headers["x-store-name"] as string;
 
-      // Use project and user from middleware (set by contextMiddleware via GetCurrentProjectScript)
+      // Use store and user from middleware (set by contextMiddleware via GetCurrentStoreScript)
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
         slug,
-        project: request.project,
+        store: request.store,
         user: request.user,
       };
 

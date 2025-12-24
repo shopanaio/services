@@ -26,7 +26,7 @@ export const checkoutLinesClear = async (
     const updatedCheckoutId = await checkoutUsecase.clearCheckoutLines.execute({
       checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       apiKey: ctx.apiKey,
-      project: ctx.project,
+      store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });

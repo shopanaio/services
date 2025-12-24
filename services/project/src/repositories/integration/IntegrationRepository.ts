@@ -1,14 +1,14 @@
 import { eq, and } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  projectIntegration,
-  type ProjectIntegration,
+  storeIntegration,
+  type StoreIntegration,
   type IntegrationType,
   type IntegrationStatus,
 } from "../models/index.js";
 
 export interface CreateIntegrationData {
-  projectId: string;
+  storeId: string;
   type: IntegrationType;
   provider: string;
   status?: IntegrationStatus;
@@ -28,11 +28,11 @@ export class IntegrationRepository extends BaseRepository {
   /**
    * Create a new integration
    */
-  async create(data: CreateIntegrationData): Promise<ProjectIntegration> {
+  async create(data: CreateIntegrationData): Promise<StoreIntegration> {
     const [result] = await this.connection
-      .insert(projectIntegration)
+      .insert(storeIntegration)
       .values({
-        projectId: data.projectId,
+        storeId: data.storeId,
         type: data.type,
         provider: data.provider,
         status: data.status ?? "active",
@@ -45,19 +45,19 @@ export class IntegrationRepository extends BaseRepository {
   }
 
   /**
-   * Find integration by project and type
+   * Find integration by store and type
    */
   async findByType(
-    projectId: string,
+    storeId: string,
     type: IntegrationType
-  ): Promise<ProjectIntegration | undefined> {
+  ): Promise<StoreIntegration | undefined> {
     const [result] = await this.connection
       .select()
-      .from(projectIntegration)
+      .from(storeIntegration)
       .where(
         and(
-          eq(projectIntegration.projectId, projectId),
-          eq(projectIntegration.type, type)
+          eq(storeIntegration.storeId, storeId),
+          eq(storeIntegration.type, type)
         )
       );
 
@@ -65,33 +65,33 @@ export class IntegrationRepository extends BaseRepository {
   }
 
   /**
-   * Find all integrations for a project
+   * Find all integrations for a store
    */
-  async findByProject(projectId: string): Promise<ProjectIntegration[]> {
+  async findByStore(storeId: string): Promise<StoreIntegration[]> {
     return this.connection
       .select()
-      .from(projectIntegration)
-      .where(eq(projectIntegration.projectId, projectId));
+      .from(storeIntegration)
+      .where(eq(storeIntegration.storeId, storeId));
   }
 
   /**
    * Update integration
    */
   async update(
-    projectId: string,
+    storeId: string,
     type: IntegrationType,
     data: UpdateIntegrationData
-  ): Promise<ProjectIntegration | undefined> {
+  ): Promise<StoreIntegration | undefined> {
     const [result] = await this.connection
-      .update(projectIntegration)
+      .update(storeIntegration)
       .set({
         ...data,
         updatedAt: new Date(),
       })
       .where(
         and(
-          eq(projectIntegration.projectId, projectId),
-          eq(projectIntegration.type, type)
+          eq(storeIntegration.storeId, storeId),
+          eq(storeIntegration.type, type)
         )
       )
       .returning();
@@ -102,11 +102,11 @@ export class IntegrationRepository extends BaseRepository {
   /**
    * Upsert integration (create or update)
    */
-  async upsert(data: CreateIntegrationData): Promise<ProjectIntegration> {
-    const existing = await this.findByType(data.projectId, data.type);
+  async upsert(data: CreateIntegrationData): Promise<StoreIntegration> {
+    const existing = await this.findByType(data.storeId, data.type);
 
     if (existing) {
-      const updated = await this.update(data.projectId, data.type, {
+      const updated = await this.update(data.storeId, data.type, {
         status: data.status,
         config: data.config,
         credentials: data.credentials,
@@ -120,16 +120,16 @@ export class IntegrationRepository extends BaseRepository {
   /**
    * Delete integration
    */
-  async delete(projectId: string, type: IntegrationType): Promise<boolean> {
+  async delete(storeId: string, type: IntegrationType): Promise<boolean> {
     const result = await this.connection
-      .delete(projectIntegration)
+      .delete(storeIntegration)
       .where(
         and(
-          eq(projectIntegration.projectId, projectId),
-          eq(projectIntegration.type, type)
+          eq(storeIntegration.storeId, storeId),
+          eq(storeIntegration.type, type)
         )
       )
-      .returning({ id: projectIntegration.id });
+      .returning({ id: storeIntegration.id });
 
     return result.length > 0;
   }

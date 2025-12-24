@@ -4,10 +4,10 @@ import { ApiKeyRevokeScript } from "../../../../scripts/apiKey/ApiKeyRevokeScrip
 import { ApiKeyDeleteScript } from "../../../../scripts/apiKey/ApiKeyDeleteScript.js";
 
 export const apiKeyMutationResolvers: Partial<Resolvers> = {
-  ProjectMutation: {
+  StoreMutation: {
     apiKeyCreate: async (_parent, { input }, ctx) => {
       const result = await ctx.kernel.runScript(ApiKeyCreateScript, {
-        projectId: ctx.project.id,
+        storeId: ctx.store.id,
         name: input.name,
         createdById: ctx.user.id,
         dueDate: input.dueDate ? new Date(input.dueDate) : undefined,

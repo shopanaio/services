@@ -9,15 +9,15 @@ import {
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectSchema } from "./schema.js";
+import { storeSchema } from "./schema.js";
 import { currencyCodeEnum, type CurrencyCode } from "./reference.js";
 
 export { currencyCodeEnum, type CurrencyCode };
 
-export const currency = projectSchema.table(
+export const currency = storeSchema.table(
   "currency",
   {
-    projectId: uuid("project_id").notNull(),
+    storeId: uuid("store_id").notNull(),
     code: currencyCodeEnum("code").notNull(),
     isActive: boolean("is_active").notNull().default(true),
     exchangeRateAmount: bigint("exchange_rate_amount", { mode: "bigint" })
@@ -29,8 +29,8 @@ export const currency = projectSchema.table(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },
   (table) => [
-    primaryKey({ columns: [table.projectId, table.code] }),
-    index("idx_currency_project_id").on(table.projectId),
+    primaryKey({ columns: [table.storeId, table.code] }),
+    index("idx_currency_store_id").on(table.storeId),
     index("idx_currency_is_active").on(table.isActive),
   ]
 );

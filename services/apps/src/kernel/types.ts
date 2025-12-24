@@ -1,4 +1,4 @@
-import type { CoreCustomer, CoreProject } from "@shopana/platform-api";
+import type { CoreCustomer, CoreStore } from "@shopana/platform-api";
 import type { SlotsRepository } from "@src/infrastructure/repositories/slotsRepository";
 import type { BaseKernelServices, ScriptContext as BaseScriptContext, TransactionScript as BaseTransactionScript } from "@shopana/shared-kernel";
 import type { AppsPluginManager } from "@src/infrastructure/plugins/pluginManager";
@@ -78,7 +78,7 @@ export interface InstalledApp {
  * Tracing is handled internally by Moleculer via ctx.requestID, ctx.parentID
  */
 export interface GraphQLContext {
-  project: CoreProject;
+  store: CoreStore;
   customer: CoreCustomer | null;
   // Removed: apiKey, traceId, spanId, correlationId, causationId
   // These are now handled by Moleculer internally

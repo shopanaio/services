@@ -1,21 +1,21 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/index.js";
-import { ProjectResolver } from "../../../resolvers/admin/ProjectType.js";
+import { StoreResolver } from "../../../resolvers/admin/StoreType.js";
 import type { Resolvers } from "../generated/types.js";
 import { requireContext } from "./utils.js";
 import { CURRENCY_INFO, LOCALE_INFO } from "@shopana/shared-references";
 
 /**
- * Resolves project using ProjectResolver
+ * Resolves store using StoreResolver
  */
-export async function resolveProject(
-  projectId: string,
+export async function resolveStore(
+  storeId: string,
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return ProjectResolver.load(
-    projectId,
+  return StoreResolver.load(
+    storeId,
     parseGraphqlInfo(info),
     requireContext(ctx)
   );
@@ -38,15 +38,15 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
 
-  // Project type resolver - uses ProjectResolver for __resolveReference
-  Project: {
+  // Store type resolver - uses StoreResolver for __resolveReference
+  Store: {
     __resolveReference: async (
       reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<any> => {
-      return resolveProject(reference.id, ctx, info);
+      return resolveStore(reference.id, ctx, info);
     },
     // Organization field resolver - returns federation reference
     organization: async (
@@ -54,11 +54,11 @@ export const typeResolvers: Partial<Resolvers> = {
       _args: unknown,
       ctx: ServiceContext
     ) => {
-      // Load project to get organizationId
-      const project = await ctx.kernel
+      // Load store to get organizationId
+      const store = await ctx.kernel
         .getServices()
-        .repository.project.findById(parent.id);
-      const organizationId = project?.organizationId ?? null;
+        .repository.store.findById(parent.id);
+      const organizationId = store?.organizationId ?? null;
 
       if (!organizationId) {
         return null;
@@ -66,19 +66,19 @@ export const typeResolvers: Partial<Resolvers> = {
       // Return federation reference - gateway will resolve from IAM service
       return { __typename: "Organization", id: organizationId };
     },
-    // Members field resolver - gets project members from IAM
+    // Members field resolver - gets store members from IAM
     members: async (
       parent: { id: string },
       _args: unknown,
       ctx: ServiceContext
     ) => {
-      // Load project to get organizationId
-      const project = await ctx.kernel
+      // Load store to get organizationId
+      const store = await ctx.kernel
         .getServices()
-        .repository.project.findById(parent.id);
-      const organizationId = project?.organizationId ?? null;
+        .repository.store.findById(parent.id);
+      const organizationId = store?.organizationId ?? null;
 
-      console.log("Resolving members for project:", JSON.stringify(parent));
+      console.log("Resolving members for store:", JSON.stringify(parent));
 
       if (!organizationId) {
         return [];
@@ -88,7 +88,7 @@ export const typeResolvers: Partial<Resolvers> = {
         .getServices()
         .broker.call("iam.getMembersForDomain", {
           organizationId,
-          domain: [["project", parent.id]],
+          domain: [["store", parent.id]],
         });
 
       if (!result || result.userErrors?.length > 0) {
@@ -104,7 +104,7 @@ export const typeResolvers: Partial<Resolvers> = {
           grantedAt?: Date;
           grantedBy?: string;
         }) => ({
-          id: m.userId, // ProjectMember id is the userId
+          id: m.userId, // StoreMember id is the userId
           user: { __typename: "User", id: m.userId },
           role: {
             __typename: "Role",
@@ -121,8 +121,8 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
 
-  // ProjectMember type resolver
-  ProjectMember: {
+  // StoreMember type resolver
+  StoreMember: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     user: (parent: any) => {
       // Return federation reference

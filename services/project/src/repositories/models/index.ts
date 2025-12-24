@@ -4,14 +4,14 @@ export * from "./schema.js";
 // Reference enums (can be used independently)
 export * from "./reference.js";
 
-// Locale (can be used without project)
+// Locale (can be used without store)
 export * from "./locale.js";
 
-// Currency (can be used without project)
+// Currency (can be used without store)
 export * from "./currency.js";
 
-// Project (imports locale and currency)
-export * from "./project.js";
+// Store (imports locale and currency)
+export * from "./store.js";
 
 // API Key
 export * from "./apiKey.js";

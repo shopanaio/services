@@ -47,7 +47,7 @@ export const fileCreateExternal: TransactionScript<
 > = async (params, services) => {
   const { logger, repository } = services;
   const ctx = getContext();
-  const projectId = ctx.project.id;
+  const projectId = ctx.store.id;
 
   try {
     logger.info({ params, projectId }, "fileCreateExternal: starting");
