@@ -1,5 +1,10 @@
 import { eq, desc } from "drizzle-orm";
-import { createLocalJWKSet, jwtVerify, type JWTPayload, type JSONWebKeySet } from "jose";
+import {
+  createLocalJWKSet,
+  jwtVerify,
+  type JWTPayload,
+  type JSONWebKeySet,
+} from "jose";
 import type { Database } from "../../db/database.js";
 import { user, session, jwks } from "../models/auth.js";
 import type { Auth } from "../../auth/auth.js";
@@ -65,10 +70,7 @@ export class UserRepository {
   private jwksCacheTime: number = 0;
   private readonly JWKS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
-  constructor(
-    private readonly db: Database,
-    private readonly auth: Auth
-  ) {}
+  constructor(private readonly db: Database, private readonly auth: Auth) {}
 
   // ==========================================================================
   // Auth Operations (via Better Auth API)
@@ -189,17 +191,18 @@ export class UserRepository {
    * Tries JWT verification first, falls back to session validation
    */
   async getCurrentUser(token: string): Promise<GetCurrentUserResult> {
-    console.log('[IAM UserRepository.getCurrentUser] Token:', token.slice(0, 30) + '...');
+    console.log(
+      "[IAM UserRepository.getCurrentUser] Token:",
+      token.slice(0, 30) + "..."
+    );
 
     // Try JWT verification first (for access tokens)
     const jwtResult = await this.verifyJwtToken(token);
-    console.log('[IAM UserRepository.getCurrentUser] JWT result:', JSON.stringify({ success: jwtResult.success, error: jwtResult.error, userId: jwtResult.user?.id }));
 
     if (jwtResult.success && jwtResult.user) {
       return jwtResult;
     }
 
-    console.log('[IAM UserRepository.getCurrentUser] Falling back to session validation');
     // Fall back to session token validation (for refresh tokens or legacy)
     try {
       const result = await this.auth.api.getSession({
@@ -224,7 +227,8 @@ export class UserRepository {
       return {
         success: false,
         user: null,
-        error: error instanceof Error ? error.message : "Session validation failed",
+        error:
+          error instanceof Error ? error.message : "Session validation failed",
       };
     }
   }
@@ -236,54 +240,46 @@ export class UserRepository {
     try {
       // Check if it looks like a JWT (has 3 parts separated by dots)
       if (!token.includes(".") || token.split(".").length !== 3) {
-        console.log('[IAM verifyJwtToken] Not a JWT token');
         return { success: false, user: null, error: "Not a JWT token" };
       }
 
       const issuer = process.env.JWT_ISSUER || "shopana-iam";
       const audience = process.env.JWT_AUDIENCE || "shopana-api";
-      console.log('[IAM verifyJwtToken] issuer:', issuer, 'audience:', audience);
 
       // Get JWKS from database (with caching)
       const JWKS = await this.getLocalJWKS();
       if (!JWKS) {
-        console.log('[IAM verifyJwtToken] JWKS not available');
+        console.log("[IAM verifyJwtToken] JWKS not available");
         return { success: false, user: null, error: "JWKS not available" };
       }
-      console.log('[IAM verifyJwtToken] JWKS loaded');
 
       const { payload } = await jwtVerify(token, JWKS, {
         issuer,
         audience,
       });
-      console.log('[IAM verifyJwtToken] JWT verified, payload:', JSON.stringify(payload));
 
       const jwtPayload = payload as JwtUserPayload;
 
       if (!jwtPayload.sub) {
-        console.log('[IAM verifyJwtToken] Invalid JWT payload - no sub');
         return { success: false, user: null, error: "Invalid JWT payload" };
       }
 
       // Fetch full user data from database
       const userRecord = await this.findById(jwtPayload.sub);
       if (!userRecord) {
-        console.log('[IAM verifyJwtToken] User not found:', jwtPayload.sub);
         return { success: false, user: null, error: "User not found" };
       }
 
-      console.log('[IAM verifyJwtToken] Success, user:', userRecord.id);
       return {
         success: true,
         user: userRecord,
       };
     } catch (error) {
-      // JWT verification failed - not necessarily an error, could be a session token
-      console.log('[IAM verifyJwtToken] Error:', error instanceof Error ? error.message : error);
       return {
         success: false,
         user: null,
-        error: error instanceof Error ? error.message : "JWT verification failed",
+        error:
+          error instanceof Error ? error.message : "JWT verification failed",
       };
     }
   }
@@ -291,11 +287,13 @@ export class UserRepository {
   /**
    * Get JWKS from database for local JWT verification
    */
-  private async getLocalJWKS(): Promise<ReturnType<typeof createLocalJWKSet> | null> {
+  private async getLocalJWKS(): Promise<ReturnType<
+    typeof createLocalJWKSet
+  > | null> {
     const now = Date.now();
 
     // Return cached JWKS if still valid
-    if (this.jwksCache && (now - this.jwksCacheTime) < this.JWKS_CACHE_TTL) {
+    if (this.jwksCache && now - this.jwksCacheTime < this.JWKS_CACHE_TTL) {
       return this.jwksCache;
     }
 
@@ -306,8 +304,6 @@ export class UserRepository {
         .from(jwks)
         .orderBy(desc(jwks.createdAt));
 
-      console.log('[IAM getLocalJWKS] Found', keys.length, 'keys in database');
-
       if (keys.length === 0) {
         return null;
       }
@@ -315,7 +311,6 @@ export class UserRepository {
       // Parse public keys and create JWKS
       const jwksKeys = keys
         .map((key) => {
-          console.log('[IAM getLocalJWKS] Key ID:', key.id, 'publicKey preview:', key.publicKey.slice(0, 50));
           try {
             const parsed = JSON.parse(key.publicKey);
             // Add kid from database record ID if not present in JSON
@@ -324,15 +319,12 @@ export class UserRepository {
             }
             return parsed;
           } catch (e) {
-            console.log('[IAM getLocalJWKS] Failed to parse key:', e);
             return null;
           }
         })
         .filter(Boolean);
 
-      console.log('[IAM getLocalJWKS] Parsed', jwksKeys.length, 'keys');
       if (jwksKeys.length > 0) {
-        console.log('[IAM getLocalJWKS] First key kid:', jwksKeys[0]?.kid);
       }
 
       if (jwksKeys.length === 0) {
@@ -345,7 +337,6 @@ export class UserRepository {
 
       return this.jwksCache;
     } catch (error) {
-      console.error("Failed to load JWKS from database:", error);
       return null;
     }
   }
@@ -425,10 +416,7 @@ export class UserRepository {
    * Find user by ID
    */
   async findById(id: string): Promise<User | null> {
-    const [result] = await this.db
-      .select()
-      .from(user)
-      .where(eq(user.id, id));
+    const [result] = await this.db.select().from(user).where(eq(user.id, id));
 
     return result ? this.mapDbUser(result) : null;
   }

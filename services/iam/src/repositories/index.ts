@@ -8,4 +8,3 @@ export {
   type SignUpResult,
   type GetCurrentUserResult,
 } from "./user/UserRepository.js";
-export { AuthorizationRepository } from "./authorization/index.js";
