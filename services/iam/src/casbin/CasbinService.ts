@@ -7,6 +7,39 @@ import { CASBIN_MODEL_TEXT } from "../constants/rbac.js";
 import { casbinRule } from "../repositories/models/authorization.js";
 import type { Database } from "../db/database.js";
 
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface EnforceParams {
+  organizationId: string;
+  userId: string;
+  domain: string;
+  resource: string;
+  action: string;
+}
+
+export interface AssignRoleParams {
+  organizationId: string;
+  userId: string;
+  role: string;
+  domain: string;
+}
+
+export interface AddPolicyParams {
+  organizationId: string;
+  role: string;
+  domain: string;
+  resource: string;
+  action: string;
+  effect?: "allow" | "deny";
+}
+
+export interface GetMembersParams {
+  organizationId: string;
+  domain: string;
+}
+
 /**
  * Shared type for scope parts - with or without ID
  */
@@ -152,66 +185,6 @@ export class CasbinService {
   }
 
   /**
-   * Check if user has permission with domain (project) scope
-   *
-   * @param organizationId - Organization ID (used to get the right enforcer)
-   * @param userId - User ID
-   * @param domain - Domain scope (project path, e.g., [["project", "abc-123"]] or [] for all)
-   * @param resource - Resource path (e.g., [["product", "456"]] or [["product"]])
-   * @param action - Action (e.g., "read", "write", "create", "delete")
-   */
-  async enforce(
-    organizationId: string,
-    userId: string,
-    domain: ScopePart[],
-    resource: ScopePart[],
-    action: string
-  ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const domainPath = this.buildPath(domain);
-    const resourcePath = this.buildPath(resource);
-
-    return enforcer.enforce(`user:${userId}`, domainPath, resourcePath, action);
-  }
-
-  /**
-   * Legacy enforce method for backward compatibility (no domain)
-   * Uses "*" as domain (all projects)
-   */
-  async enforceLegacy(
-    organizationId: string,
-    userId: string,
-    resource: string,
-    action: string
-  ): Promise<boolean> {
-    const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.enforce(`user:${userId}`, "*", resource, action);
-  }
-
-  /**
-   * Batch check permissions with domain
-   */
-  async batchEnforce(
-    organizationId: string,
-    userId: string,
-    domain: ScopePart[],
-    requests: Array<{ resource: ScopePart[]; action: string }>
-  ): Promise<boolean[]> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const domainPath = this.buildPath(domain);
-    const results: boolean[] = [];
-
-    for (const req of requests) {
-      const resourcePath = this.buildPath(req.resource);
-      results.push(
-        await enforcer.enforce(`user:${userId}`, domainPath, resourcePath, req.action)
-      );
-    }
-
-    return results;
-  }
-
-  /**
    * Invalidate cached enforcer for organization (call after policy changes)
    */
   async invalidateEnforcer(organizationId: string): Promise<void> {
@@ -229,295 +202,43 @@ export class CasbinService {
   }
 
   /**
-   * Add a policy rule with domain support.
-   *
-   * Stores to DB with organizationId, adds to enforcer without organizationId.
-   */
-  async addPolicy(
-    organizationId: string,
-    role: string,
-    domain: ScopePart[],
-    resource: ScopePart[],
-    action: string,
-    effect: "allow" | "deny" = "allow"
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    const domainPath = this.buildPath(domain);
-    const resourcePath = this.buildPath(resource);
-
-    // Persist to database WITH organizationId (6 elements)
-    try {
-      await this.adapter.addPolicy("p", "p", [
-        role,
-        domainPath,
-        resourcePath,
-        action,
-        effect,
-        organizationId
-      ]);
-    } catch (error: any) {
-      // Ignore duplicate key errors - policy already exists
-      if (error?.code !== "23505") {
-        throw error;
-      }
-      return false;
-    }
-
-    // Add to enforcer memory WITHOUT organizationId (5 elements)
-    const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.addPolicy(role, domainPath, resourcePath, action, effect);
-    return true;
-  }
-
-  /**
-   * Remove a policy rule.
-   */
-  async removePolicy(
-    organizationId: string,
-    role: string,
-    domain: ScopePart[],
-    resource: ScopePart[],
-    action: string,
-    effect: "allow" | "deny" = "allow"
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    const domainPath = this.buildPath(domain);
-    const resourcePath = this.buildPath(resource);
-
-    // Remove from database (6 elements including organizationId)
-    await this.adapter.removePolicy("p", "p", [
-      role,
-      domainPath,
-      resourcePath,
-      action,
-      effect,
-      organizationId
-    ]);
-
-    // Remove from enforcer memory (5 elements)
-    const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.removePolicy(role, domainPath, resourcePath, action, effect);
-    return true;
-  }
-
-  /**
    * Remove all policies for a role in organization
    */
-  async removeFilteredPolicy(organizationId: string, role: string): Promise<boolean> {
+  async removeFilteredPolicy(params: { organizationId: string; role: string }): Promise<boolean> {
+    const { organizationId, role } = params;
+
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
     }
 
-    // Remove from database - filter by role (v0) and orgId (v5)
     await this.adapter.removeFilteredPolicy("p", "p", 0, role, "", "", "", "", organizationId);
 
-    // Remove from enforcer memory - filter by role only (index 0)
     const enforcer = await this.getEnforcer(organizationId);
     await enforcer.removeFilteredPolicy(0, role);
     return true;
   }
 
-  /**
-   * Assign role to user in a specific domain (project).
-   *
-   * @param organizationId - Organization ID
-   * @param userId - User ID
-   * @param role - Role name
-   * @param domain - Domain scope (project path, or [] for all projects)
-   */
-  async assignRole(
-    organizationId: string,
-    userId: string,
-    role: string,
-    domain: ScopePart[]
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    const domainPath = this.buildPath(domain);
-
-    // Persist to database WITH organizationId (4 elements)
-    try {
-      await this.adapter.addPolicy("g", "g", [
-        `user:${userId}`,
-        role,
-        domainPath,
-        organizationId
-      ]);
-    } catch (error: any) {
-      // Ignore duplicate key errors - assignment already exists
-      if (error?.code !== "23505") {
-        throw error;
-      }
-      return false;
-    }
-
-    // Invalidate enforcer cache so next request loads fresh data from DB
-    await this.invalidateEnforcer(organizationId);
-    return true;
-  }
-
-  /**
-   * Remove role from user in a specific domain.
-   */
-  async removeRole(
-    organizationId: string,
-    userId: string,
-    role: string,
-    domain: ScopePart[]
-  ): Promise<boolean> {
-    if (!this.adapter) {
-      throw new Error("Adapter not initialized");
-    }
-
-    const domainPath = this.buildPath(domain);
-
-    // Remove from database (4 elements including organizationId)
-    await this.adapter.removePolicy("g", "g", [
-      `user:${userId}`,
-      role,
-      domainPath,
-      organizationId
-    ]);
-
-    // Invalidate enforcer cache so next request loads fresh data from DB
-    await this.invalidateEnforcer(organizationId);
-    return true;
-  }
-
-  /**
-   * Get all roles for a user across all domains in organization.
-   */
-  async getRolesForUser(
-    organizationId: string,
-    userId: string
-  ): Promise<Array<{ role: string; domain: string }>> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const groupings = await enforcer.getGroupingPolicy();
-
-    const userPrefix = `user:${userId}`;
-    const roles: Array<{ role: string; domain: string }> = [];
-
-    for (const grouping of groupings) {
-      if (grouping[0] === userPrefix) {
-        roles.push({
-          role: grouping[1],
-          domain: grouping[2],
-        });
-      }
-    }
-
-    return roles;
-  }
-
-  /**
-   * Get roles for user in a specific domain.
-   */
-  async getRolesForUserInDomain(
-    organizationId: string,
-    userId: string,
-    domain: ScopePart[]
-  ): Promise<string[]> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const domainPath = this.buildPath(domain);
-
-    // getRolesForUserInDomain is a casbin built-in for domain models
-    return enforcer.getRolesForUserInDomain(`user:${userId}`, domainPath);
-  }
-
-  /**
-   * Get all users with roles in a specific domain.
-   */
-  async getMembersForDomain(
-    organizationId: string,
-    domain: ScopePart[]
-  ): Promise<Array<{ userId: string; role: string }>> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const groupings = await enforcer.getGroupingPolicy();
-    const domainPath = this.buildPath(domain);
-
-    const members: Array<{ userId: string; role: string }> = [];
-
-    for (const grouping of groupings) {
-      // grouping: [user, role, domain]
-      if (grouping[2] === domainPath || grouping[2] === "*") {
-        // Extract userId from "user:xxx"
-        const userId = grouping[0].startsWith("user:")
-          ? grouping[0].substring(5)
-          : grouping[0];
-        members.push({
-          userId,
-          role: grouping[1],
-        });
-      }
-    }
-
-    return members;
-  }
-
-  /**
-   * Get all users with a specific role in organization (any domain)
-   */
-  async getUsersForRole(organizationId: string, role: string): Promise<string[]> {
-    const enforcer = await this.getEnforcer(organizationId);
-    const groupings = await enforcer.getGroupingPolicy();
-
-    const users: string[] = [];
-    for (const grouping of groupings) {
-      if (grouping[1] === role) {
-        const userId = grouping[0].startsWith("user:")
-          ? grouping[0].substring(5)
-          : grouping[0];
-        if (!users.includes(userId)) {
-          users.push(userId);
-        }
-      }
-    }
-
-    return users;
-  }
-
-  /**
-   * Get all policies for an organization (5 elements: role, domain, resource, action, effect)
-   */
-  async getPolicies(organizationId: string): Promise<string[][]> {
-    const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.getPolicy();
-  }
-
-  /**
-   * Get all grouping policies for an organization (3 elements: user/role, role, domain)
-   */
-  async getGroupingPolicies(organizationId: string): Promise<string[][]> {
-    const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.getGroupingPolicy();
-  }
-
   // ============================================================================
-  // Simplified methods for unified domain model (domain as string)
+  // Primary API
   // ============================================================================
 
   /**
-   * Assign role to user in specific domain (simplified API).
-   *
-   * @param organizationId - Organization ID
-   * @param userId - User ID
-   * @param role - Role name
-   * @param domain - Domain: orgId for org-level, storeId for store-level, "*" for all
+   * Check if user has permission for action on resource in domain.
    */
-  async assignRoleSimple(
-    organizationId: string,
-    userId: string,
-    role: string,
-    domain: string
-  ): Promise<boolean> {
+  async enforce(params: EnforceParams): Promise<boolean> {
+    const { organizationId, userId, domain, resource, action } = params;
+    const enforcer = await this.getEnforcer(organizationId);
+    return enforcer.enforce(`user:${userId}`, domain, resource, action);
+  }
+
+  /**
+   * Assign role to user in specific domain.
+   *
+   * @param params.domain - orgId for org-level, storeId for store-level, "*" for all
+   */
+  async assignRole(params: AssignRoleParams): Promise<boolean> {
+    const { organizationId, userId, role, domain } = params;
+
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
     }
@@ -539,14 +260,11 @@ export class CasbinService {
   }
 
   /**
-   * Remove role from user in specific domain (simplified API).
+   * Remove role from user in specific domain.
    */
-  async removeRoleSimple(
-    organizationId: string,
-    userId: string,
-    role: string,
-    domain: string
-  ): Promise<boolean> {
+  async removeRole(params: AssignRoleParams): Promise<boolean> {
+    const { organizationId, userId, role, domain } = params;
+
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
     }
@@ -563,20 +281,17 @@ export class CasbinService {
   }
 
   /**
-   * Remove all roles for user in specific domain (simplified API).
+   * Remove all roles for user in specific domain.
    */
-  async removeAllRolesInDomain(
-    organizationId: string,
-    userId: string,
-    domain: string
-  ): Promise<boolean> {
+  async removeAllRolesInDomain(params: Omit<AssignRoleParams, "role">): Promise<boolean> {
+    const { organizationId, userId, domain } = params;
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
     const userPrefix = `user:${userId}`;
 
     for (const grouping of groupings) {
       if (grouping[0] === userPrefix && grouping[2] === domain) {
-        await this.removeRoleSimple(organizationId, userId, grouping[1], domain);
+        await this.removeRole({ organizationId, userId, role: grouping[1], domain });
       }
     }
 
@@ -584,34 +299,70 @@ export class CasbinService {
   }
 
   /**
-   * Check permission in specific domain context (simplified API).
+   * Add a policy rule.
    */
-  async enforceSimple(
-    organizationId: string,
-    userId: string,
-    domain: string,
-    resource: string,
-    action: string
-  ): Promise<boolean> {
+  async addPolicy(params: AddPolicyParams): Promise<boolean> {
+    const { organizationId, role, domain, resource, action, effect = "allow" } = params;
+
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    try {
+      await this.adapter.addPolicy("p", "p", [
+        role,
+        domain,
+        resource,
+        action,
+        effect,
+        organizationId,
+      ]);
+    } catch (error: any) {
+      if (error?.code !== "23505") throw error;
+      return false;
+    }
+
     const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.enforce(`user:${userId}`, domain, resource, action);
+    await enforcer.addPolicy(role, domain, resource, action, effect);
+    return true;
   }
 
   /**
-   * Get members for specific domain (simplified API).
+   * Remove a policy rule.
+   */
+  async removePolicy(params: AddPolicyParams): Promise<boolean> {
+    const { organizationId, role, domain, resource, action, effect = "allow" } = params;
+
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    await this.adapter.removePolicy("p", "p", [
+      role,
+      domain,
+      resource,
+      action,
+      effect,
+      organizationId,
+    ]);
+
+    const enforcer = await this.getEnforcer(organizationId);
+    await enforcer.removePolicy(role, domain, resource, action, effect);
+    return true;
+  }
+
+  /**
+   * Get members for specific domain.
    * Returns users with direct domain assignment + wildcard (*) assignment.
    */
-  async getMembersForDomainSimple(
-    organizationId: string,
-    domain: string
-  ): Promise<Array<{ userId: string; role: string }>> {
+  async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
+    const { organizationId, domain } = params;
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
 
     const members: Array<{ userId: string; role: string }> = [];
 
     for (const grouping of groupings) {
-      // grouping: [user, role, domain]
       if (grouping[2] === domain || grouping[2] === "*") {
         const userId = grouping[0].startsWith("user:")
           ? grouping[0].substring(5)
@@ -624,11 +375,18 @@ export class CasbinService {
   }
 
   /**
-   * Get org-level members (domain = organizationId).
+   * Get all policies for an organization.
    */
-  async getOrgMembers(
-    organizationId: string
-  ): Promise<Array<{ userId: string; role: string }>> {
-    return this.getMembersForDomainSimple(organizationId, organizationId);
+  async getPolicies(organizationId: string): Promise<string[][]> {
+    const enforcer = await this.getEnforcer(organizationId);
+    return enforcer.getPolicy();
+  }
+
+  /**
+   * Get all grouping policies for an organization.
+   */
+  async getGroupingPolicies(organizationId: string): Promise<string[][]> {
+    const enforcer = await this.getEnforcer(organizationId);
+    return enforcer.getGroupingPolicy();
   }
 }
