@@ -13,6 +13,8 @@ export class SessionFixture {
 
   apiKey!: string;
 
+  scope: 'tenant' | 'customer' = 'tenant';
+
   tenant: {
     data: UserData;
     accessToken?: string;

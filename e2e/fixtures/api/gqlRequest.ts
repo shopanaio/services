@@ -40,7 +40,7 @@ export class BaseGqlRequest<QueryType, MutationType> {
               ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
             }
           : {
-              ...(slug ? { 'X-Project-Name': slug } : {}),
+              ...(slug ? { 'X-Store-Name': slug } : {}),
             }),
         // Tenant or Customer Access Token
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
