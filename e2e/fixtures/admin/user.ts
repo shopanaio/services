@@ -24,7 +24,7 @@ export class UserFixture {
 
     const result = (
       data as {
-        userMutation: {
+        authMutation: {
           signUp: {
             user: { id: string; email: string } | null;
             token: { accessToken: string; refreshToken: string } | null;
@@ -32,7 +32,7 @@ export class UserFixture {
           };
         };
       }
-    ).userMutation.signUp;
+    ).authMutation.signUp;
 
     if (result.userErrors.length > 0 || !result.user || !result.token) {
       throw new Error('Failed to create user: ' + JSON.stringify(result.userErrors));

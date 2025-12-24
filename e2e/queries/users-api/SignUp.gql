@@ -1,5 +1,5 @@
 mutation SignUp($input: UserSignUpInput!) {
-  userMutation {
+  authMutation {
     signUp(input: $input) {
       user {
         id

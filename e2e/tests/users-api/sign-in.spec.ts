@@ -16,7 +16,7 @@ test.describe('SignIn API', () => {
       },
     });
 
-    const result = data.userMutation.signIn;
+    const result = data.authMutation.signIn;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.user).not.toBeNull();
@@ -41,7 +41,7 @@ test.describe('SignIn API', () => {
       },
     });
 
-    const result = data.userMutation.signIn;
+    const result = data.authMutation.signIn;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
@@ -59,7 +59,7 @@ test.describe('SignIn API', () => {
       },
     });
 
-    const result = data.userMutation.signIn;
+    const result = data.authMutation.signIn;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
@@ -77,7 +77,7 @@ test.describe('SignIn API', () => {
       },
     });
 
-    const result = data.userMutation.signIn;
+    const result = data.authMutation.signIn;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
@@ -98,7 +98,7 @@ test.describe('SignIn API', () => {
       },
     });
 
-    const result = data.userMutation.signIn;
+    const result = data.authMutation.signIn;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();

@@ -15,7 +15,7 @@ test.describe('SignUp API', () => {
       },
     });
 
-    const result = data.userMutation.signUp;
+    const result = data.authMutation.signUp;
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.user?.email).toBe(user.email);
@@ -35,7 +35,7 @@ test.describe('SignUp API', () => {
       },
     });
 
-    const result = data.userMutation.signUp;
+    const result = data.authMutation.signUp;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
@@ -66,7 +66,7 @@ test.describe('SignUp API', () => {
       },
     });
 
-    const result = data.userMutation.signUp;
+    const result = data.authMutation.signUp;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
@@ -85,7 +85,7 @@ test.describe('SignUp API', () => {
       },
     });
 
-    const result = data.userMutation.signUp;
+    const result = data.authMutation.signUp;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
@@ -105,7 +105,7 @@ test.describe('SignUp API', () => {
       },
     });
 
-    const result = data.userMutation.signUp;
+    const result = data.authMutation.signUp;
 
     expect(result.user).toBeNull();
     expect(result.token).toBeNull();
