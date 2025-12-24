@@ -156,7 +156,7 @@ type UserSignUpPayload {
   """
   Authentication tokens.
   """
-  token: AuthToken
+  token: AuthTokenPayload
 
   """
   List of errors that occurred during the mutation.
@@ -191,7 +191,7 @@ type UserSignInPayload {
   """
   Authentication tokens.
   """
-  token: AuthToken
+  token: AuthTokenPayload
 
   """
   List of errors that occurred during the mutation.
@@ -241,7 +241,7 @@ type UserTokenRefreshPayload {
   """
   New authentication tokens.
   """
-  token: AuthToken
+  token: AuthTokenPayload
 
   """
   List of errors that occurred during the mutation.

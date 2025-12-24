@@ -21,20 +21,37 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
-/** Authentication tokens returned after organization switch. */
-export type AuthPayload = {
-  __typename?: 'AuthPayload';
-  /** JWT access token with organizationId claim. */
-  accessToken: Scalars['String']['output'];
-  /** Token expiration time in seconds. */
-  expiresIn: Scalars['Int']['output'];
-  /** Refresh token for obtaining new access tokens. */
-  refreshToken: Scalars['String']['output'];
+export type AuthMutation = {
+  __typename?: 'AuthMutation';
+  signIn: UserSignInPayload;
+  signOut: UserSignOutPayload;
+  signUp: UserSignUpPayload;
+  tokenRefresh: UserTokenRefreshPayload;
+};
+
+
+export type AuthMutationSignInArgs = {
+  input: UserSignInInput;
+};
+
+
+export type AuthMutationSignOutArgs = {
+  input: UserSignOutInput;
+};
+
+
+export type AuthMutationSignUpArgs = {
+  input: UserSignUpInput;
+};
+
+
+export type AuthMutationTokenRefreshArgs = {
+  input: UserTokenRefreshInput;
 };
 
 /** Authentication tokens. */
-export type AuthToken = {
-  __typename?: 'AuthToken';
+export type AuthTokenPayload = {
+  __typename?: 'AuthTokenPayload';
   /** Access token for API requests. */
   accessToken: Scalars['String']['output'];
   /** Expiration time in seconds. */
@@ -770,6 +787,8 @@ export type Membership = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  /** Authentication mutations. */
+  authMutation: AuthMutation;
   /** Organization management mutations. */
   organizationMutation: OrganizationMutation;
   /** Role management mutations. */
@@ -808,10 +827,7 @@ export type OrganizationMutation = {
    * Current user becomes the owner.
    */
   createOrganization: CreateOrganizationPayload;
-  /**
-   * Delete organization.
-   * Requires: org owner.
-   */
+  /** Delete organization. Requires: org owner. */
   deleteOrganization: DeleteOrganizationPayload;
   /** Invite member to organization with role assignments. */
   inviteMember: InviteMemberPayload;
@@ -876,23 +892,12 @@ export enum PermissionEffect {
 
 export type Query = {
   __typename?: 'Query';
-  /**
-   * Check authorization for current user.
-   * Used for server-side permission checks.
-   * For client-side checks, use project.roles + user.role.
-   */
-  authorize: AuthorizePayload;
   /** Get current organization context (resolved from project). */
   currentOrganization?: Maybe<Organization>;
   /** Get organization by ID (if user has access). */
   organization?: Maybe<Organization>;
   /** Get current authenticated user. */
   userQuery: UserQuery;
-};
-
-
-export type QueryAuthorizeArgs = {
-  input: AuthorizeInput;
 };
 
 
@@ -940,6 +945,12 @@ export type Role = {
   description?: Maybe<Scalars['String']['output']>;
   /** Human-readable display name. */
   displayName: Scalars['String']['output'];
+  /**
+   * Domain scope for this role.
+   * "*" = global (all stores)
+   * storeId = store-specific role
+   */
+  domain: Scalars['String']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
   /** System role cannot be deleted or modified. */
@@ -964,6 +975,12 @@ export type RoleCreateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** Display name. */
   displayName: Scalars['String']['input'];
+  /**
+   * Domain scope for role.
+   * "*" = global (all stores), default
+   * storeId = store-specific role
+   */
+  domain?: InputMaybe<Scalars['String']['input']>;
   /** Unique role name (slug). */
   name: Scalars['String']['input'];
   /** Role permissions. */
@@ -978,6 +995,12 @@ export type RoleCreatePayload = {
 
 /** Input for deleting a role. */
 export type RoleDeleteInput = {
+  /**
+   * Domain scope for role lookup.
+   * "*" = global (default)
+   * storeId = store-specific
+   */
+  domain?: InputMaybe<Scalars['String']['input']>;
   /** Role name to delete. */
   name: Scalars['String']['input'];
 };
@@ -1065,6 +1088,12 @@ export type RoleUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New display name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Domain scope for role lookup.
+   * "*" = global (default)
+   * storeId = store-specific
+   */
+  domain?: InputMaybe<Scalars['String']['input']>;
   /** Role name to update. */
   name: Scalars['String']['input'];
   /** New permissions (completely replaces existing). */
@@ -1130,33 +1159,9 @@ export type UserError = {
 
 export type UserMutation = {
   __typename?: 'UserMutation';
-  signIn: UserSignInPayload;
-  signOut: UserSignOutPayload;
-  signUp: UserSignUpPayload;
-  tokenRefresh: UserTokenRefreshPayload;
   userUpdateEmail: UserUpdateEmailPayload;
   userUpdatePassword: UserUpdatePasswordPayload;
   userUpdateProfile: UserUpdateProfilePayload;
-};
-
-
-export type UserMutationSignInArgs = {
-  input: UserSignInInput;
-};
-
-
-export type UserMutationSignOutArgs = {
-  input: UserSignOutInput;
-};
-
-
-export type UserMutationSignUpArgs = {
-  input: UserSignUpInput;
-};
-
-
-export type UserMutationTokenRefreshArgs = {
-  input: UserTokenRefreshInput;
 };
 
 
@@ -1176,8 +1181,19 @@ export type UserMutationUserUpdateProfileArgs = {
 
 export type UserQuery = {
   __typename?: 'UserQuery';
+  /**
+   * Check authorization for current user.
+   * Used for server-side permission checks.
+   * For client-side checks, use project.roles + user.role.
+   */
+  authorize: AuthorizePayload;
   /** Get current authenticated admin user */
   current?: Maybe<User>;
+};
+
+
+export type UserQueryAuthorizeArgs = {
+  input: AuthorizeInput;
 };
 
 /** Input for admin user authentication. */
@@ -1192,7 +1208,7 @@ export type UserSignInInput = {
 export type UserSignInPayload = {
   __typename?: 'UserSignInPayload';
   /** Authentication tokens. */
-  token?: Maybe<AuthToken>;
+  token?: Maybe<AuthTokenPayload>;
   /** The authenticated user. */
   user?: Maybe<User>;
   /** List of errors that occurred during the mutation. */
@@ -1226,7 +1242,7 @@ export type UserSignUpInput = {
 export type UserSignUpPayload = {
   __typename?: 'UserSignUpPayload';
   /** Authentication tokens. */
-  token?: Maybe<AuthToken>;
+  token?: Maybe<AuthTokenPayload>;
   /** The created user. */
   user?: Maybe<User>;
   /** List of errors that occurred during the mutation. */
@@ -1243,7 +1259,7 @@ export type UserTokenRefreshInput = {
 export type UserTokenRefreshPayload = {
   __typename?: 'UserTokenRefreshPayload';
   /** New authentication tokens. */
-  token?: Maybe<AuthToken>;
+  token?: Maybe<AuthTokenPayload>;
   /** List of errors that occurred during the mutation. */
   userErrors: Array<GenericUserError>;
 };
@@ -1398,10 +1414,10 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
-  AuthPayload: ResolverTypeWrapper<AuthPayload>;
+  AuthMutation: ResolverTypeWrapper<AuthMutation>;
+  AuthTokenPayload: ResolverTypeWrapper<AuthTokenPayload>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
-  AuthToken: ResolverTypeWrapper<AuthToken>;
   AuthorizeInput: AuthorizeInput;
   AuthorizePayload: ResolverTypeWrapper<AuthorizePayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
@@ -1467,10 +1483,10 @@ export type ResolversTypes = ResolversObject<{
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
-  AuthPayload: AuthPayload;
+  AuthMutation: AuthMutation;
+  AuthTokenPayload: AuthTokenPayload;
   String: Scalars['String']['output'];
   Int: Scalars['Int']['output'];
-  AuthToken: AuthToken;
   AuthorizeInput: AuthorizeInput;
   AuthorizePayload: AuthorizePayload;
   Boolean: Scalars['Boolean']['output'];
@@ -1529,14 +1545,15 @@ export type ResolversParentTypes = ResolversObject<{
   UserUpdateProfilePayload: UserUpdateProfilePayload;
 }>;
 
-export type AuthPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthPayload'] = ResolversParentTypes['AuthPayload']> = ResolversObject<{
-  accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  expiresIn?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+export type AuthMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthMutation'] = ResolversParentTypes['AuthMutation']> = ResolversObject<{
+  signIn?: Resolver<ResolversTypes['UserSignInPayload'], ParentType, ContextType, RequireFields<AuthMutationSignInArgs, 'input'>>;
+  signOut?: Resolver<ResolversTypes['UserSignOutPayload'], ParentType, ContextType, RequireFields<AuthMutationSignOutArgs, 'input'>>;
+  signUp?: Resolver<ResolversTypes['UserSignUpPayload'], ParentType, ContextType, RequireFields<AuthMutationSignUpArgs, 'input'>>;
+  tokenRefresh?: Resolver<ResolversTypes['UserTokenRefreshPayload'], ParentType, ContextType, RequireFields<AuthMutationTokenRefreshArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type AuthTokenResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthToken'] = ResolversParentTypes['AuthToken']> = ResolversObject<{
+export type AuthTokenPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthTokenPayload'] = ResolversParentTypes['AuthTokenPayload']> = ResolversObject<{
   accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   expiresIn?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   refreshToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1612,6 +1629,7 @@ export type MembershipResolvers<ContextType = ServiceContext, ParentType extends
 }>;
 
 export type MutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = ResolversObject<{
+  authMutation?: Resolver<ResolversTypes['AuthMutation'], ParentType, ContextType>;
   organizationMutation?: Resolver<ResolversTypes['OrganizationMutation'], ParentType, ContextType>;
   roleMutation?: Resolver<ResolversTypes['RoleMutation'], ParentType, ContextType>;
   userMutation?: Resolver<ResolversTypes['UserMutation'], ParentType, ContextType>;
@@ -1640,7 +1658,6 @@ export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentTy
 }>;
 
 export type QueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = ResolversObject<{
-  authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<QueryAuthorizeArgs, 'input'>>;
   currentOrganization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType, RequireFields<QueryOrganizationArgs, 'id'>>;
   userQuery?: Resolver<ResolversTypes['UserQuery'], ParentType, ContextType>;
@@ -1670,6 +1687,7 @@ export type RoleResolvers<ContextType = ServiceContext, ParentType extends Resol
   createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  domain?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isSystem?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1740,10 +1758,6 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 }>;
 
 export type UserMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserMutation'] = ResolversParentTypes['UserMutation']> = ResolversObject<{
-  signIn?: Resolver<ResolversTypes['UserSignInPayload'], ParentType, ContextType, RequireFields<UserMutationSignInArgs, 'input'>>;
-  signOut?: Resolver<ResolversTypes['UserSignOutPayload'], ParentType, ContextType, RequireFields<UserMutationSignOutArgs, 'input'>>;
-  signUp?: Resolver<ResolversTypes['UserSignUpPayload'], ParentType, ContextType, RequireFields<UserMutationSignUpArgs, 'input'>>;
-  tokenRefresh?: Resolver<ResolversTypes['UserTokenRefreshPayload'], ParentType, ContextType, RequireFields<UserMutationTokenRefreshArgs, 'input'>>;
   userUpdateEmail?: Resolver<ResolversTypes['UserUpdateEmailPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateEmailArgs, 'input'>>;
   userUpdatePassword?: Resolver<ResolversTypes['UserUpdatePasswordPayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdatePasswordArgs, 'input'>>;
   userUpdateProfile?: Resolver<ResolversTypes['UserUpdateProfilePayload'], ParentType, ContextType, RequireFields<UserMutationUserUpdateProfileArgs, 'input'>>;
@@ -1751,12 +1765,13 @@ export type UserMutationResolvers<ContextType = ServiceContext, ParentType exten
 }>;
 
 export type UserQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserQuery'] = ResolversParentTypes['UserQuery']> = ResolversObject<{
+  authorize?: Resolver<ResolversTypes['AuthorizePayload'], ParentType, ContextType, RequireFields<UserQueryAuthorizeArgs, 'input'>>;
   current?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type UserSignInPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserSignInPayload'] = ResolversParentTypes['UserSignInPayload']> = ResolversObject<{
-  token?: Resolver<Maybe<ResolversTypes['AuthToken']>, ParentType, ContextType>;
+  token?: Resolver<Maybe<ResolversTypes['AuthTokenPayload']>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1769,14 +1784,14 @@ export type UserSignOutPayloadResolvers<ContextType = ServiceContext, ParentType
 }>;
 
 export type UserSignUpPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserSignUpPayload'] = ResolversParentTypes['UserSignUpPayload']> = ResolversObject<{
-  token?: Resolver<Maybe<ResolversTypes['AuthToken']>, ParentType, ContextType>;
+  token?: Resolver<Maybe<ResolversTypes['AuthTokenPayload']>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type UserTokenRefreshPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserTokenRefreshPayload'] = ResolversParentTypes['UserTokenRefreshPayload']> = ResolversObject<{
-  token?: Resolver<Maybe<ResolversTypes['AuthToken']>, ParentType, ContextType>;
+  token?: Resolver<Maybe<ResolversTypes['AuthTokenPayload']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1800,8 +1815,8 @@ export type UserUpdateProfilePayloadResolvers<ContextType = ServiceContext, Pare
 }>;
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
-  AuthPayload?: AuthPayloadResolvers<ContextType>;
-  AuthToken?: AuthTokenResolvers<ContextType>;
+  AuthMutation?: AuthMutationResolvers<ContextType>;
+  AuthTokenPayload?: AuthTokenPayloadResolvers<ContextType>;
   AuthorizePayload?: AuthorizePayloadResolvers<ContextType>;
   ChangeRolePayload?: ChangeRolePayloadResolvers<ContextType>;
   CreateOrganizationPayload?: CreateOrganizationPayloadResolvers<ContextType>;

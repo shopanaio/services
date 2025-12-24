@@ -12,10 +12,9 @@ export const resolvers = {
   ...roleResolvers,
   ...organizationResolvers,
   ...membershipResolvers,
-  // Merge Query resolvers from queries, role, and organization
+  // Merge Query resolvers from queries and organization
   Query: {
     ...queryResolvers.Query,
-    ...roleResolvers.Query,
     ...organizationResolvers.Query,
   },
   // Merge Mutation resolvers from user, role, and organization
@@ -24,10 +23,19 @@ export const resolvers = {
     ...roleMutationResolvers.Mutation,
     ...organizationResolvers.Mutation,
   },
+  // Merge UserQuery resolvers (current + authorize)
+  UserQuery: {
+    ...queryResolvers.UserQuery,
+    ...roleResolvers.UserQuery,
+  },
   // Merge User resolvers (federation + role field)
   User: {
     ...queryResolvers.User,
     ...roleResolvers.User,
+  },
+  // AuthMutation type resolvers
+  AuthMutation: {
+    ...userMutationResolvers.AuthMutation,
   },
   // Role type resolver (federation)
   Role: {

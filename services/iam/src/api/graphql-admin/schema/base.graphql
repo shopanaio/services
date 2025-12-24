@@ -46,7 +46,7 @@ type GenericUserError implements UserError @shareable {
 """
 Authentication tokens.
 """
-type AuthToken {
+type AuthTokenPayload {
   """
   Access token for API requests.
   """
@@ -68,6 +68,13 @@ type UserQuery {
   Get current authenticated admin user
   """
   current: User
+
+  """
+  Check authorization for current user.
+  Used for server-side permission checks.
+  For client-side checks, use project.roles + user.role.
+  """
+  authorize(input: AuthorizeInput!): AuthorizePayload!
 }
 
 type UserMutation {
@@ -77,10 +84,62 @@ type UserMutation {
   userUpdatePassword(
     input: UserUpdatePasswordInput!
   ): UserUpdatePasswordPayload!
+}
 
+type AuthMutation {
   # Auth
   signUp(input: UserSignUpInput!): UserSignUpPayload!
   signIn(input: UserSignInInput!): UserSignInPayload!
   signOut(input: UserSignOutInput!): UserSignOutPayload!
   tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
+}
+
+# ============================================================================
+# QUERIES & MUTATIONS
+# ============================================================================
+
+extend type Query {
+  """
+  Get current authenticated user.
+  """
+  userQuery: UserQuery!
+}
+
+extend type Mutation {
+  """
+  User management mutations.
+  """
+  userMutation: UserMutation!
+  """
+  Role management mutations.
+  """
+  roleMutation: RoleMutation!
+  """
+  Authentication mutations.
+  """
+  authMutation: AuthMutation!
+}
+
+"""
+Role mutations.
+"""
+type RoleMutation {
+  """
+  Create custom role.
+  Requires: project:admin permission.
+  """
+  roleCreate(input: RoleCreateInput!): RoleCreatePayload!
+  """
+  Update role.
+  Requires: project:admin permission.
+  System roles cannot be modified.
+  """
+  roleUpdate(input: RoleUpdateInput!): RoleUpdatePayload!
+  """
+  Delete custom role.
+  Requires: project:admin permission.
+  System roles cannot be deleted.
+  Roles with assigned users cannot be deleted.
+  """
+  roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
 }

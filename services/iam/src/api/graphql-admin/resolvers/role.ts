@@ -80,8 +80,8 @@ export const roleResolvers: Partial<Resolvers> = {
     },
   },
 
-  // Query.authorize
-  Query: {
+  // UserQuery.authorize
+  UserQuery: {
     authorize: async (_parent, { input }, ctx) => {
       const organizationId = ctx.organizationId;
       if (!organizationId) {

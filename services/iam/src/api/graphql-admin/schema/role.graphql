@@ -6,32 +6,40 @@
 Role with permissions - universal, can be assigned at any level.
 """
 type Role @key(fields: "id") {
-  """Unique identifier."""
+  """
+  Unique identifier.
+  """
   id: ID!
-
   """
   Domain scope for this role.
   "*" = global (all stores)
   storeId = store-specific role
   """
   domain: String!
-
-  """Unique role name within organization (e.g.: admin, manager, viewer)."""
+  """
+  Unique role name within organization (e.g.: admin, manager, viewer).
+  """
   name: String!
-
-  """Human-readable display name."""
+  """
+  Human-readable display name.
+  """
   displayName: String!
-
-  """Role description."""
+  """
+  Role description.
+  """
   description: String
-
-  """System role cannot be deleted or modified."""
+  """
+  System role cannot be deleted or modified.
+  """
   isSystem: Boolean!
-
-  """Role permissions."""
+  """
+  Role permissions.
+  """
   permissions: [RolePermission!]!
 
-  """Role creation date."""
+  """
+  Role creation date.
+  """
   createdAt: DateTime
 }
 
@@ -44,13 +52,11 @@ type RolePermission {
   Supports wildcards: *, product/*, order/*.
   """
   resource: String!
-
   """
   Allowed actions (e.g.: create, read, update, delete).
   Supports wildcard: *.
   """
   actions: [String!]!
-
   """
   Effect: ALLOW or DENY.
   DENY takes priority over ALLOW.
@@ -66,7 +72,6 @@ enum PermissionEffect {
   Allow the action.
   """
   ALLOW
-
   """
   Deny the action (takes priority over ALLOW).
   """
@@ -81,12 +86,10 @@ type ResourceDefinition {
   Resource name (product, order, etc.).
   """
   name: String!
-
   """
   Available actions for resource.
   """
   actions: [String!]!
-
   """
   Display name.
   """
@@ -113,22 +116,18 @@ input RoleCreateInput {
   storeId = store-specific role
   """
   domain: String
-
   """
   Unique role name (slug).
   """
   name: String!
-
   """
   Display name.
   """
   displayName: String!
-
   """
   Description.
   """
   description: String
-
   """
   Role permissions.
   """
@@ -143,12 +142,10 @@ input RolePermissionInput {
   Resource (product, order, *, product/*).
   """
   resource: String!
-
   """
   Actions (create, read, update, delete, *).
   """
   actions: [String!]!
-
   """
   Effect: ALLOW or DENY.
   """
@@ -165,22 +162,18 @@ input RoleUpdateInput {
   storeId = store-specific
   """
   domain: String
-
   """
   Role name to update.
   """
   name: String!
-
   """
   New display name.
   """
   displayName: String
-
   """
   New description.
   """
   description: String
-
   """
   New permissions (completely replaces existing).
   """
@@ -197,7 +190,6 @@ input RoleDeleteInput {
   storeId = store-specific
   """
   domain: String
-
   """
   Role name to delete.
   """
@@ -212,7 +204,6 @@ input AuthorizeInput {
   Resource to check.
   """
   resource: String!
-
   """
   Action to check.
   """
@@ -243,65 +234,8 @@ type AuthorizePayload {
   Whether access is allowed.
   """
   allowed: Boolean!
-
   """
   Reason for denial (if denied).
   """
   deniedReason: String
-}
-
-# ============================================================================
-# QUERIES & MUTATIONS
-# ============================================================================
-
-extend type Query {
-  """
-  Get current authenticated user.
-  """
-  userQuery: UserQuery!
-
-  """
-  Check authorization for current user.
-  Used for server-side permission checks.
-  For client-side checks, use project.roles + user.role.
-  """
-  authorize(input: AuthorizeInput!): AuthorizePayload!
-}
-
-extend type Mutation {
-  """
-  User management mutations.
-  """
-  userMutation: UserMutation!
-
-  """
-  Role management mutations.
-  """
-  roleMutation: RoleMutation!
-}
-
-"""
-Role mutations.
-"""
-type RoleMutation {
-  """
-  Create custom role.
-  Requires: project:admin permission.
-  """
-  roleCreate(input: RoleCreateInput!): RoleCreatePayload!
-
-  """
-  Update role.
-  Requires: project:admin permission.
-  System roles cannot be modified.
-  """
-  roleUpdate(input: RoleUpdateInput!): RoleUpdatePayload!
-
-  """
-  Delete custom role.
-  Requires: project:admin permission.
-  System roles cannot be deleted.
-  Roles with assigned users cannot be deleted.
-  """
-  roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
 }

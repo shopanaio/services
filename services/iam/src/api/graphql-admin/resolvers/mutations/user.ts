@@ -5,6 +5,7 @@ import { resolveUser } from "../types.js";
 export const userMutationResolvers: Partial<Resolvers> = {
   Mutation: {
     userMutation: () => ({} as any),
+    authMutation: () => ({} as any),
   },
 
   UserMutation: {
@@ -46,7 +47,9 @@ export const userMutationResolvers: Partial<Resolvers> = {
         ],
       };
     },
+  },
 
+  AuthMutation: {
     signUp: async (_parent, { input }, ctx, info) => {
       const result = await ctx.kernel.runScript(UserSignUpScript, {
         email: input.email,

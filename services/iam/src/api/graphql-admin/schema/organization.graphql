@@ -7,43 +7,30 @@ Organization - top level entity for multi-tenancy.
 Users belong to organizations, organizations contain stores.
 """
 type Organization @key(fields: "id") {
-  """Unique identifier."""
+  """
+  Unique identifier.
+  """
   id: ID!
-
-  """Organization name (e.g., "Acme Corp")."""
+  """
+  Organization name (e.g., "Acme Corp").
+  """
   name: String!
-
-  """URL-friendly unique identifier."""
+  """
+  URL-friendly unique identifier.
+  """
   slug: String!
-
-  """Membership info (members + roles). Domain = orgId."""
+  """
+  Membership info (members + roles). Domain = orgId.
+  """
   membership: Membership!
-
-  """Timestamp when the organization was created."""
+  """
+  Timestamp when the organization was created.
+  """
   createdAt: DateTime!
-
-  """Timestamp when the organization was last updated."""
+  """
+  Timestamp when the organization was last updated.
+  """
   updatedAt: DateTime
-}
-
-"""
-Authentication tokens returned after organization switch.
-"""
-type AuthPayload {
-  """
-  JWT access token with organizationId claim.
-  """
-  accessToken: String!
-
-  """
-  Refresh token for obtaining new access tokens.
-  """
-  refreshToken: String!
-
-  """
-  Token expiration time in seconds.
-  """
-  expiresIn: Int!
 }
 
 # ============================================================================
@@ -58,7 +45,6 @@ input CreateOrganizationInput {
   Organization name.
   """
   name: String!
-
   """
   URL-friendly unique identifier.
   """
@@ -69,10 +55,13 @@ input CreateOrganizationInput {
 Role assignment - assigns role to user in specific domain.
 """
 input RoleAssignment {
-  """Domain ID (orgId, storeId, or '*' for all stores)."""
+  """
+  Domain ID (orgId, storeId, or '*' for all stores).
+  """
   domain: String!
-
-  """Role name."""
+  """
+  Role name.
+  """
   role: String!
 }
 
@@ -80,10 +69,13 @@ input RoleAssignment {
 Input for inviting a member to organization.
 """
 input InviteMemberInput {
-  """Email address of the user to invite."""
+  """
+  Email address of the user to invite.
+  """
   email: Email!
-
-  """Role assignments (at least one required)."""
+  """
+  Role assignments (at least one required).
+  """
   roles: [RoleAssignment!]!
 }
 
@@ -91,13 +83,17 @@ input InviteMemberInput {
 Input for changing member's role.
 """
 input ChangeRoleInput {
-  """User ID."""
+  """
+  User ID.
+  """
   userId: ID!
-
-  """Domain (orgId, storeId, or '*' for all)."""
+  """
+  Domain (orgId, storeId, or '*' for all).
+  """
   domain: String!
-
-  """New role name."""
+  """
+  New role name.
+  """
   role: String!
 }
 
@@ -105,10 +101,13 @@ input ChangeRoleInput {
 Input for removing member's access.
 """
 input RemoveAccessInput {
-  """User ID."""
+  """
+  User ID.
+  """
   userId: ID!
-
-  """Domain to remove access from."""
+  """
+  Domain to remove access from.
+  """
   domain: String!
 }
 
@@ -121,7 +120,6 @@ input UpdateOrganizationInput {
   """
   name: String
 }
-
 
 # ============================================================================
 # PAYLOADS
@@ -171,7 +169,6 @@ extend type Query {
   Get organization by ID (if user has access).
   """
   organization(id: ID!): Organization
-
   """
   Get current organization context (resolved from project).
   """
@@ -193,37 +190,34 @@ type OrganizationMutation {
   Create a new organization.
   Current user becomes the owner.
   """
-  createOrganization(input: CreateOrganizationInput!): CreateOrganizationPayload!
-
+  createOrganization(
+    input: CreateOrganizationInput!
+  ): CreateOrganizationPayload!
   """
   Update organization.
   Requires: org admin or owner.
   """
-  updateOrganization(input: UpdateOrganizationInput!): UpdateOrganizationPayload!
-
+  updateOrganization(
+    input: UpdateOrganizationInput!
+  ): UpdateOrganizationPayload!
   """
-  Delete organization.
-  Requires: org owner.
+  Delete organization. Requires: org owner.
   """
   deleteOrganization: DeleteOrganizationPayload!
-
   """
   Invite member to organization with role assignments.
   """
   inviteMember(input: InviteMemberInput!): InviteMemberPayload!
-
   """
   Remove member from organization.
   Requires: org admin or owner.
   Cannot remove self or owner.
   """
   removeMember(memberId: ID!): RemoveMemberPayload!
-
   """
   Change role for a member in specific domain.
   """
   changeRole(input: ChangeRoleInput!): ChangeRolePayload!
-
   """
   Remove member's access from domain.
   """

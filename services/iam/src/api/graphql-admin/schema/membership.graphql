@@ -7,19 +7,25 @@ Member with role assignment.
 Used for both org-level (domain = orgId) and domain-level (domain = storeId).
 """
 type Member @key(fields: "id") {
-  """Unique identifier."""
+  """
+  Unique identifier.
+  """
   id: ID!
-
-  """User reference."""
+  """
+  User reference.
+  """
   user: User!
-
-  """Role name."""
+  """
+  Role name.
+  """
   role: String!
-
-  """When access was granted."""
+  """
+  When access was granted.
+  """
   grantedAt: DateTime!
-
-  """User who granted access."""
+  """
+  User who granted access.
+  """
   grantedBy: User
 }
 
@@ -29,15 +35,20 @@ Used for both Organization and Store.
 Domain determines context: orgId for org-level, storeId for store-level.
 """
 type Membership @key(fields: "domain") {
-  """Domain identifier (orgId or storeId)."""
+  """
+  Domain identifier (orgId or storeId).
+  """
   domain: String!
-
-  """All roles available in this organization."""
+  """
+  All roles available in this organization.
+  """
   roles: [Role!]!
-
-  """All members with access to this domain."""
+  """
+  All members with access to this domain.
+  """
   members: [Member!]!
-
-  """Available resources for role editor (org-level only)."""
+  """
+  Available resources for role editor (org-level only).
+  """
   availableResources: [ResourceDefinition!]
 }

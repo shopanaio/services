@@ -10,6 +10,7 @@ import type { RoleInfo } from "../../../scripts/authorization/dto/index.js";
 function mapRole(role: RoleInfo): Role {
   return {
     id: role.id ?? role.name, // Use name as fallback for system roles
+    domain: role.domain ?? "*",
     name: role.name,
     displayName: role.displayName,
     description: role.description,
