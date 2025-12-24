@@ -40,7 +40,7 @@ type Organization @key(fields: "id") {
 """
 Input for creating an organization.
 """
-input CreateOrganizationInput {
+input OrganizationCreateInput {
   """
   Organization name.
   """
@@ -68,7 +68,7 @@ input RoleAssignment {
 """
 Input for inviting a member to organization.
 """
-input InviteMemberInput {
+input MemberInviteInput {
   """
   Email address of the user to invite.
   """
@@ -82,7 +82,7 @@ input InviteMemberInput {
 """
 Input for changing member's role.
 """
-input ChangeRoleInput {
+input MemberRoleChangeInput {
   """
   User ID.
   """
@@ -100,7 +100,7 @@ input ChangeRoleInput {
 """
 Input for removing member's access.
 """
-input RemoveAccessInput {
+input MemberAccessRemoveInput {
   """
   User ID.
   """
@@ -114,7 +114,7 @@ input RemoveAccessInput {
 """
 Input for updating organization.
 """
-input UpdateOrganizationInput {
+input OrganizationUpdateInput {
   """
   New name.
   """
@@ -125,37 +125,37 @@ input UpdateOrganizationInput {
 # PAYLOADS
 # ============================================================================
 
-type CreateOrganizationPayload {
+type OrganizationCreatePayload {
   organization: Organization
   userErrors: [GenericUserError!]!
 }
 
-type UpdateOrganizationPayload {
+type OrganizationUpdatePayload {
   organization: Organization
   userErrors: [GenericUserError!]!
 }
 
-type DeleteOrganizationPayload {
+type OrganizationDeletePayload {
   deletedOrganizationId: ID
   userErrors: [GenericUserError!]!
 }
 
-type InviteMemberPayload {
+type MemberInvitePayload {
   member: Member
   userErrors: [GenericUserError!]!
 }
 
-type RemoveMemberPayload {
+type MemberRemovePayload {
   removedMemberId: ID
   userErrors: [GenericUserError!]!
 }
 
-type ChangeRolePayload {
+type MemberRoleChangePayload {
   member: Member
   userErrors: [GenericUserError!]!
 }
 
-type RemoveAccessPayload {
+type MemberAccessRemovePayload {
   success: Boolean!
   userErrors: [GenericUserError!]!
 }
@@ -166,13 +166,19 @@ type RemoveAccessPayload {
 
 extend type Query {
   """
+  Organization queries namespace.
+  """
+  organizationQuery: OrganizationQuery!
+}
+
+"""
+Organization queries.
+"""
+type OrganizationQuery {
+  """
   Get organization by ID (if user has access).
   """
   organization(id: ID!): Organization
-  """
-  Get current organization context (resolved from project).
-  """
-  currentOrganization: Organization
 }
 
 extend type Mutation {
@@ -190,36 +196,36 @@ type OrganizationMutation {
   Create a new organization.
   Current user becomes the owner.
   """
-  createOrganization(
-    input: CreateOrganizationInput!
-  ): CreateOrganizationPayload!
+  organizationCreate(
+    input: OrganizationCreateInput!
+  ): OrganizationCreatePayload!
   """
   Update organization.
   Requires: org admin or owner.
   """
-  updateOrganization(
-    input: UpdateOrganizationInput!
-  ): UpdateOrganizationPayload!
+  organizationUpdate(
+    input: OrganizationUpdateInput!
+  ): OrganizationUpdatePayload!
   """
   Delete organization. Requires: org owner.
   """
-  deleteOrganization: DeleteOrganizationPayload!
+  organizationDelete: OrganizationDeletePayload!
   """
   Invite member to organization with role assignments.
   """
-  inviteMember(input: InviteMemberInput!): InviteMemberPayload!
+  memberInvite(input: MemberInviteInput!): MemberInvitePayload!
   """
   Remove member from organization.
   Requires: org admin or owner.
   Cannot remove self or owner.
   """
-  removeMember(memberId: ID!): RemoveMemberPayload!
+  memberRemove(memberId: ID!): MemberRemovePayload!
   """
   Change role for a member in specific domain.
   """
-  changeRole(input: ChangeRoleInput!): ChangeRolePayload!
+  memberRoleChange(input: MemberRoleChangeInput!): MemberRoleChangePayload!
   """
   Remove member's access from domain.
   """
-  removeAccess(input: RemoveAccessInput!): RemoveAccessPayload!
+  memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
 }

@@ -3,8 +3,8 @@ import type {
   Organization,
   Member,
   Membership,
-  ChangeRoleInput,
-  RemoveAccessInput,
+  MemberRoleChangeInput,
+  MemberAccessRemoveInput,
 } from "../generated/types.js";
 import type { ServiceContext } from "../../../context/index.js";
 
@@ -29,6 +29,10 @@ function mapOrganization(org: {
 
 export const organizationResolvers: Partial<Resolvers> = {
   Query: {
+    organizationQuery: () => ({}),
+  },
+
+  OrganizationQuery: {
     /**
      * Get organization by ID (if user has access)
      */
@@ -50,23 +54,6 @@ export const organizationResolvers: Partial<Resolvers> = {
 
       return mapOrganization(org);
     },
-
-    /**
-     * Get current organization context (from JWT)
-     */
-    currentOrganization: async (_parent, _args, ctx) => {
-      const organizationId = ctx.organizationId;
-      if (!organizationId) {
-        return null;
-      }
-
-      const org = await ctx.kernel.repository.organization.findById(organizationId);
-      if (!org) {
-        return null;
-      }
-
-      return mapOrganization(org);
-    },
   },
 
   Mutation: {
@@ -77,7 +64,7 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Create a new organization
      */
-    createOrganization: async (_parent, { input }, ctx) => {
+    organizationCreate: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       if (!userId) {
         return {
@@ -121,7 +108,7 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Update organization
      */
-    updateOrganization: async (_parent, { input }, ctx) => {
+    organizationUpdate: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -160,7 +147,7 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Delete organization (owner only)
      */
-    deleteOrganization: async (_parent, _args, ctx) => {
+    organizationDelete: async (_parent, _args, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -190,7 +177,7 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Invite member to organization with role assignments
      */
-    inviteMember: async (_parent, { input }, ctx) => {
+    memberInvite: async (_parent, { input }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -276,7 +263,7 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Remove member from organization
      */
-    removeMember: async (_parent, { memberId }, ctx) => {
+    memberRemove: async (_parent, { memberId }, ctx) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -337,9 +324,9 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Change role for a member in specific domain
      */
-    changeRole: async (
+    memberRoleChange: async (
       _parent: unknown,
-      { input }: { input: ChangeRoleInput },
+      { input }: { input: MemberRoleChangeInput },
       ctx: ServiceContext
     ) => {
       const userId = ctx.currentUser?.id;
@@ -396,9 +383,9 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Remove member's access from domain
      */
-    removeAccess: async (
+    memberAccessRemove: async (
       _parent: unknown,
-      { input }: { input: RemoveAccessInput },
+      { input }: { input: MemberAccessRemoveInput },
       ctx: ServiceContext
     ) => {
       const userId = ctx.currentUser?.id;
