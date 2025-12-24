@@ -111,7 +111,11 @@ export const membershipResolvers: Partial<Resolvers> = {
     /**
      * Resolve available resources for role editor (org-level only).
      */
-    availableResources: async (parent, _args, ctx) => {
+    availableResources: async (
+      parent: Membership,
+      _args: Record<string, never>,
+      ctx: ServiceContext
+    ) => {
       const organizationId = ctx.organizationId;
       if (!organizationId) {
         return null;

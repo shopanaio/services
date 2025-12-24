@@ -21,22 +21,6 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
-/** Input for assigning domain role. */
-export type AssignDomainRoleInput = {
-  /** Domain path (e.g., "project:abc-123" or "*" for all). */
-  domain: Scalars['String']['input'];
-  /** Member ID. */
-  memberId: Scalars['ID']['input'];
-  /** Role to assign. */
-  role: Scalars['String']['input'];
-};
-
-export type AssignDomainRolePayload = {
-  __typename?: 'AssignDomainRolePayload';
-  member?: Maybe<Member>;
-  userErrors: Array<GenericUserError>;
-};
-
 /** Authentication tokens returned after organization switch. */
 export type AuthPayload = {
   __typename?: 'AuthPayload';
@@ -73,6 +57,22 @@ export type AuthorizePayload = {
   allowed: Scalars['Boolean']['output'];
   /** Reason for denial (if denied). */
   deniedReason?: Maybe<Scalars['String']['output']>;
+};
+
+/** Input for changing member's role. */
+export type ChangeRoleInput = {
+  /** Domain (orgId, storeId, or '*' for all). */
+  domain: Scalars['String']['input'];
+  /** New role name. */
+  role: Scalars['String']['input'];
+  /** User ID. */
+  userId: Scalars['ID']['input'];
+};
+
+export type ChangeRolePayload = {
+  __typename?: 'ChangeRolePayload';
+  member?: Maybe<Member>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** Input for creating an organization. */
@@ -435,19 +435,6 @@ export enum DimensionUnit {
   Mm = 'mm'
 }
 
-/** A member with role assignment in a specific domain. */
-export type DomainMember = {
-  __typename?: 'DomainMember';
-  /** When access was granted */
-  grantedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** User who granted access */
-  grantedBy?: Maybe<User>;
-  /** Role name assigned in this domain */
-  role: Scalars['String']['output'];
-  /** User who has access */
-  user: User;
-};
-
 /** A generic user error type for mutation responses. */
 export type GenericUserError = UserError & {
   __typename?: 'GenericUserError';
@@ -460,10 +447,8 @@ export type GenericUserError = UserError & {
 export type InviteMemberInput = {
   /** Email address of the user to invite. */
   email: Scalars['Email']['input'];
-  /** Organization-level role. */
-  orgRole: OrgRole;
-  /** Optional role IDs to assign. */
-  roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Role assignments (at least one required). */
+  roles: Array<RoleAssignment>;
 };
 
 export type InviteMemberPayload = {
@@ -748,32 +733,38 @@ export enum LocaleCode {
   Zu = 'zu'
 }
 
-/** Member of an organization with org-level role and project access. */
+/**
+ * Member with role assignment.
+ * Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+ */
 export type Member = {
   __typename?: 'Member';
-  /** Timestamp when the member joined. */
+  /** When access was granted. */
   grantedAt: Scalars['DateTime']['output'];
-  /** Granted by user. */
-  grantedBy: User;
+  /** User who granted access. */
+  grantedBy?: Maybe<User>;
   /** Unique identifier. */
   id: Scalars['ID']['output'];
-  /** Organization-level role (owner, admin, member). */
+  /** Role name. */
   role: Scalars['String']['output'];
   /** User reference. */
   user: User;
 };
 
 /**
- * Container for all members and roles of a domain (e.g., store).
- * Resolved via Federation by domain ID.
+ * Membership — universal container for members and roles.
+ * Used for both Organization and Store.
+ * Domain determines context: orgId for org-level, storeId for store-level.
  */
 export type Membership = {
   __typename?: 'Membership';
-  /** Domain identifier (e.g., store UUID) */
-  domain: Scalars['ID']['output'];
-  /** All members with access to this domain */
-  members: Array<DomainMember>;
-  /** All roles available in this domain's organization */
+  /** Available resources for role editor (org-level only). */
+  availableResources?: Maybe<Array<ResourceDefinition>>;
+  /** Domain identifier (orgId or storeId). */
+  domain: Scalars['String']['output'];
+  /** All members with access to this domain. */
+  members: Array<Member>;
+  /** All roles available in this organization. */
   roles: Array<Role>;
 };
 
@@ -787,37 +778,20 @@ export type Mutation = {
   userMutation: UserMutation;
 };
 
-/** Organization-level role. */
-export enum OrgRole {
-  /** Manage org settings and members. */
-  Admin = 'ADMIN',
-  /** Basic org access, needs project roles for resource access. */
-  Member = 'MEMBER',
-  /** Full org control - billing, delete org, transfer ownership. */
-  Owner = 'OWNER'
-}
-
 /**
  * Organization - top level entity for multi-tenancy.
- * Users belong to organizations, organizations contain projects.
+ * Users belong to organizations, organizations contain stores.
  */
 export type Organization = {
   __typename?: 'Organization';
-  /**
-   * Available resources for role editor.
-   * Aggregated from all registered services.
-   */
-  availableResources: Array<ResourceDefinition>;
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
-  /** All members of this organization. */
-  members: Array<Member>;
+  /** Membership info (members + roles). Domain = orgId. */
+  membership: Membership;
   /** Organization name (e.g., "Acme Corp"). */
   name: Scalars['String']['output'];
-  /** All roles defined in this organization. */
-  roles: Array<Role>;
   /** URL-friendly unique identifier. */
   slug: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
@@ -827,11 +801,8 @@ export type Organization = {
 /** Organization mutations. */
 export type OrganizationMutation = {
   __typename?: 'OrganizationMutation';
-  /**
-   * Assign domain role to member.
-   * Requires: org admin.
-   */
-  assignDomainRole: AssignDomainRolePayload;
+  /** Change role for a member in specific domain. */
+  changeRole: ChangeRolePayload;
   /**
    * Create a new organization.
    * Current user becomes the owner.
@@ -842,16 +813,10 @@ export type OrganizationMutation = {
    * Requires: org owner.
    */
   deleteOrganization: DeleteOrganizationPayload;
-  /**
-   * Invite member to organization.
-   * Requires: org admin or owner.
-   */
+  /** Invite member to organization with role assignments. */
   inviteMember: InviteMemberPayload;
-  /**
-   * Remove domain access from member.
-   * Requires: org admin.
-   */
-  removeDomainAccess: RemoveDomainAccessPayload;
+  /** Remove member's access from domain. */
+  removeAccess: RemoveAccessPayload;
   /**
    * Remove member from organization.
    * Requires: org admin or owner.
@@ -867,8 +832,8 @@ export type OrganizationMutation = {
 
 
 /** Organization mutations. */
-export type OrganizationMutationAssignDomainRoleArgs = {
-  input: AssignDomainRoleInput;
+export type OrganizationMutationChangeRoleArgs = {
+  input: ChangeRoleInput;
 };
 
 
@@ -885,8 +850,8 @@ export type OrganizationMutationInviteMemberArgs = {
 
 
 /** Organization mutations. */
-export type OrganizationMutationRemoveDomainAccessArgs = {
-  input: RemoveDomainAccessInput;
+export type OrganizationMutationRemoveAccessArgs = {
+  input: RemoveAccessInput;
 };
 
 
@@ -935,17 +900,17 @@ export type QueryOrganizationArgs = {
   id: Scalars['ID']['input'];
 };
 
-/** Input for removing domain access. */
-export type RemoveDomainAccessInput = {
-  /** Domain path to remove access from. */
+/** Input for removing member's access. */
+export type RemoveAccessInput = {
+  /** Domain to remove access from. */
   domain: Scalars['String']['input'];
-  /** Member ID. */
-  memberId: Scalars['ID']['input'];
+  /** User ID. */
+  userId: Scalars['ID']['input'];
 };
 
-export type RemoveDomainAccessPayload = {
-  __typename?: 'RemoveDomainAccessPayload';
-  member?: Maybe<Member>;
+export type RemoveAccessPayload = {
+  __typename?: 'RemoveAccessPayload';
+  success: Scalars['Boolean']['output'];
   userErrors: Array<GenericUserError>;
 };
 
@@ -966,7 +931,7 @@ export type ResourceDefinition = {
   name: Scalars['String']['output'];
 };
 
-/** Project role with permissions. */
+/** Role with permissions - universal, can be assigned at any level. */
 export type Role = {
   __typename?: 'Role';
   /** Role creation date. */
@@ -975,12 +940,22 @@ export type Role = {
   description?: Maybe<Scalars['String']['output']>;
   /** Human-readable display name. */
   displayName: Scalars['String']['output'];
-  /** System role (owner, admin, manager, support, viewer) cannot be deleted. */
+  /** Unique identifier. */
+  id: Scalars['ID']['output'];
+  /** System role cannot be deleted or modified. */
   isSystem: Scalars['Boolean']['output'];
-  /** Unique role name (e.g.: owner, admin, content-editor). */
+  /** Unique role name within organization (e.g.: admin, manager, viewer). */
   name: Scalars['String']['output'];
   /** Role permissions. */
   permissions: Array<RolePermission>;
+};
+
+/** Role assignment - assigns role to user in specific domain. */
+export type RoleAssignment = {
+  /** Domain ID (orgId, storeId, or '*' for all stores). */
+  domain: Scalars['String']['input'];
+  /** Role name. */
+  role: Scalars['String']['input'];
 };
 
 /** Input for creating a role. */
@@ -1423,23 +1398,22 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
-  AssignDomainRoleInput: AssignDomainRoleInput;
-  String: ResolverTypeWrapper<Scalars['String']['output']>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
-  AssignDomainRolePayload: ResolverTypeWrapper<AssignDomainRolePayload>;
   AuthPayload: ResolverTypeWrapper<AuthPayload>;
+  String: ResolverTypeWrapper<Scalars['String']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   AuthToken: ResolverTypeWrapper<AuthToken>;
   AuthorizeInput: AuthorizeInput;
   AuthorizePayload: ResolverTypeWrapper<AuthorizePayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  ChangeRoleInput: ChangeRoleInput;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  ChangeRolePayload: ResolverTypeWrapper<ChangeRolePayload>;
   CreateOrganizationInput: CreateOrganizationInput;
   CreateOrganizationPayload: ResolverTypeWrapper<CreateOrganizationPayload>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DeleteOrganizationPayload: ResolverTypeWrapper<DeleteOrganizationPayload>;
   DimensionUnit: DimensionUnit;
-  DomainMember: ResolverTypeWrapper<DomainMember>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   InviteMemberInput: InviteMemberInput;
@@ -1449,16 +1423,16 @@ export type ResolversTypes = ResolversObject<{
   Member: ResolverTypeWrapper<Member>;
   Membership: ResolverTypeWrapper<Membership>;
   Mutation: ResolverTypeWrapper<{}>;
-  OrgRole: OrgRole;
   Organization: ResolverTypeWrapper<Organization>;
   OrganizationMutation: ResolverTypeWrapper<OrganizationMutation>;
   PermissionEffect: PermissionEffect;
   Query: ResolverTypeWrapper<{}>;
-  RemoveDomainAccessInput: RemoveDomainAccessInput;
-  RemoveDomainAccessPayload: ResolverTypeWrapper<RemoveDomainAccessPayload>;
+  RemoveAccessInput: RemoveAccessInput;
+  RemoveAccessPayload: ResolverTypeWrapper<RemoveAccessPayload>;
   RemoveMemberPayload: ResolverTypeWrapper<RemoveMemberPayload>;
   ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
   Role: ResolverTypeWrapper<Role>;
+  RoleAssignment: RoleAssignment;
   RoleCreateInput: RoleCreateInput;
   RoleCreatePayload: ResolverTypeWrapper<RoleCreatePayload>;
   RoleDeleteInput: RoleDeleteInput;
@@ -1493,21 +1467,20 @@ export type ResolversTypes = ResolversObject<{
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = ResolversObject<{
-  AssignDomainRoleInput: AssignDomainRoleInput;
-  String: Scalars['String']['output'];
-  ID: Scalars['ID']['output'];
-  AssignDomainRolePayload: AssignDomainRolePayload;
   AuthPayload: AuthPayload;
+  String: Scalars['String']['output'];
   Int: Scalars['Int']['output'];
   AuthToken: AuthToken;
   AuthorizeInput: AuthorizeInput;
   AuthorizePayload: AuthorizePayload;
   Boolean: Scalars['Boolean']['output'];
+  ChangeRoleInput: ChangeRoleInput;
+  ID: Scalars['ID']['output'];
+  ChangeRolePayload: ChangeRolePayload;
   CreateOrganizationInput: CreateOrganizationInput;
   CreateOrganizationPayload: CreateOrganizationPayload;
   DateTime: Scalars['DateTime']['output'];
   DeleteOrganizationPayload: DeleteOrganizationPayload;
-  DomainMember: DomainMember;
   Email: Scalars['Email']['output'];
   GenericUserError: GenericUserError;
   InviteMemberInput: InviteMemberInput;
@@ -1519,11 +1492,12 @@ export type ResolversParentTypes = ResolversObject<{
   Organization: Organization;
   OrganizationMutation: OrganizationMutation;
   Query: {};
-  RemoveDomainAccessInput: RemoveDomainAccessInput;
-  RemoveDomainAccessPayload: RemoveDomainAccessPayload;
+  RemoveAccessInput: RemoveAccessInput;
+  RemoveAccessPayload: RemoveAccessPayload;
   RemoveMemberPayload: RemoveMemberPayload;
   ResourceDefinition: ResourceDefinition;
   Role: Role;
+  RoleAssignment: RoleAssignment;
   RoleCreateInput: RoleCreateInput;
   RoleCreatePayload: RoleCreatePayload;
   RoleDeleteInput: RoleDeleteInput;
@@ -1555,12 +1529,6 @@ export type ResolversParentTypes = ResolversObject<{
   UserUpdateProfilePayload: UserUpdateProfilePayload;
 }>;
 
-export type AssignDomainRolePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AssignDomainRolePayload'] = ResolversParentTypes['AssignDomainRolePayload']> = ResolversObject<{
-  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type AuthPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AuthPayload'] = ResolversParentTypes['AuthPayload']> = ResolversObject<{
   accessToken?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   expiresIn?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -1581,6 +1549,12 @@ export type AuthorizePayloadResolvers<ContextType = ServiceContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type ChangeRolePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ChangeRolePayload'] = ResolversParentTypes['ChangeRolePayload']> = ResolversObject<{
+  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CreateOrganizationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CreateOrganizationPayload'] = ResolversParentTypes['CreateOrganizationPayload']> = ResolversObject<{
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
@@ -1594,14 +1568,6 @@ export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversT
 export type DeleteOrganizationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DeleteOrganizationPayload'] = ResolversParentTypes['DeleteOrganizationPayload']> = ResolversObject<{
   deletedOrganizationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type DomainMemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DomainMember'] = ResolversParentTypes['DomainMember']> = ResolversObject<{
-  grantedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1629,7 +1595,7 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 export type MemberResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Member'] = ResolversParentTypes['Member']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Member']>, { __typename: 'Member' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   grantedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  grantedBy?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
@@ -1638,8 +1604,9 @@ export type MemberResolvers<ContextType = ServiceContext, ParentType extends Res
 
 export type MembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Membership'] = ResolversParentTypes['Membership']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true}>, ContextType>;
-  domain?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  members?: Resolver<Array<ResolversTypes['DomainMember']>, ParentType, ContextType>;
+  availableResources?: Resolver<Maybe<Array<ResolversTypes['ResourceDefinition']>>, ParentType, ContextType>;
+  domain?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  members?: Resolver<Array<ResolversTypes['Member']>, ParentType, ContextType>;
   roles?: Resolver<Array<ResolversTypes['Role']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1652,23 +1619,21 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 
 export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, { __typename: 'Organization' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  availableResources?: Resolver<Array<ResolversTypes['ResourceDefinition']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  members?: Resolver<Array<ResolversTypes['Member']>, ParentType, ContextType>;
+  membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  roles?: Resolver<Array<ResolversTypes['Role']>, ParentType, ContextType>;
   slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationMutation'] = ResolversParentTypes['OrganizationMutation']> = ResolversObject<{
-  assignDomainRole?: Resolver<ResolversTypes['AssignDomainRolePayload'], ParentType, ContextType, RequireFields<OrganizationMutationAssignDomainRoleArgs, 'input'>>;
+  changeRole?: Resolver<ResolversTypes['ChangeRolePayload'], ParentType, ContextType, RequireFields<OrganizationMutationChangeRoleArgs, 'input'>>;
   createOrganization?: Resolver<ResolversTypes['CreateOrganizationPayload'], ParentType, ContextType, RequireFields<OrganizationMutationCreateOrganizationArgs, 'input'>>;
   deleteOrganization?: Resolver<ResolversTypes['DeleteOrganizationPayload'], ParentType, ContextType>;
   inviteMember?: Resolver<ResolversTypes['InviteMemberPayload'], ParentType, ContextType, RequireFields<OrganizationMutationInviteMemberArgs, 'input'>>;
-  removeDomainAccess?: Resolver<ResolversTypes['RemoveDomainAccessPayload'], ParentType, ContextType, RequireFields<OrganizationMutationRemoveDomainAccessArgs, 'input'>>;
+  removeAccess?: Resolver<ResolversTypes['RemoveAccessPayload'], ParentType, ContextType, RequireFields<OrganizationMutationRemoveAccessArgs, 'input'>>;
   removeMember?: Resolver<ResolversTypes['RemoveMemberPayload'], ParentType, ContextType, RequireFields<OrganizationMutationRemoveMemberArgs, 'memberId'>>;
   updateOrganization?: Resolver<ResolversTypes['UpdateOrganizationPayload'], ParentType, ContextType, RequireFields<OrganizationMutationUpdateOrganizationArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1681,8 +1646,8 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
   userQuery?: Resolver<ResolversTypes['UserQuery'], ParentType, ContextType>;
 }>;
 
-export type RemoveDomainAccessPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RemoveDomainAccessPayload'] = ResolversParentTypes['RemoveDomainAccessPayload']> = ResolversObject<{
-  member?: Resolver<Maybe<ResolversTypes['Member']>, ParentType, ContextType>;
+export type RemoveAccessPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RemoveAccessPayload'] = ResolversParentTypes['RemoveAccessPayload']> = ResolversObject<{
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1701,10 +1666,11 @@ export type ResourceDefinitionResolvers<ContextType = ServiceContext, ParentType
 }>;
 
 export type RoleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Role'] = ResolversParentTypes['Role']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Role']>, { __typename: 'Role' } & GraphQLRecursivePick<ParentType, {"name":true}>, ContextType>;
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Role']>, { __typename: 'Role' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isSystem?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   permissions?: Resolver<Array<ResolversTypes['RolePermission']>, ParentType, ContextType>;
@@ -1834,14 +1800,13 @@ export type UserUpdateProfilePayloadResolvers<ContextType = ServiceContext, Pare
 }>;
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
-  AssignDomainRolePayload?: AssignDomainRolePayloadResolvers<ContextType>;
   AuthPayload?: AuthPayloadResolvers<ContextType>;
   AuthToken?: AuthTokenResolvers<ContextType>;
   AuthorizePayload?: AuthorizePayloadResolvers<ContextType>;
+  ChangeRolePayload?: ChangeRolePayloadResolvers<ContextType>;
   CreateOrganizationPayload?: CreateOrganizationPayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   DeleteOrganizationPayload?: DeleteOrganizationPayloadResolvers<ContextType>;
-  DomainMember?: DomainMemberResolvers<ContextType>;
   Email?: GraphQLScalarType;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   InviteMemberPayload?: InviteMemberPayloadResolvers<ContextType>;
@@ -1852,7 +1817,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Organization?: OrganizationResolvers<ContextType>;
   OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
-  RemoveDomainAccessPayload?: RemoveDomainAccessPayloadResolvers<ContextType>;
+  RemoveAccessPayload?: RemoveAccessPayloadResolvers<ContextType>;
   RemoveMemberPayload?: RemoveMemberPayloadResolvers<ContextType>;
   ResourceDefinition?: ResourceDefinitionResolvers<ContextType>;
   Role?: RoleResolvers<ContextType>;

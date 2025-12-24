@@ -1,4 +1,12 @@
-import type { Resolvers, Organization, Member, Membership } from "../generated/types.js";
+import type {
+  Resolvers,
+  Organization,
+  Member,
+  Membership,
+  ChangeRoleInput,
+  RemoveAccessInput,
+} from "../generated/types.js";
+import type { ServiceContext } from "../../../context/index.js";
 
 /**
  * Map organization DB entity to GraphQL type
@@ -329,7 +337,11 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Change role for a member in specific domain
      */
-    changeRole: async (_parent, { input }, ctx) => {
+    changeRole: async (
+      _parent: unknown,
+      { input }: { input: ChangeRoleInput },
+      ctx: ServiceContext
+    ) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -384,7 +396,11 @@ export const organizationResolvers: Partial<Resolvers> = {
     /**
      * Remove member's access from domain
      */
-    removeAccess: async (_parent, { input }, ctx) => {
+    removeAccess: async (
+      _parent: unknown,
+      { input }: { input: RemoveAccessInput },
+      ctx: ServiceContext
+    ) => {
       const userId = ctx.currentUser?.id;
       const organizationId = ctx.organizationId;
 
@@ -419,7 +435,7 @@ export const organizationResolvers: Partial<Resolvers> = {
      * Return Federation reference for membership.
      * IAM resolves via Membership.__resolveReference.
      */
-    membership: (org): Partial<Membership> => {
+    membership: (org: Organization): Partial<Membership> => {
       return { domain: org.id };  // domain = orgId
     },
   },

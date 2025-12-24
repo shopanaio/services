@@ -15,6 +15,8 @@ export interface RolePermission {
  * Role info returned from queries
  */
 export interface RoleInfo {
+  /** Unique identifier (UUID for custom roles, name for system roles) */
+  id?: string;
   name: string;
   displayName: string;
   description: string;

@@ -2,6 +2,7 @@ import type {
   Resolvers,
   Role,
   RolePermission,
+  User,
 } from "../generated/types.js";
 import { PermissionEffect } from "../generated/types.js";
 import type { ServiceContext } from "../../../context/index.js";
@@ -49,7 +50,11 @@ export const roleResolvers: Partial<Resolvers> = {
     /**
      * Resolve user's role in current organization/project context.
      */
-    role: async (parent, _args, ctx) => {
+    role: async (
+      parent: User,
+      _args: Record<string, never>,
+      ctx: ServiceContext
+    ) => {
       const organizationId = ctx.organizationId;
       if (!organizationId) {
         return null;
