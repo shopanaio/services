@@ -11,9 +11,10 @@ type Role @key(fields: "id") {
   """
   id: ID!
   """
-  Domain scope for this role.
-  "*" = global (all stores)
-  storeId = store-specific role
+  Domain scope for this role. Format: "prefix:id" or "prefix:*".
+  - "org:uuid" = organization-level role
+  - "store:uuid" = store-specific role
+  - "store:*" = all stores
   """
   domain: String!
   """
@@ -111,11 +112,12 @@ Input for creating a role.
 """
 input RoleCreateInput {
   """
-  Domain scope for role.
-  "*" = global (all stores), default
-  storeId = store-specific role
+  Domain scope for role. Required, format: "prefix:id" or "prefix:*".
+  - "org:uuid" = organization-level role
+  - "store:uuid" = store-specific role
+  - "store:*" = all stores
   """
-  domain: String
+  domain: String!
   """
   Unique role name (slug).
   """
@@ -157,11 +159,9 @@ Input for updating a role.
 """
 input RoleUpdateInput {
   """
-  Domain scope for role lookup.
-  "*" = global (default)
-  storeId = store-specific
+  Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*".
   """
-  domain: String
+  domain: String!
   """
   Role name to update.
   """
@@ -185,11 +185,9 @@ Input for deleting a role.
 """
 input RoleDeleteInput {
   """
-  Domain scope for role lookup.
-  "*" = global (default)
-  storeId = store-specific
+  Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*".
   """
-  domain: String
+  domain: String!
   """
   Role name to delete.
   """

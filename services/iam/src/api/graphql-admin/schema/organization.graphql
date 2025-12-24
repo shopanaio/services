@@ -56,7 +56,7 @@ Role assignment - assigns role to user in specific domain.
 """
 input RoleAssignment {
   """
-  Domain ID (orgId, storeId, or '*' for all stores).
+  Domain ID. Format: "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*").
   """
   domain: String!
   """
@@ -88,7 +88,7 @@ input MemberRoleChangeInput {
   """
   userId: ID!
   """
-  Domain (orgId, storeId, or '*' for all).
+  Domain. Format: "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*").
   """
   domain: String!
   """
