@@ -11,14 +11,14 @@
  */
 
 /**
- * Casbin Model for RBAC with Domain (Organization + Project scope)
+ * Casbin Model for RBAC with Domain (Organization + Store scope)
  *
  * Each organization gets its own enforcer instance with filtered policies.
- * Domain parameter enables per-project role assignments within an organization.
+ * Domain parameter enables per-store role assignments within an organization.
  *
  * Request format: (sub, dom, obj, act)
- * - sub: subject (user ID or role name, e.g., "user:123")
- * - dom: domain (project scope, e.g., "project:abc-123" or "*" for all)
+ * - sub: subject (user ID, e.g., "user:uuid")
+ * - dom: domain (required, format "prefix:id" or "prefix:*")
  * - obj: object (resource path, e.g., "product:456" or "warehouse:W1/product")
  * - act: action (read, write, delete, create, etc.)
  *
@@ -26,12 +26,12 @@
  * - eft: effect (allow or deny)
  *
  * Grouping format: (user, role, domain)
- * - Assigns a user to a role within a specific domain (project)
- * - Domain "*" means all projects
+ * - Assigns a user to a role within a specific domain
+ * - Domain supports wildcard via keyMatch (e.g., "store:*" matches all stores)
  *
  * Features:
- * - keyMatch for wildcard resource matching (e.g., "*" matches all)
- * - Domain-scoped role assignments (user can be admin in one project, viewer in another)
+ * - keyMatch for wildcard matching in resources and domains (e.g., "store:*", "product/*")
+ * - Domain-scoped role assignments (user can be admin in one store, viewer in another)
  * - Deny rules override allow rules
  *
  * Database storage (iam.casbin_rule):

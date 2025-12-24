@@ -1,4 +1,4 @@
-import { newEnforcer, Enforcer, newModelFromString } from "casbin";
+import { newEnforcer, Enforcer, newModelFromString, keyMatchFunc } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
 
 // Handle CJS/ESM interop - drizzle-adapter is CJS with exports.default
@@ -53,12 +53,17 @@ export type ScopePart =
  * ORGANIZATION + DOMAIN ISOLATION STRATEGY:
  * - Each organization gets its own Enforcer instance (cached in memory)
  * - Policies are filtered by organizationId when loading from DB
- * - Domain (project scope) is part of the Casbin model for per-project roles
+ * - Domain is required and must use format "prefix:id" (e.g., "org:uuid", "store:uuid")
  *
- * New Casbin Model (4 parameters):
+ * Casbin Model (4 parameters):
  * - Request: (sub, dom, obj, act) - subject, domain, object, action
  * - Policy: (sub, dom, obj, act, eft) - with effect
  * - Grouping: (user, role, domain) - user has role in domain
+ *
+ * Domain format:
+ * - "org:{orgId}" - organization-level resources (billing, members, settings)
+ * - "store:{storeId}" - store-level resources (products, orders)
+ * - "org:*" or "store:*" - wildcard for all orgs/stores (uses keyMatch)
  *
  * DB Storage format (iam.casbin_rule):
  * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, organization_id
@@ -130,6 +135,9 @@ export class CasbinService {
 
     // Disable auto-save - we manage persistence via direct adapter calls
     enforcer.enableAutoSave(false);
+
+    // Enable domain pattern matching (e.g., "store:*" matches "store:123")
+    await enforcer.addNamedDomainMatchingFunc("g", keyMatchFunc);
 
     // Load only policies for this organization
     await this.loadFilteredPolicies(enforcer, organizationId);
@@ -234,7 +242,7 @@ export class CasbinService {
   /**
    * Assign role to user in specific domain.
    *
-   * @param params.domain - orgId for org-level, storeId for store-level, "*" for all
+   * @param params.domain - Required. Format: "prefix:id" or "prefix:*" for wildcard.
    */
   async assignRole(params: AssignRoleParams): Promise<boolean> {
     const { organizationId, userId, role, domain } = params;
@@ -353,7 +361,8 @@ export class CasbinService {
 
   /**
    * Get members for specific domain.
-   * Returns users with direct domain assignment + wildcard (*) assignment.
+   *
+   * @param params.domain - Required. Format: "prefix:id" (e.g., "org:uuid", "store:uuid").
    */
   async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
     const { organizationId, domain } = params;
@@ -363,7 +372,7 @@ export class CasbinService {
     const members: Array<{ userId: string; role: string }> = [];
 
     for (const grouping of groupings) {
-      if (grouping[2] === domain || grouping[2] === "*") {
+      if (grouping[2] === domain) {
         const userId = grouping[0].startsWith("user:")
           ? grouping[0].substring(5)
           : grouping[0];
