@@ -1,56 +1,86 @@
-import { test as base } from '@fixtures/base.extend';
-
-interface UserSession {
-  email: string;
-  password: string;
-  accessToken: string;
-  userId: string;
-}
-
-const test = base.extend<{
-  ownerUser: UserSession;
-}>({
-  ownerUser: async ({ api }, use) => {
-    const result = await api.session.setupUser();
-    await use({
-      email: api.session.tenant.data.email,
-      password: api.session.tenant.data.password,
-      accessToken: result.token?.accessToken ?? '',
-      userId: result.user?.id ?? '',
-    });
-  },
-});
+import { test } from '@fixtures/base.extend';
 
 /**
  * Role Permissions and Authorization Tests
  *
  * Tests for the authorize query that checks user permissions.
- * According to the new Casbin/IAM architecture:
- * - 4-parameter model: (sub, dom, obj, act)
- * - Domain parameter specifies project scope: [["project", projectId]]
- * - DENY always wins over ALLOW (policy_effect unchanged)
- * - Permissions are checked with role + inherited role permissions
- * - Wildcard patterns (* and resource/*) are supported via keyMatch
- * - OrganizationId is required for authorization context
+ * According to the unified roles architecture:
+ * - Authorization uses userQuery.authorize(input: { resource, action })
+ * - Domain context is determined by current store/org context
+ * - DENY always wins over ALLOW
+ * - Wildcard patterns (* and resource/*) are supported
+ * - Permissions are evaluated based on role assignments in domain
  */
-test.describe('Authorization Checks', () => {
-  test('Owner should have access to all resources', async ({}) => {});
+test.describe('Authorization - Basic Checks', () => {
+  test('Owner should have access to all resources (wildcard)', async ({}) => {});
 
-  test('Viewer should only have read access', async ({}) => {});
+  test('Admin should have access to most resources', async ({}) => {});
 
-  test('DENY permission should override ALLOW', async ({}) => {});
+  test('Member should have read-only access', async ({}) => {});
 
-  test('Wildcard resource pattern should match sub-resources', async ({}) => {});
+  test('Viewer role should only have read access', async ({}) => {});
 
+  test('Custom role should have exactly defined permissions', async ({}) => {});
+});
+
+test.describe('Authorization - DENY Rules', () => {
+  test('DENY permission should override ALLOW for same resource', async ({}) => {});
+
+  test('DENY on wildcard should block all matching resources', async ({}) => {});
+
+  test('Admin DENY for org delete should prevent deletion', async ({}) => {});
+
+  test('Admin DENY for billing should prevent billing access', async ({}) => {});
+
+  test('Explicit DENY should override inherited ALLOW', async ({}) => {});
+});
+
+test.describe('Authorization - Wildcard Patterns', () => {
+  test('Wildcard resource (*) should match any resource', async ({}) => {});
+
+  test('Wildcard action (*) should match any action', async ({}) => {});
+
+  test('Resource pattern (product/*) should match sub-resources', async ({}) => {});
+
+  test('Specific permission should work alongside wildcard', async ({}) => {});
+});
+
+test.describe('Authorization - Domain Context', () => {
+  test('Org-level role should authorize org resources', async ({}) => {});
+
+  test('Store-level role should authorize store resources', async ({}) => {});
+
+  test('Store-specific role should only work in that store', async ({}) => {});
+
+  test('All-stores role (store:*) should work in any store', async ({}) => {});
+});
+
+test.describe('Authorization - Edge Cases', () => {
   test('Unauthenticated request should be denied', async ({}) => {});
 
-  test('Request without project context should be denied', async ({}) => {});
+  test('Request without proper context should be denied', async ({}) => {});
+
+  test('Non-existent resource should be denied', async ({}) => {});
+
+  test('Empty action should be denied', async ({}) => {});
+
+  test('User with no roles should be denied', async ({}) => {});
 });
 
 test.describe('Available Resources', () => {
-  test('Should return list of available resources for role editor', async ({}) => {});
+  test('Organization membership should return availableResources', async ({}) => {});
 
-  test('Available resources should include standard resources', async ({}) => {});
+  test('Available resources should include organization resources', async ({}) => {});
 
-  test('Product resource should have standard CRUD actions', async ({}) => {});
+  test('Available resources should include member resource', async ({}) => {});
+
+  test('Available resources should include role resource', async ({}) => {});
+
+  test('Available resources should include billing resource', async ({}) => {});
+
+  test('Each resource should have actions array', async ({}) => {});
+
+  test('Each resource should have displayName', async ({}) => {});
+
+  test('Store membership availableResources should be null', async ({}) => {});
 });

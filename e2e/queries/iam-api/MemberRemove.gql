@@ -1,0 +1,12 @@
+mutation MemberRemove($memberId: ID!) {
+  organizationMutation {
+    memberRemove(memberId: $memberId) {
+      removedMemberId
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

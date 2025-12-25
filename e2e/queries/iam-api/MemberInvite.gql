@@ -1,0 +1,20 @@
+mutation MemberInvite($input: MemberInviteInput!) {
+  organizationMutation {
+    memberInvite(input: $input) {
+      member {
+        id
+        user {
+          id
+          email
+        }
+        role
+        grantedAt
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

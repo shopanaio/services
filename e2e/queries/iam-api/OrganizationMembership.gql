@@ -1,0 +1,46 @@
+query OrganizationMembership($id: ID!) {
+  organizationQuery {
+    organization(id: $id) {
+      id
+      name
+      slug
+      membership {
+        domain
+        roles {
+          id
+          domain
+          name
+          displayName
+          description
+          isSystem
+          permissions {
+            resource
+            actions
+            effect
+          }
+          createdAt
+        }
+        members {
+          id
+          user {
+            id
+            email
+            firstName
+            lastName
+          }
+          role
+          grantedAt
+          grantedBy {
+            id
+            email
+          }
+        }
+        availableResources {
+          name
+          actions
+          displayName
+        }
+      }
+    }
+  }
+}
