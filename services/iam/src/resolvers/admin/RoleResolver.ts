@@ -72,10 +72,10 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
   }
 
   async createdAt() {
-    return (await this.data).createdAt.toISOString();
+    return (await this.data).createdAt;
   }
 
   async updatedAt() {
-    return (await this.data).updatedAt.toISOString();
+    return (await this.data).updatedAt;
   }
 }

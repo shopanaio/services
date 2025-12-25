@@ -52,7 +52,7 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   }
 
   async grantedAt() {
-    return (await this.data).grantedAt.toISOString();
+    return (await this.data).grantedAt;
   }
 
   async grantedBy(): Promise<UserResolver | null> {

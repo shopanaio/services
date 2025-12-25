@@ -42,6 +42,10 @@ type Role @key(fields: "id") {
   Role creation date.
   """
   createdAt: DateTime
+  """
+  Role last update date.
+  """
+  updatedAt: DateTime
 }
 
 """

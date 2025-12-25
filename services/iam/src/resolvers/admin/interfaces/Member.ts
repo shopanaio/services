@@ -8,5 +8,5 @@ export interface Member {
   user: User;
   role: string;
   grantedAt: Date;
-  grantedBy: User;
+  grantedBy: User | null;
 }
