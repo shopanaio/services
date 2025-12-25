@@ -1,4 +1,5 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { getServiceConfig } from "@shopana/shared-service-config";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type {
   UserSignUpParams,
   UserSignUpResult,
@@ -8,6 +9,7 @@ export class UserSignUpScript extends BaseScript<
   UserSignUpParams,
   UserSignUpResult
 > {
+  @Transactional()
   protected async execute(params: UserSignUpParams): Promise<UserSignUpResult> {
     const { email, password } = params;
 
@@ -33,7 +35,7 @@ export class UserSignUpScript extends BaseScript<
       password,
     });
 
-    if (!result.success) {
+    if (!result.success || !result.user) {
       return {
         user: null,
         token: null,
@@ -46,11 +48,24 @@ export class UserSignUpScript extends BaseScript<
       };
     }
 
+    // Check if user should be admin based on email domain
+    if (this.isAdminDomain(email)) {
+      await this.repository.user.setAdmin(result.user.id, true);
+      result.user.admin = true;
+      this.logger.info({ userId: result.user.id, email }, "Set admin flag for user");
+    }
+
     return {
       user: result.user,
       token: result.token,
       userErrors: [],
     };
+  }
+
+  private isAdminDomain(email: string): boolean {
+    const { service } = getServiceConfig("iam");
+    const domains = (service as any).super_admin_domains as string | undefined;
+    return domains?.split(",").some((d) => email.endsWith(`@${d.trim()}`)) ?? false;
   }
 
   protected handleError(_error: unknown): UserSignUpResult {

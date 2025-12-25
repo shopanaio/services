@@ -25,6 +25,7 @@ export interface User {
   name: string;
   emailVerified: boolean;
   image: string | null;
+  admin: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -531,6 +532,31 @@ export class UserRepository {
   // Helpers
   // ==========================================================================
 
+  /**
+   * Set admin flag for user (site admin - bypasses all RBAC)
+   */
+  async setAdmin(userId: string, admin: boolean): Promise<User | null> {
+    const [result] = await this.db
+      .update(user)
+      .set({ admin, updatedAt: new Date() })
+      .where(eq(user.id, userId))
+      .returning();
+
+    return result ? this.mapDbUser(result) : null;
+  }
+
+  /**
+   * Check if user is admin
+   */
+  async isAdmin(userId: string): Promise<boolean> {
+    const [result] = await this.db
+      .select({ admin: user.admin })
+      .from(user)
+      .where(eq(user.id, userId));
+
+    return result?.admin ?? false;
+  }
+
   private mapUser(u: any): User {
     return {
       id: u.id,
@@ -538,6 +564,7 @@ export class UserRepository {
       name: u.name,
       emailVerified: u.emailVerified ?? false,
       image: u.image ?? null,
+      admin: u.admin ?? false,
       createdAt: new Date(u.createdAt),
       updatedAt: new Date(u.updatedAt),
     };
@@ -550,6 +577,7 @@ export class UserRepository {
       name: u.name,
       emailVerified: u.emailVerified,
       image: u.image,
+      admin: u.admin,
       createdAt: u.createdAt!,
       updatedAt: u.updatedAt!,
     };
