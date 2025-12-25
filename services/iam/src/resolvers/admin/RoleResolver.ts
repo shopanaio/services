@@ -1,5 +1,5 @@
 import { IAMType, Cache } from "./IAMType.js";
-import type { PermissionEffect } from "./interfaces/PermissionEffect.js";
+import type { GroupedPermission } from "../../casbin/CasbinService.js";
 import type { Role } from "../../repositories/models/authorization.js";
 
 export interface RoleInput {
@@ -8,14 +8,8 @@ export interface RoleInput {
   name: string;
 }
 
-interface RolePermission {
-  resource: string;
-  action: string;
-  effect: PermissionEffect;
-}
-
 interface RoleData extends Role {
-  permissions: RolePermission[];
+  permissions: GroupedPermission[];
 }
 
 /**
@@ -31,10 +25,10 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
   async loadData(): Promise<RoleData> {
     const { organizationId, domain, name } = this.value;
 
-    // Load role from database and policies from casbin in parallel
-    const [roleData, policies] = await Promise.all([
+    // Load role from database and permissions from casbin in parallel
+    const [roleData, permissions] = await Promise.all([
       this.ctx.loaders.role.load({ organizationId, domain, name }),
-      this.ctx.loaders.rolePolicies.load({ organizationId, domain, name }),
+      this.ctx.loaders.rolePermissions.load({ organizationId, domain, name }),
     ]);
 
     if (!roleData) {
@@ -42,15 +36,6 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
         `Role not found: org=${organizationId}, domain=${domain}, name=${name}`
       );
     }
-
-    // Map policies to permissions: [sub, obj, act, eft]
-    const permissions: RolePermission[] = policies.map(
-      ([, resource, action, effect]) => ({
-        resource,
-        action,
-        effect: effect.toUpperCase() as PermissionEffect,
-      })
-    );
 
     return {
       ...roleData,

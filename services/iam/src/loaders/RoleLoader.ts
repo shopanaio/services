@@ -1,5 +1,8 @@
 import DataLoader from "dataloader";
-import type { CasbinService } from "../casbin/CasbinService.js";
+import type {
+  CasbinService,
+  GroupedPermission,
+} from "../casbin/CasbinService.js";
 import type { Repository } from "../repositories/Repository.js";
 import type { Role } from "../repositories/models/authorization.js";
 
@@ -32,10 +35,10 @@ export class RoleLoader {
   public readonly role: DataLoader<RoleKey, Role | null, string>;
 
   /**
-   * Load policies for a specific role
-   * Returns array of policy tuples: [sub, obj, act, eft]
+   * Load grouped permissions for a specific role
+   * Returns permissions aggregated by (resource, effect) with actions array
    */
-  public readonly rolePolicies: DataLoader<RoleKey, string[][], string>;
+  public readonly rolePermissions: DataLoader<RoleKey, GroupedPermission[], string>;
 
   /**
    * Load all roles for a domain
@@ -61,11 +64,11 @@ export class RoleLoader {
       }
     );
 
-    this.rolePolicies = new DataLoader<RoleKey, string[][], string>(
+    this.rolePermissions = new DataLoader<RoleKey, GroupedPermission[], string>(
       async (keys) => {
         const results = await Promise.all(
           keys.map((key) =>
-            casbin.getPoliciesForRole(key.organizationId, key.name)
+            casbin.getGroupedPoliciesForRole(key.organizationId, key.name)
           )
         );
         return results;

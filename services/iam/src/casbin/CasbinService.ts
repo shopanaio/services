@@ -141,6 +141,14 @@ export interface GetMembersParams {
   domain: Domain;
 }
 
+export type PermissionEffect = "ALLOW" | "DENY";
+
+export interface GroupedPermission {
+  resource: string;
+  actions: string[];
+  effect: PermissionEffect;
+}
+
 /**
  * CasbinService manages Casbin enforcers for multi-organization authorization.
  *
@@ -511,6 +519,33 @@ export class CasbinService {
     // fieldIndex 0 = role field in policy tuple
     const ROLE_FIELD_INDEX = 0;
     return enforcer.getFilteredPolicy(ROLE_FIELD_INDEX, role);
+  }
+
+  /**
+   * Get grouped policies for a role.
+   * Aggregates policies by (resource, effect) with actions as array.
+   */
+  async getGroupedPoliciesForRole(
+    organizationId: string,
+    role: string
+  ): Promise<GroupedPermission[]> {
+    const policies = await this.getPoliciesForRole(organizationId, role);
+
+    const map = new Map<string, GroupedPermission>();
+
+    for (const [, , resource, action, effect] of policies) {
+      const normalizedEffect = effect.toUpperCase() as PermissionEffect;
+      const key = `${resource}:${normalizedEffect}`;
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.actions.push(action);
+      } else {
+        map.set(key, { resource, actions: [action], effect: normalizedEffect });
+      }
+    }
+
+    return Array.from(map.values());
   }
 
   /**

@@ -9,7 +9,7 @@ import { RoleLoader } from "./RoleLoader.js";
 export class Loader {
   public readonly member: MemberLoader["member"];
   public readonly role: RoleLoader["role"];
-  public readonly rolePolicies: RoleLoader["rolePolicies"];
+  public readonly rolePermissions: RoleLoader["rolePermissions"];
   public readonly rolesByDomain: RoleLoader["rolesByDomain"];
 
   constructor(repository: Repository) {
@@ -18,7 +18,7 @@ export class Loader {
 
     this.member = memberLoader.member;
     this.role = roleLoader.role;
-    this.rolePolicies = roleLoader.rolePolicies;
+    this.rolePermissions = roleLoader.rolePermissions;
     this.rolesByDomain = roleLoader.rolesByDomain;
   }
 }
