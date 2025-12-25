@@ -1,6 +1,6 @@
 import { IAMType } from "./IAMType.js";
-import { RolePermissionResolver } from "./RolePermissionResolver.js";
 import type { PermissionEffect } from "./interfaces/PermissionEffect.js";
+import type { Role } from "../../repositories/models/authorization.js";
 
 export interface RoleInput {
   organizationId: string;
@@ -8,141 +8,84 @@ export interface RoleInput {
   name: string;
 }
 
-interface RoleData {
-  id: string;
-  organizationId: string;
-  domain: string;
-  name: string;
-  displayName: string | null;
-  description: string | null;
-  isSystem: boolean;
-  createdAt: Date;
-  permissions: Array<{
-    resource: string;
-    actions: string[];
-    effect: PermissionEffect;
-  }>;
+interface RolePermission {
+  resource: string;
+  action: string;
+  effect: PermissionEffect;
+}
+
+interface RoleData extends Role {
+  permissions: RolePermission[];
 }
 
 /**
  * Role resolver - resolves role with permissions
+ * Loads role from database and policies from casbin
  */
-export class RoleResolver extends IAMType<RoleInput, RoleData | null> {
-  async loadData(): Promise<RoleData | null> {
+export class RoleResolver extends IAMType<RoleInput, RoleData> {
+  async loadData(): Promise<RoleData> {
     const { organizationId, domain, name } = this.value;
 
-    // Get policies for this role from casbin
-    const policies = await this.ctx.kernel.repository.casbin.getPolicies(
-      organizationId
+    // Load role from database and policies from casbin in parallel
+    const [roleData, policies] = await Promise.all([
+      this.ctx.loaders.role.load({ organizationId, domain, name }),
+      this.ctx.loaders.rolePolicies.load({ organizationId, domain, name }),
+    ]);
+
+    if (!roleData) {
+      throw new Error(
+        `Role not found: org=${organizationId}, domain=${domain}, name=${name}`
+      );
+    }
+
+    // Map policies to permissions: [sub, obj, act, eft]
+    const permissions: RolePermission[] = policies.map(
+      ([, resource, action, effect]) => ({
+        resource,
+        action,
+        effect: effect.toUpperCase() as PermissionEffect,
+      })
     );
 
-    // Filter policies for this role and domain
-    const rolePermissions: Array<{
-      resource: string;
-      actions: string[];
-      effect: PermissionEffect;
-    }> = [];
-
-    // Group policies by resource and effect
-    const resourceMap = new Map<
-      string,
-      { actions: Set<string>; effect: PermissionEffect }
-    >();
-
-    for (const policy of policies) {
-      // Policy format: [role, domain, resource, action, effect]
-      const [pRole, pDomain, pResource, pAction, pEffect] = policy;
-
-      if (pRole === name && (pDomain === domain || pDomain === "*")) {
-        const key = `${pResource}:${pEffect}`;
-        if (!resourceMap.has(key)) {
-          resourceMap.set(key, {
-            actions: new Set(),
-            effect: (pEffect?.toUpperCase() === "DENY" ? "DENY" : "ALLOW") as PermissionEffect,
-          });
-        }
-        resourceMap.get(key)!.actions.add(pAction);
-      }
-    }
-
-    // Convert map to array
-    for (const [key, value] of resourceMap) {
-      const resource = key.split(":")[0];
-      rolePermissions.push({
-        resource,
-        actions: Array.from(value.actions),
-        effect: value.effect,
-      });
-    }
-
     return {
-      id: `${organizationId}:${domain}:${name}`,
-      organizationId,
-      domain,
-      name,
-      displayName: this.getDisplayName(name),
-      description: null,
-      isSystem: this.isSystemRole(name),
-      createdAt: new Date(),
-      permissions: rolePermissions,
+      ...roleData,
+      permissions,
     };
   }
 
-  private getDisplayName(name: string): string {
-    // Convert role name to display name
-    const names: Record<string, string> = {
-      owner: "Owner",
-      admin: "Administrator",
-      manager: "Manager",
-      editor: "Editor",
-      viewer: "Viewer",
-    };
-    return names[name] || name.charAt(0).toUpperCase() + name.slice(1);
+  async id() {
+    return (await this.data).id;
   }
 
-  private isSystemRole(name: string): boolean {
-    const systemRoles = ["owner", "admin", "manager", "editor", "viewer"];
-    return systemRoles.includes(name);
-  }
-
-  id() {
-    return `${this.value.organizationId}:${this.value.domain}:${this.value.name}`;
-  }
-
-  async domain() {
+  domain() {
     return this.value.domain;
   }
 
-  async name() {
+  name() {
     return this.value.name;
   }
 
   async displayName() {
-    const data = await this.data;
-    return data?.displayName ?? this.value.name;
+    return (await this.data).displayName ?? this.value.name;
   }
 
   async description() {
-    const data = await this.data;
-    return data?.description ?? null;
+    return (await this.data).description;
   }
 
   async isSystem() {
-    const data = await this.data;
-    return data?.isSystem ?? false;
+    return (await this.data).isSystem;
   }
 
-  async permissions(): Promise<RolePermissionResolver[]> {
-    const data = await this.data;
-    if (!data) return [];
-
-    return data.permissions.map(
-      (p: RoleData["permissions"][number]) => new RolePermissionResolver(p, this.ctx)
-    );
+  async permissions() {
+    return (await this.data).permissions;
   }
 
   async createdAt() {
-    const data = await this.data;
-    return data?.createdAt?.toISOString() ?? null;
+    return (await this.data).createdAt.toISOString();
+  }
+
+  async updatedAt() {
+    return (await this.data).updatedAt.toISOString();
   }
 }

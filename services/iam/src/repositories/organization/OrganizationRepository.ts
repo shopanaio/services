@@ -4,9 +4,11 @@ import {
   organization,
   organizationMember,
   userRole,
+  role,
   type Organization,
   type OrganizationMember,
   type UserRole,
+  type Role,
 } from "../models/authorization.js";
 import { BaseRepository } from "../BaseRepository.js";
 
@@ -275,6 +277,52 @@ export class OrganizationRepository extends BaseRepository {
         and(
           eq(userRole.organizationId, organizationId),
           eq(userRole.domain, domain)
+        )
+      );
+  }
+
+  // ============================================================================
+  // Roles
+  // ============================================================================
+
+  /**
+   * Find role by organization, domain and name
+   */
+  @ReadOnly()
+  async findRole(
+    organizationId: string,
+    domain: string,
+    name: string
+  ): Promise<Role | null> {
+    const [result] = await this.connection
+      .select()
+      .from(role)
+      .where(
+        and(
+          eq(role.organizationId, organizationId),
+          eq(role.domain, domain),
+          eq(role.name, name)
+        )
+      );
+
+    return result ?? null;
+  }
+
+  /**
+   * Get all roles for a domain
+   */
+  @ReadOnly()
+  async getRolesByDomain(
+    organizationId: string,
+    domain: string
+  ): Promise<Role[]> {
+    return this.connection
+      .select()
+      .from(role)
+      .where(
+        and(
+          eq(role.organizationId, organizationId),
+          eq(role.domain, domain)
         )
       );
   }
