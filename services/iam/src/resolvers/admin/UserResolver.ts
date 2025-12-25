@@ -7,7 +7,7 @@ import { IAMType, Cache } from "./IAMType.js";
  */
 export class UserResolver extends IAMType<string, User | null> {
   @Cache({
-    cacheName: "user",
+    cacheName: "iam:user",
     key: (resolver: UserResolver) => resolver.value,
   })
   async loadData() {
@@ -57,13 +57,11 @@ export class UserResolver extends IAMType<string, User | null> {
     return false;
   }
 
-  async createdAt() {
-    const date = await this.get("createdAt");
-    return date?.toISOString() ?? null;
+  createdAt() {
+    return this.get("createdAt");
   }
 
-  async updatedAt() {
-    const date = await this.get("updatedAt");
-    return date?.toISOString() ?? null;
+  updatedAt() {
+    return this.get("updatedAt");
   }
 }

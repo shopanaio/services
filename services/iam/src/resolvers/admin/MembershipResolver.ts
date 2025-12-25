@@ -28,12 +28,11 @@ export class MembershipResolver extends IAMType<
   async roles(): Promise<RoleResolver[]> {
     const { organizationId, domain } = this.value;
 
-    // Get roles from database
-    const roles =
-      await this.ctx.kernel.repository.organization.getRolesByDomain(
-        organizationId,
-        domain
-      );
+    // Get roles from database via DataLoader
+    const roles = await this.ctx.loaders.rolesByDomain.load({
+      organizationId,
+      domain,
+    });
 
     return roles.map(
       (role) =>

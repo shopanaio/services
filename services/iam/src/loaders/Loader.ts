@@ -10,6 +10,7 @@ export class Loader {
   public readonly member: MemberLoader["member"];
   public readonly role: RoleLoader["role"];
   public readonly rolePolicies: RoleLoader["rolePolicies"];
+  public readonly rolesByDomain: RoleLoader["rolesByDomain"];
 
   constructor(repository: Repository) {
     const memberLoader = new MemberLoader(repository);
@@ -18,5 +19,6 @@ export class Loader {
     this.member = memberLoader.member;
     this.role = roleLoader.role;
     this.rolePolicies = roleLoader.rolePolicies;
+    this.rolesByDomain = roleLoader.rolesByDomain;
   }
 }

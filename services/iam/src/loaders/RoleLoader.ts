@@ -9,6 +9,15 @@ export interface RoleKey {
   name: string;
 }
 
+export interface DomainKey {
+  organizationId: string;
+  domain: string;
+}
+
+function domainKeyToString(key: DomainKey): string {
+  return `${key.organizationId}:${key.domain}`;
+}
+
 function roleKeyToString(key: RoleKey): string {
   return `${key.organizationId}:${key.domain}:${key.name}`;
 }
@@ -27,6 +36,11 @@ export class RoleLoader {
    * Returns array of policy tuples: [sub, obj, act, eft]
    */
   public readonly rolePolicies: DataLoader<RoleKey, string[][], string>;
+
+  /**
+   * Load all roles for a domain
+   */
+  public readonly rolesByDomain: DataLoader<DomainKey, Role[], string>;
 
   constructor(repository: Repository, casbin: CasbinService) {
     this.role = new DataLoader<RoleKey, Role | null, string>(
@@ -58,6 +72,23 @@ export class RoleLoader {
       },
       {
         cacheKeyFn: roleKeyToString,
+      }
+    );
+
+    this.rolesByDomain = new DataLoader<DomainKey, Role[], string>(
+      async (keys) => {
+        const results = await Promise.all(
+          keys.map((key) =>
+            repository.organization.getRolesByDomain(
+              key.organizationId,
+              key.domain
+            )
+          )
+        );
+        return results;
+      },
+      {
+        cacheKeyFn: domainKeyToString,
       }
     );
   }
