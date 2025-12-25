@@ -26,7 +26,6 @@ export interface OrganizationCreateResult {
 export interface AddMemberInput {
   organizationId: string;
   userId: string;
-  orgRole: "owner" | "admin" | "member";
   invitedBy?: string;
 }
 
@@ -143,7 +142,7 @@ export class OrganizationRepository extends BaseRepository {
    */
   @Transactional()
   async addMember(input: AddMemberInput): Promise<OrganizationMember | null> {
-    const { organizationId, userId, orgRole, invitedBy } = input;
+    const { organizationId, userId, invitedBy } = input;
 
     try {
       const [result] = await this.connection
@@ -151,7 +150,6 @@ export class OrganizationRepository extends BaseRepository {
         .values({
           organizationId,
           userId,
-          orgRole,
           invitedBy,
         })
         .returning();
@@ -196,29 +194,6 @@ export class OrganizationRepository extends BaseRepository {
       .select()
       .from(organizationMember)
       .where(eq(organizationMember.organizationId, organizationId));
-  }
-
-  /**
-   * Update member role
-   */
-  @Transactional()
-  async updateMemberRole(
-    organizationId: string,
-    userId: string,
-    orgRole: "owner" | "admin" | "member"
-  ): Promise<OrganizationMember | null> {
-    const [result] = await this.connection
-      .update(organizationMember)
-      .set({ orgRole, updatedAt: new Date() })
-      .where(
-        and(
-          eq(organizationMember.organizationId, organizationId),
-          eq(organizationMember.userId, userId)
-        )
-      )
-      .returning();
-
-    return result ?? null;
   }
 
   /**

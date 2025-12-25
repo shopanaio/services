@@ -47,7 +47,6 @@ export const organizationMember = iamSchema.table(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     userId: varchar("user_id", { length: 128 }).notNull(),
-    orgRole: varchar("org_role", { length: 32 }).notNull().default("member"), // owner, admin, member
     invitedBy: varchar("invited_by", { length: 128 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

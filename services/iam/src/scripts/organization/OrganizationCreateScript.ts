@@ -9,6 +9,7 @@ import {
   type OrganizationCreateParams,
   type OrganizationCreateResult,
 } from "./dto/OrganizationCreateDto.js";
+import { PREDEFINED_ROLES, ROLE_PERMISSIONS } from "../../constants/index.js";
 
 export class OrganizationCreateScript extends BaseScript<
   OrganizationCreateParams,
@@ -42,30 +43,37 @@ export class OrganizationCreateScript extends BaseScript<
 
     const org = result.organization;
 
-    // Add current user as organization owner in organization_member table
+    const ownerRole = PREDEFINED_ROLES.OWNER;
+    const domain = `org:${org.id}` as const;
+
+    // Add current user as organization member
     await this.repository.organization.addMember({
       organizationId: org.id,
       userId,
-      orgRole: "owner",
     });
 
     // Assign owner role in Casbin for this organization
     await this.repository.casbin.assignRole({
       organizationId: org.id,
       userId,
-      role: "owner",
-      domain: `org:${org.id}`,
+      role: ownerRole,
+      domain,
     });
 
-    // Add default owner permissions
-    await this.repository.casbin.addPolicy({
-      organizationId: org.id,
-      role: "owner",
-      domain: `org:${org.id}`,
-      resource: "*",
-      action: "*",
-      effect: "allow",
-    });
+    // Add predefined owner policies from ROLE_PERMISSIONS
+    const ownerPermissions = ROLE_PERMISSIONS[ownerRole];
+    for (const rule of ownerPermissions.allow) {
+      for (const action of rule.actions) {
+        await this.repository.casbin.addPolicy({
+          organizationId: org.id,
+          role: ownerRole,
+          domain,
+          resource: rule.resource as "*",
+          action,
+          effect: "allow",
+        });
+      }
+    }
 
     return {
       organization: org,

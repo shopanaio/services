@@ -176,13 +176,13 @@ export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
   admin: {
     allow: [{ resource: "*", actions: ["*"] }],
     deny: [
-      { resource: "organization", actions: ["delete"] },
-      { resource: "organization/billing", actions: ["*"] },
+      { resource: "org", actions: ["delete"] },
+      { resource: "org.billing", actions: ["*"] },
     ],
   },
 
   member: {
-    allow: [{ resource: "organization", actions: ["read"] }],
+    allow: [{ resource: "org", actions: ["read"] }],
   },
 };
 

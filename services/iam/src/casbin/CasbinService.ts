@@ -2,9 +2,10 @@ import { newEnforcer, Enforcer, newModelFromString, Util } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
 
 // Handle CJS/ESM interop - drizzle-adapter is CJS with exports.default
-const DrizzleAdapter = (DrizzleAdapterModule as any).default ?? DrizzleAdapterModule;
+const DrizzleAdapter =
+  (DrizzleAdapterModule as any).default ?? DrizzleAdapterModule;
 import { casbinRule } from "../repositories/models/authorization.js";
-import type { Database } from "../db/database.js";
+import type { Database } from "../infrastructure/db/database.js";
 
 // ============================================================================
 // Casbin Model
@@ -56,38 +57,50 @@ m = g(r.sub, p.sub, r.dom) && (p.dom == "*" || p.dom == r.dom) && keyMatch(r.obj
 `.trim();
 
 // ============================================================================
-// Types
+// Authorization Types
 // ============================================================================
 
 /**
- * Domain scope - single scope in format "type:id" or "type:*"
+ * Scope identifier in format "type:id".
+ * Used as a building block for Domain and Resource types.
  *
- * Used for domain (no "/" separator):
- * - "org:uuid" - specific organization
- * - "org:*" - all organizations
- * - "store:uuid" - specific store
- * - "store:*" - all stores
- *
- * Examples:
- * - "org:550e8400-e29b-41d4-a716-446655440000"
- * - "store:*"
+ * @example
+ * "org:550e8400-e29b-41d4-a716-446655440000"
+ * "product:*"
  */
-export type Domain = `${string}:${string}`;
+type ScopeIdentifier = `${string}:${string}`;
 
-// Resource scope - one or more scopes joined by "/" or global wildcard
-//
-// Used for resources (supports "/" separator):
-// - "*" - global wildcard (matches everything)
-// - "product:*" - all products
-// - "product:123" - specific product
-// - "warehouse:123/product:*" - all products in warehouse 123
-// - "warehouse:* /product:*" - all products in all warehouses
-//
-// Examples:
-// - "*"
-// - "product:550e8400-e29b-41d4-a716-446655440000"
-// - "warehouse:W1/product:*"
-export type Resource = "*" | `${string}:${string}` | `${string}:${string}/${string}`;
+/**
+ * Domain scope - identifies the context for authorization.
+ *
+ * Format: "type:id" where id can be UUID or "*" (wildcard)
+ *
+ * @example
+ * "org:550e8400-e29b-41d4-a716-446655440000" - specific organization
+ * "org:*" - all organizations
+ * "store:abc123" - specific store
+ * "store:*" - all stores
+ */
+export type Domain = ScopeIdentifier;
+
+/**
+ * Resource scope for authorization checks.
+ *
+ * Supports three formats:
+ * - "*" - global wildcard (matches everything)
+ * - "type:id" - single resource (e.g., "product:123", "product:*")
+ * - "parent:id/child:id" - nested resource path (e.g., "warehouse:W1/product:*")
+ *
+ * @example
+ * "*" - all resources
+ * "product:550e8400-e29b-41d4-a716-446655440000" - specific product
+ * "product:*" - all products
+ * "warehouse:W1/product:*" - all products in warehouse W1
+ */
+export type Resource =
+  | "*"
+  | ScopeIdentifier
+  | `${ScopeIdentifier}/${ScopeIdentifier}`;
 
 export interface EnforceParams {
   organizationId: string;
@@ -221,8 +234,10 @@ export class CasbinService {
     // Policy rules: ptype='p', format in DB: [role, domain, resource, action, effect, orgId]
     // Grouping rules: ptype='g', format in DB: [user, role, domain, orgId]
 
-    const policyRules = tempEnforcer.getModel().model.get("p")?.get("p")?.policy || [];
-    const groupingRules = tempEnforcer.getModel().model.get("g")?.get("g")?.policy || [];
+    const policyRules =
+      tempEnforcer.getModel().model.get("p")?.get("p")?.policy || [];
+    const groupingRules =
+      tempEnforcer.getModel().model.get("g")?.get("g")?.policy || [];
 
     // Filter and add policies for this organization
     // DB format: [role, domain, resource, action, effect, orgId] - orgId at index 5
@@ -263,14 +278,27 @@ export class CasbinService {
   /**
    * Remove all policies for a role in organization
    */
-  async removeFilteredPolicy(params: { organizationId: string; role: string }): Promise<boolean> {
+  async removeFilteredPolicy(params: {
+    organizationId: string;
+    role: string;
+  }): Promise<boolean> {
     const { organizationId, role } = params;
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
     }
 
-    await this.adapter.removeFilteredPolicy("p", "p", 0, role, "", "", "", "", organizationId);
+    await this.adapter.removeFilteredPolicy(
+      "p",
+      "p",
+      0,
+      role,
+      "",
+      "",
+      "",
+      "",
+      organizationId
+    );
 
     const enforcer = await this.getEnforcer(organizationId);
     await enforcer.removeFilteredPolicy(0, role);
@@ -340,7 +368,9 @@ export class CasbinService {
   /**
    * Remove all roles for user in specific domain.
    */
-  async removeAllRolesInDomain(params: Omit<AssignRoleParams, "role">): Promise<boolean> {
+  async removeAllRolesInDomain(
+    params: Omit<AssignRoleParams, "role">
+  ): Promise<boolean> {
     const { organizationId, userId, domain } = params;
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
@@ -348,7 +378,12 @@ export class CasbinService {
 
     for (const grouping of groupings) {
       if (grouping[0] === userPrefix && grouping[2] === domain) {
-        await this.removeRole({ organizationId, userId, role: grouping[1], domain });
+        await this.removeRole({
+          organizationId,
+          userId,
+          role: grouping[1],
+          domain,
+        });
       }
     }
 
@@ -359,7 +394,14 @@ export class CasbinService {
    * Add a policy rule.
    */
   async addPolicy(params: AddPolicyParams): Promise<boolean> {
-    const { organizationId, role, domain, resource, action, effect = "allow" } = params;
+    const {
+      organizationId,
+      role,
+      domain,
+      resource,
+      action,
+      effect = "allow",
+    } = params;
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -388,7 +430,14 @@ export class CasbinService {
    * Remove a policy rule.
    */
   async removePolicy(params: AddPolicyParams): Promise<boolean> {
-    const { organizationId, role, domain, resource, action, effect = "allow" } = params;
+    const {
+      organizationId,
+      role,
+      domain,
+      resource,
+      action,
+      effect = "allow",
+    } = params;
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -411,7 +460,9 @@ export class CasbinService {
   /**
    * Get members for specific domain.
    */
-  async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
+  async getMembers(
+    params: GetMembersParams
+  ): Promise<Array<{ userId: string; role: string }>> {
     const { organizationId, domain } = params;
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
