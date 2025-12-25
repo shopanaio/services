@@ -213,6 +213,15 @@ export class StoreRepository extends BaseRepository {
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
 
+  @ReadOnly()
+  async getIdsByOrganization(organizationId: string): Promise<string[]> {
+    const stores = await this.connection
+      .select({ id: store.id })
+      .from(store)
+      .where(eq(store.organizationId, organizationId));
+    return stores.map((s) => s.id);
+  }
+
   @Transactional()
   async update(
     id: string,

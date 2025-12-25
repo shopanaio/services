@@ -10,45 +10,28 @@ export const queryResolvers = {
 
   StoreQuery: {
     stores: async (_parent, _args, ctx, info) => {
-      // User must be authenticated
-      if (!ctx.user?.id) return [];
+      // User must be authenticated and have store context
+      if (!ctx.user?.id || !ctx.store?.organizationId) return [];
 
-      // If store context exists, get organizationId from it
-      let organizationId = ctx.store?.organizationId;
+      const organizationId = ctx.store.organizationId;
 
-      // Get all stores
-      const allStores = await ctx.kernel
-        .getServices()
-        .repository.store.getMany();
-
-      // Filter stores by organization
-      // If no context organizationId, we need to check each store's IAM integration
-      const userStores = [];
-      for (const store of allStores) {
-        if (!store.integrations?.iam) continue;
-
-        const storeOrgId = store.integrations.iam.config.organizationId;
-
-        // If we have organizationId from context, filter by it
-        if (organizationId && storeOrgId !== organizationId) continue;
-
-        // Check user has access to this store
-        const authResult = await ctx.kernel.getServices().broker.call(
-          "iam.authorize",
-          {
-            userId: ctx.user.id,
-            organizationId: storeOrgId,
-            resource: "store",
-            action: "read",
-          }
-        ) as { allowed: boolean };
-
-        if (authResult.allowed) {
-          userStores.push(store);
+      // Check if user has read access to stores in this organization
+      const authResult = (await ctx.kernel.getServices().broker.call(
+        "iam.authorize",
+        {
+          userId: ctx.user.id,
+          organizationId,
+          resource: "store",
+          action: "read",
         }
-      }
+      )) as { allowed: boolean };
 
-      const storeIds = userStores.map((s) => s.id);
+      if (!authResult.allowed) return [];
+
+      // Get all store IDs in the organization
+      const storeIds = await ctx.kernel
+        .getServices()
+        .repository.store.getIdsByOrganization(organizationId);
 
       return StoreResolver.loadMany(
         storeIds,

@@ -86,7 +86,7 @@ export class StoreResolver extends StoreType<string, Store | null> {
   }
 
   @Cache({
-    cacheName: "store-locales",
+    cacheName: "store:locales",
     key: (resolver: StoreResolver) => resolver.value,
   })
   async locales(): Promise<LocaleCode[]> {
@@ -97,7 +97,7 @@ export class StoreResolver extends StoreType<string, Store | null> {
   }
 
   @Cache({
-    cacheName: "store-currencies",
+    cacheName: "store:currencies",
     key: (resolver: StoreResolver) => resolver.value,
   })
   async currencies(): Promise<CurrencyCode[]> {
