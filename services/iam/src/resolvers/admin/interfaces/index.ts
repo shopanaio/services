@@ -1,47 +1,23 @@
 /**
- * Admin view interfaces
- *
- * Define view-specific types for the admin API
+ * Admin domain interfaces for IAM service
  */
 
-import type { TypeResult } from "@shopana/type-resolver";
-import type { UserResolver } from "../UserResolver.js";
+// Core entities
+export type { User } from "./User.js";
+export type { Organization } from "./Organization.js";
+export type { OrganizationMember } from "./OrganizationMember.js";
 
-// ============================================================================
-// Derived types from Resolver classes (auto-generated from TypeResult)
-// ============================================================================
+// RBAC
+export type { Role } from "./Role.js";
+export type { UserRole } from "./UserRole.js";
+export type { RolePermission } from "./RolePermission.js";
+export type { PermissionEffect } from "./PermissionEffect.js";
 
-/** User type derived from UserResolver */
-export type User = TypeResult<typeof UserResolver>;
+// Views
+export type { Member } from "./Member.js";
+export type { Membership } from "./Membership.js";
+export type { ResourceDefinition } from "./ResourceDefinition.js";
 
-// ============================================================================
-// Simple value types (view-specific)
-// ============================================================================
-
-/**
- * Role view type
- */
-export interface Role {
-  /** Organization ID */
-  organizationId: string;
-  /** Role name/identifier */
-  name: string;
-  /** Human-readable display name */
-  displayName: string | null;
-  /** Role description */
-  description: string | null;
-  /** Whether this is a system role */
-  isSystem: boolean;
-}
-
-/**
- * Authentication token information
- */
-export interface AuthToken {
-  /** Access token for API requests */
-  accessToken: string;
-  /** Token expiration time in seconds */
-  expiresIn: number;
-  /** Refresh token for obtaining new access tokens */
-  refreshToken: string | null;
-}
+// Auth
+export type { AuthToken } from "./AuthToken.js";
+export type { AuthorizeResult } from "./AuthorizeResult.js";
