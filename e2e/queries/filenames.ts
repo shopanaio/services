@@ -13,6 +13,7 @@ export type GraphQLFileName =
   | 'project-api/ProjectMembers'
   | 'project-api/ProjectAvailableResources'
   // iam-api
+  | 'iam-api/OrganizationCreate'
   | 'iam-api/OrganizationRoles'
   | 'iam-api/OrganizationMembership'
   | 'iam-api/MemberInvite'

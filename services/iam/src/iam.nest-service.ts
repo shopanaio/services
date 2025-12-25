@@ -12,7 +12,7 @@ import { getServiceConfig } from "@shopana/shared-service-config";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
 import type { AuthorizeResult } from "./scripts/organization/dto/AuthorizeDto.js";
-import type { ScopePart } from "./casbin/CasbinService.js";
+import type { Domain, Resource } from "./casbin/CasbinService.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -78,8 +78,8 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       {
         userId: string;
         organizationId: string;
-        domain: ScopePart[];
-        resource: ScopePart[];
+        domain: Domain;
+        resource: Resource;
         action: string;
       },
       AuthorizeResult

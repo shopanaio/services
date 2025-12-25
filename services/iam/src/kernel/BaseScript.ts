@@ -1,11 +1,12 @@
+import {
+  ValidationError,
+  type UserError,
+} from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
 
-export interface UserError {
-  message: string;
-  field?: string[];
-  code?: string;
-}
+// Re-export from shared-kernel for convenience
+export { ZodSchema, ValidationError, type UserError } from "@shopana/shared-kernel";
 
 export abstract class BaseScript<TParams, TResult> {
   protected readonly services: IamKernelServices;
@@ -27,7 +28,9 @@ export abstract class BaseScript<TParams, TResult> {
     try {
       return await this.execute(params);
     } catch (error) {
-      this.logger.error({ error }, `${this.constructor.name} failed`);
+      if (!(error instanceof ValidationError)) {
+        this.logger.error({ error }, `${this.constructor.name} failed`);
+      }
       return this.handleError(error);
     }
   }
@@ -38,9 +41,28 @@ export abstract class BaseScript<TParams, TResult> {
   protected abstract execute(params: TParams): Promise<TResult>;
 
   /**
-   * Override in subclass - error handling
+   * Override in subclass - error handling.
+   * Check for ValidationError to return validation errors.
    */
   protected abstract handleError(error: unknown): TResult;
+
+  /**
+   * Helper: get current service context
+   */
+  protected get context() {
+    return getContext();
+  }
+
+  /**
+   * Helper: get current user (throws if not authenticated)
+   */
+  protected get currentUser() {
+    const user = this.context.currentUser;
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    return user;
+  }
 
   /**
    * Helper: get current locale
@@ -53,7 +75,7 @@ export abstract class BaseScript<TParams, TResult> {
    * Helper: get current organization ID (from JWT)
    */
   protected getOrganizationId(): string | null {
-    return getContext()?.organizationId ?? null;
+    return this.context.organizationId ?? null;
   }
 
   /**

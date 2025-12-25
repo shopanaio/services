@@ -32,6 +32,11 @@ export {
   type ScriptResult,
   KernelError,
 } from "./types";
+export {
+  ZodSchema,
+  ValidationError,
+  type UserError,
+} from "./decorators";
 
 // Resource discovery types
 export {

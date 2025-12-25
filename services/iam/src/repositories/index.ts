@@ -8,3 +8,9 @@ export {
   type SignUpResult,
   type GetCurrentUserResult,
 } from "./user/UserRepository.js";
+export {
+  OrganizationRepository,
+  type OrganizationCreateInput,
+  type OrganizationCreateResult,
+  type AddMemberInput,
+} from "./organization/OrganizationRepository.js";

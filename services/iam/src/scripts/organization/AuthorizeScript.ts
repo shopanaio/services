@@ -1,4 +1,3 @@
-import { buildScope } from "../../casbin/CasbinService.js";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/AuthorizeDto.js";
 
@@ -19,7 +18,7 @@ export class AuthorizeScript extends BaseScript<AuthorizeParams, AuthorizeResult
       allowed,
       deniedReason: allowed
         ? undefined
-        : `User lacks ${action} permission on ${buildScope(resource)}`,
+        : `User lacks ${action} permission on ${resource}`,
     };
   }
 

@@ -11,11 +11,43 @@ import type { Database } from "../db/database.js";
 // Types
 // ============================================================================
 
+/**
+ * Domain scope - single scope in format "type:id" or "type:*"
+ *
+ * Used for domain (no "/" separator):
+ * - "org:uuid" - specific organization
+ * - "org:*" - all organizations
+ * - "store:uuid" - specific store
+ * - "store:*" - all stores
+ *
+ * Examples:
+ * - "org:550e8400-e29b-41d4-a716-446655440000"
+ * - "store:*"
+ */
+export type Domain = `${string}:${string}`;
+
+/**
+ * Resource scope - one or more scopes joined by "/" or global wildcard
+ *
+ * Used for resources (supports "/" separator):
+ * - "*" - global wildcard (matches everything)
+ * - "product:*" - all products
+ * - "product:123" - specific product
+ * - "warehouse:123/product:*" - all products in warehouse 123
+ * - "warehouse:*/product:*" - all products in all warehouses
+ *
+ * Examples:
+ * - "*"
+ * - "product:550e8400-e29b-41d4-a716-446655440000"
+ * - "warehouse:W1/product:*"
+ */
+export type Resource = "*" | `${string}:${string}` | `${string}:${string}/${string}`;
+
 export interface EnforceParams {
   organizationId: string;
   userId: string;
-  domain: ScopePart[];
-  resource: ScopePart[];
+  domain: Domain;
+  resource: Resource;
   action: string;
 }
 
@@ -23,50 +55,21 @@ export interface AssignRoleParams {
   organizationId: string;
   userId: string;
   role: string;
-  domain: ScopePart[];
+  domain: Domain;
 }
 
 export interface AddPolicyParams {
   organizationId: string;
   role: string;
-  domain: ScopePart[];
-  resource: ScopePart[];
+  domain: Domain;
+  resource: Resource;
   action: string;
   effect?: "allow" | "deny";
 }
 
 export interface GetMembersParams {
   organizationId: string;
-  domain: ScopePart[];
-}
-
-/**
- * Scope part - typed string in format "type:id" or "type:*"
- *
- * Used for both domains and resources:
- * - "org:*" or "store:*" - type with wildcard
- * - "org:uuid" or "store:uuid" - type with specific id
- */
-export type ScopePart = `${string}:${string}`;
-
-/**
- * Build scope string from parts
- *
- * @param parts - Array of scope parts (already in "type:id" format)
- * @param separator - Separator between parts (default: "/")
- * @returns Formatted scope string
- *
- * Examples:
- * - [] → "*"
- * - ["org:*"] → "org:*"
- * - ["org:uuid"] → "org:uuid"
- * - ["store:123"] → "store:123"
- * - ["warehouse:W1", "product:*"] → "warehouse:W1/product:*"
- * - ["warehouse:W1", "product:456"] → "warehouse:W1/product:456"
- */
-export function buildScope(parts: ScopePart[], separator = "/"): string {
-  if (parts.length === 0) return "*";
-  return parts.join(separator);
+  domain: Domain;
 }
 
 /**
@@ -238,22 +241,14 @@ export class CasbinService {
   async enforce(params: EnforceParams): Promise<boolean> {
     const { organizationId, userId, domain, resource, action } = params;
     const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.enforce(
-      `user:${userId}`,
-      buildScope(domain),
-      buildScope(resource),
-      action
-    );
+    return enforcer.enforce(`user:${userId}`, domain, resource, action);
   }
 
   /**
    * Assign role to user in specific domain.
-   *
-   * @param params.domain - Required. Format: ["prefix:id"] or ["prefix:*"] for wildcard.
    */
   async assignRole(params: AssignRoleParams): Promise<boolean> {
     const { organizationId, userId, role, domain } = params;
-    const domainStr = buildScope(domain);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -263,7 +258,7 @@ export class CasbinService {
       await this.adapter.addPolicy("g", "g", [
         `user:${userId}`,
         role,
-        domainStr,
+        domain,
         organizationId,
       ]);
     } catch (error: any) {
@@ -280,7 +275,6 @@ export class CasbinService {
    */
   async removeRole(params: AssignRoleParams): Promise<boolean> {
     const { organizationId, userId, role, domain } = params;
-    const domainStr = buildScope(domain);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -289,7 +283,7 @@ export class CasbinService {
     await this.adapter.removePolicy("g", "g", [
       `user:${userId}`,
       role,
-      domainStr,
+      domain,
       organizationId,
     ]);
 
@@ -302,13 +296,12 @@ export class CasbinService {
    */
   async removeAllRolesInDomain(params: Omit<AssignRoleParams, "role">): Promise<boolean> {
     const { organizationId, userId, domain } = params;
-    const domainStr = buildScope(domain);
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
     const userPrefix = `user:${userId}`;
 
     for (const grouping of groupings) {
-      if (grouping[0] === userPrefix && grouping[2] === domainStr) {
+      if (grouping[0] === userPrefix && grouping[2] === domain) {
         await this.removeRole({ organizationId, userId, role: grouping[1], domain });
       }
     }
@@ -321,8 +314,6 @@ export class CasbinService {
    */
   async addPolicy(params: AddPolicyParams): Promise<boolean> {
     const { organizationId, role, domain, resource, action, effect = "allow" } = params;
-    const domainStr = buildScope(domain);
-    const resourceStr = buildScope(resource);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -331,8 +322,8 @@ export class CasbinService {
     try {
       await this.adapter.addPolicy("p", "p", [
         role,
-        domainStr,
-        resourceStr,
+        domain,
+        resource,
         action,
         effect,
         organizationId,
@@ -343,7 +334,7 @@ export class CasbinService {
     }
 
     const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.addPolicy(role, domainStr, resourceStr, action, effect);
+    await enforcer.addPolicy(role, domain, resource, action, effect);
     return true;
   }
 
@@ -352,8 +343,6 @@ export class CasbinService {
    */
   async removePolicy(params: AddPolicyParams): Promise<boolean> {
     const { organizationId, role, domain, resource, action, effect = "allow" } = params;
-    const domainStr = buildScope(domain);
-    const resourceStr = buildScope(resource);
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -361,33 +350,30 @@ export class CasbinService {
 
     await this.adapter.removePolicy("p", "p", [
       role,
-      domainStr,
-      resourceStr,
+      domain,
+      resource,
       action,
       effect,
       organizationId,
     ]);
 
     const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.removePolicy(role, domainStr, resourceStr, action, effect);
+    await enforcer.removePolicy(role, domain, resource, action, effect);
     return true;
   }
 
   /**
    * Get members for specific domain.
-   *
-   * @param params.domain - Required. Format: ["prefix:id"] (e.g., ["org:uuid"]).
    */
   async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
     const { organizationId, domain } = params;
-    const domainStr = buildScope(domain);
     const enforcer = await this.getEnforcer(organizationId);
     const groupings = await enforcer.getGroupingPolicy();
 
     const members: Array<{ userId: string; role: string }> = [];
 
     for (const grouping of groupings) {
-      if (grouping[2] === domainStr) {
+      if (grouping[2] === domain) {
         const userId = grouping[0].startsWith("user:")
           ? grouping[0].substring(5)
           : grouping[0];

@@ -1,10 +1,10 @@
-import type { ScopePart } from "../../../casbin/CasbinService.js";
+import type { Domain, Resource } from "../../../casbin/CasbinService.js";
 
 export interface AuthorizeParams {
   userId: string;
   organizationId: string;
-  domain: ScopePart[];
-  resource: ScopePart[];
+  domain: Domain;
+  resource: Resource;
   action: string;
 }
 

@@ -1,21 +1,42 @@
-import type { Resolvers } from "../../generated/types.js";
-import type { ScopePart } from "../../../../casbin/CasbinService.js";
-
-/**
- * Validate and parse domain string into ScopePart array
- * e.g., "store:uuid" -> ["store:uuid"]
- * e.g., "org:*" -> ["org:*"]
- */
-function parseDomain(domain: string): ScopePart[] {
-  if (!domain.includes(":")) return [];
-  return [domain as ScopePart];
-}
+import type { Resolvers, Organization } from "../../generated/types.js";
+import { OrganizationCreateScript } from "../../../../scripts/organization/OrganizationCreateScript.js";
 
 export const organizationMutationResolvers: Partial<Resolvers> = {
   OrganizationMutation: {
-    organizationCreate: async (_parent, { input: _input }, _ctx) => {
-      // Create a new organization, add current user as owner
-      throw new Error("Not implemented");
+    organizationCreate: async (_parent, { input }, ctx) => {
+      const result = await ctx.kernel.runScript(OrganizationCreateScript, input);
+
+      if (!result.organization) {
+        return {
+          organization: null,
+          userErrors: result.userErrors.map((e) => ({
+            code: e.code ?? "UNKNOWN_ERROR",
+            message: e.message,
+            field: e.field ?? null,
+          })),
+        };
+      }
+
+      const org = result.organization;
+      const organization: Organization = {
+        __typename: "Organization",
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        createdAt: org.createdAt.toISOString(),
+        updatedAt: org.updatedAt?.toISOString() ?? null,
+        membership: {
+          __typename: "Membership",
+          domain: `org:${org.id}`,
+          members: [],
+          roles: [],
+        },
+      };
+
+      return {
+        organization,
+        userErrors: [],
+      };
     },
 
     organizationUpdate: async (_parent, { input: _input }, _ctx) => {
@@ -38,98 +59,12 @@ export const organizationMutationResolvers: Partial<Resolvers> = {
       throw new Error("Not implemented");
     },
 
-    memberRoleChange: async (_parent, { input }, ctx) => {
-      // Check authentication
-      if (!ctx.currentUser || !ctx.organizationId) {
-        return {
-          member: null,
-          userErrors: [{ code: "UNAUTHENTICATED", message: "Authentication required", field: null }],
-        };
-      }
-
-      const { userId, domain, role } = input;
-      const domainParts = parseDomain(domain);
-
-      if (domainParts.length === 0) {
-        return {
-          member: null,
-          userErrors: [{ code: "INVALID_DOMAIN", message: "Invalid domain format", field: ["domain"] }],
-        };
-      }
-
-      try {
-        // First remove existing roles in this domain
-        await ctx.kernel.repository.casbin.removeAllRolesInDomain({
-          organizationId: ctx.organizationId,
-          userId,
-          domain: domainParts,
-        });
-
-        // Assign new role
-        await ctx.kernel.repository.casbin.assignRole({
-          organizationId: ctx.organizationId,
-          userId,
-          role,
-          domain: domainParts,
-        });
-
-        // Return member info (minimal - Federation will resolve User)
-        return {
-          member: {
-            id: `${userId}:${domain}`,
-            user: { __typename: "User", id: userId },
-            role,
-            grantedAt: new Date(),
-            grantedBy: { __typename: "User", id: ctx.currentUser.id },
-          } as any,
-          userErrors: [],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to change role";
-        return {
-          member: null,
-          userErrors: [{ code: "ROLE_CHANGE_FAILED", message, field: null }],
-        };
-      }
+    memberRoleChange: async (_parent, { input: _input }, _ctx) => {
+      throw new Error("Not implemented");
     },
 
-    memberAccessRemove: async (_parent, { input }, ctx) => {
-      // Check authentication
-      if (!ctx.currentUser || !ctx.organizationId) {
-        return {
-          success: false,
-          userErrors: [{ code: "UNAUTHENTICATED", message: "Authentication required", field: null }],
-        };
-      }
-
-      const { userId, domain } = input;
-      const domainParts = parseDomain(domain);
-
-      if (domainParts.length === 0) {
-        return {
-          success: false,
-          userErrors: [{ code: "INVALID_DOMAIN", message: "Invalid domain format", field: ["domain"] }],
-        };
-      }
-
-      try {
-        await ctx.kernel.repository.casbin.removeAllRolesInDomain({
-          organizationId: ctx.organizationId,
-          userId,
-          domain: domainParts,
-        });
-
-        return {
-          success: true,
-          userErrors: [],
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to remove access";
-        return {
-          success: false,
-          userErrors: [{ code: "ACCESS_REMOVE_FAILED", message, field: null }],
-        };
-      }
+    memberAccessRemove: async (_parent, { input: _input }, _ctx) => {
+      throw new Error("Not implemented");
     },
   },
 };

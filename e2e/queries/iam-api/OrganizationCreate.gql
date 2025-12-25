@@ -1,0 +1,36 @@
+mutation OrganizationCreate($input: OrganizationCreateInput!) {
+  organizationMutation {
+    organizationCreate(input: $input) {
+      organization {
+        id
+        name
+        slug
+        createdAt
+        updatedAt
+        membership {
+          domain
+          roles {
+            id
+            name
+            displayName
+            isSystem
+          }
+          members {
+            id
+            user {
+              id
+              email
+            }
+            role
+            grantedAt
+          }
+        }
+      }
+      userErrors {
+        field
+        message
+        code
+      }
+    }
+  }
+}
