@@ -25,6 +25,10 @@ export class MembershipResolver extends IAMType<
     return this.value.domain;
   }
 
+  organizationId() {
+    return this.value.organizationId;
+  }
+
   async roles(): Promise<RoleResolver[]> {
     const { organizationId, domain } = this.value;
 

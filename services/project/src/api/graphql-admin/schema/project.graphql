@@ -57,8 +57,9 @@ extend type User @key(fields: "id") {
 }
 
 # Membership entity (extended from IAM service)
-extend type Membership @key(fields: "domain") {
+extend type Membership @key(fields: "domain organizationId") {
   domain: String! @external
+  organizationId: ID! @external
 }
 
 """Input for creating a new store"""

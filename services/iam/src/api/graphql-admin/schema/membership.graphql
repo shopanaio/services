@@ -34,11 +34,15 @@ Membership — universal container for members and roles.
 Used for both Organization and Store.
 Domain determines context: orgId for org-level, storeId for store-level.
 """
-type Membership @key(fields: "domain") {
+type Membership @key(fields: "domain organizationId") {
   """
-  Domain identifier (orgId or storeId).
+  Domain identifier (format: "org:uuid" or "store:uuid").
   """
   domain: String!
+  """
+  Organization ID (required for casbin queries).
+  """
+  organizationId: ID!
   """
   All roles available in this organization.
   """

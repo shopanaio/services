@@ -852,6 +852,7 @@ export type LocaleUpdatePayload = {
 export type Membership = {
   __typename?: 'Membership';
   domain: Scalars['String']['output'];
+  organizationId: Scalars['ID']['output'];
 };
 
 export type Mutation = {
@@ -1427,7 +1428,8 @@ export type LocaleUpdatePayloadResolvers<ContextType = ServiceContext, ParentTyp
 }>;
 
 export type MembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Membership'] = ResolversParentTypes['Membership']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true}>, ContextType>;
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true,"organizationId":true}>, ContextType>;
+
 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

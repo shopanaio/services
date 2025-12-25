@@ -67,9 +67,26 @@ export const typeResolvers: Partial<Resolvers> = {
       return { __typename: "Organization", id: organizationId };
     },
     // Membership field resolver - returns Federation reference to IAM Membership
-    membership: (parent: { id: string }) => {
-      // Return Federation reference - IAM resolves by domain (store.id)
-      return { __typename: "Membership", domain: parent.id };
+    membership: async (
+      parent: { id: string },
+      _args: unknown,
+      ctx: ServiceContext
+    ) => {
+      // Load store to get organizationId
+      const store = await ctx.kernel
+        .getServices()
+        .repository.store.findById(parent.id);
+
+      if (!store?.organizationId) {
+        throw new Error(`Store ${parent.id} has no organizationId`);
+      }
+
+      // Return Federation reference with domain format "store:uuid"
+      return {
+        __typename: "Membership" as const,
+        domain: `store:${parent.id}`,
+        organizationId: store.organizationId,
+      };
     },
   },
 

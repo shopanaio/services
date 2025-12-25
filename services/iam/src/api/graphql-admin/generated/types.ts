@@ -754,7 +754,7 @@ export type MemberRemovePayload = {
 
 /** Input for changing member's role. */
 export type MemberRoleChangeInput = {
-  /** Domain (orgId, storeId, or '*' for all). */
+  /** Domain. Format: "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*"). */
   domain: Scalars['String']['input'];
   /** New role name. */
   role: Scalars['String']['input'];
@@ -777,10 +777,12 @@ export type Membership = {
   __typename?: 'Membership';
   /** Available resources for role editor (org-level only). */
   availableResources?: Maybe<Array<ResourceDefinition>>;
-  /** Domain identifier (orgId or storeId). */
+  /** Domain identifier (format: "org:uuid" or "store:uuid"). */
   domain: Scalars['String']['output'];
   /** All members with access to this domain. */
   members: Array<Member>;
+  /** Organization ID (required for casbin queries). */
+  organizationId: Scalars['ID']['output'];
   /** All roles available in this organization. */
   roles: Array<Role>;
 };
@@ -964,9 +966,10 @@ export type Role = {
   /** Human-readable display name. */
   displayName: Scalars['String']['output'];
   /**
-   * Domain scope for this role.
-   * "*" = global (all stores)
-   * storeId = store-specific role
+   * Domain scope for this role. Format: "prefix:id" or "prefix:*".
+   * - "org:uuid" = organization-level role
+   * - "store:uuid" = store-specific role
+   * - "store:*" = all stores
    */
   domain: Scalars['String']['output'];
   /** Unique identifier. */
@@ -977,11 +980,13 @@ export type Role = {
   name: Scalars['String']['output'];
   /** Role permissions. */
   permissions: Array<RolePermission>;
+  /** Role last update date. */
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 /** Role assignment - assigns role to user in specific domain. */
 export type RoleAssignment = {
-  /** Domain ID (orgId, storeId, or '*' for all stores). */
+  /** Domain ID. Format: "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*"). */
   domain: Scalars['String']['input'];
   /** Role name. */
   role: Scalars['String']['input'];
@@ -994,11 +999,12 @@ export type RoleCreateInput = {
   /** Display name. */
   displayName: Scalars['String']['input'];
   /**
-   * Domain scope for role.
-   * "*" = global (all stores), default
-   * storeId = store-specific role
+   * Domain scope for role. Required, format: "prefix:id" or "prefix:*".
+   * - "org:uuid" = organization-level role
+   * - "store:uuid" = store-specific role
+   * - "store:*" = all stores
    */
-  domain?: InputMaybe<Scalars['String']['input']>;
+  domain: Scalars['String']['input'];
   /** Unique role name (slug). */
   name: Scalars['String']['input'];
   /** Role permissions. */
@@ -1013,12 +1019,8 @@ export type RoleCreatePayload = {
 
 /** Input for deleting a role. */
 export type RoleDeleteInput = {
-  /**
-   * Domain scope for role lookup.
-   * "*" = global (default)
-   * storeId = store-specific
-   */
-  domain?: InputMaybe<Scalars['String']['input']>;
+  /** Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*". */
+  domain: Scalars['String']['input'];
   /** Role name to delete. */
   name: Scalars['String']['input'];
 };
@@ -1106,12 +1108,8 @@ export type RoleUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New display name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Domain scope for role lookup.
-   * "*" = global (default)
-   * storeId = store-specific
-   */
-  domain?: InputMaybe<Scalars['String']['input']>;
+  /** Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*". */
+  domain: Scalars['String']['input'];
   /** Role name to update. */
   name: Scalars['String']['input'];
   /** New permissions (completely replaces existing). */
@@ -1628,10 +1626,11 @@ export type MemberRoleChangePayloadResolvers<ContextType = ServiceContext, Paren
 }>;
 
 export type MembershipResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Membership'] = ResolversParentTypes['Membership']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true}>, ContextType>;
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Membership']>, { __typename: 'Membership' } & GraphQLRecursivePick<ParentType, {"domain":true,"organizationId":true}>, ContextType>;
   availableResources?: Resolver<Maybe<Array<ResolversTypes['ResourceDefinition']>>, ParentType, ContextType>;
   domain?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   members?: Resolver<Array<ResolversTypes['Member']>, ParentType, ContextType>;
+  organizationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   roles?: Resolver<Array<ResolversTypes['Role']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1710,6 +1709,7 @@ export type RoleResolvers<ContextType = ServiceContext, ParentType extends Resol
   isSystem?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   permissions?: Resolver<Array<ResolversTypes['RolePermission']>, ParentType, ContextType>;
+  updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

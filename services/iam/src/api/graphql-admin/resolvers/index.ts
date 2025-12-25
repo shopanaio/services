@@ -45,9 +45,6 @@ export const resolvers = {
   Organization: {
     ...organizationResolvers.Organization,
   },
-  Member: {
-    ...organizationResolvers.Member,
-  },
   Membership: {
     ...membershipResolvers.Membership,
   },

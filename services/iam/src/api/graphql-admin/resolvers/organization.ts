@@ -1,23 +1,20 @@
 import type { Resolvers } from "../generated/types.js";
+import { resolveOrganization } from "./types.js";
 
 export const organizationResolvers: Partial<Resolvers> = {
   Query: {
-    organizationQuery: () => ({} as any),
+    organizationQuery: () => ({}),
   },
 
   OrganizationQuery: {
-    organization: async (_parent, { id: _id }, _ctx) => {
-      // Get organization by ID
-      throw new Error("Not implemented");
+    organization: async (_parent, { id }, ctx, info) => {
+      return resolveOrganization(id, ctx, info);
     },
   },
 
-  Organization: {},
-
-  Member: {
-    __resolveReference: async (_reference, _ctx) => {
-      // Resolve Member by id for Federation
-      throw new Error("Not implemented");
+  Organization: {
+    __resolveReference: async (reference, ctx, info) => {
+      return resolveOrganization(reference.id, ctx, info);
     },
   },
 };
