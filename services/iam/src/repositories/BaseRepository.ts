@@ -1,5 +1,5 @@
 import type { TransactionManager } from "@shopana/shared-kernel";
-import type { Database } from "../db/database.js";
+import type { Database } from "../infrastructure/db/database.js";
 
 /**
  * Base repository class that provides access to database with transaction support.

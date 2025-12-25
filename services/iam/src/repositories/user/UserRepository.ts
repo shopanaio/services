@@ -5,7 +5,7 @@ import {
   type JWTPayload,
   type JSONWebKeySet,
 } from "jose";
-import type { Database } from "../../db/database.js";
+import type { Database } from "../../infrastructure/db/database.js";
 import { user, session, jwks } from "../models/auth.js";
 import type { Auth } from "../../auth/auth.js";
 
