@@ -15,7 +15,6 @@ export const resolvers = {
   },
   Mutation: {
     ...mutationResolvers.Mutation,
-    ...organizationResolvers.Mutation,
   },
   UserQuery: {
     ...queryResolvers.UserQuery,
@@ -34,6 +33,9 @@ export const resolvers = {
   RoleMutation: {
     ...mutationResolvers.RoleMutation,
   },
+  OrganizationMutation: {
+    ...mutationResolvers.OrganizationMutation,
+  },
   Role: {
     ...roleResolvers.Role,
   },
@@ -42,9 +44,6 @@ export const resolvers = {
   },
   Organization: {
     ...organizationResolvers.Organization,
-  },
-  OrganizationMutation: {
-    ...organizationResolvers.OrganizationMutation,
   },
   Member: {
     ...organizationResolvers.Member,
