@@ -281,9 +281,61 @@ export class OrganizationRepository extends BaseRepository {
       );
   }
 
+  /**
+   * Create a user role assignment
+   */
+  @Transactional()
+  async createUserRole(input: {
+    organizationId: string;
+    userId: string;
+    roleId: string;
+    domain: string;
+    grantedBy?: string;
+  }): Promise<UserRole> {
+    const [result] = await this.connection
+      .insert(userRole)
+      .values({
+        organizationId: input.organizationId,
+        userId: input.userId,
+        roleId: input.roleId,
+        domain: input.domain,
+        grantedBy: input.grantedBy,
+      })
+      .returning();
+
+    return result;
+  }
+
   // ============================================================================
   // Roles
   // ============================================================================
+
+  /**
+   * Create a new role
+   */
+  @Transactional()
+  async createRole(input: {
+    organizationId: string;
+    domain: string;
+    name: string;
+    displayName?: string;
+    description?: string;
+    isSystem?: boolean;
+  }): Promise<Role> {
+    const [result] = await this.connection
+      .insert(role)
+      .values({
+        organizationId: input.organizationId,
+        domain: input.domain,
+        name: input.name,
+        displayName: input.displayName,
+        description: input.description,
+        isSystem: input.isSystem ?? false,
+      })
+      .returning();
+
+    return result;
+  }
 
   /**
    * Find role by organization, domain and name

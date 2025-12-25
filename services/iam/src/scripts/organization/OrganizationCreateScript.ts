@@ -9,7 +9,13 @@ import {
   type OrganizationCreateParams,
   type OrganizationCreateResult,
 } from "./dto/OrganizationCreateDto.js";
-import { PREDEFINED_ROLES, ROLE_PERMISSIONS } from "../../constants/index.js";
+import {
+  PREDEFINED_ROLES,
+  ROLE_PERMISSIONS,
+  ROLE_DISPLAY_NAMES,
+  ROLE_DESCRIPTIONS,
+  type PredefinedRoleName,
+} from "../../constants/index.js";
 import { createDomain } from "../../casbin/CasbinService.js";
 
 export class OrganizationCreateScript extends BaseScript<
@@ -44,8 +50,22 @@ export class OrganizationCreateScript extends BaseScript<
 
     const org = result.organization;
 
-    const ownerRole = PREDEFINED_ROLES.OWNER;
+    const ownerRoleName = PREDEFINED_ROLES.OWNER;
     const domain = createDomain("org", org.id);
+
+    // Create predefined roles in the role table
+    const createdRoles: Record<string, { id: string }> = {};
+    for (const roleName of Object.values(PREDEFINED_ROLES)) {
+      const role = await this.repository.organization.createRole({
+        organizationId: org.id,
+        domain,
+        name: roleName,
+        displayName: ROLE_DISPLAY_NAMES[roleName as PredefinedRoleName],
+        description: ROLE_DESCRIPTIONS[roleName as PredefinedRoleName],
+        isSystem: true,
+      });
+      createdRoles[roleName] = role;
+    }
 
     // Add current user as organization member
     await this.repository.organization.addMember({
@@ -53,21 +73,30 @@ export class OrganizationCreateScript extends BaseScript<
       userId,
     });
 
+    // Create user role assignment in user_role table
+    await this.repository.organization.createUserRole({
+      organizationId: org.id,
+      userId,
+      roleId: createdRoles[ownerRoleName].id,
+      domain,
+      grantedBy: userId,
+    });
+
     // Assign owner role in Casbin for this organization
     await this.repository.casbin.assignRole({
       organizationId: org.id,
       userId,
-      role: ownerRole,
+      role: ownerRoleName,
       domain,
     });
 
     // Add predefined owner policies from ROLE_PERMISSIONS
-    const ownerPermissions = ROLE_PERMISSIONS[ownerRole];
+    const ownerPermissions = ROLE_PERMISSIONS[ownerRoleName];
     for (const rule of ownerPermissions.allow) {
       for (const action of rule.actions) {
         await this.repository.casbin.addPolicy({
           organizationId: org.id,
-          role: ownerRole,
+          role: ownerRoleName,
           domain,
           resource: rule.resource as "*",
           action,
