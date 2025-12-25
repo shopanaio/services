@@ -30,8 +30,7 @@ export interface StoreCreateOutput {
  *
  * Steps:
  * 1. Generate store ID (UUIDv7)
- * 2. Create store record in database
- * 3. Save IAM integration reference with organizationId
+ * 2. Create store record in database with organizationId
  */
 export class StoreCreateWorkflow extends BaseWorkflow {
 
@@ -55,9 +54,6 @@ export class StoreCreateWorkflow extends BaseWorkflow {
 
     // Step 2: Create store in database with organizationId
     await this.createStore(storeId, input, organizationId);
-
-    // Step 3: Save IAM integration with organizationId
-    await this.saveIamIntegration(storeId, organizationId);
 
     return { storeId, organizationId };
   }
@@ -90,20 +86,4 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     });
   }
 
-  /**
-   * Step: Save IAM integration (LOCAL - direct repository call)
-   * Stores reference to IAM organization returned by provisioning
-   */
-  @DBOS.step()
-  async saveIamIntegration(storeId: string, organizationId: string) {
-    console.log(`[StoreCreateWorkflow.saveIamIntegration] storeId=${storeId}, organizationId=${organizationId}`);
-    const result = await this.repository.integration.create({
-      storeId,
-      type: "iam",
-      provider: "internal",
-      config: { organizationId },
-    });
-    console.log(`[StoreCreateWorkflow.saveIamIntegration] Created integration:`, JSON.stringify(result));
-    return result;
-  }
 }
