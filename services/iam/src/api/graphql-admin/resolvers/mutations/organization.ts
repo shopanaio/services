@@ -1,42 +1,21 @@
-import type { Resolvers, Organization } from "../../generated/types.js";
+import type { Resolvers } from "../../generated/types.js";
 import { OrganizationCreateScript } from "../../../../scripts/organization/OrganizationCreateScript.js";
-import { createDomain } from "../../../../casbin/CasbinService.js";
+import { resolveOrganization } from "../types.js";
 
 export const organizationMutationResolvers: Partial<Resolvers> = {
   OrganizationMutation: {
-    organizationCreate: async (_parent, { input }, ctx) => {
+    organizationCreate: async (_parent, { input }, ctx, info) => {
       const result = await ctx.kernel.runScript(OrganizationCreateScript, input);
 
-      if (!result.organization) {
-        return {
-          organization: null,
-          userErrors: result.userErrors.map((e) => ({
-            code: e.code ?? "UNKNOWN_ERROR",
-            message: e.message,
-            field: e.field ?? null,
-          })),
-        };
-      }
-
-      const org = result.organization;
-      const organization: Organization = {
-        __typename: "Organization",
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        createdAt: org.createdAt.toISOString(),
-        updatedAt: org.updatedAt?.toISOString() ?? null,
-        membership: {
-          __typename: "Membership",
-          domain: createDomain("org", org.id),
-          members: [],
-          roles: [],
-        },
-      };
-
       return {
-        organization,
-        userErrors: [],
+        organization: result.organization
+          ? await resolveOrganization(result.organization.id, ctx, info, "organization")
+          : null,
+        userErrors: result.userErrors.map((e) => ({
+          code: e.code ?? "UNKNOWN_ERROR",
+          message: e.message,
+          field: e.field ?? null,
+        })),
       };
     },
 
