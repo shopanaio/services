@@ -10,9 +10,7 @@ import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
-import { ProvisionTenantScript } from "./scripts/organization/ProvisionTenantScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
-import type { ProvisionTenantResult } from "./scripts/organization/dto/ProvisionTenantDto.js";
 import type { AuthorizeResult } from "./scripts/organization/dto/AuthorizeDto.js";
 
 const { service } = getServiceConfig("iam");
@@ -42,14 +40,19 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
 
   private registerBrokerActions() {
     // Action: getCurrentUser - validates token and returns user info
-    this.broker.register<{ accessToken: string }, {
-      user: { id: string; name: string; email?: string } | null;
-      userErrors: Array<{ code: string; message: string }>;
-    }>("getCurrentUser", async (params) => {
+    this.broker.register<
+      { accessToken: string },
+      {
+        user: { id: string; name: string; email?: string } | null;
+        userErrors: Array<{ code: string; message: string }>;
+      }
+    >("getCurrentUser", async (params) => {
       if (!params?.accessToken) {
         return {
           user: null,
-          userErrors: [{ code: "MISSING_TOKEN", message: "Access token is required" }],
+          userErrors: [
+            { code: "MISSING_TOKEN", message: "Access token is required" },
+          ],
         };
       }
 
@@ -58,43 +61,35 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       });
 
       return {
-        user: result.user ? {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-        } : null,
+        user: result.user
+          ? {
+              id: result.user.id,
+              name: result.user.name,
+              email: result.user.email,
+            }
+          : null,
         userErrors: result.userErrors,
       };
     });
 
-    // Action: provisionTenant - creates new organization with owner role for user
-    this.broker.register<{ ownerId: string }, ProvisionTenantResult>(
-      "provisionTenant",
-      async (params) => {
-        if (!params?.ownerId) {
-          return {
-            organizationId: null,
-            roles: [],
-            userErrors: [{ code: "MISSING_OWNER", message: "ownerId is required" }],
-          };
-        }
-
-        return this.kernel.runScript(ProvisionTenantScript, {
-          ownerId: params.ownerId,
-        });
-      }
-    );
-
     // Action: authorize - checks if user has permission for action on resource
-    this.broker.register<{
-      userId: string;
-      organizationId: string;
-      resource: string;
-      action: string;
-      resourceId?: string;
-      resourceOwnerId?: string;
-    }, AuthorizeResult>("authorize", async (params) => {
-      if (!params?.userId || !params?.organizationId || !params?.resource || !params?.action) {
+    this.broker.register<
+      {
+        userId: string;
+        organizationId: string;
+        resource: string;
+        action: string;
+        resourceId?: string;
+        resourceOwnerId?: string;
+      },
+      AuthorizeResult
+    >("authorize", async (params) => {
+      if (
+        !params?.userId ||
+        !params?.organizationId ||
+        !params?.resource ||
+        !params?.action
+      ) {
         return {
           allowed: false,
           deniedReason: "Missing required parameters",
@@ -111,7 +106,9 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       });
     });
 
-    this.logger.debug("Broker actions registered: getCurrentUser, provisionTenant, authorize");
+    this.logger.debug(
+      "Broker actions registered: getCurrentUser, provisionTenant, authorize"
+    );
   }
 
   async onModuleDestroy() {
