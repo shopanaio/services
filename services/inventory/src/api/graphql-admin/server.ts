@@ -9,6 +9,7 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import { consoleLogger } from "@shopana/shared-kernel";
 import { setContext, type ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("inventory");
@@ -23,14 +24,6 @@ export interface ServerConfig {
   grpcHost?: string;
   databaseUrl?: string;
 }
-
-// Simple console logger for Kernel
-const consoleLogger = {
-  info: (...args: any[]) => console.log("[INFO]", ...args),
-  warn: (...args: any[]) => console.warn("[WARN]", ...args),
-  error: (...args: any[]) => console.error("[ERROR]", ...args),
-  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
-};
 
 /**
  * Create and start GraphQL-only server

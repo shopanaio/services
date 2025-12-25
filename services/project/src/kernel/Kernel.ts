@@ -1,5 +1,5 @@
-import { Kernel as BaseKernel } from "@shopana/shared-kernel";
-import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
+import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
+import type { ServiceBroker } from "@shopana/shared-kernel";
 import {
   getServiceConfig,
   buildDatabaseUrl,
@@ -11,13 +11,6 @@ import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
 
 const { service } = getServiceConfig("project");
-
-const consoleLogger: Logger = {
-  info: (...args: any[]) => console.log("[INFO]", ...args),
-  warn: (...args: any[]) => console.warn("[WARN]", ...args),
-  error: (...args: any[]) => console.error("[ERROR]", ...args),
-  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
-};
 
 /**
  * Extended kernel for project microservice (singleton)

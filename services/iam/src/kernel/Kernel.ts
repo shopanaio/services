@@ -1,4 +1,4 @@
-import { Kernel as BaseKernel } from "@shopana/shared-kernel";
+import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
 import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
 import { getServiceConfig, buildDbUrl } from "@shopana/shared-service-config";
@@ -6,15 +6,8 @@ import type { IamKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
 import { AuthorizationCache } from "../cache/index.js";
-import { initDatabase, type Database } from "../db/database.js";
+import { initDatabase, type Database } from "../infrastructure/db/database.js";
 import { createAuth, type Auth } from "../auth/auth.js";
-
-const consoleLogger: Logger = {
-  info: (...args: any[]) => console.log("[INFO]", ...args),
-  warn: (...args: any[]) => console.warn("[WARN]", ...args),
-  error: (...args: any[]) => console.error("[ERROR]", ...args),
-  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
-};
 
 /**
  * Extended kernel for IAM microservice (singleton)

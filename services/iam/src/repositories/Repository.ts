@@ -3,7 +3,7 @@ import { UserRepository, type User } from "./user/UserRepository.js";
 import { OrganizationRepository } from "./organization/OrganizationRepository.js";
 
 import { CasbinService } from "../casbin/CasbinService.js";
-import type { Database } from "../db/database.js";
+import type { Database } from "../infrastructure//db/database.js";
 import type { Auth } from "../auth/auth.js";
 
 // Re-export User type

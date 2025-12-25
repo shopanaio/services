@@ -79,3 +79,14 @@ export class KernelError extends Error {
     this.name = 'KernelError';
   }
 }
+
+/**
+ * Default console logger implementation
+ * Provides basic console logging with log level prefixes
+ */
+export const consoleLogger: Logger = {
+  info: (...args: any[]) => console.log("[INFO]", ...args),
+  warn: (...args: any[]) => console.warn("[WARN]", ...args),
+  error: (...args: any[]) => console.error("[ERROR]", ...args),
+  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
+};

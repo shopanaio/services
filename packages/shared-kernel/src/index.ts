@@ -31,6 +31,7 @@ export {
   type ScriptContext,
   type ScriptResult,
   KernelError,
+  consoleLogger,
 } from "./types";
 export {
   ZodSchema,
