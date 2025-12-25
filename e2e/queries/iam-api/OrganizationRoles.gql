@@ -1,0 +1,26 @@
+query OrganizationRoles($slug: String!) {
+  storeQuery {
+    store(slug: $slug) {
+      id
+      name
+      slug
+      membership {
+        domain
+        roles {
+          id
+          name
+          displayName
+          description
+          isSystem
+          domain
+          permissions {
+            resource
+            actions
+            effect
+          }
+          createdAt
+        }
+      }
+    }
+  }
+}

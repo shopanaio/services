@@ -12,10 +12,15 @@ export type GraphQLFileName =
   | 'project-api/ProjectRoles'
   | 'project-api/ProjectMembers'
   | 'project-api/ProjectAvailableResources'
+  // iam-api
+  | 'iam-api/OrganizationRoles'
+  | 'iam-api/OrganizationMembership'
+  | 'iam-api/MemberInvite'
+  | 'iam-api/MemberRemove'
   // roles-api
   | 'roles-api/RoleCreate'
   | 'roles-api/RoleUpdate'
   | 'roles-api/RoleDelete'
   | 'roles-api/ProjectMemberRoleChange'
   | 'roles-api/ProjectMemberRemove'
-  | 'roles-api/Authorize'; // template
+  | 'roles-api/Authorize';
