@@ -101,6 +101,8 @@ services:
       metrics: 3037
     db:
       <<: *db_default
+    # Email domains that automatically get super_admin role (comma-separated)
+    super_admin_domains: "shopana.io"
 
 # ═══════════════════════════════════════════════════════════════════
 # WORKFLOWS (DBOS Transact)
