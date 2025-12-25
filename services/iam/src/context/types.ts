@@ -1,5 +1,6 @@
 import type { Kernel } from "../kernel/Kernel.js";
 import type { User } from "../repositories/index.js";
+import type { Loader } from "../loaders/Loader.js";
 
 /**
  * Unified service context for IAM service.
@@ -14,4 +15,6 @@ export interface ServiceContext {
   currentUser: User | null;
   /** Organization ID from JWT org claim */
   organizationId: string | null;
+  /** Data loaders for batch loading */
+  loaders: Loader;
 }

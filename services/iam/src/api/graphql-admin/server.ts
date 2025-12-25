@@ -13,6 +13,7 @@ import {
   isDevelopment,
 } from "@shopana/shared-service-config";
 import { setContext, type ServiceContext } from "../../context/index.js";
+import { Loader } from "../../loaders/Loader.js";
 
 const { global } = getServiceConfig("iam");
 import { Kernel } from "../../kernel/Kernel.js";
@@ -100,6 +101,8 @@ export async function startServer(serverConfig: ServerConfig) {
         kernel: kernel!,
         currentUser: request.currentUser,
         organizationId: request.organizationId,
+        // Create loaders per request for proper batching
+        loaders: new Loader(kernel!.repository),
       };
 
       // Set context in AsyncLocalStorage for all resolvers

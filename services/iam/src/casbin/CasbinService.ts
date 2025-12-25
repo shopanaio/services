@@ -68,7 +68,7 @@ m = g(r.sub, p.sub, r.dom) && (p.dom == "*" || p.dom == r.dom) && keyMatch(r.obj
  * "org:550e8400-e29b-41d4-a716-446655440000"
  * "product:*"
  */
-type ScopeIdentifier = `${string}:${string}`;
+export type ScopeIdentifier = `${string}:${string}`;
 
 /**
  * Domain scope - identifies the context for authorization.

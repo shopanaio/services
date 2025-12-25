@@ -3,8 +3,10 @@ import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import {
   organization,
   organizationMember,
+  userRole,
   type Organization,
   type OrganizationMember,
+  type UserRole,
 } from "../models/authorization.js";
 import { BaseRepository } from "../BaseRepository.js";
 
@@ -229,5 +231,51 @@ export class OrganizationRepository extends BaseRepository {
       );
 
     return members.map((m) => m.organization);
+  }
+
+  // ============================================================================
+  // User Roles
+  // ============================================================================
+
+  /**
+   * Find user role assignment by organization, user and domain
+   */
+  @ReadOnly()
+  async findUserRole(
+    organizationId: string,
+    userId: string,
+    domain: string
+  ): Promise<UserRole | null> {
+    const [result] = await this.connection
+      .select()
+      .from(userRole)
+      .where(
+        and(
+          eq(userRole.organizationId, organizationId),
+          eq(userRole.userId, userId),
+          eq(userRole.domain, domain)
+        )
+      );
+
+    return result ?? null;
+  }
+
+  /**
+   * Get all user roles for a domain
+   */
+  @ReadOnly()
+  async getUserRolesByDomain(
+    organizationId: string,
+    domain: string
+  ): Promise<UserRole[]> {
+    return this.connection
+      .select()
+      .from(userRole)
+      .where(
+        and(
+          eq(userRole.organizationId, organizationId),
+          eq(userRole.domain, domain)
+        )
+      );
   }
 }

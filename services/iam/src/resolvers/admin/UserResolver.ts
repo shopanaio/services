@@ -26,12 +26,41 @@ export class UserResolver extends IAMType<string, User | null> {
     return this.get("emailVerified") ?? false;
   }
 
-  async name() {
-    return this.get("name");
+  async firstName() {
+    const name = await this.get("name");
+    if (!name) return null;
+    const parts = name.split(" ");
+    return parts[0] || null;
   }
 
-  async image() {
+  async lastName() {
+    const name = await this.get("name");
+    if (!name) return null;
+    const parts = name.split(" ");
+    return parts.length > 1 ? parts.slice(1).join(" ") : null;
+  }
+
+  async avatar() {
     return this.get("image");
+  }
+
+  async locale() {
+    // TODO: Add locale field to user model
+    return null;
+  }
+
+  async isAdmin() {
+    return this.get("admin") ?? false;
+  }
+
+  async isForbidden() {
+    // TODO: Add isForbidden field to user model
+    return false;
+  }
+
+  async isDeleted() {
+    // TODO: Add isDeleted field to user model
+    return false;
   }
 
   async createdAt() {
