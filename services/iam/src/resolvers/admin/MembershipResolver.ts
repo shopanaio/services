@@ -28,24 +28,16 @@ export class MembershipResolver extends IAMType<
   async roles(): Promise<RoleResolver[]> {
     const { organizationId, domain } = this.value;
 
-    // Get all policies for this organization
-    const policies = await this.ctx.kernel.repository.casbin.getPolicies(
-      organizationId
-    );
+    // Get roles from database
+    const roles =
+      await this.ctx.kernel.repository.organization.getRolesByDomain(
+        organizationId,
+        domain
+      );
 
-    // Extract unique role names from policies matching this domain
-    const roleNames = new Set<string>();
-    for (const policy of policies) {
-      // Policy format: [role, domain, resource, action, effect]
-      if (policy[1] === domain || policy[1] === "*") {
-        roleNames.add(policy[0]);
-      }
-    }
-
-    // Create RoleResolver for each role
-    return Array.from(roleNames).map(
-      (roleName) =>
-        new RoleResolver({ organizationId, domain, name: roleName }, this.ctx)
+    return roles.map(
+      (role) =>
+        new RoleResolver({ organizationId, domain, name: role.name }, this.ctx)
     );
   }
 

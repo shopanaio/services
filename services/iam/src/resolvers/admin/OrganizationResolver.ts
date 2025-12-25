@@ -1,21 +1,38 @@
 import type { Organization } from "../../repositories/models/authorization.js";
+import { createDomain } from "../../casbin/CasbinService.js";
 import { IAMType, Cache } from "./IAMType.js";
 import { MembershipResolver } from "./MembershipResolver.js";
 
 /**
  * Organization resolver - resolves organization domain interface
  */
-export class OrganizationResolver extends IAMType<string, Organization | null> {
+export class OrganizationResolver extends IAMType<string, Organization> {
   @Cache({
-    cacheName: "organization",
+    cacheName: "iam:org",
     key: (resolver: OrganizationResolver) => resolver.value,
   })
   async loadData() {
-    return this.ctx.kernel.repository.organization.findById(this.value);
+    const org = await this.ctx.kernel.repository.organization.findById(
+      this.value
+    );
+    if (!org) {
+      throw new Error(`Organization not found: ${this.value}`);
+    }
+    return org;
   }
 
   id() {
     return this.value;
+  }
+
+  membership() {
+    return new MembershipResolver(
+      {
+        domain: createDomain("org", this.value),
+        organizationId: this.value,
+      },
+      this.ctx
+    );
   }
 
   async name() {
@@ -26,21 +43,11 @@ export class OrganizationResolver extends IAMType<string, Organization | null> {
     return this.get("slug");
   }
 
-  membership() {
-    const orgId = this.value;
-    return new MembershipResolver(
-      { domain: `org:${orgId}`, organizationId: orgId },
-      this.ctx
-    );
-  }
-
   async createdAt() {
-    const date = await this.get("createdAt");
-    return date?.toISOString() ?? null;
+    return this.get("createdAt");
   }
 
   async updatedAt() {
-    const date = await this.get("updatedAt");
-    return date?.toISOString() ?? null;
+    return this.get("updatedAt");
   }
 }

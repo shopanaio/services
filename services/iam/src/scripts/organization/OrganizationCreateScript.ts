@@ -10,6 +10,7 @@ import {
   type OrganizationCreateResult,
 } from "./dto/OrganizationCreateDto.js";
 import { PREDEFINED_ROLES, ROLE_PERMISSIONS } from "../../constants/index.js";
+import { createDomain } from "../../casbin/CasbinService.js";
 
 export class OrganizationCreateScript extends BaseScript<
   OrganizationCreateParams,
@@ -44,7 +45,7 @@ export class OrganizationCreateScript extends BaseScript<
     const org = result.organization;
 
     const ownerRole = PREDEFINED_ROLES.OWNER;
-    const domain = `org:${org.id}` as const;
+    const domain = createDomain("org", org.id);
 
     // Add current user as organization member
     await this.repository.organization.addMember({

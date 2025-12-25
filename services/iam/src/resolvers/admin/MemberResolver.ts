@@ -16,7 +16,7 @@ export interface MemberInput {
  */
 export class MemberResolver extends IAMType<MemberInput, UserRole> {
   @Cache({
-    cacheName: "org-member",
+    cacheName: "iam:member",
     // Cache by unique constraint: organizationId + userId + domain
     key: ({ value }: MemberResolver) =>
       `${value.organizationId}:${value.userId}:${value.domain}`,
@@ -57,9 +57,6 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
 
   async grantedBy(): Promise<UserResolver | null> {
     const { grantedBy } = await this.data;
-    if (!grantedBy) {
-      return null;
-    }
-    return new UserResolver(grantedBy, this.ctx);
+    return grantedBy ? new UserResolver(grantedBy, this.ctx) : null;
   }
 }

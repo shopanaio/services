@@ -1,5 +1,6 @@
 import type { Resolvers, Organization } from "../../generated/types.js";
 import { OrganizationCreateScript } from "../../../../scripts/organization/OrganizationCreateScript.js";
+import { createDomain } from "../../../../casbin/CasbinService.js";
 
 export const organizationMutationResolvers: Partial<Resolvers> = {
   OrganizationMutation: {
@@ -27,7 +28,7 @@ export const organizationMutationResolvers: Partial<Resolvers> = {
         updatedAt: org.updatedAt?.toISOString() ?? null,
         membership: {
           __typename: "Membership",
-          domain: `org:${org.id}`,
+          domain: createDomain("org", org.id),
           members: [],
           roles: [],
         },

@@ -1,4 +1,4 @@
-import { IAMType } from "./IAMType.js";
+import { IAMType, Cache } from "./IAMType.js";
 import type { PermissionEffect } from "./interfaces/PermissionEffect.js";
 import type { Role } from "../../repositories/models/authorization.js";
 
@@ -23,6 +23,11 @@ interface RoleData extends Role {
  * Loads role from database and policies from casbin
  */
 export class RoleResolver extends IAMType<RoleInput, RoleData> {
+  @Cache({
+    cacheName: "iam:role",
+    key: ({ value }: RoleResolver) =>
+      `${value.organizationId}:${value.domain}:${value.name}`,
+  })
   async loadData(): Promise<RoleData> {
     const { organizationId, domain, name } = this.value;
 

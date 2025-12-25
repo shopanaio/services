@@ -84,6 +84,16 @@ export type ScopeIdentifier = `${string}:${string}`;
 export type Domain = ScopeIdentifier;
 
 /**
+ * Create a domain identifier from prefix and value.
+ * @param prefix - The domain prefix (e.g., "org", "store")
+ * @param value - The domain value (e.g., UUID or "*")
+ * @returns Domain in format "prefix:value"
+ */
+export function createDomain(prefix: string, value: string): Domain {
+  return `${prefix}:${value}`;
+}
+
+/**
  * Resource scope for authorization checks.
  *
  * Supports three formats:

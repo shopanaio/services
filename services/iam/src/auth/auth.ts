@@ -29,6 +29,20 @@ export function createAuth() {
       },
     }),
 
+    // Additional user fields
+    user: {
+      additionalFields: {
+        firstName: {
+          type: "string",
+          required: false,
+        },
+        lastName: {
+          type: "string",
+          required: false,
+        },
+      },
+    },
+
     // Email/Password authentication
     emailAndPassword: {
       enabled: true,

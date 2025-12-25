@@ -23,6 +23,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  firstName: string | null;
+  lastName: string | null;
   emailVerified: boolean;
   image: string | null;
   admin: boolean;
@@ -562,6 +564,8 @@ export class UserRepository {
       id: u.id,
       email: u.email,
       name: u.name,
+      firstName: u.firstName ?? null,
+      lastName: u.lastName ?? null,
       emailVerified: u.emailVerified ?? false,
       image: u.image ?? null,
       admin: u.admin ?? false,
@@ -575,6 +579,8 @@ export class UserRepository {
       id: u.id,
       email: u.email,
       name: u.name,
+      firstName: u.firstName,
+      lastName: u.lastName,
       emailVerified: u.emailVerified,
       image: u.image,
       admin: u.admin,

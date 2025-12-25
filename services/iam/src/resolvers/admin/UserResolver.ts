@@ -27,17 +27,11 @@ export class UserResolver extends IAMType<string, User | null> {
   }
 
   async firstName() {
-    const name = await this.get("name");
-    if (!name) return null;
-    const parts = name.split(" ");
-    return parts[0] || null;
+    return this.get("firstName");
   }
 
   async lastName() {
-    const name = await this.get("name");
-    if (!name) return null;
-    const parts = name.split(" ");
-    return parts.length > 1 ? parts.slice(1).join(" ") : null;
+    return this.get("lastName");
   }
 
   async avatar() {
