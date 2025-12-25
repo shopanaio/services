@@ -9,6 +9,7 @@ import type { StoreCreateWorkflow } from "../../../../workflows/index.js";
 import { checkAuthorization } from "../../decorators/authorize.js";
 
 const StoreCreateInputSchema = z.object({
+  organizationId: z.string().uuid("Invalid organization ID"),
   name: z.string().min(1, "Name is required"),
   slug: z.string().min(1, "Slug is required"),
   locales: z.array(z.string()).min(1, "At least one locale is required"),
@@ -70,6 +71,7 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         const workflow =
           ctx.kernel.workflow.get<StoreCreateWorkflow>("storeCreate");
         const result = await workflow.run({
+          organizationId: input.organizationId,
           name: input.name,
           slug: input.slug,
           locales: input.locales as any,
@@ -78,7 +80,6 @@ export const storeMutationResolvers: Partial<Resolvers> = {
           status: input.status ?? undefined,
           timezone: input.timezone ?? undefined,
           email: input.email ?? undefined,
-          userId: ctx.user.id, // Creator gets owner role
         });
 
         const storeFieldInfo = parseGraphqlInfo(info, "store");

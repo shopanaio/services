@@ -3,10 +3,26 @@ import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 
 const generateStoreSlug = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
+const generateOrgSlug = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 
 test.describe('StoreCreate API', () => {
+  let organizationId: string;
+
   test.beforeEach(async ({ api }) => {
     await api.session.setupUser();
+
+    // Create an organization first
+    const orgSlug = generateOrgSlug();
+    const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: 'Test Organization',
+          slug: orgSlug,
+        },
+      },
+    });
+
+    organizationId = data.organizationMutation.organizationCreate.organization.id;
   });
 
   test('Create store with minimal required fields', async ({ api }) => {
@@ -15,6 +31,7 @@ test.describe('StoreCreate API', () => {
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
+          organizationId,
           name: 'Test Store',
           slug,
           locales: ['en'],
@@ -42,6 +59,7 @@ test.describe('StoreCreate API', () => {
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
+          organizationId,
           name: 'Full Test Store',
           slug,
           locales: ['en', 'uk'],
@@ -74,6 +92,7 @@ test.describe('StoreCreate API', () => {
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
+          organizationId,
           name: 'Inactive Store',
           slug,
           locales: ['en'],
@@ -98,6 +117,7 @@ test.describe('StoreCreate API', () => {
     await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
+          organizationId,
           name: 'First Store',
           slug,
           locales: ['en'],
@@ -112,6 +132,7 @@ test.describe('StoreCreate API', () => {
       throwOnError: false,
       variables: {
         input: {
+          organizationId,
           name: 'Second Store',
           slug,
           locales: ['en'],
@@ -134,6 +155,7 @@ test.describe('StoreCreate API', () => {
       throwOnError: false,
       variables: {
         input: {
+          organizationId,
           name: '',
           slug,
           locales: ['en'],
@@ -158,6 +180,7 @@ test.describe('StoreCreate API', () => {
       throwOnError: false,
       variables: {
         input: {
+          organizationId,
           name: 'Test Store',
           slug: '',
           locales: ['en'],
@@ -184,6 +207,7 @@ test.describe('StoreCreate API', () => {
       throwOnError: false,
       variables: {
         input: {
+          organizationId,
           name: 'Test Store',
           slug,
           locales: [],
@@ -210,6 +234,7 @@ test.describe('StoreCreate API', () => {
       throwOnError: false,
       variables: {
         input: {
+          organizationId,
           name: 'Test Store',
           slug,
           locales: ['en'],
@@ -235,6 +260,7 @@ test.describe('StoreCreate API', () => {
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
+          organizationId,
           name: 'Multi-locale Store',
           slug,
           locales: ['en', 'uk', 'de', 'fr'],
@@ -258,6 +284,7 @@ test.describe('StoreCreate API', () => {
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
+          organizationId,
           name: 'Multi-currency Store',
           slug,
           locales: ['en'],

@@ -64,6 +64,8 @@ extend type Membership @key(fields: "domain organizationId") {
 
 """Input for creating a new store"""
 input StoreCreateInput {
+  """ID of the organization where the store will be created"""
+  organizationId: ID!
   """Display name of the store"""
   name: String!
   """URL-friendly unique identifier"""

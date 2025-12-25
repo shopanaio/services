@@ -923,6 +923,8 @@ export type StoreCreateInput = {
   locales: Array<LocaleCode>;
   /** Display name of the store */
   name: Scalars['String']['input'];
+  /** ID of the organization where the store will be created */
+  organizationId: Scalars['ID']['input'];
   /** URL-friendly unique identifier */
   slug: Scalars['String']['input'];
   /** Initial status of the store */

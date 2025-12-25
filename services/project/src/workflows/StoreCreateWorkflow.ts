@@ -16,20 +16,13 @@ export interface StoreCreateInput {
   status?: StoreStatus;
   timezone?: string;
   email?: string;
-  /** User ID of the creator - will be assigned owner role */
-  userId: string;
+  /** Organization ID where the store will be created */
+  organizationId: string;
 }
 
 export interface StoreCreateOutput {
   storeId: string;
   organizationId: string;
-}
-
-/** IAM tenant provisioning result */
-interface IamProvisionResult {
-  organizationId: string | null;
-  roles: string[];
-  userErrors: Array<{ code: string; message: string }>;
 }
 
 /**
@@ -38,8 +31,7 @@ interface IamProvisionResult {
  * Steps:
  * 1. Generate store ID (UUIDv7)
  * 2. Create store record in database
- * 3. Provision IAM organization (via broker) - returns new organizationId, assigns owner role
- * 4. Save IAM integration reference with returned organizationId
+ * 3. Save IAM integration reference with organizationId
  */
 export class StoreCreateWorkflow extends BaseWorkflow {
 
@@ -56,24 +48,18 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    */
   @DBOS.workflow()
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
-    // Step 0: Generate store ID (must be in step for determinism)
+    const { organizationId } = input;
+
+    // Step 1: Generate store ID (must be in step for determinism)
     const storeId = await this.generateStoreId();
 
-    // Step 1: Provision IAM tenant first to get organizationId
-    const iamResult = await this.provisionIamTenant(input.userId);
-
-    // Verify tenant was created successfully
-    if (!iamResult.organizationId) {
-      throw new Error("Failed to provision IAM tenant: " + JSON.stringify(iamResult.userErrors));
-    }
-
     // Step 2: Create store in database with organizationId
-    await this.createStore(storeId, input, iamResult.organizationId);
+    await this.createStore(storeId, input, organizationId);
 
-    // Step 3: Save IAM integration with returned organizationId
-    await this.saveIamIntegration(storeId, iamResult.organizationId);
+    // Step 3: Save IAM integration with organizationId
+    await this.saveIamIntegration(storeId, organizationId);
 
-    return { storeId, organizationId: iamResult.organizationId };
+    return { storeId, organizationId };
   }
 
   /**
@@ -102,19 +88,6 @@ export class StoreCreateWorkflow extends BaseWorkflow {
       timezone: input.timezone,
       email: input.email,
     });
-  }
-
-  /**
-   * Step: Provision IAM tenant (EXTERNAL - via broker)
-   * IAM creates tenant with auto-generated UUIDv7 and returns organizationId
-   * Also assigns owner role to the specified user
-   */
-  @DBOS.step()
-  async provisionIamTenant(ownerId: string): Promise<IamProvisionResult> {
-    console.log(`[StoreCreateWorkflow.provisionIamTenant] Calling iam.provisionTenant with ownerId=${ownerId}`);
-    const result = await this.broker.call("iam.provisionTenant", { ownerId });
-    console.log(`[StoreCreateWorkflow.provisionIamTenant] Result:`, JSON.stringify(result));
-    return result;
   }
 
   /**
