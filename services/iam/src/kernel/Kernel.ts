@@ -105,8 +105,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   }
 
   /**
-   * Execute a class-based script
-   * Note: IAM service doesn't use DB transactions, so no txManager
+   * Execute a class-based script.
+   * Use @Transactional() decorator on execute() method for transaction support.
    */
   async runScript<TParams, TResult>(
     ScriptClass: new (services: IamKernelServices) => BaseScript<

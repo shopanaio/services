@@ -1,6 +1,7 @@
 import {
   BaseScript,
   ZodSchema,
+  Transactional,
   ValidationError,
 } from "../../kernel/BaseScript.js";
 import {
@@ -13,6 +14,7 @@ export class OrganizationCreateScript extends BaseScript<
   OrganizationCreateParams,
   OrganizationCreateResult
 > {
+  @Transactional()
   @ZodSchema(organizationCreateInputSchema)
   protected async execute(
     params: OrganizationCreateParams

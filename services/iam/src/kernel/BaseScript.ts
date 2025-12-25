@@ -1,12 +1,11 @@
 import {
   ValidationError,
-  type UserError,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
 
 // Re-export from shared-kernel for convenience
-export { ZodSchema, ValidationError, type UserError } from "@shopana/shared-kernel";
+export { ZodSchema, ValidationError, Transactional, type UserError } from "@shopana/shared-kernel";
 
 export abstract class BaseScript<TParams, TResult> {
   protected readonly services: IamKernelServices;
@@ -14,11 +13,18 @@ export abstract class BaseScript<TParams, TResult> {
   protected readonly logger: IamKernelServices["logger"];
   protected readonly authCache: IamKernelServices["authCache"];
 
+  /**
+   * Transaction manager for @Transactional() decorator
+   * Required by the decorator contract
+   */
+  protected readonly txManager: IamKernelServices["repository"]["txManager"];
+
   constructor(services: IamKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
     this.authCache = services.authCache;
+    this.txManager = services.repository.txManager;
   }
 
   /**
