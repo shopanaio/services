@@ -12,6 +12,7 @@ import { getServiceConfig } from "@shopana/shared-service-config";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
 import type { AuthorizeResult } from "./scripts/organization/dto/AuthorizeDto.js";
+import type { ScopePart } from "./casbin/CasbinService.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -77,16 +78,16 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       {
         userId: string;
         organizationId: string;
-        resource: string;
+        domain: ScopePart[];
+        resource: ScopePart[];
         action: string;
-        resourceId?: string;
-        resourceOwnerId?: string;
       },
       AuthorizeResult
     >("authorize", async (params) => {
       if (
         !params?.userId ||
         !params?.organizationId ||
+        !params?.domain ||
         !params?.resource ||
         !params?.action
       ) {
@@ -99,10 +100,9 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       return this.kernel.runScript(AuthorizeScript, {
         userId: params.userId,
         organizationId: params.organizationId,
+        domain: params.domain,
         resource: params.resource,
         action: params.action,
-        resourceId: params.resourceId,
-        resourceOwnerId: params.resourceOwnerId,
       });
     });
 

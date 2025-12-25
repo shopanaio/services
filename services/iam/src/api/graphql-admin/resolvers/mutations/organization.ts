@@ -2,15 +2,13 @@ import type { Resolvers } from "../../generated/types.js";
 import type { ScopePart } from "../../../../casbin/CasbinService.js";
 
 /**
- * Parse domain string into ScopePart array
- * e.g., "store:uuid" -> [["store", "uuid"]]
- * e.g., "org:*" -> [["org"]]
+ * Validate and parse domain string into ScopePart array
+ * e.g., "store:uuid" -> ["store:uuid"]
+ * e.g., "org:*" -> ["org:*"]
  */
 function parseDomain(domain: string): ScopePart[] {
-  const [type, id] = domain.split(":");
-  if (!type) return [];
-  if (!id || id === "*") return [[type]];
-  return [[type, id]];
+  if (!domain.includes(":")) return [];
+  return [domain as ScopePart];
 }
 
 export const organizationMutationResolvers: Partial<Resolvers> = {

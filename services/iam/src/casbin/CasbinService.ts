@@ -41,39 +41,32 @@ export interface GetMembersParams {
 }
 
 /**
- * Scope part - type with optional ID
+ * Scope part - typed string in format "type:id" or "type:*"
  *
  * Used for both domains and resources:
- * - ["org"] or ["store"] - type only, becomes "org:*" or "store:*"
- * - ["org", "uuid"] or ["store", "uuid"] - type + id, becomes "org:uuid" or "store:uuid"
+ * - "org:*" or "store:*" - type with wildcard
+ * - "org:uuid" or "store:uuid" - type with specific id
  */
-export type ScopePart =
-  | [type: string]              // type only: ["org"] → "org:*"
-  | [type: string, id: string]; // type + id: ["org", "123"] → "org:123"
+export type ScopePart = `${string}:${string}`;
 
 /**
  * Build scope string from parts
  *
- * @param parts - Array of scope parts
+ * @param parts - Array of scope parts (already in "type:id" format)
  * @param separator - Separator between parts (default: "/")
  * @returns Formatted scope string
  *
  * Examples:
  * - [] → "*"
- * - [["org"]] → "org:*"
- * - [["org", "uuid"]] → "org:uuid"
- * - [["store", "123"]] → "store:123"
- * - [["warehouse", "W1"], ["product"]] → "warehouse:W1/product:*"
- * - [["warehouse", "W1"], ["product", "456"]] → "warehouse:W1/product:456"
+ * - ["org:*"] → "org:*"
+ * - ["org:uuid"] → "org:uuid"
+ * - ["store:123"] → "store:123"
+ * - ["warehouse:W1", "product:*"] → "warehouse:W1/product:*"
+ * - ["warehouse:W1", "product:456"] → "warehouse:W1/product:456"
  */
 export function buildScope(parts: ScopePart[], separator = "/"): string {
   if (parts.length === 0) return "*";
-
-  return parts.map(part =>
-    part.length === 1
-      ? `${part[0]}:*`              // "org:*"
-      : `${part[0]}:${part[1]}`     // "org:123"
-  ).join(separator);
+  return parts.join(separator);
 }
 
 /**
@@ -256,7 +249,7 @@ export class CasbinService {
   /**
    * Assign role to user in specific domain.
    *
-   * @param params.domain - Required. Format: [["prefix", "id"]] or [["prefix"]] for wildcard.
+   * @param params.domain - Required. Format: ["prefix:id"] or ["prefix:*"] for wildcard.
    */
   async assignRole(params: AssignRoleParams): Promise<boolean> {
     const { organizationId, userId, role, domain } = params;
@@ -383,7 +376,7 @@ export class CasbinService {
   /**
    * Get members for specific domain.
    *
-   * @param params.domain - Required. Format: [["prefix", "id"]] (e.g., [["org", "uuid"]]).
+   * @param params.domain - Required. Format: ["prefix:id"] (e.g., ["org:uuid"]).
    */
   async getMembers(params: GetMembersParams): Promise<Array<{ userId: string; role: string }>> {
     const { organizationId, domain } = params;
