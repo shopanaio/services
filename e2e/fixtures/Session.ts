@@ -65,4 +65,12 @@ export class SessionFixture {
   setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {
     this.api = api;
   }
+
+  /**
+   * Clears the session to simulate an unauthenticated user
+   */
+  clearSession() {
+    this.tenant.accessToken = undefined;
+    this.tenant.userId = undefined;
+  }
 }

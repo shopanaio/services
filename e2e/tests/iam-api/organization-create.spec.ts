@@ -180,7 +180,7 @@ test.describe('OrganizationCreate API', () => {
     // Clear the session to simulate unauthenticated user
     api.session.clearSession();
 
-    const { errors } = await api.admin.mutation('iam-api/OrganizationCreate', {
+    const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
       throwOnError: false,
       variables: {
         input: {
@@ -190,8 +190,9 @@ test.describe('OrganizationCreate API', () => {
       },
     });
 
-    expect(errors).toBeDefined();
-    expect(errors.length).toBeGreaterThan(0);
+    const result = data.organizationMutation.organizationCreate;
+    expect(result.organization).toBeNull();
+    expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
   test('User can create multiple organizations', async ({ api }) => {
