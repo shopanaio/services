@@ -1,4 +1,4 @@
-import type { PermissionEffect } from "./PermissionEffect.js";
+import type { PermissionEffect } from './PermissionEffect.js';
 
 /**
  * RolePermission - a single permission entry for a role

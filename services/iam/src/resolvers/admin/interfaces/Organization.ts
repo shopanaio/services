@@ -1,4 +1,4 @@
-import type { Membership } from './Membership';
+import type { Membership } from './Membership.js';
 
 /**
  * Organization - top level entity for multi-tenancy.
