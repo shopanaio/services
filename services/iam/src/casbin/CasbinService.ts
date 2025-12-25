@@ -3,9 +3,57 @@ import DrizzleAdapterModule from "drizzle-adapter";
 
 // Handle CJS/ESM interop - drizzle-adapter is CJS with exports.default
 const DrizzleAdapter = (DrizzleAdapterModule as any).default ?? DrizzleAdapterModule;
-import { CASBIN_MODEL_TEXT } from "../constants/rbac.js";
 import { casbinRule } from "../repositories/models/authorization.js";
 import type { Database } from "../db/database.js";
+
+// ============================================================================
+// Casbin Model
+// ============================================================================
+
+/**
+ * Casbin Model for RBAC with Domain (Organization + Store scope)
+ *
+ * Each organization gets its own enforcer instance with filtered policies.
+ * Domain parameter enables per-store role assignments within an organization.
+ *
+ * Request format: (sub, dom, obj, act)
+ * - sub: subject (user ID, e.g., "user:uuid")
+ * - dom: domain (required, format "prefix:id" or "prefix:*")
+ * - obj: object (resource path, e.g., "product:456" or "warehouse:W1/product")
+ * - act: action (read, write, delete, create, etc.)
+ *
+ * Policy format: (sub, dom, obj, act, eft)
+ * - eft: effect (allow or deny)
+ *
+ * Grouping format: (user, role, domain)
+ * - Assigns a user to a role within a specific domain
+ * - Domain supports wildcard via keyMatch (e.g., "store:*" matches all stores)
+ *
+ * Features:
+ * - keyMatch for wildcard matching in resources and domains (e.g., "store:*", "product/*")
+ * - Domain-scoped role assignments (user can be admin in one store, viewer in another)
+ * - Deny rules override allow rules
+ *
+ * Database storage (iam.casbin_rule):
+ * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, v5=orgId
+ * - Groupings (ptype='g'): v0=user, v1=role, v2=domain, v3=orgId
+ */
+const CASBIN_MODEL_TEXT = `
+[request_definition]
+r = sub, dom, obj, act
+
+[policy_definition]
+p = sub, dom, obj, act, eft
+
+[role_definition]
+g = _, _, _
+
+[policy_effect]
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
+
+[matchers]
+m = g(r.sub, p.sub, r.dom) && (p.dom == "*" || p.dom == r.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
+`.trim();
 
 // ============================================================================
 // Types
@@ -26,21 +74,19 @@ import type { Database } from "../db/database.js";
  */
 export type Domain = `${string}:${string}`;
 
-/**
- * Resource scope - one or more scopes joined by "/" or global wildcard
- *
- * Used for resources (supports "/" separator):
- * - "*" - global wildcard (matches everything)
- * - "product:*" - all products
- * - "product:123" - specific product
- * - "warehouse:123/product:*" - all products in warehouse 123
- * - "warehouse:*/product:*" - all products in all warehouses
- *
- * Examples:
- * - "*"
- * - "product:550e8400-e29b-41d4-a716-446655440000"
- * - "warehouse:W1/product:*"
- */
+// Resource scope - one or more scopes joined by "/" or global wildcard
+//
+// Used for resources (supports "/" separator):
+// - "*" - global wildcard (matches everything)
+// - "product:*" - all products
+// - "product:123" - specific product
+// - "warehouse:123/product:*" - all products in warehouse 123
+// - "warehouse:* /product:*" - all products in all warehouses
+//
+// Examples:
+// - "*"
+// - "product:550e8400-e29b-41d4-a716-446655440000"
+// - "warehouse:W1/product:*"
 export type Resource = "*" | `${string}:${string}` | `${string}:${string}/${string}`;
 
 export interface EnforceParams {

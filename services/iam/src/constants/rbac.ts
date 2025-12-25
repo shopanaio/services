@@ -1,7 +1,7 @@
 /**
  * RBAC Constants for IAM Authorization
  *
- * Defines the Casbin model and predefined roles.
+ * Defines predefined roles, permissions, and organization-level resources.
  *
  * ORGANIZATION ISOLATION:
  * Each organization has isolated Casbin policies via:
@@ -10,86 +10,103 @@
  * - Own Permissions stored in PostgreSQL
  */
 
-/**
- * Casbin Model for RBAC with Domain (Organization + Store scope)
- *
- * Each organization gets its own enforcer instance with filtered policies.
- * Domain parameter enables per-store role assignments within an organization.
- *
- * Request format: (sub, dom, obj, act)
- * - sub: subject (user ID, e.g., "user:uuid")
- * - dom: domain (required, format "prefix:id" or "prefix:*")
- * - obj: object (resource path, e.g., "product:456" or "warehouse:W1/product")
- * - act: action (read, write, delete, create, etc.)
- *
- * Policy format: (sub, dom, obj, act, eft)
- * - eft: effect (allow or deny)
- *
- * Grouping format: (user, role, domain)
- * - Assigns a user to a role within a specific domain
- * - Domain supports wildcard via keyMatch (e.g., "store:*" matches all stores)
- *
- * Features:
- * - keyMatch for wildcard matching in resources and domains (e.g., "store:*", "product/*")
- * - Domain-scoped role assignments (user can be admin in one store, viewer in another)
- * - Deny rules override allow rules
- *
- * Database storage (iam.casbin_rule):
- * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, v5=orgId
- * - Groupings (ptype='g'): v0=user, v1=role, v2=domain, v3=orgId
- */
-export const CASBIN_MODEL_TEXT = `
-[request_definition]
-r = sub, dom, obj, act
-
-[policy_definition]
-p = sub, dom, obj, act, eft
-
-[role_definition]
-g = _, _, _
-
-[policy_effect]
-e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
-
-[matchers]
-m = g(r.sub, p.sub, r.dom) && (p.dom == "*" || p.dom == r.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
-`.trim();
-
-/**
- * Model name (used for identification)
- */
-export const CASBIN_MODEL_NAME = "model-rbac";
-
-/**
- * Enforcer name (used for identification)
- */
-export const CASBIN_ENFORCER_NAME = "enforcer-main";
+import type {
+  ResourceDefinition,
+  ServiceResourceDeclaration,
+} from "@shopana/shared-kernel";
 
 // ============================================================================
-// Tenant Organization Helpers
+// Organization Resources
 // ============================================================================
 
 /**
- * Get tenant organization name from project ID
+ * Predefined resources for organization-level access control.
+ * These resources are managed by the IAM service and apply to all organizations.
  */
-export const getTenantOrg = (projectId: string): string => `org-${projectId}`;
+export const ORGANIZATION_RESOURCES: ResourceDefinition[] = [
+  {
+    name: "org",
+    displayName: "Organization",
+    description: "Organization settings and configuration",
+    actions: [
+      {
+        name: "read",
+        displayName: "View",
+        description: "View organization details",
+      },
+      {
+        name: "update",
+        displayName: "Edit",
+        description: "Edit organization settings",
+      },
+      {
+        name: "delete",
+        displayName: "Delete",
+        description: "Delete the organization",
+      },
+    ],
+  },
+  {
+    name: "org.members",
+    displayName: "Members",
+    description: "Organization member management",
+    actions: [
+      {
+        name: "read",
+        displayName: "View",
+        description: "View organization members",
+      },
+      {
+        name: "invite",
+        displayName: "Invite",
+        description: "Invite new members",
+      },
+      { name: "update", displayName: "Edit", description: "Edit member roles" },
+      {
+        name: "remove",
+        displayName: "Remove",
+        description: "Remove members from organization",
+      },
+    ],
+  },
+  {
+    name: "org.roles",
+    displayName: "Roles",
+    description: "Role and permission management",
+    actions: [
+      {
+        name: "read",
+        displayName: "View",
+        description: "View roles and permissions",
+      },
+      {
+        name: "create",
+        displayName: "Create",
+        description: "Create new roles",
+      },
+      {
+        name: "update",
+        displayName: "Edit",
+        description: "Edit role permissions",
+      },
+      { name: "delete", displayName: "Delete", description: "Delete roles" },
+    ],
+  },
+];
 
 /**
- * Get full model ID for a tenant
+ * IAM service resource declaration.
+ * Used for resource discovery by other services.
  */
-export const getModelId = (tenantOrg: string): string =>
-  `${tenantOrg}/${CASBIN_MODEL_NAME}`;
+export const IAM_SERVICE_RESOURCES: ServiceResourceDeclaration = {
+  service: "iam",
+  displayName: "Identity & Access",
+  resources: ORGANIZATION_RESOURCES,
+};
 
-/**
- * Get full enforcer ID for a tenant
- */
-export const getEnforcerId = (tenantOrg: string): string =>
-  `${tenantOrg}/${CASBIN_ENFORCER_NAME}`;
-
-/**
- * Permission name prefix for project permissions
- */
-export const PERMISSION_PREFIX = "perm";
+// ============================================================================
+// Predefined Roles
+// ============================================================================
 
 /**
  * Predefined role names for organization-level access.
@@ -165,11 +182,13 @@ export const ROLE_PERMISSIONS: Record<PredefinedRoleName, RolePermissionDef> = {
   },
 
   member: {
-    allow: [
-      { resource: "organization", actions: ["read"] },
-    ],
+    allow: [{ resource: "organization", actions: ["read"] }],
   },
 };
+
+// ============================================================================
+// Cache Configuration
+// ============================================================================
 
 /**
  * Cache TTL values (in milliseconds)
