@@ -18,9 +18,6 @@ export type User = TypeResult<typeof UserResolver>;
 // Simple value types (view-specific)
 // ============================================================================
 
-/** Supported locale codes */
-export type LocaleCode = "en" | "uk" | "ru" | "de" | "fr" | "es" | "pl";
-
 /**
  * Role view type
  */

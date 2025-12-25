@@ -1,12 +1,11 @@
 import type { User } from "../../repositories/user/UserRepository.js";
-import type { Role } from "./interfaces/index.js";
-import { UsersType, Cache } from "./UsersType.js";
+import { IAMType, Cache } from "./IAMType.js";
 
 /**
  * User resolver - resolves admin user domain interface
  * Uses local User type from UserRepository
  */
-export class UserResolver extends UsersType<string, User | null> {
+export class UserResolver extends IAMType<string, User | null> {
   @Cache({
     cacheName: "user",
     key: (resolver: UserResolver) => resolver.value,
@@ -43,11 +42,5 @@ export class UserResolver extends UsersType<string, User | null> {
   async updatedAt() {
     const date = await this.get("updatedAt");
     return date?.toISOString() ?? null;
-  }
-
-  // Note: Role management is pending migration to node-casbin
-  async roles(): Promise<Role[]> {
-    // Stub - will be implemented with node-casbin migration
-    return [];
   }
 }
