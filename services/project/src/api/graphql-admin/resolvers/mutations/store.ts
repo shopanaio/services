@@ -1,10 +1,8 @@
 import { z } from "zod";
-import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { Resolvers, Store } from "../../generated/types.js";
+import { StoreCreateScript } from "../../../../scripts/store/StoreCreateScript.js";
 import { StoreUpdateScript } from "../../../../scripts/store/StoreUpdateScript.js";
 import { StoreDeleteScript } from "../../../../scripts/store/StoreDeleteScript.js";
-import { StoreResolver } from "../../../../resolvers/admin/StoreType.js";
-import type { StoreCreateWorkflow } from "../../../../workflows/index.js";
 import { checkAuthorization } from "../../decorators/authorize.js";
 
 const StoreCreateInputSchema = z.object({
@@ -29,7 +27,7 @@ function zodErrorsToUserErrors(error: z.ZodError) {
 
 export const storeMutationResolvers: Partial<Resolvers> = {
   StoreMutation: {
-    storeCreate: async (_parent, { input }, ctx, info) => {
+    storeCreate: async (_parent, { input }, ctx) => {
       // Validate input with Zod
       const validation = StoreCreateInputSchema.safeParse(input);
 
@@ -37,19 +35,6 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         return {
           store: null,
           userErrors: zodErrorsToUserErrors(validation.error),
-        };
-      }
-
-      if (!ctx.kernel.workflow) {
-        return {
-          store: null,
-          userErrors: [
-            {
-              message: "Workflow not available",
-              code: "WORKFLOW_UNAVAILABLE",
-              field: null,
-            },
-          ],
         };
       }
 
@@ -66,39 +51,22 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         };
       }
 
-      try {
-        const workflow =
-          ctx.kernel.workflow.get<StoreCreateWorkflow>("storeCreate");
-        const result = await workflow.run({
-          organizationId: input.organizationId,
-          name: input.name,
-          slug: input.slug,
-          locales: input.locales as any,
-          currencies: input.currencies as any,
-          defaultCurrency: input.defaultCurrency as any,
-          status: input.status ?? undefined,
-          timezone: input.timezone ?? undefined,
-          email: input.email ?? undefined,
-        });
+      const result = await ctx.kernel.runScript(StoreCreateScript, {
+        organizationId: input.organizationId,
+        name: input.name,
+        slug: input.slug,
+        locales: input.locales as any,
+        currencies: input.currencies as any,
+        defaultCurrency: input.defaultCurrency as any,
+        status: input.status ?? undefined,
+        timezone: input.timezone ?? undefined,
+        email: input.email ?? undefined,
+      });
 
-        const storeFieldInfo = parseGraphqlInfo(info, "store");
-
-        return {
-          store: (await StoreResolver.load(
-            result.storeId,
-            storeFieldInfo,
-            ctx
-          )) as Store,
-          userErrors: [],
-        };
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
-        return {
-          store: null,
-          userErrors: [{ message, code: "WORKFLOW_ERROR", field: null }],
-        };
-      }
+      return {
+        store: (result.store as Store) ?? null,
+        userErrors: result.userErrors,
+      };
     },
 
     storeUpdate: async (_parent, { input }, ctx) => {

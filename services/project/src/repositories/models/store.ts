@@ -84,6 +84,6 @@ export const store = storeSchema.table(
   ]
 );
 
-export type Store = typeof store.$inferSelect;
+export type StoreRecord = typeof store.$inferSelect;
 export type NewStore = typeof store.$inferInsert;
 export type StoreStatus = "active" | "inactive";

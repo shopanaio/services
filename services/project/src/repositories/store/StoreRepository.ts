@@ -7,7 +7,7 @@ import {
   locale,
   currency,
   storeIntegration,
-  type Store,
+  type StoreRecord,
   type StoreIntegration,
   type StoreStatus,
   type WeightUnit,
@@ -27,10 +27,11 @@ export interface IntegrationInfo<TConfig = Record<string, unknown>> {
 }
 
 /**
- * Store with loaded integrations
+ * Store with loaded integrations - main Store type used throughout the app
  */
-export interface StoreWithIntegrations extends Store {
+export interface Store extends StoreRecord {
   integrations: {
+    iam?: IntegrationInfo<IamIntegrationConfig>;
     payment?: IntegrationInfo;
     shipping?: IntegrationInfo;
     storage?: IntegrationInfo;
@@ -75,15 +76,13 @@ export class StoreRepository extends BaseRepository {
   /**
    * Load integrations for a store and attach to store object
    */
-  private async loadIntegrations(
-    storeRecord: Store
-  ): Promise<StoreWithIntegrations> {
+  private async loadIntegrations(storeRecord: StoreRecord): Promise<Store> {
     const integrations = await this.connection
       .select()
       .from(storeIntegration)
       .where(eq(storeIntegration.storeId, storeRecord.id));
 
-    const result: StoreWithIntegrations = {
+    const result: Store = {
       ...storeRecord,
       integrations: {},
     };
@@ -127,7 +126,7 @@ export class StoreRepository extends BaseRepository {
    * Create a new store with locales and default currency.
    */
   @Transactional()
-  async create(data: CreateStoreData): Promise<Store> {
+  async create(data: CreateStoreData): Promise<StoreRecord> {
     const now = new Date();
     const defaultLocale = data.locales[0];
 
@@ -184,30 +183,30 @@ export class StoreRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findById(id: string): Promise<StoreWithIntegrations | undefined> {
+  async findById(id: string): Promise<Store | null> {
     const [result] = await this.connection
       .select()
       .from(store)
       .where(eq(store.id, id));
 
-    if (!result) return undefined;
+    if (!result) return null;
 
     return this.loadIntegrations(result);
   }
 
   @ReadOnly()
-  async findBySlug(slug: string): Promise<StoreWithIntegrations | undefined> {
+  async findBySlug(slug: string): Promise<Store | null> {
     const [result] = await this.connection
       .select()
       .from(store)
       .where(eq(store.slug, slug));
 
-    if (!result) return undefined;
+    if (!result) return null;
     return this.loadIntegrations(result);
   }
 
   @ReadOnly()
-  async getMany(): Promise<StoreWithIntegrations[]> {
+  async getMany(): Promise<Store[]> {
     const stores = await this.connection.select().from(store);
     return Promise.all(stores.map((s) => this.loadIntegrations(s)));
   }
@@ -225,7 +224,7 @@ export class StoreRepository extends BaseRepository {
   async update(
     id: string,
     data: UpdateStoreData
-  ): Promise<StoreWithIntegrations | undefined> {
+  ): Promise<Store | null> {
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };
@@ -244,7 +243,7 @@ export class StoreRepository extends BaseRepository {
       .where(eq(store.id, id))
       .returning();
 
-    if (!result) return undefined;
+    if (!result) return null;
     return this.loadIntegrations(result);
   }
 }

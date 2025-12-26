@@ -15,7 +15,7 @@ export class StoreUpdateScript extends BaseScript<StoreUpdateParams, StoreUpdate
 
     if (!store) {
       return {
-        store: undefined,
+        store: null,
         userErrors: [{ message: "Store not found", code: "NOT_FOUND" }],
       };
     }
@@ -28,7 +28,7 @@ export class StoreUpdateScript extends BaseScript<StoreUpdateParams, StoreUpdate
 
   protected handleError(_error: unknown): StoreUpdateResult {
     return {
-      store: undefined,
+      store: null,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

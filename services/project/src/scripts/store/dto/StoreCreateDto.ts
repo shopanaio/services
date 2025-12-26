@@ -2,9 +2,11 @@ import type { StoreStatus, CurrencyCode, LocaleCode } from "../../../repositorie
 import type { StorePayload } from "./shared.js";
 
 export interface StoreCreateParams {
+  organizationId: string;
   name: string;
   slug: string;
   locales: LocaleCode[];
+  currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
   status?: StoreStatus;
   timezone?: string;

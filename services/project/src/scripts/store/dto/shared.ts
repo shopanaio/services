@@ -1,7 +1,7 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
-import type { StoreWithIntegrations } from "../../../repositories/index.js";
+import type { Store } from "../../../repositories/index.js";
 
 export interface StorePayload {
-  store?: StoreWithIntegrations;
+  store: Store | null;
   userErrors: UserError[];
 }

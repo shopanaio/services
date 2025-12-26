@@ -1,14 +1,10 @@
 import type { Kernel } from "../kernel/Kernel.js";
-import type { StoreWithIntegrations } from "../repositories/index.js";
+import type { Store } from "../repositories/index.js";
 
 /**
  * Store entity from context - full store with integrations
- * organizationId is extracted from integrations.iam.config for convenience
  */
-export interface ContextStore extends StoreWithIntegrations {
-  /** Organization ID from IAM integration (shortcut) */
-  organizationId: string;
-}
+export type ContextStore = Store;
 
 /**
  * User entity from context
