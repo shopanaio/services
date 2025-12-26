@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Domain, Resource } from "../../../casbin/CasbinService.js";
 
 export const authorizeInputSchema = z.object({
-  userId: z.string().uuid("Invalid user ID"),
+  userId: z.string().min(1, "User ID is required"),
   organizationId: z.string().uuid("Invalid organization ID"),
   domain: z.string().optional(),
   resource: z.string().min(1, "Resource is required"),

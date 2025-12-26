@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Domain } from "../../../casbin/CasbinService.js";
 
 export const assignRoleInputSchema = z.object({
-  userId: z.string().uuid("Invalid user ID"),
+  userId: z.string().min(1, "User ID is required"),
   organizationId: z.string().uuid("Invalid organization ID"),
   domain: z.string().min(1, "Domain is required"),
   roleName: z.string().min(1, "Role name is required"),

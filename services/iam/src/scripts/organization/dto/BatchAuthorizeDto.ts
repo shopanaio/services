@@ -5,7 +5,7 @@ import type { Domain, Resource } from "../../../casbin/CasbinService.js";
  * Single authorization request schema
  */
 const authorizationRequestSchema = z.object({
-  userId: z.string().uuid("Invalid user ID"),
+  userId: z.string().min(1, "User ID is required"),
   domain: z.string().optional(),
   resource: z.string().min(1, "Resource is required"),
   action: z.string().min(1, "Action is required"),
