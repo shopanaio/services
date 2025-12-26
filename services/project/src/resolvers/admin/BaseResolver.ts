@@ -1,6 +1,9 @@
 import { BaseType, createExecutor } from "@shopana/type-resolver";
-import { createAuthorizationMiddleware } from "@shopana/type-resolver/middleware";
-import type { Authorizable, AuthorizeParams } from "@shopana/shared-kernel";
+import {
+  createAuthorizationMiddleware,
+  type Authorizable,
+  type AuthorizeParams,
+} from "@shopana/type-resolver/middleware/authorization";
 import type { ServiceContext } from "../../context/types.js";
 
 /**

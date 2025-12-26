@@ -1,4 +1,5 @@
-import { Cache, TypePolicy } from "@shopana/type-resolver";
+import { Cache } from "@shopana/type-resolver";
+import { TypePolicy } from "@shopana/type-resolver/middleware/authorization";
 import type { StoreRecord } from "../../repositories/models/store.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
 import { BaseResolver } from "./BaseResolver.js";
@@ -9,8 +10,8 @@ export { BaseResolver };
  * Store type resolver - resolves Store GraphQL type
  * Accepts store ID, loads data lazily via repository
  */
-@TypePolicy({
-  domain: ({ value }) => `store:${value}`,
+@TypePolicy<StoreResolver>({
+  domain: (resolver) => `store:${resolver.value}`,
   resource: "*",
   action: "read",
   onDeny: "null",

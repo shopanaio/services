@@ -1,7 +1,2 @@
-export {
-  createAuthorizationMiddleware,
-  authorizationMiddleware,
-  type AuthorizeParams,
-  type Authorizable,
-  type AuthorizationMiddlewareOptions,
-} from "./authorization.js";
+// Authorization middleware extension
+export * from "./authorization/index.js";

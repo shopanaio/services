@@ -14,13 +14,13 @@ export class AuthorizationError extends Error {
   }
 }
 
-export interface AuthorizeOptions {
+export interface AuthorizeOptions<TSelf extends Authorizable = Authorizable, TParams = unknown> {
   resource: string;
   action: string;
   /** Domain scope (e.g., "store:123"). Defaults to "org" */
-  domain?: string | ((params: unknown) => string);
+  domain?: string | ((self: TSelf, params?: TParams) => string);
   /** Override organizationId. Can be a string or a function that extracts it from params */
-  organizationId?: string | ((params: unknown) => string);
+  organizationId?: string | ((self: TSelf, params?: TParams) => string);
 }
 
 export interface AuthorizeParams {
@@ -53,20 +53,33 @@ export interface Authorizable {
  *   @Policy({ resource: "store", action: "create" })
  *   protected async execute(params: StoreCreateParams) { ... }
  * }
+ *
+ * @example
+ * // With typed self for domain
+ * class StoreResolver extends BaseResolver {
+ *   @Policy<StoreResolver>({
+ *     resource: "store.settings",
+ *     action: "read",
+ *     domain: (self) => `store:${self.value}`
+ *   })
+ *   async settings() { ... }
+ * }
  */
-export function Policy(options: AuthorizeOptions) {
+export function Policy<TSelf extends Authorizable = Authorizable, TParams = unknown>(
+  options: AuthorizeOptions<TSelf, TParams>
+) {
   return function <T>(
     _target: object,
     _propertyKey: string | symbol,
     descriptor: TypedPropertyDescriptor<T>
   ): TypedPropertyDescriptor<T> {
     const originalMethod = descriptor.value as unknown as (
-      params: unknown
+      params: TParams
     ) => Promise<unknown>;
 
     descriptor.value = async function (
-      this: Authorizable,
-      params: unknown
+      this: TSelf,
+      params: TParams
     ): Promise<unknown> {
       if (!this.userId) {
         throw new AuthorizationError(
@@ -87,7 +100,7 @@ export function Policy(options: AuthorizeOptions) {
       if (options.organizationId) {
         organizationId =
           typeof options.organizationId === "function"
-            ? options.organizationId(params)
+            ? options.organizationId(this, params)
             : options.organizationId;
       } else {
         organizationId = this.organizationId;
@@ -113,7 +126,7 @@ export function Policy(options: AuthorizeOptions) {
         organizationId,
         domain:
           typeof options.domain === "function"
-            ? options.domain(params)
+            ? options.domain(this, params)
             : options.domain,
       });
 

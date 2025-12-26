@@ -3,33 +3,6 @@ import type { CacheStore } from "./decorators/Cache.js";
 import type { QueryArgs, TypeClass, TypeContext, TypeResult } from "./types.js";
 
 /**
- * Authorization policy for type resolvers.
- * Checked once on load/loadMany before resolving fields.
- */
-export interface TypePolicy {
-  resource: string;
-  action: string;
-  /** Behavior when authorization fails: 'throw' (default) or 'null' */
-  onDeny?: "throw" | "null";
-  /** Domain for authorization (e.g., "store:123"). Can be a string or a function that receives the value. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  domain?: string | ((resolver: any) => string);
-}
-
-/**
- * Error thrown when authorization fails.
- */
-export class TypeAuthorizationError extends Error {
-  constructor(
-    public readonly resource: string,
-    public readonly action: string
-  ) {
-    super(`Access denied: ${resource}:${action}`);
-    this.name = "TypeAuthorizationError";
-  }
-}
-
-/**
  * Abstract base class for type definitions.
  * Provides convenience methods for loading data and value properties.
  *

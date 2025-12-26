@@ -19,6 +19,10 @@
     "./middleware": {
       "types": "./dist/middleware/index.d.ts",
       "import": "./dist/middleware/index.js"
+    },
+    "./middleware/authorization": {
+      "types": "./dist/middleware/authorization/index.d.ts",
+      "import": "./dist/middleware/authorization/index.js"
     }
   },
   "typesVersions": {
@@ -28,6 +32,9 @@
       ],
       "middleware": [
         "./dist/middleware/index.d.ts"
+      ],
+      "middleware/authorization": [
+        "./dist/middleware/authorization/index.d.ts"
       ]
     }
   },

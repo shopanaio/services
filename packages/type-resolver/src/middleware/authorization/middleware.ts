@@ -1,21 +1,6 @@
-import { TypeAuthorizationError, type TypePolicy } from "../baseType.js";
-import type { Middleware, AfterCreateContext } from "../types.js";
-
-/**
- * Parameters for authorization check.
- */
-export interface AuthorizeParams {
-  resource: string;
-  action: string;
-  domain?: string;
-}
-
-/**
- * Interface for types that support authorization.
- */
-export interface Authorizable {
-  authorize(params: AuthorizeParams): Promise<boolean>;
-}
+import type { Middleware, AfterCreateContext } from "../../types.js";
+import type { TypePolicyOptions, Authorizable } from "./types.js";
+import { TypeAuthorizationError } from "./error.js";
 
 /**
  * Check if instance implements Authorizable interface.
@@ -31,8 +16,8 @@ function isAuthorizable(instance: unknown): instance is Authorizable {
 /**
  * Get policy from TypeClass if defined.
  */
-function getPolicy(Type: unknown): TypePolicy | undefined {
-  return (Type as { policy?: TypePolicy }).policy;
+function getPolicy(Type: unknown): TypePolicyOptions | undefined {
+  return (Type as { policy?: TypePolicyOptions }).policy;
 }
 
 /**
@@ -58,23 +43,11 @@ export interface AuthorizationMiddlewareOptions {
  * @example
  * ```typescript
  * import { createExecutor } from "@shopana/type-resolver";
- * import { createAuthorizationMiddleware } from "@shopana/type-resolver/middleware";
- *
- * const authMiddleware = createAuthorizationMiddleware();
+ * import { createAuthorizationMiddleware } from "@shopana/type-resolver/middleware/authorization";
  *
  * const executor = createExecutor({
- *   ctx,
- *   middleware: [authMiddleware],
+ *   middleware: [createAuthorizationMiddleware()],
  * });
- * ```
- *
- * @example
- * ```typescript
- * // TypeClass with policy
- * @TypePolicy({ resource: "store", action: "read", onDeny: "null" })
- * class StoreResolver extends BaseResolver<string, Store | null> {
- *   // authorize() inherited from BaseResolver
- * }
  * ```
  */
 export function createAuthorizationMiddleware<TContext = unknown>(
@@ -126,17 +99,6 @@ export function createAuthorizationMiddleware<TContext = unknown>(
 
 /**
  * Default authorization middleware instance.
- *
- * @example
- * ```typescript
- * import { createExecutor } from "@shopana/type-resolver";
- * import { authorizationMiddleware } from "@shopana/type-resolver/middleware";
- *
- * const executor = createExecutor({
- *   ctx,
- *   middleware: [authorizationMiddleware],
- * });
- * ```
  */
 export const authorizationMiddleware: Middleware =
   createAuthorizationMiddleware();
