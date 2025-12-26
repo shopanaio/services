@@ -12,7 +12,7 @@ import {
   getServiceConfig,
   isDevelopment,
 } from "@shopana/shared-service-config";
-import { setContext, type ServiceContext } from "../../context/index.js";
+import { setContext, ServiceContext } from "../../context/index.js";
 import { Loader } from "../../loaders/Loader.js";
 
 const { global } = getServiceConfig("project");
@@ -133,27 +133,25 @@ export async function startServer(serverConfig: ServerConfig) {
         request.headers["user-agent"]?.includes("rover");
 
       if (isIntrospection) {
-        return {
+        return new ServiceContext({
           requestId: request.id as string,
           kernel: kernel as Kernel,
           slug: "",
-          store: null as any,
-          user: null as any,
           loaders: null as any,
-        };
+        });
       }
 
       // Use store and user from middleware (set by contextMiddleware via GetCurrentStoreScript)
       // Create fresh loaders per request for proper batching within request scope
       const loaders = new Loader(kernel!.getServices().broker);
 
-      const ctx: ServiceContext = {
+      const ctx = new ServiceContext({
         requestId: request.id as string,
         kernel: kernel!,
         store: request.store,
         user: request.user,
         loaders,
-      };
+      });
 
       // Set context in AsyncLocalStorage for all resolvers
       setContext(ctx);

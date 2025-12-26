@@ -15,22 +15,66 @@ export interface ContextUser {
 }
 
 /**
+ * Context initialization options
+ */
+export interface ServiceContextOptions {
+  requestId: string;
+  kernel: Kernel;
+  loaders: Loader;
+  slug?: string;
+  store?: ContextStore;
+  user?: ContextUser;
+  locale?: string;
+}
+
+/**
  * Unified service context for project service
  * Contains all request-scoped data available throughout request lifecycle
  */
-export interface ServiceContext {
+export class ServiceContext {
   /** Unique request identifier */
-  requestId: string;
-  /** Store slug from header */
-  slug?: string;
-  /** Current store (optional - may not exist for org-level operations) */
-  store?: ContextStore;
-  /** Authenticated user (optional - may be API key auth) */
-  user?: ContextUser;
-  /** Current locale for translations (default: 'uk') */
-  locale?: string;
+  readonly requestId: string;
   /** Kernel for business logic */
-  kernel: Kernel;
+  readonly kernel: Kernel;
   /** DataLoaders for efficient batched data fetching */
-  loaders: Loader;
+  readonly loaders: Loader;
+  /** Store slug from header */
+  readonly slug?: string;
+  /** Current locale for translations (default: 'uk') */
+  readonly locale?: string;
+
+  private _store?: ContextStore;
+  private _user?: ContextUser;
+
+  constructor(options: ServiceContextOptions) {
+    this.requestId = options.requestId;
+    this.kernel = options.kernel;
+    this.loaders = options.loaders;
+    this.slug = options.slug;
+    this.locale = options.locale;
+    this._store = options.store;
+    this._user = options.user;
+  }
+
+  /** Current store (optional - may not exist for org-level operations) */
+  get store(): ContextStore | undefined {
+    return this._store;
+  }
+
+  /** Set current store */
+  setStore(store: ContextStore): this {
+    this._store = store;
+    return this;
+  }
+
+  /** Authenticated user (optional - may be API key auth) */
+  get user(): ContextUser | undefined {
+    return this._user;
+  }
+
+  /** Set current user */
+  setUser(user: ContextUser): this {
+    this._user = user;
+    return this;
+  }
 }
