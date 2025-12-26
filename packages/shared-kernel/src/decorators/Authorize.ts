@@ -17,12 +17,15 @@ export class AuthorizationError extends Error {
 export interface AuthorizeOptions {
   resource: string;
   action: string;
+  /** Domain scope (e.g., "store:123"). Defaults to "org" */
+  domain?: string;
 }
 
 export interface AuthorizeParams {
   resource: string;
   action: string;
   organizationId: string;
+  domain?: string;
 }
 
 export interface AuthorizeResult {
@@ -88,6 +91,7 @@ export function Authorize(options: AuthorizeOptions) {
         resource: options.resource,
         action: options.action,
         organizationId: this.organizationId,
+        domain: options.domain,
       });
 
       if (!result.allowed) {

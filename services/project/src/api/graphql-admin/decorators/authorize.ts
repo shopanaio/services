@@ -7,8 +7,10 @@ export interface AuthorizeOptions {
   action: string;
   /** Override organizationId (e.g., from input for store creation) */
   organizationId?: string | ((args: Record<string, unknown>) => string);
-  resourceId?: string | ((args: Record<string, unknown>) => string);
-  resourceOwnerId?: string | ((args: Record<string, unknown>, ctx?: ServiceContext) => string);
+  /** Domain scope. Defaults to "org". Use function for dynamic: (args, ctx) => `store:${ctx.store!.id}` */
+  domain?:
+    | string
+    | ((args: Record<string, unknown>, ctx?: ServiceContext) => string);
 }
 
 interface IamAuthorizeResult {
@@ -27,7 +29,10 @@ type ResolverFn<TParent, TArgs, TResult> = (
  * Resolve dynamic value from options
  */
 function resolveValue(
-  value: string | ((args: Record<string, unknown>, ctx?: ServiceContext) => string) | undefined,
+  value:
+    | string
+    | ((args: Record<string, unknown>, ctx?: ServiceContext) => string)
+    | undefined,
   args: Record<string, unknown>,
   ctx?: ServiceContext
 ): string | undefined {
@@ -44,8 +49,7 @@ export interface AuthorizationError {
 
 export interface CheckAuthorizationOptions {
   organizationId?: string;
-  resourceId?: string;
-  resourceOwnerId?: string;
+  domain?: string;
 }
 
 /**
@@ -75,14 +79,9 @@ export async function checkAuthorization(
     };
   }
 
-  const allowed = await checkPermission(
-    ctx,
-    resource,
-    action,
-    organizationId,
-    options?.resourceId,
-    options?.resourceOwnerId
-  );
+  // Auto-detect domain: explicit > store context > org (default)
+  const domain = options?.domain ?? (ctx.store ? `store:${ctx.store.id}` : undefined);
+  const allowed = await checkPermission(ctx, resource, action, organizationId, domain);
 
   if (!allowed) {
     return {
@@ -100,22 +99,19 @@ async function checkPermission(
   resource: string,
   action: string,
   organizationId: string,
-  resourceId?: string,
-  resourceOwnerId?: string
+  domain?: string
 ): Promise<boolean> {
-  // User must be authenticated (checked by caller)
   if (!ctx.user) {
     return false;
   }
 
-  const result = await ctx.kernel.getServices().broker.call("iam.authorize", {
+  const result = (await ctx.kernel.getServices().broker.call("iam.authorize", {
     userId: ctx.user.id,
     organizationId,
     resource,
     action,
-    resourceId,
-    resourceOwnerId,
-  }) as IamAuthorizeResult;
+    domain,
+  })) as IamAuthorizeResult;
 
   return result.allowed;
 }
@@ -138,11 +134,11 @@ async function checkPermission(
  * ])(async (_parent, args, ctx, info) => { ... })
  *
  * @example
- * // Dynamic resourceId
- * storeDelete: Authorize({
+ * // Dynamic organizationId
+ * storeCreate: Authorize({
  *   resource: "store",
- *   action: "delete",
- *   resourceId: (args) => args.input.id
+ *   action: "create",
+ *   organizationId: (args) => args.input.organizationId
  * })(async (_parent, { input }, ctx, info) => { ... })
  */
 export function Authorize<TParent, TArgs extends Record<string, unknown>, TResult>(
@@ -164,19 +160,22 @@ export function Authorize<TParent, TArgs extends Record<string, unknown>, TResul
 
       // Check all permissions (AND logic)
       for (const opt of checks) {
-        // Use organizationId from options or fall back to context
-        const orgId = resolveValue(opt.organizationId, args) ?? ctx.store?.organizationId;
+        const orgId =
+          resolveValue(opt.organizationId, args) ?? ctx.store?.organizationId;
         if (!orgId) {
           throw new ForbiddenError("Organization context required");
         }
 
+        // Auto-detect domain: explicit > store context > org (default)
+        const domain =
+          resolveValue(opt.domain, args, ctx) ??
+          (ctx.store ? `store:${ctx.store.id}` : undefined);
         const allowed = await checkPermission(
           ctx,
           opt.resource,
           opt.action,
           orgId,
-          resolveValue(opt.resourceId, args),
-          resolveValue(opt.resourceOwnerId, args, ctx)
+          domain
         );
 
         if (!allowed) {
@@ -218,16 +217,20 @@ export function AuthorizeAny<TParent, TArgs extends Record<string, unknown>, TRe
 
       // Check if any permission is allowed (OR logic)
       for (const opt of options) {
-        const orgId = resolveValue(opt.organizationId, args) ?? ctx.store?.organizationId;
-        if (!orgId) continue; // Skip if no org context for this check
+        const orgId =
+          resolveValue(opt.organizationId, args) ?? ctx.store?.organizationId;
+        if (!orgId) continue;
 
+        // Auto-detect domain: explicit > store context > org (default)
+        const domain =
+          resolveValue(opt.domain, args, ctx) ??
+          (ctx.store ? `store:${ctx.store.id}` : undefined);
         const allowed = await checkPermission(
           ctx,
           opt.resource,
           opt.action,
           orgId,
-          resolveValue(opt.resourceId, args),
-          resolveValue(opt.resourceOwnerId, args, ctx)
+          domain
         );
 
         if (allowed) {

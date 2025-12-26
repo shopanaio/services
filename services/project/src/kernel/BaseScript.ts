@@ -48,11 +48,16 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    * Authorization check for @Authorize decorator
    */
   async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
+    // Auto-detect domain: explicit > store context > org (default)
+    const domain =
+      params.domain ?? (this.context.store ? `store:${this.context.store.id}` : undefined);
+
     return this.broker.call("iam.authorize", {
       userId: this.userId,
       organizationId: params.organizationId,
       resource: params.resource,
       action: params.action,
+      domain,
     }) as Promise<AuthorizeResult>;
   }
 
