@@ -11,7 +11,11 @@ import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
+import { BatchAuthorizeScript } from "./scripts/organization/BatchAuthorizeScript.js";
+import { CreateRolesScript } from "./scripts/organization/CreateRolesScript.js";
 import type { AuthorizeResult } from "./scripts/organization/dto/AuthorizeDto.js";
+import type { BatchAuthorizeParams, BatchAuthorizeResult } from "./scripts/organization/dto/BatchAuthorizeDto.js";
+import type { CreateRolesParams, CreateRolesResult } from "./scripts/organization/dto/CreateRolesDto.js";
 import { ORG_DOMAIN, type Domain, type Resource } from "./casbin/CasbinService.js";
 
 const { service } = getServiceConfig("iam");
@@ -106,137 +110,33 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
     });
 
     // Action: batchAuthorize - check multiple permissions at once
-    this.broker.register<
-      {
-        organizationId: string;
-        requests: Array<{
-          userId: string;
-          domain?: Domain;
-          resource: Resource;
-          action: string;
-        }>;
-      },
-      { results: boolean[] }
-    >("batchAuthorize", async (params) => {
-      if (!params?.organizationId || !params?.requests?.length) {
-        return { results: [] };
+    this.broker.register<BatchAuthorizeParams, BatchAuthorizeResult>(
+      "batchAuthorize",
+      async (params) => {
+        if (!params?.organizationId || !params?.requests?.length) {
+          return { results: [] };
+        }
+
+        return this.kernel.runScript(BatchAuthorizeScript, params);
       }
-
-      // Apply ORG_DOMAIN default to requests without domain
-      const normalizedRequests = params.requests.map((req) => ({
-        ...req,
-        domain: req.domain ?? ORG_DOMAIN,
-      }));
-
-      const results = await this.kernel.repository.casbin.batchAuthorize({
-        organizationId: params.organizationId,
-        requests: normalizedRequests,
-      });
-
-      return { results };
-    });
+    );
 
     // Action: createRoles - create roles for a domain and assign owner to user
-    this.broker.register<
-      {
-        userId: string;
-        organizationId: string;
-        domain: Domain;
-        roles: Array<{
-          name: string;
-          displayName: string;
-          description: string;
-          permissions: {
-            allow: Array<{ resource: string; actions: string[] }>;
-            deny?: Array<{ resource: string; actions: string[] }>;
-          };
-        }>;
-      },
-      { success: boolean; error?: string }
-    >("createRoles", async (params) => {
-      if (!params?.userId || !params?.organizationId || !params?.domain || !params?.roles?.length) {
-        return { success: false, error: "Missing required parameters" };
-      }
-
-      const { userId, organizationId, domain, roles } = params;
-
-      try {
-        const createdRoles: Record<string, { id: string }> = {};
-        const ownerRoleName = "owner";
-
-        // Create predefined roles for the domain
-        for (const roleConfig of roles) {
-          const role = await this.kernel.repository.organization.createRole({
-            organizationId,
-            domain,
-            name: roleConfig.name,
-            displayName: roleConfig.displayName,
-            description: roleConfig.description,
-            isSystem: true,
-          });
-          createdRoles[roleConfig.name] = role;
-
-          // Add policies for this role
-          for (const rule of roleConfig.permissions.allow) {
-            for (const action of rule.actions) {
-              await this.kernel.repository.casbin.addPolicy({
-                organizationId,
-                role: roleConfig.name,
-                domain,
-                resource: rule.resource as Resource,
-                action,
-                effect: "allow",
-              });
-            }
-          }
-
-          // Add deny policies if any
-          if (roleConfig.permissions.deny) {
-            for (const rule of roleConfig.permissions.deny) {
-              for (const action of rule.actions) {
-                await this.kernel.repository.casbin.addPolicy({
-                  organizationId,
-                  role: roleConfig.name,
-                  domain,
-                  resource: rule.resource as Resource,
-                  action,
-                  effect: "deny",
-                });
-              }
-            }
-          }
+    this.broker.register<CreateRolesParams, CreateRolesResult>(
+      "createRoles",
+      async (params) => {
+        if (
+          !params?.userId ||
+          !params?.organizationId ||
+          !params?.domain ||
+          !params?.roles?.length
+        ) {
+          return { success: false, error: "Missing required parameters" };
         }
 
-        // Create user role assignment for owner
-        if (createdRoles[ownerRoleName]) {
-          await this.kernel.repository.organization.createUserRole({
-            organizationId,
-            userId,
-            roleId: createdRoles[ownerRoleName].id,
-            domain,
-            grantedBy: userId,
-          });
-
-          // Assign owner role in Casbin
-          await this.kernel.repository.casbin.assignRole({
-            organizationId,
-            userId,
-            role: ownerRoleName,
-            domain,
-          });
-        }
-
-        this.logger.debug(
-          { userId, organizationId, domain, rolesCreated: Object.keys(createdRoles) },
-          "createRoles: Roles initialized successfully"
-        );
-
-        return { success: true };
-      } catch (error) {
-        this.logger.error({ error, params }, "createRoles failed");
-        return { success: false, error: "Failed to create roles" };
+        return this.kernel.runScript(CreateRolesScript, params);
       }
-    });
+    );
 
     this.logger.debug(
       "Broker actions registered: getCurrentUser, authorize, batchAuthorize, createRoles"

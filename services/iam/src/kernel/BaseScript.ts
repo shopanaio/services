@@ -1,13 +1,14 @@
 import {
   ValidationError,
+  AuthorizationError,
+  type Authorizable,
+  type AuthorizeParams,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
+import { ORG_DOMAIN, Resource } from "../casbin/CasbinService.js";
 
-// Re-export from shared-kernel for convenience
-export { ZodSchema, ValidationError, Transactional, type UserError } from "@shopana/shared-kernel";
-
-export abstract class BaseScript<TParams, TResult> {
+export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: IamKernelServices;
   protected readonly repository: IamKernelServices["repository"];
   protected readonly logger: IamKernelServices["logger"];
@@ -28,13 +29,56 @@ export abstract class BaseScript<TParams, TResult> {
   }
 
   /**
+   * Current user ID for @Policy decorator
+   */
+  get userId(): string | null {
+    return this.context.currentUser?.id ?? null;
+  }
+
+  /**
+   * Organization ID for @Policy decorator
+   */
+  get organizationId(): string | null {
+    return this.context.organizationId ?? null;
+  }
+
+  /**
+   * Authorization check for @Policy decorator.
+   * Uses Casbin directly since we're in the IAM service.
+   */
+  async authorize(params: AuthorizeParams): Promise<boolean> {
+    const userId = this.userId;
+    if (!userId) {
+      return false;
+    }
+
+    // Check if user is site admin (bypasses all checks)
+    const isAdmin = await this.repository.user.isAdmin(userId);
+    if (isAdmin) {
+      return true;
+    }
+
+    // Check permission using Casbin RBAC
+    return this.repository.casbin.enforce({
+      organizationId: params.organizationId,
+      userId,
+      domain: ORG_DOMAIN,
+      resource: params.resource as Resource,
+      action: params.action,
+    });
+  }
+
+  /**
    * Main entry point - wraps execute with error handling
    */
   async run(params: TParams): Promise<TResult> {
     try {
       return await this.execute(params);
     } catch (error) {
-      if (!(error instanceof ValidationError)) {
+      if (
+        !(error instanceof ValidationError) &&
+        !(error instanceof AuthorizationError)
+      ) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }
       return this.handleError(error);
