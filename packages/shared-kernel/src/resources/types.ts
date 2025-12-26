@@ -68,8 +68,9 @@ export type GetResourcesParams = void;
 
 /**
  * Result of getResources broker action.
+ * Returns array of declarations - one per scope the service supports.
  */
-export type GetResourcesResult = ServiceResourceDeclaration;
+export type GetResourcesResult = ServiceResourceDeclaration[];
 
 /**
  * Aggregated resources from all services.

@@ -5,7 +5,7 @@ import type { GetResourcesResult } from "@shopana/shared-kernel";
  * Used by IAM service for resource discovery.
  */
 export async function getResources(): Promise<GetResourcesResult> {
-  return {
+  return [{
     service: "inventory",
     displayName: "Inventory",
     scope: "store",
@@ -66,5 +66,5 @@ export async function getResources(): Promise<GetResourcesResult> {
         ],
       },
     ],
-  };
+  }];
 }

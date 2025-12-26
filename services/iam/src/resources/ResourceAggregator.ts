@@ -33,16 +33,16 @@ export class ResourceAggregator {
 
     const resources: ServiceResourceDeclaration[] = [IAM_SERVICE_RESOURCES];
 
-    // Query each service in parallel
+    // Query each service in parallel - each returns an array of declarations
     const results = await Promise.allSettled(
       RESOURCE_SERVICES.map((service) =>
-        this.broker.call<ServiceResourceDeclaration>(`${service}.getResources`)
+        this.broker.call<ServiceResourceDeclaration[]>(`${service}.getResources`)
       )
     );
 
     for (const result of results) {
       if (result.status === "fulfilled" && result.value) {
-        resources.push(result.value);
+        resources.push(...result.value);
       }
     }
 

@@ -12,62 +12,133 @@ export class GetResourcesScript extends BaseScript<
   GetResourcesParams,
   GetResourcesResult
 > {
-  protected async execute(_params: GetResourcesParams): Promise<GetResourcesResult> {
-    return {
-      service: "store",
-      displayName: "Store",
-      scope: "store",
-      resources: [
-        {
-          name: "store",
-          displayName: "Store Settings",
-          description: "General store configuration",
-          actions: [
-            { name: "read", displayName: "View", description: "View store settings" },
-            { name: "update", displayName: "Edit", description: "Edit store settings" },
-            { name: "delete", displayName: "Delete", description: "Delete the store" },
-          ],
-        },
-        {
-          name: "store.team",
-          displayName: "Team",
-          description: "Team member management",
-          actions: [
-            { name: "read", displayName: "View", description: "View team members" },
-            { name: "invite", displayName: "Invite", description: "Invite new team members" },
-            { name: "update", displayName: "Edit", description: "Edit team member roles" },
-            { name: "remove", displayName: "Remove", description: "Remove team members" },
-          ],
-        },
-        {
-          name: "store.billing",
-          displayName: "Billing",
-          description: "Billing and subscription management",
-          actions: [
-            { name: "read", displayName: "View", description: "View billing information" },
-            { name: "update", displayName: "Edit", description: "Update billing settings" },
-          ],
-        },
-        {
-          name: "store.apiKey",
-          displayName: "API Keys",
-          description: "API key management",
-          actions: [
-            { name: "read", displayName: "View", description: "View API keys" },
-            { name: "create", displayName: "Create", description: "Create new API keys" },
-            { name: "revoke", displayName: "Revoke", description: "Revoke API keys" },
-          ],
-        },
-      ],
-    };
+  protected async execute(
+    _params: GetResourcesParams
+  ): Promise<GetResourcesResult> {
+    return [
+      {
+        service: "store",
+        displayName: "Store",
+        scope: "organization",
+        resources: [
+          {
+            name: "store",
+            displayName: "Stores",
+            description: "Store management within organization",
+            actions: [
+              {
+                name: "read",
+                displayName: "View",
+                description: "View stores in organization",
+              },
+              {
+                name: "create",
+                displayName: "Create",
+                description: "Create new stores",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        service: "store",
+        displayName: "Store",
+        scope: "store",
+        resources: [
+          {
+            name: "store",
+            displayName: "Store Settings",
+            description: "General store configuration",
+            actions: [
+              {
+                name: "read",
+                displayName: "View",
+                description: "View store settings",
+              },
+              {
+                name: "update",
+                displayName: "Edit",
+                description: "Edit store settings",
+              },
+              {
+                name: "delete",
+                displayName: "Delete",
+                description: "Delete the store",
+              },
+            ],
+          },
+          {
+            name: "store.team",
+            displayName: "Team",
+            description: "Team member management",
+            actions: [
+              {
+                name: "read",
+                displayName: "View",
+                description: "View team members",
+              },
+              {
+                name: "invite",
+                displayName: "Invite",
+                description: "Invite new team members",
+              },
+              {
+                name: "update",
+                displayName: "Edit",
+                description: "Edit team member roles",
+              },
+              {
+                name: "remove",
+                displayName: "Remove",
+                description: "Remove team members",
+              },
+            ],
+          },
+          {
+            name: "store.billing",
+            displayName: "Billing",
+            description: "Billing and subscription management",
+            actions: [
+              {
+                name: "read",
+                displayName: "View",
+                description: "View billing information",
+              },
+              {
+                name: "update",
+                displayName: "Edit",
+                description: "Update billing settings",
+              },
+            ],
+          },
+          {
+            name: "store.apiKey",
+            displayName: "API Keys",
+            description: "API key management",
+            actions: [
+              {
+                name: "read",
+                displayName: "View",
+                description: "View API keys",
+              },
+              {
+                name: "create",
+                displayName: "Create",
+                description: "Create new API keys",
+              },
+              {
+                name: "revoke",
+                displayName: "Revoke",
+                description: "Revoke API keys",
+              },
+            ],
+          },
+        ],
+      },
+    ];
   }
 
   protected handleError(_error: unknown): GetResourcesResult {
-    return {
-      service: "store",
-      displayName: "Store",
-      scope: "store",
-      resources: [],
-    };
+    return [];
   }
 }
