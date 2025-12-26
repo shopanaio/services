@@ -98,6 +98,15 @@ export class Executor<TContext = unknown> {
       }
     }
 
+    // Warn if query was provided but no fields to resolve (likely parseGraphqlInfo path mismatch)
+    if (query && fieldsToResolve.size === 0) {
+      console.warn(
+        `[type-resolver] No fields to resolve for ${Type.name}. ` +
+        `Query was provided but fields/populate are empty. ` +
+        `Check parseGraphqlInfo fieldName parameter - it should match the field path in your GraphQL query.`
+      );
+    }
+
     // Resolve fields
     await Promise.all(
       Array.from(fieldsToResolve).map(async (key) => {

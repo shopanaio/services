@@ -31,7 +31,7 @@ export const storeMutationResolvers: Partial<Resolvers> = {
       ctx.setStore(result.store);
 
       // Resolve store through StoreResolver for proper field resolution
-      const store = await resolveStore(result.store.id, ctx, info);
+      const store = await resolveStore(result.store.id, ctx, info, "store");
 
       return {
         store: store as Store | null,

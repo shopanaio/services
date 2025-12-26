@@ -8,13 +8,15 @@ import { CURRENCY_INFO, LOCALE_INFO } from "@shopana/shared-references";
 
 /**
  * Resolves store using StoreResolver
+ * @param fieldName - Optional field name to extract sub-fields from (e.g., "store" for mutation payloads)
  */
 export async function resolveStore(
   storeId: string,
   ctx: ServiceContext,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
+  fieldName?: string
 ) {
-  return StoreResolver.load(storeId, parseGraphqlInfo(info), requireContext(ctx));
+  return StoreResolver.load(storeId, parseGraphqlInfo(info, fieldName), requireContext(ctx));
 }
 
 export const typeResolvers: Partial<Resolvers> = {
