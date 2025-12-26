@@ -1,11 +1,13 @@
+import type { GraphQLResolveInfo } from "graphql";
 import type { Resolvers, Store } from "../../generated/types.js";
 import { StoreCreateScript } from "../../../../scripts/store/StoreCreateScript.js";
 import { StoreUpdateScript } from "../../../../scripts/store/StoreUpdateScript.js";
 import { StoreDeleteScript } from "../../../../scripts/store/StoreDeleteScript.js";
+import { resolveStore } from "../types.js";
 
 export const storeMutationResolvers: Partial<Resolvers> = {
   StoreMutation: {
-    storeCreate: async (_parent, { input }, ctx) => {
+    storeCreate: async (_parent, { input }, ctx, info: GraphQLResolveInfo) => {
       const result = await ctx.kernel.runScript(StoreCreateScript, {
         organizationId: input.organizationId,
         name: input.name,
@@ -18,8 +20,21 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         email: input.email,
       });
 
+      if (!result.store) {
+        return {
+          store: null,
+          userErrors: result.userErrors,
+        };
+      }
+
+      // Set created store to context for subsequent resolvers
+      ctx.store = result.store;
+
+      // Resolve store through StoreResolver for proper field resolution
+      const store = await resolveStore(result.store.id, ctx, info);
+
       return {
-        store: (result.store as unknown as Store) ?? null,
+        store: store as Store | null,
         userErrors: result.userErrors,
       };
     },

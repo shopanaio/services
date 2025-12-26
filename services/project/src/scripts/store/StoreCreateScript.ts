@@ -40,6 +40,20 @@ export class StoreCreateScript extends BaseScript<
       };
     }
 
+    const userId = this.context.user?.id;
+    if (!userId) {
+      return {
+        store: null,
+        userErrors: [
+          {
+            code: "UNAUTHORIZED",
+            message: "User must be authenticated to create a store",
+            field: null,
+          },
+        ],
+      };
+    }
+
     const workflow =
       this.services.workflow.get<StoreCreateWorkflow>("storeCreate");
 
@@ -53,6 +67,7 @@ export class StoreCreateScript extends BaseScript<
       status: params.status,
       timezone: params.timezone,
       email: params.email ?? undefined,
+      userId,
     });
 
     const store = await this.repository.store.findById(result.storeId);

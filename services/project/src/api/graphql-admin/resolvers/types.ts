@@ -14,11 +14,7 @@ export async function resolveStore(
   ctx: ServiceContext,
   info: GraphQLResolveInfo
 ) {
-  return StoreResolver.load(
-    storeId,
-    parseGraphqlInfo(info),
-    requireContext(ctx)
-  );
+  return StoreResolver.load(storeId, parseGraphqlInfo(info), requireContext(ctx));
 }
 
 export const typeResolvers: Partial<Resolvers> = {

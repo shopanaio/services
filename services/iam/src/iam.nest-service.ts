@@ -136,8 +136,110 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       return { results };
     });
 
+    // Action: createRoles - create roles for a domain and assign owner to user
+    this.broker.register<
+      {
+        userId: string;
+        organizationId: string;
+        domain: Domain;
+        roles: Array<{
+          name: string;
+          displayName: string;
+          description: string;
+          permissions: {
+            allow: Array<{ resource: string; actions: string[] }>;
+            deny?: Array<{ resource: string; actions: string[] }>;
+          };
+        }>;
+      },
+      { success: boolean; error?: string }
+    >("createRoles", async (params) => {
+      if (!params?.userId || !params?.organizationId || !params?.domain || !params?.roles?.length) {
+        return { success: false, error: "Missing required parameters" };
+      }
+
+      const { userId, organizationId, domain, roles } = params;
+
+      try {
+        const createdRoles: Record<string, { id: string }> = {};
+        const ownerRoleName = "owner";
+
+        // Create predefined roles for the domain
+        for (const roleConfig of roles) {
+          const role = await this.kernel.repository.organization.createRole({
+            organizationId,
+            domain,
+            name: roleConfig.name,
+            displayName: roleConfig.displayName,
+            description: roleConfig.description,
+            isSystem: true,
+          });
+          createdRoles[roleConfig.name] = role;
+
+          // Add policies for this role
+          for (const rule of roleConfig.permissions.allow) {
+            for (const action of rule.actions) {
+              await this.kernel.repository.casbin.addPolicy({
+                organizationId,
+                role: roleConfig.name,
+                domain,
+                resource: rule.resource as Resource,
+                action,
+                effect: "allow",
+              });
+            }
+          }
+
+          // Add deny policies if any
+          if (roleConfig.permissions.deny) {
+            for (const rule of roleConfig.permissions.deny) {
+              for (const action of rule.actions) {
+                await this.kernel.repository.casbin.addPolicy({
+                  organizationId,
+                  role: roleConfig.name,
+                  domain,
+                  resource: rule.resource as Resource,
+                  action,
+                  effect: "deny",
+                });
+              }
+            }
+          }
+        }
+
+        // Create user role assignment for owner
+        if (createdRoles[ownerRoleName]) {
+          await this.kernel.repository.organization.createUserRole({
+            organizationId,
+            userId,
+            roleId: createdRoles[ownerRoleName].id,
+            domain,
+            grantedBy: userId,
+          });
+
+          // Assign owner role in Casbin
+          await this.kernel.repository.casbin.assignRole({
+            organizationId,
+            userId,
+            role: ownerRoleName,
+            domain,
+          });
+        }
+
+        this.logger.debug(
+          { userId, organizationId, domain, rolesCreated: Object.keys(createdRoles) },
+          "createRoles: Roles initialized successfully"
+        );
+
+        return { success: true };
+      } catch (error) {
+        this.logger.error({ error, params }, "createRoles failed");
+        return { success: false, error: "Failed to create roles" };
+      }
+    });
+
     this.logger.debug(
-      "Broker actions registered: getCurrentUser, authorize, batchAuthorize"
+      "Broker actions registered: getCurrentUser, authorize, batchAuthorize, createRoles"
     );
   }
 

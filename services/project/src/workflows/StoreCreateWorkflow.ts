@@ -6,6 +6,7 @@ import type {
   LocaleCode,
   StoreStatus,
 } from "../repositories/models/index.js";
+import { STORE_ROLES } from "../constants/index.js";
 
 export interface StoreCreateInput {
   name: string;
@@ -18,6 +19,8 @@ export interface StoreCreateInput {
   email?: string;
   /** Organization ID where the store will be created */
   organizationId: string;
+  /** User ID of the store creator (will be assigned owner role) */
+  userId: string;
 }
 
 export interface StoreCreateOutput {
@@ -47,13 +50,16 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    */
   @DBOS.workflow()
   async run(input: StoreCreateInput): Promise<StoreCreateOutput> {
-    const { organizationId } = input;
+    const { organizationId, userId } = input;
 
     // Step 1: Generate store ID (must be in step for determinism)
     const storeId = await this.generateStoreId();
 
     // Step 2: Create store in database with organizationId
     await this.createStore(storeId, input, organizationId);
+
+    // Step 3: Create store roles and assign owner to creator
+    await this.createRoles(storeId, organizationId, userId);
 
     return { storeId, organizationId };
   }
@@ -86,4 +92,20 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     });
   }
 
+  /**
+   * Step: Create roles for store domain and assign owner to creator
+   */
+  @DBOS.step()
+  async createRoles(storeId: string, organizationId: string, userId: string) {
+    const result = await this.broker.call("iam.createRoles", {
+      userId,
+      organizationId,
+      domain: `store:${storeId}`,
+      roles: STORE_ROLES,
+    }) as { success: boolean; error?: string };
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to create store roles");
+    }
+  }
 }
