@@ -5,6 +5,7 @@ import {
   ServiceBroker,
   Action,
   ZodSchema,
+  type GetResourcesResult,
 } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
 import { runWithContext, type ServiceContext } from "./context/index.js";
@@ -39,6 +40,7 @@ import {
   type CreateRolesResult,
 } from "./scripts/organization/dto/CreateRolesDto.js";
 import { ORG_DOMAIN } from "./casbin/CasbinService.js";
+import { getResources } from "./scripts/resources/index.js";
 
 /**
  * IAM broker actions registered with @Action decorator.
@@ -148,5 +150,13 @@ export class IamBrokerActions extends BrokerActions {
     return runWithContext(ctx, () =>
       this.kernel.runScript(AssignRoleScript, params)
     );
+  }
+
+  /**
+   * Action: getResources - returns IAM resources for resource discovery
+   */
+  @Action("getResources")
+  async getResources(): Promise<GetResourcesResult> {
+    return getResources();
   }
 }

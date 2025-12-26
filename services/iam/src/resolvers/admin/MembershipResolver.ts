@@ -1,9 +1,8 @@
 import { IAMType } from "./IAMType.js";
 import { MemberResolver } from "./MemberResolver.js";
 import { RoleResolver } from "./RoleResolver.js";
-import { ORGANIZATION_RESOURCES } from "../../constants/rbac.js";
-import { ResourceDefinition } from "@shopana/shared-kernel";
-import { ScopeIdentifier } from "@src/casbin/CasbinService.js";
+import type { ResourceDefinition } from "@shopana/shared-kernel";
+import type { ScopeIdentifier } from "@src/casbin/CasbinService.js";
 
 export interface MembershipInput {
   domain: ScopeIdentifier;
@@ -68,7 +67,8 @@ export class MembershipResolver extends IAMType<
     );
   }
 
-  availableResources(): ResourceDefinition[] {
-    return ORGANIZATION_RESOURCES;
+  async availableResources(): Promise<ResourceDefinition[]> {
+    const { domain } = this.value;
+    return this.ctx.kernel.resourceAggregator.getResourcesForDomain(domain);
   }
 }

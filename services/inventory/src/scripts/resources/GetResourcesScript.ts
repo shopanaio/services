@@ -8,6 +8,7 @@ export async function getResources(): Promise<GetResourcesResult> {
   return {
     service: "inventory",
     displayName: "Inventory",
+    scope: "store",
     resources: [
       {
         name: "product",

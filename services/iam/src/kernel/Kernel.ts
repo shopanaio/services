@@ -8,6 +8,7 @@ import { BaseScript } from "./BaseScript.js";
 import { AuthorizationCache } from "../cache/index.js";
 import { initDatabase, type Database } from "../infrastructure/db/database.js";
 import { createAuth, type Auth } from "../auth/auth.js";
+import { ResourceAggregator } from "../resources/index.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -20,6 +21,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public authCache!: AuthorizationCache;
   public db!: Database;
   public auth!: Auth;
+  public resourceAggregator!: ResourceAggregator;
 
   private constructor(
     broker: ServiceBroker,
@@ -28,7 +30,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     cache: Cache,
     authCache: AuthorizationCache,
     db: Database,
-    auth: Auth
+    auth: Auth,
+    resourceAggregator: ResourceAggregator
   ) {
     super(broker, logger, { repository, cache, authCache });
     this.repository = repository;
@@ -36,6 +39,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     this.authCache = authCache;
     this.db = db;
     this.auth = auth;
+    this.resourceAggregator = resourceAggregator;
   }
 
   static async create(broker: ServiceBroker): Promise<Kernel> {
@@ -66,6 +70,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     });
 
     const authCache = new AuthorizationCache();
+    const resourceAggregator = new ResourceAggregator(broker);
 
     this.instance = new Kernel(
       broker,
@@ -74,7 +79,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       cache,
       authCache,
       db,
-      auth
+      auth,
+      resourceAggregator
     );
     console.log("[IAM] Kernel initialized with Better Auth and Casbin");
     return this.instance;

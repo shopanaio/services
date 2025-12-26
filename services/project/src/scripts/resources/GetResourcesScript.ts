@@ -16,6 +16,7 @@ export class GetResourcesScript extends BaseScript<
     return {
       service: "store",
       displayName: "Store",
+      scope: "store",
       resources: [
         {
           name: "store",
@@ -65,6 +66,7 @@ export class GetResourcesScript extends BaseScript<
     return {
       service: "store",
       displayName: "Store",
+      scope: "store",
       resources: [],
     };
   }

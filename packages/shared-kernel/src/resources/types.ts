@@ -1,4 +1,11 @@
 /**
+ * Resource scope determines where the resource is available.
+ * - "organization": Organization-level resources (members, roles, billing)
+ * - "store": Store-level resources (products, orders, inventory)
+ */
+export type ResourceScope = "organization" | "store";
+
+/**
  * Resource action types.
  * Each resource can have a subset of these standard actions.
  */
@@ -47,6 +54,8 @@ export interface ServiceResourceDeclaration {
   service: string;
   /** Service display name for UI */
   displayName: string;
+  /** Scope where these resources are available */
+  scope: ResourceScope;
   /** List of resources exposed by this service */
   resources: ResourceDefinition[];
 }

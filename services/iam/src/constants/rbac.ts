@@ -101,6 +101,7 @@ export const ORGANIZATION_RESOURCES: ResourceDefinition[] = [
 export const IAM_SERVICE_RESOURCES: ServiceResourceDeclaration = {
   service: "iam",
   displayName: "Identity & Access",
+  scope: "organization",
   resources: ORGANIZATION_RESOURCES,
 };
 

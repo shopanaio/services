@@ -8,6 +8,7 @@ export async function getResources(): Promise<GetResourcesResult> {
   return {
     service: "media",
     displayName: "Media",
+    scope: "store",
     resources: [
       {
         name: "file",
