@@ -123,7 +123,7 @@ export const role = iamSchema.table(
     // Keep tenantId for backward compatibility during migration
     tenantId: uuid("tenant_id")
       .references(() => tenant.id, { onDelete: "cascade" }),
-    // Domain scope: required, format "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*")
+    // Domain scope: "org" for organization-level, or "store:{id}" for store-level
     domain: varchar("domain", { length: 128 }).notNull(),
     name: varchar("name", { length: 64 }).notNull(),
     displayName: varchar("display_name", { length: 256 }),
@@ -163,7 +163,7 @@ export const userRole = iamSchema.table(
     roleId: uuid("role_id")
       .notNull()
       .references(() => role.id, { onDelete: "cascade" }),
-    // Domain scope: required, format "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*")
+    // Domain scope: "org" for organization-level, or "store:{id}" for store-level
     domain: varchar("domain", { length: 256 }).notNull(),
     grantedBy: varchar("granted_by", { length: 128 }),
     grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),

@@ -12,7 +12,7 @@ import { getServiceConfig } from "@shopana/shared-service-config";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
 import type { AuthorizeResult } from "./scripts/organization/dto/AuthorizeDto.js";
-import type { Domain, Resource } from "./casbin/CasbinService.js";
+import { ORG_DOMAIN, type Domain, type Resource } from "./casbin/CasbinService.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -78,7 +78,7 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       {
         userId: string;
         organizationId: string;
-        domain: Domain;
+        domain?: Domain;
         resource: Resource;
         action: string;
       },
@@ -87,7 +87,6 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       if (
         !params?.userId ||
         !params?.organizationId ||
-        !params?.domain ||
         !params?.resource ||
         !params?.action
       ) {
@@ -100,14 +99,45 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       return this.kernel.runScript(AuthorizeScript, {
         userId: params.userId,
         organizationId: params.organizationId,
-        domain: params.domain,
+        domain: params.domain ?? ORG_DOMAIN,
         resource: params.resource,
         action: params.action,
       });
     });
 
+    // Action: batchAuthorize - check multiple permissions at once
+    this.broker.register<
+      {
+        organizationId: string;
+        requests: Array<{
+          userId: string;
+          domain?: Domain;
+          resource: Resource;
+          action: string;
+        }>;
+      },
+      { results: boolean[] }
+    >("batchAuthorize", async (params) => {
+      if (!params?.organizationId || !params?.requests?.length) {
+        return { results: [] };
+      }
+
+      // Apply ORG_DOMAIN default to requests without domain
+      const normalizedRequests = params.requests.map((req) => ({
+        ...req,
+        domain: req.domain ?? ORG_DOMAIN,
+      }));
+
+      const results = await this.kernel.repository.casbin.batchAuthorize({
+        organizationId: params.organizationId,
+        requests: normalizedRequests,
+      });
+
+      return { results };
+    });
+
     this.logger.debug(
-      "Broker actions registered: getCurrentUser, provisionTenant, authorize"
+      "Broker actions registered: getCurrentUser, authorize, batchAuthorize"
     );
   }
 

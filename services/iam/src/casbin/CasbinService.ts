@@ -73,15 +73,20 @@ export type ScopeIdentifier = `${string}:${string}`;
 /**
  * Domain scope - identifies the context for authorization.
  *
- * Format: "type:id" where id can be UUID or "*" (wildcard)
- *
  * @example
- * "org:550e8400-e29b-41d4-a716-446655440000" - specific organization
- * "org:*" - all organizations
+ * "org" - organization-level (constant, no ID needed)
+ * "*" - all domains (wildcard)
  * "store:abc123" - specific store
  * "store:*" - all stores
  */
-export type Domain = ScopeIdentifier;
+export type Domain = "org" | "*" | ScopeIdentifier;
+
+/**
+ * Organization domain constant.
+ * Use this for organization-level roles and policies.
+ * No need to include orgId since organization_id column already filters by org.
+ */
+export const ORG_DOMAIN: Domain = "org";
 
 /**
  * Create a domain identifier from prefix and value.
@@ -163,9 +168,9 @@ export interface GroupedPermission {
  * - Grouping: (user, role, domain) - user has role in domain
  *
  * Domain format:
- * - "org:{orgId}" - organization-level resources (billing, members, settings)
+ * - "org" - organization-level resources (billing, members, settings)
  * - "store:{storeId}" - store-level resources (products, orders)
- * - "org:*" or "store:*" - wildcard for all orgs/stores (uses keyMatch)
+ * - "*" or "store:*" - wildcard for all domains/stores (uses keyMatch)
  *
  * DB Storage format (iam.casbin_rule):
  * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, organization_id
@@ -554,5 +559,36 @@ export class CasbinService {
   async getGroupingPolicies(organizationId: string): Promise<string[][]> {
     const enforcer = await this.getEnforcer(organizationId);
     return enforcer.getGroupingPolicy();
+  }
+
+  /**
+   * Batch check permissions for multiple requests.
+   * More efficient than calling authorize() multiple times.
+   *
+   * @param organizationId - Organization to check in
+   * @param requests - Array of {userId, domain, resource, action}
+   * @returns Array of boolean results in same order as requests
+   */
+  async batchAuthorize(params: {
+    organizationId: string;
+    requests: Array<{
+      userId: string;
+      domain: Domain;
+      resource: Resource;
+      action: string;
+    }>;
+  }): Promise<boolean[]> {
+    const { organizationId, requests } = params;
+    const enforcer = await this.getEnforcer(organizationId);
+
+    // Convert to Casbin batch format: [[sub, dom, obj, act], ...]
+    const casbinRequests = requests.map((req) => [
+      `user:${req.userId}`,
+      req.domain,
+      req.resource,
+      req.action,
+    ]);
+
+    return enforcer.batchEnforce(casbinRequests);
   }
 }

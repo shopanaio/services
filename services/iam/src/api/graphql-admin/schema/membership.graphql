@@ -4,7 +4,7 @@
 
 """
 Member with role assignment.
-Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+Used for both org-level (domain = "org") and store-level (domain = "store:uuid").
 """
 type Member @key(fields: "id") {
   """
@@ -36,7 +36,7 @@ Domain determines context: orgId for org-level, storeId for store-level.
 """
 type Membership @key(fields: "domain organizationId") {
   """
-  Domain identifier (format: "org:uuid" or "store:uuid").
+  Domain identifier ("org" for organization, or "store:uuid").
   """
   domain: String!
   """

@@ -3,7 +3,8 @@ import type { Domain, Resource } from "../../../casbin/CasbinService.js";
 export interface AuthorizeParams {
   userId: string;
   organizationId: string;
-  domain: Domain;
+  /** Domain scope. Defaults to "org" if not provided. */
+  domain?: Domain;
   resource: Resource;
   action: string;
 }

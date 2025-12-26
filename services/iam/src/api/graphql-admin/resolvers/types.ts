@@ -37,7 +37,7 @@ export async function resolveOrganization(
 
 /**
  * Resolves membership using MembershipResolver
- * @param domain - The domain identifier (e.g., "org:uuid" or "store:uuid")
+ * @param domain - The domain identifier ("org" for organization, or "store:{id}")
  * @param organizationId - The organization ID
  */
 export async function resolveMembership(

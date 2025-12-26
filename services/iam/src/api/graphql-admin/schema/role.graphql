@@ -11,8 +11,8 @@ type Role @key(fields: "id") {
   """
   id: ID!
   """
-  Domain scope for this role. Format: "prefix:id" or "prefix:*".
-  - "org:uuid" = organization-level role
+  Domain scope for this role.
+  - "org" = organization-level role
   - "store:uuid" = store-specific role
   - "store:*" = all stores
   """
@@ -116,8 +116,8 @@ Input for creating a role.
 """
 input RoleCreateInput {
   """
-  Domain scope for role. Required, format: "prefix:id" or "prefix:*".
-  - "org:uuid" = organization-level role
+  Domain scope for role.
+  - "org" = organization-level role
   - "store:uuid" = store-specific role
   - "store:*" = all stores
   """

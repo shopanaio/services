@@ -4,7 +4,6 @@ import type { Resolvers, Store } from "../../generated/types.js";
 import { StoreUpdateScript } from "../../../../scripts/store/StoreUpdateScript.js";
 import { StoreDeleteScript } from "../../../../scripts/store/StoreDeleteScript.js";
 import { StoreResolver } from "../../../../resolvers/admin/StoreType.js";
-import { requireContext } from "../utils.js";
 import type { StoreCreateWorkflow } from "../../../../workflows/index.js";
 import { checkAuthorization } from "../../decorators/authorize.js";
 

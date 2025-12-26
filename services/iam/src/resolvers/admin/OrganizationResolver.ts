@@ -1,5 +1,5 @@
 import type { Organization } from "../../repositories/models/authorization.js";
-import { createDomain } from "../../casbin/CasbinService.js";
+import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
 import { IAMType, Cache } from "./IAMType.js";
 import { MembershipResolver } from "./MembershipResolver.js";
 
@@ -28,7 +28,7 @@ export class OrganizationResolver extends IAMType<string, Organization> {
   membership() {
     return new MembershipResolver(
       {
-        domain: createDomain("org", this.value),
+        domain: ORG_DOMAIN,
         organizationId: this.value,
       },
       this.ctx

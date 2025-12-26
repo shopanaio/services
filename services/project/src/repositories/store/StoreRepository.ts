@@ -31,7 +31,6 @@ export interface IntegrationInfo<TConfig = Record<string, unknown>> {
  */
 export interface StoreWithIntegrations extends Store {
   integrations: {
-    iam?: IntegrationInfo<IamIntegrationConfig>;
     payment?: IntegrationInfo;
     shipping?: IntegrationInfo;
     storage?: IntegrationInfo;

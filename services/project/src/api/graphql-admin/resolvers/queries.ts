@@ -1,6 +1,6 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import { StoreResolver } from "../../../resolvers/admin/StoreType.js";
-import type { QueryResolvers, Resolvers } from "../generated/types.js";
+import type { Resolvers } from "../generated/types.js";
 import { requireContext } from "./utils.js";
 
 export const queryResolvers = {
@@ -15,26 +15,33 @@ export const queryResolvers = {
 
       const organizationId = ctx.store.organizationId;
 
-      // Check if user has read access to stores in this organization
-      const authResult = (await ctx.kernel.getServices().broker.call(
-        "iam.authorize",
-        {
-          userId: ctx.user.id,
-          organizationId,
-          resource: "store",
-          action: "read",
-        }
-      )) as { allowed: boolean };
-
-      if (!authResult.allowed) return [];
-
       // Get all store IDs in the organization
-      const storeIds = await ctx.kernel
+      const allStoreIds = await ctx.kernel
         .getServices()
         .repository.store.getIdsByOrganization(organizationId);
 
+      if (allStoreIds.length === 0) return [];
+
+      // Build batch enforce requests
+      const requests = allStoreIds.map((storeId) => ({
+        userId: ctx.user!.id,
+        domain: `store:${storeId}`,
+        resource: "*",
+        action: "read",
+      }));
+
+      // Check permissions for all stores at once
+      const { results } = (await ctx.kernel
+        .getServices()
+        .broker.call("iam.batchAuthorize", { organizationId, requests })) as {
+        results: boolean[];
+      };
+
+      // Filter allowed store IDs
+      const accessibleIds = allStoreIds.filter((_, i) => results[i]);
+
       return StoreResolver.loadMany(
-        storeIds,
+        accessibleIds,
         parseGraphqlInfo(info),
         requireContext(ctx)
       );
@@ -56,29 +63,22 @@ export const queryResolvers = {
         .getServices()
         .repository.store.findBySlug(args.slug);
 
-      if (!store) return null;
-
-      // Check IAM integration exists
-      if (!store.integrations?.iam) return null;
-
-      const organizationId = store.integrations.iam.config.organizationId;
+      if (!store || !store.organizationId) return null;
 
       // Check user has access to this store via IAM
-      if (ctx.user?.id) {
-        const authResult = await ctx.kernel.getServices().broker.call(
-          "iam.authorize",
-          {
-            userId: ctx.user.id,
-            organizationId,
-            resource: "store",
-            action: "read",
-          }
-        ) as { allowed: boolean };
+      if (!ctx.user?.id) return null;
 
-        if (!authResult.allowed) return null;
-      } else {
-        return null;
-      }
+      const authResult = (await ctx.kernel
+        .getServices()
+        .broker.call("iam.authorize", {
+          userId: ctx.user.id,
+          organizationId: store.organizationId,
+          domain: `store:${store.id}`,
+          resource: "*",
+          action: "read",
+        })) as { allowed: boolean };
+
+      if (!authResult.allowed) return null;
 
       return StoreResolver.load(
         store.id,

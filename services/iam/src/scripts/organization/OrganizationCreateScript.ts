@@ -16,7 +16,7 @@ import {
   ROLE_DESCRIPTIONS,
   type PredefinedRoleName,
 } from "../../constants/index.js";
-import { createDomain } from "../../casbin/CasbinService.js";
+import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
 
 export class OrganizationCreateScript extends BaseScript<
   OrganizationCreateParams,
@@ -51,7 +51,7 @@ export class OrganizationCreateScript extends BaseScript<
     const org = result.organization;
 
     const ownerRoleName = PREDEFINED_ROLES.OWNER;
-    const domain = createDomain("org", org.id);
+    const domain = ORG_DOMAIN;
 
     // Create predefined roles in the role table
     const createdRoles: Record<string, { id: string }> = {};
