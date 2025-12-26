@@ -167,11 +167,8 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.accessToken = userA.accessToken;
     api.session.organizationId = userA.organizationId;
 
-    console.log('[DEBUG] userA.organizationId:', userA.organizationId);
-    console.log('[DEBUG] session.organizationId:', api.session.organizationId);
-
     // User A gets list of all stores in their organization
-    const { data, errors } = await api.admin.query('project-api/Projects', {
+    const { data } = await api.admin.query('project-api/Projects', {
       throwOnError: false,
       variables: {},
     });
