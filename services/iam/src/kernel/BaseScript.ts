@@ -1,12 +1,17 @@
 import {
   ValidationError,
   AuthorizationError,
+  ZodSchema,
+  Transactional,
   type Authorizable,
   type AuthorizeParams,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
 import { ORG_DOMAIN, type Resource } from "../casbin/CasbinService.js";
+
+// Re-export decorators for convenience
+export { ZodSchema, Transactional, ValidationError };
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: IamKernelServices;

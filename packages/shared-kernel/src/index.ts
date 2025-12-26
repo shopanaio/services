@@ -11,6 +11,7 @@ export {
   ServiceBroker,
   type ServiceBrokerOptions,
 } from "./broker/ServiceBroker";
+export { BrokerActions } from "./broker/BrokerActions";
 export {
   BrokerCoreModule,
   type BrokerCoreModuleOptions,
@@ -38,10 +39,13 @@ export {
   ValidationError,
   Policy,
   AuthorizationError,
+  Action,
+  ACTION_METADATA_KEY,
   type UserError,
   type Authorizable,
   type AuthorizeParams,
   type AuthorizeOptions,
+  type ActionMetadata,
 } from "./decorators";
 
 // Resource discovery types

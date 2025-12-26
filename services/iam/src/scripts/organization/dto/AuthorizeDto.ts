@@ -1,4 +1,15 @@
+import { z } from "zod";
 import type { Domain, Resource } from "../../../casbin/CasbinService.js";
+
+export const authorizeInputSchema = z.object({
+  userId: z.string().uuid("Invalid user ID"),
+  organizationId: z.string().uuid("Invalid organization ID"),
+  domain: z.string().optional(),
+  resource: z.string().min(1, "Resource is required"),
+  action: z.string().min(1, "Action is required"),
+});
+
+export type AuthorizeInput = z.infer<typeof authorizeInputSchema>;
 
 export interface AuthorizeParams {
   userId: string;

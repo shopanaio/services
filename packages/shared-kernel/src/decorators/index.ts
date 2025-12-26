@@ -6,3 +6,8 @@ export {
   type AuthorizeParams,
   type AuthorizeOptions,
 } from "./Authorize.js";
+export {
+  Action,
+  ACTION_METADATA_KEY,
+  type ActionMetadata,
+} from "./Action.js";
