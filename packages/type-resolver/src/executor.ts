@@ -1,5 +1,10 @@
 import type {
+  AfterCreateContext,
+  AfterLoadContext,
   ExecutorOptions,
+  Middleware,
+  MiddlewareResult,
+  MiddlewareStack,
   QueryArgs,
   TypeClass,
   TypeResult,
@@ -38,7 +43,45 @@ export class ResolverError extends Error {
  * @template TContext - The type of the context object passed to type instances
  */
 export class Executor<TContext = unknown> {
-  constructor(private options: ExecutorOptions<TContext> = {}) {}
+  private readonly middleware: MiddlewareStack<TContext>;
+
+  constructor(private options: ExecutorOptions<TContext> = {}) {
+    this.middleware = options.middleware ?? [];
+  }
+
+  /**
+   * Execute afterCreate hooks on all middleware.
+   * Returns null if any middleware returns null (short-circuit).
+   */
+  private async runAfterCreate(
+    ctx: AfterCreateContext<TContext>
+  ): Promise<MiddlewareResult> {
+    for (const mw of this.middleware) {
+      if (mw.afterCreate) {
+        const result = await mw.afterCreate(ctx);
+        if (result === null) {
+          return null;
+        }
+      }
+    }
+  }
+
+  /**
+   * Execute afterLoad hooks on all middleware.
+   * Returns null if any middleware returns null (short-circuit).
+   */
+  private async runAfterLoad(
+    ctx: AfterLoadContext<TContext>
+  ): Promise<MiddlewareResult> {
+    for (const mw of this.middleware) {
+      if (mw.afterLoad) {
+        const result = await mw.afterLoad(ctx);
+        if (result === null) {
+          return null;
+        }
+      }
+    }
+  }
 
   /**
    * Resolves a value through a TypeClass, executing resolver methods
@@ -56,6 +99,21 @@ export class Executor<TContext = unknown> {
     query?: QueryArgs
   ): Promise<TResult> {
     const instance = new Type(value, this.options.ctx);
+
+    // Build middleware context
+    const middlewareCtx: AfterCreateContext<TContext> = {
+      Type,
+      value,
+      query,
+      ctx: this.options.ctx as TContext,
+      instance,
+    };
+
+    // Run afterCreate middleware (e.g., authorization)
+    const afterCreateResult = await this.runAfterCreate(middlewareCtx);
+    if (afterCreateResult === null) {
+      return null as TResult;
+    }
 
     // Check if loadData returns null - if so, return null immediately
     if (typeof (instance as any).loadData === "function") {
@@ -163,7 +221,17 @@ export class Executor<TContext = unknown> {
       })
     );
 
-    return result as TResult;
+    // Run afterLoad middleware (e.g., result transformation)
+    const afterLoadCtx: AfterLoadContext<TContext> = {
+      ...middlewareCtx,
+      result,
+    };
+    const afterLoadResult = await this.runAfterLoad(afterLoadCtx);
+    if (afterLoadResult === null) {
+      return null as TResult;
+    }
+
+    return afterLoadCtx.result as TResult;
   }
 
   /**

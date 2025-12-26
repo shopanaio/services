@@ -1,11 +1,6 @@
-import { load } from "./executor.js";
+import { load, loadMany } from "./executor.js";
 import type { CacheStore } from "./decorators/Cache.js";
-import type {
-  QueryArgs,
-  TypeClass,
-  TypeContext,
-  TypeResult,
-} from "./types.js";
+import type { QueryArgs, TypeClass, TypeContext, TypeResult } from "./types.js";
 
 /**
  * Authorization policy for type resolvers.
@@ -44,90 +39,35 @@ export class TypeAuthorizationError extends Error {
  */
 export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   /**
-   * Authorization policy. Override in subclass to enable auth checks on load/loadMany.
-   *
-   * @example
-   * ```typescript
-   * class StoreResolver extends BaseResolver<string, Store | null> {
-   *   static policy = { resource: "store", action: "read", onDeny: "null" };
-   * }
-   * ```
-   */
-  static policy?: TypePolicy;
-
-  /**
-   * Override this method in subclass to implement authorization logic.
-   * Called by checkPolicy when policy is defined.
-   *
-   * @param ctx - Context object
-   * @param policy - Policy to check
-   * @param value - The value being loaded (for domain resolution)
-   * @returns true if authorized, false otherwise
-   */
-  protected static authorize(
-    _ctx: unknown,
-    _policy: TypePolicy,
-    _value?: unknown
-  ): Promise<boolean> {
-    // Default: no authorization check
-    return Promise.resolve(true);
-  }
-
-  /**
-   * Check authorization policy. Override authorize() to customize.
-   */
-  static async checkPolicy(
-    ctx: unknown,
-    policy: TypePolicy,
-    value?: unknown
-  ): Promise<boolean> {
-    return this.authorize(ctx, policy, value);
-  }
-
-  /**
    * Static method to load and resolve a value through the executor.
-   * Checks policy before loading if defined.
    *
    * @param value - The value to resolve
    * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
   static async load<T extends TypeClass, TResult = TypeResult<T>>(
-    this: T & { policy?: TypePolicy; checkPolicy?: typeof BaseType.checkPolicy },
+    this: T,
     value: ConstructorParameters<T>[0],
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<TResult | null> {
-    if (this.policy && this.checkPolicy) {
-      const allowed = await this.checkPolicy(ctx, this.policy, value);
-      if (!allowed) {
-        if (this.policy.onDeny === "null") {
-          return null;
-        }
-        throw new TypeAuthorizationError(this.policy.resource, this.policy.action);
-      }
-    }
     return load<T, TResult, TypeContext<T>>(this, value, query, ctx);
   }
 
   /**
    * Static method to load and resolve multiple values through the executor.
-   * Policy is checked in load() for each item individually.
    *
    * @param values - The values to resolve
    * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
   static async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
-    this: T & { policy?: TypePolicy; checkPolicy?: typeof BaseType.checkPolicy; load: typeof BaseType.load },
+    this: T,
     values: ConstructorParameters<T>[0][],
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<(TResult | null)[]> {
-    // Policy is checked in load() for each item individually
-    return Promise.all(
-      values.map((value) => this.load<T, TResult>(value, query, ctx))
-    );
+    return loadMany<T, TResult, TypeContext<T>>(this, values, query, ctx);
   }
 
   private _dataPromise: Promise<TData> | null = null;

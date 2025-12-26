@@ -5,8 +5,8 @@ export {
   type TypePolicy as TypePolicyOptions,
 } from "./baseType.js";
 
-// Error type
-export { ResolverError } from "./executor.js";
+// Executor
+export { Executor, createExecutor, ResolverError } from "./executor.js";
 
 // Decorators
 export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";
@@ -28,4 +28,12 @@ export type {
   ChildTypeFor,
   ArgsForField,
   QueryArgs,
+  ExecutorOptions,
+  // Middleware
+  Middleware,
+  MiddlewareStack,
+  MiddlewareContext,
+  AfterCreateContext,
+  AfterLoadContext,
+  MiddlewareResult,
 } from "./types.js";

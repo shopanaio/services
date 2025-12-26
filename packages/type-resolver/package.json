@@ -15,12 +15,19 @@
     "./graphql": {
       "types": "./dist/utils/graphqlArgsParser.d.ts",
       "import": "./dist/utils/graphqlArgsParser.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware/index.d.ts",
+      "import": "./dist/middleware/index.js"
     }
   },
   "typesVersions": {
     "*": {
       "graphql": [
         "./dist/utils/graphqlArgsParser.d.ts"
+      ],
+      "middleware": [
+        "./dist/middleware/index.d.ts"
       ]
     }
   },

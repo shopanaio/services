@@ -44,6 +44,19 @@ export interface ExecutorOptions<TContext = unknown> {
    * Available as `this.ctx` in BaseType subclasses.
    */
   ctx?: TContext;
+  /**
+   * Middleware stack for extending executor behavior.
+   * Middleware are executed in registration order.
+   *
+   * @example
+   * ```typescript
+   * const executor = createExecutor({
+   *   ctx,
+   *   middleware: [authMiddleware, loggingMiddleware],
+   * });
+   * ```
+   */
+  middleware?: MiddlewareStack<TContext>;
 }
 
 /**
@@ -190,3 +203,108 @@ export type TypeResult<T extends TypeClass> = {
 export type TypeValue<T extends TypeClass> = T extends TypeClass<infer V>
   ? V
   : never;
+
+// ============================================================================
+// Middleware Types
+// ============================================================================
+
+/**
+ * Base context passed to all middleware hooks.
+ */
+export interface MiddlewareContext<TContext = unknown> {
+  /** The TypeClass being loaded */
+  readonly Type: TypeClass;
+  /** The value passed to load() */
+  readonly value: unknown;
+  /** Query arguments for field selection */
+  readonly query?: QueryArgs;
+  /** User-provided context */
+  readonly ctx: TContext;
+}
+
+/**
+ * Context for afterCreate hook - instance is available.
+ */
+export interface AfterCreateContext<TContext = unknown>
+  extends MiddlewareContext<TContext> {
+  /** The created instance (mutable) */
+  readonly instance: object;
+}
+
+/**
+ * Context for afterLoad hook - result is available.
+ */
+export interface AfterLoadContext<TContext = unknown>
+  extends AfterCreateContext<TContext> {
+  /** The resolved result object (mutable) */
+  result: Record<string, unknown>;
+}
+
+/**
+ * Result from middleware hook execution.
+ * - void/undefined: continue normal execution
+ * - null: short-circuit and return null
+ * - Error thrown: propagate error
+ */
+export type MiddlewareResult = void | null;
+
+/**
+ * Middleware interface for extending Executor behavior.
+ *
+ * Middleware hooks are called in registration order.
+ * Any hook can short-circuit by returning null or throwing an error.
+ *
+ * @template TContext - The context type passed to type instances
+ *
+ * @example
+ * ```typescript
+ * const loggingMiddleware: Middleware = {
+ *   name: "logging",
+ *   afterCreate: async ({ Type, instance }) => {
+ *     console.log(`Created ${Type.name}`);
+ *   },
+ *   afterLoad: async ({ Type, result }) => {
+ *     console.log(`Loaded ${Type.name}:`, result);
+ *   },
+ * };
+ * ```
+ */
+export interface Middleware<TContext = unknown> {
+  /**
+   * Optional name for debugging and identification.
+   */
+  readonly name?: string;
+
+  /**
+   * Called after instance creation, before loadData() and field resolution.
+   *
+   * Use cases:
+   * - Authorization checks (access instance.authorize())
+   * - Instance validation
+   * - Logging/metrics
+   *
+   * @returns void to continue, null to short-circuit with null result
+   * @throws Error to abort with error
+   */
+  afterCreate?(ctx: AfterCreateContext<TContext>): Promise<MiddlewareResult>;
+
+  /**
+   * Called after all fields are resolved.
+   *
+   * Use cases:
+   * - Result transformation
+   * - Field filtering/masking
+   * - Logging/metrics
+   *
+   * Note: Mutate ctx.result directly to modify the output.
+   *
+   * @returns void to continue, null to return null instead of result
+   * @throws Error to abort with error
+   */
+  afterLoad?(ctx: AfterLoadContext<TContext>): Promise<MiddlewareResult>;
+}
+
+/**
+ * Array of middleware to be executed in order.
+ */
+export type MiddlewareStack<TContext = unknown> = Middleware<TContext>[];
