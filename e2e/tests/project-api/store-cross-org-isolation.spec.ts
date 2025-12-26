@@ -54,26 +54,22 @@ test.describe('Cross-Organization Store Isolation', () => {
     // User A creates Store A
     const storeASlug = generateStoreSlug();
 
-    const { data: storeAData, errors: storeAErrors } = await api.admin.mutation(
-      'project-api/ProjectCreate',
-      {
-        throwOnError: false,
-        variables: {
-          input: {
-            organizationId: organizationAId,
-            name: 'Store A',
-            slug: storeASlug,
-            locales: ['en'],
-            currencies: ['USD'],
-            defaultCurrency: 'USD',
-          },
+    const { data: storeAData } = await api.admin.mutation('project-api/ProjectCreate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          organizationId: organizationAId,
+          name: 'Store A',
+          slug: storeASlug,
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
         },
       },
-    );
+    });
 
     const storeA = storeAData.storeMutation.storeCreate.store;
     if (!storeA) {
-      const userErrors = storeAData.storeMutation?.storeCreate?.userErrors;
       throw new Error('Failed to create Store A');
     }
 
@@ -87,10 +83,9 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // DEBUG: Try querying the store immediately after creation
     api.session.project = { id: storeA.id, slug: storeASlug, name: 'Store A' };
-    const debugQuery = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-      variables: { slug: storeASlug },
-    });
+
+    // Clear project context before creating User B
+    api.session.project = null as any;
 
     // Create User B
     const userBSession = await api.admin.user.create();
@@ -147,19 +142,13 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.accessToken = userA.accessToken;
     api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
 
-    console.log('userA:', userA);
-    console.log('session.projectSlug:', api.session.projectSlug);
-    console.log('session.accessToken:', api.session.accessToken?.slice(0, 20) + '...');
-
     // User A CAN access their own Store A
-    const { data: ownStoreData, errors } = await api.admin.query('project-api/Project', {
+    const { data: ownStoreData } = await api.admin.query('project-api/Project', {
       throwOnError: false,
       variables: {
         slug: userA.storeSlug,
       },
     });
-    console.log('ownStoreData:', JSON.stringify(ownStoreData, null, 2));
-    console.log('errors:', JSON.stringify(errors, null, 2));
     expect(ownStoreData.storeQuery.store).not.toBeNull();
     expect(ownStoreData.storeQuery.store?.id).toBe(userA.storeId);
 
@@ -174,12 +163,16 @@ test.describe('Cross-Organization Store Isolation', () => {
   });
 
   test('User cannot see other organization stores in stores list', async ({ api }) => {
-    // Switch to User A with their store as context (needed for organizationId)
+    // Switch to User A with their organization context
     api.session.tenant.accessToken = userA.accessToken;
-    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
+    api.session.organizationId = userA.organizationId;
 
-    // User A gets list of all stores
-    const { data } = await api.admin.query('project-api/Projects', {
+    console.log('[DEBUG] userA.organizationId:', userA.organizationId);
+    console.log('[DEBUG] session.organizationId:', api.session.organizationId);
+
+    // User A gets list of all stores in their organization
+    const { data, errors } = await api.admin.query('project-api/Projects', {
+      throwOnError: false,
       variables: {},
     });
 
@@ -290,7 +283,7 @@ test.describe('Cross-Organization Store Isolation', () => {
   test('Stores list is isolated between organizations - bidirectional check', async ({ api }) => {
     // User A should only see stores from Org A
     api.session.tenant.accessToken = userA.accessToken;
-    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
+    api.session.organizationId = userA.organizationId;
     const { data: userAStores } = await api.admin.query('project-api/Projects', {
       variables: {},
     });
@@ -301,7 +294,7 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // User B should only see stores from Org B
     api.session.tenant.accessToken = userB.accessToken;
-    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
+    api.session.organizationId = userB.organizationId;
     const { data: userBStores } = await api.admin.query('project-api/Projects', {
       variables: {},
     });
