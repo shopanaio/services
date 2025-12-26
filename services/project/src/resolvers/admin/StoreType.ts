@@ -1,27 +1,15 @@
-import { BaseType, Cache } from "@shopana/type-resolver";
-import type { ServiceContext } from "../../context/types.js";
+import { Cache } from "@shopana/type-resolver";
 import type { Store } from "../../repositories/models/store.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
+import { BaseResolver } from "./BaseResolver.js";
 
-/**
- * Base resolver class with pre-configured ServiceContext
- * Eliminates the need to specify context type parameter in every resolver
- */
-export abstract class StoreType<Value, Data = unknown> extends BaseType<
-  Value,
-  Data,
-  ServiceContext
-> {
-  protected getCache() {
-    return this.ctx.kernel.cache;
-  }
-}
+export { BaseResolver };
 
 /**
  * Store type resolver - resolves Store GraphQL type
  * Accepts store ID, loads data lazily via repository
  */
-export class StoreResolver extends StoreType<string, Store | null> {
+export class StoreResolver extends BaseResolver<string, Store | null> {
   @Cache({
     cacheName: "store",
     key: (resolver: StoreResolver) => resolver.value,

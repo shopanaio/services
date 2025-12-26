@@ -18,7 +18,7 @@ export interface AuthorizeOptions {
   resource: string;
   action: string;
   /** Domain scope (e.g., "store:123"). Defaults to "org" */
-  domain?: string;
+  domain?: string | ((params: unknown) => string);
   /** Override organizationId. Can be a string or a function that extracts it from params */
   organizationId?: string | ((params: unknown) => string);
 }
@@ -75,7 +75,13 @@ export function Authorize(options: AuthorizeOptions) {
     ): Promise<unknown> {
       if (!this.userId) {
         throw new AuthorizationError(
-          [{ code: "UNAUTHENTICATED", message: "Authentication required", field: null }],
+          [
+            {
+              code: "UNAUTHENTICATED",
+              message: "Authentication required",
+              field: null,
+            },
+          ],
           options.resource,
           options.action
         );
@@ -94,7 +100,13 @@ export function Authorize(options: AuthorizeOptions) {
 
       if (!organizationId) {
         throw new AuthorizationError(
-          [{ code: "UNAUTHORIZED", message: "Organization context required", field: null }],
+          [
+            {
+              code: "UNAUTHORIZED",
+              message: "Organization context required",
+              field: null,
+            },
+          ],
           options.resource,
           options.action
         );
@@ -104,12 +116,23 @@ export function Authorize(options: AuthorizeOptions) {
         resource: options.resource,
         action: options.action,
         organizationId,
-        domain: options.domain,
+        domain:
+          typeof options.domain === "function"
+            ? options.domain(params)
+            : options.domain,
       });
 
       if (!result.allowed) {
         throw new AuthorizationError(
-          [{ code: "FORBIDDEN", message: result.deniedReason ?? `Access denied: ${options.resource}:${options.action}`, field: null }],
+          [
+            {
+              code: "FORBIDDEN",
+              message:
+                result.deniedReason ??
+                `Access denied: ${options.resource}:${options.action}`,
+              field: null,
+            },
+          ],
           options.resource,
           options.action
         );
