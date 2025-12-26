@@ -19,6 +19,8 @@ export interface AuthorizeOptions {
   action: string;
   /** Domain scope (e.g., "store:123"). Defaults to "org" */
   domain?: string;
+  /** Override organizationId. Can be a string or a function that extracts it from params */
+  organizationId?: string | ((params: unknown) => string);
 }
 
 export interface AuthorizeParams {
@@ -79,7 +81,18 @@ export function Authorize(options: AuthorizeOptions) {
         );
       }
 
-      if (!this.organizationId) {
+      // Resolve organizationId: from options (string or function) or from this.organizationId
+      let organizationId: string | null = null;
+      if (options.organizationId) {
+        organizationId =
+          typeof options.organizationId === "function"
+            ? options.organizationId(params)
+            : options.organizationId;
+      } else {
+        organizationId = this.organizationId;
+      }
+
+      if (!organizationId) {
         throw new AuthorizationError(
           [{ code: "UNAUTHORIZED", message: "Organization context required", field: null }],
           options.resource,
@@ -90,7 +103,7 @@ export function Authorize(options: AuthorizeOptions) {
       const result = await this.authorize({
         resource: options.resource,
         action: options.action,
-        organizationId: this.organizationId,
+        organizationId,
         domain: options.domain,
       });
 

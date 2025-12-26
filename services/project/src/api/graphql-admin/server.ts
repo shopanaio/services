@@ -12,14 +12,14 @@ import {
   getServiceConfig,
   isDevelopment,
 } from "@shopana/shared-service-config";
-import {
-  setContext,
-  type ServiceContext,
-} from "../../context/index.js";
+import { setContext, type ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("project");
 import { Kernel } from "../../kernel/Kernel.js";
-import { buildAdminContextMiddleware, ForbiddenError } from "./contextMiddleware.js";
+import {
+  buildAdminContextMiddleware,
+  ForbiddenError,
+} from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
@@ -84,7 +84,8 @@ export async function startServer(serverConfig: ServerConfig) {
     plugins: [fastifyApolloDrainPlugin(app)],
     formatError: (formattedError, error) => {
       // Handle ForbiddenError from context middleware
-      const originalError = error instanceof Error ? error : (error as any)?.originalError;
+      const originalError =
+        error instanceof Error ? error : (error as any)?.originalError;
       if (originalError instanceof ForbiddenError) {
         return {
           ...formattedError,
@@ -109,10 +110,12 @@ export async function startServer(serverConfig: ServerConfig) {
       if (error instanceof ForbiddenError) {
         return reply.status(200).send({
           data: null,
-          errors: [{
-            message: error.message,
-            extensions: { code: "FORBIDDEN" }
-          }]
+          errors: [
+            {
+              message: error.message,
+              extensions: { code: "FORBIDDEN" },
+            },
+          ],
         });
       }
       throw error;
@@ -133,18 +136,15 @@ export async function startServer(serverConfig: ServerConfig) {
           requestId: request.id as string,
           kernel: kernel as Kernel,
           slug: "",
-          project: null as any,
+          store: null as any,
           user: null as any,
         };
       }
-
-      const slug = request.headers["x-store-name"] as string;
 
       // Use store and user from middleware (set by contextMiddleware via GetCurrentStoreScript)
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
-        slug,
         store: request.store,
         user: request.user,
       };

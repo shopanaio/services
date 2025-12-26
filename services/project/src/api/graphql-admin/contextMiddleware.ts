@@ -70,44 +70,61 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     request: FastifyRequest,
     reply: FastifyReply
   ) {
-    console.log('[STORE contextMiddleware] URL:', request.url);
-    console.log('[STORE contextMiddleware] Headers:', JSON.stringify(request.headers, null, 2));
+    console.log("[STORE contextMiddleware] URL:", request.url);
+    console.log(
+      "[STORE contextMiddleware] Headers:",
+      JSON.stringify(request.headers, null, 2)
+    );
 
     if (shouldSkipAuth(request)) {
-      console.log('[STORE contextMiddleware] Skipping auth');
+      console.log("[STORE contextMiddleware] Skipping auth");
       return;
     }
 
     const kernel = Kernel.getInstance();
-    const slug = request.headers["x-store-name"] as string | undefined;
+    const storeName = request.headers["x-store-name"] as string | undefined;
 
     // Extract access token from Authorization header
     const authHeader = request.headers.authorization;
-    console.log('[STORE contextMiddleware] Authorization header:', authHeader ? `${authHeader.slice(0, 30)}...` : 'MISSING');
+    console.log(
+      "[STORE contextMiddleware] Authorization header:",
+      authHeader ? `${authHeader.slice(0, 30)}...` : "MISSING"
+    );
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.log('[STORE contextMiddleware] REJECTING - no auth header');
-      return reply
-        .status(401)
-        .send({ data: null, errors: [{ message: "Missing or invalid Authorization header" }] });
+      console.log("[STORE contextMiddleware] REJECTING - no auth header");
+      return reply.status(401).send({
+        data: null,
+        errors: [{ message: "Missing or invalid Authorization header" }],
+      });
     }
 
     const accessToken = authHeader.slice(7); // Remove "Bearer " prefix
 
     // 1. Always authenticate user via IAM
-    console.log('[STORE contextMiddleware] Calling iam.getCurrentUser with token:', accessToken.slice(0, 20) + '...');
-    const userResult = await kernel.getServices().broker.call(
-      "iam.getCurrentUser",
-      { accessToken }
-    ) as IamCurrentUserResult;
+    console.log(
+      "[STORE contextMiddleware] Calling iam.getCurrentUser with token:",
+      accessToken.slice(0, 20) + "..."
+    );
+    const userResult = (await kernel
+      .getServices()
+      .broker.call("iam.getCurrentUser", {
+        accessToken,
+      })) as IamCurrentUserResult;
 
-    console.log('[STORE contextMiddleware] iam.getCurrentUser result:', JSON.stringify(userResult, null, 2));
+    console.log(
+      "[STORE contextMiddleware] iam.getCurrentUser result:",
+      JSON.stringify(userResult, null, 2)
+    );
 
     if (!userResult.user) {
-      console.log('[STORE contextMiddleware] REJECTING - no user from IAM');
-      return reply
-        .status(401)
-        .send({ data: null, errors: [{ message: userResult.userErrors[0]?.message || "Unauthorized" }] });
+      console.log("[STORE contextMiddleware] REJECTING - no user from IAM");
+      return reply.status(401).send({
+        data: null,
+        errors: [
+          { message: userResult.userErrors[0]?.message || "Unauthorized" },
+        ],
+      });
     }
 
     // Set user on request
@@ -117,38 +134,38 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     request.accessToken = accessToken;
 
     // 2. If no store slug provided, skip store validation (for store creation)
-    if (!slug) {
+    if (!storeName) {
       request.store = null as unknown as ContextStore;
       return;
     }
 
     // 3. Load store by slug
     const result = await kernel.runScript(GetCurrentStoreScript, {
-      slug,
+      slug: storeName,
     });
 
     if (result.userErrors.length > 0) {
       const error = result.userErrors[0];
-      const statusCode = error.code === "ACCESS_DENIED" ? 403 :
-                        error.code === "STORE_NOT_FOUND" ? 404 : 400;
-      return reply
-        .status(statusCode)
-        .send({ data: null, errors: [{ message: error.message, code: error.code }] });
+      const statusCode =
+        error.code === "ACCESS_DENIED"
+          ? 403
+          : error.code === "STORE_NOT_FOUND"
+          ? 404
+          : 400;
+      return reply.status(statusCode).send({
+        data: null,
+        errors: [{ message: error.message, code: error.code }],
+      });
     }
 
-    if (!result.store || !result.store.integrations.iam) {
+    if (!result.store || !result.store.organizationId) {
       return reply
         .status(404)
         .send({ data: null, errors: [{ message: "Store not found" }] });
     }
 
-    const organizationId = result.store.integrations.iam.config.organizationId;
-
     // Set full store on request with organizationId shortcut
     // Authorization checks are done in resolvers via checkAuthorization/Authorize decorator
-    request.store = {
-      ...result.store,
-      organizationId,
-    };
+    request.store = result.store;
   };
 }

@@ -20,8 +20,6 @@ export interface ContextUser {
 export interface ServiceContext {
   /** Unique request identifier */
   requestId: string;
-  /** Organization ID from x-organization-id header (when no store) */
-  organizationId?: string;
   /** Store slug from header */
   slug?: string;
   /** Current store (optional - may not exist for org-level operations) */

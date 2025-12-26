@@ -26,7 +26,7 @@ export const storeMutationResolvers: Partial<Resolvers> = {
 
     storeUpdate: async (_parent, { input }, ctx) => {
       const result = await ctx.kernel.runScript(StoreUpdateScript, {
-        id: ctx.store.id,
+        id: ctx.store!.id,
         name: input.name ?? undefined,
         email: input.email ?? undefined,
         timezone: input.timezone ?? undefined,

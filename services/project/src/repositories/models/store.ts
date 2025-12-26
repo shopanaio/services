@@ -38,7 +38,7 @@ export const store = storeSchema.table(
   {
     id: uuid("id").primaryKey(),
     // Organization that owns this store (from IAM)
-    organizationId: uuid("organization_id"),
+    organizationId: uuid("organization_id").notNull(),
     externalSystem: varchar("external_system", { length: 64 }),
     externalId: varchar("external_id", { length: 255 }),
     name: varchar("name", { length: 255 }).notNull(),

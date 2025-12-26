@@ -16,7 +16,11 @@ export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
   StoreCreateResult
 > {
-  @Authorize({ resource: "store", action: "create" })
+  @Authorize({
+    resource: "store",
+    action: "create",
+    organizationId: (params) => (params as StoreCreateParams).organizationId,
+  })
   @ZodSchema(storeCreateInputSchema)
   protected async execute(
     params: StoreCreateParams

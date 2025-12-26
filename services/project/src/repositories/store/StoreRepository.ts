@@ -31,7 +31,6 @@ export interface IntegrationInfo<TConfig = Record<string, unknown>> {
  */
 export interface Store extends StoreRecord {
   integrations: {
-    iam?: IntegrationInfo<IamIntegrationConfig>;
     payment?: IntegrationInfo;
     shipping?: IntegrationInfo;
     storage?: IntegrationInfo;
@@ -95,12 +94,6 @@ export class StoreRepository extends BaseRepository {
       };
 
       switch (integration.type) {
-        case "iam":
-          result.integrations.iam = {
-            ...info,
-            config: info.config as unknown as IamIntegrationConfig,
-          };
-          break;
         case "payment":
           result.integrations.payment = info;
           break;
@@ -221,10 +214,7 @@ export class StoreRepository extends BaseRepository {
   }
 
   @Transactional()
-  async update(
-    id: string,
-    data: UpdateStoreData
-  ): Promise<Store | null> {
+  async update(id: string, data: UpdateStoreData): Promise<Store | null> {
     const updateData: Record<string, unknown> = {
       updatedAt: new Date(),
     };

@@ -36,12 +36,10 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
 
   /**
    * Organization ID for @Authorize decorator.
-   * From x-organization-id header or store context.
+   * From store context.
    */
   get organizationId(): string | null {
-    return (
-      this.context.organizationId ?? this.context.store?.organizationId ?? null
-    );
+    return this.context.store?.organizationId ?? null;
   }
 
   /**
@@ -50,7 +48,8 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
     // Auto-detect domain: explicit > store context > org (default)
     const domain =
-      params.domain ?? (this.context.store ? `store:${this.context.store.id}` : undefined);
+      params.domain ??
+      (this.context.store ? `store:${this.context.store.id}` : undefined);
 
     return this.broker.call("iam.authorize", {
       userId: this.userId,
