@@ -45,17 +45,12 @@ import { ORG_DOMAIN } from "./casbin/CasbinService.js";
  */
 @Injectable()
 export class IamBrokerActions extends BrokerActions {
-  private kernel!: Kernel;
-
   constructor(@InjectBroker("iam") broker: ServiceBroker) {
     super(broker);
   }
 
-  /**
-   * Set the kernel instance. Must be called before actions are invoked.
-   */
-  setKernel(kernel: Kernel): void {
-    this.kernel = kernel;
+  private get kernel(): Kernel {
+    return Kernel.getInstance();
   }
 
   /**

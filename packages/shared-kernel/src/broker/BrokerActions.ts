@@ -37,6 +37,13 @@ export abstract class BrokerActions implements OnModuleInit {
   }
 
   /**
+   * Returns the service broker instance.
+   */
+  getBroker(): ServiceBroker {
+    return this.broker;
+  }
+
+  /**
    * Called by NestJS when the module initializes.
    * Scans for @Action decorated methods and registers them with the broker.
    */

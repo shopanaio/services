@@ -5,10 +5,10 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 import type { FastifyInstance } from "fastify";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
-import { IamBrokerActions } from "./IamBrokerActions.js";
 
 const { service } = getServiceConfig("iam");
 
@@ -18,16 +18,15 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
 
-  constructor(private readonly brokerActions: IamBrokerActions) {}
+  constructor(
+    @InjectBroker("iam") private readonly broker: ServiceBroker
+  ) {}
 
   async onModuleInit() {
     this.logger.debug("IAM onModuleInit started");
 
-    this.kernel = await Kernel.create(this.brokerActions["broker"]);
+    this.kernel = await Kernel.create(this.broker);
     this.logger.debug("Kernel created");
-
-    // Pass kernel to broker actions
-    this.brokerActions.setKernel(this.kernel);
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
