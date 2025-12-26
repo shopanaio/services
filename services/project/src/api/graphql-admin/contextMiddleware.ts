@@ -24,6 +24,7 @@ declare module "fastify" {
     store: ContextStore;
     user: ContextUser;
     accessToken?: string;
+    organizationId?: string;
   }
 }
 
@@ -83,6 +84,7 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
 
     const kernel = Kernel.getInstance();
     const storeName = request.headers["x-store-name"] as string | undefined;
+    const organizationId = request.headers["x-organization-id"] as string | undefined;
 
     // Extract access token from Authorization header
     const authHeader = request.headers.authorization;
@@ -132,6 +134,7 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
       id: userResult.user.id,
     };
     request.accessToken = accessToken;
+    request.organizationId = organizationId;
 
     // 2. If no store slug provided, skip store validation (for store creation)
     if (!storeName) {
@@ -140,9 +143,11 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
     }
 
     // 3. Load store by slug
+    console.log("[STORE contextMiddleware] Loading store by slug:", storeName);
     const result = await kernel.runScript(GetCurrentStoreScript, {
       slug: storeName,
     });
+    console.log("[STORE contextMiddleware] GetCurrentStoreScript result:", JSON.stringify(result, null, 2));
 
     if (result.userErrors.length > 0) {
       const error = result.userErrors[0];

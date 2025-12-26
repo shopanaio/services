@@ -1,7 +1,6 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import { StoreResolver } from "../../../resolvers/admin/StoreType.js";
 import type { Resolvers } from "../generated/types.js";
-import { requireContext } from "./utils.js";
 
 export const queryResolvers = {
   Query: {
@@ -10,10 +9,10 @@ export const queryResolvers = {
 
   StoreQuery: {
     stores: async (_parent, _args, ctx, info) => {
-      // User must be authenticated and have store context
-      if (!ctx.user?.id || !ctx.store?.organizationId) return [];
-
-      const organizationId = ctx.store.organizationId;
+      // User must be authenticated and have organization context
+      // organizationId comes from x-organization-id header
+      const organizationId = ctx.organizationId ?? ctx.store?.organizationId;
+      if (!ctx.user?.id || !organizationId) return [];
 
       // Get all store IDs in the organization
       const allStoreIds = await ctx.kernel
@@ -40,22 +39,21 @@ export const queryResolvers = {
       // Filter allowed store IDs
       const accessibleIds = allStoreIds.filter((_, i) => results[i]);
 
-      return StoreResolver.loadMany(
+      if (accessibleIds.length === 0) return [];
+
+      const stores = await StoreResolver.loadMany(
         accessibleIds,
         parseGraphqlInfo(info),
-        requireContext(ctx)
+        ctx
       );
+      return (stores ?? []) as any;
     },
 
     store: async (_parent, args, ctx, info) => {
       // If store is loaded from context (via X-Store-Name header), use it
       if (ctx.store?.id && ctx.store?.slug === args.slug) {
         // Context store matches - user already authorized by middleware
-        return StoreResolver.load(
-          ctx.store.id,
-          parseGraphqlInfo(info),
-          requireContext(ctx)
-        );
+        return StoreResolver.load(ctx.store.id, parseGraphqlInfo(info), ctx);
       }
 
       // No matching store in context - load by slug and check authorization
@@ -80,11 +78,7 @@ export const queryResolvers = {
 
       if (!authResult.allowed) return null;
 
-      return StoreResolver.load(
-        store.id,
-        parseGraphqlInfo(info),
-        requireContext(ctx)
-      );
+      return StoreResolver.load(store.id, parseGraphqlInfo(info), ctx);
     },
 
     apiKeys: async (_parent, _args, _ctx) => {

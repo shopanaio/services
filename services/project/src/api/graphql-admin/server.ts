@@ -150,6 +150,7 @@ export async function startServer(serverConfig: ServerConfig) {
         kernel: kernel!,
         store: request.store,
         user: request.user,
+        organizationId: request.organizationId,
         loaders,
       });
 
