@@ -7,6 +7,8 @@ import {
   ZodSchema,
 } from "@shopana/shared-kernel";
 import { Kernel } from "./kernel/Kernel.js";
+import { runWithContext, type ServiceContext } from "./context/index.js";
+import { Loader } from "./loaders/Loader.js";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
 import { AssignRoleScript } from "./scripts/organization/AssignRoleScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
@@ -51,6 +53,20 @@ export class IamBrokerActions extends BrokerActions {
 
   private get kernel(): Kernel {
     return Kernel.getInstance();
+  }
+
+  private async createUserContext(
+    userId: string,
+    organizationId: string
+  ): Promise<ServiceContext> {
+    const user = await this.kernel.repository.user.findById(userId);
+    return {
+      requestId: `broker-${Date.now()}`,
+      kernel: this.kernel,
+      currentUser: user,
+      organizationId,
+      loaders: new Loader(this.kernel.repository),
+    };
   }
 
   /**
@@ -110,7 +126,13 @@ export class IamBrokerActions extends BrokerActions {
   @Action("createRoles")
   @ZodSchema(createRolesInputSchema)
   async createRoles(params: CreateRolesParams): Promise<CreateRolesResult> {
-    return this.kernel.runScript(CreateRolesScript, params);
+    const ctx = await this.createUserContext(
+      params.userId,
+      params.organizationId
+    );
+    return runWithContext(ctx, () =>
+      this.kernel.runScript(CreateRolesScript, params)
+    );
   }
 
   /**
@@ -119,6 +141,12 @@ export class IamBrokerActions extends BrokerActions {
   @Action("assignRole")
   @ZodSchema(assignRoleInputSchema)
   async assignRole(params: AssignRoleParams): Promise<AssignRoleResult> {
-    return this.kernel.runScript(AssignRoleScript, params);
+    const ctx = await this.createUserContext(
+      params.userId,
+      params.organizationId
+    );
+    return runWithContext(ctx, () =>
+      this.kernel.runScript(AssignRoleScript, params)
+    );
   }
 }

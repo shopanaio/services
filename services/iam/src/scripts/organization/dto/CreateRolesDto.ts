@@ -35,6 +35,7 @@ const roleConfigSchema = z.object({
  * CreateRoles input schema
  */
 export const createRolesInputSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
   organizationId: z.string().uuid("Invalid organization ID"),
   domain: z.string().min(1, "Domain is required"),
   roles: z.array(roleConfigSchema).min(1, "At least one role is required"),
@@ -55,6 +56,7 @@ export interface RoleConfig {
 }
 
 export interface CreateRolesParams {
+  userId: string;
   organizationId: string;
   domain: Domain;
   roles: RoleConfig[];

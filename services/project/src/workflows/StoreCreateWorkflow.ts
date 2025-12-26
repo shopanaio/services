@@ -59,7 +59,7 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     await this.createStore(storeId, input, organizationId);
 
     // Step 3: Create store roles
-    await this.createRoles(storeId, organizationId);
+    await this.createRoles(storeId, organizationId, userId);
 
     // Step 4: Assign owner role to creator
     await this.assignOwnerRole(storeId, organizationId, userId);
@@ -99,8 +99,9 @@ export class StoreCreateWorkflow extends BaseWorkflow {
    * Step: Create roles for store domain
    */
   @DBOS.step()
-  async createRoles(storeId: string, organizationId: string) {
+  async createRoles(storeId: string, organizationId: string, userId: string) {
     const result = await this.broker.call("iam.createRoles", {
+      userId,
       organizationId,
       domain: `store:${storeId}`,
       roles: STORE_ROLES,
