@@ -58,8 +58,11 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     // Step 2: Create store in database with organizationId
     await this.createStore(storeId, input, organizationId);
 
-    // Step 3: Create store roles and assign owner to creator
-    await this.createRoles(storeId, organizationId, userId);
+    // Step 3: Create store roles
+    await this.createRoles(storeId, organizationId);
+
+    // Step 4: Assign owner role to creator
+    await this.assignOwnerRole(storeId, organizationId, userId);
 
     return { storeId, organizationId };
   }
@@ -93,12 +96,11 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   }
 
   /**
-   * Step: Create roles for store domain and assign owner to creator
+   * Step: Create roles for store domain
    */
   @DBOS.step()
-  async createRoles(storeId: string, organizationId: string, userId: string) {
+  async createRoles(storeId: string, organizationId: string) {
     const result = await this.broker.call("iam.createRoles", {
-      userId,
       organizationId,
       domain: `store:${storeId}`,
       roles: STORE_ROLES,
@@ -106,6 +108,23 @@ export class StoreCreateWorkflow extends BaseWorkflow {
 
     if (!result.success) {
       throw new Error(result.error || "Failed to create store roles");
+    }
+  }
+
+  /**
+   * Step: Assign owner role to store creator
+   */
+  @DBOS.step()
+  async assignOwnerRole(storeId: string, organizationId: string, userId: string) {
+    const result = await this.broker.call("iam.assignRole", {
+      userId,
+      organizationId,
+      domain: `store:${storeId}`,
+      roleName: "owner",
+    }) as { success: boolean; error?: string };
+
+    if (!result.success) {
+      throw new Error(result.error || "Failed to assign owner role");
     }
   }
 }

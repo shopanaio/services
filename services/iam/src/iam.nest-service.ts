@@ -10,9 +10,11 @@ import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "@src/api/graphql-admin/server.js";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { GetCurrentUserScript } from "./scripts/user/GetCurrentUserScript.js";
+import { AssignRoleScript } from "./scripts/organization/AssignRoleScript.js";
 import { AuthorizeScript } from "./scripts/organization/AuthorizeScript.js";
 import { BatchAuthorizeScript } from "./scripts/organization/BatchAuthorizeScript.js";
 import { CreateRolesScript } from "./scripts/organization/CreateRolesScript.js";
+import type { AssignRoleParams, AssignRoleResult } from "./scripts/organization/dto/AssignRoleDto.js";
 import type { AuthorizeResult } from "./scripts/organization/dto/AuthorizeDto.js";
 import type { BatchAuthorizeParams, BatchAuthorizeResult } from "./scripts/organization/dto/BatchAuthorizeDto.js";
 import type { CreateRolesParams, CreateRolesResult } from "./scripts/organization/dto/CreateRolesDto.js";
@@ -121,12 +123,11 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
 
-    // Action: createRoles - create roles for a domain and assign owner to user
+    // Action: createRoles - create roles for a domain
     this.broker.register<CreateRolesParams, CreateRolesResult>(
       "createRoles",
       async (params) => {
         if (
-          !params?.userId ||
           !params?.organizationId ||
           !params?.domain ||
           !params?.roles?.length
@@ -138,8 +139,25 @@ export class IamNestService implements OnModuleInit, OnModuleDestroy {
       }
     );
 
+    // Action: assignRole - assign a role to a user
+    this.broker.register<AssignRoleParams, AssignRoleResult>(
+      "assignRole",
+      async (params) => {
+        if (
+          !params?.userId ||
+          !params?.organizationId ||
+          !params?.domain ||
+          !params?.roleName
+        ) {
+          return { success: false, error: "Missing required parameters" };
+        }
+
+        return this.kernel.runScript(AssignRoleScript, params);
+      }
+    );
+
     this.logger.debug(
-      "Broker actions registered: getCurrentUser, authorize, batchAuthorize, createRoles"
+      "Broker actions registered: getCurrentUser, authorize, batchAuthorize, createRoles, assignRole"
     );
   }
 

@@ -6,7 +6,7 @@ import {
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
-import { ORG_DOMAIN, Resource } from "../casbin/CasbinService.js";
+import { ORG_DOMAIN, type Resource } from "../casbin/CasbinService.js";
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: IamKernelServices;

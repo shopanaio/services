@@ -1,11 +1,11 @@
 import type { Domain, Resource } from "@src/casbin/CasbinService.js";
 import {
-  BaseScript,
   Transactional,
   ZodSchema,
   Policy,
   AuthorizationError,
-} from "../../kernel/BaseScript.js";
+} from "@shopana/shared-kernel";
+import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   createRolesInputSchema,
   type CreateRolesParams,
@@ -22,42 +22,26 @@ export class CreateRolesScript extends BaseScript<
   @Policy({
     resource: "org.roles",
     action: "create",
-    organizationId: (params: CreateRolesParams) => params.organizationId,
+    organizationId: (params) => (params as CreateRolesParams).organizationId,
   })
   protected async execute(
     params: CreateRolesParams
   ): Promise<CreateRolesResult> {
-    const { userId, organizationId, domain, roles } = params;
+    const { organizationId, domain, roles } = params;
 
-    const createdRoles: Record<string, { id: string }> = {};
-    const ownerRoleName = "owner";
-
-    // Create predefined roles for the domain
+    // Create all roles and policies for the domain
     for (const roleConfig of roles) {
-      const role = await this.createRole(organizationId, domain, roleConfig);
-      createdRoles[roleConfig.name] = role;
-
+      await this.createRole(organizationId, domain, roleConfig);
       await this.addPoliciesForRole(organizationId, domain, roleConfig);
-    }
-
-    // Assign owner role to the user
-    if (createdRoles[ownerRoleName]) {
-      await this.assignOwnerRole(
-        userId,
-        organizationId,
-        domain,
-        createdRoles[ownerRoleName].id
-      );
     }
 
     this.logger.debug(
       {
-        userId,
         organizationId,
         domain,
-        rolesCreated: Object.keys(createdRoles),
+        rolesCreated: roles.map((r) => r.name),
       },
-      "CreateRolesScript: Roles initialized successfully"
+      "CreateRolesScript: Roles created successfully"
     );
 
     return { success: true };
@@ -112,30 +96,6 @@ export class CreateRolesScript extends BaseScript<
         }
       }
     }
-  }
-
-  private async assignOwnerRole(
-    userId: string,
-    organizationId: string,
-    domain: Domain,
-    roleId: string
-  ): Promise<void> {
-    // Create user role assignment in database
-    await this.repository.organization.createUserRole({
-      organizationId,
-      userId,
-      roleId,
-      domain,
-      grantedBy: userId,
-    });
-
-    // Assign owner role in Casbin
-    await this.repository.casbin.assignRole({
-      organizationId,
-      userId,
-      role: "owner",
-      domain,
-    });
   }
 
   protected handleError(error: unknown): CreateRolesResult {

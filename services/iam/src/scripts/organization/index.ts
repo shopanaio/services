@@ -1,3 +1,4 @@
+export * from "./AssignRoleScript.js";
 export * from "./AuthorizeScript.js";
 export * from "./BatchAuthorizeScript.js";
 export * from "./CreateRolesScript.js";
