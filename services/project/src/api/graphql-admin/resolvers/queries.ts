@@ -11,7 +11,7 @@ export const queryResolvers = {
     stores: async (_parent, _args, ctx, info) => {
       // User must be authenticated and have organization context
       // organizationId comes from x-organization-id header
-      const organizationId = ctx.organizationId ?? ctx.store?.organizationId;
+      const organizationId = ctx.organizationId;
       if (!ctx.user?.id || !organizationId) return [];
 
       // Get all store IDs in the organization

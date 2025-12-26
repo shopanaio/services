@@ -1,4 +1,4 @@
-import { load, loadMany } from "./executor.js";
+import { load } from "./executor.js";
 import type { CacheStore } from "./decorators/Cache.js";
 import type {
   QueryArgs,
@@ -112,28 +112,22 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
 
   /**
    * Static method to load and resolve multiple values through the executor.
-   * Checks policy before loading if defined.
+   * Policy is checked in load() for each item individually.
    *
    * @param values - The values to resolve
    * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
   static async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
-    this: T & { policy?: TypePolicy; checkPolicy?: typeof BaseType.checkPolicy },
+    this: T & { policy?: TypePolicy; checkPolicy?: typeof BaseType.checkPolicy; load: typeof BaseType.load },
     values: ConstructorParameters<T>[0][],
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
-  ): Promise<TResult[] | null> {
-    if (this.policy && this.checkPolicy) {
-      const allowed = await this.checkPolicy(ctx, this.policy);
-      if (!allowed) {
-        if (this.policy.onDeny === "null") {
-          return null;
-        }
-        throw new TypeAuthorizationError(this.policy.resource, this.policy.action);
-      }
-    }
-    return loadMany<T, TResult, TypeContext<T>>(this, values, query, ctx);
+  ): Promise<(TResult | null)[]> {
+    // Policy is checked in load() for each item individually
+    return Promise.all(
+      values.map((value) => this.load<T, TResult>(value, query, ctx))
+    );
   }
 
   private _dataPromise: Promise<TData> | null = null;

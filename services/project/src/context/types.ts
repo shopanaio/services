@@ -44,7 +44,7 @@ export class ServiceContext {
   /** Current locale for translations (default: 'uk') */
   readonly locale?: string;
   /** Organization ID from header (for org-level operations like listing stores) */
-  readonly organizationId?: string;
+  readonly _organizationId?: string;
 
   private _store?: ContextStore;
   private _user?: ContextUser;
@@ -55,7 +55,7 @@ export class ServiceContext {
     this.loaders = options.loaders;
     this.slug = options.slug;
     this.locale = options.locale;
-    this.organizationId = options.organizationId;
+    this._organizationId = options.organizationId;
     this._store = options.store;
     this._user = options.user;
   }
@@ -80,5 +80,10 @@ export class ServiceContext {
   setUser(user: ContextUser): this {
     this._user = user;
     return this;
+  }
+
+  /** Organization ID from header (for org-level operations like listing stores) */
+  get organizationId(): string | undefined {
+    return this._organizationId ?? this._store?.organizationId;
   }
 }
