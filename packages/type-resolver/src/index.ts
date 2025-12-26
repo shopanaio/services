@@ -11,6 +11,18 @@ export { Type } from "./decorators/Type.js";
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
 
+// Authorization middleware (re-exported for convenience)
+export {
+  TypePolicy,
+  TypeAuthorizationError,
+  createAuthorizationMiddleware,
+  authorizationMiddleware,
+  type TypePolicyOptions,
+  type AuthorizeParams,
+  type Authorizable,
+  type AuthorizationMiddlewareOptions,
+} from "./middleware/authorization/index.js";
+
 // Types
 export type {
   TypeClass,

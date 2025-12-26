@@ -1,9 +1,10 @@
-import { BaseType, createExecutor } from "@shopana/type-resolver";
 import {
+  BaseType,
+  createExecutor,
   createAuthorizationMiddleware,
   type Authorizable,
   type AuthorizeParams,
-} from "@shopana/type-resolver/middleware/authorization";
+} from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
 
 /**

@@ -1,8 +1,4 @@
-import {
-  ZodSchema,
-  Policy,
-  AuthorizationError,
-} from "@shopana/shared-kernel";
+import { ZodSchema, Policy, AuthorizationError } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   assignRoleInputSchema,
@@ -18,11 +14,9 @@ export class AssignRoleScript extends BaseScript<
   @Policy({
     resource: "org.roles",
     action: "update",
-    organizationId: (params) => (params as AssignRoleParams).organizationId,
+    organizationId: (_, params: AssignRoleParams) => params.organizationId,
   })
-  protected async execute(
-    params: AssignRoleParams
-  ): Promise<AssignRoleResult> {
+  protected async execute(params: AssignRoleParams): Promise<AssignRoleResult> {
     const { userId, organizationId, domain, roleName } = params;
 
     // Find role by name in the domain

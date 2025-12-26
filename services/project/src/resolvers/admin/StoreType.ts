@@ -1,5 +1,4 @@
-import { Cache } from "@shopana/type-resolver";
-import { TypePolicy } from "@shopana/type-resolver/middleware/authorization";
+import { Cache, TypePolicy } from "@shopana/type-resolver";
 import type { StoreRecord } from "../../repositories/models/store.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
 import { BaseResolver } from "./BaseResolver.js";

@@ -16,10 +16,10 @@ export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
   StoreCreateResult
 > {
-  @Policy({
+  @Policy<StoreCreateParams>({
     resource: "store",
     action: "create",
-    organizationId: (params) => (params as StoreCreateParams).organizationId,
+    organizationId: (_, params) => params.organizationId,
   })
   @ZodSchema(storeCreateInputSchema)
   protected async execute(

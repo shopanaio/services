@@ -19,10 +19,10 @@ export class CreateRolesScript extends BaseScript<
 > {
   @Transactional()
   @ZodSchema(createRolesInputSchema)
-  @Policy({
+  @Policy<CreateRolesParams>({
     resource: "org.roles",
     action: "create",
-    organizationId: (params) => (params as CreateRolesParams).organizationId,
+    organizationId: (_self, params) => params.organizationId,
   })
   protected async execute(
     params: CreateRolesParams

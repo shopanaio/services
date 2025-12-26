@@ -14,13 +14,13 @@ export class AuthorizationError extends Error {
   }
 }
 
-export interface AuthorizeOptions<TSelf extends Authorizable = Authorizable, TParams = unknown> {
+export interface AuthorizeOptions<TParams = unknown, TSelf extends Authorizable = Authorizable> {
   resource: string;
   action: string;
   /** Domain scope (e.g., "store:123"). Defaults to "org" */
-  domain?: string | ((self: TSelf, params?: TParams) => string);
+  domain?: string | ((self: TSelf, params: TParams) => string);
   /** Override organizationId. Can be a string or a function that extracts it from params */
-  organizationId?: string | ((self: TSelf, params?: TParams) => string);
+  organizationId?: string | ((self: TSelf, params: TParams) => string);
 }
 
 export interface AuthorizeParams {
@@ -39,6 +39,12 @@ export interface Authorizable {
   authorize(params: AuthorizeParams): Promise<boolean>;
 }
 
+type PolicyDecorator = <T>(
+  _target: object,
+  _propertyKey: string | symbol,
+  descriptor: TypedPropertyDescriptor<T>
+) => TypedPropertyDescriptor<T>;
+
 /**
  * Method decorator that checks authorization before executing.
  * The class must have:
@@ -55,19 +61,23 @@ export interface Authorizable {
  * }
  *
  * @example
- * // With typed self for domain
- * class StoreResolver extends BaseResolver {
- *   @Policy<StoreResolver>({
- *     resource: "store.settings",
- *     action: "read",
- *     domain: (self) => `store:${self.value}`
+ * // With typed params for organizationId callback
+ * class AssignRoleScript extends BaseScript {
+ *   @Policy<AssignRoleParams>({
+ *     resource: "org.roles",
+ *     action: "update",
+ *     organizationId: (_, params) => params.organizationId
  *   })
- *   async settings() { ... }
+ *   protected async execute(params: AssignRoleParams) { ... }
  * }
  */
-export function Policy<TSelf extends Authorizable = Authorizable, TParams = unknown>(
-  options: AuthorizeOptions<TSelf, TParams>
-) {
+export function Policy<TParams>(options: AuthorizeOptions<TParams>): PolicyDecorator;
+export function Policy<TParams, TSelf extends Authorizable>(
+  options: AuthorizeOptions<TParams, TSelf>
+): PolicyDecorator;
+export function Policy<TParams = unknown, TSelf extends Authorizable = Authorizable>(
+  options: AuthorizeOptions<TParams, TSelf>
+): PolicyDecorator {
   return function <T>(
     _target: object,
     _propertyKey: string | symbol,
