@@ -4,6 +4,5 @@ export {
   AuthorizationError,
   type Authorizable,
   type AuthorizeParams,
-  type AuthorizeResult,
   type AuthorizeOptions,
 } from "./Authorize.js";

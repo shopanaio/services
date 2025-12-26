@@ -3,7 +3,6 @@ import {
   AuthorizationError,
   type Authorizable,
   type AuthorizeParams,
-  type AuthorizeResult,
 } from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
@@ -45,19 +44,21 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   /**
    * Authorization check for @Authorize decorator
    */
-  async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
+  async authorize(params: AuthorizeParams): Promise<boolean> {
     // Auto-detect domain: explicit > store context > org (default)
     const domain =
       params.domain ??
       (this.context.store ? `store:${this.context.store.id}` : undefined);
 
-    return this.broker.call("iam.authorize", {
+    const result = (await this.broker.call("iam.authorize", {
       userId: this.userId,
       organizationId: params.organizationId,
       resource: params.resource,
       action: params.action,
       domain,
-    }) as Promise<AuthorizeResult>;
+    })) as { allowed: boolean };
+
+    return result.allowed;
   }
 
   /**

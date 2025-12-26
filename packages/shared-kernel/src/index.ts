@@ -41,7 +41,6 @@ export {
   type UserError,
   type Authorizable,
   type AuthorizeParams,
-  type AuthorizeResult,
   type AuthorizeOptions,
 } from "./decorators";
 

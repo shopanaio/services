@@ -1,9 +1,5 @@
 import { BaseType, type TypePolicy } from "@shopana/type-resolver";
-import type {
-  Authorizable,
-  AuthorizeParams,
-  AuthorizeResult,
-} from "@shopana/shared-kernel";
+import type { Authorizable, AuthorizeParams } from "@shopana/shared-kernel";
 import type { ServiceContext } from "../../context/types.js";
 
 /**
@@ -58,16 +54,8 @@ export abstract class BaseResolver<TValue, TData = unknown>
   /**
    * Instance-level authorization for @Authorize decorator.
    */
-  async authorize({
-    resource,
-    action,
-  }: AuthorizeParams): Promise<AuthorizeResult> {
-    const allowed = await BaseResolver.authorize(this.ctx, {
-      resource,
-      action,
-    });
-
-    return { allowed };
+  authorize({ resource, action }: AuthorizeParams): Promise<boolean> {
+    return BaseResolver.authorize(this.ctx, { resource, action });
   }
 
   protected getCache() {

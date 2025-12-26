@@ -30,18 +30,13 @@ export interface AuthorizeParams {
   domain?: string;
 }
 
-export interface AuthorizeResult {
-  allowed: boolean;
-  deniedReason?: string;
-}
-
 /**
  * Interface that a class must implement to use @Authorize decorator
  */
 export interface Authorizable {
   userId: string | null;
   organizationId: string | null;
-  authorize(params: AuthorizeParams): Promise<AuthorizeResult>;
+  authorize(params: AuthorizeParams): Promise<boolean>;
 }
 
 /**
@@ -112,7 +107,7 @@ export function Policy(options: AuthorizeOptions) {
         );
       }
 
-      const result = await this.authorize({
+      const allowed = await this.authorize({
         resource: options.resource,
         action: options.action,
         organizationId,
@@ -122,14 +117,12 @@ export function Policy(options: AuthorizeOptions) {
             : options.domain,
       });
 
-      if (!result.allowed) {
+      if (!allowed) {
         throw new AuthorizationError(
           [
             {
               code: "FORBIDDEN",
-              message:
-                result.deniedReason ??
-                `Access denied: ${options.resource}:${options.action}`,
+              message: `Access denied: ${options.resource}:${options.action}`,
               field: null,
             },
           ],
