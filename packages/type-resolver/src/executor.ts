@@ -4,6 +4,7 @@ import type {
   TypeClass,
   TypeResult,
 } from "./types.js";
+import { getFieldType } from "./decorators/Type.js";
 
 /**
  * Error thrown when a resolver fails.
@@ -116,8 +117,8 @@ export class Executor<TContext = unknown> {
           // Call resolver method
           const resolved = await method.call(instance, argsForField);
 
-          // Check if there is a child type for this field
-          const getChildType = fieldsMap[methodName];
+          // Check if there is a child type for this field (static fields or @Type decorator)
+          const getChildType = getFieldType(method) ?? fieldsMap[methodName];
 
           if (getChildType && resolved != null && fieldQuery) {
             // Relation field - recursively resolve with child query

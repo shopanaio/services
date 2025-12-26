@@ -10,6 +10,7 @@ export { ResolverError } from "./executor.js";
 
 // Decorators
 export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";
+export { Type } from "./decorators/Type.js";
 
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
