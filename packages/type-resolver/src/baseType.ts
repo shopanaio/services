@@ -16,6 +16,9 @@ export interface TypePolicy {
   action: string;
   /** Behavior when authorization fails: 'throw' (default) or 'null' */
   onDeny?: "throw" | "null";
+  /** Domain for authorization (e.g., "store:123"). Can be a string or a function that receives the value. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  domain?: string | ((resolver: any) => string);
 }
 
 /**
@@ -58,11 +61,13 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    *
    * @param ctx - Context object
    * @param policy - Policy to check
+   * @param value - The value being loaded (for domain resolution)
    * @returns true if authorized, false otherwise
    */
   protected static authorize(
     _ctx: unknown,
-    _policy: TypePolicy
+    _policy: TypePolicy,
+    _value?: unknown
   ): Promise<boolean> {
     // Default: no authorization check
     return Promise.resolve(true);
@@ -73,9 +78,10 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    */
   static async checkPolicy(
     ctx: unknown,
-    policy: TypePolicy
+    policy: TypePolicy,
+    value?: unknown
   ): Promise<boolean> {
-    return this.authorize(ctx, policy);
+    return this.authorize(ctx, policy, value);
   }
 
   /**
@@ -93,7 +99,7 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
     ctx: TypeContext<T>
   ): Promise<TResult | null> {
     if (this.policy && this.checkPolicy) {
-      const allowed = await this.checkPolicy(ctx, this.policy);
+      const allowed = await this.checkPolicy(ctx, this.policy, value);
       if (!allowed) {
         if (this.policy.onDeny === "null") {
           return null;

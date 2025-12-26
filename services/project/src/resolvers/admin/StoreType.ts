@@ -9,7 +9,12 @@ export { BaseResolver };
  * Store type resolver - resolves Store GraphQL type
  * Accepts store ID, loads data lazily via repository
  */
-@TypePolicy({ resource: "*", action: "read", onDeny: "null" })
+@TypePolicy({
+  domain: ({ value }) => `store:${value}`,
+  resource: "*",
+  action: "read",
+  onDeny: "null",
+})
 export class StoreResolver extends BaseResolver<string, StoreRecord | null> {
   @Cache({
     cacheName: "store",

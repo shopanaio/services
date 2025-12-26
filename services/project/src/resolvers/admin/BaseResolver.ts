@@ -29,10 +29,21 @@ export abstract class BaseResolver<TValue, TData = unknown>
    */
   protected static async authorize(
     ctx: ServiceContext,
-    policy: TypePolicyOptions
+    policy: TypePolicyOptions,
+    value?: unknown
   ): Promise<boolean> {
     if (!ctx.user?.id || !ctx.store?.organizationId) {
       return false;
+    }
+
+    // Resolve domain from policy or use context store
+    let domain = `store:${ctx.store.id}`;
+    if (policy.domain) {
+      if (typeof policy.domain === "function") {
+        domain = policy.domain({ value });
+      } else {
+        domain = policy.domain;
+      }
     }
 
     return ctx.loaders.authorization.load({
@@ -40,7 +51,7 @@ export abstract class BaseResolver<TValue, TData = unknown>
       organizationId: ctx.store.organizationId,
       resource: policy.resource,
       action: policy.action,
-      domain: `store:${ctx.store.id}`,
+      domain,
     });
   }
 
