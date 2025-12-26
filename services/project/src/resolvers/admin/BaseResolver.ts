@@ -58,17 +58,13 @@ export abstract class BaseResolver<TValue, TData = unknown>
   /**
    * Instance-level authorization for @Authorize decorator.
    */
-  async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const domain =
-      params.domain ??
-      (this.ctx.store ? `store:${this.ctx.store.id}` : undefined);
-
-    const allowed = await this.ctx.loaders.authorization.load({
-      userId: this.userId!,
-      organizationId: params.organizationId,
-      resource: params.resource,
-      action: params.action,
-      domain,
+  async authorize({
+    resource,
+    action,
+  }: AuthorizeParams): Promise<AuthorizeResult> {
+    const allowed = await BaseResolver.authorize(this.ctx, {
+      resource,
+      action,
     });
 
     return { allowed };
