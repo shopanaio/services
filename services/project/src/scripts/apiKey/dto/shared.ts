@@ -1,4 +1,4 @@
-import type { UserError } from "../../../kernel/BaseScript.js";
+import type { UserError } from "@shopana/shared-kernel";
 import type { ApiKey } from "../../../repositories/models/index.js";
 
 export interface ApiKeyPayload {

@@ -1,11 +1,23 @@
+import {
+  Authorize,
+  ZodSchema,
+  ValidationError,
+  AuthorizationError,
+} from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
-import type { StoreCreateParams, StoreCreateResult } from "./dto/index.js";
+import {
+  storeCreateInputSchema,
+  type StoreCreateParams,
+  type StoreCreateResult,
+} from "./dto/index.js";
 import type { StoreCreateWorkflow } from "../../workflows/index.js";
 
 export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
   StoreCreateResult
 > {
+  @Authorize({ resource: "store", action: "create" })
+  @ZodSchema(storeCreateInputSchema)
   protected async execute(
     params: StoreCreateParams
   ): Promise<StoreCreateResult> {
@@ -21,7 +33,7 @@ export class StoreCreateScript extends BaseScript<
       defaultCurrency: params.defaultCurrency,
       status: params.status,
       timezone: params.timezone,
-      email: params.email,
+      email: params.email ?? undefined,
     });
 
     const store = await this.repository.store.findById(result.storeId);
@@ -32,10 +44,23 @@ export class StoreCreateScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): StoreCreateResult {
+  protected handleError(error: unknown): StoreCreateResult {
+    if (error instanceof ValidationError) {
+      return { store: null, userErrors: error.errors };
+    }
+    if (error instanceof AuthorizationError) {
+      return { store: null, userErrors: error.errors };
+    }
+
     return {
       store: null,
-      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+      userErrors: [
+        {
+          code: "INTERNAL_ERROR",
+          message: "An unexpected error occurred",
+          field: null,
+        },
+      ],
     };
   }
 }

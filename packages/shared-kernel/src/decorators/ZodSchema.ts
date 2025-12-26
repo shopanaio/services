@@ -2,11 +2,12 @@ import type { ZodSchema as ZodSchemaType, ZodError } from "zod";
 
 /**
  * User error interface for validation results
+ * Uses `| null` instead of `?` to match GraphQL's Maybe type
  */
 export interface UserError {
   message: string;
-  field?: string[];
-  code?: string;
+  field: string[] | null;
+  code: string | null;
 }
 
 /**

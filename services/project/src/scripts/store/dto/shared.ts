@@ -1,4 +1,4 @@
-import type { UserError } from "../../../kernel/BaseScript.js";
+import type { UserError } from "@shopana/shared-kernel";
 import type { Store } from "../../../repositories/index.js";
 
 export interface StorePayload {

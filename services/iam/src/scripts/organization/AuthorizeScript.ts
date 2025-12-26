@@ -1,7 +1,11 @@
+import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/AuthorizeDto.js";
 
-export class AuthorizeScript extends BaseScript<AuthorizeParams, AuthorizeResult> {
+export class AuthorizeScript extends BaseScript<
+  AuthorizeParams,
+  AuthorizeResult
+> {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
     const { userId, organizationId, domain, resource, action } = params;
 
@@ -15,7 +19,7 @@ export class AuthorizeScript extends BaseScript<AuthorizeParams, AuthorizeResult
     const allowed = await this.repository.casbin.enforce({
       organizationId,
       userId,
-      domain,
+      domain: domain ?? ORG_DOMAIN,
       resource,
       action,
     });

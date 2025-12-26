@@ -1,56 +1,11 @@
-import { z } from "zod";
 import type { Resolvers, Store } from "../../generated/types.js";
 import { StoreCreateScript } from "../../../../scripts/store/StoreCreateScript.js";
 import { StoreUpdateScript } from "../../../../scripts/store/StoreUpdateScript.js";
 import { StoreDeleteScript } from "../../../../scripts/store/StoreDeleteScript.js";
-import { checkAuthorization } from "../../decorators/authorize.js";
-
-const StoreCreateInputSchema = z.object({
-  organizationId: z.string().uuid("Invalid organization ID"),
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
-  locales: z.array(z.string()).min(1, "At least one locale is required"),
-  currencies: z.array(z.string()).min(1, "At least one currency is required"),
-  defaultCurrency: z.string(),
-  status: z.enum(["active", "inactive"]).optional(),
-  timezone: z.string().optional(),
-  email: z.string().email("Invalid email format").optional().nullable(),
-});
-
-function zodErrorsToUserErrors(error: z.ZodError) {
-  return error.errors.map((e) => ({
-    message: e.message,
-    code: "VALIDATION_ERROR",
-    field: e.path.map(String),
-  }));
-}
 
 export const storeMutationResolvers: Partial<Resolvers> = {
   StoreMutation: {
     storeCreate: async (_parent, { input }, ctx) => {
-      // Validate input with Zod
-      const validation = StoreCreateInputSchema.safeParse(input);
-
-      if (!validation.success) {
-        return {
-          store: null,
-          userErrors: zodErrorsToUserErrors(validation.error),
-        };
-      }
-
-      if (!ctx.user?.id) {
-        return {
-          store: null,
-          userErrors: [
-            {
-              message: "Authentication required",
-              code: "UNAUTHENTICATED",
-              field: null,
-            },
-          ],
-        };
-      }
-
       const result = await ctx.kernel.runScript(StoreCreateScript, {
         organizationId: input.organizationId,
         name: input.name,
@@ -60,48 +15,32 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         defaultCurrency: input.defaultCurrency as any,
         status: input.status ?? undefined,
         timezone: input.timezone ?? undefined,
-        email: input.email ?? undefined,
+        email: input.email,
       });
 
       return {
-        store: (result.store as Store) ?? null,
+        store: (result.store as unknown as Store) ?? null,
         userErrors: result.userErrors,
       };
     },
 
     storeUpdate: async (_parent, { input }, ctx) => {
-      const authError = await checkAuthorization(ctx, "store", "update");
-      if (authError) {
-        return {
-          store: null,
-          userErrors: [authError],
-        };
-      }
-
       const result = await ctx.kernel.runScript(StoreUpdateScript, {
         id: ctx.store.id,
         name: input.name ?? undefined,
         email: input.email ?? undefined,
         timezone: input.timezone ?? undefined,
-        defaultWeightUnit: input.defaultWeightUnit ?? undefined,
-        defaultDimensionUnit: input.defaultDimensionUnit ?? undefined,
+        defaultWeightUnit: (input.defaultWeightUnit as any) ?? undefined,
+        defaultDimensionUnit: (input.defaultDimensionUnit as any) ?? undefined,
       });
 
       return {
-        store: result.store ?? null,
+        store: (result.store as unknown as Store) ?? null,
         userErrors: result.userErrors,
       };
     },
 
     storeDelete: async (_parent, { input }, ctx) => {
-      const authError = await checkAuthorization(ctx, "store", "delete");
-      if (authError) {
-        return {
-          deletedStoreId: null,
-          userErrors: [authError],
-        };
-      }
-
       const result = await ctx.kernel.runScript(StoreDeleteScript, {
         id: input.id,
       });

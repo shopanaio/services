@@ -36,7 +36,13 @@ export {
 export {
   ZodSchema,
   ValidationError,
+  Authorize,
+  AuthorizationError,
   type UserError,
+  type Authorizable,
+  type AuthorizeParams,
+  type AuthorizeResult,
+  type AuthorizeOptions,
 } from "./decorators";
 
 // Resource discovery types

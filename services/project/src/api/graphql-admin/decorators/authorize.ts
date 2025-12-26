@@ -5,6 +5,8 @@ import { ForbiddenError } from "../contextMiddleware.js";
 export interface AuthorizeOptions {
   resource: string;
   action: string;
+  /** Override organizationId (e.g., from input for store creation) */
+  organizationId?: string | ((args: Record<string, unknown>) => string);
   resourceId?: string | ((args: Record<string, unknown>) => string);
   resourceOwnerId?: string | ((args: Record<string, unknown>, ctx?: ServiceContext) => string);
 }
@@ -40,6 +42,12 @@ export interface AuthorizationError {
   field: string[] | null;
 }
 
+export interface CheckAuthorizationOptions {
+  organizationId?: string;
+  resourceId?: string;
+  resourceOwnerId?: string;
+}
+
 /**
  * Check authorization and return error if denied
  * Returns null if authorized, error object if denied
@@ -47,9 +55,10 @@ export interface AuthorizationError {
 export async function checkAuthorization(
   ctx: ServiceContext,
   resource: string,
-  action: string
+  action: string,
+  options?: CheckAuthorizationOptions
 ): Promise<AuthorizationError | null> {
-  if (!ctx.user?.id || !ctx.store?.organizationId) {
+  if (!ctx.user?.id) {
     return {
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -57,7 +66,24 @@ export async function checkAuthorization(
     };
   }
 
-  const allowed = await checkPermission(ctx, resource, action);
+  const organizationId = options?.organizationId ?? ctx.store?.organizationId;
+  if (!organizationId) {
+    return {
+      code: "UNAUTHORIZED",
+      message: "Organization context required",
+      field: null,
+    };
+  }
+
+  const allowed = await checkPermission(
+    ctx,
+    resource,
+    action,
+    organizationId,
+    options?.resourceId,
+    options?.resourceOwnerId
+  );
+
   if (!allowed) {
     return {
       code: "FORBIDDEN",
@@ -73,6 +99,7 @@ async function checkPermission(
   ctx: ServiceContext,
   resource: string,
   action: string,
+  organizationId: string,
   resourceId?: string,
   resourceOwnerId?: string
 ): Promise<boolean> {
@@ -83,7 +110,7 @@ async function checkPermission(
 
   const result = await ctx.kernel.getServices().broker.call("iam.authorize", {
     userId: ctx.user.id,
-    organizationId: ctx.store.organizationId,
+    organizationId,
     resource,
     action,
     resourceId,
@@ -128,8 +155,8 @@ export function Authorize<TParent, TArgs extends Record<string, unknown>, TResul
       ctx: ServiceContext,
       info: GraphQLResolveInfo
     ): Promise<TResult> {
-      // Ensure context has required data
-      if (!ctx.user?.id || !ctx.store?.organizationId) {
+      // Ensure user is authenticated
+      if (!ctx.user?.id) {
         throw new ForbiddenError("Authentication required");
       }
 
@@ -137,10 +164,17 @@ export function Authorize<TParent, TArgs extends Record<string, unknown>, TResul
 
       // Check all permissions (AND logic)
       for (const opt of checks) {
+        // Use organizationId from options or fall back to context
+        const orgId = resolveValue(opt.organizationId, args) ?? ctx.store?.organizationId;
+        if (!orgId) {
+          throw new ForbiddenError("Organization context required");
+        }
+
         const allowed = await checkPermission(
           ctx,
           opt.resource,
           opt.action,
+          orgId,
           resolveValue(opt.resourceId, args),
           resolveValue(opt.resourceOwnerId, args, ctx)
         );
@@ -177,17 +211,21 @@ export function AuthorizeAny<TParent, TArgs extends Record<string, unknown>, TRe
       ctx: ServiceContext,
       info: GraphQLResolveInfo
     ): Promise<TResult> {
-      // Ensure context has required data
-      if (!ctx.user?.id || !ctx.store?.organizationId) {
+      // Ensure user is authenticated
+      if (!ctx.user?.id) {
         throw new ForbiddenError("Authentication required");
       }
 
       // Check if any permission is allowed (OR logic)
       for (const opt of options) {
+        const orgId = resolveValue(opt.organizationId, args) ?? ctx.store?.organizationId;
+        if (!orgId) continue; // Skip if no org context for this check
+
         const allowed = await checkPermission(
           ctx,
           opt.resource,
           opt.action,
+          orgId,
           resolveValue(opt.resourceId, args),
           resolveValue(opt.resourceOwnerId, args, ctx)
         );

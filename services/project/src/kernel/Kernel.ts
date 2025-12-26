@@ -109,4 +109,5 @@ export type {
   TransactionScript,
 } from "./types.js";
 export { KernelError } from "./types.js";
-export { BaseScript, type UserError } from "./BaseScript.js";
+export { BaseScript } from "./BaseScript.js";
+export { type UserError } from "@shopana/shared-kernel";
