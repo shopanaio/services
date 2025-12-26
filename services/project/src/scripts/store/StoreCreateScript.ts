@@ -1,5 +1,5 @@
 import {
-  Authorize,
+  Policy,
   ZodSchema,
   ValidationError,
   AuthorizationError,
@@ -16,7 +16,7 @@ export class StoreCreateScript extends BaseScript<
   StoreCreateParams,
   StoreCreateResult
 > {
-  @Authorize({
+  @Policy({
     resource: "store",
     action: "create",
     organizationId: (params) => (params as StoreCreateParams).organizationId,

@@ -1,5 +1,9 @@
 // Base type (use Type.load() and Type.loadMany() static methods)
-export { BaseType } from "./baseType.js";
+export {
+  BaseType,
+  TypeAuthorizationError,
+  type TypePolicy,
+} from "./baseType.js";
 
 // Error type
 export { ResolverError } from "./executor.js";

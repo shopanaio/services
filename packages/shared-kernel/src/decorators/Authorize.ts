@@ -55,11 +55,11 @@ export interface Authorizable {
  *
  * @example
  * class StoreCreateScript extends BaseScript {
- *   @Authorize({ resource: "store", action: "create" })
+ *   @Policy({ resource: "store", action: "create" })
  *   protected async execute(params: StoreCreateParams) { ... }
  * }
  */
-export function Authorize(options: AuthorizeOptions) {
+export function Policy(options: AuthorizeOptions) {
   return function <T>(
     _target: object,
     _propertyKey: string | symbol,

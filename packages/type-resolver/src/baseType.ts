@@ -8,6 +8,30 @@ import type {
 } from "./types.js";
 
 /**
+ * Authorization policy for type resolvers.
+ * Checked once on load/loadMany before resolving fields.
+ */
+export interface TypePolicy {
+  resource: string;
+  action: string;
+  /** Behavior when authorization fails: 'throw' (default) or 'null' */
+  onDeny?: "throw" | "null";
+}
+
+/**
+ * Error thrown when authorization fails.
+ */
+export class TypeAuthorizationError extends Error {
+  constructor(
+    public readonly resource: string,
+    public readonly action: string
+  ) {
+    super(`Access denied: ${resource}:${action}`);
+    this.name = "TypeAuthorizationError";
+  }
+}
+
+/**
  * Abstract base class for type definitions.
  * Provides convenience methods for loading data and value properties.
  *
@@ -17,34 +41,92 @@ import type {
  */
 export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   /**
+   * Authorization policy. Override in subclass to enable auth checks on load/loadMany.
+   *
+   * @example
+   * ```typescript
+   * class StoreResolver extends BaseResolver<string, Store | null> {
+   *   static policy = { resource: "store", action: "read", onDeny: "null" };
+   * }
+   * ```
+   */
+  static policy?: TypePolicy;
+
+  /**
+   * Override this method in subclass to implement authorization logic.
+   * Called by checkPolicy when policy is defined.
+   *
+   * @param ctx - Context object
+   * @param policy - Policy to check
+   * @returns true if authorized, false otherwise
+   */
+  protected static authorize(
+    _ctx: unknown,
+    _policy: TypePolicy
+  ): Promise<boolean> {
+    // Default: no authorization check
+    return Promise.resolve(true);
+  }
+
+  /**
+   * Check authorization policy. Override authorize() to customize.
+   */
+  protected static async checkPolicy(
+    ctx: unknown,
+    policy: TypePolicy
+  ): Promise<boolean> {
+    return this.authorize(ctx, policy);
+  }
+
+  /**
    * Static method to load and resolve a value through the executor.
+   * Checks policy before loading if defined.
    *
    * @param value - The value to resolve
    * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
-  static load<T extends TypeClass, TResult = TypeResult<T>>(
-    this: T,
+  static async load<T extends TypeClass, TResult = TypeResult<T>>(
+    this: T & { policy?: TypePolicy; checkPolicy?: typeof BaseType.checkPolicy },
     value: ConstructorParameters<T>[0],
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
-  ): Promise<TResult> {
+  ): Promise<TResult | null> {
+    if (this.policy && this.checkPolicy) {
+      const allowed = await this.checkPolicy(ctx, this.policy);
+      if (!allowed) {
+        if (this.policy.onDeny === "null") {
+          return null;
+        }
+        throw new TypeAuthorizationError(this.policy.resource, this.policy.action);
+      }
+    }
     return load<T, TResult, TypeContext<T>>(this, value, query, ctx);
   }
 
   /**
    * Static method to load and resolve multiple values through the executor.
+   * Checks policy before loading if defined.
    *
    * @param values - The values to resolve
    * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
-  static loadMany<T extends TypeClass, TResult = TypeResult<T>>(
-    this: T,
+  static async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
+    this: T & { policy?: TypePolicy; checkPolicy?: typeof BaseType.checkPolicy },
     values: ConstructorParameters<T>[0][],
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
-  ): Promise<TResult[]> {
+  ): Promise<TResult[] | null> {
+    if (this.policy && this.checkPolicy) {
+      const allowed = await this.checkPolicy(ctx, this.policy);
+      if (!allowed) {
+        if (this.policy.onDeny === "null") {
+          return null;
+        }
+        throw new TypeAuthorizationError(this.policy.resource, this.policy.action);
+      }
+    }
     return loadMany<T, TResult, TypeContext<T>>(this, values, query, ctx);
   }
 

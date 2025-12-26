@@ -1,6 +1,6 @@
 export { ZodSchema, ValidationError, type UserError } from "./ZodSchema.js";
 export {
-  Authorize,
+  Policy,
   AuthorizationError,
   type Authorizable,
   type AuthorizeParams,

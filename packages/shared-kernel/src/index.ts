@@ -36,7 +36,7 @@ export {
 export {
   ZodSchema,
   ValidationError,
-  Authorize,
+  Policy,
   AuthorizationError,
   type UserError,
   type Authorizable,
