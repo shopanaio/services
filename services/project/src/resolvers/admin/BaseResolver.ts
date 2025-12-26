@@ -1,4 +1,5 @@
-import { BaseType, type TypePolicyOptions } from "@shopana/type-resolver";
+import { BaseType, createExecutor } from "@shopana/type-resolver";
+import { createAuthorizationMiddleware } from "@shopana/type-resolver/middleware";
 import type { Authorizable, AuthorizeParams } from "@shopana/shared-kernel";
 import type { ServiceContext } from "../../context/types.js";
 
@@ -24,36 +25,11 @@ export abstract class BaseResolver<TValue, TData = unknown>
   implements Authorizable
 {
   /**
-   * Authorization check using batched loader.
-   * Called by BaseType.load/loadMany when policy is defined.
+   * Executor with authorization middleware.
    */
-  protected static async authorize(
-    ctx: ServiceContext,
-    policy: TypePolicyOptions,
-    value?: unknown
-  ): Promise<boolean> {
-    if (!ctx.user?.id || !ctx.store?.organizationId) {
-      return false;
-    }
-
-    // Resolve domain from policy or use context store
-    let domain = `store:${ctx.store.id}`;
-    if (policy.domain) {
-      if (typeof policy.domain === "function") {
-        domain = policy.domain({ value });
-      } else {
-        domain = policy.domain;
-      }
-    }
-
-    return ctx.loaders.authorization.load({
-      userId: ctx.user.id,
-      organizationId: ctx.store.organizationId,
-      resource: policy.resource,
-      action: policy.action,
-      domain,
-    });
-  }
+  static executor = createExecutor<ServiceContext>({
+    middleware: [createAuthorizationMiddleware()],
+  });
 
   get userId(): string | null {
     return this.ctx.user?.id ?? null;
@@ -64,12 +40,30 @@ export abstract class BaseResolver<TValue, TData = unknown>
   }
 
   /**
-   * Instance-level authorization for @Authorize decorator.
+   * Instance-level authorization for @TypePolicy decorator.
+   * Called by authorization middleware after instance creation.
    */
-  authorize({ resource, action }: AuthorizeParams): Promise<boolean> {
-    return BaseResolver.authorize(this.ctx, { resource, action });
+  async authorize({
+    resource,
+    action,
+    domain,
+  }: AuthorizeParams): Promise<boolean> {
+    const { loaders, user, organizationId } = this.ctx;
+
+    if (!user?.id || !organizationId) {
+      return false;
+    }
+
+    return loaders.authorization.load({
+      userId: user.id,
+      organizationId,
+      resource,
+      action,
+      domain,
+    });
   }
 
+  // @ts-expect-error
   protected getCache() {
     return this.ctx.kernel.cache;
   }

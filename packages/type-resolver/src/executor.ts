@@ -2,7 +2,6 @@ import type {
   AfterCreateContext,
   AfterLoadContext,
   ExecutorOptions,
-  Middleware,
   MiddlewareResult,
   MiddlewareStack,
   QueryArgs,
@@ -91,21 +90,24 @@ export class Executor<TContext = unknown> {
    * @param value - The raw value to resolve (typically an ID)
    * @param query - Optional QueryArgs specifying which fields to resolve.
    *                When provided, only requested fields are resolved.
+   * @param ctx - Context object to pass to type instances (overrides options.ctx)
    * @returns The fully resolved object with all fields
    */
   async load<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     value: ConstructorParameters<T>[0],
-    query?: QueryArgs
+    query?: QueryArgs,
+    ctx?: TContext
   ): Promise<TResult> {
-    const instance = new Type(value, this.options.ctx);
+    const context = ctx ?? this.options.ctx;
+    const instance = new Type(value, context);
 
     // Build middleware context
     const middlewareCtx: AfterCreateContext<TContext> = {
       Type,
       value,
       query,
-      ctx: this.options.ctx as TContext,
+      ctx: context as TContext,
       instance,
     };
 
@@ -160,8 +162,8 @@ export class Executor<TContext = unknown> {
     if (query && fieldsToResolve.size === 0) {
       console.warn(
         `[type-resolver] No fields to resolve for ${Type.name}. ` +
-        `Query was provided but fields/populate are empty. ` +
-        `Check parseGraphqlInfo fieldName parameter - it should match the field path in your GraphQL query.`
+          `Query was provided but fields/populate are empty. ` +
+          `Check parseGraphqlInfo fieldName parameter - it should match the field path in your GraphQL query.`
       );
     }
 
@@ -193,10 +195,17 @@ export class Executor<TContext = unknown> {
 
             if (Array.isArray(resolved)) {
               result[key] = await Promise.all(
-                resolved.map((item) => this.load(ChildType, item, fieldQuery))
+                resolved.map((item) =>
+                  this.load(ChildType, item, fieldQuery, context)
+                )
               );
             } else {
-              result[key] = await this.load(ChildType, resolved, fieldQuery);
+              result[key] = await this.load(
+                ChildType,
+                resolved,
+                fieldQuery,
+                context
+              );
             }
           } else {
             // Scalar field or relation without query
@@ -236,14 +245,17 @@ export class Executor<TContext = unknown> {
 
   /**
    * Resolves an array of values through a TypeClass.
+   *
+   * @param ctx - Context object to pass to type instances (overrides options.ctx)
    */
   async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
     Type: T,
     values: ConstructorParameters<T>[0][],
-    query?: QueryArgs
+    query?: QueryArgs,
+    ctx?: TContext
   ): Promise<TResult[]> {
     return Promise.all(
-      values.map((value) => this.load<T, TResult>(Type, value, query))
+      values.map((value) => this.load<T, TResult>(Type, value, query, ctx))
     );
   }
 }
