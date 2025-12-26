@@ -12,8 +12,8 @@ import type { TypePolicy as TypePolicyOptions } from "../baseType.js";
  * ```
  */
 export function TypePolicy(options: TypePolicyOptions) {
-  return function <T extends new (...args: any[]) => any>(target: T): T {
-    (target as any).policy = options;
-    return target;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return function (target: any): void {
+    target.policy = options;
   };
 }

@@ -71,7 +71,7 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   /**
    * Check authorization policy. Override authorize() to customize.
    */
-  protected static async checkPolicy(
+  static async checkPolicy(
     ctx: unknown,
     policy: TypePolicy
   ): Promise<boolean> {

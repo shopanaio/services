@@ -5,7 +5,7 @@ import type { ServiceContext } from "../../context/types.js";
 /**
  * Base resolver class with ServiceContext and Authorizable support.
  *
- * Set static `policy` to enable authorization check on load/loadMany.
+ * Use @TypePolicy decorator to enable authorization check on load/loadMany.
  * Authorization uses batched loader from context.
  *
  * @template TValue - The type of the input value passed to the constructor
@@ -13,8 +13,9 @@ import type { ServiceContext } from "../../context/types.js";
  *
  * @example
  * ```typescript
+ * @TypePolicy({ resource: "store", action: "read", onDeny: "null" })
  * class StoreResolver extends BaseResolver<string, Store | null> {
- *   static policy = { resource: "store", action: "read", onDeny: "null" };
+ *   // ...
  * }
  * ```
  */
