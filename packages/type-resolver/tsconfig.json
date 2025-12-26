@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,

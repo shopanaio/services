@@ -1,4 +1,4 @@
-import { BaseType, type TypePolicy } from "@shopana/type-resolver";
+import { BaseType, type TypePolicyOptions } from "@shopana/type-resolver";
 import type { Authorizable, AuthorizeParams } from "@shopana/shared-kernel";
 import type { ServiceContext } from "../../context/types.js";
 
@@ -28,7 +28,7 @@ export abstract class BaseResolver<TValue, TData = unknown>
    */
   protected static async authorize(
     ctx: ServiceContext,
-    policy: TypePolicy
+    policy: TypePolicyOptions
   ): Promise<boolean> {
     if (!ctx.user?.id || !ctx.store?.organizationId) {
       return false;

@@ -2,7 +2,7 @@
 export {
   BaseType,
   TypeAuthorizationError,
-  type TypePolicy,
+  type TypePolicy as TypePolicyOptions,
 } from "./baseType.js";
 
 // Error type
@@ -11,6 +11,7 @@ export { ResolverError } from "./executor.js";
 // Decorators
 export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";
 export { Type } from "./decorators/Type.js";
+export { TypePolicy } from "./decorators/TypePolicy.js";
 
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
