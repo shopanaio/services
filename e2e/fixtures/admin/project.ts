@@ -1,12 +1,12 @@
-import { ApiProjectCreateInput, CurrencyCode, LocaleCode } from '@codegen/admin-gql';
+import { ApiStoreCreateInput, CurrencyCode, LocaleCode } from '@codegen/admin-gql';
 import { BaseGqlRequest } from '@fixtures/api/gqlRequest';
 import _ from 'lodash';
 
 export class ProjectFixture {
   constructor(private gql: BaseGqlRequest<unknown, unknown>) {}
 
-  create = async (input: Partial<ApiProjectCreateInput> = {}) => {
-    const defaults: ApiProjectCreateInput = {
+  create = async (input: Partial<ApiStoreCreateInput> & { organizationId: string }) => {
+    const defaults: Omit<ApiStoreCreateInput, 'organizationId'> = {
       slug: `test-project-${crypto.randomUUID().slice(0, 8)}`,
       name: 'Playwright Project',
       locales: [LocaleCode.En],
@@ -22,19 +22,19 @@ export class ProjectFixture {
 
     const result = (
       data as {
-        projectMutation: {
-          projectCreate: {
-            project: { id: string; slug: string; name: string } | null;
+        storeMutation: {
+          storeCreate: {
+            store: { id: string; slug: string; name: string } | null;
             userErrors: { code: string; message: string; field: string }[];
           };
         };
       }
-    ).projectMutation.projectCreate;
+    ).storeMutation.storeCreate;
 
-    if (result.userErrors.length > 0 || !result.project) {
-      throw new Error('Failed to create project: ' + JSON.stringify(result.userErrors));
+    if (result.userErrors.length > 0 || !result.store) {
+      throw new Error('Failed to create store: ' + JSON.stringify(result.userErrors));
     }
 
-    return result.project;
+    return result.store;
   };
 }

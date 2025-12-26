@@ -1,5 +1,5 @@
 import { generateUser, UserData } from '@utils/user';
-import { ApiProject } from '@codegen/admin-gql';
+import { ApiStore } from '@codegen/admin-gql';
 import { StorefrontApiFixture } from '@fixtures/storefront/api';
 import { AdminApiFixture } from '@fixtures/admin/api';
 
@@ -9,7 +9,9 @@ export class SessionFixture {
     client: StorefrontApiFixture;
   };
 
-  project!: Partial<ApiProject> & { id: string; slug: string; name: string };
+  project!: Partial<ApiStore> & { id: string; slug: string; name: string };
+
+  organizationId?: string;
 
   apiKey!: string;
 
@@ -56,10 +58,41 @@ export class SessionFixture {
   }
 
   /**
-   * Creates a new project and stores it in session
+   * Creates an organization and stores the ID in session
+   */
+  async setupOrganization({ name, slug }: { name?: string; slug?: string } = {}) {
+    const orgSlug = slug ?? `test-org-${crypto.randomUUID().slice(0, 8)}`;
+    const { data } = await this.api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: name ?? 'Test Organization',
+          slug: orgSlug,
+        },
+      },
+    });
+
+    const organization = data.organizationMutation.organizationCreate.organization;
+    if (!organization) {
+      throw new Error('Failed to create organization');
+    }
+
+    this.organizationId = organization.id;
+    return organization;
+  }
+
+  /**
+   * Creates a new store and stores it in session.
+   * Requires organization to be set up first (via setupOrganization).
    */
   setupProject = async ({ name, slug }: { name?: string; slug?: string } = {}) => {
-    this.project = await this.api.admin.project.create({ name, slug });
+    if (!this.organizationId) {
+      await this.setupOrganization();
+    }
+    this.project = await this.api.admin.project.create({
+      organizationId: this.organizationId!,
+      name,
+      slug,
+    });
   };
 
   setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {

@@ -37,6 +37,7 @@ test.describe('Cross-Organization Store Isolation', () => {
     // User A creates Organization A
     const orgASlug = generateOrgSlug();
     const { data: orgAData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      throwOnError: false,
       variables: {
         input: {
           name: 'Organization A',
@@ -52,21 +53,27 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // User A creates Store A
     const storeASlug = generateStoreSlug();
-    const { data: storeAData } = await api.admin.mutation('project-api/ProjectCreate', {
-      variables: {
-        input: {
-          organizationId: organizationAId,
-          name: 'Store A',
-          slug: storeASlug,
-          locales: ['en'],
-          currencies: ['USD'],
-          defaultCurrency: 'USD',
+
+    const { data: storeAData, errors: storeAErrors } = await api.admin.mutation(
+      'project-api/ProjectCreate',
+      {
+        throwOnError: false,
+        variables: {
+          input: {
+            organizationId: organizationAId,
+            name: 'Store A',
+            slug: storeASlug,
+            locales: ['en'],
+            currencies: ['USD'],
+            defaultCurrency: 'USD',
+          },
         },
       },
-    });
+    );
 
     const storeA = storeAData.storeMutation.storeCreate.store;
     if (!storeA) {
+      const userErrors = storeAData.storeMutation?.storeCreate?.userErrors;
       throw new Error('Failed to create Store A');
     }
 
@@ -77,6 +84,13 @@ test.describe('Cross-Organization Store Isolation', () => {
       storeId: storeA.id,
       storeSlug: storeASlug,
     };
+
+    // DEBUG: Try querying the store immediately after creation
+    api.session.project = { id: storeA.id, slug: storeASlug, name: 'Store A' };
+    const debugQuery = await api.admin.query('project-api/Project', {
+      throwOnError: false,
+      variables: { slug: storeASlug },
+    });
 
     // Create User B
     const userBSession = await api.admin.user.create();
@@ -129,16 +143,23 @@ test.describe('Cross-Organization Store Isolation', () => {
   });
 
   test('User cannot access stores from other organization via query', async ({ api }) => {
-    // Switch to User A with Store A context
+    // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
     api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
 
+    console.log('userA:', userA);
+    console.log('session.projectSlug:', api.session.projectSlug);
+    console.log('session.accessToken:', api.session.accessToken?.slice(0, 20) + '...');
+
     // User A CAN access their own Store A
-    const { data: ownStoreData } = await api.admin.query('project-api/Project', {
+    const { data: ownStoreData, errors } = await api.admin.query('project-api/Project', {
+      throwOnError: false,
       variables: {
         slug: userA.storeSlug,
       },
     });
+    console.log('ownStoreData:', JSON.stringify(ownStoreData, null, 2));
+    console.log('errors:', JSON.stringify(errors, null, 2));
     expect(ownStoreData.storeQuery.store).not.toBeNull();
     expect(ownStoreData.storeQuery.store?.id).toBe(userA.storeId);
 
@@ -153,8 +174,9 @@ test.describe('Cross-Organization Store Isolation', () => {
   });
 
   test('User cannot see other organization stores in stores list', async ({ api }) => {
-    // Switch to User A
+    // Switch to User A with their store as context (needed for organizationId)
     api.session.tenant.accessToken = userA.accessToken;
+    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
 
     // User A gets list of all stores
     const { data } = await api.admin.query('project-api/Projects', {
@@ -189,11 +211,12 @@ test.describe('Cross-Organization Store Isolation', () => {
   });
 
   test('User cannot update store from other organization', async ({ api }) => {
-    // Switch to User A
+    // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
+    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
 
     // User A tries to update Store B
-    const { data } = await api.admin.mutation('project-api/ProjectUpdate', {
+    const { data, errors } = await api.admin.mutation('project-api/ProjectUpdate', {
       throwOnError: false,
       variables: {
         input: {
@@ -203,14 +226,18 @@ test.describe('Cross-Organization Store Isolation', () => {
       },
     });
 
-    const result = data.storeMutation.storeUpdate;
-
-    // Update should fail - either null store or userErrors
-    const updateFailed = result.store === null || result.userErrors.length > 0;
-    expect(updateFailed).toBe(true);
+    // Update should fail - either GraphQL error, null store, or userErrors
+    if (errors && errors.length > 0) {
+      expect(errors.length).toBeGreaterThan(0);
+    } else {
+      const result = data.storeMutation.storeUpdate;
+      const updateFailed = result.store === null || result.userErrors.length > 0;
+      expect(updateFailed).toBe(true);
+    }
 
     // Verify Store B was not actually modified by switching to User B
     api.session.tenant.accessToken = userB.accessToken;
+    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
     const { data: verifyData } = await api.admin.query('project-api/Project', {
       variables: {
         slug: userB.storeSlug,
@@ -223,11 +250,12 @@ test.describe('Cross-Organization Store Isolation', () => {
   });
 
   test('User cannot delete store from other organization', async ({ api }) => {
-    // Switch to User A
+    // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
+    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
 
     // User A tries to delete Store B
-    const { data } = await api.admin.mutation('project-api/ProjectDelete', {
+    const { data, errors } = await api.admin.mutation('project-api/ProjectDelete', {
       throwOnError: false,
       variables: {
         input: {
@@ -236,14 +264,18 @@ test.describe('Cross-Organization Store Isolation', () => {
       },
     });
 
-    const result = data.storeMutation.storeDelete;
-
-    // Delete should fail - either null deletedStoreId or userErrors
-    const deleteFailed = result.deletedStoreId === null || result.userErrors.length > 0;
-    expect(deleteFailed).toBe(true);
+    // Delete should fail - either GraphQL error, null deletedStoreId, or userErrors
+    if (errors && errors.length > 0) {
+      expect(errors.length).toBeGreaterThan(0);
+    } else {
+      const result = data.storeMutation.storeDelete;
+      const deleteFailed = result.deletedStoreId === null || result.userErrors.length > 0;
+      expect(deleteFailed).toBe(true);
+    }
 
     // Verify Store B still exists by switching to User B
     api.session.tenant.accessToken = userB.accessToken;
+    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
     const { data: verifyData } = await api.admin.query('project-api/Project', {
       variables: {
         slug: userB.storeSlug,
@@ -258,6 +290,7 @@ test.describe('Cross-Organization Store Isolation', () => {
   test('Stores list is isolated between organizations - bidirectional check', async ({ api }) => {
     // User A should only see stores from Org A
     api.session.tenant.accessToken = userA.accessToken;
+    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
     const { data: userAStores } = await api.admin.query('project-api/Projects', {
       variables: {},
     });
@@ -268,6 +301,7 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // User B should only see stores from Org B
     api.session.tenant.accessToken = userB.accessToken;
+    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
     const { data: userBStores } = await api.admin.query('project-api/Projects', {
       variables: {},
     });

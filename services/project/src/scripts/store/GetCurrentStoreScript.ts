@@ -28,20 +28,6 @@ export class GetCurrentStoreScript extends BaseScript<
       };
     }
 
-    // 2. Check IAM integration exists
-    if (!store.integrations.iam) {
-      return {
-        store: undefined,
-        userErrors: [
-          {
-            code: "STORE_NOT_CONFIGURED",
-            message: "Store IAM integration not configured",
-          },
-        ],
-      };
-    }
-
-    // Access check is now done in contextMiddleware via iam.getUserRole
     return {
       store,
       userErrors: [],
