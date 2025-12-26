@@ -5,6 +5,7 @@ import { GraphQLFileName } from '@queries/filenames';
 
 export interface GqlRequestSession {
   projectSlug: string;
+  organizationId: string | null;
   apiKey: string;
   accessToken: string | null;
   scope: 'tenant' | 'customer';
@@ -24,27 +25,30 @@ export class BaseGqlRequest<QueryType, MutationType> {
       throwOnError?: boolean;
     },
   ): Promise<{ data: R; errors: GraphQLError[] }> {
-    const { projectSlug: slug, apiKey, accessToken, scope } = this.session;
+    const { projectSlug: slug, organizationId, apiKey, accessToken, scope } = this.session;
 
     if (!this.graphqlUrl) {
       throw new Error('GraphQL URL is not provided');
     }
 
     const q = readQuery(query);
+    const headers = {
+      'Content-Type': 'application/json',
+      // Scope
+      ...(scope === 'customer'
+        ? {
+            ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
+          }
+        : {
+            ...(slug ? { 'X-Store-Name': slug } : {}),
+            ...(organizationId ? { 'X-Organization-Id': organizationId } : {}),
+          }),
+      // Tenant or Customer Access Token
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    };
+    // console.log('[DEBUG gqlRequest] headers:', JSON.stringify(headers, null, 2));
     const response = await this.request.post(this.graphqlUrl, {
-      headers: {
-        'Content-Type': 'application/json',
-        // Scope
-        ...(scope === 'customer'
-          ? {
-              ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
-            }
-          : {
-              ...(slug ? { 'X-Store-Name': slug } : {}),
-            }),
-        // Tenant or Customer Access Token
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
+      headers,
       data: {
         query:q,
         variables: props.variables,
