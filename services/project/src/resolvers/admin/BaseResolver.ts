@@ -30,13 +30,16 @@ export abstract class BaseResolver<TValue, TData = unknown>
       params.domain ??
       (this.ctx.store ? `store:${this.ctx.store.id}` : undefined);
 
-    return this.ctx.kernel.getServices().broker.call("iam.authorize", {
-      userId: this.userId,
+    // Use loaders.authorization for batched authorization checks
+    const allowed = await this.ctx.loaders.authorization.load({
+      userId: this.userId!,
       organizationId: params.organizationId,
       resource: params.resource,
       action: params.action,
       domain,
-    }) as Promise<AuthorizeResult>;
+    });
+
+    return { allowed };
   }
 
   protected getCache() {

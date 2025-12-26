@@ -1,4 +1,5 @@
 import type { Kernel } from "../kernel/Kernel.js";
+import type { Loader } from "../loaders/Loader.js";
 import type { Store } from "../repositories/index.js";
 
 /**
@@ -30,4 +31,6 @@ export interface ServiceContext {
   locale?: string;
   /** Kernel for business logic */
   kernel: Kernel;
+  /** DataLoaders for efficient batched data fetching */
+  loaders: Loader;
 }
