@@ -22,6 +22,8 @@ export type Scalars = {
   Timestamp: { input: string; output: string; }
   TransportOptions: { input: any; output: any; }
   Upload: { input: File; output: File; }
+  join__FieldSet: { input: any; output: any; }
+  link__Import: { input: any; output: any; }
 };
 
 /** API key for programmatic access to the project */
@@ -2316,24 +2318,24 @@ export type ApiOrganization = {
   __typename?: 'Organization';
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
+  /** Display name (e.g., "Acme Corp"). */
+  displayName: Scalars['String']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
   /** Membership info (members + roles). Domain = orgId. */
   membership: ApiMembership;
-  /** Organization name (e.g., "Acme Corp"). */
-  name: Scalars['String']['output'];
   /** URL-friendly unique identifier. */
-  slug: Scalars['String']['output'];
+  name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 /** Input for creating an organization. */
 export type ApiOrganizationCreateInput = {
-  /** Organization name. */
-  name: Scalars['String']['input'];
+  /** Display name. */
+  displayName: Scalars['String']['input'];
   /** URL-friendly unique identifier. */
-  slug: Scalars['String']['input'];
+  name: Scalars['String']['input'];
 };
 
 export type ApiOrganizationCreatePayload = {
@@ -3148,6 +3150,8 @@ export type ApiStore = {
   defaultLocale: LocaleCode;
   /** Default unit for product weights */
   defaultWeightUnit: WeightUnit;
+  /** Display name of the store */
+  displayName: Scalars['String']['output'];
   /** Contact email address for the store */
   email?: Maybe<Scalars['String']['output']>;
   /** Unique identifier of the store */
@@ -3156,12 +3160,10 @@ export type ApiStore = {
   locales: Array<LocaleCode>;
   /** Membership info (resolved from IAM by domain) */
   membership: ApiMembership;
-  /** Display name of the store */
+  /** URL-friendly unique identifier */
   name: Scalars['String']['output'];
   /** Organization that owns this store (federation reference) */
   organization?: Maybe<ApiOrganization>;
-  /** URL-friendly unique identifier */
-  slug: Scalars['String']['output'];
   /** Current operational status of the store */
   status: StoreStatus;
   /** IANA timezone identifier for the store */
@@ -3176,16 +3178,16 @@ export type ApiStoreCreateInput = {
   currencies: Array<CurrencyCode>;
   /** Default currency for the store */
   defaultCurrency: CurrencyCode;
+  /** Display name of the store */
+  displayName: Scalars['String']['input'];
   /** Contact email address */
   email?: InputMaybe<Scalars['String']['input']>;
   /** Initial list of locale codes to enable */
   locales: Array<LocaleCode>;
-  /** Display name of the store */
+  /** URL-friendly unique identifier */
   name: Scalars['String']['input'];
   /** ID of the organization where the store will be created */
   organizationId: Scalars['ID']['input'];
-  /** URL-friendly unique identifier */
-  slug: Scalars['String']['input'];
   /** Initial status of the store */
   status?: InputMaybe<StoreStatus>;
   /** IANA timezone identifier */
@@ -3205,6 +3207,8 @@ export type ApiStoreCreatePayload = {
 export type ApiStoreDeleteInput = {
   /** ID of the store to delete */
   id: Scalars['ID']['input'];
+  /** Organization name for authorization context */
+  organizationId: Scalars['ID']['input'];
 };
 
 /** Payload returned after deleting a store */
@@ -3337,9 +3341,9 @@ export type ApiStoreQueryStoresArgs = {
 /** Status of a store */
 export enum StoreStatus {
   /** Store is active and operational */
-  Active = 'active',
+  Active = 'ACTIVE',
   /** Store is inactive and not processing requests */
-  Inactive = 'inactive'
+  Inactive = 'INACTIVE'
 }
 
 /** Input for updating an existing store */
@@ -3350,8 +3354,12 @@ export type ApiStoreUpdateInput = {
   defaultDimensionUnit?: InputMaybe<DimensionUnit>;
   /** New default weight unit */
   defaultWeightUnit?: InputMaybe<WeightUnit>;
+  /** New display name */
+  displayName?: InputMaybe<Scalars['String']['input']>;
   /** New contact email address */
   email?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the store to update */
+  id: Scalars['ID']['input'];
   /** Updated list of enabled locale codes */
   locales?: InputMaybe<Array<LocaleCode>>;
   /** New display name */
@@ -4275,4 +4283,20 @@ export enum WeightUnit {
   Lb = 'lb',
   /** Ounce */
   Oz = 'oz'
+}
+
+export enum Join__Graph {
+  AppsAdmin = 'APPS_ADMIN',
+  IamAdmin = 'IAM_ADMIN',
+  InventoryAdmin = 'INVENTORY_ADMIN',
+  MediaAdmin = 'MEDIA_ADMIN',
+  OrdersAdmin = 'ORDERS_ADMIN',
+  ProjectAdmin = 'PROJECT_ADMIN'
+}
+
+export enum Link__Purpose {
+  /** `EXECUTION` features provide metadata necessary for operation execution. */
+  Execution = 'EXECUTION',
+  /** `SECURITY` features provide metadata necessary to securely resolve fields. */
+  Security = 'SECURITY'
 }

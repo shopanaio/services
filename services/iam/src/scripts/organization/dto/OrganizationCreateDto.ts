@@ -33,8 +33,8 @@ export const organizationNameSchema = z
  * Organization create input schema
  */
 export const organizationCreateInputSchema = z.object({
-  name: organizationNameSchema,
-  slug: slugSchema,
+  name: slugSchema,
+  displayName: organizationNameSchema,
 });
 
 export type OrganizationCreateInput = z.infer<
@@ -46,7 +46,7 @@ export type OrganizationCreateInput = z.infer<
  */
 export interface OrganizationCreateParams {
   name: string;
-  slug: string;
+  displayName: string;
 }
 
 /**

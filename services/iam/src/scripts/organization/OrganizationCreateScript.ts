@@ -27,13 +27,13 @@ export class OrganizationCreateScript extends BaseScript<
   protected async execute(
     params: OrganizationCreateParams
   ): Promise<OrganizationCreateResult> {
-    const { name, slug } = params;
+    const { name, displayName } = params;
     const userId = this.currentUser.id;
 
     // Create organization in database
     const result = await this.repository.organization.create({
       name,
-      slug,
+      displayName,
     });
 
     if (!result.success || !result.organization) {

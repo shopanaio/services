@@ -4,7 +4,7 @@ mutation StoreUpdate($input: StoreUpdateInput!) {
       store {
         id
         name
-        slug
+        displayName
         email
         timezone
       }

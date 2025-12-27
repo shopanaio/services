@@ -889,6 +889,8 @@ export type Store = {
   defaultLocale: LocaleCode;
   /** Default unit for product weights */
   defaultWeightUnit: WeightUnit;
+  /** Display name of the store */
+  displayName: Scalars['String']['output'];
   /** Contact email address for the store */
   email: Maybe<Scalars['String']['output']>;
   /** Unique identifier of the store */
@@ -897,12 +899,10 @@ export type Store = {
   locales: Array<LocaleCode>;
   /** Membership info (resolved from IAM by domain) */
   membership: Membership;
-  /** Display name of the store */
+  /** URL-friendly unique identifier */
   name: Scalars['String']['output'];
   /** Organization that owns this store (federation reference) */
   organization: Maybe<Organization>;
-  /** URL-friendly unique identifier */
-  slug: Scalars['String']['output'];
   /** Current operational status of the store */
   status: StoreStatus;
   /** IANA timezone identifier for the store */
@@ -917,16 +917,16 @@ export type StoreCreateInput = {
   currencies: Array<CurrencyCode>;
   /** Default currency for the store */
   defaultCurrency: CurrencyCode;
+  /** Display name of the store */
+  displayName: Scalars['String']['input'];
   /** Contact email address */
   email?: InputMaybe<Scalars['String']['input']>;
   /** Initial list of locale codes to enable */
   locales: Array<LocaleCode>;
-  /** Display name of the store */
+  /** URL-friendly unique identifier */
   name: Scalars['String']['input'];
   /** ID of the organization where the store will be created */
   organizationId: Scalars['ID']['input'];
-  /** URL-friendly unique identifier */
-  slug: Scalars['String']['input'];
   /** Initial status of the store */
   status?: InputMaybe<StoreStatus>;
   /** IANA timezone identifier */
@@ -946,6 +946,8 @@ export type StoreCreatePayload = {
 export type StoreDeleteInput = {
   /** ID of the store to delete */
   id: Scalars['ID']['input'];
+  /** Organization name for authorization context */
+  organizationId: Scalars['ID']['input'];
 };
 
 /** Payload returned after deleting a store */
@@ -1078,9 +1080,9 @@ export type StoreQueryStoresArgs = {
 /** Status of a store */
 export enum StoreStatus {
   /** Store is active and operational */
-  Active = 'active',
+  Active = 'ACTIVE',
   /** Store is inactive and not processing requests */
-  Inactive = 'inactive'
+  Inactive = 'INACTIVE'
 }
 
 /** Input for updating an existing store */
@@ -1091,8 +1093,12 @@ export type StoreUpdateInput = {
   defaultDimensionUnit?: InputMaybe<DimensionUnit>;
   /** New default weight unit */
   defaultWeightUnit?: InputMaybe<WeightUnit>;
+  /** New display name */
+  displayName?: InputMaybe<Scalars['String']['input']>;
   /** New contact email address */
   email?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the store to update */
+  id: Scalars['ID']['input'];
   /** Updated list of enabled locale codes */
   locales?: InputMaybe<Array<LocaleCode>>;
   /** New display name */
@@ -1452,13 +1458,13 @@ export type StoreResolvers<ContextType = ServiceContext, ParentType extends Reso
   defaultDimensionUnit?: Resolver<ResolversTypes['DimensionUnit'], ParentType, ContextType>;
   defaultLocale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   defaultWeightUnit?: Resolver<ResolversTypes['WeightUnit'], ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   locales?: Resolver<Array<ResolversTypes['LocaleCode']>, ParentType, ContextType>;
   membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
-  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['StoreStatus'], ParentType, ContextType>;
   timezone?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;

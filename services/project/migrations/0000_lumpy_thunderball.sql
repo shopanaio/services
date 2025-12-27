@@ -32,11 +32,11 @@ CREATE TABLE "store"."currency" (
 --> statement-breakpoint
 CREATE TABLE "store"."store" (
 	"id" uuid PRIMARY KEY NOT NULL,
-	"organization_id" uuid,
+	"organization_id" uuid NOT NULL,
 	"external_system" varchar(64),
 	"external_id" varchar(255),
 	"name" varchar(255) NOT NULL,
-	"slug" varchar(255) NOT NULL,
+	"display_name" varchar(255) NOT NULL,
 	"status" "store"."store_status" DEFAULT 'active' NOT NULL,
 	"timezone" varchar(64) DEFAULT 'UTC' NOT NULL,
 	"email" varchar(255),
@@ -87,7 +87,7 @@ CREATE INDEX "idx_locale_store_id" ON "store"."locale" USING btree ("store_id");
 CREATE INDEX "idx_locale_is_active" ON "store"."locale" USING btree ("is_active");--> statement-breakpoint
 CREATE INDEX "idx_currency_store_id" ON "store"."currency" USING btree ("store_id");--> statement-breakpoint
 CREATE INDEX "idx_currency_is_active" ON "store"."currency" USING btree ("is_active");--> statement-breakpoint
-CREATE UNIQUE INDEX "store_slug_key" ON "store"."store" USING btree ("slug") WHERE deleted_at IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "store_name_key" ON "store"."store" USING btree ("name") WHERE deleted_at IS NULL;--> statement-breakpoint
 CREATE INDEX "idx_store_status" ON "store"."store" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "idx_store_created_at" ON "store"."store" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "idx_store_deleted_at" ON "store"."store" USING btree ("deleted_at") WHERE deleted_at IS NOT NULL;--> statement-breakpoint

@@ -2,7 +2,7 @@ import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 
-const generateOrgSlug = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
+const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 
 test.describe('OrganizationCreate API', () => {
   test.beforeEach(async ({ api }) => {
@@ -10,13 +10,13 @@ test.describe('OrganizationCreate API', () => {
   });
 
   test('Create organization with minimal required fields', async ({ api }) => {
-    const slug = generateOrgSlug();
+    const name = generateOrgName();
 
     const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Test Organization',
-          slug,
+          name,
+          displayName: 'Test Organization',
         },
       },
     });
@@ -25,20 +25,20 @@ test.describe('OrganizationCreate API', () => {
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.organization).not.toBeNull();
-    expect(result.organization?.name).toBe('Test Organization');
-    expect(result.organization?.slug).toBe(slug);
+    expect(result.organization?.displayName).toBe('Test Organization');
+    expect(result.organization?.name).toBe(name);
     expect(result.organization?.id).toBeDefined();
     expect(result.organization?.createdAt).toBeDefined();
   });
 
   test('Creator should become owner of the organization', async ({ api }) => {
-    const slug = generateOrgSlug();
+    const name = generateOrgName();
 
     const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Owner Test Org',
-          slug,
+          name,
+          displayName: 'Owner Test Org',
         },
       },
     });
@@ -54,13 +54,13 @@ test.describe('OrganizationCreate API', () => {
   });
 
   test('Organization should have system roles after creation', async ({ api }) => {
-    const slug = generateOrgSlug();
+    const name = generateOrgName();
 
     const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Roles Test Org',
-          slug,
+          name,
+          displayName: 'Roles Test Org',
         },
       },
     });
@@ -82,26 +82,26 @@ test.describe('OrganizationCreate API', () => {
     expect(ownerRole?.isSystem).toBe(true);
   });
 
-  test('Create organization with duplicate slug should fail', async ({ api }) => {
-    const slug = generateOrgSlug();
+  test('Create organization with duplicate name should fail', async ({ api }) => {
+    const name = generateOrgName();
 
     // Create first organization
     await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'First Org',
-          slug,
+          name,
+          displayName: 'First Org',
         },
       },
     });
 
-    // Try to create second organization with same slug
+    // Try to create second organization with same name
     const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
       throwOnError: false,
       variables: {
         input: {
-          name: 'Second Org',
-          slug,
+          name,
+          displayName: 'Second Org',
         },
       },
     });
@@ -112,15 +112,35 @@ test.describe('OrganizationCreate API', () => {
     expect(result.userErrors.length).toBeGreaterThan(0);
   });
 
-  test('Create organization without name should fail', async ({ api }) => {
-    const slug = generateOrgSlug();
+  test('Create organization without displayName should fail', async ({ api }) => {
+    const name = generateOrgName();
 
+    const { data, errors } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      throwOnError: false,
+      variables: {
+        input: {
+          name,
+          displayName: '',
+        },
+      },
+    });
+
+    if (errors && errors.length > 0) {
+      expect(errors.length).toBeGreaterThan(0);
+    } else {
+      const result = data.organizationMutation.organizationCreate;
+      expect(result.organization).toBeNull();
+      expect(result.userErrors.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('Create organization without name should fail', async ({ api }) => {
     const { data, errors } = await api.admin.mutation('iam-api/OrganizationCreate', {
       throwOnError: false,
       variables: {
         input: {
           name: '',
-          slug,
+          displayName: 'Test Org',
         },
       },
     });
@@ -134,33 +154,13 @@ test.describe('OrganizationCreate API', () => {
     }
   });
 
-  test('Create organization without slug should fail', async ({ api }) => {
+  test('Create organization with invalid name format should fail', async ({ api }) => {
     const { data, errors } = await api.admin.mutation('iam-api/OrganizationCreate', {
       throwOnError: false,
       variables: {
         input: {
-          name: 'Test Org',
-          slug: '',
-        },
-      },
-    });
-
-    if (errors && errors.length > 0) {
-      expect(errors.length).toBeGreaterThan(0);
-    } else {
-      const result = data.organizationMutation.organizationCreate;
-      expect(result.organization).toBeNull();
-      expect(result.userErrors.length).toBeGreaterThan(0);
-    }
-  });
-
-  test('Create organization with invalid slug format should fail', async ({ api }) => {
-    const { data, errors } = await api.admin.mutation('iam-api/OrganizationCreate', {
-      throwOnError: false,
-      variables: {
-        input: {
-          name: 'Test Org',
-          slug: 'Invalid Slug With Spaces!',
+          name: 'Invalid Name With Spaces!',
+          displayName: 'Test Org',
         },
       },
     });
@@ -175,7 +175,7 @@ test.describe('OrganizationCreate API', () => {
   });
 
   test('Unauthenticated user should not create organization', async ({ api }) => {
-    const slug = generateOrgSlug();
+    const name = generateOrgName();
 
     // Clear the session to simulate unauthenticated user
     api.session.clearSession();
@@ -184,8 +184,8 @@ test.describe('OrganizationCreate API', () => {
       throwOnError: false,
       variables: {
         input: {
-          name: 'Unauthorized Org',
-          slug,
+          name,
+          displayName: 'Unauthorized Org',
         },
       },
     });
@@ -196,14 +196,14 @@ test.describe('OrganizationCreate API', () => {
   });
 
   test('User can create multiple organizations', async ({ api }) => {
-    const slug1 = generateOrgSlug();
-    const slug2 = generateOrgSlug();
+    const name1 = generateOrgName();
+    const name2 = generateOrgName();
 
     const { data: data1 } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'First Organization',
-          slug: slug1,
+          name: name1,
+          displayName: 'First Organization',
         },
       },
     });
@@ -211,8 +211,8 @@ test.describe('OrganizationCreate API', () => {
     const { data: data2 } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Second Organization',
-          slug: slug2,
+          name: name2,
+          displayName: 'Second Organization',
         },
       },
     });

@@ -41,8 +41,8 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     return this.get("name");
   }
 
-  async slug() {
-    return this.get("slug");
+  async displayName() {
+    return this.get("displayName");
   }
 
   async createdAt() {

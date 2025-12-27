@@ -1,5 +1,5 @@
 {
-  "id": "d9f6ef7b-d18e-4338-9a00-70759a4b3e05",
+  "id": "f17e4100-1dfd-448c-9ad0-4c08ed3c29b9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -700,13 +700,13 @@
         },
         "name": {
           "name": "name",
-          "type": "varchar(256)",
+          "type": "varchar(128)",
           "primaryKey": false,
           "notNull": true
         },
-        "slug": {
-          "name": "slug",
-          "type": "varchar(128)",
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -732,11 +732,11 @@
         }
       },
       "indexes": {
-        "idx_organization_slug": {
-          "name": "idx_organization_slug",
+        "idx_organization_name": {
+          "name": "idx_organization_name",
           "columns": [
             {
-              "expression": "slug",
+              "expression": "name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -986,12 +986,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "domain": {
           "name": "domain",
           "type": "varchar(128)",
@@ -1044,21 +1038,6 @@
           "columns": [
             {
               "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_role_tenant": {
-          "name": "idx_role_tenant",
-          "columns": [
-            {
-              "expression": "tenant_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1132,20 +1111,6 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "role_tenant_id_tenant_id_fk": {
-          "name": "role_tenant_id_tenant_id_fk",
-          "tableFrom": "role",
-          "tableTo": "tenant",
-          "schemaTo": "iam",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1170,12 +1135,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
         },
         "parent_role_id": {
           "name": "parent_role_id",
@@ -1234,20 +1193,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "role_hierarchy_tenant_id_tenant_id_fk": {
-          "name": "role_hierarchy_tenant_id_tenant_id_fk",
-          "tableFrom": "role_hierarchy",
-          "tableTo": "tenant",
-          "schemaTo": "iam",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "role_hierarchy_parent_role_id_role_id_fk": {
           "name": "role_hierarchy_parent_role_id_role_id_fk",
           "tableFrom": "role_hierarchy",
@@ -1283,77 +1228,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "iam.tenant": {
-      "name": "tenant",
-      "schema": "iam",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "idx_tenant_org": {
-          "name": "idx_tenant_org",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "tenant_organization_id_organization_id_fk": {
-          "name": "tenant_organization_id_organization_id_fk",
-          "tableFrom": "tenant",
-          "tableTo": "organization",
-          "schemaTo": "iam",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "iam.user_role": {
       "name": "user_role",
       "schema": "iam",
@@ -1370,12 +1244,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
         },
         "user_id": {
           "name": "user_id",
@@ -1415,27 +1283,6 @@
           "columns": [
             {
               "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_role_tenant_user": {
-          "name": "idx_user_role_tenant_user",
-          "columns": [
-            {
-              "expression": "tenant_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1518,20 +1365,6 @@
           "schemaTo": "iam",
           "columnsFrom": [
             "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_role_tenant_id_tenant_id_fk": {
-          "name": "user_role_tenant_id_tenant_id_fk",
-          "tableFrom": "user_role",
-          "tableTo": "tenant",
-          "schemaTo": "iam",
-          "columnsFrom": [
-            "tenant_id"
           ],
           "columnsTo": [
             "id"

@@ -7,8 +7,8 @@ export class ProjectFixture {
 
   create = async (input: Partial<ApiStoreCreateInput> & { organizationId: string }) => {
     const defaults: Omit<ApiStoreCreateInput, 'organizationId'> = {
-      slug: `test-project-${crypto.randomUUID().slice(0, 8)}`,
-      name: 'Playwright Project',
+      name: `test-project-${crypto.randomUUID().slice(0, 8)}`,
+      displayName: 'Playwright Project',
       locales: [LocaleCode.En],
       currencies: [CurrencyCode.Usd],
       defaultCurrency: CurrencyCode.Usd,
@@ -24,7 +24,7 @@ export class ProjectFixture {
       data as {
         storeMutation: {
           storeCreate: {
-            store: { id: string; slug: string; name: string } | null;
+            store: { id: string; name: string; displayName: string } | null;
             userErrors: { code: string; message: string; field: string }[];
           };
         };

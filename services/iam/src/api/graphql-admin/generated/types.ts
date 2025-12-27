@@ -813,24 +813,24 @@ export type Organization = {
   __typename?: 'Organization';
   /** Timestamp when the organization was created. */
   createdAt: Scalars['DateTime']['output'];
+  /** Display name (e.g., "Acme Corp"). */
+  displayName: Scalars['String']['output'];
   /** Unique identifier. */
   id: Scalars['ID']['output'];
   /** Membership info (members + roles). Domain = orgId. */
   membership: Membership;
-  /** Organization name (e.g., "Acme Corp"). */
-  name: Scalars['String']['output'];
   /** URL-friendly unique identifier. */
-  slug: Scalars['String']['output'];
+  name: Scalars['String']['output'];
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 /** Input for creating an organization. */
 export type OrganizationCreateInput = {
-  /** Organization name. */
-  name: Scalars['String']['input'];
+  /** Display name. */
+  displayName: Scalars['String']['input'];
   /** URL-friendly unique identifier. */
-  slug: Scalars['String']['input'];
+  name: Scalars['String']['input'];
 };
 
 export type OrganizationCreatePayload = {
@@ -1653,10 +1653,10 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 export type OrganizationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Organization'] = ResolversParentTypes['Organization']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Organization']>, { __typename: 'Organization' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   membership?: Resolver<ResolversTypes['Membership'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

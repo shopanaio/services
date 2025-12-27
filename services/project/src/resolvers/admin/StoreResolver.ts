@@ -44,8 +44,8 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     };
   }
 
-  async slug() {
-    return this.get("slug");
+  async displayName() {
+    return this.get("displayName");
   }
 
   async status() {

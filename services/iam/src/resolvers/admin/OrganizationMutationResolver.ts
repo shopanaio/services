@@ -7,7 +7,7 @@ import { MemberInviteScript } from "../../scripts/organization/MemberInviteScrip
 // Input types
 interface OrganizationCreateInput {
   name: string;
-  slug: string;
+  displayName: string;
 }
 
 interface OrganizationUpdateInput {

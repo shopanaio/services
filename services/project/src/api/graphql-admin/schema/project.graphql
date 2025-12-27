@@ -27,13 +27,13 @@ type Store @key(fields: "id") {
   """
   organization: Organization
   """
-  Display name of the store
+  URL-friendly unique identifier
   """
   name: String!
   """
-  URL-friendly unique identifier
+  Display name of the store
   """
-  slug: String!
+  displayName: String!
   """
   Current operational status of the store
   """

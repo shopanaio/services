@@ -2,8 +2,8 @@ import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 
-const generateStoreSlug = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
-const generateOrgSlug = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
+const generateStoreName = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
+const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 
 test.describe('StoreCreate API', () => {
   let organizationId: string;
@@ -12,12 +12,12 @@ test.describe('StoreCreate API', () => {
     await api.session.setupUser();
 
     // Create an organization first
-    const orgSlug = generateOrgSlug();
+    const orgName = generateOrgName();
     const { data } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Test Organization',
-          slug: orgSlug,
+          name: orgName,
+          displayName: 'Test Organization',
         },
       },
     });
@@ -26,14 +26,14 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store with minimal required fields', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId,
-          name: 'Test Store',
-          slug,
+          name,
+          displayName: 'Test Store',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -45,27 +45,27 @@ test.describe('StoreCreate API', () => {
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.store).not.toBeNull();
-    expect(result.store?.name).toBe('Test Store');
-    expect(result.store?.slug).toBe(slug);
-    expect(result.store?.status).toBe('active');
+    expect(result.store?.displayName).toBe('Test Store');
+    expect(result.store?.name).toBe(name);
+    expect(result.store?.status).toBe('ACTIVE');
     expect(result.store?.locales).toContain('en');
     expect(result.store?.currencies).toContain('USD');
     expect(result.store?.defaultCurrency).toBe('USD');
   });
 
   test('Create store with all fields', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId,
-          name: 'Full Test Store',
-          slug,
+          name,
+          displayName: 'Full Test Store',
           locales: ['en', 'uk'],
           currencies: ['USD', 'EUR'],
           defaultCurrency: 'EUR',
-          status: 'active',
+          status: 'ACTIVE',
           timezone: 'Europe/Kiev',
           email: 'test@example.com',
         },
@@ -76,9 +76,9 @@ test.describe('StoreCreate API', () => {
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.store).not.toBeNull();
-    expect(result.store?.name).toBe('Full Test Store');
-    expect(result.store?.slug).toBe(slug);
-    expect(result.store?.status).toBe('active');
+    expect(result.store?.displayName).toBe('Full Test Store');
+    expect(result.store?.name).toBe(name);
+    expect(result.store?.status).toBe('ACTIVE');
     expect(result.store?.timezone).toBe('Europe/Kiev');
     expect(result.store?.email).toBe('test@example.com');
     expect(result.store?.locales).toEqual(expect.arrayContaining(['en', 'uk']));
@@ -87,18 +87,18 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store with inactive status', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId,
-          name: 'Inactive Store',
-          slug,
+          name,
+          displayName: 'Inactive Store',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
-          status: 'inactive',
+          status: 'INACTIVE',
         },
       },
     });
@@ -107,19 +107,19 @@ test.describe('StoreCreate API', () => {
 
     expect(result.userErrors).toHaveLength(0);
     expect(result.store).not.toBeNull();
-    expect(result.store?.status).toBe('inactive');
+    expect(result.store?.status).toBe('INACTIVE');
   });
 
-  test('Create store with duplicate slug should fail', async ({ api }) => {
-    const slug = generateStoreSlug();
+  test('Create store with duplicate name should fail', async ({ api }) => {
+    const name = generateStoreName();
 
     // Create first store
     await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId,
-          name: 'First Store',
-          slug,
+          name,
+          displayName: 'First Store',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -127,14 +127,14 @@ test.describe('StoreCreate API', () => {
       },
     });
 
-    // Try to create second store with same slug
+    // Try to create second store with same name
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       throwOnError: false,
       variables: {
         input: {
           organizationId,
-          name: 'Second Store',
-          slug,
+          name,
+          displayName: 'Second Store',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -149,15 +149,13 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store without name should fail', async ({ api }) => {
-    const slug = generateStoreSlug();
-
     const { data, errors } = await api.admin.mutation('project-api/ProjectCreate', {
       throwOnError: false,
       variables: {
         input: {
           organizationId,
           name: '',
-          slug,
+          displayName: 'Test Store',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -175,14 +173,16 @@ test.describe('StoreCreate API', () => {
     }
   });
 
-  test('Create store without slug should fail', async ({ api }) => {
+  test('Create store without displayName should fail', async ({ api }) => {
+    const name = generateStoreName();
+
     const { data, errors } = await api.admin.mutation('project-api/ProjectCreate', {
       throwOnError: false,
       variables: {
         input: {
           organizationId,
-          name: 'Test Store',
-          slug: '',
+          name,
+          displayName: '',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -201,15 +201,15 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store with empty locales should fail', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data, errors } = await api.admin.mutation('project-api/ProjectCreate', {
       throwOnError: false,
       variables: {
         input: {
           organizationId,
-          name: 'Test Store',
-          slug,
+          name,
+          displayName: 'Test Store',
           locales: [],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -228,15 +228,15 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store with empty currencies should fail', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data, errors } = await api.admin.mutation('project-api/ProjectCreate', {
       throwOnError: false,
       variables: {
         input: {
           organizationId,
-          name: 'Test Store',
-          slug,
+          name,
+          displayName: 'Test Store',
           locales: ['en'],
           currencies: [],
           defaultCurrency: 'USD',
@@ -255,14 +255,14 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store with multiple locales', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId,
-          name: 'Multi-locale Store',
-          slug,
+          name,
+          displayName: 'Multi-locale Store',
           locales: ['en', 'uk', 'de', 'fr'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -279,14 +279,14 @@ test.describe('StoreCreate API', () => {
   });
 
   test('Create store with multiple currencies', async ({ api }) => {
-    const slug = generateStoreSlug();
+    const name = generateStoreName();
 
     const { data } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId,
-          name: 'Multi-currency Store',
-          slug,
+          name,
+          displayName: 'Multi-currency Store',
           locales: ['en'],
           currencies: ['USD', 'EUR', 'GBP', 'UAH'],
           defaultCurrency: 'EUR',

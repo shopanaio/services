@@ -12,13 +12,13 @@ type Organization @key(fields: "id") {
   """
   id: ID!
   """
-  Organization name (e.g., "Acme Corp").
+  URL-friendly unique identifier.
   """
   name: String!
   """
-  URL-friendly unique identifier.
+  Display name (e.g., "Acme Corp").
   """
-  slug: String!
+  displayName: String!
   """
   Membership info (members + roles). Domain = orgId.
   """
@@ -42,13 +42,13 @@ Input for creating an organization.
 """
 input OrganizationCreateInput {
   """
-  Organization name.
+  URL-friendly unique identifier.
   """
   name: String!
   """
-  URL-friendly unique identifier.
+  Display name.
   """
-  slug: String!
+  displayName: String!
 }
 
 """

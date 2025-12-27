@@ -2,8 +2,8 @@ import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 
-const generateStoreSlug = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
-const generateOrgSlug = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
+const generateStoreName = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
+const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 
 interface UserContext {
   userId: string;
@@ -35,13 +35,13 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.userId = userASession.userId;
 
     // User A creates Organization A
-    const orgASlug = generateOrgSlug();
+    const orgAName = generateOrgName();
     const { data: orgAData } = await api.admin.mutation('iam-api/OrganizationCreate', {
       throwOnError: false,
       variables: {
         input: {
-          name: 'Organization A',
-          slug: orgASlug,
+          name: orgAName,
+          displayName: 'Organization A',
         },
       },
     });
@@ -52,15 +52,15 @@ test.describe('Cross-Organization Store Isolation', () => {
     const organizationAId = organizationA.id;
 
     // User A creates Store A
-    const storeASlug = generateStoreSlug();
+    const storeAName = generateStoreName();
 
     const { data: storeAData } = await api.admin.mutation('project-api/ProjectCreate', {
       throwOnError: false,
       variables: {
         input: {
           organizationId: organizationAId,
-          name: 'Store A',
-          slug: storeASlug,
+          name: storeAName,
+          displayName: 'Store A',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -78,11 +78,11 @@ test.describe('Cross-Organization Store Isolation', () => {
       accessToken: userASession.accessToken,
       organizationId: organizationAId,
       storeId: storeA.id,
-      storeSlug: storeASlug,
+      storeSlug: storeAName,
     };
 
     // DEBUG: Try querying the store immediately after creation
-    api.session.project = { id: storeA.id, slug: storeASlug, name: 'Store A' };
+    api.session.project = { id: storeA.id, slug: storeAName, name: 'Store A' };
 
     // Clear project context before creating User B
     api.session.project = null as any;
@@ -93,12 +93,12 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.userId = userBSession.userId;
 
     // User B creates Organization B
-    const orgBSlug = generateOrgSlug();
+    const orgBName = generateOrgName();
     const { data: orgBData } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Organization B',
-          slug: orgBSlug,
+          name: orgBName,
+          displayName: 'Organization B',
         },
       },
     });
@@ -109,13 +109,13 @@ test.describe('Cross-Organization Store Isolation', () => {
     const organizationBId = organizationB.id;
 
     // User B creates Store B
-    const storeBSlug = generateStoreSlug();
+    const storeBName = generateStoreName();
     const { data: storeBData } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId: organizationBId,
-          name: 'Store B',
-          slug: storeBSlug,
+          name: storeBName,
+          displayName: 'Store B',
           locales: ['en'],
           currencies: ['EUR'],
           defaultCurrency: 'EUR',
@@ -133,7 +133,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       accessToken: userBSession.accessToken,
       organizationId: organizationBId,
       storeId: storeB.id,
-      storeSlug: storeBSlug,
+      storeSlug: storeBName,
     };
   });
 
@@ -173,13 +173,13 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     const stores = data.storeQuery.stores;
     const storeIds = stores.map((s: { id: string }) => s.id);
-    const storeSlugs = stores.map((s: { slug: string }) => s.slug);
+    const storeNames = stores.map((s: { name: string }) => s.name);
 
     // User A should only see Store A, not Store B
     expect(storeIds).toContain(userA.storeId);
     expect(storeIds).not.toContain(userB.storeId);
-    expect(storeSlugs).toContain(userA.storeSlug);
-    expect(storeSlugs).not.toContain(userB.storeSlug);
+    expect(storeNames).toContain(userA.storeSlug);
+    expect(storeNames).not.toContain(userB.storeSlug);
   });
 
   test('User cannot query store by slug from other organization', async ({ api }) => {
@@ -207,7 +207,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       variables: {
         input: {
           id: userB.storeId,
-          name: 'Hacked Store B',
+          displayName: 'Hacked Store B',
         },
       },
     });
@@ -228,7 +228,7 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     const verifiedStore = verifyData.storeQuery.currentStore;
     expect(verifiedStore).not.toBeNull();
-    expect(verifiedStore?.name).toBe('Store B');
+    expect(verifiedStore?.displayName).toBe('Store B');
   });
 
   test('User cannot delete store from other organization', async ({ api }) => {
@@ -242,6 +242,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       variables: {
         input: {
           id: userB.storeId,
+          organizationId: userB.organizationId,
         },
       },
     });
@@ -303,8 +304,8 @@ test.describe('Cross-Organization Store Isolation', () => {
       variables: {
         input: {
           organizationId: userB.organizationId,
-          name: 'Unauthorized Store',
-          slug: generateStoreSlug(),
+          name: generateStoreName(),
+          displayName: 'Unauthorized Store',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',

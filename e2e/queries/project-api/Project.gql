@@ -3,7 +3,7 @@ query CurrentStore {
     currentStore {
       id
       name
-      slug
+      displayName
       status
       timezone
       email

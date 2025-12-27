@@ -1,5 +1,5 @@
 {
-  "id": "6d440541-6bec-41dd-8445-0f5dfd6856c5",
+  "id": "03d18e83-ba16-4d0d-935a-6906724d02f6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -205,7 +205,7 @@
           "name": "organization_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "external_system": {
           "name": "external_system",
@@ -225,8 +225,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "slug": {
-          "name": "slug",
+        "display_name": {
+          "name": "display_name",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
@@ -307,11 +307,11 @@
         }
       },
       "indexes": {
-        "store_slug_key": {
-          "name": "store_slug_key",
+        "store_name_key": {
+          "name": "store_name_key",
           "columns": [
             {
-              "expression": "slug",
+              "expression": "name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

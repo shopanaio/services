@@ -3,7 +3,7 @@ query Stores($organizationId: ID!) {
     stores(organizationId: $organizationId) {
       id
       name
-      slug
+      displayName
       status
       timezone
       email

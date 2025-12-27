@@ -3,8 +3,8 @@ import { ApiFixtures } from '@fixtures/api/api';
 import { expect } from '@playwright/test';
 import * as crypto from 'crypto';
 
-const generateStoreSlug = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
-const generateOrgSlug = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
+const generateStoreName = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
+const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 const generateEmail = () => `test-${crypto.randomUUID()}@playwright.dev`;
 
 interface OwnerContext {
@@ -47,12 +47,12 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.tenant.userId = ownerSession.userId;
 
     // Owner creates Organization
-    const orgSlug = generateOrgSlug();
+    const orgName = generateOrgName();
     const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: 'Test Organization',
-          slug: orgSlug,
+          name: orgName,
+          displayName: 'Test Organization',
         },
       },
     });
@@ -62,13 +62,13 @@ test.describe('Store-Level Domain Isolation', () => {
     }
 
     // Owner creates Store A
-    const storeASlug = generateStoreSlug();
+    const storeAName = generateStoreName();
     const { data: storeAData } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId: organization.id,
-          name: 'Store A',
-          slug: storeASlug,
+          name: storeAName,
+          displayName: 'Store A',
           locales: ['en'],
           currencies: ['USD'],
           defaultCurrency: 'USD',
@@ -81,13 +81,13 @@ test.describe('Store-Level Domain Isolation', () => {
     }
 
     // Owner creates Store B
-    const storeBSlug = generateStoreSlug();
+    const storeBName = generateStoreName();
     const { data: storeBData } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId: organization.id,
-          name: 'Store B',
-          slug: storeBSlug,
+          name: storeBName,
+          displayName: 'Store B',
           locales: ['en'],
           currencies: ['EUR'],
           defaultCurrency: 'EUR',
@@ -104,9 +104,9 @@ test.describe('Store-Level Domain Isolation', () => {
       accessToken: ownerSession.accessToken,
       organizationId: organization.id,
       storeAId: storeA.id,
-      storeASlug,
+      storeASlug: storeAName,
       storeBId: storeB.id,
-      storeBSlug,
+      storeBSlug: storeBName,
     };
   });
 
@@ -198,7 +198,8 @@ test.describe('Store-Level Domain Isolation', () => {
       throwOnError: false,
       variables: {
         input: {
-          name: 'Hacked Store B',
+          id: owner.storeBId,
+          displayName: 'Hacked Store B',
         },
       },
     });
@@ -218,7 +219,7 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
 
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
-    expect(verifyData.storeQuery.currentStore?.name).toBe('Store B');
+    expect(verifyData.storeQuery.currentStore?.displayName).toBe('Store B');
   });
 
   test('Store-specific permissions are isolated per store', async ({ api }) => {
@@ -240,7 +241,8 @@ test.describe('Store-Level Domain Isolation', () => {
         throwOnError: false,
         variables: {
           input: {
-            name: 'Store A Updated',
+            id: owner.storeAId,
+            displayName: 'Store A Updated',
           },
         },
       },
@@ -250,7 +252,7 @@ test.describe('Store-Level Domain Isolation', () => {
     expect(updateAData).toBeDefined();
     const updateAResult = updateAData.storeMutation.storeUpdate;
     expect(updateAResult.store).not.toBeNull();
-    expect(updateAResult.store?.name).toBe('Store A Updated');
+    expect(updateAResult.store?.displayName).toBe('Store A Updated');
 
     // User CANNOT update Store B (even with project context set to B)
     api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
@@ -260,7 +262,8 @@ test.describe('Store-Level Domain Isolation', () => {
         throwOnError: false,
         variables: {
           input: {
-            name: 'Store B Updated',
+            id: owner.storeBId,
+            displayName: 'Store B Updated',
           },
         },
       },
@@ -280,13 +283,13 @@ test.describe('Store-Level Domain Isolation', () => {
   }) => {
     // Owner creates Store C
     api.session.tenant.accessToken = owner.accessToken;
-    const storeCSlug = generateStoreSlug();
+    const storeCName = generateStoreName();
     const { data: storeCData } = await api.admin.mutation('project-api/ProjectCreate', {
       variables: {
         input: {
           organizationId: owner.organizationId,
-          name: 'Store C',
-          slug: storeCSlug,
+          name: storeCName,
+          displayName: 'Store C',
           locales: ['en'],
           currencies: ['GBP'],
           defaultCurrency: 'GBP',
@@ -316,7 +319,7 @@ test.describe('Store-Level Domain Isolation', () => {
     expect(storeAData.storeQuery.currentStore).not.toBeNull();
 
     // User CAN access Store C
-    api.session.project = { id: storeC.id, slug: storeCSlug, name: 'Store C' };
+    api.session.project = { id: storeC.id, slug: storeCName, name: 'Store C' };
     const { data: storeCQueryData } = await api.admin.query('project-api/Project', {
       throwOnError: false,
     });
@@ -375,6 +378,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         input: {
           id: owner.storeBId,
+          organizationId: owner.organizationId,
         },
       },
     });
