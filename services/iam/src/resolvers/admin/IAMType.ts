@@ -4,10 +4,10 @@ import {
   createExecutor,
   createAuthorizationMiddleware,
   type CacheStore,
-  type Authorizable as IAuthorizable,
+  type Authorizable,
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
-import { Authorizable } from "../../kernel/Authorizable.js";
+import { AuthProvider } from "../../kernel/Authorizable.js";
 
 export { Cache };
 
@@ -34,22 +34,21 @@ export { Cache };
  * }
  * ```
  */
-@Authorizable()
-export abstract class IAMType<TValue, TData = unknown> extends BaseType<
-  TValue,
-  TData,
-  ServiceContext
-> {
+export abstract class IAMType<TValue, TData = unknown>
+  extends BaseType<TValue, TData, ServiceContext>
+  implements Authorizable
+{
+  /**
+   * Authorization provider for @Policy decorator.
+   */
+  readonly authProvider = new AuthProvider();
+
   /**
    * Executor with authorization middleware.
    */
   static executor = createExecutor<ServiceContext>({
     middleware: [createAuthorizationMiddleware()],
   });
-
-  constructor(value: TValue, ctx: ServiceContext) {
-    super(value, ctx);
-  }
 
   protected getCache(): CacheStore {
     return this.ctx.kernel.cache as CacheStore;

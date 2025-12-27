@@ -13,6 +13,11 @@ import { AuthProvider } from "@src/kernel/Authorizable.js";
 export { ZodSchema, Transactional, ValidationError };
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
+  /**
+   * Authorization provider for @Policy decorator.
+   */
+  readonly authProvider = new AuthProvider();
+
   protected readonly services: IamKernelServices;
   protected readonly repository: IamKernelServices["repository"];
   protected readonly logger: IamKernelServices["logger"];
@@ -23,11 +28,6 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    * Required by the decorator contract
    */
   protected readonly txManager: IamKernelServices["repository"]["txManager"];
-
-  /**
-   * Authorization provider for @Policy decorator.
-   */
-  public readonly authProvider = new AuthProvider();
 
   constructor(services: IamKernelServices) {
     this.services = services;

@@ -39,16 +39,16 @@ export abstract class BaseResolver<TValue, TData = unknown>
   implements Authorizable
 {
   /**
+   * Authorization provider for @Policy decorator.
+   */
+  readonly authProvider = new AuthProvider();
+
+  /**
    * Executor with authorization middleware.
    */
   static executor = createExecutor<ServiceContext>({
     middleware: [createAuthorizationMiddleware()],
   });
-
-  /**
-   * Authorization provider for @TypePolicy decorator.
-   */
-  readonly authProvider = new AuthProvider();
 
   // @ts-expect-error
   protected getCache() {

@@ -8,6 +8,11 @@ import { getContext } from "../context/index.js";
 import { AuthProvider } from "@src/kernel/Authorizable.js";
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
+  /**
+   * Authorization provider for @Policy decorator.
+   */
+  readonly authProvider = new AuthProvider();
+
   protected readonly services: ProjectKernelServices;
   protected readonly repository: ProjectKernelServices["repository"];
   protected readonly logger: ProjectKernelServices["logger"];
@@ -17,11 +22,6 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    * Transaction manager for @Transactional() decorator
    */
   protected readonly txManager: ProjectKernelServices["repository"]["txManager"];
-
-  /**
-   * Authorization provider for @Policy decorator.
-   */
-  public readonly authProvider = new AuthProvider();
 
   constructor(services: ProjectKernelServices) {
     this.services = services;
