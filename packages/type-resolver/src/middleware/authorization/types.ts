@@ -37,8 +37,18 @@ export interface AuthorizeParams {
 }
 
 /**
+ * Interface for authorization provider.
+ * Contains userId and authorize method.
+ */
+export interface AuthProvider {
+  userId: string | null;
+  authorize(params: AuthorizeParams): Promise<boolean>;
+}
+
+/**
  * Interface for types that support authorization.
+ * Uses composition via `auth` property.
  */
 export interface Authorizable {
-  authorize(params: AuthorizeParams): Promise<boolean>;
+  auth: AuthProvider;
 }

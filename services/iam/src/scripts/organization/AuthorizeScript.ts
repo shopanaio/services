@@ -1,25 +1,26 @@
-import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
 import { BaseScript } from "../../kernel/BaseScript.js";
+import { Authorizable } from "../../kernel/Authorizable.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/AuthorizeDto.js";
 
+/**
+ * Authorization script that creates a custom Authorizable for the target user.
+ * Supports both organizationId and organizationName (resolved via NameResolver).
+ */
 export class AuthorizeScript extends BaseScript<
   AuthorizeParams,
   AuthorizeResult
 > {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const { userId, organizationId, domain, resource, action } = params;
+    const { userId, organizationId, organizationName, domain, resource, action } = params;
 
-    // Site admins bypass all RBAC checks (like GitLab's admin flag)
-    const isAdmin = await this.repository.user.isAdmin(userId);
-    if (isAdmin) {
-      return { allowed: true };
-    }
+    // Create Authorizable for the target user (not current user)
+    const targetAuth = new Authorizable(userId);
 
-    // Check permission using Casbin RBAC
-    const allowed = await this.repository.casbin.enforce({
+    // Use authorize method (handles admin check, name resolution, casbin)
+    const allowed = await targetAuth.authorize({
       organizationId,
-      userId,
-      domain: domain ?? ORG_DOMAIN,
+      organizationName,
+      domain,
       resource,
       action,
     });

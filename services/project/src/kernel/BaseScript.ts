@@ -1,13 +1,13 @@
 import {
   ValidationError,
   AuthorizationError,
-  type Authorizable,
-  type AuthorizeParams,
+  type Authorizable as IAuthorizable,
 } from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
+import { Authorizable } from "./Authorizable.js";
 
-export abstract class BaseScript<TParams, TResult> implements Authorizable {
+export abstract class BaseScript<TParams, TResult> implements IAuthorizable {
   protected readonly services: ProjectKernelServices;
   protected readonly repository: ProjectKernelServices["repository"];
   protected readonly logger: ProjectKernelServices["logger"];
@@ -18,36 +18,18 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    */
   protected readonly txManager: ProjectKernelServices["repository"]["txManager"];
 
+  /**
+   * Authorization provider for @Policy decorator.
+   */
+  public readonly auth: Authorizable;
+
   constructor(services: ProjectKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
     this.broker = services.broker;
     this.txManager = services.repository.txManager;
-  }
-
-  /**
-   * Current user ID for @Authorize decorator
-   */
-  get userId(): string | null {
-    return this.context.user?.id ?? null;
-  }
-
-  /**
-   * Authorization check for @Authorize decorator
-   */
-  async authorize(params: AuthorizeParams): Promise<boolean> {
-    // Auto-detect domain: explicit > store context > org (default)
-
-    const result = (await this.broker.call("iam.authorize", {
-      userId: this.userId,
-      organization: params.organization,
-      resource: params.resource,
-      action: params.action,
-      domain: params.domain,
-    })) as { allowed: boolean };
-
-    return result.allowed;
+    this.auth = new Authorizable();
   }
 
   /**

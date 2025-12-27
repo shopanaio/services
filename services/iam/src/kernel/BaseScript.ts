@@ -3,17 +3,16 @@ import {
   AuthorizationError,
   ZodSchema,
   Transactional,
-  type Authorizable,
-  type AuthorizeParams,
+  type Authorizable as IAuthorizable,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
-import { ORG_DOMAIN, type Resource } from "../casbin/CasbinService.js";
+import { Authorizable } from "./Authorizable.js";
 
 // Re-export decorators for convenience
 export { ZodSchema, Transactional, ValidationError };
 
-export abstract class BaseScript<TParams, TResult> implements Authorizable {
+export abstract class BaseScript<TParams, TResult> {
   protected readonly services: IamKernelServices;
   protected readonly repository: IamKernelServices["repository"];
   protected readonly logger: IamKernelServices["logger"];
@@ -25,45 +24,17 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    */
   protected readonly txManager: IamKernelServices["repository"]["txManager"];
 
+  /**
+   * Authorization provider for @Policy decorator.
+   */
+  public readonly auth = new Authorizable();
+
   constructor(services: IamKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
     this.authCache = services.authCache;
     this.txManager = services.repository.txManager;
-  }
-
-  /**
-   * Current user ID for @Policy decorator
-   */
-  get userId(): string | null {
-    return this.context.currentUser?.id ?? null;
-  }
-
-  /**
-   * Authorization check for @Policy decorator.
-   * Uses Casbin directly since we're in the IAM service.
-   */
-  async authorize(params: AuthorizeParams): Promise<boolean> {
-    const userId = this.userId;
-    if (!userId) {
-      return false;
-    }
-
-    // Check if user is site admin (bypasses all checks)
-    const isAdmin = await this.repository.user.isAdmin(userId);
-    if (isAdmin) {
-      return true;
-    }
-
-    // Check permission using Casbin RBAC
-    return this.repository.casbin.enforce({
-      organizationId: params.organizationId,
-      userId,
-      domain: ORG_DOMAIN,
-      resource: params.resource as Resource,
-      action: params.action,
-    });
   }
 
   /**

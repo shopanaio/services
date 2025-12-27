@@ -3,6 +3,7 @@ export {
   Policy,
   AuthorizationError,
   type Authorizable,
+  type AuthProvider,
   type AuthorizeParams,
   type AuthorizeOptions,
 } from "./Authorize.js";

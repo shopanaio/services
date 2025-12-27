@@ -3,7 +3,8 @@ import type { Domain, Resource } from "../../../casbin/CasbinService.js";
 
 export const authorizeInputSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
-  organizationId: z.string().uuid("Invalid organization ID"),
+  organizationId: z.string().uuid("Invalid organization ID").optional(),
+  organizationName: z.string().min(1).optional(),
   domain: z.string().optional(),
   resource: z.string().min(1, "Resource is required"),
   action: z.string().min(1, "Action is required"),
@@ -13,7 +14,10 @@ export type AuthorizeInput = z.infer<typeof authorizeInputSchema>;
 
 export interface AuthorizeParams {
   userId: string;
-  organizationId: string;
+  /** Organization ID - use this OR organizationName */
+  organizationId?: string;
+  /** Organization name (slug) - will be resolved to ID via NameResolver */
+  organizationName?: string;
   /** Domain scope. Defaults to "org" if not provided. */
   domain?: Domain;
   resource: Resource;

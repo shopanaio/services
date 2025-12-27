@@ -55,11 +55,20 @@ export interface AuthorizeParams {
 }
 
 /**
- * Interface that a class must implement to use @Authorize decorator
+ * Interface for authorization provider.
+ * Contains userId and authorize method.
  */
-export interface Authorizable {
+export interface AuthProvider {
   userId: string | null;
   authorize(params: AuthorizeParams): Promise<boolean>;
+}
+
+/**
+ * Interface that a class must implement to use @Policy decorator.
+ * Uses composition via `auth` property.
+ */
+export interface Authorizable {
+  auth: AuthProvider;
 }
 
 type PolicyDecorator = <T>(
@@ -71,8 +80,8 @@ type PolicyDecorator = <T>(
 /**
  * Method decorator that checks authorization before executing.
  * The class must have:
- * - `this.userId` - current user ID
- * - `this.authorize({ resource, action, organizationId })` - method to check permission
+ * - `this.auth.userId` - current user ID
+ * - `this.auth.authorize({ resource, action, organizationId })` - method to check permission
  *
  * @param options - Authorization options (resource, action, organizationId)
  *
@@ -109,7 +118,7 @@ export function Policy<
       this: TSelf,
       params: TParams
     ): Promise<unknown> {
-      if (!this.userId) {
+      if (!this.auth.userId) {
         throw new AuthorizationError(
           [
             {
@@ -138,7 +147,7 @@ export function Policy<
           ? options.domain(this, params)
           : options.domain;
 
-      const allowed = await this.authorize({
+      const allowed = await this.auth.authorize({
         resource: options.resource,
         action: options.action,
         organizationId: organizationId,

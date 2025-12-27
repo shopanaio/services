@@ -43,6 +43,7 @@ export {
   ACTION_METADATA_KEY,
   type UserError,
   type Authorizable,
+  type AuthProvider,
   type AuthorizeParams,
   type AuthorizeOptions,
   type ActionMetadata,
