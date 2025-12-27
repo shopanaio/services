@@ -1,3 +1,4 @@
+import { ResolveReference } from "@shopana/type-resolver";
 import type { User } from "../../repositories/user/UserRepository.js";
 import { IAMType, Cache } from "./IAMType.js";
 
@@ -5,6 +6,7 @@ import { IAMType, Cache } from "./IAMType.js";
  * User resolver - resolves admin user domain interface
  * Uses local User type from UserRepository
  */
+@ResolveReference((ref: { __typename: "User"; id: string }) => ref.id)
 export class UserResolver extends IAMType<string, User | null> {
   @Cache({
     cacheName: "iam:user",

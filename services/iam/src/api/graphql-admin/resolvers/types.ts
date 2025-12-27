@@ -98,12 +98,6 @@ export const typeResolvers: Partial<Resolvers> = {
   },
 
   // Federation reference resolvers
-  User: {
-    __resolveReference: async (reference, ctx, info) => {
-      return resolveUser(reference.id, ctx, info);
-    },
-  },
-
   Organization: {
     __resolveReference: async (reference, ctx, info) => {
       return resolveOrganization(reference.id, ctx, info);
