@@ -30,7 +30,8 @@ export class AuthProvider implements IAuthProvider {
   }
 
   private get services(): ProjectKernelServices {
-    return getContext().kernel as unknown as ProjectKernelServices;
+    console.log("Getting services from context");
+    return getContext().kernel.getServices();
   }
 
   /**

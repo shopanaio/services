@@ -98,13 +98,16 @@ export class IamBrokerActions extends BrokerActions {
   @Action("authorize")
   @ZodSchema(authorizeInputSchema)
   async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
-    return this.kernel.runScript(AuthorizeScript, {
-      userId: params.userId,
-      organizationId: params.organizationId,
-      domain: params.domain ?? ORG_DOMAIN,
-      resource: params.resource,
-      action: params.action,
-    });
+    const ctx = await this.createUserContext(params.userId);
+    return runWithContext(ctx, () =>
+      this.kernel.runScript(AuthorizeScript, {
+        userId: params.userId,
+        organizationId: params.organizationId,
+        domain: params.domain ?? ORG_DOMAIN,
+        resource: params.resource,
+        action: params.action,
+      })
+    );
   }
 
   /**
@@ -115,7 +118,10 @@ export class IamBrokerActions extends BrokerActions {
   async batchAuthorize(
     params: BatchAuthorizeParams
   ): Promise<BatchAuthorizeResult> {
-    return this.kernel.runScript(BatchAuthorizeScript, params);
+    const ctx = await this.createUserContext(params.requests[0]?.userId ?? "");
+    return runWithContext(ctx, () =>
+      this.kernel.runScript(BatchAuthorizeScript, params)
+    );
   }
 
   /**
