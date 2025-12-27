@@ -64,24 +64,19 @@ describe("Executor", () => {
     });
 
     it("resolves nested types via populate", async () => {
-      class ChildType {
-        constructor(public value: { id: string }, public ctx: unknown) {}
+      class ChildType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.value.id;
+          return this.get("id");
         }
       }
 
-      class ParentType {
-        static fields = { child: () => ChildType };
-        constructor(
-          public value: { id: string; child: { id: string } },
-          public ctx: unknown
-        ) {}
+      class ParentType extends BaseType<{ id: string; child: { id: string } }, { id: string; child: { id: string } }, unknown> {
         id() {
-          return this.value.id;
+          return this.get("id");
         }
         child() {
-          return this.value.child;
+          // Return BaseType instance - executor will detect via instanceof
+          return new ChildType(this.value.child, this.ctx);
         }
       }
 
@@ -101,21 +96,16 @@ describe("Executor", () => {
     });
 
     it("resolves arrays of nested types", async () => {
-      class ItemType {
-        constructor(public value: { id: string }, public ctx: unknown) {}
+      class ItemType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.value.id;
+          return this.get("id");
         }
       }
 
-      class ListType {
-        static fields = { items: () => ItemType };
-        constructor(
-          public value: { items: { id: string }[] },
-          public ctx: unknown
-        ) {}
+      class ListType extends BaseType<{ items: { id: string }[] }, { items: { id: string }[] }, unknown> {
         items() {
-          return this.value.items;
+          // Return array of BaseType instances
+          return this.value.items.map(item => new ItemType(item, this.ctx));
         }
       }
 
@@ -201,18 +191,9 @@ describe("Executor", () => {
     });
 
     it("handles null values in nested types", async () => {
-      class ChildType {
-        constructor(public value: { id: string }, public ctx: unknown) {}
+      class ParentType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.value.id;
-        }
-      }
-
-      class ParentType {
-        static fields = { child: () => ChildType };
-        constructor(public value: { id: string }, public ctx: unknown) {}
-        id() {
-          return this.value.id;
+          return this.get("id");
         }
         child() {
           return null;
@@ -231,18 +212,9 @@ describe("Executor", () => {
     });
 
     it("handles undefined values in nested types", async () => {
-      class ChildType {
-        constructor(public value: { id: string }, public ctx: unknown) {}
+      class ParentType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.value.id;
-        }
-      }
-
-      class ParentType {
-        static fields = { child: () => ChildType };
-        constructor(public value: { id: string }, public ctx: unknown) {}
-        id() {
-          return this.value.id;
+          return this.get("id");
         }
         child() {
           return undefined;
@@ -523,41 +495,27 @@ describe("BaseType", () => {
 
 describe("Complex nested resolution", () => {
   it("resolves deeply nested types (3+ levels)", async () => {
-    class Level3Type {
-      constructor(public value: { name: string }, public ctx: unknown) {}
+    class Level3Type extends BaseType<{ name: string }, { name: string }, unknown> {
       name() {
-        return this.value.name;
+        return this.get("name");
       }
     }
 
-    class Level2Type {
-      static fields = { level3: () => Level3Type };
-      constructor(
-        public value: { id: string; level3: { name: string } },
-        public ctx: unknown
-      ) {}
+    class Level2Type extends BaseType<{ id: string; level3: { name: string } }, { id: string; level3: { name: string } }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       level3() {
-        return this.value.level3;
+        return new Level3Type(this.value.level3, this.ctx);
       }
     }
 
-    class Level1Type {
-      static fields = { level2: () => Level2Type };
-      constructor(
-        public value: {
-          id: string;
-          level2: { id: string; level3: { name: string } };
-        },
-        public ctx: unknown
-      ) {}
+    class Level1Type extends BaseType<{ id: string; level2: { id: string; level3: { name: string } } }, { id: string; level2: { id: string; level3: { name: string } } }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       level2() {
-        return this.value.level2;
+        return new Level2Type(this.value.level2, this.ctx);
       }
     }
 
@@ -596,41 +554,27 @@ describe("Complex nested resolution", () => {
   });
 
   it("resolves arrays at multiple levels", async () => {
-    class ImageType {
-      constructor(public value: { url: string }, public ctx: unknown) {}
+    class ImageType extends BaseType<{ url: string }, { url: string }, unknown> {
       url() {
-        return this.value.url;
+        return this.get("url");
       }
     }
 
-    class VariantType {
-      static fields = { images: () => ImageType };
-      constructor(
-        public value: { id: string; images: { url: string }[] },
-        public ctx: unknown
-      ) {}
+    class VariantType extends BaseType<{ id: string; images: { url: string }[] }, { id: string; images: { url: string }[] }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       images() {
-        return this.value.images;
+        return this.value.images.map(img => new ImageType(img, this.ctx));
       }
     }
 
-    class ProductType {
-      static fields = { variants: () => VariantType };
-      constructor(
-        public value: {
-          id: string;
-          variants: { id: string; images: { url: string }[] }[];
-        },
-        public ctx: unknown
-      ) {}
+    class ProductType extends BaseType<{ id: string; variants: { id: string; images: { url: string }[] }[] }, { id: string; variants: { id: string; images: { url: string }[] }[] }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       variants() {
-        return this.value.variants;
+        return this.value.variants.map(v => new VariantType(v, this.ctx));
       }
     }
 
@@ -702,31 +646,24 @@ describe("Selective field resolution", () => {
 
 describe("Alias support with nested types", () => {
   it("resolves nested types with aliases", async () => {
-    class VariantType {
-      constructor(
-        public value: { id: string; sku: string },
-        public ctx: unknown
-      ) {}
+    class VariantType extends BaseType<{ id: string; sku: string }, { id: string; sku: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       sku() {
-        return this.value.sku;
+        return this.get("sku");
       }
     }
 
-    class ProductType {
-      static fields = { variants: () => VariantType };
-      constructor(public value: { id: string }, public ctx: unknown) {}
+    class ProductType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       variants(args?: { first?: number }) {
         const count = args?.first || 2;
-        return Array.from({ length: count }, (_, i) => ({
-          id: `v${i + 1}`,
-          sku: `SKU-${i + 1}`,
-        }));
+        return Array.from({ length: count }, (_, i) =>
+          new VariantType({ id: `v${i + 1}`, sku: `SKU-${i + 1}` }, this.ctx)
+        );
       }
     }
 
@@ -748,32 +685,24 @@ describe("Alias support with nested types", () => {
   });
 
   it("handles multiple aliases for same field with different args and fields", async () => {
-    class VariantType {
-      constructor(
-        public value: { id: string; sku: string; price: number },
-        public ctx: unknown
-      ) {}
+    class VariantType extends BaseType<{ id: string; sku: string; price: number }, { id: string; sku: string; price: number }, unknown> {
       id() {
-        return this.value.id;
+        return this.get("id");
       }
       sku() {
-        return this.value.sku;
+        return this.get("sku");
       }
       price() {
-        return this.value.price;
+        return this.get("price");
       }
     }
 
-    class ProductType {
-      static fields = { variants: () => VariantType };
-      constructor(public value: Record<string, never>, public ctx: unknown) {}
+    class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
       variants(args?: { first?: number }) {
         const count = args?.first || 10;
-        return Array.from({ length: count }, (_, i) => ({
-          id: `v${i + 1}`,
-          sku: `SKU-${i + 1}`,
-          price: (i + 1) * 100,
-        }));
+        return Array.from({ length: count }, (_, i) =>
+          new VariantType({ id: `v${i + 1}`, sku: `SKU-${i + 1}`, price: (i + 1) * 100 }, this.ctx)
+        );
       }
     }
 

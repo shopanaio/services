@@ -6,7 +6,6 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface TypeClass<TValue = any, TContext = any> {
   new (value: TValue, ctx: TContext): object;
-  fields?: Record<string, Function>;
 }
 
 /**
@@ -79,20 +78,6 @@ export type ResolverKeys<T extends TypeClass> = {
     : never;
 }[keyof Instance<T>];
 
-/**
- * Resolves the child TypeClass for a given resolver key via static fields.
- * Returns `never` if no child type is defined.
- */
-export type ChildTypeFor<
-  T extends TypeClass,
-  K extends ResolverKeys<T>
-> = K extends keyof NonNullable<T["fields"]>
-  ? NonNullable<T["fields"]>[K] extends () => infer CT
-    ? CT extends TypeClass
-      ? CT
-      : never
-    : never
-  : never;
 
 /**
  * Extracts the argument type for a resolver method.
@@ -174,7 +159,7 @@ type BaseTypeInternalMethods = "loadData" | "get" | "data";
 
 /**
  * Infers the result type from a TypeClass.
- * Maps resolver methods to their return types, handling nested types.
+ * Maps resolver methods to their return types.
  * Excludes constructor and internal BaseType methods (loadData, get, data).
  */
 export type TypeResult<T extends TypeClass> = {
@@ -184,17 +169,7 @@ export type TypeResult<T extends TypeClass> = {
     ? K extends "constructor" | BaseTypeInternalMethods
       ? never
       : K
-    : never]: InstanceType<T>[K] extends ResolverMethod<infer R>
-    ? K extends keyof NonNullable<T["fields"]>
-      ? NonNullable<T["fields"]>[K] extends () => infer ChildType
-        ? ChildType extends TypeClass
-          ? R extends unknown[]
-            ? TypeResult<ChildType>[]
-            : TypeResult<ChildType>
-          : R
-        : R
-      : R
-    : never;
+    : never]: InstanceType<T>[K] extends ResolverMethod<infer R> ? R : never;
 };
 
 /**

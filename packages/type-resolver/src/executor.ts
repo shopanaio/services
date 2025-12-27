@@ -8,7 +8,7 @@ import type {
   TypeClass,
   TypeResult,
 } from "./types.js";
-import { getFieldType } from "./decorators/Type.js";
+import { BaseType } from "./baseType.js";
 
 /**
  * Error thrown when a resolver fails.
@@ -125,8 +125,6 @@ export class Executor<TContext = unknown> {
       }
     }
 
-    const fieldsMap =
-      (Type as { fields?: Record<string, () => TypeClass> }).fields ?? {};
     const result: Record<string, unknown> = {};
 
     // Collect all fields to resolve
@@ -186,27 +184,24 @@ export class Executor<TContext = unknown> {
           // Call resolver method
           const resolved = await method.call(instance, argsForField);
 
-          // Check if there is a child type for this field (static fields or @Type decorator)
-          const getChildType = getFieldType(method) ?? fieldsMap[methodName];
-
-          if (getChildType && resolved != null && fieldQuery) {
-            // Relation field - recursively resolve with child query
-            const ChildType = getChildType();
-
-            if (Array.isArray(resolved)) {
-              result[key] = await Promise.all(
-                resolved.map((item) =>
-                  this.load(ChildType, item, fieldQuery, context)
-                )
-              );
-            } else {
-              result[key] = await this.load(
-                ChildType,
-                resolved,
-                fieldQuery,
-                context
-              );
-            }
+          // Check if resolved value is a BaseType instance (relation field)
+          if (Array.isArray(resolved) && resolved[0] instanceof BaseType && fieldQuery) {
+            // Array of BaseType instances - recursively resolve each
+            result[key] = await Promise.all(
+              resolved.map((item) => {
+                const ChildType = item.constructor as TypeClass;
+                return this.load(ChildType, item.value, fieldQuery, context);
+              })
+            );
+          } else if (resolved instanceof BaseType && fieldQuery) {
+            // Single BaseType instance - recursively resolve
+            const ChildType = resolved.constructor as TypeClass;
+            result[key] = await this.load(
+              ChildType,
+              resolved.value,
+              fieldQuery,
+              context
+            );
           } else {
             // Scalar field or relation without query
             result[key] = resolved;
