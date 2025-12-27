@@ -24,26 +24,11 @@ function extractBearerToken(authHeader: string | undefined): string | null {
 }
 
 /**
- * Decode JWT payload without verification (verification done by Better Auth)
- * Used to extract organizationId claim
- */
-function decodeJwtPayload(token: string): { org?: string; sub?: string } | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = Buffer.from(parts[1], "base64").toString("utf-8");
-    return JSON.parse(payload);
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Build admin context middleware.
  * Extracts session token from Authorization header and validates session via Better Auth.
- * Extracts organizationId from JWT org claim.
+ * Extracts organizationId from X-Organization-Id header.
  *
- * NOTE: organizationId MUST be in JWT. Use switchOrganization mutation to set it.
+ * 2. X-Organization-Id header (fallback for testing/API keys)
  */
 export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
   return async function adminContextMiddleware(
@@ -53,16 +38,12 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
     request.currentUser = null;
     request.organizationId = null;
 
-    const token = extractBearerToken(request.headers.authorization);
-
-    // Extract organizationId from JWT (required for multi-org support)
-    if (token) {
-      const jwtPayload = decodeJwtPayload(token);
-      if (jwtPayload?.org) {
-        request.organizationId = jwtPayload.org;
-      }
+    const organizationId = request.headers["x-organization-id"];
+    if (typeof organizationId === "string" && organizationId) {
+      request.organizationId = organizationId;
     }
 
+    const token = extractBearerToken(request.headers.authorization);
     // Validate user session
     if (!config.repository || !token) {
       return;
@@ -70,10 +51,8 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
 
     // Validate session token via Better Auth
     const result = await config.repository.user.getCurrentUser(token);
-
     if (!result.success) {
       // Don't fail request - just leave user as null
-      // GraphQL resolvers can handle auth requirements
       return;
     }
 

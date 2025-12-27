@@ -1,20 +1,29 @@
 import type { Resolvers } from "../../generated/types.js";
 import { OrganizationCreateScript } from "../../../../scripts/organization/OrganizationCreateScript.js";
-import { resolveOrganization } from "../types.js";
+import { MemberInviteScript } from "../../../../scripts/organization/MemberInviteScript.js";
+import { resolveOrganization, resolveMember } from "../types.js";
 
 export const organizationMutationResolvers: Partial<Resolvers> = {
   OrganizationMutation: {
     organizationCreate: async (_parent, { input }, ctx, info) => {
-      const result = await ctx.kernel.runScript(OrganizationCreateScript, input);
+      const result = await ctx.kernel.runScript(
+        OrganizationCreateScript,
+        input
+      );
 
       return {
         organization: result.organization
-          ? await resolveOrganization(result.organization.id, ctx, info, "organization")
+          ? await resolveOrganization(
+              result.organization.id,
+              ctx,
+              info,
+              "organization"
+            )
           : null,
         userErrors: result.userErrors.map((e) => ({
           code: e.code ?? "UNKNOWN_ERROR",
           message: e.message,
-          field: e.field ?? null,
+          field: e.field ? [e.field] : null,
         })),
       };
     },
@@ -29,9 +38,29 @@ export const organizationMutationResolvers: Partial<Resolvers> = {
       throw new Error("Not implemented");
     },
 
-    memberInvite: async (_parent, { input: _input }, _ctx) => {
-      // Invite user to organization by email with role assignments
-      throw new Error("Not implemented");
+    memberInvite: async (_parent, { input }, ctx, info) => {
+      const result = await ctx.kernel.runScript(MemberInviteScript, input);
+
+      return {
+        member: result.member
+          ? await resolveMember(
+              {
+                userId: result.member.userId,
+                role: result.member.role,
+                domain: result.member.domain,
+                organizationId: result.member.organizationId,
+              },
+              ctx,
+              info,
+              "member"
+            )
+          : null,
+        userErrors: result.userErrors.map((e) => ({
+          code: e.code ?? "UNKNOWN_ERROR",
+          message: e.message,
+          field: e.field ? [e.field] : null,
+        })),
+      };
     },
 
     memberRemove: async (_parent, { memberId: _memberId }, _ctx) => {
