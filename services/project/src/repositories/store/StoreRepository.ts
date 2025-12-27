@@ -51,8 +51,10 @@ export interface StoreConnectionResult {
 export interface CreateStoreData {
   id: string;
   organizationId: string;
+  /** URL-friendly identifier (e.g., "my-store") */
   name: string;
-  slug: string;
+  /** Human-readable display name (e.g., "My Store") */
+  displayName: string;
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
@@ -64,6 +66,7 @@ export interface CreateStoreData {
 }
 
 export interface UpdateStoreData {
+  displayName?: string;
   name?: string;
   email?: string | null;
   timezone?: string;
@@ -157,7 +160,7 @@ export class StoreRepository extends BaseRepository {
         externalSystem: null,
         externalId: null,
         name: data.name,
-        slug: data.slug,
+        displayName: data.displayName,
         status: data.status ?? "active",
         timezone: data.timezone ?? "UTC",
         email: data.email ?? null,
@@ -187,12 +190,15 @@ export class StoreRepository extends BaseRepository {
     return this.loadIntegrations(result);
   }
 
+  /**
+   * Find store by name (URL-friendly identifier)
+   */
   @ReadOnly()
-  async findBySlug(slug: string): Promise<Store | null> {
+  async findByName(name: string): Promise<Store | null> {
     const [result] = await this.connection
       .select()
       .from(store)
-      .where(eq(store.slug, slug));
+      .where(eq(store.name, name));
 
     if (!result) return null;
     return this.loadIntegrations(result);

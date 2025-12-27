@@ -20,8 +20,10 @@ export const organization = iamSchema.table(
   "organization",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: varchar("name", { length: 256 }).notNull(),
-    slug: varchar("slug", { length: 128 }).notNull(),
+    /** URL-friendly identifier (e.g., "my-org") */
+    name: varchar("name", { length: 128 }).notNull(),
+    /** Human-readable display name (e.g., "My Organization") */
+    displayName: varchar("display_name", { length: 256 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -30,7 +32,7 @@ export const organization = iamSchema.table(
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
-  (table) => [uniqueIndex("idx_organization_slug").on(table.slug)]
+  (table) => [uniqueIndex("idx_organization_name").on(table.name)]
 );
 
 export type Organization = typeof organization.$inferSelect;

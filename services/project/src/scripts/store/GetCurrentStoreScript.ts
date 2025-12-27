@@ -11,18 +11,19 @@ export class GetCurrentStoreScript extends BaseScript<
   protected async execute(
     params: GetCurrentStoreParams
   ): Promise<GetCurrentStoreResult> {
-    const { slug } = params;
+    const { name } = params;
 
-    // 1. Find store by slug (includes integrations)
-    const store = await this.repository.store.findBySlug(slug);
+    // 1. Find store by name (includes integrations)
+    const store = await this.repository.store.findByName(name);
 
     if (!store) {
       return {
-        store: undefined,
+        store: null,
         userErrors: [
           {
             code: "STORE_NOT_FOUND",
-            message: `Store with slug "${slug}" not found`,
+            message: `Store with name "${name}" not found`,
+            field: ["name"],
           },
         ],
       };

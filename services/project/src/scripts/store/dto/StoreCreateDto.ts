@@ -3,19 +3,19 @@ import type { StoreStatus, CurrencyCode, LocaleCode } from "../../../repositorie
 import type { StorePayload } from "./shared.js";
 
 /**
- * Store slug validation schema
+ * Store name validation schema (URL-friendly identifier)
  */
-export const storeSlugSchema = z
+export const storeNameSchema = z
   .string()
-  .min(3, "Slug must be at least 3 characters")
-  .max(64, "Slug must be at most 64 characters")
+  .min(3, "Name must be at least 3 characters")
+  .max(64, "Name must be at most 64 characters")
   .regex(
     /^[a-z0-9-]+$/,
-    "Slug must contain only lowercase letters, numbers, and hyphens"
+    "Name must contain only lowercase letters, numbers, and hyphens"
   )
   .refine(
-    (slug) => !slug.startsWith("-") && !slug.endsWith("-"),
-    "Slug cannot start or end with a hyphen"
+    (name) => !name.startsWith("-") && !name.endsWith("-"),
+    "Name cannot start or end with a hyphen"
   );
 
 /**
@@ -23,8 +23,10 @@ export const storeSlugSchema = z
  */
 export const storeCreateInputSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
-  name: z.string().min(1, "Name is required").max(255),
-  slug: storeSlugSchema,
+  /** URL-friendly identifier (e.g., "my-store") */
+  name: storeNameSchema,
+  /** Human-readable display name (e.g., "My Store") */
+  displayName: z.string().min(1, "Display name is required").max(255),
   locales: z.array(z.string()).min(1, "At least one locale is required"),
   currencies: z.array(z.string()).min(1, "At least one currency is required"),
   defaultCurrency: z.string().min(1, "Default currency is required"),
@@ -37,8 +39,10 @@ export type StoreCreateInput = z.infer<typeof storeCreateInputSchema>;
 
 export interface StoreCreateParams {
   organizationId: string;
+  /** URL-friendly identifier (e.g., "my-store") */
   name: string;
-  slug: string;
+  /** Human-readable display name (e.g., "My Store") */
+  displayName: string;
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;

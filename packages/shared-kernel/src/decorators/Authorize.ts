@@ -21,16 +21,24 @@ export class AuthorizationError extends Error {
  * @template TParams - Type of the script params
  * @template TSelf - Type of the script instance
  */
-export interface AuthorizeOptions<TParams = unknown, TSelf extends Authorizable = Authorizable> {
+export interface AuthorizeOptions<
+  TParams = unknown,
+  TSelf extends Authorizable = Authorizable
+> {
   /** Resource to check authorization for */
   resource: string;
   /** Action to check (e.g., "read", "write", "delete", "create") */
   action: string;
   /**
-   * Organization ID for authorization - required.
-   * Can be a string or a function that extracts it from instance/params.
+   * Organization ID for authorization.
    */
-  organizationId: string | ((self: TSelf, params: TParams) => string);
+  organizationId?: string | ((self: TSelf, params: TParams) => string);
+  /**
+   * Organization slug (name) for authorization.
+   * Will be resolved to organization ID via resolveOrganizationId().
+   * Use this OR organizationId, not both.
+   */
+  organizationName?: string | ((self: TSelf, params: TParams) => string);
   /**
    * Domain scope (e.g., "store:123", "org").
    * Can be a string or a function that extracts it from instance/params.
@@ -41,7 +49,8 @@ export interface AuthorizeOptions<TParams = unknown, TSelf extends Authorizable 
 export interface AuthorizeParams {
   resource: string;
   action: string;
-  organizationId: string;
+  organizationId?: string;
+  organizationName?: string;
   domain?: string;
 }
 
@@ -77,13 +86,16 @@ type PolicyDecorator = <T>(
  *   protected async execute(params: AssignRoleParams) { ... }
  * }
  */
-export function Policy<TParams>(options: AuthorizeOptions<TParams>): PolicyDecorator;
+export function Policy<TParams>(
+  options: AuthorizeOptions<TParams>
+): PolicyDecorator;
 export function Policy<TParams, TSelf extends Authorizable>(
   options: AuthorizeOptions<TParams, TSelf>
 ): PolicyDecorator;
-export function Policy<TParams = unknown, TSelf extends Authorizable = Authorizable>(
-  options: AuthorizeOptions<TParams, TSelf>
-): PolicyDecorator {
+export function Policy<
+  TParams = unknown,
+  TSelf extends Authorizable = Authorizable
+>(options: AuthorizeOptions<TParams, TSelf>): PolicyDecorator {
   return function <T>(
     _target: object,
     _propertyKey: string | symbol,
@@ -111,20 +123,27 @@ export function Policy<TParams = unknown, TSelf extends Authorizable = Authoriza
         );
       }
 
-      // Resolve organizationId from options (string or function)
       const organizationId =
         typeof options.organizationId === "function"
           ? options.organizationId(this, params)
           : options.organizationId;
 
+      const organizationName =
+        typeof options.organizationName === "function"
+          ? options.organizationName(this, params)
+          : options.organizationName;
+
+      const domain =
+        typeof options.domain === "function"
+          ? options.domain(this, params)
+          : options.domain;
+
       const allowed = await this.authorize({
         resource: options.resource,
         action: options.action,
-        organizationId,
-        domain:
-          typeof options.domain === "function"
-            ? options.domain(this, params)
-            : options.domain,
+        organizationId: organizationId,
+        organizationName: organizationName,
+        domain,
       });
 
       if (!allowed) {

@@ -5,11 +5,11 @@ enum StoreStatus {
   """
   Store is active and operational
   """
-  active
+  ACTIVE
   """
   Store is inactive and not processing requests
   """
-  inactive
+  INACTIVE
 }
 
 # WeightUnit, DimensionUnit, CurrencyCode, LocaleCode enums are defined in shared-references
@@ -108,13 +108,13 @@ input StoreCreateInput {
   """
   organizationId: ID!
   """
-  Display name of the store
+  URL-friendly unique identifier
   """
   name: String!
   """
-  URL-friendly unique identifier
+  Display name of the store
   """
-  slug: String!
+  displayName: String!
   """
   Initial list of locale codes to enable
   """
@@ -146,9 +146,17 @@ Input for updating an existing store
 """
 input StoreUpdateInput {
   """
+  ID of the store to update
+  """
+  id: ID!
+  """
   New display name
   """
   name: String
+  """
+  New display name
+  """
+  displayName: String
   """
   New contact email address
   """
@@ -183,6 +191,10 @@ input StoreDeleteInput {
   ID of the store to delete
   """
   id: ID!
+  """
+  Organization name for authorization context
+  """
+  organizationId: ID!
 }
 
 """

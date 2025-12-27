@@ -19,8 +19,10 @@ import { ApiKeyDeleteScript } from "../../scripts/apiKey/ApiKeyDeleteScript.js";
 // Input types
 interface StoreCreateInput {
   organizationId: string;
+  /** URL-friendly identifier (e.g., "my-store") */
   name: string;
-  slug: string;
+  /** Human-readable display name (e.g., "My Store") */
+  displayName: string;
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
@@ -31,7 +33,9 @@ interface StoreCreateInput {
 
 interface StoreUpdateInput {
   id: string;
+  organization: string;
   name?: string | null;
+  displayName?: string | null;
   email?: string | null;
   timezone?: string | null;
   defaultWeightUnit?: WeightUnit | null;
@@ -74,11 +78,13 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
    */
   private async getCurrentStore() {
     if (!this.ctx.storeName) {
-      throw new Error("Store not found in request context. Ensure x-store-name header is set.");
+      throw new Error(
+        "Store not found in request context. Ensure x-store-name header is set."
+      );
     }
     const store = await this.ctx.kernel
       .getServices()
-      .repository.store.findBySlug(this.ctx.storeName);
+      .repository.store.findByName(this.ctx.storeName);
     if (!store) {
       throw new Error(`Store not found: ${this.ctx.storeName}`);
     }
@@ -92,7 +98,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     const result = await this.ctx.kernel.runScript(StoreCreateScript, {
       organizationId: input.organizationId,
       name: input.name,
-      slug: input.slug,
+      displayName: input.displayName,
       locales: input.locales,
       currencies: input.currencies,
       defaultCurrency: input.defaultCurrency,
@@ -120,6 +126,8 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     const result = await this.ctx.kernel.runScript(StoreUpdateScript, {
       id: input.id,
       name: input.name ?? undefined,
+      organization: input.organization,
+      displayName: input.displayName ?? undefined,
       email: input.email ?? undefined,
       timezone: input.timezone ?? undefined,
       defaultWeightUnit: input.defaultWeightUnit ?? undefined,

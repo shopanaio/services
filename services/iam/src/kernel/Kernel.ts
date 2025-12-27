@@ -5,7 +5,7 @@ import { getServiceConfig, buildDbUrl } from "@shopana/shared-service-config";
 import type { IamKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
-import { AuthorizationCache } from "../cache/index.js";
+import { AuthorizationCache, NameResolver } from "../cache/index.js";
 import { initDatabase, type Database } from "../infrastructure/db/database.js";
 import { createAuth, type Auth } from "../auth/auth.js";
 import { ResourceAggregator } from "../resources/index.js";
@@ -19,6 +19,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
   public repository!: Repository;
   public cache!: Cache;
   public authCache!: AuthorizationCache;
+  public nameResolver!: NameResolver;
   public db!: Database;
   public auth!: Auth;
   public resourceAggregator!: ResourceAggregator;
@@ -29,14 +30,16 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     repository: Repository,
     cache: Cache,
     authCache: AuthorizationCache,
+    nameResolver: NameResolver,
     db: Database,
     auth: Auth,
     resourceAggregator: ResourceAggregator
   ) {
-    super(broker, logger, { repository, cache, authCache });
+    super(broker, logger, { repository, cache, authCache, nameResolver });
     this.repository = repository;
     this.cache = cache;
     this.authCache = authCache;
+    this.nameResolver = nameResolver;
     this.db = db;
     this.auth = auth;
     this.resourceAggregator = resourceAggregator;
@@ -70,6 +73,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     });
 
     const authCache = new AuthorizationCache();
+    const nameResolver = new NameResolver();
     const resourceAggregator = new ResourceAggregator(broker);
 
     this.instance = new Kernel(
@@ -78,6 +82,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       repository,
       cache,
       authCache,
+      nameResolver,
       db,
       auth,
       resourceAggregator

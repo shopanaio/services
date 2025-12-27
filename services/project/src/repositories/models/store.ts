@@ -41,8 +41,10 @@ export const store = storeSchema.table(
     organizationId: uuid("organization_id").notNull(),
     externalSystem: varchar("external_system", { length: 64 }),
     externalId: varchar("external_id", { length: 255 }),
+    /** URL-friendly identifier (e.g., "my-store") */
     name: varchar("name", { length: 255 }).notNull(),
-    slug: varchar("slug", { length: 255 }).notNull(),
+    /** Human-readable display name (e.g., "My Store") */
+    displayName: varchar("display_name", { length: 255 }).notNull(),
     status: storeStatusEnum("status").notNull().default("active"),
     timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
     email: varchar("email", { length: 255 }),
@@ -56,8 +58,8 @@ export const store = storeSchema.table(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex("store_slug_key")
-      .on(table.slug)
+    uniqueIndex("store_name_key")
+      .on(table.name)
       .where(sql`deleted_at IS NULL`),
     index("idx_store_status").on(table.status),
     index("idx_store_created_at").on(table.createdAt),

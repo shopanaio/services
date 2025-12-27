@@ -59,7 +59,7 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
 
     const store = await this.ctx.kernel
       .getServices()
-      .repository.store.findBySlug(this.ctx.storeName);
+      .repository.store.findByName(this.ctx.storeName);
 
     if (!store) {
       return null;

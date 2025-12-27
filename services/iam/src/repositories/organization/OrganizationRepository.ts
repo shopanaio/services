@@ -17,8 +17,10 @@ import { BaseRepository } from "../BaseRepository.js";
 // ============================================================================
 
 export interface OrganizationCreateInput {
+  /** URL-friendly identifier (e.g., "my-org") */
   name: string;
-  slug: string;
+  /** Human-readable display name (e.g., "My Organization") */
+  displayName: string;
 }
 
 export interface OrganizationCreateResult {
@@ -47,16 +49,16 @@ export class OrganizationRepository extends BaseRepository {
    */
   @Transactional()
   async create(input: OrganizationCreateInput): Promise<OrganizationCreateResult> {
-    const { name, slug } = input;
+    const { name, displayName } = input;
 
     try {
-      // Check if slug already exists
-      const existing = await this.findBySlug(slug);
+      // Check if name already exists
+      const existing = await this.findByName(name);
       if (existing) {
         return {
           success: false,
           organization: null,
-          error: "Organization with this slug already exists",
+          error: "Organization with this name already exists",
         };
       }
 
@@ -64,7 +66,7 @@ export class OrganizationRepository extends BaseRepository {
         .insert(organization)
         .values({
           name,
-          slug,
+          displayName,
         })
         .returning();
 
@@ -95,14 +97,14 @@ export class OrganizationRepository extends BaseRepository {
   }
 
   /**
-   * Find organization by slug
+   * Find organization by name (URL-friendly identifier)
    */
   @ReadOnly()
-  async findBySlug(slug: string): Promise<Organization | null> {
+  async findByName(name: string): Promise<Organization | null> {
     const [result] = await this.connection
       .select()
       .from(organization)
-      .where(and(eq(organization.slug, slug), isNull(organization.deletedAt)));
+      .where(and(eq(organization.name, name), isNull(organization.deletedAt)));
 
     return result ?? null;
   }

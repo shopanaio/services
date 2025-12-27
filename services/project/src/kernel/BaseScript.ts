@@ -34,28 +34,17 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   }
 
   /**
-   * Organization ID for @Authorize decorator.
-   * From store context.
-   */
-  get organizationId(): string | null {
-    return this.context.store?.organizationId ?? null;
-  }
-
-  /**
    * Authorization check for @Authorize decorator
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
     // Auto-detect domain: explicit > store context > org (default)
-    const domain =
-      params.domain ??
-      (this.context.store ? `store:${this.context.store.id}` : undefined);
 
     const result = (await this.broker.call("iam.authorize", {
       userId: this.userId,
-      organizationId: params.organizationId,
+      organization: params.organization,
       resource: params.resource,
       action: params.action,
-      domain,
+      domain: params.domain,
     })) as { allowed: boolean };
 
     return result.allowed;

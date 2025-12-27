@@ -9,8 +9,10 @@ import type {
 import { STORE_ROLES } from "../constants/index.js";
 
 export interface StoreCreateInput {
+  /** URL-friendly identifier (e.g., "my-store") */
   name: string;
-  slug: string;
+  /** Human-readable display name (e.g., "My Store") */
+  displayName: string;
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
@@ -38,11 +40,11 @@ export interface StoreCreateOutput {
 export class StoreCreateWorkflow extends BaseWorkflow {
 
   /**
-   * Generate globally unique workflowID from slug.
-   * Slug must be unique across all stores.
+   * Generate globally unique workflowID from name.
+   * Name must be unique across all stores.
    */
-  static workflowID(slug: string): string {
-    return `store:create:${slug}`;
+  static workflowID(name: string): string {
+    return `store:create:${name}`;
   }
 
   /**
@@ -85,7 +87,7 @@ export class StoreCreateWorkflow extends BaseWorkflow {
       id: storeId,
       organizationId,
       name: input.name,
-      slug: input.slug,
+      displayName: input.displayName,
       locales: input.locales,
       currencies: input.currencies,
       defaultCurrency: input.defaultCurrency,

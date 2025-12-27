@@ -25,16 +25,16 @@ export class StoreCreateScript extends BaseScript<
   protected async execute(
     params: StoreCreateParams
   ): Promise<StoreCreateResult> {
-    // Check for existing slug before running workflow
-    const existingStore = await this.repository.store.findBySlug(params.slug);
+    // Check for existing name before running workflow
+    const existingStore = await this.repository.store.findByName(params.name);
     if (existingStore) {
       return {
         store: null,
         userErrors: [
           {
             code: "DUPLICATE_VALUE",
-            message: "A store with this slug already exists",
-            field: ["slug"],
+            message: "A store with this name already exists",
+            field: ["name"],
           },
         ],
       };
@@ -60,7 +60,7 @@ export class StoreCreateScript extends BaseScript<
     const result = await workflow.run({
       organizationId: params.organizationId,
       name: params.name,
-      slug: params.slug,
+      displayName: params.displayName,
       locales: params.locales,
       currencies: params.currencies,
       defaultCurrency: params.defaultCurrency,
@@ -86,7 +86,7 @@ export class StoreCreateScript extends BaseScript<
       return { store: null, userErrors: error.errors };
     }
 
-    // Handle PostgreSQL unique constraint violation (duplicate slug)
+    // Handle PostgreSQL unique constraint violation (duplicate name)
     const dbError = error as { code?: string; constraint?: string };
     if (dbError.code === "23505") {
       return {
@@ -94,7 +94,7 @@ export class StoreCreateScript extends BaseScript<
         userErrors: [
           {
             code: "DUPLICATE_VALUE",
-            message: "A store with this slug already exists",
+            message: "A store with this name already exists",
             field: null,
           },
         ],

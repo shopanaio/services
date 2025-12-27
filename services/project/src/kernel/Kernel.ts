@@ -9,6 +9,7 @@ import type { WorkflowRegistry } from "@shopana/workflows";
 import type { ProjectKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
+import { NameResolver } from "../cache/index.js";
 
 const { service } = getServiceConfig("project");
 
@@ -24,17 +25,21 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
 
   public cache!: Cache;
 
+  public nameResolver!: NameResolver;
+
   private constructor(
     broker: ServiceBroker,
     logger: Logger,
     repository: Repository,
     workflow: WorkflowRegistry,
-    cache: Cache
+    cache: Cache,
+    nameResolver: NameResolver
   ) {
-    super(broker, logger, { repository, workflow, cache });
+    super(broker, logger, { repository, workflow, cache, nameResolver });
     this.repository = repository;
     this.workflow = workflow;
     this.cache = cache;
+    this.nameResolver = nameResolver;
   }
 
   static async create(
@@ -53,7 +58,9 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
     });
 
-    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache);
+    const nameResolver = new NameResolver();
+
+    this.instance = new Kernel(broker, consoleLogger, repository, workflow, cache, nameResolver);
     console.log("[PROJECT] Kernel initialized");
     return this.instance;
   }
