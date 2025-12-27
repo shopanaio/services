@@ -16,11 +16,7 @@ function delay(ms: number): Promise<void> {
 describe("Executor", () => {
   describe("load() with QueryArgs", () => {
     it("resolves all fields when query is undefined", async () => {
-      class SimpleType {
-        constructor(
-          public value: { id: string; name: string },
-          public ctx: unknown
-        ) {}
+      class SimpleType extends BaseType<{ id: string; name: string }, { id: string; name: string }, unknown> {
         id() {
           return this.value.id;
         }
@@ -30,17 +26,14 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(SimpleType, { id: "1", name: "Test" });
+      const instance = new SimpleType({ id: "1", name: "Test" }, {});
+      const result = await executor.load(instance, { fields: ["id", "name"] });
 
       expect(result).toEqual({ id: "1", name: "Test" });
     });
 
     it("resolves only scalar fields from fields array", async () => {
-      class SimpleType {
-        constructor(
-          public value: { id: string; name: string; extra: string },
-          public ctx: unknown
-        ) {}
+      class SimpleType extends BaseType<{ id: string; name: string; extra: string }, { id: string; name: string; extra: string }, unknown> {
         id() {
           return this.value.id;
         }
@@ -53,11 +46,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(
-        SimpleType,
-        { id: "1", name: "Test", extra: "ignored" },
-        { fields: ["id", "name"] }
-      );
+      const instance = new SimpleType({ id: "1", name: "Test", extra: "ignored" }, {});
+      const result = await executor.load(instance, { fields: ["id", "name"] });
 
       expect(result).toEqual({ id: "1", name: "Test" });
       expect(result).not.toHaveProperty("extra");
@@ -81,16 +71,13 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(
-        ParentType,
-        { id: "p1", child: { id: "c1" } },
-        {
-          fields: ["id"],
-          populate: {
-            child: { fields: ["id"] },
-          },
-        }
-      );
+      const instance = new ParentType({ id: "p1", child: { id: "c1" } }, {});
+      const result = await executor.load(instance, {
+        fields: ["id"],
+        populate: {
+          child: { fields: ["id"] },
+        },
+      });
 
       expect(result).toEqual({ id: "p1", child: { id: "c1" } });
     });
@@ -110,22 +97,18 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(
-        ListType,
-        { items: [{ id: "1" }, { id: "2" }] },
-        {
-          populate: {
-            items: { fields: ["id"] },
-          },
-        }
-      );
+      const instance = new ListType({ items: [{ id: "1" }, { id: "2" }] }, {});
+      const result = await executor.load(instance, {
+        populate: {
+          items: { fields: ["id"] },
+        },
+      });
 
       expect(result).toEqual({ items: [{ id: "1" }, { id: "2" }] });
     });
 
     it("passes args to resolver methods", async () => {
-      class ProductType {
-        constructor(public value: Record<string, never>, public ctx: unknown) {}
+      class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         variants(args?: { first?: number }) {
           const all = [{ id: "v1" }, { id: "v2" }, { id: "v3" }];
           return args?.first ? all.slice(0, args.first) : all;
@@ -133,7 +116,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(ProductType, {}, {
+      const instance = new ProductType({}, {});
+      const result = await executor.load(instance, {
         populate: {
           variants: { args: { first: 2 } },
         },
@@ -143,8 +127,7 @@ describe("Executor", () => {
     });
 
     it("supports aliases with fieldName", async () => {
-      class ProductType {
-        constructor(public value: Record<string, never>, public ctx: unknown) {}
+      class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         variants(args?: { first?: number }) {
           const all = [{ id: "v1" }, { id: "v2" }, { id: "v3" }, { id: "v4" }, { id: "v5" }];
           return args?.first ? all.slice(0, args.first) : all;
@@ -152,7 +135,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(ProductType, {}, {
+      const instance = new ProductType({}, {});
+      const result = await executor.load(instance, {
         populate: {
           firstTwo: { fieldName: "variants", args: { first: 2 } },
           firstFour: { fieldName: "variants", args: { first: 4 } },
@@ -166,8 +150,7 @@ describe("Executor", () => {
     it("executes resolvers in parallel", async () => {
       const order: string[] = [];
 
-      class ParallelType {
-        constructor(public value: Record<string, never>, public ctx: unknown) {}
+      class ParallelType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         async a() {
           order.push("a-start");
           await delay(50);
@@ -183,7 +166,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      await executor.load(ParallelType, {}, { fields: ["a", "b"] });
+      const instance = new ParallelType({}, {});
+      await executor.load(instance, { fields: ["a", "b"] });
 
       // Both should start before either ends
       expect(order[0]).toBe("a-start");
@@ -201,7 +185,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(ParentType, { id: "p1" }, {
+      const instance = new ParentType({ id: "p1" }, {});
+      const result = await executor.load(instance, {
         fields: ["id"],
         populate: {
           child: { fields: ["id"] },
@@ -222,7 +207,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(ParentType, { id: "p1" }, {
+      const instance = new ParentType({ id: "p1" }, {});
+      const result = await executor.load(instance, {
         fields: ["id"],
         populate: {
           child: { fields: ["id"] },
@@ -233,9 +219,8 @@ describe("Executor", () => {
     });
 
     it("returns null when loadData returns null", async () => {
-      class TypeWithNullData {
-        constructor(public value: string, public ctx: unknown) {}
-        loadData() {
+      class TypeWithNullData extends BaseType<string, null, unknown> {
+        protected loadData() {
           return null;
         }
         id() {
@@ -244,15 +229,15 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(TypeWithNullData, "not-found");
+      const instance = new TypeWithNullData("not-found", {});
+      const result = await executor.load(instance, { fields: ["id"] });
 
       expect(result).toBeNull();
     });
 
     it("returns null when loadData returns undefined", async () => {
-      class TypeWithUndefinedData {
-        constructor(public value: string, public ctx: unknown) {}
-        loadData() {
+      class TypeWithUndefinedData extends BaseType<string, undefined, unknown> {
+        protected loadData() {
           return undefined;
         }
         id() {
@@ -261,7 +246,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor();
-      const result = await executor.load(TypeWithUndefinedData, "not-found");
+      const instance = new TypeWithUndefinedData("not-found", {});
+      const result = await executor.load(instance, { fields: ["id"] });
 
       expect(result).toBeNull();
     });
@@ -269,19 +255,19 @@ describe("Executor", () => {
 
   describe("loadMany()", () => {
     it("resolves multiple values", async () => {
-      class SimpleType {
-        constructor(public value: { id: string }, public ctx: unknown) {}
+      class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
           return this.value.id;
         }
       }
 
       const executor = new Executor();
-      const result = await executor.loadMany(
-        SimpleType,
-        [{ id: "1" }, { id: "2" }, { id: "3" }],
-        { fields: ["id"] }
-      );
+      const instances = [
+        new SimpleType({ id: "1" }, {}),
+        new SimpleType({ id: "2" }, {}),
+        new SimpleType({ id: "3" }, {}),
+      ];
+      const result = await executor.loadMany(instances, { fields: ["id"] });
 
       expect(result).toEqual([{ id: "1" }, { id: "2" }, { id: "3" }]);
     });
@@ -289,22 +275,21 @@ describe("Executor", () => {
 
   describe("error handling", () => {
     it("throws ResolverError by default", async () => {
-      class ErrorType {
-        constructor(public value: Record<string, never>, public ctx: unknown) {}
+      class ErrorType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         broken() {
           throw new Error("Something went wrong");
         }
       }
 
       const executor = new Executor();
+      const instance = new ErrorType({}, {});
       await expect(
-        executor.load(ErrorType, {}, { fields: ["broken"] })
+        executor.load(instance, { fields: ["broken"] })
       ).rejects.toThrow('Failed to resolve field "broken" on ErrorType');
     });
 
     it("returns null on error with onError: null", async () => {
-      class ErrorType {
-        constructor(public value: Record<string, never>, public ctx: unknown) {}
+      class ErrorType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         working() {
           return "works";
         }
@@ -314,7 +299,8 @@ describe("Executor", () => {
       }
 
       const executor = createExecutor({ onError: "null" });
-      const result = await executor.load(ErrorType, {}, {
+      const instance = new ErrorType({}, {});
+      const result = await executor.load(instance, {
         fields: ["working", "broken"],
       });
 
@@ -322,8 +308,7 @@ describe("Executor", () => {
     });
 
     it("returns partial error with onError: partial", async () => {
-      class ErrorType {
-        constructor(public value: Record<string, never>, public ctx: unknown) {}
+      class ErrorType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
         working() {
           return "works";
         }
@@ -333,7 +318,8 @@ describe("Executor", () => {
       }
 
       const executor = createExecutor({ onError: "partial" });
-      const result = await executor.load(ErrorType, {}, {
+      const instance = new ErrorType({}, {});
+      const result = await executor.load(instance, {
         fields: ["working", "broken"],
       });
 
@@ -348,8 +334,7 @@ describe("Executor", () => {
     it("passes context to type instances", async () => {
       const ctx = { userId: "user-123", tenant: "acme" };
 
-      class ContextAwareType {
-        constructor(public value: string, public ctx: typeof ctx) {}
+      class ContextAwareType extends BaseType<string, string, typeof ctx> {
         userId() {
           return this.ctx.userId;
         }
@@ -359,7 +344,8 @@ describe("Executor", () => {
       }
 
       const executor = new Executor({ ctx });
-      const result = await executor.load(ContextAwareType, "test", {
+      const instance = new ContextAwareType("test", ctx);
+      const result = await executor.load(instance, {
         fields: ["userId", "tenant"],
       });
 
@@ -388,11 +374,8 @@ describe("BaseType", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(
-      ProductType,
-      { id: "p1", title: "Test Product" },
-      { fields: ["id", "title"] }
-    );
+    const instance = new ProductType({ id: "p1", title: "Test Product" }, {});
+    const result = await executor.load(instance, { fields: ["id", "title"] });
 
     expect(result).toEqual({ id: "p1", title: "Test Product" });
   });
@@ -419,7 +402,8 @@ describe("BaseType", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(ProductType, "product-id", {
+    const instance = new ProductType("product-id", {});
+    const result = await executor.load(instance, {
       fields: ["id", "name"],
     });
 
@@ -451,7 +435,8 @@ describe("BaseType", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(ProductType, "product-id", {
+    const instance = new ProductType("product-id", {});
+    const result = await executor.load(instance, {
       fields: ["id", "name", "price"],
     });
 
@@ -520,8 +505,7 @@ describe("Complex nested resolution", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(
-      Level1Type,
+    const instance = new Level1Type(
       {
         id: "l1",
         level2: {
@@ -529,20 +513,21 @@ describe("Complex nested resolution", () => {
           level3: { name: "deep" },
         },
       },
-      {
-        fields: ["id"],
-        populate: {
-          level2: {
-            fields: ["id"],
-            populate: {
-              level3: {
-                fields: ["name"],
-              },
+      {}
+    );
+    const result = await executor.load(instance, {
+      fields: ["id"],
+      populate: {
+        level2: {
+          fields: ["id"],
+          populate: {
+            level3: {
+              fields: ["name"],
             },
           },
         },
-      }
-    );
+      },
+    });
 
     expect(result).toEqual({
       id: "l1",
@@ -579,8 +564,7 @@ describe("Complex nested resolution", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(
-      ProductType,
+    const instance = new ProductType(
       {
         id: "p1",
         variants: [
@@ -588,20 +572,21 @@ describe("Complex nested resolution", () => {
           { id: "v2", images: [{ url: "img3.jpg" }] },
         ],
       },
-      {
-        fields: ["id"],
-        populate: {
-          variants: {
-            fields: ["id"],
-            populate: {
-              images: {
-                fields: ["url"],
-              },
+      {}
+    );
+    const result = await executor.load(instance, {
+      fields: ["id"],
+      populate: {
+        variants: {
+          fields: ["id"],
+          populate: {
+            images: {
+              fields: ["url"],
             },
           },
         },
-      }
-    );
+      },
+    });
 
     expect(result).toEqual({
       id: "p1",
@@ -619,8 +604,7 @@ describe("Selective field resolution", () => {
     const nameSpy = vi.fn().mockReturnValue("Test");
     const priceSpy = vi.fn().mockReturnValue(100);
 
-    class ProductType {
-      constructor(public value: Record<string, never>, public ctx: unknown) {}
+    class ProductType extends BaseType<Record<string, never>, Record<string, never>, unknown> {
       id() {
         return idSpy();
       }
@@ -633,7 +617,8 @@ describe("Selective field resolution", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(ProductType, {}, {
+    const instance = new ProductType({}, {});
+    const result = await executor.load(instance, {
       fields: ["id", "name"],
     });
 
@@ -668,7 +653,8 @@ describe("Alias support with nested types", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(ProductType, { id: "p1" }, {
+    const instance = new ProductType({ id: "p1" }, {});
+    const result = await executor.load(instance, {
       fields: ["id"],
       populate: {
         topVariant: {
@@ -707,7 +693,8 @@ describe("Alias support with nested types", () => {
     }
 
     const executor = new Executor();
-    const result = await executor.load(ProductType, {}, {
+    const instance = new ProductType({}, {});
+    const result = await executor.load(instance, {
       populate: {
         // First alias: get 2 variants, only sku
         preview: {
@@ -734,9 +721,8 @@ describe("Alias support with nested types", () => {
 });
 
 describe("load() and loadMany() functions", () => {
-  it("load() works with context", async () => {
-    class SimpleType {
-      constructor(public value: { id: string }, public ctx: { test: boolean }) {}
+  it("load() works with instance", async () => {
+    class SimpleType extends BaseType<{ id: string }, { id: string }, { test: boolean }> {
       id() {
         return this.value.id;
       }
@@ -745,30 +731,24 @@ describe("load() and loadMany() functions", () => {
       }
     }
 
-    const result = await load(
-      SimpleType,
-      { id: "123" },
-      { fields: ["id", "hasContext"] },
-      { test: true }
-    );
+    const instance = new SimpleType({ id: "123" }, { test: true });
+    const result = await load(instance, { fields: ["id", "hasContext"] });
 
     expect(result).toEqual({ id: "123", hasContext: true });
   });
 
-  it("loadMany() works with context", async () => {
-    class SimpleType {
-      constructor(public value: { id: string }, public ctx: unknown) {}
+  it("loadMany() works with instances", async () => {
+    class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
         return this.value.id;
       }
     }
 
-    const result = await loadMany(
-      SimpleType,
-      [{ id: "1" }, { id: "2" }],
-      { fields: ["id"] },
-      {}
-    );
+    const instances = [
+      new SimpleType({ id: "1" }, {}),
+      new SimpleType({ id: "2" }, {}),
+    ];
+    const result = await loadMany(instances, { fields: ["id"] });
 
     expect(result).toEqual([{ id: "1" }, { id: "2" }]);
   });

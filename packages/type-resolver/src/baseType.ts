@@ -37,10 +37,15 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<TResult | null> {
+    const instance = new this(value, ctx) as unknown as BaseType<
+      unknown,
+      unknown,
+      TypeContext<T>
+    >;
     if (this.executor) {
-      return this.executor.load<T, TResult>(this, value, query, ctx);
+      return this.executor.load(instance, query) as Promise<TResult | null>;
     }
-    return load<T, TResult, TypeContext<T>>(this, value, query, ctx);
+    return load(instance, query) as Promise<TResult | null>;
   }
 
   /**
@@ -57,10 +62,20 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
     query: QueryArgs | undefined,
     ctx: TypeContext<T>
   ): Promise<(TResult | null)[]> {
+    const instances = values.map(
+      (value) =>
+        new this(value, ctx) as unknown as BaseType<
+          unknown,
+          unknown,
+          TypeContext<T>
+        >
+    );
     if (this.executor) {
-      return this.executor.loadMany<T, TResult>(this, values, query, ctx);
+      return this.executor.loadMany(instances, query) as Promise<
+        (TResult | null)[]
+      >;
     }
-    return loadMany<T, TResult, TypeContext<T>>(this, values, query, ctx);
+    return loadMany(instances, query) as Promise<(TResult | null)[]>;
   }
 
   private _dataPromise: Promise<TData> | null = null;

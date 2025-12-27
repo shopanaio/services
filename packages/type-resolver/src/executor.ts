@@ -6,9 +6,22 @@ import type {
   MiddlewareStack,
   QueryArgs,
   TypeClass,
-  TypeResult,
 } from "./types.js";
 import { BaseType } from "./baseType.js";
+
+/**
+ * Infers the result type from a BaseType instance.
+ * Maps resolver methods to their return types.
+ */
+type InstanceResult<T> = {
+  [K in keyof T as T[K] extends (...args: unknown[]) => unknown
+    ? K extends "constructor" | "loadData" | "get" | "data"
+      ? never
+      : K
+    : never]: T[K] extends (...args: unknown[]) => infer R
+    ? Awaited<R>
+    : never;
+};
 
 /**
  * Error thrown when a resolver fails.
@@ -83,45 +96,41 @@ export class Executor<TContext = unknown> {
   }
 
   /**
-   * Resolves a value through a TypeClass, executing resolver methods
+   * Resolves an instance through its resolver methods
    * and recursively resolving nested types.
    *
-   * @param Type - The TypeClass to use for resolution
-   * @param value - The raw value to resolve (typically an ID)
+   * @param instance - The BaseType instance to resolve
    * @param query - Optional QueryArgs specifying which fields to resolve.
    *                When provided, only requested fields are resolved.
-   * @param ctx - Context object to pass to type instances (overrides options.ctx)
    * @returns The fully resolved object with all fields
    */
-  async load<T extends TypeClass, TResult = TypeResult<T>>(
-    Type: T,
-    value: ConstructorParameters<T>[0],
-    query?: QueryArgs,
-    ctx?: TContext
-  ): Promise<TResult> {
-    const context = ctx ?? this.options.ctx;
-    const instance = new Type(value, context);
+  async load<T extends BaseType<unknown, unknown, TContext>>(
+    instance: T,
+    query?: QueryArgs
+  ): Promise<InstanceResult<T>> {
+    const Type = instance.constructor as TypeClass;
+    const value = instance.value;
 
     // Build middleware context
     const middlewareCtx: AfterCreateContext<TContext> = {
       Type,
       value,
       query,
-      ctx: context as TContext,
+      ctx: this.options.ctx as TContext,
       instance,
     };
 
     // Run afterCreate middleware (e.g., authorization)
     const afterCreateResult = await this.runAfterCreate(middlewareCtx);
     if (afterCreateResult === null) {
-      return null as TResult;
+      return null as unknown as InstanceResult<T>;
     }
 
     // Check if loadData returns null - if so, return null immediately
     if (typeof (instance as any).loadData === "function") {
       const data = await (instance as any).loadData();
       if (data === null || data === undefined) {
-        return null as TResult;
+        return null as unknown as InstanceResult<T>;
       }
     }
 
@@ -146,14 +155,9 @@ export class Executor<TContext = unknown> {
 
     // 3. If query is not specified - resolve ALL methods (backwards compat)
     if (!query) {
-      const prototype = Object.getPrototypeOf(instance);
-      for (const key of Object.getOwnPropertyNames(prototype)) {
-        if (key !== "constructor" && key !== "loadData" && key !== "get") {
-          if (typeof (instance as any)[key] === "function") {
-            fieldsToResolve.add(key);
-          }
-        }
-      }
+      throw new Error(
+        `[type-resolver] QueryArgs must be provided to resolve all fields on ${Type.name}.`
+      );
     }
 
     // Warn if query was provided but no fields to resolve (likely parseGraphqlInfo path mismatch)
@@ -185,23 +189,18 @@ export class Executor<TContext = unknown> {
           const resolved = await method.call(instance, argsForField);
 
           // Check if resolved value is a BaseType instance (relation field)
-          if (Array.isArray(resolved) && resolved[0] instanceof BaseType && fieldQuery) {
+          if (
+            Array.isArray(resolved) &&
+            resolved[0] instanceof BaseType &&
+            fieldQuery
+          ) {
             // Array of BaseType instances - recursively resolve each
             result[key] = await Promise.all(
-              resolved.map((item) => {
-                const ChildType = item.constructor as TypeClass;
-                return this.load(ChildType, item.value, fieldQuery, context);
-              })
+              resolved.map((item) => this.load(item, fieldQuery))
             );
           } else if (resolved instanceof BaseType && fieldQuery) {
             // Single BaseType instance - recursively resolve
-            const ChildType = resolved.constructor as TypeClass;
-            result[key] = await this.load(
-              ChildType,
-              resolved.value,
-              fieldQuery,
-              context
-            );
+            result[key] = await this.load(resolved, fieldQuery);
           } else {
             // Scalar field or relation without query
             result[key] = resolved;
@@ -232,26 +231,23 @@ export class Executor<TContext = unknown> {
     };
     const afterLoadResult = await this.runAfterLoad(afterLoadCtx);
     if (afterLoadResult === null) {
-      return null as TResult;
+      return null as unknown as InstanceResult<T>;
     }
 
-    return afterLoadCtx.result as TResult;
+    return afterLoadCtx.result as InstanceResult<T>;
   }
 
   /**
-   * Resolves an array of values through a TypeClass.
+   * Resolves an array of instances.
    *
-   * @param ctx - Context object to pass to type instances (overrides options.ctx)
+   * @param instances - The BaseType instances to resolve
+   * @param query - Optional QueryArgs specifying which fields to resolve
    */
-  async loadMany<T extends TypeClass, TResult = TypeResult<T>>(
-    Type: T,
-    values: ConstructorParameters<T>[0][],
-    query?: QueryArgs,
-    ctx?: TContext
-  ): Promise<TResult[]> {
-    return Promise.all(
-      values.map((value) => this.load<T, TResult>(Type, value, query, ctx))
-    );
+  async loadMany<T extends BaseType<unknown, unknown, TContext>>(
+    instances: T[],
+    query?: QueryArgs
+  ): Promise<InstanceResult<T>[]> {
+    return Promise.all(instances.map((instance) => this.load(instance, query)));
   }
 }
 
@@ -269,45 +265,29 @@ export function createExecutor<TContext = unknown>(
 }
 
 /**
- * Load and resolve a value through a TypeClass.
+ * Load and resolve a BaseType instance.
  *
- * @param Type - The TypeClass to use for resolution
- * @param value - The raw value to resolve
+ * @param instance - The BaseType instance to resolve
  * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
- * @param ctx - Context object to pass to type instances
  */
-export function load<
-  T extends TypeClass,
-  TResult = TypeResult<T>,
-  TContext = unknown
->(
-  Type: T,
-  value: ConstructorParameters<T>[0],
-  query: QueryArgs | undefined,
-  ctx: TContext
-): Promise<TResult> {
-  const exec = new Executor({ ctx });
-  return exec.load<T, TResult>(Type, value, query);
+export function load<T extends BaseType<unknown, unknown, unknown>>(
+  instance: T,
+  query?: QueryArgs
+): Promise<InstanceResult<T>> {
+  const exec = new Executor({});
+  return exec.load(instance, query);
 }
 
 /**
- * Load and resolve multiple values through a TypeClass.
+ * Load and resolve multiple BaseType instances.
  *
- * @param Type - The TypeClass to use for resolution
- * @param values - The raw values to resolve
+ * @param instances - The BaseType instances to resolve
  * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
- * @param ctx - Context object to pass to type instances
  */
-export function loadMany<
-  T extends TypeClass,
-  TResult = TypeResult<T>,
-  TContext = unknown
->(
-  Type: T,
-  values: ConstructorParameters<T>[0][],
-  query: QueryArgs | undefined,
-  ctx: TContext
-): Promise<TResult[]> {
-  const exec = new Executor({ ctx });
-  return exec.loadMany<T, TResult>(Type, values, query);
+export function loadMany<T extends BaseType<unknown, unknown, unknown>>(
+  instances: T[],
+  query?: QueryArgs
+): Promise<InstanceResult<T>[]> {
+  const exec = new Executor({});
+  return exec.loadMany(instances, query);
 }
