@@ -49,7 +49,8 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   }
 
   async status() {
-    return this.get("status");
+    const status = await this.get("status");
+    return status.toUpperCase();
   }
 
   async timezone() {
