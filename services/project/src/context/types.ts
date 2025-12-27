@@ -3,7 +3,7 @@ import type { Loader } from "../loaders/Loader.js";
 import type { Store } from "../repositories/index.js";
 
 /**
- * Store entity from context - full store with integrations
+ * Store entity
  */
 export type ContextStore = Store;
 
@@ -30,7 +30,6 @@ export interface ServiceContextOptions {
 /**
  * Unified service context for project service.
  * Contains all request-scoped data available throughout request lifecycle.
- * Store is loaded lazily via currentStore query.
  */
 export class ServiceContext {
   /** Unique request identifier */
@@ -44,7 +43,6 @@ export class ServiceContext {
   /** Current locale for translations (default: 'uk') */
   readonly locale?: string;
 
-  private _store?: ContextStore;
   private _user?: ContextUser;
 
   constructor(options: ServiceContextOptions) {
@@ -54,17 +52,6 @@ export class ServiceContext {
     this.storeName = options.storeName;
     this.locale = options.locale;
     this._user = options.user;
-  }
-
-  /** Current store (lazily loaded via currentStore query) */
-  get store(): ContextStore | undefined {
-    return this._store;
-  }
-
-  /** Set current store (called by currentStore query) */
-  setStore(store: ContextStore): this {
-    this._store = store;
-    return this;
   }
 
   /** Authenticated user */
