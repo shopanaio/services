@@ -1,4 +1,4 @@
-import { ResolveReference } from "@shopana/type-resolver";
+import { SubgraphReference } from "@shopana/type-resolver";
 import type { Organization } from "../../repositories/models/authorization.js";
 import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
 import { IAMType, Cache } from "./IAMType.js";
@@ -7,7 +7,7 @@ import { MembershipResolver } from "./MembershipResolver.js";
 /**
  * Organization resolver - resolves organization domain interface
  */
-@ResolveReference((ref: { __typename: "Organization"; id: string }) => ref.id)
+@SubgraphReference()
 export class OrganizationResolver extends IAMType<string, Organization> {
   @Cache({
     cacheName: "iam:org",
