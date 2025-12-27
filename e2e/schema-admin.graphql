@@ -1080,7 +1080,7 @@ type RoleMutation {
 
 """
 Member with role assignment.
-Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+Used for both org-level (domain = "org") and store-level (domain = "store:uuid").
 """
 type Member {
   """Unique identifier."""
@@ -1105,8 +1105,11 @@ Used for both Organization and Store.
 Domain determines context: orgId for org-level, storeId for store-level.
 """
 type Membership {
-  """Domain identifier (orgId or storeId)."""
+  """Domain identifier ("org" for organization, or "store:uuid")."""
   domain: String!
+
+  """Organization ID (required for casbin queries)."""
+  organizationId: ID!
 
   """All roles available in this organization."""
   roles: [Role!]!
@@ -1224,8 +1227,9 @@ type Role {
 
   """
   Domain scope for this role.
-  "*" = global (all stores)
-  storeId = store-specific role
+  - "org" = organization-level role
+  - "store:uuid" = store-specific role
+  - "store:*" = all stores
   """
   domain: String!
 
@@ -1246,6 +1250,9 @@ type Role {
 
   """Role creation date."""
   createdAt: DateTime
+
+  """Role last update date."""
+  updatedAt: DateTime
 }
 
 """Role permission - access to resource with specific actions."""
@@ -1444,7 +1451,7 @@ input OrganizationCreateInput {
 
 """Role assignment - assigns role to user in specific domain."""
 input RoleAssignment {
-  """Domain ID (orgId, storeId, or '*' for all stores)."""
+  """Domain ID ("org" for organization, or "store:uuid", "store:*")."""
   domain: String!
 
   """Role name."""
@@ -1453,6 +1460,9 @@ input RoleAssignment {
 
 """Input for inviting a member to organization."""
 input MemberInviteInput {
+  """Organization ID to invite the member to."""
+  organizationId: ID!
+
   """Email address of the user to invite."""
   email: Email!
 
@@ -1462,10 +1472,13 @@ input MemberInviteInput {
 
 """Input for changing member's role."""
 input MemberRoleChangeInput {
+  """Organization ID where the member belongs."""
+  organizationId: ID!
+
   """User ID."""
   userId: ID!
 
-  """Domain (orgId, storeId, or '*' for all)."""
+  """Domain ("org" for organization, or "store:uuid", "store:*")."""
   domain: String!
 
   """New role name."""
@@ -1474,6 +1487,9 @@ input MemberRoleChangeInput {
 
 """Input for removing member's access."""
 input MemberAccessRemoveInput {
+  """Organization ID where the member belongs."""
+  organizationId: ID!
+
   """User ID."""
   userId: ID!
 
@@ -1489,12 +1505,16 @@ input OrganizationUpdateInput {
 
 """Input for creating a role."""
 input RoleCreateInput {
+  """Organization ID where the role will be created."""
+  organizationId: ID!
+
   """
   Domain scope for role.
-  "*" = global (all stores), default
-  storeId = store-specific role
+  - "org" = organization-level role
+  - "store:uuid" = store-specific role
+  - "store:*" = all stores
   """
-  domain: String
+  domain: String!
 
   """Unique role name (slug)."""
   name: String!
@@ -1523,15 +1543,11 @@ input RolePermissionInput {
 
 """Input for updating a role."""
 input RoleUpdateInput {
-  """
-  Domain scope for role lookup.
-  "*" = global (default)
-  storeId = store-specific
-  """
-  domain: String
+  """Organization ID where the role exists."""
+  organizationId: ID!
 
-  """Role name to update."""
-  name: String!
+  """Role ID to update."""
+  id: ID!
 
   """New display name."""
   displayName: String
@@ -1545,15 +1561,11 @@ input RoleUpdateInput {
 
 """Input for deleting a role."""
 input RoleDeleteInput {
-  """
-  Domain scope for role lookup.
-  "*" = global (default)
-  storeId = store-specific
-  """
-  domain: String
+  """Organization ID where the role exists."""
+  organizationId: ID!
 
-  """Role name to delete."""
-  name: String!
+  """Role ID to delete."""
+  id: ID!
 }
 
 """Input for authorize check."""
@@ -4376,14 +4388,14 @@ type ApiKeyDeletePayload {
 
 """Queries for store management"""
 type StoreQuery {
-  """Get all stores accessible to the current user"""
-  stores: [Store!]!
+  """Get all stores accessible to the current user in the organization"""
+  stores(
+    """Organization ID to list stores from"""
+    organizationId: ID!
+  ): [Store!]!
 
-  """Get a store by its unique slug"""
-  store(
-    """URL-friendly identifier of the store"""
-    slug: String!
-  ): Store
+  """Get the current store from context"""
+  currentStore: Store
 
   """Get all API keys for the current store"""
   apiKeys: [ApiKey!]!
@@ -4675,6 +4687,9 @@ input LocaleSetDefaultInput {
 
 """Input for creating a new store"""
 input StoreCreateInput {
+  """ID of the organization where the store will be created"""
+  organizationId: ID!
+
   """Display name of the store"""
   name: String!
 

@@ -1,6 +1,6 @@
-query Store($slug: String!) {
+query CurrentStore {
   storeQuery {
-    store(slug: $slug) {
+    currentStore {
       id
       name
       slug

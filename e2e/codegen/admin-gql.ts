@@ -2006,7 +2006,7 @@ export type ApiMediaQueryNodesArgs = {
 
 /**
  * Member with role assignment.
- * Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+ * Used for both org-level (domain = "org") and store-level (domain = "store:uuid").
  */
 export type ApiMember = {
   __typename?: 'Member';
@@ -2026,6 +2026,8 @@ export type ApiMember = {
 export type ApiMemberAccessRemoveInput = {
   /** Domain to remove access from. */
   domain: Scalars['String']['input'];
+  /** Organization ID where the member belongs. */
+  organizationId: Scalars['ID']['input'];
   /** User ID. */
   userId: Scalars['ID']['input'];
 };
@@ -2040,6 +2042,8 @@ export type ApiMemberAccessRemovePayload = {
 export type ApiMemberInviteInput = {
   /** Email address of the user to invite. */
   email: Scalars['Email']['input'];
+  /** Organization ID to invite the member to. */
+  organizationId: Scalars['ID']['input'];
   /** Role assignments (at least one required). */
   roles: Array<ApiRoleAssignment>;
 };
@@ -2058,8 +2062,10 @@ export type ApiMemberRemovePayload = {
 
 /** Input for changing member's role. */
 export type ApiMemberRoleChangeInput = {
-  /** Domain (orgId, storeId, or '*' for all). */
+  /** Domain ("org" for organization, or "store:uuid", "store:*"). */
   domain: Scalars['String']['input'];
+  /** Organization ID where the member belongs. */
+  organizationId: Scalars['ID']['input'];
   /** New role name. */
   role: Scalars['String']['input'];
   /** User ID. */
@@ -2081,10 +2087,12 @@ export type ApiMembership = {
   __typename?: 'Membership';
   /** Available resources for role editor (org-level only). */
   availableResources?: Maybe<Array<ApiResourceDefinition>>;
-  /** Domain identifier (orgId or storeId). */
+  /** Domain identifier ("org" for organization, or "store:uuid"). */
   domain: Scalars['String']['output'];
   /** All members with access to this domain. */
   members: Array<ApiMember>;
+  /** Organization ID (required for casbin queries). */
+  organizationId: Scalars['ID']['output'];
   /** All roles available in this organization. */
   roles: Array<ApiRole>;
 };
@@ -2928,8 +2936,9 @@ export type ApiRole = {
   displayName: Scalars['String']['output'];
   /**
    * Domain scope for this role.
-   * "*" = global (all stores)
-   * storeId = store-specific role
+   * - "org" = organization-level role
+   * - "store:uuid" = store-specific role
+   * - "store:*" = all stores
    */
   domain: Scalars['String']['output'];
   /** Unique identifier. */
@@ -2940,11 +2949,13 @@ export type ApiRole = {
   name: Scalars['String']['output'];
   /** Role permissions. */
   permissions: Array<ApiRolePermission>;
+  /** Role last update date. */
+  updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
 /** Role assignment - assigns role to user in specific domain. */
 export type ApiRoleAssignment = {
-  /** Domain ID (orgId, storeId, or '*' for all stores). */
+  /** Domain ID ("org" for organization, or "store:uuid", "store:*"). */
   domain: Scalars['String']['input'];
   /** Role name. */
   role: Scalars['String']['input'];
@@ -2958,12 +2969,15 @@ export type ApiRoleCreateInput = {
   displayName: Scalars['String']['input'];
   /**
    * Domain scope for role.
-   * "*" = global (all stores), default
-   * storeId = store-specific role
+   * - "org" = organization-level role
+   * - "store:uuid" = store-specific role
+   * - "store:*" = all stores
    */
-  domain?: InputMaybe<Scalars['String']['input']>;
+  domain: Scalars['String']['input'];
   /** Unique role name (slug). */
   name: Scalars['String']['input'];
+  /** Organization ID where the role will be created. */
+  organizationId: Scalars['ID']['input'];
   /** Role permissions. */
   permissions: Array<ApiRolePermissionInput>;
 };
@@ -2976,14 +2990,10 @@ export type ApiRoleCreatePayload = {
 
 /** Input for deleting a role. */
 export type ApiRoleDeleteInput = {
-  /**
-   * Domain scope for role lookup.
-   * "*" = global (default)
-   * storeId = store-specific
-   */
-  domain?: InputMaybe<Scalars['String']['input']>;
-  /** Role name to delete. */
-  name: Scalars['String']['input'];
+  /** Role ID to delete. */
+  id: Scalars['ID']['input'];
+  /** Organization ID where the role exists. */
+  organizationId: Scalars['ID']['input'];
 };
 
 export type ApiRoleDeletePayload = {
@@ -3069,14 +3079,10 @@ export type ApiRoleUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New display name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Domain scope for role lookup.
-   * "*" = global (default)
-   * storeId = store-specific
-   */
-  domain?: InputMaybe<Scalars['String']['input']>;
-  /** Role name to update. */
-  name: Scalars['String']['input'];
+  /** Role ID to update. */
+  id: Scalars['ID']['input'];
+  /** Organization ID where the role exists. */
+  organizationId: Scalars['ID']['input'];
   /** New permissions (completely replaces existing). */
   permissions?: InputMaybe<Array<ApiRolePermissionInput>>;
 };
@@ -3176,6 +3182,8 @@ export type ApiStoreCreateInput = {
   locales: Array<LocaleCode>;
   /** Display name of the store */
   name: Scalars['String']['input'];
+  /** ID of the organization where the store will be created */
+  organizationId: Scalars['ID']['input'];
   /** URL-friendly unique identifier */
   slug: Scalars['String']['input'];
   /** Initial status of the store */
@@ -3314,16 +3322,16 @@ export type ApiStoreQuery = {
   __typename?: 'StoreQuery';
   /** Get all API keys for the current store */
   apiKeys: Array<ApiApiKey>;
-  /** Get a store by its unique slug */
-  store?: Maybe<ApiStore>;
-  /** Get all stores accessible to the current user */
+  /** Get the current store from context */
+  currentStore?: Maybe<ApiStore>;
+  /** Get all stores accessible to the current user in the organization */
   stores: Array<ApiStore>;
 };
 
 
 /** Queries for store management */
-export type ApiStoreQueryStoreArgs = {
-  slug: Scalars['String']['input'];
+export type ApiStoreQueryStoresArgs = {
+  organizationId: Scalars['ID']['input'];
 };
 
 /** Status of a store */

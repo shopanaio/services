@@ -1,6 +1,6 @@
-query OrganizationRoles($slug: String!) {
+query OrganizationRoles {
   storeQuery {
-    store(slug: $slug) {
+    currentStore {
       id
       name
       slug

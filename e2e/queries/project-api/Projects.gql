@@ -1,6 +1,6 @@
-query Stores {
+query Stores($organizationId: ID!) {
   storeQuery {
-    stores {
+    stores(organizationId: $organizationId) {
       id
       name
       slug

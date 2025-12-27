@@ -20,13 +20,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('Organization should have system roles (owner, admin, member) after user signup', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const roleNames = roles.map((r: { name: string }) => r.name);
 
     expect(roleNames).toContain('owner');
@@ -35,13 +31,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('All system roles should be marked as isSystem: true', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const systemRoles = roles.filter((r: { name: string }) =>
       ['owner', 'admin', 'member'].includes(r.name)
     );
@@ -53,13 +45,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('System roles should have domain matching org scope', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const systemRoles = roles.filter((r: { name: string }) =>
       ['owner', 'admin', 'member'].includes(r.name)
     );
@@ -71,13 +59,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('Owner role should have full wildcard permissions (*:*)', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const ownerRole = roles.find((r: { name: string }) => r.name === 'owner');
 
     expect(ownerRole).toBeDefined();
@@ -94,13 +78,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('Admin role should have DENY for organization delete', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const adminRole = roles.find((r: { name: string }) => r.name === 'admin');
 
     expect(adminRole).toBeDefined();
@@ -115,13 +95,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('Admin role should have DENY for billing management', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const adminRole = roles.find((r: { name: string }) => r.name === 'admin');
 
     expect(adminRole).toBeDefined();
@@ -136,13 +112,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('Member role should have read-only permissions for organization', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const memberRole = roles.find((r: { name: string }) => r.name === 'member');
 
     expect(memberRole).toBeDefined();
@@ -165,13 +137,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('System roles should have displayName set', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const systemRoles = roles.filter((r: { name: string }) =>
       ['owner', 'admin', 'member'].includes(r.name)
     );
@@ -193,13 +161,9 @@ test.describe('System Roles - Organization Level', () => {
   });
 
   test('System roles should have description set', async ({ api }) => {
-    const { data } = await api.admin.query('iam-api/OrganizationRoles', {
-      variables: {
-        slug: api.session.projectSlug,
-      },
-    });
+    const { data } = await api.admin.query('iam-api/OrganizationRoles', {});
 
-    const roles = data.storeQuery.store?.membership?.roles ?? [];
+    const roles = data.storeQuery.currentStore?.membership?.roles ?? [];
     const systemRoles = roles.filter((r: { name: string }) =>
       ['owner', 'admin', 'member'].includes(r.name)
     );
