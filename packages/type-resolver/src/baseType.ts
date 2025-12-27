@@ -79,8 +79,21 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   }
 
   private _dataPromise: Promise<TData> | null = null;
+  private _value?: TValue;
+  private _ctx?: TContext;
 
-  constructor(public value: TValue, protected readonly ctx: TContext) {}
+  constructor(value?: TValue, ctx?: TContext) {
+    this._value = value;
+    this._ctx = ctx;
+  }
+
+  get value(): TValue {
+    return this._value as TValue;
+  }
+
+  protected get ctx(): TContext {
+    return this._ctx as TContext;
+  }
 
   /**
    * Loads entity data. Override this method to load data via loaders.

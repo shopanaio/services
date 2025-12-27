@@ -5,7 +5,7 @@
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface TypeClass<TValue = any, TContext = any> {
-  new (value: TValue, ctx: TContext): object;
+  new (value?: TValue, ctx?: TContext): object;
 }
 
 /**
