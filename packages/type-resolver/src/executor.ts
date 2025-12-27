@@ -18,9 +18,7 @@ type InstanceResult<T> = {
     ? K extends "constructor" | "loadData" | "get" | "data"
       ? never
       : K
-    : never]: T[K] extends (...args: unknown[]) => infer R
-    ? Awaited<R>
-    : never;
+    : never]: T[K] extends (...args: unknown[]) => infer R ? Awaited<R> : never;
 };
 
 /**
@@ -111,12 +109,12 @@ export class Executor<TContext = unknown> {
     const Type = instance.constructor as TypeClass;
     const value = instance.value;
 
-    // Build middleware context
+    // Build middleware context (ctx from instance, not options)
     const middlewareCtx: AfterCreateContext<TContext> = {
       Type,
       value,
       query,
-      ctx: this.options.ctx as TContext,
+      ctx: (instance as any).ctx as TContext,
       instance,
     };
 
@@ -274,7 +272,11 @@ export class Executor<TContext = unknown> {
     }
 
     // 3. Plain object → resolve each field by query
-    if (value !== null && typeof value === "object" && !(value instanceof Date)) {
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !(value instanceof Date)
+    ) {
       return this.resolveObject(value as Record<string, unknown>, query);
     }
 
