@@ -57,16 +57,12 @@ export class IamBrokerActions extends BrokerActions {
     return Kernel.getInstance();
   }
 
-  private async createUserContext(
-    userId: string,
-    organizationId: string
-  ): Promise<ServiceContext> {
+  private async createUserContext(userId: string): Promise<ServiceContext> {
     const user = await this.kernel.repository.user.findById(userId);
     return {
       requestId: `broker-${Date.now()}`,
       kernel: this.kernel,
       currentUser: user,
-      organizationId,
       loaders: new Loader(this.kernel.repository),
     };
   }
@@ -128,10 +124,7 @@ export class IamBrokerActions extends BrokerActions {
   @Action("createRoles")
   @ZodSchema(createRolesInputSchema)
   async createRoles(params: CreateRolesParams): Promise<CreateRolesResult> {
-    const ctx = await this.createUserContext(
-      params.userId,
-      params.organizationId
-    );
+    const ctx = await this.createUserContext(params.userId);
     return runWithContext(ctx, () =>
       this.kernel.runScript(CreateRolesScript, params)
     );
@@ -143,10 +136,7 @@ export class IamBrokerActions extends BrokerActions {
   @Action("assignRole")
   @ZodSchema(assignRoleInputSchema)
   async assignRole(params: AssignRoleParams): Promise<AssignRoleResult> {
-    const ctx = await this.createUserContext(
-      params.userId,
-      params.organizationId
-    );
+    const ctx = await this.createUserContext(params.userId);
     return runWithContext(ctx, () =>
       this.kernel.runScript(AssignRoleScript, params)
     );
