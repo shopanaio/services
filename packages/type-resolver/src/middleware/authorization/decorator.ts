@@ -8,21 +8,12 @@ import type { TypePolicyOptions } from "./types.js";
  *
  * @example
  * ```typescript
- * // Without generic - use cast if needed
- * @TypePolicy({
- *   resource: "store",
- *   action: "read",
- *   onDeny: "null",
- *   domain: (resolver) => `store:${(resolver as StoreResolver).value}`
- * })
- * class StoreResolver extends BaseResolver<string, Store | null> { }
- *
- * // With generic - full type safety
  * @TypePolicy<StoreResolver>({
  *   resource: "store",
  *   action: "read",
+ *   organizationId: (resolver) => resolver.ctx.store?.organizationId ?? null,
+ *   domain: (resolver) => `store:${resolver.value}`,
  *   onDeny: "null",
- *   domain: (resolver) => `store:${resolver.value}`
  * })
  * class StoreResolver extends BaseResolver<string, Store | null> { }
  * ```

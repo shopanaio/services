@@ -136,21 +136,18 @@ export async function startServer(serverConfig: ServerConfig) {
         return new ServiceContext({
           requestId: request.id as string,
           kernel: kernel as Kernel,
-          slug: "",
           loaders: null as any,
         });
       }
 
-      // Use store and user from middleware (set by contextMiddleware via GetCurrentStoreScript)
       // Create fresh loaders per request for proper batching within request scope
       const loaders = new Loader(kernel!.getServices().broker);
 
       const ctx = new ServiceContext({
         requestId: request.id as string,
         kernel: kernel!,
-        store: request.store,
+        storeName: request.storeName,
         user: request.user,
-        organizationId: request.organizationId,
         loaders,
       });
 

@@ -10,6 +10,7 @@ export { BaseResolver };
  * Accepts store ID, loads data lazily via repository
  */
 @TypePolicy<StoreResolver>({
+  organizationId: (resolver) => resolver.ctx.store?.organizationId ?? null,
   domain: (resolver) => `store:${resolver.value}`,
   resource: "*",
   action: "read",

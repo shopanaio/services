@@ -8,11 +8,12 @@ export const queryResolvers = {
   },
 
   StoreQuery: {
-    stores: async (_parent, _args, ctx, info) => {
-      // User must be authenticated and have organization context
-      // organizationId comes from x-organization-id header
-      const organizationId = ctx.organizationId;
-      if (!ctx.user?.id || !organizationId) return [];
+    stores: async (_parent, args, ctx, info) => {
+      // User must be authenticated
+      if (!ctx.user?.id) return [];
+
+      // organizationId comes from query arguments
+      const { organizationId } = args;
 
       // Get all store IDs in the organization
       const allStoreIds = await ctx.kernel
@@ -49,34 +50,24 @@ export const queryResolvers = {
       return (stores ?? []) as any;
     },
 
-    store: async (_parent, args, ctx, info) => {
-      // If store is loaded from context (via X-Store-Name header), use it
-      if (ctx.store?.id && ctx.store?.slug === args.slug) {
-        // Context store matches - user already authorized by middleware
+    currentStore: async (_parent: unknown, _args: unknown, ctx, info) => {
+      // Need storeName from header and authenticated user
+      if (!ctx.storeName || !ctx.user?.id) return null;
+
+      // Check if store already loaded in context
+      if (ctx.store?.slug === ctx.storeName) {
         return StoreResolver.load(ctx.store.id, parseGraphqlInfo(info), ctx);
       }
 
-      // No matching store in context - load by slug and check authorization
+      // Load store by slug
       const store = await ctx.kernel
         .getServices()
-        .repository.store.findBySlug(args.slug);
+        .repository.store.findBySlug(ctx.storeName);
 
-      if (!store || !store.organizationId) return null;
+      if (!store?.organizationId) return null;
 
-      // Check user has access to this store via IAM
-      if (!ctx.user?.id) return null;
-
-      const authResult = (await ctx.kernel
-        .getServices()
-        .broker.call("iam.authorize", {
-          userId: ctx.user.id,
-          organizationId: store.organizationId,
-          domain: `store:${store.id}`,
-          resource: "*",
-          action: "read",
-        })) as { allowed: boolean };
-
-      if (!authResult.allowed) return null;
+      // Cache store in context for subsequent queries
+      ctx.setStore(store);
 
       return StoreResolver.load(store.id, parseGraphqlInfo(info), ctx);
     },

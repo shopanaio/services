@@ -1063,16 +1063,16 @@ export type StoreQuery = {
   __typename?: 'StoreQuery';
   /** Get all API keys for the current store */
   apiKeys: Array<ApiKey>;
-  /** Get a store by its unique slug */
-  store: Maybe<Store>;
-  /** Get all stores accessible to the current user */
+  /** Get the current store from context */
+  currentStore: Maybe<Store>;
+  /** Get all stores accessible to the current user in the organization */
   stores: Array<Store>;
 };
 
 
 /** Queries for store management */
-export type StoreQueryStoreArgs = {
-  slug: Scalars['String']['input'];
+export type StoreQueryStoresArgs = {
+  organizationId: Scalars['ID']['input'];
 };
 
 /** Status of a store */
@@ -1108,11 +1108,6 @@ export type StoreUpdatePayload = {
   store: Maybe<Store>;
   /** List of errors that occurred during update */
   userErrors: Array<UserError>;
-};
-
-export type User = {
-  __typename?: 'User';
-  id: Scalars['ID']['output'];
 };
 
 /** Represents a user-facing error */
@@ -1271,7 +1266,6 @@ export type ResolversTypes = ResolversObject<{
   StoreUpdateInput: StoreUpdateInput;
   StoreUpdatePayload: ResolverTypeWrapper<Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
   Timestamp: ResolverTypeWrapper<Scalars['Timestamp']['output']>;
-  User: ResolverTypeWrapper<User>;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
   WeightUnit: WeightUnit;
 }>;
@@ -1321,7 +1315,6 @@ export type ResolversParentTypes = ResolversObject<{
   StoreUpdateInput: StoreUpdateInput;
   StoreUpdatePayload: Omit<StoreUpdatePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
   Timestamp: Scalars['Timestamp']['output'];
-  User: User;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
 }>;
 
@@ -1502,8 +1495,8 @@ export type StoreMutationResolvers<ContextType = ServiceContext, ParentType exte
 
 export type StoreQueryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['StoreQuery'] = ResolversParentTypes['StoreQuery']> = ResolversObject<{
   apiKeys?: Resolver<Array<ResolversTypes['ApiKey']>, ParentType, ContextType>;
-  store?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType, RequireFields<StoreQueryStoreArgs, 'slug'>>;
-  stores?: Resolver<Array<ResolversTypes['Store']>, ParentType, ContextType>;
+  currentStore?: Resolver<Maybe<ResolversTypes['Store']>, ParentType, ContextType>;
+  stores?: Resolver<Array<ResolversTypes['Store']>, ParentType, ContextType, RequireFields<StoreQueryStoresArgs, 'organizationId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1516,12 +1509,6 @@ export type StoreUpdatePayloadResolvers<ContextType = ServiceContext, ParentType
 export interface TimestampScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Timestamp'], any> {
   name: 'Timestamp';
 }
-
-export type UserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['User']>, { __typename: 'User' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
 
 export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
   __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
@@ -1558,7 +1545,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   StoreQuery?: StoreQueryResolvers<ContextType>;
   StoreUpdatePayload?: StoreUpdatePayloadResolvers<ContextType>;
   Timestamp?: GraphQLScalarType;
-  User?: UserResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;
 

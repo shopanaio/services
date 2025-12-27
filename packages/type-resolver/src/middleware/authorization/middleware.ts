@@ -74,6 +74,19 @@ export function createAuthorizationMiddleware<TContext = unknown>(
         return;
       }
 
+      // Resolve organizationId (can be a function)
+      const organizationId =
+        typeof policy.organizationId === "function"
+          ? policy.organizationId(instance)
+          : policy.organizationId;
+
+      if (!organizationId) {
+        if (policy.onDeny === "null") {
+          return null;
+        }
+        throw new TypeAuthorizationError(policy.resource, policy.action);
+      }
+
       // Resolve domain (can be a function)
       const domain =
         typeof policy.domain === "function"
@@ -84,6 +97,7 @@ export function createAuthorizationMiddleware<TContext = unknown>(
       const allowed = await instance.authorize({
         resource: policy.resource,
         action: policy.action,
+        organizationId,
         domain,
       });
 

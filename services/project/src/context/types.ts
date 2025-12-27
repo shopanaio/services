@@ -21,16 +21,16 @@ export interface ServiceContextOptions {
   requestId: string;
   kernel: Kernel;
   loaders: Loader;
-  slug?: string;
-  store?: ContextStore;
+  /** Store slug from X-Store-Name header */
+  storeName?: string;
   user?: ContextUser;
   locale?: string;
-  organizationId?: string;
 }
 
 /**
- * Unified service context for project service
- * Contains all request-scoped data available throughout request lifecycle
+ * Unified service context for project service.
+ * Contains all request-scoped data available throughout request lifecycle.
+ * Store is loaded lazily via currentStore query.
  */
 export class ServiceContext {
   /** Unique request identifier */
@@ -39,12 +39,10 @@ export class ServiceContext {
   readonly kernel: Kernel;
   /** DataLoaders for efficient batched data fetching */
   readonly loaders: Loader;
-  /** Store slug from header */
-  readonly slug?: string;
+  /** Store slug from X-Store-Name header */
+  readonly storeName?: string;
   /** Current locale for translations (default: 'uk') */
   readonly locale?: string;
-  /** Organization ID from header (for org-level operations like listing stores) */
-  readonly _organizationId?: string;
 
   private _store?: ContextStore;
   private _user?: ContextUser;
@@ -53,25 +51,23 @@ export class ServiceContext {
     this.requestId = options.requestId;
     this.kernel = options.kernel;
     this.loaders = options.loaders;
-    this.slug = options.slug;
+    this.storeName = options.storeName;
     this.locale = options.locale;
-    this._organizationId = options.organizationId;
-    this._store = options.store;
     this._user = options.user;
   }
 
-  /** Current store (optional - may not exist for org-level operations) */
+  /** Current store (lazily loaded via currentStore query) */
   get store(): ContextStore | undefined {
     return this._store;
   }
 
-  /** Set current store */
+  /** Set current store (called by currentStore query) */
   setStore(store: ContextStore): this {
     this._store = store;
     return this;
   }
 
-  /** Authenticated user (optional - may be API key auth) */
+  /** Authenticated user */
   get user(): ContextUser | undefined {
     return this._user;
   }
@@ -80,10 +76,5 @@ export class ServiceContext {
   setUser(user: ContextUser): this {
     this._user = user;
     return this;
-  }
-
-  /** Organization ID from header (for org-level operations like listing stores) */
-  get organizationId(): string | undefined {
-    return this._organizationId ?? this._store?.organizationId;
   }
 }

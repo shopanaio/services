@@ -14,13 +14,28 @@ export class AuthorizationError extends Error {
   }
 }
 
+/**
+ * Policy options for @Policy decorator on script methods.
+ * All fields accept either a static value or a function that resolves the value.
+ *
+ * @template TParams - Type of the script params
+ * @template TSelf - Type of the script instance
+ */
 export interface AuthorizeOptions<TParams = unknown, TSelf extends Authorizable = Authorizable> {
+  /** Resource to check authorization for */
   resource: string;
+  /** Action to check (e.g., "read", "write", "delete", "create") */
   action: string;
-  /** Domain scope (e.g., "store:123"). Defaults to "org" */
-  domain?: string | ((self: TSelf, params: TParams) => string);
-  /** Organization ID - required. Can be a string or a function that extracts it from params */
+  /**
+   * Organization ID for authorization - required.
+   * Can be a string or a function that extracts it from instance/params.
+   */
   organizationId: string | ((self: TSelf, params: TParams) => string);
+  /**
+   * Domain scope (e.g., "store:123", "org").
+   * Can be a string or a function that extracts it from instance/params.
+   */
+  domain?: string | ((self: TSelf, params: TParams) => string);
 }
 
 export interface AuthorizeParams {

@@ -31,14 +31,14 @@ extend type Mutation {
 
 """Queries for store management"""
 type StoreQuery {
-  """Get all stores accessible to the current user"""
-  stores: [Store!]!
+  """Get all stores accessible to the current user in the organization"""
+  stores(
+    """Organization ID to list stores from"""
+    organizationId: ID!
+  ): [Store!]!
 
-  """Get a store by its unique slug"""
-  store(
-    """URL-friendly identifier of the store"""
-    slug: String!
-  ): Store
+  """Get the current store from context"""
+  currentStore: Store
 
   """Get all API keys for the current store"""
   apiKeys: [ApiKey!]!

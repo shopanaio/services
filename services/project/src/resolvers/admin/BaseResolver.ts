@@ -18,7 +18,13 @@ import type { ServiceContext } from "../../context/types.js";
  *
  * @example
  * ```typescript
- * @TypePolicy({ resource: "store", action: "read", onDeny: "null" })
+ * @TypePolicy<StoreResolver>({
+ *   resource: "store",
+ *   action: "read",
+ *   organizationId: (resolver) => resolver.ctx.store?.organizationId ?? null,
+ *   domain: (resolver) => `store:${resolver.value}`,
+ *   onDeny: "null",
+ * })
  * class StoreResolver extends BaseResolver<string, Store | null> {
  *   // ...
  * }
@@ -39,10 +45,6 @@ export abstract class BaseResolver<TValue, TData = unknown>
     return this.ctx.user?.id ?? null;
   }
 
-  get organizationId(): string | null {
-    return this.ctx.store?.organizationId ?? null;
-  }
-
   /**
    * Instance-level authorization for @TypePolicy decorator.
    * Called by authorization middleware after instance creation.
@@ -51,10 +53,11 @@ export abstract class BaseResolver<TValue, TData = unknown>
     resource,
     action,
     domain,
+    organizationId,
   }: AuthorizeParams): Promise<boolean> {
-    const { loaders, user, organizationId } = this.ctx;
+    const { loaders, user } = this.ctx;
 
-    if (!user?.id || !organizationId) {
+    if (!user?.id) {
       return false;
     }
 
