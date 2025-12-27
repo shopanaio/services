@@ -27,11 +27,8 @@ export const storeMutationResolvers: Partial<Resolvers> = {
         };
       }
 
-      // Set created store to context for subsequent resolvers
-      ctx.setStore(result.store);
-
       // Resolve store through StoreResolver for proper field resolution
-      const store = await resolveStore(result.store.id, ctx, info, "store");
+      const store = await resolveStore(result.store, ctx, info, "store");
 
       return {
         store: store as Store | null,
@@ -41,7 +38,7 @@ export const storeMutationResolvers: Partial<Resolvers> = {
 
     storeUpdate: async (_parent, { input }, ctx) => {
       const result = await ctx.kernel.runScript(StoreUpdateScript, {
-        id: ctx.store!.id,
+        id: input.id,
         name: input.name ?? undefined,
         email: input.email ?? undefined,
         timezone: input.timezone ?? undefined,

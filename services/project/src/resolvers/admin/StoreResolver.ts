@@ -1,5 +1,5 @@
 import { Cache, TypePolicy } from "@shopana/type-resolver";
-import type { StoreRecord } from "../../repositories/models/store.js";
+import type { Store } from "../../repositories/store/StoreRepository.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
 import { BaseResolver } from "./BaseResolver.js";
 
@@ -7,29 +7,22 @@ export { BaseResolver };
 
 /**
  * Store type resolver - resolves Store GraphQL type
- * Accepts store ID, loads data lazily via repository
+ * Accepts pre-loaded StoreRecord from database
  */
 @TypePolicy<StoreResolver>({
-  organizationId: (resolver) => resolver.ctx.store?.organizationId ?? null,
-  domain: (resolver) => `store:${resolver.value}`,
+  organizationId: (resolver) => resolver.value.organizationId,
+  domain: (resolver) => `store:${resolver.value.id}`,
   resource: "*",
   action: "read",
   onDeny: "null",
 })
-export class StoreResolver extends BaseResolver<string, StoreRecord | null> {
-  @Cache({
-    cacheName: "store",
-    key: (resolver: StoreResolver) => resolver.value,
-  })
+export class StoreResolver extends BaseResolver<Store, Store> {
   async loadData() {
-    const result = await this.ctx.kernel
-      .getServices()
-      .repository.store.findById(this.value);
-    return result ?? null;
+    return this.value;
   }
 
   id() {
-    return this.value;
+    return this.value.id;
   }
 
   async name() {
@@ -82,23 +75,23 @@ export class StoreResolver extends BaseResolver<string, StoreRecord | null> {
 
   @Cache({
     cacheName: "store:locales",
-    key: (resolver: StoreResolver) => resolver.value,
+    key: (resolver: StoreResolver) => resolver.value.id,
   })
   async locales(): Promise<LocaleCode[]> {
     const locales = await this.ctx.kernel
       .getServices()
-      .repository.locale.findByStoreId(this.value);
+      .repository.locale.findByStoreId(this.value.id);
     return locales?.map((l) => l.code as LocaleCode) ?? [];
   }
 
   @Cache({
     cacheName: "store:currencies",
-    key: (resolver: StoreResolver) => resolver.value,
+    key: (resolver: StoreResolver) => resolver.value.id,
   })
   async currencies(): Promise<CurrencyCode[]> {
     const currencies = await this.ctx.kernel
       .getServices()
-      .repository.currency.findByStoreId(this.value);
+      .repository.currency.findByStoreId(this.value.id);
     return currencies?.map((c) => c.code as CurrencyCode) ?? [];
   }
 }

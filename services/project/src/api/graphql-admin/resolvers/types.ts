@@ -1,7 +1,8 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/index.js";
-import { StoreResolver } from "../../../resolvers/admin/StoreType.js";
+import { StoreResolver } from "../../../resolvers/admin/StoreResolver.js";
+import type { Store } from "../../../repositories/store/StoreRepository.js";
 import type { Resolvers } from "../generated/types.js";
 import { requireContext } from "./utils.js";
 import { CURRENCY_INFO, LOCALE_INFO } from "@shopana/shared-references";
@@ -11,12 +12,12 @@ import { CURRENCY_INFO, LOCALE_INFO } from "@shopana/shared-references";
  * @param fieldName - Optional field name to extract sub-fields from (e.g., "store" for mutation payloads)
  */
 export async function resolveStore(
-  storeId: string,
+  store: Store,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
   fieldName?: string
 ) {
-  return StoreResolver.load(storeId, parseGraphqlInfo(info, fieldName), requireContext(ctx));
+  return StoreResolver.load(store, parseGraphqlInfo(info, fieldName), requireContext(ctx));
 }
 
 export const typeResolvers: Partial<Resolvers> = {
@@ -44,38 +45,27 @@ export const typeResolvers: Partial<Resolvers> = {
       info: GraphQLResolveInfo
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Promise<any> => {
-      return resolveStore(reference.id, ctx, info);
-    },
-    // Organization field resolver - returns federation reference
-    organization: async (
-      parent: { id: string },
-      _args: unknown,
-      ctx: ServiceContext
-    ) => {
-      // Load store to get organizationId
       const store = await ctx.kernel
         .getServices()
-        .repository.store.findById(parent.id);
-      const organizationId = store?.organizationId ?? null;
+        .repository.store.findById(reference.id);
 
-      if (!organizationId) {
+      if (!store) {
+        return null;
+      }
+
+      return resolveStore(store, ctx, info);
+    },
+    // Organization field resolver - returns federation reference
+    organization: async (parent: Store) => {
+      if (!parent.organizationId) {
         return null;
       }
       // Return federation reference - gateway will resolve from IAM service
-      return { __typename: "Organization", id: organizationId };
+      return { __typename: "Organization", id: parent.organizationId };
     },
     // Membership field resolver - returns Federation reference to IAM Membership
-    membership: async (
-      parent: { id: string },
-      _args: unknown,
-      ctx: ServiceContext
-    ) => {
-      // Load store to get organizationId
-      const store = await ctx.kernel
-        .getServices()
-        .repository.store.findById(parent.id);
-
-      if (!store?.organizationId) {
+    membership: async (parent: Store) => {
+      if (!parent.organizationId) {
         throw new Error(`Store ${parent.id} has no organizationId`);
       }
 
@@ -83,7 +73,7 @@ export const typeResolvers: Partial<Resolvers> = {
       return {
         __typename: "Membership" as const,
         domain: `store:${parent.id}`,
-        organizationId: store.organizationId,
+        organizationId: parent.organizationId,
       };
     },
   },

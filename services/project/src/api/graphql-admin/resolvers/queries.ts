@@ -1,5 +1,5 @@
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import { StoreResolver } from "../../../resolvers/admin/StoreType.js";
+import { StoreResolver } from "../../../resolvers/admin/StoreResolver.js";
 import type { Resolvers } from "../generated/types.js";
 
 export const queryResolvers = {
@@ -15,17 +15,17 @@ export const queryResolvers = {
       // organizationId comes from query arguments
       const { organizationId } = args;
 
-      // Get all store IDs in the organization
-      const allStoreIds = await ctx.kernel
+      // Get all stores in the organization
+      const allStores = await ctx.kernel
         .getServices()
-        .repository.store.getIdsByOrganization(organizationId);
+        .repository.store.findByOrganization(organizationId);
 
-      if (allStoreIds.length === 0) return [];
+      if (allStores.length === 0) return [];
 
       // Build batch enforce requests
-      const requests = allStoreIds.map((storeId) => ({
+      const requests = allStores.map((store) => ({
         userId: ctx.user!.id,
-        domain: `store:${storeId}`,
+        domain: `store:${store.id}`,
         resource: "*",
         action: "read",
       }));
@@ -37,13 +37,13 @@ export const queryResolvers = {
         results: boolean[];
       };
 
-      // Filter allowed store IDs
-      const accessibleIds = allStoreIds.filter((_, i) => results[i]);
+      // Filter allowed stores
+      const accessibleStores = allStores.filter((_, i) => results[i]);
 
-      if (accessibleIds.length === 0) return [];
+      if (accessibleStores.length === 0) return [];
 
       const stores = await StoreResolver.loadMany(
-        accessibleIds,
+        accessibleStores,
         parseGraphqlInfo(info),
         ctx
       );
@@ -52,24 +52,17 @@ export const queryResolvers = {
 
     currentStore: async (_parent: unknown, _args: unknown, ctx, info) => {
       // Need storeName from header and authenticated user
-      if (!ctx.storeName || !ctx.user?.id) return null;
+      if (!ctx.user || !ctx.storeName) return null;
 
-      // Check if store already loaded in context
-      if (ctx.store?.slug === ctx.storeName) {
-        return StoreResolver.load(ctx.store.id, parseGraphqlInfo(info), ctx);
-      }
-
-      // Load store by slug
       const store = await ctx.kernel
         .getServices()
         .repository.store.findBySlug(ctx.storeName);
 
-      if (!store?.organizationId) return null;
+      if (!store) {
+        return null;
+      }
 
-      // Cache store in context for subsequent queries
-      ctx.setStore(store);
-
-      return StoreResolver.load(store.id, parseGraphqlInfo(info), ctx);
+      return StoreResolver.load(store, parseGraphqlInfo(info), ctx);
     },
 
     apiKeys: async (_parent, _args, _ctx) => {
