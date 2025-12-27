@@ -2,10 +2,10 @@ import { IAMType } from "./IAMType.js";
 import { MemberResolver } from "./MemberResolver.js";
 import { RoleResolver } from "./RoleResolver.js";
 import type { ResourceDefinition } from "@shopana/shared-kernel";
-import type { ScopeIdentifier } from "@src/casbin/CasbinService.js";
+import type { Domain } from "../../casbin/CasbinService.js";
 
 export interface MembershipInput {
-  domain: ScopeIdentifier;
+  domain: Domain;
   organizationId: string;
 }
 

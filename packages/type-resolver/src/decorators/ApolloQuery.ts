@@ -18,6 +18,23 @@ function createResolverProxy<T extends BaseTypeClass>(Type: T): object {
   return new Proxy(
     {},
     {
+      has(_, prop) {
+        // Check if method exists on prototype
+        return prop in Type.prototype;
+      },
+      ownKeys() {
+        // Return method names from prototype (excluding constructor)
+        return Object.getOwnPropertyNames(Type.prototype).filter(
+          (name) => name !== "constructor"
+        );
+      },
+      getOwnPropertyDescriptor(_, prop) {
+        // Required for ownKeys to work - make properties enumerable
+        if (prop in Type.prototype && prop !== "constructor") {
+          return { enumerable: true, configurable: true };
+        }
+        return undefined;
+      },
       get(_, prop) {
         // Return wrapped method
         return async function (
@@ -26,6 +43,7 @@ function createResolverProxy<T extends BaseTypeClass>(Type: T): object {
           ctx: unknown,
           info: GraphQLResolveInfo
         ) {
+          console.log(`Resolving ${Type.name}.${String(prop)}`);
           // Create instance
           const instance = new Type({}, ctx) as Record<string, unknown>;
 

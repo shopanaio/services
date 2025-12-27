@@ -8,7 +8,7 @@ import {
   MemberResolver,
   type MemberInput,
 } from "../../../resolvers/admin/MemberResolver.js";
-import type { ScopeIdentifier } from "../../../casbin/CasbinService.js";
+import type { Domain } from "../../../casbin/CasbinService.js";
 import type {
   Resolvers,
   User,
@@ -59,7 +59,7 @@ export async function resolveOrganization(
  * @param organizationId - The organization ID
  */
 export async function resolveMembership(
-  domain: ScopeIdentifier,
+  domain: Domain,
   organizationId: string,
   ctx: ServiceContext,
   info: GraphQLResolveInfo,
@@ -95,5 +95,42 @@ export const typeResolvers: Partial<Resolvers> = {
   // UserError interface resolver
   UserError: {
     __resolveType: () => "GenericUserError",
+  },
+
+  // Federation reference resolvers
+  User: {
+    __resolveReference: async (reference, ctx, info) => {
+      return resolveUser(reference.id, ctx, info);
+    },
+  },
+
+  Organization: {
+    __resolveReference: async (reference, ctx, info) => {
+      return resolveOrganization(reference.id, ctx, info);
+    },
+  },
+
+  Membership: {
+    __resolveReference: async (reference, ctx, info) => {
+      return resolveMembership(
+        reference.domain as Domain,
+        reference.organizationId,
+        ctx,
+        info
+      );
+    },
+  },
+
+  // Role federation reference resolver
+  // Note: Role uses composite key (organizationId, domain, name) internally,
+  // but federation @key is just "id". Role resolver needs to be updated
+  // to support loading by ID for federation to work.
+  Role: {
+    __resolveReference: async (_reference, _ctx, _info) => {
+      // TODO: Implement role loading by ID for federation
+      // The RoleResolver currently requires {organizationId, domain, name}
+      // but federation only provides {id}
+      throw new Error("Role federation reference resolver not implemented");
+    },
   },
 };
