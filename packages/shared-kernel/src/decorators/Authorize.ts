@@ -19,8 +19,8 @@ export interface AuthorizeOptions<TParams = unknown, TSelf extends Authorizable 
   action: string;
   /** Domain scope (e.g., "store:123"). Defaults to "org" */
   domain?: string | ((self: TSelf, params: TParams) => string);
-  /** Override organizationId. Can be a string or a function that extracts it from params */
-  organizationId?: string | ((self: TSelf, params: TParams) => string);
+  /** Organization ID - required. Can be a string or a function that extracts it from params */
+  organizationId: string | ((self: TSelf, params: TParams) => string);
 }
 
 export interface AuthorizeParams {
@@ -35,7 +35,6 @@ export interface AuthorizeParams {
  */
 export interface Authorizable {
   userId: string | null;
-  organizationId: string | null;
   authorize(params: AuthorizeParams): Promise<boolean>;
 }
 
@@ -49,19 +48,11 @@ type PolicyDecorator = <T>(
  * Method decorator that checks authorization before executing.
  * The class must have:
  * - `this.userId` - current user ID
- * - `this.organizationId` - organization ID for authorization
- * - `this.authorize({ resource, action })` - method to check permission
+ * - `this.authorize({ resource, action, organizationId })` - method to check permission
  *
- * @param options - Authorization options (resource, action)
- *
- * @example
- * class StoreCreateScript extends BaseScript {
- *   @Policy({ resource: "store", action: "create" })
- *   protected async execute(params: StoreCreateParams) { ... }
- * }
+ * @param options - Authorization options (resource, action, organizationId)
  *
  * @example
- * // With typed params for organizationId callback
  * class AssignRoleScript extends BaseScript {
  *   @Policy<AssignRoleParams>({
  *     resource: "org.roles",
@@ -105,30 +96,11 @@ export function Policy<TParams = unknown, TSelf extends Authorizable = Authoriza
         );
       }
 
-      // Resolve organizationId: from options (string or function) or from this.organizationId
-      let organizationId: string | null = null;
-      if (options.organizationId) {
-        organizationId =
-          typeof options.organizationId === "function"
-            ? options.organizationId(this, params)
-            : options.organizationId;
-      } else {
-        organizationId = this.organizationId;
-      }
-
-      if (!organizationId) {
-        throw new AuthorizationError(
-          [
-            {
-              code: "UNAUTHORIZED",
-              message: "Organization context required",
-              field: null,
-            },
-          ],
-          options.resource,
-          options.action
-        );
-      }
+      // Resolve organizationId from options (string or function)
+      const organizationId =
+        typeof options.organizationId === "function"
+          ? options.organizationId(this, params)
+          : options.organizationId;
 
       const allowed = await this.authorize({
         resource: options.resource,
