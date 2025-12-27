@@ -84,7 +84,7 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware - extracts organizationId from JWT
+  // Admin context middleware - extracts user from session
   app.addHook(
     "preHandler",
     buildAdminContextMiddleware({
@@ -100,7 +100,6 @@ export async function startServer(serverConfig: ServerConfig) {
         requestId: request.id as string,
         kernel: kernel!,
         currentUser: request.currentUser,
-        organizationId: request.organizationId,
         // Create loaders per request for proper batching
         loaders: new Loader(kernel!.repository),
       };

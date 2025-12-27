@@ -41,13 +41,6 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   }
 
   /**
-   * Organization ID for @Policy decorator
-   */
-  get organizationId(): string | null {
-    return this.context.organizationId ?? null;
-  }
-
-  /**
    * Authorization check for @Policy decorator.
    * Uses Casbin directly since we're in the IAM service.
    */

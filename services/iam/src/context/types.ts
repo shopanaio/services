@@ -13,8 +13,6 @@ export interface ServiceContext {
   kernel: Kernel;
   /** Current authenticated user (null if not authenticated) */
   currentUser: User | null;
-  /** Organization ID from JWT org claim */
-  organizationId: string | null;
   /** Data loaders for batch loading */
   loaders: Loader;
 }
