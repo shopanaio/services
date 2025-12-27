@@ -34,26 +34,14 @@ export class MemberInviteScript extends BaseScript<
   @Policy({
     resource: "org.members",
     action: "invite",
-    organizationId: (self: MemberInviteScript) => self.context.organizationId!,
+    organizationId: (self: MemberInviteScript, params: MemberInviteParams) =>
+      params.organizationId,
   })
   protected async execute(
     params: MemberInviteParams
   ): Promise<MemberInviteResult> {
-    const { email, roles } = params;
-    const organizationId = this.context.organizationId;
+    const { organizationId, email, roles } = params;
     const currentUserId = this.currentUser.id;
-
-    if (!organizationId) {
-      return {
-        member: null,
-        userErrors: [
-          {
-            code: "NO_ORGANIZATION",
-            message: "Organization context is required",
-          },
-        ],
-      };
-    }
 
     // 1. Find user by email
     const user = await this.repository.user.findByEmail(email);
@@ -64,7 +52,7 @@ export class MemberInviteScript extends BaseScript<
           {
             code: "USER_NOT_FOUND",
             message: `User with email "${email}" not found. User must sign up first.`,
-            field: "email",
+            field: ["email"],
           },
         ],
       };
@@ -104,7 +92,7 @@ export class MemberInviteScript extends BaseScript<
             {
               code: "ROLE_NOT_FOUND",
               message: `Role "${roleName}" not found in domain "${domain}"`,
-              field: "roles",
+              field: ["roles"],
             },
           ],
         };
@@ -177,6 +165,7 @@ export class MemberInviteScript extends BaseScript<
           {
             code: "NO_ROLES_ASSIGNED",
             message: "No roles were assigned",
+            field: [],
           },
         ],
       };
@@ -203,6 +192,7 @@ export class MemberInviteScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: [],
           },
         ],
       };
@@ -216,6 +206,7 @@ export class MemberInviteScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

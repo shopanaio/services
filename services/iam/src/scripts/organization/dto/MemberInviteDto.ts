@@ -1,5 +1,5 @@
+import { UserError } from "@shopana/shared-kernel";
 import { z } from "zod";
-import type { UserError } from "../../../kernel/BaseScript.js";
 
 /**
  * Role assignment schema
@@ -19,6 +19,7 @@ export const roleAssignmentSchema = z.object({
  * Member invite input schema
  */
 export const memberInviteInputSchema = z.object({
+  organizationId: z.string().uuid("Invalid organization ID"),
   email: z
     .string()
     .email("Invalid email address")
@@ -31,9 +32,10 @@ export const memberInviteInputSchema = z.object({
 export type MemberInviteInput = z.infer<typeof memberInviteInputSchema>;
 
 /**
- * Script params (includes organizationId from context)
+ * Script params (organizationId from input)
  */
 export interface MemberInviteParams {
+  organizationId: string;
   email: string;
   roles: Array<{
     domain: string;
