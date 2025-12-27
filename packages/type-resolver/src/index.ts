@@ -6,6 +6,7 @@ export { Executor, createExecutor, ResolverError } from "./executor.js";
 
 // Decorators
 export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";
+export { ApolloQuery, ApolloMutation } from "./decorators/ApolloQuery.js";
 
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
