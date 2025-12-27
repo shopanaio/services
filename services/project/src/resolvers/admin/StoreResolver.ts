@@ -29,6 +29,21 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return this.get("name");
   }
 
+  async organization() {
+    return {
+      __typename: "Organization" as const,
+      id: await this.get("organizationId"),
+    };
+  }
+
+  async membership() {
+    return {
+      __typename: "Membership" as const,
+      domain: `store:${this.value}`,
+      organizationId: await this.get("organizationId"),
+    };
+  }
+
   async slug() {
     return this.get("slug");
   }
