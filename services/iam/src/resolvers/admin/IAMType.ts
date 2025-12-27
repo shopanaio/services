@@ -34,21 +34,18 @@ export { Cache };
  * }
  * ```
  */
-export abstract class IAMType<TValue, TData = unknown>
-  extends BaseType<TValue, TData, ServiceContext>
-  implements IAuthorizable
-{
+@Authorizable()
+export abstract class IAMType<TValue, TData = unknown> extends BaseType<
+  TValue,
+  TData,
+  ServiceContext
+> {
   /**
    * Executor with authorization middleware.
    */
   static executor = createExecutor<ServiceContext>({
     middleware: [createAuthorizationMiddleware()],
   });
-
-  /**
-   * Authorization provider for @TypePolicy decorator.
-   */
-  readonly auth = new Authorizable();
 
   constructor(value: TValue, ctx: ServiceContext) {
     super(value, ctx);

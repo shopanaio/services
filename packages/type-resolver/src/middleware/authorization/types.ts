@@ -21,6 +21,8 @@ export interface TypePolicyOptions<TSelf = unknown> {
    * Can be a string or a function that extracts it from resolver instance.
    */
   domain?: string | ((self: TSelf) => string);
+  /** User ID for authorization. */
+  userId?: string | ((self: TSelf) => string | null);
   /** Behavior when authorization fails: 'throw' (default) or 'null' */
   onDeny?: "throw" | "null";
 }
@@ -34,6 +36,7 @@ export interface AuthorizeParams {
   action: string;
   organizationId: string;
   domain?: string;
+  userId?: string;
 }
 
 /**
@@ -50,5 +53,5 @@ export interface AuthProvider {
  * Uses composition via `auth` property.
  */
 export interface Authorizable {
-  auth: AuthProvider;
+  authProvider: AuthProvider;
 }

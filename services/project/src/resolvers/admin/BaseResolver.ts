@@ -1,13 +1,18 @@
 import {
   BaseType,
+  Cache,
   createExecutor,
   createAuthorizationMiddleware,
+  type CacheStore,
+  Authorizable,
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
-import { Authorizable } from "../../kernel/Authorizable.js";
+import { AuthProvider } from "../../kernel/Authorizable.js";
+
+export { Cache };
 
 /**
- * Base resolver class with ServiceContext and Authorizable support.
+ * Base resolver class with pre-configured ServiceContext, executor, and authorization support.
  *
  * Use @TypePolicy decorator to enable authorization check on load/loadMany.
  * Supports store name resolution via NameResolver cache.
@@ -29,11 +34,10 @@ import { Authorizable } from "../../kernel/Authorizable.js";
  * }
  * ```
  */
-export abstract class BaseResolver<TValue, TData = unknown> extends BaseType<
-  TValue,
-  TData,
-  ServiceContext
-> {
+export abstract class BaseResolver<TValue, TData = unknown>
+  extends BaseType<TValue, TData, ServiceContext>
+  implements Authorizable
+{
   /**
    * Executor with authorization middleware.
    */
@@ -44,7 +48,7 @@ export abstract class BaseResolver<TValue, TData = unknown> extends BaseType<
   /**
    * Authorization provider for @TypePolicy decorator.
    */
-  readonly auth = new Authorizable();
+  readonly authProvider = new AuthProvider();
 
   // @ts-expect-error
   protected getCache() {

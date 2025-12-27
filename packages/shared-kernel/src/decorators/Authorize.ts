@@ -44,6 +44,8 @@ export interface AuthorizeOptions<
    * Can be a string or a function that extracts it from instance/params.
    */
   domain?: string | ((self: TSelf, params: TParams) => string);
+  /** User ID for authorization. */
+  userId?: string | ((self: TSelf, params: TParams) => string);
 }
 
 export interface AuthorizeParams {
@@ -52,6 +54,7 @@ export interface AuthorizeParams {
   organizationId?: string;
   organizationName?: string;
   domain?: string;
+  userId?: string;
 }
 
 /**
@@ -68,7 +71,7 @@ export interface AuthProvider {
  * Uses composition via `auth` property.
  */
 export interface Authorizable {
-  auth: AuthProvider;
+  authProvider: AuthProvider;
 }
 
 type PolicyDecorator = <T>(

@@ -3,16 +3,16 @@ import {
   AuthorizationError,
   ZodSchema,
   Transactional,
-  type Authorizable as IAuthorizable,
+  type Authorizable,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
 import type { IamKernelServices } from "./types.js";
-import { Authorizable } from "./Authorizable.js";
+import { AuthProvider } from "@src/kernel/Authorizable.js";
 
 // Re-export decorators for convenience
 export { ZodSchema, Transactional, ValidationError };
 
-export abstract class BaseScript<TParams, TResult> {
+export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: IamKernelServices;
   protected readonly repository: IamKernelServices["repository"];
   protected readonly logger: IamKernelServices["logger"];
@@ -27,7 +27,7 @@ export abstract class BaseScript<TParams, TResult> {
   /**
    * Authorization provider for @Policy decorator.
    */
-  public readonly auth = new Authorizable();
+  public readonly authProvider = new AuthProvider();
 
   constructor(services: IamKernelServices) {
     this.services = services;

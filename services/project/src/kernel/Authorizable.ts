@@ -1,4 +1,7 @@
-import type { AuthProvider, AuthorizeParams } from "@shopana/shared-kernel";
+import type {
+  AuthProvider as IAuthProvider,
+  AuthorizeParams,
+} from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
 
@@ -19,7 +22,7 @@ export interface ProjectAuthorizeParams extends AuthorizeParams {
  *
  * @param userId - Optional user ID to check permissions for. If not provided, uses current user from context.
  */
-export class Authorizable implements AuthProvider {
+export class AuthProvider implements IAuthProvider {
   private readonly overrideUserId?: string;
 
   constructor(userId?: string) {
@@ -45,7 +48,7 @@ export class Authorizable implements AuthProvider {
    * Authorization is delegated to IAM service.
    */
   async authorize(params: ProjectAuthorizeParams): Promise<boolean> {
-    const userId = this.userId;
+    const userId = params.userId ?? this.userId;
     if (!userId) {
       return false;
     }

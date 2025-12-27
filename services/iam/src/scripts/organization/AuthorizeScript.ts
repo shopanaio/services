@@ -1,5 +1,4 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
-import { Authorizable } from "../../kernel/Authorizable.js";
 import type { AuthorizeParams, AuthorizeResult } from "./dto/AuthorizeDto.js";
 
 /**
@@ -11,18 +10,23 @@ export class AuthorizeScript extends BaseScript<
   AuthorizeResult
 > {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const { userId, organizationId, organizationName, domain, resource, action } = params;
-
-    // Create Authorizable for the target user (not current user)
-    const targetAuth = new Authorizable(userId);
-
-    // Use authorize method (handles admin check, name resolution, casbin)
-    const allowed = await targetAuth.authorize({
+    const {
+      userId,
       organizationId,
       organizationName,
       domain,
       resource,
       action,
+    } = params;
+
+    // Use authorize method (handles admin check, name resolution, casbin)
+    const allowed = await this.authProvider.authorize({
+      organizationId,
+      organizationName,
+      domain,
+      resource,
+      action,
+      userId,
     });
 
     return {

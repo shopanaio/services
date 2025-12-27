@@ -1,10 +1,14 @@
 import type {
-  AuthProvider,
+  AuthProvider as IAuthProvider,
   AuthorizeParams,
 } from "@shopana/shared-kernel";
 import type { IamKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
-import { ORG_DOMAIN, type Domain, type Resource } from "../casbin/CasbinService.js";
+import {
+  ORG_DOMAIN,
+  type Domain,
+  type Resource,
+} from "../casbin/CasbinService.js";
 
 /**
  * Authorization provider for IAM service.
@@ -15,15 +19,11 @@ import { ORG_DOMAIN, type Domain, type Resource } from "../casbin/CasbinService.
  *
  * @param userId - Optional user ID to check permissions for. If not provided, uses current user from context.
  */
-export class Authorizable implements AuthProvider {
-  private readonly overrideUserId?: string;
-
-  constructor(userId?: string) {
-    this.overrideUserId = userId;
-  }
+export class AuthProvider implements IAuthProvider {
+  constructor() {}
 
   private get services(): IamKernelServices {
-    return getContext().kernel as unknown as IamKernelServices;
+    return getContext().kernel.getServices();
   }
 
   /**
@@ -31,7 +31,7 @@ export class Authorizable implements AuthProvider {
    * Uses override if provided, otherwise falls back to current user from context.
    */
   get userId(): string | null {
-    return this.overrideUserId ?? getContext().currentUser?.id ?? null;
+    return getContext().currentUser?.id ?? null;
   }
 
   /**
@@ -41,22 +41,20 @@ export class Authorizable implements AuthProvider {
    * it will be resolved to organizationId via NameResolver cache.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
-    const userId = this.userId;
+    const userId = params.userId || this.userId;
     if (!userId) {
       return false;
     }
 
     // Check if user is site admin (bypasses all checks)
-    const isAdmin = await this.services.repository.user.isAdmin(userId);
-    if (isAdmin) {
+    if (await this.services.repository.user.isAdmin(userId)) {
       return true;
     }
 
     // Resolve organizationName to organizationId if needed
-    let organizationId = params.organizationId;
-
-    if (!organizationId && params.organizationName) {
-      const resolved = await this.resolveOrganizationId(params.organizationName);
+    let { organizationId, organizationName } = params;
+    if (organizationName) {
+      const resolved = await this.resolveOrganizationId(organizationName);
       if (!resolved) {
         return false;
       }

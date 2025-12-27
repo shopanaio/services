@@ -1,13 +1,13 @@
 import {
   ValidationError,
   AuthorizationError,
-  type Authorizable as IAuthorizable,
+  type Authorizable,
 } from "@shopana/shared-kernel";
 import type { ProjectKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
-import { Authorizable } from "./Authorizable.js";
+import { AuthProvider } from "@src/kernel/Authorizable.js";
 
-export abstract class BaseScript<TParams, TResult> implements IAuthorizable {
+export abstract class BaseScript<TParams, TResult> implements Authorizable {
   protected readonly services: ProjectKernelServices;
   protected readonly repository: ProjectKernelServices["repository"];
   protected readonly logger: ProjectKernelServices["logger"];
@@ -21,7 +21,7 @@ export abstract class BaseScript<TParams, TResult> implements IAuthorizable {
   /**
    * Authorization provider for @Policy decorator.
    */
-  public readonly auth: Authorizable;
+  public readonly authProvider = new AuthProvider();
 
   constructor(services: ProjectKernelServices) {
     this.services = services;
@@ -29,7 +29,6 @@ export abstract class BaseScript<TParams, TResult> implements IAuthorizable {
     this.logger = services.logger;
     this.broker = services.broker;
     this.txManager = services.repository.txManager;
-    this.auth = new Authorizable();
   }
 
   /**
@@ -72,17 +71,6 @@ export abstract class BaseScript<TParams, TResult> implements IAuthorizable {
    */
   protected getLocale(): string {
     return this.context.locale ?? "uk";
-  }
-
-  /**
-   * Helper: get current store ID
-   * @throws Error if no store in context
-   */
-  protected getStoreId(): string {
-    if (!this.context.store) {
-      throw new Error("Store context required");
-    }
-    return this.context.store.id;
   }
 
   /**
