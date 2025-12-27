@@ -702,7 +702,7 @@ export enum LocaleCode {
 
 /**
  * Member with role assignment.
- * Used for both org-level (domain = orgId) and domain-level (domain = storeId).
+ * Used for both org-level (domain = "org") and store-level (domain = "store:uuid").
  */
 export type Member = {
   __typename?: 'Member';
@@ -722,6 +722,8 @@ export type Member = {
 export type MemberAccessRemoveInput = {
   /** Domain to remove access from. */
   domain: Scalars['String']['input'];
+  /** Organization ID where the member belongs. */
+  organizationId: Scalars['ID']['input'];
   /** User ID. */
   userId: Scalars['ID']['input'];
 };
@@ -736,6 +738,8 @@ export type MemberAccessRemovePayload = {
 export type MemberInviteInput = {
   /** Email address of the user to invite. */
   email: Scalars['Email']['input'];
+  /** Organization ID to invite the member to. */
+  organizationId: Scalars['ID']['input'];
   /** Role assignments (at least one required). */
   roles: Array<RoleAssignment>;
 };
@@ -754,8 +758,10 @@ export type MemberRemovePayload = {
 
 /** Input for changing member's role. */
 export type MemberRoleChangeInput = {
-  /** Domain. Format: "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*"). */
+  /** Domain ("org" for organization, or "store:uuid", "store:*"). */
   domain: Scalars['String']['input'];
+  /** Organization ID where the member belongs. */
+  organizationId: Scalars['ID']['input'];
   /** New role name. */
   role: Scalars['String']['input'];
   /** User ID. */
@@ -777,7 +783,7 @@ export type Membership = {
   __typename?: 'Membership';
   /** Available resources for role editor (org-level only). */
   availableResources?: Maybe<Array<ResourceDefinition>>;
-  /** Domain identifier (format: "org:uuid" or "store:uuid"). */
+  /** Domain identifier ("org" for organization, or "store:uuid"). */
   domain: Scalars['String']['output'];
   /** All members with access to this domain. */
   members: Array<Member>;
@@ -966,8 +972,8 @@ export type Role = {
   /** Human-readable display name. */
   displayName: Scalars['String']['output'];
   /**
-   * Domain scope for this role. Format: "prefix:id" or "prefix:*".
-   * - "org:uuid" = organization-level role
+   * Domain scope for this role.
+   * - "org" = organization-level role
    * - "store:uuid" = store-specific role
    * - "store:*" = all stores
    */
@@ -986,7 +992,7 @@ export type Role = {
 
 /** Role assignment - assigns role to user in specific domain. */
 export type RoleAssignment = {
-  /** Domain ID. Format: "prefix:id" or "prefix:*" (e.g., "org:uuid", "store:*"). */
+  /** Domain ID ("org" for organization, or "store:uuid", "store:*"). */
   domain: Scalars['String']['input'];
   /** Role name. */
   role: Scalars['String']['input'];
@@ -999,14 +1005,16 @@ export type RoleCreateInput = {
   /** Display name. */
   displayName: Scalars['String']['input'];
   /**
-   * Domain scope for role. Required, format: "prefix:id" or "prefix:*".
-   * - "org:uuid" = organization-level role
+   * Domain scope for role.
+   * - "org" = organization-level role
    * - "store:uuid" = store-specific role
    * - "store:*" = all stores
    */
   domain: Scalars['String']['input'];
   /** Unique role name (slug). */
   name: Scalars['String']['input'];
+  /** Organization ID where the role will be created. */
+  organizationId: Scalars['ID']['input'];
   /** Role permissions. */
   permissions: Array<RolePermissionInput>;
 };
@@ -1019,10 +1027,10 @@ export type RoleCreatePayload = {
 
 /** Input for deleting a role. */
 export type RoleDeleteInput = {
-  /** Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*". */
-  domain: Scalars['String']['input'];
-  /** Role name to delete. */
-  name: Scalars['String']['input'];
+  /** Role ID to delete. */
+  id: Scalars['ID']['input'];
+  /** Organization ID where the role exists. */
+  organizationId: Scalars['ID']['input'];
 };
 
 export type RoleDeletePayload = {
@@ -1108,10 +1116,10 @@ export type RoleUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New display name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
-  /** Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*". */
-  domain: Scalars['String']['input'];
-  /** Role name to update. */
-  name: Scalars['String']['input'];
+  /** Role ID to update. */
+  id: Scalars['ID']['input'];
+  /** Organization ID where the role exists. */
+  organizationId: Scalars['ID']['input'];
   /** New permissions (completely replaces existing). */
   permissions?: InputMaybe<Array<RolePermissionInput>>;
 };

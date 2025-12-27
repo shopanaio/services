@@ -70,6 +70,10 @@ Input for inviting a member to organization.
 """
 input MemberInviteInput {
   """
+  Organization ID to invite the member to.
+  """
+  organizationId: ID!
+  """
   Email address of the user to invite.
   """
   email: Email!
@@ -83,6 +87,10 @@ input MemberInviteInput {
 Input for changing member's role.
 """
 input MemberRoleChangeInput {
+  """
+  Organization ID where the member belongs.
+  """
+  organizationId: ID!
   """
   User ID.
   """
@@ -101,6 +109,10 @@ input MemberRoleChangeInput {
 Input for removing member's access.
 """
 input MemberAccessRemoveInput {
+  """
+  Organization ID where the member belongs.
+  """
+  organizationId: ID!
   """
   User ID.
   """

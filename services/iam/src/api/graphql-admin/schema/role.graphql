@@ -116,6 +116,10 @@ Input for creating a role.
 """
 input RoleCreateInput {
   """
+  Organization ID where the role will be created.
+  """
+  organizationId: ID!
+  """
   Domain scope for role.
   - "org" = organization-level role
   - "store:uuid" = store-specific role
@@ -163,13 +167,13 @@ Input for updating a role.
 """
 input RoleUpdateInput {
   """
-  Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*".
+  Organization ID where the role exists.
   """
-  domain: String!
+  organizationId: ID!
   """
-  Role name to update.
+  Role ID to update.
   """
-  name: String!
+  id: ID!
   """
   New display name.
   """
@@ -189,13 +193,13 @@ Input for deleting a role.
 """
 input RoleDeleteInput {
   """
-  Domain scope for role lookup. Required, format: "prefix:id" or "prefix:*".
+  Organization ID where the role exists.
   """
-  domain: String!
+  organizationId: ID!
   """
-  Role name to delete.
+  Role ID to delete.
   """
-  name: String!
+  id: ID!
 }
 
 """
