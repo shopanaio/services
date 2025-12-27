@@ -29,13 +29,12 @@ interface InvitedUserContext {
  * Verifies that domain-scoped roles properly isolate access between
  * different stores within the same organization.
  *
- * Domain formats:
+ * Domain format:
  * - "store:{storeId}" - access to specific store only
- * - "store:*" - access to all stores in organization
  *
  * Setup for each test:
  * - Owner creates organization with Store A and Store B
- * - Invites users with store-specific or wildcard roles
+ * - Invites users with store-specific roles
  * - Tests verify domain boundary enforcement
  */
 test.describe('Store-Level Domain Isolation', () => {
@@ -182,8 +181,7 @@ test.describe('Store-Level Domain Isolation', () => {
     expect(storeBData.storeQuery.currentStore).toBeNull();
   });
 
-  test.skip('User with store-A role cannot modify store-B', async ({ api }) => {
-    // TODO: Store-level RBAC is not enforced in project service yet
+  test('User with store-A role cannot modify store-B', async ({ api }) => {
     // Invite user with editor role only in Store A
     const user = await inviteUserWithRoles(api, [
       { domain: `store:${owner.storeAId}`, role: 'manager' },
@@ -223,8 +221,7 @@ test.describe('Store-Level Domain Isolation', () => {
     expect(verifyData.storeQuery.currentStore?.name).toBe('Store B');
   });
 
-  test.skip('Store-specific permissions are isolated per store', async ({ api }) => {
-    // TODO: Store-level RBAC is not enforced in project service yet
+  test('Store-specific permissions are isolated per store', async ({ api }) => {
     // Invite user with editor role in Store A (we'll verify they can't edit Store B)
     const user = await inviteUserWithRoles(api, [
       { domain: `store:${owner.storeAId}`, role: 'manager' },
@@ -276,71 +273,6 @@ test.describe('Store-Level Domain Isolation', () => {
       const updateBFailed = updateBResult.store === null || updateBResult.userErrors.length > 0;
       expect(updateBFailed).toBe(true);
     }
-  });
-
-  test.skip('User with store:* role can access all stores', async ({ api }) => {
-    // TODO: Wildcard store roles (store:*) are not created automatically
-    // Need to implement role creation for wildcard domains
-    // Invite user with wildcard role for all stores
-    const user = await inviteUserWithRoles(api, [{ domain: 'store:*', role: 'manager' }]);
-
-    // Switch to invited user
-    api.session.tenant.accessToken = user.accessToken;
-    api.session.tenant.userId = user.userId;
-
-    // User CAN access Store A
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
-    const { data: storeAData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
-    expect(storeAData.storeQuery.currentStore).not.toBeNull();
-    expect(storeAData.storeQuery.currentStore?.id).toBe(owner.storeAId);
-
-    // User CAN access Store B
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
-    const { data: storeBData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
-    expect(storeBData.storeQuery.currentStore).not.toBeNull();
-    expect(storeBData.storeQuery.currentStore?.id).toBe(owner.storeBId);
-  });
-
-  test.skip('User with store:* role can modify all stores', async ({ api }) => {
-    // TODO: Wildcard store roles (store:*) are not created automatically
-    // Invite user with wildcard editor role
-    const user = await inviteUserWithRoles(api, [{ domain: 'store:*', role: 'manager' }]);
-
-    // Switch to invited user
-    api.session.tenant.accessToken = user.accessToken;
-    api.session.tenant.userId = user.userId;
-
-    // User CAN update Store A
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
-    const { data: updateAData } = await api.admin.mutation('project-api/ProjectUpdate', {
-      throwOnError: false,
-      variables: {
-        input: {
-          id: owner.storeAId,
-          name: 'Store A Wildcard Updated',
-        },
-      },
-    });
-    expect(updateAData.storeMutation.storeUpdate.store).not.toBeNull();
-    expect(updateAData.storeMutation.storeUpdate.store?.name).toBe('Store A Wildcard Updated');
-
-    // User CAN update Store B
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
-    const { data: updateBData } = await api.admin.mutation('project-api/ProjectUpdate', {
-      throwOnError: false,
-      variables: {
-        input: {
-          id: owner.storeBId,
-          name: 'Store B Wildcard Updated',
-        },
-      },
-    });
-    expect(updateBData.storeMutation.storeUpdate.store).not.toBeNull();
-    expect(updateBData.storeMutation.storeUpdate.store?.name).toBe('Store B Wildcard Updated');
   });
 
   test('User with multiple store-specific roles has access to only those stores', async ({
@@ -423,32 +355,6 @@ test.describe('Store-Level Domain Isolation', () => {
     // User should only see Store A, not Store B
     expect(storeIds).toContain(owner.storeAId);
     expect(storeIds).not.toContain(owner.storeBId);
-  });
-
-  test.skip('User with store:* sees all stores in list', async ({ api }) => {
-    // TODO: Wildcard store roles (store:*) are not created automatically
-    // Invite user with wildcard role
-    const user = await inviteUserWithRoles(api, [{ domain: 'store:*', role: 'viewer' }]);
-
-    // Switch to invited user
-    api.session.tenant.accessToken = user.accessToken;
-    api.session.tenant.userId = user.userId;
-    api.session.organizationId = owner.organizationId;
-
-    // Get list of stores user can access
-    const { data } = await api.admin.query('project-api/Projects', {
-      throwOnError: false,
-      variables: {
-        organizationId: owner.organizationId,
-      },
-    });
-
-    const stores = data.storeQuery.stores;
-    const storeIds = stores.map((s: { id: string }) => s.id);
-
-    // User should see both Store A and Store B
-    expect(storeIds).toContain(owner.storeAId);
-    expect(storeIds).toContain(owner.storeBId);
   });
 
   test('User cannot delete store they have no access to', async ({ api }) => {

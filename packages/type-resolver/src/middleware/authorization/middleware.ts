@@ -3,15 +3,15 @@ import type { TypePolicyOptions, Authorizable } from "./types.js";
 import { TypeAuthorizationError } from "./error.js";
 
 /**
- * Check if instance implements Authorizable interface (has auth property).
+ * Check if instance implements Authorizable interface.
  */
 function isAuthorizable(instance: unknown): instance is Authorizable {
   return (
     typeof instance === "object" &&
     instance !== null &&
-    typeof (instance as Authorizable).auth === "object" &&
-    (instance as Authorizable).auth !== null &&
-    typeof (instance as Authorizable).auth.authorize === "function"
+    typeof (instance as Authorizable).authProvider === "object" &&
+    (instance as Authorizable).authProvider !== null &&
+    typeof (instance as Authorizable).authProvider.authorize === "function"
   );
 }
 
@@ -95,12 +95,18 @@ export function createAuthorizationMiddleware<TContext = unknown>(
           ? policy.domain(instance)
           : policy.domain;
 
-      // Call instance.auth.authorize()
-      const allowed = await instance.auth.authorize({
+      // Resolve userId (can be a function, defaults to current user via authProvider)
+      const userId =
+        typeof policy.userId === "function"
+          ? policy.userId(instance)
+          : policy.userId;
+
+      const allowed = await instance.authProvider.authorize({
         resource: policy.resource,
         action: policy.action,
         organizationId,
         domain,
+        userId: userId ?? undefined,
       });
 
       if (!allowed) {

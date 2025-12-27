@@ -1,8 +1,12 @@
+// Re-export common types from shared-kernel
+export type {
+  AuthorizeParams,
+  AuthProvider,
+  Authorizable,
+} from "@shopana/shared-kernel";
+
 /**
  * Policy options for @TypePolicy decorator on type resolvers.
- * Same structure as @Policy in shared-kernel but for resolvers.
- *
- * All fields accept either a static value or a function that resolves the value.
  *
  * @template TSelf - Type of the resolver instance
  */
@@ -12,7 +16,7 @@ export interface TypePolicyOptions<TSelf = unknown> {
   /** Action to check (e.g., "read", "write", "delete", "create") */
   action: string;
   /**
-   * Organization ID for authorization - required.
+   * Organization ID for authorization.
    * Can be a string or a function that extracts it from resolver instance.
    */
   organizationId: string | ((self: TSelf) => string | null);
@@ -25,33 +29,4 @@ export interface TypePolicyOptions<TSelf = unknown> {
   userId?: string | ((self: TSelf) => string | null);
   /** Behavior when authorization fails: 'throw' (default) or 'null' */
   onDeny?: "throw" | "null";
-}
-
-/**
- * Parameters passed to authorize method.
- * Same structure as AuthorizeParams in shared-kernel.
- */
-export interface AuthorizeParams {
-  resource: string;
-  action: string;
-  organizationId: string;
-  domain?: string;
-  userId?: string;
-}
-
-/**
- * Interface for authorization provider.
- * Contains userId and authorize method.
- */
-export interface AuthProvider {
-  userId: string | null;
-  authorize(params: AuthorizeParams): Promise<boolean>;
-}
-
-/**
- * Interface for types that support authorization.
- * Uses composition via `auth` property.
- */
-export interface Authorizable {
-  authProvider: AuthProvider;
 }

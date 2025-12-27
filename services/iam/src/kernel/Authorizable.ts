@@ -14,13 +14,10 @@ import {
  * Authorization provider for IAM service.
  *
  * Implements AuthProvider interface with organization name resolution via NameResolver.
- * Used by BaseScript and IAMType via composition (this.auth).
+ * Used by BaseScript and IAMType via composition (this.authProvider).
  * Gets kernel services from context automatically.
- *
- * @param userId - Optional user ID to check permissions for. If not provided, uses current user from context.
  */
 export class AuthProvider implements IAuthProvider {
-  constructor() {}
 
   private get services(): IamKernelServices {
     return getContext().kernel.getServices();

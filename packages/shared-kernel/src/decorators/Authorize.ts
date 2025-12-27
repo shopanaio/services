@@ -82,9 +82,7 @@ type PolicyDecorator = <T>(
 
 /**
  * Method decorator that checks authorization before executing.
- * The class must have:
- * - `this.auth.userId` - current user ID
- * - `this.auth.authorize({ resource, action, organizationId })` - method to check permission
+ * The class must implement Authorizable interface with authProvider property.
  *
  * @param options - Authorization options (resource, action, organizationId)
  *
@@ -121,7 +119,7 @@ export function Policy<
       this: TSelf,
       params: TParams
     ): Promise<unknown> {
-      if (!this.auth.userId) {
+      if (!this.authProvider.userId) {
         throw new AuthorizationError(
           [
             {
@@ -150,12 +148,18 @@ export function Policy<
           ? options.domain(this, params)
           : options.domain;
 
-      const allowed = await this.auth.authorize({
+      const userId =
+        typeof options.userId === "function"
+          ? options.userId(this, params)
+          : options.userId;
+
+      const allowed = await this.authProvider.authorize({
         resource: options.resource,
         action: options.action,
-        organizationId: organizationId,
-        organizationName: organizationName,
+        organizationId,
+        organizationName,
         domain,
+        userId,
       });
 
       if (!allowed) {
