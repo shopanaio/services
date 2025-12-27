@@ -97,24 +97,6 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveType: () => "GenericUserError",
   },
 
-  // Federation reference resolvers
-  Organization: {
-    __resolveReference: async (reference, ctx, info) => {
-      return resolveOrganization(reference.id, ctx, info);
-    },
-  },
-
-  Membership: {
-    __resolveReference: async (reference, ctx, info) => {
-      return resolveMembership(
-        reference.domain as Domain,
-        reference.organizationId,
-        ctx,
-        info
-      );
-    },
-  },
-
   // Role federation reference resolver
   // Note: Role uses composite key (organizationId, domain, name) internally,
   // but federation @key is just "id". Role resolver needs to be updated

@@ -1,3 +1,4 @@
+import { ResolveReference } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { MemberResolver } from "./MemberResolver.js";
 import { RoleResolver } from "./RoleResolver.js";
@@ -12,6 +13,12 @@ export interface MembershipInput {
 /**
  * Membership resolver - resolves membership container for members and roles
  */
+@ResolveReference(
+  (ref: { __typename: "Membership"; domain: string; organizationId: string }) => ({
+    domain: ref.domain as Domain,
+    organizationId: ref.organizationId,
+  })
+)
 export class MembershipResolver extends IAMType<
   MembershipInput,
   MembershipInput
