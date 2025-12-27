@@ -5,6 +5,7 @@ import {
   createExecutor,
   load,
   loadMany,
+  resolve,
 } from "./executor.js";
 import { BaseType } from "./baseType.js";
 
@@ -768,5 +769,167 @@ describe("ResolverError", () => {
     expect(error.type).toBe("TestType");
     expect(error.originalError).toBe(originalError);
     expect(error.name).toBe("ResolverError");
+  });
+});
+
+describe("resolve() - universal resolver", () => {
+  it("resolves BaseType instance", async () => {
+    class StoreType extends BaseType<{ id: string }, { id: string }, unknown> {
+      id() {
+        return this.value.id;
+      }
+      name() {
+        return "Store Name";
+      }
+    }
+
+    const instance = new StoreType({ id: "s1" }, {});
+    const result = await resolve(instance, { fields: ["id", "name"] });
+
+    expect(result).toEqual({ id: "s1", name: "Store Name" });
+  });
+
+  it("resolves array of BaseType instances", async () => {
+    class ItemType extends BaseType<{ id: string }, { id: string }, unknown> {
+      id() {
+        return this.value.id;
+      }
+    }
+
+    const instances = [
+      new ItemType({ id: "1" }, {}),
+      new ItemType({ id: "2" }, {}),
+    ];
+    const result = await resolve(instances, { fields: ["id"] });
+
+    expect(result).toEqual([{ id: "1" }, { id: "2" }]);
+  });
+
+  it("resolves plain object with scalar fields", async () => {
+    const obj = { success: true, message: "Created" };
+    const result = await resolve(obj, { fields: ["success", "message"] });
+
+    expect(result).toEqual({ success: true, message: "Created" });
+  });
+
+  it("resolves plain object with nested BaseType", async () => {
+    class StoreType extends BaseType<{ id: string }, { id: string }, unknown> {
+      id() {
+        return this.value.id;
+      }
+      name() {
+        return "My Store";
+      }
+    }
+
+    const obj = {
+      store: new StoreType({ id: "s1" }, {}),
+      success: true,
+    };
+
+    const result = await resolve(obj, {
+      fields: ["success"],
+      populate: {
+        store: { fields: ["id", "name"] },
+      },
+    });
+
+    expect(result).toEqual({
+      store: { id: "s1", name: "My Store" },
+      success: true,
+    });
+  });
+
+  it("resolves plain object with array of BaseType", async () => {
+    class ProductType extends BaseType<{ id: string; sku: string }, { id: string; sku: string }, unknown> {
+      id() {
+        return this.value.id;
+      }
+      sku() {
+        return this.value.sku;
+      }
+    }
+
+    const obj = {
+      products: [
+        new ProductType({ id: "p1", sku: "SKU-1" }, {}),
+        new ProductType({ id: "p2", sku: "SKU-2" }, {}),
+      ],
+      total: 2,
+    };
+
+    const result = await resolve(obj, {
+      fields: ["total"],
+      populate: {
+        products: { fields: ["id", "sku"] },
+      },
+    });
+
+    expect(result).toEqual({
+      products: [
+        { id: "p1", sku: "SKU-1" },
+        { id: "p2", sku: "SKU-2" },
+      ],
+      total: 2,
+    });
+  });
+
+  it("resolves deeply nested plain objects", async () => {
+    class UserType extends BaseType<{ id: string }, { id: string }, unknown> {
+      id() {
+        return this.value.id;
+      }
+      email() {
+        return "user@example.com";
+      }
+    }
+
+    const obj = {
+      data: {
+        user: new UserType({ id: "u1" }, {}),
+        metadata: { count: 1 },
+      },
+      success: true,
+    };
+
+    const result = await resolve(obj, {
+      fields: ["success"],
+      populate: {
+        data: {
+          fields: ["metadata"],
+          populate: {
+            user: { fields: ["id", "email"] },
+            metadata: { fields: ["count"] },
+          },
+        },
+      },
+    });
+
+    expect(result).toEqual({
+      data: {
+        user: { id: "u1", email: "user@example.com" },
+        metadata: { count: 1 },
+      },
+      success: true,
+    });
+  });
+
+  it("returns scalar values as-is", async () => {
+    expect(await resolve("hello", undefined)).toBe("hello");
+    expect(await resolve(42, undefined)).toBe(42);
+    expect(await resolve(true, undefined)).toBe(true);
+    expect(await resolve(null, undefined)).toBe(null);
+  });
+
+  it("returns Date as-is (not treated as plain object)", async () => {
+    const date = new Date("2024-01-01");
+    const result = await resolve(date, undefined);
+    expect(result).toBe(date);
+  });
+
+  it("returns empty object when no fields specified in query", async () => {
+    const obj = { a: 1, b: 2 };
+    const result = await resolve(obj, {});
+    expect(result).toEqual({});
   });
 });

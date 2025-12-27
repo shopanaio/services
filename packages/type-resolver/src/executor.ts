@@ -249,6 +249,82 @@ export class Executor<TContext = unknown> {
   ): Promise<InstanceResult<T>[]> {
     return Promise.all(instances.map((instance) => this.load(instance, query)));
   }
+
+  /**
+   * Universal resolver for any value type.
+   * Handles: BaseType, Array<BaseType>, plain objects, scalars.
+   *
+   * @param value - Any value to resolve
+   * @param query - QueryArgs specifying which fields to resolve
+   * @returns Resolved value according to query
+   */
+  async resolve(value: unknown, query?: QueryArgs): Promise<unknown> {
+    // 1. BaseType instance → load(instance, query)
+    if (value instanceof BaseType) {
+      return this.load(value, query);
+    }
+
+    // 2. Array of BaseType → loadMany(instances, query)
+    if (
+      Array.isArray(value) &&
+      value.length > 0 &&
+      value[0] instanceof BaseType
+    ) {
+      return this.loadMany(value, query);
+    }
+
+    // 3. Plain object → resolve each field by query
+    if (value !== null && typeof value === "object" && !(value instanceof Date)) {
+      return this.resolveObject(value as Record<string, unknown>, query);
+    }
+
+    // 4. Scalar → return as is
+    return value;
+  }
+
+  /**
+   * Resolves a plain object by iterating over query fields.
+   * For each field, recursively calls resolve() on the value.
+   *
+   * @param obj - Plain object to resolve
+   * @param query - QueryArgs specifying which fields to resolve
+   * @returns Resolved object with only requested fields
+   */
+  private async resolveObject(
+    obj: Record<string, unknown>,
+    query?: QueryArgs
+  ): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {};
+
+    // Collect fields to resolve from query
+    const fieldsToResolve = new Set<string>();
+    if (query?.fields) {
+      for (const field of query.fields) {
+        fieldsToResolve.add(field);
+      }
+    }
+    if (query?.populate) {
+      for (const field of Object.keys(query.populate)) {
+        fieldsToResolve.add(field);
+      }
+    }
+
+    // If no query specified, return empty object
+    if (fieldsToResolve.size === 0) {
+      return result;
+    }
+
+    // Resolve each requested field in parallel
+    await Promise.all(
+      Array.from(fieldsToResolve).map(async (key) => {
+        const value = obj[key];
+        const fieldQuery = query?.populate?.[key];
+        result[key] = await this.resolve(value, fieldQuery);
+      })
+    );
+
+    return result;
+  }
 }
 
 /**
@@ -290,4 +366,17 @@ export function loadMany<T extends BaseType<unknown, unknown, unknown>>(
 ): Promise<InstanceResult<T>[]> {
   const exec = new Executor({});
   return exec.loadMany(instances, query);
+}
+
+/**
+ * Universal resolver for any value type.
+ * Handles: BaseType, Array<BaseType>, plain objects, scalars.
+ *
+ * @param value - Any value to resolve
+ * @param query - QueryArgs specifying which fields to resolve
+ * @returns Resolved value according to query
+ */
+export function resolve(value: unknown, query?: QueryArgs): Promise<unknown> {
+  const exec = new Executor({});
+  return exec.resolve(value, query);
 }
