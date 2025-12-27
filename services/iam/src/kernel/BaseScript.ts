@@ -122,15 +122,8 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   /**
    * Helper: get current locale
    */
-  protected getLocale(): string {
+  protected get locale(): string {
     return "en"; // Default locale
-  }
-
-  /**
-   * Helper: get current organization ID (from JWT)
-   */
-  protected getOrganizationId(): string | null {
-    return this.context.organizationId ?? null;
   }
 
   /**

@@ -22,13 +22,15 @@ export const organization = iamSchema.table(
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 128 }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
-  (table) => [
-    uniqueIndex("idx_organization_slug").on(table.slug),
-  ]
+  (table) => [uniqueIndex("idx_organization_slug").on(table.slug)]
 );
 
 export type Organization = typeof organization.$inferSelect;
@@ -48,8 +50,12 @@ export const organizationMember = iamSchema.table(
       .references(() => organization.id, { onDelete: "cascade" }),
     userId: varchar("user_id", { length: 128 }).notNull(),
     invitedBy: varchar("invited_by", { length: 128 }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_org_member_org").on(table.organizationId),
@@ -74,8 +80,12 @@ export const registeredResource = iamSchema.table(
     name: varchar("name", { length: 128 }).notNull(),
     displayName: varchar("display_name", { length: 256 }),
     actions: text("actions").notNull(), // JSON array of action names
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     uniqueIndex("idx_registered_resource_unique").on(table.service, table.name),
@@ -85,28 +95,6 @@ export const registeredResource = iamSchema.table(
 
 export type RegisteredResource = typeof registeredResource.$inferSelect;
 export type NewRegisteredResource = typeof registeredResource.$inferInsert;
-
-// ============================================================================
-// Tenant table (deprecated - kept for migration)
-// Will be replaced by Organization in new architecture
-// ============================================================================
-
-export const tenant = iamSchema.table(
-  "tenant",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    organizationId: uuid("organization_id")
-      .references(() => organization.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_tenant_org").on(table.organizationId),
-  ]
-);
-
-export type Tenant = typeof tenant.$inferSelect;
-export type NewTenant = typeof tenant.$inferInsert;
 
 // ============================================================================
 // Role table
@@ -120,24 +108,28 @@ export const role = iamSchema.table(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    // Keep tenantId for backward compatibility during migration
-    tenantId: uuid("tenant_id")
-      .references(() => tenant.id, { onDelete: "cascade" }),
     // Domain scope: "org" for organization-level, or "store:{id}" for store-level
     domain: varchar("domain", { length: 128 }).notNull(),
     name: varchar("name", { length: 64 }).notNull(),
     displayName: varchar("display_name", { length: 256 }),
     description: text("description"),
     isSystem: boolean("is_system").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_role_org").on(table.organizationId),
-    index("idx_role_tenant").on(table.tenantId),
     index("idx_role_domain").on(table.organizationId, table.domain),
     // Same role name can exist in different domains
-    uniqueIndex("idx_role_org_domain_name").on(table.organizationId, table.domain, table.name),
+    uniqueIndex("idx_role_org_domain_name").on(
+      table.organizationId,
+      table.domain,
+      table.name
+    ),
   ]
 );
 
@@ -156,9 +148,6 @@ export const userRole = iamSchema.table(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    // Keep tenantId for backward compatibility
-    tenantId: uuid("tenant_id")
-      .references(() => tenant.id, { onDelete: "cascade" }),
     userId: varchar("user_id", { length: 128 }).notNull(),
     roleId: uuid("role_id")
       .notNull()
@@ -166,15 +155,20 @@ export const userRole = iamSchema.table(
     // Domain scope: "org" for organization-level, or "store:{id}" for store-level
     domain: varchar("domain", { length: 256 }).notNull(),
     grantedBy: varchar("granted_by", { length: 128 }),
-    grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
+    grantedAt: timestamp("granted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_user_role_org_user").on(table.organizationId, table.userId),
-    index("idx_user_role_tenant_user").on(table.tenantId, table.userId),
     index("idx_user_role_user").on(table.userId),
     index("idx_user_role_domain").on(table.domain),
     // Unique constraint: one role per user per domain per organization
-    uniqueIndex("idx_user_role_unique").on(table.organizationId, table.userId, table.domain),
+    uniqueIndex("idx_user_role_unique").on(
+      table.organizationId,
+      table.userId,
+      table.domain
+    ),
   ]
 );
 
@@ -200,8 +194,9 @@ export const casbinRule = iamSchema.table(
     v4: varchar("v4", { length: 256 }),
     v5: varchar("v5", { length: 256 }),
     // Explicit organization_id column for efficient filtering
-    organizationId: uuid("organization_id")
-      .references(() => organization.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
   },
   (table) => [
     index("idx_casbin_rule_ptype").on(table.ptype),
@@ -227,9 +222,6 @@ export const roleHierarchy = iamSchema.table(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
-    // Keep tenantId for backward compatibility
-    tenantId: uuid("tenant_id")
-      .references(() => tenant.id, { onDelete: "cascade" }),
     parentRoleId: uuid("parent_role_id")
       .notNull()
       .references(() => role.id, { onDelete: "cascade" }),
