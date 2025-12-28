@@ -1,37 +1,27 @@
-// === Domains ===
-export { Domains, DomainSchema, OrgDomainSchema, StoreIdDomainSchema, StoreWildcardDomainSchema } from "./domains.js";
+export { RBAC } from "./definitions.js";
 
-// === Resources ===
-export { OrgResources, OrgResourceSchema, OrgPermissionSchema } from "./resources/org.js";
-export { StoreResources, StoreResourceSchema, StorePermissionSchema } from "./resources/store.js";
-export { StoreWildcardResources, StoreWildcardResourceSchema, StoreWildcardPermissionSchema } from "./resources/store-wildcard.js";
-
-// === Roles ===
-export { ORG_ROLES } from "./roles/org-roles.js";
-export { STORE_ROLES } from "./roles/store-roles.js";
-export { STORE_WILDCARD_ROLES } from "./roles/store-wildcard-roles.js";
-
-// === Schemas ===
 export {
+  // Domain schemas
+  OrgDomainSchema,
+  StoreWildcardDomainSchema,
+  StoreIdDomainSchema,
+  DomainSchema,
+  // Permission schemas
+  OrgPermissionSchema,
+  StorePermissionSchema,
+  StoreWildcardPermissionSchema,
+  // Role schemas
   OrgRoleSchema,
   StoreRoleSchema,
   StoreWildcardRoleSchema,
+  // Policy schema
   PolicySchema,
-  PermissionSchema,
-  type OrgRoleInput,
-  type StoreRoleInput,
-  type StoreWildcardRoleInput,
-  type PolicyInput,
-  type PermissionInput,
-} from "./schemas/index.js";
-
-// === Types ===
-export type {
-  Domain,
-  Resource,
-  Action,
-  Permission,
-  Role,
-  RoleDefinition,
-  Policy,
-} from "./types.js";
+  // Types
+  type OrgPermission,
+  type StorePermission,
+  type StoreWildcardPermission,
+  type OrgRole,
+  type StoreRole,
+  type StoreWildcardRole,
+  type Policy,
+} from "./schemas.js";
