@@ -13,9 +13,6 @@ import {
   GetStoreByIdScript,
   type GetStoreByIdParams,
   type GetStoreByIdResult,
-  GetResourcesScript,
-  type GetResourcesParams,
-  type GetResourcesResult,
 } from "./scripts/index.js";
 
 /**
@@ -49,13 +46,5 @@ export class ProjectBrokerActions extends BrokerActions {
   @Action("getStoreById")
   async getStoreById(params: GetStoreByIdParams): Promise<GetStoreByIdResult> {
     return this.kernel.runScript(GetStoreByIdScript, params);
-  }
-
-  /**
-   * Action: getResources - get service resources for IAM
-   */
-  @Action("getResources")
-  async getResources(params: GetResourcesParams): Promise<GetResourcesResult> {
-    return this.kernel.runScript(GetResourcesScript, params);
   }
 }

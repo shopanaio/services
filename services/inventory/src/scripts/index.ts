@@ -15,6 +15,3 @@ export * from './feature/index.js';
 
 // Warehouse scripts
 export * from './warehouse/index.js';
-
-// Resource discovery
-export * from './resources/index.js';

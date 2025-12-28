@@ -2,7 +2,6 @@ import { SubgraphReference } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { MemberResolver } from "./MemberResolver.js";
 import { RoleResolver } from "./RoleResolver.js";
-import type { ResourceDefinition } from "@shopana/shared-kernel";
 import type { Domain } from "../../casbin/CasbinService.js";
 
 export interface MembershipInput {
@@ -72,10 +71,5 @@ export class MembershipResolver extends IAMType<
           this.ctx
         )
     );
-  }
-
-  async availableResources(): Promise<ResourceDefinition[]> {
-    const { domain } = this.value;
-    return this.ctx.kernel.resourceAggregator.getResourcesForDomain(domain);
   }
 }
