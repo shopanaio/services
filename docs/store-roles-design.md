@@ -1,6 +1,65 @@
-# Store Role System (GitHub-like model)
+# RBAC System Specification
 
-## Comparison with GitHub
+## Overview
+
+Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https://casbin.org/) with multi-tenancy and domain-based isolation. The system provides granular access control at organization and store levels.
+
+---
+
+## Functional Requirements
+
+### FR-1: Multi-Organization Isolation
+- Each organization must have an isolated set of policies and roles
+- Policies from one organization must not affect other organizations
+- Enforcer instances are cached per-organization for performance
+
+### FR-2: Domain-Based Access Control
+- System must support two domain levels:
+  - `org` — organization level
+  - `store:{uuid}` — specific store level
+- Users can have different roles in different stores
+
+### FR-3: Resource-Action Model
+- Resources are grouped by domain (org.*, store.*)
+- Each resource has a set of allowed actions
+- Resource-action validation at type level and runtime
+
+### FR-4: Role Hierarchy
+- Organization roles: `admin`, `member`
+- Store roles: `viewer`, `manager`, `admin`
+- Organization Admin has full access to all stores in the organization
+
+### FR-5: Site Admin Bypass
+- Site administrators bypass all RBAC checks
+- Site admin check occurs before Casbin policy evaluation
+
+### FR-6: Wildcard Matching
+- Support wildcards in domains (`store:*` for all stores)
+- Support wildcards in resources via keyMatch
+
+---
+
+## Non-Functional Requirements
+
+### NFR-1: Performance
+- Enforcer instance caching per-organization
+- Batch enforce for checking multiple permissions in one call
+- Minimize DB queries through lazy loading
+
+### NFR-2: Type Safety
+- Compile-time validation of resource-action combinations
+- Zod-based runtime validation
+- TypeScript types for all public APIs
+
+### NFR-3: Extensibility
+- Easy addition of new resources and actions
+- Ability to add new roles without code changes
+
+---
+
+## Architecture
+
+### Comparison with GitHub Model
 
 | GitHub             | Shopana            |
 | ------------------ | ------------------ |
@@ -9,29 +68,7 @@
 | Organization Admin | Organization Admin |
 | Repository Admin   | Store Admin        |
 
-## Access Levels
-
-### 1. Organization (domain: `org`)
-
-Organization-wide roles:
-
-| Role     | Description                                                   |
-| -------- | ------------------------------------------------------------- |
-| `admin`  | Full control: all actions within the organization             |
-| `member` | Basic organization access, store access through explicit rights |
-
-**Organization admin has full access to all stores in the organization.**
-
-### 2. Store (domain: `store:{id}`)
-
-Store-level roles:
-
-| Role      | Description                     |
-| --------- | ------------------------------- |
-| `viewer`  | View store profile              |
-| `editor`  | View and edit profile           |
-| `manager` | Same as editor (extensible)     |
-| `admin`   | Full store management           |
+---
 
 ## Domains
 
@@ -42,17 +79,40 @@ domain: "store:{id}" → specific store (UUID)
 
 Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446655440000`)
 
+---
+
+## Access Levels
+
+### Organization (domain: `org`)
+
+| Role     | Description                                                     |
+| -------- | --------------------------------------------------------------- |
+| `admin`  | Full control: all actions within the organization               |
+| `member` | Basic organization access, store access through explicit grants |
+
+**Organization admin has full access to all stores in the organization.**
+
+### Store (domain: `store:{id}`)
+
+| Role      | Description             |
+| --------- | ----------------------- |
+| `viewer`  | View store profile      |
+| `manager` | View and edit profile   |
+| `admin`   | Full store management   |
+
+---
+
 ## Resources and Actions
 
 ### Organization Resources (prefix: `org.`)
 
-| Resource      | Actions                            | Description                 |
-| ------------- | ---------------------------------- | --------------------------- |
-| `org.profile` | read, update, delete               | Organization profile        |
-| `org.members` | read, invite, update, remove       | Organization members        |
-| `org.roles`   | read, create, update, delete       | Role management             |
-| `org.stores`  | create, read, list, update, delete | Store management            |
-| `org.access`  | read, grant, revoke                | Member access to stores     |
+| Resource      | Actions                            | Description             |
+| ------------- | ---------------------------------- | ----------------------- |
+| `org.profile` | read, update, delete               | Organization profile    |
+| `org.members` | read, invite, update, remove       | Organization members    |
+| `org.roles`   | read, create, update, delete       | Role management         |
+| `org.stores`  | create, read, list, update, delete | Store management        |
+| `org.access`  | read, grant, revoke                | Member access to stores |
 
 ### Store Resources (prefix: `store.`)
 
@@ -63,237 +123,7 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | `store.roles`   | read, create, update, delete | Role management in store    |
 | `store.access`  | read, grant, revoke          | Member permissions in store |
 
-## @shopana/rbac Package
-
-### Package Structure
-
-```
-packages/rbac/
-├── src/
-│   ├── index.ts        # Public API exports
-│   ├── definitions.ts  # Resources и Roles определения
-│   ├── types.ts        # TypeScript типы
-│   └── validators.ts   # Zod валидация
-└── package.json
-```
-
-### Public API
-
-```typescript
-// packages/rbac/src/index.ts
-
-// === Definitions ===
-export { Resources, Roles, RBAC } from "./definitions.js";
-
-// === Validation ===
-export { validateDomainPermissions } from "./validators.js";
-
-// === Types ===
-export type {
-  Domain,
-  OrgDomain,
-  StoreDomain,
-  OrgRoleName,
-  StoreRoleName,
-  Permission
-} from "./types.js";
-
-export type {
-  DomainPermissions,
-  ValidationResult
-} from "./validators.js";
-```
-
-### Resource Definitions
-
-```typescript
-// packages/rbac/src/definitions.ts
-
-export const Resources = {
-  org: {
-    "org.profile": {
-      actions: ["read", "update", "delete"],
-      description: "Organization profile",
-    },
-    "org.members": {
-      actions: ["read", "invite", "update", "remove"],
-      description: "Organization members",
-    },
-    "org.roles": {
-      actions: ["read", "create", "update", "delete"],
-      description: "Role management",
-    },
-    "org.stores": {
-      actions: ["create", "read", "list", "update", "delete"],
-      description: "Store management",
-    },
-    "org.access": {
-      actions: ["read", "grant", "revoke"],
-      description: "Member access to stores",
-    },
-  },
-  store: {
-    "store.profile": {
-      actions: ["read", "update", "delete"],
-      description: "Store profile",
-    },
-    "store.members": {
-      actions: ["read", "invite", "update", "remove"],
-      description: "Store members",
-    },
-    "store.roles": {
-      actions: ["read", "create", "update", "delete"],
-      description: "Role management",
-    },
-    "store.access": {
-      actions: ["read", "grant", "revoke"],
-      description: "Member permissions in store",
-    },
-  },
-} as const;
-```
-
-### Role Definitions
-
-```typescript
-// packages/rbac/src/definitions.ts
-
-export const Roles = {
-  organization: {
-    admin: [
-      // Org resources
-      { resource: "org.profile", actions: ["read", "update", "delete"] },
-      { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
-      { resource: "org.roles", actions: ["read", "create", "update", "delete"] },
-      { resource: "org.stores", actions: ["create", "read", "list", "update", "delete"] },
-      { resource: "org.access", actions: ["read", "grant", "revoke"] },
-      // Store resources (full access to all stores)
-      { resource: "store.profile", actions: ["read", "update", "delete"] },
-      { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
-      { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
-      { resource: "store.access", actions: ["read", "grant", "revoke"] },
-    ],
-    member: [
-      { resource: "org.profile", actions: ["read"] },
-      { resource: "org.members", actions: ["read"] },
-    ],
-  },
-  store: {
-    viewer: [
-      { resource: "store.profile", actions: ["read"] },
-    ],
-    editor: [
-      { resource: "store.profile", actions: ["read", "update"] },
-    ],
-    manager: [
-      { resource: "store.profile", actions: ["read", "update"] },
-    ],
-    admin: [
-      { resource: "store.profile", actions: ["read", "update"] },
-      { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
-      { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
-      { resource: "store.access", actions: ["read", "grant", "revoke"] },
-    ],
-  },
-} as const;
-```
-
-### Types
-
-```typescript
-// packages/rbac/src/types.ts
-
-// Domain types
-export type OrgDomain = "org";
-export type StoreDomain = `store:${string}`;
-export type Domain = OrgDomain | StoreDomain;
-
-// Role names
-export type OrgRoleName = "admin" | "member";
-export type StoreRoleName = "viewer" | "editor" | "manager" | "admin";
-
-// Generic permission (for runtime)
-export type Permission = {
-  resource: string;
-  actions: string[];
-};
-
-// Policy for access check
-export type Policy = {
-  subject: string;
-  domain: Domain;
-  resource: string;
-  action: string;
-};
-```
-
-### Zod Validation
-
-```typescript
-// packages/rbac/src/validators.ts
-
-import { z } from "zod";
-import { Resources } from "./definitions.js";
-
-// Build permission schemas dynamically from Resources
-const buildPermissionSchemas = <T extends Record<string, { actions: readonly string[] }>>(
-  resources: T
-) => {
-  return Object.entries(resources).map(([resource, { actions }]) =>
-    z.object({
-      resource: z.literal(resource),
-      actions: z.array(z.enum(actions as [string, ...string[]])).min(1),
-    })
-  );
-};
-
-const orgSchemas = buildPermissionSchemas(Resources.org);
-const storeSchemas = buildPermissionSchemas(Resources.store);
-
-const OrgPermissionSchema = z.discriminatedUnion("resource", orgSchemas as any);
-const StorePermissionSchema = z.discriminatedUnion("resource", storeSchemas as any);
-
-// Store domain format: store:<uuid>
-const StoreDomainSchema = z.string().regex(
-  /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-  { message: "Store domain must be in format 'store:<uuid>'" }
-);
-
-// Domain permissions schemas
-const OrgDomainPermissionsSchema = z.object({
-  domain: z.literal("org"),
-  permissions: z.array(OrgPermissionSchema).min(1),
-});
-
-const StoreDomainPermissionsSchema = z.object({
-  domain: StoreDomainSchema,
-  permissions: z.array(StorePermissionSchema).min(1),
-});
-
-const DomainPermissionsSchema = z.union([
-  OrgDomainPermissionsSchema,
-  StoreDomainPermissionsSchema,
-]);
-
-export type DomainPermissions = z.infer<typeof DomainPermissionsSchema>;
-
-export type ValidationResult<T> =
-  | { success: true; data: T }
-  | { success: false; errors: string[] };
-
-export function validateDomainPermissions(input: unknown): ValidationResult<DomainPermissions> {
-  const result = DomainPermissionsSchema.safeParse(input);
-
-  if (result.success) {
-    return { success: true, data: result.data };
-  }
-
-  return {
-    success: false,
-    errors: result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`),
-  };
-}
-```
+---
 
 ## Permission Matrix
 
@@ -308,23 +138,23 @@ export function validateDomainPermissions(input: unknown): ValidationResult<Doma
 | org.members (invite)   | ✓     | -      |
 | org.members (update)   | ✓     | -      |
 | org.members (remove)   | ✓     | -      |
-| org.roles (\*)         | ✓     | -      |
-| org.stores (\*)        | ✓     | -      |
-| org.access (\*)        | ✓     | -      |
+| org.roles (*)          | ✓     | -      |
+| org.stores (*)         | ✓     | -      |
+| org.access (*)         | ✓     | -      |
 
 ### Store Level (domain: `store:{id}`)
 
-| Resource                | viewer | editor | manager | admin |
-| ----------------------- | ------ | ------ | ------- | ----- |
-| store.profile (read)    | ✓      | ✓      | ✓       | ✓     |
-| store.profile (update)  | -      | ✓      | ✓       | ✓     |
-| store.members (\*)      | -      | -      | -       | ✓     |
-| store.roles (\*)        | -      | -      | -       | ✓     |
-| store.access (\*)       | -      | -      | -       | ✓     |
+| Resource                | viewer | manager | admin |
+| ----------------------- | ------ | ------- | ----- |
+| store.profile (read)    | ✓      | ✓       | ✓     |
+| store.profile (update)  | -      | ✓       | ✓     |
+| store.members (*)       | -      | -       | ✓     |
+| store.roles (*)         | -      | -       | ✓     |
+| store.access (*)        | -      | -       | ✓     |
 
-### Org Admin and Store Resources
+### Org Admin Store Access
 
-Org Admin has full access to **all** store resources in **all** stores of the organization:
+Org Admin has full access to **all** store resources in **all** stores:
 
 | Resource        | org.admin |
 | --------------- | --------- |
@@ -333,130 +163,151 @@ Org Admin has full access to **all** store resources in **all** stores of the or
 | store.roles     | ✓ (all)   |
 | store.access    | ✓ (all)   |
 
-## Usage Examples
+---
 
-### Permission Validation
+## System Components
 
-```typescript
-import { validateDomainPermissions } from "@shopana/rbac";
+### 1. @shopana/rbac Package
 
-// ✓ Valid org permissions
-validateDomainPermissions({
-  domain: "org",
-  permissions: [
-    { resource: "org.profile", actions: ["read", "update"] },
-    { resource: "org.members", actions: ["read", "invite"] },
-  ],
-});
+Central package with RBAC definitions:
 
-// ✓ Valid store permissions
-validateDomainPermissions({
-  domain: "store:550e8400-e29b-41d4-a716-446655440000",
-  permissions: [
-    { resource: "store.profile", actions: ["read", "update"] },
-  ],
-});
-
-// ✗ Error: invalid action
-validateDomainPermissions({
-  domain: "org",
-  permissions: [
-    { resource: "org.profile", actions: ["fly"] }, // Error: Invalid action
-  ],
-});
-
-// ✗ Error: invalid store domain format
-validateDomainPermissions({
-  domain: "store:invalid",  // Error: must be UUID
-  permissions: [
-    { resource: "store.profile", actions: ["read"] },
-  ],
-});
+```
+packages/rbac/src/
+├── index.ts        # Public API exports
+├── definitions.ts  # Resources and Roles definitions
+├── types.ts        # TypeScript types (Domain, Policy, etc.)
+├── auth.ts         # Authorization interfaces
+└── validators.ts   # Zod validation
 ```
 
-### Using Roles
+**Exports:**
+- `Resources` — resource definitions with actions
+- `Roles` — role definitions with permissions
+- `RolesMeta` — role metadata (displayName, description)
+- `validateDomainPermissions()` — Zod validation
+- `validateAuthorizeInput()` — authorize params validation
+- Types: `Domain`, `OrgDomain`, `StoreDomain`, `Permission`, `Policy`
+
+### 2. CasbinService
+
+Casbin enforcer management service:
+
+**Location:** `services/iam/src/casbin/CasbinService.ts`
+
+**Key methods:**
+
+| Method | Description |
+|--------|-------------|
+| `initialize()` | Initialize Drizzle adapter |
+| `getEnforcer(orgId)` | Get/create enforcer for organization |
+| `enforce(params)` | Check permission |
+| `batchEnforce(params)` | Batch permission check |
+| `assignRole(params)` | Assign role to user |
+| `removeRole(params)` | Remove role from user |
+| `addPolicy(params)` | Add policy rule |
+| `removePolicy(params)` | Remove policy rule |
+| `getMembers(params)` | Get domain members |
+
+### 3. AuthProvider
+
+Authorization interface for services:
 
 ```typescript
-import { Roles, Resources } from "@shopana/rbac";
-
-// Get permissions for a role
-const adminPermissions = Roles.organization.admin;
-const viewerPermissions = Roles.store.viewer;
-
-// Get actions for a resource
-const profileActions = Resources.org["org.profile"].actions;
-// → ["read", "update", "delete"]
-```
-
-### Type-safe Access Check
-
-```typescript
-import type { Domain, OrgRoleName, StoreRoleName } from "@shopana/rbac";
-
-function checkAccess(params: {
-  userId: string;
-  domain: Domain;
-  resource: string;
-  action: string;
-}): Promise<boolean> {
-  // ... implementation
+interface AuthProvider {
+  subject: string | null;  // Current user ID
+  authorize(params: AuthorizeParams): Promise<boolean>;
 }
 
-// Usage
-await checkAccess({
-  userId: "user-123",
-  domain: "org",
-  resource: "org.members",
-  action: "invite",
-});
-
-await checkAccess({
-  userId: "user-123",
-  domain: "store:550e8400-e29b-41d4-a716-446655440000",
-  resource: "store.profile",
-  action: "update",
-});
+interface AuthorizeParams {
+  resource: string;
+  action: string;
+  organizationId?: string;
+  organizationName?: string;
+  domain?: string;
+  subject?: string;
+}
 ```
 
-## Access Scenarios
+### 4. Policy Decorators
 
-### Scenario 1: Admin Invites a Member
-
-```
-1. Admin (org) invites user to organization
-2. User receives "member" role (org)
-3. Admin or Store Admin grants role in store
-4. User receives "editor" role (store:123)
-```
-
-### Scenario 2: Checking Store Access
+**@Policy** — for Scripts:
 
 ```typescript
-// Query: can user edit store profile?
-await checkAccess({
-  userId: "user-456",
-  domain: "store:550e8400-e29b-41d4-a716-446655440000",
+@Policy<ScriptParams>({
+  resource: "org.profile",
+  action: "read",
+  organizationId: (_, params) => params.organizationId,
+  domain?: Domain | ((target, params) => Domain),
+})
+```
+
+**@TypePolicy** — for Type Resolvers:
+
+```typescript
+@TypePolicy<StoreResolver>({
+  organizationId: (resolver) => resolver.value.organizationId,
+  domain: (resolver) => `store:${resolver.value.id}`,
   resource: "store.profile",
-  action: "update",
-});
-
-// Verification:
-// 1. Does user have a role in domain "store:{id}"?
-// 2. Does that role have "store.profile:update" permission?
-// OR
-// 3. Does user have org.admin role?
+  action: "read",
+  onDeny: "null"  // Return null instead of throwing
+})
 ```
 
-### Scenario 3: Org Admin Access to Stores
+---
+
+## Authorization Flow
 
 ```
-Org Admin automatically has full access to all stores in the organization.
-No need to explicitly assign roles in each store.
+┌─────────────────────────────────────────────────────────────────┐
+│                        Client Request                           │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   GraphQL Resolver / Script                     │
+│  @Policy decorator wraps execute()                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   AuthProvider.authorize()                      │
+│  1. Check if subject is authenticated                           │
+│  2. Check if subject is site admin (bypass)                     │
+│  3. Resolve organizationId from name if needed                  │
+│  4. Validate input against @shopana/rbac                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   IAM Service (via Broker)                      │
+│  broker.call("iam.authorize", {...})                            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   CasbinService.enforce()                       │
+│  1. Get/create enforcer for organization                        │
+│  2. Evaluate matcher                                            │
+│  3. Return boolean                                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Result: allowed/denied                      │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+### Domain Resolution Priority
+
+```typescript
+1. Explicit domain in params
+2. store:{storeId} if storeId available
+3. "org" as default
+```
+
+---
 
 ## Casbin Model
-
-> **Simplification:** `policy_effect` removed — only `allow` is used by default.
 
 ```conf
 [request_definition]
@@ -469,18 +320,266 @@ p = sub, dom, obj, act
 g = _, _, _
 
 [matchers]
-m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj == p.obj && r.act == p.act
+m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 ```
 
 ### Policy Examples
 
 ```
-# Organization role
-p, user:123, org, org.profile, read
-p, user:123, org, org.members, read
-p, user:123, org, org.members, invite
+# Organization role policies
+p, admin, org, org.profile, read
+p, admin, org, org.members, invite
+p, member, org, org.profile, read
 
-# Store role
-p, user:456, store:abc-uuid, store.profile, read
-p, user:456, store:abc-uuid, store.profile, update
+# Store role policies
+p, viewer, store:*, store.profile, read
+p, manager, store:*, store.profile, update
+p, admin, store:*, store.members, invite
+
+# Role assignments (groupings)
+g, user:123, admin, org
+g, user:456, viewer, store:abc-uuid
 ```
+
+---
+
+## Database Schema
+
+### casbin_rule Table
+
+```sql
+CREATE TABLE iam.casbin_rule (
+  id SERIAL PRIMARY KEY,
+  ptype VARCHAR(10),           -- 'p' for policies, 'g' for groupings
+  v0 VARCHAR(255),             -- role (policies) / user (groupings)
+  v1 VARCHAR(255),             -- domain
+  v2 VARCHAR(255),             -- resource (policies) / role (groupings)
+  v3 VARCHAR(255),             -- action (policies) / domain (groupings)
+  v4 VARCHAR(255),             -- organization_id
+  v5 VARCHAR(255),             -- unused
+  organization_id UUID         -- for filtering by organization
+);
+
+-- Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action
+-- Groupings (ptype='g'): v0=user, v1=role, v2=domain
+```
+
+### role Table
+
+```sql
+CREATE TABLE iam.role (
+  id UUID PRIMARY KEY,
+  organization_id UUID NOT NULL,
+  domain VARCHAR(255) NOT NULL,  -- 'org' or 'store:{uuid}'
+  name VARCHAR(50) NOT NULL,
+  display_name VARCHAR(100),
+  description TEXT,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP,
+
+  UNIQUE (organization_id, domain, name)
+);
+```
+
+### user_role Table
+
+```sql
+CREATE TABLE iam.user_role (
+  id UUID PRIMARY KEY,
+  organization_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  role_id UUID NOT NULL,
+  domain VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP,
+
+  UNIQUE (organization_id, user_id, domain)
+);
+```
+
+---
+
+## Store Creation Workflow
+
+```typescript
+// StoreCreateWorkflow.ts
+
+1. Create store in DB
+2. Call iam.createRoles with store domain roles
+3. Assign admin role to creator in store domain
+
+// Example:
+await broker.call("iam.createRoles", {
+  organizationId: org.id,
+  domain: `store:${store.id}`,
+  roles: [
+    {
+      name: "viewer",
+      displayName: "Viewer",
+      description: "Read-only access",
+      permissions: [{ resource: "store.profile", actions: ["read"] }]
+    },
+    {
+      name: "manager",
+      displayName: "Manager",
+      permissions: [{ resource: "store.profile", actions: ["read", "update"] }]
+    },
+    {
+      name: "admin",
+      displayName: "Administrator",
+      permissions: [
+        { resource: "store.profile", actions: ["read", "update"] },
+        { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
+        { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
+        { resource: "store.access", actions: ["read", "grant", "revoke"] }
+      ]
+    }
+  ]
+});
+
+await broker.call("iam.assignRole", {
+  organizationId: org.id,
+  userId: creator.id,
+  role: "admin",
+  domain: `store:${store.id}`
+});
+```
+
+---
+
+## Error Handling
+
+### AuthorizationError
+
+```typescript
+class AuthorizationError extends Error {
+  errors: Array<{ message: string; code: string }>;
+  resource: string;
+  action: string;
+  // Message: "Access denied: {resource}:{action}"
+}
+```
+
+### Script Error Handling
+
+```typescript
+protected handleError(error: unknown): TResult {
+  if (error instanceof AuthorizationError) {
+    return {
+      data: null,
+      userErrors: error.errors
+    };
+  }
+  throw error;
+}
+```
+
+---
+
+## Validation
+
+### Zod Validators
+
+```typescript
+// validateDomainPermissions
+validateDomainPermissions({
+  domain: "store:550e8400-e29b-41d4-a716-446655440000",
+  permissions: [
+    { resource: "store.profile", actions: ["read", "update"] }
+  ]
+});
+// ✓ Valid
+
+validateDomainPermissions({
+  domain: "org",
+  permissions: [
+    { resource: "store.profile", actions: ["read"] }  // ✗ Error
+  ]
+});
+// Error: store.* resources not allowed in org domain
+```
+
+### Type-Level Validation
+
+```typescript
+// Types automatically validate resource-action combinations
+@Policy({
+  resource: "org.profile",
+  action: "fly"  // ✗ TypeScript Error: invalid action for org.profile
+})
+```
+
+---
+
+## Extending the System
+
+### Adding a New Resource
+
+1. Add to `Resources` in `definitions.ts`:
+```typescript
+export const Resources = {
+  store: {
+    // ...existing
+    "store.products": {
+      actions: ["read", "create", "update", "delete"],
+      description: "Store products",
+    },
+  },
+};
+```
+
+2. Update roles in `Roles` if needed:
+```typescript
+export const Roles = {
+  store: {
+    manager: [
+      // ...existing
+      { resource: "store.products", actions: ["read", "create", "update"] },
+    ],
+  },
+};
+```
+
+3. Types update automatically through inference.
+
+### Adding a New Role
+
+1. Add to `Roles` and `RolesMeta`:
+```typescript
+export const Roles = {
+  store: {
+    // ...existing
+    product_manager: [
+      { resource: "store.products", actions: ["read", "create", "update", "delete"] },
+    ],
+  },
+};
+
+export const RolesMeta = {
+  store: {
+    product_manager: {
+      displayName: "Product Manager",
+      description: "Can manage store products",
+    },
+  },
+};
+```
+
+2. Update `StoreRoleName` type in `types.ts`:
+```typescript
+export type StoreRoleName = "viewer" | "manager" | "admin" | "product_manager";
+```
+
+---
+
+## Key Files Reference
+
+| Component | Path |
+|-----------|------|
+| RBAC Package | `packages/rbac/src/` |
+| CasbinService | `services/iam/src/casbin/CasbinService.ts` |
+| AuthProvider (IAM) | `services/iam/src/kernel/Authorizable.ts` |
+| AuthProvider (Project) | `services/project/src/kernel/Authorizable.ts` |
+| @Policy Decorator | `packages/shared-kernel/src/decorators/Authorize.ts` |
+| @TypePolicy Decorator | `packages/type-resolver/src/middleware/authorization/` |
+| Authorization Scripts | `services/iam/src/scripts/organization/` |
+| DB Models | `services/iam/src/repositories/models/authorization.ts` |
