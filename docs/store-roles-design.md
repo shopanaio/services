@@ -34,8 +34,17 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 - Site admin check occurs before Casbin policy evaluation
 
 ### FR-6: Wildcard Matching
-- Support wildcards in domains (`store:*` for all stores)
 - Support wildcards in resources via keyMatch
+
+### FR-7: System Role Protection
+- System roles (e.g., `owner`, `admin`, `member`) cannot be deleted
+- Users with the `owner` role cannot have their role changed to another role
+- Only custom roles created by users can be modified or deleted
+
+### FR-8: Self-Role Modification Restriction
+- Users cannot modify their own roles
+- Users cannot revoke their own access
+- Role changes must be performed by another user with appropriate permissions
 
 ---
 
@@ -331,10 +340,10 @@ p, admin, org, org.profile, read
 p, admin, org, org.members, invite
 p, member, org, org.profile, read
 
-# Store role policies
-p, viewer, store:*, store.profile, read
-p, manager, store:*, store.profile, update
-p, admin, store:*, store.members, invite
+# Store role policies (per-store)
+p, viewer, store:550e8400-e29b-41d4-a716-446655440000, store.profile, read
+p, manager, store:550e8400-e29b-41d4-a716-446655440000, store.profile, update
+p, admin, store:550e8400-e29b-41d4-a716-446655440000, store.members, invite
 
 # Role assignments (groupings)
 g, user:123, admin, org
