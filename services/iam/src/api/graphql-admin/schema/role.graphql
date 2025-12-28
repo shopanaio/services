@@ -13,8 +13,7 @@ type Role @key(fields: "id") {
   """
   Domain scope for this role.
   - "org" = organization-level role
-  - "store:uuid" = store-specific role
-  - "store:*" = all stores
+  - "store:{uuid}" = store-specific role
   """
   domain: String!
   """
@@ -101,8 +100,7 @@ input RoleCreateInput {
   """
   Domain scope for role.
   - "org" = organization-level role
-  - "store:uuid" = store-specific role
-  - "store:*" = all stores
+  - "store:{uuid}" = store-specific role
   """
   domain: String!
   """

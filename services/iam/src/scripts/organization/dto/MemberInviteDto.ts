@@ -9,8 +9,8 @@ export const roleAssignmentSchema = z.object({
     .string()
     .min(1, "Domain is required")
     .refine(
-      (d) => d === "org" || d === "store:*" || d.startsWith("store:"),
-      "Domain must be 'org', 'store:*', or 'store:{storeId}'"
+      (d) => d === "org" || /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(d),
+      "Domain must be 'org' or 'store:{uuid}'"
     ),
   role: z.string().min(1, "Role is required"),
 });

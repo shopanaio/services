@@ -119,8 +119,7 @@ export function validateAuthorizeInput(input: AuthorizeInput): ValidationResult<
 
   // Validate domain
   const isOrgDomain = domain === "org";
-  const isStoreDomain = /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(domain)
-    || domain === "store:*";
+  const isStoreDomain = /^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(domain);
 
   if (!isOrgDomain && !isStoreDomain) {
     errors.push(`Invalid domain "${domain}". Must be "org" or "store:<uuid>"`);

@@ -758,7 +758,7 @@ export type MemberRemovePayload = {
 
 /** Input for changing member's role. */
 export type MemberRoleChangeInput = {
-  /** Domain ("org" for organization, or "store:uuid", "store:*"). */
+  /** Domain ("org" for organization, or "store:{uuid}"). */
   domain: Scalars['String']['input'];
   /** Organization ID where the member belongs. */
   organizationId: Scalars['ID']['input'];
@@ -935,14 +935,6 @@ export type OrganizationUpdatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-/** Permission effect. */
-export enum PermissionEffect {
-  /** Allow the action. */
-  Allow = 'ALLOW',
-  /** Deny the action (takes priority over ALLOW). */
-  Deny = 'DENY'
-}
-
 export type Query = {
   __typename?: 'Query';
   /** Organization queries namespace. */
@@ -974,8 +966,7 @@ export type Role = {
   /**
    * Domain scope for this role.
    * - "org" = organization-level role
-   * - "store:uuid" = store-specific role
-   * - "store:*" = all stores
+   * - "store:{uuid}" = store-specific role
    */
   domain: Scalars['String']['output'];
   /** Unique identifier. */
@@ -992,7 +983,7 @@ export type Role = {
 
 /** Role assignment - assigns role to user in specific domain. */
 export type RoleAssignment = {
-  /** Domain ID ("org" for organization, or "store:uuid", "store:*"). */
+  /** Domain ID ("org" for organization, or "store:{uuid}"). */
   domain: Scalars['String']['input'];
   /** Role name. */
   role: Scalars['String']['input'];
@@ -1007,8 +998,7 @@ export type RoleCreateInput = {
   /**
    * Domain scope for role.
    * - "org" = organization-level role
-   * - "store:uuid" = store-specific role
-   * - "store:*" = all stores
+   * - "store:{uuid}" = store-specific role
    */
   domain: Scalars['String']['input'];
   /** Unique role name (slug). */
@@ -1083,30 +1073,17 @@ export type RoleMutationRoleUpdateArgs = {
 /** Role permission - access to resource with specific actions. */
 export type RolePermission = {
   __typename?: 'RolePermission';
-  /**
-   * Allowed actions (e.g.: create, read, update, delete).
-   * Supports wildcard: *.
-   */
+  /** Allowed actions (e.g.: create, read, update, delete). */
   actions: Array<Scalars['String']['output']>;
-  /**
-   * Effect: ALLOW or DENY.
-   * DENY takes priority over ALLOW.
-   */
-  effect: PermissionEffect;
-  /**
-   * Resource name (e.g.: product, order, project/settings).
-   * Supports wildcards: *, product/*, order/*.
-   */
+  /** Resource name (e.g.: org.profile, store.members). */
   resource: Scalars['String']['output'];
 };
 
 /** Input for role permission. */
 export type RolePermissionInput = {
-  /** Actions (create, read, update, delete, *). */
+  /** Actions (create, read, update, delete). */
   actions: Array<Scalars['String']['input']>;
-  /** Effect: ALLOW or DENY. */
-  effect: PermissionEffect;
-  /** Resource (product, order, *, product/*). */
+  /** Resource (e.g.: org.profile, store.members). */
   resource: Scalars['String']['input'];
 };
 
@@ -1459,7 +1436,6 @@ export type ResolversTypes = ResolversObject<{
   OrganizationQuery: ResolverTypeWrapper<OrganizationQuery>;
   OrganizationUpdateInput: OrganizationUpdateInput;
   OrganizationUpdatePayload: ResolverTypeWrapper<OrganizationUpdatePayload>;
-  PermissionEffect: PermissionEffect;
   Query: ResolverTypeWrapper<{}>;
   ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
   Role: ResolverTypeWrapper<Role>;
@@ -1742,7 +1718,6 @@ export type RoleMutationResolvers<ContextType = ServiceContext, ParentType exten
 
 export type RolePermissionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RolePermission'] = ResolversParentTypes['RolePermission']> = ResolversObject<{
   actions?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  effect?: Resolver<ResolversTypes['PermissionEffect'], ParentType, ContextType>;
   resource?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

@@ -28,7 +28,6 @@ import type { Database } from "../infrastructure/db/database.js";
  *
  * Grouping format: (user, role, domain)
  * - Assigns a user to a role within a specific domain
- * - Domain supports wildcard via keyMatch (e.g., "store:*" matches all stores)
  *
  * Features:
  * - keyMatch for wildcard matching in resources and domains
@@ -72,7 +71,6 @@ export type ScopeIdentifier = `${string}:${string}`;
  * @example
  * "org" - organization-level (constant, no ID needed)
  * "store:abc123" - specific store
- * "store:*" - all stores (wildcard for keyMatch)
  */
 export type Domain = "org" | ScopeIdentifier;
 
@@ -164,7 +162,6 @@ export interface GroupedPermission {
  * Domain format:
  * - "org" - organization-level resources (billing, members, settings)
  * - "store:{storeId}" - store-level resources (products, orders)
- * - "*" or "store:*" - wildcard for all domains/stores (uses keyMatch)
  *
  * DB Storage format (iam.casbin_rule):
  * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, organization_id
@@ -217,7 +214,7 @@ export class CasbinService {
     // Disable auto-save - we manage persistence via direct adapter calls
     enforcer.enableAutoSave(false);
 
-    // Enable domain pattern matching (e.g., "store:*" matches "store:123")
+    // Enable domain pattern matching for keyMatch in policies
     await enforcer.addNamedDomainMatchingFunc("g", Util.keyMatchFunc);
 
     // Load only policies for this organization
