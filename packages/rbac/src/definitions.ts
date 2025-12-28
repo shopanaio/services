@@ -4,7 +4,7 @@
 
 export const RBAC = {
   resources: {
-    // Organization resources (domain: "org")
+    // Organization resources
     org: {
       "org.profile": {
         actions: ["read", "update", "delete"],
@@ -18,16 +18,8 @@ export const RBAC = {
         actions: ["read", "create", "update", "delete"],
         description: "Role management",
       },
-      "store.profile": {
-        actions: ["list", "create", "delete"],
-        description: "Store management (list, create, delete stores)",
-      },
-      "store.access": {
-        actions: ["read", "grant", "revoke"],
-        description: "Access control for any store",
-      },
     },
-    // Store resources (domain: "store:{id}")
+    // Store resources
     store: {
       "store.profile": {
         actions: ["read", "update"],
@@ -48,11 +40,11 @@ export const RBAC = {
     // Org roles
     organization: {
       owner: [
-        { resource: "org.profile", actions: ["read", "update", "delete"] },
-        { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
-        { resource: "org.access", actions: ["read", "create", "update", "delete"] },
-        { resource: "store.profile", actions: ["list", "create", "delete"] },
-        { resource: "store.access", actions: ["read", "grant", "revoke"] },
+        { resource: "org.profile", actions: ["*"] },
+        { resource: "org.members", actions: ["*"] },
+        { resource: "org.access", actions: ["*"] },
+        { resource: "store.profile", actions: ["*"] },
+        { resource: "store.access", actions: ["*"] },
       ],
       admin: [
         { resource: "org.profile", actions: ["read", "update"] },
