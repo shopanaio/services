@@ -20,23 +20,22 @@ import type { Database } from "../infrastructure/db/database.js";
  * Request format: (sub, dom, obj, act)
  * - sub: subject (user ID, e.g., "user:uuid")
  * - dom: domain (required, format "prefix:id" or "prefix:*")
- * - obj: object (resource path, e.g., "product:456" or "warehouse:W1/product")
+ * - obj: object (resource path, e.g., "org.profile", "store.members")
  * - act: action (read, write, delete, create, etc.)
  *
- * Policy format: (sub, dom, obj, act, eft)
- * - eft: effect (allow or deny)
+ * Policy format: (sub, dom, obj, act)
+ * - No effect field - all policies are "allow" by default
  *
  * Grouping format: (user, role, domain)
  * - Assigns a user to a role within a specific domain
  * - Domain supports wildcard via keyMatch (e.g., "store:*" matches all stores)
  *
  * Features:
- * - keyMatch for wildcard matching in resources and domains (e.g., "store:*", "product/*")
+ * - keyMatch for wildcard matching in resources and domains
  * - Domain-scoped role assignments (user can be admin in one store, viewer in another)
- * - Deny rules override allow rules
  *
  * Database storage (iam.casbin_rule):
- * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, v5=orgId
+ * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=orgId
  * - Groupings (ptype='g'): v0=user, v1=role, v2=domain, v3=orgId
  */
 const CASBIN_MODEL_TEXT = `
@@ -44,16 +43,13 @@ const CASBIN_MODEL_TEXT = `
 r = sub, dom, obj, act
 
 [policy_definition]
-p = sub, dom, obj, act, eft
+p = sub, dom, obj, act
 
 [role_definition]
 g = _, _, _
 
-[policy_effect]
-e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
-
 [matchers]
-m = g(r.sub, p.sub, r.dom) && (p.dom == "*" || p.dom == r.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
+m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
 `.trim();
 
 // ============================================================================
@@ -75,11 +71,10 @@ export type ScopeIdentifier = `${string}:${string}`;
  *
  * @example
  * "org" - organization-level (constant, no ID needed)
- * "*" - all domains (wildcard)
  * "store:abc123" - specific store
- * "store:*" - all stores
+ * "store:*" - all stores (wildcard for keyMatch)
  */
-export type Domain = "org" | "*" | ScopeIdentifier;
+export type Domain = "org" | ScopeIdentifier;
 
 /**
  * Organization domain constant.
@@ -141,7 +136,6 @@ export interface AddPolicyParams {
   domain: Domain;
   resource: Resource;
   action: string;
-  effect?: "allow" | "deny";
 }
 
 export interface GetMembersParams {
@@ -149,12 +143,9 @@ export interface GetMembersParams {
   domain: Domain;
 }
 
-export type PermissionEffect = "ALLOW" | "DENY";
-
 export interface GroupedPermission {
   resource: string;
   actions: string[];
-  effect: PermissionEffect;
 }
 
 /**
@@ -165,9 +156,9 @@ export interface GroupedPermission {
  * - Policies are filtered by organizationId when loading from DB
  * - Domain is required and must use format "prefix:id" (e.g., "org:uuid", "store:uuid")
  *
- * Casbin Model (4 parameters):
+ * Casbin Model:
  * - Request: (sub, dom, obj, act) - subject, domain, object, action
- * - Policy: (sub, dom, obj, act, eft) - with effect
+ * - Policy: (sub, dom, obj, act) - all policies are "allow" by default
  * - Grouping: (user, role, domain) - user has role in domain
  *
  * Domain format:
@@ -176,7 +167,7 @@ export interface GroupedPermission {
  * - "*" or "store:*" - wildcard for all domains/stores (uses keyMatch)
  *
  * DB Storage format (iam.casbin_rule):
- * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=effect, organization_id
+ * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, organization_id
  * - Groupings (ptype='g'): v0=user, v1=role, v2=domain, organization_id
  */
 export class CasbinService {
@@ -256,8 +247,7 @@ export class CasbinService {
     await tempEnforcer.loadPolicy();
 
     // Get all rules from the model's internal storage
-    // New format with domain:
-    // Policy rules: ptype='p', format in DB: [role, domain, resource, action, effect, orgId]
+    // Policy rules: ptype='p', format in DB: [role, domain, resource, action, orgId]
     // Grouping rules: ptype='g', format in DB: [user, role, domain, orgId]
 
     const policyRules =
@@ -266,11 +256,11 @@ export class CasbinService {
       tempEnforcer.getModel().model.get("g")?.get("g")?.policy || [];
 
     // Filter and add policies for this organization
-    // DB format: [role, domain, resource, action, effect, orgId] - orgId at index 5
+    // DB format: [role, domain, resource, action, orgId] - orgId at index 4
     for (const rule of policyRules) {
-      if (rule[5] === organizationId) {
-        // Add to enforcer WITHOUT orgId (model has 5 elements: sub, dom, obj, act, eft)
-        await enforcer.addPolicy(rule[0], rule[1], rule[2], rule[3], rule[4]);
+      if (rule[4] === organizationId) {
+        // Add to enforcer WITHOUT orgId (model has 4 elements: sub, dom, obj, act)
+        await enforcer.addPolicy(rule[0], rule[1], rule[2], rule[3]);
       }
     }
 
@@ -420,14 +410,7 @@ export class CasbinService {
    * Add a policy rule.
    */
   async addPolicy(params: AddPolicyParams): Promise<boolean> {
-    const {
-      organizationId,
-      role,
-      domain,
-      resource,
-      action,
-      effect = "allow",
-    } = params;
+    const { organizationId, role, domain, resource, action } = params;
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -439,7 +422,6 @@ export class CasbinService {
         domain,
         resource,
         action,
-        effect,
         organizationId,
       ]);
     } catch (error: any) {
@@ -448,7 +430,7 @@ export class CasbinService {
     }
 
     const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.addPolicy(role, domain, resource, action, effect);
+    await enforcer.addPolicy(role, domain, resource, action);
     return true;
   }
 
@@ -456,14 +438,7 @@ export class CasbinService {
    * Remove a policy rule.
    */
   async removePolicy(params: AddPolicyParams): Promise<boolean> {
-    const {
-      organizationId,
-      role,
-      domain,
-      resource,
-      action,
-      effect = "allow",
-    } = params;
+    const { organizationId, role, domain, resource, action } = params;
 
     if (!this.adapter) {
       throw new Error("Adapter not initialized");
@@ -474,12 +449,11 @@ export class CasbinService {
       domain,
       resource,
       action,
-      effect,
       organizationId,
     ]);
 
     const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.removePolicy(role, domain, resource, action, effect);
+    await enforcer.removePolicy(role, domain, resource, action);
     return true;
   }
 
@@ -517,7 +491,7 @@ export class CasbinService {
 
   /**
    * Get policies for a specific role in organization.
-   * Policy format: [role, domain, resource, action, effect]
+   * Policy format: [role, domain, resource, action]
    */
   async getPoliciesForRole(
     organizationId: string,
@@ -531,7 +505,7 @@ export class CasbinService {
 
   /**
    * Get grouped policies for a role.
-   * Aggregates policies by (resource, effect) with actions as array.
+   * Aggregates policies by resource with actions as array.
    */
   async getGroupedPoliciesForRole(
     organizationId: string,
@@ -541,15 +515,12 @@ export class CasbinService {
 
     const map = new Map<string, GroupedPermission>();
 
-    for (const [, , resource, action, effect] of policies) {
-      const normalizedEffect = effect.toUpperCase() as PermissionEffect;
-      const key = `${resource}:${normalizedEffect}`;
-
-      const existing = map.get(key);
+    for (const [, , resource, action] of policies) {
+      const existing = map.get(resource);
       if (existing) {
         existing.actions.push(action);
       } else {
-        map.set(key, { resource, actions: [action], effect: normalizedEffect });
+        map.set(resource, { resource, actions: [action] });
       }
     }
 

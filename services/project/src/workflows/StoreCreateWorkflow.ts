@@ -17,12 +17,10 @@ function buildStoreRoles() {
       name: roleName,
       displayName: meta.displayName,
       description: meta.description,
-      permissions: {
-        allow: permissions.map((p) => ({
-          resource: p.resource,
-          actions: [...p.actions],
-        })),
-      },
+      permissions: permissions.map((p) => ({
+        resource: p.resource,
+        actions: [...p.actions],
+      })),
     };
   });
 }

@@ -53,34 +53,13 @@ Role permission - access to resource with specific actions.
 """
 type RolePermission {
   """
-  Resource name (e.g.: product, order, project/settings).
-  Supports wildcards: *, product/*, order/*.
+  Resource name (e.g.: org.profile, store.members).
   """
   resource: String!
   """
   Allowed actions (e.g.: create, read, update, delete).
-  Supports wildcard: *.
   """
   actions: [String!]!
-  """
-  Effect: ALLOW or DENY.
-  DENY takes priority over ALLOW.
-  """
-  effect: PermissionEffect!
-}
-
-"""
-Permission effect.
-"""
-enum PermissionEffect {
-  """
-  Allow the action.
-  """
-  ALLOW
-  """
-  Deny the action (takes priority over ALLOW).
-  """
-  DENY
 }
 
 """
@@ -149,17 +128,13 @@ Input for role permission.
 """
 input RolePermissionInput {
   """
-  Resource (product, order, *, product/*).
+  Resource (e.g.: org.profile, store.members).
   """
   resource: String!
   """
-  Actions (create, read, update, delete, *).
+  Actions (create, read, update, delete).
   """
   actions: [String!]!
-  """
-  Effect: ALLOW or DENY.
-  """
-  effect: PermissionEffect!
 }
 
 """

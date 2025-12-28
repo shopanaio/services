@@ -1,13 +1,9 @@
-import type { PermissionEffect } from './PermissionEffect.js';
-
 /**
  * RolePermission - a single permission entry for a role
  */
 export interface RolePermission {
-  /** Resource name (e.g., "product", "order", "*") */
+  /** Resource name (e.g., "org.profile", "store.members") */
   resource: string;
-  /** Actions (e.g., ["create", "read", "update", "delete"] or ["*"]) */
+  /** Actions (e.g., ["create", "read", "update", "delete"]) */
   actions: string[];
-  /** Permission effect */
-  effect: PermissionEffect;
 }

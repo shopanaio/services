@@ -67,33 +67,15 @@ export class CreateRolesScript extends BaseScript<
     domain: Domain,
     roleConfig: RoleConfig
   ): Promise<void> {
-    // Add allow policies
-    for (const rule of roleConfig.permissions.allow) {
-      for (const action of rule.actions) {
+    for (const permission of roleConfig.permissions) {
+      for (const action of permission.actions) {
         await this.repository.casbin.addPolicy({
           organizationId,
           role: roleConfig.name,
           domain,
-          resource: rule.resource as Resource,
+          resource: permission.resource as Resource,
           action,
-          effect: "allow",
         });
-      }
-    }
-
-    // Add deny policies if any
-    if (roleConfig.permissions.deny) {
-      for (const rule of roleConfig.permissions.deny) {
-        for (const action of rule.actions) {
-          await this.repository.casbin.addPolicy({
-            organizationId,
-            role: roleConfig.name,
-            domain,
-            resource: rule.resource as Resource,
-            action,
-            effect: "deny",
-          });
-        }
       }
     }
   }

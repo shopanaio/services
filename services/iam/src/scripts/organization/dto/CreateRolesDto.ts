@@ -2,23 +2,11 @@ import { z } from "zod";
 import type { Domain } from "../../../casbin/CasbinService.js";
 
 /**
- * Role permissions schema
+ * Permission schema
  */
-const rolePermissionsSchema = z.object({
-  allow: z.array(
-    z.object({
-      resource: z.string().min(1),
-      actions: z.array(z.string().min(1)).min(1),
-    })
-  ),
-  deny: z
-    .array(
-      z.object({
-        resource: z.string().min(1),
-        actions: z.array(z.string().min(1)).min(1),
-      })
-    )
-    .optional(),
+const permissionSchema = z.object({
+  resource: z.string().min(1),
+  actions: z.array(z.string().min(1)).min(1),
 });
 
 /**
@@ -28,7 +16,7 @@ const roleConfigSchema = z.object({
   name: z.string().min(1, "Role name is required"),
   displayName: z.string().min(1, "Display name is required"),
   description: z.string(),
-  permissions: rolePermissionsSchema,
+  permissions: z.array(permissionSchema).min(1, "At least one permission is required"),
 });
 
 /**
@@ -43,16 +31,16 @@ export const createRolesInputSchema = z.object({
 
 export type CreateRolesInput = z.infer<typeof createRolesInputSchema>;
 
-export interface RolePermissions {
-  allow: Array<{ resource: string; actions: string[] }>;
-  deny?: Array<{ resource: string; actions: string[] }>;
+export interface Permission {
+  resource: string;
+  actions: string[];
 }
 
 export interface RoleConfig {
   name: string;
   displayName: string;
   description: string;
-  permissions: RolePermissions;
+  permissions: Permission[];
 }
 
 export interface CreateRolesParams {

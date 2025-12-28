@@ -11,7 +11,6 @@ export type { OrganizationMember } from "./OrganizationMember.js";
 export type { Role } from "./Role.js";
 export type { UserRole } from "./UserRole.js";
 export type { RolePermission } from "./RolePermission.js";
-export type { PermissionEffect } from "./PermissionEffect.js";
 
 // Views
 export type { Member } from "./Member.js";

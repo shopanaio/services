@@ -25,7 +25,6 @@ interface RoleDeleteInput {
 interface PermissionInput {
   resource: string;
   action: string;
-  effect: "allow" | "deny";
 }
 
 /**

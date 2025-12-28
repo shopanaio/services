@@ -71,7 +71,6 @@ export class OrganizationCreateScript extends BaseScript<
             domain,
             resource: permission.resource,
             action,
-            effect: "allow",
           });
         }
       }
