@@ -69,11 +69,10 @@ export const RBAC = {
 
     // Store roles (domain: "store:{id}")
     store: {
-      viewer: [
-        { resource: "store.profile", actions: ["read"] },
-      ],
+      viewer: [{ resource: "store.profile", actions: ["read"] }],
       editor: [
         { resource: "store.profile", actions: ["read", "update"] },
+        { resource: "store.settings", actions: ["read"] },
       ],
       manager: [
         { resource: "store.profile", actions: ["read", "update"] },
