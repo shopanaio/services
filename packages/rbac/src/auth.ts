@@ -26,15 +26,17 @@ export interface AuthorizeParams {
   organizationId?: string;
   organizationName?: string;
   domain?: string;
-  userId?: string;
+  /** Subject (user ID) for authorization. */
+  subject?: string;
 }
 
 /**
  * Interface for authorization provider.
- * Contains userId and authorize method.
+ * Contains subject (current user) and authorize method.
  */
 export interface AuthProvider {
-  userId: string | null;
+  /** Current subject (user ID) for authorization checks. */
+  subject: string | null;
   authorize(params: AuthorizeParams): Promise<boolean>;
 }
 

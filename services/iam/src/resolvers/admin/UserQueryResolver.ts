@@ -40,7 +40,7 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
     }
 
     const allowed = await kernel.repository.casbin.enforce({
-      userId: currentUser.id,
+      subject: currentUser.id,
       organizationId: input.organizationId,
       domain: input.domain as Domain,
       resource: input.resource as Resource,

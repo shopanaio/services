@@ -55,8 +55,8 @@ export interface AuthorizeOptions<
    * Can be a string or a function that extracts it from instance/params.
    */
   domain?: Domain | ((self: TSelf, params: TParams) => Domain | string);
-  /** User ID for authorization. */
-  userId?: string | ((self: TSelf, params: TParams) => string);
+  /** Subject (user ID) for authorization. */
+  subject?: string | ((self: TSelf, params: TParams) => string);
 }
 
 type PolicyDecorator = <T>(
@@ -104,7 +104,7 @@ export function Policy<
       this: TSelf,
       params: TParams
     ): Promise<unknown> {
-      if (!this.authProvider.userId) {
+      if (!this.authProvider.subject) {
         throw new AuthorizationError(
           [
             {
@@ -133,10 +133,10 @@ export function Policy<
           ? options.domain(this, params)
           : options.domain;
 
-      const userId =
-        typeof options.userId === "function"
-          ? options.userId(this, params)
-          : options.userId;
+      const subject =
+        typeof options.subject === "function"
+          ? options.subject(this, params)
+          : options.subject;
 
       const allowed = await this.authProvider.authorize({
         resource: options.resource,
@@ -144,7 +144,7 @@ export function Policy<
         organizationId,
         organizationName,
         domain,
-        userId,
+        subject,
       });
 
       if (!allowed) {

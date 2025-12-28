@@ -25,10 +25,10 @@ export class AuthProvider implements IAuthProvider {
   }
 
   /**
-   * User ID for authorization checks.
-   * Uses override if provided, otherwise falls back to current user from context.
+   * Current subject (user ID) for authorization checks.
+   * Falls back to current user from context.
    */
-  get userId(): string | null {
+  get subject(): string | null {
     return getContext().currentUser?.id ?? null;
   }
 
@@ -41,13 +41,13 @@ export class AuthProvider implements IAuthProvider {
    * Validates domain, resource, and action against @shopana/rbac definitions.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
-    const userId = params.userId || this.userId;
-    if (!userId) {
+    const subject = params.subject || this.subject;
+    if (!subject) {
       return false;
     }
 
     // Check if user is site admin (bypasses all checks)
-    if (await this.services.repository.user.isAdmin(userId)) {
+    if (await this.services.repository.user.isAdmin(subject)) {
       return true;
     }
 
@@ -82,7 +82,7 @@ export class AuthProvider implements IAuthProvider {
     // Check permission using Casbin RBAC
     return this.services.repository.casbin.enforce({
       organizationId,
-      userId,
+      subject,
       domain: domain as Domain,
       resource: params.resource as Resource,
       action: params.action,

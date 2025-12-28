@@ -117,7 +117,7 @@ export function createDomain(prefix: string, value: string): Domain {
 export type Resource = string;
 export interface EnforceParams {
   organizationId: string;
-  userId: string;
+  subject: string;
   domain: Domain;
   resource: Resource;
   action: string;
@@ -326,12 +326,12 @@ export class CasbinService {
   // ============================================================================
 
   /**
-   * Check if user has permission for action on resource in domain.
+   * Check if subject has permission for action on resource in domain.
    */
   async enforce(params: EnforceParams): Promise<boolean> {
-    const { organizationId, userId, domain, resource, action } = params;
+    const { organizationId, subject, domain, resource, action } = params;
     const enforcer = await this.getEnforcer(organizationId);
-    return enforcer.enforce(`user:${userId}`, domain, resource, action);
+    return enforcer.enforce(`user:${subject}`, domain, resource, action);
   }
 
   /**
@@ -537,16 +537,16 @@ export class CasbinService {
 
   /**
    * Batch check permissions for multiple requests.
-   * More efficient than calling authorize() multiple times.
+   * More efficient than calling enforce() multiple times.
    *
    * @param organizationId - Organization to check in
-   * @param requests - Array of {userId, domain, resource, action}
+   * @param requests - Array of {subject, domain, resource, action}
    * @returns Array of boolean results in same order as requests
    */
-  async batchAuthorize(params: {
+  async batchEnforce(params: {
     organizationId: string;
     requests: Array<{
-      userId: string;
+      subject: string;
       domain: Domain;
       resource: Resource;
       action: string;
@@ -557,7 +557,7 @@ export class CasbinService {
 
     // Convert to Casbin batch format: [[sub, dom, obj, act], ...]
     const casbinRequests = requests.map((req) => [
-      `user:${req.userId}`,
+      `user:${req.subject}`,
       req.domain,
       req.resource,
       req.action,

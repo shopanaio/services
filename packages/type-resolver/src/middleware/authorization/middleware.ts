@@ -95,18 +95,18 @@ export function createAuthorizationMiddleware<TContext = unknown>(
           ? policy.domain(instance)
           : policy.domain;
 
-      // Resolve userId (can be a function, defaults to current user via authProvider)
-      const userId =
-        typeof policy.userId === "function"
-          ? policy.userId(instance)
-          : policy.userId;
+      // Resolve subject (can be a function, defaults to current user via authProvider)
+      const subject =
+        typeof policy.subject === "function"
+          ? policy.subject(instance)
+          : policy.subject;
 
       const allowed = await instance.authProvider.authorize({
         resource: policy.resource,
         action: policy.action,
         organizationId,
         domain,
-        userId: userId ?? undefined,
+        subject: subject ?? undefined,
       });
 
       if (!allowed) {

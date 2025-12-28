@@ -39,7 +39,7 @@ export class AssignRoleScript extends BaseScript<
       userId,
       roleId: role.id,
       domain,
-      grantedBy: this.userId ?? userId,
+      grantedBy: this.context.currentUser!.id,
     });
 
     // Assign role in Casbin

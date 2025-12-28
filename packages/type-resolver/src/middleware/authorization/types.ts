@@ -32,8 +32,8 @@ export interface TypePolicyOptions<TSelf = unknown, R extends ResourceName = Res
    * Can be a string or a function that extracts it from resolver instance.
    */
   domain?: Domain | ((self: TSelf) => Domain | string);
-  /** User ID for authorization. */
-  userId?: string | ((self: TSelf) => string | null);
+  /** Subject (user ID) for authorization. */
+  subject?: string | ((self: TSelf) => string | null);
   /** Behavior when authorization fails: 'throw' (default) or 'null' */
   onDeny?: "throw" | "null";
 }
