@@ -6660,6 +6660,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/rbac@workspace:packages/rbac":
+  version: 0.0.0-use.local
+  resolution: "@shopana/rbac@workspace:packages/rbac"
+  dependencies:
+    "@types/jest": "npm:^30.0.0"
+    "@types/node": "npm:^20.12.7"
+    jest: "npm:^30.1.3"
+    ts-jest: "npm:^29.4.6"
+    typescript: "npm:^5.4.5"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/services@workspace:.":
   version: 0.0.0-use.local
   resolution: "@shopana/services@workspace:."
