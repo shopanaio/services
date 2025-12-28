@@ -48,72 +48,67 @@ export const Resources = {
   },
 } as const;
 
-// ============ Inline types for permission helper ============
-
-type OrgResources = typeof Resources.org;
-type StoreResources = typeof Resources.store;
+// ============ Types for validation ============
 
 type ResourceActionMap = {
-  [K in keyof OrgResources]: OrgResources[K]["actions"][number];
+  [K in keyof typeof Resources.org]: (typeof Resources.org)[K]["actions"][number];
 } & {
-  [K in keyof StoreResources]: StoreResources[K]["actions"][number];
+  [K in keyof typeof Resources.store]: (typeof Resources.store)[K]["actions"][number];
 };
 
-type ResourceKey = keyof ResourceActionMap;
+// Union type of all valid permissions (validates resource + actions match)
+type ValidPermission = {
+  [K in keyof ResourceActionMap]: {
+    resource: K;
+    actions: ("*" | ResourceActionMap[K])[];
+  };
+}[keyof ResourceActionMap];
 
-type Permission<R extends ResourceKey> = {
-  resource: R;
-  actions: ("*" | ResourceActionMap[R])[];
+type RoleDefinitions = {
+  organization: Record<string, ValidPermission[]>;
+  store: Record<string, ValidPermission[]>;
 };
-
-// Helper to create typed permission (validates actions at compile time)
-function permission<R extends ResourceKey>(
-  resource: R,
-  actions: ("*" | ResourceActionMap[R])[]
-): Permission<R> {
-  return { resource, actions };
-}
 
 // ============ Role definitions ============
 
 export const Roles = {
   organization: {
     owner: [
-      permission(R.org.profile, ["*"]),
-      permission(R.org.members, ["*"]),
-      permission(R.org.access, ["*"]),
-      permission(R.store.profile, ["*"]),
-      permission(R.store.access, ["*"]),
+      { resource: R.org.profile, actions: ["*"] },
+      { resource: R.org.members, actions: ["*"] },
+      { resource: R.org.access, actions: ["*"] },
+      { resource: R.store.profile, actions: ["*"] },
+      { resource: R.store.access, actions: ["*"] },
     ],
     admin: [
-      permission(R.org.profile, ["read", "update"]),
-      permission(R.org.members, ["read", "invite", "update", "remove"]),
-      permission(R.org.access, ["read", "create", "update", "delete"]),
-      permission(R.store.profile, ["read", "update"]),
-      permission(R.store.access, ["read", "grant", "revoke"]),
+      { resource: R.org.profile, actions: ["read", "update"] },
+      { resource: R.org.members, actions: ["read", "invite", "update", "remove"] },
+      { resource: R.org.access, actions: ["read", "create", "update", "delete"] },
+      { resource: R.store.profile, actions: ["read", "update"] },
+      { resource: R.store.access, actions: ["read", "grant", "revoke"] },
     ],
     member: [
-      permission(R.org.profile, ["read"]),
-      permission(R.org.members, ["read"]),
+      { resource: R.org.profile, actions: ["read"] },
+      { resource: R.org.members, actions: ["read"] },
     ],
   },
   store: {
-    viewer: [permission(R.store.profile, ["read"])],
+    viewer: [{ resource: R.store.profile, actions: ["read"] }],
     editor: [
-      permission(R.store.profile, ["read", "update"]),
-      permission(R.store.settings, ["read"]),
+      { resource: R.store.profile, actions: ["read", "update"] },
+      { resource: R.store.settings, actions: ["read"] },
     ],
     manager: [
-      permission(R.store.profile, ["read", "update"]),
-      permission(R.store.settings, ["read", "update"]),
+      { resource: R.store.profile, actions: ["read", "update"] },
+      { resource: R.store.settings, actions: ["read", "update"] },
     ],
     admin: [
-      permission(R.store.profile, ["read", "update"]),
-      permission(R.store.settings, ["read", "update"]),
-      permission(R.store.access, ["read", "grant", "revoke"]),
+      { resource: R.store.profile, actions: ["read", "update"] },
+      { resource: R.store.settings, actions: ["read", "update"] },
+      { resource: R.store.access, actions: ["read", "grant", "revoke"] },
     ],
   },
-} as const;
+} as const satisfies RoleDefinitions;
 
 // Combined export
 export const RBAC = {
