@@ -199,6 +199,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         input: {
           id: owner.storeAId,
+          organizationId: owner.organizationId,
           displayName: 'Hacked by Viewer',
         },
       },
@@ -233,6 +234,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         input: {
           id: owner.storeBId,
+          organizationId: owner.organizationId,
           displayName: 'Hacked Store B',
         },
       },
@@ -286,6 +288,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         input: {
           id: owner.storeBId,
+          organizationId: owner.organizationId,
           displayName: 'Store B Updated',
         },
       },
