@@ -28,6 +28,15 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 - Organization roles: `admin`, `member`
 - Store roles: `viewer`, `manager`, `admin`
 - Organization Admin has full access to all stores in the organization
+- Roles do NOT inherit permissions — each role has explicit permission set
+
+### FR-4.1: Owner (Creator) Concept
+- Owner is NOT a role, but an attribute (creator) of organization or store
+- Each organization has exactly one owner (the user who created it)
+- Each store has exactly one owner (the user who created it)
+- Owner always has `admin` role and cannot be demoted
+- Owner can transfer ownership to another `admin`
+- Owner has exclusive rights: delete organization/store, transfer ownership
 
 ### FR-5: Site Admin Bypass
 - Site administrators bypass all RBAC checks
@@ -37,14 +46,43 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 - Support wildcards in resources via keyMatch
 
 ### FR-7: System Role Protection
-- System roles (e.g., `owner`, `admin`, `member`) cannot be deleted
-- Users with the `owner` role cannot have their role changed to another role
+- System roles (`admin`, `member`, `viewer`, `manager`) cannot be deleted
+- Owner (creator) cannot have their `admin` role revoked
 - Only custom roles created by users can be modified or deleted
 
 ### FR-8: Self-Role Modification Restriction
 - Users cannot modify their own roles
 - Users cannot revoke their own access
 - Role changes must be performed by another user with appropriate permissions
+
+### FR-9: Custom Roles
+- Users with `admin` role can create custom roles within their domain
+- Custom roles are marked with `isSystem: false` flag
+- Custom role permissions cannot exceed creator's permissions
+- Custom roles can be modified or deleted (unlike system roles)
+- Limit: maximum 20 custom roles per domain
+
+### FR-10: Invitation Workflow
+- Invitations have states: `pending`, `accepted`, `expired`, `revoked`
+- Invitation expiration: 7 days by default
+- One active invitation per email per domain
+- Accepting invitation automatically assigns specified role
+
+### FR-11: Audit Logging
+- All role assignments and revocations must be logged
+- Log entries include: actor, target user, role, domain, timestamp, action
+- Audit logs are immutable and retained for compliance
+
+### FR-12: Last Admin Protection
+- Cannot remove the last `admin` from organization
+- Cannot remove the last `admin` from store
+- Cannot demote the last `admin` to a lower role
+
+### FR-13: Soft Delete
+- Organizations and stores are never hard deleted
+- Soft delete (archive) preserves all data and role assignments
+- Archived entities can be restored by owner
+- Users lose access to archived stores but roles are preserved
 
 ---
 
@@ -63,6 +101,17 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 ### NFR-3: Extensibility
 - Easy addition of new resources and actions
 - Ability to add new roles without code changes
+
+### NFR-4: Cache Invalidation
+- Policy cache invalidates on role assignment/revocation
+- Cache invalidates on policy addition/removal
+- Cross-instance invalidation via pub/sub mechanism
+- Maximum cache staleness: 5 seconds
+
+### NFR-5: Security
+- Rate limiting on permission checks to prevent enumeration attacks
+- All authorization decisions logged for security audit
+- Principle of least privilege: deny by default
 
 ---
 
@@ -99,7 +148,9 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | `admin`  | Full control: all actions within the organization               |
 | `member` | Basic organization access, store access through explicit grants |
 
-**Organization admin has full access to all stores in the organization.**
+**Note:** Organization admin has full access to all stores in the organization.
+
+**Owner:** The user who created the organization. Owner always has `admin` role and has exclusive rights to delete the organization and transfer ownership.
 
 ### Store (domain: `store:{id}`)
 
@@ -109,19 +160,22 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | `manager` | View and edit profile   |
 | `admin`   | Full store management   |
 
+**Owner:** The user who created the store. Owner always has `admin` role in the store and has exclusive right to delete the store.
+
 ---
 
 ## Resources and Actions
 
 ### Organization Resources (prefix: `org.`)
 
-| Resource      | Actions                            | Description             |
-| ------------- | ---------------------------------- | ----------------------- |
-| `org.profile` | read, update, delete               | Organization profile    |
-| `org.members` | read, invite, update, remove       | Organization members    |
-| `org.roles`   | read, create, update, delete       | Role management         |
-| `org.stores`  | create, read, list, update, delete | Store management        |
-| `org.access`  | read, grant, revoke                | Member access to stores |
+| Resource      | Actions                            | Description              |
+| ------------- | ---------------------------------- | ------------------------ |
+| `org.profile` | read, update, delete               | Organization profile     |
+| `org.members` | read, invite, update, remove       | Organization members     |
+| `org.roles`   | read, create, update, delete       | Role management          |
+| `org.stores`  | create, read, list, update, delete | Store management         |
+| `org.access`  | read, grant, revoke                | Member access to stores  |
+| `org.owner`   | transfer                           | Ownership transfer       |
 
 ### Store Resources (prefix: `store.`)
 
@@ -142,7 +196,7 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | ---------------------- | ----- | ------ |
 | org.profile (read)     | ✓     | ✓      |
 | org.profile (update)   | ✓     | -      |
-| org.profile (delete)   | ✓     | -      |
+| org.profile (delete)   | ✓*    | -      |
 | org.members (read)     | ✓     | ✓      |
 | org.members (invite)   | ✓     | -      |
 | org.members (update)   | ✓     | -      |
@@ -150,6 +204,9 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | org.roles (*)          | ✓     | -      |
 | org.stores (*)         | ✓     | -      |
 | org.access (*)         | ✓     | -      |
+| org.owner (transfer)   | ✓*    | -      |
+
+*Owner-only actions: Only the organization owner (creator) can delete the organization or transfer ownership, even though they have `admin` role.
 
 ### Store Level (domain: `store:{id}`)
 
@@ -157,13 +214,18 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | ----------------------- | ------ | ------- | ----- |
 | store.profile (read)    | ✓      | ✓       | ✓     |
 | store.profile (update)  | -      | ✓       | ✓     |
+| store.profile (delete)  | -      | -       | ✓*    |
 | store.members (*)       | -      | -       | ✓     |
 | store.roles (*)         | -      | -       | ✓     |
 | store.access (*)        | -      | -       | ✓     |
 
+*Owner-only: Only the store owner (creator) can delete the store.
+
+**Note:** Store deletion also requires `org.stores (delete)` permission at organization level.
+
 ### Org Admin Store Access
 
-Org Admin has full access to **all** store resources in **all** stores:
+Organization `admin` has full access to **all** store resources in **all** stores:
 
 | Resource        | org.admin |
 | --------------- | --------- |
@@ -172,3 +234,95 @@ Org Admin has full access to **all** store resources in **all** stores:
 | store.roles     | ✓ (all)   |
 | store.access    | ✓ (all)   |
 
+---
+
+## Default Role Assignment
+
+### On Store Creation
+
+| Creator's Org Role | Assigned Store Role |
+| ------------------ | ------------------- |
+| `admin`            | `admin`             |
+| `member`           | `admin`             |
+
+- Store creator becomes store `admin` and is marked as store **owner**
+- Owner attribute is stored separately from role (e.g., `created_by` field)
+
+### On Organization Creation
+
+- Creator receives `admin` role and is marked as organization **owner**
+- Only one owner per organization (stored as `owner_id` or `created_by`)
+- Ownership can be transferred to another user with `admin` role
+
+### On Invitation Accept
+
+- User receives the role specified in the invitation
+- Default invitation role: `member` (org) or `viewer` (store)
+
+---
+
+## Invitation Lifecycle
+
+### States
+
+```
+┌─────────┐    accept    ┌──────────┐
+│ pending │─────────────▶│ accepted │
+└─────────┘              └──────────┘
+     │
+     │ revoke / expire
+     ▼
+┌─────────┐
+│ expired │
+└─────────┘
+```
+
+| State      | Description                                    |
+| ---------- | ---------------------------------------------- |
+| `pending`  | Invitation sent, waiting for user action       |
+| `accepted` | User accepted, role assigned                   |
+| `expired`  | TTL exceeded (7 days) or manually revoked      |
+
+### Constraints
+
+- One active (pending) invitation per email per domain
+- Re-inviting expired invitation creates new invitation
+- Cannot invite existing organization/store member
+
+---
+
+## Role Transition Rules
+
+### Organization Level
+
+| From       | To         | Allowed By   |
+| ---------- | ---------- | ------------ |
+| `member`   | `admin`    | `admin`      |
+| `admin`    | `member`   | `admin`*     |
+
+### Store Level
+
+| From       | To         | Allowed By     |
+| ---------- | ---------- | -------------- |
+| `viewer`   | `manager`  | store `admin`  |
+| `viewer`   | `admin`    | store `admin`  |
+| `manager`  | `viewer`   | store `admin`  |
+| `manager`  | `admin`    | store `admin`  |
+| `admin`    | `manager`  | store `admin`* |
+| `admin`    | `viewer`   | store `admin`* |
+
+*Cannot demote last admin or owner (see FR-13)
+
+### Forbidden Transitions
+
+| Transition                    | Reason                              |
+| ----------------------------- | ----------------------------------- |
+| owner's `admin` → any         | Owner cannot be demoted             |
+| self → any                    | Cannot modify own role              |
+| last `admin` → lower          | Must have at least one admin        |
+
+### Ownership Transfer
+
+- Only current owner can transfer ownership
+- Target user must have `admin` role
+- After transfer, previous owner retains `admin` role
