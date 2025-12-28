@@ -13,23 +13,27 @@ export const Resources = {
       actions: ["read", "invite", "update", "remove"],
       description: "Organization members",
     },
-    "org.access": {
+    "org.roles": {
       actions: ["read", "create", "update", "delete"],
       description: "Role management",
+    },
+    "org.stores": {
+      actions: ["create", "read", "list", "update", "delete"],
+      description: "Store profile",
     },
   },
   store: {
     "store.profile": {
-      actions: ["read", "update"],
-      description: "Store profile",
+      actions: ["read", "update", "delete"],
+      description: "Store members",
     },
-    "store.settings": {
-      actions: ["read", "update"],
-      description: "Store configuration",
+    "store.members": {
+      actions: ["read", "invite", "update", "remove"],
+      description: "Store members",
     },
-    "store.access": {
-      actions: ["read", "grant", "revoke"],
-      description: "Access control",
+    "store.roles": {
+      actions: ["read", "create", "update", "delete"],
+      description: "Role management",
     },
   },
 } as const;
@@ -46,11 +50,11 @@ type ResourceActionMap = {
 type ValidPermission = {
   [K in keyof ResourceActionMap]: {
     resource: K;
-    actions: ("*" | ResourceActionMap[K])[];
+    actions: ResourceActionMap[K][];
   };
 }[keyof ResourceActionMap];
 
-type RoleDefinitions = {
+export type RoleDefinitions = {
   organization: Record<string, ValidPermission[]>;
   store: Record<string, ValidPermission[]>;
 };
@@ -60,18 +64,20 @@ type RoleDefinitions = {
 export const Roles = {
   organization: {
     owner: [
-      { resource: "org.profile", actions: ["*"] },
-      { resource: "org.members", actions: ["*"] },
-      { resource: "org.access", actions: ["*"] },
-      { resource: "store.profile", actions: ["*"] },
-      { resource: "store.access", actions: ["*"] },
+      { resource: "org.profile", actions: ["read", "update", "delete"] },
+      { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
+      { resource: "org.roles", actions: ["read", "create", "update", "delete"] },
+      { resource: "store.profile", actions: ["read", "update"] },
+      { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
+      { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
     ],
     admin: [
       { resource: "org.profile", actions: ["read", "update"] },
       { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
-      { resource: "org.access", actions: ["read", "create", "update", "delete"] },
+      { resource: "org.roles", actions: ["read", "create", "update", "delete"] },
       { resource: "store.profile", actions: ["read", "update"] },
-      { resource: "store.access", actions: ["read", "grant", "revoke"] },
+      { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
+      { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
     ],
     member: [
       { resource: "org.profile", actions: ["read"] },
@@ -80,18 +86,12 @@ export const Roles = {
   },
   store: {
     viewer: [{ resource: "store.profile", actions: ["read"] }],
-    editor: [
-      { resource: "store.profile", actions: ["read", "update"] },
-      { resource: "store.settings", actions: ["read"] },
-    ],
-    manager: [
-      { resource: "store.profile", actions: ["read", "update"] },
-      { resource: "store.settings", actions: ["read", "update"] },
-    ],
+    editor: [{ resource: "store.profile", actions: ["read", "update"] }],
+    manager: [{ resource: "store.profile", actions: ["read", "update"] }],
     admin: [
       { resource: "store.profile", actions: ["read", "update"] },
-      { resource: "store.settings", actions: ["read", "update"] },
-      { resource: "store.access", actions: ["read", "grant", "revoke"] },
+      { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
+      { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
     ],
   },
 } as const satisfies RoleDefinitions;
