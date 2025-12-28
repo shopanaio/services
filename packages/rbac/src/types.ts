@@ -8,8 +8,8 @@ export type StoreDomain = `store:${string}`;
 export type Domain = OrgDomain | StoreDomain;
 
 // Role names
-export type OrgRoleName = "owner" | "admin" | "member";
-export type StoreRoleName = "viewer" | "editor" | "manager" | "admin";
+export type OrgRoleName = "admin" | "member";
+export type StoreRoleName = "viewer" | "manager" | "admin";
 
 // Generic permission (for runtime)
 export type Permission = {

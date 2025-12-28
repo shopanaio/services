@@ -89,7 +89,6 @@ export const Roles = {
   },
   store: {
     viewer: [{ resource: "store.profile", actions: ["read"] }],
-    editor: [{ resource: "store.profile", actions: ["read", "update"] }],
     manager: [{ resource: "store.profile", actions: ["read", "update"] }],
     admin: [
       { resource: "store.profile", actions: ["read", "update"] },
@@ -122,10 +121,6 @@ export const RolesMeta = {
     viewer: {
       displayName: "Viewer",
       description: "Read-only access to store",
-    },
-    editor: {
-      displayName: "Editor",
-      description: "Can view and edit store content",
     },
     manager: {
       displayName: "Manager",
