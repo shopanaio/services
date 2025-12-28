@@ -167,18 +167,53 @@ test.describe('Store-Level Domain Isolation', () => {
 
     // User CAN access Store A
     api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
-    const { data: storeAData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
+    const { data: storeAData } = await api.admin.query('project-api/Project', {});
     expect(storeAData.storeQuery.currentStore).not.toBeNull();
     expect(storeAData.storeQuery.currentStore?.id).toBe(owner.storeAId);
 
     // User CANNOT access Store B
     api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
-    const { data: storeBData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
+    const { data: storeBData } = await api.admin.query('project-api/Project', {});
     expect(storeBData.storeQuery.currentStore).toBeNull();
+  });
+
+  test('Viewer role can read but cannot modify store', async ({ api }) => {
+    // Invite user with viewer role in Store A
+    const user = await inviteUserWithRoles(api, [
+      { domain: `store:${owner.storeAId}`, role: 'viewer' },
+    ]);
+
+    // Switch to invited user
+    api.session.tenant.accessToken = user.accessToken;
+    api.session.tenant.userId = user.userId;
+    api.session.organizationId = owner.organizationId;
+    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
+
+    // Viewer CAN read store data
+    const { data: readData } = await api.admin.query('project-api/Project', {});
+    expect(readData.storeQuery.currentStore).not.toBeNull();
+    expect(readData.storeQuery.currentStore?.id).toBe(owner.storeAId);
+
+    // Viewer CANNOT update store
+    const { data: updateData } = await api.admin.mutation('project-api/ProjectUpdate', {
+      variables: {
+        input: {
+          id: owner.storeAId,
+          displayName: 'Hacked by Viewer',
+        },
+      },
+    });
+
+    const updateResult = updateData.storeMutation.storeUpdate;
+    const updateFailed = updateResult.store === null || updateResult.userErrors.length > 0;
+    expect(updateFailed).toBe(true);
+
+    // Verify store was not modified
+    api.session.tenant.accessToken = owner.accessToken;
+    api.session.tenant.userId = owner.userId;
+
+    const { data: verifyData } = await api.admin.query('project-api/Project', {});
+    expect(verifyData.storeQuery.currentStore?.displayName).toBe('Store A');
   });
 
   test('User with store-A role cannot modify store-B', async ({ api }) => {
@@ -194,8 +229,7 @@ test.describe('Store-Level Domain Isolation', () => {
 
     // User tries to update Store B (set context to Store B)
     api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
-    const { data, errors } = await api.admin.mutation('project-api/ProjectUpdate', {
-      throwOnError: false,
+    const { data } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
         input: {
           id: owner.storeBId,
@@ -204,14 +238,10 @@ test.describe('Store-Level Domain Isolation', () => {
       },
     });
 
-    // Update should fail - either GraphQL error, null store, or userErrors
-    if (errors && errors.length > 0) {
-      expect(errors.length).toBeGreaterThan(0);
-    } else if (data) {
-      const result = data.storeMutation.storeUpdate;
-      const updateFailed = result.store === null || result.userErrors.length > 0;
-      expect(updateFailed).toBe(true);
-    }
+    // Update should fail - null store or userErrors
+    const result = data.storeMutation.storeUpdate;
+    const updateFailed = result.store === null || result.userErrors.length > 0;
+    expect(updateFailed).toBe(true);
 
     // Verify Store B was not modified by switching to owner
     api.session.tenant.accessToken = owner.accessToken;
@@ -252,26 +282,18 @@ test.describe('Store-Level Domain Isolation', () => {
 
     // User CANNOT update Store B (even with project context set to B)
     api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
-    const { data: updateBData, errors: updateBErrors } = await api.admin.mutation(
-      'project-api/ProjectUpdate',
-      {
-        throwOnError: false,
-        variables: {
-          input: {
-            id: owner.storeBId,
-            displayName: 'Store B Updated',
-          },
+    const { data: updateBData } = await api.admin.mutation('project-api/ProjectUpdate', {
+      variables: {
+        input: {
+          id: owner.storeBId,
+          displayName: 'Store B Updated',
         },
       },
-    );
+    });
 
-    if (updateBErrors && updateBErrors.length > 0) {
-      expect(updateBErrors.length).toBeGreaterThan(0);
-    } else {
-      const updateBResult = updateBData.storeMutation.storeUpdate;
-      const updateBFailed = updateBResult.store === null || updateBResult.userErrors.length > 0;
-      expect(updateBFailed).toBe(true);
-    }
+    const updateBResult = updateBData.storeMutation.storeUpdate;
+    const updateBFailed = updateBResult.store === null || updateBResult.userErrors.length > 0;
+    expect(updateBFailed).toBe(true);
   });
 
   test('User with multiple store-specific roles has access to only those stores', async ({
@@ -309,23 +331,17 @@ test.describe('Store-Level Domain Isolation', () => {
 
     // User CAN access Store A
     api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
-    const { data: storeAData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
+    const { data: storeAData } = await api.admin.query('project-api/Project', {});
     expect(storeAData.storeQuery.currentStore).not.toBeNull();
 
     // User CAN access Store C
     api.session.project = { id: storeC.id, slug: storeCName, name: 'Store C' };
-    const { data: storeCQueryData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
+    const { data: storeCQueryData } = await api.admin.query('project-api/Project', {});
     expect(storeCQueryData.storeQuery.currentStore).not.toBeNull();
 
     // User CANNOT access Store B
     api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
-    const { data: storeBData } = await api.admin.query('project-api/Project', {
-      throwOnError: false,
-    });
+    const { data: storeBData } = await api.admin.query('project-api/Project', {});
     expect(storeBData.storeQuery.currentStore).toBeNull();
   });
 
@@ -342,7 +358,6 @@ test.describe('Store-Level Domain Isolation', () => {
 
     // Get list of stores user can access
     const { data } = await api.admin.query('project-api/Projects', {
-      throwOnError: false,
       variables: {
         organizationId: owner.organizationId,
       },
@@ -369,8 +384,7 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
 
     // User tries to delete Store B
-    const { data, errors } = await api.admin.mutation('project-api/ProjectDelete', {
-      throwOnError: false,
+    const { data } = await api.admin.mutation('project-api/ProjectDelete', {
       variables: {
         input: {
           id: owner.storeBId,
@@ -380,13 +394,9 @@ test.describe('Store-Level Domain Isolation', () => {
     });
 
     // Delete should fail
-    if (errors && errors.length > 0) {
-      expect(errors.length).toBeGreaterThan(0);
-    } else {
-      const result = data.storeMutation.storeDelete;
-      const deleteFailed = result.deletedStoreId === null || result.userErrors.length > 0;
-      expect(deleteFailed).toBe(true);
-    }
+    const result = data.storeMutation.storeDelete;
+    const deleteFailed = result.deletedStoreId === null || result.userErrors.length > 0;
+    expect(deleteFailed).toBe(true);
 
     // Verify Store B still exists by switching to owner
     api.session.tenant.accessToken = owner.accessToken;
