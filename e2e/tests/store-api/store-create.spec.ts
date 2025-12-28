@@ -22,7 +22,7 @@ test.describe('StoreCreate API', () => {
       },
     });
 
-    organizationId = data.organizationMutation.organizationCreate.organization.id;
+    organizationId = data.organizationMutation.organizationCreate.organization?.id;
   });
 
   test('Create store with minimal required fields', async ({ api }) => {
@@ -299,9 +299,7 @@ test.describe('StoreCreate API', () => {
     expect(result.userErrors).toHaveLength(0);
     expect(result.store).not.toBeNull();
     expect(result.store?.currencies).toHaveLength(4);
-    expect(result.store?.currencies).toEqual(
-      expect.arrayContaining(['USD', 'EUR', 'GBP', 'UAH']),
-    );
+    expect(result.store?.currencies).toEqual(expect.arrayContaining(['USD', 'EUR', 'GBP', 'UAH']));
     expect(result.store?.defaultCurrency).toBe('EUR');
   });
 });
