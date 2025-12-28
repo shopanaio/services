@@ -73,6 +73,10 @@
       "optional": true
     }
   },
+  "dependencies": {
+    "@shopana/rbac": "*",
+    "@shopana/shared-kernel": "*"
+  },
   "devDependencies": {
     "@types/node": "^20.12.7",
     "graphql": "^16.9.0",

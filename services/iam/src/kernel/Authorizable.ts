@@ -2,6 +2,7 @@ import type {
   AuthProvider as IAuthProvider,
   AuthorizeParams,
 } from "@shopana/shared-kernel";
+import { validateAuthorizeInput } from "@shopana/rbac";
 import type { IamKernelServices } from "./types.js";
 import { getContext } from "../context/index.js";
 import {
@@ -36,6 +37,8 @@ export class AuthProvider implements IAuthProvider {
    *
    * If organizationName is provided (instead of organizationId),
    * it will be resolved to organizationId via NameResolver cache.
+   *
+   * Validates domain, resource, and action against @shopana/rbac definitions.
    */
   async authorize(params: AuthorizeParams): Promise<boolean> {
     const userId = params.userId || this.userId;
@@ -62,11 +65,25 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
+    const domain = params.domain ?? "org";
+
+    // Validate authorization input against @shopana/rbac definitions
+    const validation = validateAuthorizeInput({
+      domain,
+      resource: params.resource,
+      action: params.action,
+    });
+
+    if (!validation.success) {
+      console.error("[AuthProvider] Invalid authorization request:", validation.errors);
+      return false;
+    }
+
     // Check permission using Casbin RBAC
     return this.services.repository.casbin.enforce({
       organizationId,
       userId,
-      domain: (params.domain as Domain) ?? ORG_DOMAIN,
+      domain: domain as Domain,
       resource: params.resource as Resource,
       action: params.action,
     });

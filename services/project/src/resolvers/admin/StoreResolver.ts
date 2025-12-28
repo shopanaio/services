@@ -12,7 +12,7 @@ export { BaseResolver };
 @TypePolicy<StoreResolver>({
   organizationId: (resolver) => resolver.value.organizationId,
   domain: (resolver) => `store:${resolver.value.id}`,
-  resource: "*",
+  resource: "store.profile",
   action: "read",
   onDeny: "null",
 })

@@ -17,7 +17,7 @@ export class StoreCreateScript extends BaseScript<
   StoreCreateResult
 > {
   @Policy<StoreCreateParams>({
-    resource: "store",
+    resource: "org.stores",
     action: "create",
     organizationId: (_, params) => params.organizationId,
   })
