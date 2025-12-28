@@ -9,13 +9,7 @@ import {
   type OrganizationCreateParams,
   type OrganizationCreateResult,
 } from "./dto/OrganizationCreateDto.js";
-import {
-  PREDEFINED_ROLES,
-  ROLE_PERMISSIONS,
-  ROLE_DISPLAY_NAMES,
-  ROLE_DESCRIPTIONS,
-  type PredefinedRoleName,
-} from "../../constants/index.js";
+import { Roles, RolesMeta } from "@shopana/rbac";
 import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
 
 export class OrganizationCreateScript extends BaseScript<
@@ -50,21 +44,37 @@ export class OrganizationCreateScript extends BaseScript<
 
     const org = result.organization;
 
-    const ownerRoleName = PREDEFINED_ROLES.OWNER;
+    const adminRoleName = "admin";
     const domain = ORG_DOMAIN;
 
-    // Create predefined roles in the role table
+    // Create predefined roles from @shopana/rbac
     const createdRoles: Record<string, { id: string }> = {};
-    for (const roleName of Object.values(PREDEFINED_ROLES)) {
+    for (const roleName of Object.keys(Roles.organization) as Array<keyof typeof Roles.organization>) {
+      const meta = RolesMeta.organization[roleName];
       const role = await this.repository.organization.createRole({
         organizationId: org.id,
         domain,
         name: roleName,
-        displayName: ROLE_DISPLAY_NAMES[roleName as PredefinedRoleName],
-        description: ROLE_DESCRIPTIONS[roleName as PredefinedRoleName],
+        displayName: meta.displayName,
+        description: meta.description,
         isSystem: true,
       });
       createdRoles[roleName] = role;
+
+      // Add policies for this role
+      const permissions = Roles.organization[roleName];
+      for (const permission of permissions) {
+        for (const action of permission.actions) {
+          await this.repository.casbin.addPolicy({
+            organizationId: org.id,
+            role: roleName,
+            domain,
+            resource: permission.resource,
+            action,
+            effect: "allow",
+          });
+        }
+      }
     }
 
     // Add current user as organization member
@@ -73,37 +83,22 @@ export class OrganizationCreateScript extends BaseScript<
       userId,
     });
 
-    // Create user role assignment in user_role table
+    // Create user role assignment in user_role table (assign admin role to creator)
     await this.repository.organization.createUserRole({
       organizationId: org.id,
       userId,
-      roleId: createdRoles[ownerRoleName].id,
+      roleId: createdRoles[adminRoleName].id,
       domain,
       grantedBy: userId,
     });
 
-    // Assign owner role in Casbin for this organization
+    // Assign admin role in Casbin for this organization
     await this.repository.casbin.assignRole({
       organizationId: org.id,
       userId,
-      role: ownerRoleName,
+      role: adminRoleName,
       domain,
     });
-
-    // Add predefined owner policies from ROLE_PERMISSIONS
-    const ownerPermissions = ROLE_PERMISSIONS[ownerRoleName];
-    for (const rule of ownerPermissions.allow) {
-      for (const action of rule.actions) {
-        await this.repository.casbin.addPolicy({
-          organizationId: org.id,
-          role: ownerRoleName,
-          domain,
-          resource: rule.resource as "*",
-          action,
-          effect: "allow",
-        });
-      }
-    }
 
     return {
       organization: org,

@@ -112,11 +112,14 @@ export function createDomain(prefix: string, value: string): Domain {
  * "product:*" - all products
  * "warehouse:W1/product:*" - all products in warehouse W1
  */
-export type Resource =
-  | "*"
-  | ScopeIdentifier
-  | `${ScopeIdentifier}/${ScopeIdentifier}`;
-
+/**
+ * Resource types supported in policies:
+ * - "*" - all resources (wildcard)
+ * - "org.profile", "store.members" - dotted resource names from @shopana/rbac
+ * - "product:uuid" - scoped identifiers
+ * - "warehouse:W1/product:*" - nested paths
+ */
+export type Resource = string;
 export interface EnforceParams {
   organizationId: string;
   userId: string;

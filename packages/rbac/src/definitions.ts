@@ -100,8 +100,50 @@ export const Roles = {
   },
 } as const satisfies RoleDefinitions;
 
+// ============ Role metadata ============
+
+export type RoleMeta = {
+  displayName: string;
+  description: string;
+};
+
+export const RolesMeta = {
+  organization: {
+    admin: {
+      displayName: "Administrator",
+      description: "Full access to organization and all stores",
+    },
+    member: {
+      displayName: "Member",
+      description: "Basic organization member with read-only access",
+    },
+  },
+  store: {
+    viewer: {
+      displayName: "Viewer",
+      description: "Read-only access to store",
+    },
+    editor: {
+      displayName: "Editor",
+      description: "Can view and edit store content",
+    },
+    manager: {
+      displayName: "Manager",
+      description: "Can manage store settings and content",
+    },
+    admin: {
+      displayName: "Administrator",
+      description: "Full access to store management",
+    },
+  },
+} as const satisfies {
+  organization: Record<keyof typeof Roles.organization, RoleMeta>;
+  store: Record<keyof typeof Roles.store, RoleMeta>;
+};
+
 // Combined export
 export const RBAC = {
   resources: Resources,
   roles: Roles,
+  rolesMeta: RolesMeta,
 } as const;

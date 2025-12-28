@@ -6,7 +6,26 @@ import type {
   LocaleCode,
   StoreStatus,
 } from "../repositories/models/index.js";
-import { STORE_ROLES } from "../constants/index.js";
+import { Roles, RolesMeta } from "@shopana/rbac";
+
+/** Convert @shopana/rbac Roles.store to RoleConfig[] format for iam.createRoles */
+function buildStoreRoles() {
+  return (Object.keys(Roles.store) as Array<keyof typeof Roles.store>).map((roleName) => {
+    const permissions = Roles.store[roleName];
+    const meta = RolesMeta.store[roleName];
+    return {
+      name: roleName,
+      displayName: meta.displayName,
+      description: meta.description,
+      permissions: {
+        allow: permissions.map((p) => ({
+          resource: p.resource,
+          actions: [...p.actions],
+        })),
+      },
+    };
+  });
+}
 
 export interface StoreCreateInput {
   /** URL-friendly identifier (e.g., "my-store") */
@@ -63,8 +82,8 @@ export class StoreCreateWorkflow extends BaseWorkflow {
     // Step 3: Create store roles
     await this.createRoles(storeId, organizationId, userId);
 
-    // Step 4: Assign owner role to creator
-    await this.assignOwnerRole(storeId, organizationId, userId);
+    // Step 4: Assign admin role to creator
+    await this.assignAdminRole(storeId, organizationId, userId);
 
     return { storeId, organizationId };
   }
@@ -106,7 +125,7 @@ export class StoreCreateWorkflow extends BaseWorkflow {
       userId,
       organizationId,
       domain: `store:${storeId}`,
-      roles: STORE_ROLES,
+      roles: buildStoreRoles(),
     }) as { success: boolean; error?: string };
 
     if (!result.success) {
@@ -115,19 +134,19 @@ export class StoreCreateWorkflow extends BaseWorkflow {
   }
 
   /**
-   * Step: Assign owner role to store creator
+   * Step: Assign admin role to store creator
    */
   @DBOS.step()
-  async assignOwnerRole(storeId: string, organizationId: string, userId: string) {
+  async assignAdminRole(storeId: string, organizationId: string, userId: string) {
     const result = await this.broker.call("iam.assignRole", {
       userId,
       organizationId,
       domain: `store:${storeId}`,
-      roleName: "owner",
+      roleName: "admin",
     }) as { success: boolean; error?: string };
 
     if (!result.success) {
-      throw new Error(result.error || "Failed to assign owner role");
+      throw new Error(result.error || "Failed to assign admin role");
     }
   }
 }

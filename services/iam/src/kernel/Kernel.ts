@@ -120,7 +120,6 @@ export class Kernel extends BaseKernel<IamKernelServices> {
 
 export { BaseScript } from "./BaseScript.js";
 export { type UserError } from "@shopana/shared-kernel";
-export { Authorizable } from "./Authorizable.js";
 export { KernelError } from "./types.js";
 export type {
   IamKernelServices,
