@@ -239,6 +239,7 @@ export class StoreRepository extends BaseRepository {
     };
 
     if (data.name !== undefined) updateData.name = data.name;
+    if (data.displayName !== undefined) updateData.displayName = data.displayName;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.timezone !== undefined) updateData.timezone = data.timezone;
     if (data.defaultWeightUnit !== undefined)

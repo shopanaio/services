@@ -235,20 +235,16 @@ test.describe('Store-Level Domain Isolation', () => {
     // User CAN update Store A
     api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
     api.session.organizationId = owner.organizationId;
-    const { data: updateAData, errors: updateAErrors } = await api.admin.mutation(
-      'project-api/ProjectUpdate',
-      {
-        throwOnError: false,
-        variables: {
-          input: {
-            id: owner.storeAId,
-            displayName: 'Store A Updated',
-          },
+    const { data: updateAData } = await api.admin.mutation('project-api/ProjectUpdate', {
+      variables: {
+        input: {
+          id: owner.storeAId,
+          organizationId: owner.organizationId,
+          displayName: 'Store A Updated',
         },
       },
-    );
+    });
 
-    expect(updateAErrors).toBeUndefined();
     expect(updateAData).toBeDefined();
     const updateAResult = updateAData.storeMutation.storeUpdate;
     expect(updateAResult.store).not.toBeNull();
