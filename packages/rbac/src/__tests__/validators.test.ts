@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
-import { DomainPermissionsSchema } from "../validators.js";
+import { validateDomainPermissions } from "../validators.js";
 
-describe("DomainPermissionsSchema", () => {
+describe("validateDomainPermissions", () => {
   /**
    * Validation hierarchy:
    * 1. Domain must be valid ("org" or "store:<uuid>")
@@ -16,7 +16,7 @@ describe("DomainPermissionsSchema", () => {
 
   describe("1. Domain validation", () => {
     it("should accept valid domain: org", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "org",
         permissions: [{ resource: "org.profile", actions: ["read"] }],
       });
@@ -24,7 +24,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should accept valid domain: store:<uuid>", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: validStoreDomain,
         permissions: [{ resource: "store.profile", actions: ["read"] }],
       });
@@ -32,7 +32,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should accept store domain with uppercase UUID", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "store:550E8400-E29B-41D4-A716-446655440000",
         permissions: [{ resource: "store.profile", actions: ["read"] }],
       });
@@ -40,7 +40,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject plain 'store' without UUID", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "store",
         permissions: [{ resource: "store.profile", actions: ["read"] }],
       });
@@ -48,7 +48,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject store with invalid UUID format", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "store:invalid-uuid",
         permissions: [{ resource: "store.profile", actions: ["read"] }],
       });
@@ -56,7 +56,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject store with incomplete UUID", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "store:550e8400-e29b-41d4",
         permissions: [{ resource: "store.profile", actions: ["read"] }],
       });
@@ -64,7 +64,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject invalid domain", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "invalid",
         permissions: [{ resource: "org.profile", actions: ["read"] }],
       });
@@ -72,14 +72,14 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject missing domain", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         permissions: [{ resource: "org.profile", actions: ["read"] }],
       });
       expect(result.success).toBe(false);
     });
 
     it("should reject empty string domain", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "",
         permissions: [{ resource: "org.profile", actions: ["read"] }],
       });
@@ -98,7 +98,7 @@ describe("DomainPermissionsSchema", () => {
       ];
 
       it.each(validOrgResources)("should accept valid org resource: %s", (resource) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource, actions: ["read"] }],
         });
@@ -106,7 +106,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject store resource in org domain", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "store.profile", actions: ["read"] }],
         });
@@ -114,7 +114,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject non-existent org resource", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.nonexistent", actions: ["read"] }],
         });
@@ -122,7 +122,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject resource without domain prefix", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "profile", actions: ["read"] }],
         });
@@ -139,7 +139,7 @@ describe("DomainPermissionsSchema", () => {
       ];
 
       it.each(validStoreResources)("should accept valid store resource: %s", (resource) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource, actions: ["read"] }],
         });
@@ -147,7 +147,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject org resource in store domain", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "org.profile", actions: ["read"] }],
         });
@@ -155,7 +155,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject non-existent store resource", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.nonexistent", actions: ["read"] }],
         });
@@ -169,7 +169,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "update", "delete"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: [action] }],
         });
@@ -177,7 +177,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should accept all valid actions together", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: ["read", "update", "delete"] }],
         });
@@ -185,7 +185,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject action from different resource (invite belongs to org.members)", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: ["invite"] }],
         });
@@ -193,7 +193,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject non-existent action", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: ["nonexistent"] }],
         });
@@ -205,7 +205,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "invite", "update", "remove"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.members", actions: [action] }],
         });
@@ -213,7 +213,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject action from different resource (delete belongs to org.profile)", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.members", actions: ["delete"] }],
         });
@@ -225,7 +225,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "create", "update", "delete"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.roles", actions: [action] }],
         });
@@ -237,7 +237,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["create", "read", "list", "update", "delete"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.stores", actions: [action] }],
         });
@@ -245,7 +245,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject action not in org.stores (invite)", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.stores", actions: ["invite"] }],
         });
@@ -257,7 +257,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "grant", "revoke"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.access", actions: [action] }],
         });
@@ -269,7 +269,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "update", "delete"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.profile", actions: [action] }],
         });
@@ -277,7 +277,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject action not in store.profile (create)", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.profile", actions: ["create"] }],
         });
@@ -289,7 +289,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "invite", "update", "remove"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.members", actions: [action] }],
         });
@@ -301,7 +301,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "create", "update", "delete"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.roles", actions: [action] }],
         });
@@ -313,7 +313,7 @@ describe("DomainPermissionsSchema", () => {
       const validActions = ["read", "grant", "revoke"];
 
       it.each(validActions)("should accept valid action: %s", (action) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.access", actions: [action] }],
         });
@@ -325,7 +325,7 @@ describe("DomainPermissionsSchema", () => {
   describe("4. Non-empty validation", () => {
     describe("permissions array must not be empty", () => {
       it("should reject empty permissions array for org domain", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [],
         });
@@ -333,7 +333,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject empty permissions array for store domain", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [],
         });
@@ -341,7 +341,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should accept single permission", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: ["read"] }],
         });
@@ -349,7 +349,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should accept multiple permissions", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [
             { resource: "org.profile", actions: ["read"] },
@@ -362,7 +362,7 @@ describe("DomainPermissionsSchema", () => {
 
     describe("actions array must not be empty", () => {
       it("should reject empty actions array for org resource", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: [] }],
         });
@@ -370,7 +370,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should reject empty actions array for store resource", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: validStoreDomain,
           permissions: [{ resource: "store.profile", actions: [] }],
         });
@@ -378,7 +378,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should accept single action", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.profile", actions: ["read"] }],
         });
@@ -386,7 +386,7 @@ describe("DomainPermissionsSchema", () => {
       });
 
       it("should accept multiple actions", () => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: "org",
           permissions: [{ resource: "org.members", actions: ["read", "invite", "update", "remove"] }],
         });
@@ -397,22 +397,22 @@ describe("DomainPermissionsSchema", () => {
 
   describe("Edge cases", () => {
     it("should reject null input", () => {
-      const result = DomainPermissionsSchema.safeParse(null);
+      const result = validateDomainPermissions(null);
       expect(result.success).toBe(false);
     });
 
     it("should reject undefined input", () => {
-      const result = DomainPermissionsSchema.safeParse(undefined);
+      const result = validateDomainPermissions(undefined);
       expect(result.success).toBe(false);
     });
 
     it("should reject non-object input", () => {
-      const result = DomainPermissionsSchema.safeParse("invalid");
+      const result = validateDomainPermissions("invalid");
       expect(result.success).toBe(false);
     });
 
     it("should reject permission with missing resource", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "org",
         permissions: [{ actions: ["read"] }],
       });
@@ -420,7 +420,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject permission with missing actions", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "org",
         permissions: [{ resource: "org.profile" }],
       });
@@ -428,7 +428,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should allow duplicate actions (schema does not enforce uniqueness)", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "org",
         permissions: [{ resource: "org.profile", actions: ["read", "read"] }],
       });
@@ -436,7 +436,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject if one valid action mixed with invalid action", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "org",
         permissions: [{ resource: "org.profile", actions: ["read", "invalid"] }],
       });
@@ -444,7 +444,7 @@ describe("DomainPermissionsSchema", () => {
     });
 
     it("should reject if one valid permission mixed with invalid permission", () => {
-      const result = DomainPermissionsSchema.safeParse({
+      const result = validateDomainPermissions({
         domain: "org",
         permissions: [
           { resource: "org.profile", actions: ["read"] },
@@ -462,12 +462,53 @@ describe("DomainPermissionsSchema", () => {
       ];
 
       uuids.forEach((uuid) => {
-        const result = DomainPermissionsSchema.safeParse({
+        const result = validateDomainPermissions({
           domain: `store:${uuid}`,
           permissions: [{ resource: "store.profile", actions: ["read"] }],
         });
         expect(result.success).toBe(true);
       });
+    });
+  });
+
+  describe("Return value", () => {
+    it("should return data on success", () => {
+      const input = {
+        domain: "org",
+        permissions: [{ resource: "org.profile", actions: ["read", "update"] }],
+      };
+
+      const result = validateDomainPermissions(input);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual(input);
+      }
+    });
+
+    it("should return errors array on failure", () => {
+      const result = validateDomainPermissions({
+        domain: "invalid",
+        permissions: [],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(Array.isArray(result.errors)).toBe(true);
+        expect(result.errors.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("should return meaningful error messages", () => {
+      const result = validateDomainPermissions({
+        domain: "store:invalid",
+        permissions: [{ resource: "store.profile", actions: ["read"] }],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.errors.some((e) => e.includes("store:<uuid>"))).toBe(true);
+      }
     });
   });
 });

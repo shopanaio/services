@@ -20,9 +20,6 @@ const storeSchemas = buildPermissionSchemas(Resources.store);
 const OrgPermissionSchema = z.discriminatedUnion("resource", orgSchemas as any);
 const StorePermissionSchema = z.discriminatedUnion("resource", storeSchemas as any);
 
-// UUID regex pattern
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 // Store domain format: store:<uuid>
 const StoreDomainSchema = z.string().regex(/^store:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, {
   message: "Store domain must be in format 'store:<uuid>'",
@@ -41,9 +38,31 @@ const StoreDomainPermissionsSchema = z.object({
 });
 
 // Domain permissions validation
-export const DomainPermissionsSchema = z.union([
+const DomainPermissionsSchema = z.union([
   OrgDomainPermissionsSchema,
   StoreDomainPermissionsSchema,
 ]);
 
 export type DomainPermissions = z.infer<typeof DomainPermissionsSchema>;
+
+export type ValidationResult<T> =
+  | { success: true; data: T }
+  | { success: false; errors: string[] };
+
+/**
+ * Validates domain permissions input
+ * @param input - The input to validate
+ * @returns Validation result with parsed data or errors
+ */
+export function validateDomainPermissions(input: unknown): ValidationResult<DomainPermissions> {
+  const result = DomainPermissionsSchema.safeParse(input);
+
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+
+  return {
+    success: false,
+    errors: result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`),
+  };
+}
