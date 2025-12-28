@@ -150,6 +150,10 @@ input StoreUpdateInput {
   """
   id: ID!
   """
+  Organization id for authorization context
+  """
+  organizationId: ID!
+  """
   New display name
   """
   name: String
