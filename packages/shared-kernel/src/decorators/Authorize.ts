@@ -1,6 +1,13 @@
 import type { UserError } from "./ZodSchema.js";
-import type { ResourceName, Domain } from "@shopana/rbac";
-import { Resources } from "@shopana/rbac";
+import type {
+  ResourceName,
+  Domain,
+  ActionsForResource,
+  Authorizable,
+} from "@shopana/rbac";
+
+// Re-export from rbac for backwards compatibility
+export type { AuthorizeParams, AuthProvider, Authorizable } from "@shopana/rbac";
 
 /**
  * Authorization error thrown when access is denied
@@ -15,15 +22,6 @@ export class AuthorizationError extends Error {
     this.name = "AuthorizationError";
   }
 }
-
-// ============ Resource and Action Types ============
-
-/** Extract action type for a specific resource */
-type ActionsForResource<R extends ResourceName> = R extends keyof typeof Resources.org
-  ? (typeof Resources.org)[R]["actions"][number]
-  : R extends keyof typeof Resources.store
-    ? (typeof Resources.store)[R]["actions"][number]
-    : string;
 
 /**
  * Policy options for @Policy decorator on script methods.
@@ -59,32 +57,6 @@ export interface AuthorizeOptions<
   domain?: Domain | ((self: TSelf, params: TParams) => Domain | string);
   /** User ID for authorization. */
   userId?: string | ((self: TSelf, params: TParams) => string);
-}
-
-export interface AuthorizeParams {
-  resource: string;
-  action: string;
-  organizationId?: string;
-  organizationName?: string;
-  domain?: string;
-  userId?: string;
-}
-
-/**
- * Interface for authorization provider.
- * Contains userId and authorize method.
- */
-export interface AuthProvider {
-  userId: string | null;
-  authorize(params: AuthorizeParams): Promise<boolean>;
-}
-
-/**
- * Interface that a class must implement to use @Policy decorator.
- * Uses composition via `auth` property.
- */
-export interface Authorizable {
-  authProvider: AuthProvider;
 }
 
 type PolicyDecorator = <T>(

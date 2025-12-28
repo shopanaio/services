@@ -1,21 +1,15 @@
-// Re-export common types from shared-kernel
+// Re-export common types from rbac
 export type {
   AuthorizeParams,
   AuthProvider,
   Authorizable,
-} from "@shopana/shared-kernel";
+} from "@shopana/rbac";
 
-import type { ResourceName, Domain } from "@shopana/rbac";
-import { Resources } from "@shopana/rbac";
-
-// ============ Resource and Action Types ============
-
-/** Extract action type for a specific resource */
-type ActionsForResource<R extends ResourceName> = R extends keyof typeof Resources.org
-  ? (typeof Resources.org)[R]["actions"][number]
-  : R extends keyof typeof Resources.store
-    ? (typeof Resources.store)[R]["actions"][number]
-    : string;
+import type {
+  ResourceName,
+  Domain,
+  ActionsForResource,
+} from "@shopana/rbac";
 
 /**
  * Policy options for @TypePolicy decorator on type resolvers.

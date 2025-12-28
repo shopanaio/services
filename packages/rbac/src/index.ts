@@ -17,3 +17,12 @@ export type {
   ResourceName,
 } from "./validators.js";
 export type { RoleMeta } from "./definitions.js";
+
+// Authorization types
+export type {
+  ActionsForResource,
+  AuthorizeParams,
+  AuthProvider,
+  Authorizable,
+  BasePolicyOptions,
+} from "./auth.js";
