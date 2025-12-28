@@ -15,6 +15,25 @@ export class StoreUpdateScript extends BaseScript<
   protected async execute(
     params: StoreUpdateParams
   ): Promise<StoreUpdateResult> {
+    // Check if store exists and belongs to the organization
+    const existingStore = await this.repository.store.findById(
+      params.id,
+      params.organizationId
+    );
+
+    if (!existingStore) {
+      return {
+        store: null,
+        userErrors: [
+          {
+            message: "Store not found",
+            code: "NOT_FOUND",
+            field: null,
+          },
+        ],
+      };
+    }
+
     const {
       name,
       displayName,
@@ -32,19 +51,6 @@ export class StoreUpdateScript extends BaseScript<
       defaultWeightUnit,
       defaultDimensionUnit,
     });
-
-    if (!store) {
-      return {
-        store: null,
-        userErrors: [
-          {
-            message: "Store not found",
-            code: "NOT_FOUND",
-            field: null,
-          },
-        ],
-      };
-    }
 
     return {
       store,

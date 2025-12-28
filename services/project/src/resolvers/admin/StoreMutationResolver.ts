@@ -33,7 +33,7 @@ interface StoreCreateInput {
 
 interface StoreUpdateInput {
   id: string;
-  organization: string;
+  organizationId: string;
   name?: string | null;
   displayName?: string | null;
   email?: string | null;
@@ -44,6 +44,7 @@ interface StoreUpdateInput {
 
 interface StoreDeleteInput {
   id: string;
+  organizationId: string;
 }
 
 interface LocaleSetDefaultInput {
@@ -123,10 +124,11 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   async storeUpdate(args: { input: StoreUpdateInput }) {
     const { input } = args;
+
     const result = await this.ctx.kernel.runScript(StoreUpdateScript, {
       id: input.id,
       name: input.name ?? undefined,
-      organization: input.organization,
+      organizationId: input.organizationId,
       displayName: input.displayName ?? undefined,
       email: input.email ?? undefined,
       timezone: input.timezone ?? undefined,
@@ -149,8 +151,10 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   async storeDelete(args: { input: StoreDeleteInput }) {
     const { input } = args;
+
     const result = await this.ctx.kernel.runScript(StoreDeleteScript, {
       id: input.id,
+      organizationId: input.organizationId,
     });
 
     return {

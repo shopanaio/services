@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -179,11 +179,15 @@ export class StoreRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findById(id: string): Promise<Store | null> {
+  async findById(id: string, organizationId?: string): Promise<Store | null> {
+    const conditions = organizationId
+      ? and(eq(store.id, id), eq(store.organizationId, organizationId))
+      : eq(store.id, id);
+
     const [result] = await this.connection
       .select()
       .from(store)
-      .where(eq(store.id, id));
+      .where(conditions);
 
     if (!result) return null;
 
@@ -250,5 +254,21 @@ export class StoreRepository extends BaseRepository {
 
     if (!result) return null;
     return this.loadIntegrations(result);
+  }
+
+  @Transactional()
+  async delete(id: string): Promise<string | null> {
+    const now = new Date();
+
+    const [result] = await this.connection
+      .update(store)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(store.id, id))
+      .returning({ id: store.id });
+
+    return result?.id ?? null;
   }
 }
