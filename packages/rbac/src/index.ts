@@ -1,4 +1,4 @@
-export { R, Resources, Roles, RBAC } from "./definitions.js";
+export { Resources, Roles, RBAC } from "./definitions.js";
 
 export {
   // Domain schemas
