@@ -19,7 +19,11 @@ export const Resources = {
     },
     "org.stores": {
       actions: ["create", "read", "list", "update", "delete"],
-      description: "Store profile",
+      description: "Store management",
+    },
+    "org.access": {
+      actions: ["read", "grant", "revoke"],
+      description: "Member access to stores",
     },
   },
   store: {
@@ -34,6 +38,10 @@ export const Resources = {
     "store.roles": {
       actions: ["read", "create", "update", "delete"],
       description: "Role management",
+    },
+    "store.access": {
+      actions: ["read", "grant", "revoke"],
+      description: "Member permissions in store",
     },
   },
 } as const;
@@ -63,21 +71,16 @@ export type RoleDefinitions = {
 
 export const Roles = {
   organization: {
-    owner: [
+    admin: [
       { resource: "org.profile", actions: ["read", "update", "delete"] },
       { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
       { resource: "org.roles", actions: ["read", "create", "update", "delete"] },
-      { resource: "store.profile", actions: ["read", "update"] },
+      { resource: "org.stores", actions: ["create", "read", "list", "update", "delete"] },
+      { resource: "org.access", actions: ["read", "grant", "revoke"] },
+      { resource: "store.profile", actions: ["read", "update", "delete"] },
       { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
       { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
-    ],
-    admin: [
-      { resource: "org.profile", actions: ["read", "update"] },
-      { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
-      { resource: "org.roles", actions: ["read", "create", "update", "delete"] },
-      { resource: "store.profile", actions: ["read", "update"] },
-      { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
-      { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
+      { resource: "store.access", actions: ["read", "grant", "revoke"] },
     ],
     member: [
       { resource: "org.profile", actions: ["read"] },
@@ -92,6 +95,7 @@ export const Roles = {
       { resource: "store.profile", actions: ["read", "update"] },
       { resource: "store.members", actions: ["read", "invite", "update", "remove"] },
       { resource: "store.roles", actions: ["read", "create", "update", "delete"] },
+      { resource: "store.access", actions: ["read", "grant", "revoke"] },
     ],
   },
 } as const satisfies RoleDefinitions;
