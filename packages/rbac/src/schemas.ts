@@ -3,41 +3,28 @@ import { RBAC } from "./definitions.js";
 
 // === Domain Schemas ===
 
-export const OrgDomainSchema = z.literal("org");
+export const Org8nDomainSchema = z.literal("org8n");
 export const StoreWildcardDomainSchema = z.literal("store:*");
 export const StoreIdDomainSchema = z.string().regex(/^store:[a-zA-Z0-9-]+$/);
-export const DomainSchema = z.union([OrgDomainSchema, StoreWildcardDomainSchema, StoreIdDomainSchema]);
+export const DomainSchema = z.union([Org8nDomainSchema, StoreWildcardDomainSchema, StoreIdDomainSchema]);
 
 // === Permission Schemas ===
 
-const orgResourceNames = Object.keys(RBAC.resources.org) as [string, ...string[]];
-const storeResourceNames = Object.keys(RBAC.resources.store) as [string, ...string[]];
-const storeWildcardResourceNames = Object.keys(RBAC.resources.storeWildcard) as [string, ...string[]];
+const org8nResourceNames = Object.keys(RBAC.resources["org8n"]) as [string, ...string[]];
+const storeResourceNames = Object.keys(RBAC.resources["store:{id}"]) as [string, ...string[]];
+const storeWildcardResourceNames = Object.keys(RBAC.resources["store:*"]) as [string, ...string[]];
 
-export const OrgPermissionSchema = z
+export const Org8nPermissionSchema = z
   .object({
-    resource: z.enum(orgResourceNames),
+    resource: z.enum(org8nResourceNames),
     actions: z.array(z.string()).min(1),
   })
   .refine(
     (data) => {
-      const res = RBAC.resources.org[data.resource as keyof typeof RBAC.resources.org];
+      const res = RBAC.resources["org8n"][data.resource as keyof typeof RBAC.resources["org8n"]];
       return res && data.actions.every((a) => (res.actions as readonly string[]).includes(a));
     },
-    { message: "Invalid action for org resource" }
-  );
-
-export const StorePermissionSchema = z
-  .object({
-    resource: z.enum(storeResourceNames),
-    actions: z.array(z.string()).min(1),
-  })
-  .refine(
-    (data) => {
-      const res = RBAC.resources.store[data.resource as keyof typeof RBAC.resources.store];
-      return res && data.actions.every((a) => (res.actions as readonly string[]).includes(a));
-    },
-    { message: "Invalid action for store resource" }
+    { message: "Invalid action for org8n resource" }
   );
 
 export const StoreWildcardPermissionSchema = z
@@ -47,28 +34,35 @@ export const StoreWildcardPermissionSchema = z
   })
   .refine(
     (data) => {
-      const res = RBAC.resources.storeWildcard[data.resource as keyof typeof RBAC.resources.storeWildcard];
+      const res = RBAC.resources["store:*"][data.resource as keyof typeof RBAC.resources["store:*"]];
       return res && data.actions.every((a) => (res.actions as readonly string[]).includes(a));
     },
     { message: "Invalid action for store:* resource" }
   );
 
+export const StorePermissionSchema = z
+  .object({
+    resource: z.enum(storeResourceNames),
+    actions: z.array(z.string()).min(1),
+  })
+  .refine(
+    (data) => {
+      const res = RBAC.resources["store:{id}"][data.resource as keyof typeof RBAC.resources["store:{id}"]];
+      return res && data.actions.every((a) => (res.actions as readonly string[]).includes(a));
+    },
+    { message: "Invalid action for store resource" }
+  );
+
 // === Role Schemas ===
 
-export const OrgRoleSchema = z.object({
-  domain: OrgDomainSchema,
-  permissions: z.array(OrgPermissionSchema).min(1),
+// Org role includes permissions for both "org8n" domain and "store:*" domain
+export const Org8nRoleSchema = z.object({
+  "org8n": z.array(Org8nPermissionSchema).min(1),
+  "store:*": z.array(StoreWildcardPermissionSchema).optional(),
 });
 
-export const StoreRoleSchema = z.object({
-  domain: StoreIdDomainSchema,
-  permissions: z.array(StorePermissionSchema).min(1),
-});
-
-export const StoreWildcardRoleSchema = z.object({
-  domain: StoreWildcardDomainSchema,
-  permissions: z.array(StoreWildcardPermissionSchema).min(1),
-});
+// Store role - permissions for specific store (domain: "store:{id}")
+export const StoreRoleSchema = z.array(StorePermissionSchema).min(1);
 
 // === Policy Schema ===
 
@@ -81,10 +75,9 @@ export const PolicySchema = z.object({
 
 // === Types ===
 
-export type OrgPermission = z.infer<typeof OrgPermissionSchema>;
-export type StorePermission = z.infer<typeof StorePermissionSchema>;
+export type Org8nPermission = z.infer<typeof Org8nPermissionSchema>;
 export type StoreWildcardPermission = z.infer<typeof StoreWildcardPermissionSchema>;
-export type OrgRole = z.infer<typeof OrgRoleSchema>;
+export type StorePermission = z.infer<typeof StorePermissionSchema>;
+export type Org8nRole = z.infer<typeof Org8nRoleSchema>;
 export type StoreRole = z.infer<typeof StoreRoleSchema>;
-export type StoreWildcardRole = z.infer<typeof StoreWildcardRoleSchema>;
 export type Policy = z.infer<typeof PolicySchema>;

@@ -2,26 +2,24 @@ export { RBAC } from "./definitions.js";
 
 export {
   // Domain schemas
-  OrgDomainSchema,
+  Org8nDomainSchema,
   StoreWildcardDomainSchema,
   StoreIdDomainSchema,
   DomainSchema,
   // Permission schemas
-  OrgPermissionSchema,
-  StorePermissionSchema,
+  Org8nPermissionSchema,
   StoreWildcardPermissionSchema,
+  StorePermissionSchema,
   // Role schemas
-  OrgRoleSchema,
+  Org8nRoleSchema,
   StoreRoleSchema,
-  StoreWildcardRoleSchema,
   // Policy schema
   PolicySchema,
   // Types
-  type OrgPermission,
-  type StorePermission,
+  type Org8nPermission,
   type StoreWildcardPermission,
-  type OrgRole,
+  type StorePermission,
+  type Org8nRole,
   type StoreRole,
-  type StoreWildcardRole,
   type Policy,
 } from "./schemas.js";
