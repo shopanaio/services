@@ -5,13 +5,6 @@ import * as crypto from 'crypto';
 const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 const generateStoreName = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
 
-interface AuthorizeResult {
-  authorize: {
-    allowed: boolean;
-    deniedReason?: string;
-  };
-}
-
 test.describe('Role Hierarchy (FR-4)', () => {
   test('Org admin should have full control within the organization', async ({ api }) => {
     // 1. Create organization (user becomes admin)
@@ -61,10 +54,11 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed, `Admin should be allowed: ${resource}.${action}`).toBe(
-        true,
-      );
+      const result = authData;
+      expect(
+        result.userQuery.authorize.allowed,
+        `Admin should be allowed: ${resource}.${action}`,
+      ).toBe(true);
     }
   });
 
@@ -119,10 +113,11 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed, `Member should be allowed: ${resource}.${action}`).toBe(
-        true,
-      );
+      const result = authData;
+      expect(
+        result.userQuery.authorize.allowed,
+        `Member should be allowed: ${resource}.${action}`,
+      ).toBe(true);
     }
 
     // 6. Verify member cannot perform admin actions
@@ -147,10 +142,11 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed, `Member should be denied: ${resource}.${action}`).toBe(
-        false,
-      );
+      const result = authData;
+      expect(
+        result.userQuery.authorize.allowed,
+        `Member should be denied: ${resource}.${action}`,
+      ).toBe(false);
     }
 
     // Restore admin token for cleanup
@@ -237,9 +233,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
           },
         });
 
-        const result = authData as unknown as AuthorizeResult;
+        const result = authData;
         expect(
-          result.authorize.allowed,
+          result.userQuery.authorize.allowed,
           `Org admin should be allowed in store1: ${resource}.${action}`,
         ).toBe(true);
       }
@@ -255,9 +251,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
           },
         });
 
-        const result = authData as unknown as AuthorizeResult;
+        const result = authData;
         expect(
-          result.authorize.allowed,
+          result.userQuery.authorize.allowed,
           `Org admin should be allowed in store2: ${resource}.${action}`,
         ).toBe(true);
       }
@@ -327,7 +323,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: { resource: 'store.profile', action: 'read' },
       },
     });
-    const readResult = readAuth as unknown as AuthorizeResult;
+    const readResult = readAuth;
     expect(readResult.authorize.allowed).toBe(true);
 
     // 5. Verify viewer cannot: store.profile.update, store.members.*, store.roles.*, store.access.*
@@ -354,10 +350,11 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed, `Viewer should be denied: ${resource}.${action}`).toBe(
-        false,
-      );
+      const result = authData;
+      expect(
+        result.userQuery.authorize.allowed,
+        `Viewer should be denied: ${resource}.${action}`,
+      ).toBe(false);
     }
 
     // Restore admin token
@@ -436,10 +433,11 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed, `Manager should be allowed: ${resource}.${action}`).toBe(
-        true,
-      );
+      const result = authData;
+      expect(
+        result.userQuery.authorize.allowed,
+        `Manager should be allowed: ${resource}.${action}`,
+      ).toBe(true);
     }
 
     // 5. Verify manager cannot: store.profile.delete, store.members.*, store.roles.*, store.access.*
@@ -462,10 +460,11 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed, `Manager should be denied: ${resource}.${action}`).toBe(
-        false,
-      );
+      const result = authData;
+      expect(
+        result.userQuery.authorize.allowed,
+        `Manager should be denied: ${resource}.${action}`,
+      ).toBe(false);
     }
 
     // Restore admin token
@@ -555,9 +554,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
+      const result = authData;
       expect(
-        result.authorize.allowed,
+        result.userQuery.authorize.allowed,
         `Store admin should be allowed: ${resource}.${action}`,
       ).toBe(true);
     }
@@ -642,9 +641,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
+      const result = authData;
       expect(
-        result.authorize.allowed,
+        result.userQuery.authorize.allowed,
         `Manager should NOT inherit admin permission: ${resource}.${action}`,
       ).toBe(false);
     }
@@ -675,7 +674,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
       },
     });
 
-    const updateResult = updateAuth as unknown as AuthorizeResult;
+    const updateResult = updateAuth;
     expect(
       updateResult.authorize.allowed,
       'Viewer should NOT inherit manager permission: store.profile.update',
@@ -751,9 +750,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
       },
     });
 
-    const result = updateAuth as unknown as AuthorizeResult;
-    expect(result.authorize.allowed).toBe(false);
-    expect(result.authorize.deniedReason).toBeDefined();
+    const result = updateAuth;
+    expect(result.userQuery.authorize.allowed).toBe(false);
+    expect(result.userQuery.authorize.deniedReason).toBeDefined();
 
     // Restore admin token
     if (adminToken) {
@@ -837,9 +836,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
+      const result = authData;
       expect(
-        result.authorize.allowed,
+        result.userQuery.authorize.allowed,
         `Manager should be denied admin action: ${resource}.${action}`,
       ).toBe(false);
     }
@@ -930,9 +929,9 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
+      const result = authData;
       expect(
-        result.authorize.allowed,
+        result.userQuery.authorize.allowed,
         `Org admin should retain access: ${resource}.${action}`,
       ).toBe(true);
     }
@@ -1047,8 +1046,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
         },
       });
 
-      const result = authData as unknown as AuthorizeResult;
-      expect(result.authorize.allowed).toBe(true);
+      const result = authData;
+      expect(result.userQuery.authorize.allowed).toBe(true);
     }
   });
 
@@ -1100,8 +1099,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
       },
     });
 
-    const result = authData as unknown as AuthorizeResult;
-    expect(result.authorize.allowed).toBe(true);
+    const result = authData;
+    expect(result.userQuery.authorize.allowed).toBe(true);
 
     // Note: Actual deletion also requires org.stores.delete at organization level
   });
