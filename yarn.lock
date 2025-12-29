@@ -6749,6 +6749,7 @@ __metadata:
     drizzle-orm: "npm:^0.44.7"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
+    graphql-codegen-typescript-validation-schema: "npm:^0.18.1"
     graphql-tag: "npm:^2.12.6"
     keyv: "npm:^5.5.5"
     pino: "npm:^9.3.2"

@@ -23,12 +23,10 @@ export class OrganizationUpdateScript extends BaseScript<
   @Transactional()
   @ZodSchema(organizationUpdateInputSchema)
   @Policy({
-    resource: "org.settings",
+    resource: "org.profile",
     action: "update",
-    organizationId: (
-      self: OrganizationUpdateScript,
-      params: OrganizationUpdateParams
-    ) => params.organizationId,
+    organizationId: (_, params: OrganizationUpdateParams) =>
+      params.organizationId,
   })
   protected async execute(
     params: OrganizationUpdateParams
@@ -91,7 +89,7 @@ export class OrganizationUpdateScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
-            field: ["organizationId"
+            field: ["organizationId"],
           },
         ],
       };

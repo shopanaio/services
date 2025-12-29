@@ -1,9 +1,4 @@
-import type {
-  CurrencyCode,
-  LocaleCode,
-  WeightUnit,
-  DimensionUnit,
-} from "@shopana/shared-references";
+import { ZodResolver } from "@shopana/type-resolver";
 import { BaseResolver } from "./BaseResolver.js";
 import { StoreResolver } from "./StoreResolver.js";
 import { StoreCreateScript } from "../../scripts/store/StoreCreateScript.js";
@@ -15,58 +10,26 @@ import { ApiKeyCreateScript } from "../../scripts/apiKey/ApiKeyCreateScript.js";
 import { ApiKeyRevokeScript } from "../../scripts/apiKey/ApiKeyRevokeScript.js";
 import { ApiKeyDeleteScript } from "../../scripts/apiKey/ApiKeyDeleteScript.js";
 import { StoreStatus } from "@src/repositories/models/store.js";
-
-// Input types
-interface StoreCreateInput {
-  organizationId: string;
-  /** URL-friendly identifier (e.g., "my-store") */
-  name: string;
-  /** Human-readable display name (e.g., "My Store") */
-  displayName: string;
-  locales: LocaleCode[];
-  currencies: CurrencyCode[];
-  defaultCurrency: CurrencyCode;
-  status?: string | null;
-  timezone?: string | null;
-  email: string;
-}
-
-interface StoreUpdateInput {
-  id: string;
-  organizationId: string;
-  name?: string | null;
-  displayName?: string | null;
-  email?: string | null;
-  timezone?: string | null;
-  defaultWeightUnit?: WeightUnit | null;
-  defaultDimensionUnit?: DimensionUnit | null;
-}
-
-interface StoreDeleteInput {
-  id: string;
-  organizationId: string;
-}
-
-interface LocaleSetDefaultInput {
-  locale: LocaleCode;
-}
-
-interface CurrencySetDefaultInput {
-  currency: CurrencyCode;
-}
-
-interface ApiKeyCreateInput {
-  name: string;
-  dueDate?: string | null;
-}
-
-interface ApiKeyRevokeInput {
-  id: string;
-}
-
-interface ApiKeyDeleteInput {
-  id: string;
-}
+import type {
+  StoreCreateInput,
+  StoreUpdateInput,
+  StoreDeleteInput,
+  LocaleSetDefaultInput,
+  CurrencySetDefaultInput,
+  ApiKeyCreateInput,
+  ApiKeyRevokeInput,
+  ApiKeyDeleteInput,
+} from "../../api/graphql-admin/generated/types.js";
+import {
+  StoreCreateInputSchema,
+  StoreUpdateInputSchema,
+  StoreDeleteInputSchema,
+  LocaleSetDefaultInputSchema,
+  CurrencySetDefaultInputSchema,
+  ApiKeyCreateInputSchema,
+  ApiKeyRevokeInputSchema,
+  ApiKeyDeleteInputSchema,
+} from "../../api/graphql-admin/generated/schemas.js";
 
 /**
  * StoreMutation namespace resolver.
@@ -94,6 +57,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   // ==================== Store Mutations ====================
 
+  @ZodResolver(StoreCreateInputSchema())
   async storeCreate(args: { input: StoreCreateInput }) {
     const { input } = args;
     const result = await this.ctx.kernel.runScript(StoreCreateScript, {
@@ -122,6 +86,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     };
   }
 
+  @ZodResolver(StoreUpdateInputSchema())
   async storeUpdate(args: { input: StoreUpdateInput }) {
     const { input } = args;
 
@@ -149,6 +114,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     };
   }
 
+  @ZodResolver(StoreDeleteInputSchema())
   async storeDelete(args: { input: StoreDeleteInput }) {
     const { input } = args;
 
@@ -165,6 +131,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   // ==================== Locale Mutations ====================
 
+  @ZodResolver(LocaleSetDefaultInputSchema())
   async localeSetDefault(args: { input: LocaleSetDefaultInput }) {
     const store = await this.getCurrentStore();
     const result = await this.ctx.kernel.runScript(LocaleSetDefaultScript, {
@@ -180,6 +147,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   // ==================== Currency Mutations ====================
 
+  @ZodResolver(CurrencySetDefaultInputSchema())
   async currencySetDefault(args: { input: CurrencySetDefaultInput }) {
     const store = await this.getCurrentStore();
     const result = await this.ctx.kernel.runScript(CurrencySetDefaultScript, {
@@ -195,6 +163,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   // ==================== API Key Mutations ====================
 
+  @ZodResolver(ApiKeyCreateInputSchema())
   async apiKeyCreate(args: { input: ApiKeyCreateInput }) {
     const store = await this.getCurrentStore();
     const result = await this.ctx.kernel.runScript(ApiKeyCreateScript, {
@@ -210,6 +179,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     };
   }
 
+  @ZodResolver(ApiKeyRevokeInputSchema())
   async apiKeyRevoke(args: { input: ApiKeyRevokeInput }) {
     const result = await this.ctx.kernel.runScript(ApiKeyRevokeScript, {
       id: args.input.id,
@@ -221,6 +191,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     };
   }
 
+  @ZodResolver(ApiKeyDeleteInputSchema())
   async apiKeyDelete(args: { input: ApiKeyDeleteInput }) {
     const result = await this.ctx.kernel.runScript(ApiKeyDeleteScript, {
       id: args.input.id,
