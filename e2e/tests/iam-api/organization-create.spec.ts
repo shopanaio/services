@@ -50,7 +50,7 @@ test.describe('OrganizationCreate API', () => {
 
     const members = result.organization?.membership?.members;
     expect(members).toHaveLength(1);
-    expect(members?.[0].role).toBe('owner');
+    expect(members?.[0].role).toBe('admin');
   });
 
   test('Organization should have system roles after creation', async ({ api }) => {
@@ -77,7 +77,7 @@ test.describe('OrganizationCreate API', () => {
     const systemRoles = roles?.filter((r) => r.isSystem);
     expect(systemRoles?.length).toBeGreaterThan(0);
 
-    const ownerRole = roles?.find((r) => r.name === 'owner');
+    const ownerRole = roles?.find((r) => r.name === 'admin');
     expect(ownerRole).toBeDefined();
     expect(ownerRole?.isSystem).toBe(true);
   });
