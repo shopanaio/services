@@ -464,4 +464,72 @@ export class OrganizationRepository extends BaseRepository {
         )
       );
   }
+
+  /**
+   * Find role by ID
+   */
+  @ReadOnly()
+  async findRoleById(
+    organizationId: string,
+    roleId: string
+  ): Promise<Role | null> {
+    const [result] = await this.connection
+      .select()
+      .from(role)
+      .where(
+        and(
+          eq(role.organizationId, organizationId),
+          eq(role.id, roleId)
+        )
+      );
+
+    return result ?? null;
+  }
+
+  /**
+   * Update role
+   */
+  @Transactional()
+  async updateRole(
+    organizationId: string,
+    roleId: string,
+    updates: {
+      displayName?: string;
+      description?: string;
+    }
+  ): Promise<Role | null> {
+    const [result] = await this.connection
+      .update(role)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(
+        and(
+          eq(role.organizationId, organizationId),
+          eq(role.id, roleId)
+        )
+      )
+      .returning();
+
+    return result ?? null;
+  }
+
+  /**
+   * Delete role
+   */
+  @Transactional()
+  async deleteRole(
+    organizationId: string,
+    roleId: string
+  ): Promise<{ name: string } | null> {
+    const [result] = await this.connection
+      .delete(role)
+      .where(
+        and(
+          eq(role.organizationId, organizationId),
+          eq(role.id, roleId)
+        )
+      )
+      .returning({ name: role.name });
+
+    return result ?? null;
+  }
 }

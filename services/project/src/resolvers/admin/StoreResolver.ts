@@ -39,7 +39,7 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   async membership() {
     return {
       __typename: "Membership" as const,
-      domain: `store:${this.value}`,
+      domain: `store:${this.value.id}`,
       organizationId: await this.get("organizationId"),
     };
   }

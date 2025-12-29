@@ -30,7 +30,7 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
     const requests = allStores.map((store) => ({
       userId: this.ctx.user!.id,
       domain: `store:${store.id}`,
-      resource: "*",
+      resource: "store.profile",
       action: "read",
     }));
 

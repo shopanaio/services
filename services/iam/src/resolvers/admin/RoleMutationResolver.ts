@@ -45,19 +45,56 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleUpdateInputSchema())
   async roleUpdate(args: { input: RoleUpdateInput }) {
     const { input } = args;
+    const { organizationId, id, displayName, description, permissions } = input;
 
-    // TODO: Implement role update script
-    // const result = await this.ctx.kernel.runScript(RoleUpdateScript, input);
+    // Find the role
+    const existingRole = await this.ctx.kernel.repository.organization.findRoleById(
+      organizationId,
+      id
+    );
+
+    if (!existingRole) {
+      return {
+        role: null,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Role not found",
+            field: "id",
+          },
+        ],
+      };
+    }
+
+    // Check if it's a system role
+    if (existingRole.isSystem) {
+      return {
+        role: null,
+        userErrors: [
+          {
+            code: "SYSTEM_ROLE",
+            message: "Cannot modify system role",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Update the role
+    const updatedRole = await this.ctx.kernel.repository.organization.updateRole(
+      organizationId,
+      id,
+      {
+        displayName: displayName ?? undefined,
+        description: description ?? undefined,
+      }
+    );
+
+    // TODO: Handle permissions update via casbin policies
 
     return {
-      role: null,
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message: "Role update is not implemented yet",
-          field: null,
-        },
-      ],
+      role: updatedRole ? new RoleResolver(updatedRole, this.ctx) : null,
+      userErrors: [],
     };
   }
 
@@ -67,19 +104,52 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleDeleteInputSchema())
   async roleDelete(args: { input: RoleDeleteInput }) {
     const { input } = args;
+    const { organizationId, id } = input;
 
-    // TODO: Implement role delete script
-    // const result = await this.ctx.kernel.runScript(RoleDeleteScript, input);
+    // Find the role
+    const existingRole = await this.ctx.kernel.repository.organization.findRoleById(
+      organizationId,
+      id
+    );
+
+    if (!existingRole) {
+      return {
+        deletedRoleName: null,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Role not found",
+            field: "id",
+          },
+        ],
+      };
+    }
+
+    // Check if it's a system role
+    if (existingRole.isSystem) {
+      return {
+        deletedRoleName: null,
+        userErrors: [
+          {
+            code: "SYSTEM_ROLE",
+            message: "Cannot delete system role",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Delete the role
+    const deleted = await this.ctx.kernel.repository.organization.deleteRole(
+      organizationId,
+      id
+    );
+
+    // TODO: Also delete associated casbin policies
 
     return {
-      deletedRoleId: null,
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message: "Role deletion is not implemented yet",
-          field: null,
-        },
-      ],
+      deletedRoleName: deleted?.name ?? null,
+      userErrors: [],
     };
   }
 }

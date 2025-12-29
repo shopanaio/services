@@ -1,0 +1,24 @@
+query StoreMembership($organizationId: ID!) {
+  storeQuery {
+    stores(organizationId: $organizationId) {
+      id
+      name
+      membership {
+        domain
+        roles {
+          id
+          domain
+          name
+          displayName
+          description
+          isSystem
+          permissions {
+            resource
+            actions
+          }
+          createdAt
+        }
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ export type GraphQLFileName =
   | 'project-api/ProjectDelete'
   | 'project-api/ProjectUpdate'
   | 'project-api/Projects'
+  | 'project-api/StoreMembership'
   | 'roles-api/Authorize'
   | 'roles-api/ProjectMemberRemove'
   | 'roles-api/ProjectMemberRoleChange'
