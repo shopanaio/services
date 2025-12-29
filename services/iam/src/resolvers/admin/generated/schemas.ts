@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AuthorizeInput, CurrencyCode, DimensionUnit, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationUpdateInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
+import { AuthorizeInput, CurrencyCode, DimensionUnit, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationUpdateInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -44,6 +44,13 @@ export function MemberInviteInputSchema(): z.ZodObject<Properties<MemberInviteIn
   })
 }
 
+export function MemberRemoveInputSchema(): z.ZodObject<Properties<MemberRemoveInput>> {
+  return z.object({
+    organizationId: z.string(),
+    userId: z.string()
+  })
+}
+
 export function MemberRoleChangeInputSchema(): z.ZodObject<Properties<MemberRoleChangeInput>> {
   return z.object({
     domain: z.string(),
@@ -62,7 +69,16 @@ export function OrganizationCreateInputSchema(): z.ZodObject<Properties<Organiza
 
 export function OrganizationUpdateInputSchema(): z.ZodObject<Properties<OrganizationUpdateInput>> {
   return z.object({
+    displayName: z.string().nullish(),
+    id: z.string(),
     name: z.string().nullish()
+  })
+}
+
+export function OwnershipTransferInputSchema(): z.ZodObject<Properties<OwnershipTransferInput>> {
+  return z.object({
+    newOwnerId: z.string(),
+    organizationId: z.string()
   })
 }
 

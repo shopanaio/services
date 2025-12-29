@@ -33,7 +33,7 @@ export class OrganizationUpdateScript extends BaseScript<
   protected async execute(
     params: OrganizationUpdateParams
   ): Promise<OrganizationUpdateResult> {
-    const { organizationId, displayName } = params;
+    const { organizationId, name, displayName } = params;
 
     // Find organization
     const org = await this.repository.organization.findById(organizationId);
@@ -45,6 +45,7 @@ export class OrganizationUpdateScript extends BaseScript<
           {
             code: "NOT_FOUND",
             message: "Organization not found",
+            field: ["organizationId"],
           },
         ],
       };
@@ -52,6 +53,7 @@ export class OrganizationUpdateScript extends BaseScript<
 
     // Update organization
     const updated = await this.repository.organization.update(organizationId, {
+      name,
       displayName,
     });
 
@@ -62,6 +64,7 @@ export class OrganizationUpdateScript extends BaseScript<
           {
             code: "UPDATE_FAILED",
             message: "Failed to update organization",
+            field: ["organizationId"],
           },
         ],
       };
@@ -88,6 +91,7 @@ export class OrganizationUpdateScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: ["organizationId"
           },
         ],
       };
@@ -101,6 +105,7 @@ export class OrganizationUpdateScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

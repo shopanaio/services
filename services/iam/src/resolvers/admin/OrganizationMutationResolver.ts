@@ -63,6 +63,7 @@ export class OrganizationMutationResolver extends IAMType<
     const { input } = args;
     const result = await this.ctx.kernel.runScript(OrganizationUpdateScript, {
       organizationId: input.id,
+      name: input.name ?? undefined,
       displayName: input.displayName ?? undefined,
     });
 

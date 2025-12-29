@@ -128,9 +128,17 @@ Input for updating organization.
 """
 input OrganizationUpdateInput {
   """
-  New name.
+  Organization ID.
+  """
+  id: ID!
+  """
+  New name (URL-friendly identifier).
   """
   name: String
+  """
+  New display name.
+  """
+  displayName: String
 }
 
 # ============================================================================

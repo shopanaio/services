@@ -716,6 +716,12 @@ export type Member = {
   grantedBy?: Maybe<User>;
   /** Unique identifier. */
   id: Scalars['ID']['output'];
+  /**
+   * Whether this member is the organization owner.
+   * Owner bypasses all authorization checks within the organization.
+   * Only applicable for org-level membership (domain = "org").
+   */
+  isOwner: Scalars['Boolean']['output'];
   /** Role name. */
   role: Scalars['String']['output'];
   /** User reference. */
@@ -752,6 +758,14 @@ export type MemberInvitePayload = {
   __typename?: 'MemberInvitePayload';
   member?: Maybe<Member>;
   userErrors: Array<GenericUserError>;
+};
+
+/** Input for removing a member from organization. */
+export type MemberRemoveInput = {
+  /** Organization ID. */
+  organizationId: Scalars['ID']['input'];
+  /** User ID of the member to remove. */
+  userId: Scalars['ID']['input'];
 };
 
 export type MemberRemovePayload = {
@@ -859,23 +873,33 @@ export type OrganizationMutation = {
   /**
    * Remove member from organization.
    * Requires: org admin or owner.
-   * Cannot remove self or owner.
+   * Cannot remove owner (transfer ownership first).
    */
   memberRemove: MemberRemovePayload;
-  /** Change role for a member in specific domain. */
+  /**
+   * Change role for a member in specific domain.
+   * Owner cannot be demoted.
+   */
   memberRoleChange: MemberRoleChangePayload;
   /**
    * Create a new organization.
    * Current user becomes the owner.
    */
   organizationCreate: OrganizationCreatePayload;
-  /** Delete organization. Requires: org owner. */
+  /** Delete organization. Requires: org owner only. */
   organizationDelete: OrganizationDeletePayload;
   /**
    * Update organization.
    * Requires: org admin or owner.
    */
   organizationUpdate: OrganizationUpdatePayload;
+  /**
+   * Transfer organization ownership to another admin.
+   * Only the current owner can transfer ownership.
+   * New owner must have admin role in the organization.
+   * Previous owner retains admin role.
+   */
+  ownershipTransfer: OwnershipTransferPayload;
 };
 
 
@@ -893,7 +917,7 @@ export type OrganizationMutationMemberInviteArgs = {
 
 /** Organization mutations. */
 export type OrganizationMutationMemberRemoveArgs = {
-  memberId: Scalars['ID']['input'];
+  input: MemberRemoveInput;
 };
 
 
@@ -910,8 +934,20 @@ export type OrganizationMutationOrganizationCreateArgs = {
 
 
 /** Organization mutations. */
+export type OrganizationMutationOrganizationDeleteArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Organization mutations. */
 export type OrganizationMutationOrganizationUpdateArgs = {
   input: OrganizationUpdateInput;
+};
+
+
+/** Organization mutations. */
+export type OrganizationMutationOwnershipTransferArgs = {
+  input: OwnershipTransferInput;
 };
 
 /** Organization queries. */
@@ -929,13 +965,32 @@ export type OrganizationQueryOrganizationArgs = {
 
 /** Input for updating organization. */
 export type OrganizationUpdateInput = {
-  /** New name. */
+  /** New display name. */
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  /** Organization ID. */
+  id: Scalars['ID']['input'];
+  /** New name (URL-friendly identifier). */
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type OrganizationUpdatePayload = {
   __typename?: 'OrganizationUpdatePayload';
   organization?: Maybe<Organization>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Input for transferring organization ownership. */
+export type OwnershipTransferInput = {
+  /** User ID of the new owner. Must be an admin of the organization. */
+  newOwnerId: Scalars['ID']['input'];
+  /** Organization ID. */
+  organizationId: Scalars['ID']['input'];
+};
+
+export type OwnershipTransferPayload = {
+  __typename?: 'OwnershipTransferPayload';
+  /** Whether the transfer was successful. */
+  success: Scalars['Boolean']['output'];
   userErrors: Array<GenericUserError>;
 };
 
@@ -1427,6 +1482,7 @@ export type ResolversTypes = ResolversObject<{
   MemberAccessRemovePayload: ResolverTypeWrapper<MemberAccessRemovePayload>;
   MemberInviteInput: MemberInviteInput;
   MemberInvitePayload: ResolverTypeWrapper<MemberInvitePayload>;
+  MemberRemoveInput: MemberRemoveInput;
   MemberRemovePayload: ResolverTypeWrapper<MemberRemovePayload>;
   MemberRoleChangeInput: MemberRoleChangeInput;
   MemberRoleChangePayload: ResolverTypeWrapper<MemberRoleChangePayload>;
@@ -1440,6 +1496,8 @@ export type ResolversTypes = ResolversObject<{
   OrganizationQuery: ResolverTypeWrapper<OrganizationQuery>;
   OrganizationUpdateInput: OrganizationUpdateInput;
   OrganizationUpdatePayload: ResolverTypeWrapper<OrganizationUpdatePayload>;
+  OwnershipTransferInput: OwnershipTransferInput;
+  OwnershipTransferPayload: ResolverTypeWrapper<OwnershipTransferPayload>;
   Query: ResolverTypeWrapper<{}>;
   ResourceDefinition: ResolverTypeWrapper<ResourceDefinition>;
   Role: ResolverTypeWrapper<Role>;
@@ -1493,6 +1551,7 @@ export type ResolversParentTypes = ResolversObject<{
   MemberAccessRemovePayload: MemberAccessRemovePayload;
   MemberInviteInput: MemberInviteInput;
   MemberInvitePayload: MemberInvitePayload;
+  MemberRemoveInput: MemberRemoveInput;
   MemberRemovePayload: MemberRemovePayload;
   MemberRoleChangeInput: MemberRoleChangeInput;
   MemberRoleChangePayload: MemberRoleChangePayload;
@@ -1506,6 +1565,8 @@ export type ResolversParentTypes = ResolversObject<{
   OrganizationQuery: OrganizationQuery;
   OrganizationUpdateInput: OrganizationUpdateInput;
   OrganizationUpdatePayload: OrganizationUpdatePayload;
+  OwnershipTransferInput: OwnershipTransferInput;
+  OwnershipTransferPayload: OwnershipTransferPayload;
   Query: {};
   ResourceDefinition: ResourceDefinition;
   Role: Role;
@@ -1584,6 +1645,7 @@ export type MemberResolvers<ContextType = ServiceContext, ParentType extends Res
   grantedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   grantedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   role?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1656,11 +1718,12 @@ export type OrganizationDeletePayloadResolvers<ContextType = ServiceContext, Par
 export type OrganizationMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationMutation'] = ResolversParentTypes['OrganizationMutation']> = ResolversObject<{
   memberAccessRemove?: Resolver<ResolversTypes['MemberAccessRemovePayload'], ParentType, ContextType, RequireFields<OrganizationMutationMemberAccessRemoveArgs, 'input'>>;
   memberInvite?: Resolver<ResolversTypes['MemberInvitePayload'], ParentType, ContextType, RequireFields<OrganizationMutationMemberInviteArgs, 'input'>>;
-  memberRemove?: Resolver<ResolversTypes['MemberRemovePayload'], ParentType, ContextType, RequireFields<OrganizationMutationMemberRemoveArgs, 'memberId'>>;
+  memberRemove?: Resolver<ResolversTypes['MemberRemovePayload'], ParentType, ContextType, RequireFields<OrganizationMutationMemberRemoveArgs, 'input'>>;
   memberRoleChange?: Resolver<ResolversTypes['MemberRoleChangePayload'], ParentType, ContextType, RequireFields<OrganizationMutationMemberRoleChangeArgs, 'input'>>;
   organizationCreate?: Resolver<ResolversTypes['OrganizationCreatePayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationCreateArgs, 'input'>>;
-  organizationDelete?: Resolver<ResolversTypes['OrganizationDeletePayload'], ParentType, ContextType>;
+  organizationDelete?: Resolver<ResolversTypes['OrganizationDeletePayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationDeleteArgs, 'id'>>;
   organizationUpdate?: Resolver<ResolversTypes['OrganizationUpdatePayload'], ParentType, ContextType, RequireFields<OrganizationMutationOrganizationUpdateArgs, 'input'>>;
+  ownershipTransfer?: Resolver<ResolversTypes['OwnershipTransferPayload'], ParentType, ContextType, RequireFields<OrganizationMutationOwnershipTransferArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1671,6 +1734,12 @@ export type OrganizationQueryResolvers<ContextType = ServiceContext, ParentType 
 
 export type OrganizationUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OrganizationUpdatePayload'] = ResolversParentTypes['OrganizationUpdatePayload']> = ResolversObject<{
   organization?: Resolver<Maybe<ResolversTypes['Organization']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type OwnershipTransferPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OwnershipTransferPayload'] = ResolversParentTypes['OwnershipTransferPayload']> = ResolversObject<{
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1834,6 +1903,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   OrganizationMutation?: OrganizationMutationResolvers<ContextType>;
   OrganizationQuery?: OrganizationQueryResolvers<ContextType>;
   OrganizationUpdatePayload?: OrganizationUpdatePayloadResolvers<ContextType>;
+  OwnershipTransferPayload?: OwnershipTransferPayloadResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   ResourceDefinition?: ResourceDefinitionResolvers<ContextType>;
   Role?: RoleResolvers<ContextType>;
