@@ -165,9 +165,9 @@ test.describe('System Role Protection (FR-7)', () => {
       variables: { organizationId },
     });
 
-    const storeData2 = storeMembershipData.storeQuery.stores.find((s) => s.id === storeId);
+    const storeData2 = storeMembershipData.storeQuery.stores.find((s: { id: string }) => s.id === storeId);
     const roles = storeData2?.membership?.roles;
-    const viewerRole = roles?.find((r) => r.name === 'viewer');
+    const viewerRole = roles?.find((r: { name: string }) => r.name === 'viewer');
     expect(viewerRole).toBeDefined();
     expect(viewerRole?.isSystem).toBe(true);
 
@@ -602,9 +602,7 @@ test.describe('System Role Protection (FR-7)', () => {
       variables: { organizationId },
     });
 
-    console.log('stores:', JSON.stringify(storeMembershipData.storeQuery.stores, null, 2));
-    const storeData2 = storeMembershipData.storeQuery.stores.find((s) => s.id === storeId);
-    console.log('storeData2:', JSON.stringify(storeData2, null, 2));
+    const storeData2 = storeMembershipData.storeQuery.stores.find((s: { id: string }) => s.id === storeId);
     const storeRoles = storeData2?.membership?.roles;
     expect(storeRoles).toBeDefined();
     expect(storeRoles?.length).toBeGreaterThan(0);
@@ -618,7 +616,7 @@ test.describe('System Role Protection (FR-7)', () => {
     expect(storeViewerRole?.isSystem).toBe(true);
   });
 
-  test.skip('Custom roles should have isSystem false', async ({ api }) => {
+  test('Custom roles should have isSystem false', async ({ api }) => {
     await api.session.setupUser();
 
     const orgName = generateOrgName();

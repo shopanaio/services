@@ -73,6 +73,8 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // Manager should NOT have admin permissions - roles are explicit, not inherited
+    const storeId = store?.id;
+    const domain = `store:${storeId}`;
     const adminOnlyActions = [
       { resource: 'store.members', action: 'invite' },
       { resource: 'store.members', action: 'remove' },
@@ -85,7 +87,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     for (const { resource, action } of adminOnlyActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { resource, action },
+          input: { organizationId, domain, resource, action },
         },
       });
 
@@ -118,7 +120,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     // Viewer should NOT have manager permissions
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain, resource: 'store.profile', action: 'update' },
       },
     });
 
@@ -192,9 +194,11 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer cannot update store profile (manager action)
+    const storeId = store?.id;
+    const domain = `store:${storeId}`;
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain, resource: 'store.profile', action: 'update' },
       },
     });
 
@@ -266,6 +270,8 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager cannot: delete store, manage members, manage roles
+    const storeId = store?.id;
+    const domain = `store:${storeId}`;
     const adminOnlyActions = [
       { resource: 'store.profile', action: 'delete' },
       { resource: 'store.members', action: 'invite' },
@@ -280,7 +286,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     for (const { resource, action } of adminOnlyActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { resource, action },
+          input: { organizationId, domain, resource, action },
         },
       });
 

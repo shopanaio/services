@@ -1,6 +1,7 @@
 import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { RoleResolver } from "./RoleResolver.js";
+import type { Domain } from "../../casbin/CasbinService.js";
 import type {
   RoleCreateInput,
   RoleUpdateInput,
@@ -23,19 +24,57 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleCreateInputSchema())
   async roleCreate(args: { input: RoleCreateInput }) {
     const { input } = args;
+    const { organizationId, domain, name, displayName, description, permissions } = input;
 
-    // TODO: Implement role creation script
-    // const result = await this.ctx.kernel.runScript(RoleCreateScript, input);
+    // Check if role with same name already exists in this domain
+    const existingRole = await this.ctx.kernel.repository.organization.findRole(
+      organizationId,
+      domain,
+      name
+    );
+
+    if (existingRole) {
+      return {
+        role: null,
+        userErrors: [
+          {
+            code: "DUPLICATE",
+            message: "Role with this name already exists in this domain",
+            field: "name",
+          },
+        ],
+      };
+    }
+
+    // Create the role in database (custom roles are never system roles)
+    const createdRole = await this.ctx.kernel.repository.organization.createRole({
+      organizationId,
+      domain,
+      name,
+      displayName,
+      description: description ?? undefined,
+      isSystem: false,
+    });
+
+    // Add casbin policies for permissions
+    for (const permission of permissions) {
+      for (const action of permission.actions) {
+        await this.ctx.kernel.repository.casbin.addPolicy({
+          organizationId,
+          role: name,
+          domain: domain as Domain,
+          resource: permission.resource,
+          action,
+        });
+      }
+    }
 
     return {
-      role: null,
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message: "Role creation is not implemented yet",
-          field: null,
-        },
-      ],
+      role: new RoleResolver(
+        { organizationId, domain, name },
+        this.ctx
+      ),
+      userErrors: [],
     };
   }
 
