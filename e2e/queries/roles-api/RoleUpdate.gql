@@ -9,7 +9,6 @@ mutation RoleUpdate($input: RoleUpdateInput!) {
         permissions {
           resource
           actions
-          effect
         }
         createdAt
       }

@@ -3,7 +3,6 @@ query OrganizationMembership($id: ID!) {
     organization(id: $id) {
       id
       name
-      slug
       membership {
         domain
         roles {
@@ -16,7 +15,6 @@ query OrganizationMembership($id: ID!) {
           permissions {
             resource
             actions
-            effect
           }
           createdAt
         }

@@ -3,7 +3,6 @@ query OrganizationRoles {
     currentStore {
       id
       name
-      slug
       membership {
         domain
         roles {
@@ -16,7 +15,6 @@ query OrganizationRoles {
           permissions {
             resource
             actions
-            effect
           }
           createdAt
         }

@@ -328,21 +328,91 @@ export class OrganizationMutationResolver extends IAMType<
 
   /**
    * Change member's role in the organization.
+   * Owner's role cannot be changed - use ownershipTransfer instead.
    */
   @ZodResolver(MemberRoleChangeInputSchema())
   async memberRoleChange(args: { input: MemberRoleChangeInput }) {
     const { input } = args;
+    const { kernel } = this.ctx;
 
-    // TODO: Implement member role change script
+    // Check if target user is owner - owner's role cannot be changed
+    const isTargetOwner = await kernel.repository.organization.isOwner(
+      input.organizationId,
+      input.userId
+    );
+
+    if (isTargetOwner) {
+      return {
+        member: null,
+        userErrors: [
+          {
+            code: "CANNOT_CHANGE_OWNER_ROLE",
+            message:
+              "Cannot change organization owner's role. Transfer ownership first.",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Find the target role
+    const targetRole = await kernel.repository.organization.findRole(
+      input.organizationId,
+      input.domain,
+      input.role
+    );
+
+    if (!targetRole) {
+      return {
+        member: null,
+        userErrors: [
+          {
+            code: "ROLE_NOT_FOUND",
+            message: `Role '${input.role}' not found in domain '${input.domain}'`,
+            field: ["role"],
+          },
+        ],
+      };
+    }
+
+    // Find existing user role
+    const existingUserRole = await kernel.repository.organization.findUserRole(
+      input.organizationId,
+      input.userId,
+      input.domain
+    );
+
+    if (!existingUserRole) {
+      return {
+        member: null,
+        userErrors: [
+          {
+            code: "MEMBER_NOT_FOUND",
+            message: "User does not have a role in this domain",
+            field: ["userId"],
+          },
+        ],
+      };
+    }
+
+    // Update user role
+    await kernel.repository.organization.updateUserRole(
+      existingUserRole.id,
+      targetRole.id
+    );
+
+    // Return updated member
     return {
-      member: null,
-      userErrors: [
+      member: new MemberResolver(
         {
-          code: "NOT_IMPLEMENTED",
-          message: "Member role change is not implemented yet",
-          field: null,
+          userId: input.userId,
+          role: input.role,
+          domain: input.domain,
+          organizationId: input.organizationId,
         },
-      ],
+        this.ctx
+      ),
+      userErrors: [],
     };
   }
 

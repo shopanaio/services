@@ -375,6 +375,23 @@ export class OrganizationRepository extends BaseRepository {
     return result;
   }
 
+  /**
+   * Update user role assignment
+   */
+  @Transactional()
+  async updateUserRole(
+    userRoleId: string,
+    newRoleId: string
+  ): Promise<UserRole | null> {
+    const [result] = await this.connection
+      .update(userRole)
+      .set({ roleId: newRoleId })
+      .where(eq(userRole.id, userRoleId))
+      .returning();
+
+    return result ?? null;
+  }
+
   // ============================================================================
   // Roles
   // ============================================================================

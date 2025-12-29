@@ -72,7 +72,7 @@ export type RoleDefinitions = {
 export const Roles = {
   organization: {
     admin: [
-      { resource: "org.profile", actions: ["read", "update", "delete"] },
+      { resource: "org.profile", actions: ["read", "update"] }, // delete is owner-only
       { resource: "org.members", actions: ["read", "invite", "update", "remove"] },
       { resource: "org.roles", actions: ["read", "create", "update", "delete"] },
       { resource: "org.stores", actions: ["create", "read", "list", "update", "delete"] },
