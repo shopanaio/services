@@ -31,12 +31,11 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 - Roles do NOT inherit permissions — each role has explicit permission set
 
 ### FR-4.1: Owner (Creator) Concept
-- Owner is NOT a role, but an attribute (creator) of organization or store
+- Owner is NOT a role, but an attribute (creator) of organization
 - Each organization has exactly one owner (the user who created it)
-- Each store has exactly one owner (the user who created it)
 - Owner always has `admin` role and cannot be demoted
 - Owner can transfer ownership to another `admin`
-- Owner has exclusive rights: delete organization/store, transfer ownership
+- Owner has exclusive rights: delete organization, transfer ownership
 
 ### FR-5: Site Admin Bypass
 - Site administrators bypass all RBAC checks
@@ -47,7 +46,7 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 
 ### FR-7: System Role Protection
 - System roles (`admin`, `member`, `viewer`, `manager`) cannot be deleted
-- Owner (creator) cannot have their `admin` role revoked
+- Organization owner (creator) cannot have their `admin` role revoked
 - Only custom roles created by users can be modified or deleted
 
 ### FR-8: Self-Role Modification Restriction
@@ -73,15 +72,16 @@ Shopana uses a Role-Based Access Control (RBAC) system built on [Casbin](https:/
 - Log entries include: actor, target user, role, domain, timestamp, action
 - Audit logs are immutable and retained for compliance
 
-### FR-12: Last Admin Protection
+### FR-12: Last Admin Protection (Organization Only)
 - Cannot remove the last `admin` from organization
-- Cannot remove the last `admin` from store
-- Cannot demote the last `admin` to a lower role
+- Cannot demote the last organization `admin` to a lower role
+- Store admins can all be removed (organization owner/admin always has full store access)
 
 ### FR-13: Soft Delete
 - Organizations and stores are never hard deleted
 - Soft delete (archive) preserves all data and role assignments
-- Archived entities can be restored by owner
+- Archived organizations can be restored by organization owner
+- Archived stores can be restored by store `admin` or organization `admin`
 - Users lose access to archived stores but roles are preserved
 
 ---
@@ -160,8 +160,6 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | `manager` | View and edit profile   |
 | `admin`   | Full store management   |
 
-**Owner:** The user who created the store. Owner always has `admin` role in the store and has exclusive right to delete the store.
-
 ---
 
 ## Resources and Actions
@@ -212,12 +210,10 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | ----------------------- | ------ | ------- | ----- |
 | store.profile (read)    | ✓      | ✓       | ✓     |
 | store.profile (update)  | -      | ✓       | ✓     |
-| store.profile (delete)  | -      | -       | ✓*    |
+| store.profile (delete)  | -      | -       | ✓     |
 | store.members (*)       | -      | -       | ✓     |
 | store.roles (*)         | -      | -       | ✓     |
 | store.access (*)        | -      | -       | ✓     |
-
-*Owner-only: Only the store owner (creator) can delete the store.
 
 **Note:** Store deletion also requires `org.stores (delete)` permission at organization level.
 
@@ -243,8 +239,7 @@ Organization `admin` has full access to **all** store resources in **all** store
 | `admin`            | `admin`             |
 | `member`           | `admin`             |
 
-- Store creator becomes store `admin` and is marked as store **owner**
-- Owner attribute is stored separately from role (e.g., `created_by` field)
+- Store creator automatically receives store `admin` role
 
 ### On Organization Creation
 
@@ -306,21 +301,21 @@ Organization `admin` has full access to **all** store resources in **all** store
 | `viewer`   | `admin`    | store `admin`  |
 | `manager`  | `viewer`   | store `admin`  |
 | `manager`  | `admin`    | store `admin`  |
-| `admin`    | `manager`  | store `admin`* |
-| `admin`    | `viewer`   | store `admin`* |
-
-*Cannot demote last admin or owner (see FR-13)
+| `admin`    | `manager`  | store `admin`  |
+| `admin`    | `viewer`   | store `admin`  |
 
 ### Forbidden Transitions
 
-| Transition                    | Reason                              |
-| ----------------------------- | ----------------------------------- |
-| owner's `admin` → any         | Owner cannot be demoted             |
-| self → any                    | Cannot modify own role              |
-| last `admin` → lower          | Must have at least one admin        |
+| Transition                              | Reason                              |
+| --------------------------------------- | ----------------------------------- |
+| org owner's `admin` → any               | Organization owner cannot be demoted |
+| self → any                              | Cannot modify own role              |
+| last org `admin` → lower                | Organization must have at least one admin |
 
-### Ownership Transfer
+**Note:** Store has no "last admin" protection — organization owner/admin always has full access to all stores.
 
-- Only current owner can transfer ownership
-- Target user must have `admin` role
+### Ownership Transfer (Organization Only)
+
+- Only current organization owner can transfer ownership
+- Target user must have `admin` role in organization
 - After transfer, previous owner retains `admin` role
