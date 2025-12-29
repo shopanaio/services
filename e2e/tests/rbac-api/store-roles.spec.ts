@@ -73,9 +73,12 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer can: store.profile.read
+    const storeId = store?.id;
+    const domain = `store:${storeId}`;
+
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain, resource: 'store.profile', action: 'read' },
       },
     });
     const readResult = readAuth as unknown as AuthorizeResult;
@@ -101,7 +104,7 @@ test.describe('Store Roles (FR-4)', () => {
     for (const { resource, action } of deniedActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { resource, action },
+          input: { organizationId, domain, resource, action },
         },
       });
 
@@ -175,6 +178,9 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager can: store.profile.read, store.profile.update
+    const storeId = store?.id;
+    const domain = `store:${storeId}`;
+
     const allowedActions = [
       { resource: 'store.profile', action: 'read' },
       { resource: 'store.profile', action: 'update' },
@@ -183,7 +189,7 @@ test.describe('Store Roles (FR-4)', () => {
     for (const { resource, action } of allowedActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { resource, action },
+          input: { organizationId, domain, resource, action },
         },
       });
 
@@ -209,7 +215,7 @@ test.describe('Store Roles (FR-4)', () => {
     for (const { resource, action } of deniedActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { resource, action },
+          input: { organizationId, domain, resource, action },
         },
       });
 
@@ -283,6 +289,9 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.userId = storeAdminUser.userId;
 
     // 4. Verify store admin can perform all store.* actions
+    const storeId = store?.id;
+    const domain = `store:${storeId}`;
+
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
       { resource: 'store.profile', action: 'update' },
@@ -302,7 +311,7 @@ test.describe('Store Roles (FR-4)', () => {
     for (const { resource, action } of storeActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { resource, action },
+          input: { organizationId, domain, resource, action },
         },
       });
 
