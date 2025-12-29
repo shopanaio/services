@@ -47,6 +47,7 @@ export class MemberRemoveScript extends BaseScript<
             code: "CANNOT_REMOVE_OWNER",
             message:
               "Cannot remove organization owner. Transfer ownership first.",
+            field: [],
           },
         ],
       };
@@ -65,6 +66,7 @@ export class MemberRemoveScript extends BaseScript<
           {
             code: "NOT_FOUND",
             message: "Member not found",
+            field: [],
           },
         ],
       };
@@ -91,6 +93,7 @@ export class MemberRemoveScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: [],
           },
         ],
       };
@@ -104,6 +107,7 @@ export class MemberRemoveScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

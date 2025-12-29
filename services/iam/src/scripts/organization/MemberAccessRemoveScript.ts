@@ -51,6 +51,7 @@ export class MemberAccessRemoveScript extends BaseScript<
           {
             code: "NOT_FOUND",
             message: "User does not have access to this domain",
+            field: ["domain"],
           },
         ],
       };
@@ -96,6 +97,7 @@ export class MemberAccessRemoveScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: [],
           },
         ],
       };
@@ -109,6 +111,7 @@ export class MemberAccessRemoveScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

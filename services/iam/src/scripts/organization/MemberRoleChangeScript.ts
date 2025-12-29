@@ -50,6 +50,7 @@ export class MemberRoleChangeScript extends BaseScript<
             code: "CANNOT_CHANGE_OWNER_ROLE",
             message:
               "Cannot change organization owner's role. Transfer ownership first.",
+            field: ["userId"],
           },
         ],
       };
@@ -69,7 +70,7 @@ export class MemberRoleChangeScript extends BaseScript<
           {
             code: "ROLE_NOT_FOUND",
             message: `Role '${role}' not found in domain '${domain}'`,
-            field: "role",
+            field: ["role"],
           },
         ],
       };
@@ -89,7 +90,7 @@ export class MemberRoleChangeScript extends BaseScript<
           {
             code: "MEMBER_NOT_FOUND",
             message: "User does not have a role in this domain",
-            field: "userId",
+            field: ["userId"],
           },
         ],
       };
@@ -150,6 +151,7 @@ export class MemberRoleChangeScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: [],
           },
         ],
       };
@@ -163,6 +165,7 @@ export class MemberRoleChangeScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };
