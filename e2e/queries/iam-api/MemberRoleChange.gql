@@ -1,0 +1,20 @@
+mutation MemberRoleChange($input: MemberRoleChangeInput!) {
+  organizationMutation {
+    memberRoleChange(input: $input) {
+      member {
+        id
+        user {
+          id
+          email
+        }
+        role
+        isOwner
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

@@ -29,6 +29,7 @@ query OrganizationMembership($id: ID!) {
             lastName
           }
           role
+          isOwner
           grantedAt
           grantedBy {
             id

@@ -1,0 +1,12 @@
+mutation OrganizationDelete($id: ID!) {
+  organizationMutation {
+    organizationDelete(id: $id) {
+      deletedOrganizationId
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

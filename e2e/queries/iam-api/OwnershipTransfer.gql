@@ -1,0 +1,12 @@
+mutation OwnershipTransfer($input: OwnershipTransferInput!) {
+  organizationMutation {
+    ownershipTransfer(input: $input) {
+      success
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

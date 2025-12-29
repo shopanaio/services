@@ -1,0 +1,12 @@
+mutation MemberAccessRemove($input: MemberAccessRemoveInput!) {
+  organizationMutation {
+    memberAccessRemove(input: $input) {
+      success
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

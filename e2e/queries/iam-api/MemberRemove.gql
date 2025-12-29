@@ -1,6 +1,6 @@
-mutation MemberRemove($memberId: ID!) {
+mutation MemberRemove($input: MemberRemoveInput!) {
   organizationMutation {
-    memberRemove(memberId: $memberId) {
+    memberRemove(input: $input) {
       removedMemberId
       userErrors {
         code
