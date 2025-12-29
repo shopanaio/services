@@ -117,7 +117,7 @@ export class OrganizationRepository extends BaseRepository {
   @Transactional()
   async update(
     id: string,
-    updates: { name?: string }
+    updates: { name?: string; displayName?: string }
   ): Promise<Organization | null> {
     const [result] = await this.connection
       .update(organization)
@@ -390,6 +390,18 @@ export class OrganizationRepository extends BaseRepository {
       .returning();
 
     return result ?? null;
+  }
+
+  /**
+   * Delete user role assignment
+   */
+  @Transactional()
+  async deleteUserRole(userRoleId: string): Promise<boolean> {
+    const result = await this.connection
+      .delete(userRole)
+      .where(eq(userRole.id, userRoleId));
+
+    return (result as any).rowCount > 0;
   }
 
   // ============================================================================

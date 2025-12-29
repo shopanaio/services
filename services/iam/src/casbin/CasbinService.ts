@@ -458,6 +458,44 @@ export class CasbinService {
   }
 
   /**
+   * Remove all policies for a specific role in a domain.
+   */
+  async removeRolePolicies(params: {
+    organizationId: string;
+    role: string;
+    domain: Domain;
+  }): Promise<boolean> {
+    const { organizationId, role, domain } = params;
+
+    if (!this.adapter) {
+      throw new Error("Adapter not initialized");
+    }
+
+    // Get all policies for this role
+    const policies = await this.getPoliciesForRole(organizationId, role);
+
+    // Filter by domain and remove each one
+    for (const policy of policies) {
+      const [, policyDomain, resource, action] = policy;
+      if (policyDomain === domain) {
+        await this.adapter.removePolicy("p", "p", [
+          role,
+          domain,
+          resource,
+          action,
+          organizationId,
+        ]);
+      }
+    }
+
+    // Also update enforcer
+    const enforcer = await this.getEnforcer(organizationId);
+    await enforcer.loadPolicy();
+
+    return true;
+  }
+
+  /**
    * Get members for specific domain.
    */
   async getMembers(

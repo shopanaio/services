@@ -1,7 +1,7 @@
 import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
-import type { Domain, Resource } from "../../casbin/CasbinService.js";
+import { AuthorizeScript } from "../../scripts/organization/AuthorizeScript.js";
 import type { AuthorizeInput } from "./generated/types.js";
 import { AuthorizeInputSchema } from "./generated/schemas.js";
 
@@ -29,7 +29,6 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
    * 2. RBAC check: Falls back to Casbin for role-based access
    */
   @ZodResolver(AuthorizeInputSchema())
-  // TODO: Use script
   async authorize(args: { input: AuthorizeInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;
@@ -41,31 +40,17 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       };
     }
 
-    // Owner bypass: Organization owner has full access to everything in the org
-    const isOwner = await kernel.repository.organization.isOwner(
-      input.organizationId,
-      currentUser.id
-    );
-
-    if (isOwner) {
-      return {
-        allowed: true,
-        reason: null,
-      };
-    }
-
-    // Fall back to RBAC check
-    const allowed = await kernel.repository.casbin.enforce({
+    const result = await kernel.runScript(AuthorizeScript, {
       subject: currentUser.id,
       organizationId: input.organizationId,
-      domain: input.domain as Domain,
-      resource: input.resource as Resource,
+      domain: input.domain,
+      resource: input.resource,
       action: input.action,
     });
 
     return {
-      allowed,
-      reason: allowed ? null : "Permission denied",
+      allowed: result.allowed,
+      reason: result.deniedReason ?? null,
     };
   }
 }
