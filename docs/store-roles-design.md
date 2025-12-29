@@ -175,7 +175,6 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | `org.roles`   | read, create, update, delete       | Role management          |
 | `org.stores`  | create, read, list, update, delete | Store management         |
 | `org.access`  | read, grant, revoke                | Member access to stores  |
-| `org.owner`   | transfer                           | Ownership transfer       |
 
 ### Store Resources (prefix: `store.`)
 
@@ -204,9 +203,8 @@ Store domain format: `store:<uuid>` (example: `store:550e8400-e29b-41d4-a716-446
 | org.roles (*)          | ✓     | -      |
 | org.stores (*)         | ✓     | -      |
 | org.access (*)         | ✓     | -      |
-| org.owner (transfer)   | ✓*    | -      |
 
-*Owner-only actions: Only the organization owner (creator) can delete the organization or transfer ownership, even though they have `admin` role.
+*Owner-only actions: Only the organization owner (creator) can  transfer ownership.
 
 ### Store Level (domain: `store:{id}`)
 
