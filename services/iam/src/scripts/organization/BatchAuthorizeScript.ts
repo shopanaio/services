@@ -16,15 +16,14 @@ export class BatchAuthorizeScript extends BaseScript<
   ): Promise<BatchAuthorizeResult> {
     const { organizationId, requests } = params;
 
-    // Apply ORG_DOMAIN default to requests without domain
-    const normalizedRequests = requests.map((req) => ({
-      ...req,
-      domain: req.domain ?? ORG_DOMAIN,
-    }));
-
-    const results = await this.repository.casbin.batchAuthorize({
+    const results = await this.repository.casbin.batchEnforce({
       organizationId,
-      requests: normalizedRequests,
+      requests: requests.map((req) => ({
+        subject: req.userId,
+        domain: req.domain ?? ORG_DOMAIN,
+        resource: req.resource,
+        action: req.action,
+      })),
     });
 
     return { results };

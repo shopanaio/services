@@ -604,32 +604,4 @@ export class CasbinService {
     return enforcer.batchEnforce(casbinRequests);
   }
 
-  /**
-   * Batch authorize - wrapper around batchEnforce for service broker calls.
-   * Uses userId instead of subject for API consistency.
-   *
-   * @param organizationId - Organization to check in
-   * @param requests - Array of {userId, domain, resource, action}
-   * @returns Array of boolean results in same order as requests
-   */
-  async batchAuthorize(params: {
-    organizationId: string;
-    requests: Array<{
-      userId: string;
-      domain: Domain;
-      resource: Resource;
-      action: string;
-    }>;
-  }): Promise<boolean[]> {
-    const { organizationId, requests } = params;
-    return this.batchEnforce({
-      organizationId,
-      requests: requests.map((req) => ({
-        subject: req.userId,
-        domain: req.domain,
-        resource: req.resource,
-        action: req.action,
-      })),
-    });
-  }
 }
