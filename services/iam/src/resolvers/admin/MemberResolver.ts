@@ -1,6 +1,7 @@
 import { IAMType, Cache } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import type { UserRole } from "../../repositories/models/authorization.js";
+import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
 
 export interface MemberInput {
   userId: string;
@@ -58,5 +59,24 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   async grantedBy(): Promise<UserResolver | null> {
     const { grantedBy } = await this.data;
     return grantedBy ? new UserResolver(grantedBy, this.ctx) : null;
+  }
+
+  /**
+   * Whether this member is the organization owner.
+   * Only applicable for org-level membership (domain = "org").
+   * Store-level members always return false.
+   */
+  async isOwner(): Promise<boolean> {
+    const { organizationId, userId, domain } = this.value;
+
+    // Only org-level members can be owners
+    if (domain !== ORG_DOMAIN) {
+      return false;
+    }
+
+    return this.ctx.kernel.repository.organization.isOwner(
+      organizationId,
+      userId
+    );
   }
 }

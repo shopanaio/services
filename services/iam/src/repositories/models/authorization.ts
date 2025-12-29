@@ -51,6 +51,8 @@ export const organizationMember = iamSchema.table(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     userId: varchar("user_id", { length: 128 }).notNull(),
+    /** Organization owner flag. Only one member per org can have is_owner=true */
+    isOwner: boolean("is_owner").notNull().default(false),
     invitedBy: varchar("invited_by", { length: 128 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

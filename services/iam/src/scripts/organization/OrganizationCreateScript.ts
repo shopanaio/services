@@ -49,7 +49,9 @@ export class OrganizationCreateScript extends BaseScript<
 
     // Create predefined roles from @shopana/rbac
     const createdRoles: Record<string, { id: string }> = {};
-    for (const roleName of Object.keys(Roles.organization) as Array<keyof typeof Roles.organization>) {
+    for (const roleName of Object.keys(Roles.organization) as Array<
+      keyof typeof Roles.organization
+    >) {
       const meta = RolesMeta.organization[roleName];
       const role = await this.repository.organization.createRole({
         organizationId: org.id,
@@ -76,10 +78,11 @@ export class OrganizationCreateScript extends BaseScript<
       }
     }
 
-    // Add current user as organization member
+    // Add current user as organization member and owner
     await this.repository.organization.addMember({
       organizationId: org.id,
       userId,
+      isOwner: true, // Creator is the owner
     });
 
     // Create user role assignment in user_role table (assign admin role to creator)

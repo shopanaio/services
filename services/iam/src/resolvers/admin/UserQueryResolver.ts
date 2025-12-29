@@ -23,8 +23,13 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
   /**
    * Check if current user has permission for resource:action.
    * Named 'checkPermission' in GraphQL schema as 'authorize'.
+   *
+   * Authorization hierarchy:
+   * 1. Owner bypass: Organization owner has implicit access to everything in the org
+   * 2. RBAC check: Falls back to Casbin for role-based access
    */
   @ZodResolver(AuthorizeInputSchema())
+  // TODO: Use script
   async authorize(args: { input: AuthorizeInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;
@@ -36,6 +41,20 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       };
     }
 
+    // Owner bypass: Organization owner has full access to everything in the org
+    const isOwner = await kernel.repository.organization.isOwner(
+      input.organizationId,
+      currentUser.id
+    );
+
+    if (isOwner) {
+      return {
+        allowed: true,
+        reason: null,
+      };
+    }
+
+    // Fall back to RBAC check
     const allowed = await kernel.repository.casbin.enforce({
       subject: currentUser.id,
       organizationId: input.organizationId,

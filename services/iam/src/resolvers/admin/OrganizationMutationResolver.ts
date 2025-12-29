@@ -71,20 +71,171 @@ export class OrganizationMutationResolver extends IAMType<
 
   /**
    * Soft delete organization.
+   * Only the organization owner can delete the organization.
    */
   async organizationDelete(args: { id: string }) {
     const { id } = args;
+    const { currentUser, kernel } = this.ctx;
 
-    // TODO: Implement organization delete script
+    if (!currentUser?.id) {
+      return {
+        deletedOrganizationId: null,
+        userErrors: [
+          {
+            code: "NOT_AUTHENTICATED",
+            message: "Not authenticated",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Check if user is owner
+    const isOwner = await kernel.repository.organization.isOwner(
+      id,
+      currentUser.id
+    );
+
+    if (!isOwner) {
+      return {
+        deletedOrganizationId: null,
+        userErrors: [
+          {
+            code: "FORBIDDEN",
+            message: "Only the organization owner can delete the organization",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Delete organization
+    const deleted = await kernel.repository.organization.delete(id);
+
+    if (!deleted) {
+      return {
+        deletedOrganizationId: null,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Organization not found",
+            field: null,
+          },
+        ],
+      };
+    }
+
     return {
-      deletedOrganizationId: null,
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message: "Organization deletion is not implemented yet",
-          field: null,
-        },
-      ],
+      deletedOrganizationId: id,
+      userErrors: [],
+    };
+  }
+
+  /**
+   * Transfer organization ownership to another admin.
+   * Only the current owner can transfer ownership.
+   */
+  async ownershipTransfer(args: {
+    input: { organizationId: string; newOwnerId: string };
+  }) {
+    const { input } = args;
+    const { currentUser, kernel } = this.ctx;
+
+    if (!currentUser?.id) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "NOT_AUTHENTICATED",
+            message: "Not authenticated",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Check if current user is owner
+    const isOwner = await kernel.repository.organization.isOwner(
+      input.organizationId,
+      currentUser.id
+    );
+
+    if (!isOwner) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "FORBIDDEN",
+            message: "Only the organization owner can transfer ownership",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Check if new owner is an admin
+    const newOwnerRole = await kernel.repository.organization.findUserRole(
+      input.organizationId,
+      input.newOwnerId,
+      "org"
+    );
+
+    if (!newOwnerRole) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "INVALID_TARGET",
+            message: "New owner must be a member of the organization",
+            field: ["newOwnerId"],
+          },
+        ],
+      };
+    }
+
+    // Get role details to check if admin
+    const roleRecord = await kernel.repository.organization.findRole(
+      input.organizationId,
+      "org",
+      "admin"
+    );
+
+    if (!roleRecord || newOwnerRole.roleId !== roleRecord.id) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "INVALID_TARGET",
+            message:
+              "New owner must have admin role in the organization",
+            field: ["newOwnerId"],
+          },
+        ],
+      };
+    }
+
+    // Transfer ownership
+    const result = await kernel.repository.organization.transferOwnership(
+      input.organizationId,
+      input.newOwnerId
+    );
+
+    if (!result.success) {
+      return {
+        success: false,
+        userErrors: [
+          {
+            code: "TRANSFER_FAILED",
+            message: result.error ?? "Failed to transfer ownership",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    return {
+      success: true,
+      userErrors: [],
     };
   }
 
@@ -122,20 +273,56 @@ export class OrganizationMutationResolver extends IAMType<
 
   /**
    * Remove member from organization and revoke all roles.
+   * Owner cannot be removed.
    */
-  async memberRemove(args: { memberId: string }) {
-    const { memberId } = args;
+  async memberRemove(args: {
+    input: { organizationId: string; userId: string };
+  }) {
+    const { input } = args;
+    const { kernel } = this.ctx;
 
-    // TODO: Implement member remove script
+    // Check if member is owner
+    const isTargetOwner = await kernel.repository.organization.isOwner(
+      input.organizationId,
+      input.userId
+    );
+
+    if (isTargetOwner) {
+      return {
+        removedMemberId: null,
+        userErrors: [
+          {
+            code: "CANNOT_REMOVE_OWNER",
+            message:
+              "Cannot remove organization owner. Transfer ownership first.",
+            field: null,
+          },
+        ],
+      };
+    }
+
+    // Remove member
+    const removed = await kernel.repository.organization.removeMember(
+      input.organizationId,
+      input.userId
+    );
+
+    if (!removed) {
+      return {
+        removedMemberId: null,
+        userErrors: [
+          {
+            code: "NOT_FOUND",
+            message: "Member not found",
+            field: null,
+          },
+        ],
+      };
+    }
+
     return {
-      removedMemberId: null,
-      userErrors: [
-        {
-          code: "NOT_IMPLEMENTED",
-          message: "Member removal is not implemented yet",
-          field: null,
-        },
-      ],
+      removedMemberId: input.userId,
+      userErrors: [],
     };
   }
 

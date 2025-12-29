@@ -33,6 +33,8 @@ export interface AddMemberInput {
   organizationId: string;
   userId: string;
   invitedBy?: string;
+  /** Set to true for organization creator (owner) */
+  isOwner?: boolean;
 }
 
 // ============================================================================
@@ -148,7 +150,7 @@ export class OrganizationRepository extends BaseRepository {
    */
   @Transactional()
   async addMember(input: AddMemberInput): Promise<OrganizationMember | null> {
-    const { organizationId, userId, invitedBy } = input;
+    const { organizationId, userId, invitedBy, isOwner = false } = input;
 
     try {
       const [result] = await this.connection
@@ -157,6 +159,7 @@ export class OrganizationRepository extends BaseRepository {
           organizationId,
           userId,
           invitedBy,
+          isOwner,
         })
         .returning();
 
@@ -217,6 +220,70 @@ export class OrganizationRepository extends BaseRepository {
       );
 
     return (result as any).rowCount > 0;
+  }
+
+  /**
+   * Find the owner of an organization
+   */
+  @ReadOnly()
+  async findOwner(organizationId: string): Promise<OrganizationMember | null> {
+    const [result] = await this.connection
+      .select()
+      .from(organizationMember)
+      .where(
+        and(
+          eq(organizationMember.organizationId, organizationId),
+          eq(organizationMember.isOwner, true)
+        )
+      );
+
+    return result ?? null;
+  }
+
+  /**
+   * Check if user is owner of organization
+   */
+  @ReadOnly()
+  async isOwner(organizationId: string, userId: string): Promise<boolean> {
+    const member = await this.findMember(organizationId, userId);
+    return member?.isOwner ?? false;
+  }
+
+  /**
+   * Transfer ownership to another member
+   * - New owner must be an existing member
+   * - Previous owner loses isOwner flag but keeps membership
+   */
+  @Transactional()
+  async transferOwnership(
+    organizationId: string,
+    newOwnerId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    // Find current owner
+    const currentOwner = await this.findOwner(organizationId);
+    if (!currentOwner) {
+      return { success: false, error: "Organization has no owner" };
+    }
+
+    // Find new owner member
+    const newOwnerMember = await this.findMember(organizationId, newOwnerId);
+    if (!newOwnerMember) {
+      return { success: false, error: "New owner must be a member of the organization" };
+    }
+
+    // Remove owner flag from current owner
+    await this.connection
+      .update(organizationMember)
+      .set({ isOwner: false, updatedAt: new Date() })
+      .where(eq(organizationMember.id, currentOwner.id));
+
+    // Set owner flag on new owner
+    await this.connection
+      .update(organizationMember)
+      .set({ isOwner: true, updatedAt: new Date() })
+      .where(eq(organizationMember.id, newOwnerMember.id));
+
+    return { success: true };
   }
 
   /**

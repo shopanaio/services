@@ -171,6 +171,42 @@ type MemberAccessRemovePayload {
   success: Boolean!
   userErrors: [GenericUserError!]!
 }
+
+"""
+Input for transferring organization ownership.
+"""
+input OwnershipTransferInput {
+  """
+  Organization ID.
+  """
+  organizationId: ID!
+  """
+  User ID of the new owner. Must be an admin of the organization.
+  """
+  newOwnerId: ID!
+}
+
+"""
+Input for removing a member from organization.
+"""
+input MemberRemoveInput {
+  """
+  Organization ID.
+  """
+  organizationId: ID!
+  """
+  User ID of the member to remove.
+  """
+  userId: ID!
+}
+
+type OwnershipTransferPayload {
+  """
+  Whether the transfer was successful.
+  """
+  success: Boolean!
+  userErrors: [GenericUserError!]!
+}
 """
 Organization queries.
 """
@@ -200,9 +236,16 @@ type OrganizationMutation {
     input: OrganizationUpdateInput!
   ): OrganizationUpdatePayload!
   """
-  Delete organization. Requires: org owner.
+  Delete organization. Requires: org owner only.
   """
-  organizationDelete: OrganizationDeletePayload!
+  organizationDelete(id: ID!): OrganizationDeletePayload!
+  """
+  Transfer organization ownership to another admin.
+  Only the current owner can transfer ownership.
+  New owner must have admin role in the organization.
+  Previous owner retains admin role.
+  """
+  ownershipTransfer(input: OwnershipTransferInput!): OwnershipTransferPayload!
   """
   Invite member to organization with role assignments.
   """
@@ -210,11 +253,12 @@ type OrganizationMutation {
   """
   Remove member from organization.
   Requires: org admin or owner.
-  Cannot remove self or owner.
+  Cannot remove owner (transfer ownership first).
   """
-  memberRemove(memberId: ID!): MemberRemovePayload!
+  memberRemove(input: MemberRemoveInput!): MemberRemovePayload!
   """
   Change role for a member in specific domain.
+  Owner cannot be demoted.
   """
   memberRoleChange(input: MemberRoleChangeInput!): MemberRoleChangePayload!
   """

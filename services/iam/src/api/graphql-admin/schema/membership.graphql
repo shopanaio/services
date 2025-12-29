@@ -20,6 +20,12 @@ type Member @key(fields: "id") {
   """
   role: String!
   """
+  Whether this member is the organization owner.
+  Owner bypasses all authorization checks within the organization.
+  Only applicable for org-level membership (domain = "org").
+  """
+  isOwner: Boolean!
+  """
   When access was granted.
   """
   grantedAt: DateTime!
