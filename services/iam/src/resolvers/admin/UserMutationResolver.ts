@@ -1,24 +1,20 @@
+import { z } from "zod";
+import { ZodSchema } from "@shopana/shared-kernel";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
 import { UserUpdateEmailScript } from "../../scripts/user/UserUpdateEmailScript.js";
 import { UserUpdatePasswordScript } from "../../scripts/user/UserUpdatePasswordScript.js";
-
-// Input types
-interface UserUpdateProfileInput {
-  firstName?: string | null;
-  lastName?: string | null;
-  language?: string | null;
-}
-
-interface UserUpdateEmailInput {
-  newEmail: string;
-}
-
-interface UserUpdatePasswordInput {
-  currentPassword: string;
-  newPassword: string;
-}
+import type {
+  UserUpdateProfileInput,
+  UserUpdateEmailInput,
+  UserUpdatePasswordInput,
+} from "./generated/types.js";
+import {
+  UserUpdateProfileInputSchema,
+  UserUpdateEmailInputSchema,
+  UserUpdatePasswordInputSchema,
+} from "./generated/schemas.js";
 
 /**
  * UserMutation namespace resolver.
@@ -28,6 +24,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's profile (firstName, lastName, language).
    */
+  @ZodSchema(z.object({ input: UserUpdateProfileInputSchema() }))
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;
@@ -64,6 +61,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's email address with verification.
    */
+  @ZodSchema(z.object({ input: UserUpdateEmailInputSchema() }))
   async userUpdateEmail(args: { input: UserUpdateEmailInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;
@@ -98,6 +96,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's password (requires current password).
    */
+  @ZodSchema(z.object({ input: UserUpdatePasswordInputSchema() }))
   async userUpdatePassword(args: { input: UserUpdatePasswordInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;

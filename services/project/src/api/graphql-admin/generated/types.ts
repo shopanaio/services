@@ -1103,6 +1103,8 @@ export type StoreUpdateInput = {
   locales?: InputMaybe<Array<LocaleCode>>;
   /** New display name */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** Organization id for authorization context */
+  organizationId: Scalars['ID']['input'];
   /** New IANA timezone identifier */
   timezone?: InputMaybe<Scalars['String']['input']>;
 };

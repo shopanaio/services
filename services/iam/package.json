@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "db:generate": "npx --yes tsx ../../node_modules/drizzle-kit/bin.cjs generate"
+    "db:generate": "npx --yes tsx ../../node_modules/drizzle-kit/bin.cjs generate",
+    "zod:generate": "ts-to-zod"
   },
   "exports": {
     ".": {
@@ -48,6 +49,8 @@
     "@types/node": "^20.14.14",
     "@types/uuid": "^11.0.0",
     "drizzle-kit": "^0.31.8",
+    "graphql-codegen-typescript-validation-schema": "^0.18.1",
+    "ts-to-zod": "^5.1.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   },

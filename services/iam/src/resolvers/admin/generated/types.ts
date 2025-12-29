@@ -939,7 +939,7 @@ export type Query = {
   __typename?: 'Query';
   /** Organization queries namespace. */
   organizationQuery: OrganizationQuery;
-  /** Get current authenticated user. */
+  /** User management queries. */
   userQuery: UserQuery;
 };
 

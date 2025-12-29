@@ -1,31 +1,17 @@
+import { z } from "zod";
+import { ZodSchema } from "@shopana/shared-kernel";
 import { IAMType } from "./IAMType.js";
 import { RoleResolver } from "./RoleResolver.js";
-
-// Input types
-interface RoleCreateInput {
-  organizationId: string;
-  domain: string;
-  name: string;
-  displayName?: string | null;
-  description?: string | null;
-  permissions?: PermissionInput[] | null;
-}
-
-interface RoleUpdateInput {
-  id: string;
-  displayName?: string | null;
-  description?: string | null;
-  permissions?: PermissionInput[] | null;
-}
-
-interface RoleDeleteInput {
-  id: string;
-}
-
-interface PermissionInput {
-  resource: string;
-  action: string;
-}
+import type {
+  RoleCreateInput,
+  RoleUpdateInput,
+  RoleDeleteInput,
+} from "./generated/types.js";
+import {
+  RoleCreateInputSchema,
+  RoleUpdateInputSchema,
+  RoleDeleteInputSchema,
+} from "./generated/schemas.js";
 
 /**
  * RoleMutation namespace resolver.
@@ -35,6 +21,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Create a new role with permissions for the organization.
    */
+  @ZodSchema(z.object({ input: RoleCreateInputSchema() }))
   async roleCreate(args: { input: RoleCreateInput }) {
     const { input } = args;
 
@@ -56,6 +43,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update an existing role's display name, description, or permissions.
    */
+  @ZodSchema(z.object({ input: RoleUpdateInputSchema() }))
   async roleUpdate(args: { input: RoleUpdateInput }) {
     const { input } = args;
 
@@ -77,6 +65,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Delete a custom role from the organization.
    */
+  @ZodSchema(z.object({ input: RoleDeleteInputSchema() }))
   async roleDelete(args: { input: RoleDeleteInput }) {
     const { input } = args;
 
