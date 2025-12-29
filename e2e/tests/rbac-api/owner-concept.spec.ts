@@ -1,6 +1,18 @@
 import { test } from '@fixtures/base.extend';
 
-test.describe('Owner Concept (FR-4.1)', () => {
+/**
+ * Owner Concept (FR-4.1) - Organization Only
+ *
+ * Owner is NOT a role, but an attribute (creator) of organization.
+ * Each organization has exactly one owner (the user who created it).
+ * Owner always has admin role and cannot be demoted.
+ * Owner can transfer ownership to another admin.
+ * Owner has exclusive rights: delete organization, transfer ownership.
+ *
+ * NOTE: Store does NOT have an owner concept - only roles (viewer, manager, admin).
+ * Store admins can all be removed since org owner/admin always has full store access.
+ */
+test.describe('Owner Concept (FR-4.1) - Organization Only', () => {
   test('Organization creator should be marked as owner', async ({ api }) => {
     // Test owner assignment on creation
     // 1. Create organization
@@ -54,45 +66,36 @@ test.describe('Owner Concept (FR-4.1)', () => {
     // 4. Verify transfer fails
   });
 
-  test('Store creator should be marked as store owner', async ({ api }) => {
-    // Test store owner assignment
+  // Store Has No Owner Concept
+  test('Store creator receives admin role but is NOT marked as owner', async ({ api }) => {
+    // Test store creation without owner concept
     // 1. Create organization and store
-    // 2. Verify store creator is marked as store owner
-    // 3. Verify owner has admin role in store
+    // 2. Verify store creator has admin role in store
+    // 3. Verify there is no owner attribute on store (no created_by/owner_id)
   });
 
-  test('Each store should have exactly one owner', async ({ api }) => {
-    // Test single store owner constraint
-    // 1. Create store
-    // 2. Verify exactly one user is marked as store owner
-  });
-
-  test('Store owner should always have admin role in the store', async ({ api }) => {
-    // Test store owner role guarantee
-    // 1. Create store
-    // 2. Verify store owner has admin role
-  });
-
-  test('Store owner cannot be demoted', async ({ api }) => {
-    // Test store owner demotion protection
-    // 1. Create store
-    // 2. Attempt to demote store owner to manager or viewer
-    // 3. Verify operation fails
-  });
-
-  test('Store owner has exclusive right to delete the store', async ({ api }) => {
-    // Test store owner delete rights
-    // 1. Create store with owner
-    // 2. Add another admin to store
-    // 3. Verify non-owner admin cannot delete store
-    // 4. Verify only store owner can delete store
-  });
-
-  test('Store owner can transfer ownership', async ({ api }) => {
-    // Test store ownership transfer
+  test('Store admin can be demoted to manager or viewer', async ({ api }) => {
+    // Test store admin demotion (unlike org owner)
     // 1. Create store
     // 2. Add another admin to store
-    // 3. Transfer ownership to new admin
-    // 4. Verify transfer successful
+    // 3. Demote original store admin to manager
+    // 4. Verify demotion succeeds (no owner protection)
+  });
+
+  test('Any store admin can delete the store (with org permission)', async ({ api }) => {
+    // Test store deletion by any admin
+    // 1. Create organization and store
+    // 2. Add another store admin
+    // 3. Verify any store admin with org.stores.delete can delete the store
+    // Note: Store deletion requires both store.profile.delete and org.stores.delete
+  });
+
+  test('Organization admin/owner always has full access to all stores', async ({ api }) => {
+    // Test org admin store access without store roles
+    // 1. Create organization
+    // 2. Create store with a different user as store admin
+    // 3. Verify org admin has full access to the store
+    // 4. Verify org admin can remove all store admins
+    // 5. Verify org admin retains access after removing all store admins
   });
 });
