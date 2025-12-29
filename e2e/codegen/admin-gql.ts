@@ -170,6 +170,10 @@ export type ApiAuthTokenPayload = {
 export type ApiAuthorizeInput = {
   /** Action to check. */
   action: Scalars['String']['input'];
+  /** Domain ("org" for organization, or "store:{uuid}"). */
+  domain: Scalars['String']['input'];
+  /** Organization ID. */
+  organizationId: Scalars['ID']['input'];
   /** Resource to check. */
   resource: Scalars['String']['input'];
 };
@@ -2016,6 +2020,12 @@ export type ApiMember = {
   grantedBy?: Maybe<ApiUser>;
   /** Unique identifier. */
   id: Scalars['ID']['output'];
+  /**
+   * Whether this member is the organization owner.
+   * Owner bypasses all authorization checks within the organization.
+   * Only applicable for org-level membership (domain = "org").
+   */
+  isOwner: Scalars['Boolean']['output'];
   /** Role name. */
   role: Scalars['String']['output'];
   /** User reference. */
@@ -2052,6 +2062,14 @@ export type ApiMemberInvitePayload = {
   __typename?: 'MemberInvitePayload';
   member?: Maybe<ApiMember>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for removing a member from organization. */
+export type ApiMemberRemoveInput = {
+  /** Organization ID. */
+  organizationId: Scalars['ID']['input'];
+  /** User ID of the member to remove. */
+  userId: Scalars['ID']['input'];
 };
 
 export type ApiMemberRemovePayload = {
@@ -2358,23 +2376,33 @@ export type ApiOrganizationMutation = {
   /**
    * Remove member from organization.
    * Requires: org admin or owner.
-   * Cannot remove self or owner.
+   * Cannot remove owner (transfer ownership first).
    */
   memberRemove: ApiMemberRemovePayload;
-  /** Change role for a member in specific domain. */
+  /**
+   * Change role for a member in specific domain.
+   * Owner cannot be demoted.
+   */
   memberRoleChange: ApiMemberRoleChangePayload;
   /**
    * Create a new organization.
    * Current user becomes the owner.
    */
   organizationCreate: ApiOrganizationCreatePayload;
-  /** Delete organization. Requires: org owner. */
+  /** Delete organization. Requires: org owner only. */
   organizationDelete: ApiOrganizationDeletePayload;
   /**
    * Update organization.
    * Requires: org admin or owner.
    */
   organizationUpdate: ApiOrganizationUpdatePayload;
+  /**
+   * Transfer organization ownership to another admin.
+   * Only the current owner can transfer ownership.
+   * New owner must have admin role in the organization.
+   * Previous owner retains admin role.
+   */
+  ownershipTransfer: ApiOwnershipTransferPayload;
 };
 
 
@@ -2392,7 +2420,7 @@ export type ApiOrganizationMutationMemberInviteArgs = {
 
 /** Organization mutations. */
 export type ApiOrganizationMutationMemberRemoveArgs = {
-  memberId: Scalars['ID']['input'];
+  input: ApiMemberRemoveInput;
 };
 
 
@@ -2409,8 +2437,20 @@ export type ApiOrganizationMutationOrganizationCreateArgs = {
 
 
 /** Organization mutations. */
+export type ApiOrganizationMutationOrganizationDeleteArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Organization mutations. */
 export type ApiOrganizationMutationOrganizationUpdateArgs = {
   input: ApiOrganizationUpdateInput;
+};
+
+
+/** Organization mutations. */
+export type ApiOrganizationMutationOwnershipTransferArgs = {
+  input: ApiOwnershipTransferInput;
 };
 
 /** Organization queries. */
@@ -2435,6 +2475,21 @@ export type ApiOrganizationUpdateInput = {
 export type ApiOrganizationUpdatePayload = {
   __typename?: 'OrganizationUpdatePayload';
   organization?: Maybe<ApiOrganization>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Input for transferring organization ownership. */
+export type ApiOwnershipTransferInput = {
+  /** User ID of the new owner. Must be an admin of the organization. */
+  newOwnerId: Scalars['ID']['input'];
+  /** Organization ID. */
+  organizationId: Scalars['ID']['input'];
+};
+
+export type ApiOwnershipTransferPayload = {
+  __typename?: 'OwnershipTransferPayload';
+  /** Whether the transfer was successful. */
+  success: Scalars['Boolean']['output'];
   userErrors: Array<ApiGenericUserError>;
 };
 
@@ -2904,6 +2959,8 @@ export type ApiQuery = {
   organizationQuery: ApiOrganizationQuery;
   /** Store-related queries */
   storeQuery: ApiStoreQuery;
+  /** User management queries. */
+  userQuery: ApiUserQuery;
 };
 
 /** Resource definition for role editor UI. */
