@@ -207,6 +207,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       variables: {
         input: {
           id: userB.storeId,
+          organizationId: userB.organizationId,
           displayName: 'Hacked Store B',
         },
       },

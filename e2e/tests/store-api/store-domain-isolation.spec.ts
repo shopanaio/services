@@ -375,9 +375,9 @@ test.describe('Store-Level Domain Isolation', () => {
   });
 
   test('User cannot delete store they have no access to', async ({ api }) => {
-    // Invite user with role only in Store A
+    // Invite user with admin role in Store A (owner is not a role, it's creator attribute)
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'owner' },
+      { domain: `store:${owner.storeAId}`, role: 'admin' },
     ]);
 
     // Switch to invited user

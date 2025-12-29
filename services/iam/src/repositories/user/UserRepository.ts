@@ -9,10 +9,16 @@ import type { Database } from "../../infrastructure/db/database.js";
 import { user, session, jwks } from "../models/auth.js";
 import type { Auth } from "../../auth/auth.js";
 
-interface JwtUserPayload extends JWTPayload {
+export interface JwtUserPayload extends JWTPayload {
   sub: string;
   email: string;
   name: string;
+}
+
+export interface ParseJwtResult {
+  success: boolean;
+  payload: JwtUserPayload | null;
+  error?: string;
 }
 
 // ============================================================================
@@ -237,14 +243,15 @@ export class UserRepository {
   }
 
   /**
-   * Verify JWT access token and extract user info
+   * Parse and verify JWT token, returning the payload without user lookup.
+   * Use this when you need the JWT claims but not the full user record.
    */
-  private async verifyJwtToken(token: string): Promise<GetCurrentUserResult> {
+  async parseJwt(token: string): Promise<ParseJwtResult> {
     try {
       // Check if it looks like a JWT (has 3 parts separated by dots)
       if (!token.includes(".") || token.split(".").length !== 3) {
-        console.log('[IAM verifyJwtToken] Not a JWT token');
-        return { success: false, user: null, error: "Not a JWT token" };
+        console.log("[IAM parseJwt] Not a JWT token");
+        return { success: false, payload: null, error: "Not a JWT token" };
       }
 
       const issuer = process.env.JWT_ISSUER || "shopana-iam";
@@ -253,8 +260,8 @@ export class UserRepository {
       // Get JWKS from database (with caching)
       const JWKS = await this.getLocalJWKS();
       if (!JWKS) {
-        console.log("[IAM verifyJwtToken] JWKS not available");
-        return { success: false, user: null, error: "JWKS not available" };
+        console.log("[IAM parseJwt] JWKS not available");
+        return { success: false, payload: null, error: "JWKS not available" };
       }
 
       const { payload } = await jwtVerify(token, JWKS, {
@@ -265,28 +272,51 @@ export class UserRepository {
       const jwtPayload = payload as JwtUserPayload;
 
       if (!jwtPayload.sub) {
-        return { success: false, user: null, error: "Invalid JWT payload" };
-      }
-
-      // Fetch full user data from database
-      const userRecord = await this.findById(jwtPayload.sub);
-      if (!userRecord) {
-        console.log('[IAM verifyJwtToken] User not found:', jwtPayload.sub);
-        return { success: false, user: null, error: "User not found" };
+        return { success: false, payload: null, error: "Invalid JWT payload" };
       }
 
       return {
         success: true,
-        user: userRecord,
+        payload: jwtPayload,
       };
     } catch (error) {
       return {
         success: false,
-        user: null,
+        payload: null,
         error:
           error instanceof Error ? error.message : "JWT verification failed",
       };
     }
+  }
+
+  /**
+   * Verify JWT access token and extract user info
+   */
+  private async verifyJwtToken(token: string): Promise<GetCurrentUserResult> {
+    const parseResult = await this.parseJwt(token);
+
+    if (!parseResult.success || !parseResult.payload) {
+      return {
+        success: false,
+        user: null,
+        error: parseResult.error,
+      };
+    }
+
+    // Fetch full user data from database
+    const userRecord = await this.findById(parseResult.payload.sub);
+    if (!userRecord) {
+      console.log(
+        "[IAM verifyJwtToken] User not found:",
+        parseResult.payload.sub
+      );
+      return { success: false, user: null, error: "User not found" };
+    }
+
+    return {
+      success: true,
+      user: userRecord,
+    };
   }
 
   /**

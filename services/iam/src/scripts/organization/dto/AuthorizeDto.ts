@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { Domain, Resource } from "../../../casbin/CasbinService.js";
+import type { AuthorizeParams, Domain, ResourceName } from "@shopana/rbac";
 
 export const authorizeInputSchema = z.object({
-  userId: z.string().min(1, "User ID is required"),
+  subject: z.string().min(1, "Subject (user ID) is required"),
   organizationId: z.string().uuid("Invalid organization ID").optional(),
   organizationName: z.string().min(1).optional(),
   domain: z.string().optional(),
@@ -12,17 +12,8 @@ export const authorizeInputSchema = z.object({
 
 export type AuthorizeInput = z.infer<typeof authorizeInputSchema>;
 
-export interface AuthorizeParams {
-  userId: string;
-  /** Organization ID - use this OR organizationName */
-  organizationId?: string;
-  /** Organization name (slug) - will be resolved to ID via NameResolver */
-  organizationName?: string;
-  /** Domain scope. Defaults to "org" if not provided. */
-  domain?: Domain;
-  resource: Resource;
-  action: string;
-}
+// Re-export from @shopana/rbac
+export type { AuthorizeParams, Domain, ResourceName };
 
 export interface AuthorizeResult {
   allowed: boolean;

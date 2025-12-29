@@ -7,7 +7,11 @@ import type {
 } from "@shopana/rbac";
 
 // Re-export from rbac for backwards compatibility
-export type { AuthorizeParams, AuthProvider, Authorizable } from "@shopana/rbac";
+export type {
+  AuthorizeParams,
+  AuthProvider,
+  Authorizable,
+} from "@shopana/rbac";
 
 /**
  * Authorization error thrown when access is denied
@@ -109,7 +113,7 @@ export function Policy<
           [
             {
               code: "UNAUTHENTICATED",
-              message: "Authentication required",
+              message: "Access denied: Subject is missing",
               field: null,
             },
           ],

@@ -12,7 +12,12 @@ export interface ServiceContext {
   /** Kernel for business logic */
   kernel: Kernel;
   /** Current authenticated user (null if not authenticated) */
-  currentUser: User | null;
+  currentUser: {
+    /** Current user data */
+    data: User | null;
+    /** Current user ID */
+    id: string;
+  } | null;
   /** Data loaders for batch loading */
   loaders: Loader;
 }

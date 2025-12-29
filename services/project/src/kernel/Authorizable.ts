@@ -38,8 +38,8 @@ export class AuthProvider implements IAuthProvider {
    * User ID for authorization checks.
    * Uses override if provided, otherwise falls back to current user from context.
    */
-  get userId(): string | null {
-    return this.overrideUserId ?? getContext().user?.id ?? null;
+  get subject(): string | null {
+    return getContext().user?.id ?? null;
   }
 
   /**
@@ -49,8 +49,8 @@ export class AuthProvider implements IAuthProvider {
    * Authorization is delegated to IAM service.
    */
   async authorize(params: ProjectAuthorizeParams): Promise<boolean> {
-    const userId = params.userId ?? this.userId;
-    if (!userId) {
+    const subject = params.subject ?? this.subject;
+    if (!subject) {
       return false;
     }
 
@@ -71,7 +71,7 @@ export class AuthProvider implements IAuthProvider {
 
     // Delegate to IAM service
     const result = (await this.services.broker.call("iam.authorize", {
-      userId,
+      subject,
       organizationId: params.organizationId,
       organizationName: params.organizationName,
       resource: params.resource,

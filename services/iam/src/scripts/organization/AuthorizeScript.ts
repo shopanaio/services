@@ -11,7 +11,7 @@ export class AuthorizeScript extends BaseScript<
 > {
   protected async execute(params: AuthorizeParams): Promise<AuthorizeResult> {
     const {
-      userId,
+      subject,
       organizationId,
       organizationName,
       domain,
@@ -26,7 +26,7 @@ export class AuthorizeScript extends BaseScript<
       domain,
       resource,
       action,
-      userId,
+      subject,
     });
 
     return {

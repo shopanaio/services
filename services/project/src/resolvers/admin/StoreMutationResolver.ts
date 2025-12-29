@@ -4,7 +4,6 @@ import type {
   WeightUnit,
   DimensionUnit,
 } from "@shopana/shared-references";
-import type { StoreStatus } from "../../repositories/models/index.js";
 import { BaseResolver } from "./BaseResolver.js";
 import { StoreResolver } from "./StoreResolver.js";
 import { StoreCreateScript } from "../../scripts/store/StoreCreateScript.js";
@@ -15,6 +14,7 @@ import { CurrencySetDefaultScript } from "../../scripts/currency/CurrencySetDefa
 import { ApiKeyCreateScript } from "../../scripts/apiKey/ApiKeyCreateScript.js";
 import { ApiKeyRevokeScript } from "../../scripts/apiKey/ApiKeyRevokeScript.js";
 import { ApiKeyDeleteScript } from "../../scripts/apiKey/ApiKeyDeleteScript.js";
+import { StoreStatus } from "@src/repositories/models/store.js";
 
 // Input types
 interface StoreCreateInput {
@@ -26,7 +26,7 @@ interface StoreCreateInput {
   locales: LocaleCode[];
   currencies: CurrencyCode[];
   defaultCurrency: CurrencyCode;
-  status?: StoreStatus | null;
+  status?: string | null;
   timezone?: string | null;
   email: string;
 }
@@ -103,7 +103,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       locales: input.locales,
       currencies: input.currencies,
       defaultCurrency: input.defaultCurrency,
-      status: input.status ?? undefined,
+      status: (input.status?.toLowerCase() as StoreStatus) ?? undefined,
       timezone: input.timezone ?? undefined,
       email: input.email,
     });

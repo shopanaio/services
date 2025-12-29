@@ -39,6 +39,7 @@ import {
   type CreateRolesResult,
 } from "./scripts/organization/dto/CreateRolesDto.js";
 import { ORG_DOMAIN } from "./casbin/CasbinService.js";
+import { User } from "@src/repositories/Repository.js";
 
 /**
  * IAM broker actions registered with @Action decorator.
@@ -56,11 +57,13 @@ export class IamBrokerActions extends BrokerActions {
   }
 
   private async createUserContext(userId: string): Promise<ServiceContext> {
-    const user = await this.kernel.repository.user.findById(userId);
     return {
       requestId: `broker-${Date.now()}`,
       kernel: this.kernel,
-      currentUser: user,
+      currentUser: {
+        id: userId,
+        data: null,
+      },
       loaders: new Loader(this.kernel.repository),
     };
   }
@@ -96,10 +99,10 @@ export class IamBrokerActions extends BrokerActions {
   @Action("authorize")
   @ZodSchema(authorizeInputSchema)
   async authorize(params: AuthorizeParams): Promise<AuthorizeResult> {
-    const ctx = await this.createUserContext(params.userId);
+    const ctx = await this.createUserContext(params.subject!);
     return runWithContext(ctx, () =>
       this.kernel.runScript(AuthorizeScript, {
-        userId: params.userId,
+        subject: params.subject,
         organizationId: params.organizationId,
         domain: params.domain ?? ORG_DOMAIN,
         resource: params.resource,

@@ -3,7 +3,10 @@ import type { Repository, User } from "../../repositories/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
-    currentUser: User | null;
+    currentUser: {
+      id: string;
+      data: User | null;
+    };
   }
 }
 
@@ -39,12 +42,15 @@ export function buildAdminContextMiddleware(config: ContextMiddlewareConfig) {
     }
 
     // Validate session token via Better Auth
-    const result = await config.repository.user.getCurrentUser(token);
-    if (!result.success) {
+    const result = await config.repository.user.parseJwt(token);
+    if (!result.success || !result.payload?.sub) {
       // Don't fail request - just leave user as null
       return;
     }
 
-    request.currentUser = result.user;
+    request.currentUser = {
+      id: result.payload.sub,
+      data: null,
+    };
   };
 }
