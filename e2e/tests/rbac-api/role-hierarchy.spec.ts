@@ -324,7 +324,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
       },
     });
     const readResult = readAuth;
-    expect(readResult.authorize.allowed).toBe(true);
+    expect(readResult.userQuery.authorize.allowed).toBe(true);
 
     // 5. Verify viewer cannot: store.profile.update, store.members.*, store.roles.*, store.access.*
     const deniedActions = [
@@ -676,7 +676,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const updateResult = updateAuth;
     expect(
-      updateResult.authorize.allowed,
+      updateResult.userQuery.authorize.allowed,
       'Viewer should NOT inherit manager permission: store.profile.update',
     ).toBe(false);
 
