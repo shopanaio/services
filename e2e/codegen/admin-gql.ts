@@ -22,8 +22,6 @@ export type Scalars = {
   Timestamp: { input: string; output: string; }
   TransportOptions: { input: any; output: any; }
   Upload: { input: File; output: File; }
-  join__FieldSet: { input: any; output: any; }
-  link__Import: { input: any; output: any; }
 };
 
 /** API key for programmatic access to the project */
@@ -2064,7 +2062,7 @@ export type ApiMemberRemovePayload = {
 
 /** Input for changing member's role. */
 export type ApiMemberRoleChangeInput = {
-  /** Domain ("org" for organization, or "store:uuid", "store:*"). */
+  /** Domain ("org" for organization, or "store:{uuid}"). */
   domain: Scalars['String']['input'];
   /** Organization ID where the member belongs. */
   organizationId: Scalars['ID']['input'];
@@ -2452,14 +2450,6 @@ export type ApiPageInfo = {
   /** When paginating backwards, the cursor to continue. */
   startCursor?: Maybe<Scalars['String']['output']>;
 };
-
-/** Permission effect. */
-export enum PermissionEffect {
-  /** Allow the action. */
-  Allow = 'ALLOW',
-  /** Deny the action (takes priority over ALLOW). */
-  Deny = 'DENY'
-}
 
 /** A product represents an item that can be sold. */
 export type ApiProduct = ApiNode & {
@@ -2939,8 +2929,7 @@ export type ApiRole = {
   /**
    * Domain scope for this role.
    * - "org" = organization-level role
-   * - "store:uuid" = store-specific role
-   * - "store:*" = all stores
+   * - "store:{uuid}" = store-specific role
    */
   domain: Scalars['String']['output'];
   /** Unique identifier. */
@@ -2957,7 +2946,7 @@ export type ApiRole = {
 
 /** Role assignment - assigns role to user in specific domain. */
 export type ApiRoleAssignment = {
-  /** Domain ID ("org" for organization, or "store:uuid", "store:*"). */
+  /** Domain ID ("org" for organization, or "store:{uuid}"). */
   domain: Scalars['String']['input'];
   /** Role name. */
   role: Scalars['String']['input'];
@@ -2972,8 +2961,7 @@ export type ApiRoleCreateInput = {
   /**
    * Domain scope for role.
    * - "org" = organization-level role
-   * - "store:uuid" = store-specific role
-   * - "store:*" = all stores
+   * - "store:{uuid}" = store-specific role
    */
   domain: Scalars['String']['input'];
   /** Unique role name (slug). */
@@ -3048,30 +3036,17 @@ export type ApiRoleMutationRoleUpdateArgs = {
 /** Role permission - access to resource with specific actions. */
 export type ApiRolePermission = {
   __typename?: 'RolePermission';
-  /**
-   * Allowed actions (e.g.: create, read, update, delete).
-   * Supports wildcard: *.
-   */
+  /** Allowed actions (e.g.: create, read, update, delete). */
   actions: Array<Scalars['String']['output']>;
-  /**
-   * Effect: ALLOW or DENY.
-   * DENY takes priority over ALLOW.
-   */
-  effect: PermissionEffect;
-  /**
-   * Resource name (e.g.: product, order, project/settings).
-   * Supports wildcards: *, product/*, order/*.
-   */
+  /** Resource name (e.g.: org.profile, store.members). */
   resource: Scalars['String']['output'];
 };
 
 /** Input for role permission. */
 export type ApiRolePermissionInput = {
-  /** Actions (create, read, update, delete, *). */
+  /** Actions (create, read, update, delete). */
   actions: Array<Scalars['String']['input']>;
-  /** Effect: ALLOW or DENY. */
-  effect: PermissionEffect;
-  /** Resource (product, order, *, product/*). */
+  /** Resource (e.g.: org.profile, store.members). */
   resource: Scalars['String']['input'];
 };
 
@@ -3364,6 +3339,8 @@ export type ApiStoreUpdateInput = {
   locales?: InputMaybe<Array<LocaleCode>>;
   /** New display name */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** Organization id for authorization context */
+  organizationId: Scalars['ID']['input'];
   /** New IANA timezone identifier */
   timezone?: InputMaybe<Scalars['String']['input']>;
 };
@@ -4283,20 +4260,4 @@ export enum WeightUnit {
   Lb = 'lb',
   /** Ounce */
   Oz = 'oz'
-}
-
-export enum Join__Graph {
-  AppsAdmin = 'APPS_ADMIN',
-  IamAdmin = 'IAM_ADMIN',
-  InventoryAdmin = 'INVENTORY_ADMIN',
-  MediaAdmin = 'MEDIA_ADMIN',
-  OrdersAdmin = 'ORDERS_ADMIN',
-  ProjectAdmin = 'PROJECT_ADMIN'
-}
-
-export enum Link__Purpose {
-  /** `EXECUTION` features provide metadata necessary for operation execution. */
-  Execution = 'EXECUTION',
-  /** `SECURITY` features provide metadata necessary to securely resolve fields. */
-  Security = 'SECURITY'
 }
