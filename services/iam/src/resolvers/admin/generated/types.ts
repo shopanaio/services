@@ -64,6 +64,10 @@ export type AuthTokenPayload = {
 export type AuthorizeInput = {
   /** Action to check. */
   action: Scalars['String']['input'];
+  /** Domain ("org" for organization, or "store:{uuid}"). */
+  domain: Scalars['String']['input'];
+  /** Organization ID. */
+  organizationId: Scalars['ID']['input'];
   /** Resource to check. */
   resource: Scalars['String']['input'];
 };
@@ -1408,6 +1412,7 @@ export type ResolversTypes = ResolversObject<{
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   AuthorizeInput: AuthorizeInput;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   AuthorizePayload: ResolverTypeWrapper<AuthorizePayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CurrencyCode: CurrencyCode;
@@ -1418,7 +1423,6 @@ export type ResolversTypes = ResolversObject<{
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;
   Member: ResolverTypeWrapper<Member>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   MemberAccessRemoveInput: MemberAccessRemoveInput;
   MemberAccessRemovePayload: ResolverTypeWrapper<MemberAccessRemovePayload>;
   MemberInviteInput: MemberInviteInput;
@@ -1477,6 +1481,7 @@ export type ResolversParentTypes = ResolversObject<{
   String: Scalars['String']['output'];
   Int: Scalars['Int']['output'];
   AuthorizeInput: AuthorizeInput;
+  ID: Scalars['ID']['output'];
   AuthorizePayload: AuthorizePayload;
   Boolean: Scalars['Boolean']['output'];
   DateTime: Scalars['DateTime']['output'];
@@ -1484,7 +1489,6 @@ export type ResolversParentTypes = ResolversObject<{
   GenericUserError: GenericUserError;
   JSON: Scalars['JSON']['output'];
   Member: Member;
-  ID: Scalars['ID']['output'];
   MemberAccessRemoveInput: MemberAccessRemoveInput;
   MemberAccessRemovePayload: MemberAccessRemovePayload;
   MemberInviteInput: MemberInviteInput;

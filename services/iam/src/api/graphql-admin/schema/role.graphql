@@ -180,6 +180,14 @@ Input for authorize check.
 """
 input AuthorizeInput {
   """
+  Organization ID.
+  """
+  organizationId: ID!
+  """
+  Domain ("org" for organization, or "store:{uuid}").
+  """
+  domain: String!
+  """
   Resource to check.
   """
   resource: String!

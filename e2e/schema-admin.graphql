@@ -1,6 +1,9 @@
 type Query {
   appsQuery: AppsQuery!
 
+  """User management queries."""
+  userQuery: UserQuery!
+
   """Organization queries namespace."""
   organizationQuery: OrganizationQuery!
   inventoryQuery: InventoryQuery!

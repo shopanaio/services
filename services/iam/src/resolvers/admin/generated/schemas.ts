@@ -22,6 +22,8 @@ export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 export function AuthorizeInputSchema(): z.ZodObject<Properties<AuthorizeInput>> {
   return z.object({
     action: z.string(),
+    domain: z.string(),
+    organizationId: z.string(),
     resource: z.string()
   })
 }
