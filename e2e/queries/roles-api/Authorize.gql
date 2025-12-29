@@ -1,6 +1,8 @@
 query Authorize($input: AuthorizeInput!) {
-  authorize(input: $input) {
-    allowed
-    deniedReason
+  userQuery {
+    authorize(input: $input) {
+      allowed
+      deniedReason
+    }
   }
 }

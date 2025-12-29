@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { ZodSchema } from "@shopana/shared-kernel";
+import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserSignUpScript } from "../../scripts/user/UserSignUpScript.js";
@@ -26,7 +25,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Register a new user account.
    */
-  @ZodSchema(z.object({ input: UserSignUpInputSchema() }))
+  @ZodResolver(UserSignUpInputSchema())
   async signUp(args: { input: UserSignUpInput }) {
     const { input } = args;
     const result = await this.ctx.kernel.runScript(UserSignUpScript, {
@@ -48,7 +47,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Authenticate user with email and password.
    */
-  @ZodSchema(z.object({ input: UserSignInInputSchema() }))
+  @ZodResolver(UserSignInInputSchema())
   async signIn(args: { input: UserSignInInput }) {
     const { input } = args;
     const result = await this.ctx.kernel.runScript(UserSignInScript, {
@@ -70,7 +69,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Sign out user and invalidate session/refresh token.
    */
-  @ZodSchema(z.object({ input: UserSignOutInputSchema() }))
+  @ZodResolver(UserSignOutInputSchema())
   async signOut(_args: { input: UserSignOutInput }) {
     // TODO: Implement session invalidation
     return {
@@ -88,7 +87,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Refresh access token using refresh token.
    */
-  @ZodSchema(z.object({ input: UserTokenRefreshInputSchema() }))
+  @ZodResolver(UserTokenRefreshInputSchema())
   async tokenRefresh(args: { input: UserTokenRefreshInput }) {
     const { input } = args;
     const result = await this.ctx.kernel.runScript(TokenRefreshScript, {

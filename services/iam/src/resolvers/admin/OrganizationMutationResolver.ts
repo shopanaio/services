@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { ZodSchema } from "@shopana/shared-kernel";
+import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 import { MemberResolver } from "./MemberResolver.js";
@@ -30,7 +29,7 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Create a new organization.
    */
-  @ZodSchema(z.object({ input: OrganizationCreateInputSchema() }))
+  @ZodResolver(OrganizationCreateInputSchema())
   async organizationCreate(args: { input: OrganizationCreateInput }) {
     const { input } = args;
     const result = await this.ctx.kernel.runScript(
@@ -53,7 +52,7 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Update organization name.
    */
-  @ZodSchema(z.object({ input: OrganizationUpdateInputSchema() }))
+  @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
     const { input } = args;
 
@@ -92,7 +91,7 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Invite a member to the organization with roles.
    */
-  @ZodSchema(z.object({ input: MemberInviteInputSchema() }))
+  @ZodResolver(MemberInviteInputSchema())
   async memberInvite(args: { input: MemberInviteInput }) {
     const { input } = args;
     const result = await this.ctx.kernel.runScript(MemberInviteScript, {
@@ -143,7 +142,7 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Change member's role in the organization.
    */
-  @ZodSchema(z.object({ input: MemberRoleChangeInputSchema() }))
+  @ZodResolver(MemberRoleChangeInputSchema())
   async memberRoleChange(args: { input: MemberRoleChangeInput }) {
     const { input } = args;
 
@@ -163,7 +162,7 @@ export class OrganizationMutationResolver extends IAMType<
   /**
    * Remove member's access to a specific domain.
    */
-  @ZodSchema(z.object({ input: MemberAccessRemoveInputSchema() }))
+  @ZodResolver(MemberAccessRemoveInputSchema())
   async memberAccessRemove(args: { input: MemberAccessRemoveInput }) {
     const { input } = args;
 

@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { ZodSchema } from "@shopana/shared-kernel";
+import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import type { Domain, Resource } from "../../casbin/CasbinService.js";
@@ -25,7 +24,7 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
    * Check if current user has permission for resource:action.
    * Named 'checkPermission' in GraphQL schema as 'authorize'.
    */
-  @ZodSchema(z.object({ input: AuthorizeInputSchema() }))
+  @ZodResolver(AuthorizeInputSchema())
   async authorize(args: { input: AuthorizeInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;

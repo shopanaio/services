@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { ZodSchema } from "@shopana/shared-kernel";
+import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { RoleResolver } from "./RoleResolver.js";
 import type {
@@ -21,7 +20,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Create a new role with permissions for the organization.
    */
-  @ZodSchema(z.object({ input: RoleCreateInputSchema() }))
+  @ZodResolver(RoleCreateInputSchema())
   async roleCreate(args: { input: RoleCreateInput }) {
     const { input } = args;
 
@@ -43,7 +42,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update an existing role's display name, description, or permissions.
    */
-  @ZodSchema(z.object({ input: RoleUpdateInputSchema() }))
+  @ZodResolver(RoleUpdateInputSchema())
   async roleUpdate(args: { input: RoleUpdateInput }) {
     const { input } = args;
 
@@ -65,7 +64,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Delete a custom role from the organization.
    */
-  @ZodSchema(z.object({ input: RoleDeleteInputSchema() }))
+  @ZodResolver(RoleDeleteInputSchema())
   async roleDelete(args: { input: RoleDeleteInput }) {
     const { input } = args;
 

@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { ZodSchema } from "@shopana/shared-kernel";
+import { ZodResolver } from "@shopana/type-resolver";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
@@ -24,7 +23,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's profile (firstName, lastName, language).
    */
-  @ZodSchema(z.object({ input: UserUpdateProfileInputSchema() }))
+  @ZodResolver(UserUpdateProfileInputSchema())
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;
@@ -61,7 +60,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's email address with verification.
    */
-  @ZodSchema(z.object({ input: UserUpdateEmailInputSchema() }))
+  @ZodResolver(UserUpdateEmailInputSchema())
   async userUpdateEmail(args: { input: UserUpdateEmailInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;
@@ -96,7 +95,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   /**
    * Update user's password (requires current password).
    */
-  @ZodSchema(z.object({ input: UserUpdatePasswordInputSchema() }))
+  @ZodResolver(UserUpdatePasswordInputSchema())
   async userUpdatePassword(args: { input: UserUpdatePasswordInput }) {
     const { input } = args;
     const { currentUser, kernel } = this.ctx;

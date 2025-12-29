@@ -64,9 +64,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
       });
 
       const result = authData as unknown as AuthorizeResult;
-      expect(result.userQuery.authorize.allowed, `Admin should be allowed: ${resource}.${action}`).toBe(
-        true,
-      );
+      expect(result.userQuery.authorize.allowed, `Admin should be allowed: ${resource}.${action}`).toBe(true);
     }
   });
 
@@ -122,9 +120,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
       });
 
       const result = authData as unknown as AuthorizeResult;
-      expect(result.userQuery.authorize.allowed, `Member should be allowed: ${resource}.${action}`).toBe(
-        true,
-      );
+      expect(result.userQuery.authorize.allowed, `Member should be allowed: ${resource}.${action}`).toBe(true);
     }
 
     // 6. Verify member cannot perform admin actions
@@ -150,9 +146,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
       });
 
       const result = authData as unknown as AuthorizeResult;
-      expect(result.userQuery.authorize.allowed, `Member should be denied: ${resource}.${action}`).toBe(
-        false,
-      );
+      expect(result.userQuery.authorize.allowed, `Member should be denied: ${resource}.${action}`).toBe(false);
     }
 
     // Restore admin token for cleanup

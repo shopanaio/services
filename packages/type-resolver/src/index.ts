@@ -8,6 +8,7 @@ export { Executor, createExecutor, ResolverError } from "./executor.js";
 export { Cache, type CacheOptions, type CacheStore } from "./decorators/Cache.js";
 export { ApolloQuery, ApolloMutation } from "./decorators/ApolloQuery.js";
 export { SubgraphReference } from "./decorators/SubgraphReference.js";
+export { ZodResolver, type UserError } from "./decorators/ValidateInput.js";
 
 // GraphQL utils
 export { parseGraphqlInfo } from "./utils/graphqlArgsParser.js";
