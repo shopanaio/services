@@ -1,65 +1,852 @@
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import * as crypto from 'crypto';
+
+const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
+const generateStoreName = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
+
+interface AuthorizeResult {
+  authorize: {
+    allowed: boolean;
+    deniedReason?: string;
+  };
+}
 
 test.describe('Role Hierarchy (FR-4)', () => {
   test('Org admin should have full control within the organization', async ({ api }) => {
-    // Test org admin permissions
     // 1. Create organization (user becomes admin)
-    // 2. Verify admin can perform all actions: org.profile.*, org.members.*, org.roles.*, org.stores.*, org.access.*
+    await api.session.setupUser();
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+
+    const organizationId = organization?.id;
+
+    // 2. Verify admin can perform all org actions via authorize checks
+    const orgActions = [
+      { resource: 'org.profile', action: 'read' },
+      { resource: 'org.profile', action: 'update' },
+      { resource: 'org.members', action: 'read' },
+      { resource: 'org.members', action: 'invite' },
+      { resource: 'org.members', action: 'update' },
+      { resource: 'org.members', action: 'remove' },
+      { resource: 'org.roles', action: 'read' },
+      { resource: 'org.roles', action: 'create' },
+      { resource: 'org.roles', action: 'update' },
+      { resource: 'org.roles', action: 'delete' },
+      { resource: 'org.stores', action: 'create' },
+      { resource: 'org.stores', action: 'read' },
+      { resource: 'org.access', action: 'read' },
+      { resource: 'org.access', action: 'grant' },
+      { resource: 'org.access', action: 'revoke' },
+    ];
+
+    // Set organizationId in session for authorization context
+    api.session.organizationId = organizationId;
+
+    for (const { resource, action } of orgActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(result.authorize.allowed, `Admin should be allowed: ${resource}.${action}`).toBe(
+        true,
+      );
+    }
   });
 
   test('Org member should have basic organization access only', async ({ api }) => {
-    // Test org member permissions
-    // 1. Create organization
-    // 2. Invite user as member
-    // 3. Verify member can only: org.profile.read, org.members.read
-    // 4. Verify member cannot: org.profile.update, org.members.invite, org.roles.*, etc.
+    // 1. Create organization as first user (admin)
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    // 2. Create second user to be invited as member
+    const secondUser = await api.admin.user.create();
+
+    // 3. Invite user as member
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: secondUser.data.email,
+          roles: [{ domain: 'org', role: 'member' }],
+        },
+      },
+    });
+
+    // 4. Switch to member context
+    api.session.tenant.accessToken = secondUser.accessToken;
+    api.session.tenant.userId = secondUser.userId;
+
+    // 5. Verify member can read org.profile and org.members
+    const allowedActions = [
+      { resource: 'org.profile', action: 'read' },
+      { resource: 'org.members', action: 'read' },
+    ];
+
+    for (const { resource, action } of allowedActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(result.authorize.allowed, `Member should be allowed: ${resource}.${action}`).toBe(
+        true,
+      );
+    }
+
+    // 6. Verify member cannot perform admin actions
+    const deniedActions = [
+      { resource: 'org.profile', action: 'update' },
+      { resource: 'org.members', action: 'invite' },
+      { resource: 'org.members', action: 'update' },
+      { resource: 'org.members', action: 'remove' },
+      { resource: 'org.roles', action: 'read' },
+      { resource: 'org.roles', action: 'create' },
+      { resource: 'org.roles', action: 'update' },
+      { resource: 'org.roles', action: 'delete' },
+      { resource: 'org.stores', action: 'create' },
+      { resource: 'org.access', action: 'grant' },
+      { resource: 'org.access', action: 'revoke' },
+    ];
+
+    for (const { resource, action } of deniedActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(result.authorize.allowed, `Member should be denied: ${resource}.${action}`).toBe(
+        false,
+      );
+    }
+
+    // Restore admin token for cleanup
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 
   test('Organization admin should have full access to all stores', async ({ api }) => {
-    // Test org admin store access
     // 1. Create organization
+    await api.session.setupUser();
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
     // 2. Create multiple stores
-    // 3. Verify org admin can access all store resources in all stores
+    const store1Name = generateStoreName();
+    const { data: store1Data } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: store1Name,
+          displayName: 'Store One',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store1 = store1Data.storeMutation.storeCreate.store;
+    expect(store1).not.toBeNull();
+
+    const store2Name = generateStoreName();
+    const { data: store2Data } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: store2Name,
+          displayName: 'Store Two',
+          locales: ['en'],
+          currencies: ['EUR'],
+          defaultCurrency: 'EUR',
+        },
+      },
+    });
+
+    const store2 = store2Data.storeMutation.storeCreate.store;
+    expect(store2).not.toBeNull();
+
+    // 3. Verify org admin can access all store resources in both stores
+    const storeActions = [
+      { resource: 'store.profile', action: 'read' },
+      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.members', action: 'read' },
+      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'update' },
+      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.roles', action: 'read' },
+      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.access', action: 'read' },
+      { resource: 'store.access', action: 'grant' },
+    ];
+
+    // Check access for store1
+    if (store1) {
+      api.session.project = { id: store1.id, slug: store1.name, name: store1.name };
+      for (const { resource, action } of storeActions) {
+        const { data: authData } = await api.admin.query('roles-api/Authorize', {
+          variables: {
+            input: { resource, action },
+          },
+        });
+
+        const result = authData as unknown as AuthorizeResult;
+        expect(
+          result.authorize.allowed,
+          `Org admin should be allowed in store1: ${resource}.${action}`,
+        ).toBe(true);
+      }
+    }
+
+    // Check access for store2
+    if (store2) {
+      api.session.project = { id: store2.id, slug: store2.name, name: store2.name };
+      for (const { resource, action } of storeActions) {
+        const { data: authData } = await api.admin.query('roles-api/Authorize', {
+          variables: {
+            input: { resource, action },
+          },
+        });
+
+        const result = authData as unknown as AuthorizeResult;
+        expect(
+          result.authorize.allowed,
+          `Org admin should be allowed in store2: ${resource}.${action}`,
+        ).toBe(true);
+      }
+    }
   });
 
   test('Store viewer should only view store profile', async ({ api }) => {
-    // Test store viewer permissions
-    // 1. Create org and store
-    // 2. Assign user as viewer in store
-    // 3. Verify viewer can: store.profile.read
-    // 4. Verify viewer cannot: store.profile.update, store.members.*, store.roles.*, store.access.*
+    // 1. Create org and store as admin
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    const storeName = generateStoreName();
+    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: storeName,
+          displayName: 'Test Store',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store = storeData.storeMutation.storeCreate.store;
+    expect(store).not.toBeNull();
+    if (store) {
+      api.session.project = { id: store.id, slug: store.name, name: store.name };
+    }
+
+    // 2. Create second user and assign as viewer in store
+    const viewerUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: viewerUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+        },
+      },
+    });
+
+    // 3. Switch to viewer context
+    api.session.tenant.accessToken = viewerUser.accessToken;
+    api.session.tenant.userId = viewerUser.userId;
+
+    // 4. Verify viewer can: store.profile.read
+    const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
+      variables: {
+        input: { resource: 'store.profile', action: 'read' },
+      },
+    });
+    const readResult = readAuth as unknown as AuthorizeResult;
+    expect(readResult.authorize.allowed).toBe(true);
+
+    // 5. Verify viewer cannot: store.profile.update, store.members.*, store.roles.*, store.access.*
+    const deniedActions = [
+      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'delete' },
+      { resource: 'store.members', action: 'read' },
+      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'update' },
+      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.roles', action: 'read' },
+      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.roles', action: 'update' },
+      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.access', action: 'read' },
+      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'revoke' },
+    ];
+
+    for (const { resource, action } of deniedActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(result.authorize.allowed, `Viewer should be denied: ${resource}.${action}`).toBe(
+        false,
+      );
+    }
+
+    // Restore admin token
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 
   test('Store manager should view and edit profile', async ({ api }) => {
-    // Test store manager permissions
-    // 1. Create org and store
-    // 2. Assign user as manager in store
-    // 3. Verify manager can: store.profile.read, store.profile.update
-    // 4. Verify manager cannot: store.profile.delete, store.members.*, store.roles.*, store.access.*
+    // 1. Create org and store as admin
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    const storeName = generateStoreName();
+    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: storeName,
+          displayName: 'Test Store',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store = storeData.storeMutation.storeCreate.store;
+    expect(store).not.toBeNull();
+    if (store) {
+      api.session.project = { id: store.id, slug: store.name, name: store.name };
+    }
+
+    // 2. Create second user and assign as manager in store
+    const managerUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: managerUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+        },
+      },
+    });
+
+    // 3. Switch to manager context
+    api.session.tenant.accessToken = managerUser.accessToken;
+    api.session.tenant.userId = managerUser.userId;
+
+    // 4. Verify manager can: store.profile.read, store.profile.update
+    const allowedActions = [
+      { resource: 'store.profile', action: 'read' },
+      { resource: 'store.profile', action: 'update' },
+    ];
+
+    for (const { resource, action } of allowedActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(result.authorize.allowed, `Manager should be allowed: ${resource}.${action}`).toBe(
+        true,
+      );
+    }
+
+    // 5. Verify manager cannot: store.profile.delete, store.members.*, store.roles.*, store.access.*
+    const deniedActions = [
+      { resource: 'store.profile', action: 'delete' },
+      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'update' },
+      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.roles', action: 'update' },
+      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'revoke' },
+    ];
+
+    for (const { resource, action } of deniedActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(result.authorize.allowed, `Manager should be denied: ${resource}.${action}`).toBe(
+        false,
+      );
+    }
+
+    // Restore admin token
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 
   test('Store admin should have full store management', async ({ api }) => {
-    // Test store admin permissions
-    // 1. Create org and store
-    // 2. Verify store admin can perform all store.* actions
+    // 1. Create org and store as org admin
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    const storeName = generateStoreName();
+    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: storeName,
+          displayName: 'Test Store',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store = storeData.storeMutation.storeCreate.store;
+    expect(store).not.toBeNull();
+    if (store) {
+      api.session.project = { id: store.id, slug: store.name, name: store.name };
+    }
+
+    // 2. Create second user and assign as store admin
+    const storeAdminUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: storeAdminUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+        },
+      },
+    });
+
+    // 3. Switch to store admin context
+    api.session.tenant.accessToken = storeAdminUser.accessToken;
+    api.session.tenant.userId = storeAdminUser.userId;
+
+    // 4. Verify store admin can perform all store.* actions
+    const storeActions = [
+      { resource: 'store.profile', action: 'read' },
+      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.members', action: 'read' },
+      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'update' },
+      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.roles', action: 'read' },
+      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.roles', action: 'update' },
+      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.access', action: 'read' },
+      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'revoke' },
+    ];
+
+    for (const { resource, action } of storeActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(
+        result.authorize.allowed,
+        `Store admin should be allowed: ${resource}.${action}`,
+      ).toBe(true);
+    }
+
+    // Restore org admin token
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 
   test('Roles should NOT inherit permissions from other roles', async ({ api }) => {
-    // Test that roles have explicit permission sets
-    // 1. Create store with manager role user
-    // 2. Verify manager cannot perform admin-only actions
-    // 3. Verify each role has its own explicit permission set
+    // 1. Create org and store with manager role user
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    const storeName = generateStoreName();
+    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: storeName,
+          displayName: 'Test Store',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store = storeData.storeMutation.storeCreate.store;
+    expect(store).not.toBeNull();
+    if (store) {
+      api.session.project = { id: store.id, slug: store.name, name: store.name };
+    }
+
+    // 2. Create manager user
+    const managerUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: managerUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+        },
+      },
+    });
+
+    // 3. Switch to manager and verify cannot perform admin-only actions
+    api.session.tenant.accessToken = managerUser.accessToken;
+    api.session.tenant.userId = managerUser.userId;
+
+    // Manager should NOT have admin permissions - roles are explicit, not inherited
+    const adminOnlyActions = [
+      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'revoke' },
+    ];
+
+    for (const { resource, action } of adminOnlyActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(
+        result.authorize.allowed,
+        `Manager should NOT inherit admin permission: ${resource}.${action}`,
+      ).toBe(false);
+    }
+
+    // 4. Create viewer and verify they don't inherit manager permissions
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
+    const viewerUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: viewerUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+        },
+      },
+    });
+
+    api.session.tenant.accessToken = viewerUser.accessToken;
+    api.session.tenant.userId = viewerUser.userId;
+
+    // Viewer should NOT have manager permissions
+    const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
+      variables: {
+        input: { resource: 'store.profile', action: 'update' },
+      },
+    });
+
+    const updateResult = updateAuth as unknown as AuthorizeResult;
+    expect(
+      updateResult.authorize.allowed,
+      'Viewer should NOT inherit manager permission: store.profile.update',
+    ).toBe(false);
+
+    // Restore admin token
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 
   test('Store viewer cannot perform manager actions', async ({ api }) => {
-    // Test role boundaries
-    // 1. Assign user as viewer
-    // 2. Verify viewer cannot update store profile
+    // 1. Create org and store
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    const storeName = generateStoreName();
+    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: storeName,
+          displayName: 'Test Store',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store = storeData.storeMutation.storeCreate.store;
+    expect(store).not.toBeNull();
+    if (store) {
+      api.session.project = { id: store.id, slug: store.name, name: store.name };
+    }
+
+    // 2. Assign user as viewer
+    const viewerUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: viewerUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+        },
+      },
+    });
+
+    // 3. Switch to viewer context
+    api.session.tenant.accessToken = viewerUser.accessToken;
+    api.session.tenant.userId = viewerUser.userId;
+
+    // 4. Verify viewer cannot update store profile (manager action)
+    const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
+      variables: {
+        input: { resource: 'store.profile', action: 'update' },
+      },
+    });
+
+    const result = updateAuth as unknown as AuthorizeResult;
+    expect(result.authorize.allowed).toBe(false);
+    expect(result.authorize.deniedReason).toBeDefined();
+
+    // Restore admin token
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 
   test('Store manager cannot perform admin actions', async ({ api }) => {
-    // Test role boundaries
-    // 1. Assign user as manager
-    // 2. Verify manager cannot: delete store, manage members, manage roles
+    // 1. Create org and store
+    await api.session.setupUser();
+    const adminToken = api.session.accessToken;
+
+    const orgName = generateOrgName();
+    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
+      variables: {
+        input: {
+          name: orgName,
+          displayName: 'Test Organization',
+        },
+      },
+    });
+
+    const organization = orgData.organizationMutation.organizationCreate.organization;
+    expect(organization).not.toBeNull();
+    const organizationId = organization?.id;
+    api.session.organizationId = organizationId;
+
+    const storeName = generateStoreName();
+    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
+      variables: {
+        input: {
+          organizationId,
+          name: storeName,
+          displayName: 'Test Store',
+          locales: ['en'],
+          currencies: ['USD'],
+          defaultCurrency: 'USD',
+        },
+      },
+    });
+
+    const store = storeData.storeMutation.storeCreate.store;
+    expect(store).not.toBeNull();
+    if (store) {
+      api.session.project = { id: store.id, slug: store.name, name: store.name };
+    }
+
+    // 2. Assign user as manager
+    const managerUser = await api.admin.user.create();
+
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: managerUser.data.email,
+          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+        },
+      },
+    });
+
+    // 3. Switch to manager context
+    api.session.tenant.accessToken = managerUser.accessToken;
+    api.session.tenant.userId = managerUser.userId;
+
+    // 4. Verify manager cannot: delete store, manage members, manage roles
+    const adminOnlyActions = [
+      { resource: 'store.profile', action: 'delete' },
+      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.roles', action: 'update' },
+      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'revoke' },
+    ];
+
+    for (const { resource, action } of adminOnlyActions) {
+      const { data: authData } = await api.admin.query('roles-api/Authorize', {
+        variables: {
+          input: { resource, action },
+        },
+      });
+
+      const result = authData as unknown as AuthorizeResult;
+      expect(
+        result.authorize.allowed,
+        `Manager should be denied admin action: ${resource}.${action}`,
+      ).toBe(false);
+    }
+
+    // Restore admin token
+    if (adminToken) {
+      api.session.tenant.accessToken = adminToken;
+    }
   });
 });
