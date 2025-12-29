@@ -94,36 +94,6 @@ type AuthMutation {
   tokenRefresh(input: UserTokenRefreshInput!): UserTokenRefreshPayload!
 }
 
-# ============================================================================
-# QUERIES & MUTATIONS
-# ============================================================================
-
-extend type Query {
-  """
-  Get current authenticated user.
-  """
-  userQuery: UserQuery!
-}
-
-extend type Mutation {
-  """
-  User management mutations.
-  """
-  userMutation: UserMutation!
-  """
-  Role management mutations.
-  """
-  roleMutation: RoleMutation!
-  """
-  Authentication mutations.
-  """
-  authMutation: AuthMutation!
-  """
-  Organization management mutations.
-  """
-  organizationMutation: OrganizationMutation!
-}
-
 """
 Role mutations.
 """
@@ -146,4 +116,39 @@ type RoleMutation {
   Roles with assigned users cannot be deleted.
   """
   roleDelete(input: RoleDeleteInput!): RoleDeletePayload!
+}
+
+# ============================================================================
+# QUERIES & MUTATIONS
+# ============================================================================
+
+type Query {
+  """
+  User management queries.
+  """
+  userQuery: UserQuery!
+
+  """
+  Organization queries namespace.
+  """
+  organizationQuery: OrganizationQuery!
+}
+
+type Mutation {
+  """
+  User management mutations.
+  """
+  userMutation: UserMutation!
+  """
+  Role management mutations.
+  """
+  roleMutation: RoleMutation!
+  """
+  Authentication mutations.
+  """
+  authMutation: AuthMutation!
+  """
+  Organization management mutations.
+  """
+  organizationMutation: OrganizationMutation!
 }

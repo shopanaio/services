@@ -171,18 +171,6 @@ type MemberAccessRemovePayload {
   success: Boolean!
   userErrors: [GenericUserError!]!
 }
-
-# ============================================================================
-# QUERIES & MUTATIONS
-# ============================================================================
-
-extend type Query {
-  """
-  Organization queries namespace.
-  """
-  organizationQuery: OrganizationQuery!
-}
-
 """
 Organization queries.
 """
@@ -232,5 +220,7 @@ type OrganizationMutation {
   """
   Remove member's access from domain.
   """
-  memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
+  memberAccessRemove(
+    input: MemberAccessRemoveInput!
+  ): MemberAccessRemovePayload!
 }
