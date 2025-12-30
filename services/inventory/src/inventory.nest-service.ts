@@ -7,10 +7,7 @@ import {
 } from "@nestjs/common";
 import type { InventoryUpdateTask } from "@shopana/import-plugin-sdk";
 import { assertInventoryUpdateTask } from "@shopana/import-plugin-sdk";
-import {
-  InjectBroker,
-  ServiceBroker,
-} from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import {
   getServiceConfig,
   buildS3Config,
@@ -25,11 +22,6 @@ import type {
   StockChangedEvent,
 } from "./inventory.events";
 import { processInventoryUpdate } from "./processInventoryUpdate";
-import {
-  getOffers,
-  type GetOffersParams,
-  type GetOffersResult,
-} from "./scripts/getOffers";
 import { InventoryObjectStorage } from "./storage";
 
 export interface EmitTestEventParams {
@@ -44,7 +36,9 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
   private storageGateway!: InventoryObjectStorage;
   private graphqlServer: FastifyInstance | null = null;
 
-  constructor(@InjectBroker('inventory') private readonly broker: ServiceBroker) {}
+  constructor(
+    @InjectBroker("inventory") private readonly broker: ServiceBroker
+  ) {}
 
   async onModuleInit() {
     this.logger.debug("Inventory onModuleInit started");
@@ -65,40 +59,6 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
           }
         : null!
     );
-
-    this.broker.register<GetOffersParams, GetOffersResult>(
-      "getOffers",
-      (params) => this.kernel.executeScript(getOffers, params!)
-    );
-
-    // Test action: emit events via RabbitMQ
-    this.broker.register<
-      EmitTestEventParams,
-      { success: boolean; message: string }
-    >("emitTestEvent", async (params) => {
-      if (!params) {
-        return { success: false, message: "Missing params" };
-      }
-
-      await this.broker.emit(params.eventType, params.payload);
-      this.logger.log(`Emitted test event: ${params.eventType}`);
-      return { success: true, message: `Event ${params.eventType} emitted` };
-    });
-
-    // Quick test action to verify RabbitMQ is working
-    this.broker.register("pingRabbit", async () => {
-      const health = this.broker.getHealth();
-      if (health.connected) {
-        await this.broker.emit("inventory.ping", {
-          timestamp: new Date().toISOString(),
-        });
-        return {
-          status: "ok",
-          message: "RabbitMQ connected, ping event emitted",
-        };
-      }
-      return { status: "disconnected", message: "RabbitMQ not connected" };
-    });
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
