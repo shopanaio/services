@@ -21,17 +21,24 @@ import type { Database } from "../infrastructure/db/database.js";
  * - sub: subject (user ID, e.g., "user:uuid")
  * - dom: domain (required, format "prefix:id" or "prefix:*")
  * - obj: object (resource path, e.g., "org.profile", "store.members")
- * - act: action (read, write, delete, create, etc.)
+ * - act: action (read, write, admin)
+ *
+ * Action hierarchy (g2):
+ *   read  ←  write  ←  admin
+ * - "admin" includes "write" and "read"
+ * - "write" includes "read"
  *
  * Policy format: (sub, dom, obj, act)
  * - No effect field - all policies are "allow" by default
  *
- * Grouping format: (user, role, domain)
- * - Assigns a user to a role within a specific domain
+ * Grouping format:
+ * - g (user, role, domain) - Assigns a user to a role within a specific domain
+ * - g2 (action, action) - Action hierarchy (child inherits from parent)
  *
  * Features:
  * - keyMatch for wildcard matching in resources and domains
  * - Domain-scoped role assignments (user can be admin in one store, viewer in another)
+ * - Action hierarchy via g2 grouping
  *
  * Database storage (iam.casbin_rule):
  * - Policies (ptype='p'): v0=role, v1=domain, v2=resource, v3=action, v4=orgId
@@ -46,13 +53,24 @@ p = sub, dom, obj, act
 
 [role_definition]
 g = _, _, _
+g2 = _, _
 
 [policy_effect]
 e = some(where (p.eft == allow))
 
 [matchers]
-m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && keyMatch(r.obj, p.obj) && keyMatch(r.act, p.act)
+m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && keyMatch(r.obj, p.obj) && (r.act == p.act || g2(r.act, p.act))
 `.trim();
+
+/**
+ * Action hierarchy for g2 grouping.
+ * Format: [child, parent] - child action inherits from parent.
+ * This means if you have "write" permission, you also have "read".
+ */
+const ACTION_HIERARCHY: [string, string][] = [
+  ["read", "write"],  // write includes read
+  ["write", "admin"], // admin includes write (and transitively read)
+];
 
 // ============================================================================
 // Authorization Types
@@ -219,6 +237,12 @@ export class CasbinService {
 
     // Enable domain pattern matching for keyMatch in policies
     await enforcer.addNamedDomainMatchingFunc("g", Util.keyMatchFunc);
+
+    // Initialize action hierarchy (g2)
+    // This enables: write includes read, admin includes write+read
+    for (const [child, parent] of ACTION_HIERARCHY) {
+      await enforcer.addNamedGroupingPolicy("g2", child, parent);
+    }
 
     // Load only policies for this organization
     await this.loadFilteredPolicies(enforcer, organizationId);

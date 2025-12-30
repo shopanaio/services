@@ -8,7 +8,7 @@ export class StoreUpdateScript extends BaseScript<
 > {
   @Policy<StoreUpdateParams>({
     resource: "store.profile",
-    action: "update",
+    action: "write",
     organizationId: (_, params) => params.organizationId,
     domain: (_, params) => `store:${params.id}`,
   })

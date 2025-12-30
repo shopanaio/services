@@ -18,7 +18,7 @@ export class StoreCreateScript extends BaseScript<
 > {
   @Policy<StoreCreateParams>({
     resource: "org.stores",
-    action: "create",
+    action: "write",
     organizationId: (_, params) => params.organizationId,
   })
   @ZodSchema(storeCreateInputSchema)

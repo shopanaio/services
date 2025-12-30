@@ -8,7 +8,7 @@ export class StoreDeleteScript extends BaseScript<
 > {
   @Policy<StoreDeleteParams>({
     resource: "org.stores",
-    action: "delete",
+    action: "admin",
     organizationId: (_, params) => params.organizationId,
   })
   protected async execute(

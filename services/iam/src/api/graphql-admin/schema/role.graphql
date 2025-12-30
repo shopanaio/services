@@ -122,6 +122,18 @@ input RoleCreateInput {
 }
 
 """
+Action level for permissions.
+Hierarchy: read < write < admin
+- admin includes write and read
+- write includes read
+"""
+enum Action {
+  read
+  write
+  admin
+}
+
+"""
 Input for role permission.
 """
 input RolePermissionInput {
@@ -130,9 +142,9 @@ input RolePermissionInput {
   """
   resource: String!
   """
-  Actions (create, read, update, delete).
+  Action level (read, write, admin). Higher levels include lower ones.
   """
-  actions: [String!]!
+  action: Action!
 }
 
 """

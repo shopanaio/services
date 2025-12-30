@@ -25,7 +25,7 @@ export class RoleDeleteScript extends BaseScript<
   @ZodSchema(roleDeleteInputSchema)
   @Policy({
     resource: "org.roles",
-    action: "delete",
+    action: "admin",
     organizationId: (self: RoleDeleteScript, params: RoleDeleteParams) =>
       params.organizationId,
   })

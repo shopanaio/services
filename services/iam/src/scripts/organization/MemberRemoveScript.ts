@@ -24,7 +24,7 @@ export class MemberRemoveScript extends BaseScript<
   @ZodSchema(memberRemoveInputSchema)
   @Policy({
     resource: "org.members",
-    action: "remove",
+    action: "admin",
     organizationId: (self: MemberRemoveScript, params: MemberRemoveParams) =>
       params.organizationId,
   })

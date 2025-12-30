@@ -1,4 +1,5 @@
-export { Resources, Roles, RolesMeta, RBAC } from "./definitions.js";
+export { Resources, Roles, RolesMeta, RBAC, Actions } from "./definitions.js";
+export type { Action, Permission } from "./definitions.js";
 export {
   validateDomainPermissions,
   validateAuthorizeInput,
@@ -8,7 +9,7 @@ export {
   AllResources,
 } from "./validators.js";
 
-export type { Domain, OrgDomain, StoreDomain, OrgRoleName, StoreRoleName, Permission } from "./types.js";
+export type { Domain, OrgDomain, StoreDomain, OrgRoleName, StoreRoleName, RuntimePermission } from "./types.js";
 export type {
   DomainPermissions,
   ValidationResult,

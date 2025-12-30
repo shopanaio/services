@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AuthorizeInput, CurrencyCode, DimensionUnit, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationUpdateInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
+import { Action, AuthorizeInput, CurrencyCode, DimensionUnit, LocaleCode, MemberAccessRemoveInput, MemberInviteInput, MemberRemoveInput, MemberRoleChangeInput, OrganizationCreateInput, OrganizationUpdateInput, OwnershipTransferInput, RoleAssignment, RoleCreateInput, RoleDeleteInput, RolePermissionInput, RoleUpdateInput, UserSignInInput, UserSignOutInput, UserSignUpInput, UserTokenRefreshInput, UserUpdateEmailInput, UserUpdatePasswordInput, UserUpdateProfileInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -10,6 +10,8 @@ type definedNonNullAny = {};
 export const isDefinedNonNullAny = (v: any): v is definedNonNullAny => v !== undefined && v !== null;
 
 export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny(v));
+
+export const ActionSchema = z.nativeEnum(Action);
 
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
@@ -109,7 +111,7 @@ export function RoleDeleteInputSchema(): z.ZodObject<Properties<RoleDeleteInput>
 
 export function RolePermissionInputSchema(): z.ZodObject<Properties<RolePermissionInput>> {
   return z.object({
-    actions: z.array(z.string()),
+    action: ActionSchema,
     resource: z.string()
   })
 }

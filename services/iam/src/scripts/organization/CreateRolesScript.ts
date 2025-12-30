@@ -21,7 +21,7 @@ export class CreateRolesScript extends BaseScript<
   @ZodSchema(createRolesInputSchema)
   @Policy<CreateRolesParams>({
     resource: "org.roles",
-    action: "create",
+    action: "write",
     organizationId: (_self, params) => params.organizationId,
   })
   protected async execute(
@@ -68,15 +68,13 @@ export class CreateRolesScript extends BaseScript<
     roleConfig: RoleConfig
   ): Promise<void> {
     for (const permission of roleConfig.permissions) {
-      for (const action of permission.actions) {
-        await this.repository.casbin.addPolicy({
-          organizationId,
-          role: roleConfig.name,
-          domain,
-          resource: permission.resource as Resource,
-          action,
-        });
-      }
+      await this.repository.casbin.addPolicy({
+        organizationId,
+        role: roleConfig.name,
+        domain,
+        resource: permission.resource as Resource,
+        action: permission.action,
+      });
     }
   }
 

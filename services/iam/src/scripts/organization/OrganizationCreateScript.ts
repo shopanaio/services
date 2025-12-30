@@ -66,15 +66,13 @@ export class OrganizationCreateScript extends BaseScript<
       // Add policies for this role
       const permissions = Roles.organization[roleName];
       for (const permission of permissions) {
-        for (const action of permission.actions) {
-          await this.repository.casbin.addPolicy({
-            organizationId: org.id,
-            role: roleName,
-            domain,
-            resource: permission.resource,
-            action,
-          });
-        }
+        await this.repository.casbin.addPolicy({
+          organizationId: org.id,
+          role: roleName,
+          domain,
+          resource: permission.resource,
+          action: permission.action,
+        });
       }
     }
 

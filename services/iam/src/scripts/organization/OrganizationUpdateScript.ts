@@ -24,7 +24,7 @@ export class OrganizationUpdateScript extends BaseScript<
   @ZodSchema(organizationUpdateInputSchema)
   @Policy({
     resource: "org.profile",
-    action: "update",
+    action: "write",
     organizationId: (_, params: OrganizationUpdateParams) =>
       params.organizationId,
   })

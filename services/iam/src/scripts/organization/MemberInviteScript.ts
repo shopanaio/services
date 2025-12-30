@@ -33,7 +33,7 @@ export class MemberInviteScript extends BaseScript<
   @ZodSchema(memberInviteInputSchema)
   @Policy({
     resource: "org.members",
-    action: "invite",
+    action: "write",
     organizationId: (self: MemberInviteScript, params: MemberInviteParams) =>
       params.organizationId,
   })

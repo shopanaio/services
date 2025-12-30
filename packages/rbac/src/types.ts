@@ -12,9 +12,11 @@ export type OrgRoleName = "admin" | "member";
 export type StoreRoleName = "viewer" | "manager" | "admin";
 
 // Generic permission (for runtime)
-export type Permission = {
+// Note: Permission is now defined in definitions.ts with action: Action
+// This is kept for backwards compatibility with runtime code
+export type RuntimePermission = {
   resource: string;
-  actions: string[];
+  action: string;
 };
 
 // Policy for access check

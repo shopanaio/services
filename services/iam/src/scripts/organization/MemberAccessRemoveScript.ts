@@ -26,7 +26,7 @@ export class MemberAccessRemoveScript extends BaseScript<
   @ZodSchema(memberAccessRemoveInputSchema)
   @Policy({
     resource: "org.members",
-    action: "update",
+    action: "admin",
     organizationId: (
       self: MemberAccessRemoveScript,
       params: MemberAccessRemoveParams

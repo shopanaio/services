@@ -21,6 +21,18 @@ export type Scalars = {
   _FieldSet: { input: any; output: any; }
 };
 
+/**
+ * Action level for permissions.
+ * Hierarchy: read < write < admin
+ * - admin includes write and read
+ * - write includes read
+ */
+export enum Action {
+  Admin = 'admin',
+  Read = 'read',
+  Write = 'write'
+}
+
 export type AuthMutation = {
   __typename?: 'AuthMutation';
   signIn: UserSignInPayload;
@@ -1140,8 +1152,8 @@ export type RolePermission = {
 
 /** Input for role permission. */
 export type RolePermissionInput = {
-  /** Actions (create, read, update, delete). */
-  actions: Array<Scalars['String']['input']>;
+  /** Action level (read, write, admin). Higher levels include lower ones. */
+  action: Action;
   /** Resource (e.g.: org.profile, store.members). */
   resource: Scalars['String']['input'];
 };
@@ -1462,6 +1474,7 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = ResolversObject<{
+  Action: Action;
   AuthMutation: ResolverTypeWrapper<AuthMutation>;
   AuthTokenPayload: ResolverTypeWrapper<AuthTokenPayload>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;

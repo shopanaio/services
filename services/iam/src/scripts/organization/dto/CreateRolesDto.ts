@@ -3,10 +3,11 @@ import type { Domain } from "../../../casbin/CasbinService.js";
 
 /**
  * Permission schema
+ * Action hierarchy: read < write < admin
  */
 const permissionSchema = z.object({
   resource: z.string().min(1),
-  actions: z.array(z.string().min(1)).min(1),
+  action: z.enum(["read", "write", "admin"]),
 });
 
 /**
@@ -33,7 +34,7 @@ export type CreateRolesInput = z.infer<typeof createRolesInputSchema>;
 
 export interface Permission {
   resource: string;
-  actions: string[];
+  action: "read" | "write" | "admin";
 }
 
 export interface RoleConfig {

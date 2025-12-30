@@ -23,7 +23,7 @@ export class RoleUpdateScript extends BaseScript<
   @ZodSchema(roleUpdateInputSchema)
   @Policy({
     resource: "org.roles",
-    action: "update",
+    action: "write",
     organizationId: (self: RoleUpdateScript, params: RoleUpdateParams) =>
       params.organizationId,
   })
@@ -84,15 +84,13 @@ export class RoleUpdateScript extends BaseScript<
 
       // Add new policies
       for (const permission of permissions) {
-        for (const action of permission.actions) {
-          await this.repository.casbin.addPolicy({
-            organizationId,
-            role: existingRole.name,
-            domain: existingRole.domain as Domain,
-            resource: permission.resource,
-            action,
-          });
-        }
+        await this.repository.casbin.addPolicy({
+          organizationId,
+          role: existingRole.name,
+          domain: existingRole.domain as Domain,
+          resource: permission.resource,
+          action: permission.action,
+        });
       }
     }
 

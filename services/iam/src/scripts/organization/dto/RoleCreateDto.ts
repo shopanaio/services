@@ -3,10 +3,13 @@ import type { UserError } from "@shopana/shared-kernel";
 
 /**
  * Permission input schema
+ * Action hierarchy: read < write < admin
  */
 export const permissionInputSchema = z.object({
   resource: z.string().min(1, "Resource is required"),
-  actions: z.array(z.string().min(1)).min(1, "At least one action is required"),
+  action: z.enum(["read", "write", "admin"], {
+    errorMap: () => ({ message: "Action must be 'read', 'write', or 'admin'" }),
+  }),
 });
 
 /**
@@ -44,7 +47,7 @@ export interface RoleCreateParams {
   description?: string;
   permissions: Array<{
     resource: string;
-    actions: string[];
+    action: "read" | "write" | "admin";
   }>;
 }
 

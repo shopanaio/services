@@ -4,12 +4,15 @@
 import { z } from "zod";
 import { Resources } from "./definitions.js";
 
+// Action enum for validation
+const ActionSchema = z.enum(["read", "write", "admin"]);
+
 // Build permission schemas dynamically from Resources
 const buildPermissionSchemas = <T extends Record<string, { actions: readonly string[] }>>(resources: T) => {
-  return Object.entries(resources).map(([resource, { actions }]) =>
+  return Object.entries(resources).map(([resource]) =>
     z.object({
       resource: z.literal(resource),
-      actions: z.array(z.enum(actions as [string, ...string[]])).min(1),
+      action: ActionSchema,
     })
   );
 };

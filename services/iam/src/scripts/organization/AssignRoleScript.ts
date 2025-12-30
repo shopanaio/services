@@ -13,7 +13,7 @@ export class AssignRoleScript extends BaseScript<
   @ZodSchema(assignRoleInputSchema)
   @Policy({
     resource: "org.roles",
-    action: "update",
+    action: "write",
     organizationId: (_, params: AssignRoleParams) => params.organizationId,
   })
   protected async execute(params: AssignRoleParams): Promise<AssignRoleResult> {

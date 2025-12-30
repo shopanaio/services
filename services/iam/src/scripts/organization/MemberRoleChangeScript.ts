@@ -25,7 +25,7 @@ export class MemberRoleChangeScript extends BaseScript<
   @ZodSchema(memberRoleChangeInputSchema)
   @Policy({
     resource: "org.members",
-    action: "update",
+    action: "write",
     organizationId: (
       self: MemberRoleChangeScript,
       params: MemberRoleChangeParams

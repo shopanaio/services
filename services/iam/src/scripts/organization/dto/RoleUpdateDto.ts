@@ -25,7 +25,7 @@ export interface RoleUpdateParams {
   description?: string;
   permissions?: Array<{
     resource: string;
-    actions: string[];
+    action: "read" | "write" | "admin";
   }>;
 }
 
