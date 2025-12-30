@@ -1286,8 +1286,8 @@ type RolePermission {
   """Resource name (e.g.: org.profile, store.members)."""
   resource: String!
 
-  """Allowed actions (e.g.: create, read, update, delete)."""
-  actions: [String!]!
+  """Action level (read, write, admin)."""
+  action: Action!
 }
 
 """Resource definition for role editor UI."""
@@ -1551,13 +1551,25 @@ input RoleCreateInput {
   permissions: [RolePermissionInput!]!
 }
 
+"""
+Action level for permissions.
+Hierarchy: read < write < admin
+- admin includes write and read
+- write includes read
+"""
+enum Action {
+  read
+  write
+  admin
+}
+
 """Input for role permission."""
 input RolePermissionInput {
   """Resource (e.g.: org.profile, store.members)."""
   resource: String!
 
-  """Actions (create, read, update, delete)."""
-  actions: [String!]!
+  """Action level (read, write, admin). Higher levels include lower ones."""
+  action: Action!
 }
 
 """Input for updating a role."""

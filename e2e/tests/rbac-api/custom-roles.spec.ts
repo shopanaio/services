@@ -44,7 +44,7 @@ test.describe('Custom Roles (FR-9)', () => {
           name: roleName,
           displayName: 'Custom Reviewer',
           description: 'A custom role for reviewing',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -106,7 +106,7 @@ test.describe('Custom Roles (FR-9)', () => {
           name: roleName,
           displayName: 'Store Custom Role',
           description: 'A custom role for the store',
-          permissions: [{ resource: 'store.profile', actions: ['read'] }],
+          permissions: [{ resource: 'store.profile', action: 'read' }],
         },
       },
     });
@@ -161,7 +161,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Attempted Custom Role',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -207,8 +207,8 @@ test.describe('Custom Roles (FR-9)', () => {
           name: 'limited-creator',
           displayName: 'Limited Creator',
           permissions: [
-            { resource: 'org.profile', actions: ['read'] },
-            { resource: 'org.roles', actions: ['create'] }, // Can create roles but limited permissions
+            { resource: 'org.profile', action: 'read' },
+            { resource: 'org.roles', action: 'write' }, // Can create/update roles
           ],
         },
       },
@@ -226,8 +226,8 @@ test.describe('Custom Roles (FR-9)', () => {
           name: roleName,
           displayName: 'Full Permission Role',
           permissions: [
-            { resource: 'org.profile', actions: ['read', 'update'] },
-            { resource: 'org.members', actions: ['read', 'invite', 'remove'] },
+            { resource: 'org.profile', action: 'write' },
+            { resource: 'org.members', action: 'admin' },
           ],
         },
       },
@@ -267,7 +267,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Initial Name',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -283,8 +283,8 @@ test.describe('Custom Roles (FR-9)', () => {
           organizationId,
           id: roleId,
           permissions: [
-            { resource: 'org.profile', actions: ['read', 'update'] },
-            { resource: 'org.members', actions: ['read'] },
+            { resource: 'org.profile', action: 'write' },
+            { resource: 'org.members', action: 'read' },
           ],
         },
       },
@@ -321,7 +321,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Original Display Name',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -374,7 +374,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Limited Role',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -389,8 +389,8 @@ test.describe('Custom Roles (FR-9)', () => {
           organizationId,
           id: createdRole?.id,
           permissions: [
-            { resource: 'org.profile', actions: ['read', 'update'] },
-            { resource: 'org.members', actions: ['read', 'invite'] },
+            { resource: 'org.profile', action: 'write' },
+            { resource: 'org.members', action: 'write' },
           ],
         },
       },
@@ -425,7 +425,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Role To Delete',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -476,7 +476,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Deletable Role',
-          permissions: [{ resource: 'org.profile', actions: ['read', 'update'] }],
+          permissions: [{ resource: 'org.profile', action: 'write' }],
         },
       },
     });
@@ -527,7 +527,7 @@ test.describe('Custom Roles (FR-9)', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'update' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'write' },
       },
     });
 
@@ -567,7 +567,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Only Role',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -623,7 +623,7 @@ test.describe('Custom Roles (FR-9)', () => {
             domain: 'org',
             name: roleName,
             displayName: `Custom Role ${i}`,
-            permissions: [{ resource: 'org.profile', actions: ['read'] }],
+            permissions: [{ resource: 'org.profile', action: 'read' }],
           },
         },
       });
@@ -638,7 +638,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: 'role-21',
           displayName: 'Role Over Limit',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -697,7 +697,7 @@ test.describe('Custom Roles (FR-9)', () => {
             domain: `store:${storeId}`,
             name: roleName,
             displayName: `Store Custom Role ${i}`,
-            permissions: [{ resource: 'store.profile', actions: ['read'] }],
+            permissions: [{ resource: 'store.profile', action: 'read' }],
           },
         },
       });
@@ -712,7 +712,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: `store:${storeId}`,
           name: 'store-role-21',
           displayName: 'Store Role Over Limit',
-          permissions: [{ resource: 'store.profile', actions: ['read'] }],
+          permissions: [{ resource: 'store.profile', action: 'read' }],
         },
       },
     });
@@ -752,7 +752,7 @@ test.describe('Custom Roles (FR-9)', () => {
             domain: 'org',
             name: roleName,
             displayName: `Org Role ${i}`,
-            permissions: [{ resource: 'org.profile', actions: ['read'] }],
+            permissions: [{ resource: 'org.profile', action: 'read' }],
           },
         },
       });
@@ -787,7 +787,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: `store:${storeId}`,
           name: storeRoleName,
           displayName: 'Store Custom Role',
-          permissions: [{ resource: 'store.profile', actions: ['read'] }],
+          permissions: [{ resource: 'store.profile', action: 'read' }],
         },
       },
     });
@@ -824,7 +824,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Assignable Role',
-          permissions: [{ resource: 'org.profile', actions: ['read', 'update'] }],
+          permissions: [{ resource: 'org.profile', action: 'write' }],
         },
       },
     });
@@ -849,7 +849,7 @@ test.describe('Custom Roles (FR-9)', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'update' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'write' },
       },
     });
 
@@ -889,7 +889,7 @@ test.describe('Custom Roles (FR-9)', () => {
           domain: 'org',
           name: roleName,
           displayName: 'Limited Custom Role',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -923,7 +923,7 @@ test.describe('Custom Roles (FR-9)', () => {
     // Should NOT be able to update
     const { data: updateAuthData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'update' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'write' },
       },
     });
     expect((updateAuthData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -931,7 +931,7 @@ test.describe('Custom Roles (FR-9)', () => {
     // Should NOT be able to invite members
     const { data: inviteAuthData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
     expect((inviteAuthData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);

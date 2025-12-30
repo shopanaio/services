@@ -59,7 +59,7 @@ test.describe('Site Admin Bypass (FR-5)', () => {
     // 3. Verify site admin can access organization resources without being a member
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'update' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'write' },
       },
     });
 
@@ -100,11 +100,11 @@ test.describe('Site Admin Bypass (FR-5)', () => {
     // 3. Verify site admin can read, update, manage the organization
     const actions = [
       { resource: 'org.profile', action: 'read' },
-      { resource: 'org.profile', action: 'update' },
+      { resource: 'org.profile', action: 'write' },
       { resource: 'org.members', action: 'read' },
-      { resource: 'org.members', action: 'invite' },
+      { resource: 'org.members', action: 'write' },
       { resource: 'org.roles', action: 'read' },
-      { resource: 'org.roles', action: 'create' },
+      { resource: 'org.roles', action: 'write' },
     ];
 
     for (const { resource, action } of actions) {
@@ -173,9 +173,9 @@ test.describe('Site Admin Bypass (FR-5)', () => {
     // 3. Verify site admin can access store resources
     const actions = [
       { resource: 'store.profile', action: 'read' },
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
       { resource: 'store.members', action: 'read' },
-      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'write' },
     ];
 
     for (const { resource, action } of actions) {
@@ -226,7 +226,7 @@ test.describe('Site Admin Bypass (FR-5)', () => {
     // 3. Site admin accesses resource - should succeed without Casbin evaluation
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'delete' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'admin' },
       },
     });
 
@@ -320,7 +320,7 @@ test.describe('Site Admin Bypass (FR-5)', () => {
           domain: 'org',
           name: 'site-admin-created-role',
           displayName: 'Role Created by Site Admin',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });

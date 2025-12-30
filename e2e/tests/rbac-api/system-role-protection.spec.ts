@@ -12,7 +12,7 @@ interface Role {
   description?: string;
   isSystem: boolean;
   domain: string;
-  permissions: { resource: string; actions: string[] }[];
+  permissions: { resource: string; action: string }[];
 }
 
 interface MembershipData {
@@ -349,7 +349,7 @@ test.describe('System Role Protection (FR-7)', () => {
         input: {
           organizationId,
           id: adminRole?.id,
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -394,7 +394,7 @@ test.describe('System Role Protection (FR-7)', () => {
         input: {
           organizationId,
           id: memberRole?.id,
-          permissions: [{ resource: 'org.profile', actions: ['read', 'update'] }],
+          permissions: [{ resource: 'org.profile', action: 'write' }],
         },
       },
     });
@@ -642,7 +642,7 @@ test.describe('System Role Protection (FR-7)', () => {
           name: 'custom-reviewer',
           displayName: 'Custom Reviewer',
           description: 'A custom role for reviewers',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });

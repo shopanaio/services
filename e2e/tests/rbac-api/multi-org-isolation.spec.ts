@@ -37,7 +37,7 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
     // User A is admin in org A
     const { data: authOrgA } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId: orgAId, domain: 'org', resource: 'org.profile', action: 'update' },
+        input: { organizationId: orgAId, domain: 'org', resource: 'org.profile', action: 'write' },
       },
     });
     expect((authOrgA as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -67,7 +67,7 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
 
     const { data: authOrgB } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId: orgBId, domain: 'org', resource: 'org.profile', action: 'update' },
+        input: { organizationId: orgBId, domain: 'org', resource: 'org.profile', action: 'write' },
       },
     });
 
@@ -102,7 +102,7 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
           name: 'custom-reviewer',
           displayName: 'Custom Reviewer',
           description: 'A custom role for organization A',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
@@ -198,7 +198,7 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
     // User A should be admin in org A (can invite)
     const { data: authOrgA } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId: orgAId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId: orgAId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
     expect((authOrgA as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -206,7 +206,7 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
     // User A should be member in org B (cannot invite)
     const { data: authOrgB } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId: orgBId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId: orgBId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
     expect((authOrgB as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -234,9 +234,9 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
     // Make multiple permission checks for the same organization
     const actions = [
       { resource: 'org.profile', action: 'read' },
-      { resource: 'org.profile', action: 'update' },
+      { resource: 'org.profile', action: 'write' },
       { resource: 'org.members', action: 'read' },
-      { resource: 'org.members', action: 'invite' },
+      { resource: 'org.members', action: 'write' },
       { resource: 'org.roles', action: 'read' },
     ];
 
@@ -340,7 +340,7 @@ test.describe('Multi-Organization Isolation (FR-1)', () => {
           name: 'unique-role-org-a',
           displayName: 'Unique Role for Org A',
           description: 'This role should only exist in org A',
-          permissions: [{ resource: 'org.profile', actions: ['read'] }],
+          permissions: [{ resource: 'org.profile', action: 'read' }],
         },
       },
     });
