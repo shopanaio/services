@@ -1,4 +1,4 @@
-import type { CoreStore, CoreUser } from "@shopana/platform-api";
+import type { ContextStore, ContextUser } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
@@ -12,9 +12,9 @@ export interface ServiceContextOptions {
   /** Store slug from X-Store-Name header */
   slug?: string;
   /** Current store - required for all operations */
-  store?: CoreStore;
+  store?: ContextStore;
   /** Authenticated user for admin API */
-  user?: CoreUser;
+  user?: ContextUser;
   /** Current locale for translations (default: 'uk') */
   locale?: string;
   /** Current currency for pricing */
@@ -39,8 +39,8 @@ export class ServiceContext {
   /** Current currency for pricing */
   readonly currency?: string;
 
-  private _store?: CoreStore;
-  private _user?: CoreUser;
+  private _store?: ContextStore;
+  private _user?: ContextUser;
 
   constructor(options: ServiceContextOptions) {
     this.requestId = options.requestId;
@@ -54,7 +54,7 @@ export class ServiceContext {
   }
 
   /** Current store context */
-  get store(): CoreStore {
+  get store(): ContextStore {
     if (!this._store) {
       throw new Error("Store not available in context");
     }
@@ -62,7 +62,7 @@ export class ServiceContext {
   }
 
   /** Current user context */
-  get user(): CoreUser {
+  get user(): ContextUser {
     if (!this._user) {
       throw new Error("User not available in context");
     }
@@ -80,7 +80,7 @@ export class ServiceContext {
   }
 
   /** Alias for store (for backward compatibility) */
-  get project(): CoreStore {
+  get project(): ContextStore {
     return this.store;
   }
 }

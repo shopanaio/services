@@ -1,4 +1,4 @@
-import type { CoreStore, CoreUser } from "@shopana/platform-api";
+import type { ContextStore, ContextUser } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
@@ -10,9 +10,9 @@ export interface ServiceContextOptions {
   kernel: Kernel;
   loaders: Loader;
   /** Current store - required for all operations */
-  store?: CoreStore;
+  store?: ContextStore;
   /** Authenticated user for admin API */
-  user?: CoreUser;
+  user?: ContextUser;
 }
 
 /**
@@ -27,8 +27,8 @@ export class ServiceContext {
   /** DataLoaders for efficient batched data fetching */
   readonly loaders: Loader;
 
-  private _store?: CoreStore;
-  private _user?: CoreUser;
+  private _store?: ContextStore;
+  private _user?: ContextUser;
 
   constructor(options: ServiceContextOptions) {
     this.requestId = options.requestId;
@@ -39,7 +39,7 @@ export class ServiceContext {
   }
 
   /** Current store context */
-  get store(): CoreStore {
+  get store(): ContextStore {
     if (!this._store) {
       throw new Error("Store not available in context");
     }
@@ -47,7 +47,7 @@ export class ServiceContext {
   }
 
   /** Current user context */
-  get user(): CoreUser {
+  get user(): ContextUser {
     if (!this._user) {
       throw new Error("User not available in context");
     }
