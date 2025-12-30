@@ -9,7 +9,7 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { getServiceConfig, buildS3Config, isDevelopment } from "@shopana/shared-service-config";
-import type { MediaContext } from "../../context/index.js";
+import type { ServiceContext } from "../../context/index.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 
@@ -17,17 +17,13 @@ const { service, global } = getServiceConfig("media");
 const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
-import { getServices, initServices } from "./services.js";
-import { createDataLoaders, type DataLoaders } from "./dataloaders.js";
+import { initServices } from "./services.js";
+import { Kernel } from "../../kernel/Kernel.js";
+import { Loader } from "../../loaders/Loader.js";
 import { processRequest } from "graphql-upload-minimal";
 
-export interface GraphQLContext {
-  requestId: string;
-  slug: string;
-  project: MediaContext["project"];
-  user: MediaContext["user"];
-  loaders: DataLoaders | null;
-}
+// Re-export for backward compatibility
+export type { ServiceContext as GraphQLContext } from "../../context/index.js";
 
 export interface ServerConfig {
   port: number;
@@ -110,8 +106,11 @@ export async function startServer(serverConfig: ServerConfig) {
     resolvers,
   }));
 
+  // Create Kernel
+  const kernel = new Kernel(services.repository, services.logger, services.broker);
+
   // Create Apollo Server
-  const apollo = new ApolloServer<GraphQLContext>({
+  const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
     plugins: [fastifyApolloDrainPlugin(app), mediaContextPlugin()],
@@ -152,7 +151,7 @@ export async function startServer(serverConfig: ServerConfig) {
   await app.register(fastifyApollo(apollo), {
     path: "/graphql",
 
-    context: async (request, _reply): Promise<GraphQLContext> => {
+    context: async (request, _reply): Promise<ServiceContext> => {
       // For introspection, return minimal context
       const isIntrospection =
         request.headers["x-interpolation"] === "true" ||
@@ -161,23 +160,19 @@ export async function startServer(serverConfig: ServerConfig) {
       if (isIntrospection) {
         return {
           requestId: request.id as string,
-          slug: "",
+          kernel,
           store: null as any,
           user: null as any,
-          loaders: null,
+          loaders: null as any,
         };
       }
 
-      // Create DataLoaders for this request
-      const services = getServices();
-      const loaders = createDataLoaders(
-        request.store.id,
-        services.repository
-      );
+      // Create Loader for this request
+      const loaders = new Loader(request.store.id, services.repository);
 
       return {
         requestId: request.id as string,
-        slug: request.headers["x-pj-key"] as string,
+        kernel,
         store: request.store,
         user: request.user,
         loaders,

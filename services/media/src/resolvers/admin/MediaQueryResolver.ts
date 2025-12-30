@@ -1,0 +1,55 @@
+import { MediaType } from "./MediaType.js";
+import { FileResolver } from "./FileResolver.js";
+import { decodeGlobalId } from "./utils/globalId.js";
+
+/**
+ * MediaQuery namespace resolver.
+ * Handles all media query operations.
+ */
+export class MediaQueryResolver extends MediaType<Record<string, never>> {
+  /**
+   * Get a node by its global ID (Relay Node interface)
+   */
+  node(_args: unknown, { id }: { id: string }) {
+    const decoded = decodeGlobalId(id);
+    if (!decoded) {
+      return null;
+    }
+
+    if (decoded.type === "File") {
+      return new FileResolver(decoded.id, this.ctx);
+    }
+
+    return null;
+  }
+
+  /**
+   * Get multiple nodes by their global IDs (Relay Node interface)
+   */
+  nodes(_args: unknown, { ids }: { ids: string[] }) {
+    return ids.map((id) => {
+      const decoded = decodeGlobalId(id);
+      if (!decoded) {
+        return null;
+      }
+
+      if (decoded.type === "File") {
+        return new FileResolver(decoded.id, this.ctx);
+      }
+
+      return null;
+    });
+  }
+
+  /**
+   * Get a single file by ID
+   */
+  file(_args: unknown, { id }: { id: string }) {
+    const decoded = decodeGlobalId(id);
+    if (!decoded || decoded.type !== "File") {
+      return null;
+    }
+
+    return new FileResolver(decoded.id, this.ctx);
+  }
+}
