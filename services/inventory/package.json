@@ -22,6 +22,7 @@
     "@shopana/inventory-plugin-shopana": "*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/plugin-sdk": "*",
+    "@shopana/shared-context": "*",
     "@shopana/shared-kernel": "*",
     "@shopana/type-resolver": "*",
     "@upstash/redis": "^1.34.3",

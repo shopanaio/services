@@ -6296,7 +6296,9 @@ __metadata:
     "@event-driven-io/dumbo": "npm:^0.13.0-alpha.6"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-graphql-guid": "npm:0.0.1"
+    "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-money": "npm:0.0.1"
     "@shopana/shared-service-api": "npm:*"
     "@shopana/shared-service-config": "npm:0.0.1"
@@ -6527,6 +6529,7 @@ __metadata:
     "@shopana/inventory-plugin-shopana": "npm:*"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/plugin-sdk": "npm:*"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/type-resolver": "npm:*"
     "@types/node": "npm:^20.14.14"
@@ -6563,6 +6566,7 @@ __metadata:
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
+    "@shopana/shared-context": "npm:*"
     "@shopana/shared-graphql-guid": "npm:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-service-config": "npm:*"
@@ -6603,6 +6607,8 @@ __metadata:
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/shared-async-context": "npm:0.0.1"
+    "@shopana/shared-context": "npm:*"
+    "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-money": "npm:0.0.1"
     "@shopana/shared-service-api": "npm:*"
     "@shopana/shared-service-config": "npm:0.0.1"
@@ -6793,6 +6799,17 @@ __metadata:
     "@types/node": "npm:^20.0.0"
     tsc-alias: "npm:^1.8.10"
     typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/shared-context@npm:*, @shopana/shared-context@workspace:packages/shared-context":
+  version: 0.0.0-use.local
+  resolution: "@shopana/shared-context@workspace:packages/shared-context"
+  dependencies:
+    "@shopana/shared-kernel": "npm:*"
+    "@types/node": "npm:^20.12.7"
+    fastify: "npm:^4.26.0"
+    typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
 
@@ -11587,7 +11604,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fastify@npm:^4.28.1":
+"fastify@npm:^4.26.0, fastify@npm:^4.28.1":
   version: 4.29.1
   resolution: "fastify@npm:4.29.1"
   dependencies:

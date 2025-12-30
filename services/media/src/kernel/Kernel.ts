@@ -1,22 +1,86 @@
-import type { Logger } from "@shopana/shared-kernel";
-import { Kernel as BaseKernel } from "@shopana/shared-kernel";
+import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
+import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
-import type { Repository } from "../repositories";
+import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import type { MediaKernelServices } from "./types";
+import { Repository } from "../repositories/Repository.js";
+import { initDatabase, type Database } from "../infrastructure/db/database.js";
 
 /**
- * Extended kernel for media microservice
+ * Extended kernel for media microservice (singleton)
  */
 export class Kernel extends BaseKernel<MediaKernelServices> {
-  public readonly repository: Repository;
-  public readonly cache: Cache;
+  private static instance: Kernel | null = null;
 
-  constructor(repository: Repository, logger: Logger, broker: any) {
+  public repository!: Repository;
+  public cache!: Cache;
+  public db!: Database;
+
+  private constructor(
+    broker: ServiceBroker,
+    logger: Logger,
+    repository: Repository,
+    cache: Cache,
+    db: Database
+  ) {
     super(broker, logger, { repository });
     this.repository = repository;
-    this.cache = createCache({
+    this.cache = cache;
+    this.db = db;
+  }
+
+  static async create(broker: ServiceBroker): Promise<Kernel> {
+    if (this.instance) {
+      return this.instance;
+    }
+
+    // Load database configuration from config.yml
+    const { service } = getServiceConfig("media");
+    if (!service.db) {
+      throw new Error("Database configuration is required for media service in config.yml");
+    }
+    const databaseUrl = buildDatabaseUrl(service.db);
+
+    console.log("[Media] Initializing database connection...");
+    const db = initDatabase(databaseUrl);
+
+    // Create repository with database
+    console.log("[Media] Initializing repository...");
+    const repository = new Repository(databaseUrl);
+
+    const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
     });
+
+    this.instance = new Kernel(
+      broker,
+      consoleLogger,
+      repository,
+      cache,
+      db
+    );
+    console.log("[Media] Kernel initialized");
+    return this.instance;
+  }
+
+  static getInstance(): Kernel {
+    if (!this.instance) {
+      throw new Error(
+        "Kernel not initialized. Call Kernel.create(broker) first."
+      );
+    }
+    return this.instance;
+  }
+
+  static isInitialized(): boolean {
+    return this.instance !== null;
+  }
+
+  async close(): Promise<void> {
+    if (this.repository) {
+      await this.repository.close();
+    }
+    Kernel.instance = null;
   }
 }
 

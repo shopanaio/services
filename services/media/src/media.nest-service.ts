@@ -1,31 +1,43 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
+import { getServiceConfig } from "@shopana/shared-service-config";
 import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
 import type { FastifyInstance } from 'fastify';
 import { startServer } from './api/graphql-admin/server';
+import { Kernel } from './kernel/Kernel';
 
-const { service, global } = getServiceConfig("media");
+const { service } = getServiceConfig("media");
 
 @Injectable()
 export class MediaNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MediaNestService.name);
-  private fastify: FastifyInstance | null = null;
+  private kernel!: Kernel;
+  private graphqlServer: FastifyInstance | null = null;
 
   constructor(@InjectBroker('media') private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
-    const port = service.ports?.admin_graphql ?? 0;
-    const graphqlPath = service.graphql?.path ?? "/graphql/admin";
-    this.fastify = await startServer({
-      port,
-      grpcHost: global.platform_grpc_host,
-      databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
+    this.logger.debug("Media onModuleInit started");
+
+    this.kernel = await Kernel.create(this.broker);
+    this.logger.debug("Kernel created");
+
+    this.graphqlServer = await startServer({
+      port: service.ports?.admin_graphql ?? 0,
     });
-    this.logger.log(`Media GraphQL Admin API running at http://localhost:${port}${graphqlPath}`);
+    this.logger.debug("GraphQL server started");
+
+    this.logger.log("Media service started");
   }
 
   async onModuleDestroy() {
-    if (this.fastify) await this.fastify.close();
+    if (this.graphqlServer) {
+      await this.graphqlServer.close();
+    }
+
+    if (this.kernel) {
+      await this.kernel.close();
+    }
+
     this.logger.log('Media service stopped');
   }
 }

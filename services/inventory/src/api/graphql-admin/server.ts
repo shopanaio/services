@@ -9,40 +9,30 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
-import { consoleLogger } from "@shopana/shared-kernel";
 import { setContext, type ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("inventory");
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
-import { Repository } from "../../repositories/Repository.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 export interface ServerConfig {
   port: number;
-  grpcHost?: string;
-  databaseUrl?: string;
 }
 
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
+ * Kernel is obtained from singleton (must be initialized first)
  */
 export async function startServer(serverConfig: ServerConfig) {
-  // Initialize Repository and Kernel
-  const databaseUrl = serverConfig.databaseUrl || process.env.DATABASE_URL || "";
-  let repository: Repository | null = null;
   let kernel: Kernel | null = null;
 
-  if (databaseUrl) {
-    repository = new Repository(databaseUrl);
-    kernel = new Kernel(repository, consoleLogger, null);
-    console.log("[INVENTORY] Database connected, Kernel initialized");
+  if (Kernel.isInitialized()) {
+    kernel = Kernel.getInstance();
   } else {
-    console.warn(
-      "[INVENTORY] No DATABASE_URL configured, running without database"
-    );
+    console.warn("[Inventory] Kernel not initialized");
   }
 
   const app = fastify({
@@ -55,7 +45,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[INVENTORY] {msg}',
+              messageFormat: '[Inventory] {msg}',
               levelFirst: true,
             },
           },
@@ -101,12 +91,13 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware
-  const grpcConfig = {
-    getGrpcHost: () =>
-      serverConfig.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
-  };
-  app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
+  // Admin context middleware - extracts store and user from headers
+  app.addHook(
+    "preHandler",
+    buildAdminContextMiddleware({
+      repository: kernel?.repository ?? null,
+    })
+  );
 
   // GraphQL endpoint
   await app.register(fastifyApollo(apollo), {
@@ -122,7 +113,7 @@ export async function startServer(serverConfig: ServerConfig) {
           requestId: request.id as string,
           kernel: kernel as Kernel,
           slug: "",
-          project: null as any,
+          store: null as any,
           user: null as any,
           loaders: null as any,
         };
@@ -131,11 +122,11 @@ export async function startServer(serverConfig: ServerConfig) {
       const ctx: ServiceContext = {
         requestId: request.id as string,
         kernel: kernel!,
-        slug: request.headers["x-pj-key"] as string,
-        store: request.store,
-        user: request.user,
+        slug: request.headers["x-store-name"] as string,
+        store: request.store as any,
+        user: request.user as any,
         // Create loaders per request for proper batching
-        loaders: new Loader(kernel!.getServices().repository),
+        loaders: new Loader(kernel!.repository),
       };
 
       // Set context in AsyncLocalStorage for all resolvers

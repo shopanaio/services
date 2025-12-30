@@ -1,0 +1,34 @@
+{
+  "name": "@shopana/shared-context",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared context middleware for Shopana microservices",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "context",
+    "middleware",
+    "fastify"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@shopana/shared-kernel": "*",
+    "fastify": "^4.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "typescript": "^5.4.5"
+  }
+}

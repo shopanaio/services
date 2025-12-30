@@ -17,7 +17,6 @@ const { service, global } = getServiceConfig("media");
 const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
 import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
-import { initServices } from "./services.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { processRequest } from "graphql-upload-minimal";
@@ -27,40 +26,45 @@ export type { ServiceContext as GraphQLContext } from "../../context/index.js";
 
 export interface ServerConfig {
   port: number;
-  grpcHost?: string;
-  databaseUrl: string;
 }
 
 /**
  * Create and start GraphQL-only server
  * Uses admin context middleware that sets async local storage context
+ * Kernel is obtained from singleton (must be initialized first)
  */
 export async function startServer(serverConfig: ServerConfig) {
+  let kernel: Kernel | null = null;
 
-  // Initialize services (repository, etc.)
-  const services = initServices();
+  if (Kernel.isInitialized()) {
+    kernel = Kernel.getInstance();
+  } else {
+    console.warn("[Media] Kernel not initialized");
+  }
 
   // Ensure bucket record exists in database (for default/system bucket)
-  const bucketName = getBucketName();
-  console.log(`[media] Checking bucket record '${bucketName}' in database...`);
-  try {
-    const existingBucket = await services.repository.bucket.findByBucketName(bucketName);
-    if (!existingBucket) {
-      // Create a system-level bucket record
-      // Using a fixed UUID for the system project
-      const SYSTEM_PROJECT_ID = "00000000-0000-0000-0000-000000000000";
-      await services.repository.bucket.create(SYSTEM_PROJECT_ID, {
-        bucketName,
-        region: storageConfig?.region ?? "us-east-1",
-        status: "active",
-        endpointUrl: storageConfig?.endpoint ?? "",
-      });
-      console.log(`[media] Bucket record '${bucketName}' created in database`);
-    } else {
-      console.log(`[media] Bucket record '${bucketName}' already exists in database`);
+  if (kernel) {
+    const bucketName = getBucketName();
+    console.log(`[Media] Checking bucket record '${bucketName}' in database...`);
+    try {
+      const existingBucket = await kernel.repository.bucket.findByBucketName(bucketName);
+      if (!existingBucket) {
+        // Create a system-level bucket record
+        // Using a fixed UUID for the system project
+        const SYSTEM_PROJECT_ID = "00000000-0000-0000-0000-000000000000";
+        await kernel.repository.bucket.create(SYSTEM_PROJECT_ID, {
+          bucketName,
+          region: storageConfig?.region ?? "us-east-1",
+          status: "active",
+          endpointUrl: storageConfig?.endpoint ?? "",
+        });
+        console.log(`[Media] Bucket record '${bucketName}' created in database`);
+      } else {
+        console.log(`[Media] Bucket record '${bucketName}' already exists in database`);
+      }
+    } catch (error) {
+      console.error(`[Media] Failed to ensure bucket record exists:`, error);
     }
-  } catch (error) {
-    console.error(`[media] Failed to ensure bucket record exists:`, error);
   }
 
   const app = fastify({
@@ -73,7 +77,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[MEDIA] {msg}',
+              messageFormat: '[Media] {msg}',
               levelFirst: true,
             },
           },
@@ -106,9 +110,6 @@ export async function startServer(serverConfig: ServerConfig) {
     resolvers,
   }));
 
-  // Create Kernel
-  const kernel = new Kernel(services.repository, services.logger, services.broker);
-
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
@@ -118,12 +119,13 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware
-  const grpcConfig = {
-    getGrpcHost: () =>
-      serverConfig.grpcHost ?? process.env.PLATFORM_GRPC_HOST ?? "localhost:50051",
-  };
-  app.addHook("preHandler", buildAdminContextMiddleware(grpcConfig));
+  // Admin context middleware - extracts store and user from headers
+  app.addHook(
+    "preHandler",
+    buildAdminContextMiddleware({
+      repository: kernel?.repository ?? null,
+    })
+  );
 
   // GraphQL multipart upload middleware
   app.addHook("preHandler", async (request, reply) => {
@@ -160,7 +162,7 @@ export async function startServer(serverConfig: ServerConfig) {
       if (isIntrospection) {
         return {
           requestId: request.id as string,
-          kernel,
+          kernel: kernel as Kernel,
           store: null as any,
           user: null as any,
           loaders: null as any,
@@ -168,11 +170,11 @@ export async function startServer(serverConfig: ServerConfig) {
       }
 
       // Create Loader for this request
-      const loaders = new Loader(request.store.id, services.repository);
+      const loaders = new Loader(request.store.id, kernel!.repository);
 
       return {
         requestId: request.id as string,
-        kernel,
+        kernel: kernel!,
         store: request.store,
         user: request.user,
         loaders,

@@ -8,20 +8,18 @@ import {
 import type { InventoryUpdateTask } from "@shopana/import-plugin-sdk";
 import { assertInventoryUpdateTask } from "@shopana/import-plugin-sdk";
 import {
-  Kernel,
-  NestLogger,
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
 import {
   getServiceConfig,
-  buildDatabaseUrl,
   buildS3Config,
 } from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server";
+import { Kernel } from "./kernel/Kernel";
 
-const { service, global } = getServiceConfig("inventory");
+const { service } = getServiceConfig("inventory");
 import type {
   ProductUpdatedEvent,
   StockChangedEvent,
@@ -49,7 +47,10 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
   constructor(@InjectBroker('inventory') private readonly broker: ServiceBroker) {}
 
   async onModuleInit() {
-    this.kernel = new Kernel(this.broker, new NestLogger(this.logger));
+    this.logger.debug("Inventory onModuleInit started");
+
+    this.kernel = await Kernel.create(this.broker);
+    this.logger.debug("Kernel created");
 
     const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
     this.storageGateway = new InventoryObjectStorage(
@@ -101,8 +102,8 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
 
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
-      databaseUrl: service.db ? buildDatabaseUrl(service.db) : "",
     });
+    this.logger.debug("GraphQL server started");
 
     this.logger.log("Inventory service started");
   }
@@ -111,6 +112,11 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
     if (this.graphqlServer) {
       await this.graphqlServer.close();
     }
+
+    if (this.kernel) {
+      await this.kernel.close();
+    }
+
     this.logger.log("Inventory service stopped");
   }
 
