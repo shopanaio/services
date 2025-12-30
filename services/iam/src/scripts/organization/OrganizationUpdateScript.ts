@@ -35,7 +35,6 @@ export class OrganizationUpdateScript extends BaseScript<
 
     // Find organization
     const org = await this.repository.organization.findById(organizationId);
-
     if (!org) {
       return {
         organization: null,

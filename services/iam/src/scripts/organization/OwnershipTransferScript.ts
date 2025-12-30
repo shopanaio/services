@@ -42,6 +42,7 @@ export class OwnershipTransferScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: "Only the organization owner can transfer ownership",
+            field: ["organizationId"],
           },
         ],
       };
@@ -61,7 +62,7 @@ export class OwnershipTransferScript extends BaseScript<
           {
             code: "INVALID_TARGET",
             message: "New owner must be a member of the organization",
-            field: "newOwnerId",
+            field: ["newOwnerId"],
           },
         ],
       };
@@ -81,7 +82,7 @@ export class OwnershipTransferScript extends BaseScript<
           {
             code: "INVALID_TARGET",
             message: "New owner must have admin role in the organization",
-            field: "newOwnerId",
+            field: ["newOwnerId"],
           },
         ],
       };
@@ -100,6 +101,7 @@ export class OwnershipTransferScript extends BaseScript<
           {
             code: "TRANSFER_FAILED",
             message: result.error ?? "Failed to transfer ownership",
+            field: [],
           },
         ],
       };
@@ -126,6 +128,7 @@ export class OwnershipTransferScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: ["organizationId"],
           },
         ],
       };
@@ -139,6 +142,7 @@ export class OwnershipTransferScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

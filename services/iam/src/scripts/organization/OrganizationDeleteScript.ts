@@ -41,6 +41,7 @@ export class OrganizationDeleteScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: "Only the organization owner can delete the organization",
+            field: ["organizationId"],
           },
         ],
       };
@@ -56,6 +57,7 @@ export class OrganizationDeleteScript extends BaseScript<
           {
             code: "NOT_FOUND",
             message: "Organization not found",
+            field: ["organizationId"],
           },
         ],
       };
@@ -82,6 +84,7 @@ export class OrganizationDeleteScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: ["organizationId"],
           },
         ],
       };
@@ -95,6 +98,7 @@ export class OrganizationDeleteScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

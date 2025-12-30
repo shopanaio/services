@@ -43,7 +43,7 @@ export class RoleUpdateScript extends BaseScript<
           {
             code: "NOT_FOUND",
             message: "Role not found",
-            field: "id",
+            field: ["id"],
           },
         ],
       };
@@ -57,6 +57,7 @@ export class RoleUpdateScript extends BaseScript<
           {
             code: "SYSTEM_ROLE",
             message: "Cannot modify system role",
+            field: ["id"],
           },
         ],
       };
@@ -122,6 +123,7 @@ export class RoleUpdateScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: ["organizationId"],
           },
         ],
       };
@@ -135,6 +137,7 @@ export class RoleUpdateScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

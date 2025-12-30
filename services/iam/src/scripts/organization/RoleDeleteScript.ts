@@ -45,7 +45,7 @@ export class RoleDeleteScript extends BaseScript<
           {
             code: "NOT_FOUND",
             message: "Role not found",
-            field: "id",
+            field: ["id"],
           },
         ],
       };
@@ -59,6 +59,7 @@ export class RoleDeleteScript extends BaseScript<
           {
             code: "SYSTEM_ROLE",
             message: "Cannot delete system role",
+            field: ["id"],
           },
         ],
       };
@@ -98,6 +99,7 @@ export class RoleDeleteScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: ["organizationId"],
           },
         ],
       };
@@ -111,6 +113,7 @@ export class RoleDeleteScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };

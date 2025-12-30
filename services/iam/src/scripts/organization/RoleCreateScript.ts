@@ -27,11 +27,15 @@ export class RoleCreateScript extends BaseScript<
     organizationId: (self: RoleCreateScript, params: RoleCreateParams) =>
       params.organizationId,
   })
-  protected async execute(
-    params: RoleCreateParams
-  ): Promise<RoleCreateResult> {
-    const { organizationId, domain, name, displayName, description, permissions } =
-      params;
+  protected async execute(params: RoleCreateParams): Promise<RoleCreateResult> {
+    const {
+      organizationId,
+      domain,
+      name,
+      displayName,
+      description,
+      permissions,
+    } = params;
 
     // Check if role with same name already exists in this domain
     const existingRole = await this.repository.organization.findRole(
@@ -47,7 +51,7 @@ export class RoleCreateScript extends BaseScript<
           {
             code: "DUPLICATE",
             message: "Role with this name already exists in this domain",
-            field: "name",
+            field: ["name"],
           },
         ],
       };
@@ -97,6 +101,7 @@ export class RoleCreateScript extends BaseScript<
           {
             code: "FORBIDDEN",
             message: error.message,
+            field: ["organizationId"],
           },
         ],
       };
@@ -110,6 +115,7 @@ export class RoleCreateScript extends BaseScript<
         {
           code: "INTERNAL_ERROR",
           message: "An unexpected error occurred",
+          field: [],
         },
       ],
     };
