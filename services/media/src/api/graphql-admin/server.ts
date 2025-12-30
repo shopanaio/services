@@ -9,13 +9,12 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { getServiceConfig, buildS3Config, isDevelopment } from "@shopana/shared-service-config";
-import type { ServiceContext } from "../../context/index.js";
+import { setContext, ServiceContext } from "../../context/index.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 
 const { service, global } = getServiceConfig("media");
 const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
-import { mediaContextPlugin } from "./mediaContextPlugin.js";
 import { resolvers } from "./resolvers/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
@@ -114,7 +113,7 @@ export async function startServer(serverConfig: ServerConfig) {
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [fastifyApolloDrainPlugin(app), mediaContextPlugin()],
+    plugins: [fastifyApolloDrainPlugin(app)],
   });
 
   await apollo.start();
@@ -160,25 +159,28 @@ export async function startServer(serverConfig: ServerConfig) {
         request.headers["user-agent"]?.includes("rover");
 
       if (isIntrospection) {
-        return {
+        return new ServiceContext({
           requestId: request.id as string,
           kernel: kernel as Kernel,
-          store: null as any,
-          user: null as any,
           loaders: null as any,
-        };
+        });
       }
 
-      // Create Loader for this request
-      const loaders = new Loader(request.store.id, kernel!.repository);
+      // Create loaders per request for proper batching
+      const loaders = new Loader(kernel!.repository);
 
-      return {
+      const ctx = new ServiceContext({
         requestId: request.id as string,
         kernel: kernel!,
         store: request.store,
         user: request.user,
         loaders,
-      };
+      });
+
+      // Set context in AsyncLocalStorage for all resolvers
+      setContext(ctx);
+
+      return ctx;
     },
   });
 

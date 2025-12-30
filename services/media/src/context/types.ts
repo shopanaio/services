@@ -3,31 +3,64 @@ import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 
 /**
- * Media service execution context
- * Contains essential business context data available throughout request lifecycle
+ * Context initialization options
  */
-export interface MediaContext {
-  /** Store slug from header */
-  slug: string;
+export interface ServiceContextOptions {
+  requestId: string;
+  kernel: Kernel;
+  loaders: Loader;
   /** Current store - required for all operations */
-  store: CoreStore;
+  store?: CoreStore;
   /** Authenticated user for admin API */
-  user: CoreUser;
+  user?: CoreUser;
 }
 
 /**
- * Service context for type resolvers
- * Contains all request-scoped data available throughout request lifecycle
+ * Unified service context for media service.
+ * Contains all request-scoped data available throughout request lifecycle.
  */
-export interface ServiceContext {
+export class ServiceContext {
   /** Unique request identifier */
-  requestId: string;
+  readonly requestId: string;
   /** Kernel for business logic */
-  kernel: Kernel;
+  readonly kernel: Kernel;
+  /** DataLoaders for efficient batched data fetching */
+  readonly loaders: Loader;
+
+  private _store?: CoreStore;
+  private _user?: CoreUser;
+
+  constructor(options: ServiceContextOptions) {
+    this.requestId = options.requestId;
+    this.kernel = options.kernel;
+    this.loaders = options.loaders;
+    this._store = options.store;
+    this._user = options.user;
+  }
+
   /** Current store context */
-  store: CoreStore;
+  get store(): CoreStore {
+    if (!this._store) {
+      throw new Error("Store not available in context");
+    }
+    return this._store;
+  }
+
   /** Current user context */
-  user: CoreUser;
-  /** Data loaders for batch loading */
-  loaders: Loader;
+  get user(): CoreUser {
+    if (!this._user) {
+      throw new Error("User not available in context");
+    }
+    return this._user;
+  }
+
+  /** Check if store is available */
+  get hasStore(): boolean {
+    return !!this._store;
+  }
+
+  /** Check if user is available */
+  get hasUser(): boolean {
+    return !!this._user;
+  }
 }

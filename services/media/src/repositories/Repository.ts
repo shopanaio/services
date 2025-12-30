@@ -1,4 +1,5 @@
-import { initDatabase, closeDatabaseConnection, type Database } from "../infrastructure/db/database";
+import { TransactionManager } from "@shopana/shared-kernel";
+import type { Database } from "../infrastructure/db/database";
 import { BucketRepository } from "./BucketRepository";
 import { FileRepository } from "./FileRepository";
 import { S3ObjectRepository } from "./S3ObjectRepository";
@@ -6,6 +7,13 @@ import { ExternalMediaRepository } from "./ExternalMediaRepository";
 import { UploadSessionRepository } from "./UploadSessionRepository";
 import { BucketRotationLogRepository } from "./BucketRotationLogRepository";
 
+export interface RepositoryConfig {
+  db: Database;
+}
+
+/**
+ * Repository aggregator for media service.
+ */
 export class Repository {
   public readonly bucket: BucketRepository;
   public readonly file: FileRepository;
@@ -13,21 +21,51 @@ export class Repository {
   public readonly externalMedia: ExternalMediaRepository;
   public readonly uploadSession: UploadSessionRepository;
   public readonly bucketRotationLog: BucketRotationLogRepository;
+  public readonly txManager: TransactionManager<Database>;
 
-  private readonly db: Database;
-
-  constructor(connectionString: string) {
-    this.db = initDatabase(connectionString);
-
-    this.bucket = new BucketRepository(this.db);
-    this.file = new FileRepository(this.db);
-    this.s3Object = new S3ObjectRepository(this.db);
-    this.externalMedia = new ExternalMediaRepository(this.db);
-    this.uploadSession = new UploadSessionRepository(this.db);
-    this.bucketRotationLog = new BucketRotationLogRepository(this.db);
+  private constructor(
+    bucket: BucketRepository,
+    file: FileRepository,
+    s3Object: S3ObjectRepository,
+    externalMedia: ExternalMediaRepository,
+    uploadSession: UploadSessionRepository,
+    bucketRotationLog: BucketRotationLogRepository,
+    txManager: TransactionManager<Database>
+  ) {
+    this.bucket = bucket;
+    this.file = file;
+    this.s3Object = s3Object;
+    this.externalMedia = externalMedia;
+    this.uploadSession = uploadSession;
+    this.bucketRotationLog = bucketRotationLog;
+    this.txManager = txManager;
   }
 
-  async close(): Promise<void> {
-    await closeDatabaseConnection();
+  /**
+   * Create Repository with database instance
+   */
+  static async create(config: RepositoryConfig): Promise<Repository> {
+    const { db } = config;
+
+    // Create transaction manager
+    const txManager = new TransactionManager(db);
+
+    // Create repositories
+    const bucket = new BucketRepository(db);
+    const file = new FileRepository(db);
+    const s3Object = new S3ObjectRepository(db);
+    const externalMedia = new ExternalMediaRepository(db);
+    const uploadSession = new UploadSessionRepository(db);
+    const bucketRotationLog = new BucketRotationLogRepository(db);
+
+    return new Repository(
+      bucket,
+      file,
+      s3Object,
+      externalMedia,
+      uploadSession,
+      bucketRotationLog,
+      txManager
+    );
   }
 }

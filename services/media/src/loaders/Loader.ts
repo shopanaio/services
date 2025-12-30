@@ -12,10 +12,10 @@ export class Loader {
   public readonly s3Object: S3ObjectLoader["s3Object"];
   public readonly externalMedia: ExternalMediaLoader["externalMedia"];
 
-  constructor(projectId: string, repository: Repository) {
-    const fileLoader = new FileLoader(projectId, repository);
-    const s3ObjectLoader = new S3ObjectLoader(projectId, repository);
-    const externalMediaLoader = new ExternalMediaLoader(projectId, repository);
+  constructor(repository: Repository) {
+    const fileLoader = new FileLoader(repository);
+    const s3ObjectLoader = new S3ObjectLoader(repository);
+    const externalMediaLoader = new ExternalMediaLoader(repository);
 
     this.file = fileLoader.file;
     this.s3Object = s3ObjectLoader.s3Object;

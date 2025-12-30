@@ -24,7 +24,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
     cache: Cache,
     db: Database
   ) {
-    super(broker, logger, { repository });
+    super(broker, logger, { repository, cache });
     this.repository = repository;
     this.cache = cache;
     this.db = db;
@@ -47,7 +47,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
 
     // Create repository with database
     console.log("[Inventory] Initializing repository...");
-    const repository = new Repository(databaseUrl);
+    const repository = await Repository.create({ db });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -78,31 +78,19 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   }
 
   async close(): Promise<void> {
-    if (this.repository) {
-      await this.repository.close();
-    }
     Kernel.instance = null;
   }
 
   /**
-   * Execute a class-based script with automatic transaction management
+   * Execute a class-based script.
+   * Use @Transactional() decorator on execute() method for transaction support.
    */
   async runScript<TParams, TResult>(
     ScriptClass: new (services: InventoryKernelServices) => BaseScript<TParams, TResult>,
     params: TParams
   ): Promise<TResult> {
-    const txManager = this.services.repository?.txManager;
-
-    const execute = async (): Promise<TResult> => {
-      const script = new ScriptClass(this.services);
-      return script.run(params);
-    };
-
-    if (txManager) {
-      return txManager.run(execute);
-    }
-
-    return execute();
+    const script = new ScriptClass(this.services);
+    return script.run(params);
   }
 }
 

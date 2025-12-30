@@ -3,28 +3,17 @@ import type {
   ScriptContext as BaseScriptContext,
   TransactionScript as BaseTransactionScript,
 } from "@shopana/shared-kernel";
+import type { Cache } from "cache-manager";
 import type { Repository } from "../repositories";
 
 /**
  * Logger interface for the media service
  */
 export interface Logger {
-  debug(...args: any[]): void;
-  info(...args: any[]): void;
-  warn(...args: any[]): void;
-  error(...args: any[]): void;
-}
-
-/**
- * Plugin Manager interface for the media service
- */
-export interface PluginManager {
-  getOffers(params: {
-    pluginCode: string;
-    input: any;
-    requestMeta?: { requestId?: string; userAgent?: string };
-    projectId?: string;
-  }): Promise<any[]>;
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
 }
 
 /**
@@ -32,6 +21,7 @@ export interface PluginManager {
  */
 export interface MediaKernelServices extends BaseKernelServices {
   readonly repository: Repository;
+  readonly cache: Cache;
 }
 
 /**

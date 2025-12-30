@@ -6,7 +6,7 @@ import {
   type Authorizable,
 } from "@shopana/shared-kernel";
 import { getContext } from "../context/index.js";
-import type { InventoryKernelServices } from "./types.js";
+import type { MediaKernelServices } from "./types.js";
 import { AuthProvider } from "./Authorizable.js";
 
 // Re-export decorators for convenience
@@ -24,17 +24,17 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    */
   readonly authProvider = new AuthProvider();
 
-  protected readonly services: InventoryKernelServices;
-  protected readonly repository: InventoryKernelServices["repository"];
-  protected readonly logger: InventoryKernelServices["logger"];
+  protected readonly services: MediaKernelServices;
+  protected readonly repository: MediaKernelServices["repository"];
+  protected readonly logger: MediaKernelServices["logger"];
 
   /**
    * Transaction manager for @Transactional() decorator
    * Required by the decorator contract
    */
-  protected readonly txManager: InventoryKernelServices["repository"]["txManager"];
+  protected readonly txManager: MediaKernelServices["repository"]["txManager"];
 
-  constructor(services: InventoryKernelServices) {
+  constructor(services: MediaKernelServices) {
     this.services = services;
     this.repository = services.repository;
     this.logger = services.logger;
@@ -77,16 +77,9 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
   }
 
   /**
-   * Helper: get current locale
+   * Helper: get current store ID
    */
-  protected getLocale(): string {
-    return this.context.locale ?? "uk";
-  }
-
-  /**
-   * Helper: get current project ID
-   */
-  protected getProjectId(): string {
+  protected get storeId(): string {
     return this.context.store.id;
   }
 
@@ -101,7 +94,7 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    * Helper: execute another script (composition)
    */
   protected executeScript<P, R>(
-    ScriptClass: new (services: InventoryKernelServices) => BaseScript<P, R>,
+    ScriptClass: new (services: MediaKernelServices) => BaseScript<P, R>,
     params: P
   ): Promise<R> {
     const script = new ScriptClass(this.services);

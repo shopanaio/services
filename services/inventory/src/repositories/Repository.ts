@@ -1,5 +1,5 @@
 import { TransactionManager } from "@shopana/shared-kernel";
-import { initDatabase, closeDatabaseConnection, type Database } from "../infrastructure/db/database";
+import type { Database } from "../infrastructure/db/database";
 import { ProductRepository } from "./product/ProductRepository.js";
 import { VariantRepository } from "./variant/VariantRepository.js";
 import { PricingRepository } from "./pricing/PricingRepository.js";
@@ -12,6 +12,13 @@ import { WarehouseRepository } from "./warehouse/WarehouseRepository.js";
 import { TranslationRepository } from "./translation/TranslationRepository.js";
 import { MediaRepository } from "./media/MediaRepository.js";
 
+export interface RepositoryConfig {
+  db: Database;
+}
+
+/**
+ * Repository aggregator for inventory service.
+ */
 export class Repository {
   public readonly product: ProductRepository;
   public readonly variant: VariantRepository;
@@ -24,30 +31,71 @@ export class Repository {
   public readonly warehouse: WarehouseRepository;
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
-
-  private readonly db: Database;
-
-  /** Transaction Manager — used by Kernel to wrap scripts in transactions */
   public readonly txManager: TransactionManager<Database>;
 
-  constructor(connectionString: string) {
-    this.db = initDatabase(connectionString);
-    this.txManager = new TransactionManager(this.db);
-
-    this.product = new ProductRepository(this.db, this.txManager);
-    this.variant = new VariantRepository(this.db, this.txManager);
-    this.pricing = new PricingRepository(this.db, this.txManager);
-    this.cost = new CostRepository(this.db, this.txManager);
-    this.option = new OptionRepository(this.db, this.txManager);
-    this.feature = new FeatureRepository(this.db, this.txManager);
-    this.physical = new PhysicalRepository(this.db, this.txManager);
-    this.stock = new StockRepository(this.db, this.txManager);
-    this.warehouse = new WarehouseRepository(this.db, this.txManager);
-    this.translation = new TranslationRepository(this.db, this.txManager);
-    this.media = new MediaRepository(this.db, this.txManager);
+  private constructor(
+    product: ProductRepository,
+    variant: VariantRepository,
+    pricing: PricingRepository,
+    cost: CostRepository,
+    option: OptionRepository,
+    feature: FeatureRepository,
+    physical: PhysicalRepository,
+    stock: StockRepository,
+    warehouse: WarehouseRepository,
+    translation: TranslationRepository,
+    media: MediaRepository,
+    txManager: TransactionManager<Database>
+  ) {
+    this.product = product;
+    this.variant = variant;
+    this.pricing = pricing;
+    this.cost = cost;
+    this.option = option;
+    this.feature = feature;
+    this.physical = physical;
+    this.stock = stock;
+    this.warehouse = warehouse;
+    this.translation = translation;
+    this.media = media;
+    this.txManager = txManager;
   }
 
-  async close(): Promise<void> {
-    await closeDatabaseConnection();
+  /**
+   * Create Repository with database instance
+   */
+  static async create(config: RepositoryConfig): Promise<Repository> {
+    const { db } = config;
+
+    // Create transaction manager
+    const txManager = new TransactionManager(db);
+
+    // Create repositories
+    const product = new ProductRepository(db, txManager);
+    const variant = new VariantRepository(db, txManager);
+    const pricing = new PricingRepository(db, txManager);
+    const cost = new CostRepository(db, txManager);
+    const option = new OptionRepository(db, txManager);
+    const feature = new FeatureRepository(db, txManager);
+    const physical = new PhysicalRepository(db, txManager);
+    const stock = new StockRepository(db, txManager);
+    const warehouse = new WarehouseRepository(db, txManager);
+    const translation = new TranslationRepository(db, txManager);
+    const media = new MediaRepository(db, txManager);
+
+    return new Repository(
+      product,
+      variant,
+      pricing,
+      cost,
+      option,
+      feature,
+      physical,
+      stock,
+      warehouse,
+      translation,
+      media,
+      txManager
+    );
   }
 }

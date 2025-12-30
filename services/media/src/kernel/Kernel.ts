@@ -4,6 +4,7 @@ import { createCache, type Cache } from "cache-manager";
 import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import type { MediaKernelServices } from "./types";
 import { Repository } from "../repositories/Repository.js";
+import { BaseScript } from "./BaseScript.js";
 import { initDatabase, type Database } from "../infrastructure/db/database.js";
 
 /**
@@ -23,7 +24,7 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
     cache: Cache,
     db: Database
   ) {
-    super(broker, logger, { repository });
+    super(broker, logger, { repository, cache });
     this.repository = repository;
     this.cache = cache;
     this.db = db;
@@ -46,7 +47,7 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
 
     // Create repository with database
     console.log("[Media] Initializing repository...");
-    const repository = new Repository(databaseUrl);
+    const repository = await Repository.create({ db });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -77,16 +78,22 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
   }
 
   async close(): Promise<void> {
-    if (this.repository) {
-      await this.repository.close();
-    }
     Kernel.instance = null;
+  }
+
+  /**
+   * Execute a class-based script.
+   * Use @Transactional() decorator on execute() method for transaction support.
+   */
+  async runScript<TParams, TResult>(
+    ScriptClass: new (services: MediaKernelServices) => BaseScript<TParams, TResult>,
+    params: TParams
+  ): Promise<TResult> {
+    const script = new ScriptClass(this.services);
+    return script.run(params);
   }
 }
 
+export type { MediaKernelServices, ScriptContext, TransactionScript } from "./types";
 export { KernelError } from "./types";
-export type {
-  MediaKernelServices,
-  ScriptContext,
-  TransactionScript,
-} from "./types";
+export { BaseScript, type UserError } from "./BaseScript.js";

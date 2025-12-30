@@ -1,6 +1,7 @@
 import DataLoader from "dataloader";
 import type { Repository } from "../repositories/index.js";
 import type { S3Object } from "../repositories/models/index.js";
+import { getContext } from "../context/index.js";
 
 /**
  * S3ObjectLoader - batch loads S3 object data by file ID
@@ -8,8 +9,9 @@ import type { S3Object } from "../repositories/models/index.js";
 export class S3ObjectLoader {
   public readonly s3Object: DataLoader<string, S3Object | null>;
 
-  constructor(projectId: string, repository: Repository) {
+  constructor(repository: Repository) {
     this.s3Object = new DataLoader<string, S3Object | null>(async (fileIds) => {
+      const projectId = getContext().store.id;
       const map = await repository.s3Object.findByFileIds(
         projectId,
         fileIds as string[]

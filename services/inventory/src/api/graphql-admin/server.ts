@@ -9,7 +9,7 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
-import { setContext, type ServiceContext } from "../../context/index.js";
+import { setContext, ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("inventory");
 import { Kernel } from "../../kernel/Kernel.js";
@@ -109,25 +109,24 @@ export async function startServer(serverConfig: ServerConfig) {
         request.headers["user-agent"]?.includes("rover");
 
       if (isIntrospection) {
-        return {
+        return new ServiceContext({
           requestId: request.id as string,
           kernel: kernel as Kernel,
-          slug: "",
-          store: null as any,
-          user: null as any,
           loaders: null as any,
-        };
+        });
       }
 
-      const ctx: ServiceContext = {
+      // Create loaders per request for proper batching
+      const loaders = new Loader(kernel!.repository);
+
+      const ctx = new ServiceContext({
         requestId: request.id as string,
         kernel: kernel!,
         slug: request.headers["x-store-name"] as string,
-        store: request.store as any,
-        user: request.user as any,
-        // Create loaders per request for proper batching
-        loaders: new Loader(kernel!.repository),
-      };
+        store: request.store,
+        user: request.user,
+        loaders,
+      });
 
       // Set context in AsyncLocalStorage for all resolvers
       setContext(ctx);
