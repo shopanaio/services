@@ -13,7 +13,7 @@ export class StockResolver extends InventoryType<string, WarehouseStock | null> 
     variant: () => VariantResolver,
   };
 
-  async loadData() {
+  async $preload() {
     return await this.ctx.kernel
       .getServices()
       .repository.stock.findById(this.value);
@@ -24,30 +24,30 @@ export class StockResolver extends InventoryType<string, WarehouseStock | null> 
   }
 
   async warehouseId() {
-    return this.get("warehouseId");
+    return this.$get("warehouseId");
   }
 
   async variantId() {
-    return this.get("variantId");
+    return this.$get("variantId");
   }
 
   async warehouse() {
-    return this.get("warehouseId");
+    return this.$get("warehouseId");
   }
 
   async variant() {
-    return this.get("variantId");
+    return this.$get("variantId");
   }
 
   async quantityOnHand() {
-    return (await this.get("quantityOnHand")) ?? 0;
+    return (await this.$get("quantityOnHand")) ?? 0;
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 }

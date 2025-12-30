@@ -9,7 +9,7 @@ export class FeatureValueResolver extends InventoryType<
   string,
   ProductFeatureValue | null
 > {
-  async loadData() {
+  async $preload() {
     return this.ctx.loaders.featureValue.load(this.value);
   }
 
@@ -18,7 +18,7 @@ export class FeatureValueResolver extends InventoryType<
   }
 
   async slug() {
-    return (await this.get("slug")) ?? "";
+    return (await this.$get("slug")) ?? "";
   }
 
   async name() {
@@ -26,6 +26,6 @@ export class FeatureValueResolver extends InventoryType<
       this.value
     );
     if (translation?.name) return translation.name;
-    return (await this.get("slug")) ?? "";
+    return (await this.$get("slug")) ?? "";
   }
 }

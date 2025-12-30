@@ -155,12 +155,12 @@ export type QueryArgs<TArgs = unknown> = {
 /**
  * Internal/system method names from BaseType that should be excluded from TypeResult.
  */
-type BaseTypeInternalMethods = "loadData" | "get" | "data";
+type BaseTypeInternalMethods = "$preload" | "$get" | "$data";
 
 /**
  * Infers the result type from a TypeClass.
  * Maps resolver methods to their return types.
- * Excludes constructor and internal BaseType methods (loadData, get, data).
+ * Excludes constructor and internal BaseType methods ($preload, $get, $data).
  */
 export type TypeResult<T extends TypeClass> = {
   [K in keyof InstanceType<T> as InstanceType<T>[K] extends (
@@ -251,7 +251,7 @@ export interface Middleware<TContext = unknown> {
   readonly name?: string;
 
   /**
-   * Called after instance creation, before loadData() and field resolution.
+   * Called after instance creation, before $preload() and field resolution.
    *
    * Use cases:
    * - Authorization checks (access instance.authorize())

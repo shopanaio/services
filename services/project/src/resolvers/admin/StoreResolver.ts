@@ -17,7 +17,7 @@ export { BaseResolver };
   onDeny: "null",
 })
 export class StoreResolver extends BaseResolver<Store, Store> {
-  async loadData() {
+  async $preload() {
     return this.value;
   }
 
@@ -26,13 +26,13 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   }
 
   async name() {
-    return this.get("name");
+    return this.$get("name");
   }
 
   async organization() {
     return {
       __typename: "Organization" as const,
-      id: await this.get("organizationId"),
+      id: await this.$get("organizationId"),
     };
   }
 
@@ -40,53 +40,53 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return {
       __typename: "Membership" as const,
       domain: `store:${this.value.id}`,
-      organizationId: await this.get("organizationId"),
+      organizationId: await this.$get("organizationId"),
     };
   }
 
   async displayName() {
-    return this.get("displayName");
+    return this.$get("displayName");
   }
 
   async status() {
-    const status = await this.get("status");
+    const status = await this.$get("status");
     return status.toUpperCase();
   }
 
   async timezone() {
-    return this.get("timezone");
+    return this.$get("timezone");
   }
 
   async email() {
-    return this.get("email");
+    return this.$get("email");
   }
 
   async defaultLocale() {
-    return this.get("defaultLocale");
+    return this.$get("defaultLocale");
   }
 
   async baseCurrency() {
-    return this.get("baseCurrency");
+    return this.$get("baseCurrency");
   }
 
   async defaultCurrency() {
-    return this.get("defaultCurrency");
+    return this.$get("defaultCurrency");
   }
 
   async defaultWeightUnit() {
-    return this.get("defaultWeightUnit");
+    return this.$get("defaultWeightUnit");
   }
 
   async defaultDimensionUnit() {
-    return this.get("defaultDimensionUnit");
+    return this.$get("defaultDimensionUnit");
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 
   @Cache({

@@ -20,7 +20,7 @@ export class ProductResolver extends InventoryType<string, Product | null> {
     features: () => FeatureResolver,
   };
 
-  async loadData() {
+  async $preload() {
     return this.ctx.loaders.product.load(this.value);
   }
 
@@ -29,29 +29,29 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   }
 
   async handle() {
-    return this.get("handle");
+    return this.$get("handle");
   }
 
   async publishedAt() {
-    return this.get("publishedAt");
+    return this.$get("publishedAt");
   }
 
   async isPublished() {
-    const publishedAt = await this.get("publishedAt");
+    const publishedAt = await this.$get("publishedAt");
     if (!publishedAt) return false;
     return publishedAt <= new Date();
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 
   async deletedAt() {
-    return this.get("deletedAt");
+    return this.$get("deletedAt");
   }
 
   async title() {

@@ -22,7 +22,7 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
     key: ({ value }: RoleResolver) =>
       `${value.organizationId}:${value.domain}:${value.name}`,
   })
-  async loadData(): Promise<RoleData> {
+  async $preload(): Promise<RoleData> {
     const { organizationId, domain, name } = this.value;
 
     // Load role from database and permissions from casbin in parallel
@@ -44,7 +44,7 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
   }
 
   async id() {
-    return (await this.data).id;
+    return (await this.$data).id;
   }
 
   domain() {
@@ -56,26 +56,26 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
   }
 
   async displayName() {
-    return (await this.data).displayName ?? this.value.name;
+    return (await this.$data).displayName ?? this.value.name;
   }
 
   async description() {
-    return (await this.data).description;
+    return (await this.$data).description;
   }
 
   async isSystem() {
-    return (await this.data).isSystem;
+    return (await this.$data).isSystem;
   }
 
   async permissions() {
-    return (await this.data).permissions;
+    return (await this.$data).permissions;
   }
 
   async createdAt() {
-    return (await this.data).createdAt;
+    return (await this.$data).createdAt;
   }
 
   async updatedAt() {
-    return (await this.data).updatedAt;
+    return (await this.$data).updatedAt;
   }
 }

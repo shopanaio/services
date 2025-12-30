@@ -51,7 +51,7 @@ function createEdgeResolver(getNodeResolver: () => TypeClass) {
  *
  * Subclasses must:
  * 1. Define static `node` property pointing to the node resolver
- * 2. Implement the `loadData` method to fetch connection data
+ * 2. Implement the `$preload` method to fetch connection data
  *
  * @template TArgs - The type of arguments passed to the connection query
  *
@@ -59,7 +59,7 @@ function createEdgeResolver(getNodeResolver: () => TypeClass) {
  * class WarehouseConnectionResolver extends BaseConnectionResolver<InventoryQueryWarehousesArgs> {
  *   static node = () => WarehouseResolver;
  *
- *   async loadData(): Promise<ConnectionData> {
+ *   async $preload(): Promise<ConnectionData> {
  *     return this.ctx.kernel
  *       .getServices()
  *       .repository.warehouse.getConnection(this.value);
@@ -91,17 +91,17 @@ export abstract class BaseConnectionResolver<TArgs = unknown> extends InventoryT
    * Override to load connection data from repository.
    * Must return Promise<ConnectionData>.
    */
-  abstract loadData(): Promise<ConnectionData>;
+  abstract $preload(): Promise<ConnectionData>;
 
   async edges() {
-    return this.get("edges");
+    return this.$get("edges");
   }
 
   async pageInfo() {
-    return this.get("pageInfo");
+    return this.$get("pageInfo");
   }
 
   async totalCount(): Promise<number> {
-    return (await this.get("totalCount")) ?? 0;
+    return (await this.$get("totalCount")) ?? 0;
   }
 }

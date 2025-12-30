@@ -10,7 +10,7 @@ export class OptionValueResolver extends InventoryType<
   string,
   ProductOptionValue | null
 > {
-  async loadData() {
+  async $preload() {
     return this.ctx.loaders.optionValue.load(this.value);
   }
 
@@ -19,7 +19,7 @@ export class OptionValueResolver extends InventoryType<
   }
 
   async slug() {
-    return (await this.get("slug")) ?? "";
+    return (await this.$get("slug")) ?? "";
   }
 
   async name() {
@@ -27,7 +27,7 @@ export class OptionValueResolver extends InventoryType<
       this.value
     );
     if (translation?.name) return translation.name;
-    return (await this.get("slug")) ?? "";
+    return (await this.$get("slug")) ?? "";
   }
 
   swatch(): ProductOptionSwatch | null {

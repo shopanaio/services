@@ -12,7 +12,7 @@ import {
 export class ProductConnectionResolver extends BaseConnectionResolver<ProductRelayInput> {
   static node = () => ProductResolver;
 
-  async loadData(): Promise<ConnectionData> {
+  async $preload(): Promise<ConnectionData> {
     return this.ctx.kernel
       .getServices()
       .repository.product.getConnection(this.value);

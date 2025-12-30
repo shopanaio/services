@@ -12,7 +12,7 @@ export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
     stock: () => StockConnectionResolver,
   };
 
-  async loadData() {
+  async $preload() {
     return await this.ctx.loaders.warehouse.load(this.value);
   }
 
@@ -21,23 +21,23 @@ export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
   }
 
   async code() {
-    return this.get("code");
+    return this.$get("code");
   }
 
   async name() {
-    return this.get("name");
+    return this.$get("name");
   }
 
   async isDefault() {
-    return (await this.get("isDefault")) ?? false;
+    return (await this.$get("isDefault")) ?? false;
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 
   async variantsCount(): Promise<number> {

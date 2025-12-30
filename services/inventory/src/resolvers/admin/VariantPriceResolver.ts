@@ -10,7 +10,7 @@ export class VariantPriceResolver extends InventoryType<
   string,
   ItemPricing | null
 > {
-  async loadData() {
+  async $preload() {
     return this.ctx.loaders.variantPriceById.load(this.value);
   }
 
@@ -19,32 +19,32 @@ export class VariantPriceResolver extends InventoryType<
   }
 
   async currency(): Promise<CurrencyCode | null> {
-    const currency = await this.get("currency");
+    const currency = await this.$get("currency");
     return (currency as CurrencyCode) ?? null;
   }
 
   async amountMinor(): Promise<number | null> {
-    return this.get("amountMinor");
+    return this.$get("amountMinor");
   }
 
   async compareAtMinor(): Promise<number | null> {
-    return this.get("compareAtMinor");
+    return this.$get("compareAtMinor");
   }
 
   async effectiveFrom(): Promise<Date | null> {
-    return this.get("effectiveFrom");
+    return this.$get("effectiveFrom");
   }
 
   async effectiveTo(): Promise<Date | null> {
-    return this.get("effectiveTo");
+    return this.$get("effectiveTo");
   }
 
   async recordedAt(): Promise<Date | null> {
-    return this.get("recordedAt");
+    return this.$get("recordedAt");
   }
 
   async isCurrent(): Promise<boolean> {
-    const effectiveTo = await this.get("effectiveTo");
+    const effectiveTo = await this.$get("effectiveTo");
     return effectiveTo === null;
   }
 }

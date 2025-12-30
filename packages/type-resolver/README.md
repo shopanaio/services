@@ -180,19 +180,19 @@ import { BaseType } from "@shopana/type-resolver";
 
 class ProductType extends BaseType<string, Product, MyContext> {
   // value = product ID
-  // data = loaded Product entity (lazy)
+  // $data = loaded Product entity (lazy)
 
-  // Override to load data from ID
-  protected async loadData(): Promise<Product> {
+  // Override to preload data from ID
+  protected async $preload(): Promise<Product> {
     return this.ctx.loaders.products.load(this.value);
   }
 
   async id() {
-    return this.get("id");  // await this.data, then return data.id
+    return this.$get("id");  // await this.$data, then return data.id
   }
 
   async title() {
-    const data = await this.data;
+    const data = await this.$data;
     return data.title;
   }
 }

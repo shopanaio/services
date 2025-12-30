@@ -22,7 +22,7 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
     priceHistory: () => VariantPriceResolver,
   };
 
-  async loadData() {
+  async $preload() {
     return this.ctx.loaders.variant.load(this.value);
   }
 
@@ -31,39 +31,39 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async productId() {
-    return this.get("productId");
+    return this.$get("productId");
   }
 
   async isDefault() {
-    return (await this.get("isDefault")) ?? false;
+    return (await this.$get("isDefault")) ?? false;
   }
 
   async handle() {
-    return (await this.get("handle")) ?? "";
+    return (await this.$get("handle")) ?? "";
   }
 
   async sku() {
-    return this.get("sku");
+    return this.$get("sku");
   }
 
   async externalSystem() {
-    return this.get("externalSystem");
+    return this.$get("externalSystem");
   }
 
   async externalId() {
-    return this.get("externalId");
+    return this.$get("externalId");
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 
   async deletedAt() {
-    return this.get("deletedAt");
+    return this.$get("deletedAt");
   }
 
   async title() {

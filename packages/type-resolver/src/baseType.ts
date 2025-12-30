@@ -96,42 +96,42 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   }
 
   /**
-   * Loads entity data. Override this method to load data via loaders.
-   * Called lazily on first access to `this.data`.
+   * Preloads entity data. Override this method to load data via loaders.
+   * Called lazily on first access to `this.$data`.
    *
    * @returns The loaded data entity
    */
-  protected loadData(): TData | Promise<TData> {
+  protected $preload(): TData | Promise<TData> {
     // Default: use value as data (for backward compatibility when value is already the data object)
     return this.value as unknown as TData;
   }
 
   /**
    * Gets the loaded data lazily.
-   * First access triggers loadData(), subsequent accesses return cached promise.
-   * Use with await: `const d = await this.data;`
+   * First access triggers $preload(), subsequent accesses return cached promise.
+   * Use with await: `const d = await this.$data;`
    */
-  protected get data(): Promise<TData> {
+  protected get $data(): Promise<TData> {
     if (!this._dataPromise) {
-      this._dataPromise = Promise.resolve(this.loadData());
+      this._dataPromise = Promise.resolve(this.$preload());
     }
     return this._dataPromise;
   }
 
   /**
    * Convenience accessor for loaded data properties.
-   * Uses the lazily-loaded `data` under the hood.
+   * Uses the lazily-loaded `$data` under the hood.
    *
    * @returns The whole loaded entity when called without arguments, or a single property when key is provided.
    */
-  protected async get(): Promise<TData>;
-  protected async get<K extends keyof NonNullable<TData>>(
+  protected async $get(): Promise<TData>;
+  protected async $get<K extends keyof NonNullable<TData>>(
     key: K
   ): Promise<NonNullable<TData>[K] | undefined>;
-  protected async get(
+  protected async $get(
     key?: keyof NonNullable<TData>
   ): Promise<TData | NonNullable<TData>[keyof NonNullable<TData>] | undefined> {
-    const data = await this.data;
+    const data = await this.$data;
     if (key === undefined) {
       return data;
     }

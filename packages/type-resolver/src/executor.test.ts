@@ -57,13 +57,13 @@ describe("Executor", () => {
     it("resolves nested types via populate", async () => {
       class ChildType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.get("id");
+          return this.$get("id");
         }
       }
 
       class ParentType extends BaseType<{ id: string; child: { id: string } }, { id: string; child: { id: string } }, unknown> {
         id() {
-          return this.get("id");
+          return this.$get("id");
         }
         child() {
           // Return BaseType instance - executor will detect via instanceof
@@ -86,7 +86,7 @@ describe("Executor", () => {
     it("resolves arrays of nested types", async () => {
       class ItemType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.get("id");
+          return this.$get("id");
         }
       }
 
@@ -178,7 +178,7 @@ describe("Executor", () => {
     it("handles null values in nested types", async () => {
       class ParentType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.get("id");
+          return this.$get("id");
         }
         child() {
           return null;
@@ -200,7 +200,7 @@ describe("Executor", () => {
     it("handles undefined values in nested types", async () => {
       class ParentType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.get("id");
+          return this.$get("id");
         }
         child() {
           return undefined;
@@ -219,9 +219,9 @@ describe("Executor", () => {
       expect(result).toEqual({ id: "p1", child: undefined });
     });
 
-    it("returns null when loadData returns null", async () => {
+    it("returns null when $preload returns null", async () => {
       class TypeWithNullData extends BaseType<string, null, unknown> {
-        protected loadData() {
+        protected $preload() {
           return null;
         }
         id() {
@@ -236,9 +236,9 @@ describe("Executor", () => {
       expect(result).toBeNull();
     });
 
-    it("returns null when loadData returns undefined", async () => {
+    it("returns null when $preload returns undefined", async () => {
       class TypeWithUndefinedData extends BaseType<string, undefined, unknown> {
-        protected loadData() {
+        protected $preload() {
           return undefined;
         }
         id() {
@@ -367,10 +367,10 @@ describe("BaseType", () => {
 
     class ProductType extends BaseType<Product, Product, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       title() {
-        return this.get("title");
+        return this.$get("title");
       }
     }
 
@@ -381,7 +381,7 @@ describe("BaseType", () => {
     expect(result).toEqual({ id: "p1", title: "Test Product" });
   });
 
-  it("supports lazy data loading via loadData", async () => {
+  it("supports lazy data loading via $preload", async () => {
     const loadSpy = vi
       .fn()
       .mockResolvedValue({ id: "loaded-1", name: "Loaded Product" });
@@ -391,14 +391,14 @@ describe("BaseType", () => {
       { id: string; name: string },
       unknown
     > {
-      protected loadData() {
+      protected $preload() {
         return loadSpy(this.value);
       }
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       name() {
-        return this.get("name");
+        return this.$get("name");
       }
     }
 
@@ -412,7 +412,7 @@ describe("BaseType", () => {
     expect(result).toEqual({ id: "loaded-1", name: "Loaded Product" });
   });
 
-  it("caches loadData result across multiple field accesses", async () => {
+  it("caches $preload result across multiple field accesses", async () => {
     let loadCount = 0;
 
     class ProductType extends BaseType<
@@ -420,18 +420,18 @@ describe("BaseType", () => {
       { id: string; name: string; price: number },
       unknown
     > {
-      protected loadData() {
+      protected $preload() {
         loadCount++;
         return Promise.resolve({ id: "1", name: "Test", price: 100 });
       }
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       name() {
-        return this.get("name");
+        return this.$get("name");
       }
       price() {
-        return this.get("price");
+        return this.$get("price");
       }
     }
 
@@ -441,19 +441,19 @@ describe("BaseType", () => {
       fields: ["id", "name", "price"],
     });
 
-    // loadData is called once by Executor to check for null, and once by BaseType.data getter
-    // But BaseType caches it internally via _dataPromise, so subsequent get() calls don't reload
+    // $preload is called once by Executor to check for null, and once by BaseType.$data getter
+    // But BaseType caches it internally via _dataPromise, so subsequent $get() calls don't reload
     // The important thing is that we get the correct result
     expect(result).toEqual({ id: "1", name: "Test", price: 100 });
-    // loadData may be called twice (once in Executor for null check, once in BaseType.data)
-    // but the data getter in BaseType caches, so all field accesses share the same promise
+    // $preload may be called twice (once in Executor for null check, once in BaseType.$data)
+    // but the $data getter in BaseType caches, so all field accesses share the same promise
     expect(loadCount).toBeLessThanOrEqual(2);
   });
 
   it("static load() works correctly", async () => {
     class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
     }
 
@@ -465,7 +465,7 @@ describe("BaseType", () => {
   it("static loadMany() works correctly", async () => {
     class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
     }
 
@@ -483,13 +483,13 @@ describe("Complex nested resolution", () => {
   it("resolves deeply nested types (3+ levels)", async () => {
     class Level3Type extends BaseType<{ name: string }, { name: string }, unknown> {
       name() {
-        return this.get("name");
+        return this.$get("name");
       }
     }
 
     class Level2Type extends BaseType<{ id: string; level3: { name: string } }, { id: string; level3: { name: string } }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       level3() {
         return new Level3Type(this.value.level3, this.ctx);
@@ -498,7 +498,7 @@ describe("Complex nested resolution", () => {
 
     class Level1Type extends BaseType<{ id: string; level2: { id: string; level3: { name: string } } }, { id: string; level2: { id: string; level3: { name: string } } }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       level2() {
         return new Level2Type(this.value.level2, this.ctx);
@@ -542,13 +542,13 @@ describe("Complex nested resolution", () => {
   it("resolves arrays at multiple levels", async () => {
     class ImageType extends BaseType<{ url: string }, { url: string }, unknown> {
       url() {
-        return this.get("url");
+        return this.$get("url");
       }
     }
 
     class VariantType extends BaseType<{ id: string; images: { url: string }[] }, { id: string; images: { url: string }[] }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       images() {
         return this.value.images.map(img => new ImageType(img, this.ctx));
@@ -557,7 +557,7 @@ describe("Complex nested resolution", () => {
 
     class ProductType extends BaseType<{ id: string; variants: { id: string; images: { url: string }[] }[] }, { id: string; variants: { id: string; images: { url: string }[] }[] }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       variants() {
         return this.value.variants.map(v => new VariantType(v, this.ctx));
@@ -634,16 +634,16 @@ describe("Alias support with nested types", () => {
   it("resolves nested types with aliases", async () => {
     class VariantType extends BaseType<{ id: string; sku: string }, { id: string; sku: string }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       sku() {
-        return this.get("sku");
+        return this.$get("sku");
       }
     }
 
     class ProductType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       variants(args?: { first?: number }) {
         const count = args?.first || 2;
@@ -674,13 +674,13 @@ describe("Alias support with nested types", () => {
   it("handles multiple aliases for same field with different args and fields", async () => {
     class VariantType extends BaseType<{ id: string; sku: string; price: number }, { id: string; sku: string; price: number }, unknown> {
       id() {
-        return this.get("id");
+        return this.$get("id");
       }
       sku() {
-        return this.get("sku");
+        return this.$get("sku");
       }
       price() {
-        return this.get("price");
+        return this.$get("price");
       }
     }
 

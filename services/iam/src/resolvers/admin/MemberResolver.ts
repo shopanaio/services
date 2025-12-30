@@ -22,7 +22,7 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
     key: ({ value }: MemberResolver) =>
       `${value.organizationId}:${value.userId}:${value.domain}`,
   })
-  async loadData(): Promise<UserRole> {
+  async $preload(): Promise<UserRole> {
     const { organizationId, userId, domain } = this.value;
 
     const userRoleData = await this.ctx.loaders.member.load({
@@ -41,7 +41,7 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   }
 
   async id() {
-    return this.get("id");
+    return this.$get("id");
   }
 
   user(): UserResolver {
@@ -53,11 +53,11 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   }
 
   async grantedAt() {
-    return (await this.data).grantedAt;
+    return (await this.$data).grantedAt;
   }
 
   async grantedBy(): Promise<UserResolver | null> {
-    const { grantedBy } = await this.data;
+    const { grantedBy } = await this.$data;
     return grantedBy ? new UserResolver(grantedBy, this.ctx) : null;
   }
 

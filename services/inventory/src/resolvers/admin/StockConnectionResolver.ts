@@ -12,7 +12,7 @@ import {
 export class StockConnectionResolver extends BaseConnectionResolver<StockRelayInput> {
   static node = () => StockResolver;
 
-  async loadData(): Promise<ConnectionData> {
+  async $preload(): Promise<ConnectionData> {
     return this.ctx.kernel
       .getServices()
       .repository.stock.getConnection(this.value);

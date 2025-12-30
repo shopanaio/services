@@ -22,7 +22,7 @@ export class MembershipResolver extends IAMType<
   MembershipInput,
   MembershipInput
 > {
-  async loadData() {
+  async $preload() {
     return this.value;
   }
 

@@ -12,7 +12,7 @@ export class UserResolver extends IAMType<string, User | null> {
     cacheName: "iam:user",
     key: (resolver: UserResolver) => resolver.value,
   })
-  async loadData() {
+  async $preload() {
     return this.ctx.kernel.repository.user.findById(this.value);
   }
 
@@ -21,23 +21,23 @@ export class UserResolver extends IAMType<string, User | null> {
   }
 
   async email() {
-    return this.get("email");
+    return this.$get("email");
   }
 
   async emailVerified() {
-    return this.get("emailVerified") ?? false;
+    return this.$get("emailVerified") ?? false;
   }
 
   async firstName() {
-    return this.get("firstName");
+    return this.$get("firstName");
   }
 
   async lastName() {
-    return this.get("lastName");
+    return this.$get("lastName");
   }
 
   async avatar() {
-    return this.get("image");
+    return this.$get("image");
   }
 
   async locale() {
@@ -46,7 +46,7 @@ export class UserResolver extends IAMType<string, User | null> {
   }
 
   async isAdmin() {
-    return this.get("admin") ?? false;
+    return this.$get("admin") ?? false;
   }
 
   async isForbidden() {
@@ -60,10 +60,10 @@ export class UserResolver extends IAMType<string, User | null> {
   }
 
   createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 }

@@ -12,7 +12,7 @@ import {
 export class WarehouseConnectionResolver extends BaseConnectionResolver<WarehouseRelayInput> {
   static node = () => WarehouseResolver;
 
-  async loadData(): Promise<ConnectionData> {
+  async $preload(): Promise<ConnectionData> {
     return this.ctx.kernel
       .getServices()
       .repository.warehouse.getConnection(this.value);

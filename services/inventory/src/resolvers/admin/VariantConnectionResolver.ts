@@ -16,7 +16,7 @@ export interface VariantConnectionInput extends VariantRelayInput {
 export class VariantConnectionResolver extends BaseConnectionResolver<VariantConnectionInput> {
   static node = () => VariantResolver;
 
-  async loadData(): Promise<ConnectionData> {
+  async $preload(): Promise<ConnectionData> {
     const { productId, ...args } = this.value;
     return this.ctx.kernel
       .getServices()

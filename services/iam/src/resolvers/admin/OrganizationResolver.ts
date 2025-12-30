@@ -13,7 +13,7 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     cacheName: "iam:org",
     key: (resolver: OrganizationResolver) => resolver.value,
   })
-  async loadData() {
+  async $preload() {
     const org = await this.ctx.kernel.repository.organization.findById(
       this.value
     );
@@ -38,18 +38,18 @@ export class OrganizationResolver extends IAMType<string, Organization> {
   }
 
   async name() {
-    return this.get("name");
+    return this.$get("name");
   }
 
   async displayName() {
-    return this.get("displayName");
+    return this.$get("displayName");
   }
 
   async createdAt() {
-    return this.get("createdAt");
+    return this.$get("createdAt");
   }
 
   async updatedAt() {
-    return this.get("updatedAt");
+    return this.$get("updatedAt");
   }
 }
