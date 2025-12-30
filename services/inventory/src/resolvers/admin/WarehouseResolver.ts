@@ -1,12 +1,14 @@
+import { SubgraphReference } from "@shopana/type-resolver";
 import type { Warehouse } from "../../repositories/models/index.js";
 import type { StockRelayInput } from "../../repositories/stock/StockRepository.js";
 import { InventoryType } from "./InventoryType.js";
 import { StockConnectionResolver } from "./StockConnectionResolver.js";
 
 /**
- * Warehouse view - resolves Warehouse domain interface
- * Accepts warehouse ID, loads data lazily via loaders
+ * Warehouse resolver - resolves Warehouse domain interface.
+ * Decorated with @SubgraphReference for federation support.
  */
+@SubgraphReference()
 export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
   static fields = {
     stock: () => StockConnectionResolver,

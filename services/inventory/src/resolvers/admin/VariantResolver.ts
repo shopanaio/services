@@ -1,3 +1,4 @@
+import { SubgraphReference } from "@shopana/type-resolver";
 import type {
   SelectedOption,
   VariantCost,
@@ -13,10 +14,10 @@ import { InventoryType } from "./InventoryType.js";
 import { VariantPriceResolver } from "./VariantPriceResolver.js";
 
 /**
- * Variant view - resolves Variant domain interface
- * Accepts variant ID, loads main entity via loaders (lazy)
- * Related data (pricing, stock, etc.) loaded on demand via resolvers
+ * Variant resolver - resolves Variant domain interface.
+ * Decorated with @SubgraphReference for federation support.
  */
+@SubgraphReference()
 export class VariantResolver extends InventoryType<string, Variant | null> {
   static fields = {
     priceHistory: () => VariantPriceResolver,

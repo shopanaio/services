@@ -5,6 +5,8 @@ import {
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
+export type ProductConnectionInput = ProductRelayInput;
+
 /**
  * ProductConnection - resolves paginated product list
  * Uses cursor-based pagination with Relay-style Connection spec

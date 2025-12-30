@@ -1,57 +1,30 @@
-import type { Resolvers, InventoryMutation } from "../generated/types.js";
-
-// Queries
-import { queryResolvers } from "./queries.js";
-
-// Mutations
-import { productMutationResolvers } from "./mutations/product.js";
-import { variantMutationResolvers } from "./mutations/variant.js";
-import { warehouseMutationResolvers } from "./mutations/warehouse.js";
-import { optionMutationResolvers } from "./mutations/option.js";
-import { featureMutationResolvers } from "./mutations/feature.js";
-
-// Type resolvers
+import { QueryResolver } from "../../../resolvers/admin/QueryResolver.js";
+import { MutationResolver } from "../../../resolvers/admin/MutationResolver.js";
+import { ProductResolver } from "../../../resolvers/admin/ProductResolver.js";
+import { VariantResolver } from "../../../resolvers/admin/VariantResolver.js";
+import { WarehouseResolver } from "../../../resolvers/admin/WarehouseResolver.js";
 import { typeResolvers } from "./types.js";
 
-// TODO: Use DataLoader for batching and caching database queries to avoid N+1 problem
-// TODO: Use @upstash/redis for caching complete Product and Variant objects
-
 /**
- * Deep merge resolvers - combines multiple resolver objects into one
+ * GraphQL resolvers for the inventory service.
+ *
+ * Uses class-based resolvers with decorators:
+ * - @ApolloQuery/@ApolloMutation for root resolvers (return Proxy objects)
+ * - @SubgraphReference for type resolvers with federation support
+ *
+ * The decorators handle conversion from class to Apollo-compatible resolver format.
  */
-function mergeResolvers(...resolversList: Partial<Resolvers>[]): Resolvers {
-  const merged: Record<string, Record<string, unknown>> = {};
+export const resolvers = {
+  // Root resolvers - decorated with @ApolloQuery/@ApolloMutation
+  // They return Proxy objects that handle Apollo resolver signature
+  Query: QueryResolver as any,
+  Mutation: MutationResolver as any,
 
-  for (const resolvers of resolversList) {
-    for (const [typeName, typeResolvers] of Object.entries(resolvers)) {
-      if (!merged[typeName]) {
-        merged[typeName] = {};
-      }
-      Object.assign(merged[typeName], typeResolvers);
-    }
-  }
+  // Type resolvers with @SubgraphReference decorator
+  Product: ProductResolver as any,
+  Variant: VariantResolver as any,
+  Warehouse: WarehouseResolver as any,
 
-  return merged as Resolvers;
-}
-
-export const resolvers: Resolvers = mergeResolvers(
-  // Base mutation wrapper
-  {
-    Mutation: {
-      inventoryMutation: () => ({}) as InventoryMutation,
-    },
-  },
-
-  // Queries
-  queryResolvers,
-
-  // Mutations by domain
-  productMutationResolvers,
-  variantMutationResolvers,
-  warehouseMutationResolvers,
-  optionMutationResolvers,
-  featureMutationResolvers,
-
-  // Type resolvers
-  typeResolvers
-);
+  // Type resolvers for scalars, interfaces, and federation references
+  ...typeResolvers,
+};

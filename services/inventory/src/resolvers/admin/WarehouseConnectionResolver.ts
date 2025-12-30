@@ -5,6 +5,8 @@ import {
   type ConnectionData,
 } from "./connection/BaseConnectionResolver.js";
 
+export type WarehouseConnectionResolverInput = WarehouseRelayInput;
+
 /**
  * WarehouseConnection - resolves paginated warehouse list
  * Uses cursor-based pagination with Relay-style Connection spec

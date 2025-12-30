@@ -46,6 +46,7 @@
     "@shopana/build-tools": "0.0.1",
     "@types/node": "^20.14.14",
     "drizzle-kit": "^0.31.7",
+    "graphql-codegen-typescript-validation-schema": "^0.18.1",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   },

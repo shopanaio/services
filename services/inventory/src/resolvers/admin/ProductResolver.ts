@@ -1,3 +1,4 @@
+import { SubgraphReference } from "@shopana/type-resolver";
 import type { Description } from "./interfaces/index.js";
 import type { Product } from "../../repositories/models/index.js";
 import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
@@ -10,9 +11,10 @@ import {
 } from "./VariantConnectionResolver.js";
 
 /**
- * Product view - resolves Product domain interface
- * Accepts product ID, loads data lazily via loaders
+ * Product resolver - resolves Product domain interface.
+ * Decorated with @SubgraphReference for federation support.
  */
+@SubgraphReference()
 export class ProductResolver extends InventoryType<string, Product | null> {
   static fields = {
     variants: () => VariantConnectionResolver,
