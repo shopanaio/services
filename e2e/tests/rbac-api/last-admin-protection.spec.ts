@@ -333,7 +333,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
     // 4. Verify org admin still has full access to store
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -585,7 +585,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
     // Verify org admin can still manage the store
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);

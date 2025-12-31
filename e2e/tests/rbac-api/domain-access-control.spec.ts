@@ -46,7 +46,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // Verify org-level resource names work
     const orgResources = [
       { resource: 'org.profile', action: 'read' },
-      { resource: 'org.profile', action: 'update' },
+      { resource: 'org.profile', action: 'write' },
       { resource: 'org.members', action: 'read' },
       { resource: 'org.roles', action: 'read' },
     ];
@@ -111,7 +111,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // Verify store-level resource names work
     const storeResources = [
       { resource: 'store.profile', action: 'read' },
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
       { resource: 'store.members', action: 'read' },
       { resource: 'store.roles', action: 'read' },
     ];
@@ -205,7 +205,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // 4. Verify user has admin permissions in store A
     const { data: authStoreA } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeAId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeAId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authStoreA as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -213,7 +213,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // 5. Verify user has only viewer permissions in store B (cannot update)
     const { data: authStoreB } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeBId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeBId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authStoreB as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);

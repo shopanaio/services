@@ -76,12 +76,12 @@ test.describe('Role Inheritance (FR-4)', () => {
     const storeId = store?.id;
     const domain = `store:${storeId}`;
     const adminOnlyActions = [
-      { resource: 'store.members', action: 'invite' },
-      { resource: 'store.members', action: 'remove' },
-      { resource: 'store.roles', action: 'create' },
-      { resource: 'store.roles', action: 'delete' },
-      { resource: 'store.access', action: 'grant' },
-      { resource: 'store.access', action: 'revoke' },
+      { resource: 'store.members', action: 'write' },
+      { resource: 'store.members', action: 'admin' },
+      { resource: 'store.roles', action: 'write' },
+      { resource: 'store.roles', action: 'admin' },
+      { resource: 'store.access', action: 'write' },
+      { resource: 'store.access', action: 'admin' },
     ];
 
     for (const { resource, action } of adminOnlyActions) {
@@ -120,14 +120,14 @@ test.describe('Role Inheritance (FR-4)', () => {
     // Viewer should NOT have manager permissions
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain, resource: 'store.profile', action: 'write' },
       },
     });
 
     const updateResult = updateAuth as unknown as AuthorizeResult;
     expect(
       updateResult.userQuery.authorize.allowed,
-      'Viewer should NOT inherit manager permission: store.profile.update',
+      'Viewer should NOT inherit manager permission: store.profile.write',
     ).toBe(false);
 
     // Restore admin token
@@ -193,12 +193,12 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.accessToken = viewerUser.accessToken;
     api.session.tenant.userId = viewerUser.userId;
 
-    // 4. Verify viewer cannot update store profile (manager action)
+    // 4. Verify viewer cannot write store profile (manager action)
     const storeId = store?.id;
     const domain = `store:${storeId}`;
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain, resource: 'store.profile', action: 'write' },
       },
     });
 
@@ -269,18 +269,17 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.accessToken = managerUser.accessToken;
     api.session.tenant.userId = managerUser.userId;
 
-    // 4. Verify manager cannot: delete store, manage members, manage roles
+    // 4. Verify manager cannot: admin store, manage members, manage roles
     const storeId = store?.id;
     const domain = `store:${storeId}`;
     const adminOnlyActions = [
-      { resource: 'store.profile', action: 'delete' },
-      { resource: 'store.members', action: 'invite' },
-      { resource: 'store.members', action: 'remove' },
-      { resource: 'store.roles', action: 'create' },
-      { resource: 'store.roles', action: 'update' },
-      { resource: 'store.roles', action: 'delete' },
-      { resource: 'store.access', action: 'grant' },
-      { resource: 'store.access', action: 'revoke' },
+      { resource: 'store.profile', action: 'admin' },
+      { resource: 'store.members', action: 'write' },
+      { resource: 'store.members', action: 'admin' },
+      { resource: 'store.roles', action: 'write' },
+      { resource: 'store.roles', action: 'admin' },
+      { resource: 'store.access', action: 'write' },
+      { resource: 'store.access', action: 'admin' },
     ];
 
     for (const { resource, action } of adminOnlyActions) {

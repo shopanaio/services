@@ -84,21 +84,19 @@ test.describe('Store Roles (FR-4)', () => {
     const readResult = readAuth as unknown as AuthorizeResult;
     expect(readResult.userQuery.authorize.allowed).toBe(true);
 
-    // 5. Verify viewer cannot: store.profile.update, store.members.*, store.roles.*, store.access.*
+    // 5. Verify viewer cannot: store.profile.write, store.members.*, store.roles.*, store.access.*
     const deniedActions = [
-      { resource: 'store.profile', action: 'update' },
-      { resource: 'store.profile', action: 'delete' },
+      { resource: 'store.profile', action: 'write' },
+      { resource: 'store.profile', action: 'admin' },
       { resource: 'store.members', action: 'read' },
-      { resource: 'store.members', action: 'invite' },
-      { resource: 'store.members', action: 'update' },
-      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.members', action: 'write' },
+      { resource: 'store.members', action: 'admin' },
       { resource: 'store.roles', action: 'read' },
-      { resource: 'store.roles', action: 'create' },
-      { resource: 'store.roles', action: 'update' },
-      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.roles', action: 'write' },
+      { resource: 'store.roles', action: 'admin' },
       { resource: 'store.access', action: 'read' },
-      { resource: 'store.access', action: 'grant' },
-      { resource: 'store.access', action: 'revoke' },
+      { resource: 'store.access', action: 'write' },
+      { resource: 'store.access', action: 'admin' },
     ];
 
     for (const { resource, action } of deniedActions) {
@@ -177,13 +175,13 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.accessToken = managerUser.accessToken;
     api.session.tenant.userId = managerUser.userId;
 
-    // 4. Verify manager can: store.profile.read, store.profile.update
+    // 4. Verify manager can: store.profile.read, store.profile.write
     const storeId = store?.id;
     const domain = `store:${storeId}`;
 
     const allowedActions = [
       { resource: 'store.profile', action: 'read' },
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
     ];
 
     for (const { resource, action } of allowedActions) {
@@ -199,17 +197,15 @@ test.describe('Store Roles (FR-4)', () => {
       );
     }
 
-    // 5. Verify manager cannot: store.profile.delete, store.members.*, store.roles.*, store.access.*
+    // 5. Verify manager cannot: store.profile.admin, store.members.*, store.roles.*, store.access.*
     const deniedActions = [
-      { resource: 'store.profile', action: 'delete' },
-      { resource: 'store.members', action: 'invite' },
-      { resource: 'store.members', action: 'update' },
-      { resource: 'store.members', action: 'remove' },
-      { resource: 'store.roles', action: 'create' },
-      { resource: 'store.roles', action: 'update' },
-      { resource: 'store.roles', action: 'delete' },
-      { resource: 'store.access', action: 'grant' },
-      { resource: 'store.access', action: 'revoke' },
+      { resource: 'store.profile', action: 'admin' },
+      { resource: 'store.members', action: 'write' },
+      { resource: 'store.members', action: 'admin' },
+      { resource: 'store.roles', action: 'write' },
+      { resource: 'store.roles', action: 'admin' },
+      { resource: 'store.access', action: 'write' },
+      { resource: 'store.access', action: 'admin' },
     ];
 
     for (const { resource, action } of deniedActions) {
@@ -294,18 +290,16 @@ test.describe('Store Roles (FR-4)', () => {
 
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
       { resource: 'store.members', action: 'read' },
-      { resource: 'store.members', action: 'invite' },
-      { resource: 'store.members', action: 'update' },
-      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.members', action: 'write' },
+      { resource: 'store.members', action: 'admin' },
       { resource: 'store.roles', action: 'read' },
-      { resource: 'store.roles', action: 'create' },
-      { resource: 'store.roles', action: 'update' },
-      { resource: 'store.roles', action: 'delete' },
+      { resource: 'store.roles', action: 'write' },
+      { resource: 'store.roles', action: 'admin' },
       { resource: 'store.access', action: 'read' },
-      { resource: 'store.access', action: 'grant' },
-      { resource: 'store.access', action: 'revoke' },
+      { resource: 'store.access', action: 'write' },
+      { resource: 'store.access', action: 'admin' },
     ];
 
     for (const { resource, action } of storeActions) {

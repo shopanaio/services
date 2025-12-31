@@ -2,6 +2,7 @@ mutation RoleCreate($input: RoleCreateInput!) {
   roleMutation {
     roleCreate(input: $input) {
       role {
+        id
         name
         displayName
         description

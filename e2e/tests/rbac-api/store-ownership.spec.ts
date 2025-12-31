@@ -81,11 +81,11 @@ test.describe('Store Ownership Model (FR-4)', () => {
     // 4. Verify org admin still has full store access after removing store admins
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
       { resource: 'store.members', action: 'read' },
-      { resource: 'store.members', action: 'invite' },
+      { resource: 'store.members', action: 'write' },
       { resource: 'store.roles', action: 'read' },
-      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'write' },
     ];
 
     const storeId = store?.id;
@@ -212,7 +212,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
       // Verify admin permissions
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain, resource: 'store.profile', action: 'update' },
+          input: { organizationId, domain, resource: 'store.profile', action: 'write' },
         },
       });
 
@@ -268,7 +268,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain, resource: 'store.profile', action: 'delete' },
+        input: { organizationId, domain, resource: 'store.profile', action: 'admin' },
       },
     });
 

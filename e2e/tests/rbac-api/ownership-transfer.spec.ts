@@ -253,7 +253,7 @@ test.describe('Ownership Transfer', () => {
     // Verify previous owner still has admin role (not demoted)
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
 

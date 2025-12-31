@@ -24,6 +24,18 @@ export type Scalars = {
   Upload: { input: File; output: File; }
 };
 
+/**
+ * Action level for permissions.
+ * Hierarchy: read < write < admin
+ * - admin includes write and read
+ * - write includes read
+ */
+export enum Action {
+  Admin = 'admin',
+  Read = 'read',
+  Write = 'write'
+}
+
 /** API key for programmatic access to the project */
 export type ApiApiKey = {
   __typename?: 'ApiKey';
@@ -3093,16 +3105,16 @@ export type ApiRoleMutationRoleUpdateArgs = {
 /** Role permission - access to resource with specific actions. */
 export type ApiRolePermission = {
   __typename?: 'RolePermission';
-  /** Allowed actions (e.g.: create, read, update, delete). */
-  actions: Array<Scalars['String']['output']>;
+  /** Action level (read, write, admin). */
+  action: Action;
   /** Resource name (e.g.: org.profile, store.members). */
   resource: Scalars['String']['output'];
 };
 
 /** Input for role permission. */
 export type ApiRolePermissionInput = {
-  /** Actions (create, read, update, delete). */
-  actions: Array<Scalars['String']['input']>;
+  /** Action level (read, write, admin). Higher levels include lower ones. */
+  action: Action;
   /** Resource (e.g.: org.profile, store.members). */
   resource: Scalars['String']['input'];
 };

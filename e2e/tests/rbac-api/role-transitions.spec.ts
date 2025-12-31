@@ -126,7 +126,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
 
@@ -185,7 +185,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
 
@@ -319,7 +319,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
 
@@ -400,7 +400,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -481,7 +481,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
 
@@ -562,7 +562,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -643,7 +643,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -731,7 +731,7 @@ test.describe('Role Transitions', () => {
 
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -1262,7 +1262,7 @@ test.describe('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
 

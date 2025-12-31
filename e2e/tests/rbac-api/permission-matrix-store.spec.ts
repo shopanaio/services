@@ -84,15 +84,15 @@ test.describe('Store Permission Matrix', () => {
     expect(allowed).toBe(true);
   });
 
-  test('Viewer cannot update store.profile', async ({ api }) => {
+  test('Viewer cannot write store.profile', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'viewer');
-    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'update');
+    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'write');
     expect(allowed).toBe(false);
   });
 
-  test('Viewer cannot delete store.profile', async ({ api }) => {
+  test('Viewer cannot admin store.profile', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'viewer');
-    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(allowed).toBe(false);
   });
 
@@ -102,15 +102,15 @@ test.describe('Store Permission Matrix', () => {
     expect(allowed).toBe(true);
   });
 
-  test('Manager can update store.profile', async ({ api }) => {
+  test('Manager can write store.profile', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'manager');
-    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'update');
+    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'write');
     expect(allowed).toBe(true);
   });
 
-  test('Manager cannot delete store.profile', async ({ api }) => {
+  test('Manager cannot admin store.profile', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'manager');
-    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(allowed).toBe(false);
   });
 
@@ -120,13 +120,13 @@ test.describe('Store Permission Matrix', () => {
     expect(allowed).toBe(true);
   });
 
-  test('Admin can update store.profile', async ({ api }) => {
+  test('Admin can write store.profile', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'admin');
-    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'update');
+    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'write');
     expect(allowed).toBe(true);
   });
 
-  test('Admin owner can delete store.profile', async ({ api }) => {
+  test('Admin owner can admin store.profile', async ({ api }) => {
     await api.session.setupUser();
     const orgName = generateOrgName();
     const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
@@ -149,14 +149,14 @@ test.describe('Store Permission Matrix', () => {
     });
     const storeId = storeData.storeMutation.storeCreate.store?.id;
 
-    // Owner (org admin + store admin) can delete
-    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    // Owner (org admin + store admin) can admin (delete)
+    const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(allowed).toBe(true);
   });
 
   test('Viewer cannot access store.members', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'viewer');
-    const actions = ['invite', 'update', 'remove'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.members', action);
       expect(allowed, `Viewer should not have store.members.${action}`).toBe(false);
@@ -165,7 +165,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Manager cannot access store.members', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'manager');
-    const actions = ['invite', 'update', 'remove'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.members', action);
       expect(allowed, `Manager should not have store.members.${action}`).toBe(false);
@@ -174,7 +174,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Admin can perform all store.members actions', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'admin');
-    const actions = ['read', 'invite', 'update', 'remove'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.members', action);
       expect(allowed, `Admin should have store.members.${action}`).toBe(true);
@@ -183,7 +183,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Viewer cannot access store.roles', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'viewer');
-    const actions = ['create', 'update', 'delete'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.roles', action);
       expect(allowed, `Viewer should not have store.roles.${action}`).toBe(false);
@@ -192,7 +192,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Manager cannot access store.roles', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'manager');
-    const actions = ['create', 'update', 'delete'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.roles', action);
       expect(allowed, `Manager should not have store.roles.${action}`).toBe(false);
@@ -201,7 +201,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Admin can perform all store.roles actions', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'admin');
-    const actions = ['read', 'create', 'update', 'delete'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.roles', action);
       expect(allowed, `Admin should have store.roles.${action}`).toBe(true);
@@ -210,7 +210,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Viewer cannot access store.access', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'viewer');
-    const actions = ['grant', 'revoke'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.access', action);
       expect(allowed, `Viewer should not have store.access.${action}`).toBe(false);
@@ -219,7 +219,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Manager cannot access store.access', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'manager');
-    const actions = ['grant', 'revoke'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.access', action);
       expect(allowed, `Manager should not have store.access.${action}`).toBe(false);
@@ -228,7 +228,7 @@ test.describe('Store Permission Matrix', () => {
 
   test('Admin can perform all store.access actions', async ({ api }) => {
     const { organizationId, storeId } = await setupStoreWithRole(api, 'admin');
-    const actions = ['read', 'grant', 'revoke'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.access', action);
       expect(allowed, `Admin should have store.access.${action}`).toBe(true);
@@ -258,7 +258,7 @@ test.describe('Store Permission Matrix', () => {
     });
     const storeId = storeData.storeMutation.storeCreate.store?.id;
 
-    const actions = ['read', 'update'];
+    const actions = ['read', 'write'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', action);
       expect(allowed, `Org admin should have store.profile.${action}`).toBe(true);
@@ -288,7 +288,7 @@ test.describe('Store Permission Matrix', () => {
     });
     const storeId = storeData.storeMutation.storeCreate.store?.id;
 
-    const actions = ['read', 'invite', 'update', 'remove'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.members', action);
       expect(allowed, `Org admin should have store.members.${action}`).toBe(true);
@@ -318,7 +318,7 @@ test.describe('Store Permission Matrix', () => {
     });
     const storeId = storeData.storeMutation.storeCreate.store?.id;
 
-    const actions = ['read', 'create', 'update', 'delete'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.roles', action);
       expect(allowed, `Org admin should have store.roles.${action}`).toBe(true);
@@ -348,7 +348,7 @@ test.describe('Store Permission Matrix', () => {
     });
     const storeId = storeData.storeMutation.storeCreate.store?.id;
 
-    const actions = ['read', 'grant', 'revoke'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkStorePermission(api, organizationId, storeId, 'store.access', action);
       expect(allowed, `Org admin should have store.access.${action}`).toBe(true);
@@ -384,7 +384,7 @@ test.describe('Store Permission Matrix', () => {
 
     // Verify org admin can access all stores
     for (const storeId of storeIds) {
-      const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'update');
+      const allowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'write');
       expect(allowed).toBe(true);
     }
   });
@@ -392,19 +392,19 @@ test.describe('Store Permission Matrix', () => {
   test('Store deletion requires both store and org permissions', async ({ api }) => {
     const { organizationId, storeId, ownerToken } = await setupStoreWithRole(api, 'admin');
 
-    // Store admin without org admin permission cannot delete
-    const storeAdminAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    // Store admin without org admin permission cannot admin (delete)
+    const storeAdminAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(storeAdminAllowed).toBe(false);
 
     // Restore org admin token
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
 
-    // Org admin (who is also store owner) can delete
-    const orgAdminAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    // Org admin (who is also store owner) can admin (delete)
+    const orgAdminAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(orgAdminAllowed).toBe(true);
   });
 
-  test('Only store owner can delete store', async ({ api }) => {
+  test('Only store owner can admin store', async ({ api }) => {
     await api.session.setupUser();
     const ownerToken = api.session.accessToken;
     const ownerId = api.session.tenant.userId;
@@ -442,18 +442,18 @@ test.describe('Store Permission Matrix', () => {
       },
     });
 
-    // Non-owner org admin tries to delete store
+    // Non-owner org admin tries to admin (delete) store
     api.session.tenant.accessToken = adminB.accessToken;
     api.session.tenant.userId = adminB.userId;
 
-    const nonOwnerAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    const nonOwnerAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(nonOwnerAllowed).toBe(false);
 
-    // Owner can delete
+    // Owner can admin (delete)
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
     api.session.tenant.userId = ownerId;
 
-    const ownerAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'delete');
+    const ownerAllowed = await checkStorePermission(api, organizationId, storeId, 'store.profile', 'admin');
     expect(ownerAllowed).toBe(true);
   });
 });

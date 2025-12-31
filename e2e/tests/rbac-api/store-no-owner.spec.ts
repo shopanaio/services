@@ -185,7 +185,7 @@ test.describe('Store Has No Owner Concept', () => {
     // Org owner should still have access via owner bypass
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
 

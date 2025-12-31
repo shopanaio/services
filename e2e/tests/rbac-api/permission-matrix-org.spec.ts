@@ -44,7 +44,7 @@ test.describe('Organization Permission Matrix', () => {
     expect(allowed).toBe(true);
   });
 
-  test('Admin can update org.profile', async ({ api }) => {
+  test('Admin can write org.profile', async ({ api }) => {
     await api.session.setupUser();
 
     const orgName = generateOrgName();
@@ -53,11 +53,11 @@ test.describe('Organization Permission Matrix', () => {
     });
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
-    const allowed = await checkPermission(api, organizationId, 'org.profile', 'update');
+    const allowed = await checkPermission(api, organizationId, 'org.profile', 'write');
     expect(allowed).toBe(true);
   });
 
-  test('Admin owner can delete org.profile', async ({ api }) => {
+  test('Admin owner can admin org.profile', async ({ api }) => {
     await api.session.setupUser();
     const ownerToken = api.session.accessToken;
     const ownerId = api.session.tenant.userId;
@@ -69,8 +69,8 @@ test.describe('Organization Permission Matrix', () => {
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
 
-    // Owner can delete
-    const ownerAllowed = await checkPermission(api, organizationId, 'org.profile', 'delete');
+    // Owner can admin (delete)
+    const ownerAllowed = await checkPermission(api, organizationId, 'org.profile', 'admin');
     expect(ownerAllowed).toBe(true);
 
     // Add non-owner admin
@@ -89,8 +89,8 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = adminB.accessToken;
     api.session.tenant.userId = adminB.userId;
 
-    // Non-owner admin should be denied delete
-    const nonOwnerAllowed = await checkPermission(api, organizationId, 'org.profile', 'delete');
+    // Non-owner admin should be denied admin (delete)
+    const nonOwnerAllowed = await checkPermission(api, organizationId, 'org.profile', 'admin');
     expect(nonOwnerAllowed).toBe(false);
 
     // Restore owner
@@ -131,7 +131,7 @@ test.describe('Organization Permission Matrix', () => {
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
   });
 
-  test('Member cannot update org.profile', async ({ api }) => {
+  test('Member cannot write org.profile', async ({ api }) => {
     await api.session.setupUser();
     const ownerToken = api.session.accessToken;
 
@@ -156,13 +156,13 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const allowed = await checkPermission(api, organizationId, 'org.profile', 'update');
+    const allowed = await checkPermission(api, organizationId, 'org.profile', 'write');
     expect(allowed).toBe(false);
 
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
   });
 
-  test('Member cannot delete org.profile', async ({ api }) => {
+  test('Member cannot admin org.profile', async ({ api }) => {
     await api.session.setupUser();
     const ownerToken = api.session.accessToken;
 
@@ -187,7 +187,7 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const allowed = await checkPermission(api, organizationId, 'org.profile', 'delete');
+    const allowed = await checkPermission(api, organizationId, 'org.profile', 'admin');
     expect(allowed).toBe(false);
 
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
@@ -206,7 +206,7 @@ test.describe('Organization Permission Matrix', () => {
     expect(allowed).toBe(true);
   });
 
-  test('Admin can invite org.members', async ({ api }) => {
+  test('Admin can write org.members', async ({ api }) => {
     await api.session.setupUser();
 
     const orgName = generateOrgName();
@@ -215,11 +215,11 @@ test.describe('Organization Permission Matrix', () => {
     });
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
-    const allowed = await checkPermission(api, organizationId, 'org.members', 'invite');
+    const allowed = await checkPermission(api, organizationId, 'org.members', 'write');
     expect(allowed).toBe(true);
   });
 
-  test('Admin can update org.members', async ({ api }) => {
+  test('Admin can admin org.members', async ({ api }) => {
     await api.session.setupUser();
 
     const orgName = generateOrgName();
@@ -228,20 +228,7 @@ test.describe('Organization Permission Matrix', () => {
     });
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
-    const allowed = await checkPermission(api, organizationId, 'org.members', 'update');
-    expect(allowed).toBe(true);
-  });
-
-  test('Admin can remove org.members', async ({ api }) => {
-    await api.session.setupUser();
-
-    const orgName = generateOrgName();
-    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
-      variables: { input: { name: orgName, displayName: 'Test Organization' } },
-    });
-
-    const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
-    const allowed = await checkPermission(api, organizationId, 'org.members', 'remove');
+    const allowed = await checkPermission(api, organizationId, 'org.members', 'admin');
     expect(allowed).toBe(true);
   });
 
@@ -276,7 +263,7 @@ test.describe('Organization Permission Matrix', () => {
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
   });
 
-  test('Member cannot invite org.members', async ({ api }) => {
+  test('Member cannot write org.members', async ({ api }) => {
     await api.session.setupUser();
     const ownerToken = api.session.accessToken;
 
@@ -301,13 +288,13 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const allowed = await checkPermission(api, organizationId, 'org.members', 'invite');
+    const allowed = await checkPermission(api, organizationId, 'org.members', 'write');
     expect(allowed).toBe(false);
 
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
   });
 
-  test('Member cannot update org.members', async ({ api }) => {
+  test('Member cannot admin org.members', async ({ api }) => {
     await api.session.setupUser();
     const ownerToken = api.session.accessToken;
 
@@ -332,38 +319,7 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const allowed = await checkPermission(api, organizationId, 'org.members', 'update');
-    expect(allowed).toBe(false);
-
-    if (ownerToken) api.session.tenant.accessToken = ownerToken;
-  });
-
-  test('Member cannot remove org.members', async ({ api }) => {
-    await api.session.setupUser();
-    const ownerToken = api.session.accessToken;
-
-    const orgName = generateOrgName();
-    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
-      variables: { input: { name: orgName, displayName: 'Test Organization' } },
-    });
-
-    const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
-
-    const memberUser = await api.admin.user.create();
-    await api.admin.mutation('iam-api/MemberInvite', {
-      variables: {
-        input: {
-          organizationId,
-          email: memberUser.data.email,
-          roles: [{ domain: 'org', role: 'member' }],
-        },
-      },
-    });
-
-    api.session.tenant.accessToken = memberUser.accessToken;
-    api.session.tenant.userId = memberUser.userId;
-
-    const allowed = await checkPermission(api, organizationId, 'org.members', 'remove');
+    const allowed = await checkPermission(api, organizationId, 'org.members', 'admin');
     expect(allowed).toBe(false);
 
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
@@ -379,7 +335,7 @@ test.describe('Organization Permission Matrix', () => {
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
 
-    const actions = ['read', 'create', 'update', 'delete'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkPermission(api, organizationId, 'org.roles', action);
       expect(allowed, `Admin should have org.roles.${action}`).toBe(true);
@@ -411,7 +367,7 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const actions = ['create', 'update', 'delete'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkPermission(api, organizationId, 'org.roles', action);
       expect(allowed, `Member should not have org.roles.${action}`).toBe(false);
@@ -430,7 +386,7 @@ test.describe('Organization Permission Matrix', () => {
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
 
-    const actions = ['create', 'read', 'update', 'delete'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkPermission(api, organizationId, 'org.stores', action);
       expect(allowed, `Admin should have org.stores.${action}`).toBe(true);
@@ -462,7 +418,7 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const actions = ['create', 'update', 'delete'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkPermission(api, organizationId, 'org.stores', action);
       expect(allowed, `Member should not have org.stores.${action}`).toBe(false);
@@ -481,7 +437,7 @@ test.describe('Organization Permission Matrix', () => {
 
     const organizationId = orgData.organizationMutation.organizationCreate.organization?.id;
 
-    const actions = ['read', 'grant', 'revoke'];
+    const actions = ['read', 'write', 'admin'];
     for (const action of actions) {
       const allowed = await checkPermission(api, organizationId, 'org.access', action);
       expect(allowed, `Admin should have org.access.${action}`).toBe(true);
@@ -513,7 +469,7 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = memberUser.accessToken;
     api.session.tenant.userId = memberUser.userId;
 
-    const actions = ['grant', 'revoke'];
+    const actions = ['write', 'admin'];
     for (const action of actions) {
       const allowed = await checkPermission(api, organizationId, 'org.access', action);
       expect(allowed, `Member should not have org.access.${action}`).toBe(false);
@@ -607,14 +563,14 @@ test.describe('Organization Permission Matrix', () => {
     api.session.tenant.accessToken = adminB.accessToken;
     api.session.tenant.userId = adminB.userId;
 
-    const allowed = await checkPermission(api, organizationId, 'org.profile', 'delete');
+    const allowed = await checkPermission(api, organizationId, 'org.profile', 'admin');
     expect(allowed).toBe(false);
 
-    // Owner can delete
+    // Owner can admin (delete)
     if (ownerToken) api.session.tenant.accessToken = ownerToken;
     api.session.tenant.userId = ownerId;
 
-    const ownerAllowed = await checkPermission(api, organizationId, 'org.profile', 'delete');
+    const ownerAllowed = await checkPermission(api, organizationId, 'org.profile', 'admin');
     expect(ownerAllowed).toBe(true);
   });
 });

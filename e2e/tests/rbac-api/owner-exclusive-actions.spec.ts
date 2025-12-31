@@ -108,7 +108,7 @@ test.describe('Owner Exclusive Actions', () => {
     // Admin should NOT have delete permission
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'delete' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'admin' },
       },
     });
 
@@ -135,7 +135,7 @@ test.describe('Owner Exclusive Actions', () => {
     // Owner should have delete permission via bypass
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'delete' },
+        input: { organizationId, domain: 'org', resource: 'org.profile', action: 'admin' },
       },
     });
 

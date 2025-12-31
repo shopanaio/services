@@ -120,7 +120,7 @@ test.describe('Default Role Assignment', () => {
     // 3. Verify user has store admin permissions
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -128,9 +128,9 @@ test.describe('Default Role Assignment', () => {
 
     // 4. Verify user has full admin access (indicative of store admin role)
     const adminActions = [
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
       { resource: 'store.members', action: 'read' },
-      { resource: 'store.roles', action: 'create' },
+      { resource: 'store.roles', action: 'write' },
     ];
 
     for (const { resource, action } of adminActions) {
@@ -203,7 +203,7 @@ test.describe('Default Role Assignment', () => {
     // 4. Verify member has store admin permissions
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -280,9 +280,9 @@ test.describe('Default Role Assignment', () => {
 
     // 2. Verify creator has admin permissions
     const adminActions = [
-      { resource: 'org.profile', action: 'update' },
-      { resource: 'org.members', action: 'invite' },
-      { resource: 'org.roles', action: 'create' },
+      { resource: 'org.profile', action: 'write' },
+      { resource: 'org.members', action: 'write' },
+      { resource: 'org.roles', action: 'write' },
     ];
 
     for (const { resource, action } of adminActions) {
@@ -403,7 +403,7 @@ test.describe('Default Role Assignment', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
 
@@ -452,10 +452,10 @@ test.describe('Default Role Assignment', () => {
     });
     expect((readAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
 
-    // Should NOT have invite access (admin only)
+    // Should NOT have write access (admin only)
     const { data: inviteAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
     expect((inviteAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -524,10 +524,10 @@ test.describe('Default Role Assignment', () => {
     });
     expect((readAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
 
-    // Should NOT have update access
+    // Should NOT have write access
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -572,7 +572,7 @@ test.describe('Default Role Assignment', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: 'org', resource: 'org.members', action: 'invite' },
+        input: { organizationId, domain: 'org', resource: 'org.members', action: 'write' },
       },
     });
 
@@ -637,18 +637,18 @@ test.describe('Default Role Assignment', () => {
     api.session.tenant.accessToken = managerUser.accessToken;
     api.session.tenant.userId = managerUser.userId;
 
-    // Manager can update profile
+    // Manager can write profile
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
 
-    // Manager cannot invite members (admin only)
+    // Manager cannot write members (admin only)
     const { data: inviteAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
+        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
       },
     });
     expect((inviteAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);

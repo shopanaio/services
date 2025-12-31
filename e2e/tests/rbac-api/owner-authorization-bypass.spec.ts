@@ -52,21 +52,21 @@ test.describe('Owner Bypass Authorization', () => {
     const allActions = [
       // Org level
       { domain: 'org', resource: 'org.profile', action: 'read' },
-      { domain: 'org', resource: 'org.profile', action: 'update' },
-      { domain: 'org', resource: 'org.profile', action: 'delete' }, // Owner exclusive
+      { domain: 'org', resource: 'org.profile', action: 'write' },
+      { domain: 'org', resource: 'org.profile', action: 'admin' }, // Owner exclusive
       { domain: 'org', resource: 'org.members', action: 'read' },
-      { domain: 'org', resource: 'org.members', action: 'invite' },
-      { domain: 'org', resource: 'org.members', action: 'remove' },
+      { domain: 'org', resource: 'org.members', action: 'write' },
+      { domain: 'org', resource: 'org.members', action: 'admin' },
       { domain: 'org', resource: 'org.roles', action: 'read' },
-      { domain: 'org', resource: 'org.roles', action: 'create' },
-      { domain: 'org', resource: 'org.stores', action: 'create' },
-      { domain: 'org', resource: 'org.stores', action: 'delete' },
+      { domain: 'org', resource: 'org.roles', action: 'write' },
+      { domain: 'org', resource: 'org.stores', action: 'write' },
+      { domain: 'org', resource: 'org.stores', action: 'admin' },
       // Store level (owner bypasses even without store role)
       { domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
-      { domain: `store:${storeId}`, resource: 'store.profile', action: 'update' },
+      { domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
       { domain: `store:${storeId}`, resource: 'store.members', action: 'read' },
-      { domain: `store:${storeId}`, resource: 'store.members', action: 'invite' },
-      { domain: `store:${storeId}`, resource: 'store.access', action: 'grant' },
+      { domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+      { domain: `store:${storeId}`, resource: 'store.access', action: 'write' },
     ];
 
     for (const { domain, resource, action } of allActions) {
@@ -146,12 +146,12 @@ test.describe('Owner Bypass Authorization', () => {
     // 5. Owner should still have full access via bypass
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
-      { resource: 'store.profile', action: 'update' },
+      { resource: 'store.profile', action: 'write' },
       { resource: 'store.members', action: 'read' },
-      { resource: 'store.members', action: 'invite' },
-      { resource: 'store.members', action: 'remove' },
+      { resource: 'store.members', action: 'write' },
+      { resource: 'store.members', action: 'admin' },
       { resource: 'store.roles', action: 'read' },
-      { resource: 'store.access', action: 'grant' },
+      { resource: 'store.access', action: 'write' },
     ];
 
     for (const { resource, action } of storeActions) {
