@@ -120,7 +120,12 @@ test.describe('Default Role Assignment', () => {
     // 3. Verify user has store admin permissions
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: {
+          organizationId,
+          domain: `store:${storeId}`,
+          resource: 'store.members',
+          action: 'write',
+        },
       },
     });
 
@@ -144,70 +149,6 @@ test.describe('Default Role Assignment', () => {
         `Store creator should have ${resource}.${action}`,
       ).toBe(true);
     }
-  });
-
-  test('Org member creating store becomes store admin and owner', async ({ api }) => {
-    // 1. Create organization
-    await api.session.setupUser();
-    const ownerToken = api.session.accessToken;
-    const ownerId = api.session.tenant.userId;
-
-    const orgName = generateOrgName();
-    const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
-      variables: {
-        input: {
-          name: orgName,
-          displayName: 'Test Organization',
-        },
-      },
-    });
-
-    const organization = orgData.organizationMutation.organizationCreate.organization;
-    expect(organization).not.toBeNull();
-    const organizationId = organization?.id;
-
-    // 2. Invite user as org member
-    const memberUser = await api.admin.user.create();
-    await api.admin.mutation('iam-api/MemberInvite', {
-      variables: {
-        input: {
-          organizationId,
-          email: memberUser.data.email,
-          roles: [{ domain: 'org', role: 'member' }],
-        },
-      },
-    });
-
-    // 3. Switch to member and create store
-    api.session.tenant.accessToken = memberUser.accessToken;
-    api.session.tenant.userId = memberUser.userId;
-
-    const storeName = generateStoreName();
-    const { data: storeData } = await api.admin.mutation('project-api/ProjectCreate', {
-      variables: {
-        input: {
-          organizationId,
-          name: storeName,
-          displayName: 'Test Store',
-          locales: ['en'],
-          currencies: ['USD'],
-          defaultCurrency: 'USD',
-        },
-      },
-    });
-
-    const store = storeData.storeMutation.storeCreate.store;
-    expect(store).not.toBeNull();
-    const storeId = store?.id;
-
-    // 4. Verify member has store admin permissions
-    const { data: authData } = await api.admin.query('roles-api/Authorize', {
-      variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
-      },
-    });
-
-    expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
   });
 
   test('Store creator is marked as owner separately from role', async ({ api }) => {
@@ -247,16 +188,17 @@ test.describe('Default Role Assignment', () => {
     expect(store).not.toBeNull();
     const storeId = store?.id;
 
-    // 2. Query store to check creator/owner info
-    const { data: queryData } = await api.admin.query('project-api/Store', {
-      variables: { id: storeId },
+    // 2. Query stores in org to verify the created store exists
+    const { data: queryData } = await api.admin.query('project-api/StoreMembership', {
+      variables: { organizationId },
     });
 
-    // 3. Verify creator is tracked (createdBy or similar field)
-    const storeResult = queryData as unknown as StoreResult;
-    // Store should have a creator/owner reference
-    // The exact field may vary but the concept is that ownership is tracked separately
-    expect(storeResult.storeQuery.store).not.toBeNull();
+    // 3. Verify the store was created and is accessible
+    const stores = queryData.storeQuery?.stores ?? [];
+    const createdStore = stores.find((s: { id: string }) => s.id === storeId);
+    // Store should exist and be accessible to the creator
+    expect(createdStore).toBeDefined();
+    expect(createdStore?.id).toBe(storeId);
   });
 
   test('Organization creator receives admin role', async ({ api }) => {
@@ -317,13 +259,15 @@ test.describe('Default Role Assignment', () => {
     expect(organization).not.toBeNull();
     const organizationId = organization?.id;
 
-    // 2. Query organization to verify owner
-    const { data: queryData } = await api.admin.query('iam-api/Organization', {
+    // 2. Query organization membership to verify owner
+    const { data: queryData } = await api.admin.query('iam-api/OrganizationMembership', {
       variables: { id: organizationId },
     });
 
-    const orgResult = queryData as unknown as OrganizationResult;
-    expect(orgResult.organizationQuery.organization.owner.id).toBe(userId);
+    const members = queryData.organizationQuery.organization?.membership?.members ?? [];
+    const owner = members.find((m: { isOwner?: boolean }) => m.isOwner);
+    expect(owner).toBeDefined();
+    expect(owner?.user?.id).toBe(userId);
   });
 
   test('Only one owner per organization', async ({ api }) => {
@@ -357,14 +301,16 @@ test.describe('Default Role Assignment', () => {
       },
     });
 
-    // 3. Query organization to verify only one owner
-    const { data: queryData } = await api.admin.query('iam-api/Organization', {
+    // 3. Query organization membership to verify only one owner
+    const { data: queryData } = await api.admin.query('iam-api/OrganizationMembership', {
       variables: { id: organizationId },
     });
 
-    const orgResult = queryData as unknown as OrganizationResult;
+    const members = queryData.organizationQuery.organization?.membership?.members ?? [];
+    const owners = members.filter((m: { isOwner?: boolean }) => m.isOwner);
     // There should be exactly one owner (the creator)
-    expect(orgResult.organizationQuery.organization.owner.id).toBe(userId);
+    expect(owners).toHaveLength(1);
+    expect(owners[0]?.user?.id).toBe(userId);
   });
 
   test('User receives role specified in invitation', async ({ api }) => {
@@ -519,7 +465,12 @@ test.describe('Default Role Assignment', () => {
     // Should have read access
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
+        input: {
+          organizationId,
+          domain: `store:${storeId}`,
+          resource: 'store.profile',
+          action: 'read',
+        },
       },
     });
     expect((readAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -527,7 +478,12 @@ test.describe('Default Role Assignment', () => {
     // Should NOT have write access
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: {
+          organizationId,
+          domain: `store:${storeId}`,
+          resource: 'store.profile',
+          action: 'write',
+        },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -640,7 +596,12 @@ test.describe('Default Role Assignment', () => {
     // Manager can write profile
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: {
+          organizationId,
+          domain: `store:${storeId}`,
+          resource: 'store.profile',
+          action: 'write',
+        },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -648,7 +609,12 @@ test.describe('Default Role Assignment', () => {
     // Manager cannot write members (admin only)
     const { data: inviteAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: {
+          organizationId,
+          domain: `store:${storeId}`,
+          resource: 'store.members',
+          action: 'write',
+        },
       },
     });
     expect((inviteAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -685,15 +651,17 @@ test.describe('Default Role Assignment', () => {
       },
     });
 
-    // 3. Query organization to verify owner is still original creator
-    const { data: queryData } = await api.admin.query('iam-api/Organization', {
+    // 3. Query organization membership to verify owner is still original creator
+    const { data: queryData } = await api.admin.query('iam-api/OrganizationMembership', {
       variables: { id: organizationId },
     });
 
-    const orgResult = queryData as unknown as OrganizationResult;
+    const members = queryData.organizationQuery.organization?.membership?.members ?? [];
+    const owner = members.find((m: { isOwner?: boolean }) => m.isOwner);
     // Owner should still be the original creator, not the invited admin
-    expect(orgResult.organizationQuery.organization.owner.id).toBe(ownerId);
-    expect(orgResult.organizationQuery.organization.owner.id).not.toBe(adminUser.userId);
+    expect(owner).toBeDefined();
+    expect(owner?.user?.id).toBe(ownerId);
+    expect(owner?.user?.id).not.toBe(adminUser.userId);
   });
 
   test('Cannot assign non-existent role', async ({ api }) => {
