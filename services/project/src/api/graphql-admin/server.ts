@@ -1,5 +1,4 @@
-import { ApolloServer } from "@apollo/server";
-import { ApolloServerPluginInlineTrace } from "@apollo/server/plugin/inlineTrace";
+import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
@@ -27,6 +26,18 @@ import { resolvers } from "./resolvers/index.js";
 export interface ServerConfig {
   port: number;
 }
+
+const timingPlugin: ApolloServerPlugin<ServiceContext> = {
+  async requestDidStart({ request }) {
+    const start = performance.now();
+    return {
+      async willSendResponse() {
+        const ms = (performance.now() - start).toFixed(0);
+        console.log(`[PROJECT] ${request.operationName ?? "query"}: ${ms}ms`);
+      },
+    };
+  },
+};
 
 /**
  * Create and start GraphQL-only server
@@ -83,10 +94,7 @@ export async function startServer(serverConfig: ServerConfig) {
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
     schema: buildSubgraphSchema(modules),
-    plugins: [
-      fastifyApolloDrainPlugin(app),
-      ApolloServerPluginInlineTrace(),
-    ],
+    plugins: [fastifyApolloDrainPlugin(app), timingPlugin],
     formatError: (formattedError, error) => {
       // Handle ForbiddenError from context middleware
       const originalError =

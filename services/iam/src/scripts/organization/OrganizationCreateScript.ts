@@ -47,27 +47,45 @@ export class OrganizationCreateScript extends BaseScript<
     const adminRoleName = "admin";
     const domain = ORG_DOMAIN;
 
-    // Create predefined roles from @shopana/rbac
-    const createdRoles: Record<string, { id: string }> = {};
-    for (const roleName of Object.keys(Roles.organization) as Array<
+    const roleKeys = Object.keys(Roles.organization) as Array<
       keyof typeof Roles.organization
-    >) {
+    >;
+    // Batch create all roles in single INSERT
+    const roleInputs = roleKeys.map((roleName) => {
       const meta = RolesMeta.organization[roleName];
-      const role = await this.repository.organization.createRole({
+      return {
         organizationId: org.id,
         domain,
         name: roleName,
         displayName: meta.displayName,
         description: meta.description,
         isSystem: true,
-      });
-      createdRoles[roleName] = role;
+      };
+    });
 
-      // Add policies for this role
+    const createdRolesArray = await this.repository.organization.createRoles(
+      roleInputs
+    );
+
+    const createdRoles = createdRolesArray.reduce((acc, role) => {
+      acc[role.name] = role;
+      return acc;
+    }, {} as Record<string, (typeof createdRolesArray)[number]>);
+
+    // Batch add all policies in single INSERT
+    const allPolicies: Array<{
+      role: string;
+      domain: typeof ORG_DOMAIN;
+      resource: string;
+      action: string;
+    }> = [];
+
+    for (const roleName of Object.keys(Roles.organization) as Array<
+      keyof typeof Roles.organization
+    >) {
       const permissions = Roles.organization[roleName];
       for (const permission of permissions) {
-        await this.repository.casbin.addPolicy({
-          organizationId: org.id,
+        allPolicies.push({
           role: roleName,
           domain,
           resource: permission.resource,
@@ -75,6 +93,11 @@ export class OrganizationCreateScript extends BaseScript<
         });
       }
     }
+
+    await this.repository.casbin.addPolicies({
+      organizationId: org.id,
+      policies: allPolicies,
+    });
 
     // Add current user as organization member and owner
     await this.repository.organization.addMember({

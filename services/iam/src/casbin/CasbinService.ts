@@ -1,9 +1,11 @@
 import { newEnforcer, Enforcer, newModelFromString, Util } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
 
-// Handle CJS/ESM interop - drizzle-adapter is CJS with exports.default
-const DrizzleAdapter =
-  (DrizzleAdapterModule as any).default ?? DrizzleAdapterModule;
+// @ts-expect-error - wrong esm export
+const DrizzleAdapter = DrizzleAdapterModule.default as {
+  default: typeof DrizzleAdapterModule;
+};
+
 import { casbinRule } from "../repositories/models/authorization.js";
 import type { Database } from "../infrastructure/db/database.js";
 
@@ -68,7 +70,7 @@ m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && keyMatch(r.obj, p.obj) &
  * This means if you have "write" permission, you also have "read".
  */
 const ACTION_HIERARCHY: [string, string][] = [
-  ["read", "write"],  // write includes read
+  ["read", "write"], // write includes read
   ["write", "admin"], // admin includes write (and transitively read)
 ];
 
@@ -190,7 +192,7 @@ export interface GroupedPermission {
  */
 export class CasbinService {
   private enforcers: Map<string, Enforcer> = new Map();
-  private adapter: InstanceType<typeof DrizzleAdapter> | null = null;
+  private adapter!: DrizzleAdapterModule;
   private initialized = false;
 
   constructor(private readonly db: Database) {}
@@ -598,6 +600,41 @@ export class CasbinService {
   }
 
   /**
+   * Add multiple policies.
+   * Much more efficient than calling addPolicy() multiple times.
+   */
+  async addPolicies(params: {
+    organizationId: string;
+    policies: Array<{
+      role: string;
+      domain: Domain;
+      resource: Resource;
+      action: string;
+    }>;
+  }): Promise<void> {
+    const { organizationId, policies } = params;
+
+    if (policies.length === 0) {
+      return;
+    }
+
+    await this.adapter.addPolicies(
+      "p",
+      "p",
+      policies.map((p) => [
+        p.role,
+        p.domain,
+        p.resource,
+        p.action,
+        organizationId,
+      ])
+    );
+
+    // Invalidate enforcer once at the end
+    await this.invalidateEnforcer(organizationId);
+  }
+
+  /**
    * Batch check permissions for multiple requests.
    * More efficient than calling enforce() multiple times.
    *
@@ -627,5 +664,4 @@ export class CasbinService {
 
     return enforcer.batchEnforce(casbinRequests);
   }
-
 }
