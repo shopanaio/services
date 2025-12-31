@@ -32,8 +32,6 @@ export class ServiceContext {
   readonly kernel: Kernel;
   /** DataLoaders for efficient batched data fetching */
   readonly loaders: Loader;
-  /** Store slug from X-Store-Name header */
-  readonly slug?: string;
   /** Current locale for translations (default: 'uk') */
   readonly locale?: string;
   /** Current currency for pricing */
@@ -46,7 +44,6 @@ export class ServiceContext {
     this.requestId = options.requestId;
     this.kernel = options.kernel;
     this.loaders = options.loaders;
-    this.slug = options.slug;
     this.locale = options.locale;
     this.currency = options.currency;
     this._store = options.store;

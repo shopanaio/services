@@ -15,15 +15,12 @@ declare module "fastify" {
   }
 }
 
-export interface ContextMiddlewareConfig {
-  repository?: unknown | null;
-}
-
 /**
  * Build admin context middleware
  * Gets broker from Kernel singleton
  */
-export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
-  const kernel = Kernel.getInstance();
-  return buildMiddleware(kernel.getServices().broker, { serviceName: "INVENTORY" });
+export function buildAdminContextMiddleware() {
+  return buildMiddleware(Kernel.getInstance().getServices().broker, {
+    serviceName: "INVENTORY",
+  });
 }

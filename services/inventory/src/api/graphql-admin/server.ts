@@ -8,7 +8,10 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import {
+  getServiceConfig,
+  isDevelopment,
+} from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("inventory");
@@ -45,7 +48,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[Inventory] {msg}',
+              messageFormat: "[Inventory] {msg}",
               levelFirst: true,
             },
           },
@@ -91,48 +94,42 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware - extracts store and user from headers
-  app.addHook(
-    "preHandler",
-    buildAdminContextMiddleware({
-      repository: kernel?.repository ?? null,
-    })
-  );
+  // GraphQL endpoint with scoped context middleware
+  await app.register(async (instance) => {
+    // Admin context middleware - extracts store and user from headers
+    // Scoped to this plugin only (not applied to health checks)
+    instance.addHook("preHandler", buildAdminContextMiddleware());
 
-  // GraphQL endpoint
-  await app.register(fastifyApollo(apollo), {
-    path: "/graphql",
-    context: async (request, _reply): Promise<ServiceContext> => {
-      // For introspection, return minimal context
-      const isIntrospection =
-        request.headers["x-interpolation"] === "true" ||
-        request.headers["user-agent"]?.includes("rover");
+    await instance.register(fastifyApollo(apollo), {
+      path: "/graphql",
+      context: async (request, _reply): Promise<ServiceContext> => {
+        // For introspection, return minimal context
+        const isIntrospection = request.headers["x-interpolation"] === "true";
+        if (isIntrospection) {
+          return new ServiceContext({
+            requestId: request.id as string,
+            kernel: kernel as Kernel,
+            loaders: null as any,
+          });
+        }
 
-      if (isIntrospection) {
-        return new ServiceContext({
+        // Create loaders per request for proper batching
+        const loaders = new Loader(kernel!.repository);
+
+        const ctx = new ServiceContext({
           requestId: request.id as string,
-          kernel: kernel as Kernel,
-          loaders: null as any,
+          kernel: kernel!,
+          store: request.store,
+          user: request.user,
+          loaders,
         });
-      }
 
-      // Create loaders per request for proper batching
-      const loaders = new Loader(kernel!.repository);
+        // Set context in AsyncLocalStorage for all resolvers
+        setContext(ctx);
 
-      const ctx = new ServiceContext({
-        requestId: request.id as string,
-        kernel: kernel!,
-        slug: request.headers["x-store-name"] as string,
-        store: request.store,
-        user: request.user,
-        loaders,
-      });
-
-      // Set context in AsyncLocalStorage for all resolvers
-      setContext(ctx);
-
-      return ctx;
-    },
+        return ctx;
+      },
+    });
   });
 
   // Health check endpoints

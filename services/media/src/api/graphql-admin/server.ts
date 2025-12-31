@@ -118,70 +118,65 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware - extracts store and user from headers
-  app.addHook(
-    "preHandler",
-    buildAdminContextMiddleware({
-      repository: kernel?.repository ?? null,
-    })
-  );
+  // GraphQL endpoint with scoped middleware
+  await app.register(async (instance) => {
+    // Admin context middleware - extracts store and user from headers
+    // Scoped to this plugin only (not applied to health checks)
+    instance.addHook(
+      "preHandler",
+      buildAdminContextMiddleware({
+        repository: kernel?.repository ?? null,
+      })
+    );
 
-  // GraphQL multipart upload middleware
-  app.addHook("preHandler", async (request, reply) => {
-    // Only process multipart requests to GraphQL endpoint
-    if (
-      request.url === "/graphql" &&
-      request.headers["content-type"]?.includes("multipart/form-data")
-    ) {
-      try {
-        const processed = await processRequest(request.raw, reply.raw, {
-          maxFileSize: 100 * 1024 * 1024, // 100MB
-          maxFiles: 10,
-        });
-        // Attach processed body to request
-        (request as any).body = processed;
-        // Change content-type so Apollo Server accepts the request
-        request.headers["content-type"] = "application/json";
-      } catch (error) {
-        reply.status(400).send({ error: "Invalid multipart request" });
+    // GraphQL multipart upload middleware
+    instance.addHook("preHandler", async (request, reply) => {
+      if (request.headers["content-type"]?.includes("multipart/form-data")) {
+        try {
+          const processed = await processRequest(request.raw, reply.raw, {
+            maxFileSize: 100 * 1024 * 1024, // 100MB
+            maxFiles: 10,
+          });
+          // Attach processed body to request
+          (request as any).body = processed;
+          // Change content-type so Apollo Server accepts the request
+          request.headers["content-type"] = "application/json";
+        } catch (error) {
+          reply.status(400).send({ error: "Invalid multipart request" });
+        }
       }
-    }
-  });
+    });
 
-  // GraphQL endpoint
-  await app.register(fastifyApollo(apollo), {
-    path: "/graphql",
+    await instance.register(fastifyApollo(apollo), {
+      path: "/graphql",
+      context: async (request, _reply): Promise<ServiceContext> => {
+        // For introspection, return minimal context
+        const isIntrospection = request.headers["x-interpolation"] === "true";
+        if (isIntrospection) {
+          return new ServiceContext({
+            requestId: request.id as string,
+            kernel: kernel as Kernel,
+            loaders: null as any,
+          });
+        }
 
-    context: async (request, _reply): Promise<ServiceContext> => {
-      // For introspection, return minimal context
-      const isIntrospection =
-        request.headers["x-interpolation"] === "true" ||
-        request.headers["user-agent"]?.includes("rover");
+        // Create loaders per request for proper batching
+        const loaders = new Loader(kernel!.repository);
 
-      if (isIntrospection) {
-        return new ServiceContext({
+        const ctx = new ServiceContext({
           requestId: request.id as string,
-          kernel: kernel as Kernel,
-          loaders: null as any,
+          kernel: kernel!,
+          store: request.store,
+          user: request.user,
+          loaders,
         });
-      }
 
-      // Create loaders per request for proper batching
-      const loaders = new Loader(kernel!.repository);
+        // Set context in AsyncLocalStorage for all resolvers
+        setContext(ctx);
 
-      const ctx = new ServiceContext({
-        requestId: request.id as string,
-        kernel: kernel!,
-        store: request.store,
-        user: request.user,
-        loaders,
-      });
-
-      // Set context in AsyncLocalStorage for all resolvers
-      setContext(ctx);
-
-      return ctx;
-    },
+        return ctx;
+      },
+    });
   });
 
   // Health check endpoints
