@@ -84,31 +84,29 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware - extracts user from session
-  app.addHook(
-    "preHandler",
-    buildAdminContextMiddleware({
-      repository: kernel?.repository ?? null,
-    })
-  );
+  // GraphQL endpoint with scoped middleware
+  await app.register(async (instance) => {
+    // Admin context middleware - extracts user from session
+    // Scoped to this plugin only (not applied to health checks)
+    instance.addHook("preHandler", buildAdminContextMiddleware());
 
-  // GraphQL endpoint
-  await app.register(fastifyApollo(apollo), {
-    path: "/graphql",
-    context: async (request, _reply): Promise<ServiceContext> => {
-      const ctx: ServiceContext = {
-        requestId: request.id as string,
-        kernel: kernel!,
-        currentUser: request.currentUser,
-        // Create loaders per request for proper batching
-        loaders: new Loader(kernel!.repository),
-      };
+    await instance.register(fastifyApollo(apollo), {
+      path: "/graphql",
+      context: async (request, _reply): Promise<ServiceContext> => {
+        const ctx: ServiceContext = {
+          requestId: request.id as string,
+          kernel: kernel!,
+          currentUser: request.currentUser,
+          // Create loaders per request for proper batching
+          loaders: new Loader(kernel!.repository),
+        };
 
-      // Set context in AsyncLocalStorage for all resolvers
-      setContext(ctx);
+        // Set context in AsyncLocalStorage for all resolvers
+        setContext(ctx);
 
-      return ctx;
-    },
+        return ctx;
+      },
+    });
   });
 
   // Health check endpoints

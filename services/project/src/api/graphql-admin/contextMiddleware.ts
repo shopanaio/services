@@ -27,10 +27,6 @@ declare module "fastify" {
   }
 }
 
-export interface ContextMiddlewareConfig {
-  // TODO: add config options
-}
-
 function headerIsTrue(value: unknown): boolean {
   if (typeof value === "string") return value.toLowerCase() === "true";
   if (typeof value === "boolean") return value === true;
@@ -41,21 +37,6 @@ function headerIsTrue(value: unknown): boolean {
  * Checks if request should skip authentication (health checks, introspection)
  */
 function shouldSkipAuth(request: FastifyRequest): boolean {
-  const url = request.url;
-
-  // Skip auth for health check and root endpoints
-  if (url === "/" || url === "/healthz") {
-    return true;
-  }
-
-  // Check for GraphQL introspection
-  const isGraphqlPath = typeof url === "string" && url.startsWith("/graphql");
-  if (!isGraphqlPath) return false;
-
-  if (request.headers["user-agent"]?.includes("rover")) {
-    return true;
-  }
-
   const interpolationHeader =
     request.headers["x-interpolation"] ?? request.headers["X-Interpolation"];
   return headerIsTrue(interpolationHeader);
@@ -66,7 +47,7 @@ function shouldSkipAuth(request: FastifyRequest): boolean {
  * Authenticates user via IAM and stores storeName from header.
  * Store loading is done lazily in currentStore query.
  */
-export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
+export function buildAdminContextMiddleware() {
   return async function adminContextMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
@@ -107,10 +88,7 @@ export function buildAdminContextMiddleware(_config: ContextMiddlewareConfig) {
       });
     }
 
-    // Set user on request
-    request.user = {
-      id: userResult.user.id,
-    };
+    request.user = userResult.user;
     request.accessToken = accessToken;
   };
 }

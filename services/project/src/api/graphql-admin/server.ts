@@ -103,59 +103,42 @@ export async function startServer(serverConfig: ServerConfig) {
 
   await apollo.start();
 
-  // Admin context middleware with error handling
-  app.addHook("preHandler", async (request, reply) => {
-    try {
-      await buildAdminContextMiddleware({})(request, reply);
-    } catch (error) {
-      if (error instanceof ForbiddenError) {
-        return reply.status(200).send({
-          data: null,
-          errors: [
-            {
-              message: error.message,
-              extensions: { code: "FORBIDDEN" },
-            },
-          ],
-        });
-      }
-      throw error;
-    }
-  });
+  // GraphQL endpoint with scoped middleware
+  await app.register(async (instance) => {
+    // Admin context middleware with error handling
+    // Scoped to this plugin only (not applied to health checks)
+    instance.addHook("preHandler", buildAdminContextMiddleware());
 
-  // GraphQL endpoint
-  await app.register(fastifyApollo(apollo), {
-    path: "/graphql",
-    context: async (request, _reply): Promise<ServiceContext> => {
-      // For introspection, return minimal context
-      const isIntrospection =
-        request.headers["x-interpolation"] === "true" ||
-        request.headers["user-agent"]?.includes("rover");
+    await instance.register(fastifyApollo(apollo), {
+      path: "/graphql",
+      context: async (request, _reply): Promise<ServiceContext> => {
+        // For introspection, return minimal context
+        const isIntrospection = request.headers["x-interpolation"] === "true";
+        if (isIntrospection) {
+          return new ServiceContext({
+            requestId: request.id as string,
+            kernel: kernel as Kernel,
+            loaders: null as any,
+          });
+        }
 
-      if (isIntrospection) {
-        return new ServiceContext({
+        // Create fresh loaders per request for proper batching within request scope
+        const loaders = new Loader(kernel!.getServices().broker);
+
+        const ctx = new ServiceContext({
           requestId: request.id as string,
-          kernel: kernel as Kernel,
-          loaders: null as any,
+          kernel: kernel!,
+          storeName: request.storeName,
+          user: request.user,
+          loaders,
         });
-      }
 
-      // Create fresh loaders per request for proper batching within request scope
-      const loaders = new Loader(kernel!.getServices().broker);
+        // Set context in AsyncLocalStorage for all resolvers
+        setContext(ctx);
 
-      const ctx = new ServiceContext({
-        requestId: request.id as string,
-        kernel: kernel!,
-        storeName: request.storeName,
-        user: request.user,
-        loaders,
-      });
-
-      // Set context in AsyncLocalStorage for all resolvers
-      setContext(ctx);
-
-      return ctx;
-    },
+        return ctx;
+      },
+    });
   });
 
   // Health check endpoints
