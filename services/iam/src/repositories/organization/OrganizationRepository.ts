@@ -141,9 +141,10 @@ export class OrganizationRepository extends BaseRepository {
     const result = await this.connection
       .update(organization)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(organization.id, id), isNull(organization.deletedAt)));
+      .where(and(eq(organization.id, id), isNull(organization.deletedAt)))
+      .returning({ id: organization.id });
 
-    return (result as any).rowCount > 0;
+    return result.length > 0;
   }
 
   // ============================================================================
@@ -153,29 +154,20 @@ export class OrganizationRepository extends BaseRepository {
   /**
    * Add a member to organization
    */
-  @Transactional()
-  async addMember(input: AddMemberInput): Promise<OrganizationMember | null> {
+  async addMember(input: AddMemberInput): Promise<OrganizationMember> {
     const { organizationId, userId, invitedBy, isOwner = false } = input;
 
-    try {
-      const [result] = await this.connection
-        .insert(organizationMember)
-        .values({
-          organizationId,
-          userId,
-          invitedBy,
-          isOwner,
-        })
-        .returning();
+    const [result] = await this.connection
+      .insert(organizationMember)
+      .values({
+        organizationId,
+        userId,
+        invitedBy,
+        isOwner,
+      })
+      .returning();
 
-      return result;
-    } catch (error) {
-      // Handle duplicate member error
-      if ((error as any)?.code === "23505") {
-        return null;
-      }
-      throw error;
-    }
+    return result;
   }
 
   /**
@@ -213,7 +205,6 @@ export class OrganizationRepository extends BaseRepository {
   /**
    * Remove member from organization
    */
-  @Transactional()
   async removeMember(organizationId: string, userId: string): Promise<boolean> {
     const result = await this.connection
       .delete(organizationMember)
@@ -222,9 +213,10 @@ export class OrganizationRepository extends BaseRepository {
           eq(organizationMember.organizationId, organizationId),
           eq(organizationMember.userId, userId)
         )
-      );
+      )
+      .returning({ id: organizationMember.id });
 
-    return (result as any).rowCount > 0;
+    return result.length > 0;
   }
 
   /**
@@ -413,9 +405,10 @@ export class OrganizationRepository extends BaseRepository {
   async deleteUserRole(userRoleId: string): Promise<boolean> {
     const result = await this.connection
       .delete(userRole)
-      .where(eq(userRole.id, userRoleId));
+      .where(eq(userRole.id, userRoleId))
+      .returning({ id: userRole.id });
 
-    return (result as any).rowCount > 0;
+    return result.length > 0;
   }
 
   // ============================================================================

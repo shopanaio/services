@@ -529,8 +529,11 @@ export class UserRepository {
    */
   async delete(userId: string): Promise<boolean> {
     // Cascade delete handles sessions and accounts
-    const result = await this.db.delete(user).where(eq(user.id, userId));
-    return (result as any).rowCount > 0;
+    const result = await this.db
+      .delete(user)
+      .where(eq(user.id, userId))
+      .returning({ id: user.id });
+    return result.length > 0;
   }
 
   /**
@@ -546,8 +549,9 @@ export class UserRepository {
   async revokeSession(sessionId: string): Promise<boolean> {
     const result = await this.db
       .delete(session)
-      .where(eq(session.id, sessionId));
-    return (result as any).rowCount > 0;
+      .where(eq(session.id, sessionId))
+      .returning({ id: session.id });
+    return result.length > 0;
   }
 
   /**
@@ -556,8 +560,9 @@ export class UserRepository {
   async revokeAllSessions(userId: string): Promise<number> {
     const result = await this.db
       .delete(session)
-      .where(eq(session.userId, userId));
-    return (result as any).rowCount ?? 0;
+      .where(eq(session.userId, userId))
+      .returning({ id: session.id });
+    return result.length;
   }
 
   // ==========================================================================
