@@ -1,6 +1,11 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { getServiceConfig } from "@shopana/shared-service-config";
-import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
+import {
+  DATABASE_CLIENT,
+  InjectBroker,
+  ServiceBroker,
+  type DatabaseClient,
+} from "@shopana/shared-kernel";
 import type { FastifyInstance } from 'fastify';
 import { startServer } from './api/graphql-admin/server';
 import { Kernel } from './kernel/Kernel';
@@ -13,12 +18,15 @@ export class MediaNestService implements OnModuleInit, OnModuleDestroy {
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
 
-  constructor(@InjectBroker('media') private readonly broker: ServiceBroker) {}
+  constructor(
+    @InjectBroker('media') private readonly broker: ServiceBroker,
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+  ) {}
 
   async onModuleInit() {
     this.logger.debug("Media onModuleInit started");
 
-    this.kernel = await Kernel.create(this.broker);
+    this.kernel = await Kernel.create(this.broker, this.dbClient);
     this.logger.debug("Kernel created");
 
     this.graphqlServer = await startServer({

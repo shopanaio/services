@@ -1,5 +1,6 @@
 import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
 import {
+  Inject,
   Injectable,
   Logger,
   OnModuleDestroy,
@@ -7,7 +8,12 @@ import {
 } from "@nestjs/common";
 import type { InventoryUpdateTask } from "@shopana/import-plugin-sdk";
 import { assertInventoryUpdateTask } from "@shopana/import-plugin-sdk";
-import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
+import {
+  DATABASE_CLIENT,
+  InjectBroker,
+  ServiceBroker,
+  type DatabaseClient,
+} from "@shopana/shared-kernel";
 import {
   getServiceConfig,
   buildS3Config,
@@ -37,13 +43,14 @@ export class InventoryNestService implements OnModuleInit, OnModuleDestroy {
   private graphqlServer: FastifyInstance | null = null;
 
   constructor(
-    @InjectBroker("inventory") private readonly broker: ServiceBroker
+    @InjectBroker("inventory") private readonly broker: ServiceBroker,
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
   ) {}
 
   async onModuleInit() {
     this.logger.debug("Inventory onModuleInit started");
 
-    this.kernel = await Kernel.create(this.broker);
+    this.kernel = await Kernel.create(this.broker, this.dbClient);
     this.logger.debug("Kernel created");
 
     const storageConfig = service.s3 ? buildS3Config(service.s3) : null;

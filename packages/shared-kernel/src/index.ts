@@ -60,3 +60,12 @@ export {
   type AggregatedResources,
   type FlatResourceDefinition,
 } from "./resources/types";
+
+// Database module
+export {
+  DatabaseModule,
+  DATABASE_CLIENT,
+  InjectDatabaseClient,
+  type DatabaseModuleOptions,
+  type DatabaseClient,
+} from "./database";

@@ -1,16 +1,21 @@
-import { Module } from '@nestjs/common';
-import { BrokerCoreModule, BrokerCoreModuleOptions } from '@shopana/shared-kernel';
-import { WorkflowModule } from '@shopana/workflows';
-import { PaymentsModule } from '@shopana/payments-service';
-import { InventoryModule } from '@shopana/inventory-service';
-import { AppsModule } from '@shopana/apps-service';
-import { MediaModule } from '@shopana/media-service';
-import { CheckoutModule } from '@shopana/checkout-service';
-import { DeliveryModule } from '@shopana/delivery-service';
-import { OrdersModule } from '@shopana/orders-service';
-import { PricingModule } from '@shopana/pricing-service';
-import { ProjectModule } from '@shopana/project-service';
-import { IamModule } from '@shopana/iam-service';
+import { Module } from "@nestjs/common";
+import {
+  BrokerCoreModule,
+  BrokerCoreModuleOptions,
+  DatabaseModule,
+  type DatabaseModuleOptions,
+} from "@shopana/shared-kernel";
+import { WorkflowModule } from "@shopana/workflows";
+import { PaymentsModule } from "@shopana/payments-service";
+import { InventoryModule } from "@shopana/inventory-service";
+import { AppsModule } from "@shopana/apps-service";
+import { MediaModule } from "@shopana/media-service";
+import { CheckoutModule } from "@shopana/checkout-service";
+import { DeliveryModule } from "@shopana/delivery-service";
+import { OrdersModule } from "@shopana/orders-service";
+import { PricingModule } from "@shopana/pricing-service";
+import { ProjectModule } from "@shopana/project-service";
+import { IamModule } from "@shopana/iam-service";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
   /** DBOS workflows configuration */
@@ -18,6 +23,8 @@ export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
     databaseUrl: string;
     name?: string;
   };
+  /** Shared database pool configuration */
+  database: DatabaseModuleOptions;
 }
 
 /**
@@ -32,6 +39,8 @@ export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
 export class BootstrapModule {
   static forRoot(options: BootstrapModuleOptions): typeof BootstrapModule {
     const imports = [
+      // Shared database pool - available to all services
+      DatabaseModule.forRoot(options.database),
       BrokerCoreModule.forRoot(options),
       PaymentsModule,
       InventoryModule,
@@ -50,8 +59,8 @@ export class BootstrapModule {
       imports.unshift(
         WorkflowModule.forRoot({
           databaseUrl: options.workflows.databaseUrl,
-          name: options.workflows.name ?? 'shopana',
-        }),
+          name: options.workflows.name ?? "shopana",
+        })
       );
     }
 

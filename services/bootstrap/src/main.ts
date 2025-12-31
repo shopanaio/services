@@ -28,10 +28,20 @@ async function bootstrap() {
     logger.warn('RabbitMQ: disabled (RABBITMQ_URL not set)');
   }
 
+  // Get database config from first service that has it
+  const dbConfig = Object.values(config.services).find((s) => s.db)?.db;
+  if (!dbConfig) {
+    throw new Error('No database configuration found in any service');
+  }
+
   // Build bootstrap options
   const bootstrapOptions: BootstrapModuleOptions = {
     rabbitmqUrl,
     prefetch: 20,
+    database: {
+      db: dbConfig,
+      pool: { max: 30 },
+    },
   };
 
   // DBOS workflows - read from config.workflows or environment

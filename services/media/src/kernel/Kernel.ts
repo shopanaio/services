@@ -1,11 +1,10 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
-import type { ServiceBroker, Logger } from "@shopana/shared-kernel";
+import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
-import { getServiceConfig, buildDatabaseUrl } from "@shopana/shared-service-config";
 import type { MediaKernelServices } from "./types";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
-import { initDatabase, type Database } from "../infrastructure/db/database.js";
+import { createDatabase, type Database } from "../infrastructure/db/database.js";
 
 /**
  * Extended kernel for media microservice (singleton)
@@ -30,20 +29,13 @@ export class Kernel extends BaseKernel<MediaKernelServices> {
     this.db = db;
   }
 
-  static async create(broker: ServiceBroker): Promise<Kernel> {
+  static async create(broker: ServiceBroker, dbClient: DatabaseClient): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
 
-    // Load database configuration from config.yml
-    const { service } = getServiceConfig("media");
-    if (!service.db) {
-      throw new Error("Database configuration is required for media service in config.yml");
-    }
-    const databaseUrl = buildDatabaseUrl(service.db);
-
-    console.log("[Media] Initializing database connection...");
-    const db = initDatabase(databaseUrl);
+    console.log("[Media] Using shared database pool...");
+    const db = createDatabase(dbClient);
 
     // Create repository with database
     console.log("[Media] Initializing repository...");

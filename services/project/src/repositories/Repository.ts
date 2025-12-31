@@ -1,9 +1,5 @@
 import { TransactionManager } from "@shopana/shared-kernel";
-import {
-  initDatabase,
-  closeDatabaseConnection,
-  type Database,
-} from "../infrastructure/db/database.js";
+import type { Database } from "../infrastructure/db/database.js";
 import { StoreRepository } from "./store/StoreRepository.js";
 import { LocaleRepository } from "./locale/LocaleRepository.js";
 import { CurrencyRepository } from "./currency/CurrencyRepository.js";
@@ -11,7 +7,7 @@ import { ApiKeyRepository } from "./apiKey/ApiKeyRepository.js";
 import { IntegrationRepository } from "./integration/IntegrationRepository.js";
 
 export interface RepositoryConfig {
-  databaseUrl: string;
+  db: Database;
 }
 
 export class Repository {
@@ -38,12 +34,11 @@ export class Repository {
   }
 
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const db = initDatabase(config.databaseUrl);
-    const txManager = new TransactionManager(db);
-    return new Repository(db, txManager);
+    const txManager = new TransactionManager(config.db);
+    return new Repository(config.db, txManager);
   }
 
   async close(): Promise<void> {
-    await closeDatabaseConnection();
+    // Connection pool is managed by DatabaseModule
   }
 }

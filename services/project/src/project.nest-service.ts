@@ -5,7 +5,12 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import { InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
+import {
+  DATABASE_CLIENT,
+  InjectBroker,
+  ServiceBroker,
+  type DatabaseClient,
+} from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/workflows";
 import type { FastifyInstance } from "fastify";
@@ -23,11 +28,12 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectBroker('project') private readonly broker: ServiceBroker,
-    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry
+    @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
   ) {}
 
   async onModuleInit() {
-    this.kernel = await Kernel.create(this.broker, this.workflow);
+    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
 
     this.workflow.register(
       "storeCreate",

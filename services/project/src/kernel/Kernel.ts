@@ -1,17 +1,12 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
-import type { ServiceBroker } from "@shopana/shared-kernel";
-import {
-  getServiceConfig,
-  buildDatabaseUrl,
-} from "@shopana/shared-service-config";
+import type { ServiceBroker, DatabaseClient, Logger } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
 import type { WorkflowRegistry } from "@shopana/workflows";
 import type { ProjectKernelServices } from "./types.js";
 import { Repository } from "../repositories/Repository.js";
 import { BaseScript } from "./BaseScript.js";
 import { NameResolver } from "../cache/index.js";
-
-const { service } = getServiceConfig("project");
+import { createDatabase } from "../infrastructure/db/database.js";
 
 /**
  * Extended kernel for project microservice (singleton)
@@ -44,15 +39,17 @@ export class Kernel extends BaseKernel<ProjectKernelServices> {
 
   static async create(
     broker: ServiceBroker,
-    workflow: WorkflowRegistry
+    workflow: WorkflowRegistry,
+    dbClient: DatabaseClient
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
 
-    const repository = await Repository.create({
-      databaseUrl: buildDatabaseUrl(service.db!),
-    });
+    console.log("[PROJECT] Using shared database pool...");
+    const db = createDatabase(dbClient);
+
+    const repository = await Repository.create({ db });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
