@@ -1,10 +1,9 @@
 import { newEnforcer, Enforcer, newModelFromString, Util } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
+import { eq } from "drizzle-orm";
 
-// @ts-expect-error - wrong esm export
-const DrizzleAdapter = DrizzleAdapterModule.default as {
-  default: typeof DrizzleAdapterModule;
-};
+const DrizzleAdapter = (DrizzleAdapterModule as any)
+  .default as typeof DrizzleAdapterModule;
 
 import { casbinRule } from "../repositories/models/authorization.js";
 import type { Database } from "../infrastructure/db/database.js";
