@@ -6,7 +6,7 @@ import type { UserError } from "@shopana/shared-kernel";
  */
 export const memberRemoveInputSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
-  userId: z.string().uuid("Invalid user ID"),
+  userId: z.string().min(1, "User ID is required"),
 });
 
 export type MemberRemoveInput = z.infer<typeof memberRemoveInputSchema>;

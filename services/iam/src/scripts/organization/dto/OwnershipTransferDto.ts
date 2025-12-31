@@ -6,7 +6,7 @@ import type { UserError } from "@shopana/shared-kernel";
  */
 export const ownershipTransferInputSchema = z.object({
   organizationId: z.string().uuid("Invalid organization ID"),
-  newOwnerId: z.string().uuid("Invalid new owner ID"),
+  newOwnerId: z.string().min(1, "New owner ID is required"),
 });
 
 export type OwnershipTransferInput = z.infer<
