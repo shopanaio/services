@@ -19,7 +19,7 @@ function buildStoreRoles() {
       description: meta.description,
       permissions: permissions.map((p) => ({
         resource: p.resource,
-        actions: [...p.actions],
+        action: p.action,
       })),
     };
   });
