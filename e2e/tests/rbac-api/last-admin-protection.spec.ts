@@ -304,7 +304,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
 
     // Add a user as the ONLY store admin (separate from org admin)
     const storeAdmin = await api.admin.user.create();
-    await api.admin.mutation('iam-api/MemberInvite', {
+    const { data: inviteData } = await api.admin.mutation('iam-api/MemberInvite', {
       variables: {
         input: {
           organizationId,
@@ -316,6 +316,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
         },
       },
     });
+    expect(inviteData.organizationMutation.memberInvite.userErrors).toHaveLength(0);
 
     // 2. Remove the store admin
     const { data: removeData } = await api.admin.mutation('iam-api/MemberRemove', {
