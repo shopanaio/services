@@ -3,6 +3,7 @@ import {
   ZodSchema,
   Transactional,
   ValidationError,
+  AuthorizationError,
 } from "../../kernel/BaseScript.js";
 import {
   organizationCreateInputSchema,
@@ -135,12 +136,14 @@ export class OrganizationCreateScript extends BaseScript<
       userErrors:
         error instanceof ValidationError
           ? error.errors
-          : [
-              {
-                code: "INTERNAL_ERROR",
-                message: "An unexpected error occurred",
-              },
-            ],
+          : error instanceof AuthorizationError
+            ? error.errors
+            : [
+                {
+                  code: "INTERNAL_ERROR",
+                  message: "An unexpected error occurred",
+                },
+              ],
     };
   }
 }

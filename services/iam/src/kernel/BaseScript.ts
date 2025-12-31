@@ -10,7 +10,7 @@ import type { IamKernelServices } from "./types.js";
 import { AuthProvider } from "@src/kernel/Authorizable.js";
 
 // Re-export decorators for convenience
-export { ZodSchema, Transactional, ValidationError };
+export { ZodSchema, Transactional, ValidationError, AuthorizationError };
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
   /**
@@ -77,8 +77,12 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    */
   protected get currentUser() {
     const user = this.context.currentUser;
-    if (!user) {
-      throw new Error("User not authenticated");
+    if (!user || !user.id) {
+      throw new AuthorizationError(
+        [{ code: "UNAUTHORIZED", message: "User not authenticated", field: null }],
+        "user",
+        "authenticate"
+      );
     }
     return user;
   }
