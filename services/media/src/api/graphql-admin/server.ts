@@ -8,7 +8,11 @@ import { readFileSync } from "fs";
 import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { getServiceConfig, buildS3Config, isDevelopment } from "@shopana/shared-service-config";
+import {
+  getServiceConfig,
+  buildS3Config,
+  isDevelopment,
+} from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
@@ -44,9 +48,13 @@ export async function startServer(serverConfig: ServerConfig) {
   // Ensure bucket record exists in database (for default/system bucket)
   if (kernel) {
     const bucketName = getBucketName();
-    console.log(`[Media] Checking bucket record '${bucketName}' in database...`);
+    console.log(
+      `[Media] Checking bucket record '${bucketName}' in database...`
+    );
     try {
-      const existingBucket = await kernel.repository.bucket.findByBucketName(bucketName);
+      const existingBucket = await kernel.repository.bucket.findByBucketName(
+        bucketName
+      );
       if (!existingBucket) {
         // Create a system-level bucket record
         // Using a fixed UUID for the system project
@@ -57,9 +65,13 @@ export async function startServer(serverConfig: ServerConfig) {
           status: "active",
           endpointUrl: storageConfig?.endpoint ?? "",
         });
-        console.log(`[Media] Bucket record '${bucketName}' created in database`);
+        console.log(
+          `[Media] Bucket record '${bucketName}' created in database`
+        );
       } else {
-        console.log(`[Media] Bucket record '${bucketName}' already exists in database`);
+        console.log(
+          `[Media] Bucket record '${bucketName}' already exists in database`
+        );
       }
     } catch (error) {
       console.error(`[Media] Failed to ensure bucket record exists:`, error);
@@ -76,7 +88,7 @@ export async function startServer(serverConfig: ServerConfig) {
               colorize: true,
               translateTime: "SYS:HH:MM:ss.l",
               ignore: "pid,hostname,reqId,responseTime",
-              messageFormat: '[Media] {msg}',
+              messageFormat: "[Media] {msg}",
               levelFirst: true,
             },
           },
@@ -122,12 +134,7 @@ export async function startServer(serverConfig: ServerConfig) {
   await app.register(async (instance) => {
     // Admin context middleware - extracts store and user from headers
     // Scoped to this plugin only (not applied to health checks)
-    instance.addHook(
-      "preHandler",
-      buildAdminContextMiddleware({
-        repository: kernel?.repository ?? null,
-      })
-    );
+    instance.addHook("preHandler", buildAdminContextMiddleware());
 
     // GraphQL multipart upload middleware
     instance.addHook("preHandler", async (request, reply) => {

@@ -5,8 +5,6 @@ import {
 } from "@shopana/shared-context";
 import { Kernel } from "../../kernel/Kernel.js";
 
-export type { ContextStore, ContextUser };
-
 // Module augmentation for Fastify
 declare module "fastify" {
   interface FastifyRequest {
@@ -20,7 +18,8 @@ declare module "fastify" {
  * Gets broker from Kernel singleton
  */
 export function buildAdminContextMiddleware() {
-  return buildMiddleware(Kernel.getInstance().getServices().broker, {
+  const kernel = Kernel.getInstance();
+  return buildMiddleware(kernel.getServices().broker, {
     serviceName: "INVENTORY",
   });
 }
