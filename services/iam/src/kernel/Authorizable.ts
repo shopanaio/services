@@ -65,6 +65,11 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
+    // Check if user is organization owner (bypasses all authorization checks within org)
+    if (await this.services.repository.organization.isOwner(organizationId, subject)) {
+      return true;
+    }
+
     const domain = params.domain ?? "org";
 
     // Validate authorization input against @shopana/rbac definitions
