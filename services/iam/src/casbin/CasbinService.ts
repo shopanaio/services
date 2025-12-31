@@ -1,6 +1,6 @@
 import { newEnforcer, Enforcer, newModelFromString, Util } from "casbin";
 import DrizzleAdapterModule from "drizzle-adapter";
-import { eq } from "drizzle-orm";
+import { eq, or, and } from "drizzle-orm";
 
 const DrizzleAdapter = (DrizzleAdapterModule as any)
   .default as typeof DrizzleAdapterModule;
@@ -265,36 +265,31 @@ export class CasbinService {
     // Clear existing policies in enforcer
     enforcer.clearPolicy();
 
-    // Load policies from adapter (loads ALL policies)
-    // We need to create a temporary enforcer with adapter to get raw data
-    const model = newModelFromString(CASBIN_MODEL_TEXT);
-    const tempEnforcer = await newEnforcer(model, this.adapter);
-    await tempEnforcer.loadPolicy();
+    // Query database directly with organization filter
+    // Policies (ptype='p'): organizationId stored in v4
+    // Groupings (ptype='g'): organizationId stored in v3
+    const rules = await this.db
+      .select()
+      .from(casbinRule)
+      .where(
+        or(
+          and(eq(casbinRule.ptype, "p"), eq(casbinRule.v4, organizationId)),
+          and(eq(casbinRule.ptype, "g"), eq(casbinRule.v3, organizationId))
+        )
+      );
 
-    // Get all rules from the model's internal storage
-    // Policy rules: ptype='p', format in DB: [role, domain, resource, action, orgId]
-    // Grouping rules: ptype='g', format in DB: [user, role, domain, orgId]
-
-    const policyRules =
-      tempEnforcer.getModel().model.get("p")?.get("p")?.policy || [];
-    const groupingRules =
-      tempEnforcer.getModel().model.get("g")?.get("g")?.policy || [];
-
-    // Filter and add policies for this organization
-    // DB format: [role, domain, resource, action, orgId] - orgId at index 4
-    for (const rule of policyRules) {
-      if (rule[4] === organizationId) {
-        // Add to enforcer WITHOUT orgId (model has 4 elements: sub, dom, obj, act)
-        await enforcer.addPolicy(rule[0], rule[1], rule[2], rule[3]);
-      }
-    }
-
-    // Filter and add groupings for this organization
-    // DB format: [user, role, domain, orgId] - orgId at index 3
-    for (const rule of groupingRules) {
-      if (rule[3] === organizationId) {
-        // Add to enforcer WITHOUT orgId (model has 3 elements: _, _, _)
-        await enforcer.addGroupingPolicy(rule[0], rule[1], rule[2]);
+    // Add policies and groupings to enforcer
+    for (const rule of rules) {
+      if (rule.ptype === "p") {
+        // Policy format: v0=role, v1=domain, v2=resource, v3=action
+        if (rule.v0 && rule.v1 && rule.v2 && rule.v3) {
+          await enforcer.addPolicy(rule.v0, rule.v1, rule.v2, rule.v3);
+        }
+      } else if (rule.ptype === "g") {
+        // Grouping format: v0=user, v1=role, v2=domain
+        if (rule.v0 && rule.v1 && rule.v2) {
+          await enforcer.addGroupingPolicy(rule.v0, rule.v1, rule.v2);
+        }
       }
     }
   }
