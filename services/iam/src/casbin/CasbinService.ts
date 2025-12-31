@@ -508,9 +508,8 @@ export class CasbinService {
       }
     }
 
-    // Also update enforcer
-    const enforcer = await this.getEnforcer(organizationId);
-    await enforcer.loadPolicy();
+    // Invalidate enforcer so policies are reloaded on next access
+    await this.invalidateEnforcer(organizationId);
 
     return true;
   }
