@@ -126,7 +126,7 @@ export const Roles = {
       { resource: "store.orders", action: "write" },
     ],
     admin: [
-      { resource: "store.profile", action: "admin" },
+      { resource: "store.profile", action: "write" }, // write (not admin - delete requires org permission)
       { resource: "store.members", action: "admin" },
       { resource: "store.roles", action: "admin" },
       { resource: "store.access", action: "admin" },

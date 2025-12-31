@@ -781,7 +781,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
   });
 
-  test('Store admin can invite to their store', async ({ api }) => {
+  test('Store admin cannot invite without org.members:write permission', async ({ api }) => {
     // 1. Create organization and store
     await api.session.setupUser();
 
@@ -832,7 +832,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
       },
     });
 
-    // 3. Switch to store admin and invite another user to the store
+    // 3. Switch to store admin and try to invite another user
     api.session.tenant.accessToken = storeAdminUser.accessToken;
     api.session.tenant.userId = storeAdminUser.userId;
 
@@ -850,8 +850,9 @@ test.describe('Invitation Workflow (FR-10)', () => {
       },
     });
 
-    // 4. Verify invitation succeeded
+    // 4. Verify invitation fails - store admin needs org.members:write permission
     const result = inviteData as unknown as MemberInviteResult;
-    expect(result.organizationMutation.memberInvite.userErrors).toHaveLength(0);
+    expect(result.organizationMutation.memberInvite.userErrors.length).toBeGreaterThan(0);
+    expect(result.organizationMutation.memberInvite.userErrors[0].code).toBe('FORBIDDEN');
   });
 });

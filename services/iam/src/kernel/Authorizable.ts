@@ -65,14 +65,10 @@ export class AuthProvider implements IAuthProvider {
       return false;
     }
 
-    // Check if user is organization owner (bypasses all authorization checks within org)
-    if (await this.services.repository.organization.isOwner(organizationId, subject)) {
-      return true;
-    }
-
     const domain = params.domain ?? "org";
 
     // Validate authorization input against @shopana/rbac definitions
+    // Must happen BEFORE owner bypass to reject invalid domains
     const validation = validateAuthorizeInput({
       domain,
       resource: params.resource,
@@ -82,6 +78,11 @@ export class AuthProvider implements IAuthProvider {
     if (!validation.success) {
       console.error("[AuthProvider] Invalid authorization request:", validation.errors);
       return false;
+    }
+
+    // Check if user is organization owner (bypasses all authorization checks within org)
+    if (await this.services.repository.organization.isOwner(organizationId, subject)) {
+      return true;
     }
 
     // Check permission using Casbin RBAC

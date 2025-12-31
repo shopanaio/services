@@ -17,13 +17,14 @@ import type { Domain } from "../../casbin/CasbinService.js";
  * MemberInviteScript - Invite a user to organization with role assignments
  *
  * Flow:
- * 1. Find user by email (must exist in system)
- * 2. Add user as organization member (if not already)
- * 3. For each role assignment:
+ * 1. Check authorization (org.members:write required)
+ * 2. Find user by email (must exist in system)
+ * 3. Add user as organization member (if not already)
+ * 4. For each role assignment:
  *    - Find role in the specified domain
  *    - Create user_role record
  *    - Assign role in Casbin
- * 4. Return the first role assignment as the member result
+ * 5. Return the first role assignment as the member result
  */
 export class MemberInviteScript extends BaseScript<
   MemberInviteParams,
@@ -34,7 +35,7 @@ export class MemberInviteScript extends BaseScript<
   @Policy({
     resource: "org.members",
     action: "write",
-    organizationId: (self: MemberInviteScript, params: MemberInviteParams) =>
+    organizationId: (_self: MemberInviteScript, params: MemberInviteParams) =>
       params.organizationId,
   })
   protected async execute(
@@ -74,6 +75,7 @@ export class MemberInviteScript extends BaseScript<
 
     // 3. Assign roles
     let firstAssignment: InvitedMember | null = null;
+    let newRolesAssigned = false;
 
     for (const roleAssignment of roles) {
       const { domain, role: roleName } = roleAssignment;
@@ -106,8 +108,7 @@ export class MemberInviteScript extends BaseScript<
       );
 
       if (existingRole) {
-        // User already has a role in this domain - skip or update?
-        // For now, we'll skip and use the existing assignment for the first one
+        // User already has a role in this domain - skip
         if (!firstAssignment) {
           firstAssignment = {
             id: existingRole.id,
@@ -139,6 +140,8 @@ export class MemberInviteScript extends BaseScript<
         domain: domain as Domain,
       });
 
+      newRolesAssigned = true;
+
       // Store first assignment for result
       if (!firstAssignment) {
         firstAssignment = {
@@ -166,6 +169,20 @@ export class MemberInviteScript extends BaseScript<
             code: "NO_ROLES_ASSIGNED",
             message: "No roles were assigned",
             field: [],
+          },
+        ],
+      };
+    }
+
+    // If no new roles were assigned, it's a duplicate invitation
+    if (!newRolesAssigned) {
+      return {
+        member: null,
+        userErrors: [
+          {
+            code: "ALREADY_INVITED",
+            message: `User "${email}" is already a member with the requested roles`,
+            field: ["email"],
           },
         ],
       };
