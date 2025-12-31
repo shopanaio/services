@@ -50,7 +50,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -74,7 +74,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -94,7 +94,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -117,7 +117,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -149,7 +149,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -172,7 +172,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -206,7 +206,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }
@@ -228,7 +228,7 @@ export class OrganizationMutationResolver extends IAMType<
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
-        field: e.field ? [e.field] : null,
+        field: e.field,
       })),
     };
   }

@@ -68,6 +68,12 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
       permissions: input.permissions ?? undefined,
     });
 
+    // Invalidate role cache after update
+    if (result.role) {
+      const cacheKey = `iam:role:${result.role.organizationId}:${result.role.domain}:${result.role.name}`;
+      await (this.ctx.kernel.cache as any).del(cacheKey);
+    }
+
     return {
       role: result.role
         ? new RoleResolver(
