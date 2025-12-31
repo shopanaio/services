@@ -236,9 +236,9 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
   });
 
   test('User cannot revoke their own store access', async ({ api }) => {
-    // 1. Create store with user as admin
+    // 1. Create org and store
     await api.session.setupUser();
-    const userId = api.session.tenant.userId;
+    const ownerToken = api.session.accessToken;
 
     const orgName = generateOrgName();
     const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
@@ -273,21 +273,42 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
     expect(store).not.toBeNull();
     const storeId = store?.id;
 
-    // 2. User attempts to remove themselves from store
+    // 2. Invite a store admin with explicit store role
+    const storeAdmin = await api.admin.user.create();
+    await api.admin.mutation('iam-api/MemberInvite', {
+      variables: {
+        input: {
+          organizationId,
+          email: storeAdmin.data.email,
+          roles: [
+            { domain: 'org', role: 'member' },
+            { domain: `store:${storeId}`, role: 'admin' },
+          ],
+        },
+      },
+    });
+
+    // 3. Switch to store admin and attempt to remove their own store access
+    api.session.tenant.accessToken = storeAdmin.accessToken;
+    api.session.tenant.userId = storeAdmin.userId;
+
     const { data: removeData } = await api.admin.mutation('iam-api/MemberAccessRemove', {
       variables: {
         input: {
           organizationId,
-          userId,
+          userId: storeAdmin.userId,
           domain: `store:${storeId}`,
         },
       },
     });
 
-    // 3. Verify operation fails
+    // 4. Verify operation fails
     const userErrors = removeData.organizationMutation.memberAccessRemove.userErrors;
     expect(userErrors.length).toBeGreaterThan(0);
     expect(removeData.organizationMutation.memberAccessRemove.success).toBe(false);
+
+    // Restore owner token
+    if (ownerToken) api.session.tenant.accessToken = ownerToken;
   });
 
   test('Store admin cannot demote themselves', async ({ api }) => {

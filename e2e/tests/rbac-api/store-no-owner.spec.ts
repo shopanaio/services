@@ -135,7 +135,6 @@ test.describe('Store Has No Owner Concept', () => {
 
   test('All store admins can be removed (org owner retains access)', async ({ api }) => {
     await api.session.setupUser();
-    const orgOwnerId = api.session.tenant.userId;
 
     const orgName = generateOrgName();
     const { data: orgData } = await api.admin.mutation('iam-api/OrganizationCreate', {
@@ -171,18 +170,32 @@ test.describe('Store Has No Owner Concept', () => {
     expect(store).not.toBeNull();
     const storeId = store?.id;
 
-    // Remove store admin role from org owner (they still have org owner bypass)
-    await api.admin.mutation('iam-api/MemberAccessRemove', {
+    // Add a separate store admin
+    const storeAdmin = await api.admin.user.create();
+    await api.admin.mutation('iam-api/MemberInvite', {
       variables: {
         input: {
           organizationId,
-          userId: orgOwnerId,
-          domain: `store:${storeId}`,
+          email: storeAdmin.data.email,
+          roles: [
+            { domain: 'org', role: 'member' },
+            { domain: `store:${storeId}`, role: 'admin' },
+          ],
         },
       },
     });
 
-    // Org owner should still have access via owner bypass
+    // Remove the store admin from org entirely
+    await api.admin.mutation('iam-api/MemberRemove', {
+      variables: {
+        input: {
+          organizationId,
+          userId: storeAdmin.userId,
+        },
+      },
+    });
+
+    // Org owner should still have full access via owner bypass
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
