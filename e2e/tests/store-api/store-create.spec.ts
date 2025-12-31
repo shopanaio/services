@@ -6,7 +6,7 @@ const generateStoreName = () => `test-store-${crypto.randomUUID().slice(0, 8)}`;
 const generateOrgName = () => `test-org-${crypto.randomUUID().slice(0, 8)}`;
 
 test.describe('StoreCreate API', () => {
-  let organizationId: string;
+  let organizationId: string | null = null;
 
   test.beforeEach(async ({ api }) => {
     await api.session.setupUser();
@@ -22,7 +22,8 @@ test.describe('StoreCreate API', () => {
       },
     });
 
-    organizationId = data.organizationMutation.organizationCreate.organization?.id;
+    organizationId = data.organizationMutation.organizationCreate.organization?.id ?? null;
+    expect(organizationId).not.toBeNull();
   });
 
   test('Create store with minimal required fields', async ({ api }) => {
