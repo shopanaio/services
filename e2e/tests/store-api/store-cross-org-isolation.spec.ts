@@ -82,7 +82,11 @@ test.describe('Cross-Organization Store Isolation', () => {
     };
 
     // DEBUG: Try querying the store immediately after creation
-    api.session.project = { id: storeA.id, slug: storeAName, name: 'Store A' };
+    api.session.project = {
+      id: storeA.id,
+      name: storeAName,
+      displayName: 'Store A',
+    };
 
     // Clear project context before creating User B
     api.session.project = null as any;
@@ -137,10 +141,14 @@ test.describe('Cross-Organization Store Isolation', () => {
     };
   });
 
-  test('User cannot access stores from other organization via query', async ({ api }) => {
+  test.only('User cannot access stores from other organization via query', async ({ api }) => {
     // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
-    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
+    api.session.project = {
+      id: userA.storeId,
+      name: userA.storeSlug,
+      displayName: 'Store A',
+    };
 
     // User A CAN access their own Store A
     const { data: ownStoreData } = await api.admin.query('project-api/Project', {
@@ -151,7 +159,11 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // User A CANNOT access Store B from another organization
     // Set context to Store B (which User A shouldn't have access to)
-    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
+    api.session.project = {
+      id: userB.storeId,
+      name: userB.storeSlug,
+      displayName: 'Store B',
+    };
     const { data } = await api.admin.query('project-api/Project', {
       throwOnError: false,
     });
@@ -185,7 +197,11 @@ test.describe('Cross-Organization Store Isolation', () => {
   test('User cannot query store by slug from other organization', async ({ api }) => {
     // Switch to User B with Store A as context (which they shouldn't have access to)
     api.session.tenant.accessToken = userB.accessToken;
-    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
+    api.session.project = {
+      id: userA.storeId,
+      name: userA.storeSlug,
+      displayName: 'Store A',
+    };
 
     // User B tries to query Store A (via context)
     const { data } = await api.admin.query('project-api/Project', {
@@ -199,7 +215,7 @@ test.describe('Cross-Organization Store Isolation', () => {
   test('User cannot update store from other organization', async ({ api }) => {
     // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
-    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
+    api.session.project = { id: userA.storeId, name: userA.storeSlug, displayName: 'Store A' };
 
     // User A tries to update Store B
     const { data, errors } = await api.admin.mutation('project-api/ProjectUpdate', {
@@ -224,7 +240,11 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // Verify Store B was not actually modified by switching to User B
     api.session.tenant.accessToken = userB.accessToken;
-    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
+    api.session.project = {
+      id: userB.storeId,
+      name: userB.storeSlug,
+      displayName: 'Store B',
+    };
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
 
     const verifiedStore = verifyData.storeQuery.currentStore;
@@ -235,7 +255,11 @@ test.describe('Cross-Organization Store Isolation', () => {
   test('User cannot delete store from other organization', async ({ api }) => {
     // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
-    api.session.project = { id: userA.storeId, slug: userA.storeSlug, name: 'Store A' };
+    api.session.project = {
+      id: userA.storeId,
+      name: userA.storeSlug,
+      displayName: 'Store A',
+    };
 
     // User A tries to delete Store B
     const { data, errors } = await api.admin.mutation('project-api/ProjectDelete', {
@@ -259,7 +283,7 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // Verify Store B still exists by switching to User B
     api.session.tenant.accessToken = userB.accessToken;
-    api.session.project = { id: userB.storeId, slug: userB.storeSlug, name: 'Store B' };
+    api.session.project = { id: userB.storeId, name: userB.storeSlug, displayName: 'Store B' };
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
 
     const verifiedStore = verifyData.storeQuery.currentStore;

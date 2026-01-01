@@ -166,13 +166,13 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.tenant.userId = user.userId;
 
     // User CAN access Store A
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
+    api.session.project = { id: owner.storeAId, name: owner.storeASlug, displayName: 'Store A' };
     const { data: storeAData } = await api.admin.query('project-api/Project', {});
     expect(storeAData.storeQuery.currentStore).not.toBeNull();
     expect(storeAData.storeQuery.currentStore?.id).toBe(owner.storeAId);
 
     // User CANNOT access Store B
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
+    api.session.project = { id: owner.storeBId, name: owner.storeBSlug, displayName: 'Store B' };
     const { data: storeBData } = await api.admin.query('project-api/Project', {});
     expect(storeBData.storeQuery.currentStore).toBeNull();
   });
@@ -187,7 +187,7 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.tenant.accessToken = user.accessToken;
     api.session.tenant.userId = user.userId;
     api.session.organizationId = owner.organizationId;
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
+    api.session.project = { id: owner.storeAId, name: owner.storeASlug, displayName: 'Store A' };
 
     // Viewer CAN read store data
     const { data: readData } = await api.admin.query('project-api/Project', {});
@@ -229,7 +229,7 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.organizationId = owner.organizationId;
 
     // User tries to update Store B (set context to Store B)
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
+    api.session.project = { id: owner.storeBId, name: owner.storeBSlug, displayName: 'Store B' };
     const { data } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
         input: {
@@ -248,7 +248,7 @@ test.describe('Store-Level Domain Isolation', () => {
     // Verify Store B was not modified by switching to owner
     api.session.tenant.accessToken = owner.accessToken;
     api.session.tenant.userId = owner.userId;
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
+    api.session.project = { id: owner.storeBId, name: owner.storeBSlug, displayName: 'Store B' };
 
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
     expect(verifyData.storeQuery.currentStore?.displayName).toBe('Store B');
@@ -265,7 +265,7 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.tenant.userId = user.userId;
 
     // User CAN update Store A
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
+    api.session.project = { id: owner.storeAId, name: owner.storeASlug, displayName: 'Store A' };
     api.session.organizationId = owner.organizationId;
     const { data: updateAData } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
@@ -283,7 +283,7 @@ test.describe('Store-Level Domain Isolation', () => {
     expect(updateAResult.store?.displayName).toBe('Store A Updated');
 
     // User CANNOT update Store B (even with project context set to B)
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
+    api.session.project = { id: owner.storeBId, name: owner.storeBSlug, displayName: 'Store B' };
     const { data: updateBData } = await api.admin.mutation('project-api/ProjectUpdate', {
       variables: {
         input: {
@@ -333,17 +333,17 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.tenant.userId = user.userId;
 
     // User CAN access Store A
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
+    api.session.project = { id: owner.storeAId, name: owner.storeASlug, displayName: 'Store A' };
     const { data: storeAData } = await api.admin.query('project-api/Project', {});
     expect(storeAData.storeQuery.currentStore).not.toBeNull();
 
     // User CAN access Store C
-    api.session.project = { id: storeC.id, slug: storeCName, name: 'Store C' };
+    api.session.project = { id: storeC.id, name: storeCName, displayName: 'Store C' };
     const { data: storeCQueryData } = await api.admin.query('project-api/Project', {});
     expect(storeCQueryData.storeQuery.currentStore).not.toBeNull();
 
     // User CANNOT access Store B
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
+    api.session.project = { id: owner.storeBId, name: owner.storeBSlug, displayName: 'Store B' };
     const { data: storeBData } = await api.admin.query('project-api/Project', {});
     expect(storeBData.storeQuery.currentStore).toBeNull();
   });
@@ -384,7 +384,7 @@ test.describe('Store-Level Domain Isolation', () => {
     api.session.tenant.accessToken = user.accessToken;
     api.session.tenant.userId = user.userId;
     api.session.organizationId = owner.organizationId;
-    api.session.project = { id: owner.storeAId, slug: owner.storeASlug, name: 'Store A' };
+    api.session.project = { id: owner.storeAId, name: owner.storeASlug, displayName: 'Store A' };
 
     // User tries to delete Store B
     const { data } = await api.admin.mutation('project-api/ProjectDelete', {
@@ -404,7 +404,7 @@ test.describe('Store-Level Domain Isolation', () => {
     // Verify Store B still exists by switching to owner
     api.session.tenant.accessToken = owner.accessToken;
     api.session.tenant.userId = owner.userId;
-    api.session.project = { id: owner.storeBId, slug: owner.storeBSlug, name: 'Store B' };
+    api.session.project = { id: owner.storeBId, name: owner.storeBSlug, displayName: 'Store B' };
 
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
     expect(verifyData.storeQuery.currentStore).not.toBeNull();
