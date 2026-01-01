@@ -115,14 +115,14 @@ test.describe('Default Role Assignment', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 3. Verify user has store admin permissions
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: {
           organizationId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           resource: 'store.members',
           action: 'write',
         },
@@ -141,7 +141,7 @@ test.describe('Default Role Assignment', () => {
     for (const { resource, action } of adminActions) {
       const { data: adminAuth } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${storeId}`, resource, action },
+          input: { organizationId, domain: storeDomain, resource, action },
         },
       });
       expect(
@@ -441,7 +441,7 @@ test.describe('Default Role Assignment', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user with viewer role (default/explicit)
     const viewerUser = await api.admin.user.create();
@@ -452,7 +452,7 @@ test.describe('Default Role Assignment', () => {
           email: viewerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -467,7 +467,7 @@ test.describe('Default Role Assignment', () => {
       variables: {
         input: {
           organizationId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           resource: 'store.profile',
           action: 'read',
         },
@@ -480,7 +480,7 @@ test.describe('Default Role Assignment', () => {
       variables: {
         input: {
           organizationId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           resource: 'store.profile',
           action: 'write',
         },
@@ -569,7 +569,7 @@ test.describe('Default Role Assignment', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as manager
     const managerUser = await api.admin.user.create();
@@ -580,7 +580,7 @@ test.describe('Default Role Assignment', () => {
           email: managerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'manager' },
+            { domain: storeDomain, role: 'manager' },
           ],
         },
       },
@@ -598,7 +598,7 @@ test.describe('Default Role Assignment', () => {
       variables: {
         input: {
           organizationId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           resource: 'store.profile',
           action: 'write',
         },
@@ -611,7 +611,7 @@ test.describe('Default Role Assignment', () => {
       variables: {
         input: {
           organizationId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           resource: 'store.members',
           action: 'write',
         },
