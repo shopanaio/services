@@ -22,6 +22,8 @@ export const StoreDangerZone = ({ project }: { project: IProjectInfo }) => {
         footer={null}
         open={deleteProjectModalOpen}
         onCancel={() => setDeleteProjectModalOpen(false)}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
       >
         <Flex direction="column" align="center" w="100%">
           <Avatar

@@ -46,7 +46,7 @@ export const ModalLayout = ({
         <ValidationAlert
           errors={errors}
           css={css`
-            padding: 0 var(--x6);
+            padding: 0 var(--x4);
             margin-top: var(--x4);
           `}
         />

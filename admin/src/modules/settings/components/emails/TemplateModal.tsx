@@ -101,6 +101,8 @@ export const EmailTemplateModal = ({
       open={open}
       width={1000}
       centered
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       footer={(node) => {
         return (
           <Flex justify="space-between">

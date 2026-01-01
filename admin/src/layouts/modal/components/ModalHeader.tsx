@@ -34,7 +34,7 @@ export const ModalHeader = ({
     <div
       css={css`
         display: flex;
-        padding: var(--x4) var(--x6);
+        padding: var(--x4);
         justify-content: space-between;
         align-items: center;
         background: var(--bg-gradient);

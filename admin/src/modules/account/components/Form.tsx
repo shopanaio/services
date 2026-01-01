@@ -409,6 +409,8 @@ export const AccountForm = ({ user }: IAccountFormProps) => {
         footer={null}
         open={deleteAccountModalOpen}
         onCancel={() => setDeleteAccountModalOpen(false)}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
       >
         <Flex direction="column" align="center" w="100%">
           <Box mb="4">

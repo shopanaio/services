@@ -49,6 +49,10 @@ export const Antd = ({ children }: { children: ReactNode }) => {
   return (
     <ConfigProvider
       locale={antdLocale}
+      modal={{
+        transitionsName: 'ant-fade',
+        maskTransitionName: 'ant-fade',
+      }}
       theme={{
         // cssVar: true,
         // algorithm: theme.darkAlgorithm,

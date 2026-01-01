@@ -46,6 +46,8 @@ export const AddLanguageModal = ({ open, onClose }: ILocalesModalProps) => {
       width={600}
       title="Add language"
       onCancel={onClose}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       cancelButtonProps={{
         'data-testid': 'add-language-modal-cancel-button',
       }}

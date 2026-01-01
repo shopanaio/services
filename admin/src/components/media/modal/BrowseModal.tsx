@@ -83,6 +83,8 @@ export const BrowseMediaModal = ({
       onCancel={onCancel}
       width={1000}
       onOk={onSubmit}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       okButtonProps={{
         'data-testid': 'upload-modal-submit-button',
         loading: uploadFileByUrlLoading,

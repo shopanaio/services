@@ -105,6 +105,8 @@ export const CrmColumnModal = ({
         title={entry ? 'Column' : 'Create column'}
         onOk={onOk}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           'data-testid': 'board-column-modal-cancel-button',
         }}

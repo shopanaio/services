@@ -59,6 +59,8 @@ export const TestEmailModal = ({
       title={formatMessage({ id: t('settings.emailTemplates.sendTestTitle') })}
       onOk={onOk}
       onCancel={onClose}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       cancelButtonProps={{
         'data-testid': 'modal-cancel-button',
       }}

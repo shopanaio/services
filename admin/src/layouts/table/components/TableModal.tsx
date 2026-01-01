@@ -67,6 +67,8 @@ export const TableModal = ({
       open={open}
       width={width || 1200}
       centered
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       cancelButtonProps={{
         'data-testid': modalType
           ? `${modalType}-modal-cancel-button`

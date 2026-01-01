@@ -37,6 +37,8 @@ export const DescriptionFieldModal = ({
       width="100%"
       centered
       onCancel={onCancel}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       afterOpenChange={(open) => {
         if (!open) {
           onCancel();

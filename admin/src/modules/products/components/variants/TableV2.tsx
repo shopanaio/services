@@ -592,6 +592,8 @@ export const ProductVariantsTable = ({
         open={isGalleryOpen}
         width={1200}
         centered
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         onCancel={closeGalleryModal}
         onOk={() => {
           const values = galleryForm.getValues();

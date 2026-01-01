@@ -163,6 +163,8 @@ export const PaymentDetailsModal = ({
         title="Order details"
         onOk={onOk}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           // loading,
           'data-testid': 'modal-cancel-button',

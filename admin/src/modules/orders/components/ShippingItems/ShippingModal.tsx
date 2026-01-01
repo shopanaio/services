@@ -47,6 +47,8 @@ export const ShippingModal = ({
       title={intl.formatMessage({ id: t('orders.shippingDetails.title') })}
       onOk={onSubmit}
       onCancel={onClose}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       cancelButtonProps={{
         loading,
         'data-testid': 'shipping-modal-cancel-button',

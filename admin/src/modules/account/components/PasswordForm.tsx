@@ -46,6 +46,8 @@ export const PasswordForm = () => {
         open={open}
         title={formatMessage({ id: t('account::modal.updatePassword.title') })}
         onCancel={() => setOpen(false)}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           disabled: loading,
           'data-testid': 'update-password-cancel-button',

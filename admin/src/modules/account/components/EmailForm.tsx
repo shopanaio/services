@@ -41,6 +41,8 @@ export const EmailForm = ({ isReadOnly }: { isReadOnly?: boolean }) => {
         open={open}
         title={formatMessage({ id: t('account::modal.updateEmail.title') })}
         onCancel={() => setOpen(false)}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           disabled: loading,
           'data-testid': 'update-email-cancel-button',

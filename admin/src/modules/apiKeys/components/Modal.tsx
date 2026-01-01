@@ -120,6 +120,8 @@ export const ApiKeyModal = ({ open, apiKey, onClose }: IApiKeyModalProps) => {
         footer={null}
         title="Api key"
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           'data-testid': 'modal-cancel-button',
         }}
@@ -165,6 +167,8 @@ export const ApiKeyModal = ({ open, apiKey, onClose }: IApiKeyModalProps) => {
       destroyOnClose
       open={open}
       width={600}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       title={
         <Flex
           data-testid="feature-modal-header"

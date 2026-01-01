@@ -101,6 +101,8 @@ export const StoreInformationModal = ({
           formRef.current?.requestSubmit();
         }}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           'data-testid': 'modal-cancel-button',
         }}

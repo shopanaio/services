@@ -63,6 +63,8 @@ export const StatusConfirmationModal = ({
         title={title}
         onOk={onOk}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           'data-testid': `change-${type}-status-cancel`,
         }}

@@ -25,6 +25,8 @@ export const FiltersModal = ({
       onCancel={onCancel}
       onOk={onClose}
       width={1000}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
     >
       <Box pt="4" pb="10" w="100%">
         {open && (

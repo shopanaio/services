@@ -104,6 +104,8 @@ export const ShippingDetailsModal = ({
         title={intl.formatMessage({ id: t('orders.shippingDetails.title') })}
         onOk={onOk}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         footer={(_, { OkBtn, CancelBtn }) => {
           return (
             <>

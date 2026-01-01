@@ -218,6 +218,8 @@ export const LinkModal = ({
       destroyOnClose
       open={open}
       width={1000}
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       title={
         <Flex
           data-testid="feature-modal-header"

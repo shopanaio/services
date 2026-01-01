@@ -162,6 +162,8 @@ export function DropZoneMin({
         onCancel={() => setIsUrlModalOpen(false)}
         width={620}
         onOk={onSubmit}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         okButtonProps={{
           'data-testid': 'upload-modal-submit-button',
           loading: uploadFileByUrlLoading,

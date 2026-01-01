@@ -80,6 +80,8 @@ export const EmailSettingsModal = ({
         title={formatMessage({ id: t('settings.emails.settingsModal.title') })}
         onOk={onOk}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           'data-testid': 'modal-cancel-button',
         }}

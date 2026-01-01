@@ -92,6 +92,8 @@ export const EmailProfileModal = ({
         title={formatMessage({ id: t('settings.emails.smtpSettings') })}
         onOk={onOk}
         onCancel={onClose}
+        transitionName="ant-fade"
+        maskTransitionName="ant-fade"
         cancelButtonProps={{
           'data-testid': 'modal-cancel-button',
         }}
