@@ -18,20 +18,20 @@ import {
   ProductUnpublishScript,
 } from "../../scripts/product/index.js";
 import {
-  variantCreate,
-  variantDelete,
-  variantSetCost,
-  variantSetDimensions,
-  variantSetMedia,
-  variantSetPricing,
-  variantSetSku,
-  variantSetStock,
-  variantSetWeight,
+  VariantCreateScript,
+  VariantDeleteScript,
+  VariantSetCostScript,
+  VariantSetDimensionsScript,
+  VariantSetMediaScript,
+  VariantSetPricingScript,
+  VariantSetSkuScript,
+  VariantSetStockScript,
+  VariantSetWeightScript,
 } from "../../scripts/variant/index.js";
 import {
-  warehouseCreate,
-  warehouseDelete,
-  warehouseUpdate,
+  WarehouseCreateScript,
+  WarehouseDeleteScript,
+  WarehouseUpdateScript,
 } from "../../scripts/warehouse/index.js";
 import {
   OptionCreateScript,
@@ -224,7 +224,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantCreate(args: { input: VariantCreateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantCreate, {
+    const result = await this.ctx.kernel.runScript(VariantCreateScript, {
       productId: input.productId,
       options: input.variant.options.map((opt) => ({
         optionId: opt.optionId,
@@ -250,7 +250,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantDelete(args: { input: VariantDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantDelete, {
+    const result = await this.ctx.kernel.runScript(VariantDeleteScript, {
       id: input.id,
       permanent: Boolean(input.permanent),
     });
@@ -268,7 +268,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetSku(args: { input: VariantSetSkuInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantSetSku, {
+    const result = await this.ctx.kernel.runScript(VariantSetSkuScript, {
       variantId: input.variantId,
       sku: input.sku,
     });
@@ -288,7 +288,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetDimensions(args: { input: VariantSetDimensionsInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantSetDimensions, {
+    const result = await this.ctx.kernel.runScript(VariantSetDimensionsScript, {
       variantId: input.variantId,
       dimensions: {
         width: input.dimensions.width,
@@ -312,7 +312,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetWeight(args: { input: VariantSetWeightInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantSetWeight, {
+    const result = await this.ctx.kernel.runScript(VariantSetWeightScript, {
       variantId: input.variantId,
       weight: {
         value: input.weight.value,
@@ -334,7 +334,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetPricing(args: { input: VariantSetPricingInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantSetPricing, {
+    const result = await this.ctx.kernel.runScript(VariantSetPricingScript, {
       variantId: input.variantId,
       currency: input.currency,
       amountMinor: Number(input.amountMinor),
@@ -358,7 +358,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetCost(args: { input: VariantSetCostInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantSetCost, {
+    const result = await this.ctx.kernel.runScript(VariantSetCostScript, {
       variantId: input.variantId,
       currency: input.currency,
       unitCostMinor: Number(input.unitCostMinor),
@@ -379,7 +379,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetStock(args: { input: VariantSetStockInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(variantSetStock, {
+    const result = await this.ctx.kernel.runScript(VariantSetStockScript, {
       variantId: input.variantId,
       warehouseId: input.warehouseId,
       quantity: input.quantity,
@@ -408,7 +408,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       decodeGlobalIdByType(fileId, GlobalIdEntity.File)
     );
 
-    const result = await this.ctx.kernel.executeScript(variantSetMedia, {
+    const result = await this.ctx.kernel.runScript(VariantSetMediaScript, {
       variantId: input.variantId,
       fileIds,
     });
@@ -430,7 +430,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async warehouseCreate(args: { input: WarehouseCreateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(warehouseCreate, {
+    const result = await this.ctx.kernel.runScript(WarehouseCreateScript, {
       code: input.code,
       name: input.name,
       isDefault: input.isDefault ?? undefined,
@@ -451,7 +451,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async warehouseUpdate(args: { input: WarehouseUpdateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(warehouseUpdate, {
+    const result = await this.ctx.kernel.runScript(WarehouseUpdateScript, {
       id: input.id,
       code: input.code ?? undefined,
       name: input.name ?? undefined,
@@ -473,7 +473,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async warehouseDelete(args: { input: WarehouseDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.executeScript(warehouseDelete, {
+    const result = await this.ctx.kernel.runScript(WarehouseDeleteScript, {
       id: input.id,
     });
 

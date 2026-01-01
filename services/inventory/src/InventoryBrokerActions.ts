@@ -5,12 +5,12 @@ import {
   ServiceBroker,
   Action,
 } from "@shopana/shared-kernel";
-import { Kernel } from "./kernel/Kernel";
+import { Kernel } from "./kernel/Kernel.js";
 import {
-  getOffers,
+  GetOffersScript,
   type GetOffersParams,
   type GetOffersResult,
-} from "./scripts/getOffers";
+} from "./scripts/GetOffersScript.js";
 
 /**
  * Inventory broker actions registered with @Action decorator.
@@ -32,6 +32,6 @@ export class InventoryBrokerActions extends BrokerActions {
    */
   @Action("getOffers")
   async getOffers(params: GetOffersParams): Promise<GetOffersResult> {
-    return this.kernel.executeScript(getOffers, params);
+    return this.kernel.runScript(GetOffersScript, params);
   }
 }

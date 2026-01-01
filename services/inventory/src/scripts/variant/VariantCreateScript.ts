@@ -1,4 +1,4 @@
-import type { TransactionScript } from "../../kernel/types.js";
+import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { Variant } from "../../repositories/models/index.js";
 
 export interface SelectedOptionParam {
@@ -16,20 +16,15 @@ export interface VariantCreateParams {
 
 export interface VariantCreateResult {
   variant?: Variant;
-  userErrors: Array<{ message: string; field?: string[]; code?: string }>;
+  userErrors: UserError[];
 }
 
-export const variantCreate: TransactionScript<
-  VariantCreateParams,
-  VariantCreateResult
-> = async (params, services) => {
-  const { logger, repository } = services;
-
-  try {
+export class VariantCreateScript extends BaseScript<VariantCreateParams, VariantCreateResult> {
+  protected async execute(params: VariantCreateParams): Promise<VariantCreateResult> {
     const { productId, options, sku, externalSystem, externalId } = params;
 
     // 1. Check if product exists
-    const productExists = await repository.product.exists(productId);
+    const productExists = await this.repository.product.exists(productId);
     if (!productExists) {
       return {
         variant: undefined,
@@ -45,7 +40,7 @@ export const variantCreate: TransactionScript<
 
     // 2. If sku provided, check uniqueness
     if (sku) {
-      const existingVariant = await repository.variant.findBySku(sku);
+      const existingVariant = await this.repository.variant.findBySku(sku);
       if (existingVariant) {
         return {
           variant: undefined,
@@ -61,18 +56,16 @@ export const variantCreate: TransactionScript<
     }
 
     // 3. Validate options and get option values for handle generation
-    const productOptions = await repository.option.findByProductId(productId);
+    const productOptions = await this.repository.option.findByProductId(productId);
     const productOptionIds = new Set(productOptions.map((o) => o.id));
 
-    // Get all option values for the product
-    const optionValuesByOptionId = await repository.option.findValuesByOptionIds(
+    const optionValuesByOptionId = await this.repository.option.findValuesByOptionIds(
       productOptions.map((o) => o.id)
     );
 
     const handleParts: string[] = [];
 
     for (const selectedOption of options) {
-      // Validate option belongs to product
       if (!productOptionIds.has(selectedOption.optionId)) {
         return {
           variant: undefined,
@@ -86,7 +79,6 @@ export const variantCreate: TransactionScript<
         };
       }
 
-      // Validate option value belongs to option
       const optionValues = optionValuesByOptionId.get(selectedOption.optionId) ?? [];
       const selectedValue = optionValues.find(
         (v) => v.id === selectedOption.optionValueId
@@ -112,7 +104,7 @@ export const variantCreate: TransactionScript<
     const handle = handleParts.join("-") || "default";
 
     // 5. Create variant
-    const variant = await repository.variant.create(productId, {
+    const variant = await this.repository.variant.create(productId, {
       handle,
       sku: sku ?? null,
       externalSystem: externalSystem ?? null,
@@ -121,27 +113,25 @@ export const variantCreate: TransactionScript<
 
     // 6. Create option links
     for (const selectedOption of options) {
-      await repository.option.linkVariant(
+      await this.repository.option.linkVariant(
         variant.id,
         selectedOption.optionId,
         selectedOption.optionValueId
       );
     }
 
-    logger.info(
+    this.logger.info(
       { variantId: variant.id, productId, handle },
       "Variant created successfully"
     );
 
-    return {
-      variant,
-      userErrors: [],
-    };
-  } catch (error) {
-    logger.error({ error }, "variantCreate failed");
+    return { variant, userErrors: [] };
+  }
+
+  protected handleError(_error: unknown): VariantCreateResult {
     return {
       variant: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
-};
+}
