@@ -10,7 +10,7 @@ interface UserContext {
   accessToken: string;
   organizationId: string;
   storeId: string;
-  storeSlug: string;
+  storeName: string;
 }
 
 /**
@@ -78,7 +78,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       accessToken: userASession.accessToken,
       organizationId: organizationAId,
       storeId: storeA.id,
-      storeSlug: storeAName,
+      storeName: storeAName,
     };
 
     // DEBUG: Try querying the store immediately after creation
@@ -137,7 +137,7 @@ test.describe('Cross-Organization Store Isolation', () => {
       accessToken: userBSession.accessToken,
       organizationId: organizationBId,
       storeId: storeB.id,
-      storeSlug: storeBName,
+      storeName: storeBName,
     };
   });
 
@@ -146,7 +146,7 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.accessToken = userA.accessToken;
     api.session.project = {
       id: userA.storeId,
-      name: userA.storeSlug,
+      name: userA.storeName,
       displayName: 'Store A',
     };
 
@@ -161,7 +161,7 @@ test.describe('Cross-Organization Store Isolation', () => {
     // Set context to Store B (which User A shouldn't have access to)
     api.session.project = {
       id: userB.storeId,
-      name: userB.storeSlug,
+      name: userB.storeName,
       displayName: 'Store B',
     };
     const { data } = await api.admin.query('project-api/Project', {
@@ -190,16 +190,16 @@ test.describe('Cross-Organization Store Isolation', () => {
     // User A should only see Store A, not Store B
     expect(storeIds).toContain(userA.storeId);
     expect(storeIds).not.toContain(userB.storeId);
-    expect(storeNames).toContain(userA.storeSlug);
-    expect(storeNames).not.toContain(userB.storeSlug);
+    expect(storeNames).toContain(userA.storeName);
+    expect(storeNames).not.toContain(userB.storeName);
   });
 
-  test('User cannot query store by slug from other organization', async ({ api }) => {
+  test('User cannot query store by name from other organization', async ({ api }) => {
     // Switch to User B with Store A as context (which they shouldn't have access to)
     api.session.tenant.accessToken = userB.accessToken;
     api.session.project = {
       id: userA.storeId,
-      name: userA.storeSlug,
+      name: userA.storeName,
       displayName: 'Store A',
     };
 
@@ -215,7 +215,7 @@ test.describe('Cross-Organization Store Isolation', () => {
   test('User cannot update store from other organization', async ({ api }) => {
     // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
-    api.session.project = { id: userA.storeId, name: userA.storeSlug, displayName: 'Store A' };
+    api.session.project = { id: userA.storeId, name: userA.storeName, displayName: 'Store A' };
 
     // User A tries to update Store B
     const { data, errors } = await api.admin.mutation('project-api/ProjectUpdate', {
@@ -242,7 +242,7 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.accessToken = userB.accessToken;
     api.session.project = {
       id: userB.storeId,
-      name: userB.storeSlug,
+      name: userB.storeName,
       displayName: 'Store B',
     };
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
@@ -257,7 +257,7 @@ test.describe('Cross-Organization Store Isolation', () => {
     api.session.tenant.accessToken = userA.accessToken;
     api.session.project = {
       id: userA.storeId,
-      name: userA.storeSlug,
+      name: userA.storeName,
       displayName: 'Store A',
     };
 
@@ -283,7 +283,7 @@ test.describe('Cross-Organization Store Isolation', () => {
 
     // Verify Store B still exists by switching to User B
     api.session.tenant.accessToken = userB.accessToken;
-    api.session.project = { id: userB.storeId, name: userB.storeSlug, displayName: 'Store B' };
+    api.session.project = { id: userB.storeId, name: userB.storeName, displayName: 'Store B' };
     const { data: verifyData } = await api.admin.query('project-api/Project', {});
 
     const verifiedStore = verifyData.storeQuery.currentStore;
