@@ -10,8 +10,7 @@ import { ReactNode } from 'react';
 import { FieldErrors } from 'react-hook-form';
 
 interface IModalLayoutProps {
-  leftColumn: ReactNode;
-  rightColumn?: ReactNode;
+  children?: ReactNode;
   headerProps: IModalHeaderProps;
   errors: FieldErrors;
   name?: string;
@@ -19,8 +18,7 @@ interface IModalLayoutProps {
 
 export const ModalLayout = ({
   headerProps,
-  leftColumn,
-  rightColumn,
+  children,
   errors,
   name,
 }: IModalLayoutProps) => {
@@ -38,36 +36,30 @@ export const ModalLayout = ({
       <ModalHeader {...{ ...headerProps, name }} />
       <div
         css={css`
-          background: var(--bg-gradient);
+          background: var(--color-gray-2);
           overflow-y: auto;
           flex: 1;
         `}
       >
-        <ValidationAlert
-          errors={errors}
-          css={css`
-            padding: 0 var(--x4);
-            margin-top: var(--x4);
-          `}
-        />
         <div
           css={css`
-            display: grid;
+            margin-inline: auto;
+            max-width: 800px;
+            display: flex;
             gap: var(--x4);
-            grid-template-columns: 1fr;
-            padding: var(--x4);
-            overflow-y: auto;
-            flex: 1;
+            flex-direction: column;
+            padding-block: var(--x4);
           `}
         >
-          <Flex direction="column" gap="4">
-            {leftColumn}
-          </Flex>
-          {rightColumn && (
-            <Flex direction="column" gap="4">
-              {rightColumn}
-            </Flex>
-          )}
+          <ValidationAlert
+            errors={errors}
+            css={css`
+              padding: 0 var(--x4);
+              margin-top: var(--x4);
+            `}
+          />
+
+          {children}
         </div>
       </div>
     </div>

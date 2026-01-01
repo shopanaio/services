@@ -152,29 +152,22 @@ export const CategoryForm = () => {
             onClick: onSubmit,
           },
         }}
-        leftColumn={
-          <>
-            <Information
-              slug="custom"
-              description
-              onDescriptionSave={onDescriptionSave}
-            />
-            <EntityMedia />
-            <Listing />
-          </>
-        }
-        rightColumn={
-          <>
-            <EntryStatusAndInfo
-              statuses={entityStatuses}
-              createdAt={category.createdAt}
-              updatedAt={category.updatedAt}
-            />
-            <ListingSortSettings />
-            <Organization />
-          </>
-        }
-      />
+      >
+        <Information
+          slug="custom"
+          description
+          onDescriptionSave={onDescriptionSave}
+        />
+        <EntityMedia />
+        <Listing />
+        <EntryStatusAndInfo
+          statuses={entityStatuses}
+          createdAt={category.createdAt}
+          updatedAt={category.updatedAt}
+        />
+        <ListingSortSettings />
+        <Organization />
+      </ModalLayout>
     </FormProvider>
   );
 };

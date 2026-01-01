@@ -17,23 +17,15 @@ export const VariantFields = () => {
       <div
         css={css`
           display: grid;
-          grid-template-columns: 2fr 1fr;
+          grid-template-columns: 1fr;
           gap: var(--x4);
         `}
       >
         <ProductPricing key="pricing" />
         <ProductShipping key="shipping" />
       </div>
-      <div
-        css={css`
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: var(--x4);
-        `}
-      >
-        <ProductInventory key="inventory" />
-        <ProductAvailability key="availability" />
-      </div>
+
+      <ProductInventory key="inventory" />
     </>
   );
 };

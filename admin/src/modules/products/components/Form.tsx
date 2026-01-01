@@ -638,88 +638,36 @@ const ProductFormView = () => {
             loading,
           },
         }}
-        leftColumn={
-          <>
-            <Tabs
-              type="card"
-              size="small"
-              activeKey={activeTab}
-              onChange={(key) =>
-                setActiveTab(key as 'general' | 'options' | 'components')
-              }
-              items={[
-                {
-                  label: intl.formatMessage({
-                    id: t('products.tabs.general'),
-                  }),
-                  key: 'general',
-                  children: (
-                    <ModalLayoutGrid
-                      aside={
-                        <>
-                          <EntryStatusAndInfo
-                            statuses={entityStatuses}
-                            createdAt={product.createdAt}
-                            updatedAt={product.updatedAt}
-                          />
-                          <CategoriesTags />
-                          <Tags />
-                        </>
-                      }
-                    >
-                      <Information
-                        slug="custom"
-                        description
-                        onDescriptionSave={onDescriptionSave}
-                      />
-                      {product.isVariableProduct ? (
-                        <DisabledVariantFields />
-                      ) : (
-                        <VariantFields />
-                      )}
-                    </ModalLayoutGrid>
-                  ),
-                },
-                {
-                  label: intl.formatMessage({
-                    id: t('products.tabs.optionsVariants'),
-                  }),
-                  key: 'options',
-                  children: (
-                    <Flex direction="column" gap="4">
-                      <Features
-                        type="options"
-                        onSort={onSortOptions}
-                        onDelete={onDeleteOption}
-                        onDone={onSubmitOption}
-                        loading={refetching.options}
-                      >
-                        <ProductVariantsTable refetch={fetchAndResetVariants} />
-                      </Features>
-                    </Flex>
-                  ),
-                },
-                {
-                  label: intl.formatMessage({
-                    id: t('products.tabs.components'),
-                  }),
-                  key: 'components',
-                  children: (
-                    <Flex direction="column" gap="4">
-                      <ProductGroups
-                        onDone={onGroupsChange}
-                        onDelete={onDeleteGroup}
-                        onSort={onSortGroups}
-                        loading={refetching.groups}
-                      />
-                    </Flex>
-                  ),
-                },
-              ]}
-            />
-          </>
-        }
-      />
+      >
+        <Information
+          slug="custom"
+          description
+          onDescriptionSave={onDescriptionSave}
+        />
+        {product.isVariableProduct ? (
+          <DisabledVariantFields />
+        ) : (
+          <VariantFields />
+        )}
+
+        <CategoriesTags />
+        <Tags />
+        <Features
+          type="options"
+          onSort={onSortOptions}
+          onDelete={onDeleteOption}
+          onDone={onSubmitOption}
+          loading={refetching.options}
+        >
+          <ProductVariantsTable refetch={fetchAndResetVariants} />
+        </Features>
+        <ProductGroups
+          onDone={onGroupsChange}
+          onDelete={onDeleteGroup}
+          onSort={onSortGroups}
+          loading={refetching.groups}
+        />
+      </ModalLayout>
     </FormProvider>
   );
 };
