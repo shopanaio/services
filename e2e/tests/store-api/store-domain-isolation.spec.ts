@@ -13,8 +13,10 @@ interface OwnerContext {
   organizationId: string;
   storeAId: string;
   storeAName: string;
+  storeADomain: string;
   storeBId: string;
   storeBName: string;
+  storeBDomain: string;
 }
 
 interface InvitedUserContext {
@@ -105,8 +107,10 @@ test.describe('Store-Level Domain Isolation', () => {
       organizationId: organization.id,
       storeAId: storeA.id,
       storeAName: storeAName,
+      storeADomain: storeA.membership?.domain ?? '',
       storeBId: storeB.id,
       storeBName: storeBName,
+      storeBDomain: storeB.membership?.domain ?? '',
     };
   });
 
@@ -158,7 +162,7 @@ test.describe('Store-Level Domain Isolation', () => {
   test('User with store-A role cannot access store-B data', async ({ api }) => {
     // Invite user with role only in Store A
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'viewer' },
+      { domain: owner.storeADomain, role: 'viewer' },
     ]);
 
     // Switch to invited user
@@ -180,7 +184,7 @@ test.describe('Store-Level Domain Isolation', () => {
   test('Viewer role can read but cannot modify store', async ({ api }) => {
     // Invite user with viewer role in Store A
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'viewer' },
+      { domain: owner.storeADomain, role: 'viewer' },
     ]);
 
     // Switch to invited user
@@ -220,7 +224,7 @@ test.describe('Store-Level Domain Isolation', () => {
   test('User with store-A role cannot modify store-B', async ({ api }) => {
     // Invite user with editor role only in Store A
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'manager' },
+      { domain: owner.storeADomain, role: 'manager' },
     ]);
 
     // Switch to invited user
@@ -257,7 +261,7 @@ test.describe('Store-Level Domain Isolation', () => {
   test('Store-specific permissions are isolated per store', async ({ api }) => {
     // Invite user with editor role in Store A (we'll verify they can't edit Store B)
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'manager' },
+      { domain: owner.storeADomain, role: 'manager' },
     ]);
 
     // Switch to invited user
@@ -321,11 +325,12 @@ test.describe('Store-Level Domain Isolation', () => {
     if (!storeC) {
       throw new Error('Failed to create Store C');
     }
+    const storeCDomain = storeC.membership?.domain ?? '';
 
     // Invite user with roles in Store A and Store C only (not Store B)
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'manager' },
-      { domain: `store:${storeC.id}`, role: 'viewer' },
+      { domain: owner.storeADomain, role: 'manager' },
+      { domain: storeCDomain, role: 'viewer' },
     ]);
 
     // Switch to invited user
@@ -351,7 +356,7 @@ test.describe('Store-Level Domain Isolation', () => {
   test('User stores list shows only stores they have access to', async ({ api }) => {
     // Invite user with role only in Store A
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'manager' },
+      { domain: owner.storeADomain, role: 'manager' },
     ]);
 
     // Switch to invited user
@@ -377,7 +382,7 @@ test.describe('Store-Level Domain Isolation', () => {
   test('User cannot delete store they have no access to', async ({ api }) => {
     // Invite user with admin role in Store A (owner is not a role, it's creator attribute)
     const user = await inviteUserWithRoles(api, [
-      { domain: `store:${owner.storeAId}`, role: 'admin' },
+      { domain: owner.storeADomain, role: 'admin' },
     ]);
 
     // Switch to invited user
