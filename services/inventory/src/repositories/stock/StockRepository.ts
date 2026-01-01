@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, count } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   createQuery,
@@ -162,6 +162,23 @@ export class StockRepository extends BaseRepository {
   }
 
   /**
+   * Count stock entries matching the where filter
+   */
+  async countByFilter(warehouseId?: string): Promise<number> {
+    const conditions = [eq(warehouseStock.projectId, this.storeId)];
+    if (warehouseId) {
+      conditions.push(eq(warehouseStock.warehouseId, warehouseId));
+    }
+
+    const result = await this.connection
+      .select({ count: count() })
+      .from(warehouseStock)
+      .where(and(...conditions));
+
+    return result[0]?.count ?? 0;
+  }
+
+  /**
    * Get stock connection with cursor-based pagination
    */
   async getConnection(args: StockRelayInput): Promise<StockConnectionResult> {
@@ -180,7 +197,21 @@ export class StockRepository extends BaseRepository {
       orderBy: orderBy ?? [{ field: "createdAt", direction: "desc" }],
     };
 
-    const result = await stockRelayQuery.execute(this.connection, executeInput);
+    // TODO: Implement totalCount in @shopana/drizzle-query createRelayQuery
+    // so we don't need a separate count query in each repository
+    // Extract warehouseId from where filter for count query
+    const warehouseIdFilter = where?._and?.find(
+      (condition): condition is { warehouseId: { _eq: string } } =>
+        typeof condition === "object" &&
+        condition !== null &&
+        "warehouseId" in condition
+    );
+    const warehouseId = warehouseIdFilter?.warehouseId?._eq;
+
+    const [result, totalCount] = await Promise.all([
+      stockRelayQuery.execute(this.connection, executeInput),
+      this.countByFilter(warehouseId),
+    ]);
 
     return {
       edges: result.edges.map((edge) => ({
@@ -188,7 +219,7 @@ export class StockRepository extends BaseRepository {
         nodeId: edge.node.id,
       })),
       pageInfo: result.pageInfo,
-      totalCount: result.totalCount,
+      totalCount,
     };
   }
 
