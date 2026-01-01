@@ -30,6 +30,10 @@ export class S3DataResolver extends MediaType<string, S3Object | null> {
     return this.$get("storageClass");
   }
 
+  async bucketId() {
+    return this.$get("bucketId");
+  }
+
   async bucket() {
     const bucketId = await this.$get("bucketId");
     if (!bucketId) {

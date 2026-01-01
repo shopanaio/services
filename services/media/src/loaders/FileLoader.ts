@@ -11,8 +11,8 @@ export class FileLoader {
 
   constructor(repository: Repository) {
     this.file = new DataLoader<string, File | null>(async (ids) => {
-      const projectId = getContext().store.id;
-      const files = await repository.file.findByIds(projectId, ids as string[]);
+      const storeId = getContext().store.id;
+      const files = await repository.file.findByIds(storeId, ids as string[]);
       const fileMap = new Map(files.map((f) => [f.id, f]));
       return ids.map((id) => fileMap.get(id) ?? null);
     });

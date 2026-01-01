@@ -20,20 +20,17 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Create a bucket
    */
-  async bucketCreate(
-    _args: unknown,
-    {
-      input,
-    }: {
-      input: {
-        bucketName: string;
-        region?: string;
-        status?: string;
-        priority?: number;
-        endpointUrl?: string;
-      };
-    }
-  ) {
+  async bucketCreate({
+    input,
+  }: {
+    input: {
+      bucketName: string;
+      region?: string;
+      status?: string;
+      priority?: number;
+      endpointUrl?: string;
+    };
+  }) {
     const services = this.ctx.kernel.getServices();
 
     const result = await bucketCreate(
@@ -58,18 +55,15 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Upload a file via multipart form data (main upload method)
    */
-  async fileUpload(
-    _args: unknown,
-    {
-      input,
-    }: {
-      input: {
-        file: Promise<FileUpload>;
-        altText?: string;
-        idempotencyKey?: string;
-      };
-    }
-  ) {
+  async fileUpload({
+    input,
+  }: {
+    input: {
+      file: Promise<FileUpload>;
+      altText?: string;
+      idempotencyKey?: string;
+    };
+  }) {
     const services = this.ctx.kernel.getServices();
 
     const result = await fileUploadMultipart(
@@ -90,18 +84,15 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Upload a file from URL
    */
-  async fileUploadFromUrl(
-    _args: unknown,
-    {
-      input,
-    }: {
-      input: {
-        sourceUrl: string;
-        altText?: string;
-        idempotencyKey?: string;
-      };
-    }
-  ) {
+  async fileUploadFromUrl({
+    input,
+  }: {
+    input: {
+      sourceUrl: string;
+      altText?: string;
+      idempotencyKey?: string;
+    };
+  }) {
     const services = this.ctx.kernel.getServices();
 
     const result = await fileUploadFromUrl(
@@ -122,26 +113,23 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Create an external media file (YouTube, Vimeo, etc.)
    */
-  async fileCreateExternal(
-    _args: unknown,
-    {
-      input,
-    }: {
-      input: {
-        provider: string;
-        externalId: string;
-        url: string;
-        thumbnailUrl?: string;
-        originalName?: string;
-        width?: number;
-        height?: number;
-        durationMs?: number;
-        altText?: string;
-        providerMeta?: Record<string, unknown>;
-        idempotencyKey?: string;
-      };
-    }
-  ) {
+  async fileCreateExternal({
+    input,
+  }: {
+    input: {
+      provider: string;
+      externalId: string;
+      url: string;
+      thumbnailUrl?: string;
+      originalName?: string;
+      width?: number;
+      height?: number;
+      durationMs?: number;
+      altText?: string;
+      providerMeta?: Record<string, unknown>;
+      idempotencyKey?: string;
+    };
+  }) {
     const services = this.ctx.kernel.getServices();
 
     const result = await fileCreateExternal(
@@ -170,19 +158,16 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Update a file's metadata
    */
-  async fileUpdate(
-    _args: unknown,
-    {
-      input,
-    }: {
-      input: {
-        id: string;
-        altText?: string;
-        originalName?: string;
-        meta?: Record<string, unknown>;
-      };
-    }
-  ) {
+  async fileUpdate({
+    input,
+  }: {
+    input: {
+      id: string;
+      altText?: string;
+      originalName?: string;
+      meta?: Record<string, unknown>;
+    };
+  }) {
     const decoded = decodeGlobalId(input.id);
     if (!decoded || decoded.type !== "File") {
       return {
@@ -205,6 +190,8 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       services
     );
 
+    console.log(result.file?.id, input.altText, "ALT TEX");
+
     return {
       file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
       userErrors: result.userErrors,
@@ -214,17 +201,14 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Delete a file (soft or hard delete)
    */
-  async fileDelete(
-    _args: unknown,
-    {
-      input,
-    }: {
-      input: {
-        id: string;
-        permanent?: boolean;
-      };
-    }
-  ) {
+  async fileDelete({
+    input,
+  }: {
+    input: {
+      id: string;
+      permanent?: boolean;
+    };
+  }) {
     const decoded = decodeGlobalId(input.id);
     if (!decoded || decoded.type !== "File") {
       return {

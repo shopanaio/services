@@ -10,7 +10,7 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
   /**
    * Get a node by its global ID (Relay Node interface)
    */
-  node(_args: unknown, { id }: { id: string }) {
+  node({ id }: { id: string }) {
     const decoded = decodeGlobalId(id);
     if (!decoded) {
       return null;
@@ -26,7 +26,7 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
   /**
    * Get multiple nodes by their global IDs (Relay Node interface)
    */
-  nodes(_args: unknown, { ids }: { ids: string[] }) {
+  nodes({ ids }: { ids: string[] }) {
     return ids.map((id) => {
       const decoded = decodeGlobalId(id);
       if (!decoded) {
@@ -44,7 +44,7 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
   /**
    * Get a single file by ID
    */
-  file(_args: unknown, { id }: { id: string }) {
+  file({ id }: { id: string }) {
     const decoded = decodeGlobalId(id);
     if (!decoded || decoded.type !== "File") {
       return null;
