@@ -14,11 +14,11 @@ import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
 @SubgraphReference()
 export class ProductResolver extends InventoryType<string, Product | null> {
   async $preload() {
-    return this.ctx.loaders.product.load(this.value);
+    return this.$ctx.loaders.product.load(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async handle() {
@@ -48,15 +48,15 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   }
 
   async title() {
-    const translation = await this.ctx.loaders.productTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.productTranslation.load(
+      this.$props
     );
     return translation?.title ?? "";
   }
 
   async description(): Promise<Description | null> {
-    const translation = await this.ctx.loaders.productTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.productTranslation.load(
+      this.$props
     );
     if (!translation) return null;
 
@@ -68,22 +68,22 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   }
 
   async excerpt() {
-    const translation = await this.ctx.loaders.productTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.productTranslation.load(
+      this.$props
     );
     return translation?.excerpt ?? null;
   }
 
   async seoTitle() {
-    const translation = await this.ctx.loaders.productTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.productTranslation.load(
+      this.$props
     );
     return translation?.seoTitle ?? null;
   }
 
   async seoDescription() {
-    const translation = await this.ctx.loaders.productTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.productTranslation.load(
+      this.$props
     );
     return translation?.seoDescription ?? null;
   }
@@ -96,9 +96,9 @@ export class ProductResolver extends InventoryType<string, Product | null> {
     return new VariantConnectionResolver(
       {
         ...args,
-        productId: this.value,
+        productId: this.$props,
       },
-      this.ctx
+      this.$ctx
     );
   }
 
@@ -106,23 +106,23 @@ export class ProductResolver extends InventoryType<string, Product | null> {
    * Returns options for this product
    */
   async options() {
-    const ids = await this.ctx.loaders.productOptionIds.load(this.value);
-    return ids.map((id) => new OptionResolver(id, this.ctx));
+    const ids = await this.$ctx.loaders.productOptionIds.load(this.$props);
+    return ids.map((id) => new OptionResolver(id, this.$ctx));
   }
 
   /**
    * Returns features for this product
    */
   async features() {
-    const ids = await this.ctx.loaders.productFeatureIds.load(this.value);
-    return ids.map((id) => new FeatureResolver(id, this.ctx));
+    const ids = await this.$ctx.loaders.productFeatureIds.load(this.$props);
+    return ids.map((id) => new FeatureResolver(id, this.$ctx));
   }
 
   /**
    * Returns the count of variants for this product
    */
   async variantsCount(): Promise<number> {
-    const variantIds = await this.ctx.loaders.variantIds.load(this.value);
+    const variantIds = await this.$ctx.loaders.variantIds.load(this.$props);
     return variantIds.length;
   }
 }

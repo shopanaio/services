@@ -14,7 +14,7 @@ export class QueryResolver extends IAMType<Record<string, never>> {
    * Returns namespace resolver that handles all user queries.
    */
   userQuery() {
-    return new UserQueryResolver({}, this.ctx);
+    return new UserQueryResolver({}, this.$ctx);
   }
 
   /**
@@ -22,6 +22,6 @@ export class QueryResolver extends IAMType<Record<string, never>> {
    * Returns namespace resolver that handles all organization queries.
    */
   organizationQuery() {
-    return new OrganizationQueryResolver({}, this.ctx);
+    return new OrganizationQueryResolver({}, this.$ctx);
   }
 }

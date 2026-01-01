@@ -13,11 +13,11 @@ export class UserResolver extends IAMType<string, User | null> {
     key: (resolver: UserResolver) => resolver.value,
   })
   async $preload() {
-    return this.ctx.kernel.repository.user.findById(this.value);
+    return this.$ctx.kernel.repository.user.findById(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async email() {

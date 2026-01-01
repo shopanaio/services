@@ -15,11 +15,11 @@ export class FileResolver extends MediaType<string, File | null> {
   //   key: (resolver: FileResolver) => resolver.value,
   // })
   async $preload() {
-    return this.ctx.loaders.file.load(this.value);
+    return this.$ctx.loaders.file.load(this.$props);
   }
 
   id() {
-    return encodeGlobalId("File", this.value);
+    return encodeGlobalId("File", this.$props);
   }
 
   async url() {
@@ -107,7 +107,7 @@ export class FileResolver extends MediaType<string, File | null> {
     if (provider !== "S3") {
       return null;
     }
-    return new S3DataResolver(this.value, this.ctx);
+    return new S3DataResolver(this.$props, this.$ctx);
   }
 
   /**
@@ -118,6 +118,6 @@ export class FileResolver extends MediaType<string, File | null> {
     if (!["YOUTUBE", "VIMEO", "URL"].includes(provider ?? "")) {
       return null;
     }
-    return new ExternalDataResolver(this.value, this.ctx);
+    return new ExternalDataResolver(this.$props, this.$ctx);
   }
 }

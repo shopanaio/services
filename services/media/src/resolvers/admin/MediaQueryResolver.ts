@@ -17,7 +17,7 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
     }
 
     if (decoded.type === "File") {
-      return new FileResolver(decoded.id, this.ctx);
+      return new FileResolver(decoded.id, this.$ctx);
     }
 
     return null;
@@ -34,7 +34,7 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
       }
 
       if (decoded.type === "File") {
-        return new FileResolver(decoded.id, this.ctx);
+        return new FileResolver(decoded.id, this.$ctx);
       }
 
       return null;
@@ -50,6 +50,6 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
       return null;
     }
 
-    return new FileResolver(decoded.id, this.ctx);
+    return new FileResolver(decoded.id, this.$ctx);
   }
 }

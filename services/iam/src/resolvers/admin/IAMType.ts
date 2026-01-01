@@ -51,6 +51,6 @@ export abstract class IAMType<TValue, TData = unknown>
   });
 
   protected getCache(): CacheStore {
-    return this.ctx.kernel.cache as CacheStore;
+    return this.$ctx.kernel.cache as CacheStore;
   }
 }

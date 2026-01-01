@@ -10,7 +10,7 @@ export class ExternalDataResolver extends MediaType<string, ExternalMedia | null
     key: (resolver: ExternalDataResolver) => resolver.value,
   })
   async $preload() {
-    return this.ctx.loaders.externalMedia.load(this.value);
+    return this.$ctx.loaders.externalMedia.load(this.$props);
   }
 
   async externalId() {

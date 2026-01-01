@@ -28,13 +28,13 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(UserSignUpInputSchema())
   async signUp(args: { input: UserSignUpInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(UserSignUpScript, {
+    const result = await this.$ctx.kernel.runScript(UserSignUpScript, {
       email: input.email,
       password: input.password,
     });
 
     return {
-      user: result.user ? new UserResolver(result.user.id, this.ctx) : null,
+      user: result.user ? new UserResolver(result.user.id, this.$ctx) : null,
       token: result.token,
       userErrors: result.userErrors.map((e) => ({
         code: e.code,
@@ -50,13 +50,13 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(UserSignInInputSchema())
   async signIn(args: { input: UserSignInInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(UserSignInScript, {
+    const result = await this.$ctx.kernel.runScript(UserSignInScript, {
       email: input.email,
       password: input.password,
     });
 
     return {
-      user: result.user ? new UserResolver(result.user.id, this.ctx) : null,
+      user: result.user ? new UserResolver(result.user.id, this.$ctx) : null,
       token: result.token,
       userErrors: result.userErrors.map((e) => ({
         code: e.code,
@@ -90,7 +90,7 @@ export class AuthMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(UserTokenRefreshInputSchema())
   async tokenRefresh(args: { input: UserTokenRefreshInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(TokenRefreshScript, {
+    const result = await this.$ctx.kernel.runScript(TokenRefreshScript, {
       refreshToken: input.refreshToken,
     });
 

@@ -11,14 +11,14 @@ export class BucketResolver extends MediaType<string, Bucket | null> {
     key: (resolver: BucketResolver) => resolver.value,
   })
   async $preload() {
-    return this.ctx.kernel.repository.bucket.findById(
-      this.ctx.store.id,
-      this.value
+    return this.$ctx.kernel.repository.bucket.findById(
+      this.$ctx.store.id,
+      this.$props
     );
   }
 
   id() {
-    return encodeGlobalId("Bucket", this.value);
+    return encodeGlobalId("Bucket", this.$props);
   }
 
   async bucketName() {

@@ -20,11 +20,11 @@ import { VariantPriceResolver } from "./VariantPriceResolver.js";
 @SubgraphReference()
 export class VariantResolver extends InventoryType<string, Variant | null> {
   async $preload() {
-    return this.ctx.loaders.variant.load(this.value);
+    return this.$ctx.loaders.variant.load(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async productId() {
@@ -64,19 +64,19 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async title() {
-    const translation = await this.ctx.loaders.variantTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.variantTranslation.load(
+      this.$props
     );
     return translation?.title ?? null;
   }
 
   async price(): Promise<VariantPrice | null> {
-    const prices = await this.ctx.loaders.variantPricing.load(this.value);
+    const prices = await this.$ctx.loaders.variantPricing.load(this.$props);
 
     // Filter by currency if specified
     let filtered = prices;
-    if (this.ctx.currency) {
-      filtered = prices.filter((p) => p.currency === this.ctx.currency);
+    if (this.$ctx.currency) {
+      filtered = prices.filter((p) => p.currency === this.$ctx.currency);
     }
 
     if (filtered.length === 0) return null;
@@ -100,21 +100,21 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
    * @param args - Pagination arguments (first, last, after, before)
    */
   async priceHistory(args: PricingCursorInput) {
-    const services = this.ctx.kernel.getServices();
+    const services = this.$ctx.kernel.getServices();
     const ids = await services.repository.pricing.getIdsByVariantId(
-      this.value,
+      this.$props,
       args
     );
-    return ids.map((id: string) => new VariantPriceResolver(id, this.ctx));
+    return ids.map((id: string) => new VariantPriceResolver(id, this.$ctx));
   }
 
   async cost(): Promise<VariantCost | null> {
-    const costs = await this.ctx.loaders.variantCost.load(this.value);
+    const costs = await this.$ctx.loaders.variantCost.load(this.$props);
 
     // Filter by currency if specified
     let filtered = costs;
-    if (this.ctx.currency) {
-      filtered = costs.filter((c) => c.currency === this.ctx.currency);
+    if (this.$ctx.currency) {
+      filtered = costs.filter((c) => c.currency === this.$ctx.currency);
     }
 
     if (filtered.length === 0) return null;
@@ -142,8 +142,8 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async selectedOptions(): Promise<SelectedOption[]> {
-    const links = await this.ctx.loaders.variantSelectedOptions.load(
-      this.value
+    const links = await this.$ctx.loaders.variantSelectedOptions.load(
+      this.$props
     );
     return links
       .filter((link) => link.optionValueId !== null)
@@ -154,7 +154,7 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async dimensions(): Promise<VariantDimensions | null> {
-    const dims = await this.ctx.loaders.variantDimensions.load(this.value);
+    const dims = await this.$ctx.loaders.variantDimensions.load(this.$props);
     if (!dims) return null;
 
     return {
@@ -165,7 +165,7 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async weight(): Promise<VariantWeight | null> {
-    const w = await this.ctx.loaders.variantWeight.load(this.value);
+    const w = await this.$ctx.loaders.variantWeight.load(this.$props);
     if (!w) return null;
 
     return {
@@ -174,7 +174,7 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async stock(): Promise<WarehouseStock[]> {
-    const stocks = await this.ctx.loaders.variantStock.load(this.value);
+    const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
     return stocks.map((s) => ({
       id: s.id,
       warehouseId: s.warehouseId,
@@ -186,12 +186,12 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   async inStock(): Promise<boolean> {
-    const stocks = await this.ctx.loaders.variantStock.load(this.value);
+    const stocks = await this.$ctx.loaders.variantStock.load(this.$props);
     return stocks.some((s) => s.quantityOnHand > 0);
   }
 
   async media(): Promise<VariantMediaItem[]> {
-    const mediaItems = await this.ctx.loaders.variantMedia.load(this.value);
+    const mediaItems = await this.$ctx.loaders.variantMedia.load(this.$props);
     return mediaItems.map((m) => ({
       fileId: m.fileId,
       sortIndex: m.sortIndex,

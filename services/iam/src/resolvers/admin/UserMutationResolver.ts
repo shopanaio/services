@@ -26,7 +26,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(UserUpdateProfileInputSchema())
   async userUpdateProfile(args: { input: UserUpdateProfileInput }) {
     const { input } = args;
-    const { currentUser, kernel } = this.ctx;
+    const { currentUser, kernel } = this.$ctx;
 
     if (!currentUser?.id) {
       return {
@@ -63,7 +63,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(UserUpdateEmailInputSchema())
   async userUpdateEmail(args: { input: UserUpdateEmailInput }) {
     const { input } = args;
-    const { currentUser, kernel } = this.ctx;
+    const { currentUser, kernel } = this.$ctx;
 
     if (!currentUser?.id) {
       return {
@@ -98,7 +98,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(UserUpdatePasswordInputSchema())
   async userUpdatePassword(args: { input: UserUpdatePasswordInput }) {
     const { input } = args;
-    const { currentUser, kernel } = this.ctx;
+    const { currentUser, kernel } = this.$ctx;
 
     if (!currentUser?.id) {
       return {

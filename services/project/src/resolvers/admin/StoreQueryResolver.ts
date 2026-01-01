@@ -17,10 +17,10 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
     const { organizationId } = args;
 
     // User must be authenticated
-    if (!this.ctx.user?.id) return [];
+    if (!this.$ctx.user?.id) return [];
 
     // Get all stores in the organization
-    const allStores = await this.ctx.kernel
+    const allStores = await this.$ctx.kernel
       .getServices()
       .repository.store.findByOrganization(organizationId);
 
@@ -28,14 +28,14 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
 
     // Build batch enforce requests
     const requests = allStores.map((store) => ({
-      userId: this.ctx.user!.id,
+      userId: this.$ctx.user!.id,
       domain: `store:${store.id}`,
       resource: "store.profile",
       action: "read",
     }));
 
     // Check permissions for all stores at once
-    const { results } = (await this.ctx.kernel
+    const { results } = (await this.$ctx.kernel
       .getServices()
       .broker.call("iam.batchAuthorize", { organizationId, requests })) as {
       results: boolean[];
@@ -47,7 +47,7 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
     if (accessibleStores.length === 0) return [];
 
     // Return StoreResolver instances - executor will handle resolution
-    return accessibleStores.map((store) => new StoreResolver(store, this.ctx));
+    return accessibleStores.map((store) => new StoreResolver(store, this.$ctx));
   }
 
   /**
@@ -55,17 +55,17 @@ export class StoreQueryResolver extends BaseResolver<Record<string, never>> {
    */
   async currentStore() {
     // Need storeName from header and authenticated user
-    if (!this.ctx.user || !this.ctx.storeName) return null;
+    if (!this.$ctx.user || !this.$ctx.storeName) return null;
 
-    const store = await this.ctx.kernel
+    const store = await this.$ctx.kernel
       .getServices()
-      .repository.store.findByName(this.ctx.storeName);
+      .repository.store.findByName(this.$ctx.storeName);
 
     if (!store) {
       return null;
     }
 
-    return new StoreResolver(store, this.ctx);
+    return new StoreResolver(store, this.$ctx);
   }
 
   /**

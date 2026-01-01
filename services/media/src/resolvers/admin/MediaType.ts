@@ -19,7 +19,7 @@ export { Cache };
  * class FileResolver extends MediaType<string, File | null> {
  *   @Cache({ cacheName: "media:file", key: (r) => r.value })
  *   async $preload() {
- *     return this.ctx.loaders.file.load(this.value);
+ *     return this.$ctx.loaders.file.load(this.$props);
  *   }
  * }
  * ```
@@ -32,6 +32,6 @@ export abstract class MediaType<TValue, TData = unknown> extends BaseType<
   static executor = createExecutor<ServiceContext>({});
 
   protected getCache(): CacheStore {
-    return this.ctx.kernel.cache as CacheStore;
+    return this.$ctx.kernel.cache as CacheStore;
   }
 }

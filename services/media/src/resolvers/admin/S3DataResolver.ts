@@ -11,7 +11,7 @@ export class S3DataResolver extends MediaType<string, S3Object | null> {
     key: (resolver: S3DataResolver) => resolver.value,
   })
   async $preload() {
-    return this.ctx.loaders.s3Object.load(this.value);
+    return this.$ctx.loaders.s3Object.load(this.$props);
   }
 
   async objectKey() {
@@ -39,6 +39,6 @@ export class S3DataResolver extends MediaType<string, S3Object | null> {
     if (!bucketId) {
       return null;
     }
-    return new BucketResolver(bucketId, this.ctx);
+    return new BucketResolver(bucketId, this.$ctx);
   }
 }

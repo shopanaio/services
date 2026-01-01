@@ -13,6 +13,6 @@ export class QueryResolver extends BaseResolver<Record<string, never>> {
    * Returns namespace resolver that handles all store queries.
    */
   storeQuery() {
-    return new StoreQueryResolver({}, this.ctx);
+    return new StoreQueryResolver({}, this.$ctx);
   }
 }

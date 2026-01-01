@@ -41,16 +41,16 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
    * Throws if store not found.
    */
   private async getCurrentStore() {
-    if (!this.ctx.storeName) {
+    if (!this.$ctx.storeName) {
       throw new Error(
         "Store not found in request context. Ensure x-store-name header is set."
       );
     }
-    const store = await this.ctx.kernel
+    const store = await this.$ctx.kernel
       .getServices()
-      .repository.store.findByName(this.ctx.storeName);
+      .repository.store.findByName(this.$ctx.storeName);
     if (!store) {
-      throw new Error(`Store not found: ${this.ctx.storeName}`);
+      throw new Error(`Store not found: ${this.$ctx.storeName}`);
     }
     return store;
   }
@@ -60,7 +60,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(StoreCreateInputSchema())
   async storeCreate(args: { input: StoreCreateInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(StoreCreateScript, {
+    const result = await this.$ctx.kernel.runScript(StoreCreateScript, {
       organizationId: input.organizationId,
       name: input.name,
       displayName: input.displayName,
@@ -81,7 +81,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
     // Return payload with StoreResolver - executor will resolve it
     return {
-      store: new StoreResolver(result.store, this.ctx),
+      store: new StoreResolver(result.store, this.$ctx),
       userErrors: result.userErrors,
     };
   }
@@ -90,7 +90,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   async storeUpdate(args: { input: StoreUpdateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(StoreUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(StoreUpdateScript, {
       id: input.id,
       name: input.name ?? undefined,
       organizationId: input.organizationId,
@@ -109,7 +109,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
     }
 
     return {
-      store: new StoreResolver(result.store, this.ctx),
+      store: new StoreResolver(result.store, this.$ctx),
       userErrors: result.userErrors,
     };
   }
@@ -118,7 +118,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   async storeDelete(args: { input: StoreDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(StoreDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(StoreDeleteScript, {
       id: input.id,
       organizationId: input.organizationId,
     });
@@ -134,7 +134,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(LocaleSetDefaultInputSchema())
   async localeSetDefault(args: { input: LocaleSetDefaultInput }) {
     const store = await this.getCurrentStore();
-    const result = await this.ctx.kernel.runScript(LocaleSetDefaultScript, {
+    const result = await this.$ctx.kernel.runScript(LocaleSetDefaultScript, {
       storeId: store.id,
       locale: args.input.locale,
     });
@@ -150,7 +150,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(CurrencySetDefaultInputSchema())
   async currencySetDefault(args: { input: CurrencySetDefaultInput }) {
     const store = await this.getCurrentStore();
-    const result = await this.ctx.kernel.runScript(CurrencySetDefaultScript, {
+    const result = await this.$ctx.kernel.runScript(CurrencySetDefaultScript, {
       storeId: store.id,
       currency: args.input.currency,
     });
@@ -166,10 +166,10 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(ApiKeyCreateInputSchema())
   async apiKeyCreate(args: { input: ApiKeyCreateInput }) {
     const store = await this.getCurrentStore();
-    const result = await this.ctx.kernel.runScript(ApiKeyCreateScript, {
+    const result = await this.$ctx.kernel.runScript(ApiKeyCreateScript, {
       storeId: store.id,
       name: args.input.name,
-      createdById: this.ctx.user!.id,
+      createdById: this.$ctx.user!.id,
       dueDate: args.input.dueDate ? new Date(args.input.dueDate) : undefined,
     });
 
@@ -181,7 +181,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   @ZodResolver(ApiKeyRevokeInputSchema())
   async apiKeyRevoke(args: { input: ApiKeyRevokeInput }) {
-    const result = await this.ctx.kernel.runScript(ApiKeyRevokeScript, {
+    const result = await this.$ctx.kernel.runScript(ApiKeyRevokeScript, {
       id: args.input.id,
     });
 
@@ -193,7 +193,7 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   @ZodResolver(ApiKeyDeleteInputSchema())
   async apiKeyDelete(args: { input: ApiKeyDeleteInput }) {
-    const result = await this.ctx.kernel.runScript(ApiKeyDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(ApiKeyDeleteScript, {
       id: args.input.id,
     });
 

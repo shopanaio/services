@@ -9,11 +9,11 @@ import { OptionValueResolver } from "./OptionValueResolver.js";
  */
 export class OptionResolver extends InventoryType<string, ProductOption | null> {
   async $preload() {
-    return this.ctx.loaders.productOption.load(this.value);
+    return this.$ctx.loaders.productOption.load(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async slug() {
@@ -21,8 +21,8 @@ export class OptionResolver extends InventoryType<string, ProductOption | null> 
   }
 
   async name() {
-    const translation = await this.ctx.loaders.optionTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.optionTranslation.load(
+      this.$props
     );
     if (translation?.name) return translation.name;
     return (await this.$get("slug")) ?? "";
@@ -36,7 +36,7 @@ export class OptionResolver extends InventoryType<string, ProductOption | null> 
    * Returns option values for this option
    */
   async values() {
-    const ids = await this.ctx.loaders.optionValueIds.load(this.value);
-    return ids.map((id) => new OptionValueResolver(id, this.ctx));
+    const ids = await this.$ctx.loaders.optionValueIds.load(this.$props);
+    return ids.map((id) => new OptionValueResolver(id, this.$ctx));
   }
 }

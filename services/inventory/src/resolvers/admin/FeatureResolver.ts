@@ -8,11 +8,11 @@ import { FeatureValueResolver } from "./FeatureValueResolver.js";
  */
 export class FeatureResolver extends InventoryType<string, ProductFeature | null> {
   async $preload() {
-    return this.ctx.loaders.productFeature.load(this.value);
+    return this.$ctx.loaders.productFeature.load(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async slug() {
@@ -20,8 +20,8 @@ export class FeatureResolver extends InventoryType<string, ProductFeature | null
   }
 
   async name() {
-    const translation = await this.ctx.loaders.featureTranslation.load(
-      this.value
+    const translation = await this.$ctx.loaders.featureTranslation.load(
+      this.$props
     );
     if (translation?.name) return translation.name;
     return (await this.$get("slug")) ?? "";
@@ -31,7 +31,7 @@ export class FeatureResolver extends InventoryType<string, ProductFeature | null
    * Returns feature values for this feature
    */
   async values() {
-    const ids = await this.ctx.loaders.featureValueIds.load(this.value);
-    return ids.map((id) => new FeatureValueResolver(id, this.ctx));
+    const ids = await this.$ctx.loaders.featureValueIds.load(this.$props);
+    return ids.map((id) => new FeatureValueResolver(id, this.$ctx));
   }
 }

@@ -31,7 +31,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       endpointUrl?: string;
     };
   }) {
-    const { kernel } = this.ctx;
+    const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(BucketCreateScript, {
       bucketName: input.bucketName,
@@ -43,7 +43,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
 
     return {
       bucket: result.bucket
-        ? new BucketResolver(result.bucket.id, this.ctx)
+        ? new BucketResolver(result.bucket.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -61,7 +61,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       idempotencyKey?: string;
     };
   }) {
-    const { kernel } = this.ctx;
+    const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileUploadMultipartScript, {
       file: input.file,
@@ -70,7 +70,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     });
 
     return {
-      file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -87,7 +87,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       idempotencyKey?: string;
     };
   }) {
-    const { kernel } = this.ctx;
+    const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileUploadFromUrlScript, {
       sourceUrl: input.sourceUrl,
@@ -96,7 +96,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     });
 
     return {
-      file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -121,7 +121,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       idempotencyKey?: string;
     };
   }) {
-    const { kernel } = this.ctx;
+    const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileCreateExternalScript, {
       provider: input.provider,
@@ -138,7 +138,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     });
 
     return {
-      file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -166,7 +166,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       };
     }
 
-    const { kernel } = this.ctx;
+    const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileUpdateScript, {
       id: decoded.id,
@@ -176,7 +176,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     });
 
     return {
-      file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
+      file: result.file ? new FileResolver(result.file.id, this.$ctx) : null,
       userErrors: result.userErrors,
     };
   }
@@ -202,7 +202,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       };
     }
 
-    const { kernel } = this.ctx;
+    const { kernel } = this.$ctx;
 
     const result = await kernel.runScript(FileDeleteScript, {
       id: decoded.id,

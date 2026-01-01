@@ -11,11 +11,11 @@ import { StockConnectionResolver } from "./StockConnectionResolver.js";
 @SubgraphReference()
 export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
   async $preload() {
-    return await this.ctx.loaders.warehouse.load(this.value);
+    return await this.$ctx.loaders.warehouse.load(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async code() {
@@ -50,12 +50,12 @@ export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
         ...rest,
         where: {
           _and: [
-            { warehouseId: { _eq: this.value } },
+            { warehouseId: { _eq: this.$props } },
             ...(where ? [where] : []),
           ],
         },
       },
-      this.ctx
+      this.$ctx
     );
   }
 }

@@ -11,12 +11,12 @@ import {
  */
 export class StockConnectionResolver extends BaseConnectionResolver<StockRelayInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.ctx.kernel
+    return this.$ctx.kernel
       .getServices()
-      .repository.stock.getConnection(this.value);
+      .repository.stock.getConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new StockResolver(nodeId, this.ctx);
+    return new StockResolver(nodeId, this.$ctx);
   }
 }

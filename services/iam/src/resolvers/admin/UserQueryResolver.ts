@@ -14,10 +14,10 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
    * Get current authenticated user.
    */
   current() {
-    if (!this.ctx.currentUser) {
+    if (!this.$ctx.currentUser) {
       return null;
     }
-    return new UserResolver(this.ctx.currentUser.id, this.ctx);
+    return new UserResolver(this.$ctx.currentUser.id, this.$ctx);
   }
 
   /**
@@ -31,7 +31,7 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
   @ZodResolver(AuthorizeInputSchema())
   async authorize(args: { input: AuthorizeInput }) {
     const { input } = args;
-    const { currentUser, kernel } = this.ctx;
+    const { currentUser, kernel } = this.$ctx;
 
     if (!currentUser?.id) {
       return {

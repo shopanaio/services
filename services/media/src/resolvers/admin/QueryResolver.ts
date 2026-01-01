@@ -13,6 +13,6 @@ export class QueryResolver extends MediaType<Record<string, never>> {
    * Returns namespace resolver that handles all media queries.
    */
   mediaQuery() {
-    return new MediaQueryResolver({}, this.ctx);
+    return new MediaQueryResolver({}, this.$ctx);
   }
 }

@@ -24,7 +24,7 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
    * Returns namespace resolver that handles all inventory queries.
    */
   inventoryQuery() {
-    return new InventoryQueryResolver({}, this.ctx);
+    return new InventoryQueryResolver({}, this.$ctx);
   }
 }
 
@@ -39,14 +39,14 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Get a node by ID (for Relay compatibility).
    */
   node(args: { id: string }) {
-    return new ProductResolver(args.id, this.ctx);
+    return new ProductResolver(args.id, this.$ctx);
   }
 
   /**
    * Get multiple nodes by IDs (for Relay compatibility).
    */
   nodes(args: { ids: string[] }) {
-    return args.ids.map((id) => new ProductResolver(id, this.ctx));
+    return args.ids.map((id) => new ProductResolver(id, this.$ctx));
   }
 
   // ---- Product Queries ----
@@ -55,14 +55,14 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Get a single product by ID.
    */
   product(args: { id: string }) {
-    return new ProductResolver(args.id, this.ctx);
+    return new ProductResolver(args.id, this.$ctx);
   }
 
   /**
    * Get a paginated list of products.
    */
   products(args: ProductConnectionInput) {
-    return new ProductConnectionResolver(args, this.ctx);
+    return new ProductConnectionResolver(args, this.$ctx);
   }
 
   // ---- Variant Queries ----
@@ -71,14 +71,14 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Get a single variant by ID.
    */
   variant(args: { id: string }) {
-    return new VariantResolver(args.id, this.ctx);
+    return new VariantResolver(args.id, this.$ctx);
   }
 
   /**
    * Get a paginated list of variants.
    */
   async variants(args: VariantRelayInput) {
-    const services = this.ctx.kernel.getServices();
+    const services = this.$ctx.kernel.getServices();
     const first = args.first ?? 10;
 
     const variants = await services.repository.variant.getMany({
@@ -89,7 +89,7 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
     const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
 
     const edges = resultVariants.map((variant) => ({
-      node: new VariantResolver(variant.id, this.ctx),
+      node: new VariantResolver(variant.id, this.$ctx),
       cursor: Buffer.from(variant.id).toString("base64"),
     }));
 
@@ -111,13 +111,13 @@ export class InventoryQueryResolver extends InventoryType<Record<string, never>>
    * Get a single warehouse by ID.
    */
   warehouse(args: { id: string }) {
-    return new WarehouseResolver(args.id, this.ctx);
+    return new WarehouseResolver(args.id, this.$ctx);
   }
 
   /**
    * Get a paginated list of warehouses.
    */
   warehouses(args: WarehouseConnectionResolverInput) {
-    return new WarehouseConnectionResolver(args, this.ctx);
+    return new WarehouseConnectionResolver(args, this.$ctx);
   }
 }

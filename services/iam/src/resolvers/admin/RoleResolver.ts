@@ -19,16 +19,16 @@ interface RoleData extends Role {
 export class RoleResolver extends IAMType<RoleInput, RoleData> {
   @Cache({
     cacheName: "iam:role",
-    key: ({ value }: RoleResolver) =>
-      `${value.organizationId}:${value.domain}:${value.name}`,
+    key: ({ $props }: RoleResolver) =>
+      `${$props.organizationId}:${$props.domain}:${$props.name}`,
   })
   async $preload(): Promise<RoleData> {
-    const { organizationId, domain, name } = this.value;
+    const { organizationId, domain, name } = this.$props;
 
     // Load role from database and permissions from casbin in parallel
     const [roleData, permissions] = await Promise.all([
-      this.ctx.loaders.role.load({ organizationId, domain, name }),
-      this.ctx.loaders.rolePermissions.load({ organizationId, domain, name }),
+      this.$ctx.loaders.role.load({ organizationId, domain, name }),
+      this.$ctx.loaders.rolePermissions.load({ organizationId, domain, name }),
     ]);
 
     if (!roleData) {
@@ -48,15 +48,15 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
   }
 
   domain() {
-    return this.value.domain;
+    return this.$props.domain;
   }
 
   name() {
-    return this.value.name;
+    return this.$props.name;
   }
 
   async displayName() {
-    return (await this.$data).displayName ?? this.value.name;
+    return (await this.$data).displayName ?? this.$props.name;
   }
 
   async description() {

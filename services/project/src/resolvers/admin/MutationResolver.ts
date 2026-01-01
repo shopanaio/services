@@ -13,6 +13,6 @@ export class MutationResolver extends BaseResolver<Record<string, never>> {
    * Returns namespace resolver that handles all store mutations.
    */
   storeMutation() {
-    return new StoreMutationResolver({}, this.ctx);
+    return new StoreMutationResolver({}, this.$ctx);
   }
 }

@@ -19,13 +19,13 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   @Cache({
     cacheName: "iam:member",
     // Cache by unique constraint: organizationId + userId + domain
-    key: ({ value }: MemberResolver) =>
-      `${value.organizationId}:${value.userId}:${value.domain}`,
+    key: ({ $props }: MemberResolver) =>
+      `${$props.organizationId}:${$props.userId}:${$props.domain}`,
   })
   async $preload(): Promise<UserRole> {
-    const { organizationId, userId, domain } = this.value;
+    const { organizationId, userId, domain } = this.$props;
 
-    const userRoleData = await this.ctx.loaders.member.load({
+    const userRoleData = await this.$ctx.loaders.member.load({
       organizationId,
       userId,
       domain,
@@ -45,11 +45,11 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   }
 
   user(): UserResolver {
-    return new UserResolver(this.value.userId, this.ctx);
+    return new UserResolver(this.$props.userId, this.$ctx);
   }
 
   role() {
-    return this.value.role;
+    return this.$props.role;
   }
 
   async grantedAt() {
@@ -58,7 +58,7 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
 
   async grantedBy(): Promise<UserResolver | null> {
     const { grantedBy } = await this.$data;
-    return grantedBy ? new UserResolver(grantedBy, this.ctx) : null;
+    return grantedBy ? new UserResolver(grantedBy, this.$ctx) : null;
   }
 
   /**
@@ -67,14 +67,14 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
    * Store-level members always return false.
    */
   async isOwner(): Promise<boolean> {
-    const { organizationId, userId, domain } = this.value;
+    const { organizationId, userId, domain } = this.$props;
 
     // Only org-level members can be owners
     if (domain !== ORG_DOMAIN) {
       return false;
     }
 
-    return this.ctx.kernel.repository.organization.isOwner(
+    return this.$ctx.kernel.repository.organization.isOwner(
       organizationId,
       userId
     );

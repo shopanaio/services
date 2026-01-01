@@ -13,6 +13,6 @@ export class MutationResolver extends MediaType<Record<string, never>> {
    * Returns namespace resolver that handles all media mutations.
    */
   mediaMutation() {
-    return new MediaMutationResolver({}, this.ctx);
+    return new MediaMutationResolver({}, this.$ctx);
   }
 }

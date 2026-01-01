@@ -16,7 +16,7 @@ export class MutationResolver extends IAMType<Record<string, never>> {
    * Returns namespace resolver that handles signUp, signIn, signOut, tokenRefresh.
    */
   authMutation() {
-    return new AuthMutationResolver({}, this.ctx);
+    return new AuthMutationResolver({}, this.$ctx);
   }
 
   /**
@@ -24,7 +24,7 @@ export class MutationResolver extends IAMType<Record<string, never>> {
    * Returns namespace resolver that handles user profile, email, password updates.
    */
   userMutation() {
-    return new UserMutationResolver({}, this.ctx);
+    return new UserMutationResolver({}, this.$ctx);
   }
 
   /**
@@ -32,7 +32,7 @@ export class MutationResolver extends IAMType<Record<string, never>> {
    * Returns namespace resolver that handles role CRUD operations.
    */
   roleMutation() {
-    return new RoleMutationResolver({}, this.ctx);
+    return new RoleMutationResolver({}, this.$ctx);
   }
 
   /**
@@ -40,6 +40,6 @@ export class MutationResolver extends IAMType<Record<string, never>> {
    * Returns namespace resolver that handles organization and member operations.
    */
   organizationMutation() {
-    return new OrganizationMutationResolver({}, this.ctx);
+    return new OrganizationMutationResolver({}, this.$ctx);
   }
 }

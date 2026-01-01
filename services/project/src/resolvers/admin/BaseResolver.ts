@@ -52,6 +52,6 @@ export abstract class BaseResolver<TValue, TData = unknown>
 
   // @ts-expect-error
   protected getCache() {
-    return this.ctx.kernel.cache;
+    return this.$ctx.kernel.cache;
   }
 }

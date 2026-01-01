@@ -103,7 +103,7 @@ export class MutationResolver extends InventoryType<Record<string, never>> {
    * Returns namespace resolver that handles all inventory mutations.
    */
   inventoryMutation() {
-    return new InventoryMutationResolver({}, this.ctx);
+    return new InventoryMutationResolver({}, this.$ctx);
   }
 }
 
@@ -118,11 +118,11 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
    * Create a new product.
    */
   async productCreate() {
-    const result = await this.ctx.kernel.runScript(ProductCreateScript, {});
+    const result = await this.$ctx.kernel.runScript(ProductCreateScript, {});
 
     return {
       product: result.product
-        ? new ProductResolver(result.product.id, this.ctx)
+        ? new ProductResolver(result.product.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -135,7 +135,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productUpdate(args: { input: ProductUpdateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(ProductUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(ProductUpdateScript, {
       id: input.id,
       handle: input.handle ?? undefined,
       title: input.title ?? undefined,
@@ -153,7 +153,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       product: result.product
-        ? new ProductResolver(result.product.id, this.ctx)
+        ? new ProductResolver(result.product.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -166,7 +166,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productDelete(args: { input: ProductDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(ProductDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(ProductDeleteScript, {
       id: input.id,
       permanent: input.permanent ?? undefined,
     });
@@ -184,13 +184,13 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productPublish(args: { input: ProductPublishInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(ProductPublishScript, {
+    const result = await this.$ctx.kernel.runScript(ProductPublishScript, {
       id: input.id,
     });
 
     return {
       product: result.product
-        ? new ProductResolver(result.product.id, this.ctx)
+        ? new ProductResolver(result.product.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -203,13 +203,13 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productUnpublish(args: { input: ProductUnpublishInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(ProductUnpublishScript, {
+    const result = await this.$ctx.kernel.runScript(ProductUnpublishScript, {
       id: input.id,
     });
 
     return {
       product: result.product
-        ? new ProductResolver(result.product.id, this.ctx)
+        ? new ProductResolver(result.product.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -224,7 +224,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantCreate(args: { input: VariantCreateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantCreateScript, {
+    const result = await this.$ctx.kernel.runScript(VariantCreateScript, {
       productId: input.productId,
       options: input.variant.options.map((opt) => ({
         optionId: opt.optionId,
@@ -237,7 +237,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       variant: result.variant
-        ? new VariantResolver(result.variant.id, this.ctx)
+        ? new VariantResolver(result.variant.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -250,7 +250,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantDelete(args: { input: VariantDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(VariantDeleteScript, {
       id: input.id,
       permanent: Boolean(input.permanent),
     });
@@ -268,14 +268,14 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetSku(args: { input: VariantSetSkuInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantSetSkuScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetSkuScript, {
       variantId: input.variantId,
       sku: input.sku,
     });
 
     return {
       variant: result.variant
-        ? new VariantResolver(result.variant.id, this.ctx)
+        ? new VariantResolver(result.variant.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -288,7 +288,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetDimensions(args: { input: VariantSetDimensionsInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantSetDimensionsScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetDimensionsScript, {
       variantId: input.variantId,
       dimensions: {
         width: input.dimensions.width,
@@ -299,7 +299,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       variant: result.variant
-        ? new VariantResolver(result.variant.id, this.ctx)
+        ? new VariantResolver(result.variant.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -312,7 +312,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetWeight(args: { input: VariantSetWeightInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantSetWeightScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetWeightScript, {
       variantId: input.variantId,
       weight: {
         value: input.weight.value,
@@ -321,7 +321,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       variant: result.variant
-        ? new VariantResolver(result.variant.id, this.ctx)
+        ? new VariantResolver(result.variant.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -334,7 +334,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetPricing(args: { input: VariantSetPricingInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantSetPricingScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetPricingScript, {
       variantId: input.variantId,
       currency: input.currency,
       amountMinor: Number(input.amountMinor),
@@ -345,7 +345,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       variant: result.price
-        ? new VariantResolver(input.variantId, this.ctx)
+        ? new VariantResolver(input.variantId, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -358,7 +358,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetCost(args: { input: VariantSetCostInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantSetCostScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetCostScript, {
       variantId: input.variantId,
       currency: input.currency,
       unitCostMinor: Number(input.unitCostMinor),
@@ -366,7 +366,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       variant: result.cost
-        ? new VariantResolver(input.variantId, this.ctx)
+        ? new VariantResolver(input.variantId, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -379,7 +379,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async variantSetStock(args: { input: VariantSetStockInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(VariantSetStockScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetStockScript, {
       variantId: input.variantId,
       warehouseId: input.warehouseId,
       quantity: input.quantity,
@@ -387,10 +387,10 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       stock: result.stock
-        ? new StockResolver(result.stock.id, this.ctx)
+        ? new StockResolver(result.stock.id, this.$ctx)
         : null,
       variant: result.stock
-        ? new VariantResolver(input.variantId, this.ctx)
+        ? new VariantResolver(input.variantId, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -408,14 +408,14 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       decodeGlobalIdByType(fileId, GlobalIdEntity.File)
     );
 
-    const result = await this.ctx.kernel.runScript(VariantSetMediaScript, {
+    const result = await this.$ctx.kernel.runScript(VariantSetMediaScript, {
       variantId: input.variantId,
       fileIds,
     });
 
     return {
       variant: result.variant
-        ? new VariantResolver(result.variant.id, this.ctx)
+        ? new VariantResolver(result.variant.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -430,7 +430,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async warehouseCreate(args: { input: WarehouseCreateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(WarehouseCreateScript, {
+    const result = await this.$ctx.kernel.runScript(WarehouseCreateScript, {
       code: input.code,
       name: input.name,
       isDefault: input.isDefault ?? undefined,
@@ -438,7 +438,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       warehouse: result.warehouse
-        ? new WarehouseResolver(result.warehouse.id, this.ctx)
+        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -451,7 +451,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async warehouseUpdate(args: { input: WarehouseUpdateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(WarehouseUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(WarehouseUpdateScript, {
       id: input.id,
       code: input.code ?? undefined,
       name: input.name ?? undefined,
@@ -460,7 +460,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       warehouse: result.warehouse
-        ? new WarehouseResolver(result.warehouse.id, this.ctx)
+        ? new WarehouseResolver(result.warehouse.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -473,7 +473,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async warehouseDelete(args: { input: WarehouseDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(WarehouseDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(WarehouseDeleteScript, {
       id: input.id,
     });
 
@@ -505,7 +505,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
       };
     }
 
-    const result = await this.ctx.kernel.runScript(OptionCreateScript, {
+    const result = await this.$ctx.kernel.runScript(OptionCreateScript, {
       productId: input.productId,
       slug: input.slug,
       name: input.name,
@@ -527,7 +527,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       option: result.option
-        ? new OptionResolver(result.option.id, this.ctx)
+        ? new OptionResolver(result.option.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -540,7 +540,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productOptionUpdate(args: { input: ProductOptionUpdateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(OptionUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(OptionUpdateScript, {
       id: input.id,
       slug: input.slug ?? undefined,
       name: input.name ?? undefined,
@@ -584,7 +584,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       option: result.option
-        ? new OptionResolver(result.option.id, this.ctx)
+        ? new OptionResolver(result.option.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -597,7 +597,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productOptionDelete(args: { input: ProductOptionDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(OptionDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(OptionDeleteScript, {
       id: input.id,
     });
 
@@ -616,7 +616,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productFeatureCreate(args: { input: ProductFeatureCreateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(FeatureCreateScript, {
+    const result = await this.$ctx.kernel.runScript(FeatureCreateScript, {
       productId: input.productId,
       slug: input.slug,
       name: input.name,
@@ -628,7 +628,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       feature: result.feature
-        ? new FeatureResolver(result.feature.id, this.ctx)
+        ? new FeatureResolver(result.feature.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -641,7 +641,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productFeatureUpdate(args: { input: ProductFeatureUpdateInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(FeatureUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(FeatureUpdateScript, {
       id: input.id,
       slug: input.slug ?? undefined,
       name: input.name ?? undefined,
@@ -663,7 +663,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
 
     return {
       feature: result.feature
-        ? new FeatureResolver(result.feature.id, this.ctx)
+        ? new FeatureResolver(result.feature.id, this.$ctx)
         : null,
       userErrors: result.userErrors,
     };
@@ -676,7 +676,7 @@ export class InventoryMutationResolver extends InventoryType<Record<string, neve
   async productFeatureDelete(args: { input: ProductFeatureDeleteInput }) {
     const { input } = args;
 
-    const result = await this.ctx.kernel.runScript(FeatureDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(FeatureDeleteScript, {
       id: input.id,
     });
 

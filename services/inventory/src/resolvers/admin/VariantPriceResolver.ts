@@ -11,11 +11,11 @@ export class VariantPriceResolver extends InventoryType<
   ItemPricing | null
 > {
   async $preload() {
-    return this.ctx.loaders.variantPriceById.load(this.value);
+    return this.$ctx.loaders.variantPriceById.load(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async currency(): Promise<CurrencyCode | null> {

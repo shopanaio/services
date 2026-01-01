@@ -18,11 +18,11 @@ export { BaseResolver };
 })
 export class StoreResolver extends BaseResolver<Store, Store> {
   async $preload() {
-    return this.value;
+    return this.$props;
   }
 
   id() {
-    return this.value.id;
+    return this.$props.id;
   }
 
   async name() {
@@ -39,7 +39,7 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   async membership() {
     return {
       __typename: "Membership" as const,
-      domain: `store:${this.value.id}`,
+      domain: `store:${this.$props.id}`,
       organizationId: await this.$get("organizationId"),
     };
   }
@@ -94,9 +94,9 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     key: (resolver: StoreResolver) => resolver.value.id,
   })
   async locales(): Promise<LocaleCode[]> {
-    const locales = await this.ctx.kernel
+    const locales = await this.$ctx.kernel
       .getServices()
-      .repository.locale.findByStoreId(this.value.id);
+      .repository.locale.findByStoreId(this.$props.id);
     return locales?.map((l) => l.code as LocaleCode) ?? [];
   }
 
@@ -105,9 +105,9 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     key: (resolver: StoreResolver) => resolver.value.id,
   })
   async currencies(): Promise<CurrencyCode[]> {
-    const currencies = await this.ctx.kernel
+    const currencies = await this.$ctx.kernel
       .getServices()
-      .repository.currency.findByStoreId(this.value.id);
+      .repository.currency.findByStoreId(this.$props.id);
     return currencies?.map((c) => c.code as CurrencyCode) ?? [];
   }
 }

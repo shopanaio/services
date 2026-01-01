@@ -14,26 +14,26 @@ export class OrganizationResolver extends IAMType<string, Organization> {
     key: (resolver: OrganizationResolver) => resolver.value,
   })
   async $preload() {
-    const org = await this.ctx.kernel.repository.organization.findById(
-      this.value
+    const org = await this.$ctx.kernel.repository.organization.findById(
+      this.$props
     );
     if (!org) {
-      throw new Error(`Organization not found: ${this.value}`);
+      throw new Error(`Organization not found: ${this.$props}`);
     }
     return org;
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   membership() {
     return new MembershipResolver(
       {
         domain: ORG_DOMAIN,
-        organizationId: this.value,
+        organizationId: this.$props,
       },
-      this.ctx
+      this.$ctx
     );
   }
 

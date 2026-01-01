@@ -15,13 +15,13 @@ export interface VariantConnectionInput extends VariantRelayInput {
  */
 export class VariantConnectionResolver extends BaseConnectionResolver<VariantConnectionInput> {
   async $preload(): Promise<ConnectionData> {
-    const { productId, ...args } = this.value;
-    return this.ctx.kernel
+    const { productId, ...args } = this.$props;
+    return this.$ctx.kernel
       .getServices()
       .repository.variant.getConnectionByProductId(productId, args);
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new VariantResolver(nodeId, this.ctx);
+    return new VariantResolver(nodeId, this.$ctx);
   }
 }

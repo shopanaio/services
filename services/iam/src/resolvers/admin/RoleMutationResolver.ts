@@ -26,7 +26,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleCreateInputSchema())
   async roleCreate(args: { input: RoleCreateInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(RoleCreateScript, {
+    const result = await this.$ctx.kernel.runScript(RoleCreateScript, {
       organizationId: input.organizationId,
       domain: input.domain,
       name: input.name,
@@ -43,7 +43,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
               domain: result.role.domain,
               name: result.role.name,
             },
-            this.ctx
+            this.$ctx
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -60,7 +60,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleUpdateInputSchema())
   async roleUpdate(args: { input: RoleUpdateInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(RoleUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(RoleUpdateScript, {
       organizationId: input.organizationId,
       id: input.id,
       displayName: input.displayName ?? undefined,
@@ -71,7 +71,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
     // Invalidate role cache after update
     if (result.role) {
       const cacheKey = `iam:role:${result.role.organizationId}:${result.role.domain}:${result.role.name}`;
-      await (this.ctx.kernel.cache as any).del(cacheKey);
+      await (this.$ctx.kernel.cache as any).del(cacheKey);
     }
 
     return {
@@ -82,7 +82,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
               domain: result.role.domain,
               name: result.role.name,
             },
-            this.ctx
+            this.$ctx
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -99,7 +99,7 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleDeleteInputSchema())
   async roleDelete(args: { input: RoleDeleteInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(RoleDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(RoleDeleteScript, {
       organizationId: input.organizationId,
       id: input.id,
     });

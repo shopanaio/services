@@ -31,13 +31,13 @@ export interface ConnectionData {
  * @example
  * class WarehouseConnectionResolver extends BaseConnectionResolver<InventoryQueryWarehousesArgs> {
  *   async $preload(): Promise<ConnectionData> {
- *     return this.ctx.kernel
+ *     return this.$ctx.kernel
  *       .getServices()
- *       .repository.warehouse.getConnection(this.value);
+ *       .repository.warehouse.getConnection(this.$props);
  *   }
  *
  *   protected createNodeResolver(nodeId: string) {
- *     return new WarehouseResolver(nodeId, this.ctx);
+ *     return new WarehouseResolver(nodeId, this.$ctx);
  *   }
  * }
  */

@@ -38,14 +38,14 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(OrganizationCreateInputSchema())
   async organizationCreate(args: { input: OrganizationCreateInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(
+    const result = await this.$ctx.kernel.runScript(
       OrganizationCreateScript,
       input
     );
 
     return {
       organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.ctx)
+        ? new OrganizationResolver(result.organization.id, this.$ctx)
         : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
@@ -61,7 +61,7 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(OrganizationUpdateScript, {
+    const result = await this.$ctx.kernel.runScript(OrganizationUpdateScript, {
       organizationId: input.id,
       name: input.name ?? undefined,
       displayName: input.displayName ?? undefined,
@@ -69,7 +69,7 @@ export class OrganizationMutationResolver extends IAMType<
 
     return {
       organization: result.organization
-        ? new OrganizationResolver(result.organization.id, this.ctx)
+        ? new OrganizationResolver(result.organization.id, this.$ctx)
         : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
@@ -85,7 +85,7 @@ export class OrganizationMutationResolver extends IAMType<
    */
   async organizationDelete(args: { id: string }) {
     const { id } = args;
-    const result = await this.ctx.kernel.runScript(OrganizationDeleteScript, {
+    const result = await this.$ctx.kernel.runScript(OrganizationDeleteScript, {
       organizationId: id,
     });
 
@@ -107,7 +107,7 @@ export class OrganizationMutationResolver extends IAMType<
     input: { organizationId: string; newOwnerId: string };
   }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(OwnershipTransferScript, {
+    const result = await this.$ctx.kernel.runScript(OwnershipTransferScript, {
       organizationId: input.organizationId,
       newOwnerId: input.newOwnerId,
     });
@@ -128,7 +128,7 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberInviteInputSchema())
   async memberInvite(args: { input: MemberInviteInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(MemberInviteScript, {
+    const result = await this.$ctx.kernel.runScript(MemberInviteScript, {
       organizationId: input.organizationId,
       email: input.email,
       roles: input.roles,
@@ -143,7 +143,7 @@ export class OrganizationMutationResolver extends IAMType<
               domain: result.member.domain,
               organizationId: result.member.organizationId,
             },
-            this.ctx
+            this.$ctx
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -162,7 +162,7 @@ export class OrganizationMutationResolver extends IAMType<
     input: { organizationId: string; userId: string };
   }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(MemberRemoveScript, {
+    const result = await this.$ctx.kernel.runScript(MemberRemoveScript, {
       organizationId: input.organizationId,
       userId: input.userId,
     });
@@ -184,7 +184,7 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberRoleChangeInputSchema())
   async memberRoleChange(args: { input: MemberRoleChangeInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(MemberRoleChangeScript, {
+    const result = await this.$ctx.kernel.runScript(MemberRoleChangeScript, {
       organizationId: input.organizationId,
       userId: input.userId,
       domain: input.domain,
@@ -200,7 +200,7 @@ export class OrganizationMutationResolver extends IAMType<
               domain: result.member.domain,
               organizationId: result.member.organizationId,
             },
-            this.ctx
+            this.$ctx
           )
         : null,
       userErrors: result.userErrors.map((e) => ({
@@ -217,7 +217,7 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberAccessRemoveInputSchema())
   async memberAccessRemove(args: { input: MemberAccessRemoveInput }) {
     const { input } = args;
-    const result = await this.ctx.kernel.runScript(MemberAccessRemoveScript, {
+    const result = await this.$ctx.kernel.runScript(MemberAccessRemoveScript, {
       organizationId: input.organizationId,
       userId: input.userId,
       domain: input.domain,

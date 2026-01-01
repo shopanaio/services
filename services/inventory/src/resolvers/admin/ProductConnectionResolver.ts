@@ -13,12 +13,12 @@ export type ProductConnectionInput = ProductRelayInput;
  */
 export class ProductConnectionResolver extends BaseConnectionResolver<ProductRelayInput> {
   async $preload(): Promise<ConnectionData> {
-    return this.ctx.kernel
+    return this.$ctx.kernel
       .getServices()
-      .repository.product.getConnection(this.value);
+      .repository.product.getConnection(this.$props);
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new ProductResolver(nodeId, this.ctx);
+    return new ProductResolver(nodeId, this.$ctx);
   }
 }

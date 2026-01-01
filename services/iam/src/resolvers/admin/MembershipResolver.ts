@@ -23,37 +23,37 @@ export class MembershipResolver extends IAMType<
   MembershipInput
 > {
   async $preload() {
-    return this.value;
+    return this.$props;
   }
 
   domain() {
-    return this.value.domain;
+    return this.$props.domain;
   }
 
   organizationId() {
-    return this.value.organizationId;
+    return this.$props.organizationId;
   }
 
   async roles(): Promise<RoleResolver[]> {
-    const { organizationId, domain } = this.value;
+    const { organizationId, domain } = this.$props;
 
     // Get roles from database via DataLoader
-    const roles = await this.ctx.loaders.rolesByDomain.load({
+    const roles = await this.$ctx.loaders.rolesByDomain.load({
       organizationId,
       domain,
     });
 
     return roles.map(
       (role) =>
-        new RoleResolver({ organizationId, domain, name: role.name }, this.ctx)
+        new RoleResolver({ organizationId, domain, name: role.name }, this.$ctx)
     );
   }
 
   async members(): Promise<MemberResolver[]> {
-    const { organizationId, domain } = this.value;
+    const { organizationId, domain } = this.$props;
 
     // Get members for this domain using casbin
-    const memberData = await this.ctx.kernel.repository.casbin.getMembers({
+    const memberData = await this.$ctx.kernel.repository.casbin.getMembers({
       organizationId,
       domain,
     });
@@ -68,7 +68,7 @@ export class MembershipResolver extends IAMType<
             domain,
             organizationId,
           },
-          this.ctx
+          this.$ctx
         )
     );
   }

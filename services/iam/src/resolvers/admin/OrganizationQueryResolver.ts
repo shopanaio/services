@@ -10,6 +10,6 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
    * Get organization by ID.
    */
   organization(args: { id: string }) {
-    return new OrganizationResolver(args.id, this.ctx);
+    return new OrganizationResolver(args.id, this.$ctx);
   }
 }

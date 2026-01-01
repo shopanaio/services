@@ -9,13 +9,13 @@ import { VariantResolver } from "./VariantResolver.js";
  */
 export class StockResolver extends InventoryType<string, WarehouseStock | null> {
   async $preload() {
-    return await this.ctx.kernel
+    return await this.$ctx.kernel
       .getServices()
-      .repository.stock.findById(this.value);
+      .repository.stock.findById(this.$props);
   }
 
   id() {
-    return this.value;
+    return this.$props;
   }
 
   async warehouseId() {
@@ -28,12 +28,12 @@ export class StockResolver extends InventoryType<string, WarehouseStock | null> 
 
   async warehouse() {
     const warehouseId = await this.$get("warehouseId");
-    return warehouseId ? new WarehouseResolver(warehouseId, this.ctx) : null;
+    return warehouseId ? new WarehouseResolver(warehouseId, this.$ctx) : null;
   }
 
   async variant() {
     const variantId = await this.$get("variantId");
-    return variantId ? new VariantResolver(variantId, this.ctx) : null;
+    return variantId ? new VariantResolver(variantId, this.$ctx) : null;
   }
 
   async quantityOnHand() {
