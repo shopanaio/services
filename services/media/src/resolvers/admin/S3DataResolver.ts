@@ -8,7 +8,7 @@ import type { S3Object } from "../../repositories/models/index.js";
 export class S3DataResolver extends MediaType<string, S3Object | null> {
   @Cache({
     cacheName: "media:s3object",
-    key: (resolver: S3DataResolver) => resolver.value,
+    key: (resolver: S3DataResolver) => resolver.$props,
   })
   async $preload() {
     return this.$ctx.loaders.s3Object.load(this.$props);

@@ -24,8 +24,8 @@ export { Cache };
  * @TypePolicy<ProductResolver>({
  *   resource: "product",
  *   action: "read",
- *   organizationId: (resolver) => resolver.ctx.store?.organizationId,
- *   domain: (resolver) => `store:${resolver.ctx.store?.id}`,
+ *   organizationId: (resolver) => resolver.$ctx.store?.organizationId,
+ *   domain: (resolver) => `store:${resolver.$ctx.store?.id}`,
  *   onDeny: "null",
  * })
  * class ProductResolver extends InventoryType<string, Product | null> {

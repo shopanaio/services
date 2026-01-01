@@ -25,7 +25,7 @@ export { Cache };
  * @TypePolicy<OrganizationResolver>({
  *   resource: "organization",
  *   action: "read",
- *   organizationId: (resolver) => resolver.value,
+ *   organizationId: (resolver) => resolver.$props,
  *   domain: "org",
  *   onDeny: "null",
  * })

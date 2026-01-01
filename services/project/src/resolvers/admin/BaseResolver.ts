@@ -25,8 +25,8 @@ export { Cache };
  * @TypePolicy<StoreResolver>({
  *   resource: "store",
  *   action: "read",
- *   organizationId: (resolver) => resolver.ctx.store?.organizationId ?? null,
- *   domain: (resolver) => `store:${resolver.value}`,
+ *   organizationId: (resolver) => resolver.$ctx.store?.organizationId ?? null,
+ *   domain: (resolver) => `store:${resolver.$props}`,
  *   onDeny: "null",
  * })
  * class StoreResolver extends BaseResolver<string, Store | null> {

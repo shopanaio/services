@@ -11,7 +11,7 @@ import { MembershipResolver } from "./MembershipResolver.js";
 export class OrganizationResolver extends IAMType<string, Organization> {
   @Cache({
     cacheName: "iam:org",
-    key: (resolver: OrganizationResolver) => resolver.value,
+    key: (resolver: OrganizationResolver) => resolver.$props,
   })
   async $preload() {
     const org = await this.$ctx.kernel.repository.organization.findById(

@@ -7,7 +7,7 @@ import type { ExternalMedia } from "../../repositories/models/index.js";
 export class ExternalDataResolver extends MediaType<string, ExternalMedia | null> {
   @Cache({
     cacheName: "media:external",
-    key: (resolver: ExternalDataResolver) => resolver.value,
+    key: (resolver: ExternalDataResolver) => resolver.$props,
   })
   async $preload() {
     return this.$ctx.loaders.externalMedia.load(this.$props);

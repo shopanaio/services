@@ -12,7 +12,7 @@ import type { File } from "../../repositories/models/index.js";
 export class FileResolver extends MediaType<string, File | null> {
   // @Cache({
   //   cacheName: "media:file",
-  //   key: (resolver: FileResolver) => resolver.value,
+  //   key: (resolver: FileResolver) => resolver.$props,
   // })
   async $preload() {
     return this.$ctx.loaders.file.load(this.$props);

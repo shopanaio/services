@@ -10,8 +10,8 @@ export { BaseResolver };
  * Accepts pre-loaded StoreRecord from database
  */
 @TypePolicy<StoreResolver>({
-  organizationId: (resolver) => resolver.value.organizationId,
-  domain: (resolver) => `store:${resolver.value.id}`,
+  organizationId: (resolver) => resolver.$props.organizationId,
+  domain: (resolver) => `store:${resolver.$props.id}`,
   resource: "store.profile",
   action: "read",
   onDeny: "null",
@@ -91,7 +91,7 @@ export class StoreResolver extends BaseResolver<Store, Store> {
 
   @Cache({
     cacheName: "store:locales",
-    key: (resolver: StoreResolver) => resolver.value.id,
+    key: (resolver: StoreResolver) => resolver.$props.id,
   })
   async locales(): Promise<LocaleCode[]> {
     const locales = await this.$ctx.kernel
@@ -102,7 +102,7 @@ export class StoreResolver extends BaseResolver<Store, Store> {
 
   @Cache({
     cacheName: "store:currencies",
-    key: (resolver: StoreResolver) => resolver.value.id,
+    key: (resolver: StoreResolver) => resolver.$props.id,
   })
   async currencies(): Promise<CurrencyCode[]> {
     const currencies = await this.$ctx.kernel

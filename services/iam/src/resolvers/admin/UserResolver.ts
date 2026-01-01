@@ -10,7 +10,7 @@ import { IAMType, Cache } from "./IAMType.js";
 export class UserResolver extends IAMType<string, User | null> {
   @Cache({
     cacheName: "iam:user",
-    key: (resolver: UserResolver) => resolver.value,
+    key: (resolver: UserResolver) => resolver.$props,
   })
   async $preload() {
     return this.$ctx.kernel.repository.user.findById(this.$props);

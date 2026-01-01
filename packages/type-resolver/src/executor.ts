@@ -114,7 +114,7 @@ export class Executor<TContext = unknown> {
       Type,
       value,
       query,
-      ctx: (instance as any).ctx as TContext,
+      ctx: (instance as any).$ctx as TContext,
       instance,
     };
 
