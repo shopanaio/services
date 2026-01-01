@@ -50,7 +50,7 @@ import { getNextAttributes } from '@modules/products/utils/variants/getAttribute
 import { finalVariantsSort } from '@modules/products/utils/variants/mapVariants';
 import { ProductVariantsTable } from '@modules/products/components/variants/TableV2';
 import { IProductGroupFormValues } from '@modules/products/components/groups/schema';
-import { Tabs } from 'antd';
+import { Segmented } from 'antd';
 import { Flex } from '@components/utility/Flex';
 import {
   DisabledVariantFields,
@@ -61,6 +61,11 @@ import {
   getApiRichTextJSON,
 } from '@src/entity/Content/description';
 import { ApiUpdateProductInput } from '@src/graphql';
+import { ProductInfoCard } from '@modules/products/components/ProductInfoCard';
+import { EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { css } from '@emotion/react';
+
+type ViewMode = 'view' | 'edit';
 
 const ProductFormView = () => {
   const intl = useIntl();
@@ -69,6 +74,7 @@ const ProductFormView = () => {
     throw new Error('Entity id is required');
   }
 
+  const [viewMode, setViewMode] = useState<ViewMode>('view');
   const [activeTab, setActiveTab] = useState<
     'general' | 'options' | 'components'
   >('general');
@@ -617,28 +623,45 @@ const ProductFormView = () => {
     }
   };
 
-  return (
-    <FormProvider {...methods}>
-      <ModalLayout
-        name="product"
-        errors={errors}
-        headerProps={{
-          title:
-            product.title ||
-            intl.formatMessage({
-              id: t('products.form.editTitle'),
-            }),
-          onSubmitAndExit: () => {
-            shouldClose.current = true;
-            onSubmit();
-          },
-          submitButtonProps: {
-            disabled: !isDirty,
-            onClick: onSubmit,
-            loading,
-          },
-        }}
-      >
+  const handleEditSection = (_section: string) => {
+    setViewMode('edit');
+  };
+
+  const renderViewModeToggle = () => (
+    <Segmented
+      size="small"
+      value={viewMode}
+      onChange={(value) => setViewMode(value as ViewMode)}
+      options={[
+        {
+          value: 'view',
+          icon: <EyeOutlined />,
+          label: 'View',
+        },
+        {
+          value: 'edit',
+          icon: <EditOutlined />,
+          label: 'Edit',
+        },
+      ]}
+      css={css`
+        margin-right: var(--x3);
+      `}
+    />
+  );
+
+  const renderContent = () => {
+    if (viewMode === 'view') {
+      return (
+        <ProductInfoCard
+          product={product}
+          onEditSection={handleEditSection}
+        />
+      );
+    }
+
+    return (
+      <>
         <Information
           slug="custom"
           description
@@ -667,6 +690,34 @@ const ProductFormView = () => {
           onSort={onSortGroups}
           loading={refetching.groups}
         />
+      </>
+    );
+  };
+
+  return (
+    <FormProvider {...methods}>
+      <ModalLayout
+        name="product"
+        errors={errors}
+        headerProps={{
+          title:
+            product.title ||
+            intl.formatMessage({
+              id: t('products.form.editTitle'),
+            }),
+          extra: renderViewModeToggle(),
+          onSubmitAndExit: () => {
+            shouldClose.current = true;
+            onSubmit();
+          },
+          submitButtonProps: {
+            disabled: !isDirty || viewMode === 'view',
+            onClick: onSubmit,
+            loading,
+          },
+        }}
+      >
+        {renderContent()}
       </ModalLayout>
     </FormProvider>
   );

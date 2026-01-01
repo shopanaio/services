@@ -69,33 +69,29 @@ export const ModalHeader = ({
           </Typography.Title>
         </Badge>
       </Flex>
-      {false && (
-        <Flex gap="4" align="center">
-          {extra}
-          {submitButtonProps !== null && (
-            <>
-              {onSubmitAndExit && (
-                <Button
-                  loading={submitButtonProps?.loading}
-                  disabled={submitButtonProps?.disabled}
-                  onClick={onSubmitAndExit}
-                  data-testid={`submit-and-exit-${
-                    name ? `${name}-` : ''
-                  }button`}
-                >
-                  {formatMessage({ id: t('layouts.common.saveAndExit') })}
-                </Button>
-              )}
+      <Flex gap="4" align="center">
+        {extra}
+        {submitButtonProps !== null && (
+          <>
+            {false && onSubmitAndExit && (
               <Button
-                data-testid={`submit-${name ? `${name}-` : ''}form-button`}
-                type="primary"
-                children={formatMessage({ id: t('layouts.common.save') })}
-                {...submitButtonProps}
-              />
-            </>
-          )}
-        </Flex>
-      )}
+                loading={submitButtonProps?.loading}
+                disabled={submitButtonProps?.disabled}
+                onClick={onSubmitAndExit}
+                data-testid={`submit-and-exit-${name ? `${name}-` : ''}button`}
+              >
+                {formatMessage({ id: t('layouts.common.saveAndExit') })}
+              </Button>
+            )}
+            <Button
+              data-testid={`submit-${name ? `${name}-` : ''}form-button`}
+              type="primary"
+              children={formatMessage({ id: t('layouts.common.save') })}
+              {...submitButtonProps}
+            />
+          </>
+        )}
+      </Flex>
     </div>
   );
 };
