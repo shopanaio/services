@@ -293,6 +293,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -315,7 +316,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer can: store.profile.read
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
@@ -398,6 +398,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -420,7 +421,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager can: store.profile.read, store.profile.update
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const allowedActions = [
       { resource: 'store.profile', action: 'read' },
@@ -510,6 +510,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -532,7 +533,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = storeAdminUser.userId;
 
     // 4. Verify store admin can perform all store.* actions
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
@@ -606,6 +606,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -628,7 +629,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // Manager should NOT have admin permissions - roles are explicit, not inherited
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.members', action: 'write' },
@@ -727,6 +727,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -749,7 +750,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer cannot update store profile (manager action)
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
@@ -803,6 +803,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -825,7 +826,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager cannot: delete store, manage members, manage roles
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.profile', action: 'admin' },
@@ -900,6 +900,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -922,7 +923,6 @@ test.describe('Role Hierarchy (FR-4)', () => {
     // After removal, org admin should still have full access
 
     // 4. Verify org admin still has full store access after removing store admins
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
@@ -984,6 +984,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }

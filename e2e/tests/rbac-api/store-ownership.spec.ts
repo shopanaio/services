@@ -57,6 +57,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -88,7 +89,6 @@ test.describe('Store Ownership Model (FR-4)', () => {
       { resource: 'store.access', action: 'write' },
     ];
 
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
 
     for (const { resource, action } of storeActions) {
@@ -142,6 +142,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }

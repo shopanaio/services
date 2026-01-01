@@ -172,6 +172,7 @@ test.describe('Role Inheritance (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -194,7 +195,6 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer cannot write store profile (manager action)
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
@@ -248,6 +248,7 @@ test.describe('Role Inheritance (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
@@ -270,7 +271,6 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager cannot: admin store, manage members, manage roles
-    const storeDomain = store?.membership?.domain;
     const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.profile', action: 'admin' },
