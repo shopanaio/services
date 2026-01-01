@@ -1,0 +1,31 @@
+mutation FileCreateExternal($input: FileCreateExternalInput!) {
+  mediaMutation {
+    fileCreateExternal(input: $input) {
+      file {
+        id
+        provider
+        url
+        mimeType
+        originalName
+        altText
+        isProcessed
+        createdAt
+        updatedAt
+        dimensions {
+          width
+          height
+        }
+        durationMs
+        externalData {
+          externalId
+          providerMeta
+        }
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}

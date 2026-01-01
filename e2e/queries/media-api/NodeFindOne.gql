@@ -1,0 +1,19 @@
+query NodeFindOne($id: ID!) {
+  mediaQuery {
+    node(id: $id) {
+      ... on File {
+        id
+        provider
+        url
+        mimeType
+        ext
+        sizeBytes
+        originalName
+        altText
+        isProcessed
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}

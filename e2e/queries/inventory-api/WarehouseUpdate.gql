@@ -1,0 +1,18 @@
+mutation WarehouseUpdate($input: WarehouseUpdateInput!) {
+  inventoryMutation {
+    warehouseUpdate(input: $input) {
+      warehouse {
+        id
+        code
+        name
+        isDefault
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

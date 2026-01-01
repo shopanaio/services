@@ -1,0 +1,26 @@
+query ProductFindMany($first: Int, $after: String) {
+  inventoryQuery {
+    products(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          handle
+          publishedAt
+          isPublished
+          createdAt
+          updatedAt
+          title
+          variantsCount
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

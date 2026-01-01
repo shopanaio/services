@@ -1,0 +1,38 @@
+query WarehouseFindMany(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: WarehouseWhereInput
+  $orderBy: [WarehouseOrderByInput!]
+) {
+  inventoryQuery {
+    warehouses(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        node {
+          id
+          code
+          name
+          isDefault
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

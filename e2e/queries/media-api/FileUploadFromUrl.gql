@@ -1,0 +1,29 @@
+mutation FileUploadFromUrl($input: FileUploadFromUrlInput!) {
+  mediaMutation {
+    fileUploadFromUrl(input: $input) {
+      file {
+        id
+        provider
+        url
+        mimeType
+        ext
+        sizeBytes
+        originalName
+        altText
+        sourceUrl
+        isProcessed
+        createdAt
+        updatedAt
+        dimensions {
+          width
+          height
+        }
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}

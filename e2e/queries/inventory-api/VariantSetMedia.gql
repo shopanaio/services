@@ -1,0 +1,14 @@
+mutation VariantSetMedia($input: VariantSetMediaInput!) {
+  inventoryMutation {
+    variantSetMedia(input: $input) {
+      variant {
+        id
+        sku
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+query NodesFindMany($ids: [ID!]!) {
+  mediaQuery {
+    nodes(ids: $ids) {
+      ... on File {
+        id
+        provider
+        url
+        mimeType
+        ext
+        sizeBytes
+        originalName
+        altText
+        isProcessed
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}

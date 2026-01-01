@@ -1,0 +1,21 @@
+mutation BucketCreate($input: BucketCreateInput!) {
+  mediaMutation {
+    bucketCreate(input: $input) {
+      bucket {
+        id
+        bucketName
+        region
+        status
+        priority
+        endpointUrl
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}

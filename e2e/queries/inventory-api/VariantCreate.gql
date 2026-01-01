@@ -1,0 +1,14 @@
+mutation VariantCreate($input: VariantCreateInput!) {
+  inventoryMutation {
+    variantCreate(input: $input) {
+      variant {
+        id
+        sku
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

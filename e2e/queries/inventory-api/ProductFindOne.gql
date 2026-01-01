@@ -1,0 +1,30 @@
+query ProductFindOne($id: ID!) {
+  inventoryQuery {
+    product(id: $id) {
+      id
+      handle
+      publishedAt
+      isPublished
+      createdAt
+      updatedAt
+      deletedAt
+      title
+      variantsCount
+      variants(first: 10) {
+        edges {
+          node {
+            id
+            handle
+            isDefault
+            sku
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+        }
+        totalCount
+      }
+    }
+  }
+}

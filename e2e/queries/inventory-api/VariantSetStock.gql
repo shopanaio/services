@@ -1,0 +1,16 @@
+mutation VariantSetStock($input: VariantSetStockInput!) {
+  inventoryMutation {
+    variantSetStock(input: $input) {
+      stock {
+        id
+        quantityOnHand
+        createdAt
+        updatedAt
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

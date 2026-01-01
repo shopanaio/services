@@ -1,0 +1,36 @@
+mutation FileUpload($input: FileUploadMultipartInput!) {
+  mediaMutation {
+    fileUpload(input: $input) {
+      file {
+        id
+        provider
+        url
+        mimeType
+        ext
+        sizeBytes
+        originalName
+        altText
+        isProcessed
+        createdAt
+        updatedAt
+        deletedAt
+        dimensions {
+          width
+          height
+        }
+        s3Data {
+          bucketId
+          objectKey
+          contentHash
+          etag
+          storageClass
+        }
+      }
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+mutation VariantSetWeight($input: VariantSetWeightInput!) {
+  inventoryMutation {
+    variantSetWeight(input: $input) {
+      variant {
+        id
+        weight {
+          value
+        }
+      }
+      userErrors {
+        message
+        code
+      }
+    }
+  }
+}

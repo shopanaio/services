@@ -1,0 +1,12 @@
+mutation FileDelete($input: FileDeleteInput!) {
+  mediaMutation {
+    fileDelete(input: $input) {
+      deletedFileId
+      userErrors {
+        message
+        field
+        code
+      }
+    }
+  }
+}
