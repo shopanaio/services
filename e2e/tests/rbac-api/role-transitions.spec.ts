@@ -282,7 +282,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store viewer
     const viewerUser = await api.admin.user.create();
@@ -293,7 +293,7 @@ test.describe.skip('Role Transitions', () => {
           email: viewerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -305,7 +305,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: viewerUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },
@@ -320,7 +320,7 @@ test.describe.skip('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
 
@@ -361,7 +361,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store viewer
     const viewerUser = await api.admin.user.create();
@@ -372,7 +372,7 @@ test.describe.skip('Role Transitions', () => {
           email: viewerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -384,7 +384,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: viewerUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'admin',
         },
       },
@@ -399,7 +399,7 @@ test.describe.skip('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -440,7 +440,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store manager
     const managerUser = await api.admin.user.create();
@@ -451,7 +451,7 @@ test.describe.skip('Role Transitions', () => {
           email: managerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'manager' },
+            { domain: storeDomain, role: 'manager' },
           ],
         },
       },
@@ -463,7 +463,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: managerUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'viewer',
         },
       },
@@ -478,7 +478,7 @@ test.describe.skip('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
 
@@ -519,7 +519,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store manager
     const managerUser = await api.admin.user.create();
@@ -530,7 +530,7 @@ test.describe.skip('Role Transitions', () => {
           email: managerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'manager' },
+            { domain: storeDomain, role: 'manager' },
           ],
         },
       },
@@ -542,7 +542,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: managerUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'admin',
         },
       },
@@ -557,7 +557,7 @@ test.describe.skip('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -598,7 +598,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store admin (org admin always has full store access as backup)
     const storeAdminUser = await api.admin.user.create();
@@ -609,7 +609,7 @@ test.describe.skip('Role Transitions', () => {
           email: storeAdminUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -621,7 +621,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: storeAdminUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },
@@ -636,7 +636,7 @@ test.describe.skip('Role Transitions', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.members', action: 'write' },
       },
     });
 
@@ -677,7 +677,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store admin
     const storeAdminUser = await api.admin.user.create();
@@ -688,7 +688,7 @@ test.describe.skip('Role Transitions', () => {
           email: storeAdminUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -700,7 +700,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: storeAdminUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'viewer',
         },
       },
@@ -715,14 +715,14 @@ test.describe.skip('Role Transitions', () => {
 
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((readAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
 
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -913,7 +913,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Add viewer
     const viewerUser = await api.admin.user.create();
@@ -924,7 +924,7 @@ test.describe.skip('Role Transitions', () => {
           email: viewerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -939,7 +939,7 @@ test.describe.skip('Role Transitions', () => {
           email: targetUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -954,7 +954,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: targetUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },
@@ -999,7 +999,7 @@ test.describe.skip('Role Transitions', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Add manager
     const managerUser = await api.admin.user.create();
@@ -1010,7 +1010,7 @@ test.describe.skip('Role Transitions', () => {
           email: managerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'manager' },
+            { domain: storeDomain, role: 'manager' },
           ],
         },
       },
@@ -1025,7 +1025,7 @@ test.describe.skip('Role Transitions', () => {
           email: targetUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -1040,7 +1040,7 @@ test.describe.skip('Role Transitions', () => {
         input: {
           organizationId,
           userId: targetUser.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'admin',
         },
       },

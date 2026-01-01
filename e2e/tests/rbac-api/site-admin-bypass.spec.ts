@@ -165,7 +165,7 @@ test.describe('Site Admin Bypass (FR-5)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Switch to site admin
     await api.session.setupSiteAdmin?.();
@@ -181,7 +181,7 @@ test.describe('Site Admin Bypass (FR-5)', () => {
     for (const { resource, action } of actions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${storeId}`, resource, action },
+          input: { organizationId, domain: storeDomain, resource, action },
         },
       });
 

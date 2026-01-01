@@ -226,7 +226,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
       for (const { resource, action } of storeActions) {
         const { data: authData } = await api.admin.query('roles-api/Authorize', {
           variables: {
-            input: { organizationId, domain: `store:${store1.id}`, resource, action },
+            input: { organizationId, domain: store1.membership?.domain, resource, action },
           },
         });
 
@@ -244,7 +244,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
       for (const { resource, action } of storeActions) {
         const { data: authData } = await api.admin.query('roles-api/Authorize', {
           variables: {
-            input: { organizationId, domain: `store:${store2.id}`, resource, action },
+            input: { organizationId, domain: store2.membership?.domain, resource, action },
           },
         });
 
@@ -305,7 +305,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: viewerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+          roles: [{ domain: storeDomain, role: 'viewer' }],
         },
       },
     });
@@ -315,8 +315,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer can: store.profile.read
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: { organizationId, domain, resource: 'store.profile', action: 'read' },
@@ -410,7 +410,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: managerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+          roles: [{ domain: storeDomain, role: 'manager' }],
         },
       },
     });
@@ -420,8 +420,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager can: store.profile.read, store.profile.update
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const allowedActions = [
       { resource: 'store.profile', action: 'read' },
       { resource: 'store.profile', action: 'write' },
@@ -522,7 +522,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: storeAdminUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+          roles: [{ domain: storeDomain, role: 'admin' }],
         },
       },
     });
@@ -532,8 +532,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = storeAdminUser.userId;
 
     // 4. Verify store admin can perform all store.* actions
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
       { resource: 'store.profile', action: 'write' },
@@ -618,7 +618,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: managerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+          roles: [{ domain: storeDomain, role: 'manager' }],
         },
       },
     });
@@ -628,8 +628,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // Manager should NOT have admin permissions - roles are explicit, not inherited
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.members', action: 'write' },
       { resource: 'store.members', action: 'admin' },
@@ -664,7 +664,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: viewerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+          roles: [{ domain: storeDomain, role: 'viewer' }],
         },
       },
     });
@@ -739,7 +739,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: viewerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+          roles: [{ domain: storeDomain, role: 'viewer' }],
         },
       },
     });
@@ -749,8 +749,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer cannot update store profile (manager action)
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: { organizationId, domain, resource: 'store.profile', action: 'write' },
@@ -815,7 +815,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: managerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+          roles: [{ domain: storeDomain, role: 'manager' }],
         },
       },
     });
@@ -825,8 +825,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager cannot: delete store, manage members, manage roles
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.profile', action: 'admin' },
       { resource: 'store.members', action: 'write' },
@@ -912,7 +912,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: storeAdminUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+          roles: [{ domain: storeDomain, role: 'admin' }],
         },
       },
     });
@@ -922,8 +922,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     // After removal, org admin should still have full access
 
     // 4. Verify org admin still has full store access after removing store admins
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const storeActions = [
       { resource: 'store.profile', action: 'read' },
       { resource: 'store.profile', action: 'write' },
@@ -996,7 +996,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         input: {
           organizationId,
           email: storeAdminUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+          roles: [{ domain: storeDomain, role: 'admin' }],
         },
       },
     });
@@ -1055,7 +1055,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
         variables: {
           input: {
             organizationId,
-            domain: `store:${store.id}`,
+            domain: store.membership?.domain,
             resource: 'store.profile',
             action: 'write',
           },
@@ -1109,8 +1109,8 @@ test.describe('Role Hierarchy (FR-4)', () => {
     }
 
     // 2. Verify store admin can delete (has store.profile.delete permission)
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: { organizationId, domain, resource: 'store.profile', action: 'admin' },

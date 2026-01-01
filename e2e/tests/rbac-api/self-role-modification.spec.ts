@@ -214,7 +214,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. User attempts to change their own store role
     const { data: changeData } = await api.admin.mutation('iam-api/MemberRoleChange', {
@@ -222,7 +222,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
         input: {
           organizationId,
           userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'viewer',
         },
       },
@@ -271,7 +271,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite a store admin with explicit store role
     const storeAdmin = await api.admin.user.create();
@@ -282,7 +282,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
           email: storeAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -297,7 +297,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
         input: {
           organizationId,
           userId: storeAdmin.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
         },
       },
     });
@@ -347,7 +347,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Store admin attempts to demote self to manager/viewer
     const { data: changeData } = await api.admin.mutation('iam-api/MemberRoleChange', {
@@ -355,7 +355,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
         input: {
           organizationId,
           userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },
@@ -403,7 +403,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Invite second store admin
     const adminB = await api.admin.user.create();
@@ -414,7 +414,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
           email: adminB.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -426,7 +426,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
         input: {
           organizationId,
           userId: adminB.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },
@@ -517,7 +517,7 @@ test.describe('Self-Role Modification Restriction (FR-8)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Create a member user
     const memberUser = await api.admin.user.create();

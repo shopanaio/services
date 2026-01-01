@@ -51,8 +51,9 @@ test.describe('Store Roles (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create second user and assign as viewer in store
@@ -63,7 +64,7 @@ test.describe('Store Roles (FR-4)', () => {
         input: {
           organizationId,
           email: viewerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+          roles: [{ domain: storeDomain, role: 'viewer' }],
         },
       },
     });
@@ -73,8 +74,7 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer can: store.profile.read
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const domain = storeDomain;
 
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
@@ -107,9 +107,10 @@ test.describe('Store Roles (FR-4)', () => {
       });
 
       const result = authData as unknown as AuthorizeResult;
-      expect(result.userQuery.authorize.allowed, `Viewer should be denied: ${resource}.${action}`).toBe(
-        false,
-      );
+      expect(
+        result.userQuery.authorize.allowed,
+        `Viewer should be denied: ${resource}.${action}`,
+      ).toBe(false);
     }
 
     // Restore admin token
@@ -154,6 +155,7 @@ test.describe('Store Roles (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, slug: store.name, name: store.name };
     }
@@ -166,7 +168,7 @@ test.describe('Store Roles (FR-4)', () => {
         input: {
           organizationId,
           email: managerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+          roles: [{ domain: storeDomain, role: 'manager' }],
         },
       },
     });
@@ -176,8 +178,7 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager can: store.profile.read, store.profile.write
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const domain = storeDomain;
 
     const allowedActions = [
       { resource: 'store.profile', action: 'read' },
@@ -192,9 +193,10 @@ test.describe('Store Roles (FR-4)', () => {
       });
 
       const result = authData as unknown as AuthorizeResult;
-      expect(result.userQuery.authorize.allowed, `Manager should be allowed: ${resource}.${action}`).toBe(
-        true,
-      );
+      expect(
+        result.userQuery.authorize.allowed,
+        `Manager should be allowed: ${resource}.${action}`,
+      ).toBe(true);
     }
 
     // 5. Verify manager cannot: store.profile.admin, store.members.*, store.roles.*, store.access.*
@@ -216,9 +218,10 @@ test.describe('Store Roles (FR-4)', () => {
       });
 
       const result = authData as unknown as AuthorizeResult;
-      expect(result.userQuery.authorize.allowed, `Manager should be denied: ${resource}.${action}`).toBe(
-        false,
-      );
+      expect(
+        result.userQuery.authorize.allowed,
+        `Manager should be denied: ${resource}.${action}`,
+      ).toBe(false);
     }
 
     // Restore admin token
@@ -263,6 +266,7 @@ test.describe('Store Roles (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, slug: store.name, name: store.name };
     }
@@ -275,7 +279,7 @@ test.describe('Store Roles (FR-4)', () => {
         input: {
           organizationId,
           email: storeAdminUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+          roles: [{ domain: storeDomain, role: 'admin' }],
         },
       },
     });
@@ -285,8 +289,7 @@ test.describe('Store Roles (FR-4)', () => {
     api.session.tenant.userId = storeAdminUser.userId;
 
     // 4. Verify store admin can perform all store.* actions
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const domain = storeDomain;
 
     const storeActions = [
       { resource: 'store.profile', action: 'read' },

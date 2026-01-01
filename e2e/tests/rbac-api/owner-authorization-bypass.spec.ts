@@ -46,7 +46,7 @@ test.describe('Owner Bypass Authorization', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Owner should have access to ALL resources (bypass RBAC)
     const allActions = [
@@ -62,11 +62,11 @@ test.describe('Owner Bypass Authorization', () => {
       { domain: 'org', resource: 'org.stores', action: 'write' },
       { domain: 'org', resource: 'org.stores', action: 'admin' },
       // Store level (owner bypasses even without store role)
-      { domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
-      { domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
-      { domain: `store:${storeId}`, resource: 'store.members', action: 'read' },
-      { domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
-      { domain: `store:${storeId}`, resource: 'store.access', action: 'write' },
+      { domain: storeDomain, resource: 'store.profile', action: 'read' },
+      { domain: storeDomain, resource: 'store.profile', action: 'write' },
+      { domain: storeDomain, resource: 'store.members', action: 'read' },
+      { domain: storeDomain, resource: 'store.members', action: 'write' },
+      { domain: storeDomain, resource: 'store.access', action: 'write' },
     ];
 
     for (const { domain, resource, action } of allActions) {
@@ -137,7 +137,7 @@ test.describe('Owner Bypass Authorization', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 4. Switch back to owner (who has NO explicit store role)
     api.session.tenant.accessToken = ownerToken ?? undefined;
@@ -157,7 +157,7 @@ test.describe('Owner Bypass Authorization', () => {
     for (const { resource, action } of storeActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${storeId}`, resource, action },
+          input: { organizationId, domain: storeDomain, resource, action },
         },
       });
 

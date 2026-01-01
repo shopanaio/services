@@ -311,7 +311,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user with both org member and store manager roles
     const invitedUser = await api.admin.user.create();
@@ -322,7 +322,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
           email: invitedUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'manager' },
+            { domain: storeDomain, role: 'manager' },
           ],
         },
       },
@@ -346,7 +346,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
     // Check store manager access
     const { data: storeAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((storeAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -386,7 +386,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store admin
     const storeAdminUser = await api.admin.user.create();
@@ -397,7 +397,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
           email: storeAdminUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -409,7 +409,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.members', action: 'write' },
       },
     });
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -449,7 +449,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store viewer
     const viewerUser = await api.admin.user.create();
@@ -460,7 +460,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
           email: viewerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },
@@ -473,7 +473,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
     // Can read
     const { data: readAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((readAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -481,7 +481,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
     // Cannot write
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((updateAuth as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -748,7 +748,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user directly as store admin
     const storeAdminUser = await api.admin.user.create();
@@ -759,7 +759,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
           email: storeAdminUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -775,7 +775,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.members', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.members', action: 'write' },
       },
     });
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -815,7 +815,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Invite user as store admin (org member only at org level)
     const storeAdminUser = await api.admin.user.create();
@@ -826,7 +826,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
           email: storeAdminUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -844,7 +844,7 @@ test.describe('Invitation Workflow (FR-10)', () => {
           email: viewerUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'viewer' },
+            { domain: storeDomain, role: 'viewer' },
           ],
         },
       },

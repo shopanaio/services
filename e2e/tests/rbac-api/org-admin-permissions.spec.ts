@@ -260,7 +260,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 3. Create second user and invite as org member (not store member)
     const memberUser = await api.admin.user.create();
@@ -292,7 +292,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
     for (const { resource, action } of deniedStoreActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${storeId}`, resource, action },
+          input: { organizationId, domain: storeDomain, resource, action },
         },
       });
 
@@ -363,7 +363,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 4. Switch to org admin context (who has NO store role)
     api.session.tenant.accessToken = orgAdminUser.accessToken;
@@ -402,7 +402,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
     for (const { resource, action } of deniedStoreActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${storeId}`, resource, action },
+          input: { organizationId, domain: storeDomain, resource, action },
         },
       });
 
@@ -453,7 +453,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
 
     const store1 = store1Data.storeMutation.storeCreate.store;
     expect(store1).not.toBeNull();
-    const store1Id = store1?.id;
+    const store1Domain = store1?.membership?.domain;
 
     const store2Name = generateStoreName();
     const { data: store2Data } = await api.admin.mutation('project-api/ProjectCreate', {
@@ -471,7 +471,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
 
     const store2 = store2Data.storeMutation.storeCreate.store;
     expect(store2).not.toBeNull();
-    const store2Id = store2?.id;
+    const store2Domain = store2?.membership?.domain;
 
     // 3. Create a user and invite as store admin for store1 ONLY
     const storeAdminUser = await api.admin.user.create();
@@ -483,7 +483,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
           email: storeAdminUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${store1Id}`, role: 'admin' },
+            { domain: store1Domain, role: 'admin' },
           ],
         },
       },
@@ -503,7 +503,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
     for (const { resource, action } of storeActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${store1Id}`, resource, action },
+          input: { organizationId, domain: store1Domain, resource, action },
         },
       });
 
@@ -518,7 +518,7 @@ test.describe('Organization Admin Permissions (FR-4)', () => {
     for (const { resource, action } of storeActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${store2Id}`, resource, action },
+          input: { organizationId, domain: store2Domain, resource, action },
         },
       });
 

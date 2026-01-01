@@ -96,12 +96,12 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Verify user can access resources with domain "store:{uuid}"
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'read' },
       },
     });
 
@@ -119,7 +119,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     for (const { resource, action } of storeResources) {
       const { data: resAuthData } = await api.admin.query('roles-api/Authorize', {
         variables: {
-          input: { organizationId, domain: `store:${storeId}`, resource, action },
+          input: { organizationId, domain: storeDomain, resource, action },
         },
       });
       expect((resAuthData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -162,7 +162,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     });
     const storeA = storeAData.storeMutation.storeCreate.store;
     expect(storeA).not.toBeNull();
-    const storeAId = storeA?.id;
+    const storeADomain = storeA?.membership?.domain;
 
     // Create store B
     const storeBName = generateStoreName();
@@ -180,7 +180,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     });
     const storeB = storeBData.storeMutation.storeCreate.store;
     expect(storeB).not.toBeNull();
-    const storeBId = storeB?.id;
+    const storeBDomain = storeB?.membership?.domain;
 
     // 2 & 3. Create user and assign different roles in each store
     const testUser = await api.admin.user.create();
@@ -191,8 +191,8 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
           email: testUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeAId}`, role: 'admin' }, // Admin in store A
-            { domain: `store:${storeBId}`, role: 'viewer' }, // Viewer in store B
+            { domain: storeADomain, role: 'admin' }, // Admin in store A
+            { domain: storeBDomain, role: 'viewer' }, // Viewer in store B
           ],
         },
       },
@@ -205,7 +205,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // 4. Verify user has admin permissions in store A
     const { data: authStoreA } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeAId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeADomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authStoreA as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -213,7 +213,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // 5. Verify user has only viewer permissions in store B (cannot update)
     const { data: authStoreB } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeBId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeBDomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authStoreB as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -221,7 +221,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // Verify viewer can read in store B
     const { data: authStoreBRead } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeBId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeBDomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((authStoreBRead as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -267,7 +267,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Verify store domain follows format "store:<uuid>"
     expect(storeId).toBeDefined();
@@ -277,7 +277,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     expect(storeId).toMatch(uuidRegex);
 
     // Verify the domain format works in authorization
-    const domain = `store:${storeId}`;
+    const domain = storeDomain;
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: { organizationId, domain, resource: 'store.profile', action: 'read' },
@@ -322,7 +322,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     });
     const storeA = storeAData.storeMutation.storeCreate.store;
     expect(storeA).not.toBeNull();
-    const storeAId = storeA?.id;
+    const storeADomain = storeA?.membership?.domain;
 
     // Create store B
     const storeBName = generateStoreName();
@@ -340,7 +340,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     });
     const storeB = storeBData.storeMutation.storeCreate.store;
     expect(storeB).not.toBeNull();
-    const storeBId = storeB?.id;
+    const storeBDomain = storeB?.membership?.domain;
 
     // 2. Assign user role only in store A
     const testUser = await api.admin.user.create();
@@ -351,7 +351,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
           email: testUser.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeAId}`, role: 'viewer' },
+            { domain: storeADomain, role: 'viewer' },
           ],
         },
       },
@@ -364,7 +364,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // 3. Verify user cannot access store B resources
     const { data: authStoreB } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeBId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeBDomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((authStoreB as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -372,7 +372,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // Verify user CAN access store A
     const { data: authStoreA } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeAId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeADomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((authStoreA as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -420,7 +420,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add user as org member only (no store role)
     const memberUser = await api.admin.user.create();
@@ -441,7 +441,7 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     // 3. Verify org member cannot access store resources without explicit store role
     const { data: authStore } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((authStore as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(false);
@@ -516,11 +516,11 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     const { data: validAuthData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'read' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'read' },
       },
     });
     expect((validAuthData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);

@@ -69,7 +69,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
         input: {
           organizationId,
           email: storeAdminUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+          roles: [{ domain: storeDomain, role: 'admin' }],
         },
       },
     });
@@ -88,8 +88,8 @@ test.describe('Store Ownership Model (FR-4)', () => {
       { resource: 'store.access', action: 'write' },
     ];
 
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
 
     for (const { resource, action } of storeActions) {
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
@@ -154,7 +154,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
         input: {
           organizationId,
           email: storeAdminUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'admin' }],
+          roles: [{ domain: storeDomain, role: 'admin' }],
         },
       },
     });
@@ -207,7 +207,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
     // The creator simply gets admin role which can be changed/removed
     if (store) {
       api.session.project = { id: store.id, slug: store.name, name: store.name };
-      const domain = `store:${store.id}`;
+      const domain = store.membership?.domain;
 
       // Verify admin permissions
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
@@ -263,8 +263,8 @@ test.describe('Store Ownership Model (FR-4)', () => {
     }
 
     // 2. Verify store admin can delete (has store.profile.delete permission)
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
 
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {

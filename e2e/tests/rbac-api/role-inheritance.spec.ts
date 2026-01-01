@@ -51,6 +51,7 @@ test.describe('Role Inheritance (FR-4)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
+    const storeDomain = store?.membership?.domain;
     if (store) {
       api.session.project = { id: store.id, slug: store.name, name: store.name };
     }
@@ -63,7 +64,7 @@ test.describe('Role Inheritance (FR-4)', () => {
         input: {
           organizationId,
           email: managerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+          roles: [{ domain: storeDomain, role: 'manager' }],
         },
       },
     });
@@ -73,8 +74,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // Manager should NOT have admin permissions - roles are explicit, not inherited
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.members', action: 'write' },
       { resource: 'store.members', action: 'admin' },
@@ -109,7 +109,7 @@ test.describe('Role Inheritance (FR-4)', () => {
         input: {
           organizationId,
           email: viewerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+          roles: [{ domain: storeDomain, role: 'viewer' }],
         },
       },
     });
@@ -184,7 +184,7 @@ test.describe('Role Inheritance (FR-4)', () => {
         input: {
           organizationId,
           email: viewerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'viewer' }],
+          roles: [{ domain: storeDomain, role: 'viewer' }],
         },
       },
     });
@@ -194,8 +194,8 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = viewerUser.userId;
 
     // 4. Verify viewer cannot write store profile (manager action)
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const { data: updateAuth } = await api.admin.query('roles-api/Authorize', {
       variables: {
         input: { organizationId, domain, resource: 'store.profile', action: 'write' },
@@ -260,7 +260,7 @@ test.describe('Role Inheritance (FR-4)', () => {
         input: {
           organizationId,
           email: managerUser.data.email,
-          roles: [{ domain: `store:${store?.id}`, role: 'manager' }],
+          roles: [{ domain: storeDomain, role: 'manager' }],
         },
       },
     });
@@ -270,8 +270,8 @@ test.describe('Role Inheritance (FR-4)', () => {
     api.session.tenant.userId = managerUser.userId;
 
     // 4. Verify manager cannot: admin store, manage members, manage roles
-    const storeId = store?.id;
-    const domain = `store:${storeId}`;
+    const storeDomain = store?.membership?.domain;
+    const domain = storeDomain;
     const adminOnlyActions = [
       { resource: 'store.profile', action: 'admin' },
       { resource: 'store.members', action: 'write' },

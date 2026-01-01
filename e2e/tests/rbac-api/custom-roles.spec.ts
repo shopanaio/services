@@ -94,7 +94,7 @@ test.describe('Custom Roles (FR-9)', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // 2. Create custom role in store domain
     const roleName = generateRoleName();
@@ -102,7 +102,7 @@ test.describe('Custom Roles (FR-9)', () => {
       variables: {
         input: {
           organizationId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           name: roleName,
           displayName: 'Store Custom Role',
           description: 'A custom role for the store',

@@ -300,7 +300,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add a user as the ONLY store admin (separate from org admin)
     const storeAdmin = await api.admin.user.create();
@@ -311,7 +311,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: storeAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -334,7 +334,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
     // 4. Verify org admin still has full access to store
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -381,7 +381,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add a user as store admin
     const storeAdmin = await api.admin.user.create();
@@ -392,7 +392,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: storeAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -404,7 +404,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
         input: {
           organizationId,
           userId: storeAdmin.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },
@@ -456,7 +456,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add a user as store admin
     const storeAdmin = await api.admin.user.create();
@@ -467,7 +467,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: storeAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -479,7 +479,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
         input: {
           organizationId,
           userId: storeAdmin.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'viewer',
         },
       },
@@ -531,7 +531,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add multiple store admins
     const storeAdmin1 = await api.admin.user.create();
@@ -542,7 +542,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: storeAdmin1.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -556,7 +556,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: storeAdmin2.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -586,7 +586,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
     // Verify org admin can still manage the store
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
     expect((authData as unknown as AuthorizeResult).userQuery.authorize.allowed).toBe(true);
@@ -600,7 +600,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: newStoreAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -650,7 +650,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add another store admin
     const storeAdmin = await api.admin.user.create();
@@ -661,7 +661,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
           email: storeAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -686,7 +686,7 @@ test.describe('Last Admin Protection (FR-12) - Organization Only', () => {
         input: {
           organizationId,
           userId: storeAdmin.userId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'manager',
         },
       },

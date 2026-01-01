@@ -99,7 +99,7 @@ test.describe('Store Has No Owner Concept', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
     const storeCreatorId = api.session.tenant.userId;
 
     // Invite another store admin
@@ -111,7 +111,7 @@ test.describe('Store Has No Owner Concept', () => {
           email: anotherAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -123,7 +123,7 @@ test.describe('Store Has No Owner Concept', () => {
         input: {
           organizationId,
           userId: storeCreatorId,
-          domain: `store:${storeId}`,
+          domain: storeDomain,
           role: 'viewer',
         },
       },
@@ -168,7 +168,7 @@ test.describe('Store Has No Owner Concept', () => {
 
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
-    const storeId = store?.id;
+    const storeDomain = store?.membership?.domain;
 
     // Add a separate store admin
     const storeAdmin = await api.admin.user.create();
@@ -179,7 +179,7 @@ test.describe('Store Has No Owner Concept', () => {
           email: storeAdmin.data.email,
           roles: [
             { domain: 'org', role: 'member' },
-            { domain: `store:${storeId}`, role: 'admin' },
+            { domain: storeDomain, role: 'admin' },
           ],
         },
       },
@@ -198,7 +198,7 @@ test.describe('Store Has No Owner Concept', () => {
     // Org owner should still have full access via owner bypass
     const { data: authData } = await api.admin.query('roles-api/Authorize', {
       variables: {
-        input: { organizationId, domain: `store:${storeId}`, resource: 'store.profile', action: 'write' },
+        input: { organizationId, domain: storeDomain, resource: 'store.profile', action: 'write' },
       },
     });
 
