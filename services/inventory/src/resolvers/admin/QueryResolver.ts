@@ -1,8 +1,17 @@
 import { ApolloQuery } from "@shopana/type-resolver";
 import { InventoryType } from "./InventoryType.js";
-import { ProductQueryResolver } from "./ProductQueryResolver.js";
-import { WarehouseQueryResolver } from "./WarehouseQueryResolver.js";
-import { VariantQueryResolver } from "./VariantQueryResolver.js";
+import { ProductResolver } from "./ProductResolver.js";
+import {
+  ProductConnectionResolver,
+  type ProductConnectionInput,
+} from "./ProductConnectionResolver.js";
+import { WarehouseResolver } from "./WarehouseResolver.js";
+import {
+  WarehouseConnectionResolver,
+  type WarehouseConnectionResolverInput,
+} from "./WarehouseConnectionResolver.js";
+import { VariantResolver } from "./VariantResolver.js";
+import type { VariantRelayInput } from "../../repositories/variant/VariantRepository.js";
 
 /**
  * Root Query resolver.
@@ -24,24 +33,91 @@ export class QueryResolver extends InventoryType<Record<string, never>> {
  * Handles all inventory-related queries.
  */
 export class InventoryQueryResolver extends InventoryType<Record<string, never>> {
+  // ---- Node Queries (Relay) ----
+
   /**
-   * Entry point for product-related queries.
+   * Get a node by ID (for Relay compatibility).
    */
-  productQuery() {
-    return new ProductQueryResolver({}, this.ctx);
+  node(args: { id: string }) {
+    return new ProductResolver(args.id, this.ctx);
   }
 
   /**
-   * Entry point for warehouse-related queries.
+   * Get multiple nodes by IDs (for Relay compatibility).
    */
-  warehouseQuery() {
-    return new WarehouseQueryResolver({}, this.ctx);
+  nodes(args: { ids: string[] }) {
+    return args.ids.map((id) => new ProductResolver(id, this.ctx));
+  }
+
+  // ---- Product Queries ----
+
+  /**
+   * Get a single product by ID.
+   */
+  product(args: { id: string }) {
+    return new ProductResolver(args.id, this.ctx);
   }
 
   /**
-   * Entry point for variant-related queries.
+   * Get a paginated list of products.
    */
-  variantQuery() {
-    return new VariantQueryResolver({}, this.ctx);
+  products(args: ProductConnectionInput) {
+    return new ProductConnectionResolver(args, this.ctx);
+  }
+
+  // ---- Variant Queries ----
+
+  /**
+   * Get a single variant by ID.
+   */
+  variant(args: { id: string }) {
+    return new VariantResolver(args.id, this.ctx);
+  }
+
+  /**
+   * Get a paginated list of variants.
+   */
+  async variants(args: VariantRelayInput) {
+    const services = this.ctx.kernel.getServices();
+    const first = args.first ?? 10;
+
+    const variants = await services.repository.variant.getMany({
+      limit: first + 1,
+    });
+
+    const hasNextPage = variants.length > first;
+    const resultVariants = hasNextPage ? variants.slice(0, first) : variants;
+
+    const edges = resultVariants.map((variant) => ({
+      node: new VariantResolver(variant.id, this.ctx),
+      cursor: Buffer.from(variant.id).toString("base64"),
+    }));
+
+    return {
+      edges,
+      pageInfo: {
+        hasNextPage,
+        hasPreviousPage: false,
+        startCursor: edges[0]?.cursor ?? null,
+        endCursor: edges[edges.length - 1]?.cursor ?? null,
+      },
+      totalCount: resultVariants.length,
+    };
+  }
+
+  // ---- Warehouse Queries ----
+
+  /**
+   * Get a single warehouse by ID.
+   */
+  warehouse(args: { id: string }) {
+    return new WarehouseResolver(args.id, this.ctx);
+  }
+
+  /**
+   * Get a paginated list of warehouses.
+   */
+  warehouses(args: WarehouseConnectionResolverInput) {
+    return new WarehouseConnectionResolver(args, this.ctx);
   }
 }

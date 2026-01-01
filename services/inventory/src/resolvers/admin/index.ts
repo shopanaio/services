@@ -5,18 +5,6 @@ export { InventoryType, Cache } from "./InventoryType.js";
 export { QueryResolver, InventoryQueryResolver } from "./QueryResolver.js";
 export { MutationResolver, InventoryMutationResolver } from "./MutationResolver.js";
 
-// Query namespace resolvers
-export { ProductQueryResolver } from "./ProductQueryResolver.js";
-export { VariantQueryResolver } from "./VariantQueryResolver.js";
-export { WarehouseQueryResolver } from "./WarehouseQueryResolver.js";
-
-// Mutation namespace resolvers
-export { ProductMutationResolver } from "./ProductMutationResolver.js";
-export { VariantMutationResolver } from "./VariantMutationResolver.js";
-export { WarehouseMutationResolver } from "./WarehouseMutationResolver.js";
-export { OptionMutationResolver } from "./OptionMutationResolver.js";
-export { FeatureMutationResolver } from "./FeatureMutationResolver.js";
-
 // Type resolvers
 export { ProductResolver } from "./ProductResolver.js";
 export { VariantResolver } from "./VariantResolver.js";
