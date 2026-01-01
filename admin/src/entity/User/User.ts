@@ -17,6 +17,10 @@ export interface IUser {
 
 export class User {
   static create(user: ApiUser): IUser {
+    if (typeof user.isReady !== 'boolean') {
+      throw new Error('User.isReady is not a boolean');
+    }
+
     return {
       createdAt: user.createdAt,
       email: user.email,
