@@ -96,6 +96,11 @@ export enum GlobalIdEntity {
   Customer = "Customer",
   ProductVariant = "ProductVariant",
   File = "File",
+  Store = "Store",
+  Organization = "Organization",
+  Role = "Role",
+  Member = "Member",
+  ApiKey = "ApiKey",
 }
 
 /**

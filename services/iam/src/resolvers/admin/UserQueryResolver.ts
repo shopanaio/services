@@ -1,4 +1,8 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { AuthorizeScript } from "../../scripts/organization/AuthorizeScript.js";
@@ -40,14 +44,20 @@ export class UserQueryResolver extends IAMType<Record<string, never>> {
       };
     }
 
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+
     const result = await kernel.runScript(AuthorizeScript, {
       subject: currentUser.id,
-      organizationId: input.organizationId,
+      organizationId,
       domain: input.domain,
       resource: input.resource,
       action: input.action,
     });
 
+    console.log(result, "result");
     return {
       allowed: result.allowed,
       reason: result.deniedReason ?? null,

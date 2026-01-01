@@ -1,4 +1,9 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 import { MemberResolver } from "./MemberResolver.js";
@@ -61,8 +66,12 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(OrganizationUpdateInputSchema())
   async organizationUpdate(args: { input: OrganizationUpdateInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.id,
+      GlobalIdEntity.Organization
+    );
     const result = await this.$ctx.kernel.runScript(OrganizationUpdateScript, {
-      organizationId: input.id,
+      organizationId,
       name: input.name ?? undefined,
       displayName: input.displayName ?? undefined,
     });
@@ -84,13 +93,21 @@ export class OrganizationMutationResolver extends IAMType<
    * Only the organization owner can delete the organization.
    */
   async organizationDelete(args: { id: string }) {
-    const { id } = args;
+    const organizationId = decodeGlobalIdByType(
+      args.id,
+      GlobalIdEntity.Organization
+    );
     const result = await this.$ctx.kernel.runScript(OrganizationDeleteScript, {
-      organizationId: id,
+      organizationId,
     });
 
     return {
-      deletedOrganizationId: result.deletedOrganizationId,
+      deletedOrganizationId: result.deletedOrganizationId
+        ? encodeGlobalIdByType(
+            result.deletedOrganizationId,
+            GlobalIdEntity.Organization
+          )
+        : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
@@ -107,9 +124,17 @@ export class OrganizationMutationResolver extends IAMType<
     input: { organizationId: string; newOwnerId: string };
   }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+    const newOwnerId = decodeGlobalIdByType(
+      input.newOwnerId,
+      GlobalIdEntity.User
+    );
     const result = await this.$ctx.kernel.runScript(OwnershipTransferScript, {
-      organizationId: input.organizationId,
-      newOwnerId: input.newOwnerId,
+      organizationId,
+      newOwnerId,
     });
 
     return {
@@ -128,8 +153,12 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberInviteInputSchema())
   async memberInvite(args: { input: MemberInviteInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
     const result = await this.$ctx.kernel.runScript(MemberInviteScript, {
-      organizationId: input.organizationId,
+      organizationId,
       email: input.email,
       roles: input.roles,
     });
@@ -162,13 +191,20 @@ export class OrganizationMutationResolver extends IAMType<
     input: { organizationId: string; userId: string };
   }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+    const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
     const result = await this.$ctx.kernel.runScript(MemberRemoveScript, {
-      organizationId: input.organizationId,
-      userId: input.userId,
+      organizationId,
+      userId,
     });
 
     return {
-      removedMemberId: result.removedMemberId,
+      removedMemberId: result.removedMemberId
+        ? encodeGlobalIdByType(result.removedMemberId, GlobalIdEntity.Member)
+        : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code ?? "UNKNOWN_ERROR",
         message: e.message,
@@ -184,10 +220,24 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberRoleChangeInputSchema())
   async memberRoleChange(args: { input: MemberRoleChangeInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+    const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
+
+    // Decode domain if it's store:globalId format
+    let domain = input.domain;
+    if (domain.startsWith("store:")) {
+      const storeGlobalId = domain.slice("store:".length);
+      const storeId = decodeGlobalIdByType(storeGlobalId, GlobalIdEntity.Store);
+      domain = `store:${storeId}`;
+    }
+
     const result = await this.$ctx.kernel.runScript(MemberRoleChangeScript, {
-      organizationId: input.organizationId,
-      userId: input.userId,
-      domain: input.domain,
+      organizationId,
+      userId,
+      domain,
       role: input.role,
     });
 
@@ -217,10 +267,24 @@ export class OrganizationMutationResolver extends IAMType<
   @ZodResolver(MemberAccessRemoveInputSchema())
   async memberAccessRemove(args: { input: MemberAccessRemoveInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+    const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
+
+    // Decode domain if it's store:globalId format
+    let domain = input.domain;
+    if (domain.startsWith("store:")) {
+      const storeGlobalId = domain.slice("store:".length);
+      const storeId = decodeGlobalIdByType(storeGlobalId, GlobalIdEntity.Store);
+      domain = `store:${storeId}`;
+    }
+
     const result = await this.$ctx.kernel.runScript(MemberAccessRemoveScript, {
-      organizationId: input.organizationId,
-      userId: input.userId,
-      domain: input.domain,
+      organizationId,
+      userId,
+      domain,
     });
 
     return {

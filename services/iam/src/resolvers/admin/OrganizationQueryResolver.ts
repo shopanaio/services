@@ -1,3 +1,7 @@
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { OrganizationResolver } from "./OrganizationResolver.js";
 
@@ -10,6 +14,7 @@ export class OrganizationQueryResolver extends IAMType<Record<string, never>> {
    * Get organization by ID.
    */
   organization(args: { id: string }) {
-    return new OrganizationResolver(args.id, this.$ctx);
+    const id = decodeGlobalIdByType(args.id, GlobalIdEntity.Organization);
+    return new OrganizationResolver(id, this.$ctx);
   }
 }

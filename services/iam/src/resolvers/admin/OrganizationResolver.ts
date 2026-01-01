@@ -1,4 +1,8 @@
 import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { Organization } from "../../repositories/models/authorization.js";
 import { ORG_DOMAIN } from "../../casbin/CasbinService.js";
 import { IAMType, Cache } from "./IAMType.js";
@@ -24,7 +28,7 @@ export class OrganizationResolver extends IAMType<string, Organization> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.Organization);
   }
 
   membership() {

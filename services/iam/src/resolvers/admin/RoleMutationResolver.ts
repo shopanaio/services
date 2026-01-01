@@ -1,4 +1,8 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { RoleResolver } from "./RoleResolver.js";
 import { RoleCreateScript } from "../../scripts/organization/RoleCreateScript.js";
@@ -26,9 +30,22 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleCreateInputSchema())
   async roleCreate(args: { input: RoleCreateInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+
+    // Decode domain if it's store:globalId format
+    let domain = input.domain;
+    if (domain.startsWith("store:")) {
+      const storeGlobalId = domain.slice("store:".length);
+      const storeId = decodeGlobalIdByType(storeGlobalId, GlobalIdEntity.Store);
+      domain = `store:${storeId}`;
+    }
+
     const result = await this.$ctx.kernel.runScript(RoleCreateScript, {
-      organizationId: input.organizationId,
-      domain: input.domain,
+      organizationId,
+      domain,
       name: input.name,
       displayName: input.displayName,
       description: input.description ?? undefined,
@@ -60,9 +77,14 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleUpdateInputSchema())
   async roleUpdate(args: { input: RoleUpdateInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Role);
     const result = await this.$ctx.kernel.runScript(RoleUpdateScript, {
-      organizationId: input.organizationId,
-      id: input.id,
+      organizationId,
+      id,
       displayName: input.displayName ?? undefined,
       description: input.description ?? undefined,
       permissions: input.permissions ?? undefined,
@@ -99,9 +121,14 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
   @ZodResolver(RoleDeleteInputSchema())
   async roleDelete(args: { input: RoleDeleteInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Role);
     const result = await this.$ctx.kernel.runScript(RoleDeleteScript, {
-      organizationId: input.organizationId,
-      id: input.id,
+      organizationId,
+      id,
     });
 
     return {

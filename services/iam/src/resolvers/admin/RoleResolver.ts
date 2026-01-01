@@ -1,4 +1,8 @@
 import { IAMType, Cache } from "./IAMType.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { GroupedPermission } from "../../casbin/CasbinService.js";
 import type { Role } from "../../repositories/models/authorization.js";
 
@@ -44,7 +48,8 @@ export class RoleResolver extends IAMType<RoleInput, RoleData> {
   }
 
   async id() {
-    return (await this.$data).id;
+    const id = (await this.$data).id;
+    return encodeGlobalIdByType(id, GlobalIdEntity.Role);
   }
 
   domain() {

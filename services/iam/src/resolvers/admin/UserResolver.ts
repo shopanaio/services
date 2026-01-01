@@ -1,4 +1,8 @@
 import { SubgraphReference } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { User } from "../../repositories/user/UserRepository.js";
 import { IAMType, Cache } from "./IAMType.js";
 
@@ -21,7 +25,7 @@ export class UserResolver extends IAMType<string, User> {
   }
 
   id() {
-    return this.$props;
+    return encodeGlobalIdByType(this.$props, GlobalIdEntity.User);
   }
 
   async email() {

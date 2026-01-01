@@ -1,4 +1,9 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { BaseResolver } from "./BaseResolver.js";
 import { StoreResolver } from "./StoreResolver.js";
 import { StoreCreateScript } from "../../scripts/store/StoreCreateScript.js";
@@ -60,8 +65,12 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(StoreCreateInputSchema())
   async storeCreate(args: { input: StoreCreateInput }) {
     const { input } = args;
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
     const result = await this.$ctx.kernel.runScript(StoreCreateScript, {
-      organizationId: input.organizationId,
+      organizationId,
       name: input.name,
       displayName: input.displayName,
       locales: input.locales,
@@ -89,11 +98,16 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(StoreUpdateInputSchema())
   async storeUpdate(args: { input: StoreUpdateInput }) {
     const { input } = args;
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Store);
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
 
     const result = await this.$ctx.kernel.runScript(StoreUpdateScript, {
-      id: input.id,
+      id,
       name: input.name ?? undefined,
-      organizationId: input.organizationId,
+      organizationId,
       displayName: input.displayName ?? undefined,
       email: input.email ?? undefined,
       timezone: input.timezone ?? undefined,
@@ -117,14 +131,21 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
   @ZodResolver(StoreDeleteInputSchema())
   async storeDelete(args: { input: StoreDeleteInput }) {
     const { input } = args;
+    const id = decodeGlobalIdByType(input.id, GlobalIdEntity.Store);
+    const organizationId = decodeGlobalIdByType(
+      input.organizationId,
+      GlobalIdEntity.Organization
+    );
 
     const result = await this.$ctx.kernel.runScript(StoreDeleteScript, {
-      id: input.id,
-      organizationId: input.organizationId,
+      id,
+      organizationId,
     });
 
     return {
-      deletedStoreId: result.deletedStoreId ?? null,
+      deletedStoreId: result.deletedStoreId
+        ? encodeGlobalIdByType(result.deletedStoreId, GlobalIdEntity.Store)
+        : null,
       userErrors: result.userErrors,
     };
   }
@@ -181,8 +202,9 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   @ZodResolver(ApiKeyRevokeInputSchema())
   async apiKeyRevoke(args: { input: ApiKeyRevokeInput }) {
+    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.ApiKey);
     const result = await this.$ctx.kernel.runScript(ApiKeyRevokeScript, {
-      id: args.input.id,
+      id,
     });
 
     return {
@@ -193,12 +215,15 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
   @ZodResolver(ApiKeyDeleteInputSchema())
   async apiKeyDelete(args: { input: ApiKeyDeleteInput }) {
+    const id = decodeGlobalIdByType(args.input.id, GlobalIdEntity.ApiKey);
     const result = await this.$ctx.kernel.runScript(ApiKeyDeleteScript, {
-      id: args.input.id,
+      id,
     });
 
     return {
-      deletedApiKeyId: result.deletedApiKeyId ?? null,
+      deletedApiKeyId: result.deletedApiKeyId
+        ? encodeGlobalIdByType(result.deletedApiKeyId, GlobalIdEntity.ApiKey)
+        : null,
       userErrors: result.userErrors,
     };
   }

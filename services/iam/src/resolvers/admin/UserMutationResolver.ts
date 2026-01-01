@@ -1,4 +1,8 @@
 import { ZodResolver } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
@@ -48,7 +52,9 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     });
 
     return {
-      userId: result.userId ?? null,
+      userId: result.userId
+        ? encodeGlobalIdByType(result.userId, GlobalIdEntity.User)
+        : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code,
         message: e.message,
@@ -83,7 +89,9 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     });
 
     return {
-      userId: result.userId ?? null,
+      userId: result.userId
+        ? encodeGlobalIdByType(result.userId, GlobalIdEntity.User)
+        : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code,
         message: e.message,

@@ -1,4 +1,8 @@
 import { IAMType, Cache } from "./IAMType.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import { UserResolver } from "./UserResolver.js";
 import type { UserRole } from "../../repositories/models/authorization.js";
 import { ORG_DOMAIN } from "@src/casbin/CasbinService.js";
@@ -41,7 +45,8 @@ export class MemberResolver extends IAMType<MemberInput, UserRole> {
   }
 
   async id() {
-    return this.$get("id");
+    const id = await this.$get("id");
+    return encodeGlobalIdByType(id, GlobalIdEntity.Member);
   }
 
   user(): UserResolver {

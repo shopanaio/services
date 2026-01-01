@@ -1,4 +1,8 @@
 import { Cache, TypePolicy } from "@shopana/type-resolver";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 import type { Store } from "../../repositories/store/StoreRepository.js";
 import type { LocaleCode, CurrencyCode } from "@shopana/shared-references";
 import { BaseResolver } from "./BaseResolver.js";
@@ -22,7 +26,7 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   }
 
   id() {
-    return this.$props.id;
+    return encodeGlobalIdByType(this.$props.id, GlobalIdEntity.Store);
   }
 
   async name() {
@@ -30,9 +34,10 @@ export class StoreResolver extends BaseResolver<Store, Store> {
   }
 
   async organization() {
+    const organizationId = await this.$get("organizationId");
     return {
       __typename: "Organization" as const,
-      id: await this.$get("organizationId"),
+      id: encodeGlobalIdByType(organizationId, GlobalIdEntity.Organization),
     };
   }
 
