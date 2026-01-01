@@ -58,7 +58,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Add a second store admin
@@ -143,7 +143,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Invite another user as store admin
@@ -206,7 +206,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
     // Store should NOT have owner_id or created_by as a protected attribute
     // The creator simply gets admin role which can be changed/removed
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
       const domain = store.membership?.domain;
 
       // Verify admin permissions
@@ -259,7 +259,7 @@ test.describe('Store Ownership Model (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Verify store admin can delete (has store.profile.delete permission)

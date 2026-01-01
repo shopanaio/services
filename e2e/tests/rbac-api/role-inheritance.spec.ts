@@ -53,7 +53,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     expect(store).not.toBeNull();
     const storeDomain = store?.membership?.domain;
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create manager user
@@ -173,7 +173,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Assign user as viewer
@@ -249,7 +249,7 @@ test.describe('Role Inheritance (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Assign user as manager

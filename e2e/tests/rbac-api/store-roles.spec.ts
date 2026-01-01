@@ -157,7 +157,7 @@ test.describe('Store Roles (FR-4)', () => {
     expect(store).not.toBeNull();
     const storeDomain = store?.membership?.domain;
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create second user and assign as manager in store
@@ -268,7 +268,7 @@ test.describe('Store Roles (FR-4)', () => {
     expect(store).not.toBeNull();
     const storeDomain = store?.membership?.domain;
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create second user and assign as store admin

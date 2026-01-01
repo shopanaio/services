@@ -222,7 +222,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     // Check access for store1
     if (store1) {
-      api.session.project = { id: store1.id, slug: store1.name, name: store1.name };
+      api.session.project = { id: store1.id, name: store1.name, displayName: store1.name };
       for (const { resource, action } of storeActions) {
         const { data: authData } = await api.admin.query('roles-api/Authorize', {
           variables: {
@@ -240,7 +240,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
 
     // Check access for store2
     if (store2) {
-      api.session.project = { id: store2.id, slug: store2.name, name: store2.name };
+      api.session.project = { id: store2.id, name: store2.name, displayName: store2.name };
       for (const { resource, action } of storeActions) {
         const { data: authData } = await api.admin.query('roles-api/Authorize', {
           variables: {
@@ -294,7 +294,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create second user and assign as viewer in store
@@ -399,7 +399,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create second user and assign as manager in store
@@ -511,7 +511,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create second user and assign as store admin
@@ -607,7 +607,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Create manager user
@@ -728,7 +728,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Assign user as viewer
@@ -804,7 +804,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Assign user as manager
@@ -901,7 +901,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Add a second store admin
@@ -985,7 +985,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Invite another user as store admin
@@ -1048,7 +1048,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     // Store should NOT have owner_id or created_by as a protected attribute
     // The creator simply gets admin role which can be changed/removed
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
 
       // Verify admin permissions
       const { data: authData } = await api.admin.query('roles-api/Authorize', {
@@ -1105,7 +1105,7 @@ test.describe('Role Hierarchy (FR-4)', () => {
     const store = storeData.storeMutation.storeCreate.store;
     expect(store).not.toBeNull();
     if (store) {
-      api.session.project = { id: store.id, slug: store.name, name: store.name };
+      api.session.project = { id: store.id, name: store.name, displayName: store.name };
     }
 
     // 2. Verify store admin can delete (has store.profile.delete permission)
