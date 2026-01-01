@@ -107,7 +107,7 @@ export class Executor<TContext = unknown> {
     query?: QueryArgs
   ): Promise<InstanceResult<T>> {
     const Type = instance.constructor as TypeClass;
-    const value = instance.value;
+    const value = (instance as any).$props;
 
     // Build middleware context (ctx from instance, not options)
     const middlewareCtx: AfterCreateContext<TContext> = {
