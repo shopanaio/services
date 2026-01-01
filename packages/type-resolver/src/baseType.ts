@@ -4,13 +4,13 @@ import type { QueryArgs, TypeClass, TypeContext, TypeResult } from "./types.js";
 
 /**
  * Abstract base class for type definitions.
- * Provides convenience methods for loading data and value properties.
+ * Provides convenience methods for loading data and props.
  *
- * @template TValue - The type of the input value passed to the constructor
- * @template TData - The type of the loaded data entity (defaults to TValue)
+ * @template TProps - The type of the input props passed to the constructor
+ * @template TData - The type of the loaded data entity (defaults to TProps)
  * @template TContext - The type of the context object (defaults to unknown)
  */
-export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
+export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
   /**
    * Optional executor with middleware. Set this in subclass to enable middleware.
    *
@@ -27,7 +27,7 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * Static method to load and resolve a value through the executor.
    * Uses static `executor` if defined, otherwise creates a plain executor.
    *
-   * @param value - The value to resolve
+   * @param props - The props to resolve
    * @param query - Optional QueryArgs (use parseGraphqlInfo to convert from GraphQL info)
    * @param ctx - Context object to pass to type instances
    */
@@ -79,19 +79,16 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
   }
 
   private _dataPromise: Promise<TData> | null = null;
-  private _value?: TValue;
   private _ctx?: TContext;
 
-  constructor(value?: TValue, ctx?: TContext) {
-    this._value = value;
+  protected $props: TProps;
+
+  constructor($props: TProps, ctx?: TContext) {
+    this.$props = $props;
     this._ctx = ctx;
   }
 
-  get value(): TValue {
-    return this._value as TValue;
-  }
-
-  protected get ctx(): TContext {
+  protected get $ctx(): TContext {
     return this._ctx as TContext;
   }
 
@@ -102,8 +99,7 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * @returns The loaded data entity
    */
   protected $preload(): TData | Promise<TData> {
-    // Default: use value as data (for backward compatibility when value is already the data object)
-    return this.value as unknown as TData;
+    throw new Error("not implemented");
   }
 
   /**
@@ -122,23 +118,12 @@ export abstract class BaseType<TValue, TData = TValue, TContext = unknown> {
    * Convenience accessor for loaded data properties.
    * Uses the lazily-loaded `$data` under the hood.
    *
-   * @returns The whole loaded entity when called without arguments, or a single property when key is provided.
+   * @param key - The property key to access from loaded data
+   * @returns The property value from loaded data
    */
-  protected async $get(): Promise<TData>;
-  protected async $get<K extends keyof NonNullable<TData>>(
-    key: K
-  ): Promise<NonNullable<TData>[K] | undefined>;
-  protected async $get(
-    key?: keyof NonNullable<TData>
-  ): Promise<TData | NonNullable<TData>[keyof NonNullable<TData>] | undefined> {
+  protected async $get<K extends keyof TData>(key: K): Promise<TData[K]> {
     const data = await this.$data;
-    if (key === undefined) {
-      return data;
-    }
-    if (data == null) {
-      return undefined;
-    }
-    return (data as NonNullable<TData>)[key];
+    return data[key];
   }
 
   /**
