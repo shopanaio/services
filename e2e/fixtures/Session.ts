@@ -9,11 +9,11 @@ export class SessionFixture {
     client: StorefrontApiFixture;
   };
 
-  project!: Partial<ApiStore> & { id: string; slug: string; name: string };
+  project!: Partial<ApiStore> & { id: string; name: string; displayName: string };
 
-  organizationId?: string;
+  organizationId: string | null = null;
 
-  apiKey!: string;
+  apiKey = '';
 
   scope: 'tenant' | 'customer' = 'tenant';
 
@@ -24,7 +24,7 @@ export class SessionFixture {
   };
 
   get projectSlug(): string {
-    return this.project?.slug ?? '';
+    return this.project?.name ?? '';
   }
 
   get user() {
@@ -60,13 +60,13 @@ export class SessionFixture {
   /**
    * Creates an organization and stores the ID in session
    */
-  async setupOrganization({ name, slug }: { name?: string; slug?: string } = {}) {
-    const orgSlug = slug ?? `test-org-${crypto.randomUUID().slice(0, 8)}`;
+  async setupOrganization({ displayName }: { displayName?: string } = {}) {
+    const orgName = `test-org-${crypto.randomUUID().slice(0, 8)}`;
     const { data } = await this.api.admin.mutation('iam-api/OrganizationCreate', {
       variables: {
         input: {
-          name: name ?? 'Test Organization',
-          slug: orgSlug,
+          name: orgName,
+          displayName: displayName ?? 'Test Organization',
         },
       },
     });
@@ -84,16 +84,25 @@ export class SessionFixture {
    * Creates a new store and stores it in session.
    * Requires organization to be set up first (via setupOrganization).
    */
-  setupProject = async ({ name, slug }: { name?: string; slug?: string } = {}) => {
+  setupProject = async ({ name, displayName }: { name?: string; displayName?: string } = {}) => {
     if (!this.organizationId) {
       await this.setupOrganization();
     }
     this.project = await this.api.admin.project.create({
-      organizationId: this.organizationId!,
+      organizationId: this.organizationId as string,
       name,
-      slug,
+      displayName,
     });
   };
+
+  /**
+   * Convenience method that sets up user, organization, and store in one call.
+   * Use this for tests that need a fully initialized environment.
+   */
+  async setupUserAndStore({ name, displayName }: { name?: string; displayName?: string } = {}) {
+    await this.setupUser();
+    await this.setupProject({ name, displayName });
+  }
 
   setApi(api: { admin: AdminApiFixture; client: StorefrontApiFixture }) {
     this.api = api;
