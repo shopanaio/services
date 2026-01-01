@@ -4,12 +4,12 @@ import { FileResolver } from "./FileResolver.js";
 import { BucketResolver } from "./BucketResolver.js";
 import { decodeGlobalId, encodeGlobalId } from "./utils/globalId.js";
 import {
-  bucketCreate,
-  fileUploadMultipart,
-  fileUploadFromUrl,
-  fileCreateExternal,
-  fileUpdate,
-  fileDelete,
+  BucketCreateScript,
+  FileUploadMultipartScript,
+  FileUploadFromUrlScript,
+  FileCreateExternalScript,
+  FileUpdateScript,
+  FileDeleteScript,
 } from "../../scripts/index.js";
 
 /**
@@ -31,18 +31,15 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       endpointUrl?: string;
     };
   }) {
-    const services = this.ctx.kernel.getServices();
+    const { kernel } = this.ctx;
 
-    const result = await bucketCreate(
-      {
-        bucketName: input.bucketName,
-        region: input.region,
-        status: input.status,
-        priority: input.priority,
-        endpointUrl: input.endpointUrl,
-      },
-      services
-    );
+    const result = await kernel.runScript(BucketCreateScript, {
+      bucketName: input.bucketName,
+      region: input.region,
+      status: input.status,
+      priority: input.priority,
+      endpointUrl: input.endpointUrl,
+    });
 
     return {
       bucket: result.bucket
@@ -64,16 +61,13 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       idempotencyKey?: string;
     };
   }) {
-    const services = this.ctx.kernel.getServices();
+    const { kernel } = this.ctx;
 
-    const result = await fileUploadMultipart(
-      {
-        file: input.file,
-        altText: input.altText,
-        idempotencyKey: input.idempotencyKey,
-      },
-      services
-    );
+    const result = await kernel.runScript(FileUploadMultipartScript, {
+      file: input.file,
+      altText: input.altText,
+      idempotencyKey: input.idempotencyKey,
+    });
 
     return {
       file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
@@ -93,16 +87,13 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       idempotencyKey?: string;
     };
   }) {
-    const services = this.ctx.kernel.getServices();
+    const { kernel } = this.ctx;
 
-    const result = await fileUploadFromUrl(
-      {
-        sourceUrl: input.sourceUrl,
-        altText: input.altText,
-        idempotencyKey: input.idempotencyKey,
-      },
-      services
-    );
+    const result = await kernel.runScript(FileUploadFromUrlScript, {
+      sourceUrl: input.sourceUrl,
+      altText: input.altText,
+      idempotencyKey: input.idempotencyKey,
+    });
 
     return {
       file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
@@ -130,24 +121,21 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       idempotencyKey?: string;
     };
   }) {
-    const services = this.ctx.kernel.getServices();
+    const { kernel } = this.ctx;
 
-    const result = await fileCreateExternal(
-      {
-        provider: input.provider,
-        externalId: input.externalId,
-        url: input.url,
-        thumbnailUrl: input.thumbnailUrl,
-        originalName: input.originalName,
-        width: input.width,
-        height: input.height,
-        durationMs: input.durationMs,
-        altText: input.altText,
-        providerMeta: input.providerMeta,
-        idempotencyKey: input.idempotencyKey,
-      },
-      services
-    );
+    const result = await kernel.runScript(FileCreateExternalScript, {
+      provider: input.provider,
+      externalId: input.externalId,
+      url: input.url,
+      thumbnailUrl: input.thumbnailUrl,
+      originalName: input.originalName,
+      width: input.width,
+      height: input.height,
+      durationMs: input.durationMs,
+      altText: input.altText,
+      providerMeta: input.providerMeta,
+      idempotencyKey: input.idempotencyKey,
+    });
 
     return {
       file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
@@ -178,19 +166,14 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       };
     }
 
-    const services = this.ctx.kernel.getServices();
+    const { kernel } = this.ctx;
 
-    const result = await fileUpdate(
-      {
-        id: decoded.id,
-        altText: input.altText,
-        originalName: input.originalName,
-        meta: input.meta,
-      },
-      services
-    );
-
-    console.log(result.file?.id, input.altText, "ALT TEX");
+    const result = await kernel.runScript(FileUpdateScript, {
+      id: decoded.id,
+      altText: input.altText,
+      originalName: input.originalName,
+      meta: input.meta,
+    });
 
     return {
       file: result.file ? new FileResolver(result.file.id, this.ctx) : null,
@@ -219,15 +202,12 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       };
     }
 
-    const services = this.ctx.kernel.getServices();
+    const { kernel } = this.ctx;
 
-    const result = await fileDelete(
-      {
-        id: decoded.id,
-        permanent: input.permanent,
-      },
-      services
-    );
+    const result = await kernel.runScript(FileDeleteScript, {
+      id: decoded.id,
+      permanent: input.permanent,
+    });
 
     return {
       deletedFileId: result.deletedFileId

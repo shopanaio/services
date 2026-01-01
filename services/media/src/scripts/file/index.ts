@@ -1,5 +1,9 @@
-export { fileUploadFromUrl, type FileUploadFromUrlParams, type FileUploadFromUrlResult } from "./fileUploadFromUrl.js";
-export { fileUploadMultipart, type FileUploadMultipartParams, type FileUploadMultipartResult } from "./fileUploadMultipart.js";
-export { fileCreateExternal, type FileCreateExternalParams, type FileCreateExternalResult } from "./fileCreateExternal.js";
-export { fileUpdate, type FileUpdateParams, type FileUpdateResult } from "./fileUpdate.js";
-export { fileDelete, type FileDeleteParams, type FileDeleteResult } from "./fileDelete.js";
+// Script classes
+export { FileUploadMultipartScript } from "./FileUploadMultipartScript.js";
+export { FileUploadFromUrlScript } from "./FileUploadFromUrlScript.js";
+export { FileCreateExternalScript } from "./FileCreateExternalScript.js";
+export { FileUpdateScript } from "./FileUpdateScript.js";
+export { FileDeleteScript } from "./FileDeleteScript.js";
+
+// DTOs
+export * from "./dto/index.js";

@@ -1,55 +1,32 @@
-import type { TransactionScript } from "../../kernel/types.js";
-import { getContext } from "../../context/index.js";
+import crypto from "node:crypto";
+import { BaseScript } from "../../kernel/BaseScript.js";
 import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
-import crypto from "node:crypto";
-import type { FileUpload } from "graphql-upload-minimal";
+import type {
+  FileUploadMultipartParams,
+  FileUploadMultipartResult,
+} from "./dto/FileUploadMultipartDto.js";
 
-export interface FileUploadMultipartParams {
-  readonly file: Promise<FileUpload>;
-  readonly altText?: string;
-  readonly idempotencyKey?: string;
-}
-
-export interface FileUploadMultipartResult {
-  file?: {
-    id: string;
-  };
-  userErrors: Array<{ message: string; field?: string[]; code?: string }>;
-}
-
-/**
- * Creates a file record by uploading a multipart file to S3.
- *
- * Logic:
- * 1. Check idempotency key (if exists - return existing file)
- * 2. Read file stream into buffer
- * 3. Upload to S3
- * 4. Create records in `files` + `s3Objects`
- * 5. Return the created File
- */
-export const fileUploadMultipart: TransactionScript<
+export class FileUploadMultipartScript extends BaseScript<
   FileUploadMultipartParams,
   FileUploadMultipartResult
-> = async (params, services) => {
-  const { logger, repository } = services;
-  const ctx = getContext();
-  const projectId = ctx.store.id;
+> {
+  protected async execute(params: FileUploadMultipartParams): Promise<FileUploadMultipartResult> {
+    const projectId = this.storeId;
 
-  try {
-    logger.info({ projectId }, "fileUploadMultipart: starting");
+    this.logger.info({ projectId }, "FileUploadMultipartScript: starting");
 
     // 1. Check idempotency key
     if (params.idempotencyKey) {
-      const existingFile = await repository.file.findByIdempotencyKey(
+      const existingFile = await this.repository.file.findByIdempotencyKey(
         projectId,
         params.idempotencyKey
       );
 
       if (existingFile) {
-        logger.info(
+        this.logger.info(
           { fileId: existingFile.id, idempotencyKey: params.idempotencyKey },
-          "fileUploadMultipart: returning existing file by idempotency key"
+          "FileUploadMultipartScript: returning existing file by idempotency key"
         );
         return {
           file: { id: existingFile.id },
@@ -62,7 +39,7 @@ export const fileUploadMultipart: TransactionScript<
     const upload = await params.file;
     const { filename, mimetype, createReadStream } = upload;
 
-    logger.info({ filename, mimetype }, "fileUploadMultipart: processing file");
+    this.logger.info({ filename, mimetype }, "FileUploadMultipartScript: processing file");
 
     // Read file stream into buffer
     const stream = createReadStream();
@@ -77,7 +54,7 @@ export const fileUploadMultipart: TransactionScript<
 
     if (contentLength === 0) {
       return {
-        file: undefined,
+        file: null,
         userErrors: [
           {
             message: "Empty file provided",
@@ -91,19 +68,18 @@ export const fileUploadMultipart: TransactionScript<
     // 3. Analyze file to get real MIME type and metadata
     const metadata = await analyzeMedia(buffer, mimetype);
 
-    logger.info(
+    this.logger.info(
       {
         detectedMime: metadata.mimeType,
         clientMime: mimetype,
         width: metadata.width,
         height: metadata.height,
-        isAnimated: metadata.isAnimated,
       },
-      "fileUploadMultipart: analyzed file"
+      "FileUploadMultipartScript: analyzed file"
     );
 
     // 4. Generate object key and upload to S3
-    const objectKey = generateObjectKey(projectId, metadata.ext);
+    const objectKey = this.generateObjectKey(projectId, metadata.ext);
     const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
     // Initialize S3 client
@@ -111,7 +87,7 @@ export const fileUploadMultipart: TransactionScript<
     const bucketName = getBucketName();
 
     // Get bucket record
-    const bucket = await repository.bucket.getDefault(bucketName);
+    const bucket = await this.repository.bucket.getDefault(bucketName);
 
     // Upload to S3
     const uploadResult = await s3Client.putObject(
@@ -126,16 +102,16 @@ export const fileUploadMultipart: TransactionScript<
       }
     );
 
-    logger.info(
+    this.logger.info(
       { objectKey, etag: uploadResult.etag, size: buffer.length },
-      "fileUploadMultipart: uploaded to S3"
+      "FileUploadMultipartScript: uploaded to S3"
     );
 
     // 5. Build public URL
     const publicUrl = buildPublicUrl(objectKey);
 
     // 6. Create record in `files` table with detected metadata
-    const file = await repository.file.create(projectId, {
+    const file = await this.repository.file.create(projectId, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -144,15 +120,15 @@ export const fileUploadMultipart: TransactionScript<
       originalName: filename ?? null,
       width: metadata.width ?? null,
       height: metadata.height ?? null,
-      durationMs: metadata.durationMs ?? null,
+      durationMs: null,
       altText: params.altText ?? null,
       sourceUrl: null,
       idempotencyKey: params.idempotencyKey ?? null,
-      isProcessed: true, // Mark as processed since we extracted metadata
+      isProcessed: true,
     });
 
     // 7. Create record in `s3Objects` table
-    await repository.s3Object.create(projectId, {
+    await this.repository.s3Object.create(projectId, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,
@@ -161,26 +137,24 @@ export const fileUploadMultipart: TransactionScript<
       storageClass: "STANDARD",
     });
 
-    logger.info({ fileId: file.id }, "fileUploadMultipart: completed successfully");
+    this.logger.info({ fileId: file.id }, "FileUploadMultipartScript: completed successfully");
 
     return {
       file: { id: file.id },
       userErrors: [],
     };
-  } catch (error) {
-    logger.error({ error }, "fileUploadMultipart failed");
+  }
+
+  private generateObjectKey(projectId: string, ext: string): string {
+    const timestamp = Date.now();
+    const random = crypto.randomBytes(8).toString("hex");
+    return `${projectId}/${timestamp}-${random}.${ext}`;
+  }
+
+  protected handleError(_error: unknown): FileUploadMultipartResult {
     return {
-      file: undefined,
+      file: null,
       userErrors: [{ message: "Failed to upload file", code: "INTERNAL_ERROR" }],
     };
   }
-};
-
-/**
- * Generates a unique object key for S3 storage
- */
-function generateObjectKey(projectId: string, ext: string): string {
-  const timestamp = Date.now();
-  const random = crypto.randomBytes(8).toString("hex");
-  return `${projectId}/${timestamp}-${random}.${ext}`;
 }
