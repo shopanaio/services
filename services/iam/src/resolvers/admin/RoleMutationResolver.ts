@@ -35,17 +35,9 @@ export class RoleMutationResolver extends IAMType<Record<string, never>> {
       GlobalIdEntity.Organization
     );
 
-    // Decode domain if it's store:globalId format
-    let domain = input.domain;
-    if (domain.startsWith("store:")) {
-      const storeGlobalId = domain.slice("store:".length);
-      const storeId = decodeGlobalIdByType(storeGlobalId, GlobalIdEntity.Store);
-      domain = `store:${storeId}`;
-    }
-
     const result = await this.$ctx.kernel.runScript(RoleCreateScript, {
       organizationId,
-      domain,
+      domain: input.domain,
       name: input.name,
       displayName: input.displayName,
       description: input.description ?? undefined,

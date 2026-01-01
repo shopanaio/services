@@ -269,12 +269,8 @@ test.describe('Domain-Based Access Control (FR-2)', () => {
     expect(store).not.toBeNull();
     const storeDomain = store?.membership?.domain;
 
-    // 2. Verify store domain follows format "store:<uuid>"
-    expect(storeId).toBeDefined();
-
-    // 3. Verify UUID format is valid
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    expect(storeId).toMatch(uuidRegex);
+    // 2. Verify store domain follows format "store:<gid>"
+    expect(storeDomain).toBeDefined();
 
     // Verify the domain format works in authorization
     const domain = storeDomain;

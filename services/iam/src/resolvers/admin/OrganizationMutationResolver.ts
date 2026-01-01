@@ -226,18 +226,10 @@ export class OrganizationMutationResolver extends IAMType<
     );
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
 
-    // Decode domain if it's store:globalId format
-    let domain = input.domain;
-    if (domain.startsWith("store:")) {
-      const storeGlobalId = domain.slice("store:".length);
-      const storeId = decodeGlobalIdByType(storeGlobalId, GlobalIdEntity.Store);
-      domain = `store:${storeId}`;
-    }
-
     const result = await this.$ctx.kernel.runScript(MemberRoleChangeScript, {
       organizationId,
       userId,
-      domain,
+      domain: input.domain,
       role: input.role,
     });
 
@@ -273,18 +265,10 @@ export class OrganizationMutationResolver extends IAMType<
     );
     const userId = decodeGlobalIdByType(input.userId, GlobalIdEntity.User);
 
-    // Decode domain if it's store:globalId format
-    let domain = input.domain;
-    if (domain.startsWith("store:")) {
-      const storeGlobalId = domain.slice("store:".length);
-      const storeId = decodeGlobalIdByType(storeGlobalId, GlobalIdEntity.Store);
-      domain = `store:${storeId}`;
-    }
-
     const result = await this.$ctx.kernel.runScript(MemberAccessRemoveScript, {
       organizationId,
       userId,
-      domain,
+      domain: input.domain,
     });
 
     return {
