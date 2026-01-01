@@ -4,9 +4,9 @@ import { notify } from '@components/feedback/notification';
 import { useIntl } from 'react-intl';
 import { t } from '@modules/products/i18n/messages';
 import {
-  DrawerLayout,
-  DrawerLayoutGrid,
-} from '@src/layouts/drawer/components/DrawerLayout';
+  ModalLayout,
+  ModalLayoutGrid,
+} from '@src/layouts/modal/components/ModalLayout';
 import { FormProvider, useForm } from 'react-hook-form';
 import { getEditProductSchema } from '@src/schemas/Product/productSchema';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -619,7 +619,7 @@ const ProductFormView = () => {
 
   return (
     <FormProvider {...methods}>
-      <DrawerLayout
+      <ModalLayout
         name="product"
         errors={errors}
         headerProps={{
@@ -654,7 +654,7 @@ const ProductFormView = () => {
                   }),
                   key: 'general',
                   children: (
-                    <DrawerLayoutGrid
+                    <ModalLayoutGrid
                       aside={
                         <>
                           <EntryStatusAndInfo
@@ -677,7 +677,7 @@ const ProductFormView = () => {
                       ) : (
                         <VariantFields />
                       )}
-                    </DrawerLayoutGrid>
+                    </ModalLayoutGrid>
                   ),
                 },
                 {

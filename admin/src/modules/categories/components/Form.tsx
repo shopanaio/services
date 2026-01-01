@@ -1,5 +1,5 @@
 import { Organization } from '@modules/categories/components/Organization';
-import { DrawerLayout } from '@src/layouts/drawer/components/DrawerLayout';
+import { ModalLayout } from '@src/layouts/modal/components/ModalLayout';
 import { FormProvider, useForm } from 'react-hook-form';
 import { getEditCategorySchema } from '@src/schemas/Category/schema';
 import { useEffect, useRef, useState } from 'react';
@@ -135,7 +135,7 @@ export const CategoryForm = () => {
 
   return (
     <FormProvider {...methods}>
-      <DrawerLayout
+      <ModalLayout
         name="category"
         errors={errors}
         headerProps={{
