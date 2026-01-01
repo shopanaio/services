@@ -1,0 +1,20 @@
+export enum GqlQueries {
+  FindManyOrderBoards = 'FindManyOrderBoards',
+  FindOrdersForBoards = 'FindOrdersForBoards',
+  FindManyOrders = 'FindManyOrders',
+  FindOneOrder = 'FindOneOrder',
+  FindManyProducts = 'FindManyProducts',
+  FindManyVariants = 'FindManyVariants',
+  FindManyCategories = 'FindManyCategories',
+  FindOneCategory = 'FindOneCategory',
+  FindOneProduct = 'FindOneProduct',
+  FindManyFeatureGroups = 'FindManyFeatureGroups',
+  FindOneFeatureGroup = 'FindOneFeatureGroup',
+  FindManyFiles = 'FindManyFiles',
+
+  Listing = 'Listing',
+  EmailTemplatesAndSettings = 'EmailTemplatesAndSettings',
+  Project = 'Project',
+  FindManyCustomers = 'FindManyCustomers',
+  FindTranslations = 'FindTranslations',
+}

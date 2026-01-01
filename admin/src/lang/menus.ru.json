@@ -1,0 +1,20 @@
+{
+  "menus.linkModal.added": "Ссылка добавлена",
+  "menus.linkModal.saveFailed": "Не удалось сохранить ссылку",
+  "menus.linkModal.source.label": "Источник",
+  "menus.linkModal.source.placeholder": "Выберите тип источника",
+  "menus.linkModal.title.edit": "Ссылка",
+  "menus.linkModal.title.label": "Название",
+  "menus.linkModal.title.new": "Новая ссылка",
+  "menus.linkModal.title.placeholder": "Введите заголовок",
+  "menus.linkModal.type.category": "Категория",
+  "menus.linkModal.type.menu": "Меню",
+  "menus.linkModal.type.page": "Страница",
+  "menus.linkModal.type.product": "Товар",
+  "menus.linkModal.type.url": "Ссылка",
+  "menus.linkModal.updated": "Ссылка обновлена",
+  "menus.title": "Меню",
+  "menus.menuItems": "Элементы меню",
+  "menus.confirmDelete.content": "Вы собираетесь удалить 1 меню.",
+  "menus.drawer.editTitle": "Редактировать меню"
+}

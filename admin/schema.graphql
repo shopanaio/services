@@ -1,0 +1,2816 @@
+directive @defer(label: String, if: Boolean! = true) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+union Actor = User | ApiKey
+
+input AddCategoryProductsInput {
+  categoryId: ID!
+  productContainerIds: [ID!]!
+}
+
+input AddCommentInput {
+  id: ID!
+  comment: String!
+}
+
+type Address {
+  id: ID!
+  address1: String
+  address2: String
+  city: String
+  countryCode: String
+  email: String
+  firstName: String
+  lastName: String
+  latitude: Int
+  longitude: Int
+  middleName: String
+  phone: String
+  provinceCode: String
+  postalCode: String
+  meta: String
+}
+
+input AddressInput {
+  id: ID
+  address1: String
+  address2: String
+  city: String
+  countryCode: String
+  email: String
+  firstName: String
+  lastName: String
+  latitude: Int
+  longitude: Int
+  middleName: String
+  phone: String
+  provinceCode: String
+  postalCode: String
+  meta: String
+}
+
+input AddressWhereInput {
+  And: [AddressWhereInput!]
+  Or: [AddressWhereInput!]
+  id: FilterV2
+  address1: FilterV2
+  address2: FilterV2
+  city: FilterV2
+  countryCode: FilterV2
+  email: FilterV2
+  firstName: FilterV2
+  lastName: FilterV2
+  latitude: FilterV2
+  longitude: FilterV2
+  middleName: FilterV2
+  phoneNumber: FilterV2
+  provinceCode: FilterV2
+  postalCode: FilterV2
+}
+
+scalar Any
+
+type ApiKey {
+  id: ID!
+  name: String!
+  createdAt: Timestamp!
+  createdBy: User!
+  dueDate: Timestamp
+  lastUsedAt: Timestamp
+  isBanned: Boolean!
+}
+
+type App {
+  code: String!
+  name: String!
+  meta: JSON
+}
+
+input ApproveReviewInput {
+  id: ID!
+}
+
+type AppsMutation {
+  """Install app"""
+  install(code: String!): Boolean!
+
+  """Uninstall app"""
+  uninstall(code: String!): Boolean!
+}
+
+type AppsQuery {
+  """Get list of available apps for installation"""
+  apps: [App!]!
+
+  """Get list of installed apps"""
+  installedApps: [InstalledApp!]!
+}
+
+input BulkDeleteInput {
+  ids: [ID!]!
+  entity: EntityType!
+}
+
+type BulkMutation {
+  delete(input: BulkDeleteInput!): Boolean!
+  update(input: BulkUpdateInput!): Boolean!
+  clear: Boolean!
+  checkSlug(input: BulkUniqueSlugInput!): Boolean!
+}
+
+input BulkUniqueSlugInput {
+  entity: EntityType!
+  slug: String!
+}
+
+input BulkUpdateInput {
+  ids: [ID!]!
+  entity: EntityType!
+  status: String!
+}
+
+input BulkUpdateStatusInput {
+  ids: [ID!]!
+  status: String!
+}
+
+input CancelOrderInput {
+  id: ID!
+  comment: String!
+  reason: CancelReasonEnum!
+}
+
+enum CancelReasonEnum {
+  CUSTOMER
+  FRAUD
+  INVENTORY
+  STAFF
+  OTHER
+}
+
+type Cart {
+  id: ID!
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  baseCurrencyCode: String
+  displayCurrencyCode: String
+  displayExchangeRate: Float
+  subtotalAmount: Int
+  discountTotalAmount: Int
+  taxTotalAmount: Int
+  shippingTotalAmount: Int
+  grandTotalAmount: Int
+  totalQuantity: Int
+  items: [CartItem!]!
+}
+
+type CartItem {
+  id: ID!
+  purchasableId: ID!
+  purchasableType: String!
+  purchasableSnapshot: ProductSnapshot!
+  unitPrice: Int!
+  compareAtUnitPrice: Int
+  quantity: Int!
+  subtotalAmount: Int!
+  discountAmount: Int!
+  taxAmount: Int!
+  totalAmount: Int!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  children: [CartItem!]!
+}
+
+type CartMutation {
+  delete(id: ID!): Boolean!
+}
+
+type CartQuery {
+  findMany(input: CartsInput): CartsOutput!
+  findOne(id: ID!): Cart
+}
+
+input CartsInput {
+  where: CartWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type CartsOutput {
+  data: [Cart!]!
+  meta: CollectionMeta!
+}
+
+input CartWhereInput {
+  And: [CartWhereInput!]
+  Or: [CartWhereInput!]
+  id: FilterV2
+  customerId: FilterV2
+  clientToken: FilterV2
+}
+
+input CategoriesInput {
+  where: CategoriesWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type CategoriesOutput {
+  data: [Category!]!
+  meta: CollectionMeta!
+}
+
+input CategoriesWhereInput {
+  And: [CategoriesWhereInput!]
+  Or: [CategoriesWhereInput!]
+  children: CategoriesWhereInput
+  createdAt: FilterV2
+  id: FilterV2
+  listingOrder: FilterV2
+  listingType: FilterV2
+  locale: FilterV2
+  parent: CategoriesWhereInput
+  products: ProductWhereInput
+  slug: FilterV2
+  status: FilterV2
+  title: FilterV2
+  translationField: FilterV2
+  updatedAt: FilterV2
+}
+
+type Category {
+  children(input: CategoriesInput): [Category]!
+  cover: File
+  createdAt: Timestamp!
+  description: String
+  excerpt: String
+  gallery: [File!]!
+  id: ID!
+  includeChildrenProducts: Boolean!
+  listingFilters: [CategoryListingFilter!]!
+  labels: [Label!]!
+  tags: [Tag!]!
+  listingOrderBy: ListingSort!
+  listingOrderByStatus: Boolean!
+  listingPlacement: Int
+  listingType: ListingType!
+  parent: Category
+  products: [Variant!]!
+  seoDescription: String
+  seoTitle: String
+  slug: String!
+  status: String!
+  sublistingStep: Int!
+  title: String!
+  updatedAt: Timestamp!
+}
+
+input CategoryFilterInput {
+  slug: String
+  parent: CategoryFilterInput
+}
+
+type CategoryListingFilter {
+  createdAt: Timestamp!
+  id: ID!
+  path: String!
+  operator: String!
+  type: FilterType!
+  updatedAt: Timestamp!
+  value: String!
+  entry: ListingFilterEntry
+}
+
+type CategoryMutation {
+  create(input: CreateCategoryInput!): ID!
+  createMany(input: [CreateCategoryInput!]!): [Category!]!
+  update(input: UpdateCategoryInput!): Boolean!
+  addProducts(input: AddCategoryProductsInput!): Boolean!
+  deleteProduct(input: DeleteCategoryProductInput!): Boolean!
+  updateProductRank(input: UpdateCategoryProductInput!): Boolean!
+  delete(id: ID!): Boolean!
+  archive(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+  archiveMany(ids: [ID!]!): Boolean!
+}
+
+type CategoryQuery {
+  findMany(input: CategoriesInput): CategoriesOutput!
+  findOne(id: ID!): Category
+}
+
+type ClientInfo {
+  ip: String
+  language: String
+  userAgent: String
+  meta: String
+}
+
+input ClientInfoInput {
+  language: String
+  userAgent: String
+  meta: String
+}
+
+type CollectionMeta {
+  page: Int!
+  pageSize: Int!
+  count: Int!
+  total: Int!
+  pageCount: Int!
+}
+
+type CoreShippingMethod {
+  code: String!
+  name: String!
+  service: ShippingService!
+}
+
+input CreateApiKeyInput {
+  name: String!
+  dueDate: Timestamp
+}
+
+input CreateCategoryInput {
+  children: [ID]
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  includeChildrenProducts: Boolean!
+  listingFilters: [CreateListingFilterInput!]
+  listingOrderBy: ListingSort
+  listingOrderByStatus: Boolean!
+  listingType: ListingType!
+  parentId: ID
+  products: [ID!]
+  seo: SeoFieldsInput
+  slug: String!
+  status: String!
+  title: String!
+  labels: [ID!]
+}
+
+input CreateCustomerInput {
+  email: String!
+  firstName: String!
+  lastName: String!
+  language: String!
+  phone: String
+  password: String
+  isVerified: Boolean!
+}
+
+input CreateEmailProfilesInput {
+  host: String!
+  port: Int!
+  username: String!
+  password: String!
+  sortIndex: Int!
+}
+
+input CreateEmailSettingsInput {
+  from: String!
+  replyTo: String!
+}
+
+input CreateEmailTemplateInput {
+  template: String!
+  subject: String!
+  type: EmailTypeEnum!
+}
+
+input CreateFilterInput {
+  title: String!
+  isActive: Boolean!
+  sortIndex: Int!
+  type: FilterType!
+}
+
+input CreateLabelInput {
+  name: String!
+  slug: String!
+  colorHex: String
+}
+
+input CreateLinkInput {
+  title: String!
+  slug: String
+  type: MenuNodeType!
+  entryId: ID
+  parentId: ID
+  sortIndex: Int!
+  menuId: ID!
+}
+
+input CreateListingFilterInput {
+  operator: String!
+  type: FilterType!
+  value: String!
+  entryID: ID
+  path: String!
+}
+
+input CreateLocaleInput {
+  isActive: Boolean!
+  code: String!
+}
+
+input CreateMenuInput {
+  title: String!
+  items: [CreateLinkInput!]!
+  slug: String!
+  status: EntityStatus!
+}
+
+input CreateOrderInput {
+  currency: OrderCurrencyInput
+  payment: OrderPaymentInfoInput
+  shipping: OrderShippingInfoInput
+  customerId: ID
+  items: [CreateOrderItemInput!]
+  clientInfo: ClientInfoInput!
+  tags: [ID!]
+  externalSystemId: String
+}
+
+input CreateOrderItemInput {
+  productId: ID!
+  orderId: ID!
+  quantity: Int = 1
+}
+
+input CreatePageInput {
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  seo: SeoFieldsInput
+  slug: String!
+  status: String!
+  title: String!
+  labels: [ID!]
+}
+
+input CreatePaymentMethodInput {
+  name: String!
+  code: String!
+  serviceId: String!
+}
+
+input CreatePaymentServiceInput {
+  name: String!
+  code: String!
+  coverId: ID
+}
+
+input CreateProductGroupInput {
+  title: String!
+  items: [CreateProductGroupItemInput!]!
+  isMultiple: Boolean!
+  isRequired: Boolean!
+  sortIndex: Int!
+}
+
+input CreateProductGroupItemInput {
+  variantId: ID!
+  sortIndex: Int!
+  priceType: ProductGroupPriceType
+  priceAmountValue: Int
+  pricePercentageValue: Float
+  maxQuantity: Int
+}
+
+input CreateProductInput {
+  requiresShipping: Boolean!
+  title: String!
+  description: DescriptionFieldsInput
+  seo: SeoFieldsInput
+  excerpt: String
+  slug: String
+  tags: [ID!]!
+  labels: [ID!]
+  variants: ProductVariantsInput!
+  groups: [CreateProductGroupInput!]!
+  status: EntityStatus!
+  primaryCategory: ID
+}
+
+input CreateProductVariantInput {
+  barcode: String
+  categories: [ID!]!
+  title: String!
+  costPrice: Int
+  coverId: ID
+  features: [ProductFeatureInput!]
+  gallery: [ID!]
+  oldPrice: Int
+  price: Int!
+  sku: String
+  slug: String
+  inListing: Boolean!
+  variantSortIndex: Int!
+  stockStatus: String!
+  weight: Float!
+  weightUnit: WeightUnit!
+  width: Float!
+  length: Float!
+  height: Float!
+  dimensionUnit: DimensionUnit!
+}
+
+input CreateProfileInput {
+  firstName: String!
+  lastName: String!
+  language: String!
+  timezone: String!
+}
+
+input CreateProjectInput {
+  name: String!
+  locales: [String!]!
+  currency: String!
+  country: String!
+  status: ProjectStatus!
+  timezone: String!
+  phoneNumber: String
+  email: String
+}
+
+input CreateReviewInput {
+  productId: ID
+  rating: Float!
+  title: String!
+  message: String
+  displayName: String!
+  pros: String
+  cons: String
+  images: [ID!]
+  locale: String
+  customerId: ID
+  status: ReviewStatus
+}
+
+input CreateShippingItemInput {
+  estimatedDeliveryAt: Timestamp
+  fulfillmentId: ID!
+  notificationsEnabled: Boolean
+  shippingMethodId: String
+  shippingPrice: Int
+  trackingCode: String
+  trackingEnabled: Boolean
+  trackingUrl: String
+}
+
+input CreateShippingMethodInput {
+  name: String!
+  code: String!
+  serviceId: String!
+}
+
+input CreateShippingServiceInput {
+  name: String!
+  code: String!
+  coverId: ID
+}
+
+input CreateStockStatusInput {
+  code: String!
+  title: String!
+  isAvailable: Boolean!
+}
+
+input CreateTagInput {
+  title: String!
+  slug: String!
+  color: String
+}
+
+input CreateTranslationInput {
+  sourceId: ID!
+  sourceType: EntityType!
+  locale: String!
+  fieldValue: String!
+  fieldName: TranslationField!
+}
+
+input CrmAppendTicketInput {
+  columnId: ID!
+  orderID: ID!
+}
+
+type CrmColumn {
+  ID: ID!
+  title: String!
+  slug: String!
+  sortIndex: Int!
+  tickets: [Order!]!
+}
+
+input CrmCreateColumnInput {
+  title: String!
+  slug: String!
+  sortIndex: Int!
+}
+
+input CrmMoveTicketInput {
+  columnId: ID!
+  orderId: ID!
+  afterOrderId: ID!
+}
+
+type CrmMutation {
+  columnCreateOne(input: CrmCreateColumnInput!): Boolean!
+  columnUpdateOne(input: CrmUpdateColumnInput!): Boolean!
+  columnUpdateMany(input: [CrmUpdateColumnInput!]!): Boolean!
+  columnDeleteOne(id: ID!): Boolean!
+  ticketAppend(input: CrmAppendTicketInput!): Boolean!
+  ticketMove(input: CrmMoveTicketInput!): Boolean!
+}
+
+type CrmQuery {
+  getColumns: [CrmColumn!]!
+  getTickets(input: CrmTicketsQueryInput!): [CrmTicketsQueryColumnOutput!]!
+}
+
+type CrmTicketsQueryColumnOutput {
+  hasNextPage: Boolean!
+  data: CrmColumn!
+}
+
+input CrmTicketsQueryInput {
+  offset: Int
+  limit: Int!
+  columns: [ID!]!
+  where: OrderWhereInput
+}
+
+input CrmUpdateColumnInput {
+  id: ID!
+  slug: String
+  title: String
+  sortIndex: Int
+}
+
+type Currency {
+  title: String!
+  code: String!
+  isActive: Boolean!
+  decimalPlaces: Int!
+  exchangeRate: Float!
+  symbolLeft: String!
+  symbolRight: String!
+  decimalSeparator: String!
+  thousandsSeparator: String!
+}
+
+type Customer {
+  createdAt: Timestamp!
+  email: String!
+  firstName: String!
+  id: ID!
+  isBlocked: Boolean
+  isVerified: Boolean!
+  lastName: String!
+  language: String
+  phone: String
+  updatedAt: Timestamp!
+  orders: [Order!]!
+}
+
+type CustomerMutation {
+  create(input: CreateCustomerInput!): ID!
+  update(input: UpdateCustomerInput!): Boolean!
+  delete(id: ID!): Boolean!
+  archive(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): [Boolean!]!
+  archiveMany(ids: [ID!]!): [Boolean!]!
+}
+
+type CustomerQuery {
+  findOne(id: ID!): Customer
+  findMany(input: CustomersInput): CustomersOutput!
+}
+
+input CustomersInput {
+  page: Int!
+  pageSize: Int!
+  sortField: String
+  sortOrder: String
+  search: String
+}
+
+type CustomersOutput {
+  data: [Customer!]!
+  meta: CollectionMeta!
+}
+
+input DeleteCategoryProductInput {
+  categoryId: ID!
+  productId: ID!
+}
+
+input DescriptionFieldsInput {
+  json: String!
+  text: String!
+  html: String!
+}
+
+enum DimensionUnit {
+  MM
+  CM
+  M
+  IN
+}
+
+type EmailProfiles {
+  host: String!
+  port: Int!
+  username: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  sortIndex: Int!
+  id: ID!
+}
+
+type EmailProfilesMutation {
+  create(input: CreateEmailProfilesInput!): EmailProfiles!
+  update(input: UpdateEmailProfilesInput!): EmailProfiles!
+}
+
+type EmailProfilesQuery {
+  findOne: EmailProfiles
+}
+
+type EmailSettings {
+  from: String!
+  replyTo: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  id: ID!
+}
+
+type EmailSettingsMutation {
+  create(input: CreateEmailSettingsInput!): EmailSettings!
+  update(input: UpdateEmailSettingsInput!): EmailSettings!
+}
+
+type EmailSettingsQuery {
+  findOne: EmailSettings
+}
+
+type EmailTemplate {
+  template: String!
+  subject: String!
+  type: EmailTypeEnum!
+  id: ID!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type EmailTemplateMutation {
+  create(input: CreateEmailTemplateInput!): EmailTemplate!
+  update(input: UpdateEmailTemplateInput!): EmailTemplate!
+  sendTestEmail(input: SendTestEmailInput!): Boolean!
+}
+
+type EmailTemplateQuery {
+  findOne(input: EmailTemplatesInput!): EmailTemplate
+  findMany(input: EmailTemplatesInput!): [EmailTemplate!]!
+}
+
+input EmailTemplatesInput {
+  where: EmailTemplatesWhereInput
+}
+
+input EmailTemplatesWhereInput {
+  And: [EmailTemplatesWhereInput!]
+  Or: [EmailTemplatesWhereInput!]
+  id: FilterV2
+  type: FilterV2
+}
+
+enum EmailTypeEnum {
+  TENANT_SIGN_UP
+  TENANT_INVITATION
+  TENANT_RESET_PASSWORD
+  CUSTOMER_SIGN_UP
+  CUSTOMER_INVITATION
+  CUSTOMER_RESET_PASSWORD
+  CUSTOMER_ORDER_CREATED
+  CUSTOMER_ORDER_SHIPPED
+  CUSTOMER_ORDER_DELIVERED
+  CUSTOMER_ORDER_CANCELLED
+}
+
+enum EntityStatus {
+  PUBLISHED
+  DRAFT
+  ARCHIVED
+}
+
+enum EntityType {
+  BOARD
+  BOARD_COL
+  BUNDLE
+  CATEGORY
+  CUSTOMER
+  EMAIL_TPL
+  PROD_FEAT
+  PROD_FEAT_GROUP
+  FILE
+  FILTER
+  FULFILLMENT
+  LINK
+  MENU
+  ORDER
+  ORDER_ITEM
+  PAGE
+  PAY_ITEM
+  PAY_METHOD
+  PROD_CONTAINER
+  PROD_GROUP
+  PROD_VARIANT
+  REVIEW
+  SHIP_ITEM
+  SHIP_METHOD
+  SHIP_SERVICE
+  STOCK_STATUS
+  TAG
+}
+
+enum FeatureStyleType {
+  RADIO
+  DROPDOWN
+  VARIANT_COVER
+  SWATCH
+  APPAREL_SIZE
+  DROPDOWN_VARIANT_COVER
+}
+
+type FeatureSwatch {
+  id: ID!
+  color1: String
+  color2: String
+  image: File
+  type: FeatureSwatchType!
+}
+
+input FeatureSwatchInput {
+  id: ID
+  color1: String
+  color2: String
+  imageId: ID
+  type: FeatureSwatchType!
+}
+
+enum FeatureSwatchType {
+  COLOR
+  COLOR_DUO
+  IMAGE
+}
+
+type File {
+  id: ID!
+  driver: FileDriver!
+  name: String!
+  url: String!
+  size: Int!
+  ext: String!
+  key: String!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+enum FileDriver {
+  LOCAL
+  S3
+  YTB
+  URL
+}
+
+type FileMutation {
+  updateOne(input: UpdateFileInput!): File!
+  updateMany(input: [UpdateFileInput!]!): [File!]!
+  deleteOne(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+  archiveOne(id: ID!): Boolean!
+  archiveMany(ids: [ID!]!): Boolean!
+}
+
+type FileQuery {
+  findOne(id: ID!): File
+  findMany(input: FilesInput): FilesOutput!
+}
+
+input FilesInput {
+  where: FilesWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type FilesOutput {
+  data: [File!]!
+  meta: CollectionMeta!
+}
+
+input FilesWhereInput {
+  And: [FilesWhereInput!]
+  Or: [FilesWhereInput!]
+  id: FilterV2
+  name: FilterV2
+  url: FilterV2
+  size: FilterV2
+  ext: FilterV2
+  createdAt: FilterV2
+  updatedAt: FilterV2
+  product: FilterV2
+  category: FilterV2
+  post: FilterV2
+  page: FilterV2
+}
+
+type Filter {
+  title: String!
+  createdAt: Timestamp!
+  isActive: Boolean!
+  id: ID!
+  sortIndex: Int!
+  type: FilterType!
+  updatedAt: Timestamp!
+}
+
+input FilterInput {
+  Eq: Any
+  NotEq: Any
+  Gt: Any
+  Gte: Any
+  Is: Any
+  IsNot: Any
+  Lt: Any
+  Lte: Any
+  In: Any
+  NotIn: Any
+  Like: Any
+  NotLike: Any
+  ILike: Any
+  NotILike: Any
+}
+
+type FilterMutation {
+  create(input: CreateFilterInput!): Filter!
+  createMany(input: [CreateFilterInput!]!): Boolean!
+  update(input: UpdateFilterInput!): Filter!
+  updateMany(input: [UpdateFilterInput!]!): Boolean!
+}
+
+type FilterQuery {
+  findMany(input: ProductFilterV2): [Filter!]!
+  findOne(id: ID!): Filter
+}
+
+input FiltersWhereInput {
+  And: [FiltersWhereInput!]
+  Or: [FiltersWhereInput!]
+  id: FilterV2
+}
+
+enum FilterType {
+  PRICE
+  CATEGORY
+  AVAILABILITY
+  FEATURE
+  TAG
+}
+
+scalar FilterV2
+
+input ForgotPasswordInput {
+  email: String!
+}
+
+type Fulfillment {
+  id: ID!
+  createdAt: Timestamp!
+  parentId: ID
+  shippingItem: ShippingItem
+  items: [FulfillmentItem!]!
+  status: FulfillmentStatusEnum!
+}
+
+type FulfillmentItem {
+  orderItemId: ID!
+  quantity: Int!
+}
+
+enum FulfillmentStatusEnum {
+  PENDING
+  PROCESSING
+  ON_HOLD
+  SHIPPED
+  DELIVERED
+  RETURNED
+  CANCELLED
+  FULFILLED
+}
+
+input FulfillmentWhereInput {
+  And: [FulfillmentWhereInput!]
+  Or: [FulfillmentWhereInput!]
+  id: FilterV2
+  orderId: FilterV2
+  status: FilterV2
+}
+
+input GroupProductLinkInput {
+  groupId: ID!
+  productId: ID!
+}
+
+type InstalledApp {
+  id: String!
+  projectID: String!
+  appCode: String!
+  domain: String!
+  baseURL: String!
+  enabled: Boolean!
+  meta: JSON
+}
+
+input InviteInput {
+  email: String!
+}
+
+scalar JSON
+
+input KeywordCreateInput {
+  groupId: ID!
+  keyword: String!
+  localeCode: String!
+}
+
+input KeywordDeleteInput {
+  groupId: ID!
+  keyword: String!
+  localeCode: String!
+}
+
+input KeywordGroupCreateInput {
+  title: String!
+}
+
+input KeywordGroupDeleteInput {
+  id: ID!
+}
+
+input KeywordGroupUpdateInput {
+  id: ID!
+  title: String!
+}
+
+type Label {
+  id: ID!
+  name: String!
+  slug: String!
+  colorHex: String
+}
+
+type LabelMutation {
+  create(input: CreateLabelInput!): ID!
+  update(input: UpdateLabelInput!): Boolean!
+}
+
+type LabelQuery {
+  findMany(input: LabelsInput): LabelsOutput!
+  findOne(id: ID!): Label
+}
+
+input LabelsInput {
+  where: LabelWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type LabelsOutput {
+  data: [Label!]!
+  meta: CollectionMeta!
+}
+
+input LabelWhereInput {
+  And: [LabelWhereInput!]
+  Or: [LabelWhereInput!]
+  id: FilterV2
+  slug: FilterV2
+}
+
+input LanguageConfigInput {
+  localeCode: String!
+  tsConfig: String!
+  description: String
+}
+
+type Link {
+  title: String!
+  createdAt: Timestamp!
+  entry: LinkEntry
+  type: MenuNodeType!
+  id: ID!
+  updatedAt: Timestamp!
+  slug: String
+  parentId: ID
+  sortIndex: Int!
+}
+
+union LinkEntry = Variant | Category | Page
+
+type LinkMutation {
+  create(input: CreateLinkInput!): Link!
+  update(input: UpdateLinkInput!): Boolean!
+}
+
+type LinkQuery {
+  findMany(input: LinksInput): LinksOutput!
+  findOne(id: ID!): Link
+}
+
+input LinksInput {
+  where: LinksWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type LinksOutput {
+  data: [Link!]!
+  meta: CollectionMeta!
+}
+
+input LinksWhereInput {
+  And: [LinksWhereInput!]
+  Or: [LinksWhereInput!]
+  title: FilterV2
+  createdAt: FilterV2
+  id: FilterV2
+  slug: FilterV2
+  type: FilterV2
+  entryId: FilterV2
+  updatedAt: FilterV2
+}
+
+type ListingFilter {
+  type: String!
+  values: [Any!]!
+}
+
+union ListingFilterEntry = Category | Tag
+
+input ListingFilterInput {
+  type: FilterType!
+  values: [Any!]!
+}
+
+input ListingInput {
+  listingType: ListingType!
+  category: CategoryFilterInput!
+  filters: [ListingFilterInput!]
+  settings: ListingInputSettings
+  sort: ListingSort
+  page: Int! = 1
+  perPage: Int! = 25
+}
+
+input ListingInputSettings {
+  availableFirst: Boolean
+  types: [ListingNodeType!]
+}
+
+type ListingMeta {
+  filters: [ListingFilter!]!
+  sort: ListingSort!
+}
+
+enum ListingNodeType {
+  PRODUCT
+}
+
+type ListingOutputV1 {
+  data: [Variant!]!
+  meta: CollectionMeta!
+}
+
+type ListingQuery {
+  listingV1(input: ListingInput!): ListingOutputV1!
+}
+
+enum ListingSort {
+  CREATED_AT_ASC
+  CREATED_AT_DESC
+  PRICE_ASC
+  PRICE_DESC
+  TITLE_ASC
+  TITLE_DESC
+  CUSTOM
+}
+
+enum ListingType {
+  AUTO
+  MANUAL
+  COMPOSITE
+}
+
+type Locale {
+  title: String!
+  code: String!
+  isActive: Boolean!
+}
+
+input LocaleWhereInput {
+  title: FilterV2
+  code: FilterV2
+  isActive: FilterV2
+  isDefault: FilterV2
+}
+
+type Menu {
+  id: ID!
+  items: [Link!]!
+  slug: String!
+  title: String!
+  status: EntityStatus!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+}
+
+type MenuMutation {
+  create(input: CreateMenuInput!): ID!
+  update(input: UpdateMenuInput!): Boolean!
+  delete(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+}
+
+enum MenuNodeType {
+  PRODUCT
+  CATEGORY
+  PAGE
+  MENU
+  LINK
+  TEXT
+}
+
+type MenuQuery {
+  findMany(input: MenusInput): MenusOutput!
+  findOne(id: ID!): Menu
+}
+
+input MenusInput {
+  where: MenusWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type MenusOutput {
+  data: [Menu!]!
+  meta: CollectionMeta!
+}
+
+input MenusWhereInput {
+  And: [MenusWhereInput!]
+  Or: [MenusWhereInput!]
+  createdAt: FilterV2
+  id: FilterV2
+  locale: FilterV2
+  slug: FilterV2
+  status: FilterV2
+  title: FilterV2
+  updatedAt: FilterV2
+  translationField: FilterV2
+}
+
+type Mutation {
+  appsMutation: AppsMutation!
+  bulkMutation: BulkMutation!
+  cartMutation: CartMutation!
+  categoryMutation: CategoryMutation!
+  customerMutation: CustomerMutation!
+  emailProfilesMutation: EmailProfilesMutation!
+  emailSettingsMutation: EmailSettingsMutation!
+  emailTemplateMutation: EmailTemplateMutation!
+  filterMutation: FilterMutation!
+  labelMutation: LabelMutation!
+  fileMutation: FileMutation!
+  orderMutation: OrderMutation!
+  crmMutation: CrmMutation!
+  paymentMethodMutation: PaymentMethodMutation!
+  paymentServiceMutation: PaymentServiceMutation!
+  productMutation: ProductMutation!
+  projectMutation: ProjectMutation!
+  reviewMutation: ReviewMutation!
+  searchMutation: SearchMutation!
+  shippingMethodMutation: ShippingMethodMutation!
+  shippingServiceMutation: ShippingServiceMutation!
+  stockStatusMutation: StockStatusMutation!
+  linkMutation: LinkMutation!
+  menuMutation: MenuMutation!
+  pageMutation: PageMutation!
+  tagMutation: TagMutation!
+  userMutation: UserMutation!
+  translationMutation: TranslationMutation!
+}
+
+type Order {
+  id: ID!
+  idempotencyKey: ID!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  status: OrderStatusEnum!
+  orderNumber: Int!
+  externalSystemId: String
+  createdBy: Actor!
+  currencyCode: String!
+  displayCurrencyCode: String
+  displayExchangeRate: Float
+  totalShippingAmount: Int
+  totalRefundedAmount: Int
+  totalDiscountAmount: Int
+  totalTaxAmount: Int
+  totalAmount: Int!
+  subtotalAmount: Int!
+  clientInfo: ClientInfo
+  customer: Customer
+  customerStatistic: OrderCustomerStatistic
+  customerNote: String
+  customerEmail: String
+  customerPhone: String
+  customerFirstName: String
+  customerMiddleName: String
+  customerLastName: String
+  customerMeta: String
+  adminNote: String
+  events: [OrderEvent!]!
+  tags: [Tag!]!
+  labels: [Label!]!
+  paymentMethod: PaymentMethod
+  shippingMethod: CoreShippingMethod
+  shippingAddress: Address
+  billingAddress: Address
+  fulfillments: [Fulfillment!]!
+  payment: PaymentItem
+  orderItems: [OrderItem!]!
+  productsInfo: [OrderItemProductInfo!]!
+}
+
+input OrderCurrencyInput {
+  currencyCode: String!
+  displayCurrencyCode: String
+  displayExchangeRate: Float
+}
+
+type OrderCustomerStatistic {
+  totalRevenue: Int!
+  totalGuestOrders: Int!
+  totalAuthorizedOrders: Int!
+}
+
+type OrderEvent {
+  id: ID!
+  createdBy: Actor!
+  eventType: OrderEventTypeEnum!
+  eventData: String
+  createdAt: Timestamp!
+}
+
+enum OrderEventTypeEnum {
+  ORDER_CREATED
+  ORDER_NOTE_UPDATED
+  ORDER_TAGS_UPDATED
+  ORDER_ITEM_CREATED
+  ORDER_ITEM_UPDATED
+  ORDER_ITEM_DELETED
+  SHIPPING_DETAILS_UPDATED
+  PAYMENT_DETAILS_UPDATED
+  CUSTOMER_ASSIGNED
+  CUSTOMER_UNASSIGNED
+  CONTACT_INFO_UPDATED
+  COMMENT_CREATED
+  NOTIFICATION_SENT
+  ORDER_STATUS_UPDATED
+  PAYMENT_STATUS_UPDATED
+  FULFILLMENT_STATUS_UPDATED
+  FULFILLMENT_SPLIT
+  FULFILLMENT_UNSPLIT
+  SHIPPING_PROFILE_CREATED
+  SHIPPING_PROFILE_DELETED
+  SHIPPING_PROFILE_UPDATED
+}
+
+type OrderItem {
+  id: ID!
+  createdAt: Timestamp!
+  discountAmount: Int!
+  originalQuantity: Int!
+  price: Int!
+  product: Variant
+  productInfo: OrderItemProductInfo!
+  productCostPrice: Int
+  quantity: Int!
+  subtotalAmount: Int!
+  taxAmount: Int
+  totalAmount: Int!
+  weight: Weight
+}
+
+type OrderItemProductInfo {
+  id: ID!
+  variantId: ID
+  snapshot: ProductSnapshot!
+}
+
+input OrderItemWhereInput {
+  And: [OrderItemWhereInput!]
+  Or: [OrderItemWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  discount: FilterV2
+  discountAmount: FilterV2
+  fulfillmentId: FilterV2
+  orderId: FilterV2
+  originalQuantity: FilterV2
+  price: FilterV2
+  product: ProductWhereInput
+  productCostPrice: FilterV2
+  productId: FilterV2
+  quantity: FilterV2
+  subtotalAmount: FilterV2
+  taxAmount: FilterV2
+  totalAmount: FilterV2
+  updatedAt: FilterV2
+  weight: FilterV2
+  weightUnit: FilterV2
+}
+
+type OrderMutation {
+  create(input: CreateOrderInput!): ID!
+  update(input: UpdateOrderInput!): Boolean!
+  updateStatus(input: UpdateOrderStatusInput!): Boolean!
+  updateCustomer(input: UpdateOrderCustomerInput!): Boolean!
+  deleteCustomer(id: ID!): Boolean!
+  updateTags(input: UpdateOrderTagsInput!): Boolean!
+  updateLabels(input: UpdateOrderLabelsInput!): Boolean!
+  updateAdminNote(input: UpdateAdminNoteInput!): Boolean!
+  addComment(input: AddCommentInput!): Boolean!
+  cancel(input: CancelOrderInput!): Boolean!
+  updatePaymentStatus(input: UpdatePaymentStatusInput!): Boolean!
+  splitFulfillment(input: SplitFulfillmentInput!): Boolean!
+  undoSplitFulfillment(id: ID!): Boolean!
+  updateFulfillmentStatus(input: UpdateFulfillmentStatusInput!): Boolean!
+  createShippingItem(input: CreateShippingItemInput!): Boolean!
+  updateShippingItem(input: UpdateShippingItemInput!): Boolean!
+  createOrderItem(input: CreateOrderItemInput!): Boolean!
+  updateOrderItem(input: UpdateOrderItemInput!): Boolean!
+  deleteOrderItem(id: ID!): Boolean!
+}
+
+input OrderPaymentInfoInput {
+  paymentMethodId: String
+  billingAddress: AddressInput
+}
+
+type OrderQuery {
+  findMany(input: OrdersInput): OrdersOutput!
+  findOne(id: ID!): Order
+}
+
+input OrderShippingInfoInput {
+  shippingMethodId: String
+  shippingAddress: AddressInput
+}
+
+input OrdersInput {
+  where: OrderWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type OrdersOutput {
+  data: [Order!]!
+  meta: CollectionMeta!
+}
+
+enum OrderStatusEnum {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+input OrderTagsWhereInput {
+  And: [OrderTagsWhereInput!]
+  Or: [OrderTagsWhereInput!]
+  tagId: FilterV2
+}
+
+input OrderWhereInput {
+  And: [OrderWhereInput!]
+  Or: [OrderWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  customerId: FilterV2
+  customerEmail: FilterV2
+  customerFirstName: FilterV2
+  customerLastName: FilterV2
+  customerMiddleName: FilterV2
+  customerPhone: FilterV2
+  status: FilterV2
+  orderNumber: FilterV2
+  adminNote: FilterV2
+  items: OrderItemWhereInput
+  shippingMethodId: FilterV2
+  shippingAddress: AddressWhereInput
+  shippingLine: ShippingItemWhereInput
+  paymentMethodId: FilterV2
+  billingAddress: AddressWhereInput
+  paymentLine: PaymentItemWhereInput
+  fulfillment: FulfillmentWhereInput
+  tags: OrderTagsWhereInput
+  createdByUserId: FilterV2
+  createdByApiToken: FilterV2
+  currencyCode: FilterV2
+  displayCurrencyCode: FilterV2
+  totalShippingAmount: FilterV2
+  totalRefundedAmount: FilterV2
+  totalDiscountAmount: FilterV2
+  totalTaxAmount: FilterV2
+  totalAmount: FilterV2
+  subtotalAmount: FilterV2
+  crmTicketColumnId: FilterV2
+}
+
+type Page {
+  cover: File
+  createdAt: Timestamp!
+  description: String
+  excerpt: String
+  gallery: [File!]!
+  id: ID!
+  seoDescription: String
+  seoTitle: String
+  slug: String!
+  status: String!
+  title: String!
+  updatedAt: Timestamp!
+  labels: [Label!]!
+}
+
+type PageMutation {
+  create(input: CreatePageInput!): ID!
+  update(input: UpdatePageInput!): Boolean!
+  delete(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+}
+
+type PageQuery {
+  findMany(input: PagesInput): PagesOutput!
+  findOne(id: ID!): Page
+}
+
+input PagesInput {
+  where: PagesWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type PagesOutput {
+  data: [Page!]!
+  meta: CollectionMeta!
+}
+
+input PagesWhereInput {
+  And: [PagesWhereInput!]
+  Or: [PagesWhereInput!]
+  title: FilterV2
+  createdAt: FilterV2
+  id: FilterV2
+  slug: FilterV2
+  status: FilterV2
+  translationField: FilterV2
+  updatedAt: FilterV2
+}
+
+type PaginationInfo {
+  count: Int!
+  page: Int!
+  perPage: Int!
+  total: Int!
+  totalPages: Int!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+}
+
+type PaymentItem {
+  amount: Int!
+  createdAt: Timestamp!
+  id: ID!
+  paymentMethod: PaymentMethod
+  status: PaymentStatusEnum!
+  meta: String
+}
+
+input PaymentItemWhereInput {
+  And: [PaymentItemWhereInput!]
+  Or: [PaymentItemWhereInput!]
+  id: FilterV2
+  amount: FilterV2
+  createdAt: FilterV2
+  orderId: FilterV2
+  paymentMethodId: FilterV2
+  status: FilterV2
+}
+
+type PaymentMethod {
+  code: String!
+  name: String!
+  service: PaymentService!
+}
+
+type PaymentMethodMutation {
+  create(input: CreatePaymentMethodInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type PaymentMethodQuery {
+  findMany: [PaymentMethod!]!
+  findOne(id: String!): PaymentMethod
+}
+
+input PaymentMethodWhereInput {
+  And: [PaymentMethodWhereInput!]
+  Or: [PaymentMethodWhereInput!]
+  code: FilterV2
+  name: FilterV2
+  serviceId: FilterV2
+}
+
+type PaymentService {
+  code: String!
+  name: String!
+  cover: File
+  methods: [PaymentMethod!]!
+}
+
+type PaymentServiceMutation {
+  create(input: CreatePaymentServiceInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type PaymentServiceQuery {
+  findMany: [PaymentService!]!
+  findOne(id: String!): PaymentService
+}
+
+enum PaymentStatusEnum {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+  FAILED
+  CANCELLED
+  VOIDED
+}
+
+type Product {
+  createdAt: Timestamp!
+  description: String
+  excerpt: String
+  groups: [ProductGroup!]!
+  id: ID!
+  requiresShipping: Boolean
+  seoDescription: String
+  seoTitle: String
+  slug: String!
+  status: EntityStatus!
+  title: String!
+  updatedAt: Timestamp!
+  variants: [Variant!]!
+  labels: [Label!]!
+  tags: [Tag!]!
+  primaryCategory: Category
+  featuresV2: [ProductFeatureV2!]!
+  optionsV2: [ProductFeatureV2!]!
+}
+
+input ProductCategoriesWhereInput {
+  And: [ProductCategoriesWhereInput!]
+  Or: [ProductCategoriesWhereInput!]
+  categoryId: FilterV2
+}
+
+type ProductFeature {
+  title: String!
+  slug: String!
+  swatch: FeatureSwatch
+  group: ProductFeatureGroup!
+  isAttribute: Boolean!
+  isOption: Boolean!
+  attributeSortIndex: Int
+  optionSortIndex: Int
+  featureId: ID!
+}
+
+type ProductFeatureGroup {
+  id: ID!
+  slug: String!
+  title: String!
+  featureStyleType: FeatureStyleType!
+}
+
+input ProductFeatureGroupInput {
+  id: ID
+  title: String
+  slug: String
+  featureStyleType: FeatureStyleType
+}
+
+"""
+ProductFeatureGroupV2 - ДУБЛИКАТ entity.ProductFeatureGroup
+В V2 это создается из ProductFeature/ProductOption (не отдельная таблица!)
+"""
+type ProductFeatureGroupV2 {
+  id: ID!
+  slug: String!
+  title: String!
+  featureStyleType: String
+}
+
+input ProductFeatureInput {
+  featureId: ID
+  title: String
+  slug: String
+  swatch: FeatureSwatchInput
+  group: ProductFeatureGroupInput
+  isAttribute: Boolean
+  isOption: Boolean
+  attributeSortIndex: Int
+  optionSortIndex: Int
+}
+
+"""ProductFeatureSwatchV2 - ДУБЛИКАТ entity.FeatureSwatch"""
+type ProductFeatureSwatchV2 {
+  id: ID!
+  color1: String
+  color2: String
+  type: String!
+}
+
+input ProductFeaturesWhereInput {
+  And: [ProductFeaturesWhereInput!]
+  Or: [ProductFeaturesWhereInput!]
+  id: FilterV2
+  groupId: FilterV2
+  isAttribute: FilterV2
+  isOption: FilterV2
+}
+
+"""
+ProductFeatureV2 - ДУБЛИКАТ entity.ProductFeature (плоская структура V1)
+V2 storage имеет иерархию (Feature → Values), но GraphQL возвращает плоскую структуру
+"""
+type ProductFeatureV2 {
+  featureId: ID!
+  slug: String!
+  title: String!
+  isAttribute: Boolean!
+  isOption: Boolean!
+  attributeSortIndex: Int
+  optionSortIndex: Int
+  styleType: String
+  group: ProductFeatureGroupV2!
+  swatch: ProductFeatureSwatchV2
+}
+
+input ProductFilterV2 {
+  where: FiltersWhereInput
+  order: String
+}
+
+type ProductGroup {
+  id: ID!
+  title: String!
+  items: [ProductGroupItem!]!
+  isRequired: Boolean!
+  isMultiple: Boolean!
+  sortIndex: Int!
+}
+
+type ProductGroupItem {
+  id: ID!
+  variant: Variant!
+  sortIndex: Int!
+  priceType: ProductGroupPriceType!
+  priceAmountValue: Int
+  pricePercentageValue: Float
+  maxQuantity: Int
+}
+
+enum ProductGroupPriceType {
+  FREE
+  BASE
+  BASE_ADJUST_AMOUNT
+  BASE_ADJUST_PERCENT
+  BASE_OVERRIDE
+}
+
+type ProductMutation {
+  create(input: CreateProductInput!): Product!
+  createMany(input: [CreateProductInput!]!): [Boolean!]!
+  update(input: UpdateProductInput!): Product!
+  delete(id: ID!): Boolean!
+  deleteMany(ids: [ID!]!): Boolean!
+  archive(id: ID!): Boolean!
+  archiveMany(ids: [ID!]!): Boolean!
+}
+
+type ProductQuery {
+  findMany(input: ProductsInput): ProductsOutput!
+  findByListingFilters(filters: [CreateListingFilterInput!]!, order: String!): [Variant!]!
+  findOne(id: ID!): Product
+  findManyVariants(input: VariantsInput): VariantsOutput!
+}
+
+input ProductsInput {
+  where: ProductWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type ProductSnapshot {
+  schemaVersion: Int!
+  createdAt: Timestamp!
+  productId: ID!
+  variantId: ID!
+  containerId: ID!
+  title: String!
+  containerTitle: String!
+  slug: String!
+  sku: String
+  barcode: String
+  cover: File
+  gallery: [File!]!
+  price: Int!
+  oldPrice: Int
+  costPrice: Int
+  currencyCode: String!
+  weight: Float
+  weightUnit: WeightUnit
+  width: Float
+  length: Float
+  height: Float
+  dimensionUnit: DimensionUnit
+  options: [ProductSnapshotOption!]!
+  attributes: [ProductSnapshotAttribute!]!
+  groups: [ProductSnapshotGroup!]!
+  requiresShipping: Boolean!
+}
+
+type ProductSnapshotAttribute {
+  groupId: ID!
+  groupTitle: String!
+  featureId: ID!
+  title: String!
+  sortIndex: Int!
+}
+
+type ProductSnapshotGroup {
+  id: ID!
+  title: String!
+  isRequired: Boolean!
+  isMultiple: Boolean!
+  sortIndex: Int!
+  items: [ProductSnapshotGroupItem!]!
+}
+
+type ProductSnapshotGroupItem {
+  id: ID!
+  variantId: ID!
+  title: String!
+  sku: String
+  quantity: Int!
+  price: Int!
+  priceType: String!
+  maxQuantity: Int
+  sortIndex: Int!
+}
+
+type ProductSnapshotOption {
+  groupId: ID!
+  groupTitle: String!
+  featureId: ID!
+  title: String!
+  swatch: ProductSnapshotSwatch
+  sortIndex: Int!
+}
+
+type ProductSnapshotSwatch {
+  type: String!
+  color1: String
+  color2: String
+  image: File
+}
+
+type ProductsOutput {
+  data: [Product!]!
+  meta: CollectionMeta!
+}
+
+input ProductTagsWhereInput {
+  And: [ProductTagsWhereInput!]
+  Or: [ProductTagsWhereInput!]
+  tagId: FilterV2
+}
+
+input ProductVariantsInput {
+  create: [CreateProductVariantInput!]
+  update: [UpdateProductVariantInput!]
+  delete: [ID!]
+}
+
+input ProductWhereInput {
+  And: [ProductWhereInput!]
+  Or: [ProductWhereInput!]
+  variants: VariantWhereInput
+  categories: ProductCategoriesWhereInput
+  title: FilterV2
+  locale: FilterV2
+  translationField: FilterV2
+  createdAt: FilterV2
+  id: FilterV2
+  tags: ProductTagsWhereInput
+  trackQuantity: FilterV2
+  updatedAt: FilterV2
+  status: FilterV2
+}
+
+type Project {
+  id: ID!
+  name: String!
+  slug: String!
+  status: ProjectStatus!
+}
+
+type ProjectInfo {
+  name: String!
+  timezone: String!
+  country: String!
+  phoneNumber: String!
+  email: String!
+  currency: String!
+  locale: String!
+}
+
+type ProjectMutation {
+  create(input: CreateProjectInput!): Project!
+  update(input: UpdateProjectInput!): Boolean!
+  delete(id: ID!): Boolean!
+  updateCurrencyFormat(input: UpdateCurrencyFormatInput!): Boolean!
+  updateDefaultCurrency(input: String!): Boolean!
+  updateLocales(input: UpdateLocalesInput!): Boolean!
+  updateDefaultLocale(input: String!): Boolean!
+  createApiKey(input: CreateApiKeyInput!): String!
+  revokeApiKey(input: ID!): Boolean!
+  deleteApiKey(input: ID!): Boolean!
+}
+
+type ProjectQuery {
+  findMany: [Project]!
+  findOne(slug: String!): Project
+  current: ProjectInfo!
+  locales: [Locale!]!
+  currencies: [Currency!]!
+  apiKeys: [ApiKey!]!
+}
+
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+}
+
+type Query {
+  appsQuery: AppsQuery!
+  cartQuery: CartQuery!
+  categoryQuery: CategoryQuery!
+  listingQuery: ListingQuery!
+  customerQuery: CustomerQuery!
+  emailProfilesQuery: EmailProfilesQuery!
+  emailSettingsQuery: EmailSettingsQuery!
+  emailTemplateQuery: EmailTemplateQuery!
+  filterQuery: FilterQuery!
+  labelQuery: LabelQuery!
+  fileQuery: FileQuery!
+  orderQuery: OrderQuery!
+  crmQuery: CrmQuery!
+  paymentMethodQuery: PaymentMethodQuery!
+  paymentServiceQuery: PaymentServiceQuery!
+  productQuery: ProductQuery!
+  projectQuery: ProjectQuery!
+  reviewQuery: ReviewQuery!
+  shippingMethodQuery: ShippingMethodQuery!
+  shippingServiceQuery: ShippingServiceQuery!
+  stockStatusQuery: StockStatusQuery!
+  linkQuery: LinkQuery!
+  menuQuery: MenuQuery!
+  pageQuery: PageQuery!
+  tagQuery: TagQuery!
+  userQuery: UserQuery!
+  translationQuery: TranslationQuery!
+}
+
+input RejectReviewInput {
+  id: ID!
+  reason: String!
+}
+
+input ReplyToReviewInput {
+  reviewId: ID!
+  text: String!
+}
+
+input ResetPasswordInput {
+  email: String!
+  token: String!
+  password: String!
+}
+
+type Review {
+  id: ID!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  status: ReviewStatus!
+  title: String!
+  message: String!
+  rating: Float!
+  displayName: String!
+  verifiedPurchase: Boolean
+  languageCode: String
+  product: Variant
+  customer: Customer
+  pros: String
+  cons: String
+  helpfulYes: Int!
+  helpfulNo: Int!
+}
+
+type ReviewMutation {
+  create(input: CreateReviewInput!): ID!
+  edit(input: UpdateReviewInput!): Boolean!
+  approve(input: ApproveReviewInput!): Boolean!
+  reject(input: RejectReviewInput!): Boolean!
+  bulkUpdateStatus(input: BulkUpdateStatusInput!): Boolean!
+  delete(input: ID!): Boolean!
+  replyToReview(input: ReplyToReviewInput!): Boolean!
+}
+
+type ReviewQuery {
+  findMany(input: ReviewsInput): ReviewsOutput!
+  findOne(id: ID!): Review
+}
+
+input ReviewsInput {
+  where: ReviewsWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type ReviewsOutput {
+  data: [Review!]!
+  meta: CollectionMeta!
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+input ReviewsWhereInput {
+  And: [ReviewsWhereInput!]
+  Or: [ReviewsWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  updatedAt: FilterV2
+  status: FilterV2
+}
+
+type SearchMutation {
+  keywordGroupCreate(input: KeywordGroupCreateInput!): ID!
+  keywordGroupUpdate(input: KeywordGroupUpdateInput!): Boolean!
+  keywordGroupDelete(input: KeywordGroupDeleteInput!): Boolean!
+  keywordCreate(input: KeywordCreateInput!): Boolean!
+  keywordDelete(input: KeywordDeleteInput!): Boolean!
+  linkGroupToProduct(input: GroupProductLinkInput!): Boolean!
+  unlinkGroupFromProduct(input: GroupProductLinkInput!): Boolean!
+  synonymUpsert(input: SynonymUpsertInput!): Boolean!
+  synonymDelete(input: SynonymDeleteInput!): Boolean!
+  stopWordSet(input: StopWordSetInput!): Boolean!
+  languageConfigUpsert(input: LanguageConfigInput!): Boolean!
+}
+
+input SendTestEmailInput {
+  type: EmailTypeEnum!
+  to: String!
+}
+
+input SeoFieldsInput {
+  title: String
+  description: String
+}
+
+type Session {
+  user: User!
+  jwt: String!
+}
+
+type ShippingItem {
+  createdAt: Timestamp!
+  estimatedDeliveryAt: Timestamp
+  id: ID!
+  notificationsEnabled: Boolean
+  shippingMethod: CoreShippingMethod
+  shippingPrice: Int!
+  shippingService: ShippingService
+  trackingCode: String
+  trackingData: String
+  trackingEnabled: Boolean!
+  trackingUrl: String
+}
+
+input ShippingItemWhereInput {
+  And: [ShippingItemWhereInput!]
+  Or: [ShippingItemWhereInput!]
+  id: FilterV2
+  createdAt: FilterV2
+  notificationsEnabled: FilterV2
+  estimatedDeliveryAt: FilterV2
+  fulfillmentId: FilterV2
+  orderId: FilterV2
+  shippingMethodId: FilterV2
+  shippingServiceId: FilterV2
+  trackingEnabled: FilterV2
+  trackingCode: FilterV2
+  trackingUrl: FilterV2
+}
+
+type ShippingMethodMutation {
+  create(input: CreateShippingMethodInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type ShippingMethodQuery {
+  findMany: [CoreShippingMethod!]!
+  findOne(id: String!): CoreShippingMethod
+}
+
+input ShippingMethodWhereInput {
+  And: [ShippingMethodWhereInput!]
+  Or: [ShippingMethodWhereInput!]
+  code: FilterV2
+  name: FilterV2
+  serviceId: FilterV2
+}
+
+type ShippingService {
+  code: String!
+  name: String!
+  cover: File
+  methods: [CoreShippingMethod!]!
+}
+
+type ShippingServiceMutation {
+  create(input: CreateShippingServiceInput!): String!
+  delete(id: String!): Boolean!
+}
+
+type ShippingServiceQuery {
+  findMany: [ShippingService!]!
+  findOne(id: String!): ShippingService
+}
+
+input SignInInput {
+  email: String!
+  password: String!
+}
+
+input SignUpInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  language: String!
+  timezone: String!
+}
+
+input SortRankInput {
+  prev: String!
+  next: String!
+}
+
+input SplitFulfillmentInput {
+  id: ID!
+  items: [SplitFulfillmentItemInput!]!
+}
+
+input SplitFulfillmentItemInput {
+  orderItemId: ID!
+  quantity: Int!
+}
+
+type StockStatus {
+  title: String!
+  code: String!
+}
+
+type StockStatusMutation {
+  create(input: CreateStockStatusInput!): StockStatus!
+  update(input: UpdateStockStatusInput!): StockStatus!
+  delete(code: String!): Boolean!
+}
+
+type StockStatusQuery {
+  findMany: [StockStatus!]!
+  findOne(code: String!): StockStatus
+}
+
+input StopWordSetInput {
+  word: String!
+  localeCode: String!
+  isActive: Boolean!
+}
+
+input SynonymDeleteInput {
+  term: String!
+  synonym: String!
+  localeCode: String!
+}
+
+input SynonymUpsertInput {
+  term: String!
+  synonym: String!
+  localeCode: String!
+  weight: Float!
+}
+
+type Tag {
+  id: ID!
+  slug: String!
+  title: String!
+  color: String
+}
+
+type TagMutation {
+  create(input: CreateTagInput!): ID!
+  update(input: UpdateTagInput!): Boolean!
+}
+
+type TagQuery {
+  findMany(input: TagsInput): TagsOutput!
+  findOne(id: ID!): Tag
+}
+
+input TagsInput {
+  where: TagWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type TagsOutput {
+  data: [Tag!]!
+  meta: CollectionMeta!
+}
+
+input TagWhereInput {
+  And: [TagWhereInput!]
+  Or: [TagWhereInput!]
+  id: FilterV2
+  slug: FilterV2
+}
+
+scalar Timestamp
+
+type Translation {
+  fieldValue: String!
+  fieldName: TranslationField!
+  sourceId: ID!
+  sourceType: EntityType!
+  locale: String!
+}
+
+enum TranslationField {
+  TITLE
+  DESCRIPTION_TEXT
+  DESCRIPTION_HTML
+  DESCRIPTION_JSON
+  EXCERPT_TEXT
+  SEO_TITLE
+  SEO_DESCRIPTION
+}
+
+type TranslationMutation {
+  create(input: CreateTranslationInput!): Translation!
+  update(input: UpdateTranslationInput!): Translation!
+  updateMany(input: [UpdateTranslationInput!]!): Boolean!
+}
+
+type TranslationQuery {
+  findMany(where: TranslationWhereInput!): [Translation!]!
+}
+
+input TranslationWhereInput {
+  And: [TranslationWhereInput!]
+  Or: [TranslationWhereInput!]
+  fieldValue: FilterV2
+  fieldName: FilterV2
+  sourceId: FilterV2
+  sourceType: FilterV2
+  locale: FilterV2
+}
+
+scalar Uint
+
+enum UnitSystem {
+  IMPERIAL
+  METRIC
+}
+
+input UpdateAdminNoteInput {
+  id: ID!
+  adminNote: String
+}
+
+input UpdateCategoryInput {
+  children: [ID]
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  id: ID!
+  includeChildrenProducts: Boolean
+  listingFilters: [CreateListingFilterInput!]
+  listingOrderBy: ListingSort
+  listingOrderByStatus: Boolean
+  listingType: ListingType
+  parentId: ID
+  products: [ID!]
+  seo: SeoFieldsInput
+  slug: String
+  status: String
+  title: String
+  labels: [ID!]
+  tags: [ID!]
+}
+
+input UpdateCategoryProductInput {
+  categoryId: ID!
+  productId: ID!
+  afterId: ID
+}
+
+input UpdateCurrencyFormatInput {
+  code: String!
+  decimalPlaces: Int
+  symbolLeft: String
+  symbolRight: String
+  decimalSeparator: String
+  thousandSeparator: String
+}
+
+input UpdateCustomerInput {
+  id: ID!
+  email: String
+  language: String
+  firstName: String
+  isVerified: Boolean
+  lastName: String
+  phone: String
+  password: String
+}
+
+input UpdateEmailInput {
+  email: String!
+}
+
+input UpdateEmailProfilesInput {
+  host: String
+  port: Int
+  username: String
+  password: String
+  sortIndex: Int
+}
+
+input UpdateEmailSettingsInput {
+  from: String
+  replyTo: String
+}
+
+input UpdateEmailTemplateInput {
+  template: String
+  subject: String
+  id: ID!
+}
+
+input UpdateFileInput {
+  id: ID!
+  driver: FileDriver!
+  name: String!
+  url: String
+  file: Upload!
+}
+
+input UpdateFilterInput {
+  id: ID!
+  title: String
+  isActive: Boolean
+  sortIndex: Int
+  type: FilterType
+}
+
+input UpdateFulfillmentStatusInput {
+  id: ID!
+  status: FulfillmentStatusEnum!
+  comment: String
+}
+
+input UpdateImageInput {
+  image: ID!
+}
+
+input UpdateLabelInput {
+  id: ID!
+  name: String
+  slug: String
+  colorHex: String
+}
+
+input UpdateLinkInput {
+  id: ID!
+  title: String
+  slug: String
+  type: MenuNodeType
+  entryId: ID
+  parentId: ID
+  sortIndex: Int
+}
+
+input UpdateLocaleInput {
+  isActive: Boolean!
+  code: String!
+}
+
+input UpdateLocalesInput {
+  create: [CreateLocaleInput!]!
+  update: [UpdateLocaleInput!]!
+  delete: [String!]!
+}
+
+input UpdateMenuInput {
+  id: ID!
+  title: String
+  items: [UpdateLinkInput!]
+  slug: String
+  status: EntityStatus
+}
+
+input UpdateOrderCurrencyInput {
+  id: ID!
+  currency: OrderCurrencyInput!
+}
+
+input UpdateOrderCustomerInput {
+  id: ID!
+  customerId: ID!
+}
+
+input UpdateOrderInput {
+  id: ID!
+  payment: OrderPaymentInfoInput
+  shipping: OrderShippingInfoInput
+}
+
+input UpdateOrderItemInput {
+  id: ID!
+  quantity: Int
+  productCostPrice: Int
+  weight: WeightInput
+}
+
+input UpdateOrderLabelsInput {
+  id: ID!
+  labels: [ID!]
+}
+
+input UpdateOrderStatusInput {
+  id: ID!
+  status: OrderStatusEnum!
+  comment: String
+}
+
+input UpdateOrderTagsInput {
+  id: ID!
+  tags: [ID!]
+  labels: [ID!]
+}
+
+input UpdatePageInput {
+  coverId: ID
+  description: DescriptionFieldsInput
+  excerpt: String
+  gallery: [ID!]
+  id: ID!
+  seo: SeoFieldsInput
+  slug: String
+  status: String
+  title: String
+  labels: [ID!]
+}
+
+input UpdatePasswordInput {
+  password: String!
+}
+
+input UpdatePaymentStatusInput {
+  id: ID!
+  status: PaymentStatusEnum!
+  comment: String
+}
+
+input UpdatePhoneNumberInput {
+  phoneNumber: String!
+}
+
+input UpdateProductGroupInput {
+  id: ID!
+  title: String
+  items: UpdateProductGroupItemsInput
+  isMultiple: Boolean
+  isRequired: Boolean
+  sortIndex: Int
+}
+
+input UpdateProductGroupItemInput {
+  id: ID!
+  sortIndex: Int
+  priceType: ProductGroupPriceType
+  priceAmountValue: Int
+  pricePercentageValue: Float
+  maxQuantity: Int
+}
+
+input UpdateProductGroupItemsInput {
+  create: [CreateProductGroupItemInput!]
+  update: [UpdateProductGroupItemInput!]
+  delete: [ID!]
+}
+
+input UpdateProductGroupsInput {
+  create: [CreateProductGroupInput!]
+  update: [UpdateProductGroupInput!]
+  delete: [ID!]
+}
+
+input UpdateProductInput {
+  id: ID!
+  requiresShipping: Boolean
+  title: String
+  description: DescriptionFieldsInput
+  seo: SeoFieldsInput
+  excerpt: String
+  slug: String
+  tags: [ID!]
+  labels: [ID!]
+  variants: ProductVariantsInput
+  groups: UpdateProductGroupsInput
+  status: EntityStatus
+  primaryCategory: ID
+}
+
+input UpdateProductVariantInput {
+  barcode: String
+  title: String
+  costPrice: Int
+  coverId: ID
+  categories: [ID!]
+  features: [ProductFeatureInput!]
+  gallery: [ID!]
+  id: ID!
+  oldPrice: Int
+  inListing: Boolean
+  price: Int
+  sku: String
+  slug: String
+  variantSortIndex: Int
+  stockStatus: String
+  weight: Float
+  weightUnit: WeightUnit
+  width: Float
+  length: Float
+  height: Float
+  dimensionUnit: DimensionUnit
+}
+
+input UpdateProfileInput {
+  firstName: String
+  lastName: String
+  language: String
+  timezone: String
+}
+
+input UpdateProjectInput {
+  name: String
+  phoneNumber: String
+  email: String
+  country: String
+  timezone: String
+  weightUnit: WeightUnit
+  unitSystem: UnitSystem
+}
+
+input UpdateReviewInput {
+  id: ID!
+  rating: Float
+  title: String
+  message: String
+  pros: String
+  cons: String
+  images: [ID!]
+  status: ReviewStatus
+  displayName: String
+  productId: ID
+  customerId: ID
+}
+
+input UpdateShippingItemInput {
+  id: ID!
+  estimatedDeliveryAt: Timestamp
+  notificationsEnabled: Boolean
+  shippingMethodId: String
+  shippingPrice: Int
+  trackingCode: String
+  trackingData: String
+  trackingEnabled: Boolean
+  trackingUrl: String
+}
+
+input UpdateStockStatusInput {
+  id: ID!
+  code: String
+  title: String
+  isAvailable: Boolean
+}
+
+input UpdateTagInput {
+  id: ID!
+  title: String
+  slug: String
+  color: String
+}
+
+input UpdateTranslationInput {
+  sourceId: ID!
+  sourceType: EntityType!
+  locale: String!
+  fieldValue: String!
+  fieldName: TranslationField!
+}
+
+scalar Upload
+
+type User {
+  createdAt: Timestamp!
+  tenantId: ID!
+  email: String!
+  firstName: String!
+  id: String!
+  isReady: Boolean!
+  isVerified: Boolean!
+  language: String!
+  lastName: String!
+  phoneNumber: String
+  timezone: String!
+  updatedAt: Timestamp!
+}
+
+type UserMutation {
+  createProfile(input: CreateProfileInput!): Boolean!
+  signIn(input: SignInInput!): Session!
+  googleSignIn(token: String!): Session!
+  signUp(input: SignUpInput!): Session!
+  verifyEmail(input: VerifyEmailInput!): Boolean!
+  forgotPassword(input: ForgotPasswordInput!): Boolean!
+  resetPassword(input: ResetPasswordInput!): Boolean!
+  updatePassword(input: UpdatePasswordInput!): Boolean!
+  updateProfile(input: UpdateProfileInput!): Boolean!
+  updateEmail(input: UpdateEmailInput!): Boolean!
+  updatePhoneNumber(input: UpdatePhoneNumberInput!): Boolean!
+  invite(input: InviteInput!): Boolean
+  updateImage(input: UpdateImageInput!): Boolean!
+  delete: Boolean!
+}
+
+type UserQuery {
+  me: User!
+}
+
+scalar Uuid
+
+type Variant {
+  barcode: String
+  categories: [Category!]!
+  containerId: ID!
+  containerTitle: String!
+  costPrice: Int
+  cover: File
+  createdAt: Timestamp!
+  features: [ProductFeature!]!
+  gallery: [File!]!
+  id: ID!
+  inListing: Boolean
+  listingSortIndex: String
+  oldPrice: Int
+  price: Int!
+  sku: String
+  slug: String!
+  stockStatus: String!
+  title: String!
+  updatedAt: Timestamp!
+  variantSortIndex: Int!
+  weight: Float
+  weightUnit: WeightUnit
+  width: Float
+  length: Float
+  height: Float
+  dimensionUnit: DimensionUnit
+  featuresV2: [ProductFeatureV2!]!
+}
+
+input VariantsInput {
+  where: VariantWhereInput
+  order: String
+  page: Int
+  pageSize: Int
+}
+
+type VariantsOutput {
+  data: [Variant!]!
+  meta: CollectionMeta!
+}
+
+input VariantWhereInput {
+  And: [VariantWhereInput!]
+  Or: [VariantWhereInput!]
+  title: FilterV2
+  createdAt: FilterV2
+  features: ProductFeaturesWhereInput
+  id: FilterV2
+  oldPrice: FilterV2
+  container: ProductWhereInput
+  containerId: FilterV2
+  price: FilterV2
+  qnt: FilterV2
+  sku: FilterV2
+  slug: FilterV2
+  stockStatus: FilterV2
+  updatedAt: FilterV2
+  categoryId: FilterV2
+}
+
+input VerifyEmailInput {
+  email: String!
+  token: String!
+}
+
+type Weight {
+  weight: Float!
+  unit: WeightUnit!
+}
+
+input WeightInput {
+  weight: Float!
+  unit: WeightUnit!
+}
+
+enum WeightUnit {
+  GR
+  KG
+  LB
+  OZ
+}

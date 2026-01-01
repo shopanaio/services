@@ -1,0 +1,8 @@
+{
+  "media.addFromUrl": "Добавить по URL",
+  "media.dragDropYourFiles": "Перетащите файлы сюда",
+  "media.error.invalidUrl": "Некорректный URL",
+  "media.noImages": "Нет изображений",
+  "media.uploadFromUrl": "Загрузить по URL",
+  "media.url.label": "URL изображения или Youtube"
+}

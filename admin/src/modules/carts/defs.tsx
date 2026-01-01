@@ -1,0 +1,51 @@
+export const cartColumns = {
+  items: {
+    key: 'items',
+    label: 'Products',
+    isFixed: true,
+    active: true,
+    width: 300,
+  },
+  status: {
+    key: 'status',
+    label: 'Status',
+    isFixed: false,
+    active: true,
+    width: 120,
+  },
+  totalPrice: {
+    key: 'totalPrice',
+    label: 'Total',
+    isFixed: false,
+    active: true,
+    width: 120,
+  },
+  totalDiscount: {
+    key: 'totalDiscount',
+    label: 'Discount',
+    isFixed: false,
+    active: true,
+    width: 120,
+  },
+  customer: {
+    key: 'customer',
+    label: 'Customer',
+    isFixed: false,
+    active: true,
+    width: 120,
+  },
+  createdAt: {
+    key: 'createdAt',
+    label: 'Created At',
+    isFixed: false,
+    active: false,
+    width: 120,
+  },
+  updatedAt: {
+    key: 'updatedAt',
+    label: 'Updated At',
+    isFixed: false,
+    active: false,
+    width: 120,
+  },
+};
