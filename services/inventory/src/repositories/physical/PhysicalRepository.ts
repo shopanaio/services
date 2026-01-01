@@ -18,7 +18,7 @@ export class PhysicalRepository extends BaseRepository {
   ): Promise<ItemDimensions> {
     const newDimensions: NewItemDimensions = {
       variantId,
-      projectId: this.projectId,
+      projectId: this.storeId,
       wMm: data.wMm,
       lMm: data.lMm,
       hMm: data.hMm,
@@ -50,7 +50,7 @@ export class PhysicalRepository extends BaseRepository {
   ): Promise<ItemWeight> {
     const newWeight: NewItemWeight = {
       variantId,
-      projectId: this.projectId,
+      projectId: this.storeId,
       weightGr: data.weightGr,
       displayUnit: "g",
     };

@@ -30,7 +30,7 @@ export class PricingRepository extends BaseRepository {
       .set({ effectiveTo: new Date() })
       .where(
         and(
-          eq(itemPricing.projectId, this.projectId),
+          eq(itemPricing.projectId, this.storeId),
           eq(itemPricing.variantId, variantId),
           eq(itemPricing.currency, currency),
           isNull(itemPricing.effectiveTo)
@@ -50,7 +50,7 @@ export class PricingRepository extends BaseRepository {
     const now = new Date();
 
     const newPricing: NewItemPricing = {
-      projectId: this.projectId,
+      projectId: this.storeId,
       id,
       variantId,
       currency: data.currency,
@@ -88,7 +88,7 @@ export class PricingRepository extends BaseRepository {
       ...input,
       where: {
         ...input?.where,
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
       },
     });
   }
@@ -97,7 +97,7 @@ export class PricingRepository extends BaseRepository {
     const results = await pricingQuery.execute(this.connection, {
       where: {
         id: { _eq: id },
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
       },
       limit: 1,
     });
@@ -113,7 +113,7 @@ export class PricingRepository extends BaseRepository {
       ...input,
       where: {
         variantId: { _eq: variantId },
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
       },
     });
   }
@@ -123,7 +123,7 @@ export class PricingRepository extends BaseRepository {
       ...args,
       where: {
         ...args.where,
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
         variantId: { _eq: variantId },
       },
     });

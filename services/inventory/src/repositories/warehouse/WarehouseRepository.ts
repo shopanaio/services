@@ -29,7 +29,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select({ id: warehouses.id })
       .from(warehouses)
-      .where(and(eq(warehouses.projectId, this.projectId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
       .limit(1);
 
     return result.length > 0;
@@ -39,7 +39,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(warehouses)
-      .where(and(eq(warehouses.projectId, this.projectId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
       .limit(1);
 
     return result[0] ?? null;
@@ -49,7 +49,7 @@ export class WarehouseRepository extends BaseRepository {
     const query = this.connection
       .select()
       .from(warehouses)
-      .where(eq(warehouses.projectId, this.projectId))
+      .where(eq(warehouses.projectId, this.storeId))
       .orderBy(warehouses.createdAt);
 
     if (limit) {
@@ -63,7 +63,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select({ count: count() })
       .from(warehouses)
-      .where(eq(warehouses.projectId, this.projectId));
+      .where(eq(warehouses.projectId, this.storeId));
 
     return result[0]?.count ?? 0;
   }
@@ -72,7 +72,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .select()
       .from(warehouses)
-      .where(and(eq(warehouses.projectId, this.projectId), eq(warehouses.code, code)))
+      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.code, code)))
       .limit(1);
 
     return result[0] ?? null;
@@ -83,7 +83,7 @@ export class WarehouseRepository extends BaseRepository {
       .update(warehouses)
       .set({ isDefault: false, updatedAt: new Date() })
       .where(
-        and(eq(warehouses.projectId, this.projectId), eq(warehouses.isDefault, true))
+        and(eq(warehouses.projectId, this.storeId), eq(warehouses.isDefault, true))
       );
   }
 
@@ -93,10 +93,10 @@ export class WarehouseRepository extends BaseRepository {
 
     console.log("[WarehouseRepository.create] Starting with data:", JSON.stringify(data));
     console.log("[WarehouseRepository.create] Generated id:", id);
-    console.log("[WarehouseRepository.create] projectId:", this.projectId);
+    console.log("[WarehouseRepository.create] projectId:", this.storeId);
 
     const newWarehouse: NewWarehouse = {
-      projectId: this.projectId,
+      projectId: this.storeId,
       id,
       code: data.code,
       name: data.name,
@@ -134,7 +134,7 @@ export class WarehouseRepository extends BaseRepository {
     const result = await this.connection
       .update(warehouses)
       .set(updateData)
-      .where(and(eq(warehouses.projectId, this.projectId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -143,7 +143,7 @@ export class WarehouseRepository extends BaseRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(warehouses)
-      .where(and(eq(warehouses.projectId, this.projectId), eq(warehouses.id, id)))
+      .where(and(eq(warehouses.projectId, this.storeId), eq(warehouses.id, id)))
       .returning({ id: warehouses.id });
 
     return result.length > 0;
@@ -157,7 +157,7 @@ export class WarehouseRepository extends BaseRepository {
     // Merge user-provided where with projectId filter
     const mergedWhere: WarehouseRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.projectId } },
+        { projectId: { _eq: this.storeId } },
         ...(where ? [where] : []),
       ],
     };
@@ -187,14 +187,14 @@ export class WarehouseRepository extends BaseRepository {
 
   async getByIds(warehouseIds: readonly string[]): Promise<Warehouse[]> {
     console.log("[WarehouseRepository.getByIds] warehouseIds:", warehouseIds);
-    console.log("[WarehouseRepository.getByIds] projectId:", this.projectId);
+    console.log("[WarehouseRepository.getByIds] projectId:", this.storeId);
 
     const result = await this.connection
       .select()
       .from(warehouses)
       .where(
         and(
-          eq(warehouses.projectId, this.projectId),
+          eq(warehouses.projectId, this.storeId),
           inArray(warehouses.id, [...warehouseIds])
         )
       );

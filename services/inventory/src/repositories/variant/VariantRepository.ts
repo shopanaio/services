@@ -72,7 +72,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           eq(variant.id, id),
           isNull(variant.deletedAt)
         )
@@ -88,7 +88,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           eq(variant.id, id),
           isNull(variant.deletedAt)
         )
@@ -104,7 +104,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           eq(variant.sku, sku),
           isNull(variant.deletedAt)
         )
@@ -120,7 +120,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           eq(variant.productId, productId),
           isNull(variant.deletedAt)
         )
@@ -143,7 +143,7 @@ export class VariantRepository extends BaseRepository {
     const now = new Date();
 
     const newVariant: NewVariant = {
-      projectId: this.projectId,
+      projectId: this.storeId,
       productId,
       id,
       isDefault: data.isDefault ?? false,
@@ -184,7 +184,7 @@ export class VariantRepository extends BaseRepository {
     const result = await this.connection
       .update(variant)
       .set(updateData)
-      .where(and(eq(variant.projectId, this.projectId), eq(variant.id, id)))
+      .where(and(eq(variant.projectId, this.storeId), eq(variant.id, id)))
       .returning();
 
     return result[0] ?? null;
@@ -196,7 +196,7 @@ export class VariantRepository extends BaseRepository {
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           eq(variant.id, id),
           isNull(variant.deletedAt)
         )
@@ -209,7 +209,7 @@ export class VariantRepository extends BaseRepository {
   async hardDelete(id: string): Promise<boolean> {
     const result = await this.connection
       .delete(variant)
-      .where(and(eq(variant.projectId, this.projectId), eq(variant.id, id)))
+      .where(and(eq(variant.projectId, this.storeId), eq(variant.id, id)))
       .returning({ id: variant.id });
 
     return result.length > 0;
@@ -222,7 +222,7 @@ export class VariantRepository extends BaseRepository {
       ...input,
       where: {
         ...input?.where,
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
         deletedAt: { _is: null },
       },
     });
@@ -232,7 +232,7 @@ export class VariantRepository extends BaseRepository {
     const results = await variantQuery.execute(this.connection, {
       where: {
         id: { _eq: id },
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
         deletedAt: { _is: null },
       },
       limit: 1,
@@ -249,7 +249,7 @@ export class VariantRepository extends BaseRepository {
       ...input,
       where: {
         productId: { _eq: productId },
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
         deletedAt: { _is: null },
       },
     });
@@ -259,7 +259,7 @@ export class VariantRepository extends BaseRepository {
     const results = await variantQuery.execute(this.connection, {
       where: {
         productId: { _eq: productId },
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
         deletedAt: { _is: null },
       },
     });
@@ -274,7 +274,7 @@ export class VariantRepository extends BaseRepository {
       ...args,
       where: {
         ...args.where,
-        projectId: { _eq: this.projectId },
+        projectId: { _eq: this.storeId },
         productId: { _eq: productId },
         deletedAt: { _is: null },
       },
@@ -291,7 +291,7 @@ export class VariantRepository extends BaseRepository {
 
     const mergedWhere: VariantRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.projectId } },
+        { projectId: { _eq: this.storeId } },
         { productId: { _eq: productId } },
         { deletedAt: { _is: null } },
         ...(where ? [where] : []),
@@ -327,7 +327,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           inArray(variant.id, [...variantIds]),
           isNull(variant.deletedAt)
         )
@@ -342,7 +342,7 @@ export class VariantRepository extends BaseRepository {
       .from(variant)
       .where(
         and(
-          eq(variant.projectId, this.projectId),
+          eq(variant.projectId, this.storeId),
           inArray(variant.productId, [...productIds]),
           isNull(variant.deletedAt)
         )
@@ -357,7 +357,7 @@ export class VariantRepository extends BaseRepository {
       .from(variantTranslation)
       .where(
         and(
-          eq(variantTranslation.projectId, this.projectId),
+          eq(variantTranslation.projectId, this.storeId),
           inArray(variantTranslation.variantId, [...variantIds]),
           eq(variantTranslation.locale, this.locale)
         )
@@ -372,7 +372,7 @@ export class VariantRepository extends BaseRepository {
       .from(itemPricing)
       .where(
         and(
-          eq(itemPricing.projectId, this.projectId),
+          eq(itemPricing.projectId, this.storeId),
           inArray(itemPricing.variantId, [...variantIds]),
           isNull(itemPricing.effectiveTo)
         )
@@ -385,7 +385,7 @@ export class VariantRepository extends BaseRepository {
       .from(itemPricing)
       .where(
         and(
-          eq(itemPricing.projectId, this.projectId),
+          eq(itemPricing.projectId, this.storeId),
           inArray(itemPricing.id, [...priceIds])
         )
       );
@@ -399,7 +399,7 @@ export class VariantRepository extends BaseRepository {
       .from(itemPricing)
       .where(
         and(
-          eq(itemPricing.projectId, this.projectId),
+          eq(itemPricing.projectId, this.storeId),
           inArray(itemPricing.variantId, [...variantIds])
         )
       );
@@ -413,7 +413,7 @@ export class VariantRepository extends BaseRepository {
       .from(itemDimensions)
       .where(
         and(
-          eq(itemDimensions.projectId, this.projectId),
+          eq(itemDimensions.projectId, this.storeId),
           inArray(itemDimensions.variantId, [...variantIds])
         )
       );
@@ -427,7 +427,7 @@ export class VariantRepository extends BaseRepository {
       .from(itemWeight)
       .where(
         and(
-          eq(itemWeight.projectId, this.projectId),
+          eq(itemWeight.projectId, this.storeId),
           inArray(itemWeight.variantId, [...variantIds])
         )
       );
@@ -441,7 +441,7 @@ export class VariantRepository extends BaseRepository {
       .from(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.projectId, this.storeId),
           inArray(variantMedia.variantId, [...variantIds])
         )
       );
@@ -455,7 +455,7 @@ export class VariantRepository extends BaseRepository {
       .from(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           inArray(warehouseStock.variantId, [...variantIds])
         )
       );
@@ -469,7 +469,7 @@ export class VariantRepository extends BaseRepository {
       .from(productOptionVariantLink)
       .where(
         and(
-          eq(productOptionVariantLink.projectId, this.projectId),
+          eq(productOptionVariantLink.projectId, this.storeId),
           inArray(productOptionVariantLink.variantId, [...variantIds])
         )
       );
@@ -483,7 +483,7 @@ export class VariantRepository extends BaseRepository {
       .from(productVariantCostHistory)
       .where(
         and(
-          eq(productVariantCostHistory.projectId, this.projectId),
+          eq(productVariantCostHistory.projectId, this.storeId),
           inArray(productVariantCostHistory.variantId, [...variantIds]),
           isNull(productVariantCostHistory.effectiveTo)
         )

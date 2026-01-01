@@ -21,7 +21,7 @@ export class MediaRepository extends BaseRepository {
       .from(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.projectId, this.storeId),
           eq(variantMedia.variantId, variantId)
         )
       )
@@ -41,7 +41,7 @@ export class MediaRepository extends BaseRepository {
       .from(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.projectId, this.storeId),
           inArray(variantMedia.variantId, variantIds)
         )
       )
@@ -65,7 +65,7 @@ export class MediaRepository extends BaseRepository {
     sortIndex: number
   ): Promise<VariantMedia> {
     const data: NewVariantMedia = {
-      projectId: this.projectId,
+      projectId: this.storeId,
       variantId,
       fileId,
       sortIndex,
@@ -95,7 +95,7 @@ export class MediaRepository extends BaseRepository {
       .delete(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.projectId, this.storeId),
           eq(variantMedia.variantId, variantId)
         )
       );
@@ -104,7 +104,7 @@ export class MediaRepository extends BaseRepository {
 
     // Insert new with sort order
     const values: NewVariantMedia[] = fileIds.map((fileId, index) => ({
-      projectId: this.projectId,
+      projectId: this.storeId,
       variantId,
       fileId,
       sortIndex: index,
@@ -121,7 +121,7 @@ export class MediaRepository extends BaseRepository {
       .delete(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.projectId, this.storeId),
           eq(variantMedia.variantId, variantId),
           eq(variantMedia.fileId, fileId)
         )
@@ -136,7 +136,7 @@ export class MediaRepository extends BaseRepository {
       .delete(variantMedia)
       .where(
         and(
-          eq(variantMedia.projectId, this.projectId),
+          eq(variantMedia.projectId, this.storeId),
           eq(variantMedia.variantId, variantId)
         )
       );
@@ -156,7 +156,7 @@ export class MediaRepository extends BaseRepository {
         .set({ sortIndex: i })
         .where(
           and(
-            eq(variantMedia.projectId, this.projectId),
+            eq(variantMedia.projectId, this.storeId),
             eq(variantMedia.variantId, variantId),
             eq(variantMedia.fileId, fileIds[i])
           )

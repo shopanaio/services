@@ -20,7 +20,7 @@ export class CostRepository extends BaseRepository {
       .set({ effectiveTo: new Date() })
       .where(
         and(
-          eq(productVariantCostHistory.projectId, this.projectId),
+          eq(productVariantCostHistory.projectId, this.storeId),
           eq(productVariantCostHistory.variantId, variantId),
           eq(productVariantCostHistory.currency, currency),
           isNull(productVariantCostHistory.effectiveTo)
@@ -43,7 +43,7 @@ export class CostRepository extends BaseRepository {
     const now = new Date();
 
     const newCost: NewProductVariantCostHistory = {
-      projectId: this.projectId,
+      projectId: this.storeId,
       id,
       variantId,
       currency: data.currency,

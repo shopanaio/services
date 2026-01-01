@@ -37,7 +37,7 @@ export class StockRepository extends BaseRepository {
     const result = await this.connection
       .insert(warehouseStock)
       .values({
-        projectId: this.projectId,
+        projectId: this.storeId,
         id: randomUUID(),
         variantId,
         warehouseId,
@@ -66,7 +66,7 @@ export class StockRepository extends BaseRepository {
       .from(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.variantId, variantId)
         )
       );
@@ -86,7 +86,7 @@ export class StockRepository extends BaseRepository {
       .from(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           inArray(warehouseStock.variantId, variantIds)
         )
       );
@@ -116,7 +116,7 @@ export class StockRepository extends BaseRepository {
       .delete(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.variantId, variantId)
         )
       )
@@ -133,7 +133,7 @@ export class StockRepository extends BaseRepository {
       .delete(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.variantId, variantId),
           eq(warehouseStock.warehouseId, warehouseId)
         )
@@ -152,7 +152,7 @@ export class StockRepository extends BaseRepository {
       .from(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           eq(warehouseStock.id, id)
         )
       )
@@ -169,7 +169,7 @@ export class StockRepository extends BaseRepository {
 
     const mergedWhere: StockRelayInput["where"] = {
       _and: [
-        { projectId: { _eq: this.projectId } },
+        { projectId: { _eq: this.storeId } },
         ...(where ? [where] : []),
       ],
     };
@@ -205,7 +205,7 @@ export class StockRepository extends BaseRepository {
       .from(warehouseStock)
       .where(
         and(
-          eq(warehouseStock.projectId, this.projectId),
+          eq(warehouseStock.projectId, this.storeId),
           inArray(warehouseStock.id, [...stockIds])
         )
       );
