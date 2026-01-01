@@ -10,10 +10,10 @@ import type { File } from "../../repositories/models/index.js";
  */
 @SubgraphReference()
 export class FileResolver extends MediaType<string, File | null> {
-  @Cache({
-    cacheName: "media:file",
-    key: (resolver: FileResolver) => resolver.value,
-  })
+  // @Cache({
+  //   cacheName: "media:file",
+  //   key: (resolver: FileResolver) => resolver.value,
+  // })
   async $preload() {
     return this.ctx.loaders.file.load(this.value);
   }
