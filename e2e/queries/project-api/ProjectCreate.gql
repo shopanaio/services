@@ -17,6 +17,9 @@ mutation StoreCreate($input: StoreCreateInput!) {
         defaultDimensionUnit
         createdAt
         updatedAt
+        membership {
+          domain
+        }
       }
       userErrors {
         code
