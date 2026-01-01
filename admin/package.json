@@ -146,6 +146,9 @@
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
     "start": "webpack serve",
+    "server": "cd server && yarn start",
+    "server:install": "cd server && yarn install",
+    "dev": "concurrently \"yarn server\" \"yarn start\"",
     "test": "yarn jest --coverage",
     "type-check": "tsc --noEmit",
     "gql:gen": "node ./bin/gqlgen.js"

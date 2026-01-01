@@ -33,3 +33,8 @@ dist/
 
 .env
 .yarn
+
+# Server mock
+server/node_modules/
+server/.yarn
+server/yarn.lock
