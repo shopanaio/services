@@ -15,7 +15,15 @@ export interface IEntityModalItem {
 }
 
 export enum ModalTypes {
-  // Add your modal types here
-  // Example:
-  // CONFIRM_DELETE = 'CONFIRM_DELETE',
+  BROWSE_TRANSLATION = 'BROWSE_TRANSLATION',
+  CATEGORY = 'CATEGORY',
+  CUSTOMER = 'CUSTOMER',
+  FEATURE_GROUP = 'FEATURE_GROUP',
+  MENU = 'MENU',
+  ORDER = 'ORDER',
+  PAGE = 'PAGE',
+  PRODUCT = 'PRODUCT',
+  PRODUCT_VARIANT = 'PRODUCT_VARIANT',
+  TRANSLATION = 'TRANSLATION',
+  REVIEW = 'REVIEW',
 }

@@ -1,17 +1,17 @@
 import { App, Modal } from 'antd';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
 
-import { IEntityModalItem } from '@src/layouts/modals/types';
-import { $modals } from '@src/layouts/modals/store/modals';
-import { EntityModalsProvider } from '@src/layouts/modals/components/Provider';
-import { ModalModuleMap } from '@src/layouts/modals/components/ModalModuleMap';
+import { IEntityDrawerItem } from '@src/layouts/drawers/types';
+import { $drawers } from '@src/layouts/drawers/store/drawers';
+import { EntityDrawersProvider } from '@src/layouts/drawers/components/Provider';
+import { DrawerModuleMap } from '@src/layouts/drawers/components/DrawerModuleMap';
 import { useIntl } from 'react-intl';
 import { t } from '@src/lang/messages';
 
 interface IEntityModalProps {
   children?: ReactNode;
   level: number;
-  modalItem: IEntityModalItem;
+  modalItem: IEntityDrawerItem;
 }
 
 export const EntityModal = ({
@@ -28,7 +28,7 @@ export const EntityModal = ({
     if (isOpen) {
       return;
     }
-    $modals.removeModal(uuid);
+    $drawers.removeDrawer(uuid);
   };
 
   useEffect(() => () => setIsOpen(false), []);
@@ -61,11 +61,11 @@ export const EntityModal = ({
     setIsOpen(false);
   };
 
-  const onUpdate = (nextItem: Partial<IEntityModalItem>) => {
-    $modals.updateModal({ uuid, ...nextItem });
+  const onUpdate = (nextItem: Partial<IEntityDrawerItem>) => {
+    $drawers.updateDrawer({ uuid, ...nextItem });
   };
 
-  const Module = ModalModuleMap[type];
+  const Module = DrawerModuleMap[type];
   if (!Module) {
     console.error('Unknown entity type');
     return null;
@@ -77,24 +77,32 @@ export const EntityModal = ({
       onCancel={onClose}
       afterOpenChange={clearAfterClose}
       footer={null}
-      width="80vw"
+      width="calc(100vw - 32px)"
       centered
+      closable={false}
       destroyOnClose
+      transitionName="ant-fade"
+      maskTransitionName="ant-fade"
       styles={{
         body: {
+          padding: 0,
+          height: 'calc(100vh - 32px)',
+          overflow: 'auto',
+        },
+        content: {
           padding: 0,
         },
       }}
     >
       <Suspense fallback={null}>
-        <EntityModalsProvider
+        <EntityDrawersProvider
           onClose={onClose}
           onForceClose={onForceClose}
-          modalItem={modalItem}
+          drawerItem={modalItem}
           onUpdate={onUpdate}
         >
           <Module {...modalItem} />
-        </EntityModalsProvider>
+        </EntityDrawersProvider>
       </Suspense>
       {children}
     </Modal>

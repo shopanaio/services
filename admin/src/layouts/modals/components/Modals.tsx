@@ -1,10 +1,10 @@
 import { useSelector } from '@reframework/qx';
 import { EntityModal } from '@src/layouts/modals/components/Modal';
-import { $modals } from '@src/layouts/modals/store/modals';
-import { IEntityModalItem } from '@src/layouts/modals/types';
+import { $drawers } from '@src/layouts/drawers/store/drawers';
+import { IEntityDrawerItem } from '@src/layouts/drawers/types';
 
 interface IModalsProps {
-  items: IEntityModalItem[];
+  items: IEntityDrawerItem[];
   level?: number;
 }
 
@@ -21,11 +21,11 @@ const NestedModals = ({ items, level = 0 }: IModalsProps) => {
 };
 
 export const Modals = () => {
-  const modals = useSelector($modals.modals);
+  const drawers = useSelector($drawers.drawers);
 
-  if (!modals.length) {
+  if (!drawers.length) {
     return null;
   }
 
-  return <NestedModals items={modals} />;
+  return <NestedModals items={drawers} />;
 };

@@ -1,7 +1,7 @@
 import { useFetchStore } from '@modules/projects/hooks/useFetchStore';
 import { $projects } from '@modules/projects/store/projects';
 import { useSelector } from '@reframework/qx';
-import { Drawers } from '@src/layouts/drawers/components/Drawers';
+import { Modals } from '@src/layouts/modals/components/Modals';
 import { Layout } from 'antd';
 import { Sidebar } from '@src/layouts/app/components/Sidebar/Sidebar';
 import { css } from '@emotion/react';
@@ -39,7 +39,7 @@ export const AppLayout = () => {
       <Layout>
         <Outlet />
       </Layout>
-      <Drawers />
+      <Modals />
     </Layout>
   );
 };
