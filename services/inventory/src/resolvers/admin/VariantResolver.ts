@@ -19,10 +19,6 @@ import { VariantPriceResolver } from "./VariantPriceResolver.js";
  */
 @SubgraphReference()
 export class VariantResolver extends InventoryType<string, Variant | null> {
-  static fields = {
-    priceHistory: () => VariantPriceResolver,
-  };
-
   async $preload() {
     return this.ctx.loaders.variant.load(this.value);
   }
@@ -100,12 +96,16 @@ export class VariantResolver extends InventoryType<string, Variant | null> {
   }
 
   /**
-   * Returns price history IDs for this variant
+   * Returns price history for this variant
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async priceHistory(args: PricingCursorInput): Promise<string[]> {
+  async priceHistory(args: PricingCursorInput) {
     const services = this.ctx.kernel.getServices();
-    return services.repository.pricingQuery.getIdsByVariantId(this.value, args);
+    const ids = await services.repository.pricing.getIdsByVariantId(
+      this.value,
+      args
+    );
+    return ids.map((id: string) => new VariantPriceResolver(id, this.ctx));
   }
 
   async cost(): Promise<VariantCost | null> {

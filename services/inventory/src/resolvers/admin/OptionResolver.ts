@@ -8,10 +8,6 @@ import { OptionValueResolver } from "./OptionValueResolver.js";
  * Accepts option ID, loads data lazily via loaders
  */
 export class OptionResolver extends InventoryType<string, ProductOption | null> {
-  static fields = {
-    values: () => OptionValueResolver,
-  };
-
   async $preload() {
     return this.ctx.loaders.productOption.load(this.value);
   }
@@ -37,9 +33,10 @@ export class OptionResolver extends InventoryType<string, ProductOption | null> 
   }
 
   /**
-   * Returns option value IDs for this option
+   * Returns option values for this option
    */
-  async values(): Promise<string[]> {
-    return this.ctx.loaders.optionValueIds.load(this.value);
+  async values() {
+    const ids = await this.ctx.loaders.optionValueIds.load(this.value);
+    return ids.map((id) => new OptionValueResolver(id, this.ctx));
   }
 }

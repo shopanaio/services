@@ -10,10 +10,6 @@ import { StockConnectionResolver } from "./StockConnectionResolver.js";
  */
 @SubgraphReference()
 export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
-  static fields = {
-    stock: () => StockConnectionResolver,
-  };
-
   async $preload() {
     return await this.ctx.loaders.warehouse.load(this.value);
   }
@@ -47,13 +43,19 @@ export class WarehouseResolver extends InventoryType<string, Warehouse | null> {
     return 0;
   }
 
-  async stock(args: StockRelayInput): Promise<StockRelayInput> {
+  stock(args: StockRelayInput) {
     const { where, ...rest } = args;
-    return {
-      ...rest,
-      where: {
-        _and: [{ warehouseId: { _eq: this.value } }, ...(where ? [where] : [])],
+    return new StockConnectionResolver(
+      {
+        ...rest,
+        where: {
+          _and: [
+            { warehouseId: { _eq: this.value } },
+            ...(where ? [where] : []),
+          ],
+        },
       },
-    };
+      this.ctx
+    );
   }
 }

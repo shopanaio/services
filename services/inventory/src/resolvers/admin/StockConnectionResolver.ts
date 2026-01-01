@@ -10,11 +10,13 @@ import {
  * Uses cursor-based pagination with Relay-style Connection spec
  */
 export class StockConnectionResolver extends BaseConnectionResolver<StockRelayInput> {
-  static node = () => StockResolver;
-
   async $preload(): Promise<ConnectionData> {
     return this.ctx.kernel
       .getServices()
       .repository.stock.getConnection(this.value);
+  }
+
+  protected createNodeResolver(nodeId: string) {
+    return new StockResolver(nodeId, this.ctx);
   }
 }

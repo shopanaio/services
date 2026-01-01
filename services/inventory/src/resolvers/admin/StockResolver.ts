@@ -8,11 +8,6 @@ import { VariantResolver } from "./VariantResolver.js";
  * Accepts stock ID, loads data lazily via repository
  */
 export class StockResolver extends InventoryType<string, WarehouseStock | null> {
-  static fields = {
-    warehouse: () => WarehouseResolver,
-    variant: () => VariantResolver,
-  };
-
   async $preload() {
     return await this.ctx.kernel
       .getServices()
@@ -32,11 +27,13 @@ export class StockResolver extends InventoryType<string, WarehouseStock | null> 
   }
 
   async warehouse() {
-    return this.$get("warehouseId");
+    const warehouseId = await this.$get("warehouseId");
+    return warehouseId ? new WarehouseResolver(warehouseId, this.ctx) : null;
   }
 
   async variant() {
-    return this.$get("variantId");
+    const variantId = await this.$get("variantId");
+    return variantId ? new VariantResolver(variantId, this.ctx) : null;
   }
 
   async quantityOnHand() {

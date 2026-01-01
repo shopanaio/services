@@ -5,10 +5,7 @@ import type { VariantRelayInput } from "../../repositories/variant/VariantReposi
 import { InventoryType } from "./InventoryType.js";
 import { FeatureResolver } from "./FeatureResolver.js";
 import { OptionResolver } from "./OptionResolver.js";
-import {
-  VariantConnectionResolver,
-  type VariantConnectionInput,
-} from "./VariantConnectionResolver.js";
+import { VariantConnectionResolver } from "./VariantConnectionResolver.js";
 
 /**
  * Product resolver - resolves Product domain interface.
@@ -16,12 +13,6 @@ import {
  */
 @SubgraphReference()
 export class ProductResolver extends InventoryType<string, Product | null> {
-  static fields = {
-    variants: () => VariantConnectionResolver,
-    options: () => OptionResolver,
-    features: () => FeatureResolver,
-  };
-
   async $preload() {
     return this.ctx.loaders.product.load(this.value);
   }
@@ -98,28 +89,33 @@ export class ProductResolver extends InventoryType<string, Product | null> {
   }
 
   /**
-   * Returns variant connection input for this product
+   * Returns variant connection for this product
    * @param args - Pagination arguments (first, last, after, before)
    */
-  async variants(args: VariantRelayInput): Promise<VariantConnectionInput> {
-    return {
-      ...args,
-      productId: this.value,
-    };
+  variants(args: VariantRelayInput) {
+    return new VariantConnectionResolver(
+      {
+        ...args,
+        productId: this.value,
+      },
+      this.ctx
+    );
   }
 
   /**
-   * Returns option IDs for this product
+   * Returns options for this product
    */
-  async options(): Promise<string[]> {
-    return this.ctx.loaders.productOptionIds.load(this.value);
+  async options() {
+    const ids = await this.ctx.loaders.productOptionIds.load(this.value);
+    return ids.map((id) => new OptionResolver(id, this.ctx));
   }
 
   /**
-   * Returns feature IDs for this product
+   * Returns features for this product
    */
-  async features(): Promise<string[]> {
-    return this.ctx.loaders.productFeatureIds.load(this.value);
+  async features() {
+    const ids = await this.ctx.loaders.productFeatureIds.load(this.value);
+    return ids.map((id) => new FeatureResolver(id, this.ctx));
   }
 
   /**

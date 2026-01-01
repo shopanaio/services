@@ -7,10 +7,6 @@ import { FeatureValueResolver } from "./FeatureValueResolver.js";
  * Accepts feature ID, loads data lazily via loaders
  */
 export class FeatureResolver extends InventoryType<string, ProductFeature | null> {
-  static fields = {
-    values: () => FeatureValueResolver,
-  };
-
   async $preload() {
     return this.ctx.loaders.productFeature.load(this.value);
   }
@@ -32,9 +28,10 @@ export class FeatureResolver extends InventoryType<string, ProductFeature | null
   }
 
   /**
-   * Returns feature value IDs for this feature
+   * Returns feature values for this feature
    */
-  async values(): Promise<string[]> {
-    return this.ctx.loaders.featureValueIds.load(this.value);
+  async values() {
+    const ids = await this.ctx.loaders.featureValueIds.load(this.value);
+    return ids.map((id) => new FeatureValueResolver(id, this.ctx));
   }
 }

@@ -1,5 +1,4 @@
 import { type PageInfo } from "@shopana/drizzle-query";
-import { type TypeClass } from "@shopana/type-resolver";
 import { InventoryType } from "../InventoryType.js";
 
 // ============ Types ============
@@ -21,48 +20,24 @@ export interface ConnectionData {
   totalCount: number;
 }
 
-// ============ Edge Factory ============
-
-/**
- * Creates an Edge resolver class for the given node resolver.
- * The Edge class handles cursor and node resolution automatically.
- */
-function createEdgeResolver(getNodeResolver: () => TypeClass) {
-  return class EdgeResolver extends InventoryType<EdgeData, EdgeData> {
-    static fields = {
-      node: getNodeResolver,
-    };
-
-    cursor() {
-      return this.value.cursor;
-    }
-
-    node() {
-      return this.value.nodeId;
-    }
-  };
-}
-
 // ============ BaseConnectionResolver ============
 
 /**
  * Abstract base class for Connection resolvers.
- * Automatically creates Edge resolver based on the provided node resolver.
- *
- * Subclasses must:
- * 1. Define static `node` property pointing to the node resolver
- * 2. Implement the `$preload` method to fetch connection data
+ * Subclasses must implement $preload and createNodeResolver.
  *
  * @template TArgs - The type of arguments passed to the connection query
  *
  * @example
  * class WarehouseConnectionResolver extends BaseConnectionResolver<InventoryQueryWarehousesArgs> {
- *   static node = () => WarehouseResolver;
- *
  *   async $preload(): Promise<ConnectionData> {
  *     return this.ctx.kernel
  *       .getServices()
  *       .repository.warehouse.getConnection(this.value);
+ *   }
+ *
+ *   protected createNodeResolver(nodeId: string) {
+ *     return new WarehouseResolver(nodeId, this.ctx);
  *   }
  * }
  */
@@ -71,30 +46,23 @@ export abstract class BaseConnectionResolver<TArgs = unknown> extends InventoryT
   ConnectionData
 > {
   /**
-   * Override in subclass to specify the node resolver.
-   * @example
-   * static node = () => WarehouseResolver;
-   */
-  static node: () => TypeClass;
-
-  /**
-   * Auto-generated fields based on `node` property.
-   * Creates Edge resolver automatically.
-   */
-  static get fields(): { edges: () => TypeClass } {
-    return {
-      edges: () => createEdgeResolver(this.node),
-    };
-  }
-
-  /**
    * Override to load connection data from repository.
    * Must return Promise<ConnectionData>.
    */
   abstract $preload(): Promise<ConnectionData>;
 
+  /**
+   * Override to create the node resolver for a given node ID.
+   * @param nodeId - The ID of the node to resolve
+   */
+  protected abstract createNodeResolver(nodeId: string): unknown;
+
   async edges() {
-    return this.$get("edges");
+    const edgesData = await this.$get("edges");
+    return (edgesData ?? []).map((edge) => ({
+      cursor: edge.cursor,
+      node: this.createNodeResolver(edge.nodeId),
+    }));
   }
 
   async pageInfo() {

@@ -12,11 +12,13 @@ export type ProductConnectionInput = ProductRelayInput;
  * Uses cursor-based pagination with Relay-style Connection spec
  */
 export class ProductConnectionResolver extends BaseConnectionResolver<ProductRelayInput> {
-  static node = () => ProductResolver;
-
   async $preload(): Promise<ConnectionData> {
     return this.ctx.kernel
       .getServices()
       .repository.product.getConnection(this.value);
+  }
+
+  protected createNodeResolver(nodeId: string) {
+    return new ProductResolver(nodeId, this.ctx);
   }
 }
