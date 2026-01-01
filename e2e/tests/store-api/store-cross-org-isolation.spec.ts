@@ -141,7 +141,7 @@ test.describe('Cross-Organization Store Isolation', () => {
     };
   });
 
-  test.only('User cannot access stores from other organization via query', async ({ api }) => {
+  test('User cannot access stores from other organization via query', async ({ api }) => {
     // Switch to User A with their store as context
     api.session.tenant.accessToken = userA.accessToken;
     api.session.project = {
