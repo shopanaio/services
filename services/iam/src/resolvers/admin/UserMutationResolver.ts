@@ -1,8 +1,4 @@
 import { ZodResolver } from "@shopana/type-resolver";
-import {
-  encodeGlobalIdByType,
-  GlobalIdEntity,
-} from "@shopana/shared-graphql-guid";
 import { IAMType } from "./IAMType.js";
 import { UserResolver } from "./UserResolver.js";
 import { UserUpdateProfileScript } from "../../scripts/user/UserUpdateProfileScript.js";
@@ -34,7 +30,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
 
     if (!currentUser?.id) {
       return {
-        userId: null,
+        user: null,
         userErrors: [
           {
             code: "UNAUTHORIZED",
@@ -48,13 +44,11 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     const result = await kernel.runScript(UserUpdateProfileScript, {
       firstName: input.firstName ?? undefined,
       lastName: input.lastName ?? undefined,
-      language: input.language ?? undefined,
+      language: input.locale ?? undefined,
     });
 
     return {
-      userId: result.userId
-        ? encodeGlobalIdByType(result.userId, GlobalIdEntity.User)
-        : null,
+      user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code,
         message: e.message,
@@ -73,7 +67,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
 
     if (!currentUser?.id) {
       return {
-        userId: null,
+        user: null,
         userErrors: [
           {
             code: "UNAUTHORIZED",
@@ -89,9 +83,7 @@ export class UserMutationResolver extends IAMType<Record<string, never>> {
     });
 
     return {
-      userId: result.userId
-        ? encodeGlobalIdByType(result.userId, GlobalIdEntity.User)
-        : null,
+      user: result.userId ? new UserResolver(result.userId, this.$ctx) : null,
       userErrors: result.userErrors.map((e) => ({
         code: e.code,
         message: e.message,
