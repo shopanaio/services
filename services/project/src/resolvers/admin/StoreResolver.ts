@@ -94,10 +94,6 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return this.$get("updatedAt");
   }
 
-  @Cache({
-    cacheName: "store:locales",
-    key: (resolver: StoreResolver) => resolver.$props.id,
-  })
   async locales(): Promise<LocaleCode[]> {
     const locales = await this.$ctx.kernel
       .getServices()
@@ -105,10 +101,6 @@ export class StoreResolver extends BaseResolver<Store, Store> {
     return locales?.map((l) => l.code as LocaleCode) ?? [];
   }
 
-  @Cache({
-    cacheName: "store:currencies",
-    key: (resolver: StoreResolver) => resolver.$props.id,
-  })
   async currencies(): Promise<CurrencyCode[]> {
     const currencies = await this.$ctx.kernel
       .getServices()
