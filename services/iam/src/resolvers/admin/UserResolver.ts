@@ -7,13 +7,17 @@ import { IAMType, Cache } from "./IAMType.js";
  * Uses local User type from UserRepository
  */
 @SubgraphReference()
-export class UserResolver extends IAMType<string, User | null> {
+export class UserResolver extends IAMType<string, User> {
   @Cache({
     cacheName: "iam:user",
     key: (resolver: UserResolver) => resolver.$props,
   })
   async $preload() {
-    return this.$ctx.kernel.repository.user.findById(this.$props);
+    const user = await this.$ctx.kernel.repository.user.findById(this.$props);
+    if (!user) {
+      throw new Error(`User not found: ${this.$props}`);
+    }
+    return user;
   }
 
   id() {
