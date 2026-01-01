@@ -124,14 +124,6 @@ export class Executor<TContext = unknown> {
       return null as unknown as InstanceResult<T>;
     }
 
-    // Check if $preload returns null - if so, return null immediately
-    if (typeof (instance as any).$preload === "function") {
-      const data = await (instance as any).$preload();
-      if (data === null || data === undefined) {
-        return null as unknown as InstanceResult<T>;
-      }
-    }
-
     const result: Record<string, unknown> = {};
 
     // Collect all fields to resolve

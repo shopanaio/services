@@ -80,16 +80,19 @@ export abstract class BaseType<TProps, TData = TProps, TContext = unknown> {
 
   private _dataPromise: Promise<TData> | null = null;
   private _ctx?: TContext;
+  private _props: TProps;
 
-  protected $props: TProps;
-
-  constructor($props: TProps, ctx?: TContext) {
-    this.$props = $props;
+  constructor(props: TProps, ctx?: TContext) {
+    this._props = props;
     this._ctx = ctx;
   }
 
-  protected get $ctx(): TContext {
+  get $ctx(): TContext {
     return this._ctx as TContext;
+  }
+
+  get $props(): TProps {
+    return this._props;
   }
 
   /**

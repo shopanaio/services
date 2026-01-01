@@ -19,10 +19,10 @@ describe("Executor", () => {
     it("resolves all fields when query is undefined", async () => {
       class SimpleType extends BaseType<{ id: string; name: string }, { id: string; name: string }, unknown> {
         id() {
-          return this.value.id;
+          return this.$props.id;
         }
         name() {
-          return this.value.name;
+          return this.$props.name;
         }
       }
 
@@ -36,13 +36,13 @@ describe("Executor", () => {
     it("resolves only scalar fields from fields array", async () => {
       class SimpleType extends BaseType<{ id: string; name: string; extra: string }, { id: string; name: string; extra: string }, unknown> {
         id() {
-          return this.value.id;
+          return this.$props.id;
         }
         name() {
-          return this.value.name;
+          return this.$props.name;
         }
         extra() {
-          return this.value.extra;
+          return this.$props.extra;
         }
       }
 
@@ -67,7 +67,7 @@ describe("Executor", () => {
         }
         child() {
           // Return BaseType instance - executor will detect via instanceof
-          return new ChildType(this.value.child, this.ctx);
+          return new ChildType(this.$props.child, this.ctx);
         }
       }
 
@@ -93,7 +93,7 @@ describe("Executor", () => {
       class ListType extends BaseType<{ items: { id: string }[] }, { items: { id: string }[] }, unknown> {
         items() {
           // Return array of BaseType instances
-          return this.value.items.map(item => new ItemType(item, this.ctx));
+          return this.$props.items.map(item => new ItemType(item, this.ctx));
         }
       }
 
@@ -225,7 +225,7 @@ describe("Executor", () => {
           return null;
         }
         id() {
-          return this.value;
+          return this.$props;
         }
       }
 
@@ -242,7 +242,7 @@ describe("Executor", () => {
           return undefined;
         }
         id() {
-          return this.value;
+          return this.$props;
         }
       }
 
@@ -258,7 +258,7 @@ describe("Executor", () => {
     it("resolves multiple values", async () => {
       class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
         id() {
-          return this.value.id;
+          return this.$props.id;
         }
       }
 
@@ -392,7 +392,7 @@ describe("BaseType", () => {
       unknown
     > {
       protected $preload() {
-        return loadSpy(this.value);
+        return loadSpy(this.$props);
       }
       id() {
         return this.$get("id");
@@ -492,7 +492,7 @@ describe("Complex nested resolution", () => {
         return this.$get("id");
       }
       level3() {
-        return new Level3Type(this.value.level3, this.ctx);
+        return new Level3Type(this.$props.level3, this.ctx);
       }
     }
 
@@ -501,7 +501,7 @@ describe("Complex nested resolution", () => {
         return this.$get("id");
       }
       level2() {
-        return new Level2Type(this.value.level2, this.ctx);
+        return new Level2Type(this.$props.level2, this.ctx);
       }
     }
 
@@ -551,7 +551,7 @@ describe("Complex nested resolution", () => {
         return this.$get("id");
       }
       images() {
-        return this.value.images.map(img => new ImageType(img, this.ctx));
+        return this.$props.images.map(img => new ImageType(img, this.ctx));
       }
     }
 
@@ -560,7 +560,7 @@ describe("Complex nested resolution", () => {
         return this.$get("id");
       }
       variants() {
-        return this.value.variants.map(v => new VariantType(v, this.ctx));
+        return this.$props.variants.map(v => new VariantType(v, this.ctx));
       }
     }
 
@@ -725,7 +725,7 @@ describe("load() and loadMany() functions", () => {
   it("load() works with instance", async () => {
     class SimpleType extends BaseType<{ id: string }, { id: string }, { test: boolean }> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
       hasContext() {
         return this.ctx.test;
@@ -741,7 +741,7 @@ describe("load() and loadMany() functions", () => {
   it("loadMany() works with instances", async () => {
     class SimpleType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
     }
 
@@ -776,7 +776,7 @@ describe("resolve() - universal resolver", () => {
   it("resolves BaseType instance", async () => {
     class StoreType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
       name() {
         return "Store Name";
@@ -792,7 +792,7 @@ describe("resolve() - universal resolver", () => {
   it("resolves array of BaseType instances", async () => {
     class ItemType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
     }
 
@@ -815,7 +815,7 @@ describe("resolve() - universal resolver", () => {
   it("resolves plain object with nested BaseType", async () => {
     class StoreType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
       name() {
         return "My Store";
@@ -843,10 +843,10 @@ describe("resolve() - universal resolver", () => {
   it("resolves plain object with array of BaseType", async () => {
     class ProductType extends BaseType<{ id: string; sku: string }, { id: string; sku: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
       sku() {
-        return this.value.sku;
+        return this.$props.sku;
       }
     }
 
@@ -877,7 +877,7 @@ describe("resolve() - universal resolver", () => {
   it("resolves deeply nested plain objects", async () => {
     class UserType extends BaseType<{ id: string }, { id: string }, unknown> {
       id() {
-        return this.value.id;
+        return this.$props.id;
       }
       email() {
         return "user@example.com";
