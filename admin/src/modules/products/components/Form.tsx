@@ -63,8 +63,6 @@ import {
 import { ApiUpdateProductInput } from '@src/graphql';
 import { ProductInfoCardA } from '@modules/products/components/ProductInfoCardA';
 import { EyeOutlined, EditOutlined } from '@ant-design/icons';
-import { Tag } from 'antd';
-import { EntityStatus } from '@src/graphql';
 import { css } from '@emotion/react';
 
 type ViewMode = 'view' | 'edit';
@@ -629,36 +627,13 @@ const ProductFormView = () => {
     setViewMode('edit');
   };
 
-  const getStatusColor = (status: EntityStatus) => {
-    switch (status) {
-      case EntityStatus.Published: return 'green';
-      case EntityStatus.Draft: return 'default';
-      case EntityStatus.Archived: return 'red';
-      default: return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: EntityStatus) => {
-    switch (status) {
-      case EntityStatus.Published: return 'Published';
-      case EntityStatus.Draft: return 'Draft';
-      case EntityStatus.Archived: return 'Archived';
-      default: return status;
-    }
-  };
-
   const renderTitle = () => (
-    <Flex align="center" gap="2">
-      <span>
-        {product.title ||
-          intl.formatMessage({
-            id: t('products.form.editTitle'),
-          })}
-      </span>
-      <Tag color={getStatusColor(product.status)} css={css`margin: 0;`}>
-        {getStatusLabel(product.status)}
-      </Tag>
-    </Flex>
+    <span>
+      {product.title ||
+        intl.formatMessage({
+          id: t('products.form.editTitle'),
+        })}
+    </span>
   );
 
   const renderViewModeToggle = () => (
