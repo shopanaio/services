@@ -649,7 +649,6 @@ interface IInventoryHeaderProps {
   warehouses: IWarehouseStock[];
   selectedWarehouseId?: string;
   onWarehouseSelect: (warehouseId?: string) => void;
-  stats: IInventoryStats;
   onAction: (action: string) => void;
 }
 
@@ -657,7 +656,6 @@ const InventoryHeader = ({
   warehouses,
   selectedWarehouseId,
   onWarehouseSelect,
-  stats,
   onAction,
 }: IInventoryHeaderProps) => (
   <Flex align="center" justify="space-between" css={inventoryHeaderStyles}>
@@ -669,11 +667,6 @@ const InventoryHeader = ({
         warehouses={warehouses}
         selectedWarehouseId={selectedWarehouseId}
         onSelect={onWarehouseSelect}
-      />
-      <SyncStatusIndicator
-        lastSyncAt={stats.lastSyncAt}
-        status={stats.syncStatus}
-        onRetry={() => onAction('retry-sync')}
       />
     </Flex>
     <InventoryActions onAction={onAction} />
@@ -776,7 +769,6 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
         warehouses={warehouses}
         selectedWarehouseId={selectedWarehouseId}
         onWarehouseSelect={setSelectedWarehouseId}
-        stats={stats}
         onAction={handleAction}
       />
 
@@ -1267,8 +1259,6 @@ export const ProductInfoCardA = ({
         }
         priceSource="manual"
         targetMargin={35}
-        lastUpdatedAt={product.updatedAt}
-        onEdit={() => handleEdit('pricing')}
         onViewLog={() => console.log('View price log')}
         onMoreAction={(action) => console.log('Pricing action:', action)}
         formatPrice={formatPrice}

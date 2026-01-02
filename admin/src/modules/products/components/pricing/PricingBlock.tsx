@@ -9,13 +9,9 @@ import {
   Segmented,
 } from 'antd';
 import {
-  EditOutlined,
   MoreOutlined,
   InfoCircleOutlined,
-  HistoryOutlined,
   WarningOutlined,
-  CheckCircleFilled,
-  SyncOutlined,
 } from '@ant-design/icons';
 import { ReactNode, useState, useMemo, useCallback } from 'react';
 import { Paper } from '@components/paper/Paper';
@@ -34,7 +30,6 @@ import {
 type PriceSource = 'manual' | 'rule-based' | 'promo' | 'market';
 type TimeRange = '7D' | '30D' | '90D';
 type MarginStatus = 'ok' | 'warning' | 'critical';
-type SyncStatus = 'synced' | 'delayed' | 'manual';
 
 interface IPricingData {
   currentPrice: number;
@@ -50,7 +45,6 @@ interface IPricingData {
   lastUpdatedAt: Date;
   changesCount: number;
   targetMargin?: number;
-  syncStatus?: SyncStatus;
 }
 
 interface IVariantOption {
@@ -162,18 +156,6 @@ const kpiTileStyles = css`
 // Helper Functions
 // ============================================================================
 
-const formatRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${Math.floor(diffMs / 86400000)}d ago`;
-};
-
 const formatShortDate = (date: Date): string => {
   return new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
@@ -215,29 +197,6 @@ const getPriceSourceLabel = (source: PriceSource): string => {
   }
 };
 
-const getSyncStatusConfig = (status: SyncStatus) => {
-  switch (status) {
-    case 'synced':
-      return {
-        icon: <CheckCircleFilled />,
-        color: tokens.colors.success,
-        label: 'Synced',
-      };
-    case 'delayed':
-      return {
-        icon: <SyncOutlined />,
-        color: tokens.colors.warning,
-        label: 'Delayed',
-      };
-    case 'manual':
-      return {
-        icon: <EditOutlined />,
-        color: tokens.colors.muted,
-        label: 'Manual',
-      };
-  }
-};
-
 // ============================================================================
 // Sub-components
 // ============================================================================
@@ -248,9 +207,6 @@ interface IPricingHeaderProps {
   variants?: IVariantOption[];
   selectedVariantId?: string;
   onVariantSelect?: (id: string) => void;
-  lastUpdatedAt: Date;
-  syncStatus?: SyncStatus;
-  onEdit?: () => void;
   onMoreAction?: (action: string) => void;
 }
 
@@ -259,13 +215,9 @@ const PricingHeader = ({
   variants,
   selectedVariantId,
   onVariantSelect,
-  lastUpdatedAt,
-  syncStatus = 'synced',
-  onEdit,
   onMoreAction,
 }: IPricingHeaderProps) => {
   const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
-  const syncConfig = getSyncStatusConfig(syncStatus);
 
   const moreMenuItems = [
     { key: 'history', label: 'View price history' },
@@ -353,29 +305,6 @@ const PricingHeader = ({
       </Flex>
 
       <Flex align="center" gap="2">
-        {/* Updated time with sync status */}
-        <Tooltip title={`Last update: ${lastUpdatedAt.toLocaleString()}`}>
-          <Flex
-            align="center"
-            gap="1"
-            css={css`
-              font-size: 11px;
-              color: var(--color-gray-6);
-            `}
-          >
-            <span>Updated {formatRelativeTime(lastUpdatedAt)}</span>
-            <span
-              css={css`
-                color: ${syncConfig.color};
-                display: flex;
-                align-items: center;
-              `}
-            >
-              · {syncConfig.icon}
-            </span>
-          </Flex>
-        </Tooltip>
-
         {onMoreAction && (
           <Dropdown
             menu={{
@@ -406,7 +335,6 @@ const CurrentPriceColumn = ({
     currentPrice,
     compareAtPrice,
     priceSource,
-    margin,
     marginStatus,
     targetMargin = 35,
   } = data;
@@ -438,18 +366,20 @@ const CurrentPriceColumn = ({
       </Typography.Text>
 
       {/* Main Price */}
-      <Typography.Text
-        strong
+      <Typography.Title
+        level={2}
         css={css`
-          font-size: ${tokens.fontSize.price}px;
-          font-weight: 600;
-          display: block;
-          line-height: 1.2;
-          white-space: nowrap;
+          && {
+            font-size: ${tokens.fontSize.price}px;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1.2;
+            white-space: nowrap;
+          }
         `}
       >
         {formatPrice(currentPrice)}
-      </Typography.Text>
+      </Typography.Title>
 
       {/* Badges Row - discount stronger, source subtle */}
       <Flex
@@ -534,8 +464,6 @@ const CurrentPriceColumn = ({
         gap="2"
         css={css`
           margin-top: ${tokens.gap.md}px;
-          padding-top: ${tokens.gap.md}px;
-          border-top: 1px solid ${tokens.colors.border};
         `}
       >
         {marginStatus === 'warning' && (
@@ -587,8 +515,6 @@ interface IPriceHistoryChartProps {
 const PriceHistoryChart = ({
   history,
   formatPrice,
-  changesCount,
-  onViewLog,
 }: IPriceHistoryChartProps) => {
   const [timeRange, setTimeRange] = useState<TimeRange>('30D');
   const [hoveredPoint, setHoveredPoint] = useState<{
@@ -1107,8 +1033,6 @@ interface IPricingBlockProps {
   priceSource?: PriceSource;
   minAllowedPrice?: number | null;
   targetMargin?: number;
-  lastUpdatedAt?: Date;
-  syncStatus?: SyncStatus;
 
   // Callbacks
   onEdit?: () => void;
@@ -1131,9 +1055,6 @@ export const PricingBlock = ({
   priceSource = 'manual',
   minAllowedPrice,
   targetMargin = 35,
-  lastUpdatedAt = new Date(),
-  syncStatus = 'synced',
-  onEdit,
   onViewLog,
   onMoreAction,
   formatPrice: formatPriceProp,
@@ -1149,13 +1070,14 @@ export const PricingBlock = ({
     onVariantSelect?.(id);
   };
 
-  // Default price formatter with non-breaking space
+  // Default price formatter with non-breaking space, no decimals
   const formatPrice =
     formatPriceProp ||
     ((amount: number) => {
       const formatted = new Intl.NumberFormat('ru-RU', {
         style: 'currency',
         currency: 'RUB',
+        minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(amount / 100);
       // Replace regular space before currency symbol with non-breaking space
@@ -1208,10 +1130,9 @@ export const PricingBlock = ({
     maxPrice,
     priceSource,
     priceHistory: actualPriceHistory,
-    lastUpdatedAt,
+    lastUpdatedAt: new Date(),
     changesCount,
     targetMargin,
-    syncStatus,
   };
 
   // Build variant options for header
@@ -1233,9 +1154,6 @@ export const PricingBlock = ({
         variants={variantOptions}
         selectedVariantId={selectedVariantId}
         onVariantSelect={handleVariantSelect}
-        lastUpdatedAt={lastUpdatedAt}
-        syncStatus={syncStatus}
-        onEdit={onEdit}
         onMoreAction={onMoreAction}
       />
 
@@ -1261,11 +1179,4 @@ export const PricingBlock = ({
 // ============================================================================
 
 export { generateMockHistory, getMockVariantPrices };
-export type {
-  IPricingData,
-  IVariantOption,
-  PriceSource,
-  TimeRange,
-  MarginStatus,
-  SyncStatus,
-};
+export type { IPricingData, IVariantOption, PriceSource, TimeRange, MarginStatus };
