@@ -1021,146 +1021,121 @@ export const ProductInfoCardA = ({
       </Flex>
 
       {/* ================================================================== */}
-      {/* COLLECTIONS & REVIEWS */}
+      {/* REVIEWS */}
       {/* ================================================================== */}
-      <Flex gap="3">
+      <Section
+        title="Reviews"
+        onEdit={() => handleEdit('reviews')}
+      >
         <Box
           css={css`
-            flex: 1;
+            display: grid;
+            grid-template-columns: 2fr 4fr;
+            gap: var(--x4);
           `}
         >
-          <Section
-            title="Collections"
-                        onEdit={() => handleEdit('collections')}
+          {/* Left side - Average rating */}
+          <Flex
+            direction="column"
+            align="center"
+            justify="center"
+            css={css`
+              padding-right: var(--x3);
+              border-right: 1px solid var(--color-gray-3);
+            `}
           >
+            <Typography.Text
+              css={css`
+                font-size: 32px;
+                font-weight: 600;
+                line-height: 1;
+              `}
+            >
+              4.2
+            </Typography.Text>
+            <Rate
+              disabled
+              allowHalf
+              defaultValue={4.2}
+              css={css`
+                font-size: 12px;
+                margin: 4px 0;
+              `}
+            />
             <Typography.Text
               type="secondary"
               css={css`
-                font-size: 12px;
+                font-size: 11px;
               `}
             >
-              No collections assigned
+              128 reviews
             </Typography.Text>
-          </Section>
-        </Box>
-        <Box
-          css={css`
-            flex: 1;
-          `}
-        >
-          <Section
-            title="Reviews"
-                        onEdit={() => handleEdit('reviews')}
+          </Flex>
+
+          {/* Right side - Rating breakdown */}
+          <Flex
+            direction="column"
+            gap="1"
           >
-            <Flex gap="4">
-              {/* Left side - Average rating */}
+            {[
+              { stars: 5, count: 89, percent: 70 },
+              { stars: 4, count: 24, percent: 19 },
+              { stars: 3, count: 8, percent: 6 },
+              { stars: 2, count: 4, percent: 3 },
+              { stars: 1, count: 3, percent: 2 },
+            ].map((item) => (
               <Flex
-                direction="column"
+                key={item.stars}
                 align="center"
-                justify="center"
+                gap="2"
                 css={css`
-                  min-width: 100px;
-                  padding-right: var(--x3);
-                  border-right: 1px solid var(--color-gray-3);
+                  font-size: 11px;
                 `}
               >
-                <Typography.Text
+                <Flex
+                  align="center"
+                  gap="1"
                   css={css`
-                    font-size: 32px;
-                    font-weight: 600;
-                    line-height: 1;
+                    min-width: 28px;
                   `}
                 >
-                  4.2
-                </Typography.Text>
-                <Rate
-                  disabled
-                  allowHalf
-                  defaultValue={4.2}
+                  <span>{item.stars}</span>
+                  <StarFilled
+                    css={css`
+                      font-size: 10px;
+                      color: #fadb14;
+                    `}
+                  />
+                </Flex>
+                <Progress
+                  percent={item.percent}
+                  showInfo={false}
+                  strokeColor="#fadb14"
+                  trailColor="var(--color-gray-3)"
+                  size="small"
                   css={css`
-                    font-size: 12px;
-                    margin: 4px 0;
+                    flex: 1;
+                    margin: 0;
+                    .ant-progress-inner {
+                      height: 6px !important;
+                    }
                   `}
                 />
                 <Typography.Text
                   type="secondary"
                   css={css`
+                    min-width: 24px;
+                    text-align: right;
                     font-size: 11px;
                   `}
                 >
-                  128 reviews
+                  {item.count}
                 </Typography.Text>
               </Flex>
-
-              {/* Right side - Rating breakdown */}
-              <Flex
-                direction="column"
-                gap="1"
-                css={css`
-                  flex: 1;
-                `}
-              >
-                {[
-                  { stars: 5, count: 89, percent: 70 },
-                  { stars: 4, count: 24, percent: 19 },
-                  { stars: 3, count: 8, percent: 6 },
-                  { stars: 2, count: 4, percent: 3 },
-                  { stars: 1, count: 3, percent: 2 },
-                ].map((item) => (
-                  <Flex
-                    key={item.stars}
-                    align="center"
-                    gap="2"
-                    css={css`
-                      font-size: 11px;
-                    `}
-                  >
-                    <Flex
-                      align="center"
-                      gap="1"
-                      css={css`
-                        min-width: 28px;
-                      `}
-                    >
-                      <span>{item.stars}</span>
-                      <StarFilled
-                        css={css`
-                          font-size: 10px;
-                          color: #fadb14;
-                        `}
-                      />
-                    </Flex>
-                    <Progress
-                      percent={item.percent}
-                      showInfo={false}
-                      strokeColor="#fadb14"
-                      trailColor="var(--color-gray-3)"
-                      size="small"
-                      css={css`
-                        flex: 1;
-                        margin: 0;
-                        .ant-progress-inner {
-                          height: 6px !important;
-                        }
-                      `}
-                    />
-                    <Typography.Text
-                      type="secondary"
-                      css={css`
-                        min-width: 24px;
-                        text-align: right;
-                        font-size: 11px;
-                      `}
-                    >
-                      {item.count}
-                    </Typography.Text>
-                  </Flex>
-                ))}
-              </Flex>
-            </Flex>
-          </Section>
+            ))}
+          </Flex>
         </Box>
-      </Flex>
+      </Section>
 
       {/* ================================================================== */}
       {/* OPTIONS (variable products) */}
