@@ -10,8 +10,8 @@ export const MediaFilePlaceholder = () => {
         aspect-ratio: 1/1;
         width: 100%;
         border-radius: var(--radius-base);
-        border: 1px dashed var(--color-primary-7);
-        background-color: var(--color-primary-2);
+        border: 1px dashed var(--color-primary-6);
+        background-color: var(--color-primary-3);
         transition: all 0.2s ease-in-out;
       `}
     ></Box>

@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import { EditOutlined, CopyOutlined, StarFilled } from '@ant-design/icons';
 import { ReactNode } from 'react';
+import { MediaFilePlaceholder } from '@components/media/control/Placeholder';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
 import { t } from '@modules/products/i18n/messages';
@@ -47,12 +48,32 @@ const sectionHeaderStyles = css`
 
 const mediaGridStyles = css`
   display: grid;
-  grid-template-columns: repeat(auto-fill, 64px);
+  grid-template-columns: repeat(auto-fill, 70px);
   grid-gap: var(--x2);
+  position: relative;
 
-  & > *:first-child {
-    grid-column: span 2;
-    grid-row: span 2;
+  & > *:nth-child(1) {
+    grid-column-start: span 2;
+    grid-row-start: span 2;
+  }
+`;
+
+const mediaOverlayStyles = css`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 70px);
+  grid-gap: var(--x2);
+  overflow: hidden;
+  max-height: 160px;
+  pointer-events: none;
+
+  & > *:nth-child(1) {
+    grid-column-start: span 2;
+    grid-row-start: span 2;
   }
 `;
 
@@ -405,18 +426,21 @@ export const ProductInfoCardA = ({
         name="media"
         onEdit={() => handleEdit('media')}
       >
-        {product.cover || product.gallery?.length > 0 ? (
-          <div css={mediaGridStyles}>
-            {product.cover && (
-              <Image
-                src={product.cover.url}
-                alt={product.title}
-                css={mediaImageStyles}
-              />
-            )}
-            {product.gallery
-              ?.slice(0, product.cover ? 5 : 6)
-              .map((media) => (
+        {(() => {
+          const gallerySlice = product.gallery?.slice(0, product.cover ? 5 : 6) || [];
+          const hasMore = (product.gallery?.length || 0) > (product.cover ? 5 : 6);
+          const overlayItemsCount = (product.cover ? 1 : 0) + gallerySlice.length + (hasMore ? 1 : 0);
+
+          return (
+            <div css={mediaGridStyles}>
+              {product.cover && (
+                <Image
+                  src={product.cover.url}
+                  alt={product.title}
+                  css={mediaImageStyles}
+                />
+              )}
+              {gallerySlice.map((media) => (
                 <Image
                   key={media.id}
                   src={media.url}
@@ -424,32 +448,36 @@ export const ProductInfoCardA = ({
                   css={mediaImageStyles}
                 />
               ))}
-            {product.gallery?.length > (product.cover ? 5 : 6) && (
-              <Flex
-                align="center"
-                justify="center"
-                css={css`
-                  aspect-ratio: 1/1;
-                  background: var(--color-gray-3);
-                  border-radius: 4px;
-                  font-size: 12px;
-                `}
-              >
-                +{product.gallery.length - (product.cover ? 5 : 6)}
-              </Flex>
-            )}
-          </div>
-        ) : (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No media"
-            css={css`
-              .ant-empty-image {
-                height: 40px;
-              }
-            `}
-          />
-        )}
+              {hasMore && (
+                <Flex
+                  align="center"
+                  justify="center"
+                  css={css`
+                    aspect-ratio: 1/1;
+                    background: var(--color-gray-3);
+                    border-radius: 4px;
+                    font-size: 12px;
+                  `}
+                >
+                  +{product.gallery.length - (product.cover ? 5 : 6)}
+                </Flex>
+              )}
+              <Box css={mediaOverlayStyles}>
+                {Array.from({ length: overlayItemsCount }).map((_, idx) => (
+                  <div
+                    key={`spacer-${idx}`}
+                    css={css`
+                      aspect-ratio: 1/1;
+                    `}
+                  />
+                ))}
+                {Array.from({ length: 20 }).map((_, idx) => (
+                  <MediaFilePlaceholder key={`placeholder-${idx}`} />
+                ))}
+              </Box>
+            </div>
+          );
+        })()}
       </Section>
 
       {/* ================================================================== */}
