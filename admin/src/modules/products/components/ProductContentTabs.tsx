@@ -145,18 +145,15 @@ export const ProductContentTabs = ({
                     >
                       AI Assist
                     </Button>
-                    <Button
-                      type="text"
-                      size="small"
-                      onClick={() => handleEdit('description')}
-                      css={css`
-                        height: 24px;
-                        font-size: 11px;
-                        color: var(--color-gray-7);
-                      `}
+                    <Dropdown
+                      menu={{
+                        items: [{ key: 'edit', label: 'Edit' }],
+                        onClick: () => handleEdit('description'),
+                      }}
+                      trigger={['click']}
                     >
-                      Edit
-                    </Button>
+                      <Button size="small" icon={<MoreOutlined />} />
+                    </Dropdown>
                   </Flex>
                 </Flex>
                 <Typography.Paragraph
@@ -201,18 +198,15 @@ export const ProductContentTabs = ({
               <Box>
                 {/* Content header */}
                 <Flex align="center" justify="flex-end" css={css`margin-bottom: 8px;`}>
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => handleEdit('excerpt')}
-                    css={css`
-                      height: 24px;
-                      font-size: 11px;
-                      color: var(--color-gray-7);
-                    `}
+                  <Dropdown
+                    menu={{
+                      items: [{ key: 'edit', label: 'Edit' }],
+                      onClick: () => handleEdit('excerpt'),
+                    }}
+                    trigger={['click']}
                   >
-                    Edit
-                  </Button>
+                    <Button size="small" icon={<MoreOutlined />} />
+                  </Dropdown>
                 </Flex>
                 <Typography.Paragraph
                   ellipsis={{ rows: 3 }}

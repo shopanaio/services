@@ -16,7 +16,6 @@ import {
   Skeleton,
 } from 'antd';
 import {
-  EditOutlined,
   StarFilled,
   MoreOutlined,
   InfoCircleOutlined,
@@ -256,13 +255,12 @@ const statBoxStyles = css`
 
 interface ISectionProps {
   title: string;
-  name: string;
   children: ReactNode;
   onEdit?: () => void;
   extra?: ReactNode;
 }
 
-const Section = ({ title, name, children, onEdit, extra }: ISectionProps) => {
+const Section = ({ title, children, onEdit, extra }: ISectionProps) => {
   const menuItems = [
     { key: 'edit', label: 'Edit' },
   ];
@@ -892,8 +890,7 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       <Section
         title={formatMessage({ id: t('product.media.title') })}
-        name="media"
-        onEdit={() => handleEdit('media')}
+                onEdit={() => handleEdit('media')}
       >
         {(() => {
           const gallerySlice = product.gallery?.slice(0, product.cover ? 5 : 6) || [];
@@ -965,8 +962,7 @@ export const ProductInfoCardA = ({
         >
           <Section
             title={formatMessage({ id: t('product.categories.title') })}
-            name="categories"
-            onEdit={() => handleEdit('categories')}
+                        onEdit={() => handleEdit('categories')}
           >
             {product.primaryCategory || product.categories?.length > 0 ? (
               <Flex gap="1" wrap="wrap">
@@ -1002,8 +998,7 @@ export const ProductInfoCardA = ({
         >
           <Section
             title={formatMessage({ id: t('product.tags.title') })}
-            name="tags"
-            onEdit={() => handleEdit('tags')}
+                        onEdit={() => handleEdit('tags')}
           >
             {product.tags?.length > 0 ? (
               <Flex gap="1" wrap="wrap">
@@ -1036,8 +1031,7 @@ export const ProductInfoCardA = ({
         >
           <Section
             title="Collections"
-            name="collections"
-            onEdit={() => handleEdit('collections')}
+                        onEdit={() => handleEdit('collections')}
           >
             <Typography.Text
               type="secondary"
@@ -1056,8 +1050,7 @@ export const ProductInfoCardA = ({
         >
           <Section
             title="Reviews"
-            name="reviews"
-            onEdit={() => handleEdit('reviews')}
+                        onEdit={() => handleEdit('reviews')}
           >
             <Flex gap="4">
               {/* Left side - Average rating */}
@@ -1175,8 +1168,7 @@ export const ProductInfoCardA = ({
       {product.isVariableProduct && product.options?.length > 0 && (
         <Section
           title={formatMessage({ id: t('products.options.title') })}
-          name="options"
-          onEdit={() => handleEdit('options')}
+                    onEdit={() => handleEdit('options')}
         >
           <Flex direction="column" gap="2">
             {product.options.map((option) => (

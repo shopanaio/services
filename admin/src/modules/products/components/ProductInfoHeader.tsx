@@ -90,19 +90,18 @@ const cardStyles = css`
 `;
 
 const topBarStyles = css`
-  padding: 10px ${tokens.cardPadding}px;
+  padding: var(--x3);
   border-bottom: 1px solid ${tokens.borderColor};
   background: var(--color-gray-1);
-  min-height: 44px;
 `;
 
 const titleSectionStyles = css`
-  padding: 14px ${tokens.cardPadding}px 12px;
+  padding: var(--x3);
   border-bottom: 1px solid ${tokens.borderColor};
 `;
 
 const kpiSectionStyles = css`
-  padding: ${tokens.sectionGap}px ${tokens.cardPadding}px;
+  padding: var(--x3);
   border-bottom: 1px solid ${tokens.borderColor};
 `;
 
@@ -346,7 +345,7 @@ export const ProductInfoHeader = ({
   kpiData,
 }: IProductInfoHeaderProps) => {
   const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>('7d');
-  const [compareEnabled, setCompareEnabled] = useState(true);
+  const [compareEnabled, setCompareEnabled] = useState(false);
 
   const statusConfig = getStatusConfig(product.status);
 
@@ -389,19 +388,25 @@ export const ProductInfoHeader = ({
             </Tag>
           </Tooltip>
 
-          {product.isVariableProduct && (
-            <Tag color="purple" css={css`margin: 0; font-size: 11px;`}>
-              {product.variants?.length || 0} variants
-            </Tag>
-          )}
-
-          {/* Stock status badge */}
-          <Tag
-            color="green"
-            css={css`margin: 0; font-size: 11px; font-weight: 400;`}
+          {/* Stock status indicator */}
+          <Flex
+            align="center"
+            gap="1"
+            css={css`
+              font-size: 12px;
+              color: ${tokens.colors.textSecondary};
+            `}
           >
+            <span
+              css={css`
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: ${tokens.colors.success};
+              `}
+            />
             In stock
-          </Tag>
+          </Flex>
         </Flex>
 
         {/* Right: Quick Actions */}
@@ -445,12 +450,7 @@ export const ProductInfoHeader = ({
             }}
             trigger={['click']}
           >
-            <Button
-              type="text"
-              size="small"
-              icon={<MoreOutlined />}
-              css={css`height: 28px; width: 28px; padding: 0;`}
-            />
+            <Button size="small" icon={<MoreOutlined />} />
           </Dropdown>
         </Flex>
       </Flex>
