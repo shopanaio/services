@@ -6,6 +6,7 @@ import {
   Select,
   Flex,
   Tag,
+  Badge,
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -32,6 +33,9 @@ export interface IVariantPriceSummary {
   variantTitle: string;
   currentPrice: number;
   previousPrice: number | null;
+  compareAtPrice: number | null;
+  costPrice: number | null;
+  margin: number | null; // percentage
   priceHistory: IPriceHistoryRecord[];
 }
 
@@ -39,13 +43,16 @@ export interface IVariantPriceSummary {
 // Mock Data
 // ============================================================================
 
-export const generateMockHistory = (currentPrice: number): IPriceHistoryRecord[] => {
+export const generateMockHistory = (
+  currentPrice: number,
+  currentCompareAt?: number | null,
+): IPriceHistoryRecord[] => {
   const now = new Date();
   const history: IPriceHistoryRecord[] = [
     {
       id: '1',
       amount: currentPrice,
-      compareAt: null,
+      compareAt: currentCompareAt || null,
       effectiveFrom: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
       effectiveTo: null,
       isCurrent: true,
@@ -53,7 +60,7 @@ export const generateMockHistory = (currentPrice: number): IPriceHistoryRecord[]
     {
       id: '2',
       amount: Math.round(currentPrice * 1.15),
-      compareAt: null,
+      compareAt: Math.round(currentPrice * 1.4),
       effectiveFrom: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
       effectiveTo: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
       isCurrent: false,
@@ -61,7 +68,7 @@ export const generateMockHistory = (currentPrice: number): IPriceHistoryRecord[]
     {
       id: '3',
       amount: Math.round(currentPrice * 0.9),
-      compareAt: null,
+      compareAt: Math.round(currentPrice * 1.1),
       effectiveFrom: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
       effectiveTo: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
       isCurrent: false,
@@ -77,7 +84,7 @@ export const generateMockHistory = (currentPrice: number): IPriceHistoryRecord[]
     {
       id: '5',
       amount: Math.round(currentPrice * 1.2),
-      compareAt: null,
+      compareAt: Math.round(currentPrice * 1.5),
       effectiveFrom: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
       effectiveTo: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
       isCurrent: false,
@@ -87,15 +94,26 @@ export const generateMockHistory = (currentPrice: number): IPriceHistoryRecord[]
 };
 
 export const getMockVariantPrices = (
-  variants: Array<{ id: string; title: string; price: number }>,
+  variants: Array<{
+    id: string;
+    title: string;
+    price: number;
+    compareAtPrice?: number | null;
+    costPrice?: number | null;
+  }>,
 ): IVariantPriceSummary[] => {
   return variants.map((v) => {
     const history = generateMockHistory(v.price);
+    const costPrice = v.costPrice ?? Math.round(v.price * 0.6); // mock: 60% of price
+    const margin = costPrice > 0 ? Math.round(((v.price - costPrice) / v.price) * 100) : null;
     return {
       variantId: v.id,
       variantTitle: v.title,
       currentPrice: v.price,
       previousPrice: history[1]?.amount || null,
+      compareAtPrice: v.compareAtPrice ?? (Math.random() > 0.5 ? Math.round(v.price * 1.2) : null),
+      costPrice,
+      margin,
       priceHistory: history,
     };
   });
@@ -164,6 +182,58 @@ export const PriceChangeIndicator = ({
       {isIncrease ? '+' : ''}
       {percentChange}%
     </Tag>
+  );
+};
+
+// ============================================================================
+// DiscountBadge
+// ============================================================================
+
+interface IDiscountBadgeProps {
+  price: number;
+  compareAtPrice: number;
+  size?: 'small' | 'default';
+  showSaving?: boolean;
+}
+
+export const DiscountBadge = ({
+  price,
+  compareAtPrice,
+  size = 'default',
+  showSaving = true,
+}: IDiscountBadgeProps) => {
+  if (!compareAtPrice || compareAtPrice <= price) {
+    return null;
+  }
+
+  const saving = compareAtPrice - price;
+  const discountPercent = Math.round((saving / compareAtPrice) * 100);
+
+  return (
+    <Flex align="center" gap="small">
+      <Tag
+        color="red"
+        css={css`
+          margin: 0;
+          font-size: ${size === 'small' ? '10px' : '11px'};
+          padding: ${size === 'small' ? '0 4px' : '0 6px'};
+          line-height: ${size === 'small' ? '16px' : '18px'};
+          font-weight: 600;
+        `}
+      >
+        -{discountPercent}%
+      </Tag>
+      {showSaving && (
+        <Typography.Text
+          type="success"
+          css={css`
+            font-size: ${size === 'small' ? '10px' : '11px'};
+          `}
+        >
+          Save {formatPrice(saving)}
+        </Typography.Text>
+      )}
+    </Flex>
   );
 };
 
@@ -390,8 +460,8 @@ export const PriceHistoryTimeline = ({
                 ? 'red'
                 : 'gray',
           children: (
-            <Flex vertical gap="small">
-              <Flex align="center" gap="2">
+            <div>
+              <Flex align="center" gap="small" wrap="wrap">
                 <Typography.Text
                   strong={record.isCurrent}
                   css={css`
@@ -400,6 +470,25 @@ export const PriceHistoryTimeline = ({
                 >
                   {formatPrice(record.amount)}
                 </Typography.Text>
+                {record.compareAt && (
+                  <>
+                    <Typography.Text
+                      delete
+                      type="secondary"
+                      css={css`
+                        font-size: 11px;
+                      `}
+                    >
+                      {formatPrice(record.compareAt)}
+                    </Typography.Text>
+                    <DiscountBadge
+                      price={record.amount}
+                      compareAtPrice={record.compareAt}
+                      size="small"
+                      showSaving={false}
+                    />
+                  </>
+                )}
                 {priceChange !== null && (
                   <PriceChangeIndicator
                     currentPrice={record.amount}
@@ -425,12 +514,14 @@ export const PriceHistoryTimeline = ({
                 type="secondary"
                 css={css`
                   font-size: 11px;
+                  display: block;
+                  margin-top: 4px;
                 `}
               >
                 {formatDateFull(record.effectiveFrom)}
                 {record.effectiveTo && ` — ${formatDateFull(record.effectiveTo)}`}
               </Typography.Text>
-            </Flex>
+            </div>
           ),
         };
       })}
@@ -585,63 +676,189 @@ export const VariantPriceSelect = ({
 
 interface IPriceSummaryCardProps {
   price: number;
+  compareAtPrice?: number | null;
+  costPrice?: number | null;
   history: IPriceHistoryRecord[];
+  formatPriceFn?: (amount: number) => string;
 }
 
-export const PriceSummaryCard = ({ price, history }: IPriceSummaryCardProps) => {
+export const PriceSummaryCard = ({
+  price,
+  compareAtPrice,
+  costPrice,
+  history,
+  formatPriceFn,
+}: IPriceSummaryCardProps) => {
   const previousPrice = history[1]?.amount || null;
+  const format = formatPriceFn || formatPrice;
+  const margin = costPrice && costPrice > 0
+    ? Math.round(((price - costPrice) / price) * 100)
+    : null;
+  const saving = compareAtPrice && compareAtPrice > price ? compareAtPrice - price : null;
+  const discountPercent = saving && compareAtPrice ? Math.round((saving / compareAtPrice) * 100) : null;
 
   return (
-    <Flex align="center" gap="3">
-      <PriceHistoryPopover history={history}>
-        <Flex
-          align="center"
-          gap="2"
-          css={css`
-            cursor: pointer;
-            &:hover {
-              opacity: 0.8;
-            }
-          `}
-        >
-          <Typography.Text
-            strong
+    <Flex vertical gap="middle">
+      {/* Main price row - 3 columns: price | compare at | chart */}
+      <Flex align="flex-start" gap="middle">
+        {/* Column 1: vs last + Price */}
+        <Flex vertical gap="small">
+          {previousPrice && previousPrice !== price && (
+            <PriceChangeIndicator
+              currentPrice={price}
+              previousPrice={previousPrice}
+            />
+          )}
+          <PriceHistoryPopover history={history}>
+            <Flex
+              align="center"
+              gap="small"
+              css={css`
+                cursor: pointer;
+                &:hover {
+                  opacity: 0.8;
+                }
+              `}
+            >
+              <Typography.Text
+                strong
+                css={css`
+                  font-size: 24px;
+                `}
+              >
+                {format(price)}
+              </Typography.Text>
+              <HistoryOutlined
+                css={css`
+                  font-size: 12px;
+                  color: var(--color-gray-6);
+                `}
+              />
+            </Flex>
+          </PriceHistoryPopover>
+        </Flex>
+
+        {/* Column 2: Compare at price + discount/saving */}
+        {compareAtPrice && compareAtPrice > 0 && (
+          <Flex
+            vertical
+            gap="small"
             css={css`
-              font-size: 20px;
+              padding-left: 16px;
+              border-left: 1px solid var(--color-gray-3);
             `}
           >
-            {formatPrice(price)}
-          </Typography.Text>
-          <HistoryOutlined
-            css={css`
-              font-size: 12px;
-              color: var(--color-gray-6);
-            `}
-          />
-        </Flex>
-      </PriceHistoryPopover>
-      <PriceChangeIndicator
-        currentPrice={price}
-        previousPrice={previousPrice}
-      />
-      <div
+            <Typography.Text
+              delete
+              type="secondary"
+              css={css`
+                font-size: 14px;
+              `}
+            >
+              {format(compareAtPrice)}
+            </Typography.Text>
+            <Flex align="center" gap="small">
+              {discountPercent && (
+                <Badge
+                  count={`-${discountPercent}%`}
+                  color="default"
+                  css={css`
+                    .ant-badge-count {
+                      font-size: 11px;
+                      font-weight: 600;
+                      box-shadow: none;
+                    }
+                  `}
+                />
+              )}
+              {saving && (
+                <Typography.Text
+                  type="success"
+                  css={css`
+                    font-size: 12px;
+                  `}
+                >
+                  Save {format(saving)}
+                </Typography.Text>
+              )}
+            </Flex>
+          </Flex>
+        )}
+
+        {/* Column 3: Sparkline chart */}
+        <div
+          css={css`
+            margin-left: auto;
+            padding-left: 16px;
+            border-left: 1px solid var(--color-gray-3);
+          `}
+        >
+          <PriceSparkline history={history} />
+        </div>
+      </Flex>
+
+      {/* Cost, Margin & Stats row */}
+      <Flex
+        align="center"
+        gap="middle"
         css={css`
-          margin-left: 8px;
-          padding-left: 12px;
-          border-left: 1px solid var(--color-gray-3);
+          padding-top: 12px;
+          border-top: 1px solid var(--color-gray-3);
         `}
       >
-        <PriceSparkline history={history} />
-      </div>
-      <div
-        css={css`
-          margin-left: auto;
-          padding-left: 12px;
-          border-left: 1px solid var(--color-gray-3);
-        `}
-      >
-        <PriceStats history={history} />
-      </div>
+        {costPrice && costPrice > 0 && (
+          <Flex vertical align="center">
+            <Typography.Text
+              type="secondary"
+              css={css`
+                font-size: 10px;
+              `}
+            >
+              Cost
+            </Typography.Text>
+            <Typography.Text
+              css={css`
+                font-size: 12px;
+              `}
+            >
+              {format(costPrice)}
+            </Typography.Text>
+          </Flex>
+        )}
+        {margin !== null && (
+          <Flex vertical align="center">
+            <Typography.Text
+              type="secondary"
+              css={css`
+                font-size: 10px;
+              `}
+            >
+              Margin
+            </Typography.Text>
+            <Typography.Text
+              css={css`
+                font-size: 12px;
+                color: ${margin >= 30
+                  ? '#52c41a'
+                  : margin >= 15
+                    ? '#faad14'
+                    : '#ff4d4f'};
+              `}
+            >
+              {margin}%
+            </Typography.Text>
+          </Flex>
+        )}
+        <div
+          css={css`
+            margin-left: auto;
+            padding-left: 12px;
+            border-left: 1px solid var(--color-gray-3);
+          `}
+        >
+          <PriceStats history={history} />
+        </div>
+      </Flex>
     </Flex>
   );
 };
