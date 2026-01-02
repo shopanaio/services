@@ -626,15 +626,15 @@ const inventoryCardStyles = css`
 `;
 
 const inventoryHeaderStyles = css`
-  margin-bottom: ${inventoryTokens.tileGap}px;
-  padding-bottom: ${inventoryTokens.tileGap}px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid ${inventoryTokens.borderColor};
 `;
 
 const kpiTileStyles = css`
-  padding: 12px 16px;
+  padding: 8px 12px;
   background: var(--color-gray-1);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--color-gray-3);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -843,7 +843,7 @@ const KPITile = ({
       onClick={onClick}
     >
       {/* Top: Label + Tooltip + Badge */}
-      <Flex align="center" gap="1" css={css`margin-bottom: 4px;`}>
+      <Flex align="center" gap="1" css={css`margin-bottom: 2px;`}>
         <Typography.Text
           css={css`
             font-size: ${inventoryTokens.labelFontSize}px;
@@ -876,7 +876,7 @@ const KPITile = ({
       {/* Middle: Value */}
       <Typography.Text
         css={css`
-          font-size: ${isPrimary ? inventoryTokens.valueFontSize : 22}px;
+          font-size: ${isPrimary ? inventoryTokens.valueFontSize : 18}px;
           font-weight: 600;
           display: block;
           line-height: 1.2;
@@ -893,7 +893,7 @@ const KPITile = ({
             font-size: ${inventoryTokens.helperFontSize}px;
             color: var(--color-gray-6);
             display: block;
-            margin-top: 4px;
+            margin-top: 2px;
           `}
         >
           {secondary}
@@ -1043,7 +1043,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
       {/* Section A: Quantity */}
       <Typography.Text
         type="secondary"
-        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;`}
+        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;`}
       >
         Quantity
       </Typography.Text>
@@ -1055,7 +1055,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           secondary={`of ${stats.totalSKUs} total SKUs`}
           variant="primary"
           isPrimary
-          badge={<Tag color="success" css={css`margin: 0; font-size: 10px;`}>Sellable</Tag>}
+          badge={<Tag color="success" css={css`margin: 0; font-size: 9px; line-height: 14px; padding: 0 4px;`}>Sellable</Tag>}
           active={activeKPI === 'available'}
           onClick={() => handleKPIClick('available')}
         />
@@ -1073,7 +1073,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           value={stats.reservedQty.toLocaleString()}
           secondary={stats.pendingOrders > 0 ? `${stats.pendingOrders} orders pending` : undefined}
           variant={stats.reservedQty > 0 ? 'info' : 'default'}
-          badge={stats.reservedQty > 0 ? <Tag color="blue" css={css`margin: 0; font-size: 10px;`}>Reserved</Tag> : undefined}
+          badge={stats.reservedQty > 0 ? <Tag color="blue" css={css`margin: 0; font-size: 9px; line-height: 14px; padding: 0 4px;`}>Reserved</Tag> : undefined}
           active={activeKPI === 'reserved'}
           onClick={() => handleKPIClick('reserved')}
         />
@@ -1082,7 +1082,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
       {/* Section B: Health */}
       <Typography.Text
         type="secondary"
-        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; display: block;`}
+        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 6px; display: block;`}
       >
         Health
       </Typography.Text>
@@ -1095,9 +1095,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           variant={stats.lowStockSKUs > 0 ? 'warning' : 'default'}
           badge={
             stats.lowStockSKUs > 0 ? (
-              <Flex align="center" gap="1">
-                <WarningOutlined css={css`color: ${inventoryTokens.colors.warning}; font-size: 12px;`} />
-              </Flex>
+              <WarningOutlined css={css`color: ${inventoryTokens.colors.warning}; font-size: 11px;`} />
             ) : undefined
           }
           active={activeKPI === 'lowstock'}
@@ -1111,9 +1109,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           variant={stats.outOfStockSKUs > 0 ? 'danger' : 'default'}
           badge={
             stats.outOfStockSKUs > 0 ? (
-              <Flex align="center" gap="1">
-                <StopOutlined css={css`color: ${inventoryTokens.colors.danger}; font-size: 12px;`} />
-              </Flex>
+              <StopOutlined css={css`color: ${inventoryTokens.colors.danger}; font-size: 11px;`} />
             ) : undefined
           }
           active={activeKPI === 'outofstock'}
