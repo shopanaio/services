@@ -50,7 +50,7 @@ import { getNextAttributes } from '@modules/products/utils/variants/getAttribute
 import { finalVariantsSort } from '@modules/products/utils/variants/mapVariants';
 import { ProductVariantsTable } from '@modules/products/components/variants/TableV2';
 import { IProductGroupFormValues } from '@modules/products/components/groups/schema';
-import { Segmented } from 'antd';
+import { Button } from 'antd';
 import { Flex } from '@components/utility/Flex';
 import {
   DisabledVariantFields,
@@ -62,10 +62,10 @@ import {
 } from '@src/entity/Content/description';
 import { ApiUpdateProductInput } from '@src/graphql';
 import { ProductInfoCardA } from '@modules/products/components/ProductInfoCardA';
-import { EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { CloseOutlined } from '@ant-design/icons';
 import { css } from '@emotion/react';
 
-type ViewMode = 'view' | 'edit';
+type ModalTab = 'general' | 'inventory' | 'bundles';
 
 const ProductFormView = () => {
   const intl = useIntl();
@@ -74,7 +74,7 @@ const ProductFormView = () => {
     throw new Error('Entity id is required');
   }
 
-  const [viewMode, setViewMode] = useState<ViewMode>('view');
+  const [modalTab, setModalTab] = useState<ModalTab>('general');
   const [activeTab, setActiveTab] = useState<
     'general' | 'options' | 'components'
   >('general');
@@ -623,85 +623,57 @@ const ProductFormView = () => {
     }
   };
 
-  const handleEditSection = (_section: string) => {
-    setViewMode('edit');
-  };
+  const modalTabs: { key: ModalTab; label: string }[] = [
+    { key: 'general', label: 'General' },
+    { key: 'inventory', label: 'Inventory' },
+    { key: 'bundles', label: 'Bundles' },
+  ];
 
   const renderTitle = () => (
-    <span>
-      {product.title ||
-        intl.formatMessage({
-          id: t('products.form.editTitle'),
-        })}
-    </span>
-  );
-
-  const renderViewModeToggle = () => (
-    <Flex align="center" gap="2">
-      <Segmented
-        size="small"
-        value={viewMode}
-        onChange={(value) => setViewMode(value as ViewMode)}
-        options={[
-          {
-            value: 'view',
-            icon: <EyeOutlined />,
-            label: 'View',
-          },
-          {
-            value: 'edit',
-            icon: <EditOutlined />,
-            label: 'Edit',
-          },
-        ]}
-      />
+    <Flex align="center" css={css`height: 100%;`}>
+      {modalTabs.map((tab) => (
+        <Button
+          key={tab.key}
+          type="text"
+          color="default"
+          onClick={() => setModalTab(tab.key)}
+          css={css`
+            height: 100%;
+            min-width: 120px;
+            border-radius: 0;
+            font-weight: ${modalTab === tab.key ? 500 : 400};
+            color: ${modalTab === tab.key ? 'var(--color-primary)' : 'inherit'};
+            background: ${modalTab === tab.key ? 'var(--color-gray-3)' : 'transparent'};
+            border-right: 1px solid var(--color-gray-4);
+          `}
+        >
+          {tab.label}
+        </Button>
+      ))}
     </Flex>
   );
 
-  const renderProductInfoCard = () => (
-    <ProductInfoCardA
-      product={product}
-      onEditSection={handleEditSection}
+  const renderCloseButton = () => (
+    <Button
+      type="text"
+      icon={<CloseOutlined />}
+      onClick={forceClose}
+      css={css`
+        color: var(--color-gray-7);
+        &:hover {
+          color: var(--color-gray-9);
+          background: var(--color-gray-2);
+        }
+      `}
     />
   );
 
+  const renderProductInfoCard = () => (
+    <ProductInfoCardA product={product} />
+  );
+
   const renderContent = () => {
-    if (viewMode === 'view') {
-      return renderProductInfoCard();
-    }
-
-    return (
-      <>
-        <Information
-          slug="custom"
-          description
-          onDescriptionSave={onDescriptionSave}
-        />
-        {product.isVariableProduct ? (
-          <DisabledVariantFields />
-        ) : (
-          <VariantFields />
-        )}
-
-        <CategoriesTags />
-        <Tags />
-        <Features
-          type="options"
-          onSort={onSortOptions}
-          onDelete={onDeleteOption}
-          onDone={onSubmitOption}
-          loading={refetching.options}
-        >
-          <ProductVariantsTable refetch={fetchAndResetVariants} />
-        </Features>
-        <ProductGroups
-          onDone={onGroupsChange}
-          onDelete={onDeleteGroup}
-          onSort={onSortGroups}
-          loading={refetching.groups}
-        />
-      </>
-    );
+    return renderProductInfoCard();
   };
 
   return (
@@ -711,16 +683,9 @@ const ProductFormView = () => {
         errors={errors}
         headerProps={{
           title: renderTitle(),
-          extra: renderViewModeToggle(),
-          onSubmitAndExit: () => {
-            shouldClose.current = true;
-            onSubmit();
-          },
-          submitButtonProps: {
-            disabled: !isDirty || viewMode === 'view',
-            onClick: onSubmit,
-            loading,
-          },
+          rawTitle: true,
+          extra: renderCloseButton(),
+          submitButtonProps: null,
         }}
       >
         {renderContent()}
