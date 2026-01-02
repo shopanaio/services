@@ -1,13 +1,5 @@
 import { css } from '@emotion/react';
-import {
-  Typography,
-  Button,
-  Select,
-  Tag,
-  Tooltip,
-  Dropdown,
-  Segmented,
-} from 'antd';
+import { Typography, Button, Select, Tag, Tooltip, Dropdown } from 'antd';
 import {
   MoreOutlined,
   InfoCircleOutlined,
@@ -146,7 +138,7 @@ const kpiTileStyles = css`
   border-radius: 6px;
   border: 1px solid ${tokens.colors.border};
   text-align: center;
-  min-height: 72px;
+  min-height: 56px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -176,7 +168,7 @@ const getMarginStatus = (
 const getMarginColor = (status: MarginStatus): string => {
   switch (status) {
     case 'ok':
-      return tokens.colors.success;
+      return 'var(--color-gray-9)';
     case 'warning':
       return tokens.colors.warning;
     case 'critical':
@@ -391,11 +383,13 @@ const CurrentPriceColumn = ({
       >
         {discountPercent && (
           <Tag
-            color="green"
             css={css`
               margin: 0;
               font-size: 11px;
               font-weight: 600;
+              background: var(--color-gray-2);
+              border-color: var(--color-gray-4);
+              color: var(--color-gray-9);
             `}
           >
             -{discountPercent}%
@@ -445,12 +439,7 @@ const CurrentPriceColumn = ({
             </Typography.Text>
           </Typography.Text>
           {saving && (
-            <Typography.Text
-              css={css`
-                color: ${tokens.colors.successMuted};
-                font-size: 12px;
-              `}
-            >
+            <Typography.Text type="secondary">
               Save{NBSP}
               {formatPrice(saving)}
             </Typography.Text>
@@ -542,10 +531,10 @@ const PriceHistoryChart = ({
   const min = prices.length > 0 ? Math.min(...prices) : 0;
   const max = prices.length > 0 ? Math.max(...prices) : 0;
 
-  // Chart dimensions
-  const width = 320;
-  const height = 140;
-  const padding = { top: 20, right: 20, bottom: 35, left: 20 };
+  // Chart dimensions - compact
+  const width = 280;
+  const height = 80;
+  const padding = { top: 12, right: 12, bottom: 12, left: 12 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -582,15 +571,6 @@ const PriceHistoryChart = ({
     value: min + range * ratio,
   }));
 
-  // Time axis markers
-  const timeMarkers = useMemo(() => {
-    if (points.length < 2) return [];
-    const step = Math.max(1, Math.floor(points.length / 4));
-    return points.filter(
-      (_, i) => i === 0 || i === points.length - 1 || i % step === 0,
-    );
-  }, [points]);
-
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       if (points.length < 2) return;
@@ -620,9 +600,6 @@ const PriceHistoryChart = ({
     [points],
   );
 
-  // Find min/max points for markers
-  const minPoint = points.find((p) => p.isMin);
-  const maxPoint = points.find((p) => p.isMax);
   const currentPoint = points.find((p) => p.isCurrent);
 
   return (
@@ -647,21 +624,35 @@ const PriceHistoryChart = ({
           Price history
         </Typography.Text>
 
-        <Segmented
-          size="small"
-          value={timeRange}
-          onChange={(value) => setTimeRange(value as TimeRange)}
-          options={[
-            { value: '7D', label: '7D' },
-            { value: '30D', label: '30D' },
-            { value: '90D', label: '90D' },
-          ]}
-          css={css`
-            .ant-segmented-item {
-              min-width: 36px;
-            }
-          `}
-        />
+        <Flex gap="1">
+          {(['7D', '30D', '90D'] as TimeRange[]).map((range) => (
+            <Tag
+              key={range}
+              color={timeRange === range ? 'blue' : undefined}
+              onClick={() => setTimeRange(range)}
+              css={css`
+                margin: 0;
+                cursor: pointer;
+                font-size: 10px;
+                line-height: 16px;
+                padding: 0 6px;
+                ${timeRange !== range
+                  ? `
+                  background: transparent;
+                  border-color: var(--color-gray-4);
+                  color: var(--color-gray-6);
+                  &:hover {
+                    border-color: var(--color-gray-5);
+                    color: var(--color-gray-7);
+                  }
+                `
+                  : ''}
+              `}
+            >
+              {range}
+            </Tag>
+          ))}
+        </Flex>
       </Flex>
 
       {/* SVG Chart */}
@@ -711,125 +702,55 @@ const PriceHistoryChart = ({
             key={i}
             cx={point.x}
             cy={point.y}
-            r={hoveredPoint === point ? 5 : 3}
+            r={hoveredPoint === point ? 4 : 2}
             fill={hoveredPoint === point ? tokens.colors.info : 'white'}
             stroke={tokens.colors.info}
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
         ))}
-
-        {/* Min marker - neutral color */}
-        {minPoint && minPoint !== hoveredPoint && (
-          <g>
-            <circle
-              cx={minPoint.x}
-              cy={minPoint.y}
-              r="4"
-              fill="white"
-              stroke="var(--color-gray-5)"
-              strokeWidth="2"
-            />
-            <text
-              x={minPoint.x}
-              y={minPoint.y + 14}
-              textAnchor="middle"
-              fill="var(--color-gray-6)"
-              fontSize="9"
-            >
-              min
-            </text>
-          </g>
-        )}
-
-        {/* Max marker - neutral color */}
-        {maxPoint && maxPoint !== hoveredPoint && maxPoint !== minPoint && (
-          <g>
-            <circle
-              cx={maxPoint.x}
-              cy={maxPoint.y}
-              r="4"
-              fill="white"
-              stroke="var(--color-gray-5)"
-              strokeWidth="2"
-            />
-            <text
-              x={maxPoint.x}
-              y={maxPoint.y - 8}
-              textAnchor="middle"
-              fill="var(--color-gray-6)"
-              fontSize="9"
-            >
-              max
-            </text>
-          </g>
-        )}
 
         {/* Current marker */}
         {currentPoint && currentPoint !== hoveredPoint && (
           <circle
             cx={currentPoint.x}
             cy={currentPoint.y}
-            r="5"
+            r="4"
             fill={tokens.colors.info}
             stroke="white"
             strokeWidth="2"
           />
         )}
 
-        {/* Time axis markers */}
-        {timeMarkers.map((point, i) => (
-          <text
-            key={i}
-            x={point.x}
-            y={height - 8}
-            textAnchor="middle"
-            fill="var(--color-gray-5)"
-            fontSize="9"
-          >
-            {formatShortDate(point.date)}
-          </text>
-        ))}
-
-        {/* Hover tooltip - enhanced with date */}
+        {/* Hover tooltip - compact */}
         {hoveredPoint && (
           <g>
-            {/* Vertical line */}
-            <line
-              x1={hoveredPoint.x}
-              y1={padding.top}
-              x2={hoveredPoint.x}
-              y2={height - padding.bottom}
-              stroke={tokens.colors.info}
-              strokeDasharray="3,3"
-              opacity="0.5"
-            />
             {/* Tooltip box */}
             <rect
-              x={Math.min(Math.max(hoveredPoint.x - 55, 5), width - 115)}
-              y={Math.max(hoveredPoint.y - 48, 5)}
-              width={110}
-              height={40}
+              x={Math.min(Math.max(hoveredPoint.x - 45, 5), width - 95)}
+              y={Math.max(hoveredPoint.y - 36, 5)}
+              width={90}
+              height={30}
               rx={4}
               fill="var(--color-gray-9)"
             />
             {/* Price */}
             <text
-              x={Math.min(Math.max(hoveredPoint.x, 60), width - 60)}
-              y={Math.max(hoveredPoint.y - 30, 20)}
+              x={Math.min(Math.max(hoveredPoint.x, 50), width - 50)}
+              y={Math.max(hoveredPoint.y - 22, 18)}
               textAnchor="middle"
               fill="white"
-              fontSize="12"
+              fontSize="11"
               fontWeight="600"
             >
               {formatPrice(hoveredPoint.price)}
             </text>
             {/* Date */}
             <text
-              x={Math.min(Math.max(hoveredPoint.x, 60), width - 60)}
-              y={Math.max(hoveredPoint.y - 15, 35)}
+              x={Math.min(Math.max(hoveredPoint.x, 50), width - 50)}
+              y={Math.max(hoveredPoint.y - 10, 30)}
               textAnchor="middle"
               fill="rgba(255,255,255,0.7)"
-              fontSize="10"
+              fontSize="9"
             >
               {formatShortDate(hoveredPoint.date)}
             </text>
@@ -844,7 +765,6 @@ const PriceHistoryChart = ({
 interface IKPITileProps {
   label: string;
   value: ReactNode;
-  subLabel?: string;
   tooltip?: string;
   variant?: 'default' | 'warning' | 'danger';
 }
@@ -852,7 +772,6 @@ interface IKPITileProps {
 const KPITile = ({
   label,
   value,
-  subLabel,
   tooltip,
   variant = 'default',
 }: IKPITileProps) => {
@@ -904,7 +823,7 @@ const KPITile = ({
       </Flex>
       <Typography.Text
         css={css`
-          font-size: ${tokens.fontSize.kpiValue}px;
+          font-size: 14px;
           font-weight: 500;
           display: block;
           white-space: nowrap;
@@ -912,18 +831,6 @@ const KPITile = ({
       >
         {value}
       </Typography.Text>
-      {subLabel && (
-        <Typography.Text
-          css={css`
-            font-size: ${tokens.fontSize.helper}px;
-            color: var(--color-gray-6);
-            display: block;
-            margin-top: 2px;
-          `}
-        >
-          {subLabel}
-        </Typography.Text>
-      )}
     </Box>
   );
 };
@@ -970,11 +877,6 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
             {margin !== null ? `${margin}%` : '—'}
           </Typography.Text>
         }
-        subLabel={
-          margin !== null && costPrice
-            ? formatPrice(currentPrice - costPrice)
-            : undefined
-        }
         tooltip="Profit margin percentage"
         variant={
           marginStatus === 'critical'
@@ -987,19 +889,16 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
       <KPITile
         label="Min allowed"
         value={minAllowedPrice ? formatPrice(minAllowedPrice) : '—'}
-        subLabel="Policy"
         tooltip="Minimum price allowed by pricing policy"
       />
       <KPITile
         label="Max"
         value={maxPrice ? formatPrice(maxPrice) : '—'}
-        subLabel="Market"
         tooltip="Maximum historical price"
       />
       <KPITile
         label="Avg 30D"
         value={avg30d ? formatPrice(avg30d) : '—'}
-        subLabel="Internal avg"
         tooltip="Average price over last 30 days"
       />
     </Box>
