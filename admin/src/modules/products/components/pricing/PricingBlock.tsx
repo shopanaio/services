@@ -137,7 +137,6 @@ const kpiRowStyles = css`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: ${tokens.gap.sm}px;
-  margin-top: ${tokens.gap.lg}px;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(3, 1fr);
