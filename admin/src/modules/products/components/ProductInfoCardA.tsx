@@ -1058,7 +1058,7 @@ export const ProductInfoCardA = ({
               allowHalf
               defaultValue={4.2}
               css={css`
-                font-size: 12px;
+                font-size: 16px;
                 margin: 4px 0;
               `}
             />
@@ -1102,7 +1102,7 @@ export const ProductInfoCardA = ({
                   <span>{item.stars}</span>
                   <StarFilled
                     css={css`
-                      font-size: 10px;
+                      font-size: 12px;
                       color: #fadb14;
                     `}
                   />
@@ -1110,7 +1110,8 @@ export const ProductInfoCardA = ({
                 <Progress
                   percent={item.percent}
                   showInfo={false}
-                  strokeColor="#fadb14"
+                  strokeWidth={4}
+                  strokeColor="#1677ff"
                   trailColor="var(--color-gray-3)"
                   size="small"
                   css={css`
