@@ -262,37 +262,43 @@ interface ISectionProps {
   extra?: ReactNode;
 }
 
-const Section = ({ title, name, children, onEdit, extra }: ISectionProps) => (
-  <Paper css={sectionStyles}>
-    <Flex align="center" justify="space-between" css={sectionHeaderStyles}>
-      <Flex align="center" gap="3" css={css`flex: 1;`}>
-        <Typography.Text
-          strong
-          css={css`
-            font-size: 13px;
-          `}
-        >
-          {title}
-        </Typography.Text>
-        {extra && <Box css={css`flex: 1;`}>{extra}</Box>}
+const Section = ({ title, name, children, onEdit, extra }: ISectionProps) => {
+  const menuItems = [
+    { key: 'edit', label: 'Edit' },
+  ];
+
+  return (
+    <Paper css={sectionStyles}>
+      <Flex align="center" justify="space-between" css={sectionHeaderStyles}>
+        <Flex align="center" gap="3" css={css`flex: 1;`}>
+          <Typography.Text
+            strong
+            css={css`
+              font-size: 13px;
+            `}
+          >
+            {title}
+          </Typography.Text>
+          {extra && <Box css={css`flex: 1;`}>{extra}</Box>}
+        </Flex>
+        {onEdit && (
+          <Dropdown
+            menu={{
+              items: menuItems,
+              onClick: ({ key }) => {
+                if (key === 'edit') onEdit();
+              },
+            }}
+            trigger={['click']}
+          >
+            <Button size="small" icon={<MoreOutlined />} />
+          </Dropdown>
+        )}
       </Flex>
-      {onEdit && (
-        <Button
-          type="text"
-          size="small"
-          icon={<EditOutlined />}
-          onClick={onEdit}
-          data-testid={`${name}-edit-button`}
-          css={css`
-            height: 24px;
-            padding: 0 8px;
-          `}
-        />
-      )}
-    </Flex>
-    <div>{children}</div>
-  </Paper>
-);
+      <div>{children}</div>
+    </Paper>
+  );
+};
 
 interface IStatBoxProps {
   label: string;
@@ -448,9 +454,7 @@ const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
       }}
       trigger={['click']}
     >
-      <Button size="small" icon={<MoreOutlined />}>
-        Actions
-      </Button>
+      <Button size="small" icon={<MoreOutlined />} />
     </Dropdown>
   );
 };
