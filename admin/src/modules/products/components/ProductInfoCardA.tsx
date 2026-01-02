@@ -12,6 +12,7 @@ import {
   Descriptions,
   Rate,
   Progress,
+  Select,
 } from 'antd';
 import { EditOutlined, CopyOutlined, StarFilled } from '@ant-design/icons';
 import { ReactNode, useState, useMemo } from 'react';
@@ -34,6 +35,98 @@ import {
   getMockVariantPrices,
   generateMockHistory,
 } from './pricing/PriceHistory';
+
+// ============================================================================
+// Inventory Types & Mock Data
+// ============================================================================
+
+interface IWarehouseStock {
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  isDefault: boolean;
+  totalQty: number;
+  reservedQty: number;
+  inStockQty: number;
+  lowStockQty: number;
+  outOfStockQty: number;
+}
+
+interface IInventoryStats {
+  totalQty: number;
+  reservedQty: number;
+  availableQty: number;
+  inStockQty: number;
+  lowStockQty: number;
+  outOfStockQty: number;
+}
+
+const getMockWarehouseStock = (): IWarehouseStock[] => {
+  return [
+    {
+      warehouseId: 'wh-1',
+      warehouseName: 'Main Warehouse',
+      warehouseCode: 'MAIN',
+      isDefault: true,
+      totalQty: 890,
+      reservedQty: 45,
+      inStockQty: 756,
+      lowStockQty: 89,
+      outOfStockQty: 45,
+    },
+    {
+      warehouseId: 'wh-2',
+      warehouseName: 'Store #1',
+      warehouseCode: 'ST1',
+      isDefault: false,
+      totalQty: 245,
+      reservedQty: 12,
+      inStockQty: 198,
+      lowStockQty: 32,
+      outOfStockQty: 15,
+    },
+    {
+      warehouseId: 'wh-3',
+      warehouseName: 'Store #2',
+      warehouseCode: 'ST2',
+      isDefault: false,
+      totalQty: 112,
+      reservedQty: 8,
+      inStockQty: 78,
+      lowStockQty: 24,
+      outOfStockQty: 10,
+    },
+  ];
+};
+
+const calculateInventoryStats = (
+  warehouses: IWarehouseStock[],
+  selectedWarehouseId?: string,
+): IInventoryStats => {
+  if (selectedWarehouseId) {
+    const wh = warehouses.find((w) => w.warehouseId === selectedWarehouseId);
+    if (wh) {
+      return {
+        totalQty: wh.totalQty,
+        reservedQty: wh.reservedQty,
+        availableQty: wh.totalQty - wh.reservedQty,
+        inStockQty: wh.inStockQty,
+        lowStockQty: wh.lowStockQty,
+        outOfStockQty: wh.outOfStockQty,
+      };
+    }
+  }
+
+  // All warehouses - aggregate
+  return {
+    totalQty: warehouses.reduce((sum, w) => sum + w.totalQty, 0),
+    reservedQty: warehouses.reduce((sum, w) => sum + w.reservedQty, 0),
+    availableQty: warehouses.reduce((sum, w) => sum + w.totalQty - w.reservedQty, 0),
+    inStockQty: warehouses.reduce((sum, w) => sum + w.inStockQty, 0),
+    lowStockQty: warehouses.reduce((sum, w) => sum + w.lowStockQty, 0),
+    outOfStockQty: warehouses.reduce((sum, w) => sum + w.outOfStockQty, 0),
+  };
+};
 
 // ============================================================================
 // Styles
@@ -432,6 +525,143 @@ const VariablePricingContent = ({
 };
 
 // ============================================================================
+// Inventory Section Components
+// ============================================================================
+
+interface IWarehouseSelectProps {
+  warehouses: IWarehouseStock[];
+  selectedWarehouseId?: string;
+  onSelect: (warehouseId?: string) => void;
+}
+
+const WarehouseSelect = ({
+  warehouses,
+  selectedWarehouseId,
+  onSelect,
+}: IWarehouseSelectProps) => (
+  <Select
+    value={selectedWarehouseId || 'all'}
+    onChange={(value) => onSelect(value === 'all' ? undefined : value)}
+    size="small"
+    popupMatchSelectWidth={false}
+    css={css`
+      min-width: 140px;
+      .ant-select-selector {
+        font-size: 12px !important;
+      }
+    `}
+  >
+    <Select.Option value="all">All Warehouses</Select.Option>
+    {warehouses.map((wh) => (
+      <Select.Option key={wh.warehouseId} value={wh.warehouseId}>
+        {wh.warehouseName} ({wh.totalQty.toLocaleString()})
+      </Select.Option>
+    ))}
+  </Select>
+);
+
+const inventoryStatBoxStyles = css`
+  text-align: center;
+  padding: var(--x2) var(--x3);
+  background: var(--color-gray-1);
+  border-radius: 8px;
+`;
+
+interface IInventoryStatBoxProps {
+  value: ReactNode;
+  label: string;
+  color?: string;
+}
+
+const InventoryStatBox = ({ value, label, color }: IInventoryStatBoxProps) => (
+  <Box css={inventoryStatBoxStyles}>
+    <Typography.Text
+      css={css`
+        font-size: 20px;
+        font-weight: 600;
+        display: block;
+        line-height: 1.2;
+        ${color ? `color: ${color};` : ''}
+      `}
+    >
+      {value}
+    </Typography.Text>
+    <Typography.Text
+      type="secondary"
+      css={css`
+        font-size: 11px;
+      `}
+    >
+      {label}
+    </Typography.Text>
+  </Box>
+);
+
+interface IInventorySectionProps {
+  onEdit?: () => void;
+}
+
+const useInventoryData = () => {
+  return useMemo(() => getMockWarehouseStock(), []);
+};
+
+const InventorySection = ({ onEdit }: IInventorySectionProps) => {
+  const warehouses = useInventoryData();
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>();
+
+  const stats = useMemo(
+    () => calculateInventoryStats(warehouses, selectedWarehouseId),
+    [warehouses, selectedWarehouseId],
+  );
+
+  const headerExtra = (
+    <WarehouseSelect
+      warehouses={warehouses}
+      selectedWarehouseId={selectedWarehouseId}
+      onSelect={setSelectedWarehouseId}
+    />
+  );
+
+  return (
+    <Section title="Inventory" name="inventory" onEdit={onEdit} extra={headerExtra}>
+      <Flex
+        gap="3"
+        css={css`
+          & > * {
+            flex: 1;
+          }
+        `}
+      >
+        <InventoryStatBox
+          value={stats.totalQty.toLocaleString()}
+          label="Total"
+        />
+        <InventoryStatBox
+          value={stats.inStockQty.toLocaleString()}
+          label="In Stock"
+          color="#52c41a"
+        />
+        <InventoryStatBox
+          value={stats.reservedQty.toLocaleString()}
+          label="Reserved"
+          color={stats.reservedQty > 0 ? '#1677ff' : undefined}
+        />
+        <InventoryStatBox
+          value={stats.lowStockQty.toLocaleString()}
+          label="Low Stock"
+          color={stats.lowStockQty > 0 ? '#faad14' : undefined}
+        />
+        <InventoryStatBox
+          value={stats.outOfStockQty.toLocaleString()}
+          label="Out of Stock"
+          color={stats.outOfStockQty > 0 ? '#ff4d4f' : undefined}
+        />
+      </Flex>
+    </Section>
+  );
+};
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -495,12 +725,6 @@ export const ProductInfoCardA = ({
         : null;
     }
   };
-
-  const variantsInStock =
-    product.variants?.filter((v) => v.stockStatus === 'IN_STOCK').length || 0;
-  const variantsOutOfStock =
-    product.variants?.filter((v) => v.stockStatus === 'OUT_OF_STOCK').length ||
-    0;
 
   const descriptionPreview = getDescriptionPreview();
 
@@ -858,97 +1082,7 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       {/* INVENTORY */}
       {/* ================================================================== */}
-      <Section
-        title="Inventory"
-        name="inventory"
-        onEdit={() => handleEdit('inventory')}
-      >
-        {product.isVariableProduct ? (
-          <Flex gap="4" align="center">
-            <Box>
-              <Typography.Text
-                css={css`
-                  font-size: 11px;
-                  color: var(--color-gray-6);
-                  display: block;
-                `}
-              >
-                Total Variants
-              </Typography.Text>
-              <Typography.Text
-                strong
-                css={css`
-                  font-size: 18px;
-                `}
-              >
-                {product.variants?.length || 0}
-              </Typography.Text>
-            </Box>
-            <Box>
-              <Typography.Text
-                css={css`
-                  font-size: 11px;
-                  color: var(--color-gray-6);
-                  display: block;
-                `}
-              >
-                In Stock
-              </Typography.Text>
-              <Typography.Text
-                strong
-                css={css`
-                  font-size: 18px;
-                  color: var(--color-success);
-                `}
-              >
-                {variantsInStock}
-              </Typography.Text>
-            </Box>
-            <Box>
-              <Typography.Text
-                css={css`
-                  font-size: 11px;
-                  color: var(--color-gray-6);
-                  display: block;
-                `}
-              >
-                Out of Stock
-              </Typography.Text>
-              <Typography.Text
-                strong
-                css={css`
-                  font-size: 18px;
-                  color: var(--color-error);
-                `}
-              >
-                {variantsOutOfStock}
-              </Typography.Text>
-            </Box>
-          </Flex>
-        ) : (
-          <Flex gap="4" align="center">
-            <Box>
-              <Typography.Text
-                css={css`
-                  font-size: 11px;
-                  color: var(--color-gray-6);
-                  display: block;
-                `}
-              >
-                Stock Status
-              </Typography.Text>
-              <Tag
-                color={getStockInfo(product.stockStatus).color}
-                css={css`
-                  margin: 0;
-                `}
-              >
-                {getStockInfo(product.stockStatus).label}
-              </Tag>
-            </Box>
-          </Flex>
-        )}
-      </Section>
+      <InventorySection onEdit={() => handleEdit('inventory')} />
 
       {/* ================================================================== */}
       {/* COLLECTIONS & REVIEWS */}
