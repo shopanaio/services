@@ -7,7 +7,6 @@ import {
   Image,
   Tag,
   Typography,
-  Tabs,
   Descriptions,
   Rate,
   Progress,
@@ -18,30 +17,24 @@ import {
 } from 'antd';
 import {
   EditOutlined,
-  CopyOutlined,
   StarFilled,
   MoreOutlined,
   InfoCircleOutlined,
-  CheckCircleFilled,
-  ExclamationCircleFilled,
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
-  SyncOutlined,
-  LinkOutlined,
 } from '@ant-design/icons';
 import { ReactNode, useState, useMemo } from 'react';
 import { MediaFilePlaceholder } from '@components/media/control/Placeholder';
 import { IProduct } from '@src/entity/Product/Product';
-import { EntityStatus } from '@src/graphql';
 import { useIntl } from 'react-intl';
 import { t } from '@modules/products/i18n/messages';
-import { t as tCommon } from '@src/lang/messages';
 import {
   dimensionUnitOptions,
   weightUniOptions,
 } from '@src/defs/constants';
 import { PricingBlock } from './pricing/PricingBlock';
+import { ProductInfoHeader } from './ProductInfoHeader';
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -396,33 +389,6 @@ const tilesGroupStyles = css`
   }
 `;
 
-// Helper functions
-const formatRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
-};
-
-const getSyncStatusConfig = (status: SyncStatus) => {
-  switch (status) {
-    case 'synced':
-      return { icon: <CheckCircleFilled />, color: 'var(--color-gray-5)', label: 'Synced' };
-    case 'syncing':
-      return { icon: <SyncOutlined spin />, color: 'var(--color-gray-6)', label: 'Syncing' };
-    case 'stale':
-      return { icon: <ClockCircleFilled />, color: inventoryTokens.colors.warning, label: 'Outdated' };
-    case 'error':
-      return { icon: <ExclamationCircleFilled />, color: inventoryTokens.colors.danger, label: 'Error' };
-  }
-};
-
 // Warehouse Select
 interface IWarehouseSelectProps {
   warehouses: IWarehouseStock[];
@@ -455,45 +421,6 @@ const WarehouseSelect = ({
     ))}
   </Select>
 );
-
-// Sync Status Indicator
-interface ISyncStatusProps {
-  lastSyncAt: Date;
-  status: SyncStatus;
-  onRetry?: () => void;
-}
-
-const SyncStatusIndicator = ({ lastSyncAt, status, onRetry }: ISyncStatusProps) => {
-  const config = getSyncStatusConfig(status);
-  const isStaleOrError = status === 'stale' || status === 'error';
-
-  return (
-    <Tooltip
-      title={
-        isStaleOrError
-          ? `Last sync: ${lastSyncAt.toLocaleString()}. Click to retry.`
-          : `Last sync: ${lastSyncAt.toLocaleString()}`
-      }
-    >
-      <Flex
-        align="center"
-        gap="1"
-        css={css`
-          font-size: 11px;
-          color: var(--color-gray-6);
-          cursor: ${isStaleOrError ? 'pointer' : 'default'};
-          &:hover {
-            color: ${isStaleOrError ? config.color : 'var(--color-gray-6)'};
-          }
-        `}
-        onClick={isStaleOrError ? onRetry : undefined}
-      >
-        <span css={css`color: ${config.color};`}>{config.icon}</span>
-        <span>Updated {formatRelativeTime(lastSyncAt)}</span>
-      </Flex>
-    </Tooltip>
-  );
-};
 
 // Actions Dropdown
 interface IInventoryActionsProps {
@@ -856,27 +783,6 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
   );
 };
 
-// ============================================================================
-// Status Helpers
-// ============================================================================
-
-const getStatusColor = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.Published: return 'green';
-    case EntityStatus.Draft: return 'default';
-    case EntityStatus.Archived: return 'red';
-    default: return 'default';
-  }
-};
-
-const getStatusLabel = (status: EntityStatus) => {
-  switch (status) {
-    case EntityStatus.Published: return 'Published';
-    case EntityStatus.Draft: return 'Draft';
-    case EntityStatus.Archived: return 'Archived';
-    default: return status;
-  }
-};
 
 // ============================================================================
 // Main Component
@@ -921,25 +827,6 @@ export const ProductInfoCardA = ({
     return `${l || 0} × ${w || 0} × ${h || 0} ${u}`;
   };
 
-  const getDescriptionPreview = () => {
-    if (!product.description) return null;
-    try {
-      const parsed = JSON.parse(product.description);
-      const extractText = (node: any): string => {
-        if (node.text) return node.text;
-        if (node.content) return node.content.map(extractText).join(' ');
-        return '';
-      };
-      return extractText(parsed).slice(0, 300);
-    } catch {
-      return typeof product.description === 'string'
-        ? product.description.slice(0, 300)
-        : null;
-    }
-  };
-
-  const descriptionPreview = getDescriptionPreview();
-
   return (
     <Flex
       direction="column"
@@ -951,373 +838,13 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       {/* PRODUCT INFORMATION - Enterprise CMS Style */}
       {/* ================================================================== */}
-      <Paper
-        css={css`
-          padding: 0;
-          overflow: hidden;
-        `}
-      >
-        {/* Header Section */}
-        <Box
-          css={css`
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--color-gray-3);
-          `}
-        >
-          {/* Top Row: Status + Actions */}
-          <Flex align="center" justify="space-between" css={css`margin-bottom: 8px;`}>
-            <Flex align="center" gap="2">
-              <Tag
-                color={getStatusColor(product.status)}
-                icon={
-                  product.status === EntityStatus.Published ? (
-                    <CheckCircleFilled />
-                  ) : product.status === EntityStatus.Draft ? (
-                    <ClockCircleFilled />
-                  ) : (
-                    <StopOutlined />
-                  )
-                }
-                css={css`
-                  margin: 0;
-                  display: inline-flex;
-                  align-items: center;
-                  gap: 4px;
-                  font-weight: 500;
-                `}
-              >
-                {getStatusLabel(product.status)}
-              </Tag>
-              {product.isVariableProduct && (
-                <Tag color="purple" css={css`margin: 0; font-size: 11px;`}>
-                  {product.variants?.length || 0} variants
-                </Tag>
-              )}
-            </Flex>
-            <Flex align="center" gap="1">
-              <Tooltip title="View on storefront">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<LinkOutlined />}
-                  href={`/products/${product.slug}`}
-                  target="_blank"
-                  css={css`height: 24px; width: 24px; padding: 0;`}
-                />
-              </Tooltip>
-              <Dropdown
-                menu={{
-                  items: [
-                    { key: 'title', label: 'Edit title' },
-                    { key: 'description', label: 'Edit description' },
-                    { key: 'excerpt', label: 'Edit excerpt' },
-                    { key: 'seo', label: 'Edit SEO' },
-                    { type: 'divider' as const },
-                    { key: 'status', label: 'Change status' },
-                    { key: 'duplicate', label: 'Duplicate product' },
-                  ],
-                  onClick: ({ key }) => handleEdit(key),
-                }}
-                trigger={['click']}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<MoreOutlined />}
-                  data-testid="product-info-menu-button"
-                  css={css`height: 24px; width: 24px; padding: 0;`}
-                />
-              </Dropdown>
-            </Flex>
-          </Flex>
-
-          {/* Title */}
-          <Typography.Title
-            level={5}
-            ellipsis={{ rows: 1, tooltip: product.title }}
-            css={css`
-              margin: 0 0 4px 0 !important;
-              font-size: 16px !important;
-              line-height: 1.3 !important;
-            `}
-          >
-            {product.title || 'Untitled Product'}
-          </Typography.Title>
-
-          {/* Slug + ID Row */}
-          <Flex align="center" gap="3" css={css`margin-bottom: 8px;`}>
-            <Flex align="center" gap="1">
-              <Typography.Text
-                type="secondary"
-                css={css`font-size: 11px;`}
-              >
-                /{product.slug}
-              </Typography.Text>
-              <Typography.Text
-                copyable={{
-                  text: product.slug,
-                  icon: <CopyOutlined css={css`font-size: 10px; color: var(--color-gray-5);`} />,
-                  tooltips: ['Copy slug', 'Copied!'],
-                }}
-                css={css`.ant-typography-copy { margin-left: 0; }`}
-              />
-            </Flex>
-            <Flex align="center" gap="1" css={css`font-size: 11px;`}>
-              <Typography.Text type="secondary">ID:</Typography.Text>
-              <Typography.Text
-                copyable={{
-                  text: product.id,
-                  icon: <CopyOutlined css={css`font-size: 10px; color: var(--color-gray-5);`} />,
-                  tooltips: ['Copy ID', 'Copied!'],
-                }}
-                css={css`
-                  font-family: monospace;
-                  font-size: 11px;
-                  .ant-typography-copy { margin-left: 2px; }
-                `}
-              >
-                {product.id.slice(0, 8)}
-              </Typography.Text>
-            </Flex>
-          </Flex>
-
-          {/* Meta Row: Created/Updated */}
-          <Flex align="center" gap="3" css={css`font-size: 10px; color: var(--color-gray-6);`}>
-            <span>Created {product.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-            <span>·</span>
-            <span>Updated {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-          </Flex>
-        </Box>
-
-        {/* Quick Stats Bar */}
-        <Flex
-          css={css`
-            border-bottom: 1px solid var(--color-gray-3);
-            background: var(--color-gray-1);
-          `}
-        >
-          <Tooltip title="Total page views">
-            <Flex
-              align="center"
-              gap="2"
-              css={css`
-                flex: 1;
-                padding: 8px 12px;
-                border-right: 1px solid var(--color-gray-3);
-                cursor: default;
-                &:hover { background: var(--color-gray-2); }
-              `}
-            >
-              <Typography.Text css={css`font-size: 14px; font-weight: 600;`}>2,847</Typography.Text>
-              <Typography.Text type="secondary" css={css`font-size: 10px;`}>views</Typography.Text>
-            </Flex>
-          </Tooltip>
-          <Tooltip title="Orders containing this product">
-            <Flex
-              align="center"
-              gap="2"
-              css={css`
-                flex: 1;
-                padding: 8px 12px;
-                border-right: 1px solid var(--color-gray-3);
-                cursor: default;
-                &:hover { background: var(--color-gray-2); }
-              `}
-            >
-              <Typography.Text css={css`font-size: 14px; font-weight: 600;`}>156</Typography.Text>
-              <Typography.Text type="secondary" css={css`font-size: 10px;`}>orders</Typography.Text>
-            </Flex>
-          </Tooltip>
-          <Tooltip title="Add to cart conversion rate">
-            <Flex
-              align="center"
-              gap="2"
-              css={css`
-                flex: 1;
-                padding: 8px 12px;
-                border-right: 1px solid var(--color-gray-3);
-                cursor: default;
-                &:hover { background: var(--color-gray-2); }
-              `}
-            >
-              <Typography.Text css={css`font-size: 14px; font-weight: 600;`}>5.5%</Typography.Text>
-              <Typography.Text type="secondary" css={css`font-size: 10px;`}>conv.</Typography.Text>
-            </Flex>
-          </Tooltip>
-          <Tooltip title="Total revenue from this product">
-            <Flex
-              align="center"
-              gap="2"
-              css={css`
-                flex: 1;
-                padding: 8px 12px;
-                cursor: default;
-                &:hover { background: var(--color-gray-2); }
-              `}
-            >
-              <Typography.Text css={css`font-size: 14px; font-weight: 600;`}>{formatPrice(product.price * 156)}</Typography.Text>
-              <Typography.Text type="secondary" css={css`font-size: 10px;`}>revenue</Typography.Text>
-            </Flex>
-          </Tooltip>
-        </Flex>
-
-        {/* Content Tabs */}
-        <Box css={css`padding: 12px 16px 16px;`}>
-          <Tabs
-            size="small"
-            css={css`
-              .ant-tabs-nav {
-                margin-bottom: 12px !important;
-              }
-              .ant-tabs-tab {
-                padding: 6px 0 !important;
-                font-size: 12px;
-              }
-            `}
-            items={[
-              {
-                key: 'description',
-                label: (
-                  <Flex align="center" gap="1">
-                    <span>{formatMessage({ id: tCommon('common.description') })}</span>
-                    {descriptionPreview && (
-                      <CheckCircleFilled css={css`font-size: 10px; color: var(--color-success);`} />
-                    )}
-                  </Flex>
-                ),
-                children: descriptionPreview ? (
-                  <Typography.Paragraph
-                    ellipsis={{ rows: 3 }}
-                    css={css`
-                      margin: 0 !important;
-                      font-size: 13px;
-                      color: var(--color-gray-8);
-                      line-height: 1.6;
-                    `}
-                  >
-                    {descriptionPreview}
-                    {descriptionPreview.length >= 300 && '...'}
-                  </Typography.Paragraph>
-                ) : (
-                  <Flex align="center" gap="2" css={css`padding: 12px 0;`}>
-                    <WarningOutlined css={css`color: var(--color-gray-5);`} />
-                    <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-                      No description added
-                    </Typography.Text>
-                    <Button type="link" size="small" onClick={() => handleEdit('description')} css={css`padding: 0; height: auto;`}>
-                      Add now
-                    </Button>
-                  </Flex>
-                ),
-              },
-              {
-                key: 'excerpt',
-                label: (
-                  <Flex align="center" gap="1">
-                    <span>{formatMessage({ id: tCommon('common.excerpt') })}</span>
-                    {product.excerpt && (
-                      <CheckCircleFilled css={css`font-size: 10px; color: var(--color-success);`} />
-                    )}
-                  </Flex>
-                ),
-                children: product.excerpt ? (
-                  <Typography.Paragraph
-                    ellipsis={{ rows: 3 }}
-                    css={css`
-                      margin: 0 !important;
-                      font-size: 13px;
-                      color: var(--color-gray-8);
-                      line-height: 1.6;
-                    `}
-                  >
-                    {product.excerpt}
-                  </Typography.Paragraph>
-                ) : (
-                  <Flex align="center" gap="2" css={css`padding: 12px 0;`}>
-                    <WarningOutlined css={css`color: var(--color-gray-5);`} />
-                    <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-                      No excerpt added
-                    </Typography.Text>
-                    <Button type="link" size="small" onClick={() => handleEdit('excerpt')} css={css`padding: 0; height: auto;`}>
-                      Add now
-                    </Button>
-                  </Flex>
-                ),
-              },
-              {
-                key: 'seo',
-                label: (
-                  <Flex align="center" gap="1">
-                    <span>{formatMessage({ id: tCommon('common.seo') })}</span>
-                    {(product.seoTitle || product.seoDescription) ? (
-                      <CheckCircleFilled css={css`font-size: 10px; color: var(--color-success);`} />
-                    ) : (
-                      <ExclamationCircleFilled css={css`font-size: 10px; color: var(--color-warning);`} />
-                    )}
-                  </Flex>
-                ),
-                children: (
-                  <Box
-                    css={css`
-                      background: var(--color-gray-1);
-                      border-radius: 6px;
-                      padding: 10px 12px;
-                    `}
-                  >
-                    {/* Google Preview */}
-                    <Typography.Text type="secondary" css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;`}>
-                      Search preview
-                    </Typography.Text>
-                    <Box css={css`margin-top: 6px;`}>
-                      <Typography.Text
-                        css={css`
-                          font-size: 14px;
-                          color: #1a0dab;
-                          display: block;
-                          line-height: 1.3;
-                        `}
-                      >
-                        {product.seoTitle || product.title || 'Untitled Product'}
-                      </Typography.Text>
-                      <Typography.Text
-                        css={css`
-                          font-size: 11px;
-                          color: #006621;
-                          display: block;
-                        `}
-                      >
-                        yourstore.com/products/{product.slug}
-                      </Typography.Text>
-                      <Typography.Paragraph
-                        ellipsis={{ rows: 2 }}
-                        css={css`
-                          margin: 2px 0 0 0 !important;
-                          font-size: 12px;
-                          color: var(--color-gray-7);
-                          line-height: 1.4;
-                        `}
-                      >
-                        {product.seoDescription || product.excerpt || descriptionPreview || 'No description available for this product.'}
-                      </Typography.Paragraph>
-                    </Box>
-                    {!product.seoTitle && !product.seoDescription && (
-                      <Flex align="center" gap="2" css={css`margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-gray-3);`}>
-                        <WarningOutlined css={css`color: var(--color-warning); font-size: 12px;`} />
-                        <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                          Custom SEO not configured
-                        </Typography.Text>
-                        <Button type="link" size="small" onClick={() => handleEdit('seo')} css={css`padding: 0; height: auto; font-size: 11px;`}>
-                          Configure
-                        </Button>
-                      </Flex>
-                    )}
-                  </Box>
-                ),
-              },
-            ]}
-          />
-        </Box>
-      </Paper>
+      <ProductInfoHeader
+        product={product}
+        onEditSection={handleEdit}
+        onViewStorefront={() => window.open(`/products/${product.slug}`, '_blank')}
+        onPreview={() => console.log('Preview')}
+        onShare={() => console.log('Share')}
+      />
 
       {/* ================================================================== */}
       {/* PRICING (Enterprise Block) */}
