@@ -102,19 +102,35 @@ const headerStyles = css`
 `;
 
 const twoColumnStyles = css`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${tokens.gap.lg}px;
+  display: flex;
+  gap: ${tokens.gap.sm}px;
+  align-items: stretch;
+  margin-bottom: ${tokens.gap.sm}px;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
+`;
+
+const priceColumnWrapperStyles = css`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+`;
+
+const chartColumnWrapperStyles = css`
+  flex: 1.5;
+  min-width: 0;
+  display: flex;
 `;
 
 const columnStyles = css`
   padding: ${tokens.padding.section}px;
   background: ${tokens.colors.bgSubtle};
   border-radius: ${tokens.borderRadius}px;
+  border: 1px solid ${tokens.colors.border};
+  flex: 1;
+  width: 100%;
 `;
 
 const kpiRowStyles = css`
@@ -233,66 +249,55 @@ const PricingHeader = ({
         </Typography.Text>
 
         {variants && variants.length > 1 && (
-          <Flex align="center" gap="2">
-            <Select
-              value={selectedVariantId}
-              onChange={onVariantSelect}
-              size="small"
-              popupMatchSelectWidth={false}
-              css={css`
-                min-width: 160px;
-                .ant-select-selector {
-                  font-size: 12px !important;
-                }
-              `}
-              labelRender={() => (
-                <Flex align="center" gap="1">
-                  <span>{selectedVariant?.title || 'Select variant'}</span>
-                  {selectedVariant?.hasWarning && (
-                    <WarningOutlined
-                      css={css`
-                        color: ${tokens.colors.warning};
-                        font-size: 10px;
-                      `}
-                    />
-                  )}
-                </Flex>
-              )}
-              options={variants.map((v) => ({
-                value: v.id,
-                label: (
-                  <Flex
-                    justify="space-between"
-                    align="center"
+          <Select
+            value={selectedVariantId}
+            onChange={onVariantSelect}
+            size="small"
+            popupMatchSelectWidth={false}
+            css={css`
+              min-width: 160px;
+              .ant-select-selector {
+                font-size: 12px !important;
+              }
+            `}
+            labelRender={() => (
+              <Flex align="center" gap="1">
+                <span>{selectedVariant?.title || 'Select variant'}</span>
+                {selectedVariant?.hasWarning && (
+                  <WarningOutlined
                     css={css`
-                      width: 100%;
+                      color: ${tokens.colors.warning};
+                      font-size: 10px;
                     `}
-                  >
-                    <span>{v.title}</span>
-                    <Flex align="center" gap="2">
-                      {v.hasWarning && (
-                        <WarningOutlined
-                          css={css`
-                            color: ${tokens.colors.warning};
-                            font-size: 10px;
-                          `}
-                        />
-                      )}
-                    </Flex>
+                  />
+                )}
+              </Flex>
+            )}
+            options={variants.map((v) => ({
+              value: v.id,
+              label: (
+                <Flex
+                  justify="space-between"
+                  align="center"
+                  css={css`
+                    width: 100%;
+                  `}
+                >
+                  <span>{v.title}</span>
+                  <Flex align="center" gap="2">
+                    {v.hasWarning && (
+                      <WarningOutlined
+                        css={css`
+                          color: ${tokens.colors.warning};
+                          font-size: 10px;
+                        `}
+                      />
+                    )}
                   </Flex>
-                ),
-              }))}
-            />
-            <Tag
-              css={css`
-                margin: 0;
-                font-size: 10px;
-                line-height: 16px;
-              `}
-            >
-              {variants.length} variants
-            </Tag>
-          </Flex>
+                </Flex>
+              ),
+            }))}
+          />
         )}
       </Flex>
 
@@ -531,9 +536,9 @@ const PriceHistoryChart = ({
   const min = prices.length > 0 ? Math.min(...prices) : 0;
   const max = prices.length > 0 ? Math.max(...prices) : 0;
 
-  // Chart dimensions - compact
-  const width = 280;
-  const height = 80;
+  // Chart dimensions - full width, taller
+  const width = 400;
+  const height = 100;
   const padding = { top: 12, right: 12, bottom: 12, left: 12 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
@@ -657,11 +662,12 @@ const PriceHistoryChart = ({
 
       {/* SVG Chart */}
       <svg
-        width={width}
-        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
         css={css`
           display: block;
-          max-width: 100%;
+          width: 100%;
+          height: ${height}px;
           cursor: crosshair;
         `}
         onMouseMove={handleMouseMove}
@@ -849,7 +855,6 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
     minAllowedPrice,
     maxPrice,
     priceHistory,
-    currentPrice,
   } = data;
 
   const prices = priceHistory.map((h) => h.amount);
@@ -1058,13 +1063,17 @@ export const PricingBlock = ({
 
       {/* Two-column layout */}
       <Box css={twoColumnStyles}>
-        <CurrentPriceColumn data={pricingData} formatPrice={formatPrice} />
-        <PriceHistoryChart
-          history={actualPriceHistory}
-          formatPrice={formatPrice}
-          changesCount={changesCount}
-          onViewLog={onViewLog}
-        />
+        <Box css={priceColumnWrapperStyles}>
+          <CurrentPriceColumn data={pricingData} formatPrice={formatPrice} />
+        </Box>
+        <Box css={chartColumnWrapperStyles}>
+          <PriceHistoryChart
+            history={actualPriceHistory}
+            formatPrice={formatPrice}
+            changesCount={changesCount}
+            onViewLog={onViewLog}
+          />
+        </Box>
       </Box>
 
       {/* KPI Row */}
