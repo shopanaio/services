@@ -3,7 +3,6 @@ import { Flex } from '@components/utility/Flex';
 import { Box } from '@components/utility/Box';
 import { css } from '@emotion/react';
 import {
-  Badge,
   Button,
   Image,
   Tag,
@@ -39,17 +38,8 @@ import { t as tCommon } from '@src/lang/messages';
 import {
   dimensionUnitOptions,
   weightUniOptions,
-  stockStatuses,
 } from '@src/defs/constants';
-import {
-  PriceSummaryCard,
-  VariantPriceSelect,
-  PriceChangeIndicator,
-  PriceSparkline,
-  PriceStats,
-  getMockVariantPrices,
-  generateMockHistory,
-} from './pricing/PriceHistory';
+import { PricingBlock } from './pricing/PricingBlock';
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -345,257 +335,6 @@ const StatBox = ({ label, value, color }: IStatBoxProps) => (
     </Typography.Text>
   </Box>
 );
-
-// ============================================================================
-// Variable Product Pricing Content
-// ============================================================================
-
-interface IVariablePricingContentProps {
-  product: IProduct;
-  formatPrice: (price: number) => string;
-  selectedVariantId?: string;
-}
-
-const useVariantPrices = (product: IProduct) => {
-  return useMemo(
-    () =>
-      getMockVariantPrices(
-        product.variants?.map((v) => ({
-          id: v.id,
-          title: v.options?.map((o) => o.title).join(' / ') || v.sku || v.id,
-          price: v.price,
-          compareAtPrice: v.oldPrice || null,
-          costPrice: v.costPrice || null,
-        })) || [],
-      ),
-    [product.variants],
-  );
-};
-
-interface IVariablePricingSectionProps {
-  product: IProduct;
-  formatPrice: (price: number) => string;
-  title: string;
-  onEdit?: () => void;
-}
-
-const VariablePricingSection = ({
-  product,
-  formatPrice,
-  title,
-  onEdit,
-}: IVariablePricingSectionProps) => {
-  const variantPrices = useVariantPrices(product);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>(
-    variantPrices[0]?.variantId,
-  );
-
-  const headerExtra = (
-    <Flex align="center" gap="2">
-      <VariantPriceSelect
-        variants={variantPrices}
-        selectedVariantId={selectedVariantId}
-        onSelect={setSelectedVariantId}
-        size="small"
-      />
-      <Typography.Text
-        type="secondary"
-        css={css`
-          font-size: 11px;
-          white-space: nowrap;
-        `}
-      >
-        {variantPrices.length} variants
-      </Typography.Text>
-    </Flex>
-  );
-
-  return (
-    <Section title={title} name="pricing" onEdit={onEdit} extra={headerExtra}>
-      <VariablePricingContent
-        product={product}
-        formatPrice={formatPrice}
-        selectedVariantId={selectedVariantId}
-      />
-    </Section>
-  );
-};
-
-const VariablePricingContent = ({
-  product,
-  formatPrice,
-  selectedVariantId,
-}: IVariablePricingContentProps) => {
-  const variantPrices = useVariantPrices(product);
-
-  const selectedVariant = variantPrices.find(
-    (v) => v.variantId === selectedVariantId,
-  ) || variantPrices[0];
-
-  if (!selectedVariant) {
-    return (
-      <Typography.Text type="secondary">No variants available</Typography.Text>
-    );
-  }
-
-  const saving =
-    selectedVariant.compareAtPrice && selectedVariant.compareAtPrice > selectedVariant.currentPrice
-      ? selectedVariant.compareAtPrice - selectedVariant.currentPrice
-      : null;
-  const discountPercent =
-    saving && selectedVariant.compareAtPrice
-      ? Math.round((saving / selectedVariant.compareAtPrice) * 100)
-      : null;
-
-  return (
-    <Flex direction="column" gap="3">
-      {/* Main price row - 3 columns */}
-      <Flex align="flex-start" gap="4">
-        {/* Column 1: vs last + Price */}
-        <Flex direction="column" gap="1">
-          {selectedVariant.previousPrice &&
-            selectedVariant.previousPrice !== selectedVariant.currentPrice && (
-              <PriceChangeIndicator
-                currentPrice={selectedVariant.currentPrice}
-                previousPrice={selectedVariant.previousPrice}
-              />
-            )}
-          <Typography.Text
-            strong
-            css={css`
-              font-size: 24px;
-            `}
-          >
-            {formatPrice(selectedVariant.currentPrice)}
-          </Typography.Text>
-        </Flex>
-
-        {/* Column 2: Compare at price + discount/saving */}
-        {selectedVariant.compareAtPrice && selectedVariant.compareAtPrice > 0 && (
-          <Flex
-            direction="column"
-            gap="1"
-            css={css`
-              padding-left: 16px;
-              border-left: 1px solid var(--color-gray-3);
-            `}
-          >
-            <Typography.Text
-              delete
-              type="secondary"
-              css={css`
-                font-size: 14px;
-              `}
-            >
-              {formatPrice(selectedVariant.compareAtPrice)}
-            </Typography.Text>
-            <Flex align="center" gap="2">
-              {discountPercent && (
-                <Badge
-                  count={`-${discountPercent}%`}
-                  color="default"
-                  css={css`
-                    .ant-badge-count {
-                      font-size: 11px;
-                      font-weight: 600;
-                      box-shadow: none;
-                    }
-                  `}
-                />
-              )}
-              {saving && (
-                <Typography.Text
-                  type="success"
-                  css={css`
-                    font-size: 12px;
-                  `}
-                >
-                  Save {formatPrice(saving)}
-                </Typography.Text>
-              )}
-            </Flex>
-          </Flex>
-        )}
-
-        {/* Column 3: Chart - grows to fill remaining space */}
-        <Box
-          css={css`
-            flex: 1;
-            padding-left: 16px;
-            border-left: 1px solid var(--color-gray-3);
-          `}
-        >
-          <PriceSparkline history={selectedVariant.priceHistory} width={200} height={56} />
-        </Box>
-      </Flex>
-
-      {/* Cost, Margin & Stats row */}
-      <Flex
-        align="center"
-        css={css`
-          padding-top: 12px;
-          border-top: 1px solid var(--color-gray-3);
-        `}
-      >
-        <Flex gap="4">
-          {selectedVariant.costPrice && selectedVariant.costPrice > 0 && (
-            <Flex direction="column" align="center">
-              <Typography.Text
-                type="secondary"
-                css={css`
-                  font-size: 10px;
-                `}
-              >
-                Cost
-              </Typography.Text>
-              <Typography.Text
-                css={css`
-                  font-size: 12px;
-                `}
-              >
-                {formatPrice(selectedVariant.costPrice)}
-              </Typography.Text>
-            </Flex>
-          )}
-          {selectedVariant.margin !== null && (
-            <Flex direction="column" align="center">
-              <Typography.Text
-                type="secondary"
-                css={css`
-                  font-size: 10px;
-                `}
-              >
-                Margin
-              </Typography.Text>
-              <Typography.Text
-                css={css`
-                  font-size: 12px;
-                  color: ${selectedVariant.margin >= 30
-                    ? '#52c41a'
-                    : selectedVariant.margin >= 15
-                      ? '#faad14'
-                      : '#ff4d4f'};
-                `}
-              >
-                {selectedVariant.margin}%
-              </Typography.Text>
-            </Flex>
-          )}
-        </Flex>
-        <Box
-          css={css`
-            flex: 1;
-            margin-left: 16px;
-            padding-left: 16px;
-            border-left: 1px solid var(--color-gray-3);
-          `}
-        >
-          <PriceStats history={selectedVariant.priceHistory} stretched />
-        </Box>
-      </Flex>
-    </Flex>
-  );
-};
 
 // ============================================================================
 // Inventory Section Components (Enterprise)
@@ -1177,11 +916,6 @@ export const ProductInfoCardA = ({
     return `${l || 0} × ${w || 0} × ${h || 0} ${u}`;
   };
 
-  const getStockInfo = (status: string) => {
-    const s = stockStatuses[status as keyof typeof stockStatuses];
-    return { label: s?.label || status, color: s?.color || 'default' };
-  };
-
   const getDescriptionPreview = () => {
     if (!product.description) return null;
     try {
@@ -1513,44 +1247,32 @@ export const ProductInfoCardA = ({
       </Flex>
 
       {/* ================================================================== */}
-      {/* PRICING */}
+      {/* PRICING (Enterprise Block) */}
       {/* ================================================================== */}
-      {product.isVariableProduct ? (
-        <VariablePricingSection
-          product={product}
-          formatPrice={formatPrice}
-          title={formatMessage({ id: t('product.pricing.title') })}
-          onEdit={() => handleEdit('pricing')}
-        />
-      ) : (
-        <Section
-          title={formatMessage({ id: t('product.pricing.title') })}
-          name="pricing"
-          onEdit={() => handleEdit('pricing')}
-        >
-          <Flex direction="column" gap="3">
-            {/* Price with history, compare at, cost & margin */}
-            <PriceSummaryCard
-              price={product.price}
-              compareAtPrice={product.oldPrice}
-              costPrice={product.costPrice}
-              history={generateMockHistory(product.price, product.oldPrice)}
-              formatPriceFn={formatPrice}
-            />
-            {/* Stock status */}
-            <Box>
-              <Tag
-                color={getStockInfo(product.stockStatus).color}
-                css={css`
-                  margin: 0;
-                `}
-              >
-                {getStockInfo(product.stockStatus).label}
-              </Tag>
-            </Box>
-          </Flex>
-        </Section>
-      )}
+      <PricingBlock
+        title={formatMessage({ id: t('product.pricing.title') })}
+        price={product.price}
+        compareAtPrice={product.oldPrice}
+        costPrice={product.costPrice}
+        variants={
+          product.isVariableProduct
+            ? product.variants?.map((v) => ({
+                id: v.id,
+                title: v.options?.map((o) => o.title).join(' / ') || v.sku || v.id,
+                price: v.price,
+                compareAtPrice: v.oldPrice || null,
+                costPrice: v.costPrice || null,
+              }))
+            : undefined
+        }
+        priceSource="manual"
+        targetMargin={35}
+        lastUpdatedAt={product.updatedAt}
+        onEdit={() => handleEdit('pricing')}
+        onViewLog={() => console.log('View price log')}
+        onMoreAction={(action) => console.log('Pricing action:', action)}
+        formatPrice={formatPrice}
+      />
 
       {/* ================================================================== */}
       {/* INVENTORY */}
