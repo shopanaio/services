@@ -5,7 +5,7 @@ import { useIntl } from 'react-intl';
 import { FormProvider, useForm, useFormContext } from 'react-hook-form';
 import { Flex } from '@components/utility/Flex';
 import { $drawers } from '@src/layouts/drawers/store/drawers';
-import { Modal, Space, Switch, Tag, Typography } from 'antd';
+import { Modal, Space, Tag, Typography } from 'antd';
 import { CurrencyInput } from '@components/forms/CurrencyInput';
 import { cropString, getExpandRowButton } from '@src/utils/utils';
 import { DrawerTypes } from '@src/layouts/drawers/types';
@@ -556,33 +556,6 @@ export const ProductVariantsTable = ({
                 </Flex>
               ),
               dataIndex: 'dimensionUnit',
-            },
-            {
-              title: intl.formatMessage({ id: 'products.variants.inListing' }),
-              key: 'inListing',
-              ellipsis: true,
-              align: 'right',
-              width: 80,
-              fixed: 'right' as const,
-              render: (_: any, record: any, idx) => {
-                return (
-                  <Switch
-                    disabled={idx === 0}
-                    size="small"
-                    onChange={(checked) => {
-                      updateVariants(
-                        (it) => ({ ...it, inListing: checked }),
-                        idx,
-                      );
-                    }}
-                    data-testid={`in-listing-switch-${idx}`}
-                    checked={idx === 0 || record.inListing}
-                    css={css`
-                      margin-left: auto;
-                    `}
-                  />
-                );
-              },
             },
           ]}
         />
