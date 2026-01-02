@@ -1,9 +1,8 @@
 import { Paper } from '@components/paper/Paper';
 import { Flex } from '@components/utility/Flex';
-import { Box } from '@components/utility/Box';
 import { css } from '@emotion/react';
-import { Button, Typography, Tabs } from 'antd';
-import { WarningOutlined } from '@ant-design/icons';
+import { Button, Typography, Tabs, Dropdown } from 'antd';
+import { WarningOutlined, MoreOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
 import { t as tCommon } from '@src/lang/messages';
@@ -33,38 +32,6 @@ const tabsSectionStyles = css`
   border-radius: ${tokens.borderRadius}px;
   min-height: 120px;
 `;
-
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-type StatusDotVariant = 'success' | 'warning' | 'error' | 'default';
-
-interface IStatusDotProps {
-  variant?: StatusDotVariant;
-  size?: number;
-}
-
-const StatusDot = ({ variant = 'success', size = 6 }: IStatusDotProps) => {
-  const colors: Record<StatusDotVariant, string> = {
-    success: tokens.colors.success,
-    warning: tokens.colors.warning,
-    error: '#ff4d4f',
-    default: 'var(--color-gray-5)',
-  };
-
-  return (
-    <Box
-      css={css`
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        background: ${colors[variant]};
-        flex-shrink: 0;
-      `}
-    />
-  );
-};
 
 // ============================================================================
 // Types
@@ -110,40 +77,81 @@ export const ProductContentTabs = ({
   return (
     <Paper css={tabsSectionStyles}>
       <Tabs
-        size="small"
-        css={css`
-          .ant-tabs-nav {
-            margin-bottom: 16px !important;
-          }
-          .ant-tabs-tab {
-            padding: 8px 0 !important;
-            font-size: 13px;
-          }
-        `}
+        type="card"
+        size="middle"
+        tabBarExtraContent={
+          <Flex gap="2">
+            <button
+              css={css`
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 12px;
+                font-size: 13px;
+                font-weight: 500;
+                border-radius: 6px;
+                cursor: pointer;
+                background: linear-gradient(#fff, #fff) padding-box,
+                  linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) border-box;
+                border: 1px solid transparent;
+                transition: all 0.3s ease;
+                span {
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  background-clip: text;
+                }
+                svg {
+                  color: #764ba2;
+                }
+                &:hover {
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) padding-box,
+                    linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) border-box;
+                  span {
+                    background: #fff;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                  }
+                  svg {
+                    color: #fff;
+                  }
+                }
+              `}
+            >
+              <ThunderboltOutlined />
+              <span>Write with AI</span>
+            </button>
+            <Dropdown
+              menu={{
+                items: [
+                  { key: 'description', label: 'Edit description', onClick: () => handleEdit('description') },
+                  { key: 'excerpt', label: 'Edit excerpt', onClick: () => handleEdit('excerpt') },
+                ],
+              }}
+              trigger={['click']}
+            >
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          </Flex>
+        }
         items={[
           {
             key: 'description',
-            label: (
-              <Flex align="center" gap="2">
-                <span>{formatMessage({ id: tCommon('common.description') })}</span>
-                <StatusDot variant={descriptionPreview ? 'success' : 'warning'} />
-              </Flex>
-            ),
+            label: formatMessage({ id: tCommon('common.description') }),
             children: descriptionPreview ? (
-              <Box>
-                <Typography.Paragraph
-                  ellipsis={{ rows: 3 }}
-                  css={css`
-                    margin: 0 !important;
-                    font-size: 13px;
-                    color: var(--color-gray-8);
-                    line-height: 1.6;
-                  `}
-                >
-                  {descriptionPreview}
-                  {descriptionPreview.length >= 300 && '...'}
-                </Typography.Paragraph>
-              </Box>
+              <Typography.Paragraph
+                ellipsis={{ rows: 3 }}
+                css={css`
+                  margin: 0 !important;
+                  font-size: 13px;
+                  color: var(--color-gray-8);
+                  line-height: 1.6;
+                `}
+              >
+                {descriptionPreview}
+                {descriptionPreview.length >= 300 && '...'}
+              </Typography.Paragraph>
             ) : (
               <Flex align="center" gap="2" css={css`padding: 16px 0;`}>
                 <WarningOutlined css={css`color: var(--color-gray-5);`} />
@@ -163,26 +171,19 @@ export const ProductContentTabs = ({
           },
           {
             key: 'excerpt',
-            label: (
-              <Flex align="center" gap="2">
-                <span>{formatMessage({ id: tCommon('common.excerpt') })}</span>
-                <StatusDot variant={product.excerpt ? 'success' : 'default'} />
-              </Flex>
-            ),
+            label: formatMessage({ id: tCommon('common.excerpt') }),
             children: product.excerpt ? (
-              <Box>
-                <Typography.Paragraph
-                  ellipsis={{ rows: 3 }}
-                  css={css`
-                    margin: 0 !important;
-                    font-size: 13px;
-                    color: var(--color-gray-8);
-                    line-height: 1.6;
-                  `}
-                >
-                  {product.excerpt}
-                </Typography.Paragraph>
-              </Box>
+              <Typography.Paragraph
+                ellipsis={{ rows: 3 }}
+                css={css`
+                  margin: 0 !important;
+                  font-size: 13px;
+                  color: var(--color-gray-8);
+                  line-height: 1.6;
+                `}
+              >
+                {product.excerpt}
+              </Typography.Paragraph>
             ) : (
               <Flex align="center" gap="2" css={css`padding: 16px 0;`}>
                 <WarningOutlined css={css`color: var(--color-gray-5);`} />
