@@ -61,8 +61,10 @@ import {
   getApiRichTextJSON,
 } from '@src/entity/Content/description';
 import { ApiUpdateProductInput } from '@src/graphql';
-import { ProductInfoCard } from '@modules/products/components/ProductInfoCard';
+import { ProductInfoCardA } from '@modules/products/components/ProductInfoCardA';
 import { EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { Tag } from 'antd';
+import { EntityStatus } from '@src/graphql';
 import { css } from '@emotion/react';
 
 type ViewMode = 'view' | 'edit';
@@ -627,37 +629,70 @@ const ProductFormView = () => {
     setViewMode('edit');
   };
 
+  const getStatusColor = (status: EntityStatus) => {
+    switch (status) {
+      case EntityStatus.Published: return 'green';
+      case EntityStatus.Draft: return 'default';
+      case EntityStatus.Archived: return 'red';
+      default: return 'default';
+    }
+  };
+
+  const getStatusLabel = (status: EntityStatus) => {
+    switch (status) {
+      case EntityStatus.Published: return 'Published';
+      case EntityStatus.Draft: return 'Draft';
+      case EntityStatus.Archived: return 'Archived';
+      default: return status;
+    }
+  };
+
+  const renderTitle = () => (
+    <Flex align="center" gap="2">
+      <span>
+        {product.title ||
+          intl.formatMessage({
+            id: t('products.form.editTitle'),
+          })}
+      </span>
+      <Tag color={getStatusColor(product.status)} css={css`margin: 0;`}>
+        {getStatusLabel(product.status)}
+      </Tag>
+    </Flex>
+  );
+
   const renderViewModeToggle = () => (
-    <Segmented
-      size="small"
-      value={viewMode}
-      onChange={(value) => setViewMode(value as ViewMode)}
-      options={[
-        {
-          value: 'view',
-          icon: <EyeOutlined />,
-          label: 'View',
-        },
-        {
-          value: 'edit',
-          icon: <EditOutlined />,
-          label: 'Edit',
-        },
-      ]}
-      css={css`
-        margin-right: var(--x3);
-      `}
+    <Flex align="center" gap="2">
+      <Segmented
+        size="small"
+        value={viewMode}
+        onChange={(value) => setViewMode(value as ViewMode)}
+        options={[
+          {
+            value: 'view',
+            icon: <EyeOutlined />,
+            label: 'View',
+          },
+          {
+            value: 'edit',
+            icon: <EditOutlined />,
+            label: 'Edit',
+          },
+        ]}
+      />
+    </Flex>
+  );
+
+  const renderProductInfoCard = () => (
+    <ProductInfoCardA
+      product={product}
+      onEditSection={handleEditSection}
     />
   );
 
   const renderContent = () => {
     if (viewMode === 'view') {
-      return (
-        <ProductInfoCard
-          product={product}
-          onEditSection={handleEditSection}
-        />
-      );
+      return renderProductInfoCard();
     }
 
     return (
@@ -700,11 +735,7 @@ const ProductFormView = () => {
         name="product"
         errors={errors}
         headerProps={{
-          title:
-            product.title ||
-            intl.formatMessage({
-              id: t('products.form.editTitle'),
-            }),
+          title: renderTitle(),
           extra: renderViewModeToggle(),
           onSubmitAndExit: () => {
             shouldClose.current = true;
