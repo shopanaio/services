@@ -206,7 +206,7 @@ const sectionHeaderStyles = css`
 
 const mediaGridStyles = css`
   display: grid;
-  grid-template-columns: repeat(auto-fill, 70px);
+  grid-template-columns: repeat(auto-fill, 90px);
   grid-gap: var(--x2);
   position: relative;
 
@@ -223,10 +223,10 @@ const mediaOverlayStyles = css`
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 70px);
+  grid-template-columns: repeat(auto-fill, 90px);
   grid-gap: var(--x2);
   overflow: hidden;
-  max-height: 160px;
+  max-height: 200px;
   pointer-events: none;
 
   & > *:nth-child(1) {
