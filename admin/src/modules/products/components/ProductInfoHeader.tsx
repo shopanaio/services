@@ -10,12 +10,12 @@ import {
   Dropdown,
   Tooltip,
   Select,
+  Switch,
+  Progress,
 } from 'antd';
 import {
   CopyOutlined,
   MoreOutlined,
-  CheckCircleFilled,
-  ExclamationCircleFilled,
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
@@ -24,6 +24,7 @@ import {
   ShareAltOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  CheckCircleFilled,
 } from '@ant-design/icons';
 import { ReactNode, useState } from 'react';
 import { IProduct } from '@src/entity/Product/Product';
@@ -95,13 +96,14 @@ const cardStyles = css`
 `;
 
 const topBarStyles = css`
-  padding: 12px ${tokens.cardPadding}px;
+  padding: 10px ${tokens.cardPadding}px;
   border-bottom: 1px solid ${tokens.borderColor};
   background: var(--color-gray-1);
+  min-height: 44px;
 `;
 
 const titleSectionStyles = css`
-  padding: ${tokens.sectionGap}px ${tokens.cardPadding}px;
+  padding: 14px ${tokens.cardPadding}px 12px;
   border-bottom: 1px solid ${tokens.borderColor};
 `;
 
@@ -165,9 +167,8 @@ const getStatusConfig = (status: EntityStatus) => {
   }
 };
 
+// Full numbers for CMS accuracy (no abbreviations)
 const formatNumber = (num: number): string => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toLocaleString('ru-RU');
 };
 
@@ -188,7 +189,36 @@ const formatPercent = (value: number): string => {
 // Sub-components
 // ============================================================================
 
-// Trend Indicator
+// Status Dot (for tabs)
+type StatusDotVariant = 'success' | 'warning' | 'error' | 'default';
+
+interface IStatusDotProps {
+  variant?: StatusDotVariant;
+  size?: number;
+}
+
+const StatusDot = ({ variant = 'success', size = 6 }: IStatusDotProps) => {
+  const colors: Record<StatusDotVariant, string> = {
+    success: tokens.colors.success,
+    warning: tokens.colors.warning,
+    error: tokens.colors.danger,
+    default: 'var(--color-gray-5)',
+  };
+
+  return (
+    <Box
+      css={css`
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        background: ${colors[variant]};
+        flex-shrink: 0;
+      `}
+    />
+  );
+};
+
+// Trend Indicator (compact badge style)
 interface ITrendProps {
   value: number;
   suffix?: string;
@@ -197,25 +227,50 @@ interface ITrendProps {
 const TrendIndicator = ({ value, suffix = '%' }: ITrendProps) => {
   const isPositive = value > 0;
   const isNeutral = value === 0;
+  const color = isNeutral
+    ? 'var(--color-gray-6)'
+    : isPositive
+      ? tokens.colors.success
+      : tokens.colors.danger;
+  const bgColor = isNeutral
+    ? 'var(--color-gray-2)'
+    : isPositive
+      ? 'rgba(82, 196, 26, 0.1)'
+      : 'rgba(255, 77, 79, 0.1)';
 
   return (
-    <Typography.Text
+    <Box
       css={css`
-        font-size: 11px;
-        font-weight: 500;
-        color: ${isNeutral
-          ? 'var(--color-gray-6)'
-          : isPositive
-            ? tokens.colors.success
-            : tokens.colors.danger};
         display: inline-flex;
         align-items: center;
         gap: 2px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: ${bgColor};
+        font-size: 10px;
+        font-weight: 500;
+        color: ${color};
+        white-space: nowrap;
       `}
     >
-      {!isNeutral && (isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />)}
-      {isPositive ? '+' : ''}{value}{suffix}
-    </Typography.Text>
+      {!isNeutral && (
+        <span css={css`font-size: 8px;`}>
+          {isPositive ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+        </span>
+      )}
+      <span>{isPositive ? '+' : ''}{value}</span>
+      {suffix && (
+        <span
+          css={css`
+            font-size: 8px;
+            font-weight: 400;
+            opacity: 0.6;
+          `}
+        >
+          {suffix}
+        </span>
+      )}
+    </Box>
   );
 };
 
@@ -258,7 +313,7 @@ const KPITile = ({ label, value, trend, trendSuffix = '%', tooltip }: IKPITilePr
   </Tooltip>
 );
 
-// Copyable ID/Slug chip
+// Copyable ID/Slug chip (with background)
 interface ICopyableChipProps {
   label?: string;
   value: string;
@@ -266,25 +321,54 @@ interface ICopyableChipProps {
   mono?: boolean;
 }
 
+const copyableChipStyles = css`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--color-gray-2);
+  border-radius: 4px;
+  font-size: 11px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--color-gray-3);
+  }
+`;
+
 const CopyableChip = ({ label, value, displayValue, mono }: ICopyableChipProps) => (
-  <Flex align="center" gap="1" css={css`font-size: 11px;`}>
-    {label && <Typography.Text type="secondary">{label}:</Typography.Text>}
+  <Box css={copyableChipStyles}>
+    {label && (
+      <Typography.Text
+        type="secondary"
+        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;`}
+      >
+        {label}
+      </Typography.Text>
+    )}
     <Typography.Text
       copyable={{
         text: value,
-        icon: <CopyOutlined css={css`font-size: 10px; color: var(--color-gray-5);`} />,
+        icon: <CopyOutlined css={css`font-size: 9px; color: var(--color-gray-5);`} />,
         tooltips: ['Copy', 'Copied!'],
       }}
       css={css`
-        ${mono ? 'font-family: monospace;' : ''}
+        ${mono ? 'font-family: ui-monospace, SFMono-Regular, monospace;' : ''}
         font-size: 11px;
-        color: var(--color-gray-7);
-        .ant-typography-copy { margin-left: 2px; }
+        color: var(--color-gray-8);
+        .ant-typography-copy {
+          margin-left: 4px;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+        &:hover .ant-typography-copy {
+          opacity: 1;
+        }
       `}
     >
       {displayValue || value}
     </Typography.Text>
-  </Flex>
+  </Box>
 );
 
 // ============================================================================
@@ -338,9 +422,6 @@ export const ProductInfoHeader = ({
   };
 
   const descriptionPreview = getDescriptionPreview();
-
-  // SEO issues count (mock)
-  const seoIssuesCount = (!product.seoTitle ? 1 : 0) + (!product.seoDescription ? 1 : 0);
 
   return (
     <Paper css={cardStyles}>
@@ -442,7 +523,7 @@ export const ProductInfoHeader = ({
           level={4}
           ellipsis={{ rows: 1, tooltip: product.title }}
           css={css`
-            margin: 0 0 8px 0 !important;
+            margin: 0 0 6px 0 !important;
             font-size: ${tokens.typography.title.size}px !important;
             font-weight: ${tokens.typography.title.weight} !important;
             line-height: 1.3 !important;
@@ -452,27 +533,35 @@ export const ProductInfoHeader = ({
         </Typography.Title>
 
         {/* Service Line: Slug + ID + SKU */}
-        <Flex align="center" gap="4" css={css`margin-bottom: 12px;`}>
+        <Flex align="center" gap="3" css={css`margin-bottom: 10px;`}>
           <CopyableChip value={product.slug} displayValue={`/${product.slug}`} />
           <CopyableChip label="ID" value={product.id} displayValue={product.id.slice(0, 8)} mono />
           {product.sku && <CopyableChip label="SKU" value={product.sku} mono />}
         </Flex>
 
         {/* C. META ROW */}
-        <Flex align="center" gap="3" css={css`font-size: ${tokens.typography.meta.size}px; color: ${tokens.colors.textSecondary};`}>
+        <Flex
+          align="center"
+          gap="3"
+          css={css`
+            font-size: ${tokens.typography.meta.size}px;
+            color: var(--color-gray-7);
+          `}
+        >
           <span>
-            Created: {product.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            {/* In enterprise would add: " by Admin" */}
+            Created {product.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            <Typography.Text type="secondary" css={css`margin-left: 4px;`}>by Admin</Typography.Text>
           </span>
-          <span>·</span>
+          <span css={css`color: var(--color-gray-5);`}>·</span>
           <span>
-            Updated: {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            Updated {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            <Typography.Text type="secondary" css={css`margin-left: 4px;`}>by Admin</Typography.Text>
           </span>
           {product.status === EntityStatus.Published && (
             <>
-              <span>·</span>
+              <span css={css`color: var(--color-gray-5);`}>·</span>
               <span>
-                Last published: {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                Published {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </span>
             </>
           )}
@@ -488,9 +577,9 @@ export const ProductInfoHeader = ({
           <Flex align="center" gap="2">
             <Typography.Text
               type="secondary"
-              css={css`font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;`}
+              css={css`font-size: 12px;`}
             >
-              Period:
+              Period
             </Typography.Text>
             <Select
               value={kpiPeriod}
@@ -498,7 +587,7 @@ export const ProductInfoHeader = ({
               size="small"
               popupMatchSelectWidth={false}
               css={css`
-                min-width: 100px;
+                min-width: 110px;
                 .ant-select-selector { font-size: 12px !important; }
               `}
             >
@@ -510,22 +599,22 @@ export const ProductInfoHeader = ({
             </Select>
           </Flex>
           <Flex align="center" gap="2">
-            <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+            <Typography.Text
+              type="secondary"
+              css={css`
+                font-size: 12px;
+                cursor: pointer;
+                user-select: none;
+              `}
+              onClick={() => setCompareEnabled(!compareEnabled)}
+            >
               Compare to previous
             </Typography.Text>
-            <Button
-              type={compareEnabled ? 'primary' : 'default'}
+            <Switch
               size="small"
-              onClick={() => setCompareEnabled(!compareEnabled)}
-              css={css`
-                height: 22px;
-                font-size: 11px;
-                padding: 0 8px;
-                ${!compareEnabled && 'color: var(--color-gray-6); border-color: var(--color-gray-4);'}
-              `}
-            >
-              {compareEnabled ? 'On' : 'Off'}
-            </Button>
+              checked={compareEnabled}
+              onChange={setCompareEnabled}
+            />
           </Flex>
         </Flex>
 
@@ -578,11 +667,9 @@ export const ProductInfoHeader = ({
             {
               key: 'description',
               label: (
-                <Flex align="center" gap="1">
+                <Flex align="center" gap="2">
                   <span>{formatMessage({ id: tCommon('common.description') })}</span>
-                  {descriptionPreview && (
-                    <CheckCircleFilled css={css`font-size: 10px; color: ${tokens.colors.success};`} />
-                  )}
+                  <StatusDot variant={descriptionPreview ? 'success' : 'warning'} />
                 </Flex>
               ),
               children: descriptionPreview ? (
@@ -590,22 +677,47 @@ export const ProductInfoHeader = ({
                   {/* Content header */}
                   <Flex align="center" justify="space-between" css={css`margin-bottom: 8px;`}>
                     <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                      Characters: {descriptionPreview.length}/500
+                      {descriptionPreview.length}/500 characters
                     </Typography.Text>
-                    <Flex gap="2">
-                      <Button type="link" size="small" css={css`padding: 0; height: auto; font-size: 11px;`}>
+                    <Flex gap="3">
+                      <Button
+                        type="primary"
+                        ghost
+                        size="small"
+                        css={css`
+                          height: 24px;
+                          font-size: 11px;
+                          padding: 0 10px;
+                        `}
+                      >
                         AI Assist
                       </Button>
                       <Button
-                        type="link"
+                        type="text"
                         size="small"
                         onClick={() => handleEdit('description')}
-                        css={css`padding: 0; height: auto; font-size: 11px;`}
+                        css={css`
+                          height: 24px;
+                          font-size: 11px;
+                          color: var(--color-gray-7);
+                        `}
                       >
                         Edit
                       </Button>
                     </Flex>
                   </Flex>
+                  {/* Progress bar under header */}
+                  <Progress
+                    percent={Math.min((descriptionPreview.length / 500) * 100, 100)}
+                    showInfo={false}
+                    strokeColor={descriptionPreview.length > 400 ? tokens.colors.success : 'var(--color-gray-4)'}
+                    trailColor="var(--color-gray-2)"
+                    size="small"
+                    css={css`
+                      margin: 0 0 12px 0;
+                      .ant-progress-inner { height: 3px !important; }
+                    `}
+                  />
                   <Typography.Paragraph
                     ellipsis={{ rows: 3 }}
                     css={css`
@@ -639,28 +751,43 @@ export const ProductInfoHeader = ({
             {
               key: 'excerpt',
               label: (
-                <Flex align="center" gap="1">
+                <Flex align="center" gap="2">
                   <span>{formatMessage({ id: tCommon('common.excerpt') })}</span>
-                  {product.excerpt && (
-                    <CheckCircleFilled css={css`font-size: 10px; color: ${tokens.colors.success};`} />
-                  )}
+                  <StatusDot variant={product.excerpt ? 'success' : 'default'} />
                 </Flex>
               ),
               children: product.excerpt ? (
                 <Box>
+                  {/* Content header */}
                   <Flex align="center" justify="space-between" css={css`margin-bottom: 8px;`}>
                     <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                      Characters: {product.excerpt.length}/200
+                      {product.excerpt.length}/200 characters
                     </Typography.Text>
                     <Button
-                      type="link"
+                      type="text"
                       size="small"
                       onClick={() => handleEdit('excerpt')}
-                      css={css`padding: 0; height: auto; font-size: 11px;`}
+                      css={css`
+                        height: 24px;
+                        font-size: 11px;
+                        color: var(--color-gray-7);
+                      `}
                     >
                       Edit
                     </Button>
                   </Flex>
+                  {/* Progress bar under header */}
+                  <Progress
+                    percent={Math.min((product.excerpt.length / 200) * 100, 100)}
+                    showInfo={false}
+                    strokeColor={product.excerpt.length > 150 ? tokens.colors.success : 'var(--color-gray-4)'}
+                    trailColor="var(--color-gray-2)"
+                    size="small"
+                    css={css`
+                      margin: 0 0 12px 0;
+                      .ant-progress-inner { height: 3px !important; }
+                    `}
+                  />
                   <Typography.Paragraph
                     ellipsis={{ rows: 3 }}
                     css={css`
@@ -688,133 +815,6 @@ export const ProductInfoHeader = ({
                     Add now
                   </Button>
                 </Flex>
-              ),
-            },
-            {
-              key: 'seo',
-              label: (
-                <Flex align="center" gap="1">
-                  <span>{formatMessage({ id: tCommon('common.seo') })}</span>
-                  {seoIssuesCount > 0 ? (
-                    <Tag
-                      color="error"
-                      css={css`
-                        margin: 0;
-                        font-size: 10px;
-                        line-height: 14px;
-                        padding: 0 4px;
-                        border-radius: 10px;
-                      `}
-                    >
-                      {seoIssuesCount}
-                    </Tag>
-                  ) : (
-                    <CheckCircleFilled css={css`font-size: 10px; color: ${tokens.colors.success};`} />
-                  )}
-                </Flex>
-              ),
-              children: (
-                <Box
-                  css={css`
-                    background: var(--color-gray-1);
-                    border-radius: 6px;
-                    padding: 12px 16px;
-                  `}
-                >
-                  {/* SEO Issues Summary */}
-                  {seoIssuesCount > 0 && (
-                    <Flex
-                      align="center"
-                      gap="2"
-                      css={css`
-                        margin-bottom: 12px;
-                        padding-bottom: 12px;
-                        border-bottom: 1px solid var(--color-gray-3);
-                      `}
-                    >
-                      <ExclamationCircleFilled css={css`color: ${tokens.colors.danger}; font-size: 14px;`} />
-                      <Typography.Text css={css`font-size: 12px; color: ${tokens.colors.danger};`}>
-                        {seoIssuesCount} SEO {seoIssuesCount === 1 ? 'issue' : 'issues'} found
-                      </Typography.Text>
-                      <Button
-                        type="link"
-                        size="small"
-                        onClick={() => handleEdit('seo')}
-                        css={css`padding: 0; height: auto; font-size: 12px; margin-left: auto;`}
-                      >
-                        Fix now
-                      </Button>
-                    </Flex>
-                  )}
-
-                  {/* Google Preview */}
-                  <Typography.Text
-                    type="secondary"
-                    css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;`}
-                  >
-                    Search preview
-                  </Typography.Text>
-                  <Box css={css`margin-top: 8px;`}>
-                    <Typography.Text
-                      css={css`
-                        font-size: 16px;
-                        color: #1a0dab;
-                        display: block;
-                        line-height: 1.3;
-                        &:hover { text-decoration: underline; }
-                      `}
-                    >
-                      {product.seoTitle || product.title || 'Untitled Product'}
-                    </Typography.Text>
-                    <Typography.Text
-                      css={css`
-                        font-size: 12px;
-                        color: #006621;
-                        display: block;
-                        margin-top: 2px;
-                      `}
-                    >
-                      yourstore.com › products › {product.slug}
-                    </Typography.Text>
-                    <Typography.Paragraph
-                      ellipsis={{ rows: 2 }}
-                      css={css`
-                        margin: 4px 0 0 0 !important;
-                        font-size: 13px;
-                        color: var(--color-gray-7);
-                        line-height: 1.5;
-                      `}
-                    >
-                      {product.seoDescription || product.excerpt || descriptionPreview || 'No description available for this product.'}
-                    </Typography.Paragraph>
-                  </Box>
-
-                  {/* Configure button if no custom SEO */}
-                  {!product.seoTitle && !product.seoDescription && (
-                    <Flex
-                      align="center"
-                      gap="2"
-                      css={css`
-                        margin-top: 12px;
-                        padding-top: 12px;
-                        border-top: 1px solid var(--color-gray-3);
-                      `}
-                    >
-                      <WarningOutlined css={css`color: ${tokens.colors.warning}; font-size: 12px;`} />
-                      <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                        Using auto-generated SEO data
-                      </Typography.Text>
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={() => handleEdit('seo')}
-                        css={css`margin-left: auto; font-size: 11px; height: 24px;`}
-                      >
-                        Configure SEO
-                      </Button>
-                    </Flex>
-                  )}
-                </Box>
               ),
             },
           ]}

@@ -23,12 +23,14 @@ import {
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
+  ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { ReactNode, useState, useMemo } from 'react';
 import { MediaFilePlaceholder } from '@components/media/control/Placeholder';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
 import { t } from '@modules/products/i18n/messages';
+import { t as tCommon } from '@src/lang/messages';
 import {
   dimensionUnitOptions,
   weightUniOptions,
@@ -1337,6 +1339,96 @@ export const ProductInfoCardA = ({
           </Flex>
         </Section>
       )}
+
+      {/* ================================================================== */}
+      {/* SEO */}
+      {/* ================================================================== */}
+      <Section
+        title={formatMessage({ id: tCommon('common.seo') })}
+        name="seo"
+        onEdit={() => handleEdit('seo')}
+        extra={
+          (() => {
+            const seoIssuesCount = (!product.seoTitle ? 1 : 0) + (!product.seoDescription ? 1 : 0);
+            return seoIssuesCount > 0 ? (
+              <Flex align="center" gap="1">
+                <ExclamationCircleFilled css={css`color: #ff4d4f; font-size: 12px;`} />
+                <Typography.Text css={css`font-size: 11px; color: #ff4d4f;`}>
+                  {seoIssuesCount} {seoIssuesCount === 1 ? 'issue' : 'issues'}
+                </Typography.Text>
+              </Flex>
+            ) : null;
+          })()
+        }
+      >
+        <Box
+          css={css`
+            background: var(--color-gray-1);
+            border-radius: 6px;
+            padding: 12px 16px;
+          `}
+        >
+          {/* Google Preview */}
+          <Typography.Text
+            type="secondary"
+            css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;`}
+          >
+            Search preview
+          </Typography.Text>
+          <Box css={css`margin-top: 8px;`}>
+            <Typography.Text
+              css={css`
+                font-size: 16px;
+                color: #1a0dab;
+                display: block;
+                line-height: 1.3;
+                &:hover { text-decoration: underline; }
+              `}
+            >
+              {product.seoTitle || product.title || 'Untitled Product'}
+            </Typography.Text>
+            <Typography.Text
+              css={css`
+                font-size: 12px;
+                color: #006621;
+                display: block;
+                margin-top: 2px;
+              `}
+            >
+              yourstore.com › products › {product.slug}
+            </Typography.Text>
+            <Typography.Text
+              type="secondary"
+              css={css`
+                margin-top: 4px;
+                font-size: 13px;
+                display: block;
+                line-height: 1.5;
+              `}
+            >
+              {product.seoDescription || product.excerpt || 'No description available for this product.'}
+            </Typography.Text>
+          </Box>
+
+          {/* Configure button if no custom SEO */}
+          {!product.seoTitle && !product.seoDescription && (
+            <Flex
+              align="center"
+              gap="2"
+              css={css`
+                margin-top: 12px;
+                padding-top: 12px;
+                border-top: 1px solid var(--color-gray-3);
+              `}
+            >
+              <WarningOutlined css={css`color: #faad14; font-size: 12px;`} />
+              <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+                Using auto-generated SEO data
+              </Typography.Text>
+            </Flex>
+          )}
+        </Box>
+      </Section>
     </Flex>
   );
 };
