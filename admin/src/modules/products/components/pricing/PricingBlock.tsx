@@ -181,7 +181,10 @@ const formatShortDate = (date: Date): string => {
   }).format(date);
 };
 
-const getMarginStatus = (margin: number | null, target: number = 35): MarginStatus => {
+const getMarginStatus = (
+  margin: number | null,
+  target: number = 35,
+): MarginStatus => {
   if (margin === null) return 'warning';
   if (margin < target - 10) return 'critical';
   if (margin < target) return 'warning';
@@ -190,29 +193,48 @@ const getMarginStatus = (margin: number | null, target: number = 35): MarginStat
 
 const getMarginColor = (status: MarginStatus): string => {
   switch (status) {
-    case 'ok': return tokens.colors.success;
-    case 'warning': return tokens.colors.warning;
-    case 'critical': return tokens.colors.danger;
+    case 'ok':
+      return tokens.colors.success;
+    case 'warning':
+      return tokens.colors.warning;
+    case 'critical':
+      return tokens.colors.danger;
   }
 };
 
 const getPriceSourceLabel = (source: PriceSource): string => {
   switch (source) {
-    case 'manual': return 'Manual';
-    case 'rule-based': return 'Rule-based';
-    case 'promo': return 'Promo';
-    case 'market': return 'Market';
+    case 'manual':
+      return 'Manual';
+    case 'rule-based':
+      return 'Rule-based';
+    case 'promo':
+      return 'Promo';
+    case 'market':
+      return 'Market';
   }
 };
 
 const getSyncStatusConfig = (status: SyncStatus) => {
   switch (status) {
     case 'synced':
-      return { icon: <CheckCircleFilled />, color: tokens.colors.success, label: 'Synced' };
+      return {
+        icon: <CheckCircleFilled />,
+        color: tokens.colors.success,
+        label: 'Synced',
+      };
     case 'delayed':
-      return { icon: <SyncOutlined />, color: tokens.colors.warning, label: 'Delayed' };
+      return {
+        icon: <SyncOutlined />,
+        color: tokens.colors.warning,
+        label: 'Delayed',
+      };
     case 'manual':
-      return { icon: <EditOutlined />, color: tokens.colors.muted, label: 'Manual' };
+      return {
+        icon: <EditOutlined />,
+        color: tokens.colors.muted,
+        label: 'Manual',
+      };
   }
 };
 
@@ -242,7 +264,7 @@ const PricingHeader = ({
   onEdit,
   onMoreAction,
 }: IPricingHeaderProps) => {
-  const selectedVariant = variants?.find(v => v.id === selectedVariantId);
+  const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
   const syncConfig = getSyncStatusConfig(syncStatus);
 
   const moreMenuItems = [
@@ -257,7 +279,12 @@ const PricingHeader = ({
   return (
     <Flex align="center" justify="space-between" css={headerStyles}>
       <Flex align="center" gap="3">
-        <Typography.Text strong css={css`font-size: 13px;`}>
+        <Typography.Text
+          strong
+          css={css`
+            font-size: 13px;
+          `}
+        >
           {title}
         </Typography.Text>
 
@@ -278,25 +305,47 @@ const PricingHeader = ({
                 <Flex align="center" gap="1">
                   <span>{selectedVariant?.title || 'Select variant'}</span>
                   {selectedVariant?.hasWarning && (
-                    <WarningOutlined css={css`color: ${tokens.colors.warning}; font-size: 10px;`} />
+                    <WarningOutlined
+                      css={css`
+                        color: ${tokens.colors.warning};
+                        font-size: 10px;
+                      `}
+                    />
                   )}
                 </Flex>
               )}
-              options={variants.map(v => ({
+              options={variants.map((v) => ({
                 value: v.id,
                 label: (
-                  <Flex justify="space-between" align="center" css={css`width: 100%;`}>
+                  <Flex
+                    justify="space-between"
+                    align="center"
+                    css={css`
+                      width: 100%;
+                    `}
+                  >
                     <span>{v.title}</span>
                     <Flex align="center" gap="2">
                       {v.hasWarning && (
-                        <WarningOutlined css={css`color: ${tokens.colors.warning}; font-size: 10px;`} />
+                        <WarningOutlined
+                          css={css`
+                            color: ${tokens.colors.warning};
+                            font-size: 10px;
+                          `}
+                        />
                       )}
                     </Flex>
                   </Flex>
                 ),
               }))}
             />
-            <Tag css={css`margin: 0; font-size: 10px; line-height: 16px;`}>
+            <Tag
+              css={css`
+                margin: 0;
+                font-size: 10px;
+                line-height: 16px;
+              `}
+            >
               {variants.length} variants
             </Tag>
           </Flex>
@@ -306,9 +355,22 @@ const PricingHeader = ({
       <Flex align="center" gap="2">
         {/* Updated time with sync status */}
         <Tooltip title={`Last update: ${lastUpdatedAt.toLocaleString()}`}>
-          <Flex align="center" gap="1" css={css`font-size: 11px; color: var(--color-gray-6);`}>
+          <Flex
+            align="center"
+            gap="1"
+            css={css`
+              font-size: 11px;
+              color: var(--color-gray-6);
+            `}
+          >
             <span>Updated {formatRelativeTime(lastUpdatedAt)}</span>
-            <span css={css`color: ${syncConfig.color}; display: flex; align-items: center;`}>
+            <span
+              css={css`
+                color: ${syncConfig.color};
+                display: flex;
+                align-items: center;
+              `}
+            >
               · {syncConfig.icon}
             </span>
           </Flex>
@@ -347,7 +409,10 @@ interface ICurrentPriceColumnProps {
   formatPrice: (amount: number) => string;
 }
 
-const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => {
+const CurrentPriceColumn = ({
+  data,
+  formatPrice,
+}: ICurrentPriceColumnProps) => {
   const {
     currentPrice,
     compareAtPrice,
@@ -357,12 +422,14 @@ const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => 
     targetMargin = 35,
   } = data;
 
-  const saving = compareAtPrice && compareAtPrice > currentPrice
-    ? compareAtPrice - currentPrice
-    : null;
-  const discountPercent = saving && compareAtPrice
-    ? Math.round((saving / compareAtPrice) * 100)
-    : null;
+  const saving =
+    compareAtPrice && compareAtPrice > currentPrice
+      ? compareAtPrice - currentPrice
+      : null;
+  const discountPercent =
+    saving && compareAtPrice
+      ? Math.round((saving / compareAtPrice) * 100)
+      : null;
 
   return (
     <Box css={columnStyles}>
@@ -396,7 +463,13 @@ const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => 
       </Typography.Text>
 
       {/* Badges Row - discount stronger, source subtle */}
-      <Flex align="center" gap="2" css={css`margin-top: ${tokens.gap.sm}px;`}>
+      <Flex
+        align="center"
+        gap="2"
+        css={css`
+          margin-top: ${tokens.gap.sm}px;
+        `}
+      >
         {discountPercent && (
           <Tag
             color="green"
@@ -410,15 +483,17 @@ const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => 
           </Tag>
         )}
         {/* Source badge - subtle, with tooltip */}
-        <Tooltip title={
-          priceSource === 'manual'
-            ? 'Price set manually by user'
-            : priceSource === 'rule-based'
-            ? 'Price calculated by pricing rule'
-            : priceSource === 'promo'
-            ? 'Promotional price active'
-            : 'Market-based pricing'
-        }>
+        <Tooltip
+          title={
+            priceSource === 'manual'
+              ? 'Price set manually by user'
+              : priceSource === 'rule-based'
+              ? 'Price calculated by pricing rule'
+              : priceSource === 'promo'
+              ? 'Promotional price active'
+              : 'Market-based pricing'
+          }
+        >
           <Tag
             css={css`
               margin: 0;
@@ -457,7 +532,8 @@ const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => 
                 font-size: 12px;
               `}
             >
-              Save{NBSP}{formatPrice(saving)}
+              Save{NBSP}
+              {formatPrice(saving)}
             </Typography.Text>
           )}
         </Flex>
@@ -473,19 +549,6 @@ const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => 
           border-top: 1px solid ${tokens.colors.border};
         `}
       >
-        <Typography.Text css={css`font-size: 13px; display: flex; align-items: center; gap: 4px;`}>
-          Margin:
-          <Typography.Text
-            strong
-            css={css`color: ${getMarginColor(marginStatus)};`}
-          >
-            {margin !== null ? `${margin}%` : '—'}
-          </Typography.Text>
-          {marginStatus === 'ok' && (
-            <CheckCircleFilled css={css`color: ${tokens.colors.success}; font-size: 12px;`} />
-          )}
-        </Typography.Text>
-
         {marginStatus === 'warning' && (
           <Tooltip title={`Below target margin (${targetMargin}%)`}>
             <Tag
@@ -503,7 +566,9 @@ const CurrentPriceColumn = ({ data, formatPrice }: ICurrentPriceColumnProps) => 
         )}
 
         {marginStatus === 'critical' && (
-          <Tooltip title={`Critical: margin significantly below target (${targetMargin}%)`}>
+          <Tooltip
+            title={`Critical: margin significantly below target (${targetMargin}%)`}
+          >
             <Tag
               color="error"
               css={css`
@@ -552,10 +617,13 @@ const PriceHistoryChart = ({
     const now = new Date();
     const days = timeRange === '7D' ? 7 : timeRange === '30D' ? 30 : 90;
     const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    return history.filter(h => h.effectiveFrom >= cutoff);
+    return history.filter((h) => h.effectiveFrom >= cutoff);
   }, [history, timeRange]);
 
-  const prices = useMemo(() => [...filteredHistory].reverse().map(h => h.amount), [filteredHistory]);
+  const prices = useMemo(
+    () => [...filteredHistory].reverse().map((h) => h.amount),
+    [filteredHistory],
+  );
   const min = prices.length > 0 ? Math.min(...prices) : 0;
   const max = prices.length > 0 ? Math.max(...prices) : 0;
 
@@ -583,13 +651,18 @@ const PriceHistoryChart = ({
     };
   });
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ');
-  const areaPath = points.length > 0
-    ? `${linePath} L ${points[points.length - 1].x},${padding.top + chartHeight} L ${points[0].x},${padding.top + chartHeight} Z`
-    : '';
+  const linePath = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`)
+    .join(' ');
+  const areaPath =
+    points.length > 0
+      ? `${linePath} L ${points[points.length - 1].x},${
+          padding.top + chartHeight
+        } L ${points[0].x},${padding.top + chartHeight} Z`
+      : '';
 
   // Grid lines (only 3 for cleaner look)
-  const gridLines = [0, 0.5, 1].map(ratio => ({
+  const gridLines = [0, 0.5, 1].map((ratio) => ({
     y: padding.top + chartHeight * (1 - ratio),
     value: min + range * ratio,
   }));
@@ -598,43 +671,54 @@ const PriceHistoryChart = ({
   const timeMarkers = useMemo(() => {
     if (points.length < 2) return [];
     const step = Math.max(1, Math.floor(points.length / 4));
-    return points.filter((_, i) => i === 0 || i === points.length - 1 || i % step === 0);
+    return points.filter(
+      (_, i) => i === 0 || i === points.length - 1 || i % step === 0,
+    );
   }, [points]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (points.length < 2) return;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (points.length < 2) return;
 
-    const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
+      const svg = e.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
 
-    // Find closest point
-    let closest = points[0];
-    let minDist = Math.abs(mouseX - points[0].x);
+      // Find closest point
+      let closest = points[0];
+      let minDist = Math.abs(mouseX - points[0].x);
 
-    for (const point of points) {
-      const dist = Math.abs(mouseX - point.x);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = point;
+      for (const point of points) {
+        const dist = Math.abs(mouseX - point.x);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = point;
+        }
       }
-    }
 
-    if (minDist < 30) {
-      setHoveredPoint(closest);
-    } else {
-      setHoveredPoint(null);
-    }
-  }, [points]);
+      if (minDist < 30) {
+        setHoveredPoint(closest);
+      } else {
+        setHoveredPoint(null);
+      }
+    },
+    [points],
+  );
 
   // Find min/max points for markers
-  const minPoint = points.find(p => p.isMin);
-  const maxPoint = points.find(p => p.isMax);
-  const currentPoint = points.find(p => p.isCurrent);
+  const minPoint = points.find((p) => p.isMin);
+  const maxPoint = points.find((p) => p.isMax);
+  const currentPoint = points.find((p) => p.isCurrent);
 
   return (
     <Box css={columnStyles}>
-      <Flex align="center" justify="space-between" css={css`margin-bottom: ${tokens.gap.sm}px;`}>
+      <Flex
+        align="center"
+        justify="space-between"
+        css={css`
+          margin-bottom: ${tokens.gap.sm}px;
+        `}
+      >
         {/* Section header - darker */}
         <Typography.Text
           css={css`
@@ -692,12 +776,7 @@ const PriceHistoryChart = ({
         ))}
 
         {/* Area fill */}
-        {areaPath && (
-          <path
-            d={areaPath}
-            fill="rgba(22, 119, 255, 0.08)"
-          />
-        )}
+        {areaPath && <path d={areaPath} fill="rgba(22, 119, 255, 0.08)" />}
 
         {/* Line */}
         {linePath && (
@@ -842,57 +921,6 @@ const PriceHistoryChart = ({
           </g>
         )}
       </svg>
-
-      {/* Stats below chart - neutral colors for min/max */}
-      <Flex
-        justify="space-between"
-        align="center"
-        css={css`
-          margin-top: ${tokens.gap.sm}px;
-          padding-top: ${tokens.gap.sm}px;
-          border-top: 1px solid ${tokens.colors.border};
-          font-size: 11px;
-        `}
-      >
-        <Flex gap="3">
-          <Typography.Text type="secondary">
-            Min{NBSP}<Typography.Text css={css`color: var(--color-gray-7);`}>{formatPrice(min)}</Typography.Text>
-          </Typography.Text>
-          <Typography.Text type="secondary">
-            Max{NBSP}<Typography.Text css={css`color: var(--color-gray-7);`}>{formatPrice(max)}</Typography.Text>
-          </Typography.Text>
-        </Flex>
-
-        <Flex align="center" gap="2">
-          <Button
-            type="link"
-            size="small"
-            onClick={onViewLog}
-            css={css`
-              padding: 0;
-              height: auto;
-              font-size: 11px;
-            `}
-          >
-            Changes{NBSP}{changesCount}
-          </Button>
-          {onViewLog && (
-            <Button
-              type="link"
-              size="small"
-              icon={<HistoryOutlined />}
-              onClick={onViewLog}
-              css={css`
-                padding: 0;
-                height: auto;
-                font-size: 11px;
-              `}
-            >
-              View log
-            </Button>
-          )}
-        </Flex>
-      </Flex>
     </Box>
   );
 };
@@ -906,10 +934,17 @@ interface IKPITileProps {
   variant?: 'default' | 'warning' | 'danger';
 }
 
-const KPITile = ({ label, value, subLabel, tooltip, variant = 'default' }: IKPITileProps) => {
-  const borderColor = variant === 'warning'
-    ? tokens.colors.warning
-    : variant === 'danger'
+const KPITile = ({
+  label,
+  value,
+  subLabel,
+  tooltip,
+  variant = 'default',
+}: IKPITileProps) => {
+  const borderColor =
+    variant === 'warning'
+      ? tokens.colors.warning
+      : variant === 'danger'
       ? tokens.colors.danger
       : 'transparent';
 
@@ -917,10 +952,19 @@ const KPITile = ({ label, value, subLabel, tooltip, variant = 'default' }: IKPIT
     <Box
       css={css`
         ${kpiTileStyles};
-        ${borderColor !== 'transparent' ? `border-left: 2px solid ${borderColor};` : ''}
+        ${borderColor !== 'transparent'
+          ? `border-left: 2px solid ${borderColor};`
+          : ''}
       `}
     >
-      <Flex align="center" justify="center" gap="1" css={css`margin-bottom: 2px;`}>
+      <Flex
+        align="center"
+        justify="center"
+        gap="1"
+        css={css`
+          margin-bottom: 2px;
+        `}
+      >
         <Typography.Text
           css={css`
             font-size: ${tokens.fontSize.kpiLabel}px;
@@ -989,8 +1033,11 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
     currentPrice,
   } = data;
 
-  const prices = priceHistory.map(h => h.amount);
-  const avg30d = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null;
+  const prices = priceHistory.map((h) => h.amount);
+  const avg30d =
+    prices.length > 0
+      ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
+      : null;
 
   return (
     <Box css={kpiRowStyles}>
@@ -1003,13 +1050,27 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
       <KPITile
         label="Margin"
         value={
-          <Typography.Text css={css`color: ${getMarginColor(marginStatus)};`}>
+          <Typography.Text
+            css={css`
+              color: ${getMarginColor(marginStatus)};
+            `}
+          >
             {margin !== null ? `${margin}%` : '—'}
           </Typography.Text>
         }
-        subLabel={margin !== null && costPrice ? formatPrice(currentPrice - costPrice) : undefined}
+        subLabel={
+          margin !== null && costPrice
+            ? formatPrice(currentPrice - costPrice)
+            : undefined
+        }
         tooltip="Profit margin percentage"
-        variant={marginStatus === 'critical' ? 'danger' : marginStatus === 'warning' ? 'warning' : 'default'}
+        variant={
+          marginStatus === 'critical'
+            ? 'danger'
+            : marginStatus === 'warning'
+            ? 'warning'
+            : 'default'
+        }
       />
       <KPITile
         label="Min allowed"
@@ -1098,9 +1159,9 @@ export const PricingBlock = ({
   formatPrice: formatPriceProp,
 }: IPricingBlockProps) => {
   // State for variant selection
-  const [internalSelectedVariantId, setInternalSelectedVariantId] = useState<string | undefined>(
-    variants?.[0]?.id
-  );
+  const [internalSelectedVariantId, setInternalSelectedVariantId] = useState<
+    string | undefined
+  >(variants?.[0]?.id);
   const selectedVariantId = selectedVariantIdProp ?? internalSelectedVariantId;
 
   const handleVariantSelect = (id: string) => {
@@ -1109,15 +1170,17 @@ export const PricingBlock = ({
   };
 
   // Default price formatter with non-breaking space
-  const formatPrice = formatPriceProp || ((amount: number) => {
-    const formatted = new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
-      maximumFractionDigits: 0,
-    }).format(amount / 100);
-    // Replace regular space before currency symbol with non-breaking space
-    return formatted.replace(/\s+/g, NBSP);
-  });
+  const formatPrice =
+    formatPriceProp ||
+    ((amount: number) => {
+      const formatted = new Intl.NumberFormat('ru-RU', {
+        style: 'currency',
+        currency: 'RUB',
+        maximumFractionDigits: 0,
+      }).format(amount / 100);
+      // Replace regular space before currency symbol with non-breaking space
+      return formatted.replace(/\s+/g, NBSP);
+    });
 
   // Get variant prices if available
   const variantPrices = useMemo(() => {
@@ -1126,22 +1189,29 @@ export const PricingBlock = ({
   }, [variants]);
 
   // Selected variant data
-  const selectedVariantData = variantPrices?.find(v => v.variantId === selectedVariantId);
+  const selectedVariantData = variantPrices?.find(
+    (v) => v.variantId === selectedVariantId,
+  );
 
   // Determine actual values (from variant or props)
   const actualPrice = selectedVariantData?.currentPrice ?? price;
-  const actualCompareAtPrice = selectedVariantData?.compareAtPrice ?? compareAtPrice;
+  const actualCompareAtPrice =
+    selectedVariantData?.compareAtPrice ?? compareAtPrice;
   const actualCostPrice = selectedVariantData?.costPrice ?? costPrice;
-  const actualPriceHistory = selectedVariantData?.priceHistory ?? priceHistoryProp ?? generateMockHistory(price, compareAtPrice);
+  const actualPriceHistory =
+    selectedVariantData?.priceHistory ??
+    priceHistoryProp ??
+    generateMockHistory(price, compareAtPrice);
 
   // Calculate margin
-  const margin = actualCostPrice && actualCostPrice > 0
-    ? Math.round(((actualPrice - actualCostPrice) / actualPrice) * 100)
-    : null;
+  const margin =
+    actualCostPrice && actualCostPrice > 0
+      ? Math.round(((actualPrice - actualCostPrice) / actualPrice) * 100)
+      : null;
   const marginStatus = getMarginStatus(margin, targetMargin);
 
   // Calculate max price from history
-  const maxPrice = Math.max(...actualPriceHistory.map(h => h.amount));
+  const maxPrice = Math.max(...actualPriceHistory.map((h) => h.amount));
   const changesCount = actualPriceHistory.length - 1;
 
   // Build pricing data
@@ -1152,7 +1222,9 @@ export const PricingBlock = ({
     costPrice: actualCostPrice ?? null,
     margin,
     marginStatus,
-    minAllowedPrice: minAllowedPrice ?? (actualCostPrice ? Math.round(actualCostPrice * 1.1) : null),
+    minAllowedPrice:
+      minAllowedPrice ??
+      (actualCostPrice ? Math.round(actualCostPrice * 1.1) : null),
     maxPrice,
     priceSource,
     priceHistory: actualPriceHistory,
@@ -1163,13 +1235,15 @@ export const PricingBlock = ({
   };
 
   // Build variant options for header
-  const variantOptions: IVariantOption[] | undefined = variantPrices?.map(v => ({
-    id: v.variantId,
-    title: v.variantTitle,
-    price: v.currentPrice,
-    margin: v.margin,
-    hasWarning: v.margin !== null && v.margin < targetMargin,
-  }));
+  const variantOptions: IVariantOption[] | undefined = variantPrices?.map(
+    (v) => ({
+      id: v.variantId,
+      title: v.variantTitle,
+      price: v.currentPrice,
+      margin: v.margin,
+      hasWarning: v.margin !== null && v.margin < targetMargin,
+    }),
+  );
 
   return (
     <Paper css={cardStyles}>
@@ -1207,4 +1281,11 @@ export const PricingBlock = ({
 // ============================================================================
 
 export { generateMockHistory, getMockVariantPrices };
-export type { IPricingData, IVariantOption, PriceSource, TimeRange, MarginStatus, SyncStatus };
+export type {
+  IPricingData,
+  IVariantOption,
+  PriceSource,
+  TimeRange,
+  MarginStatus,
+  SyncStatus,
+};
