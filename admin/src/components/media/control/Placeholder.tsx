@@ -11,7 +11,7 @@ export const MediaFilePlaceholder = () => {
         width: 100%;
         border-radius: var(--radius-base);
         border: 1px dashed var(--color-primary-6);
-        background-color: var(--color-primary-3);
+        background-color: var(--color-primary-2);
         transition: all 0.2s ease-in-out;
       `}
     ></Box>

@@ -3,12 +3,14 @@ import { Flex } from '@components/utility/Flex';
 import { Box } from '@components/utility/Box';
 import { css } from '@emotion/react';
 import {
+  Avatar,
   Button,
   Tag,
   Typography,
   Dropdown,
   Tooltip,
   Switch,
+  Popover,
 } from 'antd';
 import {
   CopyOutlined,
@@ -332,6 +334,42 @@ const CopyableChip = ({ label, value, displayValue, mono }: ICopyableChipProps) 
   </Box>
 );
 
+// User Popover Content
+interface IUserPopoverProps {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+const UserPopoverContent = ({ firstName, lastName, email }: IUserPopoverProps) => (
+  <Flex align="center" gap="3" css={css`padding: 4px 0;`}>
+    <Avatar
+      size={40}
+      css={css`
+        background-color: var(--color-purple-2);
+        color: var(--color-purple-6);
+        flex-shrink: 0;
+      `}
+    >
+      {firstName.charAt(0)}{lastName.charAt(0)}
+    </Avatar>
+    <Box>
+      <Typography.Text
+        strong
+        css={css`display: block; font-size: 14px; line-height: 1.4;`}
+      >
+        {firstName} {lastName}
+      </Typography.Text>
+      <Typography.Text
+        type="secondary"
+        css={css`font-size: 12px;`}
+      >
+        {email}
+      </Typography.Text>
+    </Box>
+  </Flex>
+);
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -387,7 +425,24 @@ export const ProductInfoHeader = ({
               {statusConfig.label}
             </Tag>
           </Tooltip>
-
+          {product.status === EntityStatus.Published && (
+            <Typography.Text
+              type="secondary"
+              css={css`
+                font-size: ${tokens.typography.meta.size}px;
+              `}
+            >
+              {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              <span css={css`margin-left: 4px;`}>by</span>
+              <Popover
+                content={<UserPopoverContent firstName="Admin" lastName="User" email="admin@shopana.io" />}
+                placement="bottom"
+                arrow={false}
+              >
+                <Button variant="link" color="primary" css={css`padding: 0; height: auto; margin-left: 4px; font-size: inherit;`}>Admin</Button>
+              </Popover>
+            </Typography.Text>
+          )}
         </Flex>
 
         {/* Right: Quick Actions */}
@@ -472,21 +527,11 @@ export const ProductInfoHeader = ({
         >
           <span>
             Created {product.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            <Typography.Text type="secondary" css={css`margin-left: 4px;`}>by Admin</Typography.Text>
           </span>
           <span css={css`color: var(--color-gray-5);`}>·</span>
           <span>
             Updated {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            <Typography.Text type="secondary" css={css`margin-left: 4px;`}>by Admin</Typography.Text>
           </span>
-          {product.status === EntityStatus.Published && (
-            <>
-              <span css={css`color: var(--color-gray-5);`}>·</span>
-              <span>
-                Published {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </span>
-            </>
-          )}
         </Flex>
       </Box>
 
