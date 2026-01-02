@@ -672,8 +672,21 @@ const ProductFormView = () => {
     <ProductInfoCardA product={product} />
   );
 
+  const refetch = (id: ID) => {
+    fetchAndResetVariants(id);
+  };
+
   const renderContent = () => {
-    return renderProductInfoCard();
+    switch (modalTab) {
+      case 'general':
+        return renderProductInfoCard();
+      case 'inventory':
+        return <ProductVariantsTable refetch={refetch} />;
+      case 'bundles':
+        return renderProductInfoCard();
+      default:
+        return renderProductInfoCard();
+    }
   };
 
   return (
@@ -681,6 +694,7 @@ const ProductFormView = () => {
       <ModalLayout
         name="product"
         errors={errors}
+        fullWidth={modalTab === 'inventory'}
         headerProps={{
           title: renderTitle(),
           rawTitle: true,

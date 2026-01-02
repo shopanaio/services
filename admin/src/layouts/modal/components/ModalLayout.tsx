@@ -14,6 +14,7 @@ interface IModalLayoutProps {
   headerProps: IModalHeaderProps;
   errors: FieldErrors;
   name?: string;
+  fullWidth?: boolean;
 }
 
 export const ModalLayout = ({
@@ -21,6 +22,7 @@ export const ModalLayout = ({
   children,
   errors,
   name,
+  fullWidth,
 }: IModalLayoutProps) => {
   return (
     <div
@@ -44,11 +46,12 @@ export const ModalLayout = ({
         <div
           css={css`
             margin-inline: auto;
-            max-width: 800px;
+            max-width: ${fullWidth ? 'none' : '800px'};
             display: flex;
             gap: var(--x4);
             flex-direction: column;
             padding-block: var(--x4);
+            padding-inline: ${fullWidth ? 'var(--x4)' : '0'};
           `}
         >
           <ValidationAlert

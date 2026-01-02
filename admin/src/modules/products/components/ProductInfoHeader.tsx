@@ -511,27 +511,9 @@ export const ProductInfoHeader = ({
 
         {/* Service Line: Slug + ID + SKU */}
         <Flex align="center" gap="3" css={css`margin-bottom: 10px;`}>
-          <CopyableChip value={product.slug} displayValue={`/${product.slug}`} />
+          <CopyableChip label="/" value={product.slug} />
           <CopyableChip label="ID" value={product.id} displayValue={product.id.slice(0, 8)} mono />
           {product.sku && <CopyableChip label="SKU" value={product.sku} mono />}
-        </Flex>
-
-        {/* C. META ROW */}
-        <Flex
-          align="center"
-          gap="3"
-          css={css`
-            font-size: ${tokens.typography.meta.size}px;
-            color: var(--color-gray-7);
-          `}
-        >
-          <span>
-            Created {product.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </span>
-          <span css={css`color: var(--color-gray-5);`}>·</span>
-          <span>
-            Updated {product.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </span>
         </Flex>
       </Box>
 
