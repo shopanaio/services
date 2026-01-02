@@ -366,7 +366,6 @@ const VariablePricingContent = ({
       {/* Cost, Margin & Stats row */}
       <Flex
         align="center"
-        justify="space-between"
         css={css`
           padding-top: 12px;
           border-top: 1px solid var(--color-gray-3);
@@ -419,11 +418,13 @@ const VariablePricingContent = ({
         </Flex>
         <Box
           css={css`
-            padding-left: 12px;
+            flex: 1;
+            margin-left: 16px;
+            padding-left: 16px;
             border-left: 1px solid var(--color-gray-3);
           `}
         >
-          <PriceStats history={selectedVariant.priceHistory} />
+          <PriceStats history={selectedVariant.priceHistory} stretched />
         </Box>
       </Flex>
     </Flex>

@@ -317,11 +317,13 @@ export const PriceSparkline = ({
 interface IPriceStatsProps {
   history: IPriceHistoryRecord[];
   showChangesCount?: boolean;
+  stretched?: boolean;
 }
 
 export const PriceStats = ({
   history,
   showChangesCount = true,
+  stretched = false,
 }: IPriceStatsProps) => {
   const prices = history.map((h) => h.amount);
   const min = Math.min(...prices);
@@ -331,8 +333,10 @@ export const PriceStats = ({
   return (
     <Flex
       gap="3"
+      justify={stretched ? 'space-between' : undefined}
       css={css`
         font-size: 11px;
+        ${stretched ? 'width: 100%;' : ''}
       `}
     >
       <Flex vertical align="center">
@@ -794,7 +798,6 @@ export const PriceSummaryCard = ({
       {/* Cost, Margin & Stats row */}
       <Flex
         align="center"
-        justify="space-between"
         css={css`
           padding-top: 12px;
           border-top: 1px solid var(--color-gray-3);
@@ -847,11 +850,13 @@ export const PriceSummaryCard = ({
         </Flex>
         <div
           css={css`
-            padding-left: 12px;
+            flex: 1;
+            margin-left: 16px;
+            padding-left: 16px;
             border-left: 1px solid var(--color-gray-3);
           `}
         >
-          <PriceStats history={history} />
+          <PriceStats history={history} stretched />
         </div>
       </Flex>
     </Flex>
