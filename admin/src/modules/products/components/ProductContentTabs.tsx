@@ -2,8 +2,8 @@ import { Paper } from '@components/paper/Paper';
 import { Flex } from '@components/utility/Flex';
 import { Box } from '@components/utility/Box';
 import { css } from '@emotion/react';
-import { Button, Typography, Tabs, Dropdown } from 'antd';
-import { WarningOutlined, MoreOutlined } from '@ant-design/icons';
+import { Button, Typography, Tabs } from 'antd';
+import { WarningOutlined } from '@ant-design/icons';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
 import { t as tCommon } from '@src/lang/messages';
@@ -29,8 +29,9 @@ const tokens = {
 // ============================================================================
 
 const tabsSectionStyles = css`
-  padding: 16px ${tokens.cardPadding}px ${tokens.cardPadding}px;
+  padding: var(--x2) var(--x3) var(--x3);
   border-radius: ${tokens.borderRadius}px;
+  min-height: 120px;
 `;
 
 // ============================================================================
@@ -130,32 +131,6 @@ export const ProductContentTabs = ({
             ),
             children: descriptionPreview ? (
               <Box>
-                {/* Content header */}
-                <Flex align="center" justify="flex-end" css={css`margin-bottom: 8px;`}>
-                  <Flex gap="3">
-                    <Button
-                      type="primary"
-                      ghost
-                      size="small"
-                      css={css`
-                        height: 24px;
-                        font-size: 11px;
-                        padding: 0 10px;
-                      `}
-                    >
-                      AI Assist
-                    </Button>
-                    <Dropdown
-                      menu={{
-                        items: [{ key: 'edit', label: 'Edit' }],
-                        onClick: () => handleEdit('description'),
-                      }}
-                      trigger={['click']}
-                    >
-                      <Button size="small" icon={<MoreOutlined />} />
-                    </Dropdown>
-                  </Flex>
-                </Flex>
                 <Typography.Paragraph
                   ellipsis={{ rows: 3 }}
                   css={css`
@@ -196,18 +171,6 @@ export const ProductContentTabs = ({
             ),
             children: product.excerpt ? (
               <Box>
-                {/* Content header */}
-                <Flex align="center" justify="flex-end" css={css`margin-bottom: 8px;`}>
-                  <Dropdown
-                    menu={{
-                      items: [{ key: 'edit', label: 'Edit' }],
-                      onClick: () => handleEdit('excerpt'),
-                    }}
-                    trigger={['click']}
-                  >
-                    <Button size="small" icon={<MoreOutlined />} />
-                  </Dropdown>
-                </Flex>
                 <Typography.Paragraph
                   ellipsis={{ rows: 3 }}
                   css={css`
