@@ -156,33 +156,41 @@ export const ProductInfoCard = ({ product, onEditSection }: IProductInfoCardProp
 
   return (
     <Flex direction="column" gap="3" css={css`width: 100%;`}>
-      {/* Header: Title + Status */}
-      <InfoSection
-        title={formatMessage({ id: tCommon('common.title') })}
-        name="information"
-        onEdit={() => handleEdit('information')}
-        compact
-      >
-        <Row gutter={[16, 8]}>
-          <Col span={16}>
-            <Field label={formatMessage({ id: tCommon('common.title') })}>
-              <Typography.Text strong>{product.title || '-'}</Typography.Text>
-            </Field>
-          </Col>
-          <Col span={8}>
-            <Field label={formatMessage({ id: tCommon('common.status') })}>
-              <Tag color={getStatusColor(product.status)} css={css`margin: 0;`}>
-                {getStatusLabel(product.status)}
-              </Tag>
-            </Field>
-          </Col>
-          <Col span={24}>
-            <Field label={formatMessage({ id: tCommon('common.slug') })}>
-              <Typography.Text code css={css`font-size: 12px;`}>{product.slug}</Typography.Text>
-            </Field>
-          </Col>
-        </Row>
-      </InfoSection>
+      {/* Header: Information + Status */}
+      <Row gutter={12}>
+        <Col span={18}>
+          <InfoSection
+            title="Information"
+            name="information"
+            onEdit={() => handleEdit('information')}
+            compact
+          >
+            <Flex gap="4">
+              <Box css={css`flex: 1; min-width: 0;`}>
+                <Typography.Text css={labelStyles}>{formatMessage({ id: tCommon('common.title') })}</Typography.Text>
+                <Typography.Text strong copyable css={css`font-size: 13px; display: block;`}>
+                  {product.title || '-'}
+                </Typography.Text>
+              </Box>
+              <Box css={css`flex: 1; min-width: 0;`}>
+                <Typography.Text css={labelStyles}>{formatMessage({ id: tCommon('common.slug') })}</Typography.Text>
+                <Tag css={css`margin: 0; font-size: 11px;`}>{product.slug}</Tag>
+              </Box>
+            </Flex>
+          </InfoSection>
+        </Col>
+        <Col span={6}>
+          <InfoSection
+            title={formatMessage({ id: tCommon('common.status') })}
+            name="status"
+            compact
+          >
+            <Tag color={getStatusColor(product.status)} css={css`margin: 0;`}>
+              {getStatusLabel(product.status)}
+            </Tag>
+          </InfoSection>
+        </Col>
+      </Row>
 
       {/* Description + Excerpt */}
       <Row gutter={12}>
@@ -511,19 +519,16 @@ export const ProductInfoCard = ({ product, onEditSection }: IProductInfoCardProp
             badge={product.categories?.length}
             compact
           >
-            {product.categories?.length > 0 ? (
-              <Flex direction="column" gap="1">
+            {product.categories?.length > 0 || product.primaryCategory ? (
+              <Flex gap="1" wrap="wrap">
                 {product.primaryCategory && (
-                  <Flex gap="1" align="center">
-                    <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6);`}>Primary:</Typography.Text>
-                    <Tag color="geekblue" css={css`margin: 0; font-size: 11px;`}>{product.primaryCategory.title}</Tag>
-                  </Flex>
+                  <Tag color="blue-inverse">{product.primaryCategory.title}</Tag>
                 )}
-                <Flex gap="1" wrap="wrap">
-                  {product.categories.map((cat) => (
-                    <Tag key={cat.id} color="blue" css={css`margin: 0; font-size: 11px;`}>{cat.title}</Tag>
+                {product.categories
+                  ?.filter((cat) => cat.id !== product.primaryCategory?.id)
+                  .map((cat) => (
+                    <Tag key={cat.id} color="blue">{cat.title}</Tag>
                   ))}
-                </Flex>
               </Flex>
             ) : (
               <Typography.Text type="secondary" css={css`font-size: 12px;`}>—</Typography.Text>
@@ -541,7 +546,7 @@ export const ProductInfoCard = ({ product, onEditSection }: IProductInfoCardProp
             {product.tags?.length > 0 ? (
               <Flex gap="1" wrap="wrap">
                 {product.tags.map((tag) => (
-                  <Tag key={tag.id} css={css`margin: 0; font-size: 11px;`}>{tag.title}</Tag>
+                  <Tag key={tag.id}>{tag.title}</Tag>
                 ))}
               </Flex>
             ) : (
