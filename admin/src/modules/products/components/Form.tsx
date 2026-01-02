@@ -683,7 +683,14 @@ const ProductFormView = () => {
       case 'inventory':
         return <ProductVariantsTable refetch={refetch} />;
       case 'bundles':
-        return renderProductInfoCard();
+        return (
+          <ProductGroups
+            onDone={onGroupsChange}
+            loading={refetching.groups}
+            onDelete={onDeleteGroup}
+            onSort={onSortGroups}
+          />
+        );
       default:
         return renderProductInfoCard();
     }
