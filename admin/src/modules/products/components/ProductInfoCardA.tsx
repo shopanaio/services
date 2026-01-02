@@ -13,8 +13,23 @@ import {
   Rate,
   Progress,
   Select,
+  Dropdown,
+  Tooltip,
+  Skeleton,
 } from 'antd';
-import { EditOutlined, CopyOutlined, StarFilled } from '@ant-design/icons';
+import {
+  EditOutlined,
+  CopyOutlined,
+  StarFilled,
+  MoreOutlined,
+  InfoCircleOutlined,
+  CheckCircleFilled,
+  ExclamationCircleFilled,
+  ClockCircleFilled,
+  WarningOutlined,
+  StopOutlined,
+  SyncOutlined,
+} from '@ant-design/icons';
 import { ReactNode, useState, useMemo } from 'react';
 import { MediaFilePlaceholder } from '@components/media/control/Placeholder';
 import { IProduct } from '@src/entity/Product/Product';
@@ -48,8 +63,9 @@ interface IWarehouseStock {
   totalQty: number;
   reservedQty: number;
   inStockQty: number;
-  lowStockQty: number;
-  outOfStockQty: number;
+  totalVariants: number;
+  lowStockVariants: number;
+  outOfStockVariants: number;
 }
 
 interface IInventoryStats {
@@ -57,8 +73,8 @@ interface IInventoryStats {
   reservedQty: number;
   availableQty: number;
   inStockQty: number;
-  lowStockQty: number;
-  outOfStockQty: number;
+  lowStockPercent: number;
+  outOfStockPercent: number;
 }
 
 const getMockWarehouseStock = (): IWarehouseStock[] => {
@@ -71,8 +87,9 @@ const getMockWarehouseStock = (): IWarehouseStock[] => {
       totalQty: 890,
       reservedQty: 45,
       inStockQty: 756,
-      lowStockQty: 89,
-      outOfStockQty: 45,
+      totalVariants: 15,
+      lowStockVariants: 2,
+      outOfStockVariants: 3,
     },
     {
       warehouseId: 'wh-2',
@@ -82,8 +99,9 @@ const getMockWarehouseStock = (): IWarehouseStock[] => {
       totalQty: 245,
       reservedQty: 12,
       inStockQty: 198,
-      lowStockQty: 32,
-      outOfStockQty: 15,
+      totalVariants: 15,
+      lowStockVariants: 3,
+      outOfStockVariants: 4,
     },
     {
       warehouseId: 'wh-3',
@@ -93,8 +111,9 @@ const getMockWarehouseStock = (): IWarehouseStock[] => {
       totalQty: 112,
       reservedQty: 8,
       inStockQty: 78,
-      lowStockQty: 24,
-      outOfStockQty: 10,
+      totalVariants: 15,
+      lowStockVariants: 4,
+      outOfStockVariants: 5,
     },
   ];
 };
@@ -106,25 +125,33 @@ const calculateInventoryStats = (
   if (selectedWarehouseId) {
     const wh = warehouses.find((w) => w.warehouseId === selectedWarehouseId);
     if (wh) {
+      const lowPct = wh.totalVariants > 0 ? Math.round((wh.lowStockVariants / wh.totalVariants) * 100) : 0;
+      const outPct = wh.totalVariants > 0 ? Math.round((wh.outOfStockVariants / wh.totalVariants) * 100) : 0;
       return {
         totalQty: wh.totalQty,
         reservedQty: wh.reservedQty,
         availableQty: wh.totalQty - wh.reservedQty,
         inStockQty: wh.inStockQty,
-        lowStockQty: wh.lowStockQty,
-        outOfStockQty: wh.outOfStockQty,
+        lowStockPercent: lowPct,
+        outOfStockPercent: outPct,
       };
     }
   }
 
-  // All warehouses - aggregate
+  const totalVariants = warehouses[0]?.totalVariants || 0;
+  const lowStockVariants = Math.max(...warehouses.map((w) => w.lowStockVariants));
+  const outOfStockVariants = Math.max(...warehouses.map((w) => w.outOfStockVariants));
+
+  const totalQty = warehouses.reduce((sum, w) => sum + w.totalQty, 0);
+  const reservedQty = warehouses.reduce((sum, w) => sum + w.reservedQty, 0);
+
   return {
-    totalQty: warehouses.reduce((sum, w) => sum + w.totalQty, 0),
-    reservedQty: warehouses.reduce((sum, w) => sum + w.reservedQty, 0),
-    availableQty: warehouses.reduce((sum, w) => sum + w.totalQty - w.reservedQty, 0),
+    totalQty,
+    reservedQty,
+    availableQty: totalQty - reservedQty,
     inStockQty: warehouses.reduce((sum, w) => sum + w.inStockQty, 0),
-    lowStockQty: warehouses.reduce((sum, w) => sum + w.lowStockQty, 0),
-    outOfStockQty: warehouses.reduce((sum, w) => sum + w.outOfStockQty, 0),
+    lowStockPercent: totalVariants > 0 ? Math.round((lowStockVariants / totalVariants) * 100) : 0,
+    outOfStockPercent: totalVariants > 0 ? Math.round((outOfStockVariants / totalVariants) * 100) : 0,
   };
 };
 
@@ -637,9 +664,13 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           label="Total"
         />
         <InventoryStatBox
-          value={stats.inStockQty.toLocaleString()}
-          label="In Stock"
+          value={stats.availableQty.toLocaleString()}
+          label="Available"
           color="#52c41a"
+        />
+        <InventoryStatBox
+          value={stats.inStockQty.toLocaleString()}
+          label="On Hand"
         />
         <InventoryStatBox
           value={stats.reservedQty.toLocaleString()}
@@ -647,14 +678,14 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           color={stats.reservedQty > 0 ? '#1677ff' : undefined}
         />
         <InventoryStatBox
-          value={stats.lowStockQty.toLocaleString()}
+          value={`${stats.lowStockPercent}%`}
           label="Low Stock"
-          color={stats.lowStockQty > 0 ? '#faad14' : undefined}
+          color={stats.lowStockPercent > 0 ? '#faad14' : undefined}
         />
         <InventoryStatBox
-          value={stats.outOfStockQty.toLocaleString()}
-          label="Out of Stock"
-          color={stats.outOfStockQty > 0 ? '#ff4d4f' : undefined}
+          value={`${stats.outOfStockPercent}%`}
+          label="Out"
+          color={stats.outOfStockPercent > 0 ? '#ff4d4f' : undefined}
         />
       </Flex>
     </Section>
