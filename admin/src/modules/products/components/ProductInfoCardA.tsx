@@ -616,6 +616,7 @@ const inventoryTokens = {
     info: '#1677ff',
     warning: '#faad14',
     danger: '#ff4d4f',
+    purple: '#722ed1',
   },
 };
 
@@ -654,7 +655,7 @@ const kpiTileStyles = css`
 const kpiTilePrimaryStyles = css`
   ${kpiTileStyles};
   flex: 1.5;
-  border-left: 3px solid ${inventoryTokens.colors.success};
+  border-left: 2px solid ${inventoryTokens.colors.success};
 `;
 
 const tilesGroupStyles = css`
@@ -682,9 +683,9 @@ const formatRelativeTime = (date: Date): string => {
 const getSyncStatusConfig = (status: SyncStatus) => {
   switch (status) {
     case 'synced':
-      return { icon: <CheckCircleFilled />, color: inventoryTokens.colors.success, label: 'Synced' };
+      return { icon: <CheckCircleFilled />, color: 'var(--color-gray-5)', label: 'Synced' };
     case 'syncing':
-      return { icon: <SyncOutlined spin />, color: inventoryTokens.colors.info, label: 'Syncing' };
+      return { icon: <SyncOutlined spin />, color: 'var(--color-gray-6)', label: 'Syncing' };
     case 'stale':
       return { icon: <ClockCircleFilled />, color: inventoryTokens.colors.warning, label: 'Outdated' };
     case 'error':
@@ -795,7 +796,7 @@ const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
 };
 
 // KPI Tile Component
-type KPIVariant = 'default' | 'primary' | 'warning' | 'danger' | 'info';
+type KPIVariant = 'default' | 'primary' | 'warning' | 'danger' | 'info' | 'purple';
 
 interface IKPITileProps {
   label: string;
@@ -816,6 +817,7 @@ const getVariantStyles = (variant: KPIVariant) => {
     warning: { border: inventoryTokens.colors.warning, badge: inventoryTokens.colors.warning },
     danger: { border: inventoryTokens.colors.danger, badge: inventoryTokens.colors.danger },
     info: { border: inventoryTokens.colors.info, badge: inventoryTokens.colors.info },
+    purple: { border: inventoryTokens.colors.purple, badge: inventoryTokens.colors.purple },
   };
   return colors[variant];
 };
@@ -837,7 +839,7 @@ const KPITile = ({
     <Box
       css={css`
         ${isPrimary ? kpiTilePrimaryStyles : kpiTileStyles};
-        ${variantStyles.border && !isPrimary ? `border-left: 3px solid ${variantStyles.border};` : ''}
+        ${variantStyles.border && !isPrimary ? `border-left: 2px solid ${variantStyles.border};` : ''}
         ${active ? 'border-color: var(--color-primary); background: var(--color-primary-bg);' : ''}
       `}
       onClick={onClick}
@@ -1052,7 +1054,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           label="Available"
           tooltip="Units available for sale (On Hand minus Reserved)"
           value={stats.availableQty.toLocaleString()}
-          secondary={`of ${stats.totalSKUs} total SKUs`}
+          secondary={`across ${stats.totalSKUs} SKUs`}
           variant="primary"
           isPrimary
           badge={<Tag color="success" css={css`margin: 0; font-size: 9px; line-height: 14px; padding: 0 4px;`}>Sellable</Tag>}
@@ -1071,7 +1073,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           label="Reserved"
           tooltip="Units allocated to pending orders"
           value={stats.reservedQty.toLocaleString()}
-          secondary={stats.pendingOrders > 0 ? `${stats.pendingOrders} orders pending` : undefined}
+          secondary={stats.pendingOrders > 0 ? `${stats.pendingOrders} orders` : undefined}
           variant={stats.reservedQty > 0 ? 'info' : 'default'}
           badge={stats.reservedQty > 0 ? <Tag color="blue" css={css`margin: 0; font-size: 9px; line-height: 14px; padding: 0 4px;`}>Reserved</Tag> : undefined}
           active={activeKPI === 'reserved'}
@@ -1121,7 +1123,8 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
             tooltip="SKUs with incoming stock expected"
             value={`${stats.backorderSKUs} SKUs`}
             secondary="ETA avg 5d"
-            variant="info"
+            variant="purple"
+            badge={<ClockCircleFilled css={css`color: ${inventoryTokens.colors.purple}; font-size: 11px;`} />}
             active={activeKPI === 'backorder'}
             onClick={() => handleKPIClick('backorder')}
           />
