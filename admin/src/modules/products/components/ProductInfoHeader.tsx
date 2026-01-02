@@ -14,6 +14,7 @@ import {
 } from 'antd';
 import {
   CopyOutlined,
+  CheckOutlined,
   MoreOutlined,
   ClockCircleFilled,
   StopOutlined,
@@ -284,55 +285,54 @@ interface ICopyableChipProps {
   mono?: boolean;
 }
 
-const copyableChipStyles = css`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: var(--color-gray-2);
-  border-radius: 4px;
-  font-size: 11px;
-  transition: background 0.2s;
+const CopyableChip = ({ label, value, displayValue, mono }: ICopyableChipProps) => {
+  const [copied, setCopied] = useState(false);
 
-  &:hover {
-    background: var(--color-gray-3);
-  }
-`;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
-const CopyableChip = ({ label, value, displayValue, mono }: ICopyableChipProps) => (
-  <Box css={copyableChipStyles}>
-    {label && (
-      <Typography.Text
-        type="secondary"
-        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px;`}
+  return (
+    <Tooltip title={copied ? 'Copied!' : undefined}>
+      <Tag
+        color="default"
+        onClick={handleCopy}
+        css={css`
+          cursor: pointer;
+          margin: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 0;
+        `}
       >
-        {label}
-      </Typography.Text>
-    )}
-    <Typography.Text
-      copyable={{
-        text: value,
-        icon: <CopyOutlined css={css`font-size: 9px; color: var(--color-gray-5);`} />,
-        tooltips: ['Copy', 'Copied!'],
-      }}
-      css={css`
-        ${mono ? 'font-family: ui-monospace, SFMono-Regular, monospace;' : ''}
-        font-size: 11px;
-        color: var(--color-gray-8);
-        .ant-typography-copy {
-          margin-left: 4px;
-          opacity: 0.6;
-          transition: opacity 0.2s;
-        }
-        &:hover .ant-typography-copy {
-          opacity: 1;
-        }
-      `}
-    >
-      {displayValue || value}
-    </Typography.Text>
-  </Box>
-);
+        {label && (
+          <Typography.Text
+            type="secondary"
+            css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; margin-right: 4px;`}
+          >
+            {label}
+          </Typography.Text>
+        )}
+        <Typography.Text
+          css={css`
+            ${mono ? 'font-family: ui-monospace, SFMono-Regular, monospace;' : ''}
+            font-size: 11px;
+            color: var(--color-gray-8);
+          `}
+        >
+          {displayValue || value}
+        </Typography.Text>
+        {copied ? (
+          <CheckOutlined css={css`font-size: 9px; color: var(--color-green-6);`} />
+        ) : (
+          <CopyOutlined css={css`font-size: 9px; color: var(--color-gray-7);`} />
+        )}
+      </Tag>
+    </Tooltip>
+  );
+};
 
 // User Popover Content
 interface IUserPopoverProps {
