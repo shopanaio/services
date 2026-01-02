@@ -388,25 +388,6 @@ export const ProductInfoHeader = ({
             </Tag>
           </Tooltip>
 
-          {/* Stock status indicator */}
-          <Flex
-            align="center"
-            gap="1"
-            css={css`
-              font-size: 12px;
-              color: ${tokens.colors.textSecondary};
-            `}
-          >
-            <span
-              css={css`
-                width: 6px;
-                height: 6px;
-                border-radius: 50%;
-                background: ${tokens.colors.success};
-              `}
-            />
-            In stock
-          </Flex>
         </Flex>
 
         {/* Right: Quick Actions */}
