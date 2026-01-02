@@ -2,14 +2,26 @@ import { Paper } from '@components/paper/Paper';
 import { Flex } from '@components/utility/Flex';
 import { Box } from '@components/utility/Box';
 import { css } from '@emotion/react';
-import { Button, Image, Tag, Typography, Empty, Tabs } from 'antd';
+import {
+  Button,
+  Image,
+  Tag,
+  Typography,
+  Empty,
+  Tabs,
+  Descriptions,
+} from 'antd';
 import { EditOutlined, CopyOutlined } from '@ant-design/icons';
 import { ReactNode } from 'react';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
 import { t } from '@modules/products/i18n/messages';
 import { t as tCommon } from '@src/lang/messages';
-import { dimensionUnitOptions, weightUniOptions, stockStatuses } from '@src/defs/constants';
+import {
+  dimensionUnitOptions,
+  weightUniOptions,
+  stockStatuses,
+} from '@src/defs/constants';
 
 // ============================================================================
 // Styles
@@ -66,7 +78,12 @@ interface ISectionProps {
 const Section = ({ title, name, children, onEdit }: ISectionProps) => (
   <Paper css={sectionStyles}>
     <Flex align="center" justify="space-between" css={sectionHeaderStyles}>
-      <Typography.Text strong css={css`font-size: 13px;`}>
+      <Typography.Text
+        strong
+        css={css`
+          font-size: 13px;
+        `}
+      >
         {title}
       </Typography.Text>
       {onEdit && (
@@ -76,7 +93,10 @@ const Section = ({ title, name, children, onEdit }: ISectionProps) => (
           icon={<EditOutlined />}
           onClick={onEdit}
           data-testid={`${name}-edit-button`}
-          css={css`height: 24px; padding: 0 8px;`}
+          css={css`
+            height: 24px;
+            padding: 0 8px;
+          `}
         />
       )}
     </Flex>
@@ -102,7 +122,12 @@ const StatBox = ({ label, value, color }: IStatBoxProps) => (
     >
       {value}
     </Typography.Text>
-    <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+    <Typography.Text
+      type="secondary"
+      css={css`
+        font-size: 11px;
+      `}
+    >
       {label}
     </Typography.Text>
   </Box>
@@ -117,22 +142,37 @@ interface IProductInfoCardAProps {
   onEditSection?: (section: string) => void;
 }
 
-export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAProps) => {
+export const ProductInfoCardA = ({
+  product,
+  onEditSection,
+}: IProductInfoCardAProps) => {
   const { formatMessage } = useIntl();
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(price / 100);
+    new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+    }).format(price / 100);
 
   const formatWeight = (weight: number | null, unit: string) => {
     if (!weight) return '—';
-    return `${weight} ${weightUniOptions[unit as keyof typeof weightUniOptions]?.label || unit}`;
+    return `${weight} ${
+      weightUniOptions[unit as keyof typeof weightUniOptions]?.label || unit
+    }`;
   };
 
-  const formatDimensions = (l: number | null, w: number | null, h: number | null, unit: string) => {
+  const formatDimensions = (
+    l: number | null,
+    w: number | null,
+    h: number | null,
+    unit: string,
+  ) => {
     if (!l && !w && !h) return '—';
-    const u = dimensionUnitOptions[unit as keyof typeof dimensionUnitOptions]?.label || unit;
+    const u =
+      dimensionUnitOptions[unit as keyof typeof dimensionUnitOptions]?.label ||
+      unit;
     return `${l || 0} × ${w || 0} × ${h || 0} ${u}`;
   };
 
@@ -152,17 +192,28 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
       };
       return extractText(parsed).slice(0, 300);
     } catch {
-      return typeof product.description === 'string' ? product.description.slice(0, 300) : null;
+      return typeof product.description === 'string'
+        ? product.description.slice(0, 300)
+        : null;
     }
   };
 
-  const variantsInStock = product.variants?.filter(v => v.stockStatus === 'IN_STOCK').length || 0;
-  const variantsOutOfStock = product.variants?.filter(v => v.stockStatus === 'OUT_OF_STOCK').length || 0;
+  const variantsInStock =
+    product.variants?.filter((v) => v.stockStatus === 'IN_STOCK').length || 0;
+  const variantsOutOfStock =
+    product.variants?.filter((v) => v.stockStatus === 'OUT_OF_STOCK').length ||
+    0;
 
   const descriptionPreview = getDescriptionPreview();
 
   return (
-    <Flex direction="column" gap="3" css={css`width: 100%;`}>
+    <Flex
+      direction="column"
+      gap="3"
+      css={css`
+        width: 100%;
+      `}
+    >
       {/* ================================================================== */}
       {/* HERO SECTION */}
       {/* ================================================================== */}
@@ -171,14 +222,29 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
           {/* Title + Status */}
           <Flex align="flex-start" justify="space-between" gap="3">
             <Box>
-              <Typography.Title level={4} css={css`margin: 0 0 4px 0 !important;`}>
+              <Typography.Title
+                level={4}
+                css={css`
+                  margin: 0 0 4px 0 !important;
+                `}
+              >
                 {product.title || 'Untitled Product'}
               </Typography.Title>
               <Flex align="center" gap="2">
-                <Typography.Text code css={css`font-size: 11px;`}>
+                <Typography.Text
+                  code
+                  css={css`
+                    font-size: 11px;
+                  `}
+                >
                   {product.sku || '—'}
                 </Typography.Text>
-                <Typography.Text type="secondary" css={css`font-size: 12px;`}>
+                <Typography.Text
+                  type="secondary"
+                  css={css`
+                    font-size: 12px;
+                  `}
+                >
                   {product.slug}
                 </Typography.Text>
               </Flex>
@@ -195,13 +261,27 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
       {/* ================================================================== */}
       {/* CONTENT (Description / Excerpt / SEO) */}
       {/* ================================================================== */}
-      <Section
-        title={formatMessage({ id: tCommon('common.description') })}
-        name="content"
-        onEdit={() => handleEdit('information')}
-      >
+      <Paper css={sectionStyles}>
         <Tabs
           size="small"
+          tabBarExtraContent={
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit('information')}
+              data-testid="content-edit-button"
+              css={css`
+                height: 24px;
+                padding: 0 8px;
+              `}
+            />
+          }
+          css={css`
+            .ant-tabs-nav {
+              margin-bottom: var(--x2) !important;
+            }
+          `}
           items={[
             {
               key: 'description',
@@ -209,13 +289,22 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
               children: descriptionPreview ? (
                 <Typography.Paragraph
                   ellipsis={{ rows: 4 }}
-                  css={css`margin: 0 !important; font-size: 13px; color: var(--color-gray-8);`}
+                  css={css`
+                    margin: 0 !important;
+                    font-size: 13px;
+                    color: var(--color-gray-8);
+                  `}
                 >
                   {descriptionPreview}
                   {descriptionPreview.length >= 300 && '...'}
                 </Typography.Paragraph>
               ) : (
-                <Typography.Text type="secondary" css={css`font-size: 13px;`}>
+                <Typography.Text
+                  type="secondary"
+                  css={css`
+                    font-size: 13px;
+                  `}
+                >
                   —
                 </Typography.Text>
               ),
@@ -226,12 +315,21 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
               children: product.excerpt ? (
                 <Typography.Paragraph
                   ellipsis={{ rows: 4 }}
-                  css={css`margin: 0 !important; font-size: 13px; color: var(--color-gray-8);`}
+                  css={css`
+                    margin: 0 !important;
+                    font-size: 13px;
+                    color: var(--color-gray-8);
+                  `}
                 >
                   {product.excerpt}
                 </Typography.Paragraph>
               ) : (
-                <Typography.Text type="secondary" css={css`font-size: 13px;`}>
+                <Typography.Text
+                  type="secondary"
+                  css={css`
+                    font-size: 13px;
+                  `}
+                >
                   —
                 </Typography.Text>
               ),
@@ -242,20 +340,39 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
               children: (
                 <Flex direction="column" gap="2">
                   <Box>
-                    <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+                    <Typography.Text
+                      css={css`
+                        font-size: 11px;
+                        color: var(--color-gray-6);
+                        display: block;
+                      `}
+                    >
                       {formatMessage({ id: tCommon('common.seoTitle') })}
                     </Typography.Text>
-                    <Typography.Text css={css`font-size: 13px;`}>
+                    <Typography.Text
+                      css={css`
+                        font-size: 13px;
+                      `}
+                    >
                       {product.seoTitle || '—'}
                     </Typography.Text>
                   </Box>
                   <Box>
-                    <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+                    <Typography.Text
+                      css={css`
+                        font-size: 11px;
+                        color: var(--color-gray-6);
+                        display: block;
+                      `}
+                    >
                       {formatMessage({ id: tCommon('common.seoDescription') })}
                     </Typography.Text>
                     <Typography.Paragraph
                       ellipsis={{ rows: 2 }}
-                      css={css`margin: 0 !important; font-size: 13px;`}
+                      css={css`
+                        margin: 0 !important;
+                        font-size: 13px;
+                      `}
                     >
                       {product.seoDescription || '—'}
                     </Typography.Paragraph>
@@ -265,7 +382,7 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
             },
           ]}
         />
-      </Section>
+      </Paper>
 
       {/* ================================================================== */}
       {/* MEDIA SECTION */}
@@ -286,16 +403,18 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
                 css={mediaImageStyles}
               />
             )}
-            {product.gallery?.slice(0, 5).map((media) => (
-              <Image
-                key={media.id}
-                src={media.url}
-                alt={media.name || ''}
-                width={64}
-                height={64}
-                css={mediaImageStyles}
-              />
-            ))}
+            {product.gallery
+              ?.slice(0, 5)
+              .map((media) => (
+                <Image
+                  key={media.id}
+                  src={media.url}
+                  alt={media.name || ''}
+                  width={64}
+                  height={64}
+                  css={mediaImageStyles}
+                />
+              ))}
             {product.gallery?.length > 5 && (
               <Flex
                 align="center"
@@ -313,70 +432,88 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
             )}
           </Flex>
         ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No media" css={css`.ant-empty-image { height: 40px; }`} />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No media"
+            css={css`
+              .ant-empty-image {
+                height: 40px;
+              }
+            `}
+          />
         )}
       </Section>
 
       {/* ================================================================== */}
-      {/* CATEGORIES */}
+      {/* CATEGORIES & TAGS */}
       {/* ================================================================== */}
-      <Section
-        title={formatMessage({ id: t('product.categories.title') })}
-        name="categories"
-        onEdit={() => handleEdit('categories')}
-      >
-        {product.primaryCategory || product.categories?.length > 0 ? (
-          <Flex direction="column" gap="2">
-            {product.primaryCategory && (
-              <Box>
-                <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block; margin-bottom: 4px;`}>
-                  {formatMessage({ id: t('product.categories.primary.label') })}
-                </Typography.Text>
-                <Tag color="blue-inverse">{product.primaryCategory.title}</Tag>
-              </Box>
+      <Flex gap="3">
+        <Box
+          css={css`
+            flex: 1;
+          `}
+        >
+          <Section
+            title={formatMessage({ id: t('product.categories.title') })}
+            name="categories"
+            onEdit={() => handleEdit('categories')}
+          >
+            {product.primaryCategory || product.categories?.length > 0 ? (
+              <Flex gap="1" wrap="wrap">
+                {product.primaryCategory && (
+                  <Tag color="blue-inverse">
+                    {product.primaryCategory.title}
+                  </Tag>
+                )}
+                {product.categories
+                  ?.filter((cat) => cat.id !== product.primaryCategory?.id)
+                  .map((cat) => (
+                    <Tag key={cat.id} color="blue">
+                      {cat.title}
+                    </Tag>
+                  ))}
+              </Flex>
+            ) : (
+              <Typography.Text
+                type="secondary"
+                css={css`
+                  font-size: 12px;
+                `}
+              >
+                {formatMessage({ id: t('product.categories.empty') })}
+              </Typography.Text>
             )}
-            {product.categories?.filter(cat => cat.id !== product.primaryCategory?.id).length > 0 && (
-              <Box>
-                <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block; margin-bottom: 4px;`}>
-                  {formatMessage({ id: t('product.categories.additional.label') })}
-                </Typography.Text>
-                <Flex gap="1" wrap="wrap">
-                  {product.categories
-                    ?.filter(cat => cat.id !== product.primaryCategory?.id)
-                    .map(cat => (
-                      <Tag key={cat.id} color="blue">{cat.title}</Tag>
-                    ))}
-                </Flex>
-              </Box>
+          </Section>
+        </Box>
+        <Box
+          css={css`
+            flex: 1;
+          `}
+        >
+          <Section
+            title={formatMessage({ id: t('product.tags.title') })}
+            name="tags"
+            onEdit={() => handleEdit('tags')}
+          >
+            {product.tags?.length > 0 ? (
+              <Flex gap="1" wrap="wrap">
+                {product.tags.map((tag) => (
+                  <Tag key={tag.id}>{tag.title}</Tag>
+                ))}
+              </Flex>
+            ) : (
+              <Typography.Text
+                type="secondary"
+                css={css`
+                  font-size: 12px;
+                `}
+              >
+                {formatMessage({ id: t('product.tags.empty') })}
+              </Typography.Text>
             )}
-          </Flex>
-        ) : (
-          <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-            {formatMessage({ id: t('product.categories.empty') })}
-          </Typography.Text>
-        )}
-      </Section>
-
-      {/* ================================================================== */}
-      {/* TAGS */}
-      {/* ================================================================== */}
-      <Section
-        title={formatMessage({ id: t('product.tags.title') })}
-        name="tags"
-        onEdit={() => handleEdit('tags')}
-      >
-        {product.tags?.length > 0 ? (
-          <Flex gap="1" wrap="wrap">
-            {product.tags.map(tag => (
-              <Tag key={tag.id}>{tag.title}</Tag>
-            ))}
-          </Flex>
-        ) : (
-          <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-            {formatMessage({ id: t('product.tags.empty') })}
-          </Typography.Text>
-        )}
-      </Section>
+          </Section>
+        </Box>
+      </Flex>
 
       {/* ================================================================== */}
       {/* PRICING */}
@@ -389,35 +526,78 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
         {!product.isVariableProduct ? (
           <Flex gap="4" align="center">
             <Box>
-              <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: var(--color-gray-6);
+                  display: block;
+                `}
+              >
                 {formatMessage({ id: t('product.pricing.price.label') })}
               </Typography.Text>
-              <Typography.Text strong css={css`font-size: 20px;`}>
+              <Typography.Text
+                strong
+                css={css`
+                  font-size: 20px;
+                `}
+              >
                 {formatPrice(product.price)}
               </Typography.Text>
             </Box>
             {product.oldPrice > 0 && (
               <Box>
-                <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+                <Typography.Text
+                  css={css`
+                    font-size: 11px;
+                    color: var(--color-gray-6);
+                    display: block;
+                  `}
+                >
                   {formatMessage({ id: t('product.pricing.compareAt.label') })}
                 </Typography.Text>
-                <Typography.Text delete type="secondary" css={css`font-size: 16px;`}>
+                <Typography.Text
+                  delete
+                  type="secondary"
+                  css={css`
+                    font-size: 16px;
+                  `}
+                >
                   {formatPrice(product.oldPrice)}
                 </Typography.Text>
               </Box>
             )}
             {product.costPrice > 0 && (
               <Box>
-                <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+                <Typography.Text
+                  css={css`
+                    font-size: 11px;
+                    color: var(--color-gray-6);
+                    display: block;
+                  `}
+                >
                   {formatMessage({ id: t('product.pricing.cost.label') })}
                 </Typography.Text>
-                <Typography.Text type="secondary" css={css`font-size: 16px;`}>
+                <Typography.Text
+                  type="secondary"
+                  css={css`
+                    font-size: 16px;
+                  `}
+                >
                   {formatPrice(product.costPrice)}
                 </Typography.Text>
               </Box>
             )}
-            <Box css={css`margin-left: auto;`}>
-              <Tag color={getStockInfo(product.stockStatus).color} css={css`margin: 0;`}>
+            <Box
+              css={css`
+                margin-left: auto;
+              `}
+            >
+              <Tag
+                color={getStockInfo(product.stockStatus).color}
+                css={css`
+                  margin: 0;
+                `}
+              >
                 {getStockInfo(product.stockStatus).label}
               </Tag>
             </Box>
@@ -425,18 +605,40 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
         ) : (
           <Flex gap="4" align="center">
             <Box>
-              <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: var(--color-gray-6);
+                  display: block;
+                `}
+              >
                 Price Range
               </Typography.Text>
-              <Typography.Text strong css={css`font-size: 20px;`}>
+              <Typography.Text
+                strong
+                css={css`
+                  font-size: 20px;
+                `}
+              >
                 {product.variants?.length > 0 ? (
                   <>
-                    {formatPrice(Math.min(...product.variants.map(v => v.price)))}
-                    {Math.min(...product.variants.map(v => v.price)) !== Math.max(...product.variants.map(v => v.price)) && (
-                      <> — {formatPrice(Math.max(...product.variants.map(v => v.price)))}</>
+                    {formatPrice(
+                      Math.min(...product.variants.map((v) => v.price)),
+                    )}
+                    {Math.min(...product.variants.map((v) => v.price)) !==
+                      Math.max(...product.variants.map((v) => v.price)) && (
+                      <>
+                        {' '}
+                        —{' '}
+                        {formatPrice(
+                          Math.max(...product.variants.map((v) => v.price)),
+                        )}
+                      </>
                     )}
                   </>
-                ) : '—'}
+                ) : (
+                  '—'
+                )}
               </Typography.Text>
             </Box>
           </Flex>
@@ -454,26 +656,61 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
         {product.isVariableProduct ? (
           <Flex gap="4" align="center">
             <Box>
-              <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: var(--color-gray-6);
+                  display: block;
+                `}
+              >
                 Total Variants
               </Typography.Text>
-              <Typography.Text strong css={css`font-size: 18px;`}>
+              <Typography.Text
+                strong
+                css={css`
+                  font-size: 18px;
+                `}
+              >
                 {product.variants?.length || 0}
               </Typography.Text>
             </Box>
             <Box>
-              <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: var(--color-gray-6);
+                  display: block;
+                `}
+              >
                 In Stock
               </Typography.Text>
-              <Typography.Text strong css={css`font-size: 18px; color: var(--color-success);`}>
+              <Typography.Text
+                strong
+                css={css`
+                  font-size: 18px;
+                  color: var(--color-success);
+                `}
+              >
                 {variantsInStock}
               </Typography.Text>
             </Box>
             <Box>
-              <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: var(--color-gray-6);
+                  display: block;
+                `}
+              >
                 Out of Stock
               </Typography.Text>
-              <Typography.Text strong css={css`font-size: 18px; color: var(--color-error);`}>
+              <Typography.Text
+                strong
+                css={css`
+                  font-size: 18px;
+                  color: var(--color-error);
+                `}
+              >
                 {variantsOutOfStock}
               </Typography.Text>
             </Box>
@@ -481,10 +718,21 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
         ) : (
           <Flex gap="4" align="center">
             <Box>
-              <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: var(--color-gray-6);
+                  display: block;
+                `}
+              >
                 Stock Status
               </Typography.Text>
-              <Tag color={getStockInfo(product.stockStatus).color} css={css`margin: 0;`}>
+              <Tag
+                color={getStockInfo(product.stockStatus).color}
+                css={css`
+                  margin: 0;
+                `}
+              >
                 {getStockInfo(product.stockStatus).label}
               </Tag>
             </Box>
@@ -493,45 +741,82 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
       </Section>
 
       {/* ================================================================== */}
-      {/* COLLECTIONS */}
+      {/* COLLECTIONS & REVIEWS */}
       {/* ================================================================== */}
-      <Section
-        title="Collections"
-        name="collections"
-        onEdit={() => handleEdit('collections')}
-      >
-        <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-          No collections assigned
-        </Typography.Text>
-      </Section>
-
-      {/* ================================================================== */}
-      {/* REVIEWS */}
-      {/* ================================================================== */}
-      <Section
-        title="Reviews"
-        name="reviews"
-        onEdit={() => handleEdit('reviews')}
-      >
-        <Flex gap="4" align="center">
-          <Box>
-            <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
-              Rating
+      <Flex gap="3">
+        <Box
+          css={css`
+            flex: 1;
+          `}
+        >
+          <Section
+            title="Collections"
+            name="collections"
+            onEdit={() => handleEdit('collections')}
+          >
+            <Typography.Text
+              type="secondary"
+              css={css`
+                font-size: 12px;
+              `}
+            >
+              No collections assigned
             </Typography.Text>
-            <Typography.Text type="secondary" css={css`font-size: 14px;`}>
-              —
-            </Typography.Text>
-          </Box>
-          <Box>
-            <Typography.Text css={css`font-size: 11px; color: var(--color-gray-6); display: block;`}>
-              Total Reviews
-            </Typography.Text>
-            <Typography.Text type="secondary" css={css`font-size: 14px;`}>
-              0
-            </Typography.Text>
-          </Box>
-        </Flex>
-      </Section>
+          </Section>
+        </Box>
+        <Box
+          css={css`
+            flex: 1;
+          `}
+        >
+          <Section
+            title="Reviews"
+            name="reviews"
+            onEdit={() => handleEdit('reviews')}
+          >
+            <Flex gap="4" align="center">
+              <Box>
+                <Typography.Text
+                  css={css`
+                    font-size: 11px;
+                    color: var(--color-gray-6);
+                    display: block;
+                  `}
+                >
+                  Rating
+                </Typography.Text>
+                <Typography.Text
+                  type="secondary"
+                  css={css`
+                    font-size: 14px;
+                  `}
+                >
+                  —
+                </Typography.Text>
+              </Box>
+              <Box>
+                <Typography.Text
+                  css={css`
+                    font-size: 11px;
+                    color: var(--color-gray-6);
+                    display: block;
+                  `}
+                >
+                  Total Reviews
+                </Typography.Text>
+                <Typography.Text
+                  type="secondary"
+                  css={css`
+                    font-size: 14px;
+                  `}
+                >
+                  0
+                </Typography.Text>
+              </Box>
+            </Flex>
+          </Section>
+        </Box>
+      </Flex>
 
       {/* ================================================================== */}
       {/* OPTIONS (variable products) */}
@@ -543,14 +828,28 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
           onEdit={() => handleEdit('options')}
         >
           <Flex direction="column" gap="2">
-            {product.options.map(option => (
+            {product.options.map((option) => (
               <Box key={option.id}>
-                <Typography.Text css={css`font-size: 12px; color: var(--color-gray-7); display: block; margin-bottom: 4px;`}>
+                <Typography.Text
+                  css={css`
+                    font-size: 12px;
+                    color: var(--color-gray-7);
+                    display: block;
+                    margin-bottom: 4px;
+                  `}
+                >
                   {option.title}
                 </Typography.Text>
                 <Flex gap="1" wrap="wrap">
-                  {option.features?.map(f => (
-                    <Tag key={f.id} css={css`margin: 0;`}>{f.title}</Tag>
+                  {option.features?.map((f) => (
+                    <Tag
+                      key={f.id}
+                      css={css`
+                        margin: 0;
+                      `}
+                    >
+                      {f.title}
+                    </Tag>
                   ))}
                 </Flex>
               </Box>
@@ -569,12 +868,28 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
           onEdit={() => handleEdit('shipping')}
         >
           <Flex gap="3">
-            <StatBox label={formatMessage({ id: t('products.filters.weight.label') })} value={formatWeight(product.weight, product.weightUnit)} />
-            <StatBox label="Dimensions" value={formatDimensions(product.length, product.width, product.height, product.dimensionUnit)} />
+            <StatBox
+              label={formatMessage({ id: t('products.filters.weight.label') })}
+              value={formatWeight(product.weight, product.weightUnit)}
+            />
+            <StatBox
+              label="Dimensions"
+              value={formatDimensions(
+                product.length,
+                product.width,
+                product.height,
+                product.dimensionUnit,
+              )}
+            />
             <StatBox
               label="Shipping"
               value={
-                <Tag color={product.requiresShipping ? 'blue' : 'default'} css={css`margin: 0;`}>
+                <Tag
+                  color={product.requiresShipping ? 'blue' : 'default'}
+                  css={css`
+                    margin: 0;
+                  `}
+                >
                   {product.requiresShipping ? 'Required' : 'Not required'}
                 </Tag>
               }
@@ -592,20 +907,30 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
           name="attributes"
           onEdit={() => handleEdit('attributes')}
         >
-          <Flex direction="column" gap="2">
-            {product.attributes.map(attr => (
-              <Flex key={attr.id} gap="2" align="flex-start">
-                <Typography.Text css={css`font-size: 12px; min-width: 100px; color: var(--color-gray-7);`}>
-                  {attr.title}:
-                </Typography.Text>
-                <Flex gap="1" wrap="wrap">
-                  {attr.features?.map(f => (
-                    <Tag key={f.id} css={css`margin: 0; font-size: 11px;`}>{f.title}</Tag>
-                  ))}
-                </Flex>
-              </Flex>
+          <Descriptions
+            size="small"
+            column={1}
+            colon={false}
+            css={css`
+              .ant-descriptions-item {
+                padding-bottom: 4px !important;
+              }
+              .ant-descriptions-item-label {
+                color: var(--color-gray-7);
+                font-size: 12px;
+                min-width: 120px;
+              }
+              .ant-descriptions-item-content {
+                font-size: 13px;
+              }
+            `}
+          >
+            {product.attributes.map((attr) => (
+              <Descriptions.Item key={attr.id} label={attr.title}>
+                {attr.features?.map((f) => f.title).join(', ') || '—'}
+              </Descriptions.Item>
             ))}
-          </Flex>
+          </Descriptions>
         </Section>
       )}
 
@@ -619,7 +944,7 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
           onEdit={() => handleEdit('groups')}
         >
           <Flex direction="column" gap="2">
-            {product.groups.map(group => (
+            {product.groups.map((group) => (
               <Box
                 key={group.id}
                 css={css`
@@ -629,11 +954,43 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
                 `}
               >
                 <Flex justify="space-between" align="center">
-                  <Typography.Text strong css={css`font-size: 13px;`}>{group.title}</Typography.Text>
+                  <Typography.Text
+                    strong
+                    css={css`
+                      font-size: 13px;
+                    `}
+                  >
+                    {group.title}
+                  </Typography.Text>
                   <Flex gap="1">
-                    {group.isRequired && <Tag color="red" css={css`margin: 0; font-size: 10px;`}>Required</Tag>}
-                    {group.isMultiple && <Tag color="blue" css={css`margin: 0; font-size: 10px;`}>Multiple</Tag>}
-                    <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+                    {group.isRequired && (
+                      <Tag
+                        color="red"
+                        css={css`
+                          margin: 0;
+                          font-size: 10px;
+                        `}
+                      >
+                        Required
+                      </Tag>
+                    )}
+                    {group.isMultiple && (
+                      <Tag
+                        color="blue"
+                        css={css`
+                          margin: 0;
+                          font-size: 10px;
+                        `}
+                      >
+                        Multiple
+                      </Tag>
+                    )}
+                    <Typography.Text
+                      type="secondary"
+                      css={css`
+                        font-size: 11px;
+                      `}
+                    >
                       {group.items?.length || 0} items
                     </Typography.Text>
                   </Flex>
@@ -648,10 +1005,31 @@ export const ProductInfoCardA = ({ product, onEditSection }: IProductInfoCardAPr
       {/* METADATA FOOTER */}
       {/* ================================================================== */}
       <Box css={metaFooterStyles}>
-        <Flex justify="space-between" align="center" css={css`font-size: 11px; color: var(--color-gray-7);`}>
+        <Flex
+          justify="space-between"
+          align="center"
+          css={css`
+            font-size: 11px;
+            color: var(--color-gray-7);
+          `}
+        >
           <Flex align="center" gap="1">
             <span>ID:</span>
-            <Typography.Text code copyable={{ icon: <CopyOutlined css={css`font-size: 10px;`} /> }} css={css`font-size: 10px;`}>
+            <Typography.Text
+              code
+              copyable={{
+                icon: (
+                  <CopyOutlined
+                    css={css`
+                      font-size: 10px;
+                    `}
+                  />
+                ),
+              }}
+              css={css`
+                font-size: 10px;
+              `}
+            >
               {product.id}
             </Typography.Text>
           </Flex>
