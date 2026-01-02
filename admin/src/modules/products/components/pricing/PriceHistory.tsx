@@ -130,12 +130,6 @@ const formatPrice = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount / 100);
 
-const formatDate = (date: Date) =>
-  new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date);
-
 const formatDateFull = (date: Date) =>
   new Intl.DateTimeFormat('ru-RU', {
     day: 'numeric',
@@ -699,7 +693,7 @@ export const PriceSummaryCard = ({
 
   return (
     <Flex vertical gap="middle">
-      {/* Main price row - 3 columns: price | compare at | chart */}
+      {/* Main price row - 3 columns */}
       <Flex align="flex-start" gap="middle">
         {/* Column 1: vs last + Price */}
         <Flex vertical gap="small">
@@ -785,73 +779,74 @@ export const PriceSummaryCard = ({
           </Flex>
         )}
 
-        {/* Column 3: Sparkline chart */}
+        {/* Column 3: Chart - grows to fill space */}
         <div
           css={css`
-            margin-left: auto;
+            flex: 1;
             padding-left: 16px;
             border-left: 1px solid var(--color-gray-3);
           `}
         >
-          <PriceSparkline history={history} />
+          <PriceSparkline history={history} width={200} height={56} />
         </div>
       </Flex>
 
       {/* Cost, Margin & Stats row */}
       <Flex
         align="center"
-        gap="middle"
+        justify="space-between"
         css={css`
           padding-top: 12px;
           border-top: 1px solid var(--color-gray-3);
         `}
       >
-        {costPrice && costPrice > 0 && (
-          <Flex vertical align="center">
-            <Typography.Text
-              type="secondary"
-              css={css`
-                font-size: 10px;
-              `}
-            >
-              Cost
-            </Typography.Text>
-            <Typography.Text
-              css={css`
-                font-size: 12px;
-              `}
-            >
-              {format(costPrice)}
-            </Typography.Text>
-          </Flex>
-        )}
-        {margin !== null && (
-          <Flex vertical align="center">
-            <Typography.Text
-              type="secondary"
-              css={css`
-                font-size: 10px;
-              `}
-            >
-              Margin
-            </Typography.Text>
-            <Typography.Text
-              css={css`
-                font-size: 12px;
-                color: ${margin >= 30
-                  ? '#52c41a'
-                  : margin >= 15
-                    ? '#faad14'
-                    : '#ff4d4f'};
-              `}
-            >
-              {margin}%
-            </Typography.Text>
-          </Flex>
-        )}
+        <Flex gap="middle">
+          {costPrice && costPrice > 0 && (
+            <Flex vertical align="center">
+              <Typography.Text
+                type="secondary"
+                css={css`
+                  font-size: 10px;
+                `}
+              >
+                Cost
+              </Typography.Text>
+              <Typography.Text
+                css={css`
+                  font-size: 12px;
+                `}
+              >
+                {format(costPrice)}
+              </Typography.Text>
+            </Flex>
+          )}
+          {margin !== null && (
+            <Flex vertical align="center">
+              <Typography.Text
+                type="secondary"
+                css={css`
+                  font-size: 10px;
+                `}
+              >
+                Margin
+              </Typography.Text>
+              <Typography.Text
+                css={css`
+                  font-size: 12px;
+                  color: ${margin >= 30
+                    ? '#52c41a'
+                    : margin >= 15
+                      ? '#faad14'
+                      : '#ff4d4f'};
+                `}
+              >
+                {margin}%
+              </Typography.Text>
+            </Flex>
+          )}
+        </Flex>
         <div
           css={css`
-            margin-left: auto;
             padding-left: 12px;
             border-left: 1px solid var(--color-gray-3);
           `}
