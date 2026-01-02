@@ -215,6 +215,7 @@ interface IPricingHeaderProps {
   selectedVariantId?: string;
   onVariantSelect?: (id: string) => void;
   onMoreAction?: (action: string) => void;
+  formatPrice?: (amount: number) => string;
 }
 
 const PricingHeader = ({
@@ -223,6 +224,7 @@ const PricingHeader = ({
   selectedVariantId,
   onVariantSelect,
   onMoreAction,
+  formatPrice,
 }: IPricingHeaderProps) => {
   const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
 
@@ -292,6 +294,14 @@ const PricingHeader = ({
                         `}
                       />
                     )}
+                    <Typography.Text
+                      css={css`
+                        font-weight: 600;
+                        margin-left: 24px;
+                      `}
+                    >
+                      {formatPrice ? formatPrice(v.price) : v.price}
+                    </Typography.Text>
                   </Flex>
                 </Flex>
               ),
@@ -1058,6 +1068,7 @@ export const PricingBlock = ({
         selectedVariantId={selectedVariantId}
         onVariantSelect={handleVariantSelect}
         onMoreAction={onMoreAction}
+        formatPrice={formatPrice}
       />
 
       {/* Two-column layout */}
