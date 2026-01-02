@@ -10,8 +10,10 @@ import {
   Empty,
   Tabs,
   Descriptions,
+  Rate,
+  Progress,
 } from 'antd';
-import { EditOutlined, CopyOutlined } from '@ant-design/icons';
+import { EditOutlined, CopyOutlined, StarFilled } from '@ant-design/icons';
 import { ReactNode } from 'react';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
@@ -43,9 +45,20 @@ const sectionHeaderStyles = css`
   border-bottom: 1px solid var(--color-gray-3);
 `;
 
+const mediaGridStyles = css`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 64px);
+  grid-gap: var(--x2);
+
+  & > *:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+`;
+
 const mediaImageStyles = css`
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  aspect-ratio: 1/1;
   object-fit: cover;
   border-radius: 4px;
 `;
@@ -393,44 +406,39 @@ export const ProductInfoCardA = ({
         onEdit={() => handleEdit('media')}
       >
         {product.cover || product.gallery?.length > 0 ? (
-          <Flex gap="2" wrap="wrap">
+          <div css={mediaGridStyles}>
             {product.cover && (
               <Image
                 src={product.cover.url}
                 alt={product.title}
-                width={64}
-                height={64}
                 css={mediaImageStyles}
               />
             )}
             {product.gallery
-              ?.slice(0, 5)
+              ?.slice(0, product.cover ? 5 : 6)
               .map((media) => (
                 <Image
                   key={media.id}
                   src={media.url}
                   alt={media.name || ''}
-                  width={64}
-                  height={64}
                   css={mediaImageStyles}
                 />
               ))}
-            {product.gallery?.length > 5 && (
+            {product.gallery?.length > (product.cover ? 5 : 6) && (
               <Flex
                 align="center"
                 justify="center"
                 css={css`
-                  width: 64px;
-                  height: 64px;
+                  aspect-ratio: 1/1;
                   background: var(--color-gray-3);
                   border-radius: 4px;
                   font-size: 12px;
                 `}
               >
-                +{product.gallery.length - 5}
+                +{product.gallery.length - (product.cover ? 5 : 6)}
               </Flex>
             )}
-          </Flex>
+          </div>
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -774,45 +782,111 @@ export const ProductInfoCardA = ({
             name="reviews"
             onEdit={() => handleEdit('reviews')}
           >
-            <Flex gap="4" align="center">
-              <Box>
+            <Flex gap="4">
+              {/* Left side - Average rating */}
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                css={css`
+                  min-width: 100px;
+                  padding-right: var(--x3);
+                  border-right: 1px solid var(--color-gray-3);
+                `}
+              >
                 <Typography.Text
                   css={css`
-                    font-size: 11px;
-                    color: var(--color-gray-6);
-                    display: block;
+                    font-size: 32px;
+                    font-weight: 600;
+                    line-height: 1;
                   `}
                 >
-                  Rating
+                  4.2
                 </Typography.Text>
+                <Rate
+                  disabled
+                  allowHalf
+                  defaultValue={4.2}
+                  css={css`
+                    font-size: 12px;
+                    margin: 4px 0;
+                  `}
+                />
                 <Typography.Text
                   type="secondary"
                   css={css`
-                    font-size: 14px;
-                  `}
-                >
-                  —
-                </Typography.Text>
-              </Box>
-              <Box>
-                <Typography.Text
-                  css={css`
                     font-size: 11px;
-                    color: var(--color-gray-6);
-                    display: block;
                   `}
                 >
-                  Total Reviews
+                  128 reviews
                 </Typography.Text>
-                <Typography.Text
-                  type="secondary"
-                  css={css`
-                    font-size: 14px;
-                  `}
-                >
-                  0
-                </Typography.Text>
-              </Box>
+              </Flex>
+
+              {/* Right side - Rating breakdown */}
+              <Flex
+                direction="column"
+                gap="1"
+                css={css`
+                  flex: 1;
+                `}
+              >
+                {[
+                  { stars: 5, count: 89, percent: 70 },
+                  { stars: 4, count: 24, percent: 19 },
+                  { stars: 3, count: 8, percent: 6 },
+                  { stars: 2, count: 4, percent: 3 },
+                  { stars: 1, count: 3, percent: 2 },
+                ].map((item) => (
+                  <Flex
+                    key={item.stars}
+                    align="center"
+                    gap="2"
+                    css={css`
+                      font-size: 11px;
+                    `}
+                  >
+                    <Flex
+                      align="center"
+                      gap="1"
+                      css={css`
+                        min-width: 28px;
+                      `}
+                    >
+                      <span>{item.stars}</span>
+                      <StarFilled
+                        css={css`
+                          font-size: 10px;
+                          color: #fadb14;
+                        `}
+                      />
+                    </Flex>
+                    <Progress
+                      percent={item.percent}
+                      showInfo={false}
+                      strokeColor="#fadb14"
+                      trailColor="var(--color-gray-3)"
+                      size="small"
+                      css={css`
+                        flex: 1;
+                        margin: 0;
+                        .ant-progress-inner {
+                          height: 6px !important;
+                        }
+                      `}
+                    />
+                    <Typography.Text
+                      type="secondary"
+                      css={css`
+                        min-width: 24px;
+                        text-align: right;
+                        font-size: 11px;
+                      `}
+                    >
+                      {item.count}
+                    </Typography.Text>
+                  </Flex>
+                ))}
+              </Flex>
             </Flex>
           </Section>
         </Box>
@@ -910,6 +984,7 @@ export const ProductInfoCardA = ({
           <Descriptions
             size="small"
             column={1}
+            bordered
             colon={false}
             css={css`
               .ant-descriptions-item {
