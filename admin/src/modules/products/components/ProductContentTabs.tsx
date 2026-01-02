@@ -92,21 +92,21 @@ export const ProductContentTabs = ({
                 border-radius: 6px;
                 cursor: pointer;
                 background: linear-gradient(#fff, #fff) padding-box,
-                  linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) border-box;
+                  linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%) border-box;
                 border: 1px solid transparent;
                 transition: all 0.3s ease;
                 span {
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+                  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%);
                   -webkit-background-clip: text;
                   -webkit-text-fill-color: transparent;
                   background-clip: text;
                 }
                 svg {
-                  color: #764ba2;
+                  color: #a855f7;
                 }
                 &:hover {
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) padding-box,
-                    linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) border-box;
+                  background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%) padding-box,
+                    linear-gradient(135deg, #8b5cf6 0%, #d946ef 50%, #e879f9 100%) border-box;
                   span {
                     background: #fff;
                     -webkit-background-clip: text;
