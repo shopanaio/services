@@ -55,65 +55,88 @@ import {
 // Inventory Types & Mock Data
 // ============================================================================
 
+type SyncStatus = 'synced' | 'stale' | 'error' | 'syncing';
+
 interface IWarehouseStock {
   warehouseId: string;
   warehouseName: string;
   warehouseCode: string;
   isDefault: boolean;
-  totalQty: number;
+  onHandQty: number;
   reservedQty: number;
-  inStockQty: number;
-  totalVariants: number;
-  lowStockVariants: number;
-  outOfStockVariants: number;
+  availableQty: number;
+  totalSKUs: number;
+  lowStockSKUs: number;
+  outOfStockSKUs: number;
+  backorderSKUs: number;
+  lastSyncAt: Date;
+  syncStatus: SyncStatus;
 }
 
 interface IInventoryStats {
-  totalQty: number;
-  reservedQty: number;
   availableQty: number;
-  inStockQty: number;
+  onHandQty: number;
+  reservedQty: number;
+  totalSKUs: number;
+  lowStockSKUs: number;
   lowStockPercent: number;
+  outOfStockSKUs: number;
   outOfStockPercent: number;
+  backorderSKUs: number;
+  pendingOrders: number;
+  lastSyncAt: Date;
+  syncStatus: SyncStatus;
+  changeVs7d: number;
+  thresholdType: 'safety_stock' | 'reorder_point';
 }
 
 const getMockWarehouseStock = (): IWarehouseStock[] => {
+  const now = new Date();
   return [
     {
       warehouseId: 'wh-1',
       warehouseName: 'Main Warehouse',
       warehouseCode: 'MAIN',
       isDefault: true,
-      totalQty: 890,
+      onHandQty: 756,
       reservedQty: 45,
-      inStockQty: 756,
-      totalVariants: 15,
-      lowStockVariants: 2,
-      outOfStockVariants: 3,
+      availableQty: 711,
+      totalSKUs: 45,
+      lowStockSKUs: 8,
+      outOfStockSKUs: 4,
+      backorderSKUs: 2,
+      lastSyncAt: new Date(now.getTime() - 3 * 60 * 1000),
+      syncStatus: 'synced',
     },
     {
       warehouseId: 'wh-2',
       warehouseName: 'Store #1',
       warehouseCode: 'ST1',
       isDefault: false,
-      totalQty: 245,
+      onHandQty: 198,
       reservedQty: 12,
-      inStockQty: 198,
-      totalVariants: 15,
-      lowStockVariants: 3,
-      outOfStockVariants: 4,
+      availableQty: 186,
+      totalSKUs: 45,
+      lowStockSKUs: 5,
+      outOfStockSKUs: 3,
+      backorderSKUs: 1,
+      lastSyncAt: new Date(now.getTime() - 8 * 60 * 1000),
+      syncStatus: 'synced',
     },
     {
       warehouseId: 'wh-3',
       warehouseName: 'Store #2',
       warehouseCode: 'ST2',
       isDefault: false,
-      totalQty: 112,
+      onHandQty: 78,
       reservedQty: 8,
-      inStockQty: 78,
-      totalVariants: 15,
-      lowStockVariants: 4,
-      outOfStockVariants: 5,
+      availableQty: 70,
+      totalSKUs: 45,
+      lowStockSKUs: 3,
+      outOfStockSKUs: 2,
+      backorderSKUs: 1,
+      lastSyncAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      syncStatus: 'stale',
     },
   ];
 };
@@ -125,33 +148,56 @@ const calculateInventoryStats = (
   if (selectedWarehouseId) {
     const wh = warehouses.find((w) => w.warehouseId === selectedWarehouseId);
     if (wh) {
-      const lowPct = wh.totalVariants > 0 ? Math.round((wh.lowStockVariants / wh.totalVariants) * 100) : 0;
-      const outPct = wh.totalVariants > 0 ? Math.round((wh.outOfStockVariants / wh.totalVariants) * 100) : 0;
+      const lowPct = wh.totalSKUs > 0 ? Math.round((wh.lowStockSKUs / wh.totalSKUs) * 100) : 0;
+      const outPct = wh.totalSKUs > 0 ? Math.round((wh.outOfStockSKUs / wh.totalSKUs) * 100) : 0;
       return {
-        totalQty: wh.totalQty,
+        availableQty: wh.availableQty,
+        onHandQty: wh.onHandQty,
         reservedQty: wh.reservedQty,
-        availableQty: wh.totalQty - wh.reservedQty,
-        inStockQty: wh.inStockQty,
+        totalSKUs: wh.totalSKUs,
+        lowStockSKUs: wh.lowStockSKUs,
         lowStockPercent: lowPct,
+        outOfStockSKUs: wh.outOfStockSKUs,
         outOfStockPercent: outPct,
+        backorderSKUs: wh.backorderSKUs,
+        pendingOrders: wh.reservedQty > 0 ? Math.ceil(wh.reservedQty / 5) : 0,
+        lastSyncAt: wh.lastSyncAt,
+        syncStatus: wh.syncStatus,
+        changeVs7d: -12,
+        thresholdType: 'safety_stock',
       };
     }
   }
 
-  const totalVariants = warehouses[0]?.totalVariants || 0;
-  const lowStockVariants = Math.max(...warehouses.map((w) => w.lowStockVariants));
-  const outOfStockVariants = Math.max(...warehouses.map((w) => w.outOfStockVariants));
+  const totalSKUs = warehouses[0]?.totalSKUs || 0;
+  const lowStockSKUs = Math.max(...warehouses.map((w) => w.lowStockSKUs));
+  const outOfStockSKUs = Math.max(...warehouses.map((w) => w.outOfStockSKUs));
+  const backorderSKUs = warehouses.reduce((sum, w) => sum + w.backorderSKUs, 0);
 
-  const totalQty = warehouses.reduce((sum, w) => sum + w.totalQty, 0);
+  const availableQty = warehouses.reduce((sum, w) => sum + w.availableQty, 0);
+  const onHandQty = warehouses.reduce((sum, w) => sum + w.onHandQty, 0);
   const reservedQty = warehouses.reduce((sum, w) => sum + w.reservedQty, 0);
 
+  const latestSync = warehouses.reduce((latest, w) =>
+    w.lastSyncAt > latest ? w.lastSyncAt : latest, warehouses[0]?.lastSyncAt || new Date());
+  const hasStale = warehouses.some((w) => w.syncStatus === 'stale');
+  const hasError = warehouses.some((w) => w.syncStatus === 'error');
+
   return {
-    totalQty,
+    availableQty,
+    onHandQty,
     reservedQty,
-    availableQty: totalQty - reservedQty,
-    inStockQty: warehouses.reduce((sum, w) => sum + w.inStockQty, 0),
-    lowStockPercent: totalVariants > 0 ? Math.round((lowStockVariants / totalVariants) * 100) : 0,
-    outOfStockPercent: totalVariants > 0 ? Math.round((outOfStockVariants / totalVariants) * 100) : 0,
+    totalSKUs,
+    lowStockSKUs,
+    lowStockPercent: totalSKUs > 0 ? Math.round((lowStockSKUs / totalSKUs) * 100) : 0,
+    outOfStockSKUs,
+    outOfStockPercent: totalSKUs > 0 ? Math.round((outOfStockSKUs / totalSKUs) * 100) : 0,
+    backorderSKUs,
+    pendingOrders: reservedQty > 0 ? Math.ceil(reservedQty / 5) : 0,
+    lastSyncAt: latestSync,
+    syncStatus: hasError ? 'error' : hasStale ? 'stale' : 'synced',
+    changeVs7d: -12,
+    thresholdType: 'safety_stock',
   };
 };
 
@@ -552,9 +598,101 @@ const VariablePricingContent = ({
 };
 
 // ============================================================================
-// Inventory Section Components
+// Inventory Section Components (Enterprise)
 // ============================================================================
 
+// Design tokens
+const inventoryTokens = {
+  cardPadding: 12,
+  tileGap: 8,
+  borderRadius: 8,
+  borderColor: 'var(--color-gray-3)',
+  valueFontSize: 20,
+  labelFontSize: 11,
+  helperFontSize: 10,
+  colors: {
+    text: 'var(--color-gray-9)',
+    success: '#52c41a',
+    info: '#1677ff',
+    warning: '#faad14',
+    danger: '#ff4d4f',
+  },
+};
+
+// Styles for inventory components
+const inventoryCardStyles = css`
+  padding: ${inventoryTokens.cardPadding}px;
+  border-radius: ${inventoryTokens.borderRadius}px;
+`;
+
+const inventoryHeaderStyles = css`
+  margin-bottom: ${inventoryTokens.tileGap}px;
+  padding-bottom: ${inventoryTokens.tileGap}px;
+  border-bottom: 1px solid ${inventoryTokens.borderColor};
+`;
+
+const kpiTileStyles = css`
+  padding: 12px 16px;
+  background: var(--color-gray-1);
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: var(--color-gray-2);
+    border-color: var(--color-gray-4);
+  }
+
+  &.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
+`;
+
+const kpiTilePrimaryStyles = css`
+  ${kpiTileStyles};
+  flex: 1.5;
+  border-left: 3px solid ${inventoryTokens.colors.success};
+`;
+
+const tilesGroupStyles = css`
+  display: flex;
+  gap: ${inventoryTokens.tileGap}px;
+  & > * {
+    flex: 1;
+  }
+`;
+
+// Helper functions
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+};
+
+const getSyncStatusConfig = (status: SyncStatus) => {
+  switch (status) {
+    case 'synced':
+      return { icon: <CheckCircleFilled />, color: inventoryTokens.colors.success, label: 'Synced' };
+    case 'syncing':
+      return { icon: <SyncOutlined spin />, color: inventoryTokens.colors.info, label: 'Syncing' };
+    case 'stale':
+      return { icon: <ClockCircleFilled />, color: inventoryTokens.colors.warning, label: 'Outdated' };
+    case 'error':
+      return { icon: <ExclamationCircleFilled />, color: inventoryTokens.colors.danger, label: 'Error' };
+  }
+};
+
+// Warehouse Select
 interface IWarehouseSelectProps {
   warehouses: IWarehouseStock[];
   selectedWarehouseId?: string;
@@ -581,52 +719,276 @@ const WarehouseSelect = ({
     <Select.Option value="all">All Warehouses</Select.Option>
     {warehouses.map((wh) => (
       <Select.Option key={wh.warehouseId} value={wh.warehouseId}>
-        {wh.warehouseName} ({wh.totalQty.toLocaleString()})
+        {wh.warehouseName} ({wh.availableQty.toLocaleString()})
       </Select.Option>
     ))}
   </Select>
 );
 
-const inventoryStatBoxStyles = css`
-  text-align: center;
-  padding: var(--x2) var(--x3);
-  background: var(--color-gray-1);
-  border-radius: 8px;
-`;
-
-interface IInventoryStatBoxProps {
-  value: ReactNode;
-  label: string;
-  color?: string;
+// Sync Status Indicator
+interface ISyncStatusProps {
+  lastSyncAt: Date;
+  status: SyncStatus;
+  onRetry?: () => void;
 }
 
-const InventoryStatBox = ({ value, label, color }: IInventoryStatBoxProps) => (
-  <Box css={inventoryStatBoxStyles}>
-    <Typography.Text
-      css={css`
-        font-size: 20px;
-        font-weight: 600;
-        display: block;
-        line-height: 1.2;
-        ${color ? `color: ${color};` : ''}
-      `}
+const SyncStatusIndicator = ({ lastSyncAt, status, onRetry }: ISyncStatusProps) => {
+  const config = getSyncStatusConfig(status);
+  const isStaleOrError = status === 'stale' || status === 'error';
+
+  return (
+    <Tooltip
+      title={
+        isStaleOrError
+          ? `Last sync: ${lastSyncAt.toLocaleString()}. Click to retry.`
+          : `Last sync: ${lastSyncAt.toLocaleString()}`
+      }
     >
-      {value}
-    </Typography.Text>
-    <Typography.Text
-      type="secondary"
-      css={css`
-        font-size: 11px;
-      `}
+      <Flex
+        align="center"
+        gap="1"
+        css={css`
+          font-size: 11px;
+          color: var(--color-gray-6);
+          cursor: ${isStaleOrError ? 'pointer' : 'default'};
+          &:hover {
+            color: ${isStaleOrError ? config.color : 'var(--color-gray-6)'};
+          }
+        `}
+        onClick={isStaleOrError ? onRetry : undefined}
+      >
+        <span css={css`color: ${config.color};`}>{config.icon}</span>
+        <span>Updated {formatRelativeTime(lastSyncAt)}</span>
+      </Flex>
+    </Tooltip>
+  );
+};
+
+// Actions Dropdown
+interface IInventoryActionsProps {
+  onAction: (action: string) => void;
+}
+
+const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
+  const items = [
+    { key: 'adjust', label: 'Adjust stock' },
+    { key: 'transfer', label: 'Transfer' },
+    { key: 'reserve', label: 'Reserve' },
+    { key: 'recount', label: 'Recount' },
+    { type: 'divider' as const },
+    { key: 'export', label: 'Export' },
+  ];
+
+  return (
+    <Dropdown
+      menu={{
+        items,
+        onClick: ({ key }) => onAction(key),
+      }}
+      trigger={['click']}
     >
-      {label}
-    </Typography.Text>
-  </Box>
+      <Button size="small" icon={<MoreOutlined />}>
+        Actions
+      </Button>
+    </Dropdown>
+  );
+};
+
+// KPI Tile Component
+type KPIVariant = 'default' | 'primary' | 'warning' | 'danger' | 'info';
+
+interface IKPITileProps {
+  label: string;
+  tooltip?: string;
+  value: ReactNode;
+  secondary?: ReactNode;
+  variant?: KPIVariant;
+  badge?: ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  isPrimary?: boolean;
+}
+
+const getVariantStyles = (variant: KPIVariant) => {
+  const colors: Record<KPIVariant, { border?: string; badge?: string }> = {
+    default: {},
+    primary: { border: inventoryTokens.colors.success, badge: inventoryTokens.colors.success },
+    warning: { border: inventoryTokens.colors.warning, badge: inventoryTokens.colors.warning },
+    danger: { border: inventoryTokens.colors.danger, badge: inventoryTokens.colors.danger },
+    info: { border: inventoryTokens.colors.info, badge: inventoryTokens.colors.info },
+  };
+  return colors[variant];
+};
+
+const KPITile = ({
+  label,
+  tooltip,
+  value,
+  secondary,
+  variant = 'default',
+  badge,
+  active,
+  onClick,
+  isPrimary,
+}: IKPITileProps) => {
+  const variantStyles = getVariantStyles(variant);
+
+  return (
+    <Box
+      css={css`
+        ${isPrimary ? kpiTilePrimaryStyles : kpiTileStyles};
+        ${variantStyles.border && !isPrimary ? `border-left: 3px solid ${variantStyles.border};` : ''}
+        ${active ? 'border-color: var(--color-primary); background: var(--color-primary-bg);' : ''}
+      `}
+      onClick={onClick}
+    >
+      {/* Top: Label + Tooltip + Badge */}
+      <Flex align="center" gap="1" css={css`margin-bottom: 4px;`}>
+        <Typography.Text
+          css={css`
+            font-size: ${inventoryTokens.labelFontSize}px;
+            font-weight: 500;
+            color: var(--color-gray-7);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+          `}
+        >
+          {label}
+        </Typography.Text>
+        {tooltip && (
+          <Tooltip title={tooltip}>
+            <InfoCircleOutlined
+              css={css`
+                font-size: 10px;
+                color: var(--color-gray-5);
+                cursor: help;
+              `}
+            />
+          </Tooltip>
+        )}
+        {badge && (
+          <Box css={css`margin-left: auto;`}>
+            {badge}
+          </Box>
+        )}
+      </Flex>
+
+      {/* Middle: Value */}
+      <Typography.Text
+        css={css`
+          font-size: ${isPrimary ? inventoryTokens.valueFontSize : 22}px;
+          font-weight: 600;
+          display: block;
+          line-height: 1.2;
+          color: ${inventoryTokens.colors.text};
+        `}
+      >
+        {value}
+      </Typography.Text>
+
+      {/* Bottom: Secondary info */}
+      {secondary && (
+        <Typography.Text
+          css={css`
+            font-size: ${inventoryTokens.helperFontSize}px;
+            color: var(--color-gray-6);
+            display: block;
+            margin-top: 4px;
+          `}
+        >
+          {secondary}
+        </Typography.Text>
+      )}
+    </Box>
+  );
+};
+
+// Inventory Section Header
+interface IInventoryHeaderProps {
+  warehouses: IWarehouseStock[];
+  selectedWarehouseId?: string;
+  onWarehouseSelect: (warehouseId?: string) => void;
+  stats: IInventoryStats;
+  onAction: (action: string) => void;
+}
+
+const InventoryHeader = ({
+  warehouses,
+  selectedWarehouseId,
+  onWarehouseSelect,
+  stats,
+  onAction,
+}: IInventoryHeaderProps) => (
+  <Flex align="center" justify="space-between" css={inventoryHeaderStyles}>
+    <Flex align="center" gap="3">
+      <Typography.Text strong css={css`font-size: 13px;`}>
+        Inventory
+      </Typography.Text>
+      <WarehouseSelect
+        warehouses={warehouses}
+        selectedWarehouseId={selectedWarehouseId}
+        onSelect={onWarehouseSelect}
+      />
+      <SyncStatusIndicator
+        lastSyncAt={stats.lastSyncAt}
+        status={stats.syncStatus}
+        onRetry={() => onAction('retry-sync')}
+      />
+    </Flex>
+    <InventoryActions onAction={onAction} />
+  </Flex>
 );
 
+// Loading State
+const InventoryLoadingSkeleton = () => (
+  <Paper css={inventoryCardStyles}>
+    <Flex align="center" justify="space-between" css={inventoryHeaderStyles}>
+      <Flex align="center" gap="3">
+        <Skeleton.Input size="small" active style={{ width: 70 }} />
+        <Skeleton.Input size="small" active style={{ width: 140 }} />
+        <Skeleton.Input size="small" active style={{ width: 100 }} />
+      </Flex>
+      <Skeleton.Button size="small" active />
+    </Flex>
+    <Flex direction="column" gap="3">
+      <Flex gap="3">
+        <Skeleton.Node active style={{ width: '100%', height: 80 }}>
+          <div />
+        </Skeleton.Node>
+        <Skeleton.Node active style={{ width: '100%', height: 80 }}>
+          <div />
+        </Skeleton.Node>
+        <Skeleton.Node active style={{ width: '100%', height: 80 }}>
+          <div />
+        </Skeleton.Node>
+      </Flex>
+    </Flex>
+  </Paper>
+);
+
+// Empty/No Data State
+const InventoryNoData = () => (
+  <Paper css={inventoryCardStyles}>
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      gap="2"
+      css={css`padding: 32px 16px; color: var(--color-gray-6);`}
+    >
+      <StopOutlined css={css`font-size: 24px;`} />
+      <Typography.Text type="secondary">No inventory sync for this product</Typography.Text>
+      <Button size="small" type="link">Set up inventory tracking</Button>
+    </Flex>
+  </Paper>
+);
+
+// Main Inventory Section
 interface IInventorySectionProps {
   onEdit?: () => void;
 }
+
+type InventoryState = 'loading' | 'no_data' | 'ready';
 
 const useInventoryData = () => {
   return useMemo(() => getMockWarehouseStock(), []);
@@ -635,60 +997,141 @@ const useInventoryData = () => {
 const InventorySection = ({ onEdit }: IInventorySectionProps) => {
   const warehouses = useInventoryData();
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>();
+  const [activeKPI, setActiveKPI] = useState<string | undefined>();
+
+  // Simulate different states (in real app would come from API)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [inventoryState] = useState<InventoryState>('ready');
 
   const stats = useMemo(
     () => calculateInventoryStats(warehouses, selectedWarehouseId),
     [warehouses, selectedWarehouseId],
   );
 
-  const headerExtra = (
-    <WarehouseSelect
-      warehouses={warehouses}
-      selectedWarehouseId={selectedWarehouseId}
-      onSelect={setSelectedWarehouseId}
-    />
-  );
+  const handleAction = (action: string) => {
+    console.log('Inventory action:', action);
+    if (action === 'adjust' || action === 'transfer' || action === 'reserve') {
+      onEdit?.();
+    }
+  };
+
+  const handleKPIClick = (kpi: string) => {
+    setActiveKPI(activeKPI === kpi ? undefined : kpi);
+    // In real app, this would filter a table below
+  };
+
+  if (inventoryState === 'loading') {
+    return <InventoryLoadingSkeleton />;
+  }
+
+  if (inventoryState === 'no_data') {
+    return <InventoryNoData />;
+  }
 
   return (
-    <Section title="Inventory" name="inventory" onEdit={onEdit} extra={headerExtra}>
-      <Flex
-        gap="3"
-        css={css`
-          & > * {
-            flex: 1;
-          }
-        `}
+    <Paper css={inventoryCardStyles}>
+      {/* Header */}
+      <InventoryHeader
+        warehouses={warehouses}
+        selectedWarehouseId={selectedWarehouseId}
+        onWarehouseSelect={setSelectedWarehouseId}
+        stats={stats}
+        onAction={handleAction}
+      />
+
+
+      {/* Section A: Quantity */}
+      <Typography.Text
+        type="secondary"
+        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;`}
       >
-        <InventoryStatBox
-          value={stats.totalQty.toLocaleString()}
-          label="Total"
-        />
-        <InventoryStatBox
-          value={stats.availableQty.toLocaleString()}
+        Quantity
+      </Typography.Text>
+      <Box css={tilesGroupStyles}>
+        <KPITile
           label="Available"
-          color="#52c41a"
+          tooltip="Units available for sale (On Hand minus Reserved)"
+          value={stats.availableQty.toLocaleString()}
+          secondary={`of ${stats.totalSKUs} total SKUs`}
+          variant="primary"
+          isPrimary
+          badge={<Tag color="success" css={css`margin: 0; font-size: 10px;`}>Sellable</Tag>}
+          active={activeKPI === 'available'}
+          onClick={() => handleKPIClick('available')}
         />
-        <InventoryStatBox
-          value={stats.inStockQty.toLocaleString()}
+        <KPITile
           label="On Hand"
+          tooltip="Total physical units in warehouse"
+          value={stats.onHandQty.toLocaleString()}
+          secondary={stats.changeVs7d !== 0 ? `${stats.changeVs7d > 0 ? '+' : ''}${stats.changeVs7d} vs 7d` : undefined}
+          active={activeKPI === 'onhand'}
+          onClick={() => handleKPIClick('onhand')}
         />
-        <InventoryStatBox
-          value={stats.reservedQty.toLocaleString()}
+        <KPITile
           label="Reserved"
-          color={stats.reservedQty > 0 ? '#1677ff' : undefined}
+          tooltip="Units allocated to pending orders"
+          value={stats.reservedQty.toLocaleString()}
+          secondary={stats.pendingOrders > 0 ? `${stats.pendingOrders} orders pending` : undefined}
+          variant={stats.reservedQty > 0 ? 'info' : 'default'}
+          badge={stats.reservedQty > 0 ? <Tag color="blue" css={css`margin: 0; font-size: 10px;`}>Reserved</Tag> : undefined}
+          active={activeKPI === 'reserved'}
+          onClick={() => handleKPIClick('reserved')}
         />
-        <InventoryStatBox
-          value={`${stats.lowStockPercent}%`}
+      </Box>
+
+      {/* Section B: Health */}
+      <Typography.Text
+        type="secondary"
+        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; display: block;`}
+      >
+        Health
+      </Typography.Text>
+      <Box css={tilesGroupStyles}>
+        <KPITile
           label="Low Stock"
-          color={stats.lowStockPercent > 0 ? '#faad14' : undefined}
+          tooltip={`SKUs below ${stats.thresholdType === 'safety_stock' ? 'safety stock' : 'reorder point'} threshold`}
+          value={`${stats.lowStockSKUs} SKUs`}
+          secondary={`${stats.lowStockPercent}% of catalog`}
+          variant={stats.lowStockSKUs > 0 ? 'warning' : 'default'}
+          badge={
+            stats.lowStockSKUs > 0 ? (
+              <Flex align="center" gap="1">
+                <WarningOutlined css={css`color: ${inventoryTokens.colors.warning}; font-size: 12px;`} />
+              </Flex>
+            ) : undefined
+          }
+          active={activeKPI === 'lowstock'}
+          onClick={() => handleKPIClick('lowstock')}
         />
-        <InventoryStatBox
-          value={`${stats.outOfStockPercent}%`}
-          label="Out"
-          color={stats.outOfStockPercent > 0 ? '#ff4d4f' : undefined}
+        <KPITile
+          label="Out of Stock"
+          tooltip="SKUs with zero available units"
+          value={`${stats.outOfStockSKUs} SKUs`}
+          secondary={`${stats.outOfStockPercent}% of catalog`}
+          variant={stats.outOfStockSKUs > 0 ? 'danger' : 'default'}
+          badge={
+            stats.outOfStockSKUs > 0 ? (
+              <Flex align="center" gap="1">
+                <StopOutlined css={css`color: ${inventoryTokens.colors.danger}; font-size: 12px;`} />
+              </Flex>
+            ) : undefined
+          }
+          active={activeKPI === 'outofstock'}
+          onClick={() => handleKPIClick('outofstock')}
         />
-      </Flex>
-    </Section>
+        {stats.backorderSKUs > 0 && (
+          <KPITile
+            label="Backorder"
+            tooltip="SKUs with incoming stock expected"
+            value={`${stats.backorderSKUs} SKUs`}
+            secondary="ETA avg 5d"
+            variant="info"
+            active={activeKPI === 'backorder'}
+            onClick={() => handleKPIClick('backorder')}
+          />
+        )}
+      </Box>
+    </Paper>
   );
 };
 
