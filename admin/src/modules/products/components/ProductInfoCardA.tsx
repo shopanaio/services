@@ -37,6 +37,7 @@ import {
 } from '@src/defs/constants';
 import { PricingBlock } from './pricing/PricingBlock';
 import { ProductInfoHeader } from './ProductInfoHeader';
+import { ProductContentTabs } from './ProductContentTabs';
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -846,6 +847,14 @@ export const ProductInfoCardA = ({
         onViewStorefront={() => window.open(`/products/${product.slug}`, '_blank')}
         onPreview={() => console.log('Preview')}
         onShare={() => console.log('Share')}
+      />
+
+      {/* ================================================================== */}
+      {/* CONTENT TABS (Description, Excerpt) */}
+      {/* ================================================================== */}
+      <ProductContentTabs
+        product={product}
+        onEditSection={handleEdit}
       />
 
       {/* ================================================================== */}

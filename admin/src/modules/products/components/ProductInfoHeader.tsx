@@ -6,18 +6,14 @@ import {
   Button,
   Tag,
   Typography,
-  Tabs,
   Dropdown,
   Tooltip,
-  Select,
   Switch,
-  Progress,
 } from 'antd';
 import {
   CopyOutlined,
   MoreOutlined,
   ClockCircleFilled,
-  WarningOutlined,
   StopOutlined,
   LinkOutlined,
   EyeOutlined,
@@ -29,8 +25,6 @@ import {
 import { ReactNode, useState } from 'react';
 import { IProduct } from '@src/entity/Product/Product';
 import { EntityStatus } from '@src/graphql';
-import { useIntl } from 'react-intl';
-import { t as tCommon } from '@src/lang/messages';
 
 // ============================================================================
 // Design Tokens (Enterprise)
@@ -126,9 +120,6 @@ const kpiTileStyles = css`
   }
 `;
 
-const tabsSectionStyles = css`
-  padding: 16px ${tokens.cardPadding}px ${tokens.cardPadding}px;
-`;
 
 // ============================================================================
 // Helper Functions
@@ -188,35 +179,6 @@ const formatPercent = (value: number): string => {
 // ============================================================================
 // Sub-components
 // ============================================================================
-
-// Status Dot (for tabs)
-type StatusDotVariant = 'success' | 'warning' | 'error' | 'default';
-
-interface IStatusDotProps {
-  variant?: StatusDotVariant;
-  size?: number;
-}
-
-const StatusDot = ({ variant = 'success', size = 6 }: IStatusDotProps) => {
-  const colors: Record<StatusDotVariant, string> = {
-    success: tokens.colors.success,
-    warning: tokens.colors.warning,
-    error: tokens.colors.danger,
-    default: 'var(--color-gray-5)',
-  };
-
-  return (
-    <Box
-      css={css`
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 50%;
-        background: ${colors[variant]};
-        flex-shrink: 0;
-      `}
-    />
-  );
-};
 
 // Trend Indicator (compact badge style)
 interface ITrendProps {
@@ -383,7 +345,6 @@ export const ProductInfoHeader = ({
   onShare,
   kpiData,
 }: IProductInfoHeaderProps) => {
-  const { formatMessage } = useIntl();
   const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>('7d');
   const [compareEnabled, setCompareEnabled] = useState(true);
 
@@ -402,26 +363,6 @@ export const ProductInfoHeader = ({
     revenue: product.price * 156,
     revenueTrend: 12,
   };
-
-  // Description preview extraction
-  const getDescriptionPreview = () => {
-    if (!product.description) return null;
-    try {
-      const parsed = JSON.parse(product.description);
-      const extractText = (node: any): string => {
-        if (node.text) return node.text;
-        if (node.content) return node.content.map(extractText).join(' ');
-        return '';
-      };
-      return extractText(parsed).slice(0, 300);
-    } catch {
-      return typeof product.description === 'string'
-        ? product.description.slice(0, 300)
-        : null;
-    }
-  };
-
-  const descriptionPreview = getDescriptionPreview();
 
   return (
     <Paper css={cardStyles}>
@@ -574,29 +515,45 @@ export const ProductInfoHeader = ({
       <Box css={kpiSectionStyles}>
         {/* Period Filter Row */}
         <Flex align="center" justify="space-between" css={css`margin-bottom: 12px;`}>
-          <Flex align="center" gap="2">
-            <Typography.Text
-              type="secondary"
-              css={css`font-size: 12px;`}
-            >
-              Period
-            </Typography.Text>
-            <Select
-              value={kpiPeriod}
-              onChange={setKpiPeriod}
-              size="small"
-              popupMatchSelectWidth={false}
-              css={css`
-                min-width: 110px;
-                .ant-select-selector { font-size: 12px !important; }
-              `}
-            >
-              <Select.Option value="7d">Last 7 days</Select.Option>
-              <Select.Option value="30d">Last 30 days</Select.Option>
-              <Select.Option value="90d">Last 90 days</Select.Option>
-              <Select.Option value="ytd">Year to date</Select.Option>
-              <Select.Option value="all">All time</Select.Option>
-            </Select>
+          <Flex align="center" gap="1">
+            {([
+              { value: '7d', label: '7D' },
+              { value: '30d', label: '30D' },
+              { value: '90d', label: '90D' },
+              { value: 'ytd', label: 'YTD' },
+              { value: 'all', label: 'All' },
+            ] as const).map((period) => (
+              <Tag
+                key={period.value}
+                onClick={() => setKpiPeriod(period.value)}
+                css={css`
+                  margin: 0;
+                  cursor: pointer;
+                  font-size: 11px;
+                  padding: 2px 8px;
+                  border-radius: 4px;
+                  user-select: none;
+                  transition: all 0.2s;
+                  ${kpiPeriod === period.value
+                    ? `
+                      background: var(--color-gray-9);
+                      color: #fff;
+                      border-color: var(--color-gray-9);
+                    `
+                    : `
+                      background: var(--color-gray-1);
+                      color: var(--color-gray-7);
+                      border-color: var(--color-gray-4);
+                      &:hover {
+                        border-color: var(--color-gray-6);
+                        color: var(--color-gray-9);
+                      }
+                    `}
+                `}
+              >
+                {period.label}
+              </Tag>
+            ))}
           </Flex>
           <Flex align="center" gap="2">
             <Typography.Text
@@ -646,179 +603,6 @@ export const ProductInfoHeader = ({
             tooltip="Total revenue from this product"
           />
         </Flex>
-      </Box>
-
-      {/* ================================================================== */}
-      {/* E. CONTENT TABS */}
-      {/* ================================================================== */}
-      <Box css={tabsSectionStyles}>
-        <Tabs
-          size="small"
-          css={css`
-            .ant-tabs-nav {
-              margin-bottom: 16px !important;
-            }
-            .ant-tabs-tab {
-              padding: 8px 0 !important;
-              font-size: 13px;
-            }
-          `}
-          items={[
-            {
-              key: 'description',
-              label: (
-                <Flex align="center" gap="2">
-                  <span>{formatMessage({ id: tCommon('common.description') })}</span>
-                  <StatusDot variant={descriptionPreview ? 'success' : 'warning'} />
-                </Flex>
-              ),
-              children: descriptionPreview ? (
-                <Box>
-                  {/* Content header */}
-                  <Flex align="center" justify="space-between" css={css`margin-bottom: 8px;`}>
-                    <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                      {descriptionPreview.length}/500 characters
-                    </Typography.Text>
-                    <Flex gap="3">
-                      <Button
-                        type="primary"
-                        ghost
-                        size="small"
-                        css={css`
-                          height: 24px;
-                          font-size: 11px;
-                          padding: 0 10px;
-                        `}
-                      >
-                        AI Assist
-                      </Button>
-                      <Button
-                        type="text"
-                        size="small"
-                        onClick={() => handleEdit('description')}
-                        css={css`
-                          height: 24px;
-                          font-size: 11px;
-                          color: var(--color-gray-7);
-                        `}
-                      >
-                        Edit
-                      </Button>
-                    </Flex>
-                  </Flex>
-                  {/* Progress bar under header */}
-                  <Progress
-                    percent={Math.min((descriptionPreview.length / 500) * 100, 100)}
-                    showInfo={false}
-                    strokeColor={descriptionPreview.length > 400 ? tokens.colors.success : 'var(--color-gray-4)'}
-                    trailColor="var(--color-gray-2)"
-                    size="small"
-                    css={css`
-                      margin: 0 0 12px 0;
-                      .ant-progress-inner { height: 3px !important; }
-                    `}
-                  />
-                  <Typography.Paragraph
-                    ellipsis={{ rows: 3 }}
-                    css={css`
-                      margin: 0 !important;
-                      font-size: 13px;
-                      color: var(--color-gray-8);
-                      line-height: 1.6;
-                    `}
-                  >
-                    {descriptionPreview}
-                    {descriptionPreview.length >= 300 && '...'}
-                  </Typography.Paragraph>
-                </Box>
-              ) : (
-                <Flex align="center" gap="2" css={css`padding: 16px 0;`}>
-                  <WarningOutlined css={css`color: var(--color-gray-5);`} />
-                  <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-                    No description added
-                  </Typography.Text>
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => handleEdit('description')}
-                    css={css`padding: 0; height: auto;`}
-                  >
-                    Add now
-                  </Button>
-                </Flex>
-              ),
-            },
-            {
-              key: 'excerpt',
-              label: (
-                <Flex align="center" gap="2">
-                  <span>{formatMessage({ id: tCommon('common.excerpt') })}</span>
-                  <StatusDot variant={product.excerpt ? 'success' : 'default'} />
-                </Flex>
-              ),
-              children: product.excerpt ? (
-                <Box>
-                  {/* Content header */}
-                  <Flex align="center" justify="space-between" css={css`margin-bottom: 8px;`}>
-                    <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                      {product.excerpt.length}/200 characters
-                    </Typography.Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      onClick={() => handleEdit('excerpt')}
-                      css={css`
-                        height: 24px;
-                        font-size: 11px;
-                        color: var(--color-gray-7);
-                      `}
-                    >
-                      Edit
-                    </Button>
-                  </Flex>
-                  {/* Progress bar under header */}
-                  <Progress
-                    percent={Math.min((product.excerpt.length / 200) * 100, 100)}
-                    showInfo={false}
-                    strokeColor={product.excerpt.length > 150 ? tokens.colors.success : 'var(--color-gray-4)'}
-                    trailColor="var(--color-gray-2)"
-                    size="small"
-                    css={css`
-                      margin: 0 0 12px 0;
-                      .ant-progress-inner { height: 3px !important; }
-                    `}
-                  />
-                  <Typography.Paragraph
-                    ellipsis={{ rows: 3 }}
-                    css={css`
-                      margin: 0 !important;
-                      font-size: 13px;
-                      color: var(--color-gray-8);
-                      line-height: 1.6;
-                    `}
-                  >
-                    {product.excerpt}
-                  </Typography.Paragraph>
-                </Box>
-              ) : (
-                <Flex align="center" gap="2" css={css`padding: 16px 0;`}>
-                  <WarningOutlined css={css`color: var(--color-gray-5);`} />
-                  <Typography.Text type="secondary" css={css`font-size: 12px;`}>
-                    No excerpt added
-                  </Typography.Text>
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => handleEdit('excerpt')}
-                    css={css`padding: 0; height: auto;`}
-                  >
-                    Add now
-                  </Button>
-                </Flex>
-              ),
-            },
-          ]}
-        />
       </Box>
     </Paper>
   );
