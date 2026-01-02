@@ -133,7 +133,7 @@ const columnStyles = css`
 
 const kpiRowStyles = css`
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: ${tokens.gap.sm}px;
   margin-top: ${tokens.gap.lg}px;
 
@@ -375,17 +375,6 @@ const PricingHeader = ({
             </span>
           </Flex>
         </Tooltip>
-
-        {onEdit && (
-          <Button
-            type="primary"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={onEdit}
-          >
-            Edit price
-          </Button>
-        )}
 
         {onMoreAction && (
           <Dropdown
@@ -948,7 +937,7 @@ const KPITile = ({
       ? tokens.colors.danger
       : 'transparent';
 
-  const content = (
+  return (
     <Box
       css={css`
         ${kpiTileStyles};
@@ -976,12 +965,15 @@ const KPITile = ({
           {label}
         </Typography.Text>
         {tooltip && (
-          <InfoCircleOutlined
-            css={css`
-              font-size: 9px;
-              color: var(--color-gray-5);
-            `}
-          />
+          <Tooltip title={tooltip}>
+            <InfoCircleOutlined
+              css={css`
+                font-size: 9px;
+                color: var(--color-gray-5);
+                cursor: help;
+              `}
+            />
+          </Tooltip>
         )}
       </Flex>
       <Typography.Text
@@ -1008,11 +1000,6 @@ const KPITile = ({
       )}
     </Box>
   );
-
-  if (tooltip) {
-    return <Tooltip title={tooltip}>{content}</Tooltip>;
-  }
-  return content;
 };
 
 // KPI Row
@@ -1029,7 +1016,6 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
     minAllowedPrice,
     maxPrice,
     priceHistory,
-    changesCount,
     currentPrice,
   } = data;
 
@@ -1089,12 +1075,6 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
         value={avg30d ? formatPrice(avg30d) : '—'}
         subLabel="Internal avg"
         tooltip="Average price over last 30 days"
-      />
-      <KPITile
-        label="Changes"
-        value={changesCount}
-        subLabel="30D"
-        tooltip="Number of price changes in last 30 days"
       />
     </Box>
   );
