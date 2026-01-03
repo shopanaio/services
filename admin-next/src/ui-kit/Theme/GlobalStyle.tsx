@@ -234,8 +234,8 @@ export const GlobalStyle = createGlobalStyle`
     --color-geekblue-muted: #6670e6;
 
     /* Font families */
-    --font-family-heading: 'Inter', Trebuchet MS, sans-serif;
-    --font-family-base: 'Inter', Trebuchet MS, serif;
+    --font-family-heading: var(--font-safiro), sans-serif;
+    --font-family-base: var(--font-safiro), sans-serif;
 
     /* Font sizes */
     --font-size: 14px;
