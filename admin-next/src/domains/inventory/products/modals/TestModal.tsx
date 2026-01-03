@@ -4,13 +4,9 @@ import { useState, useEffect } from "react";
 import { Button, Flex, Typography, Skeleton } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
-import { useModalStackContext } from "@/layouts/modals";
+import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 import { ProductInfoCardA } from "../components/ProductInfoCardA";
 import { mockVariableProduct, mockSimpleProduct } from "../mocks/data";
-
-// ============================================================================
-// Types
-// ============================================================================
 
 type ModalTab = "general" | "inventory" | "bundles";
 
@@ -25,20 +21,7 @@ const TABS: ITabConfig[] = [
   { key: "bundles", label: "Bundles" },
 ];
 
-// ============================================================================
-// Styles
-// ============================================================================
-
 const useStyles = createStyles(({ token }) => ({
-  container: {
-    width: "100%",
-    height: "100%",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
   header: {
     display: "flex",
     alignItems: "stretch",
@@ -97,28 +80,6 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "flex-end",
     padding: "0 12px",
   },
-  body: {
-    background: token.colorBgLayout,
-    overflowY: "auto",
-    flex: 1,
-  },
-  content: {
-    marginInline: "auto",
-    maxWidth: 800,
-    display: "flex",
-    gap: 16,
-    flexDirection: "column",
-    paddingBlock: 16,
-  },
-  contentFullWidth: {
-    marginInline: "auto",
-    maxWidth: "none",
-    display: "flex",
-    gap: 16,
-    flexDirection: "column",
-    paddingBlock: 16,
-    paddingInline: 16,
-  },
   placeholderContainer: {
     display: "flex",
     flexDirection: "column",
@@ -137,10 +98,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-// ============================================================================
-// Placeholder Components
-// ============================================================================
-
 const InventoryPlaceholder = () => {
   const { styles } = useStyles();
 
@@ -149,10 +106,7 @@ const InventoryPlaceholder = () => {
       <Typography.Text className={styles.placeholderTitle}>
         Inventory Management
       </Typography.Text>
-      <Typography.Text
-        type="secondary"
-        className={styles.placeholderDescription}
-      >
+      <Typography.Text type="secondary" className={styles.placeholderDescription}>
         Variants table will be rendered here
       </Typography.Text>
     </div>
@@ -167,19 +121,12 @@ const BundlesPlaceholder = () => {
       <Typography.Text className={styles.placeholderTitle}>
         Product Bundles
       </Typography.Text>
-      <Typography.Text
-        type="secondary"
-        className={styles.placeholderDescription}
-      >
+      <Typography.Text type="secondary" className={styles.placeholderDescription}>
         Product groups/bundles management will be rendered here
       </Typography.Text>
     </div>
   );
 };
-
-// ============================================================================
-// Main Component
-// ============================================================================
 
 export const TestModal = () => {
   const { styles, cx } = useStyles();
@@ -187,16 +134,13 @@ export const TestModal = () => {
   const [activeTab, setActiveTab] = useState<ModalTab>("general");
   const [loading, setLoading] = useState(true);
 
-  // Use simple or variable product based on payload
   const product = payload.simple ? mockSimpleProduct : mockVariableProduct;
 
-  // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -235,55 +179,46 @@ export const TestModal = () => {
     }
   };
 
-  return (
-    <div className={styles.container}>
-      {/* Header with close button and tabs */}
-      <div className={styles.header}>
-        {/* Close section */}
-        <div className={styles.closeSection}>
+  const customHeader = (
+    <div className={styles.header}>
+      <div className={styles.closeSection}>
+        <Button
+          type="text"
+          icon={<CloseOutlined />}
+          onClick={forcePop}
+          className={styles.closeButton}
+        />
+        <kbd className={styles.escBadge}>esc</kbd>
+      </div>
+
+      {TABS.map((tab) => {
+        const isActive = activeTab === tab.key;
+        return (
           <Button
+            key={tab.key}
             type="text"
-            icon={<CloseOutlined />}
-            onClick={forcePop}
-            className={styles.closeButton}
-          />
-          <kbd className={styles.escBadge}>esc</kbd>
-        </div>
+            onClick={() => setActiveTab(tab.key)}
+            className={cx(
+              styles.tabButton,
+              isActive ? styles.tabButtonActive : styles.tabButtonInactive
+            )}
+          >
+            {tab.label}
+          </Button>
+        );
+      })}
 
-        {/* Tabs */}
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.key;
-          return (
-            <Button
-              key={tab.key}
-              type="text"
-              onClick={() => setActiveTab(tab.key)}
-              className={cx(
-                styles.tabButton,
-                isActive ? styles.tabButtonActive : styles.tabButtonInactive
-              )}
-            >
-              {tab.label}
-            </Button>
-          );
-        })}
-
-        {/* Right side (can add save button, etc.) */}
-        <div className={styles.headerRight}>
-          {/* Future: Save button, status, etc. */}
-        </div>
-      </div>
-
-      {/* Content area */}
-      <div className={styles.body}>
-        <div
-          className={
-            activeTab === "inventory" ? styles.contentFullWidth : styles.content
-          }
-        >
-          {renderContent()}
-        </div>
-      </div>
+      <div className={styles.headerRight} />
     </div>
+  );
+
+  return (
+    <ModalLayout
+      name="test"
+      header={customHeader}
+      fullWidth={activeTab === "inventory"}
+    >
+      {renderContent()}
+    </ModalLayout>
   );
 };

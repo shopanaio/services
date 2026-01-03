@@ -4,6 +4,9 @@
 export { ModalStack } from './components/Modals';
 export { ModalStackItem } from './components/Modal';
 export { ModalStackProvider } from './components/Provider';
+export { ModalLayout } from './components/ModalLayout';
+export { ModalHeader } from './components/ModalHeader';
+export type { IModalHeaderProps } from './components/ModalHeader';
 
 // ============================================================================
 // Registry
