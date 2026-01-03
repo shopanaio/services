@@ -21,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import { ReactNode, useState, useMemo, useCallback } from "react";
 import { Paper } from "./Paper";
+import { PaperHeader } from "./PaperHeader";
 import { Tile } from "./Tile";
 import { MediaFilePlaceholder } from "./MediaFilePlaceholder";
 import { PricingBlock } from "./pricing/PricingBlock";
@@ -195,21 +196,6 @@ const calculateInventoryStats = (
 // ============================================================================
 
 const useStyles = createStyles(({ token }) => ({
-  section: {
-    padding: 12,
-    minHeight: "auto",
-  },
-  sectionHeader: {
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  sectionTitle: {
-    fontSize: 13,
-  },
-  sectionExtra: {
-    flex: 1,
-  },
   mediaGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, 90px)",
@@ -254,14 +240,6 @@ const useStyles = createStyles(({ token }) => ({
     padding: 12,
     borderRadius: 8,
   },
-  inventoryHeader: {
-    marginBottom: 10,
-    paddingBottom: 8,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  inventoryTitle: {
-    fontSize: 13,
-  },
   inventorySectionLabel: {
     fontSize: 10,
     textTransform: "uppercase",
@@ -285,9 +263,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   inventoryTag: {
     margin: 0,
-    fontSize: 9,
-    lineHeight: "14px",
-    padding: "0 4px",
   },
   noDataContainer: {
     padding: "32px 16px",
@@ -423,15 +398,10 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     borderRadius: 6,
   },
-  groupTitle: {
-    fontSize: 13,
-  },
-  groupItemsCount: {
-    fontSize: 11,
-  },
+  groupTitle: {},
+  groupItemsCount: {},
   groupTag: {
     margin: 0,
-    fontSize: 10,
   },
   groupItems: {
     marginTop: 8,
@@ -528,36 +498,9 @@ interface ISectionProps {
 }
 
 const Section = ({ title, children, onEdit, extra }: ISectionProps) => {
-  const { styles } = useStyles();
-  const menuItems = [{ key: "edit", label: "Edit" }];
-
   return (
-    <Paper className={styles.section}>
-      <Flex
-        align="center"
-        justify="space-between"
-        className={styles.sectionHeader}
-      >
-        <Flex align="center" gap={12} style={{ flex: 1 }}>
-          <Typography.Text strong className={styles.sectionTitle}>
-            {title}
-          </Typography.Text>
-          {extra && <div className={styles.sectionExtra}>{extra}</div>}
-        </Flex>
-        {onEdit && (
-          <Dropdown
-            menu={{
-              items: menuItems,
-              onClick: ({ key }) => {
-                if (key === "edit") onEdit();
-              },
-            }}
-            trigger={["click"]}
-          >
-            <Button size="small" icon={<MoreOutlined />} />
-          </Dropdown>
-        )}
-      </Flex>
+    <Paper>
+      <PaperHeader title={title} extra={extra} onEdit={onEdit} />
       <div>{children}</div>
     </Paper>
   );
@@ -640,26 +583,18 @@ const InventoryHeader = ({
   onWarehouseSelect,
   onAction,
 }: IInventoryHeaderProps) => {
-  const { styles } = useStyles();
-
   return (
-    <Flex
-      align="center"
-      justify="space-between"
-      className={styles.inventoryHeader}
-    >
-      <Flex align="center" gap={12}>
-        <Typography.Text strong className={styles.inventoryTitle}>
-          Inventory
-        </Typography.Text>
+    <PaperHeader
+      title="Inventory"
+      extra={
         <WarehouseSelect
           warehouses={warehouses}
           selectedWarehouseId={selectedWarehouseId}
           onSelect={onWarehouseSelect}
         />
-      </Flex>
-      <InventoryActions onAction={onAction} />
-    </Flex>
+      }
+      actions={<InventoryActions onAction={onAction} />}
+    />
   );
 };
 
@@ -671,12 +606,11 @@ const InventoryLoadingSkeleton = () => {
       <Flex
         align="center"
         justify="space-between"
-        className={styles.inventoryHeader}
+        style={{ marginBottom: 8, paddingBottom: 8 }}
       >
         <Flex align="center" gap={12}>
           <Skeleton.Input size="small" active style={{ width: 70 }} />
           <Skeleton.Input size="small" active style={{ width: 140 }} />
-          <Skeleton.Input size="small" active style={{ width: 100 }} />
         </Flex>
         <Skeleton.Button size="small" active />
       </Flex>
@@ -788,7 +722,11 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           secondary={`across ${stats.totalSKUs} SKUs`}
           isPrimary
           badge={
-            <Tag color="success" className={styles.inventoryTag}>
+            <Tag
+              color="success"
+              className={styles.inventoryTag}
+              variant="outlined"
+            >
               Sellable
             </Tag>
           }
@@ -820,7 +758,11 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           variant={stats.reservedQty > 0 ? "info" : "default"}
           badge={
             stats.reservedQty > 0 ? (
-              <Tag color="blue" className={styles.inventoryTag}>
+              <Tag
+                color="blue"
+                className={styles.inventoryTag}
+                variant="outlined"
+              >
                 Reserved
               </Tag>
             ) : undefined
@@ -1071,7 +1013,9 @@ export const ProductInfoCardA = ({
             {product.tags?.length > 0 ? (
               <Flex gap={4} wrap="wrap">
                 {product.tags.map((tag) => (
-                  <Tag key={tag.id}>{tag.title}</Tag>
+                  <Tag key={tag.id} variant="outlined">
+                    {tag.title}
+                  </Tag>
                 ))}
               </Flex>
             ) : (
@@ -1158,7 +1102,11 @@ export const ProductInfoCardA = ({
                 </Typography.Text>
                 <Flex gap={4} wrap="wrap">
                   {option.features?.map((f) => (
-                    <Tag key={f.id} className={styles.optionTag}>
+                    <Tag
+                      key={f.id}
+                      className={styles.optionTag}
+                      variant="outlined"
+                    >
                       {f.title}
                     </Tag>
                   ))}
@@ -1409,7 +1357,8 @@ export const ProductInfoCardA = ({
               badge={
                 <Tag
                   color={product.requiresShipping ? "blue" : "default"}
-                  style={{ margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px' }}
+                  style={{ margin: 0 }}
+                  variant="outlined"
                 >
                   {product.requiresShipping ? "Active" : "Disabled"}
                 </Tag>
@@ -1456,7 +1405,11 @@ export const ProductInfoCardA = ({
                       </Tag>
                     )}
                     {group.isMultiple && (
-                      <Tag color="blue" className={styles.groupTag}>
+                      <Tag
+                        color="blue"
+                        className={styles.groupTag}
+                        variant="outlined"
+                      >
                         Multiple
                       </Tag>
                     )}

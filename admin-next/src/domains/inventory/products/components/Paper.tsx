@@ -1,13 +1,14 @@
-import { createStyles } from 'antd-style';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { ReactNode } from "react";
 
 const useStyles = createStyles(({ token }) => ({
   paper: {
-    boxSizing: 'border-box',
+    padding: token.padding,
+    boxSizing: "border-box",
     borderRadius: token.borderRadiusLG,
     backgroundColor: token.colorBgContainer,
     boxShadow: token.boxShadowTertiary,
-    width: '100%',
+    width: "100%",
   },
 }));
 
@@ -19,9 +20,5 @@ interface IPaperProps {
 export const Paper = ({ children, className }: IPaperProps) => {
   const { styles, cx } = useStyles();
 
-  return (
-    <div className={cx(styles.paper, className)}>
-      {children}
-    </div>
-  );
+  return <div className={cx(styles.paper, className)}>{children}</div>;
 };

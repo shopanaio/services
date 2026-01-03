@@ -1,19 +1,11 @@
-import { createStyles } from 'antd-style';
-import {
-  Typography,
-  Popover,
-  Timeline,
-  Select,
-  Flex,
-  Tag,
-  Badge,
-} from 'antd';
+import { createStyles } from "antd-style";
+import { Typography, Popover, Timeline, Select, Flex, Tag, Badge } from "antd";
 import {
   ArrowUpOutlined,
   ArrowDownOutlined,
   HistoryOutlined,
-} from '@ant-design/icons';
-import { ReactNode } from 'react';
+} from "@ant-design/icons";
+import { ReactNode } from "react";
 
 // ============================================================================
 // Types
@@ -45,12 +37,12 @@ export interface IVariantPriceSummary {
 
 export const generateMockHistory = (
   currentPrice: number,
-  currentCompareAt?: number | null,
+  currentCompareAt?: number | null
 ): IPriceHistoryRecord[] => {
   const now = new Date();
   const history: IPriceHistoryRecord[] = [
     {
-      id: '1',
+      id: "1",
       amount: currentPrice,
       compareAt: currentCompareAt || null,
       effectiveFrom: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
@@ -58,7 +50,7 @@ export const generateMockHistory = (
       isCurrent: true,
     },
     {
-      id: '2',
+      id: "2",
       amount: Math.round(currentPrice * 1.15),
       compareAt: Math.round(currentPrice * 1.4),
       effectiveFrom: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
@@ -66,7 +58,7 @@ export const generateMockHistory = (
       isCurrent: false,
     },
     {
-      id: '3',
+      id: "3",
       amount: Math.round(currentPrice * 0.9),
       compareAt: Math.round(currentPrice * 1.1),
       effectiveFrom: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
@@ -74,7 +66,7 @@ export const generateMockHistory = (
       isCurrent: false,
     },
     {
-      id: '4',
+      id: "4",
       amount: Math.round(currentPrice * 1.05),
       compareAt: null,
       effectiveFrom: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
@@ -82,7 +74,7 @@ export const generateMockHistory = (
       isCurrent: false,
     },
     {
-      id: '5',
+      id: "5",
       amount: Math.round(currentPrice * 1.2),
       compareAt: Math.round(currentPrice * 1.5),
       effectiveFrom: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
@@ -100,18 +92,23 @@ export const getMockVariantPrices = (
     price: number;
     compareAtPrice?: number | null;
     costPrice?: number | null;
-  }>,
+  }>
 ): IVariantPriceSummary[] => {
   return variants.map((v) => {
     const history = generateMockHistory(v.price);
     const costPrice = v.costPrice ?? Math.round(v.price * 0.6);
-    const margin = costPrice > 0 ? Math.round(((v.price - costPrice) / v.price) * 100) : null;
+    const margin =
+      costPrice > 0
+        ? Math.round(((v.price - costPrice) / v.price) * 100)
+        : null;
     return {
       variantId: v.id,
       variantTitle: v.title,
       currentPrice: v.price,
       previousPrice: history[1]?.amount || null,
-      compareAtPrice: v.compareAtPrice ?? (Math.random() > 0.5 ? Math.round(v.price * 1.2) : null),
+      compareAtPrice:
+        v.compareAtPrice ??
+        (Math.random() > 0.5 ? Math.round(v.price * 1.2) : null),
       costPrice,
       margin,
       priceHistory: history,
@@ -124,17 +121,17 @@ export const getMockVariantPrices = (
 // ============================================================================
 
 const formatPrice = (amount: number) =>
-  new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'RUB',
+  new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
     maximumFractionDigits: 0,
   }).format(amount / 100);
 
 const formatDateFull = (date: Date) =>
-  new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+  new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   }).format(date);
 
 // ============================================================================
@@ -145,16 +142,16 @@ const usePriceChangeStyles = createStyles(({ token }) => ({
   tagSmall: {
     margin: 0,
     fontSize: 10,
-    padding: '0 4px',
-    lineHeight: '16px',
-    border: 'none',
+    padding: "0 4px",
+    lineHeight: "16px",
+    border: "none",
   },
   tagDefault: {
     margin: 0,
     fontSize: 12,
-    padding: '0 6px',
-    lineHeight: '20px',
-    border: 'none',
+    padding: "0 6px",
+    lineHeight: "20px",
+    border: "none",
   },
 }));
 
@@ -162,15 +159,15 @@ const useDiscountStyles = createStyles(({ token }) => ({
   tagSmall: {
     margin: 0,
     fontSize: 10,
-    padding: '0 4px',
-    lineHeight: '16px',
+    padding: "0 4px",
+    lineHeight: "16px",
     fontWeight: 600,
   },
   tagDefault: {
     margin: 0,
     fontSize: 11,
-    padding: '0 6px',
-    lineHeight: '18px',
+    padding: "0 6px",
+    lineHeight: "18px",
     fontWeight: 600,
   },
   savingSmall: {
@@ -183,7 +180,7 @@ const useDiscountStyles = createStyles(({ token }) => ({
 
 const useSparklineStyles = createStyles(({ token }) => ({
   svg: {
-    display: 'block',
+    display: "block",
     background: token.colorBgLayout,
     borderRadius: 4,
   },
@@ -195,7 +192,7 @@ const useStatsStyles = createStyles(({ token }) => ({
   },
   containerStretched: {
     fontSize: 11,
-    width: '100%',
+    width: "100%",
   },
   labelText: {
     fontSize: 10,
@@ -215,15 +212,15 @@ const useStatsStyles = createStyles(({ token }) => ({
 
 const useTimelineStyles = createStyles(({ token }) => ({
   timeline: {
-    padding: '12px 0 0 0',
+    padding: "12px 0 0 0",
     margin: 0,
-    '.ant-timeline-item': {
+    ".ant-timeline-item": {
       paddingBottom: 12,
     },
-    '.ant-timeline-item:last-child': {
+    ".ant-timeline-item:last-child": {
       paddingBottom: 0,
     },
-    '.ant-timeline-item-tail': {
+    ".ant-timeline-item-tail": {
       borderInlineStart: `2px solid ${token.colorBorderSecondary}`,
     },
   },
@@ -236,12 +233,12 @@ const useTimelineStyles = createStyles(({ token }) => ({
   currentTag: {
     margin: 0,
     fontSize: 10,
-    lineHeight: '16px',
-    padding: '0 4px',
+    lineHeight: "16px",
+    padding: "0 4px",
   },
   dateText: {
     fontSize: 11,
-    display: 'block',
+    display: "block",
     marginTop: 4,
   },
 }));
@@ -263,12 +260,12 @@ const usePopoverStyles = createStyles(({ token }) => ({
 
 const useSelectStyles = createStyles(({ token }) => ({
   selectSmall: {
-    '.ant-select-selection-item': {
+    ".ant-select-selection-item": {
       fontSize: 12,
     },
   },
   selectDefault: {
-    '.ant-select-selection-item': {
+    ".ant-select-selection-item": {
       fontSize: 13,
     },
   },
@@ -277,7 +274,7 @@ const useSelectStyles = createStyles(({ token }) => ({
   },
   optionContainer: {
     minWidth: 280,
-    padding: '4px 0',
+    padding: "4px 0",
   },
   optionTitle: {
     fontSize: 13,
@@ -289,8 +286,8 @@ const useSelectStyles = createStyles(({ token }) => ({
 
 const useSummaryStyles = createStyles(({ token }) => ({
   priceContainer: {
-    cursor: 'pointer',
-    '&:hover': {
+    cursor: "pointer",
+    "&:hover": {
       opacity: 0.8,
     },
   },
@@ -341,13 +338,13 @@ const useSummaryStyles = createStyles(({ token }) => ({
 interface IPriceChangeIndicatorProps {
   currentPrice: number;
   previousPrice: number | null;
-  size?: 'small' | 'default';
+  size?: "small" | "default";
 }
 
 export const PriceChangeIndicator = ({
   currentPrice,
   previousPrice,
-  size = 'default',
+  size = "default",
 }: IPriceChangeIndicatorProps) => {
   const { styles } = usePriceChangeStyles();
 
@@ -361,12 +358,12 @@ export const PriceChangeIndicator = ({
 
   return (
     <Tag
-      color={isIncrease ? 'error' : 'success'}
-      className={size === 'small' ? styles.tagSmall : styles.tagDefault}
+      color={isIncrease ? "error" : "success"}
+      className={size === "small" ? styles.tagSmall : styles.tagDefault}
+      variant="outlined"
     >
-      {isIncrease ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-      {' '}
-      {isIncrease ? '+' : ''}
+      {isIncrease ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{" "}
+      {isIncrease ? "+" : ""}
       {percentChange}%
     </Tag>
   );
@@ -379,14 +376,14 @@ export const PriceChangeIndicator = ({
 interface IDiscountBadgeProps {
   price: number;
   compareAtPrice: number;
-  size?: 'small' | 'default';
+  size?: "small" | "default";
   showSaving?: boolean;
 }
 
 export const DiscountBadge = ({
   price,
   compareAtPrice,
-  size = 'default',
+  size = "default",
   showSaving = true,
 }: IDiscountBadgeProps) => {
   const { styles } = useDiscountStyles();
@@ -402,14 +399,17 @@ export const DiscountBadge = ({
     <Flex align="center" gap="small">
       <Tag
         color="red"
-        className={size === 'small' ? styles.tagSmall : styles.tagDefault}
+        className={size === "small" ? styles.tagSmall : styles.tagDefault}
+        variant="outlined"
       >
         -{discountPercent}%
       </Tag>
       {showSaving && (
         <Typography.Text
           type="success"
-          className={size === 'small' ? styles.savingSmall : styles.savingDefault}
+          className={
+            size === "small" ? styles.savingSmall : styles.savingDefault
+          }
         >
           Save {formatPrice(saving)}
         </Typography.Text>
@@ -453,16 +453,18 @@ export const PriceSparkline = ({
   });
 
   const isUp = prices[prices.length - 1] > prices[0];
-  const strokeColor = isUp ? '#ff4d4f' : '#52c41a';
-  const fillColor = isUp ? 'rgba(255, 77, 79, 0.1)' : 'rgba(82, 196, 26, 0.1)';
+  const strokeColor = isUp ? "#ff4d4f" : "#52c41a";
+  const fillColor = isUp ? "rgba(255, 77, 79, 0.1)" : "rgba(82, 196, 26, 0.1)";
 
-  const areaPath = `M ${points[0]} L ${points.join(' L ')} L ${padding + chartWidth},${padding + chartHeight} L ${padding},${padding + chartHeight} Z`;
+  const areaPath = `M ${points[0]} L ${points.join(" L ")} L ${
+    padding + chartWidth
+  },${padding + chartHeight} L ${padding},${padding + chartHeight} Z`;
 
   return (
     <svg width={width} height={height} className={styles.svg}>
       <path d={areaPath} fill={fillColor} />
       <polyline
-        points={points.join(' ')}
+        points={points.join(" ")}
         fill="none"
         stroke={strokeColor}
         strokeWidth="2"
@@ -470,14 +472,14 @@ export const PriceSparkline = ({
         strokeLinejoin="round"
       />
       <circle
-        cx={points[points.length - 1].split(',')[0]}
-        cy={points[points.length - 1].split(',')[1]}
+        cx={points[points.length - 1].split(",")[0]}
+        cy={points[points.length - 1].split(",")[1]}
         r="3"
         fill={strokeColor}
       />
       <circle
-        cx={points[0].split(',')[0]}
-        cy={points[0].split(',')[1]}
+        cx={points[0].split(",")[0]}
+        cy={points[0].split(",")[1]}
         r="2"
         fill={strokeColor}
         opacity="0.5"
@@ -511,7 +513,7 @@ export const PriceStats = ({
   return (
     <Flex
       gap={12}
-      justify={stretched ? 'space-between' : undefined}
+      justify={stretched ? "space-between" : undefined}
       className={stretched ? styles.containerStretched : styles.container}
     >
       <Flex vertical align="center">
@@ -578,12 +580,12 @@ export const PriceHistoryTimeline = ({
 
         return {
           color: record.isCurrent
-            ? 'blue'
+            ? "blue"
             : isDecrease
-              ? 'green'
-              : isIncrease
-                ? 'red'
-                : 'gray',
+            ? "green"
+            : isIncrease
+            ? "red"
+            : "gray",
           children: (
             <div>
               <Flex align="center" gap="small" wrap="wrap">
@@ -618,14 +620,19 @@ export const PriceHistoryTimeline = ({
                   />
                 )}
                 {record.isCurrent && (
-                  <Tag color="blue" className={styles.currentTag}>
+                  <Tag
+                    color="blue"
+                    className={styles.currentTag}
+                    variant="outlined"
+                  >
                     current
                   </Tag>
                 )}
               </Flex>
               <Typography.Text type="secondary" className={styles.dateText}>
                 {formatDateFull(record.effectiveFrom)}
-                {record.effectiveTo && ` — ${formatDateFull(record.effectiveTo)}`}
+                {record.effectiveTo &&
+                  ` — ${formatDateFull(record.effectiveTo)}`}
               </Typography.Text>
             </div>
           ),
@@ -677,14 +684,14 @@ interface IVariantPriceSelectProps {
   variants: IVariantPriceSummary[];
   selectedVariantId?: string;
   onSelect?: (variantId: string) => void;
-  size?: 'small' | 'default';
+  size?: "small" | "default";
 }
 
 export const VariantPriceSelect = ({
   variants,
   selectedVariantId,
   onSelect,
-  size = 'default',
+  size = "default",
 }: IVariantPriceSelectProps) => {
   const { styles } = useSelectStyles();
 
@@ -692,11 +699,11 @@ export const VariantPriceSelect = ({
     <Select
       value={selectedVariantId}
       onChange={onSelect}
-      style={{ minWidth: size === 'small' ? 180 : 240 }}
+      style={{ minWidth: size === "small" ? 180 : 240 }}
       placeholder="Select variant"
       popupMatchSelectWidth={false}
-      size={size === 'small' ? 'small' : 'middle'}
-      className={size === 'small' ? styles.selectSmall : styles.selectDefault}
+      size={size === "small" ? "small" : "middle"}
+      className={size === "small" ? styles.selectSmall : styles.selectDefault}
       labelRender={(props) => {
         const v = variants.find((v) => v.variantId === props.value);
         if (!v) return props.label;
@@ -766,19 +773,25 @@ export const PriceSummaryCard = ({
 
   const previousPrice = history[1]?.amount || null;
   const format = formatPriceFn || formatPrice;
-  const margin = costPrice && costPrice > 0
-    ? Math.round(((price - costPrice) / price) * 100)
-    : null;
-  const saving = compareAtPrice && compareAtPrice > price ? compareAtPrice - price : null;
-  const discountPercent = saving && compareAtPrice ? Math.round((saving / compareAtPrice) * 100) : null;
+  const margin =
+    costPrice && costPrice > 0
+      ? Math.round(((price - costPrice) / price) * 100)
+      : null;
+  const saving =
+    compareAtPrice && compareAtPrice > price ? compareAtPrice - price : null;
+  const discountPercent =
+    saving && compareAtPrice
+      ? Math.round((saving / compareAtPrice) * 100)
+      : null;
 
-  const marginColor = margin !== null
-    ? margin >= 30
-      ? '#52c41a'
-      : margin >= 15
-        ? '#faad14'
-        : '#ff4d4f'
-    : undefined;
+  const marginColor =
+    margin !== null
+      ? margin >= 30
+        ? "#52c41a"
+        : margin >= 15
+        ? "#faad14"
+        : "#ff4d4f"
+      : undefined;
 
   return (
     <Flex vertical gap="middle">

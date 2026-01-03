@@ -1,4 +1,4 @@
-import { createStyles } from 'antd-style';
+import { createStyles } from "antd-style";
 import {
   Avatar,
   Button,
@@ -9,7 +9,8 @@ import {
   Switch,
   Popover,
   Flex,
-} from 'antd';
+  Divider,
+} from "antd";
 import {
   CopyOutlined,
   CheckOutlined,
@@ -20,17 +21,18 @@ import {
   EyeOutlined,
   ShareAltOutlined,
   CheckCircleFilled,
-} from '@ant-design/icons';
-import { useState } from 'react';
-import { Paper } from './Paper';
-import { Tile } from './Tile';
-import { IProduct, EntityStatus } from '../mocks/types';
+} from "@ant-design/icons";
+import { useState } from "react";
+import { Paper } from "./Paper";
+import { PaperHeader } from "./PaperHeader";
+import { Tile } from "./Tile";
+import { IProduct, EntityStatus } from "../mocks/types";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type KPIPeriod = '7d' | '30d' | '90d' | 'ytd' | 'all';
+type KPIPeriod = "7d" | "30d" | "90d" | "ytd" | "all";
 
 interface IKPIData {
   views: number;
@@ -57,59 +59,41 @@ interface IProductInfoHeaderProps {
 // ============================================================================
 
 const useStyles = createStyles(({ token }) => ({
-  card: {
-    padding: 0,
-    overflow: 'hidden',
-    borderRadius: 8,
-  },
-  topBar: {
-    padding: 12,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgLayout,
-  },
-  titleSection: {
-    padding: 12,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
-  kpiSection: {
-    padding: 12,
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-  },
   statusTag: {
     margin: 0,
-    display: 'inline-flex',
-    alignItems: 'center',
+    display: "inline-flex",
+    alignItems: "center",
     gap: 4,
     fontWeight: 500,
-    fontSize: 12,
   },
   metaText: {
-    fontSize: 12,
+    fontSize: token.fontSizeSM,
   },
   actionButton: {
-    height: 28,
-    width: 28,
     padding: 0,
   },
   productTitle: {
-    '&&': {
-      margin: '0 0 6px 0',
+    "&&": {
+      margin: "0 0 6px 0",
       fontSize: 24,
       fontWeight: 600,
       lineHeight: 1.3,
     },
   },
+  divider: {
+    marginBlock: token.margin,
+  },
   copyableChip: {
-    cursor: 'pointer',
+    cursor: "pointer",
     margin: 0,
-    display: 'inline-flex',
-    alignItems: 'center',
+    display: "inline-flex",
+    alignItems: "center",
     gap: 0,
   },
   chipLabel: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px',
+    fontSize: token.fontSizeSM,
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
     marginRight: 4,
   },
   chipValue: {
@@ -119,7 +103,7 @@ const useStyles = createStyles(({ token }) => ({
   chipValueMono: {
     fontSize: 11,
     color: token.colorTextSecondary,
-    fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+    fontFamily: "ui-monospace, SFMono-Regular, monospace",
   },
   chipIcon: {
     fontSize: 9,
@@ -131,12 +115,11 @@ const useStyles = createStyles(({ token }) => ({
   },
   periodTag: {
     margin: 0,
-    cursor: 'pointer',
-    fontSize: 11,
-    padding: '2px 8px',
-    borderRadius: 4,
-    userSelect: 'none',
-    transition: 'all 0.2s',
+    cursor: "pointer",
+    fontSize: token.fontSizeSM,
+    padding: "2px 8px",
+    userSelect: "none",
+    transition: "all 0.2s",
   },
   periodTagActive: {
     background: token.colorText,
@@ -147,13 +130,13 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     color: token.colorTextSecondary,
     borderColor: token.colorBorder,
-    '&:hover': {
+    "&:hover": {
       borderColor: token.colorTextTertiary,
       color: token.colorText,
     },
   },
   userPopover: {
-    padding: '4px 0',
+    padding: "4px 0",
   },
   userAvatar: {
     backgroundColor: token.purple2,
@@ -161,7 +144,7 @@ const useStyles = createStyles(({ token }) => ({
     flexShrink: 0,
   },
   userName: {
-    display: 'block',
+    display: "block",
     fontSize: 14,
     lineHeight: 1.4,
   },
@@ -170,7 +153,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   // Tile overrides for header KPIs
   kpiTile: {
-    padding: '12px 16px',
+    padding: "12px 16px",
     background: token.colorBgElevated,
   },
   kpiTileValue: {
@@ -186,28 +169,28 @@ const getStatusConfig = (status: EntityStatus) => {
   switch (status) {
     case EntityStatus.PUBLISHED:
       return {
-        color: 'success' as const,
+        color: "success" as const,
         icon: <CheckCircleFilled />,
-        label: 'Published',
+        label: "Published",
         hint: null,
       };
     case EntityStatus.DRAFT:
       return {
-        color: 'default' as const,
+        color: "default" as const,
         icon: <ClockCircleFilled />,
-        label: 'Draft',
-        hint: 'Not visible on storefront',
+        label: "Draft",
+        hint: "Not visible on storefront",
       };
     case EntityStatus.ARCHIVED:
       return {
-        color: 'error' as const,
+        color: "error" as const,
         icon: <StopOutlined />,
-        label: 'Archived',
-        hint: 'Product is archived',
+        label: "Archived",
+        hint: "Product is archived",
       };
     default:
       return {
-        color: 'default' as const,
+        color: "default" as const,
         icon: null,
         label: status,
         hint: null,
@@ -216,13 +199,13 @@ const getStatusConfig = (status: EntityStatus) => {
 };
 
 const formatNumber = (num: number): string => {
-  return num.toLocaleString('ru-RU');
+  return num.toLocaleString("ru-RU");
 };
 
 const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'RUB',
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount / 100);
@@ -243,7 +226,12 @@ interface ICopyableChipProps {
   mono?: boolean;
 }
 
-const CopyableChip = ({ label, value, displayValue, mono }: ICopyableChipProps) => {
+const CopyableChip = ({
+  label,
+  value,
+  displayValue,
+  mono,
+}: ICopyableChipProps) => {
   const { styles } = useStyles();
   const [copied, setCopied] = useState(false);
 
@@ -254,14 +242,21 @@ const CopyableChip = ({ label, value, displayValue, mono }: ICopyableChipProps) 
   };
 
   return (
-    <Tooltip title={copied ? 'Copied!' : undefined}>
-      <Tag color="default" onClick={handleCopy} className={styles.copyableChip}>
+    <Tooltip title={copied ? "Copied!" : undefined}>
+      <Tag
+        color="default"
+        onClick={handleCopy}
+        className={styles.copyableChip}
+        variant="outlined"
+      >
         {label && (
           <Typography.Text type="secondary" className={styles.chipLabel}>
             {label}
           </Typography.Text>
         )}
-        <Typography.Text className={mono ? styles.chipValueMono : styles.chipValue}>
+        <Typography.Text
+          className={mono ? styles.chipValueMono : styles.chipValue}
+        >
           {displayValue || value}
         </Typography.Text>
         {copied ? (
@@ -280,7 +275,11 @@ interface IUserPopoverProps {
   email: string;
 }
 
-const UserPopoverContent = ({ firstName, lastName, email }: IUserPopoverProps) => {
+const UserPopoverContent = ({
+  firstName,
+  lastName,
+  email,
+}: IUserPopoverProps) => {
   const { styles } = useStyles();
 
   return (
@@ -314,7 +313,7 @@ export const ProductInfoHeader = ({
   kpiData,
 }: IProductInfoHeaderProps) => {
   const { styles, cx } = useStyles();
-  const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>('7d');
+  const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
 
   const statusConfig = getStatusConfig(product.status);
@@ -332,108 +331,113 @@ export const ProductInfoHeader = ({
     revenueTrend: 12,
   };
 
-  return (
-    <Paper className={styles.card}>
-      {/* TOP BAR */}
-      <Flex align="center" justify="space-between" className={styles.topBar}>
-        <Flex align="center" gap={8}>
-          <Tooltip title={statusConfig.hint}>
-            <Tag
-              color={statusConfig.color}
-              icon={statusConfig.icon}
-              className={styles.statusTag}
-            >
-              {statusConfig.label}
-            </Tag>
-          </Tooltip>
-          {product.status === EntityStatus.PUBLISHED && (
-            <Typography.Text type="secondary" className={styles.metaText}>
-              {product.updatedAt.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              })}
-              <span style={{ marginLeft: 4 }}>by</span>
-              <Popover
-                content={
-                  <UserPopoverContent
-                    firstName="Admin"
-                    lastName="User"
-                    email="admin@shopana.io"
-                  />
-                }
-                placement="bottom"
-                arrow={false}
-              >
-                <Button
-                  variant="text"
-                  color="primary"
-                  style={{
-                    padding: 0,
-                    height: 'auto',
-                    marginLeft: 4,
-                    fontSize: 'inherit',
-                  }}
-                >
-                  Admin
-                </Button>
-              </Popover>
-            </Typography.Text>
-          )}
-        </Flex>
-
-        <Flex align="center" gap={4}>
-          <Tooltip title="Open on storefront">
-            <Button
-              variant="text"
-              color="primary"
-              icon={<LinkOutlined />}
-              onClick={onViewStorefront}
-              className={styles.actionButton}
-            />
-          </Tooltip>
-          <Tooltip title="Preview">
-            <Button
-              variant="text"
-              color="primary"
-              icon={<EyeOutlined />}
-              onClick={onPreview}
-              className={styles.actionButton}
-            />
-          </Tooltip>
-          <Tooltip title="Share">
-            <Button
-              variant="text"
-              color="primary"
-              icon={<ShareAltOutlined />}
-              onClick={onShare}
-              className={styles.actionButton}
-            />
-          </Tooltip>
-          <Dropdown
-            menu={{
-              items: [
-                { key: 'duplicate', label: 'Duplicate product' },
-                { key: 'export', label: 'Export' },
-                { type: 'divider' as const },
-                { key: 'archive', label: 'Archive', danger: true },
-              ],
-              onClick: ({ key }) => handleEdit(key),
-            }}
-            trigger={['click']}
+  const statusTitle = (
+    <Flex align="center" gap={8}>
+      <Tooltip title={statusConfig.hint}>
+        <Tag
+          color={statusConfig.color}
+          icon={statusConfig.icon}
+          className={styles.statusTag}
+          variant="outlined"
+        >
+          {statusConfig.label}
+        </Tag>
+      </Tooltip>
+      {product.status === EntityStatus.PUBLISHED && (
+        <Typography.Text type="secondary" className={styles.metaText}>
+          {product.updatedAt.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })}
+          <span style={{ marginLeft: 4 }}>by</span>
+          <Popover
+            content={
+              <UserPopoverContent
+                firstName="Admin"
+                lastName="User"
+                email="admin@shopana.io"
+              />
+            }
+            placement="bottom"
+            arrow={false}
           >
-            <Button icon={<MoreOutlined />} />
-          </Dropdown>
-        </Flex>
-      </Flex>
+            <Button
+              variant="text"
+              color="primary"
+              style={{
+                padding: 0,
+                height: "auto",
+                marginLeft: 4,
+                fontSize: "inherit",
+              }}
+            >
+              Admin
+            </Button>
+          </Popover>
+        </Typography.Text>
+      )}
+    </Flex>
+  );
+
+  const topBarActions = (
+    <Flex align="center" gap={4}>
+      <Tooltip title="Open on storefront">
+        <Button
+          variant="text"
+          color="primary"
+          icon={<LinkOutlined />}
+          onClick={onViewStorefront}
+          className={styles.actionButton}
+        />
+      </Tooltip>
+      <Tooltip title="Preview">
+        <Button
+          variant="text"
+          color="primary"
+          icon={<EyeOutlined />}
+          onClick={onPreview}
+          className={styles.actionButton}
+        />
+      </Tooltip>
+      <Tooltip title="Share">
+        <Button
+          variant="text"
+          color="primary"
+          icon={<ShareAltOutlined />}
+          onClick={onShare}
+          className={styles.actionButton}
+        />
+      </Tooltip>
+      <Dropdown
+        menu={{
+          items: [
+            { key: "duplicate", label: "Duplicate product" },
+            { key: "export", label: "Export" },
+            { type: "divider" as const },
+            { key: "archive", label: "Archive", danger: true },
+          ],
+          onClick: ({ key }) => handleEdit(key),
+        }}
+        trigger={["click"]}
+      >
+        <Button size="small" icon={<MoreOutlined />} />
+      </Dropdown>
+    </Flex>
+  );
+
+  return (
+    <Paper>
+      {/* TOP BAR */}
+      <PaperHeader title={statusTitle} actions={topBarActions} />
 
       {/* TITLE SECTION */}
-      <div className={styles.titleSection}>
+      <div>
         <Typography.Title
           level={4}
           ellipsis={{ rows: 1, tooltip: product.title }}
           className={styles.productTitle}
         >
-          {product.title || 'Untitled Product'}
+          {product.title || "Untitled Product"}
         </Typography.Title>
 
         <Flex align="center" gap={12} style={{ marginBottom: 10 }}>
@@ -448,27 +452,34 @@ export const ProductInfoHeader = ({
         </Flex>
       </div>
 
+      <Divider className={styles.divider} />
+
       {/* KPI PANEL */}
-      <div className={styles.kpiSection}>
-        <Flex align="center" justify="space-between" style={{ marginBottom: 12 }}>
+      <div>
+        <Flex
+          align="center"
+          justify="space-between"
+          style={{ marginBottom: 12 }}
+        >
           <Flex align="center" gap={4}>
             {(
               [
-                { value: '7d', label: '7D' },
-                { value: '30d', label: '30D' },
-                { value: '90d', label: '90D' },
-                { value: 'ytd', label: 'YTD' },
-                { value: 'all', label: 'All' },
+                { value: "7d", label: "7D" },
+                { value: "30d", label: "30D" },
+                { value: "90d", label: "90D" },
+                { value: "ytd", label: "YTD" },
+                { value: "all", label: "All" },
               ] as const
             ).map((period) => (
               <Tag
+                variant="outlined"
                 key={period.value}
                 onClick={() => setKpiPeriod(period.value)}
                 className={cx(
                   styles.periodTag,
                   kpiPeriod === period.value
                     ? styles.periodTagActive
-                    : styles.periodTagInactive,
+                    : styles.periodTagInactive
                 )}
               >
                 {period.label}
@@ -478,12 +489,16 @@ export const ProductInfoHeader = ({
           <Flex align="center" gap={8}>
             <Typography.Text
               type="secondary"
-              style={{ fontSize: 12, cursor: 'pointer', userSelect: 'none' }}
+              style={{ fontSize: 12, cursor: "pointer", userSelect: "none" }}
               onClick={() => setCompareEnabled(!compareEnabled)}
             >
               Compare to previous
             </Typography.Text>
-            <Switch size="small" checked={compareEnabled} onChange={setCompareEnabled} />
+            <Switch
+              size="small"
+              checked={compareEnabled}
+              onChange={setCompareEnabled}
+            />
           </Flex>
         </Flex>
 

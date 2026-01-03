@@ -7,8 +7,8 @@ const useStyles = createStyles(({ token }) => ({
     aspectRatio: '1/1',
     width: '100%',
     borderRadius: token.borderRadiusLG,
-    border: `1px dashed ${token.colorPrimary}`,
-    backgroundColor: token.colorPrimaryBg,
+    border: `1px dashed ${token.colorBorder}`,
+    backgroundColor: token.colorBgLayout,
     transition: 'all 0.2s ease-in-out',
   },
 }));

@@ -42,8 +42,7 @@ const useStyles = createStyles(
         padding: ${topPadding}px ${token.padding}px ${token.padding}px;
         transform: scale(${scale}) translateY(${translateY}px);
         transform-origin: top center;
-        transition:
-          transform ${token.motionDurationMid} ease-out,
+        transition: transform ${token.motionDurationMid} ease-out,
           opacity ${token.motionDurationMid} ease-out;
         pointer-events: ${hasChildren ? "none" : "auto"};
         opacity: ${opacity};
@@ -51,6 +50,7 @@ const useStyles = createStyles(
       container: css`
         height: calc(100vh - ${topPadding + token.padding}px);
         width: calc(100vw - ${token.padding * 2}px);
+        padding: 0 !important;
       `,
     };
   }
