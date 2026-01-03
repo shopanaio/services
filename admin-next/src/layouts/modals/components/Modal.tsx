@@ -21,22 +21,25 @@ const SCALE_FACTOR = 0.03;
 interface StyleProps {
   hasChildren: boolean;
   depth: number;
+  totalCount: number;
 }
 
 const useStyles = createStyles(
-  ({ css, token }, { hasChildren, depth }: StyleProps) => {
+  ({ css, token }, { hasChildren, depth, totalCount }: StyleProps) => {
     const scale = hasChildren ? 1 - SCALE_FACTOR * depth : 1;
     const translateY = hasChildren ? -token.paddingXS * depth : 0;
     // Only show active item (depth=0) and the one behind it (depth=1)
     // Hide items at depth >= 2
     const opacity = depth >= 2 ? 0 : 1;
+    // Active modal (depth=0) gets 24px top padding when there's more than one modal in stack
+    const topPadding = depth === 0 && totalCount > 1 ? 24 : token.padding;
 
     return {
       wrapper: css`
         display: flex;
         align-items: flex-start;
         justify-content: center;
-        padding: ${token.padding}px;
+        padding: ${topPadding}px ${token.padding}px ${token.padding}px;
         transform: scale(${scale}) translateY(${translateY}px);
         transform-origin: top center;
         transition:
@@ -46,7 +49,7 @@ const useStyles = createStyles(
         opacity: ${opacity};
       `,
       container: css`
-        height: calc(100vh - ${token.padding * 2}px);
+        height: calc(100vh - ${topPadding + token.padding}px);
         width: calc(100vw - ${token.padding * 2}px);
       `,
     };
@@ -139,7 +142,7 @@ export const ModalStackItem = ({
   const hasChildren = !!children;
   const depth = totalCount - level - 1;
 
-  const { styles } = useStyles({ hasChildren, depth });
+  const { styles } = useStyles({ hasChildren, depth, totalCount });
 
   const clearAfterClose = (open: boolean) => {
     if (open) return;
