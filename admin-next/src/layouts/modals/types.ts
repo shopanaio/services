@@ -1,19 +1,19 @@
 import { ComponentType, LazyExoticComponent } from 'react';
 
 /**
- * Base payload interface for all stack items
- * Each stack item type extends this with its own payload shape
+ * Base payload interface for all modal stack items
+ * Each item type extends this with its own payload shape
  */
-export interface IStackPayload {
+export interface IModalStackPayload {
   entityId?: string | number;
   mode?: 'view' | 'edit' | 'create';
   [key: string]: unknown;
 }
 
 /**
- * Stack item stored in the state
+ * Modal stack item stored in the state
  */
-export interface IStackItem<T extends IStackPayload = IStackPayload> {
+export interface IModalStackItem<T extends IModalStackPayload = IModalStackPayload> {
   uuid: string;
   type: string;
   payload: T;
@@ -21,9 +21,9 @@ export interface IStackItem<T extends IStackPayload = IStackPayload> {
 }
 
 /**
- * Context value provided to stack item components
+ * Context value provided to modal stack item components
  */
-export interface IStackItemContext<T extends IStackPayload = IStackPayload> {
+export interface IModalStackContext<T extends IModalStackPayload = IModalStackPayload> {
   uuid: string;
   type: string;
   payload: T;
@@ -35,18 +35,18 @@ export interface IStackItemContext<T extends IStackPayload = IStackPayload> {
 }
 
 /**
- * Stack item component type - can be regular or lazy loaded
+ * Modal stack item component type - can be regular or lazy loaded
  */
-export type StackItemComponent<T extends IStackPayload = IStackPayload> =
+export type ModalStackComponent<T extends IModalStackPayload = IModalStackPayload> =
   | ComponentType<{}>
   | LazyExoticComponent<ComponentType<{}>>;
 
 /**
- * Stack item definition for registration
+ * Modal stack item definition for registration
  */
-export interface IStackDefinition<T extends IStackPayload = IStackPayload> {
+export interface IModalStackDefinition<T extends IModalStackPayload = IModalStackPayload> {
   type: string;
-  component: StackItemComponent<T>;
+  component: ModalStackComponent<T>;
   /** Whether to show close confirmation when dirty */
   confirmOnDirtyClose?: boolean;
   /** Custom close confirmation message */
@@ -54,70 +54,39 @@ export interface IStackDefinition<T extends IStackPayload = IStackPayload> {
 }
 
 /**
- * Options for pushing a stack item
+ * Options for pushing a modal stack item
  */
-export interface IPushOptions<T extends IStackPayload = IStackPayload> {
+export interface IModalStackPushOptions<T extends IModalStackPayload = IModalStackPayload> {
   type: string;
   payload?: T;
 }
 
 /**
- * Stack registry map type
+ * Modal stack registry map type
  */
-export type StackRegistryMap = Map<string, IStackDefinition>;
+export type ModalStackRegistryMap = Map<string, IModalStackDefinition>;
 
 // ============================================================================
-// Type-safe stack item declaration helpers
+// Type-safe modal stack item declaration helpers
 // ============================================================================
 
 /**
- * Helper type to declare a stack item type with its payload
+ * Helper type to declare a modal stack item type with its payload
  * Usage in domain:
  *
  * declare module '@/layouts/modals' {
- *   interface StackPayloads {
+ *   interface ModalStackPayloads {
  *     product: { entityId: string; mode?: 'view' | 'edit' };
  *     'product-create': { categoryId?: string };
  *   }
  * }
  */
-export interface StackPayloads {
+export interface ModalStackPayloads {
   // Extend this interface via module augmentation in domains
-  [key: string]: IStackPayload;
+  [key: string]: IModalStackPayload;
 }
 
 /**
- * Get payload type for a specific stack item type
+ * Get payload type for a specific modal stack item type
  */
-export type GetStackPayload<T extends keyof StackPayloads> = StackPayloads[T];
-
-// ============================================================================
-// Legacy aliases (deprecated, for backwards compatibility)
-// ============================================================================
-
-/** @deprecated Use IStackPayload instead */
-export type IModalPayload = IStackPayload;
-
-/** @deprecated Use IStackItem instead */
-export type IModalItem<T extends IStackPayload = IStackPayload> = IStackItem<T>;
-
-/** @deprecated Use IStackItemContext instead */
-export type IModalContext<T extends IStackPayload = IStackPayload> = IStackItemContext<T>;
-
-/** @deprecated Use StackItemComponent instead */
-export type ModalComponent<T extends IStackPayload = IStackPayload> = StackItemComponent<T>;
-
-/** @deprecated Use IStackDefinition instead */
-export type IModalDefinition<T extends IStackPayload = IStackPayload> = IStackDefinition<T>;
-
-/** @deprecated Use IPushOptions instead */
-export type IOpenModalOptions<T extends IStackPayload = IStackPayload> = IPushOptions<T>;
-
-/** @deprecated Use StackRegistryMap instead */
-export type ModalRegistryMap = StackRegistryMap;
-
-/** @deprecated Use StackPayloads instead */
-export type ModalPayloads = StackPayloads;
-
-/** @deprecated Use GetStackPayload instead */
-export type GetModalPayload<T extends keyof StackPayloads> = GetStackPayload<T>;
+export type GetModalStackPayload<T extends keyof ModalStackPayloads> = ModalStackPayloads[T];

@@ -1,68 +1,61 @@
 'use client';
 
-import { StackItem } from './Modal';
-import { useStackStore } from '../store/modals';
-import type { IStackItem } from '../types';
+import { ModalStackItem } from './Modal';
+import { useModalStackStore } from '../store/modals';
+import type { IModalStackItem } from '../types';
 
-interface INestedStackProps {
-  items: IStackItem[];
+interface INestedModalStackProps {
+  items: IModalStackItem[];
   totalCount: number;
   level?: number;
 }
 
 /**
- * Recursive component for rendering nested stack items
+ * Recursive component for rendering nested modal stack items
  */
-const NestedStack = ({ items, totalCount, level = 0 }: INestedStackProps) => {
+const NestedModalStack = ({ items, totalCount, level = 0 }: INestedModalStackProps) => {
   const [current, ...rest] = items;
 
   const hasMore = rest.length > 0;
 
   return (
-    <StackItem stackItem={current} level={level} totalCount={totalCount}>
+    <ModalStackItem item={current} level={level} totalCount={totalCount}>
       {hasMore && (
-        <NestedStack items={rest} totalCount={totalCount} level={level + 1} />
+        <NestedModalStack items={rest} totalCount={totalCount} level={level + 1} />
       )}
-    </StackItem>
+    </ModalStackItem>
   );
 };
 
 /**
- * Root stack component
- * Renders all open stack items from the store
+ * Root modal stack component
+ * Renders all open modal stack items from the store
  *
  * Place this component once in your app layout:
  *
  * @example
  * ```tsx
  * // In app/layout.tsx or similar
- * import { Stack } from '@/layouts/modals';
+ * import { ModalStack } from '@/layouts/modals';
  *
  * export default function Layout({ children }) {
  *   return (
  *     <html>
  *       <body>
  *         {children}
- *         <Stack />
+ *         <ModalStack />
  *       </body>
  *     </html>
  *   );
  * }
  * ```
  */
-export const Stack = () => {
-  const items = useStackStore((state) => state.items);
+export const ModalStack = () => {
+  const items = useModalStackStore((state) => state.items);
 
   if (!items.length) {
     return null;
   }
 
-  return <NestedStack items={items} totalCount={items.length} />;
+  return <NestedModalStack items={items} totalCount={items.length} />;
 };
-
-// ============================================================================
-// Legacy alias (deprecated, for backwards compatibility)
-// ============================================================================
-
-/** @deprecated Use Stack instead */
-export const Modals = Stack;

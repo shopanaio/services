@@ -3,9 +3,9 @@
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import type { SidebarItem } from "./registry";
 import type { IDrawerDefinition } from "@/layouts/drawers/types";
-import type { IModalDefinition } from "@/layouts/modals/types";
+import type { IModalStackDefinition } from "@/layouts/modals/types";
 import { registerDrawer } from "@/layouts/drawers/registry/drawerRegistry";
-import { registerModal } from "@/layouts/modals/registry/modalRegistry";
+import { registerModalStackItem } from "@/layouts/modals/registry/modalRegistry";
 
 // ============================================================================
 // Sidebar Items Context
@@ -42,25 +42,25 @@ function DrawersRegistration({ getDrawers }: DrawersRegistrationProps) {
 }
 
 // ============================================================================
-// Modals Registration
+// Modal Stack Registration
 // ============================================================================
 
-interface ModalsRegistrationProps {
-  getModals?: () => IModalDefinition[];
+interface ModalStackRegistrationProps {
+  getModalStackItems?: () => IModalStackDefinition[];
 }
 
-function ModalsRegistration({ getModals }: ModalsRegistrationProps) {
+function ModalStackRegistration({ getModalStackItems }: ModalStackRegistrationProps) {
   const registeredRef = useRef(false);
 
   useEffect(() => {
-    if (registeredRef.current || !getModals) return;
+    if (registeredRef.current || !getModalStackItems) return;
     registeredRef.current = true;
 
-    const modals = getModals();
-    modals.forEach((modal) => {
-      registerModal(modal);
+    const items = getModalStackItems();
+    items.forEach((item) => {
+      registerModalStackItem(item);
     });
-  }, [getModals]);
+  }, [getModalStackItems]);
 
   return null;
 }
@@ -73,23 +73,23 @@ interface ModuleProviderProps {
   children: ReactNode;
   sidebarItems: SidebarItem[];
   getDrawers?: () => IDrawerDefinition[];
-  getModals?: () => IModalDefinition[];
+  getModalStackItems?: () => IModalStackDefinition[];
 }
 
 /**
  * Combined provider for module registry client-side state
- * Handles sidebar items context, drawer and modal registration
+ * Handles sidebar items context, drawer and modal stack registration
  */
 export function ModuleProvider({
   children,
   sidebarItems,
   getDrawers,
-  getModals,
+  getModalStackItems,
 }: ModuleProviderProps) {
   return (
     <SidebarItemsContext.Provider value={sidebarItems}>
       <DrawersRegistration getDrawers={getDrawers} />
-      <ModalsRegistration getModals={getModals} />
+      <ModalStackRegistration getModalStackItems={getModalStackItems} />
       {children}
     </SidebarItemsContext.Provider>
   );

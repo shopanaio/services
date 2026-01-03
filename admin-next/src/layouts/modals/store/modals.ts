@@ -1,23 +1,23 @@
 import { create } from 'zustand';
-import type { IStackItem, IStackPayload } from '../types';
+import type { IModalStackItem, IModalStackPayload } from '../types';
 
-interface IStackState {
-  items: IStackItem[];
+interface IModalStackState {
+  items: IModalStackItem[];
 
   /**
-   * Push a new item onto the stack
+   * Push a new item onto the modal stack
    * @returns uuid of the created item
    */
-  push: (type: string, payload?: IStackPayload) => string;
+  push: (type: string, payload?: IModalStackPayload) => string;
 
   /**
-   * Pop an item from the stack by uuid
+   * Pop an item from the modal stack by uuid
    * Also pops all items stacked on top of it
    */
   pop: (uuid?: string) => void;
 
   /**
-   * Clear all items from the stack
+   * Clear all items from the modal stack
    */
   clear: () => void;
 
@@ -29,17 +29,17 @@ interface IStackState {
   /**
    * Update item payload
    */
-  updatePayload: (uuid: string, payload: Partial<IStackPayload>) => void;
+  updatePayload: (uuid: string, payload: Partial<IModalStackPayload>) => void;
 
   /**
    * Get item by uuid
    */
-  getItem: (uuid: string) => IStackItem | undefined;
+  getItem: (uuid: string) => IModalStackItem | undefined;
 
   /**
    * Peek at the top item without removing it
    */
-  peek: () => IStackItem | undefined;
+  peek: () => IModalStackItem | undefined;
 
   /**
    * Get stack size
@@ -47,7 +47,7 @@ interface IStackState {
   size: () => number;
 }
 
-export const useStackStore = create<IStackState>((set, get) => ({
+export const useModalStackStore = create<IModalStackState>((set, get) => ({
   items: [],
 
   push: (type, payload = {}) => {
@@ -118,10 +118,3 @@ export const useStackStore = create<IStackState>((set, get) => ({
     return get().items.length;
   },
 }));
-
-// ============================================================================
-// Legacy alias (deprecated, for backwards compatibility)
-// ============================================================================
-
-/** @deprecated Use useStackStore instead */
-export const useModalsStore = useStackStore;

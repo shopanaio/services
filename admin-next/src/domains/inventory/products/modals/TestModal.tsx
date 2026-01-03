@@ -1,11 +1,11 @@
 'use client';
 
 import { Button, Flex, Typography } from 'antd';
-import { useStackItemContext, useStack } from '@/layouts/modals';
+import { useModalStackContext, useModalStack } from '@/layouts/modals';
 
 export const TestModal = () => {
-  const { payload, pop, forcePop } = useStackItemContext();
-  const { push } = useStack();
+  const { payload, pop, forcePop } = useModalStackContext();
+  const { push } = useModalStack();
 
   const level = (payload.level as number) || 1;
 

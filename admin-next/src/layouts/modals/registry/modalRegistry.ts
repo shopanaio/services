@@ -1,57 +1,57 @@
-import type { IStackDefinition, StackRegistryMap, IStackPayload } from '../types';
+import type { IModalStackDefinition, ModalStackRegistryMap, IModalStackPayload } from '../types';
 
 /**
- * Global stack registry
- * Stores all registered stack item definitions
+ * Global modal stack registry
+ * Stores all registered modal stack item definitions
  */
-class StackRegistry {
-  private registry: StackRegistryMap = new Map();
+class ModalStackRegistry {
+  private registry: ModalStackRegistryMap = new Map();
   private listeners: Set<() => void> = new Set();
 
   /**
-   * Register a stack item definition
-   * Call this from your domain module to register stack items
+   * Register a modal stack item definition
+   * Call this from your domain module to register items
    *
    * @example
    * ```tsx
    * // In domains/inventory/products/modals/index.ts
-   * import { stackRegistry } from '@/layouts/modals';
+   * import { modalStackRegistry } from '@/layouts/modals';
    * import { ProductModal } from './ProductModal';
    *
-   * stackRegistry.register({
+   * modalStackRegistry.register({
    *   type: 'product',
    *   component: ProductModal,
    * });
    * ```
    */
-  register<T extends IStackPayload>(definition: IStackDefinition<T>): void {
+  register<T extends IModalStackPayload>(definition: IModalStackDefinition<T>): void {
     if (this.registry.has(definition.type)) {
       console.warn(
-        `[StackRegistry] Stack item type "${definition.type}" is already registered. Overwriting.`
+        `[ModalStackRegistry] Item type "${definition.type}" is already registered. Overwriting.`
       );
     }
 
-    this.registry.set(definition.type, definition as IStackDefinition);
+    this.registry.set(definition.type, definition as IModalStackDefinition);
     this.notifyListeners();
   }
 
   /**
-   * Register multiple stack item definitions at once
+   * Register multiple modal stack item definitions at once
    *
    * @example
    * ```tsx
-   * stackRegistry.registerMany([
+   * modalStackRegistry.registerMany([
    *   { type: 'product', component: ProductModal },
    *   { type: 'category', component: CategoryModal },
    * ]);
    * ```
    */
-  registerMany(definitions: IStackDefinition[]): void {
+  registerMany(definitions: IModalStackDefinition[]): void {
     definitions.forEach((def) => this.register(def));
   }
 
   /**
-   * Unregister a stack item by type
+   * Unregister a modal stack item by type
    * Useful for cleanup in tests or dynamic module unloading
    */
   unregister(type: string): boolean {
@@ -63,21 +63,21 @@ class StackRegistry {
   }
 
   /**
-   * Get a stack item definition by type
+   * Get a modal stack item definition by type
    */
-  get(type: string): IStackDefinition | undefined {
+  get(type: string): IModalStackDefinition | undefined {
     return this.registry.get(type);
   }
 
   /**
-   * Check if a stack item type is registered
+   * Check if a modal stack item type is registered
    */
   has(type: string): boolean {
     return this.registry.has(type);
   }
 
   /**
-   * Get all registered stack item types
+   * Get all registered modal stack item types
    */
   getTypes(): string[] {
     return Array.from(this.registry.keys());
@@ -86,7 +86,7 @@ class StackRegistry {
   /**
    * Get all registered definitions
    */
-  getAll(): IStackDefinition[] {
+  getAll(): IModalStackDefinition[] {
     return Array.from(this.registry.values());
   }
 
@@ -102,7 +102,7 @@ class StackRegistry {
   }
 
   /**
-   * Clear all registered stack items
+   * Clear all registered modal stack items
    * Useful for testing
    */
   clear(): void {
@@ -116,36 +116,23 @@ class StackRegistry {
 }
 
 /**
- * Singleton stack registry instance
+ * Singleton modal stack registry instance
  */
-export const stackRegistry = new StackRegistry();
+export const modalStackRegistry = new ModalStackRegistry();
 
 /**
- * Helper function to register a stack item
- * Shorthand for stackRegistry.register()
+ * Helper function to register a modal stack item
+ * Shorthand for modalStackRegistry.register()
  */
-export const registerStackItem = <T extends IStackPayload>(
-  definition: IStackDefinition<T>
+export const registerModalStackItem = <T extends IModalStackPayload>(
+  definition: IModalStackDefinition<T>
 ): void => {
-  stackRegistry.register(definition);
+  modalStackRegistry.register(definition);
 };
 
 /**
- * Helper function to register multiple stack items
+ * Helper function to register multiple modal stack items
  */
-export const registerStackItems = (definitions: IStackDefinition[]): void => {
-  stackRegistry.registerMany(definitions);
+export const registerModalStackItems = (definitions: IModalStackDefinition[]): void => {
+  modalStackRegistry.registerMany(definitions);
 };
-
-// ============================================================================
-// Legacy aliases (deprecated, for backwards compatibility)
-// ============================================================================
-
-/** @deprecated Use stackRegistry instead */
-export const modalRegistry = stackRegistry;
-
-/** @deprecated Use registerStackItem instead */
-export const registerModal = registerStackItem;
-
-/** @deprecated Use registerStackItems instead */
-export const registerModals = registerStackItems;

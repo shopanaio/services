@@ -1,13 +1,13 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { IModalDefinition } from '@/layouts/modals/types';
+import type { IModalStackDefinition } from '@/layouts/modals/types';
 
 /**
- * All modal definitions for the application.
- * This file is imported on the client side for modal registration.
+ * All modal stack definitions for the application.
+ * This file is imported on the client side for modal stack registration.
  */
-export function getModalDefinitions(): IModalDefinition[] {
+export function getModalStackDefinitions(): IModalStackDefinition[] {
   return [
     // Test modal
     {

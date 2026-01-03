@@ -1,16 +1,16 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useStackStore } from '../store/modals';
-import type { IStackPayload } from '../types';
+import { useModalStackStore } from '../store/modals';
+import type { IModalStackPayload } from '../types';
 
 /**
- * Hook to get stack actions (push, pop, clear)
+ * Hook to get modal stack actions (push, pop, clear)
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { push, pop, clear } = useStack();
+ *   const { push, pop, clear } = useModalStack();
  *
  *   return (
  *     <button onClick={() => push('product', { entityId: '123' })}>
@@ -20,12 +20,12 @@ import type { IStackPayload } from '../types';
  * }
  * ```
  */
-export function useStack() {
-  const push = useStackStore((state) => state.push);
-  const pop = useStackStore((state) => state.pop);
-  const clear = useStackStore((state) => state.clear);
-  const peek = useStackStore((state) => state.peek);
-  const size = useStackStore((state) => state.size);
+export function useModalStack() {
+  const push = useModalStackStore((state) => state.push);
+  const pop = useModalStackStore((state) => state.pop);
+  const clear = useModalStackStore((state) => state.clear);
+  const peek = useModalStackStore((state) => state.peek);
+  const size = useModalStackStore((state) => state.size);
 
   return {
     push,
@@ -37,24 +37,24 @@ export function useStack() {
 }
 
 /**
- * Hook to create a stack item pusher for a specific type
+ * Hook to create a modal stack item pusher for a specific type
  *
  * @example
  * ```tsx
- * const useProductStack = createStackHook('product');
+ * const useProductModal = createModalStackHook('product');
  *
  * function ProductList() {
- *   const { push } = useProductStack();
+ *   const { push } = useProductModal();
  *   return <button onClick={() => push({ entityId: '123' })}>View</button>;
  * }
  * ```
  */
-export function createStackHook(type: string) {
-  return function useTypedStack() {
-    const pushToStack = useStackStore((state) => state.push);
+export function createModalStackHook(type: string) {
+  return function useTypedModalStack() {
+    const pushToStack = useModalStackStore((state) => state.push);
 
     const push = useCallback(
-      (payload?: IStackPayload) => {
+      (payload?: IModalStackPayload) => {
         return pushToStack(type, payload);
       },
       [pushToStack]
@@ -65,12 +65,12 @@ export function createStackHook(type: string) {
 }
 
 /**
- * Generic hook to push a specific type onto the stack
+ * Generic hook to push a specific type onto the modal stack
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { push } = useStackItem('product');
+ *   const { push } = useModalStackItem('product');
  *
  *   return (
  *     <button onClick={() => push({ entityId: '123' })}>
@@ -80,11 +80,11 @@ export function createStackHook(type: string) {
  * }
  * ```
  */
-export function useStackItem(type: string) {
-  const pushToStack = useStackStore((state) => state.push);
+export function useModalStackItem(type: string) {
+  const pushToStack = useModalStackStore((state) => state.push);
 
   const push = useCallback(
-    (payload?: IStackPayload) => {
+    (payload?: IModalStackPayload) => {
       return pushToStack(type, payload);
     },
     [pushToStack, type]
@@ -92,16 +92,3 @@ export function useStackItem(type: string) {
 
   return { push };
 }
-
-// ============================================================================
-// Legacy aliases (deprecated, for backwards compatibility)
-// ============================================================================
-
-/** @deprecated Use useStack instead */
-export const useModalActions = useStack;
-
-/** @deprecated Use createStackHook instead */
-export const createModalHook = createStackHook;
-
-/** @deprecated Use useStackItem instead */
-export const useModal = useStackItem;

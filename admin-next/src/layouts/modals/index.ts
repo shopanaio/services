@@ -1,64 +1,45 @@
 // ============================================================================
 // Components
 // ============================================================================
-export { Stack, Modals } from './components/Modals';
-export { StackItem, ModalWrapper } from './components/Modal';
-export { StackItemProvider, ModalProvider } from './components/Provider';
+export { ModalStack } from './components/Modals';
+export { ModalStackItem } from './components/Modal';
+export { ModalStackProvider } from './components/Provider';
 
 // ============================================================================
 // Registry
 // ============================================================================
 export {
-  stackRegistry,
-  registerStackItem,
-  registerStackItems,
-  // Legacy aliases
-  modalRegistry,
-  registerModal,
-  registerModals,
+  modalStackRegistry,
+  registerModalStackItem,
+  registerModalStackItems,
 } from './registry/modalRegistry';
 
 // ============================================================================
 // Store
 // ============================================================================
-export { useStackStore, useModalsStore } from './store/modals';
+export { useModalStackStore } from './store/modals';
 
 // ============================================================================
 // Hooks
 // ============================================================================
-export { useStackItemContext, useModalContext } from './hooks/useModalContext';
+export { useModalStackContext } from './hooks/useModalContext';
 export {
-  useStack,
-  useStackItem,
-  createStackHook,
-  // Legacy aliases
-  useModal,
-  useModalActions,
-  createModalHook,
+  useModalStack,
+  useModalStackItem,
+  createModalStackHook,
 } from './hooks/useModal';
 
 // ============================================================================
 // Types
 // ============================================================================
 export type {
-  // New names
-  IStackPayload,
-  IStackItem,
-  IStackItemContext,
-  IStackDefinition,
-  IPushOptions,
-  StackItemComponent,
-  StackRegistryMap,
-  StackPayloads,
-  GetStackPayload,
-  // Legacy aliases
-  IModalPayload,
-  IModalItem,
-  IModalContext,
-  IModalDefinition,
-  IOpenModalOptions,
-  ModalComponent,
-  ModalRegistryMap,
-  ModalPayloads,
-  GetModalPayload,
+  IModalStackPayload,
+  IModalStackItem,
+  IModalStackContext,
+  IModalStackDefinition,
+  IModalStackPushOptions,
+  ModalStackComponent,
+  ModalStackRegistryMap,
+  ModalStackPayloads,
+  GetModalStackPayload,
 } from './types';
