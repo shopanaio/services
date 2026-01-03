@@ -1,54 +1,266 @@
 'use client';
 
-import { Button, Flex, Typography } from 'antd';
-import { useModalStackContext, useModalStack } from '@/layouts/modals';
+import { useState, useEffect } from 'react';
+import { Button, Flex, Typography, Skeleton } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
+import { createStyles } from 'antd-style';
+import { useModalStackContext } from '@/layouts/modals';
+import { ProductInfoCardA } from '../components/ProductInfoCardA';
+import { mockVariableProduct, mockSimpleProduct } from '../mocks/data';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+type ModalTab = 'general' | 'inventory' | 'bundles';
+
+interface ITabConfig {
+  key: ModalTab;
+  label: string;
+}
+
+const TABS: ITabConfig[] = [
+  { key: 'general', label: 'General' },
+  { key: 'inventory', label: 'Inventory' },
+  { key: 'bundles', label: 'Bundles' },
+];
+
+// ============================================================================
+// Styles
+// ============================================================================
+
+const useStyles = createStyles(({ token }) => ({
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadiusLG,
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'stretch',
+    height: 48,
+    borderBottom: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    flexShrink: 0,
+  },
+  closeSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '0 12px',
+    borderRight: `1px solid ${token.colorBorderSecondary}`,
+  },
+  closeButton: {
+    color: token.colorTextSecondary,
+    '&:hover': {
+      color: token.colorText,
+      background: token.colorBgTextHover,
+    },
+  },
+  escBadge: {
+    fontSize: 10,
+    fontFamily: 'inherit',
+    padding: '2px 5px',
+    background: token.colorBgContainerDisabled,
+    border: `1px solid ${token.colorBorder}`,
+    borderRadius: 4,
+    color: token.colorTextSecondary,
+  },
+  tabButton: {
+    height: '100%',
+    minWidth: 140,
+    borderRadius: 0,
+    borderRight: `1px solid ${token.colorBorderSecondary}`,
+    transition: 'all 0.2s',
+  },
+  tabButtonActive: {
+    fontWeight: 500,
+    color: token.colorPrimary,
+    background: 'transparent !important',
+  },
+  tabButtonInactive: {
+    fontWeight: 400,
+    color: token.colorText,
+    background: `${token.colorBgLayout} !important`,
+    '&:hover': {
+      background: `${token.colorBgTextHover} !important`,
+    },
+  },
+  headerRight: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    padding: '0 12px',
+  },
+  content: {
+    flex: 1,
+    overflow: 'auto',
+    padding: 16,
+    background: token.colorBgLayout,
+  },
+  contentFullWidth: {
+    flex: 1,
+    overflow: 'auto',
+    padding: 0,
+    background: token.colorBgLayout,
+  },
+  placeholderContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    gap: 16,
+    color: token.colorTextSecondary,
+  },
+  placeholderTitle: {
+    fontSize: 18,
+    fontWeight: 500,
+  },
+  placeholderDescription: {
+    fontSize: 14,
+  },
+}));
+
+// ============================================================================
+// Placeholder Components
+// ============================================================================
+
+const InventoryPlaceholder = () => {
+  const { styles } = useStyles();
+
+  return (
+    <div className={styles.placeholderContainer}>
+      <Typography.Text className={styles.placeholderTitle}>
+        Inventory Management
+      </Typography.Text>
+      <Typography.Text type="secondary" className={styles.placeholderDescription}>
+        Variants table will be rendered here
+      </Typography.Text>
+    </div>
+  );
+};
+
+const BundlesPlaceholder = () => {
+  const { styles } = useStyles();
+
+  return (
+    <div className={styles.placeholderContainer}>
+      <Typography.Text className={styles.placeholderTitle}>
+        Product Bundles
+      </Typography.Text>
+      <Typography.Text type="secondary" className={styles.placeholderDescription}>
+        Product groups/bundles management will be rendered here
+      </Typography.Text>
+    </div>
+  );
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export const TestModal = () => {
+  const { styles, cx } = useStyles();
   const { payload, pop, forcePop } = useModalStackContext();
-  const { push } = useModalStack();
+  const [activeTab, setActiveTab] = useState<ModalTab>('general');
+  const [loading, setLoading] = useState(true);
 
-  const level = (payload.level as number) || 1;
+  // Use simple or variable product based on payload
+  const product = payload.simple ? mockSimpleProduct : mockVariableProduct;
 
-  const handleOpenAnother = () => {
-    push('product-test', { level: level + 1 });
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        pop();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pop]);
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <Flex vertical gap={16} style={{ padding: 16 }}>
+          <Skeleton active paragraph={{ rows: 4 }} />
+          <Skeleton active paragraph={{ rows: 4 }} />
+          <Skeleton active paragraph={{ rows: 4 }} />
+        </Flex>
+      );
+    }
+
+    switch (activeTab) {
+      case 'general':
+        return (
+          <ProductInfoCardA
+            product={product}
+            onEditSection={(section) => console.log('Edit section:', section)}
+          />
+        );
+      case 'inventory':
+        return <InventoryPlaceholder />;
+      case 'bundles':
+        return <BundlesPlaceholder />;
+      default:
+        return null;
+    }
   };
 
   return (
-    <Flex
-      vertical
-      align="center"
-      justify="center"
-      gap="large"
-      style={{
-        height: '100%',
-        background: `hsl(${(level * 30) % 360}, 70%, 95%)`,
-      }}
-    >
-      <Typography.Title level={2}>
-        Test Modal - Level {level}
-      </Typography.Title>
+    <div className={styles.container}>
+      {/* Header with close button and tabs */}
+      <div className={styles.header}>
+        {/* Close section */}
+        <div className={styles.closeSection}>
+          <Button
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={forcePop}
+            className={styles.closeButton}
+          />
+          <kbd className={styles.escBadge}>esc</kbd>
+        </div>
 
-      <Typography.Text type="secondary">
-        This modal can open another instance of itself to test stacking
-      </Typography.Text>
+        {/* Tabs */}
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <Button
+              key={tab.key}
+              type="text"
+              onClick={() => setActiveTab(tab.key)}
+              className={cx(
+                styles.tabButton,
+                isActive ? styles.tabButtonActive : styles.tabButtonInactive,
+              )}
+            >
+              {tab.label}
+            </Button>
+          );
+        })}
 
-      <Flex gap="middle">
-        <Button type="primary" size="large" onClick={handleOpenAnother}>
-          Open Another Modal (Level {level + 1})
-        </Button>
+        {/* Right side (can add save button, etc.) */}
+        <div className={styles.headerRight}>
+          {/* Future: Save button, status, etc. */}
+        </div>
+      </div>
 
-        <Button size="large" onClick={pop}>
-          Close
-        </Button>
-
-        <Button danger size="large" onClick={forcePop}>
-          Force Close
-        </Button>
-      </Flex>
-
-      <Typography.Text type="secondary" style={{ marginTop: 40 }}>
-        Payload: {JSON.stringify(payload)}
-      </Typography.Text>
-    </Flex>
+      {/* Content area */}
+      <div className={activeTab === 'inventory' ? styles.contentFullWidth : styles.content}>
+        {renderContent()}
+      </div>
+    </div>
   );
 };
