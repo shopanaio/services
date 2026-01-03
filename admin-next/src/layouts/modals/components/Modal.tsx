@@ -54,6 +54,10 @@ const useStyles = createStyles(
         background-color: ${token.colorBgLayout} !important;
         overflow: hidden;
       `,
+      body: css`
+        height: 100%;
+        padding: 0 !important;
+      `,
     };
   }
 );
@@ -224,6 +228,7 @@ export const ModalStackItem = ({
         classNames={{
           wrapper: styles.wrapper,
           container: styles.container,
+          body: styles.body,
         }}
       >
         <ModalStackProvider value={contextValue}>

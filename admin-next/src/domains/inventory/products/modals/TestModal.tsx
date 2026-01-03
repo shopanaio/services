@@ -31,10 +31,13 @@ const TABS: ITabConfig[] = [
 
 const useStyles = createStyles(({ token }) => ({
   container: {
+    width: "100%",
+    height: "100%",
+    boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
-    height: "100%",
-    borderRadius: token.borderRadiusLG,
+    borderRadius: 8,
+    overflow: "hidden",
   },
   header: {
     display: "flex",
@@ -94,17 +97,27 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "flex-end",
     padding: "0 12px",
   },
-  content: {
+  body: {
+    background: token.colorBgLayout,
+    overflowY: "auto",
     flex: 1,
-    maxWidth: 1000,
+  },
+  content: {
     marginInline: "auto",
-    padding: token.padding,
+    maxWidth: 800,
+    display: "flex",
+    gap: 16,
+    flexDirection: "column",
+    paddingBlock: 16,
   },
   contentFullWidth: {
-    flex: 1,
-    overflow: "auto",
-    padding: 0,
-    background: token.colorBgLayout,
+    marginInline: "auto",
+    maxWidth: "none",
+    display: "flex",
+    gap: 16,
+    flexDirection: "column",
+    paddingBlock: 16,
+    paddingInline: 16,
   },
   placeholderContainer: {
     display: "flex",
@@ -262,12 +275,14 @@ export const TestModal = () => {
       </div>
 
       {/* Content area */}
-      <div
-        className={
-          activeTab === "inventory" ? styles.contentFullWidth : styles.content
-        }
-      >
-        {renderContent()}
+      <div className={styles.body}>
+        <div
+          className={
+            activeTab === "inventory" ? styles.contentFullWidth : styles.content
+          }
+        >
+          {renderContent()}
+        </div>
       </div>
     </div>
   );
