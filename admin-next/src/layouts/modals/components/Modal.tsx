@@ -27,6 +27,9 @@ const useStyles = createStyles(
   ({ css, token }, { hasChildren, depth }: StyleProps) => {
     const scale = hasChildren ? 1 - SCALE_FACTOR * depth : 1;
     const translateY = hasChildren ? -token.paddingXS * depth : 0;
+    // Only show active modal (depth=0) and the one behind it (depth=1)
+    // Hide modals at depth >= 2
+    const opacity = depth >= 2 ? 0 : 1;
 
     return {
       wrapper: css`
@@ -36,8 +39,11 @@ const useStyles = createStyles(
         padding: ${token.padding}px;
         transform: scale(${scale}) translateY(${translateY}px);
         transform-origin: top center;
-        transition: transform ${token.motionDurationMid} ease-out;
+        transition:
+          transform ${token.motionDurationMid} ease-out,
+          opacity ${token.motionDurationMid} ease-out;
         pointer-events: ${hasChildren ? "none" : "auto"};
+        opacity: ${opacity};
       `,
       container: css`
         height: calc(100vh - ${token.padding * 2}px);
