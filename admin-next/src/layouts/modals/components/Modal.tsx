@@ -1,19 +1,19 @@
 "use client";
 
 import { App, Modal } from "antd";
-import { ReactNode, Suspense, useMemo, useState } from "react";
+import { ReactNode, Suspense, useState } from "react";
 import { createStyles, createGlobalStyle, useAntdToken } from "antd-style";
 
-import { ModalProvider } from "./Provider";
-import { modalRegistry } from "../registry/modalRegistry";
-import { useModalsStore } from "../store/modals";
-import type { IModalItem, IModalContext } from "../types";
+import { StackItemProvider } from "./Provider";
+import { stackRegistry } from "../registry/modalRegistry";
+import { useStackStore } from "../store/modals";
+import type { IStackItem, IStackItemContext } from "../types";
 
-interface IModalWrapperProps {
+interface IStackItemWrapperProps {
   children?: ReactNode;
   level: number;
   totalCount: number;
-  modalItem: IModalItem;
+  stackItem: IStackItem;
 }
 
 const SCALE_FACTOR = 0.03;
@@ -27,8 +27,8 @@ const useStyles = createStyles(
   ({ css, token }, { hasChildren, depth }: StyleProps) => {
     const scale = hasChildren ? 1 - SCALE_FACTOR * depth : 1;
     const translateY = hasChildren ? -token.paddingXS * depth : 0;
-    // Only show active modal (depth=0) and the one behind it (depth=1)
-    // Hide modals at depth >= 2
+    // Only show active item (depth=0) and the one behind it (depth=1)
+    // Hide items at depth >= 2
     const opacity = depth >= 2 ? 0 : 1;
 
     return {
@@ -53,8 +53,8 @@ const useStyles = createStyles(
   }
 );
 
-const GlobalModalStyles = createGlobalStyle`
-  @keyframes modalSlideUp {
+const GlobalStackStyles = createGlobalStyle`
+  @keyframes stackSlideUp {
     from {
       opacity: 0;
       transform: translateY(40px);
@@ -65,7 +65,7 @@ const GlobalModalStyles = createGlobalStyle`
     }
   }
 
-  @keyframes modalSlideDown {
+  @keyframes stackSlideDown {
     from {
       opacity: 1;
       transform: translateY(0);
@@ -76,7 +76,7 @@ const GlobalModalStyles = createGlobalStyle`
     }
   }
 
-  @keyframes modalFadeIn {
+  @keyframes stackFadeIn {
     from {
       opacity: 0;
     }
@@ -85,7 +85,7 @@ const GlobalModalStyles = createGlobalStyle`
     }
   }
 
-  @keyframes modalFadeOut {
+  @keyframes stackFadeOut {
     from {
       opacity: 1;
     }
@@ -94,23 +94,23 @@ const GlobalModalStyles = createGlobalStyle`
     }
   }
 
-  .modal-slide-up-enter,
-  .modal-slide-up-appear {
-    animation: modalSlideUp 0.35s ease-out 0.1s forwards;
+  .stack-slide-up-enter,
+  .stack-slide-up-appear {
+    animation: stackSlideUp 0.35s ease-out 0.1s forwards;
     opacity: 0;
   }
 
-  .modal-slide-up-leave {
-    animation: modalSlideDown 0.25s ease-in forwards;
+  .stack-slide-up-leave {
+    animation: stackSlideDown 0.25s ease-in forwards;
   }
 
-  .modal-fade-enter,
-  .modal-fade-appear {
-    animation: modalFadeIn 0.3s ease-out forwards;
+  .stack-fade-enter,
+  .stack-fade-appear {
+    animation: stackFadeIn 0.3s ease-out forwards;
   }
 
-  .modal-fade-leave {
-    animation: modalFadeOut 0.25s ease-in forwards;
+  .stack-fade-leave {
+    animation: stackFadeOut 0.25s ease-in forwards;
   }
 `;
 
@@ -119,22 +119,22 @@ const GlobalModalStyles = createGlobalStyle`
 // ============================================================================
 
 /**
- * Modal wrapper component
- * Handles individual modal rendering with stacking effects
+ * Stack item wrapper component
+ * Handles individual stack item rendering with stacking effects
  */
-export const ModalWrapper = ({
+export const StackItem = ({
   children = null,
   level,
   totalCount,
-  modalItem,
-}: IModalWrapperProps) => {
-  const { type, uuid, isDirty } = modalItem;
+  stackItem,
+}: IStackItemWrapperProps) => {
+  const { type, uuid, isDirty } = stackItem;
   const [isOpen, setIsOpen] = useState(true);
   const { modal } = App.useApp();
 
-  const closeModal = useModalsStore((state) => state.closeModal);
-  const setDirty = useModalsStore((state) => state.setDirty);
-  const updatePayload = useModalsStore((state) => state.updatePayload);
+  const pop = useStackStore((state) => state.pop);
+  const setDirty = useStackStore((state) => state.setDirty);
+  const updatePayload = useStackStore((state) => state.updatePayload);
   const token = useAntdToken();
   const hasChildren = !!children;
   const depth = totalCount - level - 1;
@@ -143,10 +143,10 @@ export const ModalWrapper = ({
 
   const clearAfterClose = (open: boolean) => {
     if (open) return;
-    closeModal(uuid);
+    pop(uuid);
   };
 
-  const onClose = async () => {
+  const onPop = async () => {
     if (isDirty) {
       const result = await modal.confirm({
         icon: null,
@@ -168,7 +168,7 @@ export const ModalWrapper = ({
     setIsOpen(false);
   };
 
-  const onForceClose = () => {
+  const onForcePop = () => {
     setIsOpen(false);
   };
 
@@ -180,24 +180,22 @@ export const ModalWrapper = ({
     updatePayload(uuid, payload);
   };
 
-  const definition = modalRegistry.get(type);
+  const definition = stackRegistry.get(type);
 
-  const contextValue: IModalContext = useMemo(
-    () => ({
-      uuid,
-      type,
-      payload: modalItem.payload,
-      isDirty: isDirty ?? false,
-      close: onClose,
-      forceClose: onForceClose,
-      setDirty: onSetDirty,
-      updatePayload: onUpdatePayload,
-    }),
-    [uuid, type, modalItem.payload, isDirty]
-  );
+  // Let React Compiler handle memoization
+  const contextValue: IStackItemContext = {
+    uuid,
+    type,
+    payload: stackItem.payload,
+    isDirty: isDirty ?? false,
+    pop: onPop,
+    forcePop: onForcePop,
+    setDirty: onSetDirty,
+    updatePayload: onUpdatePayload,
+  };
 
   if (!definition) {
-    console.error(`[ModalWrapper] Unknown modal type: ${type}`);
+    console.error(`[StackItem] Unknown stack item type: ${type}`);
     return null;
   }
 
@@ -205,17 +203,17 @@ export const ModalWrapper = ({
 
   return (
     <>
-      <GlobalModalStyles />
+      <GlobalStackStyles />
       <Modal
         open={isOpen}
         centered
-        onCancel={onClose}
+        onCancel={onPop}
         afterOpenChange={clearAfterClose}
         footer={null}
         closable={false}
         destroyOnHidden
-        transitionName="modal-slide-up"
-        maskTransitionName="modal-fade"
+        transitionName="stack-slide-up"
+        maskTransitionName="stack-fade"
         mask={level === 0}
         width={`calc(100wv - ${token.padding * 2}px)`}
         classNames={{
@@ -223,13 +221,20 @@ export const ModalWrapper = ({
           container: styles.container,
         }}
       >
-        <ModalProvider value={contextValue}>
+        <StackItemProvider value={contextValue}>
           <Suspense fallback={null}>
             <Component />
           </Suspense>
-        </ModalProvider>
+        </StackItemProvider>
         {children}
       </Modal>
     </>
   );
 };
+
+// ============================================================================
+// Legacy alias (deprecated, for backwards compatibility)
+// ============================================================================
+
+/** @deprecated Use StackItem instead */
+export const ModalWrapper = StackItem;

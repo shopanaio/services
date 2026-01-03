@@ -1,92 +1,107 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useModalsStore } from '../store/modals';
-import type { IModalPayload } from '../types';
+import { useStackStore } from '../store/modals';
+import type { IStackPayload } from '../types';
 
 /**
- * Hook to get modal actions (open, close, etc.)
+ * Hook to get stack actions (push, pop, clear)
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { openModal, closeAllModals } = useModalActions();
+ *   const { push, pop, clear } = useStack();
  *
  *   return (
- *     <button onClick={() => openModal('product', { entityId: '123' })}>
+ *     <button onClick={() => push('product', { entityId: '123' })}>
  *       Open Product
  *     </button>
  *   );
  * }
  * ```
  */
-export function useModalActions() {
-  const openModal = useModalsStore((state) => state.openModal);
-  const closeModal = useModalsStore((state) => state.closeModal);
-  const closeTopModal = useModalsStore((state) => state.closeTopModal);
-  const closeAllModals = useModalsStore((state) => state.closeAllModals);
+export function useStack() {
+  const push = useStackStore((state) => state.push);
+  const pop = useStackStore((state) => state.pop);
+  const clear = useStackStore((state) => state.clear);
+  const peek = useStackStore((state) => state.peek);
+  const size = useStackStore((state) => state.size);
 
   return {
-    openModal,
-    closeModal,
-    closeTopModal,
-    closeAllModals,
+    push,
+    pop,
+    clear,
+    peek,
+    size,
   };
 }
 
 /**
- * Hook to create a modal opener for a specific modal type
+ * Hook to create a stack item pusher for a specific type
  *
  * @example
  * ```tsx
- * const useProductModal = createModalHook('product');
+ * const useProductStack = createStackHook('product');
  *
  * function ProductList() {
- *   const { open } = useProductModal();
- *   return <button onClick={() => open({ entityId: '123' })}>View</button>;
+ *   const { push } = useProductStack();
+ *   return <button onClick={() => push({ entityId: '123' })}>View</button>;
  * }
  * ```
  */
-export function createModalHook(type: string) {
-  return function useTypedModal() {
-    const openModal = useModalsStore((state) => state.openModal);
+export function createStackHook(type: string) {
+  return function useTypedStack() {
+    const pushToStack = useStackStore((state) => state.push);
 
-    const open = useCallback(
-      (payload?: IModalPayload) => {
-        return openModal(type, payload);
+    const push = useCallback(
+      (payload?: IStackPayload) => {
+        return pushToStack(type, payload);
       },
-      [openModal]
+      [pushToStack]
     );
 
-    return { open };
+    return { push };
   };
 }
 
 /**
- * Generic hook to open a modal
+ * Generic hook to push a specific type onto the stack
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   const { open } = useModal('product');
+ *   const { push } = useStackItem('product');
  *
  *   return (
- *     <button onClick={() => open({ entityId: '123' })}>
+ *     <button onClick={() => push({ entityId: '123' })}>
  *       Open Product
  *     </button>
  *   );
  * }
  * ```
  */
-export function useModal(type: string) {
-  const openModal = useModalsStore((state) => state.openModal);
+export function useStackItem(type: string) {
+  const pushToStack = useStackStore((state) => state.push);
 
-  const open = useCallback(
-    (payload?: IModalPayload) => {
-      return openModal(type, payload);
+  const push = useCallback(
+    (payload?: IStackPayload) => {
+      return pushToStack(type, payload);
     },
-    [openModal, type]
+    [pushToStack, type]
   );
 
-  return { open };
+  return { push };
 }
+
+// ============================================================================
+// Legacy aliases (deprecated, for backwards compatibility)
+// ============================================================================
+
+/** @deprecated Use useStack instead */
+export const useModalActions = useStack;
+
+/** @deprecated Use createStackHook instead */
+export const createModalHook = createStackHook;
+
+/** @deprecated Use useStackItem instead */
+export const useModal = useStackItem;

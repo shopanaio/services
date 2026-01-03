@@ -1,33 +1,40 @@
 'use client';
 
 import { useContext } from 'react';
-import { ModalContext } from '../context/context';
-import type { IModalContext } from '../types';
+import { StackItemContext } from '../context/context';
+import type { IStackItemContext } from '../types';
 
 /**
- * Hook to access the current modal context
- * Must be used within a ModalProvider
+ * Hook to access the current stack item context
+ * Must be used within a StackItemProvider
  *
  * @example
  * ```tsx
- * function MyModalContent() {
- *   const { payload, close, setDirty } = useModalContext();
+ * function MyStackItemContent() {
+ *   const { payload, pop, setDirty } = useStackItemContext();
  *
  *   return (
  *     <div>
  *       <p>Entity ID: {payload.entityId}</p>
- *       <button onClick={close}>Close</button>
+ *       <button onClick={pop}>Close</button>
  *     </div>
  *   );
  * }
  * ```
  */
-export function useModalContext(): IModalContext {
-  const context = useContext(ModalContext);
+export function useStackItemContext(): IStackItemContext {
+  const context = useContext(StackItemContext);
 
   if (context === undefined) {
-    throw new Error('useModalContext must be used within a ModalProvider');
+    throw new Error('useStackItemContext must be used within a StackItemProvider');
   }
 
   return context;
 }
+
+// ============================================================================
+// Legacy alias (deprecated, for backwards compatibility)
+// ============================================================================
+
+/** @deprecated Use useStackItemContext instead */
+export const useModalContext = useStackItemContext;

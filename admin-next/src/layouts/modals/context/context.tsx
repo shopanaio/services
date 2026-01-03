@@ -1,10 +1,17 @@
 'use client';
 
 import { createContext } from 'react';
-import type { IModalContext } from '../types';
+import type { IStackItemContext } from '../types';
 
 /**
- * Context for modal components
- * Provides access to modal state and actions
+ * Context for stack item components
+ * Provides access to stack item state and actions
  */
-export const ModalContext = createContext<IModalContext | undefined>(undefined);
+export const StackItemContext = createContext<IStackItemContext | undefined>(undefined);
+
+// ============================================================================
+// Legacy alias (deprecated, for backwards compatibility)
+// ============================================================================
+
+/** @deprecated Use StackItemContext instead */
+export const ModalContext = StackItemContext;

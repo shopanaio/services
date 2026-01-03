@@ -1,14 +1,18 @@
 // ============================================================================
 // Components
 // ============================================================================
-export { Modals } from './components/Modals';
-export { ModalWrapper } from './components/Modal';
-export { ModalProvider } from './components/Provider';
+export { Stack, Modals } from './components/Modals';
+export { StackItem, ModalWrapper } from './components/Modal';
+export { StackItemProvider, ModalProvider } from './components/Provider';
 
 // ============================================================================
 // Registry
 // ============================================================================
 export {
+  stackRegistry,
+  registerStackItem,
+  registerStackItems,
+  // Legacy aliases
   modalRegistry,
   registerModal,
   registerModals,
@@ -17,18 +21,37 @@ export {
 // ============================================================================
 // Store
 // ============================================================================
-export { useModalsStore } from './store/modals';
+export { useStackStore, useModalsStore } from './store/modals';
 
 // ============================================================================
 // Hooks
 // ============================================================================
-export { useModalContext } from './hooks/useModalContext';
-export { useModal, useModalActions, createModalHook } from './hooks/useModal';
+export { useStackItemContext, useModalContext } from './hooks/useModalContext';
+export {
+  useStack,
+  useStackItem,
+  createStackHook,
+  // Legacy aliases
+  useModal,
+  useModalActions,
+  createModalHook,
+} from './hooks/useModal';
 
 // ============================================================================
 // Types
 // ============================================================================
 export type {
+  // New names
+  IStackPayload,
+  IStackItem,
+  IStackItemContext,
+  IStackDefinition,
+  IPushOptions,
+  StackItemComponent,
+  StackRegistryMap,
+  StackPayloads,
+  GetStackPayload,
+  // Legacy aliases
   IModalPayload,
   IModalItem,
   IModalContext,
@@ -36,4 +59,6 @@ export type {
   IOpenModalOptions,
   ModalComponent,
   ModalRegistryMap,
+  ModalPayloads,
+  GetModalPayload,
 } from './types';

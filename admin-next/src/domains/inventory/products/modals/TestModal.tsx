@@ -1,16 +1,16 @@
 'use client';
 
 import { Button, Flex, Typography } from 'antd';
-import { useModalContext, useModalActions } from '@/layouts/modals';
+import { useStackItemContext, useStack } from '@/layouts/modals';
 
 export const TestModal = () => {
-  const { payload, close, forceClose } = useModalContext();
-  const { openModal } = useModalActions();
+  const { payload, pop, forcePop } = useStackItemContext();
+  const { push } = useStack();
 
   const level = (payload.level as number) || 1;
 
   const handleOpenAnother = () => {
-    openModal('product-test', { level: level + 1 });
+    push('product-test', { level: level + 1 });
   };
 
   return (
@@ -37,11 +37,11 @@ export const TestModal = () => {
           Open Another Modal (Level {level + 1})
         </Button>
 
-        <Button size="large" onClick={close}>
+        <Button size="large" onClick={pop}>
           Close
         </Button>
 
-        <Button danger size="large" onClick={forceClose}>
+        <Button danger size="large" onClick={forcePop}>
           Force Close
         </Button>
       </Flex>

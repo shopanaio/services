@@ -1,56 +1,61 @@
 import { create } from 'zustand';
-import type { IModalItem, IModalPayload } from '../types';
+import type { IStackItem, IStackPayload } from '../types';
 
-interface IModalsState {
-  modals: IModalItem[];
+interface IStackState {
+  items: IStackItem[];
 
   /**
-   * Open a new modal
-   * @returns uuid of the created modal
+   * Push a new item onto the stack
+   * @returns uuid of the created item
    */
-  openModal: (type: string, payload?: IModalPayload) => string;
+  push: (type: string, payload?: IStackPayload) => string;
 
   /**
-   * Close a modal by uuid
-   * Also closes all modals stacked on top of it
+   * Pop an item from the stack by uuid
+   * Also pops all items stacked on top of it
    */
-  closeModal: (uuid: string) => void;
+  pop: (uuid?: string) => void;
 
   /**
-   * Close the topmost modal
+   * Clear all items from the stack
    */
-  closeTopModal: () => void;
+  clear: () => void;
 
   /**
-   * Close all modals
-   */
-  closeAllModals: () => void;
-
-  /**
-   * Set dirty state for a modal
+   * Set dirty state for an item
    */
   setDirty: (uuid: string, isDirty: boolean) => void;
 
   /**
-   * Update modal payload
+   * Update item payload
    */
-  updatePayload: (uuid: string, payload: Partial<IModalPayload>) => void;
+  updatePayload: (uuid: string, payload: Partial<IStackPayload>) => void;
 
   /**
-   * Get modal by uuid
+   * Get item by uuid
    */
-  getModal: (uuid: string) => IModalItem | undefined;
+  getItem: (uuid: string) => IStackItem | undefined;
+
+  /**
+   * Peek at the top item without removing it
+   */
+  peek: () => IStackItem | undefined;
+
+  /**
+   * Get stack size
+   */
+  size: () => number;
 }
 
-export const useModalsStore = create<IModalsState>((set, get) => ({
-  modals: [],
+export const useStackStore = create<IStackState>((set, get) => ({
+  items: [],
 
-  openModal: (type, payload = {}) => {
+  push: (type, payload = {}) => {
     const uuid = crypto.randomUUID();
 
     set((state) => ({
-      modals: [
-        ...state.modals,
+      items: [
+        ...state.items,
         {
           uuid,
           type: type as string,
@@ -63,29 +68,28 @@ export const useModalsStore = create<IModalsState>((set, get) => ({
     return uuid;
   },
 
-  closeModal: (uuid) => {
+  pop: (uuid) => {
     set((state) => {
-      const itemIdx = state.modals.findIndex((it) => it.uuid === uuid);
+      // If no uuid provided, pop the top item
+      if (!uuid) {
+        if (state.items.length === 0) return state;
+        return { items: state.items.slice(0, -1) };
+      }
+
+      // Pop by uuid - also removes all items above it
+      const itemIdx = state.items.findIndex((it) => it.uuid === uuid);
       if (itemIdx === -1) return state;
-      // Close this modal and all stacked on top
-      return { modals: state.modals.slice(0, itemIdx) };
+      return { items: state.items.slice(0, itemIdx) };
     });
   },
 
-  closeTopModal: () => {
-    set((state) => {
-      if (state.modals.length === 0) return state;
-      return { modals: state.modals.slice(0, -1) };
-    });
-  },
-
-  closeAllModals: () => {
-    set({ modals: [] });
+  clear: () => {
+    set({ items: [] });
   },
 
   setDirty: (uuid, isDirty) => {
     set((state) => ({
-      modals: state.modals.map((it) =>
+      items: state.items.map((it) =>
         it.uuid === uuid ? { ...it, isDirty } : it
       ),
     }));
@@ -93,7 +97,7 @@ export const useModalsStore = create<IModalsState>((set, get) => ({
 
   updatePayload: (uuid, payload) => {
     set((state) => ({
-      modals: state.modals.map((it) =>
+      items: state.items.map((it) =>
         it.uuid === uuid
           ? { ...it, payload: { ...it.payload, ...payload } }
           : it
@@ -101,7 +105,23 @@ export const useModalsStore = create<IModalsState>((set, get) => ({
     }));
   },
 
-  getModal: (uuid) => {
-    return get().modals.find((it) => it.uuid === uuid);
+  getItem: (uuid) => {
+    return get().items.find((it) => it.uuid === uuid);
+  },
+
+  peek: () => {
+    const items = get().items;
+    return items[items.length - 1];
+  },
+
+  size: () => {
+    return get().items.length;
   },
 }));
+
+// ============================================================================
+// Legacy alias (deprecated, for backwards compatibility)
+// ============================================================================
+
+/** @deprecated Use useStackStore instead */
+export const useModalsStore = useStackStore;

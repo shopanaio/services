@@ -1,20 +1,27 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { ModalContext } from '../context/context';
-import type { IModalContext } from '../types';
+import { StackItemContext } from '../context/context';
+import type { IStackItemContext } from '../types';
 
-interface IModalProviderProps {
+interface IStackItemProviderProps {
   children: ReactNode;
-  value: IModalContext;
+  value: IStackItemContext;
 }
 
 /**
- * Provider component for modal context
- * Wraps modal content and provides access to modal state and actions
+ * Provider component for stack item context
+ * Wraps stack item content and provides access to state and actions
  */
-export const ModalProvider = ({ children, value }: IModalProviderProps) => {
+export const StackItemProvider = ({ children, value }: IStackItemProviderProps) => {
   return (
-    <ModalContext.Provider value={value}>{children}</ModalContext.Provider>
+    <StackItemContext.Provider value={value}>{children}</StackItemContext.Provider>
   );
 };
+
+// ============================================================================
+// Legacy alias (deprecated, for backwards compatibility)
+// ============================================================================
+
+/** @deprecated Use StackItemProvider instead */
+export const ModalProvider = StackItemProvider;

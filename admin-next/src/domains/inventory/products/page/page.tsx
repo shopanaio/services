@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { Image, Typography, Flex, Button } from "antd";
 import { PlusOutlined, ExperimentOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
-import { useModalActions } from "@/layouts/modals";
+import { useStack } from "@/layouts/modals";
 import {
   ColDef,
   ModuleRegistry,
@@ -245,10 +245,10 @@ export default function ProductsPage() {
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
-  const { openModal } = useModalActions();
+  const { push } = useStack();
 
   const handleOpenTestModal = () => {
-    openModal('product-test', { level: 1 });
+    push('product-test', { level: 1 });
   };
 
   const filteredProducts = useMemo(() => {
