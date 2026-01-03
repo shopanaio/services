@@ -9,20 +9,19 @@ import {
   Progress,
   Select,
   Dropdown,
-  Tooltip,
   Skeleton,
   Flex,
 } from "antd";
 import {
   StarFilled,
   MoreOutlined,
-  InfoCircleOutlined,
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import { ReactNode, useState, useMemo, useCallback } from "react";
 import { Paper } from "./Paper";
+import { Tile } from "./Tile";
 import { MediaFilePlaceholder } from "./MediaFilePlaceholder";
 import { PricingBlock } from "./pricing/PricingBlock";
 import { ProductInfoHeader } from "./ProductInfoHeader";
@@ -250,21 +249,6 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: 4,
     fontSize: 12,
   },
-  statBox: {
-    textAlign: "center",
-    padding: "8px 12px",
-    background: token.colorBgLayout,
-    borderRadius: 8,
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 600,
-    display: "block",
-  },
-  statLabel: {
-    fontSize: 11,
-  },
   // Inventory styles
   inventoryCard: {
     padding: 12,
@@ -292,59 +276,14 @@ const useStyles = createStyles(({ token }) => ({
       flex: 1,
     },
   },
-  kpiTile: {
-    padding: "8px 12px",
-    background: token.colorBgLayout,
-    borderRadius: 6,
-    border: `1px solid ${token.colorBorderSecondary}`,
+  // Tile overrides for inventory section
+  inventoryTile: {
     cursor: "pointer",
-    transition: "all 0.2s ease",
-    position: "relative",
-    "&:hover": {
-      background: token.colorBgContainerDisabled,
-      borderColor: token.colorBorder,
-    },
   },
-  kpiTileActive: {
-    borderColor: token.colorPrimary,
-    background: token.colorPrimaryBg,
-  },
-  kpiTilePrimary: {
+  inventoryTilePrimary: {
     flex: 1.5,
-    borderLeft: `2px solid ${token.colorSuccess}`,
   },
-  kpiLabel: {
-    fontSize: 11,
-    fontWeight: 500,
-    color: token.colorTextSecondary,
-    textTransform: "uppercase",
-    letterSpacing: "0.3px",
-  },
-  kpiValue: {
-    fontSize: 18,
-    fontWeight: 600,
-    display: "block",
-    lineHeight: 1.2,
-    color: token.colorText,
-  },
-  kpiValueLarge: {
-    fontSize: 20,
-  },
-  kpiSecondary: {
-    fontSize: 10,
-    color: token.colorTextTertiary,
-    display: "block",
-    marginTop: 2,
-  },
-  kpiInfoIcon: {
-    fontSize: 10,
-    color: token.colorTextQuaternary,
-    cursor: "help",
-  },
-  kpiBadge: {
-    marginLeft: "auto",
-  },
-  kpiTag: {
+  inventoryTag: {
     margin: 0,
     fontSize: 9,
     lineHeight: "14px",
@@ -624,120 +563,11 @@ const Section = ({ title, children, onEdit, extra }: ISectionProps) => {
   );
 };
 
-interface IStatBoxProps {
-  label: string;
-  value: ReactNode;
-  color?: string;
-}
-
-const StatBox = ({ label, value, color }: IStatBoxProps) => {
-  const { styles } = useStyles();
-
-  return (
-    <div className={styles.statBox}>
-      <Typography.Text
-        className={styles.statValue}
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </Typography.Text>
-      <Typography.Text type="secondary" className={styles.statLabel}>
-        {label}
-      </Typography.Text>
-    </div>
-  );
-};
-
 // ============================================================================
 // Inventory Section Components
 // ============================================================================
 
-type KPIVariant =
-  | "default"
-  | "primary"
-  | "warning"
-  | "danger"
-  | "info"
-  | "purple";
-
-interface IKPITileProps {
-  label: string;
-  tooltip?: string;
-  value: ReactNode;
-  secondary?: ReactNode;
-  variant?: KPIVariant;
-  badge?: ReactNode;
-  active?: boolean;
-  onClick?: () => void;
-  isPrimary?: boolean;
-}
-
-const KPITile = ({
-  label,
-  tooltip,
-  value,
-  secondary,
-  variant = "default",
-  badge,
-  active,
-  onClick,
-  isPrimary,
-}: IKPITileProps) => {
-  const { styles, cx } = useStyles();
-
-  const getBorderColor = () => {
-    switch (variant) {
-      case "warning":
-        return "#faad14";
-      case "danger":
-        return "#ff4d4f";
-      case "info":
-        return "#1677ff";
-      case "purple":
-        return "#722ed1";
-      default:
-        return undefined;
-    }
-  };
-
-  const borderColor = !isPrimary ? getBorderColor() : undefined;
-
-  return (
-    <div
-      className={cx(
-        styles.kpiTile,
-        isPrimary && styles.kpiTilePrimary,
-        active && styles.kpiTileActive
-      )}
-      style={
-        borderColor ? { borderLeft: `2px solid ${borderColor}` } : undefined
-      }
-      onClick={onClick}
-    >
-      <Flex align="center" gap={4} style={{ marginBottom: 2 }}>
-        <Typography.Text className={styles.kpiLabel}>{label}</Typography.Text>
-        {tooltip && (
-          <Tooltip title={tooltip}>
-            <InfoCircleOutlined className={styles.kpiInfoIcon} />
-          </Tooltip>
-        )}
-        {badge && <div className={styles.kpiBadge}>{badge}</div>}
-      </Flex>
-
-      <Typography.Text
-        className={cx(styles.kpiValue, isPrimary && styles.kpiValueLarge)}
-      >
-        {value}
-      </Typography.Text>
-
-      {secondary && (
-        <Typography.Text className={styles.kpiSecondary}>
-          {secondary}
-        </Typography.Text>
-      )}
-    </div>
-  );
-};
+// Note: KPITile replaced with Tile component from ./Tile.tsx
 
 interface IWarehouseSelectProps {
   warehouses: IWarehouseStock[];
@@ -951,22 +781,21 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
         Quantity
       </Typography.Text>
       <div className={styles.tilesGroup}>
-        <KPITile
+        <Tile
           label="Available"
           tooltip="Units available for sale (On Hand minus Reserved)"
           value={stats.availableQty.toLocaleString()}
           secondary={`across ${stats.totalSKUs} SKUs`}
-          variant="primary"
           isPrimary
           badge={
-            <Tag color="success" className={styles.kpiTag}>
+            <Tag color="success" className={styles.inventoryTag}>
               Sellable
             </Tag>
           }
           active={activeKPI === "available"}
           onClick={() => handleKPIClick("available")}
         />
-        <KPITile
+        <Tile
           label="On Hand"
           tooltip="Total physical units in warehouse"
           value={stats.onHandQty.toLocaleString()}
@@ -975,10 +804,11 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
               ? `${stats.changeVs7d > 0 ? "+" : ""}${stats.changeVs7d} vs 7d`
               : undefined
           }
+          variant="success"
           active={activeKPI === "onhand"}
           onClick={() => handleKPIClick("onhand")}
         />
-        <KPITile
+        <Tile
           label="Reserved"
           tooltip="Units allocated to pending orders"
           value={stats.reservedQty.toLocaleString()}
@@ -990,7 +820,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           variant={stats.reservedQty > 0 ? "info" : "default"}
           badge={
             stats.reservedQty > 0 ? (
-              <Tag color="blue" className={styles.kpiTag}>
+              <Tag color="blue" className={styles.inventoryTag}>
                 Reserved
               </Tag>
             ) : undefined
@@ -1009,7 +839,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
         Health
       </Typography.Text>
       <div className={styles.tilesGroup}>
-        <KPITile
+        <Tile
           label="Low Stock"
           tooltip={`SKUs below ${
             stats.thresholdType === "safety_stock"
@@ -1030,7 +860,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           active={activeKPI === "lowstock"}
           onClick={() => handleKPIClick("lowstock")}
         />
-        <KPITile
+        <Tile
           label="Out of Stock"
           tooltip="SKUs with zero available units"
           value={`${stats.outOfStockSKUs} SKUs`}
@@ -1048,7 +878,7 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           onClick={() => handleKPIClick("outofstock")}
         />
         {stats.backorderSKUs > 0 && (
-          <KPITile
+          <Tile
             label="Backorder"
             tooltip="SKUs with incoming stock expected"
             value={`${stats.backorderSKUs} SKUs`}
@@ -1082,7 +912,7 @@ export const ProductInfoCardA = ({
   product,
   onEditSection,
 }: IProductInfoCardAProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const { push: openProductModal } = useProductModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
@@ -1554,12 +1384,14 @@ export const ProductInfoCardA = ({
           title="Shipping & Dimensions"
           onEdit={() => handleEdit("shipping")}
         >
-          <Flex gap={12}>
-            <StatBox
+          <Flex gap={8}>
+            <Tile
               label="Weight"
               value={formatWeight(product.weight, product.weightUnit)}
+              variant="success"
+              centered
             />
-            <StatBox
+            <Tile
               label="Dimensions"
               value={formatDimensions(
                 product.length,
@@ -1567,17 +1399,22 @@ export const ProductInfoCardA = ({
                 product.height,
                 product.dimensionUnit
               )}
+              variant="info"
+              centered
             />
-            <StatBox
+            <Tile
               label="Shipping"
-              value={
+              value={product.requiresShipping ? "Required" : "Not required"}
+              variant={product.requiresShipping ? "purple" : "default"}
+              badge={
                 <Tag
                   color={product.requiresShipping ? "blue" : "default"}
-                  style={{ margin: 0 }}
+                  style={{ margin: 0, fontSize: 9, lineHeight: '14px', padding: '0 4px' }}
                 >
-                  {product.requiresShipping ? "Required" : "Not required"}
+                  {product.requiresShipping ? "Active" : "Disabled"}
                 </Tag>
               }
+              centered
             />
           </Flex>
         </Section>

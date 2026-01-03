@@ -1,12 +1,9 @@
 import { createStyles } from 'antd-style';
 import { Typography, Button, Select, Tag, Tooltip, Dropdown, Flex } from 'antd';
-import {
-  MoreOutlined,
-  InfoCircleOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
+import { MoreOutlined, WarningOutlined } from '@ant-design/icons';
 import { ReactNode, useState, useMemo, useCallback } from 'react';
 import { Paper } from '../Paper';
+import { Tile } from '../Tile';
 import {
   IPriceHistoryRecord,
   generateMockHistory,
@@ -92,7 +89,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   column: {
     padding: 12,
-    background: token.colorBgLayout,
+    background: token.colorBgContainer,
     borderRadius: 8,
     border: `1px solid ${token.colorBorderSecondary}`,
     flex: 1,
@@ -150,38 +147,11 @@ const useStyles = createStyles(({ token }) => ({
     },
   },
   kpiTile: {
-    padding: '8px 12px',
-    background: token.colorBgLayout,
-    borderRadius: 6,
-    border: `1px solid ${token.colorBorderSecondary}`,
     textAlign: 'center',
     minHeight: 56,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-  },
-  kpiTileWarning: {
-    borderLeft: `2px solid ${token.colorWarning}`,
-  },
-  kpiTileDanger: {
-    borderLeft: `2px solid ${token.colorError}`,
-  },
-  kpiLabel: {
-    fontSize: 11,
-    color: token.colorTextSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px',
-  },
-  kpiInfoIcon: {
-    fontSize: 9,
-    color: token.colorTextQuaternary,
-    cursor: 'help',
-  },
-  kpiValue: {
-    fontSize: 14,
-    fontWeight: 500,
-    display: 'block',
-    whiteSpace: 'nowrap',
   },
   warningIcon: {
     color: token.colorWarning,
@@ -670,46 +640,6 @@ const PriceHistoryChart = ({
   );
 };
 
-interface IKPITileProps {
-  label: string;
-  value: ReactNode;
-  tooltip?: string;
-  variant?: 'default' | 'warning' | 'danger';
-}
-
-const KPITile = ({
-  label,
-  value,
-  tooltip,
-  variant = 'default',
-}: IKPITileProps) => {
-  const { styles, cx } = useStyles();
-
-  return (
-    <div
-      className={cx(
-        styles.kpiTile,
-        variant === 'warning' && styles.kpiTileWarning,
-        variant === 'danger' && styles.kpiTileDanger,
-      )}
-    >
-      <Flex align="center" justify="center" gap={4} style={{ marginBottom: 2 }}>
-        <Typography.Text className={styles.kpiLabel}>
-          {label}
-        </Typography.Text>
-        {tooltip && (
-          <Tooltip title={tooltip}>
-            <InfoCircleOutlined className={styles.kpiInfoIcon} />
-          </Tooltip>
-        )}
-      </Flex>
-      <Typography.Text className={styles.kpiValue}>
-        {value}
-      </Typography.Text>
-    </div>
-  );
-};
-
 interface IKPIRowProps {
   data: IPricingData;
   formatPrice: (amount: number) => string;
@@ -734,44 +664,44 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
 
   return (
     <div className={styles.kpiRow}>
-      <KPITile
+      <Tile
         label="Cost"
         value={costPrice ? formatPrice(costPrice) : '—'}
         tooltip={costPrice ? 'Product cost price' : 'Cost data missing'}
-        variant={!costPrice ? 'warning' : 'default'}
+        centered
+        className={styles.kpiTile}
       />
-      <KPITile
+      <Tile
         label="Margin"
         value={
-          <Typography.Text
-            style={{ color: getMarginColor(marginStatus, theme) }}
-          >
+          <Typography.Text style={{ color: getMarginColor(marginStatus, theme) }}>
             {margin !== null ? `${margin}%` : '—'}
           </Typography.Text>
         }
         tooltip="Profit margin percentage"
-        variant={
-          marginStatus === 'critical'
-            ? 'danger'
-            : marginStatus === 'warning'
-            ? 'warning'
-            : 'default'
-        }
+        centered
+        className={styles.kpiTile}
       />
-      <KPITile
+      <Tile
         label="Min allowed"
         value={minAllowedPrice ? formatPrice(minAllowedPrice) : '—'}
         tooltip="Minimum price allowed by pricing policy"
+        centered
+        className={styles.kpiTile}
       />
-      <KPITile
+      <Tile
         label="Max"
         value={maxPrice ? formatPrice(maxPrice) : '—'}
         tooltip="Maximum historical price"
+        centered
+        className={styles.kpiTile}
       />
-      <KPITile
+      <Tile
         label="Avg 30D"
         value={avg30d ? formatPrice(avg30d) : '—'}
         tooltip="Average price over last 30 days"
+        centered
+        className={styles.kpiTile}
       />
     </div>
   );
