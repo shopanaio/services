@@ -4,6 +4,7 @@ import { GlobalStyle } from "@/ui-kit/Theme/GlobalStyle";
 import { App } from "antd";
 import { ThemeProvider } from "antd-style";
 import { AntdRegistry } from "@/ui-kit/Theme/AntdRegistry";
+import { Modals } from "@/layouts/modals";
 
 export const Theme = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -79,6 +80,7 @@ export const Theme = ({ children }: { children: React.ReactNode }) => {
         <App>
           <GlobalStyle />
           {children}
+          <Modals />
         </App>
       </ThemeProvider>
     </AntdRegistry>

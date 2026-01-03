@@ -2,8 +2,9 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { Image, Typography, Flex, Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ExperimentOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
+import { useModalActions } from "@/layouts/modals";
 import {
   ColDef,
   ModuleRegistry,
@@ -244,6 +245,11 @@ export default function ProductsPage() {
   const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
+  const { openModal } = useModalActions();
+
+  const handleOpenTestModal = () => {
+    openModal('product-test', { level: 1 });
+  };
 
   const filteredProducts = useMemo(() => {
     return applyFiltersToData(mockProducts, filters, searchValue);
@@ -307,9 +313,14 @@ export default function ProductsPage() {
       title="Products"
       count={filteredProducts.length}
       actions={
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Add Product
-        </Button>
+        <Flex gap="small">
+          <Button icon={<ExperimentOutlined />} onClick={handleOpenTestModal}>
+            Test Modal
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Add Product
+          </Button>
+        </Flex>
       }
     >
       <DataLayout.Toolbar

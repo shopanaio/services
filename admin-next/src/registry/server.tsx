@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { moduleRegistry, type ModulePageProps } from "./registry";
 import { ModuleProvider, SidebarItemsProvider } from "./client";
 import type { IDrawerDefinition } from "@/layouts/drawers/types";
+import type { IModalDefinition } from "@/layouts/modals/types";
 
 // ============================================================================
 // Page Factory
@@ -68,6 +69,8 @@ export interface CreateLayoutOptions {
   modulesContext: ReturnType<typeof require.context>;
   /** Function that returns drawer definitions for client-side registration */
   getDrawers?: () => IDrawerDefinition[];
+  /** Function that returns modal definitions for client-side registration */
+  getModals?: () => IModalDefinition[];
 }
 
 /**
@@ -78,15 +81,17 @@ export interface CreateLayoutOptions {
  * // app/[[...slug]]/layout.tsx
  * import { createLayout } from "@/registry";
  * import { getDrawerDefinitions } from "@/domains/drawers";
+ * import { getModalDefinitions } from "@/domains/modals";
  *
  * const { Layout } = createLayout({
  *   modulesContext: require.context("../../domains", true, /(register|domain)\.tsx?$/),
  *   getDrawers: getDrawerDefinitions,
+ *   getModals: getModalDefinitions,
  * });
  * ```
  */
 export function createLayout(options: CreateLayoutOptions) {
-  const { modulesContext, getDrawers } = options;
+  const { modulesContext, getDrawers, getModals } = options;
 
   modulesContext.keys().forEach((key) => modulesContext(key));
 
@@ -94,7 +99,7 @@ export function createLayout(options: CreateLayoutOptions) {
 
   function Layout({ children }: { children: React.ReactNode }) {
     return (
-      <ModuleProvider sidebarItems={sidebarItems} getDrawers={getDrawers}>
+      <ModuleProvider sidebarItems={sidebarItems} getDrawers={getDrawers} getModals={getModals}>
         {children}
       </ModuleProvider>
     );
