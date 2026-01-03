@@ -208,7 +208,7 @@ ProductInfoCardA.tsx
 
 ## Migration Plan
 
-### Step 1: Create Mock Types
+### Step 1: Create Mock Types ✅
 
 Create mock interfaces for product data:
 
@@ -220,15 +220,15 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Create `IProduct` interface with required fields
-- [ ] Create `IProductVariant` interface
-- [ ] Create `ICategory`, `ITag`, `IMediaFile` interfaces
-- [ ] Create `IProductFeatureGroup`, `IProductGroup` interfaces
-- [ ] Create mock product data for development/testing
+- [x] Create `IProduct` interface with required fields
+- [x] Create `IProductVariant` interface
+- [x] Create `ICategory`, `ITag`, `IMediaFile` interfaces
+- [x] Create `IProductFeatureGroup`, `IProductGroup` interfaces
+- [x] Create mock product data for development/testing
 
 ---
 
-### Step 2: Create Paper Component
+### Step 2: Create Paper Component ✅
 
 Create `Paper.tsx` wrapper using antd-style:
 
@@ -239,12 +239,12 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Create `Paper` component with antd-style
-- [ ] Use antd theme tokens for styling (border-radius, background, shadow)
+- [x] Create `Paper` component with antd-style
+- [x] Use antd theme tokens for styling (border-radius, background, shadow)
 
 ---
 
-### Step 3: Create MediaFilePlaceholder Component
+### Step 3: Create MediaFilePlaceholder Component ✅
 
 ```
 src/domains/inventory/products/
@@ -253,12 +253,12 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Create component with antd-style
-- [ ] Replace emotion css with createStyles
+- [x] Create component with antd-style
+- [x] Replace emotion css with createStyles
 
 ---
 
-### Step 4: Create Constants
+### Step 4: Create Constants ✅
 
 ```
 src/domains/inventory/products/
@@ -266,13 +266,13 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Copy `weightUnitOptions` from admin
-- [ ] Copy `dimensionUnitOptions` from admin
-- [ ] Import `WeightUnit`, `DimensionUnit` from existing graphql types
+- [x] Copy `weightUnitOptions` from admin
+- [x] Copy `dimensionUnitOptions` from admin
+- [x] Import `WeightUnit`, `DimensionUnit` from local mock types
 
 ---
 
-### Step 5: Migrate PriceHistory Component
+### Step 5: Migrate PriceHistory Component ✅
 
 ```
 src/domains/inventory/products/
@@ -282,14 +282,14 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Copy component logic
-- [ ] Replace `@emotion/react` css → antd-style `createStyles`
-- [ ] Replace custom `Flex` → antd `Flex`
-- [ ] Keep mock data generators (`generateMockHistory`, `getMockVariantPrices`)
+- [x] Copy component logic
+- [x] Replace `@emotion/react` css → antd-style `createStyles`
+- [x] Replace custom `Flex` → antd `Flex`
+- [x] Keep mock data generators (`generateMockHistory`, `getMockVariantPrices`)
 
 ---
 
-### Step 6: Migrate PricingBlock Component
+### Step 6: Migrate PricingBlock Component ✅
 
 ```
 src/domains/inventory/products/
@@ -299,15 +299,15 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Copy component logic
-- [ ] Replace emotion → antd-style
-- [ ] Replace `Box`/`Flex` → antd `Flex` + `<div>`
-- [ ] Replace `Paper` import with local Paper component
-- [ ] Import `PriceHistory` from local
+- [x] Copy component logic
+- [x] Replace emotion → antd-style
+- [x] Replace `Box`/`Flex` → antd `Flex` + `<div>`
+- [x] Replace `Paper` import with local Paper component
+- [x] Import `PriceHistory` from local
 
 ---
 
-### Step 7: Migrate ProductInfoHeader Component
+### Step 7: Migrate ProductInfoHeader Component ✅
 
 ```
 src/domains/inventory/products/
@@ -316,16 +316,16 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Copy component logic
-- [ ] Replace emotion → antd-style
-- [ ] Replace `Box`/`Flex` → antd `Flex`
-- [ ] Replace `formatMessage()` → plain text strings
-- [ ] Import `EntityStatus` from existing graphql
-- [ ] Use `IProduct` from local mocks
+- [x] Copy component logic
+- [x] Replace emotion → antd-style
+- [x] Replace `Box`/`Flex` → antd `Flex`
+- [x] Replace `formatMessage()` → plain text strings
+- [x] Import `EntityStatus` from local mocks
+- [x] Use `IProduct` from local mocks
 
 ---
 
-### Step 8: Migrate ProductContentTabs Component
+### Step 8: Migrate ProductContentTabs Component ✅
 
 ```
 src/domains/inventory/products/
@@ -334,20 +334,20 @@ src/domains/inventory/products/
 ```
 
 **Tasks:**
-- [ ] Copy component logic
-- [ ] Replace emotion → antd-style
-- [ ] Replace `Flex` → antd `Flex`
-- [ ] Replace `formatMessage()` → plain text strings
-- [ ] Remove `useIntl` hook
+- [x] Copy component logic
+- [x] Replace emotion → antd-style
+- [x] Replace `Flex` → antd `Flex`
+- [x] Replace `formatMessage()` → plain text strings
+- [x] Remove `useIntl` hook
 
 ---
 
-### Step 9: Setup Modal Stack Integration
+### Step 9: Setup Modal Stack Integration ✅
 
 **Tasks:**
-- [ ] Identify modal stack API in admin-next
-- [ ] Create product modal type/config
-- [ ] Replace `$drawers.addDrawer()` pattern with modal stack
+- [x] Identify modal stack API in admin-next
+- [x] Create product modal type/config
+- [x] Replace `$drawers.addDrawer()` pattern with modal stack
 
 ---
 
