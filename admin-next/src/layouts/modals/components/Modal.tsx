@@ -30,6 +30,9 @@ const useStyles = createStyles(({ css }, { hasChildren, depth }: StyleProps) => 
 
   return {
     wrapper: css`
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
       padding: 16px !important;
       transform: scale(${scale}) translateY(${translateY}px);
       transform-origin: top center;
@@ -39,12 +42,11 @@ const useStyles = createStyles(({ css }, { hasChildren, depth }: StyleProps) => 
     content: css`
       padding: 0 !important;
       height: calc(100vh - 32px) !important;
-      display: flex !important;
-      flex-direction: column;
+      top: 0 !important;
     `,
     body: css`
       padding: 0 !important;
-      flex: 1 !important;
+      height: 100% !important;
       overflow: auto !important;
     `,
   };
@@ -125,7 +127,6 @@ export const ModalWrapper = ({
   totalCount,
   modalItem,
 }: IModalWrapperProps) => {
-  const { styles } = useStyles();
   const { type, uuid, isDirty } = modalItem;
   const [isOpen, setIsOpen] = useState(true);
   const { modal } = App.useApp();
@@ -137,16 +138,7 @@ export const ModalWrapper = ({
   const hasChildren = !!children;
   const depth = totalCount - level - 1;
 
-  const stackStyles = useMemo(() => {
-    const scale = hasChildren ? 1 - SCALE_FACTOR * depth : 1;
-    const translateY = hasChildren ? -STACK_OFFSET * depth : 0;
-
-    return {
-      transform: `scale(${scale}) translateY(${translateY}px)`,
-      transformOrigin: 'top center',
-      transition: 'transform 0.3s ease-out',
-    };
-  }, [hasChildren, depth]);
+  const { styles } = useStyles({ hasChildren, depth });
 
   const clearAfterClose = (open: boolean) => {
     if (open) return;
@@ -229,20 +221,12 @@ export const ModalWrapper = ({
           content: styles.content,
           body: styles.body,
         }}
-        styles={{
-          wrapper: {
-            ...stackStyles,
-            pointerEvents: hasChildren ? 'none' : 'auto',
-          },
-        }}
       >
-        <div style={{ height: '100%' }}>
-          <ModalProvider value={contextValue}>
-            <Suspense fallback={null}>
-              <Component />
-            </Suspense>
-          </ModalProvider>
-        </div>
+        <ModalProvider value={contextValue}>
+          <Suspense fallback={null}>
+            <Component />
+          </Suspense>
+        </ModalProvider>
         {children}
       </Modal>
     </>
