@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { App, Modal } from 'antd';
-import { ReactNode, Suspense, useMemo, useState } from 'react';
-import { createStyles, createGlobalStyle } from 'antd-style';
+import { App, Modal } from "antd";
+import { ReactNode, Suspense, useMemo, useState } from "react";
+import { createStyles, createGlobalStyle, useAntdToken } from "antd-style";
 
-import { ModalProvider } from './Provider';
-import { modalRegistry } from '../registry/modalRegistry';
-import { useModalsStore } from '../store/modals';
-import type { IModalItem, IModalContext } from '../types';
+import { ModalProvider } from "./Provider";
+import { modalRegistry } from "../registry/modalRegistry";
+import { useModalsStore } from "../store/modals";
+import type { IModalItem, IModalContext } from "../types";
 
 interface IModalWrapperProps {
   children?: ReactNode;
@@ -16,7 +16,6 @@ interface IModalWrapperProps {
   modalItem: IModalItem;
 }
 
-const STACK_OFFSET = 8;
 const SCALE_FACTOR = 0.03;
 
 interface StyleProps {
@@ -24,33 +23,29 @@ interface StyleProps {
   depth: number;
 }
 
-const useStyles = createStyles(({ css }, { hasChildren, depth }: StyleProps) => {
-  const scale = hasChildren ? 1 - SCALE_FACTOR * depth : 1;
-  const translateY = hasChildren ? -STACK_OFFSET * depth : 0;
+const useStyles = createStyles(
+  ({ css, token }, { hasChildren, depth }: StyleProps) => {
+    const scale = hasChildren ? 1 - SCALE_FACTOR * depth : 1;
+    const translateY = hasChildren ? -token.paddingXS * depth : 0;
 
-  return {
-    wrapper: css`
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 16px !important;
-      transform: scale(${scale}) translateY(${translateY}px);
-      transform-origin: top center;
-      transition: transform 0.3s ease-out;
-      pointer-events: ${hasChildren ? 'none' : 'auto'};
-    `,
-    content: css`
-      padding: 0 !important;
-      height: calc(100vh - 32px) !important;
-      top: 0 !important;
-    `,
-    body: css`
-      padding: 0 !important;
-      height: 100% !important;
-      overflow: auto !important;
-    `,
-  };
-});
+    return {
+      wrapper: css`
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: ${token.padding}px;
+        transform: scale(${scale}) translateY(${translateY}px);
+        transform-origin: top center;
+        transition: transform ${token.motionDurationMid} ease-out;
+        pointer-events: ${hasChildren ? "none" : "auto"};
+      `,
+      container: css`
+        height: calc(100vh - ${token.padding * 2}px);
+        width: calc(100vw - ${token.padding * 2}px);
+      `,
+    };
+  }
+);
 
 const GlobalModalStyles = createGlobalStyle`
   @keyframes modalSlideUp {
@@ -134,7 +129,7 @@ export const ModalWrapper = ({
   const closeModal = useModalsStore((state) => state.closeModal);
   const setDirty = useModalsStore((state) => state.setDirty);
   const updatePayload = useModalsStore((state) => state.updatePayload);
-
+  const token = useAntdToken();
   const hasChildren = !!children;
   const depth = totalCount - level - 1;
 
@@ -150,13 +145,13 @@ export const ModalWrapper = ({
       const result = await modal.confirm({
         icon: null,
         okButtonProps: {
-          'data-testid': 'modal-confirm-leave',
+          "data-testid": "modal-confirm-leave",
         },
         cancelButtonProps: {
-          'data-testid': 'modal-cancel-leave',
+          "data-testid": "modal-cancel-leave",
         },
-        title: 'Unsaved changes',
-        content: 'You have unsaved changes. Are you sure you want to leave?',
+        title: "Unsaved changes",
+        content: "You have unsaved changes. Are you sure you want to leave?",
       });
 
       if (!result) {
@@ -207,19 +202,19 @@ export const ModalWrapper = ({
       <GlobalModalStyles />
       <Modal
         open={isOpen}
+        centered
         onCancel={onClose}
         afterOpenChange={clearAfterClose}
         footer={null}
-        width="calc(100vw - 32px)"
         closable={false}
         destroyOnHidden
         transitionName="modal-slide-up"
         maskTransitionName="modal-fade"
         mask={level === 0}
+        width={`calc(100wv - ${token.padding * 2}px)`}
         classNames={{
           wrapper: styles.wrapper,
-          content: styles.content,
-          body: styles.body,
+          container: styles.container,
         }}
       >
         <ModalProvider value={contextValue}>
