@@ -33,6 +33,8 @@ export const ModalLayout = ({
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
+        border-radius: 8px;
+        overflow: hidden;
       `}
     >
       <ModalHeader {...{ ...headerProps, name }} />

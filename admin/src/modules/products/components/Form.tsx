@@ -675,7 +675,7 @@ const ProductFormView = () => {
             onClick={() => setModalTab(tab.key)}
             css={css`
               height: 100%;
-              min-width: 120px;
+              min-width: 200px;
               border-radius: 0;
               font-weight: ${isActive ? 500 : 400};
               color: ${isActive ? 'var(--color-primary)' : 'inherit'};
