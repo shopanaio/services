@@ -275,12 +275,12 @@ import { Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { DataLayout } from '@/layouts/data';
 import { FilterWidget, useFilters } from '@/layouts/filters';
-import { useDrawer } from '@/layouts/drawers';
+import { useModalStack } from '@/layouts/modals';
 
 export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
-  const openProduct = useDrawer('product');
+  const { push } = useModalStack();
 
   return (
     <DataLayout
@@ -298,7 +298,7 @@ export default function ProductsPage() {
 
       <ProductTable
         data={products}
-        onRowClick={(row) => openProduct({ entityId: row.id })}
+        onRowClick={(row) => push('product', { entityId: row.id })}
       />
 
       <DataLayout.Footer left={<Pagination page={1} total={100} />} />

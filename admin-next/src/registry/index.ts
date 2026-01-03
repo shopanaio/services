@@ -24,4 +24,4 @@ export {
 } from "./server";
 
 // Client-side context and hooks
-export { SidebarItemsProvider, useSidebarItems } from "./client";
+export { useSidebarItems, ModuleProvider } from "./client";

@@ -2,7 +2,6 @@
 
 import { Layout } from "antd";
 import { Sidebar } from "@/layouts/app/components/Sidebar/Sidebar";
-import { Drawers } from "@/layouts/drawers";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 
@@ -31,7 +30,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     <Layout className={styles.layout} hasSider>
       <Sidebar />
       <Layout>{children}</Layout>
-      <Drawers />
     </Layout>
   );
 };
