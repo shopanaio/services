@@ -51,6 +51,8 @@ const useStyles = createStyles(
         height: calc(100vh - ${topPadding + token.padding}px);
         width: calc(100vw - ${token.padding * 2}px);
         padding: 0 !important;
+        background-color: ${token.colorBgLayout} !important;
+        overflow: hidden;
       `,
     };
   }

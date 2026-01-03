@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button, Flex, Typography, Skeleton } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
-import { createStyles } from 'antd-style';
-import { useModalStackContext } from '@/layouts/modals';
-import { ProductInfoCardA } from '../components/ProductInfoCardA';
-import { mockVariableProduct, mockSimpleProduct } from '../mocks/data';
+import { useState, useEffect } from "react";
+import { Button, Flex, Typography, Skeleton } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
+import { createStyles } from "antd-style";
+import { useModalStackContext } from "@/layouts/modals";
+import { ProductInfoCardA } from "../components/ProductInfoCardA";
+import { mockVariableProduct, mockSimpleProduct } from "../mocks/data";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type ModalTab = 'general' | 'inventory' | 'bundles';
+type ModalTab = "general" | "inventory" | "bundles";
 
 interface ITabConfig {
   key: ModalTab;
@@ -20,9 +20,9 @@ interface ITabConfig {
 }
 
 const TABS: ITabConfig[] = [
-  { key: 'general', label: 'General' },
-  { key: 'inventory', label: 'Inventory' },
-  { key: 'bundles', label: 'Bundles' },
+  { key: "general", label: "General" },
+  { key: "inventory", label: "Inventory" },
+  { key: "bundles", label: "Bundles" },
 ];
 
 // ============================================================================
@@ -31,89 +31,87 @@ const TABS: ITabConfig[] = [
 
 const useStyles = createStyles(({ token }) => ({
   container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    background: token.colorBgContainer,
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
     borderRadius: token.borderRadiusLG,
-    overflow: 'hidden',
   },
   header: {
-    display: 'flex',
-    alignItems: 'stretch',
+    display: "flex",
+    alignItems: "stretch",
     height: 48,
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
     background: token.colorBgContainer,
     flexShrink: 0,
   },
   closeSection: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 8,
-    padding: '0 12px',
+    padding: "0 12px",
     borderRight: `1px solid ${token.colorBorderSecondary}`,
   },
   closeButton: {
     color: token.colorTextSecondary,
-    '&:hover': {
+    "&:hover": {
       color: token.colorText,
       background: token.colorBgTextHover,
     },
   },
   escBadge: {
     fontSize: 10,
-    fontFamily: 'inherit',
-    padding: '2px 5px',
+    fontFamily: "inherit",
+    padding: "2px 5px",
     background: token.colorBgContainerDisabled,
     border: `1px solid ${token.colorBorder}`,
     borderRadius: 4,
     color: token.colorTextSecondary,
   },
   tabButton: {
-    height: '100%',
+    height: "100%",
     minWidth: 140,
     borderRadius: 0,
     borderRight: `1px solid ${token.colorBorderSecondary}`,
-    transition: 'all 0.2s',
+    transition: "all 0.2s",
   },
   tabButtonActive: {
     fontWeight: 500,
     color: token.colorPrimary,
-    background: 'transparent !important',
+    background: "transparent !important",
   },
   tabButtonInactive: {
     fontWeight: 400,
     color: token.colorText,
     background: `${token.colorBgLayout} !important`,
-    '&:hover': {
+    "&:hover": {
       background: `${token.colorBgTextHover} !important`,
     },
   },
   headerRight: {
     flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    padding: '0 12px',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    padding: "0 12px",
   },
   content: {
     flex: 1,
-    overflow: 'auto',
-    padding: 16,
-    background: token.colorBgLayout,
+    maxWidth: 1000,
+    marginInline: "auto",
+    padding: token.padding,
   },
   contentFullWidth: {
     flex: 1,
-    overflow: 'auto',
+    overflow: "auto",
     padding: 0,
     background: token.colorBgLayout,
   },
   placeholderContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
     gap: 16,
     color: token.colorTextSecondary,
   },
@@ -138,7 +136,10 @@ const InventoryPlaceholder = () => {
       <Typography.Text className={styles.placeholderTitle}>
         Inventory Management
       </Typography.Text>
-      <Typography.Text type="secondary" className={styles.placeholderDescription}>
+      <Typography.Text
+        type="secondary"
+        className={styles.placeholderDescription}
+      >
         Variants table will be rendered here
       </Typography.Text>
     </div>
@@ -153,7 +154,10 @@ const BundlesPlaceholder = () => {
       <Typography.Text className={styles.placeholderTitle}>
         Product Bundles
       </Typography.Text>
-      <Typography.Text type="secondary" className={styles.placeholderDescription}>
+      <Typography.Text
+        type="secondary"
+        className={styles.placeholderDescription}
+      >
         Product groups/bundles management will be rendered here
       </Typography.Text>
     </div>
@@ -167,7 +171,7 @@ const BundlesPlaceholder = () => {
 export const TestModal = () => {
   const { styles, cx } = useStyles();
   const { payload, pop, forcePop } = useModalStackContext();
-  const [activeTab, setActiveTab] = useState<ModalTab>('general');
+  const [activeTab, setActiveTab] = useState<ModalTab>("general");
   const [loading, setLoading] = useState(true);
 
   // Use simple or variable product based on payload
@@ -182,12 +186,12 @@ export const TestModal = () => {
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         pop();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
 
   const renderContent = () => {
@@ -202,16 +206,16 @@ export const TestModal = () => {
     }
 
     switch (activeTab) {
-      case 'general':
+      case "general":
         return (
           <ProductInfoCardA
             product={product}
-            onEditSection={(section) => console.log('Edit section:', section)}
+            onEditSection={(section) => console.log("Edit section:", section)}
           />
         );
-      case 'inventory':
+      case "inventory":
         return <InventoryPlaceholder />;
-      case 'bundles':
+      case "bundles":
         return <BundlesPlaceholder />;
       default:
         return null;
@@ -243,7 +247,7 @@ export const TestModal = () => {
               onClick={() => setActiveTab(tab.key)}
               className={cx(
                 styles.tabButton,
-                isActive ? styles.tabButtonActive : styles.tabButtonInactive,
+                isActive ? styles.tabButtonActive : styles.tabButtonInactive
               )}
             >
               {tab.label}
@@ -258,7 +262,11 @@ export const TestModal = () => {
       </div>
 
       {/* Content area */}
-      <div className={activeTab === 'inventory' ? styles.contentFullWidth : styles.content}>
+      <div
+        className={
+          activeTab === "inventory" ? styles.contentFullWidth : styles.content
+        }
+      >
         {renderContent()}
       </div>
     </div>

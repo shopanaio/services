@@ -1,13 +1,24 @@
-import { createStyles } from 'antd-style';
-import { Typography, Tooltip, Flex } from 'antd';
-import { InfoCircleOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
-import { ReactNode } from 'react';
+import { createStyles } from "antd-style";
+import { Typography, Tooltip, Flex } from "antd";
+import {
+  InfoCircleOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+} from "@ant-design/icons";
+import { ReactNode } from "react";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type TileVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
+export type TileVariant =
+  | "default"
+  | "primary"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "purple";
 
 export interface ITileProps {
   /** Label text displayed above/below value */
@@ -44,19 +55,19 @@ export interface ITileProps {
 
 const useStyles = createStyles(({ token }) => ({
   tile: {
-    padding: '8px 12px',
+    padding: "8px 12px",
     background: token.colorBgContainer,
     borderRadius: 6,
     border: `1px solid ${token.colorBorderSecondary}`,
-    cursor: 'default',
-    transition: 'all 0.2s ease',
-    position: 'relative',
+    cursor: "default",
+    transition: "all 0.2s ease",
+    position: "relative",
     minWidth: 0,
     flex: 1,
   },
   tileClickable: {
-    cursor: 'pointer',
-    '&:hover': {
+    cursor: "pointer",
+    "&:hover": {
       background: token.colorBgContainerDisabled,
       borderColor: token.colorBorder,
     },
@@ -67,13 +78,13 @@ const useStyles = createStyles(({ token }) => ({
   },
   tilePrimary: {
     flex: 1.5,
-    borderLeft: '2px solid #13c2c2', // cyan
+    borderLeft: "2px solid #13c2c2", // cyan
   },
   tileCentered: {
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
     minHeight: 56,
   },
   // Border variants (left accent)
@@ -90,59 +101,56 @@ const useStyles = createStyles(({ token }) => ({
     borderLeft: `2px solid ${token.colorInfo}`,
   },
   variantPurple: {
-    borderLeft: '2px solid #722ed1',
+    borderLeft: "2px solid #722ed1",
   },
   // Label
   label: {
-    fontSize: 11,
+    fontSize: token.fontSizeSM,
     fontWeight: 500,
     color: token.colorTextSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px',
+    textTransform: "uppercase",
+    letterSpacing: "0.3px",
   },
   infoIcon: {
-    fontSize: 9,
-    color: token.colorTextQuaternary,
-    cursor: 'help',
+    fontSize: token.fontSizeSM,
+    color: token.colorTextSecondary,
+    cursor: "help",
   },
   badgeWrapper: {
-    marginLeft: 'auto',
+    marginLeft: "auto",
   },
   // Value
   value: {
-    fontSize: 16,
+    fontSize: token.fontSizeXL,
     fontWeight: 600,
-    display: 'block',
+    display: "block",
     lineHeight: 1.2,
     color: token.colorText,
-  },
-  valueLarge: {
-    fontSize: 18,
   },
   // Secondary
   secondary: {
     fontSize: 10,
     color: token.colorTextTertiary,
-    display: 'block',
+    display: "block",
     marginTop: 2,
   },
   // Trend indicator
   trendBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
+    display: "inline-flex",
+    alignItems: "center",
     gap: 2,
-    padding: '1px 6px',
+    padding: "1px 6px",
     borderRadius: 10,
     fontSize: 10,
     fontWeight: 500,
-    whiteSpace: 'nowrap',
+    whiteSpace: "nowrap",
   },
   trendPositive: {
-    background: 'rgba(82, 196, 26, 0.1)',
+    background: "rgba(82, 196, 26, 0.1)",
     color: token.colorSuccess,
   },
   trendNegative: {
-    background: 'rgba(255, 77, 79, 0.1)',
+    background: "rgba(255, 77, 79, 0.1)",
     color: token.colorError,
   },
   trendNeutral: {
@@ -168,7 +176,7 @@ interface ITrendIndicatorProps {
   suffix?: string;
 }
 
-const TrendIndicator = ({ value, suffix = '%' }: ITrendIndicatorProps) => {
+const TrendIndicator = ({ value, suffix = "%" }: ITrendIndicatorProps) => {
   const { styles, cx } = useStyles();
   const isPositive = value > 0;
   const isNeutral = value === 0;
@@ -181,7 +189,7 @@ const TrendIndicator = ({ value, suffix = '%' }: ITrendIndicatorProps) => {
           ? styles.trendNeutral
           : isPositive
           ? styles.trendPositive
-          : styles.trendNegative,
+          : styles.trendNegative
       )}
     >
       {!isNeutral && (
@@ -190,7 +198,7 @@ const TrendIndicator = ({ value, suffix = '%' }: ITrendIndicatorProps) => {
         </span>
       )}
       <span>
-        {isPositive ? '+' : ''}
+        {isPositive ? "+" : ""}
         {value}
       </span>
       {suffix && <span className={styles.trendSuffix}>{suffix}</span>}
@@ -207,13 +215,13 @@ export const Tile = ({
   value,
   secondary,
   tooltip,
-  variant = 'default',
+  variant = "default",
   badge,
   active,
   onClick,
   isPrimary,
   trend,
-  trendSuffix = '%',
+  trendSuffix = "%",
   centered,
   className,
 }: ITileProps) => {
@@ -222,15 +230,15 @@ export const Tile = ({
   const getVariantClass = () => {
     if (isPrimary) return styles.tilePrimary;
     switch (variant) {
-      case 'success':
+      case "success":
         return styles.variantSuccess;
-      case 'warning':
+      case "warning":
         return styles.variantWarning;
-      case 'danger':
+      case "danger":
         return styles.variantDanger;
-      case 'info':
+      case "info":
         return styles.variantInfo;
-      case 'purple':
+      case "purple":
         return styles.variantPurple;
       default:
         return undefined;
@@ -245,7 +253,7 @@ export const Tile = ({
         active && styles.tileActive,
         centered && styles.tileCentered,
         getVariantClass(),
-        className,
+        className
       )}
       onClick={onClick}
     >
@@ -253,7 +261,7 @@ export const Tile = ({
       <Flex
         align="center"
         gap={4}
-        justify={centered ? 'center' : undefined}
+        justify={centered ? "center" : undefined}
         style={{ marginBottom: 2 }}
       >
         <Typography.Text className={styles.label}>{label}</Typography.Text>
@@ -266,16 +274,14 @@ export const Tile = ({
       </Flex>
 
       {/* Value */}
-      <Typography.Text className={cx(styles.value, isPrimary && styles.valueLarge)}>
-        {value}
-      </Typography.Text>
+      <Typography.Text className={styles.value}>{value}</Typography.Text>
 
       {/* Secondary row: secondary text + trend */}
       {(secondary || trend !== undefined) && (
         <Flex
           align="center"
           gap={8}
-          justify={centered ? 'center' : undefined}
+          justify={centered ? "center" : undefined}
           style={{ marginTop: 4 }}
         >
           {secondary && (
