@@ -6,7 +6,7 @@ import { DataTable, IDataTableProps } from '@/layouts/table/components/Table';
 import { ITablePaginationProps, TablePagination } from '@/layouts/table/components/Pagination';
 import { TableBottomBorder, TableTopBorder } from '@/layouts/table/components/TableBorders';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   container: {
     height: 'calc(100vh - 200px)',
     boxSizing: 'border-box',
@@ -14,19 +14,19 @@ const useStyles = createStyles({
   },
   navigation: {
     position: 'sticky',
-    padding: 'var(--x3) 1px',
+    padding: `${token.paddingSM}px 1px`,
     top: 0,
-    background: 'var(--bg-gradient)',
+    background: token.bgGradient,
     zIndex: 100,
   },
   paper: {
-    borderLeft: '1px solid var(--color-border)',
-    borderRight: '1px solid var(--color-border)',
+    borderLeft: `1px solid ${token.colorBorder}`,
+    borderRight: `1px solid ${token.colorBorder}`,
     boxShadow: 'none',
-    background: 'var(--color-bg-container)',
-    borderRadius: 'var(--radius-base)',
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadius,
   },
-});
+}));
 
 interface ITableModalProps<TData = any> {
   title: string;
@@ -82,14 +82,14 @@ export const TableModal = ({
       okText={okButtonText}
       onCancel={onCancel}
       styles={{
-        content: {
-          background: 'var(--bg-gradient)',
+        body: {
+          background: 'var(--ant-bg-gradient)',
         },
         footer: {
-          background: 'var(--bg-gradient)',
+          background: 'var(--ant-bg-gradient)',
         },
         header: {
-          background: 'var(--bg-gradient)',
+          background: 'var(--ant-bg-gradient)',
         },
       }}
       afterOpenChange={(isOpen) => {

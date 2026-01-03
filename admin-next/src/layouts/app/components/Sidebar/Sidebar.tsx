@@ -87,10 +87,10 @@ function buildMenuItems(
 }
 
 const useStyles = createStyles(
-  ({ css }, { collapsed }: { collapsed: boolean }) => ({
+  ({ css, token }, { collapsed }: { collapsed: boolean }) => ({
     siderPlaceholder: css`
-      background: var(--color-gray-2);
-      border-right: 1px solid var(--color-gray-5);
+      background: ${token.colorBgLayout};
+      border-right: 1px solid ${token.colorFill};
     `,
     siderFixed: css`
       overflow-y: auto;
@@ -111,14 +111,14 @@ const useStyles = createStyles(
     content: css`
       transition: transform 0.2s ease;
       transform: ${collapsed
-        ? "translateX(var(--x1))"
-        : "translateX(var(--x2))"};
+        ? `translateX(${token.paddingXXS}px)`
+        : `translateX(${token.paddingXS}px)`};
     `,
     menu: css`
       border: none;
       transition: width 0.2s ease;
       background: transparent;
-      width: ${collapsed ? "calc(100% - var(--x2))" : "calc(100% - var(--x4))"};
+      width: ${collapsed ? `calc(100% - ${token.paddingXS}px)` : `calc(100% - ${token.padding}px)`};
     `,
   })
 );

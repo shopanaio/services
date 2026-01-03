@@ -2,17 +2,17 @@ import { createStyles } from 'antd-style';
 import { Badge, Flex, Typography } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   header: {
     '&:not(:last-child)': {
-      marginBottom: 'var(--x4)',
+      marginBottom: token.padding,
     },
   },
   title: {
     fontSize: 15,
-    paddingRight: 'var(--x3)',
+    paddingRight: token.paddingSM,
   },
-});
+}));
 
 export interface IDrawerPaperProps {
   title: ReactNode;
@@ -46,7 +46,7 @@ export const DrawerPaperHeader = ({
             showZero={showZero}
             data-testid={`${name}-count-badge`}
             data-count={badgeCount}
-            color="var(--color-primary-10)"
+            color="var(--ant-color-text)"
             overflowCount={9999}
             offset={[badgeCount > 9 ? 6 : 0, 5]}
           >

@@ -3,19 +3,19 @@ import { MdArrowBack } from 'react-icons/md';
 import { Badge, Button, ButtonProps, Flex, Typography } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   header: {
     display: 'flex',
-    padding: 'var(--x4) var(--x6)',
+    padding: `${token.padding}px ${token.paddingLG}px`,
     justifyContent: 'space-between',
     alignItems: 'center',
-    background: 'var(--bg-gradient)',
+    background: token.bgGradient,
   },
   title: {
-    paddingRight: 'var(--x3)',
+    paddingRight: token.paddingSM,
     maxWidth: 1000,
   },
-});
+}));
 
 export interface IDrawerHeaderProps {
   children?: ReactNode;
@@ -55,7 +55,7 @@ export const DrawerHeader = ({
         <Badge
           data-testid="page-title-wrapper"
           data-count={badgeCount}
-          color="var(--color-primary-10)"
+          color="var(--ant-color-text)"
           count={badgeCount}
           overflowCount={9999}
           offset={[badgeCount > 9 ? 6 : 0, 5]}

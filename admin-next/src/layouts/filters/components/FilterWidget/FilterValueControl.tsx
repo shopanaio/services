@@ -53,12 +53,12 @@ export const getUiFilterSelectProps = (
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--x1)',
+              gap: 4,
               margin: '0 2px',
-              fontSize: 'var(--font-size)',
-              backgroundColor: 'var(--color-gray-10)',
-              color: 'var(--color-gray-1)',
-              borderColor: 'var(--color-gray-10)',
+              fontSize: 14,
+              backgroundColor: 'var(--ant-color-text)',
+              color: 'var(--ant-color-bg-container)',
+              borderColor: 'var(--ant-color-text)',
             }}
           >
             {cropString(label, 14)}

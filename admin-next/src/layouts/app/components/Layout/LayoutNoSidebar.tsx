@@ -4,14 +4,14 @@ import { Layout } from 'antd';
 import { createStyles } from 'antd-style';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   layout: {
     minHeight: '100vh',
   },
   inner: {
-    background: 'var(--bg-gradient)',
+    background: token.bgGradient,
   },
-});
+}));
 
 interface AppLayoutNoSidebarProps {
   children?: ReactNode;

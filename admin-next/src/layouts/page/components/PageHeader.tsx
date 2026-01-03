@@ -44,7 +44,7 @@ export const PageHeader = ({
   return (
     <Flex
       justify="space-between"
-      style={{ padding: 'var(--x4) var(--x6)', minHeight: 64 }}
+      style={{ padding: '16px 24px', minHeight: 64 }}
     >
       <Typography.Title level={4}>{title}</Typography.Title>
       <Flex gap="middle" align="center">

@@ -2,18 +2,18 @@ import { createStyles } from 'antd-style';
 import { Flex } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles(({ css }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
+const useStyles = createStyles(({ css, token }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
   wrapper: css`
     max-width: 1000px;
     margin: 0 auto;
   `,
   alert: css`
-    padding: 0 var(--x6);
-    margin-bottom: var(--x4);
+    padding: 0 ${token.paddingLG}px;
+    margin-bottom: ${token.padding}px;
   `,
   grid: css`
     display: grid;
-    gap: var(--x4);
+    gap: ${token.padding}px;
     grid-template-columns: ${hasRightColumn ? '300px' : ''} 1fr;
     width: 100%;
   `,

@@ -1,16 +1,16 @@
 import { createStyles } from 'antd-style';
 
-export const useStyles = createStyles(({ css }) => ({
+export const useStyles = createStyles(({ css, token }) => ({
   widgetContainer: css`
-    border: 1px solid var(--color-border);
+    border: 1px solid ${token.colorBorder};
     align-items: center;
-    background-color: var(--color-gray-1);
-    border-radius: var(--radius-base);
-    box-shadow: var(--box-shadow-border);
+    background-color: ${token.colorBgContainer};
+    border-radius: ${token.borderRadius}px;
+    box-shadow: ${token.shadowBorder};
     box-sizing: border-box;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--x1);
+    gap: ${token.paddingXXS}px;
     min-height: 40px;
     outline: 4px solid transparent;
     padding: 3px;
@@ -18,8 +18,8 @@ export const useStyles = createStyles(({ css }) => ({
     width: 100%;
 
     &:has(input[data-node-type='ui-filter-search']:focus) {
-      outline-color: var(--color-gray-4);
-      border-color: var(--color-primary-10);
+      outline-color: ${token.colorFillSecondary};
+      border-color: ${token.colorText};
     }
   `,
 
@@ -27,33 +27,33 @@ export const useStyles = createStyles(({ css }) => ({
     cursor: pointer;
     display: grid;
     grid-template-columns: 1fr 1.2fr;
-    padding: var(--x2);
+    padding: ${token.paddingXS}px;
     align-items: center;
-    border-bottom: 1px solid var(--color-gray-3);
+    border-bottom: 1px solid ${token.colorFillTertiary};
 
     &:hover {
-      background-color: var(--color-gray-2);
+      background-color: ${token.colorBgLayout};
     }
 
     &:hover button:first-of-type {
-      background-color: var(--color-gray-4);
+      background-color: ${token.colorFillSecondary};
     }
   `,
 
   header: css`
     display: grid;
     grid-template-columns: 1fr 1.2fr;
-    padding: var(--x2);
+    padding: ${token.paddingXS}px;
     align-items: center;
-    border-bottom: 1px solid var(--color-gray-3);
+    border-bottom: 1px solid ${token.colorFillTertiary};
   `,
 
   filterLabelButton: css`
     text-align: left;
-    background-color: var(--color-gray-3);
+    background-color: ${token.colorFillTertiary};
     display: flex;
     align-items: center;
-    gap: var(--x3);
+    gap: ${token.paddingSM}px;
   `,
 
   filterNode: css`
@@ -62,17 +62,17 @@ export const useStyles = createStyles(({ css }) => ({
     align-items: center;
     flex-shrink: 0;
     overflow: hidden;
-    background-color: var(--color-gray-3);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-base);
+    background-color: ${token.colorFillTertiary};
+    border: 1px solid ${token.colorBorder};
+    border-radius: ${token.borderRadius}px;
     transition: all 0.2s ease;
     box-sizing: border-box;
     outline: 1px solid transparent;
 
     &:focus,
     &:focus-within {
-      outline-color: var(--color-gray-5);
-      border-color: var(--color-gray-10);
+      outline-color: ${token.colorFill};
+      border-color: ${token.colorText};
 
       & + [data-remove-tag] {
         display: flex;
@@ -81,7 +81,7 @@ export const useStyles = createStyles(({ css }) => ({
   `,
 
   filterNodeLeft: css`
-    padding: 0 var(--x2);
+    padding: 0 ${token.paddingXS}px;
     height: 30px;
     display: flex;
     align-items: center;
@@ -90,7 +90,7 @@ export const useStyles = createStyles(({ css }) => ({
   `,
 
   filterNodeCenterWrapper: css`
-    --bg: var(--color-gray-1);
+    --bg: ${token.colorBgContainer};
     height: 30px;
     display: flex;
     align-items: center;
@@ -113,7 +113,7 @@ export const useStyles = createStyles(({ css }) => ({
   filterNodeRight: css`
     display: flex;
     align-items: center;
-    padding: 0 var(--x1);
+    padding: 0 ${token.paddingXXS}px;
     background-color: var(--bg);
     height: 32px;
     min-width: 50px;
@@ -121,8 +121,8 @@ export const useStyles = createStyles(({ css }) => ({
 
   filterCloseBadge: css`
     display: none;
-    background-color: var(--color-primary-10);
-    color: var(--color-primary-1);
+    background-color: ${token.colorText};
+    color: ${token.colorBgContainer};
     width: 18px;
     height: 18px;
     align-items: center;
@@ -138,7 +138,7 @@ export const useStyles = createStyles(({ css }) => ({
     }
 
     &:hover {
-      background-color: var(--color-primary-9);
+      background-color: ${token.colorTextSecondary};
     }
   `,
 
@@ -151,8 +151,8 @@ export const useStyles = createStyles(({ css }) => ({
   breadcrumbTag: css`
     margin: 0;
     cursor: pointer;
-    font-size: var(--font-size);
-    padding: var(--x1) var(--x3);
+    font-size: ${token.fontSize}px;
+    padding: ${token.paddingXXS}px ${token.paddingSM}px;
   `,
 
   searchInput: css`
@@ -162,9 +162,9 @@ export const useStyles = createStyles(({ css }) => ({
 }));
 
 export const cardBodyStyle: React.CSSProperties = {
-  boxShadow: 'var(--box-shadow-menu)',
-  borderRadius: 'var(--radius-base)',
-  padding: 'var(--x4)',
+  boxShadow: 'var(--ant-box-shadow-menu)',
+  borderRadius: 'var(--ant-border-radius)',
+  padding: 16,
   maxHeight: 'max(calc(100vh - 300px), 400px)',
   overflow: 'auto',
 };

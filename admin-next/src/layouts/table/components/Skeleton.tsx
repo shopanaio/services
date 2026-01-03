@@ -2,27 +2,27 @@ import { createStyles } from 'antd-style';
 import { Flex, Skeleton } from 'antd';
 import SkeletonButton from 'antd/es/skeleton/Button';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   filters: {
-    marginTop: 'var(--x4)',
-    marginBottom: 'var(--x2)',
-    padding: 'var(--x1)',
+    marginTop: token.padding,
+    marginBottom: token.paddingXS,
+    padding: token.paddingXXS,
     width: '100%',
     boxSizing: 'border-box',
-    background: '#fff',
+    background: token.colorBgContainer,
   },
   filtersInner: {
     maxWidth: 90,
   },
   paper: {
-    marginTop: 'var(--x3)',
-    background: 'var(--color-bg-container)',
-    borderRadius: 'var(--radius-base)',
+    marginTop: token.paddingSM,
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadius,
   },
   wrapper: {
-    padding: 'var(--x4) var(--x6)',
+    padding: `${token.padding}px ${token.paddingLG}px`,
   },
-});
+}));
 
 const FiltersSkeleton = () => {
   const { styles } = useStyles();
@@ -57,7 +57,7 @@ export const LayoutSkeleton = ({ filters = true }: { filters?: boolean }) => {
       <HeaderSkeleton />
       {filters && <FiltersSkeleton />}
       <div className={styles.paper}>
-        <Flex gap="large" vertical style={{ padding: 'var(--x6) var(--x10)' }}>
+        <Flex gap="large" vertical style={{ padding: '24px 40px' }}>
           <Skeleton active paragraph={{ rows: 5 }} />
         </Flex>
       </div>

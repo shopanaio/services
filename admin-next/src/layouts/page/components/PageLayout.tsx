@@ -2,16 +2,16 @@ import { createStyles } from 'antd-style';
 import { Flex } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles(({ css }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
+const useStyles = createStyles(({ css, token }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
   alert: css`
-    padding: 0 var(--x6);
-    margin-bottom: var(--x4);
+    padding: 0 ${token.paddingLG}px;
+    margin-bottom: ${token.padding}px;
   `,
   grid: css`
     display: grid;
-    gap: var(--x4);
+    gap: ${token.padding}px;
     grid-template-columns: 1fr ${hasRightColumn ? '356px' : ''};
-    padding: 0 var(--x6) var(--x6);
+    padding: 0 ${token.paddingLG}px ${token.paddingLG}px;
   `,
 }));
 

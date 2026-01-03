@@ -23,47 +23,47 @@ import {
   TableNavigation,
 } from '@/layouts/table/components/Navigation/Navigation';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   wrapper: {
-    paddingTop: 'var(--x4)',
-    paddingLeft: 'var(--x6)',
-    paddingRight: 'var(--x6)',
+    paddingTop: token.padding,
+    paddingLeft: token.paddingLG,
+    paddingRight: token.paddingLG,
   },
   navigationWrapper: {
-    background: 'var(--bg-gradient)',
-    margin: '0 calc(-1 * var(--x4))',
+    background: token.bgGradient,
+    margin: `0 -${token.padding}px`,
     overflow: 'hidden',
-    padding: 'var(--x4) 15px 0',
+    padding: `${token.padding}px 15px 0`,
     position: 'sticky',
     top: -4,
     zIndex: 100,
   },
   navigationSpacer: {
-    background: 'var(--bg-gradient)',
-    height: 'var(--x3)',
+    background: token.bgGradient,
+    height: token.paddingSM,
   },
   tableContainer: {
-    minHeight: 'var(--container-height)',
+    minHeight: token.containerHeight,
   },
   tableWrapper: {
     boxSizing: 'border-box',
-    backgroundColor: 'var(--color-gray-1)',
-    borderLeft: '1px solid var(--color-border)',
-    borderRight: '1px solid var(--color-border)',
+    backgroundColor: token.colorBgContainer,
+    borderLeft: `1px solid ${token.colorBorder}`,
+    borderRight: `1px solid ${token.colorBorder}`,
     borderBottom: 'none',
     width: '100%',
-    minHeight: 'var(--table-layout-min-height)',
+    minHeight: token.tableLayoutMinHeight,
   },
   paginationWrapper: {
     position: 'sticky',
     bottom: 0,
     overflow: 'hidden',
-    padding: '0 var(--x6) var(--x4)',
-    margin: '0 calc(-1 * var(--x6))',
-    background: 'var(--bg-gradient)',
+    padding: `0 ${token.paddingLG}px ${token.padding}px`,
+    margin: `0 -${token.paddingLG}px`,
+    background: token.bgGradient,
     zIndex: 100,
   },
-});
+}));
 
 interface ITableLayoutProps<TData = unknown> {
   name?: string;

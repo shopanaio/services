@@ -21,7 +21,7 @@ export const FullLogo = ({
   const width = noText ? noTextWidth : getLogoWidth(size);
   const height = size;
 
-  const textColor = theme === 'light' ? '#000' : 'var(--color-geekblue-1)';
+  const textColor = theme === 'light' ? '#000' : 'var(--ant-color-bg-layout)';
 
   const renderText = () => {
     return (

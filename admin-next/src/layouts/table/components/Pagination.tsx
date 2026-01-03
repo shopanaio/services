@@ -1,14 +1,14 @@
 import { createStyles } from 'antd-style';
 import { Flex, Pagination, Select, Typography } from 'antd';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   pagination: {
-    marginRight: 'var(--x4)',
+    marginRight: token.padding,
   },
   select: {
     width: 80,
   },
-});
+}));
 
 export interface ITablePaginationProps {
   page: number;

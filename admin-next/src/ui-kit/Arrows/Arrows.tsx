@@ -2,7 +2,7 @@ import { createStyles } from 'antd-style';
 
 export const MiddleArrow = ({
   isFinal,
-  color = 'var(--color-gray-6)',
+  color = 'var(--ant-color-border)',
 }: {
   isFinal?: boolean;
   color?: string;
@@ -19,7 +19,7 @@ export const MiddleArrow = ({
 };
 
 export const RightArrow = ({
-  color = 'var(--color-gray-6)',
+  color = 'var(--ant-color-border)',
   size = 24,
   className,
 }: {
@@ -42,13 +42,13 @@ export const RightArrow = ({
   );
 };
 
-const useSubitemIconStyles = createStyles({
+const useSubitemIconStyles = createStyles(({ token }) => ({
   wrapper: {
     marginLeft: -22,
-    marginRight: 'var(--x3)',
-    marginTop: 'var(--x3)',
+    marginRight: token.paddingSM,
+    marginTop: token.paddingSM,
   },
-});
+}));
 
 export const SubitemIcon = ({ isFinal }: { isFinal?: boolean }) => {
   const { styles } = useSubitemIconStyles();

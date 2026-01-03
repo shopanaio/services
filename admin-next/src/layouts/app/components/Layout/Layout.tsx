@@ -5,10 +5,10 @@ import { Sidebar } from "@/layouts/app/components/Sidebar/Sidebar";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   layout: {
     minHeight: "100vh",
-    background: "var(--bg-gradient)",
+    background: token.bgGradient,
     "& .ant-layout-sider-trigger": {
       display: "none",
     },
@@ -17,7 +17,7 @@ const useStyles = createStyles({
       "--ant-menu-item-margin-block": "0px",
     },
   },
-});
+}));
 
 interface AppLayoutProps {
   children?: ReactNode;

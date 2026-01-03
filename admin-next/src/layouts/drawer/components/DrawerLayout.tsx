@@ -2,21 +2,21 @@ import { createStyles } from 'antd-style';
 import { Flex, Tabs, TabsProps } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles(({ css }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
+const useStyles = createStyles(({ css, token }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
   wrapper: css`
     width: 100%;
     box-sizing: border-box;
   `,
   alert: css`
-    padding: 0 var(--x6);
-    margin-bottom: var(--x4);
+    padding: 0 ${token.paddingLG}px;
+    margin-bottom: ${token.padding}px;
   `,
   grid: css`
     display: grid;
-    gap: var(--x4);
+    gap: ${token.padding}px;
     grid-template-columns: 1fr ${hasRightColumn ? '356px' : ''};
-    padding: 0 var(--x6) var(--x6);
-    background: var(--bg-gradient);
+    padding: 0 ${token.paddingLG}px ${token.paddingLG}px;
+    background: ${token.bgGradient};
     overflow-x: auto;
   `,
 }));
@@ -83,12 +83,12 @@ export const DrawerLayoutWithTabs = ({
   );
 };
 
-const useGridStyles = createStyles(({ css }, { hasAside }: { hasAside: boolean }) => ({
+const useGridStyles = createStyles(({ css, token }, { hasAside }: { hasAside: boolean }) => ({
   grid: css`
     display: grid;
-    gap: var(--x4);
+    gap: ${token.padding}px;
     grid-template-columns: 1fr ${hasAside ? '356px' : ''};
-    background: var(--bg-gradient);
+    background: ${token.bgGradient};
   `,
 }));
 
@@ -103,7 +103,7 @@ export const DrawerLayoutGrid = ({
 
   return (
     <div className={styles.grid}>
-      <Flex vertical gap="middle" style={{ paddingBottom: 'var(--x14)' }}>
+      <Flex vertical gap="middle" style={{ paddingBottom: 56 }}>
         {children}
       </Flex>
       {aside && (

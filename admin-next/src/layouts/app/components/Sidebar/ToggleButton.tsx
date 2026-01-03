@@ -2,9 +2,9 @@ import { ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   trigger: {
-    background: 'var(--gray-3)',
+    background: token.colorFillTertiary,
     boxShadow: '0 2px 0 0 rgba(0, 0, 0, 0.04)',
     position: 'absolute',
     bottom: 20,
@@ -16,7 +16,7 @@ const useStyles = createStyles({
     bottom: 20,
     right: -16,
   },
-});
+}));
 
 interface Props {
   isCollapsed?: boolean;

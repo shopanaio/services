@@ -4,20 +4,20 @@ import { ReactNode } from 'react';
 import { DrawerPaper } from '@/layouts/drawer/components/DrawerPaper';
 import { DrawerPaperHeader } from '@/layouts/drawer/components/PaperHeader';
 
-const useStyles = createStyles(({ css }, { isActive }: { isActive: boolean }) => ({
+const useStyles = createStyles(({ css, token }, { isActive }: { isActive: boolean }) => ({
   navItem: css`
     cursor: pointer;
     margin-bottom: 1px;
-    border-radius: var(--radius-base);
-    padding: 0 var(--x4);
+    border-radius: ${token.borderRadius}px;
+    padding: 0 ${token.padding}px;
     height: 40px;
     &:hover span {
       text-decoration: underline;
     }
-    ${isActive ? 'background-color: var(--color-gray-3);' : ''}
+    ${isActive ? `background-color: ${token.colorFillTertiary};` : ''}
   `,
   activeText: css`
-    ${isActive ? 'color: var(--color-primary);' : ''}
+    ${isActive ? `color: ${token.colorText};` : ''}
   `,
 }));
 
@@ -87,12 +87,12 @@ export const ContentNav = ({
         ))}
       </div>
       {onCreate && (
-        <div style={{ marginTop: 'var(--x4)' }}>
+        <div style={{ marginTop: 16 }}>
           <Button onClick={onCreate}>{createLabel}</Button>
         </div>
       )}
       {description && (
-        <div style={{ marginTop: 'var(--x4)' }}>
+        <div style={{ marginTop: 16 }}>
           <Typography.Text type="secondary">{description}</Typography.Text>
         </div>
       )}

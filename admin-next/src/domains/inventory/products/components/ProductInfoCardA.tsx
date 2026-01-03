@@ -1131,7 +1131,7 @@ export const ProductInfoCardA = ({
                   showInfo={false}
                   strokeWidth={4}
                   strokeColor="#1677ff"
-                  trailColor="var(--color-gray-3)"
+                  trailColor="var(--ant-color-fill-tertiary)"
                   size="small"
                   className={styles.reviewProgress}
                 />
@@ -1221,7 +1221,7 @@ export const ProductInfoCardA = ({
                     variant.stockStatus
                   ] || {
                     icon: "○",
-                    color: "var(--color-gray-6)",
+                    color: "var(--ant-color-border)",
                     label: variant.stockStatus || "N/A",
                   };
 

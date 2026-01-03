@@ -1,14 +1,14 @@
 import { createStyles } from 'antd-style';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   paper: {
-    padding: 'var(--x4)',
+    padding: token.padding,
     minHeight: 50,
-    background: 'var(--color-bg-container)',
-    borderRadius: 'var(--radius-base)',
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadius,
   },
-});
+}));
 
 interface IDrawerPaperProps {
   children: ReactNode;

@@ -345,7 +345,7 @@ export default function ProductsPage() {
         }
       />
 
-      <div style={{ height: "100%", paddingBottom: "var(--x4)" }}>
+      <div style={{ height: "100%", paddingBottom: 16 }}>
         <AgGridReact<IProduct>
           ref={gridRef}
           rowData={filteredProducts}

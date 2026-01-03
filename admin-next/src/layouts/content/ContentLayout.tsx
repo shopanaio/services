@@ -1,13 +1,13 @@
 import { createStyles } from 'antd-style';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   container: {
     display: 'grid',
     gridTemplateColumns: '1fr 200px',
-    gridColumnGap: 'var(--x4)',
+    gridColumnGap: token.padding,
   },
-});
+}));
 
 interface ContentLayoutProps {
   children?: ReactNode;

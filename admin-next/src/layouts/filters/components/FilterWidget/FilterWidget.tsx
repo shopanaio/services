@@ -227,7 +227,7 @@ export const FilterWidget = ({
           dropdownRender={() => (
             <Card styles={{ body: cardBodyStyle }}>
               {!!nestedOptions?.length && (
-                <Flex style={{ marginBottom: 'var(--x4)', paddingLeft: 'var(--x2)' }} gap="small" vertical>
+                <Flex style={{ marginBottom: 16, paddingLeft: 8 }} gap="small" vertical>
                   <Typography.Text strong>Connections</Typography.Text>
                   <Flex gap="small" wrap>
                     {nestedOptions.map((it, idx) => (

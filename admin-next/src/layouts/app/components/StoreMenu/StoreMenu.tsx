@@ -6,43 +6,43 @@ import type { MenuProps } from 'antd';
 
 import { ShopIcon } from '@/layouts/app/components/StoreMenu/shop-icon/ShopIcon';
 
-const useStyles = createStyles(({ css }, { isCollapsed }: { isCollapsed: boolean }) => ({
+const useStyles = createStyles(({ css, token }, { isCollapsed }: { isCollapsed: boolean }) => ({
   container: css`
     margin-top: 21px;
-    margin-bottom: var(--x2);
-    border-radius: var(--radius-base);
-    color: var(--color-text);
+    margin-bottom: ${token.paddingXS}px;
+    border-radius: ${token.borderRadius}px;
+    color: ${token.colorText};
     transition:
       color 0.2s ease,
       width 0.2s ease;
     flex-wrap: nowrap;
-    width: ${isCollapsed ? 'calc(100% - var(--x2))' : 'calc(100% - var(--x4))'};
+    width: ${isCollapsed ? `calc(100% - ${token.paddingXS}px)` : `calc(100% - ${token.padding}px)`};
 
     &:hover {
       cursor: pointer;
-      color: var(--color-gray-8);
+      color: ${token.colorTextSecondary};
     }
   `,
   dropdownContent: css`
     min-width: 220px;
     max-width: 300px;
-    padding-top: var(--x2);
-    padding-bottom: var(--x2);
+    padding-top: ${token.paddingXS}px;
+    padding-bottom: ${token.paddingXS}px;
   `,
   triggerWrapper: css`
-    padding: var(--x2);
-    padding-left: var(--x3);
+    padding: ${token.paddingXS}px;
+    padding-left: ${token.paddingSM}px;
     overflow: hidden;
-    border-radius: var(--radius-base);
+    border-radius: ${token.borderRadius}px;
     transition: background-color 0.2s ease;
     &:hover {
-      background-color: var(--color-gray-3);
+      background-color: ${token.colorFillTertiary};
     }
   `,
   storeInfo: css`
     flex-grow: 1;
     overflow: hidden;
-    max-height: var(--x12);
+    max-height: 48px;
     opacity: ${isCollapsed ? 0 : 1};
     transition: all 0.2s ease;
   `,
@@ -50,15 +50,15 @@ const useStyles = createStyles(({ css }, { isCollapsed }: { isCollapsed: boolean
     font-size: 12px;
   `,
   chevron: css`
-    margin-right: var(--x1);
+    margin-right: ${token.paddingXXS}px;
   `,
   userInfoWrapper: css`
     cursor: default;
   `,
   userEmail: css`
     margin-top: -10px;
-    color: var(--color-gray-8);
-    font-size: var(--font-size-xs);
+    color: ${token.colorTextSecondary};
+    font-size: ${token.fontSizeSM}px;
   `,
 }));
 
@@ -125,7 +125,7 @@ export const StoreMenu = ({
       onClick: onAllStoresClick,
       label: (
         <Flex gap="small" align="center" data-testid="project-menu-view-all">
-          <ShopIcon color="var(--color-gray-10)" />
+          <ShopIcon color="var(--ant-color-text)" />
           <Typography.Text>All stores</Typography.Text>
         </Flex>
       ),

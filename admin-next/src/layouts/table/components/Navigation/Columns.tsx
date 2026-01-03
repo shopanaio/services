@@ -3,16 +3,16 @@ import { SettingOutlined } from '@ant-design/icons';
 import { Button, Checkbox, Dropdown, Flex, Typography, theme } from 'antd';
 import { ReactElement, cloneElement, CSSProperties } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   paper: {
     minWidth: 250,
-    background: 'var(--color-bg-container)',
-    borderRadius: 'var(--radius-base)',
+    background: token.colorBgContainer,
+    borderRadius: token.borderRadius,
   },
   title: {
-    fontSize: 'var(--font-size-md)',
+    fontSize: token.fontSizeLG,
   },
-});
+}));
 
 interface ColumnOption {
   label: string;
@@ -95,7 +95,7 @@ export const Columns = ({
       }}
       dropdownRender={(menu) => (
         <div className={styles.paper} style={{ boxShadow: token.boxShadow }}>
-          <Flex style={{ paddingTop: 'var(--x2)', paddingLeft: 'var(--x4)', paddingRight: 'var(--x4)' }}>
+          <Flex style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
             <Typography.Text data-testid="columns-title" strong className={styles.title}>
               {title}
             </Typography.Text>

@@ -4,11 +4,11 @@ import { Button, Dropdown, Flex, Typography, App } from 'antd';
 import type { MenuProps } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   button: {
-    paddingRight: 'var(--x3)',
+    paddingRight: token.paddingSM,
   },
-});
+}));
 
 type MenuItem = Required<MenuProps>['items'][number];
 

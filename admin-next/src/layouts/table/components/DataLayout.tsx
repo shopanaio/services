@@ -8,28 +8,28 @@ import {
   TableLayoutHeader,
 } from '@/layouts/table/components/Header';
 
-const useStyles = createStyles(({ css }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
+const useStyles = createStyles(({ css, token }, { hasRightColumn }: { hasRightColumn: boolean }) => ({
   wrapper: css`
-    padding-top: var(--x4);
-    padding-left: var(--x6);
-    padding-right: var(--x6);
+    padding-top: ${token.padding}px;
+    padding-left: ${token.paddingLG}px;
+    padding-right: ${token.paddingLG}px;
   `,
   navigationWrapper: css`
-    background: var(--bg-gradient);
+    background: ${token.bgGradient};
     bottom: 0;
-    margin: 0 calc(-1 * var(--x6));
+    margin: 0 -${token.paddingLG}px;
     overflow: hidden;
-    padding: var(--x4) var(--x6) 0;
+    padding: ${token.padding}px ${token.paddingLG}px 0;
     position: sticky;
-    top: calc(-1 * var(--x1));
+    top: -${token.paddingXXS}px;
     z-index: 100;
   `,
   grid: css`
     display: grid;
-    gap: var(--x4);
+    gap: ${token.padding}px;
     grid-template-columns: 1fr ${hasRightColumn ? '356px' : ''};
-    padding: 0 var(--x6) var(--x6);
-    background: var(--bg-gradient);
+    padding: 0 ${token.paddingLG}px ${token.paddingLG}px;
+    background: ${token.bgGradient};
   `,
 }));
 

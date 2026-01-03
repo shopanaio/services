@@ -15,69 +15,69 @@ import { Badge, Typography, Flex, Spin } from 'antd';
 // Styles
 // ============================================================================
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   layout: {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-    paddingTop: 'var(--x4)',
-    paddingLeft: 'var(--x6)',
-    paddingRight: 'var(--x6)',
+    paddingTop: token.padding,
+    paddingLeft: token.paddingLG,
+    paddingRight: token.paddingLG,
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     minHeight: 32,
-    marginBottom: 'var(--x4)',
+    marginBottom: token.padding,
   },
   toolbar: {
-    marginBottom: 'var(--x4)',
+    marginBottom: token.padding,
   },
   toolbarSticky: {
     position: 'sticky',
     top: -4,
     zIndex: 100,
-    background: 'var(--bg-gradient)',
-    margin: '0 calc(-1 * var(--x6))',
-    padding: '0 var(--x6) var(--x3)',
+    background: token.bgGradient,
+    margin: `0 -${token.paddingLG}px`,
+    padding: `0 ${token.paddingLG}px ${token.paddingSM}px`,
   },
   toolbarInner: {
     display: 'flex',
     alignItems: 'center',
-    gap: 'var(--x2)',
+    gap: token.paddingXS,
   },
   toolbarLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: 'var(--x2)',
+    gap: token.paddingXS,
     flex: 1,
   },
   toolbarCenter: {
     display: 'flex',
     alignItems: 'center',
-    gap: 'var(--x2)',
+    gap: token.paddingXS,
   },
   toolbarRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: 'var(--x2)',
+    gap: token.paddingXS,
   },
   content: {
     flex: 1,
     minHeight: 0,
   },
   footer: {
-    marginTop: 'var(--x4)',
-    paddingBottom: 'var(--x4)',
+    marginTop: token.padding,
+    paddingBottom: token.padding,
   },
   footerSticky: {
     position: 'sticky',
     bottom: 0,
     zIndex: 100,
-    background: 'var(--bg-gradient)',
-    margin: '0 calc(-1 * var(--x6))',
-    padding: 'var(--x3) var(--x6) var(--x4)',
+    background: token.bgGradient,
+    margin: `0 -${token.paddingLG}px`,
+    padding: `${token.paddingSM}px ${token.paddingLG}px ${token.padding}px`,
   },
   footerInner: {
     display: 'flex',
@@ -85,9 +85,9 @@ const useStyles = createStyles({
     alignItems: 'center',
   },
   title: {
-    paddingRight: 'var(--x3)',
+    paddingRight: token.paddingSM,
   },
-});
+}));
 
 // ============================================================================
 // Context
@@ -133,7 +133,7 @@ const Title = ({ children, count }: ITitleProps) => {
     <Badge
       data-testid="page-title-wrapper"
       data-count={count}
-      color="var(--color-primary-10)"
+      color="var(--ant-color-text)"
       count={count}
       overflowCount={9999}
       offset={[count && count > 9 ? 6 : 0, 5]}

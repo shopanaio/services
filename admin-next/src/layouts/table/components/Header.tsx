@@ -3,11 +3,11 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Badge, Button, ButtonProps, Flex, Typography } from 'antd';
 import { ReactNode } from 'react';
 
-const useStyles = createStyles({
+const useStyles = createStyles(({ token }) => ({
   title: {
-    paddingRight: 'var(--x3)',
+    paddingRight: token.paddingSM,
   },
-});
+}));
 
 export interface ITableLayoutHeaderProps {
   count?: number;
@@ -37,7 +37,7 @@ export const TableLayoutHeader = ({
       <Badge
         data-testid="page-title-wrapper"
         data-count={count}
-        color="var(--color-primary-10)"
+        color="var(--ant-color-text)"
         count={count}
         overflowCount={9999}
         offset={[count > 9 ? 6 : 0, 5]}
