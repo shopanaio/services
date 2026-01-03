@@ -1,10 +1,11 @@
 import { createStyles } from "antd-style";
 import { Typography, Button, Select, Tag, Tooltip, Dropdown, Flex } from "antd";
 import { MoreOutlined, WarningOutlined } from "@ant-design/icons";
-import { ReactNode, useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Paper } from "../Paper";
 import { PaperHeader } from "../PaperHeader";
 import { Tile } from "../Tile";
+import { PeriodSwitch, CHART_PERIODS, ChartPeriod } from "../PeriodSwitch";
 import {
   IPriceHistoryRecord,
   generateMockHistory,
@@ -16,7 +17,6 @@ import {
 // ============================================================================
 
 type PriceSource = "manual" | "rule-based" | "promo" | "market";
-type TimeRange = "7D" | "30D" | "90D";
 type MarginStatus = "ok" | "warning" | "critical";
 
 interface IPricingData {
@@ -153,26 +153,6 @@ const useStyles = createStyles(({ token }) => ({
     width: "100%",
     height: 100,
     cursor: "crosshair",
-  },
-  timeRangeTag: {
-    margin: 0,
-    cursor: "pointer",
-    fontSize: 10,
-    lineHeight: "16px",
-    padding: "0 6px",
-  },
-  timeRangeTagInactive: {
-    margin: 0,
-    cursor: "pointer",
-    fontSize: 10,
-    lineHeight: "16px",
-    padding: "0 6px",
-    background: "transparent",
-    color: token.colorTextSecondary,
-    "&:hover": {
-      borderColor: token.colorBorderSecondary,
-      color: token.colorTextTertiary,
-    },
   },
 }));
 
@@ -434,7 +414,7 @@ const PriceHistoryChart = ({
   formatPrice,
 }: IPriceHistoryChartProps) => {
   const { styles, theme } = useStyles();
-  const [timeRange, setTimeRange] = useState<TimeRange>("30D");
+  const [timeRange, setTimeRange] = useState<ChartPeriod>("30D");
   const [hoveredPoint, setHoveredPoint] = useState<{
     x: number;
     y: number;
@@ -536,23 +516,11 @@ const PriceHistoryChart = ({
           Price history
         </Typography.Text>
 
-        <Flex gap={4}>
-          {(["7D", "30D", "90D"] as TimeRange[]).map((r) => (
-            <Tag
-              key={r}
-              color={timeRange === r ? "blue" : undefined}
-              onClick={() => setTimeRange(r)}
-              variant="outlined"
-              className={
-                timeRange === r
-                  ? styles.timeRangeTag
-                  : styles.timeRangeTagInactive
-              }
-            >
-              {r}
-            </Tag>
-          ))}
-        </Flex>
+        <PeriodSwitch
+          periods={CHART_PERIODS}
+          value={timeRange}
+          onChange={setTimeRange}
+        />
       </Flex>
 
       <svg
@@ -874,6 +842,5 @@ export type {
   IPricingData,
   IVariantOption,
   PriceSource,
-  TimeRange,
   MarginStatus,
 };

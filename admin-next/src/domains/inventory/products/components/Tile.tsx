@@ -105,15 +105,15 @@ const useStyles = createStyles(({ token }) => ({
   },
   // Label
   label: {
-    fontSize: token.fontSizeSM,
+    fontSize: 10,
     fontWeight: 500,
-    color: token.colorTextSecondary,
+    color: token.colorTextTertiary,
     textTransform: "uppercase",
     letterSpacing: "0.3px",
   },
   infoIcon: {
-    fontSize: token.fontSizeSM,
-    color: token.colorTextSecondary,
+    fontSize: 10,
+    color: token.colorTextTertiary,
     cursor: "help",
   },
   badgeWrapper: {

@@ -6,7 +6,6 @@ import {
   Typography,
   Dropdown,
   Tooltip,
-  Switch,
   Popover,
   Flex,
   Divider,
@@ -26,13 +25,12 @@ import { useState } from "react";
 import { Paper } from "./Paper";
 import { PaperHeader } from "./PaperHeader";
 import { Tile } from "./Tile";
+import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "./PeriodSwitch";
 import { IProduct, EntityStatus } from "../mocks/types";
 
 // ============================================================================
 // Types
 // ============================================================================
-
-type KPIPeriod = "7d" | "30d" | "90d" | "ytd" | "all";
 
 interface IKPIData {
   views: number;
@@ -112,28 +110,6 @@ const useStyles = createStyles(({ token }) => ({
   chipIconSuccess: {
     fontSize: 9,
     color: token.colorSuccess,
-  },
-  periodTag: {
-    margin: 0,
-    cursor: "pointer",
-    fontSize: token.fontSizeSM,
-    padding: "2px 8px",
-    userSelect: "none",
-    transition: "all 0.2s",
-  },
-  periodTagActive: {
-    background: token.colorText,
-    color: token.colorBgContainer,
-    borderColor: token.colorText,
-  },
-  periodTagInactive: {
-    background: token.colorBgLayout,
-    color: token.colorTextSecondary,
-    borderColor: token.colorBorder,
-    "&:hover": {
-      borderColor: token.colorTextTertiary,
-      color: token.colorText,
-    },
   },
   userPopover: {
     padding: "4px 0",
@@ -312,7 +288,7 @@ export const ProductInfoHeader = ({
   onShare,
   kpiData,
 }: IProductInfoHeaderProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
 
@@ -456,51 +432,16 @@ export const ProductInfoHeader = ({
 
       {/* KPI PANEL */}
       <div>
-        <Flex
-          align="center"
-          justify="space-between"
-          style={{ marginBottom: 12 }}
-        >
-          <Flex align="center" gap={4}>
-            {(
-              [
-                { value: "7d", label: "7D" },
-                { value: "30d", label: "30D" },
-                { value: "90d", label: "90D" },
-                { value: "ytd", label: "YTD" },
-                { value: "all", label: "All" },
-              ] as const
-            ).map((period) => (
-              <Tag
-                variant="outlined"
-                key={period.value}
-                onClick={() => setKpiPeriod(period.value)}
-                className={cx(
-                  styles.periodTag,
-                  kpiPeriod === period.value
-                    ? styles.periodTagActive
-                    : styles.periodTagInactive
-                )}
-              >
-                {period.label}
-              </Tag>
-            ))}
-          </Flex>
-          <Flex align="center" gap={8}>
-            <Typography.Text
-              type="secondary"
-              style={{ fontSize: 12, cursor: "pointer", userSelect: "none" }}
-              onClick={() => setCompareEnabled(!compareEnabled)}
-            >
-              Compare to previous
-            </Typography.Text>
-            <Switch
-              size="small"
-              checked={compareEnabled}
-              onChange={setCompareEnabled}
-            />
-          </Flex>
-        </Flex>
+        <div style={{ marginBottom: 12 }}>
+          <PeriodSwitch
+            periods={KPI_PERIODS}
+            value={kpiPeriod}
+            onChange={setKpiPeriod}
+            showCompare
+            compareEnabled={compareEnabled}
+            onCompareChange={setCompareEnabled}
+          />
+        </div>
 
         <Flex gap={12}>
           <Tile
