@@ -1178,12 +1178,191 @@ export const ProductInfoCardA = ({
       )}
 
       {/* ================================================================== */}
+      {/* VARIANTS TABLE (variable products) */}
+      {/* ================================================================== */}
+      {product.isVariableProduct && product.variants?.length > 0 && (
+        <Section
+          title={formatMessage({ id: 'products.variants.title' })}
+          onEdit={() => handleEdit('variants')}
+        >
+          <Box
+            css={css`
+              overflow-x: auto;
+              margin: 0 -12px;
+              padding: 0 12px;
+            `}
+          >
+            <table
+              css={css`
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+
+                th, td {
+                  padding: 10px 12px;
+                  text-align: left;
+                  border-bottom: 1px solid var(--color-gray-3);
+                  vertical-align: top;
+                }
+
+                th {
+                  font-weight: 500;
+                  color: var(--color-gray-7);
+                  font-size: 11px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.3px;
+                  background: var(--color-gray-1);
+                  vertical-align: middle;
+                }
+
+                tr:last-child td {
+                  border-bottom: none;
+                }
+
+                tr:hover td {
+                  background: var(--color-gray-1);
+                }
+              `}
+            >
+              <thead>
+                <tr>
+                  <th>{formatMessage({ id: 'products.variant' }, { defaultMessage: 'Variant' })}</th>
+                  <th>Pricing</th>
+                  <th>Inventory</th>
+                  <th>Attributes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {product.variants.map((variant) => {
+                  const discountPercent = variant.oldPrice && variant.oldPrice > variant.price
+                    ? Math.round((1 - variant.price / variant.oldPrice) * 100)
+                    : 0;
+
+                  const stockStatusConfig: Record<string, { icon: string; color: string; label: string }> = {
+                    IN_STOCK: { icon: '●', color: '#52c41a', label: 'In Stock' },
+                    LOW_STOCK: { icon: '○', color: '#faad14', label: 'Low Stock' },
+                    OUT_OF_STOCK: { icon: '✕', color: '#ff4d4f', label: 'Out of Stock' },
+                    ON_BACKORDER: { icon: '◐', color: '#722ed1', label: 'Backorder' },
+                  };
+                  const stockConfig = stockStatusConfig[variant.stockStatus] || { icon: '○', color: 'var(--color-gray-6)', label: variant.stockStatus || 'N/A' };
+
+                  return (
+                    <tr key={variant.id}>
+                      {/* VARIANT */}
+                      <td>
+                        <Flex align="center" gap="2">
+                          {variant.gallery?.[0] ? (
+                            <Image
+                              src={variant.gallery[0].url}
+                              alt=""
+                              width={36}
+                              height={36}
+                              css={css`
+                                border-radius: 4px;
+                                object-fit: cover;
+                                flex-shrink: 0;
+                              `}
+                              preview={false}
+                            />
+                          ) : (
+                            <Box
+                              css={css`
+                                width: 36px;
+                                height: 36px;
+                                background: var(--color-gray-2);
+                                border-radius: 4px;
+                                flex-shrink: 0;
+                              `}
+                            />
+                          )}
+                          <Typography.Text strong css={css`font-size: 13px;`}>
+                            {variant.options?.map((o) => o.title).join(' / ') || variant.sku || '—'}
+                          </Typography.Text>
+                        </Flex>
+                      </td>
+
+                      {/* PRICING */}
+                      <td>
+                        <Flex direction="column" gap="0">
+                          <Flex align="center" gap="2">
+                            <Typography.Text strong css={css`font-size: 14px;`}>
+                              {formatPrice(variant.price)}
+                            </Typography.Text>
+                            {discountPercent > 0 && (
+                              <Tag color="red" css={css`margin: 0; font-size: 10px; line-height: 14px; padding: 0 4px;`}>
+                                -{discountPercent}%
+                              </Tag>
+                            )}
+                          </Flex>
+                          {variant.oldPrice > 0 && variant.oldPrice !== variant.price && (
+                            <Typography.Text
+                              type="secondary"
+                              css={css`
+                                font-size: 12px;
+                                text-decoration: line-through;
+                              `}
+                            >
+                              {formatPrice(variant.oldPrice)}
+                            </Typography.Text>
+                          )}
+                        </Flex>
+                      </td>
+
+                      {/* INVENTORY */}
+                      <td>
+                        <Flex direction="column" gap="1">
+                          <Typography.Text
+                            css={css`
+                              font-family: monospace;
+                              font-size: 11px;
+                              color: var(--color-gray-7);
+                            `}
+                          >
+                            {variant.sku || '—'}
+                          </Typography.Text>
+                          <Flex align="center" gap="1">
+                            <span css={css`color: ${stockConfig.color}; font-size: 10px;`}>
+                              {stockConfig.icon}
+                            </span>
+                            <Typography.Text css={css`font-size: 11px; color: ${stockConfig.color};`}>
+                              {stockConfig.label}
+                            </Typography.Text>
+                          </Flex>
+                        </Flex>
+                      </td>
+
+                      {/* ATTRIBUTES */}
+                      <td>
+                        <Flex direction="column" gap="1">
+                          <Typography.Text css={css`font-size: 12px;`}>
+                            {variant.weight
+                              ? `${variant.weight} ${weightUniOptions[variant.weightUnit as keyof typeof weightUniOptions]?.label || variant.weightUnit}`
+                              : '—'
+                            }
+                          </Typography.Text>
+                          <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+                            {variant.length || variant.width || variant.height
+                              ? `${variant.length || 0} × ${variant.width || 0} × ${variant.height || 0} ${dimensionUnitOptions[variant.dimensionUnit as keyof typeof dimensionUnitOptions]?.label || variant.dimensionUnit}`
+                              : '—'
+                            }
+                          </Typography.Text>
+                        </Flex>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Box>
+        </Section>
+      )}
+
+      {/* ================================================================== */}
       {/* SHIPPING */}
       {/* ================================================================== */}
       {!product.isVariableProduct && (
         <Section
           title={formatMessage({ id: t('product.parameters.title') })}
-          name="shipping"
           onEdit={() => handleEdit('shipping')}
         >
           <Flex gap="3">
@@ -1223,7 +1402,6 @@ export const ProductInfoCardA = ({
       {product.attributes?.length > 0 && (
         <Section
           title="Attributes"
-          name="attributes"
           onEdit={() => handleEdit('attributes')}
         >
           <Descriptions
@@ -1260,7 +1438,6 @@ export const ProductInfoCardA = ({
       {product.groups?.length > 0 && (
         <Section
           title="Components"
-          name="groups"
           onEdit={() => handleEdit('groups')}
         >
           <Flex direction="column" gap="2">
@@ -1315,6 +1492,15 @@ export const ProductInfoCardA = ({
                     </Typography.Text>
                   </Flex>
                 </Flex>
+                {group.items?.length > 0 && (
+                  <Flex gap="1" wrap="wrap" css={css`margin-top: 8px;`}>
+                    {group.items.map((item) => (
+                      <Tag key={item.id} css={css`margin: 0;`}>
+                        {item.product?.options?.map((o) => o.title).join(' / ') || item.product?.sku || '—'}
+                      </Tag>
+                    ))}
+                  </Flex>
+                )}
               </Box>
             ))}
           </Flex>
@@ -1326,7 +1512,6 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       <Section
         title={formatMessage({ id: tCommon('common.seo') })}
-        name="seo"
         onEdit={() => handleEdit('seo')}
         extra={
           (() => {

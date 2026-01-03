@@ -1,11 +1,11 @@
 import { css } from '@emotion/react';
 import { TableImage } from '@components/table/image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useIntl } from 'react-intl';
-import { FormProvider, useForm, useFormContext } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { Flex } from '@components/utility/Flex';
 import { $drawers } from '@src/layouts/drawers/store/drawers';
-import { Modal, Space, Tag, Typography } from 'antd';
+import { Space, Tag, Typography } from 'antd';
 import { CurrencyInput } from '@components/forms/CurrencyInput';
 import { cropString, getExpandRowButton } from '@src/utils/utils';
 import { DrawerTypes } from '@src/layouts/drawers/types';
@@ -22,11 +22,9 @@ import {
   BorderlessInput,
   BorderlessSelect,
 } from '@components/forms/BorderlessInput';
-import { IMediaFile } from '@src/entity/MediaFile/MediaFile';
 import { TableControls } from '@modules/products/components/variants/TableControls';
 import { useSelectedRows } from '@src/layouts/table/hooks/useSelectedRows';
 import { DataTable } from '@src/layouts/table/components/Table';
-import { Gallery } from '@components/forms/media/Gallery';
 import {
   AutoWidthNumberInput,
   NumberInput,
@@ -69,31 +67,6 @@ export const ProductVariantsTable = ({
   const { selectedRows, onChangeSelectedRows } = selectedRowsProps;
 
   const variants: Partial<IProductFormVariantValues>[] = watch('variants');
-
-  // State for quick gallery edit
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(
-    null,
-  );
-  const galleryForm = useForm<{ gallery: IMediaFile[] }>({
-    defaultValues: { gallery: [] },
-    reValidateMode: 'onBlur',
-  });
-  const openGalleryModal = (index: number) => {
-    setActiveGalleryIndex(index);
-    setIsGalleryOpen(true);
-  };
-  const closeGalleryModal = () => {
-    setIsGalleryOpen(false);
-    setActiveGalleryIndex(null);
-  };
-  useEffect(() => {
-    if (!isGalleryOpen || activeGalleryIndex === null) {
-      return;
-    }
-    const current = variants[activeGalleryIndex];
-    galleryForm.reset({ gallery: (current?.gallery as IMediaFile[]) || [] });
-  }, [isGalleryOpen, activeGalleryIndex, variants, galleryForm]);
 
   const setVariants = useCallback(
     (nextVariants: Partial<IProductVariant>[]) => {
@@ -272,50 +245,14 @@ export const ProductVariantsTable = ({
                 return (
                   <Flex gap="2" align="center" h="40px">
                     {isCompact && <MiddleArrow isFinal={isLastSubVariant} />}
-                    <Box
-                      css={css`
-                        cursor: pointer;
-                      `}
-                    >
-                      <TableImage
-                        file={record.gallery[0]}
-                        size={40}
-                        name="variant"
-                        onClick={() => {
-                          openGalleryModal(record.index!);
-                        }}
-                      />
-                    </Box>
-                    <Flex direction="column" justify="center" w="100%">
-                      <BorderlessInput
-                        value={record.title}
-                        onChange={({ target }) => {
-                          updateVariants(
-                            (it) => ({ ...it, title: target.value }),
-                            idx,
-                          );
-                        }}
-                        placeholder={intl.formatMessage({
-                          id: 'products.variant.title',
-                        })}
-                        data-testid={`sku-input-${idx}`}
-                        style={{
-                          width: '100%',
-                          maxWidth: 300,
-                        }}
-                      />
-                      <Typography.Text
-                        ellipsis
-                        type="secondary"
-                        css={css`
-                          font-size: 12px;
-                          margin-top: -6px;
-                          pointer-events: none;
-                        `}
-                      >
-                        {optionsString}
-                      </Typography.Text>
-                    </Flex>
+                    <TableImage
+                      file={record.gallery[0]}
+                      size={40}
+                      name="variant"
+                    />
+                    <Typography.Text ellipsis data-testid={`variant-title-${idx}`}>
+                      {optionsString}
+                    </Typography.Text>
                   </Flex>
                 );
               },
@@ -560,50 +497,6 @@ export const ProductVariantsTable = ({
           ]}
         />
       </Paper>
-      <Modal
-        title={intl.formatMessage({ id: 'common.gallery' })}
-        open={isGalleryOpen}
-        width={1200}
-        centered
-        transitionName="ant-fade"
-        maskTransitionName="ant-fade"
-        onCancel={closeGalleryModal}
-        onOk={() => {
-          const values = galleryForm.getValues();
-          const nextGallery = values.gallery as IMediaFile[];
-
-          if (selectedRows.length) {
-            const selectedMap = selectedRows.reduce(
-              (acc, it) => ({ ...acc, [it.id]: true }),
-              {} as Record<ID, boolean>,
-            );
-            setVariants(
-              variants.map((variant) =>
-                variant.id && selectedMap[variant.id]
-                  ? { ...variant, gallery: nextGallery }
-                  : variant,
-              ),
-            );
-          } else if (activeGalleryIndex !== null) {
-            updateVariants(
-              (it) => ({ ...it, gallery: nextGallery }),
-              activeGalleryIndex,
-            );
-          }
-
-          closeGalleryModal();
-        }}
-        destroyOnClose
-        afterOpenChange={(open) => {
-          if (!open) {
-            closeGalleryModal();
-          }
-        }}
-      >
-        <FormProvider {...galleryForm}>
-          <Gallery />
-        </FormProvider>
-      </Modal>
     </Flex>
   );
 };
