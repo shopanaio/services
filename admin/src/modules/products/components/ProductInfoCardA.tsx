@@ -30,10 +30,7 @@ import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
 import { t } from '@modules/products/i18n/messages';
 import { t as tCommon } from '@src/lang/messages';
-import {
-  dimensionUnitOptions,
-  weightUniOptions,
-} from '@src/defs/constants';
+import { dimensionUnitOptions, weightUniOptions } from '@src/defs/constants';
 import { PricingBlock } from './pricing/PricingBlock';
 import { ProductInfoHeader } from './ProductInfoHeader';
 import { ProductContentTabs } from './ProductContentTabs';
@@ -135,8 +132,14 @@ const calculateInventoryStats = (
   if (selectedWarehouseId) {
     const wh = warehouses.find((w) => w.warehouseId === selectedWarehouseId);
     if (wh) {
-      const lowPct = wh.totalSKUs > 0 ? Math.round((wh.lowStockSKUs / wh.totalSKUs) * 100) : 0;
-      const outPct = wh.totalSKUs > 0 ? Math.round((wh.outOfStockSKUs / wh.totalSKUs) * 100) : 0;
+      const lowPct =
+        wh.totalSKUs > 0
+          ? Math.round((wh.lowStockSKUs / wh.totalSKUs) * 100)
+          : 0;
+      const outPct =
+        wh.totalSKUs > 0
+          ? Math.round((wh.outOfStockSKUs / wh.totalSKUs) * 100)
+          : 0;
       return {
         availableQty: wh.availableQty,
         onHandQty: wh.onHandQty,
@@ -165,8 +168,10 @@ const calculateInventoryStats = (
   const onHandQty = warehouses.reduce((sum, w) => sum + w.onHandQty, 0);
   const reservedQty = warehouses.reduce((sum, w) => sum + w.reservedQty, 0);
 
-  const latestSync = warehouses.reduce((latest, w) =>
-    w.lastSyncAt > latest ? w.lastSyncAt : latest, warehouses[0]?.lastSyncAt || new Date());
+  const latestSync = warehouses.reduce(
+    (latest, w) => (w.lastSyncAt > latest ? w.lastSyncAt : latest),
+    warehouses[0]?.lastSyncAt || new Date(),
+  );
   const hasStale = warehouses.some((w) => w.syncStatus === 'stale');
   const hasError = warehouses.some((w) => w.syncStatus === 'error');
 
@@ -176,9 +181,11 @@ const calculateInventoryStats = (
     reservedQty,
     totalSKUs,
     lowStockSKUs,
-    lowStockPercent: totalSKUs > 0 ? Math.round((lowStockSKUs / totalSKUs) * 100) : 0,
+    lowStockPercent:
+      totalSKUs > 0 ? Math.round((lowStockSKUs / totalSKUs) * 100) : 0,
     outOfStockSKUs,
-    outOfStockPercent: totalSKUs > 0 ? Math.round((outOfStockSKUs / totalSKUs) * 100) : 0,
+    outOfStockPercent:
+      totalSKUs > 0 ? Math.round((outOfStockSKUs / totalSKUs) * 100) : 0,
     backorderSKUs,
     pendingOrders: reservedQty > 0 ? Math.ceil(reservedQty / 5) : 0,
     lastSyncAt: latestSync,
@@ -261,14 +268,18 @@ interface ISectionProps {
 }
 
 const Section = ({ title, children, onEdit, extra }: ISectionProps) => {
-  const menuItems = [
-    { key: 'edit', label: 'Edit' },
-  ];
+  const menuItems = [{ key: 'edit', label: 'Edit' }];
 
   return (
     <Paper css={sectionStyles}>
       <Flex align="center" justify="space-between" css={sectionHeaderStyles}>
-        <Flex align="center" gap="3" css={css`flex: 1;`}>
+        <Flex
+          align="center"
+          gap="3"
+          css={css`
+            flex: 1;
+          `}
+        >
           <Typography.Text
             strong
             css={css`
@@ -277,7 +288,15 @@ const Section = ({ title, children, onEdit, extra }: ISectionProps) => {
           >
             {title}
           </Typography.Text>
-          {extra && <Box css={css`flex: 1;`}>{extra}</Box>}
+          {extra && (
+            <Box
+              css={css`
+                flex: 1;
+              `}
+            >
+              {extra}
+            </Box>
+          )}
         </Flex>
         {onEdit && (
           <Dropdown
@@ -458,7 +477,13 @@ const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
 };
 
 // KPI Tile Component
-type KPIVariant = 'default' | 'primary' | 'warning' | 'danger' | 'info' | 'purple';
+type KPIVariant =
+  | 'default'
+  | 'primary'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'purple';
 
 interface IKPITileProps {
   label: string;
@@ -475,11 +500,26 @@ interface IKPITileProps {
 const getVariantStyles = (variant: KPIVariant) => {
   const colors: Record<KPIVariant, { border?: string; badge?: string }> = {
     default: {},
-    primary: { border: inventoryTokens.colors.success, badge: inventoryTokens.colors.success },
-    warning: { border: inventoryTokens.colors.warning, badge: inventoryTokens.colors.warning },
-    danger: { border: inventoryTokens.colors.danger, badge: inventoryTokens.colors.danger },
-    info: { border: inventoryTokens.colors.info, badge: inventoryTokens.colors.info },
-    purple: { border: inventoryTokens.colors.purple, badge: inventoryTokens.colors.purple },
+    primary: {
+      border: inventoryTokens.colors.success,
+      badge: inventoryTokens.colors.success,
+    },
+    warning: {
+      border: inventoryTokens.colors.warning,
+      badge: inventoryTokens.colors.warning,
+    },
+    danger: {
+      border: inventoryTokens.colors.danger,
+      badge: inventoryTokens.colors.danger,
+    },
+    info: {
+      border: inventoryTokens.colors.info,
+      badge: inventoryTokens.colors.info,
+    },
+    purple: {
+      border: inventoryTokens.colors.purple,
+      badge: inventoryTokens.colors.purple,
+    },
   };
   return colors[variant];
 };
@@ -501,13 +541,23 @@ const KPITile = ({
     <Box
       css={css`
         ${isPrimary ? kpiTilePrimaryStyles : kpiTileStyles};
-        ${variantStyles.border && !isPrimary ? `border-left: 2px solid ${variantStyles.border};` : ''}
-        ${active ? 'border-color: var(--color-primary); background: var(--color-primary-bg);' : ''}
+        ${variantStyles.border && !isPrimary
+          ? `border-left: 2px solid ${variantStyles.border};`
+          : ''}
+        ${active
+          ? 'border-color: var(--color-primary); background: var(--color-primary-bg);'
+          : ''}
       `}
       onClick={onClick}
     >
       {/* Top: Label + Tooltip + Badge */}
-      <Flex align="center" gap="1" css={css`margin-bottom: 2px;`}>
+      <Flex
+        align="center"
+        gap="1"
+        css={css`
+          margin-bottom: 2px;
+        `}
+      >
         <Typography.Text
           css={css`
             font-size: ${inventoryTokens.labelFontSize}px;
@@ -531,7 +581,11 @@ const KPITile = ({
           </Tooltip>
         )}
         {badge && (
-          <Box css={css`margin-left: auto;`}>
+          <Box
+            css={css`
+              margin-left: auto;
+            `}
+          >
             {badge}
           </Box>
         )}
@@ -583,7 +637,12 @@ const InventoryHeader = ({
 }: IInventoryHeaderProps) => (
   <Flex align="center" justify="space-between" css={inventoryHeaderStyles}>
     <Flex align="center" gap="3">
-      <Typography.Text strong css={css`font-size: 13px;`}>
+      <Typography.Text
+        strong
+        css={css`
+          font-size: 13px;
+        `}
+      >
         Inventory
       </Typography.Text>
       <WarehouseSelect
@@ -631,11 +690,22 @@ const InventoryNoData = () => (
       align="center"
       justify="center"
       gap="2"
-      css={css`padding: 32px 16px; color: var(--color-gray-6);`}
+      css={css`
+        padding: 32px 16px;
+        color: var(--color-gray-6);
+      `}
     >
-      <StopOutlined css={css`font-size: 24px;`} />
-      <Typography.Text type="secondary">No inventory sync for this product</Typography.Text>
-      <Button size="small" type="link">Set up inventory tracking</Button>
+      <StopOutlined
+        css={css`
+          font-size: 24px;
+        `}
+      />
+      <Typography.Text type="secondary">
+        No inventory sync for this product
+      </Typography.Text>
+      <Button size="small" type="link">
+        Set up inventory tracking
+      </Button>
     </Flex>
   </Paper>
 );
@@ -653,7 +723,9 @@ const useInventoryData = () => {
 
 const InventorySection = ({ onEdit }: IInventorySectionProps) => {
   const warehouses = useInventoryData();
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>();
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<
+    string | undefined
+  >();
   const [activeKPI, setActiveKPI] = useState<string | undefined>();
 
   // Simulate different states (in real app would come from API)
@@ -695,11 +767,16 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
         onAction={handleAction}
       />
 
-
       {/* Section A: Quantity */}
       <Typography.Text
         type="secondary"
-        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;`}
+        css={css`
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+          display: block;
+        `}
       >
         Quantity
       </Typography.Text>
@@ -711,7 +788,19 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           secondary={`across ${stats.totalSKUs} SKUs`}
           variant="primary"
           isPrimary
-          badge={<Tag color="success" css={css`margin: 0; font-size: 9px; line-height: 14px; padding: 0 4px;`}>Sellable</Tag>}
+          badge={
+            <Tag
+              color="success"
+              css={css`
+                margin: 0;
+                font-size: 9px;
+                line-height: 14px;
+                padding: 0 4px;
+              `}
+            >
+              Sellable
+            </Tag>
+          }
           active={activeKPI === 'available'}
           onClick={() => handleKPIClick('available')}
         />
@@ -719,7 +808,11 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           label="On Hand"
           tooltip="Total physical units in warehouse"
           value={stats.onHandQty.toLocaleString()}
-          secondary={stats.changeVs7d !== 0 ? `${stats.changeVs7d > 0 ? '+' : ''}${stats.changeVs7d} vs 7d` : undefined}
+          secondary={
+            stats.changeVs7d !== 0
+              ? `${stats.changeVs7d > 0 ? '+' : ''}${stats.changeVs7d} vs 7d`
+              : undefined
+          }
           active={activeKPI === 'onhand'}
           onClick={() => handleKPIClick('onhand')}
         />
@@ -727,9 +820,27 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           label="Reserved"
           tooltip="Units allocated to pending orders"
           value={stats.reservedQty.toLocaleString()}
-          secondary={stats.pendingOrders > 0 ? `${stats.pendingOrders} orders` : undefined}
+          secondary={
+            stats.pendingOrders > 0
+              ? `${stats.pendingOrders} orders`
+              : undefined
+          }
           variant={stats.reservedQty > 0 ? 'info' : 'default'}
-          badge={stats.reservedQty > 0 ? <Tag color="blue" css={css`margin: 0; font-size: 9px; line-height: 14px; padding: 0 4px;`}>Reserved</Tag> : undefined}
+          badge={
+            stats.reservedQty > 0 ? (
+              <Tag
+                color="blue"
+                css={css`
+                  margin: 0;
+                  font-size: 9px;
+                  line-height: 14px;
+                  padding: 0 4px;
+                `}
+              >
+                Reserved
+              </Tag>
+            ) : undefined
+          }
           active={activeKPI === 'reserved'}
           onClick={() => handleKPIClick('reserved')}
         />
@@ -738,20 +849,35 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
       {/* Section B: Health */}
       <Typography.Text
         type="secondary"
-        css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin: 12px 0 6px; display: block;`}
+        css={css`
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin: 12px 0 6px;
+          display: block;
+        `}
       >
         Health
       </Typography.Text>
       <Box css={tilesGroupStyles}>
         <KPITile
           label="Low Stock"
-          tooltip={`SKUs below ${stats.thresholdType === 'safety_stock' ? 'safety stock' : 'reorder point'} threshold`}
+          tooltip={`SKUs below ${
+            stats.thresholdType === 'safety_stock'
+              ? 'safety stock'
+              : 'reorder point'
+          } threshold`}
           value={`${stats.lowStockSKUs} SKUs`}
           secondary={`${stats.lowStockPercent}% of catalog`}
           variant={stats.lowStockSKUs > 0 ? 'warning' : 'default'}
           badge={
             stats.lowStockSKUs > 0 ? (
-              <WarningOutlined css={css`color: ${inventoryTokens.colors.warning}; font-size: 11px;`} />
+              <WarningOutlined
+                css={css`
+                  color: ${inventoryTokens.colors.warning};
+                  font-size: 11px;
+                `}
+              />
             ) : undefined
           }
           active={activeKPI === 'lowstock'}
@@ -765,7 +891,12 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
           variant={stats.outOfStockSKUs > 0 ? 'danger' : 'default'}
           badge={
             stats.outOfStockSKUs > 0 ? (
-              <StopOutlined css={css`color: ${inventoryTokens.colors.danger}; font-size: 11px;`} />
+              <StopOutlined
+                css={css`
+                  color: ${inventoryTokens.colors.danger};
+                  font-size: 11px;
+                `}
+              />
             ) : undefined
           }
           active={activeKPI === 'outofstock'}
@@ -778,7 +909,14 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
             value={`${stats.backorderSKUs} SKUs`}
             secondary="ETA avg 5d"
             variant="purple"
-            badge={<ClockCircleFilled css={css`color: ${inventoryTokens.colors.purple}; font-size: 11px;`} />}
+            badge={
+              <ClockCircleFilled
+                css={css`
+                  color: ${inventoryTokens.colors.purple};
+                  font-size: 11px;
+                `}
+              />
+            }
             active={activeKPI === 'backorder'}
             onClick={() => handleKPIClick('backorder')}
           />
@@ -787,7 +925,6 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
     </Paper>
   );
 };
-
 
 // ============================================================================
 // Main Component
@@ -846,7 +983,9 @@ export const ProductInfoCardA = ({
       <ProductInfoHeader
         product={product}
         onEditSection={handleEdit}
-        onViewStorefront={() => window.open(`/products/${product.slug}`, '_blank')}
+        onViewStorefront={() =>
+          window.open(`/products/${product.slug}`, '_blank')
+        }
         onPreview={() => console.log('Preview')}
         onShare={() => console.log('Share')}
       />
@@ -854,10 +993,7 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       {/* CONTENT TABS (Description, Excerpt) */}
       {/* ================================================================== */}
-      <ProductContentTabs
-        product={product}
-        onEditSection={handleEdit}
-      />
+      <ProductContentTabs product={product} onEditSection={handleEdit} />
 
       {/* ================================================================== */}
       {/* PRICING (Enterprise Block) */}
@@ -871,7 +1007,8 @@ export const ProductInfoCardA = ({
           product.isVariableProduct
             ? product.variants?.map((v) => ({
                 id: v.id,
-                title: v.options?.map((o) => o.title).join(' / ') || v.sku || v.id,
+                title:
+                  v.options?.map((o) => o.title).join(' / ') || v.sku || v.id,
                 price: v.price,
                 compareAtPrice: v.oldPrice || null,
                 costPrice: v.costPrice || null,
@@ -890,12 +1027,15 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       <Section
         title={formatMessage({ id: t('product.media.title') })}
-                onEdit={() => handleEdit('media')}
+        onEdit={() => handleEdit('media')}
       >
         {(() => {
-          const gallerySlice = product.gallery?.slice(0, product.cover ? 5 : 6) || [];
-          const hasMore = (product.gallery?.length || 0) > (product.cover ? 5 : 6);
-          const overlayItemsCount = (product.cover ? 1 : 0) + gallerySlice.length + (hasMore ? 1 : 0);
+          const gallerySlice =
+            product.gallery?.slice(0, product.cover ? 5 : 6) || [];
+          const hasMore =
+            (product.gallery?.length || 0) > (product.cover ? 5 : 6);
+          const overlayItemsCount =
+            (product.cover ? 1 : 0) + gallerySlice.length + (hasMore ? 1 : 0);
 
           return (
             <div css={mediaGridStyles}>
@@ -962,7 +1102,7 @@ export const ProductInfoCardA = ({
         >
           <Section
             title={formatMessage({ id: t('product.categories.title') })}
-                        onEdit={() => handleEdit('categories')}
+            onEdit={() => handleEdit('categories')}
           >
             {product.primaryCategory || product.categories?.length > 0 ? (
               <Flex gap="1" wrap="wrap">
@@ -998,7 +1138,7 @@ export const ProductInfoCardA = ({
         >
           <Section
             title={formatMessage({ id: t('product.tags.title') })}
-                        onEdit={() => handleEdit('tags')}
+            onEdit={() => handleEdit('tags')}
           >
             {product.tags?.length > 0 ? (
               <Flex gap="1" wrap="wrap">
@@ -1023,10 +1163,7 @@ export const ProductInfoCardA = ({
       {/* ================================================================== */}
       {/* REVIEWS */}
       {/* ================================================================== */}
-      <Section
-        title="Reviews"
-        onEdit={() => handleEdit('reviews')}
-      >
+      <Section title="Reviews" onEdit={() => handleEdit('reviews')}>
         <Box
           css={css`
             display: grid;
@@ -1073,10 +1210,7 @@ export const ProductInfoCardA = ({
           </Flex>
 
           {/* Right side - Rating breakdown */}
-          <Flex
-            direction="column"
-            gap="1"
-          >
+          <Flex direction="column" gap="1">
             {[
               { stars: 5, count: 89, percent: 70 },
               { stars: 4, count: 24, percent: 19 },
@@ -1144,7 +1278,7 @@ export const ProductInfoCardA = ({
       {product.isVariableProduct && product.options?.length > 0 && (
         <Section
           title={formatMessage({ id: t('products.options.title') })}
-                    onEdit={() => handleEdit('options')}
+          onEdit={() => handleEdit('options')}
         >
           <Flex direction="column" gap="2">
             {product.options.map((option) => (
@@ -1198,11 +1332,12 @@ export const ProductInfoCardA = ({
                 border-collapse: collapse;
                 font-size: 12px;
 
-                th, td {
+                th,
+                td {
                   padding: 10px 12px;
                   text-align: left;
                   border-bottom: 1px solid var(--color-gray-3);
-                  vertical-align: top;
+                  vertical-align: middle;
                 }
 
                 th {
@@ -1227,38 +1362,63 @@ export const ProductInfoCardA = ({
               <thead>
                 <tr>
                   <th>{formatMessage({ id: 'products.variant' })}</th>
-                  {product.options?.map((option) => (
-                    <th key={option.id}>{option.title}</th>
-                  ))}
                   <th>Pricing</th>
                   <th>Inventory</th>
+                  <th>Attributes</th>
+                  <th css={css`width: 48px;`} />
                 </tr>
               </thead>
               <tbody>
                 {product.variants.map((variant) => {
-                  const discountPercent = variant.oldPrice && variant.oldPrice > variant.price
-                    ? Math.round((1 - variant.price / variant.oldPrice) * 100)
-                    : 0;
+                  const discountPercent =
+                    variant.oldPrice && variant.oldPrice > variant.price
+                      ? Math.round((1 - variant.price / variant.oldPrice) * 100)
+                      : 0;
 
-                  const stockStatusConfig: Record<string, { icon: string; color: string; label: string }> = {
-                    IN_STOCK: { icon: '●', color: '#52c41a', label: 'In Stock' },
-                    LOW_STOCK: { icon: '○', color: '#faad14', label: 'Low Stock' },
-                    OUT_OF_STOCK: { icon: '✕', color: '#ff4d4f', label: 'Out of Stock' },
-                    ON_BACKORDER: { icon: '◐', color: '#722ed1', label: 'Backorder' },
+                  const stockStatusConfig: Record<
+                    string,
+                    { icon: string; color: string; label: string }
+                  > = {
+                    IN_STOCK: {
+                      icon: '●',
+                      color: '#52c41a',
+                      label: 'In Stock',
+                    },
+                    LOW_STOCK: {
+                      icon: '○',
+                      color: '#faad14',
+                      label: 'Low Stock',
+                    },
+                    OUT_OF_STOCK: {
+                      icon: '✕',
+                      color: '#ff4d4f',
+                      label: 'Out of Stock',
+                    },
+                    ON_BACKORDER: {
+                      icon: '◐',
+                      color: '#722ed1',
+                      label: 'Backorder',
+                    },
                   };
-                  const stockConfig = stockStatusConfig[variant.stockStatus] || { icon: '○', color: 'var(--color-gray-6)', label: variant.stockStatus || 'N/A' };
+                  const stockConfig = stockStatusConfig[
+                    variant.stockStatus
+                  ] || {
+                    icon: '○',
+                    color: 'var(--color-gray-6)',
+                    label: variant.stockStatus || 'N/A',
+                  };
 
                   return (
                     <tr key={variant.id}>
                       {/* VARIANT */}
                       <td>
-                        <Flex align="center" gap="2">
+                        <Flex align="flex-start" gap="2">
                           {variant.gallery?.[0] ? (
                             <Image
                               src={variant.gallery[0].url}
                               alt=""
-                              width={36}
-                              height={36}
+                              width={40}
+                              height={40}
                               css={css`
                                 border-radius: 4px;
                                 object-fit: cover;
@@ -1269,58 +1429,67 @@ export const ProductInfoCardA = ({
                           ) : (
                             <Box
                               css={css`
-                                width: 36px;
-                                height: 36px;
+                                width: 40px;
+                                height: 40px;
                                 background: var(--color-gray-2);
                                 border-radius: 4px;
                                 flex-shrink: 0;
                               `}
                             />
                           )}
-                          <Typography.Text strong css={css`font-size: 13px;`}>
-                            {variant.title || variant.options?.map((o) => o.title).join(' / ') || variant.sku || '—'}
-                          </Typography.Text>
-                        </Flex>
-                      </td>
-
-                      {/* OPTIONS */}
-                      {product.options?.map((option) => {
-                        const variantOption = variant.options?.find(
-                          (vo) => vo.group?.id === option.id
-                        );
-                        return (
-                          <td key={option.id}>
-                            <Typography.Text css={css`font-size: 13px;`}>
-                              {variantOption?.title || '—'}
+                          <Flex direction="column">
+                            <Typography.Text
+                              strong
+                              css={css`
+                                font-size: 13px;
+                              `}
+                            >
+                              {variant.title || variant.sku || '—'}
                             </Typography.Text>
-                          </td>
-                        );
-                      })}
-
-                      {/* PRICING */}
-                      <td>
-                        <Flex direction="column" gap="0">
-                          <Typography.Text strong css={css`font-size: 14px;`}>
-                            {formatPrice(variant.price)}
-                          </Typography.Text>
-                          {variant.oldPrice > 0 && variant.oldPrice !== variant.price && (
-                            <Flex align="center" gap="1">
+                            {variant.options?.length > 0 && (
                               <Typography.Text
                                 type="secondary"
                                 css={css`
                                   font-size: 12px;
-                                  text-decoration: line-through;
                                 `}
                               >
-                                {formatPrice(variant.oldPrice)}
+                                {variant.options.map((o) => o.title).join(' / ')}
                               </Typography.Text>
-                              {discountPercent > 0 && (
-                                <Typography.Text css={css`font-size: 11px; color: #ff4d4f;`}>
-                                  -{discountPercent}%
+                            )}
+                          </Flex>
+                        </Flex>
+                      </td>
+
+                      {/* PRICING */}
+                      <td>
+                        <Flex direction="column" gap="0">
+                          <Typography.Text>
+                            {formatPrice(variant.price)}
+                          </Typography.Text>
+                          {variant.oldPrice > 0 &&
+                            variant.oldPrice !== variant.price && (
+                              <Flex align="center" gap="1">
+                                <Typography.Text
+                                  type="secondary"
+                                  css={css`
+                                    font-size: 12px;
+                                    text-decoration: line-through;
+                                  `}
+                                >
+                                  {formatPrice(variant.oldPrice)}
                                 </Typography.Text>
-                              )}
-                            </Flex>
-                          )}
+                                {discountPercent > 0 && (
+                                  <Typography.Text
+                                    css={css`
+                                      font-size: 11px;
+                                      color: #ff4d4f;
+                                    `}
+                                  >
+                                    -{discountPercent}%
+                                  </Typography.Text>
+                                )}
+                              </Flex>
+                            )}
                         </Flex>
                       </td>
 
@@ -1337,14 +1506,60 @@ export const ProductInfoCardA = ({
                             {variant.sku || '—'}
                           </Typography.Text>
                           <Flex align="center" gap="1">
-                            <span css={css`color: ${stockConfig.color}; font-size: 10px;`}>
+                            <span
+                              css={css`
+                                color: ${stockConfig.color};
+                                font-size: 10px;
+                              `}
+                            >
                               {stockConfig.icon}
                             </span>
-                            <Typography.Text css={css`font-size: 11px; color: ${stockConfig.color};`}>
+                            <Typography.Text
+                              css={css`
+                                font-size: 11px;
+                                color: ${stockConfig.color};
+                              `}
+                            >
                               {stockConfig.label}
                             </Typography.Text>
                           </Flex>
                         </Flex>
+                      </td>
+
+                      {/* ATTRIBUTES */}
+                      <td>
+                        <Flex direction="column">
+                          <Typography.Text css={css`font-size: 12px;`}>
+                            {variant.weight
+                              ? `${variant.weight} ${weightUniOptions[variant.weightUnit as keyof typeof weightUniOptions]?.label || variant.weightUnit || ''}`
+                              : '—'}
+                          </Typography.Text>
+                          <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+                            {variant.length || variant.width || variant.height
+                              ? `${variant.length || 0} × ${variant.width || 0} × ${variant.height || 0} ${dimensionUnitOptions[variant.dimensionUnit as keyof typeof dimensionUnitOptions]?.label || variant.dimensionUnit || ''}`
+                              : '—'}
+                          </Typography.Text>
+                        </Flex>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td css={css`text-align: center;`}>
+                        <Dropdown
+                          menu={{
+                            items: [
+                              { key: 'edit', label: 'Edit' },
+                              { key: 'duplicate', label: 'Duplicate' },
+                              { type: 'divider' },
+                              { key: 'delete', label: 'Delete', danger: true },
+                            ],
+                            onClick: ({ key }) => {
+                              console.log('Variant action:', key, variant.id);
+                            },
+                          }}
+                          trigger={['click']}
+                        >
+                          <Button size="small" type="text" icon={<MoreOutlined />} />
+                        </Dropdown>
                       </td>
                     </tr>
                   );
@@ -1398,10 +1613,7 @@ export const ProductInfoCardA = ({
       {/* ATTRIBUTES */}
       {/* ================================================================== */}
       {product.attributes?.length > 0 && (
-        <Section
-          title="Attributes"
-          onEdit={() => handleEdit('attributes')}
-        >
+        <Section title="Attributes" onEdit={() => handleEdit('attributes')}>
           <Descriptions
             size="small"
             column={1}
@@ -1434,10 +1646,7 @@ export const ProductInfoCardA = ({
       {/* GROUPS/COMPONENTS */}
       {/* ================================================================== */}
       {product.groups?.length > 0 && (
-        <Section
-          title="Components"
-          onEdit={() => handleEdit('groups')}
-        >
+        <Section title="Components" onEdit={() => handleEdit('groups')}>
           <Flex direction="column" gap="2">
             {product.groups.map((group) => (
               <Box
@@ -1491,10 +1700,25 @@ export const ProductInfoCardA = ({
                   </Flex>
                 </Flex>
                 {group.items?.length > 0 && (
-                  <Flex gap="1" wrap="wrap" css={css`margin-top: 8px;`}>
+                  <Flex
+                    gap="1"
+                    wrap="wrap"
+                    css={css`
+                      margin-top: 8px;
+                    `}
+                  >
                     {group.items.map((item) => (
-                      <Tag key={item.id} css={css`margin: 0;`}>
-                        {item.product?.options?.map((o) => o.title).join(' / ') || item.product?.sku || '—'}
+                      <Tag
+                        key={item.id}
+                        css={css`
+                          margin: 0;
+                        `}
+                      >
+                        {item.product?.options
+                          ?.map((o) => o.title)
+                          .join(' / ') ||
+                          item.product?.sku ||
+                          '—'}
                       </Tag>
                     ))}
                   </Flex>
@@ -1511,19 +1735,28 @@ export const ProductInfoCardA = ({
       <Section
         title={formatMessage({ id: tCommon('common.seo') })}
         onEdit={() => handleEdit('seo')}
-        extra={
-          (() => {
-            const seoIssuesCount = (!product.seoTitle ? 1 : 0) + (!product.seoDescription ? 1 : 0);
-            return seoIssuesCount > 0 ? (
-              <Flex align="center" gap="1">
-                <ExclamationCircleFilled css={css`color: #ff4d4f; font-size: 12px;`} />
-                <Typography.Text css={css`font-size: 11px; color: #ff4d4f;`}>
-                  {seoIssuesCount} {seoIssuesCount === 1 ? 'issue' : 'issues'}
-                </Typography.Text>
-              </Flex>
-            ) : null;
-          })()
-        }
+        extra={(() => {
+          const seoIssuesCount =
+            (!product.seoTitle ? 1 : 0) + (!product.seoDescription ? 1 : 0);
+          return seoIssuesCount > 0 ? (
+            <Flex align="center" gap="1">
+              <ExclamationCircleFilled
+                css={css`
+                  color: #ff4d4f;
+                  font-size: 12px;
+                `}
+              />
+              <Typography.Text
+                css={css`
+                  font-size: 11px;
+                  color: #ff4d4f;
+                `}
+              >
+                {seoIssuesCount} {seoIssuesCount === 1 ? 'issue' : 'issues'}
+              </Typography.Text>
+            </Flex>
+          ) : null;
+        })()}
       >
         <Box
           css={css`
@@ -1535,18 +1768,28 @@ export const ProductInfoCardA = ({
           {/* Google Preview */}
           <Typography.Text
             type="secondary"
-            css={css`font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;`}
+            css={css`
+              font-size: 10px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            `}
           >
             Search preview
           </Typography.Text>
-          <Box css={css`margin-top: 8px;`}>
+          <Box
+            css={css`
+              margin-top: 8px;
+            `}
+          >
             <Typography.Text
               css={css`
                 font-size: 16px;
                 color: #1a0dab;
                 display: block;
                 line-height: 1.3;
-                &:hover { text-decoration: underline; }
+                &:hover {
+                  text-decoration: underline;
+                }
               `}
             >
               {product.seoTitle || product.title || 'Untitled Product'}
@@ -1570,7 +1813,9 @@ export const ProductInfoCardA = ({
                 line-height: 1.5;
               `}
             >
-              {product.seoDescription || product.excerpt || 'No description available for this product.'}
+              {product.seoDescription ||
+                product.excerpt ||
+                'No description available for this product.'}
             </Typography.Text>
           </Box>
 
@@ -1585,8 +1830,18 @@ export const ProductInfoCardA = ({
                 border-top: 1px solid var(--color-gray-3);
               `}
             >
-              <WarningOutlined css={css`color: #faad14; font-size: 12px;`} />
-              <Typography.Text type="secondary" css={css`font-size: 11px;`}>
+              <WarningOutlined
+                css={css`
+                  color: #faad14;
+                  font-size: 12px;
+                `}
+              />
+              <Typography.Text
+                type="secondary"
+                css={css`
+                  font-size: 11px;
+                `}
+              >
                 Using auto-generated SEO data
               </Typography.Text>
             </Flex>
