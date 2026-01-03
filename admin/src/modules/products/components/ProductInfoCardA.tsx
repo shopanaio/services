@@ -1226,10 +1226,12 @@ export const ProductInfoCardA = ({
             >
               <thead>
                 <tr>
-                  <th>{formatMessage({ id: 'products.variant' }, { defaultMessage: 'Variant' })}</th>
+                  <th>{formatMessage({ id: 'products.variant' })}</th>
+                  {product.options?.map((option) => (
+                    <th key={option.id}>{option.title}</th>
+                  ))}
                   <th>Pricing</th>
                   <th>Inventory</th>
-                  <th>Attributes</th>
                 </tr>
               </thead>
               <tbody>
@@ -1276,41 +1278,55 @@ export const ProductInfoCardA = ({
                             />
                           )}
                           <Typography.Text strong css={css`font-size: 13px;`}>
-                            {variant.options?.map((o) => o.title).join(' / ') || variant.sku || '—'}
+                            {variant.title || variant.options?.map((o) => o.title).join(' / ') || variant.sku || '—'}
                           </Typography.Text>
                         </Flex>
                       </td>
 
+                      {/* OPTIONS */}
+                      {product.options?.map((option) => {
+                        const variantOption = variant.options?.find(
+                          (vo) => vo.group?.id === option.id
+                        );
+                        return (
+                          <td key={option.id}>
+                            <Typography.Text css={css`font-size: 13px;`}>
+                              {variantOption?.title || '—'}
+                            </Typography.Text>
+                          </td>
+                        );
+                      })}
+
                       {/* PRICING */}
                       <td>
                         <Flex direction="column" gap="0">
-                          <Flex align="center" gap="2">
-                            <Typography.Text strong css={css`font-size: 14px;`}>
-                              {formatPrice(variant.price)}
-                            </Typography.Text>
-                            {discountPercent > 0 && (
-                              <Tag color="red" css={css`margin: 0; font-size: 10px; line-height: 14px; padding: 0 4px;`}>
-                                -{discountPercent}%
-                              </Tag>
-                            )}
-                          </Flex>
+                          <Typography.Text strong css={css`font-size: 14px;`}>
+                            {formatPrice(variant.price)}
+                          </Typography.Text>
                           {variant.oldPrice > 0 && variant.oldPrice !== variant.price && (
-                            <Typography.Text
-                              type="secondary"
-                              css={css`
-                                font-size: 12px;
-                                text-decoration: line-through;
-                              `}
-                            >
-                              {formatPrice(variant.oldPrice)}
-                            </Typography.Text>
+                            <Flex align="center" gap="1">
+                              <Typography.Text
+                                type="secondary"
+                                css={css`
+                                  font-size: 12px;
+                                  text-decoration: line-through;
+                                `}
+                              >
+                                {formatPrice(variant.oldPrice)}
+                              </Typography.Text>
+                              {discountPercent > 0 && (
+                                <Typography.Text css={css`font-size: 11px; color: #ff4d4f;`}>
+                                  -{discountPercent}%
+                                </Typography.Text>
+                              )}
+                            </Flex>
                           )}
                         </Flex>
                       </td>
 
                       {/* INVENTORY */}
                       <td>
-                        <Flex direction="column" gap="1">
+                        <Flex direction="column">
                           <Typography.Text
                             css={css`
                               font-family: monospace;
@@ -1328,24 +1344,6 @@ export const ProductInfoCardA = ({
                               {stockConfig.label}
                             </Typography.Text>
                           </Flex>
-                        </Flex>
-                      </td>
-
-                      {/* ATTRIBUTES */}
-                      <td>
-                        <Flex direction="column" gap="1">
-                          <Typography.Text css={css`font-size: 12px;`}>
-                            {variant.weight
-                              ? `${variant.weight} ${weightUniOptions[variant.weightUnit as keyof typeof weightUniOptions]?.label || variant.weightUnit}`
-                              : '—'
-                            }
-                          </Typography.Text>
-                          <Typography.Text type="secondary" css={css`font-size: 11px;`}>
-                            {variant.length || variant.width || variant.height
-                              ? `${variant.length || 0} × ${variant.width || 0} × ${variant.height || 0} ${dimensionUnitOptions[variant.dimensionUnit as keyof typeof dimensionUnitOptions]?.label || variant.dimensionUnit}`
-                              : '—'
-                            }
-                          </Typography.Text>
                         </Flex>
                       </td>
                     </tr>
