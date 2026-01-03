@@ -24,7 +24,9 @@ import {
   StopOutlined,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { ReactNode, useState, useMemo } from 'react';
+import { ReactNode, useState, useMemo, useCallback } from 'react';
+import { $drawers } from '@src/layouts/drawers/store/drawers';
+import { DrawerTypes } from '@src/layouts/drawers/types';
 import { MediaFilePlaceholder } from '@components/media/control/Placeholder';
 import { IProduct } from '@src/entity/Product/Product';
 import { useIntl } from 'react-intl';
@@ -943,6 +945,13 @@ export const ProductInfoCardA = ({
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
+  const handleOpenProductModal = useCallback(() => {
+    $drawers.addDrawer({
+      type: DrawerTypes.PRODUCT,
+      entityId: product.id,
+    });
+  }, [product.id]);
+
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', {
       style: 'currency',
@@ -1848,6 +1857,13 @@ export const ProductInfoCardA = ({
           )}
         </Box>
       </Section>
+
+      {/* ================================================================== */}
+      {/* OPEN IN MODAL (TEST) */}
+      {/* ================================================================== */}
+      <Button onClick={handleOpenProductModal}>
+        Open in stacked modal
+      </Button>
     </Flex>
   );
 };

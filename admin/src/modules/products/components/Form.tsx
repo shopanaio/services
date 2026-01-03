@@ -25,7 +25,6 @@ import { resolveSchema } from '@modules/products/utils/resolveSchema';
 import { defaultProductFormValues } from '@modules/products/defs';
 import { useCheckSlug } from '@src/modules/shared/hooks/useCheckSlug';
 import { Entity } from '@src/defs/entities';
-import { LayoutSkeleton } from '@src/layouts/table/components/Skeleton';
 import { ProductGroups } from '@modules/products/components/groups/Groups';
 import { EntryStatusAndInfo } from '@components/forms/EntryStatusAndInfo';
 import { entityStatuses } from '@src/defs/constants';
@@ -159,7 +158,7 @@ const ProductFormView = () => {
   }, []);
 
   if (!product || loading) {
-    return <LayoutSkeleton filters={false} />;
+    return null;
   }
 
   const onSubmit = methods.handleSubmit(

@@ -5,17 +5,20 @@ import { IEntityDrawerItem } from '@src/layouts/drawers/types';
 
 interface IModalsProps {
   items: IEntityDrawerItem[];
+  totalCount: number;
   level?: number;
 }
 
-const NestedModals = ({ items, level = 0 }: IModalsProps) => {
+const NestedModals = ({ items, totalCount, level = 0 }: IModalsProps) => {
   const [current, ...rest] = items;
 
   const isCurrent = !rest?.length;
 
   return (
-    <EntityModal modalItem={current} level={level}>
-      {!isCurrent && <NestedModals items={rest} level={level + 1} />}
+    <EntityModal modalItem={current} level={level} totalCount={totalCount}>
+      {!isCurrent && (
+        <NestedModals items={rest} totalCount={totalCount} level={level + 1} />
+      )}
     </EntityModal>
   );
 };
@@ -27,5 +30,5 @@ export const Modals = () => {
     return null;
   }
 
-  return <NestedModals items={drawers} />;
+  return <NestedModals items={drawers} totalCount={drawers.length} />;
 };
