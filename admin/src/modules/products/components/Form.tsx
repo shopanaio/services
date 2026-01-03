@@ -630,41 +630,69 @@ const ProductFormView = () => {
 
   const renderTitle = () => (
     <Flex align="center" css={css`height: 100%;`}>
-      {modalTabs.map((tab) => (
+      <Flex
+        align="center"
+        gap={2}
+        css={css`
+          height: 100%;
+          padding: 0 12px;
+          border-right: 1px solid var(--color-gray-4);
+        `}
+      >
         <Button
-          key={tab.key}
           type="text"
-          color="default"
-          onClick={() => setModalTab(tab.key)}
+          icon={<CloseOutlined />}
+          onClick={forceClose}
           css={css`
-            height: 100%;
-            min-width: 120px;
-            border-radius: 0;
-            font-weight: ${modalTab === tab.key ? 500 : 400};
-            color: ${modalTab === tab.key ? 'var(--color-primary)' : 'inherit'};
-            background: ${modalTab === tab.key ? 'var(--color-gray-3)' : 'transparent'};
-            border-right: 1px solid var(--color-gray-4);
+            color: var(--color-gray-7);
+            &:hover {
+              color: var(--color-gray-9);
+              background: var(--color-gray-2);
+            }
+          `}
+        />
+        <kbd
+          css={css`
+            font-size: 10px;
+            font-family: inherit;
+            padding: 2px 5px;
+            background: var(--color-gray-3);
+            border: 1px solid var(--color-gray-5);
+            border-radius: 4px;
+            color: var(--color-gray-7);
           `}
         >
-          {tab.label}
-        </Button>
-      ))}
+          esc
+        </kbd>
+      </Flex>
+      {modalTabs.map((tab) => {
+        const isActive = modalTab === tab.key;
+        return (
+          <Button
+            key={tab.key}
+            variant="text"
+            color="default"
+            onClick={() => setModalTab(tab.key)}
+            css={css`
+              height: 100%;
+              min-width: 120px;
+              border-radius: 0;
+              font-weight: ${isActive ? 500 : 400};
+              color: ${isActive ? 'var(--color-primary)' : 'inherit'};
+              background-color: ${isActive ? 'transparent' : 'var(--color-gray-2)'} !important;
+              border-right: 1px solid var(--color-gray-4);
+              ${!isActive && `
+              &:hover {
+                background-color: var(--color-gray-3) !important;
+              }
+              `}
+            `}
+          >
+            {tab.label}
+          </Button>
+        );
+      })}
     </Flex>
-  );
-
-  const renderCloseButton = () => (
-    <Button
-      type="text"
-      icon={<CloseOutlined />}
-      onClick={forceClose}
-      css={css`
-        color: var(--color-gray-7);
-        &:hover {
-          color: var(--color-gray-9);
-          background: var(--color-gray-2);
-        }
-      `}
-    />
   );
 
   const renderProductInfoCard = () => (
@@ -704,7 +732,6 @@ const ProductFormView = () => {
         headerProps={{
           title: renderTitle(),
           rawTitle: true,
-          extra: renderCloseButton(),
           submitButtonProps: null,
         }}
       >
