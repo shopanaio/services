@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { createStyles } from "antd-style";
-import { Button, Typography, Flex, Dropdown, Space } from "antd";
+import { Button, Typography, Flex, Dropdown, Space, Input, Tag } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -10,9 +10,9 @@ import {
   FolderOutlined,
   FolderOpenOutlined,
   TagsOutlined,
-  TagOutlined,
   RightOutlined,
   DownOutlined,
+  HolderOutlined,
 } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -26,6 +26,25 @@ import {
   RowDragEndEvent,
   RowDragEnterEvent,
 } from "ag-grid-community";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   useModalStackContext,
   ModalLayout,
@@ -62,9 +81,6 @@ const useStyles = createStyles(({ token }) => ({
     "& .row-attribute": {
       background: `${token.colorBgContainer} !important`,
     },
-    "& .row-value": {
-      background: `${token.colorBgContainer} !important`,
-    },
   },
   toolbar: {
     padding: "8px 12px",
@@ -98,10 +114,6 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorSuccess,
     fontSize: 14,
   },
-  valueIcon: {
-    color: token.colorTextSecondary,
-    fontSize: 12,
-  },
   actionsCell: {
     display: "flex",
     alignItems: "center",
@@ -111,24 +123,72 @@ const useStyles = createStyles(({ token }) => ({
   indent: {
     display: "inline-block",
   },
+  // Value tags styles
+  valuesContainer: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    alignItems: "center",
+    padding: "4px 0",
+  },
+  valueTag: {
+    cursor: "grab",
+    margin: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    "&:active": {
+      cursor: "grabbing",
+    },
+  },
+  valueTagDragging: {
+    opacity: 0.5,
+  },
+  valueDragHandle: {
+    color: token.colorTextSecondary,
+    fontSize: 10,
+    display: "flex",
+    alignItems: "center",
+  },
+  addValueInput: {
+    width: 80,
+    fontSize: 12,
+  },
+  valueEditInput: {
+    width: "auto",
+    minWidth: 40,
+    maxWidth: 120,
+    fontSize: 12,
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    padding: 0,
+  },
 }));
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type RowType = "group" | "attribute" | "value";
+type RowType = "group" | "attribute";
 type DisplayType = "text" | "dropdown" | "multiselect";
+
+interface IAttributeValue {
+  id: string;
+  name: string;
+  slug: string;
+  sortIndex: number;
+}
 
 interface IAttributeRow {
   id: string;
   type: RowType;
   name: string;
-  slug: string;
   displayType?: DisplayType;
   parentId: string | null;
   sortIndex: number;
-  level: number; // 0 = group, 1 = attribute, 2 = value
+  level: number; // 0 = group, 1 = attribute
+  values?: IAttributeValue[]; // Only for attributes
 }
 
 // ============================================================================
@@ -138,65 +198,270 @@ interface IAttributeRow {
 const createMockData = (): IAttributeRow[] => {
   return [
     // Group: Physical Properties
-    { id: "g1", type: "group", name: "Physical Properties", slug: "", parentId: null, sortIndex: 0, level: 0 },
-    { id: "a1", type: "attribute", name: "Material", slug: "material", displayType: "dropdown", parentId: "g1", sortIndex: 0, level: 1 },
-    { id: "v1", type: "value", name: "Cotton", slug: "cotton", parentId: "a1", sortIndex: 0, level: 2 },
-    { id: "v2", type: "value", name: "Wool", slug: "wool", parentId: "a1", sortIndex: 1, level: 2 },
-    { id: "v3", type: "value", name: "Silk", slug: "silk", parentId: "a1", sortIndex: 2, level: 2 },
-
-    { id: "a2", type: "attribute", name: "Weight", slug: "weight", displayType: "text", parentId: "g1", sortIndex: 1, level: 1 },
-    { id: "v4", type: "value", name: "Light", slug: "light", parentId: "a2", sortIndex: 0, level: 2 },
-    { id: "v5", type: "value", name: "Medium", slug: "medium", parentId: "a2", sortIndex: 1, level: 2 },
-    { id: "v6", type: "value", name: "Heavy", slug: "heavy", parentId: "a2", sortIndex: 2, level: 2 },
+    { id: "g1", type: "group", name: "Physical Properties", parentId: null, sortIndex: 0, level: 0 },
+    {
+      id: "a1",
+      type: "attribute",
+      name: "Material",
+      displayType: "dropdown",
+      parentId: "g1",
+      sortIndex: 0,
+      level: 1,
+      values: [
+        { id: "v1", name: "Cotton", slug: "cotton", sortIndex: 0 },
+        { id: "v2", name: "Wool", slug: "wool", sortIndex: 1 },
+        { id: "v3", name: "Silk", slug: "silk", sortIndex: 2 },
+      ],
+    },
+    {
+      id: "a2",
+      type: "attribute",
+      name: "Weight",
+      displayType: "text",
+      parentId: "g1",
+      sortIndex: 1,
+      level: 1,
+      values: [
+        { id: "v4", name: "Light", slug: "light", sortIndex: 0 },
+        { id: "v5", name: "Medium", slug: "medium", sortIndex: 1 },
+        { id: "v6", name: "Heavy", slug: "heavy", sortIndex: 2 },
+      ],
+    },
 
     // Group: Brand Info
-    { id: "g2", type: "group", name: "Brand Info", slug: "", parentId: null, sortIndex: 1, level: 0 },
-    { id: "a3", type: "attribute", name: "Brand", slug: "brand", displayType: "dropdown", parentId: "g2", sortIndex: 0, level: 1 },
-    { id: "v7", type: "value", name: "Nike", slug: "nike", parentId: "a3", sortIndex: 0, level: 2 },
-    { id: "v8", type: "value", name: "Adidas", slug: "adidas", parentId: "a3", sortIndex: 1, level: 2 },
-    { id: "v9", type: "value", name: "Puma", slug: "puma", parentId: "a3", sortIndex: 2, level: 2 },
+    { id: "g2", type: "group", name: "Brand Info", parentId: null, sortIndex: 1, level: 0 },
+    {
+      id: "a3",
+      type: "attribute",
+      name: "Brand",
+      displayType: "dropdown",
+      parentId: "g2",
+      sortIndex: 0,
+      level: 1,
+      values: [
+        { id: "v7", name: "Nike", slug: "nike", sortIndex: 0 },
+        { id: "v8", name: "Adidas", slug: "adidas", sortIndex: 1 },
+        { id: "v9", name: "Puma", slug: "puma", sortIndex: 2 },
+      ],
+    },
 
     // Group: Specifications
-    { id: "g3", type: "group", name: "Specifications", slug: "", parentId: null, sortIndex: 2, level: 0 },
-    { id: "a4", type: "attribute", name: "Country of Origin", slug: "country-of-origin", displayType: "dropdown", parentId: "g3", sortIndex: 0, level: 1 },
-    { id: "v10", type: "value", name: "China", slug: "china", parentId: "a4", sortIndex: 0, level: 2 },
-    { id: "v11", type: "value", name: "Vietnam", slug: "vietnam", parentId: "a4", sortIndex: 1, level: 2 },
-    { id: "v12", type: "value", name: "Italy", slug: "italy", parentId: "a4", sortIndex: 2, level: 2 },
+    { id: "g3", type: "group", name: "Specifications", parentId: null, sortIndex: 2, level: 0 },
+    {
+      id: "a4",
+      type: "attribute",
+      name: "Country of Origin",
+      displayType: "dropdown",
+      parentId: "g3",
+      sortIndex: 0,
+      level: 1,
+      values: [
+        { id: "v10", name: "China", slug: "china", sortIndex: 0 },
+        { id: "v11", name: "Vietnam", slug: "vietnam", sortIndex: 1 },
+        { id: "v12", name: "Italy", slug: "italy", sortIndex: 2 },
+      ],
+    },
   ];
 };
 
-
 // ============================================================================
-// Utility: Get all descendants of a row
+// Sortable Value Tag Component
 // ============================================================================
 
-const getDescendantIds = (rowId: string, allRows: IAttributeRow[]): string[] => {
-  const directChildren = allRows.filter((r) => r.parentId === rowId);
-  const allDescendants: string[] = [];
+interface ISortableValueTagProps {
+  value: IAttributeValue;
+  onEdit: (value: IAttributeValue) => void;
+}
 
-  for (const child of directChildren) {
-    allDescendants.push(child.id);
-    allDescendants.push(...getDescendantIds(child.id, allRows));
-  }
+const SortableValueTag = ({ value, onEdit }: ISortableValueTagProps) => {
+  const { styles, cx } = useStyles();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(value.name);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  return allDescendants;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: value.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditName(value.name);
+    setIsEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const handleSave = () => {
+    const trimmed = editName.trim();
+    if (trimmed && trimmed !== value.name) {
+      const newSlug = trimmed.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      onEdit({ ...value, name: trimmed, slug: newSlug });
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setEditName(value.name);
+      setIsEditing(false);
+    } else if (e.key === "Backspace" && editName === "") {
+      // Delete value when backspace on empty input
+      setIsEditing(false);
+      onEdit({ ...value, name: "" }); // Signal deletion with empty name
+    }
+  };
+
+  return (
+    <Tag
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...(isEditing ? {} : listeners)}
+      className={cx(
+        styles.valueTag,
+        isDragging && styles.valueTagDragging
+      )}
+      onDoubleClick={handleDoubleClick}
+      color={isEditing ? "processing" : undefined}
+    >
+      <span className={styles.valueDragHandle}>
+        <HolderOutlined />
+      </span>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          className={styles.valueEditInput}
+          autoFocus
+        />
+      ) : (
+        value.name
+      )}
+    </Tag>
+  );
 };
 
-// Remove empty parent groups/attributes after moving children
-const removeEmptyParents = (rows: IAttributeRow[], oldParentId: string | null): IAttributeRow[] => {
-  if (!oldParentId) return rows;
+// ============================================================================
+// Values Cell Renderer
+// ============================================================================
 
-  const oldParent = rows.find((r) => r.id === oldParentId);
-  if (!oldParent) return rows;
+interface IValuesCellRendererParams extends ICellRendererParams<IAttributeRow> {
+  onUpdateValues: (attributeId: string, values: IAttributeValue[]) => void;
+  onAddValue: (attributeId: string, name: string) => void;
+}
 
-  // Check if old parent still has children
-  const hasChildren = rows.some((r) => r.parentId === oldParentId);
-  if (hasChildren) return rows;
+const ValuesCellRenderer = (params: IValuesCellRendererParams) => {
+  const { styles } = useStyles();
+  const data = params.data;
+  const [newValueName, setNewValueName] = useState("");
+  const [activeValueId, setActiveValueId] = useState<string | null>(null);
 
-  // Remove empty parent and check its parent recursively
-  const grandParentId = oldParent.parentId;
-  const filtered = rows.filter((r) => r.id !== oldParentId);
-  return removeEmptyParents(filtered, grandParentId);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  if (!data || data.type !== "attribute" || !data.values) {
+    return null;
+  }
+
+  const handleAddValue = () => {
+    const trimmed = newValueName.trim();
+    if (trimmed) {
+      params.onAddValue(data.id, trimmed);
+      setNewValueName("");
+    }
+  };
+
+  const handleEditValue = (updated: IAttributeValue) => {
+    // Empty name signals deletion
+    if (updated.name === "") {
+      const newValues = data.values!.filter((v) => v.id !== updated.id);
+      params.onUpdateValues(data.id, newValues);
+    } else {
+      const newValues = data.values!.map((v) => (v.id === updated.id ? updated : v));
+      params.onUpdateValues(data.id, newValues);
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveValueId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveValueId(null);
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = data.values!.findIndex((v) => v.id === active.id);
+      const newIndex = data.values!.findIndex((v) => v.id === over.id);
+      const newValues = arrayMove(data.values!, oldIndex, newIndex).map((v, idx) => ({
+        ...v,
+        sortIndex: idx,
+      }));
+      params.onUpdateValues(data.id, newValues);
+    }
+  };
+
+  const activeValue = data.values.find((v) => v.id === activeValueId);
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={data.values.map((v) => v.id)}
+        strategy={horizontalListSortingStrategy}
+      >
+        <div className={styles.valuesContainer}>
+          {data.values.map((value) => (
+            <SortableValueTag
+              key={value.id}
+              value={value}
+              onEdit={handleEditValue}
+            />
+          ))}
+          <Input
+            size="small"
+            placeholder="Add..."
+            value={newValueName}
+            onChange={(e) => setNewValueName(e.target.value)}
+            onBlur={handleAddValue}
+            onPressEnter={handleAddValue}
+            className={styles.addValueInput}
+          />
+        </div>
+      </SortableContext>
+
+      <DragOverlay>
+        {activeValue && (
+          <Tag className={styles.valueTag} style={{ cursor: "grabbing", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+            <span className={styles.valueDragHandle}>
+              <HolderOutlined />
+            </span>
+            {activeValue.name}
+          </Tag>
+        )}
+      </DragOverlay>
+    </DndContext>
+  );
 };
 
 // ============================================================================
@@ -215,7 +480,8 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
   if (!data) return null;
 
   const { expandedIds, onToggleExpand, allRows } = params;
-  const hasChildren = allRows.some((r) => r.parentId === data.id);
+  // Only groups can have children (attributes)
+  const hasChildren = data.type === "group" && allRows.some((r) => r.parentId === data.id);
   const isExpanded = expandedIds.has(data.id);
 
   const getIcon = () => {
@@ -228,8 +494,6 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
         );
       case "attribute":
         return <TagsOutlined className={styles.attributeIcon} />;
-      case "value":
-        return <TagOutlined className={styles.valueIcon} />;
       default:
         return null;
     }
@@ -263,7 +527,7 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
 
 interface IActionsCellRendererParams extends ICellRendererParams<IAttributeRow> {
   onDelete: (id: string) => void;
-  onAdd: (parentId: string, type: RowType) => void;
+  onAdd: (parentId: string) => void;
 }
 
 const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
@@ -277,10 +541,6 @@ const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
     menuItems.push({ key: "add-attribute", label: "Add Attribute", icon: <PlusOutlined /> });
   }
 
-  if (data.type === "attribute") {
-    menuItems.push({ key: "add-value", label: "Add Value", icon: <PlusOutlined /> });
-  }
-
   menuItems.push({ key: "delete", label: "Delete", icon: <DeleteOutlined />, danger: true });
 
   return (
@@ -292,9 +552,7 @@ const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
             if (key === "delete") {
               params.onDelete(data.id);
             } else if (key === "add-attribute") {
-              params.onAdd(data.id, "attribute");
-            } else if (key === "add-value") {
-              params.onAdd(data.id, "value");
+              params.onAdd(data.id);
             }
           },
         }}
@@ -317,16 +575,16 @@ export const EditAttributesModal = () => {
 
   const [allRows, setAllRows] = useState<IAttributeRow[]>(createMockData);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
-    // Initially expand all groups and attributes
+    // Initially expand all groups
     const initial = createMockData();
-    return new Set(initial.filter((r) => r.type === "group" || r.type === "attribute").map((r) => r.id));
+    return new Set(initial.filter((r) => r.type === "group").map((r) => r.id));
   });
   const expandedBeforeDragRef = useRef<Set<string> | null>(null);
   const draggingRowIdRef = useRef<string | null>(null);
 
   const markDirty = useCallback(() => setDirty(true), [setDirty]);
 
-  // Filter visible rows based on expanded state
+  // Filter visible rows based on expanded state (only groups can be collapsed)
   const visibleRows = useMemo(() => {
     const result: IAttributeRow[] = [];
 
@@ -338,8 +596,8 @@ export const EditAttributesModal = () => {
       for (const child of children) {
         result.push(child);
 
-        // If this row is expanded, add its children
-        if (expandedIds.has(child.id)) {
+        // If this is a group and it's expanded, add its attributes
+        if (child.type === "group" && expandedIds.has(child.id)) {
           addRowAndChildren(child.id);
         }
       }
@@ -363,43 +621,29 @@ export const EditAttributesModal = () => {
     });
   }, []);
 
-  // Handle row drag enter - collapse groups/attributes for easier reordering
+  // Handle row drag enter - collapse groups for easier reordering
   const handleRowDragEnter = useCallback((event: RowDragEnterEvent<IAttributeRow>) => {
     const movingData = event.node?.data;
     if (!movingData) return;
 
-    // Skip if we're already tracking this drag (use ref for sync check)
     if (draggingRowIdRef.current === movingData.id) return;
 
     draggingRowIdRef.current = movingData.id;
-
-    // Save current expanded state before collapsing
     expandedBeforeDragRef.current = new Set(expandedIds);
 
     if (movingData.type === "group") {
-      // When dragging a group - collapse ALL groups (including the one being dragged)
+      // When dragging a group - collapse ALL groups
       const allGroups = allRows.filter((r) => r.type === "group");
-
       setExpandedIds((prev) => {
         const next = new Set(prev);
         allGroups.forEach((r) => next.delete(r.id));
         return next;
       });
-    } else if (movingData.type === "attribute") {
-      // When dragging an attribute - collapse ALL attributes in ALL groups
-      const allAttributes = allRows.filter((r) => r.type === "attribute");
-
-      setExpandedIds((prev) => {
-        const next = new Set(prev);
-        allAttributes.forEach((r) => next.delete(r.id));
-        return next;
-      });
     }
   }, [expandedIds, allRows]);
 
-  // Handle row drag end - reorder or move to different parent
+  // Handle row drag end
   const handleRowDragEnd = useCallback((event: RowDragEndEvent<IAttributeRow>) => {
-    // Restore expanded state
     if (expandedBeforeDragRef.current) {
       setExpandedIds(expandedBeforeDragRef.current);
       expandedBeforeDragRef.current = null;
@@ -414,10 +658,8 @@ export const EditAttributesModal = () => {
     const movingData = movingNode.data;
     const overData = overNode.data;
 
-
     // Handle moving attribute to a different group
     if (movingData.type === "attribute" && overData.type === "group") {
-      const oldParentId = movingData.parentId;
       setAllRows((prev) => {
         const newParentId = overData.id;
         const attributesInNewParent = prev.filter(
@@ -425,21 +667,18 @@ export const EditAttributesModal = () => {
         );
         const newSortIndex = attributesInNewParent.length;
 
-        const updated = prev.map((r) => {
+        return prev.map((r) => {
           if (r.id === movingData.id) {
             return { ...r, parentId: newParentId, sortIndex: newSortIndex };
           }
           return r;
         });
-
-        // Remove empty parent group if no children left
-        return removeEmptyParents(updated, oldParentId);
       });
       markDirty();
       return;
     }
 
-    // Handle moving attribute before/after another attribute (possibly in different group)
+    // Handle moving attribute before/after another attribute
     if (movingData.type === "attribute" && overData.type === "attribute") {
       const newParentId = overData.parentId;
       const oldParentId = movingData.parentId;
@@ -447,7 +686,6 @@ export const EditAttributesModal = () => {
 
       setAllRows((prev) => {
         if (isSameParent) {
-          // Reorder within same group
           const siblings = prev
             .filter((r) => r.parentId === newParentId && r.type === "attribute")
             .sort((a, b) => a.sortIndex - b.sortIndex);
@@ -471,7 +709,6 @@ export const EditAttributesModal = () => {
             return r;
           });
         } else {
-          // Move to different group
           const targetSiblings = prev
             .filter((r) => r.parentId === newParentId && r.type === "attribute")
             .sort((a, b) => a.sortIndex - b.sortIndex);
@@ -479,20 +716,15 @@ export const EditAttributesModal = () => {
           const overIndex = targetSiblings.findIndex((r) => r.id === overData.id);
           const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
 
-          // Update moved attribute and recalculate sort indices
-          const updated = prev.map((r) => {
+          return prev.map((r) => {
             if (r.id === movingData.id) {
               return { ...r, parentId: newParentId, sortIndex: newSortIndex };
             }
-            // Shift existing attributes in target group
             if (r.parentId === newParentId && r.type === "attribute" && r.sortIndex >= newSortIndex) {
               return { ...r, sortIndex: r.sortIndex + 1 };
             }
             return r;
           });
-
-          // Remove empty parent group if no children left
-          return removeEmptyParents(updated, oldParentId);
         }
       });
       markDirty();
@@ -526,126 +758,46 @@ export const EditAttributesModal = () => {
         });
       });
       markDirty();
-      return;
-    }
-
-    // Handle moving value to a different attribute
-    if (movingData.type === "value" && overData.type === "attribute") {
-      const oldParentId = movingData.parentId;
-      setAllRows((prev) => {
-        const newParentId = overData.id;
-        const valuesInNewParent = prev.filter(
-          (r) => r.parentId === newParentId && r.type === "value"
-        );
-        const newSortIndex = valuesInNewParent.length;
-
-        const updated = prev.map((r) => {
-          if (r.id === movingData.id) {
-            return { ...r, parentId: newParentId, sortIndex: newSortIndex };
-          }
-          return r;
-        });
-
-        // Remove empty parent attribute if no children left
-        return removeEmptyParents(updated, oldParentId);
-      });
-      markDirty();
-      return;
-    }
-
-    // Handle moving value before/after another value (possibly in different attribute)
-    if (movingData.type === "value" && overData.type === "value") {
-      const newParentId = overData.parentId;
-      const oldParentId = movingData.parentId;
-      const isSameParent = oldParentId === newParentId;
-
-      setAllRows((prev) => {
-        if (isSameParent) {
-          // Reorder within same attribute
-          const siblings = prev
-            .filter((r) => r.parentId === newParentId && r.type === "value")
-            .sort((a, b) => a.sortIndex - b.sortIndex);
-
-          const movingIndex = siblings.findIndex((r) => r.id === movingData.id);
-          const overIndex = siblings.findIndex((r) => r.id === overData.id);
-
-          if (movingIndex === -1 || overIndex === -1 || movingIndex === overIndex) return prev;
-
-          const reordered = [...siblings];
-          const [removed] = reordered.splice(movingIndex, 1);
-          reordered.splice(overIndex, 0, removed);
-
-          const updatedIds = new Map<string, number>();
-          reordered.forEach((r, idx) => updatedIds.set(r.id, idx));
-
-          return prev.map((r) => {
-            if (updatedIds.has(r.id)) {
-              return { ...r, sortIndex: updatedIds.get(r.id)! };
-            }
-            return r;
-          });
-        } else {
-          // Move to different attribute
-          const targetSiblings = prev
-            .filter((r) => r.parentId === newParentId && r.type === "value")
-            .sort((a, b) => a.sortIndex - b.sortIndex);
-
-          const overIndex = targetSiblings.findIndex((r) => r.id === overData.id);
-          const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
-
-          const updated = prev.map((r) => {
-            if (r.id === movingData.id) {
-              return { ...r, parentId: newParentId, sortIndex: newSortIndex };
-            }
-            if (r.parentId === newParentId && r.type === "value" && r.sortIndex >= newSortIndex) {
-              return { ...r, sortIndex: r.sortIndex + 1 };
-            }
-            return r;
-          });
-
-          // Remove empty parent attribute if no children left
-          return removeEmptyParents(updated, oldParentId);
-        }
-      });
-      markDirty();
     }
   }, [markDirty]);
 
-
   const handleDelete = useCallback((id: string) => {
     setAllRows((prev) => {
-      const descendantIds = getDescendantIds(id, prev);
-      const idsToDelete = new Set([id, ...descendantIds]);
-      return prev.filter((r) => !idsToDelete.has(r.id));
+      const row = prev.find((r) => r.id === id);
+      if (!row) return prev;
+
+      if (row.type === "group") {
+        // Delete group and all its attributes
+        return prev.filter((r) => r.id !== id && r.parentId !== id);
+      }
+      // Delete just the attribute
+      return prev.filter((r) => r.id !== id);
     });
     markDirty();
   }, [markDirty]);
 
-  const handleAdd = useCallback((parentId: string, type: RowType) => {
+  const handleAddAttribute = useCallback((parentId: string) => {
     setAllRows((prev) => {
       const parent = prev.find((r) => r.id === parentId);
-      if (!parent) return prev;
+      if (!parent || parent.type !== "group") return prev;
 
-      const newId = `${type[0]}-${Date.now()}`;
-      const newName = type === "attribute" ? "New Attribute" : "New Value";
-      const newSlug = newName.toLowerCase().replace(/\s+/g, "-");
-      const level = parent.level + 1;
+      const newId = `a-${Date.now()}`;
+      const newName = "New Attribute";
 
       const newRow: IAttributeRow = {
         id: newId,
-        type,
+        type: "attribute",
         name: newName,
-        slug: newSlug,
-        displayType: type === "attribute" ? "text" : undefined,
+        displayType: "text",
         parentId,
-        sortIndex: prev.filter((r) => r.parentId === parentId && r.type === type).length,
-        level,
+        sortIndex: prev.filter((r) => r.parentId === parentId && r.type === "attribute").length,
+        level: 1,
+        values: [],
       };
 
       return [...prev, newRow];
     });
 
-    // Expand parent to show new item
     setExpandedIds((prev) => new Set([...prev, parentId]));
     markDirty();
   }, [markDirty]);
@@ -658,7 +810,6 @@ export const EditAttributesModal = () => {
       id: newId,
       type: "group",
       name: newName,
-      slug: "",
       parentId: null,
       sortIndex: allRows.filter((r) => r.type === "group").length,
       level: 0,
@@ -668,6 +819,37 @@ export const EditAttributesModal = () => {
     setExpandedIds((prev) => new Set([...prev, newId]));
     markDirty();
   }, [allRows, markDirty]);
+
+  const handleUpdateValues = useCallback((attributeId: string, values: IAttributeValue[]) => {
+    setAllRows((prev) =>
+      prev.map((r) => {
+        if (r.id === attributeId) {
+          return { ...r, values };
+        }
+        return r;
+      })
+    );
+    markDirty();
+  }, [markDirty]);
+
+  const handleAddValue = useCallback((attributeId: string, name: string) => {
+    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    setAllRows((prev) =>
+      prev.map((r) => {
+        if (r.id === attributeId) {
+          const newValue: IAttributeValue = {
+            id: `v-${Date.now()}`,
+            name,
+            slug,
+            sortIndex: (r.values || []).length,
+          };
+          return { ...r, values: [...(r.values || []), newValue] };
+        }
+        return r;
+      })
+    );
+    markDirty();
+  }, [markDirty]);
 
   const handleCellValueChanged = useCallback((event: CellValueChangedEvent<IAttributeRow>) => {
     const { data, colDef, newValue } = event;
@@ -685,7 +867,6 @@ export const EditAttributesModal = () => {
     markDirty();
   }, [markDirty]);
 
-
   const getRowClass = useCallback((params: { data: IAttributeRow | undefined }) => {
     const data = params.data;
     if (!data) return "";
@@ -695,15 +876,9 @@ export const EditAttributesModal = () => {
         return "row-group";
       case "attribute":
         return "row-attribute";
-      case "value":
-        return "row-value";
       default:
         return "";
     }
-  }, []);
-
-  const isSlugEditable = useCallback((params: { data: IAttributeRow | undefined }) => {
-    return params.data?.type !== "group";
   }, []);
 
   const columnDefs = useMemo<ColDef<IAttributeRow>[]>(
@@ -711,8 +886,8 @@ export const EditAttributesModal = () => {
       {
         field: "name",
         headerName: "Name",
-        flex: 2,
-        minWidth: 300,
+        flex: 1,
+        minWidth: 200,
         editable: true,
         resizable: true,
         rowDrag: true,
@@ -724,13 +899,16 @@ export const EditAttributesModal = () => {
         },
       },
       {
-        field: "slug",
-        headerName: "Slug",
-        flex: 1,
-        minWidth: 150,
-        editable: isSlugEditable,
-        cellStyle: { fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 12 },
-        valueGetter: (params) => params.data?.slug ?? "",
+        headerName: "Values",
+        flex: 2,
+        minWidth: 300,
+        cellRenderer: ValuesCellRenderer,
+        cellRendererParams: {
+          onUpdateValues: handleUpdateValues,
+          onAddValue: handleAddValue,
+        },
+        sortable: false,
+        filter: false,
       },
       {
         headerName: "",
@@ -738,13 +916,13 @@ export const EditAttributesModal = () => {
         cellRenderer: ActionsCellRenderer,
         cellRendererParams: {
           onDelete: handleDelete,
-          onAdd: handleAdd,
+          onAdd: handleAddAttribute,
         },
         sortable: false,
         filter: false,
       },
     ],
-    [handleDelete, handleAdd, handleToggleExpand, isSlugEditable, expandedIds, allRows]
+    [handleDelete, handleAddAttribute, handleToggleExpand, handleUpdateValues, handleAddValue, expandedIds, allRows]
   );
 
   const defaultColDef = useMemo<ColDef>(

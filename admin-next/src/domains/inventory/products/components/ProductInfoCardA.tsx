@@ -1084,6 +1084,25 @@ export const ProductInfoCardA = ({
         </div>
       </Section>
 
+      {/* ATTRIBUTES */}
+      {product.attributes?.length > 0 && (
+        <Section title="Attributes" onEdit={() => openEditAttributesModal({ productId: product.id })}>
+          <Descriptions
+            size="small"
+            column={1}
+            bordered
+            colon={false}
+            className={styles.attributesDescriptions}
+          >
+            {product.attributes.map((attr) => (
+              <Descriptions.Item key={attr.id} label={attr.title}>
+                {attr.features?.map((f) => f.title).join(", ") || "—"}
+              </Descriptions.Item>
+            ))}
+          </Descriptions>
+        </Section>
+      )}
+
       {/* OPTIONS (variable products) */}
       {product.isVariableProduct && product.options?.length > 0 && (
         <Section title="Options" onEdit={() => openEditOptionsModal({ productId: product.id })}>
@@ -1409,25 +1428,6 @@ export const ProductInfoCardA = ({
               centered
             />
           </Flex>
-        </Section>
-      )}
-
-      {/* ATTRIBUTES */}
-      {product.attributes?.length > 0 && (
-        <Section title="Attributes" onEdit={() => openEditAttributesModal({ productId: product.id })}>
-          <Descriptions
-            size="small"
-            column={1}
-            bordered
-            colon={false}
-            className={styles.attributesDescriptions}
-          >
-            {product.attributes.map((attr) => (
-              <Descriptions.Item key={attr.id} label={attr.title}>
-                {attr.features?.map((f) => f.title).join(", ") || "—"}
-              </Descriptions.Item>
-            ))}
-          </Descriptions>
         </Section>
       )}
 
