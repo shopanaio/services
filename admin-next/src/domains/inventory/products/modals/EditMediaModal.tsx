@@ -11,6 +11,7 @@ import {
   Tooltip,
   Empty,
   Dropdown,
+  Segmented,
 } from "antd";
 import {
   PlusOutlined,
@@ -19,6 +20,9 @@ import {
   StarFilled,
   MoreOutlined,
   EyeOutlined,
+  AppstoreOutlined,
+  UnorderedListOutlined,
+  HolderOutlined,
 } from "@ant-design/icons";
 import type { UploadFile, UploadProps } from "antd";
 import {
@@ -37,6 +41,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   rectSortingStrategy,
+  verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -195,6 +200,78 @@ const useStyles = createStyles(({ token }) => ({
   bulkActions: {
     display: "flex",
     gap: 8,
+  },
+  // List view styles
+  listContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  listItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: 8,
+    borderRadius: 8,
+    border: `1px solid ${token.colorBorderSecondary}`,
+    background: token.colorBgContainer,
+    cursor: "grab",
+    "&:hover": {
+      borderColor: token.colorPrimary,
+      background: token.colorBgLayout,
+    },
+  },
+  listItemCover: {
+    borderColor: token.colorPrimary,
+    borderWidth: 2,
+  },
+  listItemDragging: {
+    opacity: 0.5,
+  },
+  listItemImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 6,
+    objectFit: "cover",
+    flexShrink: 0,
+  },
+  listItemInfo: {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  listItemName: {
+    fontSize: 13,
+    fontWeight: 500,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  listItemMeta: {
+    fontSize: 12,
+    color: token.colorTextSecondary,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
+  listItemActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 0,
+  },
+  dragHandle: {
+    cursor: "grab",
+    color: token.colorTextSecondary,
+    padding: 4,
+    "&:hover": {
+      color: token.colorText,
+    },
+  },
+  viewSwitcher: {
+    marginLeft: 8,
   },
 }));
 
@@ -384,6 +461,190 @@ const SortableMediaItem = ({
 };
 
 // ============================================================================
+// SortableListItem Component
+// ============================================================================
+
+interface ISortableListItemProps {
+  item: IMediaFile;
+  isCover: boolean;
+  onSetCover: (item: IMediaFile) => void;
+  onDelete: (id: string) => void;
+  onPreview: (url: string) => void;
+}
+
+const SortableListItem = ({
+  item,
+  isCover,
+  onSetCover,
+  onDelete,
+  onPreview,
+}: ISortableListItemProps) => {
+  const { styles, cx } = useStyles();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cx(
+        styles.listItem,
+        isCover && styles.listItemCover,
+        isDragging && styles.listItemDragging
+      )}
+    >
+      <div className={styles.dragHandle}>
+        <HolderOutlined />
+      </div>
+
+      <img src={item.url} alt={item.name} className={styles.listItemImage} />
+
+      <div className={styles.listItemInfo}>
+        <Typography.Text className={styles.listItemName}>
+          {item.name}
+        </Typography.Text>
+        <div className={styles.listItemMeta}>
+          <span>{formatFileSize(item.size)}</span>
+          <span>{item.ext.toUpperCase()}</span>
+          {isCover && (
+            <Typography.Text type="success" style={{ fontSize: 12 }}>
+              <StarFilled style={{ marginRight: 4 }} />
+              Cover
+            </Typography.Text>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.listItemActions}>
+        <Tooltip title="Preview">
+          <Button
+            size="small"
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview(item.url);
+            }}
+          />
+        </Tooltip>
+
+        {!isCover && (
+          <Tooltip title="Set as cover">
+            <Button
+              size="small"
+              type="text"
+              icon={<StarOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetCover(item);
+              }}
+            />
+          </Tooltip>
+        )}
+
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "preview",
+                label: "Preview",
+                icon: <EyeOutlined />,
+                onClick: () => onPreview(item.url),
+              },
+              ...(isCover
+                ? []
+                : [
+                    {
+                      key: "setCover",
+                      label: "Set as cover",
+                      icon: <StarOutlined />,
+                      onClick: () => onSetCover(item),
+                    },
+                  ]),
+              { type: "divider" as const },
+              {
+                key: "delete",
+                label: "Delete",
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => onDelete(item.id),
+              },
+            ],
+          }}
+          trigger={["click"]}
+        >
+          <Button
+            size="small"
+            type="text"
+            icon={<MoreOutlined />}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </Dropdown>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// List Item Preview (for DragOverlay)
+// ============================================================================
+
+interface IListItemPreviewProps {
+  item: IMediaFile;
+  isCover: boolean;
+}
+
+const ListItemPreview = ({ item, isCover }: IListItemPreviewProps) => {
+  const { styles, cx } = useStyles();
+
+  return (
+    <div
+      className={cx(styles.listItem, isCover && styles.listItemCover)}
+      style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
+    >
+      <div className={styles.dragHandle}>
+        <HolderOutlined />
+      </div>
+      <img src={item.url} alt={item.name} className={styles.listItemImage} />
+      <div className={styles.listItemInfo}>
+        <Typography.Text className={styles.listItemName}>
+          {item.name}
+        </Typography.Text>
+        <div className={styles.listItemMeta}>
+          <span>{formatFileSize(item.size)}</span>
+          <span>{item.ext.toUpperCase()}</span>
+          {isCover && (
+            <Typography.Text type="success" style={{ fontSize: 12 }}>
+              <StarFilled style={{ marginRight: 4 }} />
+              Cover
+            </Typography.Text>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// Types
+// ============================================================================
+
+type ViewMode = "grid" | "list";
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -402,9 +663,11 @@ export const EditMediaModal = () => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState<string>("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const cover = gallery[0] || null;
-  const activeUrl = gallery.find((it) => it.id === activeId)?.url;
+  const activeItem = gallery.find((it) => it.id === activeId);
+  const activeIndex = activeItem ? gallery.indexOf(activeItem) : -1;
 
   const markDirty = useCallback(() => {
     setDirty(true);
@@ -540,9 +803,20 @@ export const EditMediaModal = () => {
           <PaperHeader
             title="Product Media"
             extra={
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {gallery.length} files
-              </Typography.Text>
+              <Flex align="center" gap={12}>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {gallery.length} files
+                </Typography.Text>
+                <Segmented
+                  size="small"
+                  value={viewMode}
+                  onChange={(value) => setViewMode(value as ViewMode)}
+                  options={[
+                    { value: "grid", icon: <AppstoreOutlined /> },
+                    { value: "list", icon: <UnorderedListOutlined /> },
+                  ]}
+                />
+              </Flex>
             }
           />
 
@@ -552,22 +826,23 @@ export const EditMediaModal = () => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className={styles.mediaGrid}>
-              {gallery.length === 0 && (
-                <div className={styles.emptyContainer}>
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No media files yet"
-                  />
-                </div>
-              )}
+            {gallery.length === 0 && (
+              <div className={styles.emptyContainer}>
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No media files yet"
+                />
+              </div>
+            )}
 
-              <SortableContext
-                items={gallery.map((it) => it.id)}
-                strategy={rectSortingStrategy}
-              >
-                {gallery.map((item, idx) => (
-                  <SortableMediaItem
+            {gallery.length > 0 && viewMode === "grid" && (
+              <div className={styles.mediaGrid}>
+                <SortableContext
+                  items={gallery.map((it) => it.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  {gallery.map((item, idx) => (
+                    <SortableMediaItem
                     key={item.id}
                     item={item}
                     isCover={idx === 0}
@@ -579,24 +854,62 @@ export const EditMediaModal = () => {
                 ))}
               </SortableContext>
 
-              {/* Upload area */}
-              <Upload
-                accept="image/*,video/*"
-                multiple
-                showUploadList={false}
-                customRequest={customUpload}
-                onChange={handleUploadChange}
-              >
-                <div className={styles.uploadArea}>
-                  <PlusOutlined className={styles.uploadIcon} />
-                  <Typography.Text className={styles.uploadText}>
-                    Upload
-                  </Typography.Text>
-                </div>
-              </Upload>
-            </div>
+                {/* Upload area */}
+                <Upload
+                  accept="image/*,video/*"
+                  multiple
+                  showUploadList={false}
+                  customRequest={customUpload}
+                  onChange={handleUploadChange}
+                >
+                  <div className={styles.uploadArea}>
+                    <PlusOutlined className={styles.uploadIcon} />
+                    <Typography.Text className={styles.uploadText}>
+                      Upload
+                    </Typography.Text>
+                  </div>
+                </Upload>
+              </div>
+            )}
 
-            {activeUrl ? <DragOverlay /> : null}
+            {gallery.length > 0 && viewMode === "list" && (
+              <div className={styles.listContainer}>
+                <SortableContext
+                  items={gallery.map((it) => it.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {gallery.map((item, idx) => (
+                    <SortableListItem
+                      key={item.id}
+                      item={item}
+                      isCover={idx === 0}
+                      onSetCover={handleSetCover}
+                      onDelete={handleDelete}
+                      onPreview={handlePreview}
+                    />
+                  ))}
+                </SortableContext>
+
+                {/* Upload button for list view */}
+                <Upload
+                  accept="image/*,video/*"
+                  multiple
+                  showUploadList={false}
+                  customRequest={customUpload}
+                  onChange={handleUploadChange}
+                >
+                  <Button icon={<PlusOutlined />} style={{ width: "100%" }}>
+                    Upload files
+                  </Button>
+                </Upload>
+              </div>
+            )}
+
+            <DragOverlay>
+              {activeItem && viewMode === "list" ? (
+                <ListItemPreview item={activeItem} isCover={activeIndex === 0} />
+              ) : null}
+            </DragOverlay>
           </DndContext>
         </Paper>
       </div>
