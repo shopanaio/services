@@ -100,7 +100,7 @@ export const EditTitleModal = () => {
       }
     >
       <Paper>
-        <PaperHeader title="Product Title" bordered={false} />
+        <PaperHeader title="Product Title" />
         <form>
           <div className={styles.formItem}>
             <Typography.Text strong className={styles.label}>
@@ -138,7 +138,7 @@ export const EditTitleModal = () => {
                 <Input
                   {...field}
                   placeholder="product-handle"
-                  prefix="/"
+                  addonBefore="/"
                   status={errors.handle ? "error" : undefined}
                 />
               )}

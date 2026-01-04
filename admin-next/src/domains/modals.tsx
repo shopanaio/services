@@ -27,5 +27,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit description modal
+    {
+      type: 'product-edit-description',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditDescriptionModal').then(
+          (m) => m.EditDescriptionModal
+        )
+      ),
+    },
   ];
 }

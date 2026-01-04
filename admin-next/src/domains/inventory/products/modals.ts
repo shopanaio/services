@@ -8,6 +8,7 @@ import type { IModalStackPayload } from '@/layouts/modals';
 export const PRODUCT_MODAL_TYPE = 'product';
 export const PRODUCT_CREATE_MODAL_TYPE = 'product-create';
 export const PRODUCT_EDIT_TITLE_MODAL_TYPE = 'product-edit-title';
+export const PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE = 'product-edit-description';
 
 // ============================================================================
 // Payload Interfaces
@@ -29,6 +30,12 @@ export interface IProductEditTitleModalPayload extends IModalStackPayload {
   onSave?: (values: { title: string; handle: string }) => void;
 }
 
+export interface IProductEditDescriptionModalPayload extends IModalStackPayload {
+  description: string;
+  excerpt: string;
+  onSave?: (values: { description: string; excerpt: string }) => void;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -38,6 +45,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_MODAL_TYPE]: IProductModalPayload;
     [PRODUCT_CREATE_MODAL_TYPE]: IProductCreateModalPayload;
     [PRODUCT_EDIT_TITLE_MODAL_TYPE]: IProductEditTitleModalPayload;
+    [PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE]: IProductEditDescriptionModalPayload;
   }
 }
 
@@ -77,3 +85,14 @@ export const useProductCreateModal = createModalStackHook(PRODUCT_CREATE_MODAL_T
  * ```
  */
 export const useProductEditTitleModal = createModalStackHook(PRODUCT_EDIT_TITLE_MODAL_TYPE);
+
+/**
+ * Hook to open product edit description modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useProductEditDescriptionModal();
+ * push({ description: 'Product desc', excerpt: 'Short excerpt', onSave: (values) => console.log(values) });
+ * ```
+ */
+export const useProductEditDescriptionModal = createModalStackHook(PRODUCT_EDIT_DESCRIPTION_MODAL_TYPE);

@@ -1,8 +1,9 @@
 import { createStyles } from 'antd-style';
 import { Button, Typography, Tabs, Dropdown, Flex } from 'antd';
 import { WarningOutlined, MoreOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { Paper } from './Paper';
-import { IProduct } from '../mocks/types';
+import { Paper } from '../Paper';
+import { IProduct } from '../../mocks/types';
+import { useProductEditDescriptionModal } from '../../modals';
 
 // ============================================================================
 // Styles
@@ -89,8 +90,21 @@ export const ProductContentTabs = ({
   onEditSection,
 }: IProductContentTabsProps) => {
   const { styles } = useStyles();
+  const { push: openEditDescriptionModal } = useProductEditDescriptionModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
+
+  const handleEditDescription = () => {
+    const descriptionText = getDescriptionPreview() || '';
+    openEditDescriptionModal({
+      description: descriptionText,
+      excerpt: product.excerpt || '',
+      onSave: (values) => {
+        console.log('Save content:', values);
+        // TODO: implement actual save logic
+      },
+    });
+  };
 
   const getDescriptionPreview = () => {
     if (!product.description) return null;
@@ -125,8 +139,7 @@ export const ProductContentTabs = ({
             <Dropdown
               menu={{
                 items: [
-                  { key: 'description', label: 'Edit description', onClick: () => handleEdit('description') },
-                  { key: 'excerpt', label: 'Edit excerpt', onClick: () => handleEdit('excerpt') },
+                  { key: 'edit', label: 'Edit', onClick: handleEditDescription },
                 ],
               }}
               trigger={['click']}
@@ -156,7 +169,7 @@ export const ProductContentTabs = ({
                 <Button
                   type="link"
                   size="small"
-                  onClick={() => handleEdit('description')}
+                  onClick={handleEditDescription}
                   className={styles.addButton}
                 >
                   Add now
@@ -183,7 +196,7 @@ export const ProductContentTabs = ({
                 <Button
                   type="link"
                   size="small"
-                  onClick={() => handleEdit('excerpt')}
+                  onClick={handleEditDescription}
                   className={styles.addButton}
                 >
                   Add now
