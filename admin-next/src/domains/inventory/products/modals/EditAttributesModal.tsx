@@ -421,160 +421,60 @@ export const EditAttributesModal = () => {
     expandedBeforeDragRef.current = null;
 
     const movingNode = event.node;
-    const overNode = event.overNode;
+    const movingData = movingNode?.data;
 
-    // Restore expanded state after drag
+    if (!movingData) {
+      if (savedExpandedIds) setExpandedIds(savedExpandedIds);
+      return;
+    }
+
+    // Get the new order from the grid API
+    const newOrderedRows: IAttributeRow[] = [];
+    event.api.forEachNodeAfterFilterAndSort((node) => {
+      if (node.data) newOrderedRows.push(node.data);
+    });
+
+    // Update sortIndex based on the new visual order
+    setAllRows((prev) => {
+      // Build new sortIndex for groups and attributes separately
+      const groupSortIndexMap = new Map<string, number>();
+      const attrSortIndexByParent = new Map<string, Map<string, number>>();
+
+      let groupIndex = 0;
+      for (const row of newOrderedRows) {
+        if (row.type === "group") {
+          groupSortIndexMap.set(row.id, groupIndex++);
+        } else if (row.type === "attribute") {
+          const parentId = row.parentId || "__no_parent__";
+          if (!attrSortIndexByParent.has(parentId)) {
+            attrSortIndexByParent.set(parentId, new Map());
+          }
+          const parentMap = attrSortIndexByParent.get(parentId)!;
+          parentMap.set(row.id, parentMap.size);
+        }
+      }
+
+      return prev.map((r) => {
+        if (r.type === "group" && groupSortIndexMap.has(r.id)) {
+          return { ...r, sortIndex: groupSortIndexMap.get(r.id)! };
+        }
+        if (r.type === "attribute") {
+          const parentId = r.parentId || "__no_parent__";
+          const parentMap = attrSortIndexByParent.get(parentId);
+          if (parentMap?.has(r.id)) {
+            return { ...r, sortIndex: parentMap.get(r.id)! };
+          }
+        }
+        return r;
+      });
+    });
+
+    // Restore expanded state after updating the order
     if (savedExpandedIds) {
       setExpandedIds(savedExpandedIds);
     }
 
-    if (!movingNode?.data || !overNode?.data) return;
-
-    const movingData = movingNode.data;
-    const overData = overNode.data;
-
-    // Handle moving attribute to a different group
-    if (movingData.type === "attribute" && overData.type === "group") {
-      const oldParentId = movingData.parentId;
-      setAllRows((prev) => {
-        const newParentId = overData.id;
-        const attributesInNewParent = prev.filter(
-          (r) => r.parentId === newParentId && r.type === "attribute"
-        );
-        const newSortIndex = attributesInNewParent.length;
-
-        const updated = prev.map((r) => {
-          if (r.id === movingData.id) {
-            return { ...r, parentId: newParentId, sortIndex: newSortIndex };
-          }
-          return r;
-        });
-
-        return removeEmptyParents(updated, oldParentId);
-      });
-      markDirty();
-      return;
-    }
-
-    // Handle moving attribute before/after another attribute
-    if (movingData.type === "attribute" && overData.type === "attribute") {
-      const newParentId = overData.parentId;
-      const oldParentId = movingData.parentId;
-      const isSameParent = oldParentId === newParentId;
-
-      setAllRows((prev) => {
-        if (isSameParent) {
-          const siblings = prev
-            .filter((r) => r.parentId === newParentId && r.type === "attribute")
-            .sort((a, b) => a.sortIndex - b.sortIndex);
-
-          const movingIndex = siblings.findIndex((r) => r.id === movingData.id);
-          const overIndex = siblings.findIndex((r) => r.id === overData.id);
-
-          if (movingIndex === -1 || overIndex === -1 || movingIndex === overIndex) return prev;
-
-          const reordered = [...siblings];
-          const [removed] = reordered.splice(movingIndex, 1);
-          reordered.splice(overIndex, 0, removed);
-
-          const updatedIds = new Map<string, number>();
-          reordered.forEach((r, idx) => updatedIds.set(r.id, idx));
-
-          return prev.map((r) => {
-            if (updatedIds.has(r.id)) {
-              return { ...r, sortIndex: updatedIds.get(r.id)! };
-            }
-            return r;
-          });
-        } else {
-          const targetSiblings = prev
-            .filter((r) => r.parentId === newParentId && r.type === "attribute")
-            .sort((a, b) => a.sortIndex - b.sortIndex);
-
-          const overIndex = targetSiblings.findIndex((r) => r.id === overData.id);
-          const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
-
-          const updated = prev.map((r) => {
-            if (r.id === movingData.id) {
-              return { ...r, parentId: newParentId, sortIndex: newSortIndex };
-            }
-            if (r.parentId === newParentId && r.type === "attribute" && r.sortIndex >= newSortIndex) {
-              return { ...r, sortIndex: r.sortIndex + 1 };
-            }
-            return r;
-          });
-
-          return removeEmptyParents(updated, oldParentId);
-        }
-      });
-      markDirty();
-      return;
-    }
-
-    // Group dropped on attribute - reorder relative to attribute's parent group
-    if (movingData.type === "group" && overData.type === "attribute") {
-      const targetGroupId = overData.parentId;
-      if (!targetGroupId || targetGroupId === movingData.id) return;
-
-      setAllRows((prev) => {
-        const targetGroup = prev.find((r) => r.id === targetGroupId);
-        if (!targetGroup) return prev;
-
-        const groups = prev
-          .filter((r) => r.type === "group")
-          .sort((a, b) => a.sortIndex - b.sortIndex);
-
-        const movingIndex = groups.findIndex((r) => r.id === movingData.id);
-        const overIndex = groups.findIndex((r) => r.id === targetGroupId);
-
-        if (movingIndex === -1 || overIndex === -1 || movingIndex === overIndex) return prev;
-
-        const reordered = [...groups];
-        const [removed] = reordered.splice(movingIndex, 1);
-        reordered.splice(overIndex, 0, removed);
-
-        const updatedIds = new Map<string, number>();
-        reordered.forEach((r, idx) => updatedIds.set(r.id, idx));
-
-        return prev.map((r) => {
-          if (updatedIds.has(r.id)) {
-            return { ...r, sortIndex: updatedIds.get(r.id)! };
-          }
-          return r;
-        });
-      });
-      markDirty();
-      return;
-    }
-
-    // Groups reorder among groups
-    if (movingData.type === "group" && overData.type === "group") {
-      setAllRows((prev) => {
-        const groups = prev
-          .filter((r) => r.type === "group")
-          .sort((a, b) => a.sortIndex - b.sortIndex);
-
-        const movingIndex = groups.findIndex((r) => r.id === movingData.id);
-        const overIndex = groups.findIndex((r) => r.id === overData.id);
-
-        if (movingIndex === -1 || overIndex === -1 || movingIndex === overIndex) return prev;
-
-        const reordered = [...groups];
-        const [removed] = reordered.splice(movingIndex, 1);
-        reordered.splice(overIndex, 0, removed);
-
-        const updatedIds = new Map<string, number>();
-        reordered.forEach((r, idx) => updatedIds.set(r.id, idx));
-
-        return prev.map((r) => {
-          if (updatedIds.has(r.id)) {
-            return { ...r, sortIndex: updatedIds.get(r.id)! };
-          }
-          return r;
-        });
-      });
-      markDirty();
-    }
+    markDirty();
   }, [markDirty]);
 
   const handleDelete = useCallback((id: string) => {
