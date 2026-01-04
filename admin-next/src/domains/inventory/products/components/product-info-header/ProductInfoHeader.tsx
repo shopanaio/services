@@ -20,13 +20,14 @@ import {
   EyeOutlined,
   ShareAltOutlined,
   CheckCircleFilled,
+  EditOutlined,
 } from "@ant-design/icons";
 import { useState } from "react";
-import { Paper } from "./Paper";
-import { PaperHeader } from "./PaperHeader";
-import { Tile } from "./Tile";
-import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "./PeriodSwitch";
-import { IProduct, EntityStatus } from "../mocks/types";
+import { Paper } from "../Paper";
+import { PaperHeader } from "../PaperHeader";
+import { Tile } from "../Tile";
+import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../PeriodSwitch";
+import { IProduct, EntityStatus } from "../../mocks/types";
 
 // ============================================================================
 // Types
@@ -401,13 +402,24 @@ export const ProductInfoHeader = ({
 
       {/* TITLE SECTION */}
       <Flex vertical gap={8}>
-        <Typography.Title
-          level={3}
-          ellipsis={{ rows: 2, tooltip: product.title }}
-          className={styles.productTitle}
-        >
-          {product.title || "Untitled Product"}
-        </Typography.Title>
+        <Flex align="center" gap={8}>
+          <Typography.Title
+            level={3}
+            ellipsis={{ rows: 2, tooltip: product.title }}
+            className={styles.productTitle}
+            style={{ margin: 0 }}
+          >
+            {product.title || "Untitled Product"}
+          </Typography.Title>
+          <Button
+            variant="text"
+            color="default"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit("title")}
+            className={styles.actionButton}
+          />
+        </Flex>
 
         <Flex align="center" gap={12}>
           <CopyableChip label="/" value={product.slug} />

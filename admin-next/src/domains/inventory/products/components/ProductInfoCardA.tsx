@@ -28,7 +28,7 @@ import { PaperHeader } from "./PaperHeader";
 import { Tile } from "./Tile";
 import { MediaFilePlaceholder } from "./MediaFilePlaceholder";
 import { PricingBlock } from "./pricing/PricingBlock";
-import { ProductInfoHeader } from "./ProductInfoHeader";
+import { ProductInfoHeader } from "./product-info-header";
 import { ProductContentTabs } from "./ProductContentTabs";
 import { IProduct } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
