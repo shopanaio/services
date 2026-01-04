@@ -30,9 +30,10 @@ import { MediaFilePlaceholder } from "./MediaFilePlaceholder";
 import { PricingBlock } from "./pricing/PricingBlock";
 import { ProductInfoHeader } from "./product-info-header";
 import { ProductContentTabs } from "./ProductContentTabs";
+import { SeoBlock } from "./seo";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal, useEditVariantInventoryModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal } from "../modals";
+import { useProductModal, useEditVariantInventoryModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, type IEditSeoModalPayload } from "../modals";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -434,61 +435,6 @@ const useStyles = createStyles(({ token }) => ({
     "& .ant-descriptions-item-content": {
       fontSize: 13,
     },
-  },
-  // SEO section
-  seoBox: {
-    background: token.colorBgLayout,
-    borderRadius: 6,
-    padding: "12px 16px",
-  },
-  seoLabel: {
-    fontSize: 10,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-  },
-  seoPreview: {
-    marginTop: 8,
-  },
-  seoTitle: {
-    fontSize: 16,
-    color: "#1a0dab",
-    display: "block",
-    lineHeight: 1.3,
-    "&:hover": {
-      textDecoration: "underline",
-    },
-  },
-  seoUrl: {
-    fontSize: 12,
-    color: "#006621",
-    display: "block",
-    marginTop: 2,
-  },
-  seoDescription: {
-    marginTop: 4,
-    fontSize: 13,
-    display: "block",
-    lineHeight: 1.5,
-  },
-  seoWarning: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-  },
-  seoWarningIcon: {
-    color: token.colorWarning,
-    fontSize: 12,
-  },
-  seoWarningText: {
-    fontSize: 11,
-  },
-  seoIssueIcon: {
-    color: token.colorError,
-    fontSize: 12,
-  },
-  seoIssueText: {
-    fontSize: 11,
-    color: token.colorError,
   },
   // Colors for inventory
   colorSuccess: { color: token.colorSuccess },
@@ -898,6 +844,7 @@ export const ProductInfoCardA = ({
   const { push: openEditMediaModal } = useEditMediaModal();
   const { push: openEditOptionsModal } = useEditOptionsModal();
   const { push: openEditAttributesModal } = useEditAttributesModal();
+  const { push: openEditSeoModal } = useEditSeoModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -1537,53 +1484,28 @@ export const ProductInfoCardA = ({
       )}
 
       {/* SEO */}
-      <Section
-        title="SEO"
-        onEdit={() => handleEdit("seo")}
-        extra={(() => {
-          const seoIssuesCount =
-            (!product.seoTitle ? 1 : 0) + (!product.seoDescription ? 1 : 0);
-          return seoIssuesCount > 0 ? (
-            <Flex align="center" gap={4}>
-              <WarningOutlined className={styles.seoIssueIcon} />
-              <Typography.Text className={styles.seoIssueText}>
-                {seoIssuesCount} {seoIssuesCount === 1 ? "issue" : "issues"}
-              </Typography.Text>
-            </Flex>
-          ) : null;
-        })()}
-      >
-        <div className={styles.seoBox}>
-          <Typography.Text type="secondary" className={styles.seoLabel}>
-            Search preview
-          </Typography.Text>
-          <div className={styles.seoPreview}>
-            <Typography.Text className={styles.seoTitle}>
-              {product.seoTitle || product.title || "Untitled Product"}
-            </Typography.Text>
-            <Typography.Text className={styles.seoUrl}>
-              yourstore.com › products › {product.slug}
-            </Typography.Text>
-            <Typography.Text type="secondary" className={styles.seoDescription}>
-              {product.seoDescription ||
-                product.excerpt ||
-                "No description available for this product."}
-            </Typography.Text>
-          </div>
-
-          {!product.seoTitle && !product.seoDescription && (
-            <Flex align="center" gap={8} className={styles.seoWarning}>
-              <WarningOutlined className={styles.seoWarningIcon} />
-              <Typography.Text
-                type="secondary"
-                className={styles.seoWarningText}
-              >
-                Using auto-generated SEO data
-              </Typography.Text>
-            </Flex>
-          )}
-        </div>
-      </Section>
+      <SeoBlock
+        data={{
+          seoTitle: product.seoTitle,
+          seoDescription: product.seoDescription,
+          title: product.title,
+          excerpt: product.excerpt,
+          slug: product.slug,
+        }}
+        onEdit={() =>
+          openEditSeoModal({
+            productId: product.id,
+            productTitle: product.title,
+            seoTitle: product.seoTitle,
+            seoDescription: product.seoDescription,
+            slug: product.slug,
+            onSave: (values: Parameters<NonNullable<IEditSeoModalPayload['onSave']>>[0]) => {
+              console.log("Saved SEO:", values);
+              // TODO: Implement actual save logic
+            },
+          })
+        }
+      />
 
       {/* OPEN IN MODAL (TEST) */}
       <Button onClick={handleOpenProductModal}>Open in stacked modal</Button>

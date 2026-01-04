@@ -99,5 +99,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit SEO modal
+    {
+      type: 'product-edit-seo',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditSeoModal').then(
+          (m) => m.EditSeoModal
+        )
+      ),
+    },
   ];
 }

@@ -21,6 +21,7 @@ export const PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE = 'product-edit-variant-i
 export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = 'product-edit-media';
 export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
 export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
+export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
 
 // ============================================================================
 // Payload Interfaces
@@ -152,6 +153,29 @@ export interface IEditAttributesModalPayload extends IModalStackPayload {
   productId?: string;
 }
 
+export interface IEditSeoModalPayload extends IModalStackPayload {
+  productId?: string;
+  productTitle?: string;
+  baseUrl?: string;
+  // Basic SEO
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  slug?: string;
+  // Open Graph
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: IMediaFile | null;
+  // Callback
+  onSave?: (values: {
+    seoTitle: string;
+    seoDescription: string;
+    slug: string;
+    ogTitle: string;
+    ogDescription: string;
+    ogImage: IMediaFile | null;
+  }) => void;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -169,6 +193,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_MEDIA_MODAL_TYPE]: IEditMediaModalPayload;
     [PRODUCT_EDIT_OPTIONS_MODAL_TYPE]: IEditOptionsModalPayload;
     [PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE]: IEditAttributesModalPayload;
+    [PRODUCT_EDIT_SEO_MODAL_TYPE]: IEditSeoModalPayload;
   }
 }
 
@@ -296,3 +321,21 @@ export const useEditOptionsModal = createModalStackHook(PRODUCT_EDIT_OPTIONS_MOD
  * ```
  */
 export const useEditAttributesModal = createModalStackHook(PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE);
+
+/**
+ * Hook to open edit SEO modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditSeoModal();
+ * push({
+ *   productId: 'prod-123',
+ *   productTitle: 'Product Name',
+ *   seoTitle: 'Custom SEO Title',
+ *   seoDescription: 'Custom meta description',
+ *   slug: 'product-name',
+ *   onSave: (values) => console.log(values)
+ * });
+ * ```
+ */
+export const useEditSeoModal = createModalStackHook(PRODUCT_EDIT_SEO_MODAL_TYPE);
