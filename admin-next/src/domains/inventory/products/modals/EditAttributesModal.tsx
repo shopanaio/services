@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { createStyles } from "antd-style";
-import { Button, Typography, Flex, Select, Dropdown, Space } from "antd";
+import { Button, Typography, Flex, Dropdown, Space } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -111,9 +111,6 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "flex-end",
     gap: 4,
   },
-  typeSelect: {
-    minWidth: 110,
-  },
   indent: {
     display: "inline-block",
   },
@@ -144,7 +141,7 @@ interface IAttributeRow {
 const createMockData = (): IAttributeRow[] => {
   return [
     // Group: Physical Properties
-    { id: "g1", type: "group", name: "Physical Properties", slug: "physical-properties", parentId: null, sortIndex: 0, level: 0 },
+    { id: "g1", type: "group", name: "Physical Properties", slug: "", parentId: null, sortIndex: 0, level: 0 },
     { id: "a1", type: "attribute", name: "Material", slug: "material", displayType: "dropdown", parentId: "g1", sortIndex: 0, level: 1 },
     { id: "v1", type: "value", name: "Cotton", slug: "cotton", parentId: "a1", sortIndex: 0, level: 2 },
     { id: "v2", type: "value", name: "Wool", slug: "wool", parentId: "a1", sortIndex: 1, level: 2 },
@@ -156,14 +153,14 @@ const createMockData = (): IAttributeRow[] => {
     { id: "v6", type: "value", name: "Heavy", slug: "heavy", parentId: "a2", sortIndex: 2, level: 2 },
 
     // Group: Brand Info
-    { id: "g2", type: "group", name: "Brand Info", slug: "brand-info", parentId: null, sortIndex: 1, level: 0 },
+    { id: "g2", type: "group", name: "Brand Info", slug: "", parentId: null, sortIndex: 1, level: 0 },
     { id: "a3", type: "attribute", name: "Brand", slug: "brand", displayType: "dropdown", parentId: "g2", sortIndex: 0, level: 1 },
     { id: "v7", type: "value", name: "Nike", slug: "nike", parentId: "a3", sortIndex: 0, level: 2 },
     { id: "v8", type: "value", name: "Adidas", slug: "adidas", parentId: "a3", sortIndex: 1, level: 2 },
     { id: "v9", type: "value", name: "Puma", slug: "puma", parentId: "a3", sortIndex: 2, level: 2 },
 
     // Group: Specifications
-    { id: "g3", type: "group", name: "Specifications", slug: "specifications", parentId: null, sortIndex: 2, level: 0 },
+    { id: "g3", type: "group", name: "Specifications", slug: "", parentId: null, sortIndex: 2, level: 0 },
     { id: "a4", type: "attribute", name: "Country of Origin", slug: "country-of-origin", displayType: "dropdown", parentId: "g3", sortIndex: 0, level: 1 },
     { id: "v10", type: "value", name: "China", slug: "china", parentId: "a4", sortIndex: 0, level: 2 },
     { id: "v11", type: "value", name: "Vietnam", slug: "vietnam", parentId: "a4", sortIndex: 1, level: 2 },
@@ -171,11 +168,6 @@ const createMockData = (): IAttributeRow[] => {
   ];
 };
 
-const DISPLAY_TYPE_OPTIONS = [
-  { value: "text", label: "Text" },
-  { value: "dropdown", label: "Dropdown" },
-  { value: "multiselect", label: "Multi-select" },
-];
 
 // ============================================================================
 // Utility: Get all descendants of a row
@@ -252,29 +244,6 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
       {getIcon()}
       <span>{data.name}</span>
     </div>
-  );
-};
-
-const TypeCellRenderer = (params: ICellRendererParams<IAttributeRow>) => {
-  const { styles } = useStyles();
-  const data = params.data;
-  if (!data || data.type !== "attribute") return null;
-
-  return (
-    <Select
-      size="small"
-      value={data.displayType}
-      options={DISPLAY_TYPE_OPTIONS}
-      className={styles.typeSelect}
-      variant="borderless"
-      onClick={(e) => e.stopPropagation()}
-      onChange={(value) => {
-        const rowNode = params.node;
-        if (rowNode) {
-          rowNode.setDataValue("displayType", value);
-        }
-      }}
-    />
   );
 };
 
@@ -664,7 +633,7 @@ export const EditAttributesModal = () => {
       id: newId,
       type: "group",
       name: newName,
-      slug: newName.toLowerCase().replace(/\s+/g, "-"),
+      slug: "",
       parentId: null,
       sortIndex: allRows.filter((r) => r.type === "group").length,
       level: 0,
@@ -708,7 +677,9 @@ export const EditAttributesModal = () => {
     }
   }, []);
 
-  const isRowEditable = useCallback(() => true, []);
+  const isSlugEditable = useCallback((params: { data: IAttributeRow | undefined }) => {
+    return params.data?.type !== "group";
+  }, []);
 
   const columnDefs = useMemo<ColDef<IAttributeRow>[]>(
     () => [
@@ -717,7 +688,7 @@ export const EditAttributesModal = () => {
         headerName: "Name",
         flex: 2,
         minWidth: 300,
-        editable: isRowEditable,
+        editable: true,
         rowDrag: true,
         cellRenderer: NameCellRenderer,
         cellRendererParams: {
@@ -731,15 +702,9 @@ export const EditAttributesModal = () => {
         headerName: "Slug",
         flex: 1,
         minWidth: 150,
-        editable: isRowEditable,
+        editable: isSlugEditable,
         cellStyle: { fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 12 },
         valueGetter: (params) => params.data?.slug ?? "",
-      },
-      {
-        field: "displayType",
-        headerName: "Type",
-        width: 140,
-        cellRenderer: TypeCellRenderer,
       },
       {
         headerName: "",
@@ -753,7 +718,7 @@ export const EditAttributesModal = () => {
         filter: false,
       },
     ],
-    [handleDelete, handleAdd, handleToggleExpand, isRowEditable, expandedIds, allRows]
+    [handleDelete, handleAdd, handleToggleExpand, isSlugEditable, expandedIds, allRows]
   );
 
   const defaultColDef = useMemo<ColDef>(
