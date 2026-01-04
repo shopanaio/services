@@ -68,9 +68,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   toolbar: {
     padding: "8px 12px",
-    borderBottom: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
-    borderRadius: "8px 8px 0 0",
   },
   nameCell: {
     display: "flex",
@@ -183,6 +180,23 @@ const getDescendantIds = (rowId: string, allRows: IAttributeRow[]): string[] => 
   }
 
   return allDescendants;
+};
+
+// Remove empty parent groups/attributes after moving children
+const removeEmptyParents = (rows: IAttributeRow[], oldParentId: string | null): IAttributeRow[] => {
+  if (!oldParentId) return rows;
+
+  const oldParent = rows.find((r) => r.id === oldParentId);
+  if (!oldParent) return rows;
+
+  // Check if old parent still has children
+  const hasChildren = rows.some((r) => r.parentId === oldParentId);
+  if (hasChildren) return rows;
+
+  // Remove empty parent and check its parent recursively
+  const grandParentId = oldParent.parentId;
+  const filtered = rows.filter((r) => r.id !== oldParentId);
+  return removeEmptyParents(filtered, grandParentId);
 };
 
 // ============================================================================
@@ -403,7 +417,7 @@ export const EditAttributesModal = () => {
 
     // Handle moving attribute to a different group
     if (movingData.type === "attribute" && overData.type === "group") {
-      // Move attribute to the target group
+      const oldParentId = movingData.parentId;
       setAllRows((prev) => {
         const newParentId = overData.id;
         const attributesInNewParent = prev.filter(
@@ -411,12 +425,15 @@ export const EditAttributesModal = () => {
         );
         const newSortIndex = attributesInNewParent.length;
 
-        return prev.map((r) => {
+        const updated = prev.map((r) => {
           if (r.id === movingData.id) {
             return { ...r, parentId: newParentId, sortIndex: newSortIndex };
           }
           return r;
         });
+
+        // Remove empty parent group if no children left
+        return removeEmptyParents(updated, oldParentId);
       });
       markDirty();
       return;
@@ -425,7 +442,8 @@ export const EditAttributesModal = () => {
     // Handle moving attribute before/after another attribute (possibly in different group)
     if (movingData.type === "attribute" && overData.type === "attribute") {
       const newParentId = overData.parentId;
-      const isSameParent = movingData.parentId === newParentId;
+      const oldParentId = movingData.parentId;
+      const isSameParent = oldParentId === newParentId;
 
       setAllRows((prev) => {
         if (isSameParent) {
@@ -462,7 +480,7 @@ export const EditAttributesModal = () => {
           const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
 
           // Update moved attribute and recalculate sort indices
-          const updatedRows = prev.map((r) => {
+          const updated = prev.map((r) => {
             if (r.id === movingData.id) {
               return { ...r, parentId: newParentId, sortIndex: newSortIndex };
             }
@@ -473,7 +491,8 @@ export const EditAttributesModal = () => {
             return r;
           });
 
-          return updatedRows;
+          // Remove empty parent group if no children left
+          return removeEmptyParents(updated, oldParentId);
         }
       });
       markDirty();
@@ -512,6 +531,7 @@ export const EditAttributesModal = () => {
 
     // Handle moving value to a different attribute
     if (movingData.type === "value" && overData.type === "attribute") {
+      const oldParentId = movingData.parentId;
       setAllRows((prev) => {
         const newParentId = overData.id;
         const valuesInNewParent = prev.filter(
@@ -519,12 +539,15 @@ export const EditAttributesModal = () => {
         );
         const newSortIndex = valuesInNewParent.length;
 
-        return prev.map((r) => {
+        const updated = prev.map((r) => {
           if (r.id === movingData.id) {
             return { ...r, parentId: newParentId, sortIndex: newSortIndex };
           }
           return r;
         });
+
+        // Remove empty parent attribute if no children left
+        return removeEmptyParents(updated, oldParentId);
       });
       markDirty();
       return;
@@ -533,7 +556,8 @@ export const EditAttributesModal = () => {
     // Handle moving value before/after another value (possibly in different attribute)
     if (movingData.type === "value" && overData.type === "value") {
       const newParentId = overData.parentId;
-      const isSameParent = movingData.parentId === newParentId;
+      const oldParentId = movingData.parentId;
+      const isSameParent = oldParentId === newParentId;
 
       setAllRows((prev) => {
         if (isSameParent) {
@@ -569,7 +593,7 @@ export const EditAttributesModal = () => {
           const overIndex = targetSiblings.findIndex((r) => r.id === overData.id);
           const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
 
-          const updatedRows = prev.map((r) => {
+          const updated = prev.map((r) => {
             if (r.id === movingData.id) {
               return { ...r, parentId: newParentId, sortIndex: newSortIndex };
             }
@@ -579,7 +603,8 @@ export const EditAttributesModal = () => {
             return r;
           });
 
-          return updatedRows;
+          // Remove empty parent attribute if no children left
+          return removeEmptyParents(updated, oldParentId);
         }
       });
       markDirty();
@@ -753,7 +778,6 @@ export const EditAttributesModal = () => {
     >
       <div className={styles.container}>
         <Paper>
-          {/* Toolbar */}
           <div className={styles.toolbar}>
             <Flex justify="space-between" align="center">
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -770,27 +794,26 @@ export const EditAttributesModal = () => {
               </Space>
             </Flex>
           </div>
-
-          {/* AG Grid */}
-          <div className={`${styles.gridWrapper} ag-theme-quartz`}>
-            <AgGridReact<IAttributeRow>
-              ref={gridRef}
-              rowData={visibleRows}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              getRowId={getRowId}
-              getRowClass={getRowClass}
-              domLayout="autoHeight"
-              animateRows={false}
-              rowDragManaged
-              suppressMoveWhenRowDragging
-              onCellValueChanged={handleCellValueChanged}
-              onRowDragEnter={handleRowDragEnter}
-              onRowDragEnd={handleRowDragEnd}
-              rowSelection="single"
-            />
-          </div>
         </Paper>
+
+        <div className={`${styles.gridWrapper} ag-theme-quartz`}>
+          <AgGridReact<IAttributeRow>
+            ref={gridRef}
+            rowData={visibleRows}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            getRowId={getRowId}
+            getRowClass={getRowClass}
+            domLayout="autoHeight"
+            animateRows={false}
+            rowDragManaged
+            suppressMoveWhenRowDragging
+            onCellValueChanged={handleCellValueChanged}
+            onRowDragEnter={handleRowDragEnter}
+            onRowDragEnd={handleRowDragEnd}
+            rowSelection="single"
+          />
+        </div>
       </div>
     </ModalLayout>
   );
