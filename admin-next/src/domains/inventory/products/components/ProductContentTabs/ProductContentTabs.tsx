@@ -2,6 +2,7 @@ import { createStyles } from 'antd-style';
 import { Button, Typography, Tabs, Dropdown, Flex } from 'antd';
 import { WarningOutlined, MoreOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { OutputData } from '@editorjs/editorjs';
+import type { RenderedContent } from '@/ui-kit/BlockEditor';
 import { Paper } from '../Paper';
 import { IProduct } from '../../mocks/types';
 import { useProductEditDescriptionModal } from '../../modals';
@@ -108,10 +109,11 @@ export const ProductContentTabs = ({
     openEditDescriptionModal({
       description: parseEditorData(product.description),
       excerpt: parseEditorData(product.excerpt),
-      onSave: (values: { description: OutputData | null; excerpt: OutputData | null }) => {
+      onSave: (values: { description: RenderedContent; excerpt: RenderedContent }) => {
         console.log('Save content:', values);
-        // TODO: implement actual save logic
-        // stringify and send: JSON.stringify(values.description), JSON.stringify(values.excerpt)
+        // values.description.plain - plain text
+        // values.description.html - HTML
+        // values.description.json - EditorJS JSON
       },
     });
   };

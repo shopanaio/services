@@ -10,7 +10,7 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { BlockEditor } from "@/ui-kit/BlockEditor";
+import { BlockEditor, renderContent } from "@/ui-kit/BlockEditor";
 import { Paper } from "../components/Paper";
 import type { IProductEditDescriptionModalPayload } from "../modals";
 
@@ -48,7 +48,10 @@ export const EditDescriptionModal = () => {
   }, [pop]);
 
   const onSubmit = (values: IEditDescriptionForm) => {
-    typedPayload.onSave?.(values);
+    typedPayload.onSave?.({
+      description: renderContent(values.description),
+      excerpt: renderContent(values.excerpt),
+    });
     pop();
   };
 
