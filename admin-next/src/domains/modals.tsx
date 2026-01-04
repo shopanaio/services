@@ -81,5 +81,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Options modal
+    {
+      type: 'product-edit-options',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditOptionsModal').then(
+          (m) => m.EditOptionsModal
+        )
+      ),
+    },
   ];
 }

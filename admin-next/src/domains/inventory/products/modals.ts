@@ -19,6 +19,7 @@ export const PRODUCT_PRICE_HISTORY_MODAL_TYPE = 'product-price-history';
 export const PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE = 'product-edit-variant-pricing';
 export const PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE = 'product-edit-variant-inventory';
 export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = 'product-edit-media';
+export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
 
 // ============================================================================
 // Payload Interfaces
@@ -142,6 +143,10 @@ export interface IEditMediaModalPayload extends IModalStackPayload {
   onUpload?: (files: File[]) => Promise<IMediaFile[]>;
 }
 
+export interface IEditOptionsModalPayload extends IModalStackPayload {
+  productId?: string;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -157,6 +162,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE]: IEditVariantPricingModalPayload;
     [PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE]: IEditVariantInventoryModalPayload;
     [PRODUCT_EDIT_MEDIA_MODAL_TYPE]: IEditMediaModalPayload;
+    [PRODUCT_EDIT_OPTIONS_MODAL_TYPE]: IEditOptionsModalPayload;
   }
 }
 
@@ -262,3 +268,14 @@ export const useEditVariantInventoryModal = createModalStackHook(PRODUCT_EDIT_VA
  * ```
  */
 export const useEditMediaModal = createModalStackHook(PRODUCT_EDIT_MEDIA_MODAL_TYPE);
+
+/**
+ * Hook to open edit options modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditOptionsModal();
+ * push({ productId: 'prod-123' });
+ * ```
+ */
+export const useEditOptionsModal = createModalStackHook(PRODUCT_EDIT_OPTIONS_MODAL_TYPE);

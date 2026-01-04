@@ -32,7 +32,7 @@ import { ProductInfoHeader } from "./product-info-header";
 import { ProductContentTabs } from "./ProductContentTabs";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal, useEditVariantInventoryModal, useEditMediaModal } from "../modals";
+import { useProductModal, useEditVariantInventoryModal, useEditMediaModal, useEditOptionsModal } from "../modals";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -896,6 +896,7 @@ export const ProductInfoCardA = ({
   const { styles } = useStyles();
   const { push: openProductModal } = useProductModal();
   const { push: openEditMediaModal } = useEditMediaModal();
+  const { push: openEditOptionsModal } = useEditOptionsModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -1137,7 +1138,7 @@ export const ProductInfoCardA = ({
 
       {/* OPTIONS (variable products) */}
       {product.isVariableProduct && product.options?.length > 0 && (
-        <Section title="Options" onEdit={() => handleEdit("options")}>
+        <Section title="Options" onEdit={() => openEditOptionsModal({ productId: product.id })}>
           <Flex vertical gap={8}>
             {product.options.map((option) => (
               <div key={option.id}>
