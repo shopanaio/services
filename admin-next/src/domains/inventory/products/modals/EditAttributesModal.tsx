@@ -405,13 +405,9 @@ export const EditAttributesModal = () => {
     }
   }, []);
 
-  // Handle row drag leave (cancelled drag) - restore expanded state
+  // Handle row drag leave - don't reset, let handleRowDragEnd handle it
   const handleRowDragLeave = useCallback((_event: RowDragLeaveEvent<IAttributeRow>) => {
-    if (expandedBeforeDragRef.current) {
-      setExpandedIds(expandedBeforeDragRef.current);
-    }
-    draggingRowIdRef.current = null;
-    expandedBeforeDragRef.current = null;
+    // Do nothing - keep drag state until drop
   }, []);
 
   // Handle row drag end
