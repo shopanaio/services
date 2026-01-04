@@ -18,6 +18,9 @@ import {
   ClockCircleFilled,
   WarningOutlined,
   StopOutlined,
+  SortAscendingOutlined,
+  LeftOutlined,
+  RightOutlined,
 } from "@ant-design/icons";
 import { ReactNode, useState, useMemo, useCallback } from "react";
 import { Paper } from "./Paper";
@@ -292,8 +295,11 @@ const useStyles = createStyles(({ token }) => ({
       fontSize: 11,
       textTransform: "uppercase",
       letterSpacing: "0.3px",
-      background: token.colorBgLayout,
+      background: token.colorBgContainer,
       verticalAlign: "middle",
+    },
+    "& tbody tr:nth-child(even) td": {
+      background: token.colorBgLayout,
     },
     "& tr:last-child td": {
       borderBottom: "none",
@@ -338,6 +344,14 @@ const useStyles = createStyles(({ token }) => ({
   discountPercent: {
     fontSize: 11,
     color: token.colorError,
+  },
+  variantsPagination: {
+    padding: "8px 0",
+    borderTop: `1px solid ${token.colorBorderSecondary}`,
+    marginTop: 8,
+  },
+  variantsPaginationCount: {
+    fontSize: 12,
   },
   // Reviews section
   reviewsGrid: {
@@ -1109,7 +1123,35 @@ export const ProductInfoCardA = ({
 
       {/* VARIANTS TABLE (variable products) */}
       {product.isVariableProduct && product.variants?.length > 0 && (
-        <Section title="Variants" onEdit={() => handleEdit("variants")}>
+        <Section
+          title="Variants"
+          onEdit={() => handleEdit("variants")}
+          extra={
+            <Dropdown
+              menu={{
+                items: [
+                  { key: "name_asc", label: "Name A → Z" },
+                  { key: "name_desc", label: "Name Z → A" },
+                  { type: "divider" },
+                  { key: "price_asc", label: "Price: Low → High" },
+                  { key: "price_desc", label: "Price: High → Low" },
+                  { type: "divider" },
+                  { key: "stock_asc", label: "Stock: Low → High" },
+                  { key: "stock_desc", label: "Stock: High → Low" },
+                  { type: "divider" },
+                  { key: "created_desc", label: "Newest first" },
+                  { key: "created_asc", label: "Oldest first" },
+                ],
+                onClick: ({ key }) => console.log("Sort variants:", key),
+              }}
+              trigger={["click"]}
+            >
+              <Button size="small" icon={<SortAscendingOutlined />}>
+                Sort
+              </Button>
+            </Dropdown>
+          }
+        >
           <div
             style={{ overflowX: "auto", margin: "0 -12px", padding: "0 12px" }}
           >
@@ -1313,6 +1355,28 @@ export const ProductInfoCardA = ({
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          <Flex
+            justify="space-between"
+            align="center"
+            className={styles.variantsPagination}
+          >
+            <Typography.Text
+              type="secondary"
+              className={styles.variantsPaginationCount}
+            >
+              {product.variants.length} variants
+            </Typography.Text>
+            <Flex gap={4}>
+              <Button
+                size="small"
+                type="text"
+                icon={<LeftOutlined />}
+                disabled
+              />
+              <Button size="small" type="text" icon={<RightOutlined />} />
+            </Flex>
+          </Flex>
         </Section>
       )}
 
