@@ -16,10 +16,6 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: token.borderRadius,
     padding: "12px 16px",
     transition: `border-color ${token.motionDurationMid}, box-shadow ${token.motionDurationMid}`,
-    "&:focus-within": {
-      borderColor: token.colorPrimary,
-      boxShadow: `0 0 0 2px ${token.colorPrimaryBg}`,
-    },
   },
   editor: {
     "& *": {
@@ -111,7 +107,11 @@ const BlockEditorCore = memo(function BlockEditorCore({
 
   return (
     <div className={styles.wrapper}>
-      <div id={holderId} className={`${inter.className} ${styles.editor}`} style={{ minHeight }} />
+      <div
+        id={holderId}
+        className={`${inter.className} ${styles.editor}`}
+        style={{ minHeight }}
+      />
     </div>
   );
 });

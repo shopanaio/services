@@ -54,9 +54,6 @@ export interface IProductVariant {
    */
   dimensionUnit: string;
   __typename?: 'Variant';
-  // Internal form fields
-  _isNew?: boolean;
-  _isDeleted?: boolean;
   // For listing table
   listingSortIndex?: string | null;
 }

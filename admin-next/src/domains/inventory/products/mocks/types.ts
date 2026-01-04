@@ -179,8 +179,6 @@ export interface IProductVariant {
   categories: ICategory[];
   options: IProductVariantOption[];
   container: IProduct | null;
-  _isNew?: boolean;
-  _isDeleted?: boolean;
 }
 
 // ============================================================================
