@@ -14,8 +14,8 @@ export const GlobalStyle = createGlobalStyle`
 
   :root {
     /* Font families */
-    --font-family-heading: var(--font-safiro), sans-serif;
-    --font-family-base: var(--font-safiro), sans-serif;
+    --font-family-heading: var(--font-safiro), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-family-base: var(--font-safiro), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
   body {

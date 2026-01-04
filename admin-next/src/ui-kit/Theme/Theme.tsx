@@ -40,7 +40,7 @@ export const Theme = ({ children }: { children: React.ReactNode }) => {
           token: {
             colorLink: "#2f54eb",
             colorPrimary: "#000",
-            fontFamily: "var(--font-safiro), sans-serif",
+            fontFamily: 'var(--font-safiro), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
           },
           components: {
             Button: {
