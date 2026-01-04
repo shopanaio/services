@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, CSSProperties } from "react";
+import { useState, useEffect, useCallback, CSSProperties } from "react";
 import { createStyles } from "antd-style";
 import {
   Upload,
@@ -99,10 +99,6 @@ const useStyles = createStyles(({ token }) => ({
     "&:hover .media-actions": {
       opacity: 1,
     },
-  },
-  mediaItemCover: {
-    borderColor: token.colorPrimary,
-    borderWidth: 2,
   },
   mediaItemDragging: {
     opacity: 0.5,
@@ -221,10 +217,6 @@ const useStyles = createStyles(({ token }) => ({
       background: token.colorBgLayout,
     },
   },
-  listItemCover: {
-    borderColor: token.colorPrimary,
-    borderWidth: 2,
-  },
   listItemDragging: {
     opacity: 0.5,
   },
@@ -297,7 +289,7 @@ interface ISortableMediaItemProps {
   index: number;
   onSetCover: (item: IMediaFile) => void;
   onDelete: (id: string) => void;
-  onPreview: (url: string) => void;
+  onPreview: (id: string) => void;
 }
 
 const SortableMediaItem = ({
@@ -370,7 +362,6 @@ const SortableMediaItem = ({
       {...attributes}
       className={cx(
         styles.mediaItem,
-        isCover && styles.mediaItemCover,
         isDragging && styles.mediaItemDragging
       )}
     >
@@ -392,7 +383,7 @@ const SortableMediaItem = ({
             className={styles.mediaActionButton}
             onClick={(e) => {
               e.stopPropagation();
-              onPreview(item.url);
+              onPreview(item.id);
             }}
           />
         </Tooltip>
@@ -419,7 +410,7 @@ const SortableMediaItem = ({
                 key: "preview",
                 label: "Preview",
                 icon: <EyeOutlined />,
-                onClick: () => onPreview(item.url),
+                onClick: () => onPreview(item.id),
               },
               ...(isCover
                 ? []
@@ -469,7 +460,7 @@ interface ISortableListItemProps {
   isCover: boolean;
   onSetCover: (item: IMediaFile) => void;
   onDelete: (id: string) => void;
-  onPreview: (url: string) => void;
+  onPreview: (id: string) => void;
 }
 
 const SortableListItem = ({
@@ -502,7 +493,6 @@ const SortableListItem = ({
       {...attributes}
       className={cx(
         styles.listItem,
-        isCover && styles.listItemCover,
         isDragging && styles.listItemDragging
       )}
     >
@@ -536,7 +526,7 @@ const SortableListItem = ({
             icon={<EyeOutlined />}
             onClick={(e) => {
               e.stopPropagation();
-              onPreview(item.url);
+              onPreview(item.id);
             }}
           />
         </Tooltip>
@@ -562,7 +552,7 @@ const SortableListItem = ({
                 key: "preview",
                 label: "Preview",
                 icon: <EyeOutlined />,
-                onClick: () => onPreview(item.url),
+                onClick: () => onPreview(item.id),
               },
               ...(isCover
                 ? []
@@ -608,11 +598,11 @@ interface IListItemPreviewProps {
 }
 
 const ListItemPreview = ({ item, isCover }: IListItemPreviewProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
 
   return (
     <div
-      className={cx(styles.listItem, isCover && styles.listItemCover)}
+      className={styles.listItem}
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
     >
       <div className={styles.dragHandle}>
@@ -661,11 +651,10 @@ export const EditMediaModal = () => {
     return items;
   });
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string>("");
+  const [previewCurrent, setPreviewCurrent] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
-  const cover = gallery[0] || null;
   const activeItem = gallery.find((it) => it.id === activeId);
   const activeIndex = activeItem ? gallery.indexOf(activeItem) : -1;
 
@@ -686,7 +675,7 @@ export const EditMediaModal = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 1,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -738,10 +727,14 @@ export const EditMediaModal = () => {
     [markDirty]
   );
 
-  const handlePreview = useCallback((url: string) => {
-    setPreviewImage(url);
-    setPreviewVisible(true);
-  }, []);
+  const handlePreview = useCallback(
+    (itemId: string) => {
+      const index = gallery.findIndex((it) => it.id === itemId);
+      setPreviewCurrent(index >= 0 ? index : 0);
+      setPreviewVisible(true);
+    },
+    [gallery]
+  );
 
   // Upload handler
   const handleUploadChange: UploadProps["onChange"] = useCallback(
@@ -766,7 +759,7 @@ export const EditMediaModal = () => {
 
       const mockFile = file as File;
       const mockMedia: IMediaFile = {
-        id: `media-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         url: URL.createObjectURL(mockFile),
         name: mockFile.name,
         size: mockFile.size,
@@ -914,13 +907,17 @@ export const EditMediaModal = () => {
         </Paper>
       </div>
 
-      <Image
-        style={{ display: "none" }}
+      <Image.PreviewGroup
         preview={{
           visible: previewVisible,
-          src: previewImage,
+          current: previewCurrent,
           onVisibleChange: (value) => setPreviewVisible(value),
+          onChange: (current) => setPreviewCurrent(current),
         }}
+        items={gallery.map((item) => ({
+          src: item.url,
+          alt: item.name,
+        }))}
       />
     </ModalLayout>
   );
