@@ -24,10 +24,8 @@ import {
   ICellRendererParams,
   CellValueChangedEvent,
   GridReadyEvent,
-  GridApi,
   RowDragEndEvent,
   RowDragEnterEvent,
-  RowDragLeaveEvent,
 } from "ag-grid-community";
 import {
   useModalStackContext,
@@ -624,14 +622,6 @@ export const EditAttributesModal = () => {
     }
   }, [markDirty]);
 
-  // Handle drag leave/cancel - restore expanded state
-  const handleRowDragLeave = useCallback(() => {
-    if (expandedBeforeDragRef.current) {
-      setExpandedIds(expandedBeforeDragRef.current);
-      expandedBeforeDragRef.current = null;
-    }
-    draggingRowIdRef.current = null;
-  }, []);
 
   const handleDelete = useCallback((id: string) => {
     setAllRows((prev) => {
@@ -837,7 +827,6 @@ export const EditAttributesModal = () => {
               onCellValueChanged={handleCellValueChanged}
               onRowDragEnter={handleRowDragEnter}
               onRowDragEnd={handleRowDragEnd}
-              onRowDragLeave={handleRowDragLeave}
               rowSelection="single"
             />
           </div>
