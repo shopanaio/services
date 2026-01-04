@@ -1,31 +1,74 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input } from "antd";
+import { useForm, Controller } from "react-hook-form";
+import { Input, Typography } from "antd";
+import { createStyles } from "antd-style";
 import {
   useModalStackContext,
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { IProductEditTitleModalPayload } from "../modals";
+import { Paper } from "../components/Paper";
+import { PaperHeader } from "../components/PaperHeader";
+import type { IProductEditTitleModalPayload } from "../modals";
 
 interface IEditTitleForm {
   title: string;
   handle: string;
 }
 
-export const EditTitleModal = () => {
-  const { payload, pop } =
-    useModalStackContext<IProductEditTitleModalPayload>();
+const useStyles = createStyles(({ token }) => ({
+  formItem: {
+    marginBottom: 16,
+  },
+  formItemLast: {
+    marginBottom: 0,
+  },
+  label: {
+    display: "block",
+    marginBottom: 4,
+    fontSize: token.fontSize,
+  },
+  error: {
+    color: token.colorError,
+    fontSize: token.fontSizeSM,
+    marginTop: 4,
+  },
+  extra: {
+    color: token.colorTextSecondary,
+    fontSize: token.fontSizeSM,
+    marginTop: 4,
+  },
+}));
 
-  const [form] = Form.useForm<IEditTitleForm>();
+export const EditTitleModal = () => {
+  const { styles } = useStyles();
+  const { payload, pop } = useModalStackContext();
+  const typedPayload = payload as IProductEditTitleModalPayload;
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<IEditTitleForm>({
+    defaultValues: {
+      title: typedPayload.title || "",
+      handle: typedPayload.handle || "",
+    },
+  });
+
+  const titleValue = watch("title");
 
   useEffect(() => {
-    form.setFieldsValue({
-      title: payload.title || "",
-      handle: payload.handle || "",
-    });
-  }, [form, payload.title, payload.handle]);
+    const handle = titleValue
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    setValue("handle", handle);
+  }, [titleValue, setValue]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,23 +80,9 @@ export const EditTitleModal = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pop]);
 
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      payload.onSave?.(values);
-      pop();
-    } catch {
-      // validation failed
-    }
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const title = e.target.value;
-    const handle = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-    form.setFieldsValue({ handle });
+  const onSubmit = (values: IEditTitleForm) => {
+    typedPayload.onSave?.(values);
+    pop();
   };
 
   return (
@@ -65,32 +94,67 @@ export const EditTitleModal = () => {
           title="Edit Title"
           onClose={pop}
           submitButtonProps={{
-            onClick: handleSave,
+            onClick: handleSubmit(onSubmit),
           }}
         />
       }
     >
-      <Form form={form} layout="vertical">
-        <Form.Item
-          name="title"
-          label="Title"
-          rules={[{ required: true, message: "Title is required" }]}
-        >
-          <Input
-            placeholder="Product title"
-            onChange={handleTitleChange}
-            autoFocus
-          />
-        </Form.Item>
-        <Form.Item
-          name="handle"
-          label="Handle"
-          rules={[{ required: true, message: "Handle is required" }]}
-          extra="URL-friendly identifier for this product"
-        >
-          <Input placeholder="product-handle" addonBefore="/" />
-        </Form.Item>
-      </Form>
+      <Paper>
+        <PaperHeader title="Product Title" bordered={false} />
+        <form>
+          <div className={styles.formItem}>
+            <Typography.Text strong className={styles.label}>
+              Title
+            </Typography.Text>
+            <Controller
+              name="title"
+              control={control}
+              rules={{ required: "Title is required" }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="Product title"
+                  status={errors.title ? "error" : undefined}
+                  autoFocus
+                />
+              )}
+            />
+            {errors.title && (
+              <Typography.Text className={styles.error}>
+                {errors.title.message}
+              </Typography.Text>
+            )}
+          </div>
+
+          <div className={styles.formItemLast}>
+            <Typography.Text strong className={styles.label}>
+              Handle
+            </Typography.Text>
+            <Controller
+              name="handle"
+              control={control}
+              rules={{ required: "Handle is required" }}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="product-handle"
+                  prefix="/"
+                  status={errors.handle ? "error" : undefined}
+                />
+              )}
+            />
+            {errors.handle ? (
+              <Typography.Text className={styles.error}>
+                {errors.handle.message}
+              </Typography.Text>
+            ) : (
+              <Typography.Text className={styles.extra}>
+                URL-friendly identifier for this product
+              </Typography.Text>
+            )}
+          </div>
+        </form>
+      </Paper>
     </ModalLayout>
   );
 };
