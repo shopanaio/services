@@ -1,6 +1,7 @@
 import { createStyles } from 'antd-style';
 import { Button, Typography, Tabs, Dropdown, Flex } from 'antd';
 import { WarningOutlined, MoreOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import type { OutputData } from '@editorjs/editorjs';
 import { Paper } from '../Paper';
 import { IProduct } from '../../mocks/types';
 import { useProductEditDescriptionModal } from '../../modals';
@@ -94,36 +95,55 @@ export const ProductContentTabs = ({
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
+  const parseEditorData = (data: string | null): OutputData | null => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data) as OutputData;
+    } catch {
+      return null;
+    }
+  };
+
   const handleEditDescription = () => {
-    const descriptionText = getDescriptionPreview() || '';
     openEditDescriptionModal({
-      description: descriptionText,
-      excerpt: product.excerpt || '',
-      onSave: (values) => {
+      description: parseEditorData(product.description),
+      excerpt: parseEditorData(product.excerpt),
+      onSave: (values: { description: OutputData | null; excerpt: OutputData | null }) => {
         console.log('Save content:', values);
         // TODO: implement actual save logic
+        // stringify and send: JSON.stringify(values.description), JSON.stringify(values.excerpt)
       },
     });
   };
 
-  const getDescriptionPreview = () => {
-    if (!product.description) return null;
+  const getTextFromEditorData = (data: string | null): string | null => {
+    if (!data) return null;
     try {
-      const parsed = JSON.parse(product.description);
-      const extractText = (node: any): string => {
-        if (node.text) return node.text;
-        if (node.content) return node.content.map(extractText).join(' ');
-        return '';
-      };
-      return extractText(parsed).slice(0, 300);
+      const parsed = JSON.parse(data) as OutputData;
+      if (!parsed.blocks) return null;
+      return parsed.blocks
+        .map((block) => {
+          if (block.type === 'paragraph' || block.type === 'header') {
+            return (block.data as { text?: string }).text || '';
+          }
+          if (block.type === 'list') {
+            return ((block.data as { items?: string[] }).items || []).join(' ');
+          }
+          if (block.type === 'quote') {
+            return (block.data as { text?: string }).text || '';
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .join(' ')
+        .slice(0, 300);
     } catch {
-      return typeof product.description === 'string'
-        ? product.description.slice(0, 300)
-        : null;
+      return typeof data === 'string' ? data.slice(0, 300) : null;
     }
   };
 
-  const descriptionPreview = getDescriptionPreview();
+  const descriptionPreview = getTextFromEditorData(product.description);
+  const excerptPreview = getTextFromEditorData(product.excerpt);
 
   return (
     <Paper className={styles.tabsSection}>
@@ -180,12 +200,12 @@ export const ProductContentTabs = ({
           {
             key: 'excerpt',
             label: 'Excerpt',
-            children: product.excerpt ? (
+            children: excerptPreview ? (
               <Typography.Paragraph
                 ellipsis={{ rows: 3 }}
                 className={styles.contentText}
               >
-                {product.excerpt}
+                {excerptPreview}
               </Typography.Paragraph>
             ) : (
               <Flex align="center" gap={8} className={styles.emptyContainer}>

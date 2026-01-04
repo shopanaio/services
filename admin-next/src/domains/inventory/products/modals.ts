@@ -1,5 +1,6 @@
 import { createModalStackHook } from '@/layouts/modals';
 import type { IModalStackPayload } from '@/layouts/modals';
+import type { OutputData } from '@editorjs/editorjs';
 
 // ============================================================================
 // Modal Types
@@ -31,9 +32,9 @@ export interface IProductEditTitleModalPayload extends IModalStackPayload {
 }
 
 export interface IProductEditDescriptionModalPayload extends IModalStackPayload {
-  description: string;
-  excerpt: string;
-  onSave?: (values: { description: string; excerpt: string }) => void;
+  description: OutputData | null;
+  excerpt: OutputData | null;
+  onSave?: (values: { description: OutputData | null; excerpt: OutputData | null }) => void;
 }
 
 // ============================================================================

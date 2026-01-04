@@ -2,37 +2,26 @@
 
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Input, Typography, Tabs } from "antd";
+import { Tabs } from "antd";
 import { createStyles } from "antd-style";
+import type { OutputData } from "@editorjs/editorjs";
 import {
   useModalStackContext,
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
+import { BlockEditor } from "@/ui-kit/BlockEditor";
 import { Paper } from "../components/Paper";
 import type { IProductEditDescriptionModalPayload } from "../modals";
 
 interface IEditDescriptionForm {
-  description: string;
-  excerpt: string;
+  description: OutputData | null;
+  excerpt: OutputData | null;
 }
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   tabsContainer: {
     padding: "8px 12px 12px",
-  },
-  formItem: {
-    marginBottom: 0,
-  },
-  error: {
-    color: token.colorError,
-    fontSize: token.fontSizeSM,
-    marginTop: 4,
-  },
-  extra: {
-    color: token.colorTextSecondary,
-    fontSize: token.fontSizeSM,
-    marginTop: 4,
   },
 }));
 
@@ -41,14 +30,10 @@ export const EditDescriptionModal = () => {
   const { payload, pop } = useModalStackContext();
   const typedPayload = payload as IProductEditDescriptionModalPayload;
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<IEditDescriptionForm>({
+  const { control, handleSubmit } = useForm<IEditDescriptionForm>({
     defaultValues: {
-      description: typedPayload.description || "",
-      excerpt: typedPayload.excerpt || "",
+      description: typedPayload.description || null,
+      excerpt: typedPayload.excerpt || null,
     },
   });
 
@@ -91,58 +76,37 @@ export const EditDescriptionModal = () => {
                 key: "description",
                 label: "Description",
                 children: (
-                  <div className={styles.formItem}>
-                    <Controller
-                      name="description"
-                      control={control}
-                      render={({ field }) => (
-                        <Input.TextArea
-                          {...field}
-                          placeholder="Product description"
-                          rows={8}
-                          status={errors.description ? "error" : undefined}
-                          autoFocus
-                        />
-                      )}
-                    />
-                    {errors.description && (
-                      <Typography.Text className={styles.error}>
-                        {errors.description.message}
-                      </Typography.Text>
+                  <Controller
+                    name="description"
+                    control={control}
+                    render={({ field }) => (
+                      <BlockEditor
+                        value={field.value || undefined}
+                        onChange={field.onChange}
+                        placeholder="Start writing product description..."
+                        minHeight={250}
+                        autofocus
+                      />
                     )}
-                    <Typography.Text className={styles.extra}>
-                      Detailed product description shown on the product page
-                    </Typography.Text>
-                  </div>
+                  />
                 ),
               },
               {
                 key: "excerpt",
                 label: "Excerpt",
                 children: (
-                  <div className={styles.formItem}>
-                    <Controller
-                      name="excerpt"
-                      control={control}
-                      render={({ field }) => (
-                        <Input.TextArea
-                          {...field}
-                          placeholder="Short product excerpt"
-                          rows={4}
-                          status={errors.excerpt ? "error" : undefined}
-                        />
-                      )}
-                    />
-                    {errors.excerpt ? (
-                      <Typography.Text className={styles.error}>
-                        {errors.excerpt.message}
-                      </Typography.Text>
-                    ) : (
-                      <Typography.Text className={styles.extra}>
-                        Brief summary used in product listings and search results
-                      </Typography.Text>
+                  <Controller
+                    name="excerpt"
+                    control={control}
+                    render={({ field }) => (
+                      <BlockEditor
+                        value={field.value || undefined}
+                        onChange={field.onChange}
+                        placeholder="Write a short product excerpt..."
+                        minHeight={150}
+                      />
                     )}
-                  </div>
+                  />
                 ),
               },
             ]}

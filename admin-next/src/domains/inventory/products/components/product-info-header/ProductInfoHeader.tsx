@@ -296,7 +296,7 @@ export const ProductInfoHeader = ({
     openEditTitleModal({
       title: product.title,
       handle: product.slug,
-      onSave: (values) => {
+      onSave: (values: { title: string; handle: string }) => {
         console.log("Save title:", values);
         // TODO: implement actual save logic
       },
