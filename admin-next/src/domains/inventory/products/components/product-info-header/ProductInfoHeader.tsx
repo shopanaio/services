@@ -394,12 +394,20 @@ export const ProductInfoHeader = ({
       <Dropdown
         menu={{
           items: [
+            { key: "edit", label: "Edit" },
+            { type: "divider" as const },
             { key: "duplicate", label: "Duplicate product" },
             { key: "export", label: "Export" },
             { type: "divider" as const },
             { key: "archive", label: "Archive", danger: true },
           ],
-          onClick: ({ key }) => handleEdit(key),
+          onClick: ({ key }) => {
+            if (key === "edit") {
+              handleEditTitle();
+            } else {
+              handleEdit(key);
+            }
+          },
         }}
         trigger={["click"]}
       >
@@ -415,24 +423,14 @@ export const ProductInfoHeader = ({
 
       {/* TITLE SECTION */}
       <Flex vertical gap={8}>
-        <Flex align="center" gap={8}>
-          <Typography.Title
-            level={3}
-            ellipsis={{ rows: 2, tooltip: product.title }}
-            className={styles.productTitle}
-            style={{ margin: 0 }}
-          >
-            {product.title || "Untitled Product"}
-          </Typography.Title>
-          <Button
-            variant="text"
-            color="default"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={handleEditTitle}
-            className={styles.actionButton}
-          />
-        </Flex>
+        <Typography.Title
+          level={3}
+          ellipsis={{ rows: 2, tooltip: product.title }}
+          className={styles.productTitle}
+          style={{ margin: 0 }}
+        >
+          {product.title || "Untitled Product"}
+        </Typography.Title>
 
         <Flex align="center" gap={12}>
           <CopyableChip label="/" value={product.slug} />
