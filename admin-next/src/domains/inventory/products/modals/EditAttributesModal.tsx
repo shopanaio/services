@@ -24,7 +24,6 @@ import {
   CellValueChangedEvent,
   RowDragEndEvent,
   RowDragEnterEvent,
-  RowDragLeaveEvent,
 } from "ag-grid-community";
 import {
   useModalStackContext,
@@ -202,24 +201,6 @@ const createMockData = (): IAttributeRow[] => {
       ],
     },
   ];
-};
-
-// ============================================================================
-// Utility: Remove empty parent groups after moving children
-// ============================================================================
-
-const removeEmptyParents = (rows: IAttributeRow[], oldParentId: string | null): IAttributeRow[] => {
-  if (!oldParentId) return rows;
-
-  const oldParent = rows.find((r) => r.id === oldParentId);
-  if (!oldParent) return rows;
-
-  // Check if old parent still has children
-  const hasChildren = rows.some((r) => r.parentId === oldParentId);
-  if (hasChildren) return rows;
-
-  // Remove empty parent
-  return rows.filter((r) => r.id !== oldParentId);
 };
 
 // ============================================================================
@@ -405,11 +386,6 @@ export const EditAttributesModal = () => {
     }
   }, []);
 
-  // Handle row drag leave - don't reset, let handleRowDragEnd handle it
-  const handleRowDragLeave = useCallback((_event: RowDragLeaveEvent<IAttributeRow>) => {
-    // Do nothing - keep drag state until drop
-  }, []);
-
   // Handle row drag end
   const handleRowDragEnd = useCallback((event: RowDragEndEvent<IAttributeRow>) => {
     const savedExpandedIds = expandedBeforeDragRef.current;
@@ -524,21 +500,21 @@ export const EditAttributesModal = () => {
 
   const handleAddGroup = useCallback(() => {
     const newId = `g-${Date.now()}`;
-    const newName = "New Group";
 
-    const newGroup: IAttributeRow = {
-      id: newId,
-      type: "group",
-      name: newName,
-      parentId: null,
-      sortIndex: allRows.filter((r) => r.type === "group").length,
-      level: 0,
-    };
-
-    setAllRows((prev) => [...prev, newGroup]);
+    setAllRows((prev) => {
+      const newGroup: IAttributeRow = {
+        id: newId,
+        type: "group",
+        name: "New Group",
+        parentId: null,
+        sortIndex: prev.filter((r) => r.type === "group").length,
+        level: 0,
+      };
+      return [...prev, newGroup];
+    });
     setExpandedIds((prev) => new Set([...prev, newId]));
     markDirty();
-  }, [allRows, markDirty]);
+  }, [markDirty]);
 
   const handleCellValueChanged = useCallback((event: CellValueChangedEvent<IAttributeRow>) => {
     const { data, colDef, newValue } = event;
@@ -676,7 +652,6 @@ export const EditAttributesModal = () => {
             rowDragManaged
             onCellValueChanged={handleCellValueChanged}
             onRowDragEnter={handleRowDragEnter}
-            onRowDragLeave={handleRowDragLeave}
             onRowDragEnd={handleRowDragEnd}
             rowSelection="single"
           />
