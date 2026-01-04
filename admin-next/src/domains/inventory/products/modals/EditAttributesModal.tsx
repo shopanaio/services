@@ -334,7 +334,6 @@ export const EditAttributesModal = () => {
   const { styles } = useStyles();
   const { pop, setDirty } = useModalStackContext();
   const gridRef = useRef<AgGridReact<IAttributeRow>>(null);
-  const [gridApi, setGridApi] = useState<GridApi<IAttributeRow> | null>(null);
 
   const [allRows, setAllRows] = useState<IAttributeRow[]>(createMockData);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
@@ -370,8 +369,8 @@ export const EditAttributesModal = () => {
     return result;
   }, [allRows, expandedIds]);
 
-  const onGridReady = useCallback((params: GridReadyEvent<IAttributeRow>) => {
-    setGridApi(params.api);
+  const onGridReady = useCallback((_params: GridReadyEvent<IAttributeRow>) => {
+    // Grid is ready
   }, []);
 
   const getRowId = useCallback((params: GetRowIdParams<IAttributeRow>) => params.data.id, []);
@@ -544,6 +543,82 @@ export const EditAttributesModal = () => {
           }
           return r;
         });
+      });
+      markDirty();
+      return;
+    }
+
+    // Handle moving value to a different attribute
+    if (movingData.type === "value" && overData.type === "attribute") {
+      setAllRows((prev) => {
+        const newParentId = overData.id;
+        const valuesInNewParent = prev.filter(
+          (r) => r.parentId === newParentId && r.type === "value"
+        );
+        const newSortIndex = valuesInNewParent.length;
+
+        return prev.map((r) => {
+          if (r.id === movingData.id) {
+            return { ...r, parentId: newParentId, sortIndex: newSortIndex };
+          }
+          return r;
+        });
+      });
+      markDirty();
+      return;
+    }
+
+    // Handle moving value before/after another value (possibly in different attribute)
+    if (movingData.type === "value" && overData.type === "value") {
+      const newParentId = overData.parentId;
+      const isSameParent = movingData.parentId === newParentId;
+
+      setAllRows((prev) => {
+        if (isSameParent) {
+          // Reorder within same attribute
+          const siblings = prev
+            .filter((r) => r.parentId === newParentId && r.type === "value")
+            .sort((a, b) => a.sortIndex - b.sortIndex);
+
+          const movingIndex = siblings.findIndex((r) => r.id === movingData.id);
+          const overIndex = siblings.findIndex((r) => r.id === overData.id);
+
+          if (movingIndex === -1 || overIndex === -1 || movingIndex === overIndex) return prev;
+
+          const reordered = [...siblings];
+          const [removed] = reordered.splice(movingIndex, 1);
+          reordered.splice(overIndex, 0, removed);
+
+          const updatedIds = new Map<string, number>();
+          reordered.forEach((r, idx) => updatedIds.set(r.id, idx));
+
+          return prev.map((r) => {
+            if (updatedIds.has(r.id)) {
+              return { ...r, sortIndex: updatedIds.get(r.id)! };
+            }
+            return r;
+          });
+        } else {
+          // Move to different attribute
+          const targetSiblings = prev
+            .filter((r) => r.parentId === newParentId && r.type === "value")
+            .sort((a, b) => a.sortIndex - b.sortIndex);
+
+          const overIndex = targetSiblings.findIndex((r) => r.id === overData.id);
+          const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
+
+          const updatedRows = prev.map((r) => {
+            if (r.id === movingData.id) {
+              return { ...r, parentId: newParentId, sortIndex: newSortIndex };
+            }
+            if (r.parentId === newParentId && r.type === "value" && r.sortIndex >= newSortIndex) {
+              return { ...r, sortIndex: r.sortIndex + 1 };
+            }
+            return r;
+          });
+
+          return updatedRows;
+        }
       });
       markDirty();
     }
