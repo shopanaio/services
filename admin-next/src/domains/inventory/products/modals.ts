@@ -156,11 +156,11 @@ export interface IEditAttributesModalPayload extends IModalStackPayload {
 export interface IEditSeoModalPayload extends IModalStackPayload {
   productId?: string;
   productTitle?: string;
+  productSlug?: string;
   baseUrl?: string;
   // Basic SEO
   seoTitle?: string | null;
   seoDescription?: string | null;
-  slug?: string;
   // Open Graph
   ogTitle?: string | null;
   ogDescription?: string | null;
@@ -169,7 +169,6 @@ export interface IEditSeoModalPayload extends IModalStackPayload {
   onSave?: (values: {
     seoTitle: string;
     seoDescription: string;
-    slug: string;
     ogTitle: string;
     ogDescription: string;
     ogImage: IMediaFile | null;

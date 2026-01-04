@@ -1496,9 +1496,9 @@ export const ProductInfoCardA = ({
           openEditSeoModal({
             productId: product.id,
             productTitle: product.title,
+            productSlug: product.slug,
             seoTitle: product.seoTitle,
             seoDescription: product.seoDescription,
-            slug: product.slug,
             onSave: (values: Parameters<NonNullable<IEditSeoModalPayload['onSave']>>[0]) => {
               console.log("Saved SEO:", values);
               // TODO: Implement actual save logic

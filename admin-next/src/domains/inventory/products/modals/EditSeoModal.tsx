@@ -35,7 +35,6 @@ export interface ISeoFormValues {
   // Basic SEO
   seoTitle: string;
   seoDescription: string;
-  slug: string;
   // Open Graph
   ogTitle: string;
   ogDescription: string;
@@ -60,11 +59,6 @@ const useStyles = createStyles(({ token }) => ({
     display: "block",
     marginBottom: 4,
     fontSize: token.fontSize,
-  },
-  error: {
-    color: token.colorError,
-    fontSize: token.fontSizeSM,
-    marginTop: 4,
   },
   // Preview styles
   previewTabs: {
@@ -253,9 +247,10 @@ interface IPreviewProps {
   values: ISeoFormValues;
   productTitle: string;
   baseUrl: string;
+  slug?: string;
 }
 
-const GooglePreview = ({ values, productTitle, baseUrl }: IPreviewProps) => {
+const GooglePreview = ({ values, productTitle, baseUrl, slug }: IPreviewProps) => {
   const { styles } = useStyles();
   const title = values.seoTitle || productTitle || "Untitled Product";
   const description =
@@ -265,7 +260,7 @@ const GooglePreview = ({ values, productTitle, baseUrl }: IPreviewProps) => {
     <div className={styles.googlePreview}>
       <Typography.Text className={styles.googleTitle}>{title}</Typography.Text>
       <Typography.Text className={styles.googleUrl}>
-        {baseUrl} › products › {values.slug || "product"}
+        {baseUrl} › products › {slug || "product"}
       </Typography.Text>
       <Typography.Text className={styles.googleDescription}>
         {description}
@@ -324,13 +319,10 @@ export const EditSeoModal = () => {
     control,
     handleSubmit,
     watch,
-    setValue,
-    formState: { errors },
   } = useForm<ISeoFormValues>({
     defaultValues: {
       seoTitle: typedPayload.seoTitle || "",
       seoDescription: typedPayload.seoDescription || "",
-      slug: typedPayload.slug || "",
       ogTitle: typedPayload.ogTitle || "",
       ogDescription: typedPayload.ogDescription || "",
       ogImage: typedPayload.ogImage || null,
@@ -338,17 +330,6 @@ export const EditSeoModal = () => {
   });
 
   const values = watch();
-
-  // Auto-generate slug from title if slug is empty
-  useEffect(() => {
-    if (!typedPayload.slug && values.seoTitle) {
-      const slug = values.seoTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9а-яё]+/gi, "-")
-        .replace(/^-|-$/g, "");
-      setValue("slug", slug);
-    }
-  }, [values.seoTitle, typedPayload.slug, setValue]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -381,6 +362,7 @@ export const EditSeoModal = () => {
           values={values}
           productTitle={typedPayload.productTitle || ""}
           baseUrl={baseUrl}
+          slug={typedPayload.productSlug}
         />
       ),
     },
@@ -439,7 +421,7 @@ export const EditSeoModal = () => {
               />
             </div>
 
-            <div className={styles.formItem}>
+            <div className={styles.formItemLast}>
               <Typography.Text strong className={styles.label}>
                 Meta Description
               </Typography.Text>
@@ -456,30 +438,6 @@ export const EditSeoModal = () => {
                   />
                 )}
               />
-            </div>
-
-            <div className={styles.formItemLast}>
-              <Typography.Text strong className={styles.label}>
-                URL Handle
-              </Typography.Text>
-              <Controller
-                name="slug"
-                control={control}
-                rules={{ required: "URL handle is required" }}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    placeholder="product-url-handle"
-                    addonBefore="/products/"
-                    status={errors.slug ? "error" : undefined}
-                  />
-                )}
-              />
-              {errors.slug && (
-                <Typography.Text className={styles.error}>
-                  {errors.slug.message}
-                </Typography.Text>
-              )}
             </div>
           </form>
         </Paper>
