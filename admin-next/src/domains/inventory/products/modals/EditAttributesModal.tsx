@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { createStyles } from "antd-style";
 import { Button, Typography, Flex, Dropdown, Space } from "antd";
 import {
@@ -24,6 +24,7 @@ import {
   CellValueChangedEvent,
   RowDragEndEvent,
   RowDragEnterEvent,
+  RowDragLeaveEvent,
 } from "ag-grid-community";
 import {
   useModalStackContext,
@@ -339,6 +340,16 @@ export const EditAttributesModal = () => {
   const expandedBeforeDragRef = useRef<Set<string> | null>(null);
   const draggingRowIdRef = useRef<string | null>(null);
 
+  // Refs to avoid stale closures in drag handlers
+  const allRowsRef = useRef(allRows);
+  const expandedIdsRef = useRef(expandedIds);
+  useEffect(() => {
+    allRowsRef.current = allRows;
+  }, [allRows]);
+  useEffect(() => {
+    expandedIdsRef.current = expandedIds;
+  }, [expandedIds]);
+
   const markDirty = useCallback(() => setDirty(true), [setDirty]);
 
   // Filter visible rows based on expanded state (only groups can be collapsed)
@@ -378,7 +389,7 @@ export const EditAttributesModal = () => {
     });
   }, []);
 
-  // Handle row drag enter - collapse groups for easier reordering
+  // Handle row drag enter - collapse all groups when dragging a group
   const handleRowDragEnter = useCallback((event: RowDragEnterEvent<IAttributeRow>) => {
     const movingData = event.node?.data;
     if (!movingData) return;
@@ -386,29 +397,36 @@ export const EditAttributesModal = () => {
     if (draggingRowIdRef.current === movingData.id) return;
 
     draggingRowIdRef.current = movingData.id;
-    expandedBeforeDragRef.current = new Set(expandedIds);
+    expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
 
+    // Collapse ALL groups when dragging a group for easier reordering
     if (movingData.type === "group") {
-      // When dragging a group - collapse ALL groups
-      const allGroups = allRows.filter((r) => r.type === "group");
-      setExpandedIds((prev) => {
-        const next = new Set(prev);
-        allGroups.forEach((r) => next.delete(r.id));
-        return next;
-      });
+      setExpandedIds(new Set());
     }
-  }, [expandedIds, allRows]);
+  }, []);
+
+  // Handle row drag leave (cancelled drag) - restore expanded state
+  const handleRowDragLeave = useCallback((_event: RowDragLeaveEvent<IAttributeRow>) => {
+    if (expandedBeforeDragRef.current) {
+      setExpandedIds(expandedBeforeDragRef.current);
+    }
+    draggingRowIdRef.current = null;
+    expandedBeforeDragRef.current = null;
+  }, []);
 
   // Handle row drag end
   const handleRowDragEnd = useCallback((event: RowDragEndEvent<IAttributeRow>) => {
-    if (expandedBeforeDragRef.current) {
-      setExpandedIds(expandedBeforeDragRef.current);
-      expandedBeforeDragRef.current = null;
-    }
+    const savedExpandedIds = expandedBeforeDragRef.current;
     draggingRowIdRef.current = null;
+    expandedBeforeDragRef.current = null;
 
     const movingNode = event.node;
     const overNode = event.overNode;
+
+    // Restore expanded state after drag
+    if (savedExpandedIds) {
+      setExpandedIds(savedExpandedIds);
+    }
 
     if (!movingNode?.data || !overNode?.data) return;
 
@@ -493,7 +511,43 @@ export const EditAttributesModal = () => {
       return;
     }
 
-    // Groups can only reorder among groups
+    // Group dropped on attribute - reorder relative to attribute's parent group
+    if (movingData.type === "group" && overData.type === "attribute") {
+      const targetGroupId = overData.parentId;
+      if (!targetGroupId || targetGroupId === movingData.id) return;
+
+      setAllRows((prev) => {
+        const targetGroup = prev.find((r) => r.id === targetGroupId);
+        if (!targetGroup) return prev;
+
+        const groups = prev
+          .filter((r) => r.type === "group")
+          .sort((a, b) => a.sortIndex - b.sortIndex);
+
+        const movingIndex = groups.findIndex((r) => r.id === movingData.id);
+        const overIndex = groups.findIndex((r) => r.id === targetGroupId);
+
+        if (movingIndex === -1 || overIndex === -1 || movingIndex === overIndex) return prev;
+
+        const reordered = [...groups];
+        const [removed] = reordered.splice(movingIndex, 1);
+        reordered.splice(overIndex, 0, removed);
+
+        const updatedIds = new Map<string, number>();
+        reordered.forEach((r, idx) => updatedIds.set(r.id, idx));
+
+        return prev.map((r) => {
+          if (updatedIds.has(r.id)) {
+            return { ...r, sortIndex: updatedIds.get(r.id)! };
+          }
+          return r;
+        });
+      });
+      markDirty();
+      return;
+    }
+
+    // Groups reorder among groups
     if (movingData.type === "group" && overData.type === "group") {
       setAllRows((prev) => {
         const groups = prev
@@ -714,11 +768,11 @@ export const EditAttributesModal = () => {
             getRowId={getRowId}
             getRowClass={getRowClass}
             domLayout="autoHeight"
-            animateRows={false}
+            animateRows
             rowDragManaged
-            suppressMoveWhenRowDragging
             onCellValueChanged={handleCellValueChanged}
             onRowDragEnter={handleRowDragEnter}
+            onRowDragLeave={handleRowDragLeave}
             onRowDragEnd={handleRowDragEnd}
             rowSelection="single"
           />
