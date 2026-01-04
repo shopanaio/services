@@ -6,17 +6,21 @@ import {
   Button,
   Typography,
   Flex,
-  Select,
   Dropdown,
   Input,
-  Popover,
   ColorPicker,
 } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
-  MoreOutlined,
+  CloseOutlined,
   HolderOutlined,
+  BgColorsOutlined,
+  PictureOutlined,
+  CheckCircleOutlined,
+  MenuOutlined,
+  ColumnWidthOutlined,
+  BlockOutlined,
 } from "@ant-design/icons";
 import {
   DndContext,
@@ -34,7 +38,6 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  horizontalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -89,16 +92,6 @@ const useStyles = createStyles(({ token }) => ({
     fontWeight: 500,
     fontSize: 14,
   },
-  optionGroupNameClickable: {
-    flex: 1,
-    cursor: "pointer",
-    padding: "4px 8px",
-    marginLeft: -8,
-    borderRadius: 4,
-    "&:hover": {
-      background: token.colorBgContainer,
-    },
-  },
   optionGroupSlug: {
     fontSize: 12,
     fontFamily: "ui-monospace, SFMono-Regular, monospace",
@@ -111,106 +104,30 @@ const useStyles = createStyles(({ token }) => ({
   },
   valuesContainer: {
     display: "flex",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 8,
-    alignItems: "center",
   },
-  valueTag: {
+  valueRow: {
+    transition: "all 0.2s",
+  },
+  valueRowDragging: {
+    opacity: 0.5,
+  },
+  valueDragHandle: {
+    cursor: "grab",
+    color: token.colorTextSecondary,
     display: "flex",
     alignItems: "center",
-    gap: 6,
-    padding: "6px 12px",
-    borderRadius: 6,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    background: token.colorBgContainer,
-    cursor: "grab",
-    fontSize: 13,
-    transition: "all 0.2s",
     "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorBgLayout,
+      color: token.colorText,
     },
     "&:active": {
       cursor: "grabbing",
     },
   },
-  valueTagDragging: {
-    opacity: 0.5,
-  },
-  valueTagSelected: {
-    borderColor: token.colorPrimary,
-    background: token.colorPrimaryBg,
-  },
-  valueDragHandle: {
-    color: token.colorTextSecondary,
-    fontSize: 12,
-    display: "flex",
-    alignItems: "center",
-  },
-  valueSwatch: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    flexShrink: 0,
-  },
-  valueLabel: {
-    fontSize: 13,
-  },
-  addValueInput: {
-    width: 100,
-    fontSize: 13,
-  },
   addGroupButton: {
     width: "100%",
     borderStyle: "dashed",
-  },
-  // Value edit popover
-  valueEditPopover: {
-    width: 280,
-  },
-  valueEditForm: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  valueEditField: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  valueEditLabel: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-  },
-  valueEditActions: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 8,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
-  },
-  valueUsageText: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-  },
-  colorPickerRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  groupEditForm: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    width: 240,
-  },
-  groupEditActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 8,
-    paddingTop: 8,
-    borderTop: `1px solid ${token.colorBorderSecondary}`,
   },
 }));
 
@@ -218,24 +135,55 @@ const useStyles = createStyles(({ token }) => ({
 // Types
 // ============================================================================
 
-type DisplayType = "text" | "swatch" | "dropdown";
+type FeatureStyleType = "radio" | "dropdown" | "swatch" | "cover" | "size";
+type FeatureSwatchType = "color" | "color_duo" | "image";
+
+interface ISwatch {
+  type: FeatureSwatchType;
+  color1?: string;
+  color2?: string;
+  imageUrl?: string;
+}
 
 interface IOptionValue {
   id: string;
   label: string;
   slug: string;
-  color?: string;
   sortIndex: number;
+  swatch?: ISwatch;
 }
 
 interface IOptionGroup {
   id: string;
   name: string;
   slug: string;
-  displayType: DisplayType;
+  style: FeatureStyleType;
   values: IOptionValue[];
   sortIndex: number;
 }
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const STYLE_OPTIONS: { key: FeatureStyleType; label: string; icon: React.ReactNode }[] = [
+  { key: "swatch", label: "Swatch", icon: <BgColorsOutlined /> },
+  { key: "cover", label: "Cover", icon: <PictureOutlined /> },
+  { key: "radio", label: "Radio", icon: <CheckCircleOutlined /> },
+  { key: "dropdown", label: "Dropdown", icon: <MenuOutlined /> },
+  { key: "size", label: "Size", icon: <ColumnWidthOutlined /> },
+];
+
+const SWATCH_TYPE_OPTIONS: { key: FeatureSwatchType; label: string; icon: React.ReactNode }[] = [
+  { key: "color", label: "Swatch Color", icon: <BgColorsOutlined /> },
+  { key: "color_duo", label: "Two-tone", icon: <BlockOutlined /> },
+  { key: "image", label: "Image", icon: <PictureOutlined /> },
+];
+
+const DEFAULT_SWATCH: ISwatch = {
+  type: "color",
+  color1: "#1677ff",
+};
 
 // ============================================================================
 // Mock Data
@@ -246,20 +194,20 @@ const MOCK_OPTION_GROUPS: IOptionGroup[] = [
     id: "opt-1",
     name: "Color",
     slug: "color",
-    displayType: "swatch",
+    style: "swatch",
     sortIndex: 0,
     values: [
-      { id: "val-1", label: "Red", slug: "red", color: "#ff4d4f", sortIndex: 0 },
-      { id: "val-2", label: "Blue", slug: "blue", color: "#1677ff", sortIndex: 1 },
-      { id: "val-3", label: "Green", slug: "green", color: "#52c41a", sortIndex: 2 },
-      { id: "val-4", label: "Black", slug: "black", color: "#000000", sortIndex: 3 },
+      { id: "val-1", label: "Red", slug: "red", sortIndex: 0, swatch: { type: "color", color1: "#ff4d4f" } },
+      { id: "val-2", label: "Blue", slug: "blue", sortIndex: 1, swatch: { type: "color", color1: "#1677ff" } },
+      { id: "val-3", label: "Green", slug: "green", sortIndex: 2, swatch: { type: "color", color1: "#52c41a" } },
+      { id: "val-4", label: "Black", slug: "black", sortIndex: 3, swatch: { type: "color_duo", color1: "#000000", color2: "#333333" } },
     ],
   },
   {
     id: "opt-2",
     name: "Size",
     slug: "size",
-    displayType: "text",
+    style: "size",
     sortIndex: 1,
     values: [
       { id: "val-5", label: "S", slug: "s", sortIndex: 0 },
@@ -271,11 +219,125 @@ const MOCK_OPTION_GROUPS: IOptionGroup[] = [
   },
 ];
 
-const DISPLAY_TYPE_OPTIONS = [
-  { value: "text", label: "Text" },
-  { value: "swatch", label: "Swatch" },
-  { value: "dropdown", label: "Dropdown" },
-];
+// ============================================================================
+// Style Selector Component
+// ============================================================================
+
+interface IStyleSelectorProps {
+  value: FeatureStyleType;
+  onChange: (style: FeatureStyleType) => void;
+}
+
+const StyleSelector = ({ value, onChange }: IStyleSelectorProps) => {
+  const current = STYLE_OPTIONS.find((o) => o.key === value);
+
+  const menuItems = STYLE_OPTIONS.map((option) => ({
+    key: option.key,
+    label: (
+      <Flex gap={8} align="center">
+        {option.icon}
+        <span>{option.label}</span>
+      </Flex>
+    ),
+    onClick: () => onChange(option.key),
+  }));
+
+  return (
+    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+      <Button size="small" type="text">
+        <Flex gap={4} align="center">
+          {current?.icon}
+          <span>{current?.label}</span>
+        </Flex>
+      </Button>
+    </Dropdown>
+  );
+};
+
+// ============================================================================
+// Swatch Type Selector Component
+// ============================================================================
+
+interface ISwatchTypeSelectorProps {
+  value: FeatureSwatchType;
+  onChange: (type: FeatureSwatchType) => void;
+}
+
+const SwatchTypeSelector = ({ value, onChange }: ISwatchTypeSelectorProps) => {
+  const current = SWATCH_TYPE_OPTIONS.find((o) => o.key === value);
+
+  const menuItems = SWATCH_TYPE_OPTIONS.map((option) => ({
+    key: option.key,
+    label: (
+      <Flex gap={8} align="center">
+        {option.icon}
+        <span>{option.label}</span>
+      </Flex>
+    ),
+    onClick: () => onChange(option.key),
+  }));
+
+  return (
+    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+      <Button size="small" type="text" style={{ padding: "0 4px" }}>
+        <Flex gap={4} align="center">
+          {current?.icon}
+        </Flex>
+      </Button>
+    </Dropdown>
+  );
+};
+
+// ============================================================================
+// Swatch Control Component
+// ============================================================================
+
+interface ISwatchControlProps {
+  swatch: ISwatch;
+  onChange: (swatch: ISwatch) => void;
+}
+
+const SwatchControl = ({ swatch, onChange }: ISwatchControlProps) => {
+  const { type, color1, color2 } = swatch;
+
+  if (type === "color") {
+    return (
+      <ColorPicker
+        size="small"
+        value={color1}
+        onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
+        disabledAlpha
+        format="hex"
+      />
+    );
+  }
+
+  if (type === "color_duo") {
+    return (
+      <Flex gap={4}>
+        <ColorPicker
+          size="small"
+          value={color1}
+          onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
+          disabledAlpha
+          format="hex"
+        />
+        <ColorPicker
+          size="small"
+          value={color2}
+          onChange={(c) => onChange({ ...swatch, color2: c.toHexString() })}
+          disabledAlpha
+          format="hex"
+        />
+      </Flex>
+    );
+  }
+
+  // type === "image" - placeholder for now
+  return (
+    <Button size="small" type="text" icon={<PictureOutlined />} />
+  );
+};
 
 // ============================================================================
 // Sortable Value Component
@@ -283,17 +345,13 @@ const DISPLAY_TYPE_OPTIONS = [
 
 interface ISortableValueProps {
   value: IOptionValue;
-  displayType: DisplayType;
-  onEdit: (value: IOptionValue) => void;
-  onDelete: (id: string) => void;
+  groupStyle: FeatureStyleType;
+  onChange: (value: IOptionValue) => void;
+  onDelete: () => void;
 }
 
-const SortableValue = ({ value, displayType, onEdit, onDelete }: ISortableValueProps) => {
+const SortableValue = ({ value, groupStyle, onChange, onDelete }: ISortableValueProps) => {
   const { styles, cx } = useStyles();
-  const [editOpen, setEditOpen] = useState(false);
-  const [editLabel, setEditLabel] = useState(value.label);
-  const [editSlug, setEditSlug] = useState(value.slug);
-  const [editColor, setEditColor] = useState(value.color || "#1677ff");
 
   const {
     attributes,
@@ -309,115 +367,73 @@ const SortableValue = ({ value, displayType, onEdit, onDelete }: ISortableValueP
     transition,
   };
 
-  const handleSave = () => {
-    onEdit({ ...value, label: editLabel, slug: editSlug, color: editColor });
-    setEditOpen(false);
+  const swatch = value.swatch || DEFAULT_SWATCH;
+  const showSwatchControls = groupStyle === "swatch";
+
+  const handleSwatchTypeChange = (type: FeatureSwatchType) => {
+    onChange({
+      ...value,
+      swatch: { ...swatch, type },
+    });
   };
 
-  const handleCancel = () => {
-    setEditLabel(value.label);
-    setEditSlug(value.slug);
-    setEditColor(value.color || "#1677ff");
-    setEditOpen(false);
+  const handleSwatchChange = (nextSwatch: ISwatch) => {
+    onChange({
+      ...value,
+      swatch: nextSwatch,
+    });
   };
 
-  const editContent = (
-    <div className={styles.valueEditForm}>
-      <div className={styles.valueEditField}>
-        <Typography.Text className={styles.valueEditLabel}>Name</Typography.Text>
-        <Input
-          size="small"
-          value={editLabel}
-          onChange={(e) => setEditLabel(e.target.value)}
-          placeholder="Value name"
-        />
-      </div>
-      <div className={styles.valueEditField}>
-        <Typography.Text className={styles.valueEditLabel}>Slug</Typography.Text>
-        <Input
-          size="small"
-          value={editSlug}
-          onChange={(e) => setEditSlug(e.target.value)}
-          placeholder="value-slug"
-        />
-      </div>
-      {displayType === "swatch" && (
-        <div className={styles.valueEditField}>
-          <Typography.Text className={styles.valueEditLabel}>Color</Typography.Text>
-          <div className={styles.colorPickerRow}>
-            <ColorPicker
-              size="small"
-              value={editColor}
-              onChange={(color) => setEditColor(color.toHexString())}
-            />
-            <Input
-              size="small"
-              value={editColor}
-              onChange={(e) => setEditColor(e.target.value)}
-              style={{ flex: 1 }}
-            />
-          </div>
-        </div>
-      )}
-      <div className={styles.valueEditActions}>
-        <Typography.Text className={styles.valueUsageText}>
-          Used in 3 variants
-        </Typography.Text>
-        <Flex gap={8}>
-          <Button
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              onDelete(value.id);
-              setEditOpen(false);
-            }}
-          >
-            Delete
-          </Button>
-          <Button size="small" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button size="small" type="primary" onClick={handleSave}>
-            Done
-          </Button>
-        </Flex>
-      </div>
-    </div>
-  );
+  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({
+      ...value,
+      label: e.target.value,
+    });
+  };
 
   return (
-    <Popover
-      content={editContent}
-      trigger="click"
-      open={editOpen}
-      onOpenChange={setEditOpen}
-      placement="bottom"
-      overlayClassName={styles.valueEditPopover}
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cx(styles.valueRow, isDragging && styles.valueRowDragging)}
     >
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className={cx(
-          styles.valueTag,
-          isDragging && styles.valueTagDragging,
-          editOpen && styles.valueTagSelected
-        )}
-      >
-        <span className={styles.valueDragHandle}>
-          <HolderOutlined />
-        </span>
-        {displayType === "swatch" && value.color && (
-          <span
-            className={styles.valueSwatch}
-            style={{ background: value.color }}
-          />
-        )}
-        <span className={styles.valueLabel}>{value.label}</span>
-      </div>
-    </Popover>
+      <Input
+        value={value.label}
+        onChange={handleLabelChange}
+        placeholder="Value name"
+        prefix={
+          <span className={styles.valueDragHandle} {...attributes} {...listeners}>
+            <HolderOutlined />
+          </span>
+        }
+        suffix={
+          <Flex
+            gap={4}
+            align="center"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {showSwatchControls && (
+              <>
+                <SwatchTypeSelector
+                  value={swatch.type}
+                  onChange={handleSwatchTypeChange}
+                />
+                <SwatchControl
+                  swatch={swatch}
+                  onChange={handleSwatchChange}
+                />
+              </>
+            )}
+            <Button
+              size="small"
+              type="text"
+              icon={<CloseOutlined />}
+              onClick={onDelete}
+            />
+          </Flex>
+        }
+      />
+    </div>
   );
 };
 
@@ -431,7 +447,7 @@ interface ISortableOptionGroupProps {
   onDeleteGroup: (id: string) => void;
   onUpdateValue: (groupId: string, value: IOptionValue) => void;
   onDeleteValue: (groupId: string, valueId: string) => void;
-  onAddValue: (groupId: string, label: string) => void;
+  onAddValue: (groupId: string) => void;
   onReorderValues: (groupId: string, values: IOptionValue[]) => void;
 }
 
@@ -445,20 +461,7 @@ const SortableOptionGroup = ({
   onReorderValues,
 }: ISortableOptionGroupProps) => {
   const { styles, cx } = useStyles();
-  const [editOpen, setEditOpen] = useState(false);
-  const [editName, setEditName] = useState(group.name);
-  const [editSlug, setEditSlug] = useState(group.slug);
-  const [editDisplayType, setEditDisplayType] = useState(group.displayType);
   const [activeValueId, setActiveValueId] = useState<string | null>(null);
-  const [newValueName, setNewValueName] = useState("");
-
-  const handleAddValue = () => {
-    const trimmed = newValueName.trim();
-    if (trimmed) {
-      onAddValue(group.id, trimmed);
-      setNewValueName("");
-    }
-  };
 
   const {
     attributes,
@@ -497,70 +500,25 @@ const SortableOptionGroup = ({
     }
   };
 
-  const handleSave = () => {
-    onUpdateGroup({ ...group, name: editName, slug: editSlug, displayType: editDisplayType });
-    setEditOpen(false);
+  const handleStyleChange = (nextStyle: FeatureStyleType) => {
+    onUpdateGroup({ ...group, style: nextStyle });
   };
 
-  const handleCancel = () => {
-    setEditName(group.name);
-    setEditSlug(group.slug);
-    setEditDisplayType(group.displayType);
-    setEditOpen(false);
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onUpdateGroup({ ...group, name: e.target.value });
   };
-
-  const activeValue = group.values.find((v) => v.id === activeValueId);
 
   const menuItems = [
     {
       key: "delete",
-      label: "Delete group",
+      label: "Delete option",
       icon: <DeleteOutlined />,
       danger: true,
       onClick: () => onDeleteGroup(group.id),
     },
   ];
 
-  const editContent = (
-    <div className={styles.groupEditForm}>
-      <div className={styles.valueEditField}>
-        <Typography.Text className={styles.valueEditLabel}>Name</Typography.Text>
-        <Input
-          size="small"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          placeholder="Option name"
-        />
-      </div>
-      <div className={styles.valueEditField}>
-        <Typography.Text className={styles.valueEditLabel}>Slug</Typography.Text>
-        <Input
-          size="small"
-          value={editSlug}
-          onChange={(e) => setEditSlug(e.target.value)}
-          placeholder="option-slug"
-        />
-      </div>
-      <div className={styles.valueEditField}>
-        <Typography.Text className={styles.valueEditLabel}>Display type</Typography.Text>
-        <Select
-          size="small"
-          value={editDisplayType}
-          onChange={(value) => setEditDisplayType(value)}
-          options={DISPLAY_TYPE_OPTIONS}
-          style={{ width: "100%" }}
-        />
-      </div>
-      <div className={styles.groupEditActions}>
-        <Button size="small" onClick={handleCancel}>
-          Cancel
-        </Button>
-        <Button size="small" type="primary" onClick={handleSave}>
-          Done
-        </Button>
-      </div>
-    </div>
-  );
+  const activeValue = group.values.find((v) => v.id === activeValueId);
 
   return (
     <div
@@ -569,38 +527,26 @@ const SortableOptionGroup = ({
       className={cx(styles.optionGroup, isDragging && styles.optionGroupDragging)}
     >
       <div className={styles.optionGroupHeader}>
-        <span
-          className={styles.optionGroupDragHandle}
-          {...attributes}
-          {...listeners}
-        >
-          <HolderOutlined />
-        </span>
-
-        <Popover
-          content={editContent}
-          trigger="click"
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          placement="bottomLeft"
-        >
-          <Flex gap={8} align="center" className={styles.optionGroupNameClickable}>
-            <Typography.Text className={styles.optionGroupName}>
-              {group.name}
-            </Typography.Text>
-            <Typography.Text type="secondary" className={styles.optionGroupSlug}>
-              {group.slug}
-            </Typography.Text>
-          </Flex>
-        </Popover>
-
-        <Typography.Text type="secondary" className={styles.optionGroupDisplayType}>
-          {DISPLAY_TYPE_OPTIONS.find((o) => o.value === group.displayType)?.label}
-        </Typography.Text>
-
-        <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-          <Button size="small" type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+        <Input
+          value={group.name}
+          onChange={handleNameChange}
+          placeholder="Option name"
+          variant="borderless"
+          style={{ flex: 1, fontWeight: 500 }}
+          prefix={
+            <span className={styles.optionGroupDragHandle} {...attributes} {...listeners}>
+              <HolderOutlined />
+            </span>
+          }
+          suffix={
+            <Flex gap={4} align="center" onPointerDown={(e) => e.stopPropagation()}>
+              <StyleSelector value={group.style} onChange={handleStyleChange} />
+              <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+                <Button size="small" type="text" icon={<DeleteOutlined />} />
+              </Dropdown>
+            </Flex>
+          }
+        />
       </div>
 
       <div className={styles.optionGroupBody}>
@@ -612,44 +558,41 @@ const SortableOptionGroup = ({
         >
           <SortableContext
             items={group.values.map((v) => v.id)}
-            strategy={horizontalListSortingStrategy}
+            strategy={verticalListSortingStrategy}
           >
             <div className={styles.valuesContainer}>
               {group.values.map((value) => (
                 <SortableValue
                   key={value.id}
                   value={value}
-                  displayType={group.displayType}
-                  onEdit={(updated) => onUpdateValue(group.id, updated)}
-                  onDelete={(id) => onDeleteValue(group.id, id)}
+                  groupStyle={group.style}
+                  onChange={(updated) => onUpdateValue(group.id, updated)}
+                  onDelete={() => onDeleteValue(group.id, value.id)}
                 />
               ))}
-              <Input
-                size="small"
-                placeholder="Add value..."
-                value={newValueName}
-                onChange={(e) => setNewValueName(e.target.value)}
-                onBlur={handleAddValue}
-                onPressEnter={handleAddValue}
-                className={styles.addValueInput}
-              />
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={() => onAddValue(group.id)}
+                style={{ marginTop: 4 }}
+              >
+                Add value
+              </Button>
             </div>
           </SortableContext>
 
           <DragOverlay>
             {activeValue && (
-              <div className={styles.valueTag} style={{ cursor: "grabbing", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
-                <span className={styles.valueDragHandle}>
-                  <HolderOutlined />
-                </span>
-                {group.displayType === "swatch" && activeValue.color && (
-                  <span
-                    className={styles.valueSwatch}
-                    style={{ background: activeValue.color }}
-                  />
-                )}
-                <span className={styles.valueLabel}>{activeValue.label}</span>
-              </div>
+              <Input
+                value={activeValue.label}
+                readOnly
+                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
+                prefix={
+                  <span className={styles.valueDragHandle}>
+                    <HolderOutlined />
+                  </span>
+                }
+              />
             )}
           </DragOverlay>
         </DndContext>
@@ -726,14 +669,13 @@ export const EditOptionsModal = () => {
     markDirty();
   }, [markDirty]);
 
-  const handleAddValue = useCallback((groupId: string, label: string) => {
-    const slug = label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const handleAddValue = useCallback((groupId: string) => {
     const newValue: IOptionValue = {
       id: `val-${Date.now()}`,
-      label,
-      slug,
-      color: "#1677ff",
+      label: "",
+      slug: "",
       sortIndex: 0,
+      swatch: { ...DEFAULT_SWATCH },
     };
     setGroups((prev) =>
       prev.map((g) =>
@@ -757,7 +699,7 @@ export const EditOptionsModal = () => {
       id: `opt-${Date.now()}`,
       name: "New Option",
       slug: "new-option",
-      displayType: "text",
+      style: "radio",
       values: [],
       sortIndex: groups.length,
     };
