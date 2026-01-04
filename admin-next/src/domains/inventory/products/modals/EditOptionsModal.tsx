@@ -9,6 +9,9 @@ import {
   Dropdown,
   Input,
   ColorPicker,
+  Popover,
+  Segmented,
+  Upload,
 } from "antd";
 import {
   PlusOutlined,
@@ -20,7 +23,7 @@ import {
   CheckCircleOutlined,
   MenuOutlined,
   ColumnWidthOutlined,
-  BlockOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import {
   DndContext,
@@ -129,6 +132,66 @@ const useStyles = createStyles(({ token }) => ({
     width: "100%",
     borderStyle: "dashed",
   },
+  swatchTrigger: {
+    width: 24,
+    height: 24,
+    borderRadius: "50%",
+    cursor: "pointer",
+    border: `1px solid ${token.colorBorderSecondary}`,
+    overflow: "hidden",
+    flexShrink: 0,
+    "&:hover": {
+      borderColor: token.colorPrimary,
+    },
+  },
+  swatchColor: {
+    width: "100%",
+    height: "100%",
+  },
+  swatchDuo: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    "& > div": {
+      width: "50%",
+      height: "100%",
+    },
+  },
+  swatchImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  swatchImagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: token.colorBgLayout,
+    color: token.colorTextSecondary,
+    fontSize: 12,
+  },
+  swatchPopoverContent: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    paddingTop: 8,
+  },
+  swatchPreview: {
+    width: 48,
+    height: 48,
+    borderRadius: "50%",
+    border: `1px solid ${token.colorBorderSecondary}`,
+    overflow: "hidden",
+    margin: "0 auto",
+  },
+  uploadArea: {
+    width: "100%",
+    "& .ant-upload": {
+      width: "100%",
+    },
+  },
 }));
 
 // ============================================================================
@@ -174,10 +237,10 @@ const STYLE_OPTIONS: { key: FeatureStyleType; label: string; icon: React.ReactNo
   { key: "size", label: "Size", icon: <ColumnWidthOutlined /> },
 ];
 
-const SWATCH_TYPE_OPTIONS: { key: FeatureSwatchType; label: string; icon: React.ReactNode }[] = [
-  { key: "color", label: "Swatch Color", icon: <BgColorsOutlined /> },
-  { key: "color_duo", label: "Two-tone", icon: <BlockOutlined /> },
-  { key: "image", label: "Image", icon: <PictureOutlined /> },
+const SWATCH_TAB_OPTIONS: { value: FeatureSwatchType; label: string }[] = [
+  { value: "color", label: "Color" },
+  { value: "color_duo", label: "Two-tone" },
+  { value: "image", label: "Image" },
 ];
 
 const DEFAULT_SWATCH: ISwatch = {
@@ -255,87 +318,173 @@ const StyleSelector = ({ value, onChange }: IStyleSelectorProps) => {
 };
 
 // ============================================================================
-// Swatch Type Selector Component
+// Swatch Picker Component
 // ============================================================================
 
-interface ISwatchTypeSelectorProps {
-  value: FeatureSwatchType;
-  onChange: (type: FeatureSwatchType) => void;
-}
-
-const SwatchTypeSelector = ({ value, onChange }: ISwatchTypeSelectorProps) => {
-  const current = SWATCH_TYPE_OPTIONS.find((o) => o.key === value);
-
-  const menuItems = SWATCH_TYPE_OPTIONS.map((option) => ({
-    key: option.key,
-    label: (
-      <Flex gap={8} align="center">
-        {option.icon}
-        <span>{option.label}</span>
-      </Flex>
-    ),
-    onClick: () => onChange(option.key),
-  }));
-
-  return (
-    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-      <Button size="small" type="text" style={{ padding: "0 4px" }}>
-        <Flex gap={4} align="center">
-          {current?.icon}
-        </Flex>
-      </Button>
-    </Dropdown>
-  );
-};
-
-// ============================================================================
-// Swatch Control Component
-// ============================================================================
-
-interface ISwatchControlProps {
+interface ISwatchPickerProps {
   swatch: ISwatch;
   onChange: (swatch: ISwatch) => void;
 }
 
-const SwatchControl = ({ swatch, onChange }: ISwatchControlProps) => {
-  const { type, color1, color2 } = swatch;
+const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
+  const { styles } = useStyles();
+  const [open, setOpen] = useState(false);
+  const { type, color1, color2, imageUrl } = swatch;
 
-  if (type === "color") {
+  const handleTypeChange = (nextType: FeatureSwatchType) => {
+    if (nextType === "color") {
+      onChange({ type: "color", color1: color1 || "#1677ff" });
+    } else if (nextType === "color_duo") {
+      onChange({ type: "color_duo", color1: color1 || "#1677ff", color2: color2 || "#333333" });
+    } else {
+      onChange({ type: "image", imageUrl: imageUrl || "" });
+    }
+  };
+
+  const renderTrigger = () => {
+    if (type === "color") {
+      return (
+        <div className={styles.swatchTrigger}>
+          <div className={styles.swatchColor} style={{ background: color1 }} />
+        </div>
+      );
+    }
+    if (type === "color_duo") {
+      return (
+        <div className={styles.swatchTrigger}>
+          <div className={styles.swatchDuo}>
+            <div style={{ background: color1 }} />
+            <div style={{ background: color2 }} />
+          </div>
+        </div>
+      );
+    }
+    // image
     return (
-      <ColorPicker
-        size="small"
-        value={color1}
-        onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
-        disabledAlpha
-        format="hex"
-      />
+      <div className={styles.swatchTrigger}>
+        {imageUrl ? (
+          <img src={imageUrl} alt="" className={styles.swatchImage} />
+        ) : (
+          <div className={styles.swatchImagePlaceholder}>
+            <PictureOutlined />
+          </div>
+        )}
+      </div>
     );
-  }
+  };
 
-  if (type === "color_duo") {
+  const renderPreview = () => {
+    if (type === "color") {
+      return (
+        <div className={styles.swatchPreview}>
+          <div className={styles.swatchColor} style={{ background: color1 }} />
+        </div>
+      );
+    }
+    if (type === "color_duo") {
+      return (
+        <div className={styles.swatchPreview}>
+          <div className={styles.swatchDuo}>
+            <div style={{ background: color1 }} />
+            <div style={{ background: color2 }} />
+          </div>
+        </div>
+      );
+    }
     return (
-      <Flex gap={4}>
+      <div className={styles.swatchPreview}>
+        {imageUrl ? (
+          <img src={imageUrl} alt="" className={styles.swatchImage} />
+        ) : (
+          <div className={styles.swatchImagePlaceholder}>
+            <PictureOutlined />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    if (type === "color") {
+      return (
         <ColorPicker
-          size="small"
           value={color1}
           onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
           disabledAlpha
           format="hex"
+          showText
+          style={{ width: "100%" }}
         />
-        <ColorPicker
-          size="small"
-          value={color2}
-          onChange={(c) => onChange({ ...swatch, color2: c.toHexString() })}
-          disabledAlpha
-          format="hex"
-        />
-      </Flex>
+      );
+    }
+    if (type === "color_duo") {
+      return (
+        <Flex gap={8}>
+          <ColorPicker
+            value={color1}
+            onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
+            disabledAlpha
+            format="hex"
+            size="small"
+          />
+          <ColorPicker
+            value={color2}
+            onChange={(c) => onChange({ ...swatch, color2: c.toHexString() })}
+            disabledAlpha
+            format="hex"
+            size="small"
+          />
+        </Flex>
+      );
+    }
+    // image
+    return (
+      <div className={styles.uploadArea}>
+        <Upload
+          accept="image/*"
+          showUploadList={false}
+          beforeUpload={(file) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              onChange({ ...swatch, imageUrl: e.target?.result as string });
+            };
+            reader.readAsDataURL(file);
+            return false;
+          }}
+        >
+          <Button icon={<UploadOutlined />} style={{ width: "100%" }}>
+            Upload Image
+          </Button>
+        </Upload>
+      </div>
     );
-  }
+  };
 
-  // type === "image" - placeholder for now
+  const popoverContent = (
+    <div className={styles.swatchPopoverContent}>
+      {renderPreview()}
+      <Segmented
+        block
+        size="small"
+        options={SWATCH_TAB_OPTIONS}
+        value={type}
+        onChange={(val) => handleTypeChange(val as FeatureSwatchType)}
+      />
+      {renderContent()}
+    </div>
+  );
+
   return (
-    <Button size="small" type="text" icon={<PictureOutlined />} />
+    <Popover
+      content={popoverContent}
+      trigger="click"
+      open={open}
+      onOpenChange={setOpen}
+      styles={{ root: { width: 240 } }}
+      placement="bottomLeft"
+    >
+      {renderTrigger()}
+    </Popover>
   );
 };
 
@@ -370,13 +519,6 @@ const SortableValue = ({ value, groupStyle, onChange, onDelete }: ISortableValue
   const swatch = value.swatch || DEFAULT_SWATCH;
   const showSwatchControls = groupStyle === "swatch";
 
-  const handleSwatchTypeChange = (type: FeatureSwatchType) => {
-    onChange({
-      ...value,
-      swatch: { ...swatch, type },
-    });
-  };
-
   const handleSwatchChange = (nextSwatch: ISwatch) => {
     onChange({
       ...value,
@@ -402,35 +544,24 @@ const SortableValue = ({ value, groupStyle, onChange, onDelete }: ISortableValue
         onChange={handleLabelChange}
         placeholder="Value name"
         prefix={
-          <span className={styles.valueDragHandle} {...attributes} {...listeners}>
-            <HolderOutlined />
-          </span>
+          <Flex gap={4} align="center">
+            <span className={styles.valueDragHandle} {...attributes} {...listeners}>
+              <HolderOutlined />
+            </span>
+            {showSwatchControls && (
+              <span onPointerDown={(e) => e.stopPropagation()}>
+                <SwatchPicker swatch={swatch} onChange={handleSwatchChange} />
+              </span>
+            )}
+          </Flex>
         }
         suffix={
-          <Flex
-            gap={4}
-            align="center"
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {showSwatchControls && (
-              <>
-                <SwatchTypeSelector
-                  value={swatch.type}
-                  onChange={handleSwatchTypeChange}
-                />
-                <SwatchControl
-                  swatch={swatch}
-                  onChange={handleSwatchChange}
-                />
-              </>
-            )}
-            <Button
-              size="small"
-              type="text"
-              icon={<CloseOutlined />}
-              onClick={onDelete}
-            />
-          </Flex>
+          <Button
+            size="small"
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={onDelete}
+          />
         }
       />
     </div>
