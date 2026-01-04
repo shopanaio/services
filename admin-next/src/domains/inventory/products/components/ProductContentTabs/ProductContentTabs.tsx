@@ -5,7 +5,7 @@ import type { OutputData } from '@editorjs/editorjs';
 import type { RenderedContent } from '@/ui-kit/BlockEditor';
 import { Paper } from '../Paper';
 import { IProduct } from '../../mocks/types';
-import { useProductEditDescriptionModal } from '../../modals';
+import { useProductEditDescriptionModal, useProductAIWriterModal } from '../../modals';
 
 // ============================================================================
 // Styles
@@ -93,8 +93,19 @@ export const ProductContentTabs = ({
 }: IProductContentTabsProps) => {
   const { styles } = useStyles();
   const { push: openEditDescriptionModal } = useProductEditDescriptionModal();
+  const { push: openAIWriterModal } = useProductAIWriterModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
+
+  const handleWriteWithAI = () => {
+    openAIWriterModal({
+      product,
+      onApply: (values: { description?: RenderedContent; excerpt?: RenderedContent }) => {
+        console.log('AI generated content:', values);
+        // TODO: Apply content to product
+      },
+    });
+  };
 
   const parseEditorData = (data: string | null): OutputData | null => {
     if (!data) return null;
@@ -154,7 +165,7 @@ export const ProductContentTabs = ({
         size="middle"
         tabBarExtraContent={
           <Flex gap={8}>
-            <button className={styles.aiButton}>
+            <button className={styles.aiButton} onClick={handleWriteWithAI}>
               <ThunderboltOutlined />
               <span>Write with AI</span>
             </button>

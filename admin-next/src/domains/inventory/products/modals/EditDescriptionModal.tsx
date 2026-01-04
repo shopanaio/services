@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Tabs } from "antd";
+import { ThunderboltOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import type { OutputData } from "@editorjs/editorjs";
 import {
@@ -10,9 +11,10 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { BlockEditor, renderContent } from "@/ui-kit/BlockEditor";
+import { BlockEditor, renderContent, RenderedContent } from "@/ui-kit/BlockEditor";
 import { Paper } from "../components/Paper";
 import type { IProductEditDescriptionModalPayload } from "../modals";
+import { useProductAIWriterModal } from "../modals";
 
 interface IEditDescriptionForm {
   description: OutputData | null;

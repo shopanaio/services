@@ -36,5 +36,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // AI Writer modal
+    {
+      type: 'product-ai-writer',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/AIWriterModal').then(
+          (m) => m.AIWriterModal
+        )
+      ),
+    },
   ];
 }
