@@ -23,7 +23,6 @@ import {
   GetRowIdParams,
   ICellRendererParams,
   CellValueChangedEvent,
-  GridReadyEvent,
   RowDragEndEvent,
   RowDragEnterEvent,
 } from "ag-grid-community";
@@ -366,10 +365,6 @@ export const EditAttributesModal = () => {
     addRowAndChildren(null);
     return result;
   }, [allRows, expandedIds]);
-
-  const onGridReady = useCallback((_params: GridReadyEvent<IAttributeRow>) => {
-    // Grid is ready
-  }, []);
 
   const getRowId = useCallback((params: GetRowIdParams<IAttributeRow>) => params.data.id, []);
 
@@ -820,10 +815,8 @@ export const EditAttributesModal = () => {
               getRowId={getRowId}
               getRowClass={getRowClass}
               domLayout="autoHeight"
-              animateRows
               rowDragManaged
               suppressMoveWhenRowDragging
-              onGridReady={onGridReady}
               onCellValueChanged={handleCellValueChanged}
               onRowDragEnter={handleRowDragEnter}
               onRowDragEnd={handleRowDragEnd}
