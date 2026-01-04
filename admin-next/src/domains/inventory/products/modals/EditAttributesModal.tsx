@@ -689,6 +689,7 @@ export const EditAttributesModal = () => {
         flex: 2,
         minWidth: 300,
         editable: true,
+        resizable: true,
         rowDrag: true,
         cellRenderer: NameCellRenderer,
         cellRendererParams: {
@@ -723,7 +724,7 @@ export const EditAttributesModal = () => {
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
-      resizable: true,
+      resizable: false,
       sortable: false,
       filter: false,
     }),
