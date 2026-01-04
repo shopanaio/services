@@ -815,6 +815,7 @@ export const EditAttributesModal = () => {
               getRowId={getRowId}
               getRowClass={getRowClass}
               domLayout="autoHeight"
+              animateRows={false}
               rowDragManaged
               suppressMoveWhenRowDragging
               onCellValueChanged={handleCellValueChanged}
