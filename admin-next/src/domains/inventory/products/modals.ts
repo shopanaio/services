@@ -20,6 +20,7 @@ export const PRODUCT_EDIT_VARIANT_PRICING_MODAL_TYPE = 'product-edit-variant-pri
 export const PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE = 'product-edit-variant-inventory';
 export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = 'product-edit-media';
 export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
+export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
 
 // ============================================================================
 // Payload Interfaces
@@ -147,6 +148,10 @@ export interface IEditOptionsModalPayload extends IModalStackPayload {
   productId?: string;
 }
 
+export interface IEditAttributesModalPayload extends IModalStackPayload {
+  productId?: string;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -163,6 +168,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANT_INVENTORY_MODAL_TYPE]: IEditVariantInventoryModalPayload;
     [PRODUCT_EDIT_MEDIA_MODAL_TYPE]: IEditMediaModalPayload;
     [PRODUCT_EDIT_OPTIONS_MODAL_TYPE]: IEditOptionsModalPayload;
+    [PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE]: IEditAttributesModalPayload;
   }
 }
 
@@ -279,3 +285,14 @@ export const useEditMediaModal = createModalStackHook(PRODUCT_EDIT_MEDIA_MODAL_T
  * ```
  */
 export const useEditOptionsModal = createModalStackHook(PRODUCT_EDIT_OPTIONS_MODAL_TYPE);
+
+/**
+ * Hook to open edit attributes modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditAttributesModal();
+ * push({ productId: 'prod-123' });
+ * ```
+ */
+export const useEditAttributesModal = createModalStackHook(PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE);

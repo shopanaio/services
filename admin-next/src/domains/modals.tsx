@@ -90,5 +90,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Attributes modal
+    {
+      type: 'product-edit-attributes',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditAttributesModal').then(
+          (m) => m.EditAttributesModal
+        )
+      ),
+    },
   ];
 }
