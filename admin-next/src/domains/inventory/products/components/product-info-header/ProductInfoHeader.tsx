@@ -28,6 +28,7 @@ import { PaperHeader } from "../PaperHeader";
 import { Tile } from "../Tile";
 import { PeriodSwitch, KPI_PERIODS, KPIPeriod } from "../PeriodSwitch";
 import { IProduct, EntityStatus } from "../../mocks/types";
+import { useProductEditTitleModal } from "../../modals";
 
 // ============================================================================
 // Types
@@ -285,10 +286,22 @@ export const ProductInfoHeader = ({
   const { styles } = useStyles();
   const [kpiPeriod, setKpiPeriod] = useState<KPIPeriod>("7d");
   const [compareEnabled, setCompareEnabled] = useState(false);
+  const { push: openEditTitleModal } = useProductEditTitleModal();
 
   const statusConfig = getStatusConfig(product.status);
 
   const handleEdit = (section: string) => onEditSection?.(section);
+
+  const handleEditTitle = () => {
+    openEditTitleModal({
+      title: product.title,
+      handle: product.slug,
+      onSave: (values) => {
+        console.log("Save title:", values);
+        // TODO: implement actual save logic
+      },
+    });
+  };
 
   const kpi: IKPIData = kpiData || {
     views: 2847,
@@ -416,7 +429,7 @@ export const ProductInfoHeader = ({
             color="default"
             size="small"
             icon={<EditOutlined />}
-            onClick={() => handleEdit("title")}
+            onClick={handleEditTitle}
             className={styles.actionButton}
           />
         </Flex>

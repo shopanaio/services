@@ -18,5 +18,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit title modal
+    {
+      type: 'product-edit-title',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditTitleModal').then(
+          (m) => m.EditTitleModal
+        )
+      ),
+    },
   ];
 }

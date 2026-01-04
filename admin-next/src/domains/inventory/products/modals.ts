@@ -7,6 +7,7 @@ import type { IModalStackPayload } from '@/layouts/modals';
 
 export const PRODUCT_MODAL_TYPE = 'product';
 export const PRODUCT_CREATE_MODAL_TYPE = 'product-create';
+export const PRODUCT_EDIT_TITLE_MODAL_TYPE = 'product-edit-title';
 
 // ============================================================================
 // Payload Interfaces
@@ -22,6 +23,12 @@ export interface IProductCreateModalPayload extends IModalStackPayload {
   duplicateFromId?: string;
 }
 
+export interface IProductEditTitleModalPayload extends IModalStackPayload {
+  title: string;
+  handle: string;
+  onSave?: (values: { title: string; handle: string }) => void;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -30,6 +37,7 @@ declare module '@/layouts/modals' {
   interface ModalStackPayloads {
     [PRODUCT_MODAL_TYPE]: IProductModalPayload;
     [PRODUCT_CREATE_MODAL_TYPE]: IProductCreateModalPayload;
+    [PRODUCT_EDIT_TITLE_MODAL_TYPE]: IProductEditTitleModalPayload;
   }
 }
 
@@ -58,3 +66,14 @@ export const useProductModal = createModalStackHook(PRODUCT_MODAL_TYPE);
  * ```
  */
 export const useProductCreateModal = createModalStackHook(PRODUCT_CREATE_MODAL_TYPE);
+
+/**
+ * Hook to open product edit title modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useProductEditTitleModal();
+ * push({ title: 'Product Name', handle: 'product-name', onSave: (values) => console.log(values) });
+ * ```
+ */
+export const useProductEditTitleModal = createModalStackHook(PRODUCT_EDIT_TITLE_MODAL_TYPE);

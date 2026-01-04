@@ -1,6 +1,7 @@
 "use client";
 
-import { Badge, Button, ButtonProps, Flex, Typography } from "antd";
+import { Button, ButtonProps, Flex, Typography } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { ReactNode } from "react";
 
@@ -12,13 +13,12 @@ export interface IModalHeaderProps {
   submitButtonProps?: ButtonProps | null;
   extra?: ReactNode;
   name?: string;
-  badgeCount?: number;
 }
 
 const useStyles = createStyles(({ token }) => ({
   header: {
     display: "flex",
-    padding: 16,
+    padding: 0,
     paddingRight: 16,
     height: 48,
     boxSizing: "border-box",
@@ -27,16 +27,38 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgContainer,
     borderBottom: `1px solid ${token.colorBorderSecondary}`,
   },
-  headerRaw: {
-    padding: 0,
-    paddingRight: 16,
+  closeSection: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "0 12px",
+    height: "100%",
+    borderRight: `1px solid ${token.colorBorderSecondary}`,
+  },
+  closeButton: {
+    color: token.colorTextSecondary,
+    "&:hover": {
+      color: token.colorText,
+      background: token.colorBgTextHover,
+    },
+  },
+  escBadge: {
+    fontSize: 10,
+    fontFamily: "inherit",
+    padding: "2px 5px",
+    background: token.colorBgContainerDisabled,
+    border: `1px solid ${token.colorBorder}`,
+    borderRadius: 4,
+    color: token.colorTextSecondary,
   },
   titleWrapper: {
     height: "100%",
+    paddingLeft: 16,
   },
   title: {
     paddingRight: 12,
     maxWidth: 1000,
+    fontSize: token.fontSizeLG,
   },
 }));
 
@@ -44,45 +66,43 @@ export const ModalHeader = ({
   name,
   title,
   rawTitle = false,
+  onClose,
   submitButtonProps,
   extra = null,
-  badgeCount = 0,
 }: IModalHeaderProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
 
   return (
-    <div className={cx(styles.header, rawTitle && styles.headerRaw)}>
-      <Flex gap={12} align="center" className={styles.titleWrapper}>
-        {rawTitle ? (
-          title
-        ) : (
-          <Badge
-            data-testid="page-title-wrapper"
-            data-count={badgeCount}
-            color="var(--color-primary-10)"
-            count={badgeCount}
-            overflowCount={9999}
-            offset={[badgeCount > 9 ? 6 : 0, 5]}
-          >
-            <Typography.Title
-              level={4}
-              ellipsis={{ rows: 1 }}
-              className={styles.title}
-            >
-              {title}
-            </Typography.Title>
-          </Badge>
-        )}
+    <div className={styles.header}>
+      <Flex align="center" style={{ height: "100%" }}>
+        <div className={styles.closeSection}>
+          <Button
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={onClose}
+            className={styles.closeButton}
+          />
+          <kbd className={styles.escBadge}>esc</kbd>
+        </div>
+        <Flex gap={12} align="center" className={styles.titleWrapper}>
+          {rawTitle ? (
+            title
+          ) : (
+            <Typography.Text className={styles.title}>{title}</Typography.Text>
+          )}
+        </Flex>
       </Flex>
       <Flex gap={16} align="center">
         {extra}
         {submitButtonProps !== null && (
           <Button
             data-testid={`submit-${name ? `${name}-` : ""}form-button`}
+            size="small"
             type="primary"
-            children="Save"
             {...submitButtonProps}
-          />
+          >
+            Save
+          </Button>
         )}
       </Flex>
     </div>
