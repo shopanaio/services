@@ -70,14 +70,7 @@ const useStyles = createStyles(({ token }) => ({
   actionButton: {
     padding: 0,
   },
-  productTitle: {
-    "&&": {
-      margin: "0 0 6px 0",
-      fontSize: 24,
-      fontWeight: 600,
-      lineHeight: 1.3,
-    },
-  },
+  productTitle: {},
   divider: {
     marginBlock: token.margin,
   },
@@ -407,16 +400,16 @@ export const ProductInfoHeader = ({
       <PaperHeader title={statusTitle} actions={topBarActions} />
 
       {/* TITLE SECTION */}
-      <div>
+      <Flex vertical gap={8}>
         <Typography.Title
-          level={4}
-          ellipsis={{ rows: 1, tooltip: product.title }}
+          level={3}
+          ellipsis={{ rows: 2, tooltip: product.title }}
           className={styles.productTitle}
         >
           {product.title || "Untitled Product"}
         </Typography.Title>
 
-        <Flex align="center" gap={12} style={{ marginBottom: 10 }}>
+        <Flex align="center" gap={12}>
           <CopyableChip label="/" value={product.slug} />
           <CopyableChip
             label="ID"
@@ -426,7 +419,7 @@ export const ProductInfoHeader = ({
           />
           {product.sku && <CopyableChip label="SKU" value={product.sku} mono />}
         </Flex>
-      </div>
+      </Flex>
 
       <Divider className={styles.divider} />
 

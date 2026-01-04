@@ -177,17 +177,6 @@ const getMarginStatus = (
   return "ok";
 };
 
-const getMarginColor = (status: MarginStatus, token: any): string => {
-  switch (status) {
-    case "ok":
-      return token.colorText;
-    case "warning":
-      return token.colorWarning;
-    case "critical":
-      return token.colorError;
-  }
-};
-
 const getPriceSourceLabel = (source: PriceSource): string => {
   switch (source) {
     case "manual":
@@ -648,13 +637,7 @@ const KPIRow = ({ data, formatPrice }: IKPIRowProps) => {
       />
       <Tile
         label="Margin"
-        value={
-          <Typography.Text
-            style={{ color: getMarginColor(marginStatus, theme) }}
-          >
-            {margin !== null ? `${margin}%` : "—"}
-          </Typography.Text>
-        }
+        value={margin !== null ? `${margin}%` : "—"}
         tooltip="Profit margin percentage"
         centered
         className={styles.kpiTile}
@@ -838,9 +821,4 @@ export const PricingBlock = ({
 };
 
 export { generateMockHistory, getMockVariantPrices };
-export type {
-  IPricingData,
-  IVariantOption,
-  PriceSource,
-  MarginStatus,
-};
+export type { IPricingData, IVariantOption, PriceSource, MarginStatus };

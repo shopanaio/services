@@ -198,7 +198,7 @@ const calculateInventoryStats = (
 const useStyles = createStyles(({ token }) => ({
   mediaGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, 89px)",
+    gridTemplateColumns: "repeat(8, 1fr)",
     gridGap: 8,
     position: "relative",
     "& > *:nth-child(1)": {
@@ -213,11 +213,8 @@ const useStyles = createStyles(({ token }) => ({
     right: 0,
     bottom: 0,
     display: "grid",
-    // padding: 1,
-    gridTemplateColumns: "repeat(auto-fill, 89px)",
+    gridTemplateColumns: "repeat(8, 1fr)",
     gridGap: 8,
-    // overflow: "hidden",
-    // maxHeight: 202,
     pointerEvents: "none",
     "& > *:nth-child(1)": {
       gridColumnStart: "span 2",
