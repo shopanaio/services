@@ -12,6 +12,7 @@ import {
   Popover,
   Segmented,
   Upload,
+  Tabs,
 } from "antd";
 import {
   PlusOutlined,
@@ -23,7 +24,7 @@ import {
   CheckCircleOutlined,
   MenuOutlined,
   ColumnWidthOutlined,
-  UploadOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import {
   DndContext,
@@ -133,13 +134,15 @@ const useStyles = createStyles(({ token }) => ({
     borderStyle: "dashed",
   },
   swatchTrigger: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: "50%",
     cursor: "pointer",
     border: `1px solid ${token.colorBorderSecondary}`,
     overflow: "hidden",
     flexShrink: 0,
+    padding: 2,
+
     "&:hover": {
       borderColor: token.colorPrimary,
     },
@@ -147,20 +150,13 @@ const useStyles = createStyles(({ token }) => ({
   swatchColor: {
     width: "100%",
     height: "100%",
-  },
-  swatchDuo: {
-    width: "100%",
-    height: "100%",
-    display: "flex",
-    "& > div": {
-      width: "50%",
-      height: "100%",
-    },
+    borderRadius: "100%",
   },
   swatchImage: {
     width: "100%",
     height: "100%",
     objectFit: "cover",
+    borderRadius: "100%",
   },
   swatchImagePlaceholder: {
     width: "100%",
@@ -170,26 +166,76 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "center",
     background: token.colorBgLayout,
     color: token.colorTextSecondary,
+    borderRadius: "100%",
     fontSize: 12,
   },
   swatchPopoverContent: {
     display: "flex",
     flexDirection: "column",
     gap: 12,
-    paddingTop: 8,
+    width: 236,
   },
-  swatchPreview: {
-    width: 48,
-    height: 48,
+  swatchColorTabs: {
+    // marginBottom: 8,
+  },
+  swatchColorTab: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  },
+  swatchColorTabDot: {
+    width: 10,
+    height: 10,
     borderRadius: "50%",
     border: `1px solid ${token.colorBorderSecondary}`,
-    overflow: "hidden",
-    margin: "0 auto",
   },
-  uploadArea: {
+  swatchDropZone: {
     width: "100%",
-    "& .ant-upload": {
-      width: "100%",
+    "& .ant-upload-drag": {
+      padding: 16,
+      background: token.colorBgLayout,
+      borderRadius: 8,
+    },
+    "& .ant-upload-drag-icon": {
+      marginBottom: 8,
+      "& .anticon": {
+        fontSize: 32,
+        color: token.colorTextSecondary,
+      },
+    },
+    "& .ant-upload-text": {
+      fontSize: 13,
+      color: token.colorText,
+    },
+    "& .ant-upload-hint": {
+      fontSize: 12,
+      color: token.colorTextSecondary,
+    },
+  },
+  swatchImagePreview: {
+    position: "relative" as const,
+    width: "100%",
+    borderRadius: 8,
+    overflow: "hidden",
+    border: `1px solid ${token.colorBorderSecondary}`,
+  },
+  swatchImagePreviewImg: {
+    width: "100%",
+    height: 120,
+    objectFit: "cover" as const,
+    display: "block",
+  },
+  swatchImageRemove: {
+    position: "absolute" as const,
+    top: 8,
+    right: 8,
+    background: "rgba(0,0,0,0.5)",
+    border: "none",
+    borderRadius: 4,
+    color: "#fff",
+    "&:hover": {
+      background: "rgba(0,0,0,0.7)",
+      color: "#fff",
     },
   },
 }));
@@ -229,7 +275,11 @@ interface IOptionGroup {
 // Constants
 // ============================================================================
 
-const STYLE_OPTIONS: { key: FeatureStyleType; label: string; icon: React.ReactNode }[] = [
+const STYLE_OPTIONS: {
+  key: FeatureStyleType;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   { key: "swatch", label: "Swatch", icon: <BgColorsOutlined /> },
   { key: "cover", label: "Cover", icon: <PictureOutlined /> },
   { key: "radio", label: "Radio", icon: <CheckCircleOutlined /> },
@@ -237,9 +287,10 @@ const STYLE_OPTIONS: { key: FeatureStyleType; label: string; icon: React.ReactNo
   { key: "size", label: "Size", icon: <ColumnWidthOutlined /> },
 ];
 
-const SWATCH_TAB_OPTIONS: { value: FeatureSwatchType; label: string }[] = [
+type SwatchModeType = "color" | "image";
+
+const SWATCH_MODE_OPTIONS: { value: SwatchModeType; label: string }[] = [
   { value: "color", label: "Color" },
-  { value: "color_duo", label: "Two-tone" },
   { value: "image", label: "Image" },
 ];
 
@@ -260,10 +311,34 @@ const MOCK_OPTION_GROUPS: IOptionGroup[] = [
     style: "swatch",
     sortIndex: 0,
     values: [
-      { id: "val-1", label: "Red", slug: "red", sortIndex: 0, swatch: { type: "color", color1: "#ff4d4f" } },
-      { id: "val-2", label: "Blue", slug: "blue", sortIndex: 1, swatch: { type: "color", color1: "#1677ff" } },
-      { id: "val-3", label: "Green", slug: "green", sortIndex: 2, swatch: { type: "color", color1: "#52c41a" } },
-      { id: "val-4", label: "Black", slug: "black", sortIndex: 3, swatch: { type: "color_duo", color1: "#000000", color2: "#333333" } },
+      {
+        id: "val-1",
+        label: "Red",
+        slug: "red",
+        sortIndex: 0,
+        swatch: { type: "color", color1: "#ff4d4f" },
+      },
+      {
+        id: "val-2",
+        label: "Blue",
+        slug: "blue",
+        sortIndex: 1,
+        swatch: { type: "color", color1: "#1677ff" },
+      },
+      {
+        id: "val-3",
+        label: "Green",
+        slug: "green",
+        sortIndex: 2,
+        swatch: { type: "color", color1: "#52c41a" },
+      },
+      {
+        id: "val-4",
+        label: "Black",
+        slug: "black",
+        sortIndex: 3,
+        swatch: { type: "color_duo", color1: "#000000", color2: "#333333" },
+      },
     ],
   },
   {
@@ -329,16 +404,58 @@ interface ISwatchPickerProps {
 const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
   const { styles } = useStyles();
   const [open, setOpen] = useState(false);
+  const [activeColorTab, setActiveColorTab] = useState<"1" | "2">("1");
   const { type, color1, color2, imageUrl } = swatch;
 
-  const handleTypeChange = (nextType: FeatureSwatchType) => {
-    if (nextType === "color") {
-      onChange({ type: "color", color1: color1 || "#1677ff" });
-    } else if (nextType === "color_duo") {
-      onChange({ type: "color_duo", color1: color1 || "#1677ff", color2: color2 || "#333333" });
+  // Determine mode from swatch type
+  const mode: SwatchModeType = type === "image" ? "image" : "color";
+  const isDuotone = type === "color_duo";
+
+  const handleModeChange = (nextMode: SwatchModeType) => {
+    if (nextMode === "color") {
+      // Preserve existing colors when switching back to color mode
+      if (isDuotone) {
+        onChange({
+          type: "color_duo",
+          color1: color1 || "#1677ff",
+          color2: color2 || "#333333",
+        });
+      } else {
+        onChange({ type: "color", color1: color1 || "#1677ff" });
+      }
     } else {
       onChange({ type: "image", imageUrl: imageUrl || "" });
     }
+  };
+
+  const handleAddSecondColor = () => {
+    onChange({
+      type: "color_duo",
+      color1: color1 || "#1677ff",
+      color2: "#333333",
+    });
+    setActiveColorTab("2");
+  };
+
+  const handleRemoveSecondColor = () => {
+    onChange({ type: "color", color1: color1 || "#1677ff" });
+    setActiveColorTab("1");
+  };
+
+  const handleColorChange = (colorKey: "color1" | "color2", value: string) => {
+    onChange({ ...swatch, [colorKey]: value });
+  };
+
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      onChange({ type: "image", imageUrl: e.target?.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageRemove = () => {
+    onChange({ type: "image", imageUrl: "" });
   };
 
   const renderTrigger = () => {
@@ -352,14 +469,15 @@ const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
     if (type === "color_duo") {
       return (
         <div className={styles.swatchTrigger}>
-          <div className={styles.swatchDuo}>
-            <div style={{ background: color1 }} />
-            <div style={{ background: color2 }} />
-          </div>
+          <div
+            className={styles.swatchColor}
+            style={{
+              background: `linear-gradient(90deg, ${color1} 49.9%, ${color2} 50%, ${color2} 100%)`,
+            }}
+          />
         </div>
       );
     }
-    // image
     return (
       <div className={styles.swatchTrigger}>
         {imageUrl ? (
@@ -373,104 +491,126 @@ const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
     );
   };
 
-  const renderPreview = () => {
-    if (type === "color") {
-      return (
-        <div className={styles.swatchPreview}>
-          <div className={styles.swatchColor} style={{ background: color1 }} />
-        </div>
-      );
-    }
-    if (type === "color_duo") {
-      return (
-        <div className={styles.swatchPreview}>
-          <div className={styles.swatchDuo}>
-            <div style={{ background: color1 }} />
-            <div style={{ background: color2 }} />
-          </div>
-        </div>
-      );
-    }
+  const renderColorContent = () => {
+    const currentColor = activeColorTab === "1" ? color1 : color2;
+    const colorKey = activeColorTab === "1" ? "color1" : "color2";
+
+    const tabItems = [
+      {
+        key: "1",
+        label: "Color 1",
+        closable: false,
+      },
+      ...(isDuotone
+        ? [
+            {
+              key: "2",
+              label: "Color 2",
+              closable: true,
+            },
+          ]
+        : []),
+    ];
+
     return (
-      <div className={styles.swatchPreview}>
-        {imageUrl ? (
-          <img src={imageUrl} alt="" className={styles.swatchImage} />
-        ) : (
-          <div className={styles.swatchImagePlaceholder}>
-            <PictureOutlined />
-          </div>
-        )}
-      </div>
+      <>
+        <Tabs
+          type="editable-card"
+          activeKey={activeColorTab}
+          onChange={(key) => setActiveColorTab(key as "1" | "2")}
+          onEdit={(targetKey, action) => {
+            if (action === "add") {
+              handleAddSecondColor();
+            } else if (action === "remove" && targetKey === "2") {
+              handleRemoveSecondColor();
+            }
+          }}
+          items={tabItems}
+          size="small"
+          className={styles.swatchColorTabs}
+          hideAdd={isDuotone}
+          styles={{
+            header: {
+              margin: 0,
+            },
+          }}
+        />
+        <ColorPicker
+          arrow={false}
+          mode="single"
+          value={currentColor}
+          defaultFormat="hex"
+          disabledFormat
+          onChange={(c) => handleColorChange(colorKey, c.toHexString())}
+          getPopupContainer={(trigger) => trigger.parentElement}
+          disabledAlpha
+          styles={{
+            popup: {
+              root: {
+                position: "static",
+                marginTop: -12,
+              },
+            },
+            popupOverlayInner: {
+              boxShadow: "none",
+              padding: 0,
+            },
+          }}
+          format="hex"
+          open
+        >
+          <div />
+        </ColorPicker>
+      </>
     );
   };
 
-  const renderContent = () => {
-    if (type === "color") {
+  const renderImageContent = () => {
+    if (imageUrl) {
       return (
-        <ColorPicker
-          value={color1}
-          onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
-          disabledAlpha
-          format="hex"
-          showText
-          style={{ width: "100%" }}
-        />
+        <div className={styles.swatchImagePreview}>
+          <img src={imageUrl} alt="" className={styles.swatchImagePreviewImg} />
+          <Button
+            type="text"
+            size="small"
+            icon={<CloseOutlined />}
+            className={styles.swatchImageRemove}
+            onClick={handleImageRemove}
+          />
+        </div>
       );
     }
-    if (type === "color_duo") {
-      return (
-        <Flex gap={8}>
-          <ColorPicker
-            value={color1}
-            onChange={(c) => onChange({ ...swatch, color1: c.toHexString() })}
-            disabledAlpha
-            format="hex"
-            size="small"
-          />
-          <ColorPicker
-            value={color2}
-            onChange={(c) => onChange({ ...swatch, color2: c.toHexString() })}
-            disabledAlpha
-            format="hex"
-            size="small"
-          />
-        </Flex>
-      );
-    }
-    // image
+
     return (
-      <div className={styles.uploadArea}>
-        <Upload
+      <div className={styles.swatchDropZone}>
+        <Upload.Dragger
           accept="image/*"
           showUploadList={false}
           beforeUpload={(file) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              onChange({ ...swatch, imageUrl: e.target?.result as string });
-            };
-            reader.readAsDataURL(file);
+            handleImageUpload(file);
             return false;
           }}
         >
-          <Button icon={<UploadOutlined />} style={{ width: "100%" }}>
-            Upload Image
-          </Button>
-        </Upload>
+          <p className="ant-upload-drag-icon">
+            <InboxOutlined />
+          </p>
+          <p className="ant-upload-text">Drop image here</p>
+          <p className="ant-upload-hint">or click to browse</p>
+        </Upload.Dragger>
       </div>
     );
   };
 
   const popoverContent = (
     <div className={styles.swatchPopoverContent}>
-      {renderPreview()}
       <Segmented
         block
         size="small"
-        options={SWATCH_TAB_OPTIONS}
-        value={type}
-        onChange={(val) => handleTypeChange(val as FeatureSwatchType)}
+        options={SWATCH_MODE_OPTIONS}
+        value={mode}
+        onChange={(val) => handleModeChange(val as SwatchModeType)}
       />
-      {renderContent()}
+      {mode === "color" ? renderColorContent() : renderImageContent()}
     </div>
   );
 
@@ -480,8 +620,8 @@ const SwatchPicker = ({ swatch, onChange }: ISwatchPickerProps) => {
       trigger="click"
       open={open}
       onOpenChange={setOpen}
-      styles={{ root: { width: 240 } }}
       placement="bottomLeft"
+      arrow={false}
     >
       {renderTrigger()}
     </Popover>
@@ -499,7 +639,12 @@ interface ISortableValueProps {
   onDelete: () => void;
 }
 
-const SortableValue = ({ value, groupStyle, onChange, onDelete }: ISortableValueProps) => {
+const SortableValue = ({
+  value,
+  groupStyle,
+  onChange,
+  onDelete,
+}: ISortableValueProps) => {
   const { styles, cx } = useStyles();
 
   const {
@@ -545,7 +690,11 @@ const SortableValue = ({ value, groupStyle, onChange, onDelete }: ISortableValue
         placeholder="Value name"
         prefix={
           <Flex gap={4} align="center">
-            <span className={styles.valueDragHandle} {...attributes} {...listeners}>
+            <span
+              className={styles.valueDragHandle}
+              {...attributes}
+              {...listeners}
+            >
               <HolderOutlined />
             </span>
             {showSwatchControls && (
@@ -623,10 +772,12 @@ const SortableOptionGroup = ({
     if (over && active.id !== over.id) {
       const oldIndex = group.values.findIndex((v) => v.id === active.id);
       const newIndex = group.values.findIndex((v) => v.id === over.id);
-      const newValues = arrayMove(group.values, oldIndex, newIndex).map((v, idx) => ({
-        ...v,
-        sortIndex: idx,
-      }));
+      const newValues = arrayMove(group.values, oldIndex, newIndex).map(
+        (v, idx) => ({
+          ...v,
+          sortIndex: idx,
+        })
+      );
       onReorderValues(group.id, newValues);
     }
   };
@@ -655,7 +806,10 @@ const SortableOptionGroup = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={cx(styles.optionGroup, isDragging && styles.optionGroupDragging)}
+      className={cx(
+        styles.optionGroup,
+        isDragging && styles.optionGroupDragging
+      )}
     >
       <div className={styles.optionGroupHeader}>
         <Input
@@ -665,12 +819,20 @@ const SortableOptionGroup = ({
           variant="borderless"
           style={{ flex: 1, fontWeight: 500 }}
           prefix={
-            <span className={styles.optionGroupDragHandle} {...attributes} {...listeners}>
+            <span
+              className={styles.optionGroupDragHandle}
+              {...attributes}
+              {...listeners}
+            >
               <HolderOutlined />
             </span>
           }
           suffix={
-            <Flex gap={4} align="center" onPointerDown={(e) => e.stopPropagation()}>
+            <Flex
+              gap={4}
+              align="center"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <StyleSelector value={group.style} onChange={handleStyleChange} />
               <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
                 <Button size="small" type="text" icon={<DeleteOutlined />} />
@@ -717,7 +879,10 @@ const SortableOptionGroup = ({
               <Input
                 value={activeValue.label}
                 readOnly
-                style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
+                style={{
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  cursor: "grabbing",
+                }}
                 prefix={
                   <span className={styles.valueDragHandle}>
                     <HolderOutlined />
@@ -760,70 +925,99 @@ export const EditOptionsModal = () => {
     if (over && active.id !== over.id) {
       const oldIndex = groups.findIndex((g) => g.id === active.id);
       const newIndex = groups.findIndex((g) => g.id === over.id);
-      setGroups(arrayMove(groups, oldIndex, newIndex).map((g, idx) => ({
-        ...g,
-        sortIndex: idx,
-      })));
+      setGroups(
+        arrayMove(groups, oldIndex, newIndex).map((g, idx) => ({
+          ...g,
+          sortIndex: idx,
+        }))
+      );
       markDirty();
     }
   };
 
-  const handleUpdateGroup = useCallback((updated: IOptionGroup) => {
-    setGroups((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
-    markDirty();
-  }, [markDirty]);
+  const handleUpdateGroup = useCallback(
+    (updated: IOptionGroup) => {
+      setGroups((prev) => prev.map((g) => (g.id === updated.id ? updated : g)));
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const handleDeleteGroup = useCallback((id: string) => {
-    setGroups((prev) => prev.filter((g) => g.id !== id));
-    markDirty();
-  }, [markDirty]);
+  const handleDeleteGroup = useCallback(
+    (id: string) => {
+      setGroups((prev) => prev.filter((g) => g.id !== id));
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const handleUpdateValue = useCallback((groupId: string, value: IOptionValue) => {
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId
-          ? { ...g, values: g.values.map((v) => (v.id === value.id ? value : v)) }
-          : g
-      )
-    );
-    markDirty();
-  }, [markDirty]);
+  const handleUpdateValue = useCallback(
+    (groupId: string, value: IOptionValue) => {
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId
+            ? {
+                ...g,
+                values: g.values.map((v) => (v.id === value.id ? value : v)),
+              }
+            : g
+        )
+      );
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const handleDeleteValue = useCallback((groupId: string, valueId: string) => {
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId
-          ? { ...g, values: g.values.filter((v) => v.id !== valueId) }
-          : g
-      )
-    );
-    markDirty();
-  }, [markDirty]);
+  const handleDeleteValue = useCallback(
+    (groupId: string, valueId: string) => {
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId
+            ? { ...g, values: g.values.filter((v) => v.id !== valueId) }
+            : g
+        )
+      );
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const handleAddValue = useCallback((groupId: string) => {
-    const newValue: IOptionValue = {
-      id: `val-${Date.now()}`,
-      label: "",
-      slug: "",
-      sortIndex: 0,
-      swatch: { ...DEFAULT_SWATCH },
-    };
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === groupId
-          ? { ...g, values: [...g.values, { ...newValue, sortIndex: g.values.length }] }
-          : g
-      )
-    );
-    markDirty();
-  }, [markDirty]);
+  const handleAddValue = useCallback(
+    (groupId: string) => {
+      const newValue: IOptionValue = {
+        id: `val-${Date.now()}`,
+        label: "",
+        slug: "",
+        sortIndex: 0,
+        swatch: { ...DEFAULT_SWATCH },
+      };
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId
+            ? {
+                ...g,
+                values: [
+                  ...g.values,
+                  { ...newValue, sortIndex: g.values.length },
+                ],
+              }
+            : g
+        )
+      );
+      markDirty();
+    },
+    [markDirty]
+  );
 
-  const handleReorderValues = useCallback((groupId: string, values: IOptionValue[]) => {
-    setGroups((prev) =>
-      prev.map((g) => (g.id === groupId ? { ...g, values } : g))
-    );
-    markDirty();
-  }, [markDirty]);
+  const handleReorderValues = useCallback(
+    (groupId: string, values: IOptionValue[]) => {
+      setGroups((prev) =>
+        prev.map((g) => (g.id === groupId ? { ...g, values } : g))
+      );
+      markDirty();
+    },
+    [markDirty]
+  );
 
   const handleAddGroup = useCallback(() => {
     const newGroup: IOptionGroup = {
@@ -892,7 +1086,10 @@ export const EditOptionsModal = () => {
               {activeGroup && (
                 <div
                   className={styles.optionGroup}
-                  style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.15)", cursor: "grabbing" }}
+                  style={{
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    cursor: "grabbing",
+                  }}
                 >
                   <div className={styles.optionGroupHeader}>
                     <span className={styles.optionGroupDragHandle}>
