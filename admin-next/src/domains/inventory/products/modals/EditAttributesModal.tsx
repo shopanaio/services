@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef } from "react";
 import { createStyles } from "antd-style";
-import { Button, Typography, Flex, Dropdown, Space, Input, Tag } from "antd";
+import { Button, Typography, Flex, Dropdown, Space } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -12,7 +12,6 @@ import {
   TagsOutlined,
   RightOutlined,
   DownOutlined,
-  HolderOutlined,
 } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -26,25 +25,6 @@ import {
   RowDragEndEvent,
   RowDragEnterEvent,
 } from "ag-grid-community";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-  DragEndEvent,
-  DragStartEvent,
-  closestCenter,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  horizontalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   useModalStackContext,
   ModalLayout,
@@ -122,47 +102,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   indent: {
     display: "inline-block",
-  },
-  // Value tags styles
-  valuesContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 6,
-    alignItems: "center",
-    padding: "4px 0",
-  },
-  valueTag: {
-    cursor: "grab",
-    margin: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 4,
-    "&:active": {
-      cursor: "grabbing",
-    },
-  },
-  valueTagDragging: {
-    opacity: 0.5,
-  },
-  valueDragHandle: {
-    color: token.colorTextSecondary,
-    fontSize: 10,
-    display: "flex",
-    alignItems: "center",
-  },
-  addValueInput: {
-    width: 80,
-    fontSize: 12,
-  },
-  valueEditInput: {
-    width: "auto",
-    minWidth: 40,
-    maxWidth: 120,
-    fontSize: 12,
-    border: "none",
-    outline: "none",
-    background: "transparent",
-    padding: 0,
   },
 }));
 
@@ -265,203 +204,21 @@ const createMockData = (): IAttributeRow[] => {
 };
 
 // ============================================================================
-// Sortable Value Tag Component
+// Utility: Remove empty parent groups after moving children
 // ============================================================================
 
-interface ISortableValueTagProps {
-  value: IAttributeValue;
-  onEdit: (value: IAttributeValue) => void;
-}
+const removeEmptyParents = (rows: IAttributeRow[], oldParentId: string | null): IAttributeRow[] => {
+  if (!oldParentId) return rows;
 
-const SortableValueTag = ({ value, onEdit }: ISortableValueTagProps) => {
-  const { styles, cx } = useStyles();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(value.name);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const oldParent = rows.find((r) => r.id === oldParentId);
+  if (!oldParent) return rows;
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: value.id });
+  // Check if old parent still has children
+  const hasChildren = rows.some((r) => r.parentId === oldParentId);
+  if (hasChildren) return rows;
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditName(value.name);
-    setIsEditing(true);
-    setTimeout(() => inputRef.current?.select(), 0);
-  };
-
-  const handleSave = () => {
-    const trimmed = editName.trim();
-    if (trimmed && trimmed !== value.name) {
-      const newSlug = trimmed.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-      onEdit({ ...value, name: trimmed, slug: newSlug });
-    }
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSave();
-    } else if (e.key === "Escape") {
-      setEditName(value.name);
-      setIsEditing(false);
-    } else if (e.key === "Backspace" && editName === "") {
-      // Delete value when backspace on empty input
-      setIsEditing(false);
-      onEdit({ ...value, name: "" }); // Signal deletion with empty name
-    }
-  };
-
-  return (
-    <Tag
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...(isEditing ? {} : listeners)}
-      className={cx(
-        styles.valueTag,
-        isDragging && styles.valueTagDragging
-      )}
-      onDoubleClick={handleDoubleClick}
-      color={isEditing ? "processing" : undefined}
-    >
-      <span className={styles.valueDragHandle}>
-        <HolderOutlined />
-      </span>
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editName}
-          onChange={(e) => setEditName(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          className={styles.valueEditInput}
-          autoFocus
-        />
-      ) : (
-        value.name
-      )}
-    </Tag>
-  );
-};
-
-// ============================================================================
-// Values Cell Renderer
-// ============================================================================
-
-interface IValuesCellRendererParams extends ICellRendererParams<IAttributeRow> {
-  onUpdateValues: (attributeId: string, values: IAttributeValue[]) => void;
-  onAddValue: (attributeId: string, name: string) => void;
-}
-
-const ValuesCellRenderer = (params: IValuesCellRendererParams) => {
-  const { styles } = useStyles();
-  const data = params.data;
-  const [newValueName, setNewValueName] = useState("");
-  const [activeValueId, setActiveValueId] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  if (!data || data.type !== "attribute" || !data.values) {
-    return null;
-  }
-
-  const handleAddValue = () => {
-    const trimmed = newValueName.trim();
-    if (trimmed) {
-      params.onAddValue(data.id, trimmed);
-      setNewValueName("");
-    }
-  };
-
-  const handleEditValue = (updated: IAttributeValue) => {
-    // Empty name signals deletion
-    if (updated.name === "") {
-      const newValues = data.values!.filter((v) => v.id !== updated.id);
-      params.onUpdateValues(data.id, newValues);
-    } else {
-      const newValues = data.values!.map((v) => (v.id === updated.id ? updated : v));
-      params.onUpdateValues(data.id, newValues);
-    }
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveValueId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveValueId(null);
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = data.values!.findIndex((v) => v.id === active.id);
-      const newIndex = data.values!.findIndex((v) => v.id === over.id);
-      const newValues = arrayMove(data.values!, oldIndex, newIndex).map((v, idx) => ({
-        ...v,
-        sortIndex: idx,
-      }));
-      params.onUpdateValues(data.id, newValues);
-    }
-  };
-
-  const activeValue = data.values.find((v) => v.id === activeValueId);
-
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={data.values.map((v) => v.id)}
-        strategy={horizontalListSortingStrategy}
-      >
-        <div className={styles.valuesContainer}>
-          {data.values.map((value) => (
-            <SortableValueTag
-              key={value.id}
-              value={value}
-              onEdit={handleEditValue}
-            />
-          ))}
-          <Input
-            size="small"
-            placeholder="Add..."
-            value={newValueName}
-            onChange={(e) => setNewValueName(e.target.value)}
-            onBlur={handleAddValue}
-            onPressEnter={handleAddValue}
-            className={styles.addValueInput}
-          />
-        </div>
-      </SortableContext>
-
-      <DragOverlay>
-        {activeValue && (
-          <Tag className={styles.valueTag} style={{ cursor: "grabbing", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
-            <span className={styles.valueDragHandle}>
-              <HolderOutlined />
-            </span>
-            {activeValue.name}
-          </Tag>
-        )}
-      </DragOverlay>
-    </DndContext>
-  );
+  // Remove empty parent
+  return rows.filter((r) => r.id !== oldParentId);
 };
 
 // ============================================================================
@@ -660,6 +417,7 @@ export const EditAttributesModal = () => {
 
     // Handle moving attribute to a different group
     if (movingData.type === "attribute" && overData.type === "group") {
+      const oldParentId = movingData.parentId;
       setAllRows((prev) => {
         const newParentId = overData.id;
         const attributesInNewParent = prev.filter(
@@ -667,12 +425,14 @@ export const EditAttributesModal = () => {
         );
         const newSortIndex = attributesInNewParent.length;
 
-        return prev.map((r) => {
+        const updated = prev.map((r) => {
           if (r.id === movingData.id) {
             return { ...r, parentId: newParentId, sortIndex: newSortIndex };
           }
           return r;
         });
+
+        return removeEmptyParents(updated, oldParentId);
       });
       markDirty();
       return;
@@ -716,7 +476,7 @@ export const EditAttributesModal = () => {
           const overIndex = targetSiblings.findIndex((r) => r.id === overData.id);
           const newSortIndex = overIndex >= 0 ? overIndex : targetSiblings.length;
 
-          return prev.map((r) => {
+          const updated = prev.map((r) => {
             if (r.id === movingData.id) {
               return { ...r, parentId: newParentId, sortIndex: newSortIndex };
             }
@@ -725,6 +485,8 @@ export const EditAttributesModal = () => {
             }
             return r;
           });
+
+          return removeEmptyParents(updated, oldParentId);
         }
       });
       markDirty();
@@ -820,37 +582,6 @@ export const EditAttributesModal = () => {
     markDirty();
   }, [allRows, markDirty]);
 
-  const handleUpdateValues = useCallback((attributeId: string, values: IAttributeValue[]) => {
-    setAllRows((prev) =>
-      prev.map((r) => {
-        if (r.id === attributeId) {
-          return { ...r, values };
-        }
-        return r;
-      })
-    );
-    markDirty();
-  }, [markDirty]);
-
-  const handleAddValue = useCallback((attributeId: string, name: string) => {
-    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    setAllRows((prev) =>
-      prev.map((r) => {
-        if (r.id === attributeId) {
-          const newValue: IAttributeValue = {
-            id: `v-${Date.now()}`,
-            name,
-            slug,
-            sortIndex: (r.values || []).length,
-          };
-          return { ...r, values: [...(r.values || []), newValue] };
-        }
-        return r;
-      })
-    );
-    markDirty();
-  }, [markDirty]);
-
   const handleCellValueChanged = useCallback((event: CellValueChangedEvent<IAttributeRow>) => {
     const { data, colDef, newValue } = event;
     if (!data) return;
@@ -902,10 +633,10 @@ export const EditAttributesModal = () => {
         headerName: "Values",
         flex: 2,
         minWidth: 300,
-        cellRenderer: ValuesCellRenderer,
-        cellRendererParams: {
-          onUpdateValues: handleUpdateValues,
-          onAddValue: handleAddValue,
+        editable: (params) => params.data?.type === "attribute",
+        valueGetter: (params) => {
+          if (params.data?.type !== "attribute" || !params.data?.values) return "";
+          return params.data.values.map((v) => v.name).join(", ");
         },
         sortable: false,
         filter: false,
@@ -922,7 +653,7 @@ export const EditAttributesModal = () => {
         filter: false,
       },
     ],
-    [handleDelete, handleAddAttribute, handleToggleExpand, handleUpdateValues, handleAddValue, expandedIds, allRows]
+    [handleDelete, handleAddAttribute, handleToggleExpand, expandedIds, allRows]
   );
 
   const defaultColDef = useMemo<ColDef>(
