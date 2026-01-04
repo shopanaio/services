@@ -9,12 +9,12 @@ import type { IModalStackDefinition } from '@/layouts/modals/types';
  */
 export function getModalStackDefinitions(): IModalStackDefinition[] {
   return [
-    // Test modal
+    // Product modal
     {
-      type: 'product-test',
+      type: 'product',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/TestModal').then(
-          (m) => m.TestModal
+        import('@/domains/inventory/products/modals/ProductModal').then(
+          (m) => m.ProductModal
         )
       ),
     },

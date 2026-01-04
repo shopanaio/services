@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { Image, Typography, Flex, Button } from "antd";
-import { PlusOutlined, ExperimentOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
 import {
@@ -247,8 +247,8 @@ export default function ProductsPage() {
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
 
-  const handleOpenTestModal = () => {
-    push('product-test', { level: 1 });
+  const handleOpenProductModal = () => {
+    push('product', { level: 1 });
   };
 
   const filteredProducts = useMemo(() => {
@@ -314,8 +314,8 @@ export default function ProductsPage() {
       count={filteredProducts.length}
       actions={
         <Flex gap="small">
-          <Button icon={<ExperimentOutlined />} onClick={handleOpenTestModal}>
-            Test Modal
+          <Button onClick={handleOpenProductModal}>
+            Open Product
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Add Product
