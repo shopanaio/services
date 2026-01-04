@@ -434,22 +434,29 @@ export const EditAttributesModal = () => {
       if (node.data) newOrderedRows.push(node.data);
     });
 
-    // Update sortIndex based on the new visual order
+    // Update sortIndex and parentId based on the new visual order
     setAllRows((prev) => {
-      // Build new sortIndex for groups and attributes separately
+      // Build new sortIndex for groups
+      // For attributes, also determine new parentId based on position
       const groupSortIndexMap = new Map<string, number>();
+      const attrNewParentMap = new Map<string, string>(); // attrId -> new parentId
       const attrSortIndexByParent = new Map<string, Map<string, number>>();
 
+      let currentGroupId: string | null = null;
       let groupIndex = 0;
+
       for (const row of newOrderedRows) {
         if (row.type === "group") {
+          currentGroupId = row.id;
           groupSortIndexMap.set(row.id, groupIndex++);
-        } else if (row.type === "attribute") {
-          const parentId = row.parentId || "__no_parent__";
-          if (!attrSortIndexByParent.has(parentId)) {
-            attrSortIndexByParent.set(parentId, new Map());
+        } else if (row.type === "attribute" && currentGroupId) {
+          // Attribute belongs to the last seen group
+          attrNewParentMap.set(row.id, currentGroupId);
+
+          if (!attrSortIndexByParent.has(currentGroupId)) {
+            attrSortIndexByParent.set(currentGroupId, new Map());
           }
-          const parentMap = attrSortIndexByParent.get(parentId)!;
+          const parentMap = attrSortIndexByParent.get(currentGroupId)!;
           parentMap.set(row.id, parentMap.size);
         }
       }
@@ -459,10 +466,11 @@ export const EditAttributesModal = () => {
           return { ...r, sortIndex: groupSortIndexMap.get(r.id)! };
         }
         if (r.type === "attribute") {
-          const parentId = r.parentId || "__no_parent__";
-          const parentMap = attrSortIndexByParent.get(parentId);
-          if (parentMap?.has(r.id)) {
-            return { ...r, sortIndex: parentMap.get(r.id)! };
+          const newParentId = attrNewParentMap.get(r.id);
+          if (newParentId) {
+            const parentMap = attrSortIndexByParent.get(newParentId);
+            const newSortIndex = parentMap?.get(r.id) ?? r.sortIndex;
+            return { ...r, parentId: newParentId, sortIndex: newSortIndex };
           }
         }
         return r;
