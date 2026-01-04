@@ -198,7 +198,7 @@ const calculateInventoryStats = (
 const useStyles = createStyles(({ token }) => ({
   mediaGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, 90px)",
+    gridTemplateColumns: "repeat(auto-fill, 89px)",
     gridGap: 8,
     position: "relative",
     "& > *:nth-child(1)": {
@@ -213,10 +213,11 @@ const useStyles = createStyles(({ token }) => ({
     right: 0,
     bottom: 0,
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, 90px)",
+    // padding: 1,
+    gridTemplateColumns: "repeat(auto-fill, 89px)",
     gridGap: 8,
-    overflow: "hidden",
-    maxHeight: 200,
+    // overflow: "hidden",
+    // maxHeight: 202,
     pointerEvents: "none",
     "& > *:nth-child(1)": {
       gridColumnStart: "span 2",
@@ -933,22 +934,12 @@ export const ProductInfoCardA = ({
       {/* MEDIA SECTION */}
       <Section title="Media" onEdit={() => handleEdit("media")}>
         {(() => {
-          const gallerySlice =
-            product.gallery?.slice(0, product.cover ? 5 : 6) || [];
-          const hasMore =
-            (product.gallery?.length || 0) > (product.cover ? 5 : 6);
-          const overlayItemsCount =
-            (product.cover ? 1 : 0) + gallerySlice.length + (hasMore ? 1 : 0);
+          const showMore = product.gallery.length > 13;
+          const gallerySlice = product.gallery.slice(0, showMore ? 12 : 13);
+          const overlayItemsCount = gallerySlice.length + (showMore ? 1 : 0);
 
           return (
             <div className={styles.mediaGrid}>
-              {product.cover && (
-                <Image
-                  src={product.cover.url}
-                  alt={product.title}
-                  className={styles.mediaImage}
-                />
-              )}
               {gallerySlice.map((media) => (
                 <Image
                   key={media.id}
@@ -957,22 +948,24 @@ export const ProductInfoCardA = ({
                   className={styles.mediaImage}
                 />
               ))}
-              {hasMore && (
+              {showMore && (
                 <Flex
                   align="center"
                   justify="center"
                   className={styles.mediaMoreButton}
                 >
-                  +{product.gallery.length - (product.cover ? 5 : 6)}
+                  +{product.gallery.length - 12}
                 </Flex>
               )}
               <div className={styles.mediaOverlay}>
                 {Array.from({ length: overlayItemsCount }).map((_, idx) => (
                   <div key={`spacer-${idx}`} style={{ aspectRatio: "1/1" }} />
                 ))}
-                {Array.from({ length: 20 }).map((_, idx) => (
-                  <MediaFilePlaceholder key={`placeholder-${idx}`} />
-                ))}
+                {Array.from({ length: 13 - gallerySlice.length }).map(
+                  (_, idx) => (
+                    <MediaFilePlaceholder key={`placeholder-${idx}`} />
+                  )
+                )}
               </div>
             </div>
           );
