@@ -796,20 +796,20 @@ export const EditMediaModal = () => {
           <PaperHeader
             title="Product Media"
             extra={
-              <Flex align="center" gap={12}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {gallery.length} files
-                </Typography.Text>
-                <Segmented
-                  size="small"
-                  value={viewMode}
-                  onChange={(value) => setViewMode(value as ViewMode)}
-                  options={[
-                    { value: "grid", icon: <AppstoreOutlined /> },
-                    { value: "list", icon: <UnorderedListOutlined /> },
-                  ]}
-                />
-              </Flex>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {gallery.length} files
+              </Typography.Text>
+            }
+            actions={
+              <Segmented
+                size="small"
+                value={viewMode}
+                onChange={(value) => setViewMode(value as ViewMode)}
+                options={[
+                  { value: "grid", icon: <AppstoreOutlined /> },
+                  { value: "list", icon: <UnorderedListOutlined /> },
+                ]}
+              />
             }
           />
 
