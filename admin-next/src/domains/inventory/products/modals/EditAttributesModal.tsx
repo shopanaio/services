@@ -68,11 +68,6 @@ const useStyles = createStyles(({ token }) => ({
     "& .row-value": {
       background: `${token.colorBgContainer} !important`,
     },
-    "& .row-add": {
-      background: `${token.colorBgLayout} !important`,
-      fontStyle: "italic",
-      cursor: "pointer",
-    },
   },
   toolbar: {
     padding: "8px 12px",
@@ -113,10 +108,6 @@ const useStyles = createStyles(({ token }) => ({
     color: token.colorTextSecondary,
     fontSize: 12,
   },
-  addIcon: {
-    color: token.colorPrimary,
-    fontSize: 12,
-  },
   actionsCell: {
     display: "flex",
     alignItems: "center",
@@ -135,7 +126,7 @@ const useStyles = createStyles(({ token }) => ({
 // Types
 // ============================================================================
 
-type RowType = "group" | "attribute" | "value" | "add-attribute" | "add-value";
+type RowType = "group" | "attribute" | "value";
 type DisplayType = "text" | "dropdown" | "multiselect";
 
 interface IAttributeRow {
@@ -161,15 +152,11 @@ const createMockData = (): IAttributeRow[] => {
     { id: "v1", type: "value", name: "Cotton", slug: "cotton", parentId: "a1", sortIndex: 0, level: 2 },
     { id: "v2", type: "value", name: "Wool", slug: "wool", parentId: "a1", sortIndex: 1, level: 2 },
     { id: "v3", type: "value", name: "Silk", slug: "silk", parentId: "a1", sortIndex: 2, level: 2 },
-    { id: "add-a1", type: "add-value", name: "+ Add value", slug: "", parentId: "a1", sortIndex: 999, level: 2 },
 
     { id: "a2", type: "attribute", name: "Weight", slug: "weight", displayType: "text", parentId: "g1", sortIndex: 1, level: 1 },
     { id: "v4", type: "value", name: "Light", slug: "light", parentId: "a2", sortIndex: 0, level: 2 },
     { id: "v5", type: "value", name: "Medium", slug: "medium", parentId: "a2", sortIndex: 1, level: 2 },
     { id: "v6", type: "value", name: "Heavy", slug: "heavy", parentId: "a2", sortIndex: 2, level: 2 },
-    { id: "add-a2", type: "add-value", name: "+ Add value", slug: "", parentId: "a2", sortIndex: 999, level: 2 },
-
-    { id: "add-g1", type: "add-attribute", name: "+ Add attribute", slug: "", parentId: "g1", sortIndex: 999, level: 1 },
 
     // Group: Brand Info
     { id: "g2", type: "group", name: "Brand Info", slug: "brand-info", parentId: null, sortIndex: 1, level: 0 },
@@ -177,9 +164,6 @@ const createMockData = (): IAttributeRow[] => {
     { id: "v7", type: "value", name: "Nike", slug: "nike", parentId: "a3", sortIndex: 0, level: 2 },
     { id: "v8", type: "value", name: "Adidas", slug: "adidas", parentId: "a3", sortIndex: 1, level: 2 },
     { id: "v9", type: "value", name: "Puma", slug: "puma", parentId: "a3", sortIndex: 2, level: 2 },
-    { id: "add-a3", type: "add-value", name: "+ Add value", slug: "", parentId: "a3", sortIndex: 999, level: 2 },
-
-    { id: "add-g2", type: "add-attribute", name: "+ Add attribute", slug: "", parentId: "g2", sortIndex: 999, level: 1 },
 
     // Group: Specifications
     { id: "g3", type: "group", name: "Specifications", slug: "specifications", parentId: null, sortIndex: 2, level: 0 },
@@ -187,9 +171,6 @@ const createMockData = (): IAttributeRow[] => {
     { id: "v10", type: "value", name: "China", slug: "china", parentId: "a4", sortIndex: 0, level: 2 },
     { id: "v11", type: "value", name: "Vietnam", slug: "vietnam", parentId: "a4", sortIndex: 1, level: 2 },
     { id: "v12", type: "value", name: "Italy", slug: "italy", parentId: "a4", sortIndex: 2, level: 2 },
-    { id: "add-a4", type: "add-value", name: "+ Add value", slug: "", parentId: "a4", sortIndex: 999, level: 2 },
-
-    { id: "add-g3", type: "add-attribute", name: "+ Add attribute", slug: "", parentId: "g3", sortIndex: 999, level: 1 },
   ];
 };
 
@@ -233,7 +214,6 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
   const { expandedIds, onToggleExpand, allRows } = params;
   const hasChildren = allRows.some((r) => r.parentId === data.id);
   const isExpanded = expandedIds.has(data.id);
-  const isAddRow = data.type === "add-attribute" || data.type === "add-value";
 
   const getIcon = () => {
     switch (data.type) {
@@ -247,9 +227,6 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
         return <TagsOutlined className={styles.attributeIcon} />;
       case "value":
         return <TagOutlined className={styles.valueIcon} />;
-      case "add-attribute":
-      case "add-value":
-        return <PlusOutlined className={styles.addIcon} />;
       default:
         return null;
     }
@@ -261,7 +238,7 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
     <div className={styles.nameCell}>
       <span className={styles.indent} style={{ width: indent }} />
 
-      {hasChildren && !isAddRow ? (
+      {hasChildren ? (
         <span
           className={styles.expandIcon}
           onClick={(e) => {
@@ -276,7 +253,7 @@ const NameCellRenderer = (params: INameCellRendererParams) => {
       )}
 
       {getIcon()}
-      <span style={{ opacity: isAddRow ? 0.6 : 1 }}>{data.name}</span>
+      <span>{data.name}</span>
     </div>
   );
 };
@@ -313,9 +290,6 @@ const ActionsCellRenderer = (params: IActionsCellRendererParams) => {
   const { styles } = useStyles();
   const data = params.data;
   if (!data) return null;
-
-  const isAddRow = data.type === "add-attribute" || data.type === "add-value";
-  if (isAddRow) return null;
 
   const menuItems: Array<{ key: string; label: string; icon: React.ReactNode; danger?: boolean }> = [];
 
@@ -465,11 +439,6 @@ export const EditAttributesModal = () => {
     const movingData = movingNode.data;
     const overData = overNode.data;
 
-    // Don't allow dragging add rows
-    if (movingData.type === "add-attribute" || movingData.type === "add-value") return;
-
-    // Don't drop on add rows
-    if (overData.type === "add-attribute" || overData.type === "add-value") return;
 
     // Handle moving attribute to a different group
     if (movingData.type === "attribute" && overData.type === "group") {
@@ -619,20 +588,6 @@ export const EditAttributesModal = () => {
         level,
       };
 
-      // If adding attribute, also add "add-value" row
-      if (type === "attribute") {
-        const addValueRow: IAttributeRow = {
-          id: `add-${newId}`,
-          type: "add-value",
-          name: "+ Add value",
-          slug: "",
-          parentId: newId,
-          sortIndex: 999,
-          level: level + 1,
-        };
-        return [...prev, newRow, addValueRow];
-      }
-
       return [...prev, newRow];
     });
 
@@ -655,17 +610,7 @@ export const EditAttributesModal = () => {
       level: 0,
     };
 
-    const addAttributeRow: IAttributeRow = {
-      id: `add-${newId}`,
-      type: "add-attribute",
-      name: "+ Add attribute",
-      slug: "",
-      parentId: newId,
-      sortIndex: 999,
-      level: 1,
-    };
-
-    setAllRows((prev) => [...prev, newGroup, addAttributeRow]);
+    setAllRows((prev) => [...prev, newGroup]);
     setExpandedIds((prev) => new Set([...prev, newId]));
     markDirty();
   }, [allRows, markDirty]);
@@ -686,16 +631,6 @@ export const EditAttributesModal = () => {
     markDirty();
   }, [markDirty]);
 
-  const handleRowClicked = useCallback((event: { data: IAttributeRow | undefined }) => {
-    const data = event.data;
-    if (!data) return;
-
-    if (data.type === "add-attribute" && data.parentId) {
-      handleAdd(data.parentId, "attribute");
-    } else if (data.type === "add-value" && data.parentId) {
-      handleAdd(data.parentId, "value");
-    }
-  }, [handleAdd]);
 
   const getRowClass = useCallback((params: { data: IAttributeRow | undefined }) => {
     const data = params.data;
@@ -708,18 +643,12 @@ export const EditAttributesModal = () => {
         return "row-attribute";
       case "value":
         return "row-value";
-      case "add-attribute":
-      case "add-value":
-        return "row-add";
       default:
         return "";
     }
   }, []);
 
-  const isRowEditable = useCallback((params: { data: IAttributeRow | undefined }) => {
-    const data = params.data;
-    return data?.type !== "add-attribute" && data?.type !== "add-value";
-  }, []);
+  const isRowEditable = useCallback(() => true, []);
 
   const columnDefs = useMemo<ColDef<IAttributeRow>[]>(
     () => [
@@ -729,11 +658,7 @@ export const EditAttributesModal = () => {
         flex: 2,
         minWidth: 300,
         editable: isRowEditable,
-        rowDrag: (params) => {
-          const data = params.data;
-          // Only allow dragging non-add rows
-          return data?.type !== "add-attribute" && data?.type !== "add-value";
-        },
+        rowDrag: true,
         cellRenderer: NameCellRenderer,
         cellRendererParams: {
           expandedIds,
@@ -748,11 +673,7 @@ export const EditAttributesModal = () => {
         minWidth: 150,
         editable: isRowEditable,
         cellStyle: { fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: 12 },
-        valueGetter: (params) => {
-          const data = params.data;
-          if (!data || data.type === "add-attribute" || data.type === "add-value") return "";
-          return data.slug;
-        },
+        valueGetter: (params) => params.data?.slug ?? "",
       },
       {
         field: "displayType",
@@ -785,10 +706,7 @@ export const EditAttributesModal = () => {
   );
 
   const handleSave = useCallback(() => {
-    const dataToSave = allRows.filter(
-      (r) => r.type !== "add-attribute" && r.type !== "add-value"
-    );
-    console.log("Saving attributes:", dataToSave);
+    console.log("Saving attributes:", allRows);
     pop();
   }, [allRows, pop]);
 
@@ -838,13 +756,13 @@ export const EditAttributesModal = () => {
               getRowClass={getRowClass}
               domLayout="autoHeight"
               animateRows
+              rowDragManaged
+              suppressMoveWhenRowDragging
               onGridReady={onGridReady}
               onCellValueChanged={handleCellValueChanged}
-              onRowClicked={handleRowClicked}
               onRowDragEnter={handleRowDragEnter}
               onRowDragEnd={handleRowDragEnd}
               onRowDragLeave={handleRowDragLeave}
-              suppressRowClickSelection
               rowSelection="single"
             />
           </div>
