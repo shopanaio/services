@@ -9,8 +9,10 @@ import { PeriodSwitch, CHART_PERIODS, ChartPeriod } from "../PeriodSwitch";
 import {
   IPriceHistoryRecord,
   generateMockHistory,
+  generateMockScheduledPrices,
   getMockVariantPrices,
 } from "./PriceHistory";
+import { useProductPriceHistoryModal, useEditVariantPricingModal } from "../../modals";
 
 // ============================================================================
 // Types
@@ -215,6 +217,7 @@ const PricingHeader = ({
   const selectedVariant = variants?.find((v) => v.id === selectedVariantId);
 
   const moreMenuItems = [
+    { key: "edit", label: "Edit prices" },
     { key: "history", label: "View price history" },
     { key: "audit", label: "View audit log" },
     { key: "compare", label: "Compare variants" },
@@ -712,6 +715,8 @@ export const PricingBlock = ({
   formatPrice: formatPriceProp,
 }: IPricingBlockProps) => {
   const { styles } = useStyles();
+  const { push: pushPriceHistoryModal } = useProductPriceHistoryModal();
+  const { push: pushEditVariantPricingModal } = useEditVariantPricingModal();
 
   const [internalSelectedVariantId, setInternalSelectedVariantId] = useState<
     string | undefined
@@ -753,6 +758,11 @@ export const PricingBlock = ({
     priceHistoryProp ??
     generateMockHistory(price, compareAtPrice);
 
+  const actualScheduledPrices = useMemo(
+    () => generateMockScheduledPrices(actualPrice),
+    [actualPrice]
+  );
+
   const margin =
     actualCostPrice && actualCostPrice > 0
       ? Math.round(((actualPrice - actualCostPrice) / actualPrice) * 100)
@@ -790,6 +800,71 @@ export const PricingBlock = ({
     })
   );
 
+  const handleMoreAction = useCallback(
+    (action: string) => {
+      if (action === "edit") {
+        pushEditVariantPricingModal({
+          variants: variantPrices?.map((v) => ({
+            id: v.variantId,
+            title: v.variantTitle,
+            price: v.currentPrice,
+            compareAtPrice: v.compareAtPrice,
+            costPrice: v.costPrice,
+            options: variants?.find((vv) => vv.id === v.variantId)
+              ? [] // Options would come from actual variant data
+              : [],
+          })) || [{
+            id: "default",
+            title: "Default",
+            price: actualPrice,
+            compareAtPrice: actualCompareAtPrice,
+            costPrice: actualCostPrice,
+          }],
+          formatPrice: formatPriceProp,
+          onSave: (updatedVariants: Array<{ id: string; price: number; compareAtPrice: number | null; costPrice: number | null }>) => {
+            console.log("Updated variants:", updatedVariants);
+          },
+        });
+      } else if (action === "history") {
+        pushPriceHistoryModal({
+          currentPrice: actualPrice,
+          compareAtPrice: actualCompareAtPrice,
+          costPrice: actualCostPrice,
+          priceSource,
+          priceHistory: actualPriceHistory,
+          scheduledPrices: actualScheduledPrices,
+          variants: variantPrices?.map((v) => ({
+            id: v.variantId,
+            title: v.variantTitle,
+            price: v.currentPrice,
+            compareAtPrice: v.compareAtPrice,
+            priceHistory: v.priceHistory,
+            scheduledPrices: generateMockScheduledPrices(v.currentPrice),
+          })),
+          variantId: selectedVariantId,
+          formatPrice: formatPriceProp,
+        });
+      } else {
+        onMoreAction?.(action);
+      }
+    },
+    [
+      pushEditVariantPricingModal,
+      pushPriceHistoryModal,
+      actualPrice,
+      actualCompareAtPrice,
+      actualCostPrice,
+      priceSource,
+      actualPriceHistory,
+      actualScheduledPrices,
+      variantPrices,
+      variants,
+      selectedVariantId,
+      formatPriceProp,
+      onMoreAction,
+    ]
+  );
+
   return (
     <Paper className={styles.card}>
       <PricingHeader
@@ -797,7 +872,7 @@ export const PricingBlock = ({
         variants={variantOptions}
         selectedVariantId={selectedVariantId}
         onVariantSelect={handleVariantSelect}
-        onMoreAction={onMoreAction}
+        onMoreAction={handleMoreAction}
         formatPrice={formatPrice}
       />
 

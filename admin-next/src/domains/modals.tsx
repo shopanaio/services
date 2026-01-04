@@ -45,5 +45,41 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Price History modal
+    {
+      type: 'product-price-history',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/PriceHistoryModal').then(
+          (m) => m.PriceHistoryModal
+        )
+      ),
+    },
+    // Edit Variant Pricing modal
+    {
+      type: 'product-edit-variant-pricing',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditVariantPricingModal').then(
+          (m) => m.EditVariantPricingModal
+        )
+      ),
+    },
+    // Edit Variant Inventory modal
+    {
+      type: 'product-edit-variant-inventory',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditVariantInventoryModal').then(
+          (m) => m.EditVariantInventoryModal
+        )
+      ),
+    },
+    // Edit Media modal
+    {
+      type: 'product-edit-media',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditMediaModal').then(
+          (m) => m.EditMediaModal
+        )
+      ),
+    },
   ];
 }

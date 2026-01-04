@@ -20,6 +20,15 @@ export interface IPriceHistoryRecord {
   isCurrent: boolean;
 }
 
+export interface IScheduledPriceRecord {
+  id: string;
+  amount: number; // in minor units (kopecks)
+  compareAt: number | null;
+  startsAt: Date;
+  endsAt: Date | null;
+  reason?: string; // e.g., "Promo: New Year Sale", "Return to regular price"
+}
+
 export interface IVariantPriceSummary {
   variantId: string;
   variantTitle: string;
@@ -83,6 +92,42 @@ export const generateMockHistory = (
     },
   ];
   return history;
+};
+
+export const generateMockScheduledPrices = (
+  currentPrice: number
+): IScheduledPriceRecord[] => {
+  const now = new Date();
+
+  // 50% chance to have scheduled prices
+  if (Math.random() > 0.5) {
+    return [];
+  }
+
+  const scheduled: IScheduledPriceRecord[] = [
+    {
+      id: "sched-1",
+      amount: Math.round(currentPrice * 0.85),
+      compareAt: currentPrice,
+      startsAt: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000), // +10 days
+      endsAt: new Date(now.getTime() + 24 * 24 * 60 * 60 * 1000), // +24 days
+      reason: "Promo: Winter Sale",
+    },
+  ];
+
+  // 30% chance to have a second scheduled price
+  if (Math.random() > 0.7) {
+    scheduled.push({
+      id: "sched-2",
+      amount: currentPrice,
+      compareAt: null,
+      startsAt: new Date(now.getTime() + 24 * 24 * 60 * 60 * 1000), // after promo ends
+      endsAt: null,
+      reason: "Return to regular price",
+    });
+  }
+
+  return scheduled;
 };
 
 export const getMockVariantPrices = (

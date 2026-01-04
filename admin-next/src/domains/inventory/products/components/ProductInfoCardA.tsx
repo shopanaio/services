@@ -30,9 +30,9 @@ import { MediaFilePlaceholder } from "./MediaFilePlaceholder";
 import { PricingBlock } from "./pricing/PricingBlock";
 import { ProductInfoHeader } from "./product-info-header";
 import { ProductContentTabs } from "./ProductContentTabs";
-import { IProduct } from "../mocks/types";
+import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal } from "../modals";
+import { useProductModal, useEditVariantInventoryModal, useEditMediaModal } from "../modals";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -561,6 +561,8 @@ interface IInventoryActionsProps {
 
 const InventoryActions = ({ onAction }: IInventoryActionsProps) => {
   const items = [
+    { key: "edit", label: "Edit" },
+    { type: "divider" as const },
     { key: "adjust", label: "Adjust stock" },
     { key: "transfer", label: "Transfer" },
     { key: "reserve", label: "Reserve" },
@@ -669,6 +671,7 @@ const InventoryNoData = () => {
 
 interface IInventorySectionProps {
   onEdit?: () => void;
+  product?: IProduct;
 }
 
 type InventoryState = "loading" | "no_data" | "ready";
@@ -677,9 +680,10 @@ const useInventoryData = () => {
   return useMemo(() => getMockWarehouseStock(), []);
 };
 
-const InventorySection = ({ onEdit }: IInventorySectionProps) => {
+const InventorySection = ({ onEdit, product }: IInventorySectionProps) => {
   const { styles } = useStyles();
   const warehouses = useInventoryData();
+  const { push: pushEditInventoryModal } = useEditVariantInventoryModal();
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<
     string | undefined
   >();
@@ -693,7 +697,30 @@ const InventorySection = ({ onEdit }: IInventorySectionProps) => {
 
   const handleAction = (action: string) => {
     console.log("Inventory action:", action);
-    if (action === "adjust" || action === "transfer" || action === "reserve") {
+    if (action === "edit" && product) {
+      pushEditInventoryModal({
+        variants: product.variants?.map((v) => ({
+          id: v.id,
+          title: v.title,
+          sku: v.sku,
+          stock: Math.floor(Math.random() * 100),
+          weight: v.weight,
+          weightUnit: v.weightUnit,
+          barcode: null,
+          options: v.options?.map((opt) => ({
+            title: opt.title,
+            group: {
+              slug: opt.group.slug,
+              title: opt.group.title,
+            },
+          })),
+        })) || [],
+        lowStockThreshold: 10,
+        onSave: (updated: Array<{ id: string; sku: string | null; stock: number; weight: number | null; weightUnit: string; barcode: string | null }>) => {
+          console.log("Saved inventory:", updated);
+        },
+      });
+    } else if (action === "adjust" || action === "transfer" || action === "reserve") {
       onEdit?.();
     }
   };
@@ -868,8 +895,21 @@ export const ProductInfoCardA = ({
 }: IProductInfoCardAProps) => {
   const { styles } = useStyles();
   const { push: openProductModal } = useProductModal();
+  const { push: openEditMediaModal } = useEditMediaModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
+
+  const handleEditMedia = useCallback(() => {
+    openEditMediaModal({
+      productId: product.id,
+      cover: product.cover,
+      gallery: product.gallery,
+      onSave: (media: { cover: IMediaFile | null; gallery: IMediaFile[] }) => {
+        console.log("Saved media:", media);
+        // TODO: Implement actual save logic
+      },
+    });
+  }, [product.id, product.cover, product.gallery, openEditMediaModal]);
 
   const handleOpenProductModal = useCallback(() => {
     openProductModal({ entityId: product.id });
@@ -943,7 +983,7 @@ export const ProductInfoCardA = ({
       />
 
       {/* MEDIA SECTION */}
-      <Section title="Media" onEdit={() => handleEdit("media")}>
+      <Section title="Media" onEdit={handleEditMedia}>
         {(() => {
           const showMore = product.gallery.length > 13;
           const gallerySlice = product.gallery.slice(0, showMore ? 12 : 13);
@@ -984,7 +1024,7 @@ export const ProductInfoCardA = ({
       </Section>
 
       {/* INVENTORY */}
-      <InventorySection onEdit={() => handleEdit("inventory")} />
+      <InventorySection onEdit={() => handleEdit("inventory")} product={product} />
 
       {/* CATEGORIES & TAGS */}
       <Flex gap={12}>

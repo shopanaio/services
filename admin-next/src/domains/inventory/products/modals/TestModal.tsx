@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button, Flex, Typography, Skeleton } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { createStyles } from "antd-style";
 import { useModalStackContext, ModalLayout } from "@/layouts/modals";
 import { ProductInfoCardA } from "../components/ProductInfoCardA";
+import { InventoryVariantsTable, IInventoryVariantRow } from "../components/variants";
 import { mockVariableProduct, mockSimpleProduct } from "../mocks/data";
+import { useEditVariantInventoryModal } from "../modals";
 
 type ModalTab = "general" | "inventory" | "bundles";
 
@@ -98,20 +100,6 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-const InventoryPlaceholder = () => {
-  const { styles } = useStyles();
-
-  return (
-    <div className={styles.placeholderContainer}>
-      <Typography.Text className={styles.placeholderTitle}>
-        Inventory Management
-      </Typography.Text>
-      <Typography.Text type="secondary" className={styles.placeholderDescription}>
-        Variants table will be rendered here
-      </Typography.Text>
-    </div>
-  );
-};
 
 const BundlesPlaceholder = () => {
   const { styles } = useStyles();
@@ -133,8 +121,37 @@ export const TestModal = () => {
   const { payload, pop, forcePop } = useModalStackContext();
   const [activeTab, setActiveTab] = useState<ModalTab>("general");
   const [loading, setLoading] = useState(true);
+  const { push: pushEditInventoryModal } = useEditVariantInventoryModal();
 
   const product = payload.simple ? mockSimpleProduct : mockVariableProduct;
+
+  // Transform product variants to inventory format
+  const inventoryVariants = product.variants.map((v) => ({
+    id: v.id,
+    title: v.title,
+    sku: v.sku,
+    stock: Math.floor(Math.random() * 100), // Mock stock
+    weight: v.weight,
+    weightUnit: v.weightUnit,
+    barcode: null,
+    options: v.options?.map((opt) => ({
+      title: opt.title,
+      group: {
+        slug: opt.group.slug,
+        title: opt.group.title,
+      },
+    })),
+  }));
+
+  const handleEditInventory = useCallback(() => {
+    pushEditInventoryModal({
+      variants: inventoryVariants,
+      lowStockThreshold: 10,
+      onSave: (updated: Array<{ id: string; sku: string | null; stock: number; weight: number | null; weightUnit: string; barcode: string | null }>) => {
+        console.log("Saved inventory:", updated);
+      },
+    });
+  }, [pushEditInventoryModal, inventoryVariants]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 300);
@@ -171,7 +188,15 @@ export const TestModal = () => {
           />
         );
       case "inventory":
-        return <InventoryPlaceholder />;
+        return (
+          <div style={{ padding: 16 }}>
+            <InventoryVariantsTable
+              variants={inventoryVariants}
+              lowStockThreshold={10}
+              onEdit={handleEditInventory}
+            />
+          </div>
+        );
       case "bundles":
         return <BundlesPlaceholder />;
       default:
