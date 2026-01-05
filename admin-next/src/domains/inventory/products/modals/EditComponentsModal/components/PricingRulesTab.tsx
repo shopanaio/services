@@ -12,7 +12,6 @@ import {
   Popconfirm,
   Space,
   Tooltip,
-  Tag,
   Empty,
 } from "antd";
 import {
@@ -30,7 +29,6 @@ import {
   ComponentPriceType,
   type IPricingRuleTemplate,
   type ITieredDiscount,
-  type IComponentGroup,
   PRICE_RULE_OPTIONS,
 } from "../types";
 
@@ -72,11 +70,6 @@ const useStyles = createStyles(({ token }) => ({
   emptyState: {
     padding: "24px 0",
   },
-  groupTags: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 4,
-  },
 }));
 
 // ============================================================================
@@ -88,7 +81,6 @@ interface IPricingRulesTabProps {
   onPricingTemplatesChange: (templates: IPricingRuleTemplate[]) => void;
   tieredDiscounts: ITieredDiscount[];
   onTieredDiscountsChange: (discounts: ITieredDiscount[]) => void;
-  groups: IComponentGroup[];
 }
 
 interface IEditingTemplate extends IPricingRuleTemplate {
@@ -117,7 +109,6 @@ export const PricingRulesTab = ({
   onPricingTemplatesChange,
   tieredDiscounts,
   onTieredDiscountsChange,
-  groups,
 }: IPricingRulesTabProps) => {
   const { styles } = useStyles();
 
@@ -133,7 +124,6 @@ export const PricingRulesTab = ({
       name: "",
       priceType: ComponentPriceType.DISCOUNT_PERCENT,
       priceValue: 10,
-      applyToGroupIds: "all",
       isNew: true,
     };
     setEditingTemplateId(newTemplate.id);
@@ -327,52 +317,6 @@ export const PricingRulesTab = ({
         },
       },
       {
-        title: "Apply To",
-        dataIndex: "applyToGroupIds",
-        key: "applyToGroupIds",
-        render: (_, record) => {
-          if (editingTemplateId === record.id && editingTemplate) {
-            return (
-              <Select
-                mode="multiple"
-                value={
-                  editingTemplate.applyToGroupIds === "all"
-                    ? []
-                    : editingTemplate.applyToGroupIds
-                }
-                onChange={(value) =>
-                  setEditingTemplate({
-                    ...editingTemplate,
-                    applyToGroupIds: value.length === 0 ? "all" : value,
-                  })
-                }
-                placeholder="All groups"
-                style={{ width: "100%" }}
-                options={groups.map((g) => ({ value: g.id, label: g.title }))}
-                allowClear
-              />
-            );
-          }
-
-          if (record.applyToGroupIds === "all") {
-            return <Tag color="blue">All Groups</Tag>;
-          }
-
-          return (
-            <div className={styles.groupTags}>
-              {record.applyToGroupIds.map((groupId) => {
-                const group = groups.find((g) => g.id === groupId);
-                return (
-                  <Tag key={groupId} color="default">
-                    {group?.title ?? groupId}
-                  </Tag>
-                );
-              })}
-            </div>
-          );
-        },
-      },
-      {
         title: "",
         key: "actions",
         width: 80,
@@ -421,7 +365,6 @@ export const PricingRulesTab = ({
     [
       editingTemplateId,
       editingTemplate,
-      groups,
       styles,
       handleSaveTemplate,
       handleCancelTemplateEdit,

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Tag, Button, Dropdown, Empty } from "antd";
+import { Typography, Tag, Button, Dropdown, Empty, Switch, Select, Flex } from "antd";
 import {
   CaretDownOutlined,
   CaretRightOutlined,
@@ -13,8 +13,14 @@ import {
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
-import type { IComponentGroup, IComponentItem } from "../types";
-import { formatPrice } from "../mocks/mockData";
+import {
+  ComponentPriceType,
+  PRICE_RULE_OPTIONS,
+  type IComponentGroup,
+  type IComponentItem,
+  type IPricingRuleTemplate,
+} from "../types";
+import { formatPrice, calculateFinalPrice } from "../mocks/mockData";
 import { GroupSettings } from "./GroupSettings";
 import { ComponentsTable } from "./ComponentsTable";
 
@@ -75,6 +81,16 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     marginBottom: 12,
   },
+  itemsHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  itemsHeaderRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
   itemsTitle: {
     fontSize: 13,
     fontWeight: 500,
@@ -82,6 +98,16 @@ const useStyles = createStyles(({ token }) => ({
   itemsCount: {
     color: token.colorTextSecondary,
     fontWeight: 400,
+  },
+  bulkSwitch: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  selectedCount: {
+    fontSize: 12,
+    color: token.colorPrimary,
+    fontWeight: 500,
   },
   emptyItems: {
     padding: "24px 0",
@@ -101,11 +127,14 @@ interface IGroupCardProps {
   onDuplicate: () => void;
   onAddItem: () => void;
   onEditVariants?: (item: IComponentItem) => void;
+  pricingTemplates: IPricingRuleTemplate[];
 }
 
 // ============================================================================
 // Component
 // ============================================================================
+
+const TEMPLATE_PREFIX = "tpl:";
 
 export const GroupCard = ({
   group,
@@ -116,8 +145,13 @@ export const GroupCard = ({
   onDuplicate,
   onAddItem,
   onEditVariants,
+  pricingTemplates,
 }: IGroupCardProps) => {
   const { styles, cx } = useStyles();
+
+  // Bulk edit state
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Calculate price range
   const priceRange = useMemo(() => {
@@ -128,6 +162,35 @@ export const GroupCard = ({
     if (min === max) return formatPrice(min);
     return `${formatPrice(min)} - ${formatPrice(max)}`;
   }, [group.items]);
+
+  // Bulk price options
+  const bulkPriceOptions = useMemo(() => [
+    ...(pricingTemplates.length > 0
+      ? [
+          {
+            label: "Templates",
+            options: pricingTemplates.map((tpl) => {
+              const rule = PRICE_RULE_OPTIONS.find((r) => r.value === tpl.priceType);
+              const valueStr =
+                tpl.priceValue !== null && rule?.valueSuffix
+                  ? ` (${tpl.priceValue}${rule.valueSuffix})`
+                  : "";
+              return {
+                label: `${tpl.name}${valueStr}`,
+                value: `${TEMPLATE_PREFIX}${tpl.id}`,
+              };
+            }),
+          },
+        ]
+      : []),
+    {
+      label: "Custom",
+      options: PRICE_RULE_OPTIONS.map((opt) => ({
+        label: opt.label,
+        value: opt.value,
+      })),
+    },
+  ], [pricingTemplates]);
 
   // Handlers
   const handleSettingsChange = useCallback(
@@ -143,6 +206,70 @@ export const GroupCard = ({
     },
     [group, onChange]
   );
+
+  const handleBulkEditToggle = useCallback((checked: boolean) => {
+    setBulkEditMode(checked);
+    if (!checked) {
+      setSelectedIds(new Set());
+    }
+  }, []);
+
+  const handleSelectionChange = useCallback((ids: Set<string>) => {
+    setSelectedIds(ids);
+  }, []);
+
+  // Apply pricing rule to selected items
+  const handleBulkApplyPriceRule = useCallback(
+    (value: string) => {
+      if (selectedIds.size === 0) return;
+
+      let priceType: ComponentPriceType;
+      let priceValue: number | null;
+      let templateId: string | undefined;
+
+      if (value.startsWith(TEMPLATE_PREFIX)) {
+        const tplId = value.replace(TEMPLATE_PREFIX, "");
+        const template = pricingTemplates.find((t) => t.id === tplId);
+        if (!template) return;
+        priceType = template.priceType;
+        priceValue = template.priceValue;
+        templateId = tplId;
+      } else {
+        priceType = value as ComponentPriceType;
+        const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
+        priceValue = rule?.requiresValue ? 0 : null;
+        templateId = undefined;
+      }
+
+      const newItems = group.items.map((item) => {
+        if (!selectedIds.has(item.id)) return item;
+
+        const finalPrice = calculateFinalPrice(item.basePrice, priceType, priceValue);
+
+        return {
+          ...item,
+          priceType,
+          priceValue,
+          templateId,
+          finalPrice,
+        };
+      });
+
+      onChange({ ...group, items: newItems });
+      setSelectedIds(new Set());
+      setBulkEditMode(false);
+    },
+    [group, selectedIds, pricingTemplates, onChange]
+  );
+
+  // Delete selected items
+  const handleBulkDelete = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const newItems = group.items.filter((item) => !selectedIds.has(item.id));
+    onChange({ ...group, items: newItems });
+    setSelectedIds(new Set());
+    setBulkEditMode(false);
+  }, [group, selectedIds, onChange]);
 
   const handleMenuClick = useCallback(
     (e: React.MouseEvent) => {
@@ -212,18 +339,30 @@ export const GroupCard = ({
 
           {/* Items Section */}
           <div className={styles.itemsHeader}>
-            <Typography.Text className={styles.itemsTitle}>
-              Items{" "}
-              <span className={styles.itemsCount}>({group.items.length})</span>
-            </Typography.Text>
+            <div className={styles.itemsHeaderLeft}>
+              <Typography.Text className={styles.itemsTitle}>
+                Items{" "}
+                <span className={styles.itemsCount}>({group.items.length})</span>
+              </Typography.Text>
+              {group.items.length > 0 && (
+                <Flex align="center" gap={6}>
+                  <Switch
+                    size="small"
+                    checked={bulkEditMode}
+                    onChange={handleBulkEditToggle}
+                  />
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    Bulk
+                  </Typography.Text>
+                </Flex>
+              )}
+            </div>
             <Button
-              type="primary"
+              type="default"
               size="small"
               icon={<PlusOutlined />}
               onClick={onAddItem}
-            >
-              Add
-            </Button>
+            />
           </div>
 
           {group.items.length === 0 ? (
@@ -241,6 +380,10 @@ export const GroupCard = ({
               items={group.items}
               onItemsChange={handleItemsChange}
               onEditVariants={onEditVariants}
+              pricingTemplates={pricingTemplates}
+              bulkEditMode={bulkEditMode}
+              selectedCount={selectedIds.size}
+              onSelectionChange={handleSelectionChange}
             />
           )}
         </div>

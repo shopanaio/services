@@ -377,28 +377,24 @@ export const mockPricingTemplates: IPricingRuleTemplate[] = [
     name: "Bundle Discount",
     priceType: ComponentPriceType.DISCOUNT_PERCENT,
     priceValue: 15,
-    applyToGroupIds: "all",
   },
   {
     id: "tpl-2",
     name: "Accessories Markup",
     priceType: ComponentPriceType.MARKUP_PERCENT,
     priceValue: 10,
-    applyToGroupIds: ["grp-1"],
   },
   {
     id: "tpl-3",
     name: "Fixed Warranty",
     priceType: ComponentPriceType.FIXED,
     priceValue: 4990,
-    applyToGroupIds: ["grp-2"],
   },
   {
     id: "tpl-4",
     name: "Free Gift",
     priceType: ComponentPriceType.FREE,
     priceValue: null,
-    applyToGroupIds: ["grp-3"],
   },
 ];
 

@@ -67,6 +67,7 @@ interface IGroupsTabProps {
   onGroupsChange: (groups: IComponentGroup[]) => void;
   onAddItem: (groupId: string) => void;
   onEditVariants?: (item: IComponentItem, groupId: string) => void;
+  pricingTemplates: IPricingRuleTemplate[];
 }
 
 const GroupsTab = ({
@@ -74,6 +75,7 @@ const GroupsTab = ({
   onGroupsChange,
   onAddItem,
   onEditVariants,
+  pricingTemplates,
 }: IGroupsTabProps) => {
   const { styles } = useStyles();
   const [expandedIds, setExpandedIds] = useState<string[]>([groups[0]?.id]);
@@ -165,6 +167,7 @@ const GroupsTab = ({
               ? (item) => onEditVariants(item, group.id)
               : undefined
           }
+          pricingTemplates={pricingTemplates}
         />
       ))}
     </div>
@@ -351,6 +354,7 @@ export const EditComponentsModal = () => {
             onGroupsChange={handleGroupsChange}
             onAddItem={handleAddItem}
             onEditVariants={handleEditVariants}
+            pricingTemplates={pricingTemplates}
           />
         ),
       },
@@ -374,7 +378,6 @@ export const EditComponentsModal = () => {
               setTieredDiscounts(discounts);
               setDirty(true);
             }}
-            groups={groups}
           />
         ),
       },

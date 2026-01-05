@@ -118,6 +118,8 @@ export interface IComponentItem {
   /** Pricing configuration */
   priceType: ComponentPriceType;
   priceValue: number | null;
+  /** Template ID if using a pricing template */
+  templateId?: string;
 
   /** Computed prices */
   basePrice: number;
@@ -167,7 +169,6 @@ export interface IPricingRuleTemplate {
   name: string;
   priceType: ComponentPriceType;
   priceValue: number | null;
-  applyToGroupIds: string[] | "all";
 }
 
 export interface ITieredDiscount {
