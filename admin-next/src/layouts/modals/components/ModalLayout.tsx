@@ -10,6 +10,7 @@ interface IModalLayoutProps {
   header?: ReactNode;
   name?: string;
   fullWidth?: boolean;
+  bodyClassName?: string;
 }
 
 const useStyles = createStyles(({ token }) => ({
@@ -52,13 +53,14 @@ export const ModalLayout = ({
   children,
   name,
   fullWidth,
+  bodyClassName,
 }: IModalLayoutProps) => {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
 
   return (
     <div data-testid={`${name ? `${name}-` : ""}modal`} className={styles.container}>
       {header ?? (headerProps && <ModalHeader {...{ ...headerProps, name }} />)}
-      <div className={styles.body}>
+      <div className={cx(styles.body, bodyClassName)}>
         <div className={fullWidth ? styles.contentFullWidth : styles.content}>
           {children}
         </div>

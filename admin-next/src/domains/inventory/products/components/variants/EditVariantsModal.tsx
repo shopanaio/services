@@ -28,20 +28,21 @@ import type { IEditVariantsModalPayload } from "../../modals";
 // ============================================================================
 
 const useStyles = createStyles(({ token }) => ({
+  body: {
+    background: token.colorBgContainer,
+  },
   container: {
     display: "flex",
     flexDirection: "column",
     height: "100%",
   },
   tabs: {
-    padding: "0 16px",
     "& .ant-tabs-nav": {
       marginBottom: 0,
     },
   },
   tableContainer: {
     flex: 1,
-    padding: 16,
     overflow: "auto",
   },
 }));
@@ -119,6 +120,7 @@ export const EditVariantsModal = () => {
         />
       }
       fullWidth
+      bodyClassName={styles.body}
     >
       <div className={styles.container}>
         <Tabs
