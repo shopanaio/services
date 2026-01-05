@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { createStyles } from "antd-style";
-import { Input, InputNumber, Checkbox, Select, Flex } from "antd";
+import { Input, InputNumber, Checkbox, Flex } from "antd";
 import type { IComponentGroup } from "../types";
 
 // ============================================================================
@@ -28,10 +28,6 @@ const useStyles = createStyles(({ token }) => ({
   },
   numberInput: {
     width: 80,
-  },
-  defaultSelect: {
-    flex: 1,
-    minWidth: 200,
   },
   label: {
     fontSize: 12,
@@ -67,11 +63,6 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
     },
     [onChange]
   );
-
-  const defaultItemOptions = group.items.map((item) => ({
-    value: item.id,
-    label: item.customTitle || `Item ${item.sortIndex + 1}`,
-  }));
 
   return (
     <div className={styles.container}>
@@ -126,24 +117,6 @@ export const GroupSettings = ({ group, onChange }: IGroupSettingsProps) => {
             className={styles.numberInput}
             size="small"
             disabled={!group.isMultiple}
-          />
-        </Flex>
-
-        <Flex gap={8} align="center" flex={1}>
-          <span className={styles.label}>Default</span>
-          <Select
-            mode={group.isMultiple ? "multiple" : undefined}
-            value={group.defaultItemIds}
-            onChange={(value) =>
-              onChange({
-                defaultItemIds: Array.isArray(value) ? value : value ? [value] : [],
-              })
-            }
-            options={defaultItemOptions}
-            placeholder="Select default"
-            allowClear
-            className={styles.defaultSelect}
-            size="small"
           />
         </Flex>
       </Flex>

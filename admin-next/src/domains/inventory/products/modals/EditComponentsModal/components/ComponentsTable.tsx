@@ -12,7 +12,7 @@ import {
   RowDragEndEvent,
   CellValueChangedEvent,
 } from "ag-grid-community";
-import { Tag, Button, Dropdown } from "antd";
+import { Button, Dropdown } from "antd";
 import {
   MoreOutlined,
   DeleteOutlined,
@@ -77,12 +77,21 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     flexShrink: 0,
   },
+  productInfo: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 0,
+  },
   productTitle: {
     fontSize: 13,
     fontWeight: 500,
+    lineHeight: 1.3,
   },
-  variantsBadge: {
-    marginLeft: 4,
+  variantsLink: {
+    fontSize: 12,
+    padding: 0,
+    height: "auto",
+    lineHeight: 1.3,
   },
   unavailable: {
     opacity: 0.5,
@@ -103,7 +112,11 @@ interface IComponentsTableProps {
 // Cell Renderers
 // ============================================================================
 
-const ProductCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) => {
+interface IProductCellRendererProps extends ICellRendererParams<IComponentItem> {
+  onEditVariants?: (item: IComponentItem) => void;
+}
+
+const ProductCellRenderer = ({ data, onEditVariants }: IProductCellRendererProps) => {
   const { styles, cx } = useStyles();
   if (!data) return null;
 
@@ -124,14 +137,19 @@ const ProductCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) => {
   return (
     <div className={cx(styles.productCell, !data.isAvailable && styles.unavailable)}>
       <img src={imageUrl || "/placeholder.png"} className={styles.productImage} alt="" />
-      <span className={styles.productTitle}>
-        {title}
-        {variantsCount !== null && (
-          <Tag color="blue" className={styles.variantsBadge}>
-            {variantsCount} var
-          </Tag>
+      <div className={styles.productInfo}>
+        <span className={styles.productTitle}>{title}</span>
+        {variantsCount !== null && onEditVariants && (
+          <Button
+            type="link"
+            size="small"
+            className={styles.variantsLink}
+            onClick={() => onEditVariants(data)}
+          >
+            {variantsCount} variants
+          </Button>
         )}
-      </span>
+      </div>
     </div>
   );
 };
@@ -311,7 +329,9 @@ export const ComponentsTable = ({
         field: "productId",
         flex: 2,
         minWidth: 200,
-        cellRenderer: ProductCellRenderer,
+        cellRenderer: (params: ICellRendererParams<IComponentItem>) => (
+          <ProductCellRenderer {...params} onEditVariants={onEditVariants} />
+        ),
       },
       {
         headerName: "Price Rule",
@@ -356,8 +376,6 @@ export const ComponentsTable = ({
             onEditVariants={onEditVariants}
           />
         ),
-        resizable: false,
-        pinned: "right",
       },
     ],
     [handleDelete, handleDuplicate, onEditVariants]
@@ -365,7 +383,7 @@ export const ComponentsTable = ({
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
-      resizable: true,
+      resizable: false,
       sortable: false,
       suppressMovable: true,
     }),
