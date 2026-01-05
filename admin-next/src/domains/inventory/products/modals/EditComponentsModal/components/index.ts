@@ -4,3 +4,4 @@ export { ComponentsTable } from "./ComponentsTable";
 export { ProductPicker } from "./ProductPicker";
 export { VariantSettingsModal } from "./VariantSettingsModal";
 export { PricingRulesTab } from "./PricingRulesTab";
+export { PreviewTab } from "./PreviewTab";

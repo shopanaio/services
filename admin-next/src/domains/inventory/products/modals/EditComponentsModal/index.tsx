@@ -34,7 +34,7 @@ import {
   mockTieredDiscounts,
   mockModalSettings,
 } from "./mocks/mockData";
-import { GroupCard, ProductPicker, PricingRulesTab } from "./components";
+import { GroupCard, ProductPicker, PricingRulesTab, PreviewTab } from "./components";
 import { useComponentVariantSettingsModal } from "../../modals";
 import { getProductById } from "./mocks/mockData";
 
@@ -178,23 +178,6 @@ const GroupsTab = ({
   );
 };
 
-
-// ============================================================================
-// Preview Tab (Placeholder)
-// ============================================================================
-
-const PreviewTab = () => {
-  const { styles } = useStyles();
-  return (
-    <Paper className={styles.placeholder}>
-      <EyeOutlined style={{ fontSize: 32, marginBottom: 16 }} />
-      <Typography.Title level={5}>Storefront Preview</Typography.Title>
-      <Typography.Text type="secondary">
-        Preview how the component configurator will appear on the storefront
-      </Typography.Text>
-    </Paper>
-  );
-};
 
 // ============================================================================
 // Settings Tab (Placeholder)
@@ -437,7 +420,16 @@ export const EditComponentsModal = () => {
             Preview
           </Flex>
         ),
-        children: <PreviewTab />,
+        children: (
+          <PreviewTab
+            groups={groups}
+            displayStyle={displayStyle}
+            showImages={settings.showImages}
+            showSku={settings.showSku}
+            showStock={settings.showStock}
+            showComparePrice={settings.showComparePrice}
+          />
+        ),
       },
       {
         key: "settings" as const,
@@ -458,6 +450,8 @@ export const EditComponentsModal = () => {
       bundleCalcMode,
       pricingTemplates,
       tieredDiscounts,
+      displayStyle,
+      settings,
       setDirty,
     ]
   );
