@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { createStyles } from "antd-style";
-import { Typography, Tag, Divider, Empty, Flex } from "antd";
+import { Typography, Tag, Divider, Empty } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -11,6 +11,7 @@ import {
   GetRowIdParams,
   ICellRendererParams,
   SelectionChangedEvent,
+  RowDragEndEvent,
 } from "ag-grid-community";
 import {
   useModalStackContext,
@@ -33,6 +34,7 @@ interface IVariantRow {
   sku: string;
   price: number;
   stock: number;
+  sortIndex: number;
   options?: { optionId: string; value: string }[];
 }
 
@@ -86,6 +88,16 @@ const useStyles = createStyles(({ token }) => ({
       display: "flex",
       alignItems: "center",
     },
+    "& .ag-row-drag": {
+      cursor: "grab",
+      color: token.colorTextQuaternary,
+      "&:hover": {
+        color: token.colorTextSecondary,
+      },
+    },
+    "& .ag-row-dragging": {
+      cursor: "grabbing",
+    },
   },
   summary: {
     padding: "12px 16px",
@@ -96,31 +108,11 @@ const useStyles = createStyles(({ token }) => ({
   summaryText: {
     fontSize: 13,
   },
-  stockTag: {
-    margin: 0,
-  },
 }));
 
 // ============================================================================
 // Cell Renderers
 // ============================================================================
-
-const StockCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
-  const { styles } = useStyles();
-  if (!data) return null;
-
-  const isOutOfStock = data.stock === 0;
-
-  return isOutOfStock ? (
-    <Tag color="red" className={styles.stockTag}>
-      Out of stock
-    </Tag>
-  ) : (
-    <Tag color="green" className={styles.stockTag}>
-      {data.stock} in stock
-    </Tag>
-  );
-};
 
 const PriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
   if (!data) return null;
@@ -152,18 +144,17 @@ export const VariantSettingsModal = () => {
     () => initialVariantIds ?? variants.map((v) => v.id)
   );
 
-  // Row data for grid
-  const rowData = useMemo<IVariantRow[]>(
-    () =>
-      variants.map((v) => ({
-        id: v.id,
-        title: v.title,
-        sku: v.sku,
-        price: v.price,
-        stock: v.stock,
-        options: v.options,
-      })),
-    [variants]
+  // Row data for grid (stateful for drag reordering)
+  const [rowData, setRowData] = useState<IVariantRow[]>(() =>
+    variants.map((v, index) => ({
+      id: v.id,
+      title: v.title,
+      sku: v.sku,
+      price: v.price,
+      stock: v.stock,
+      sortIndex: index,
+      options: v.options,
+    }))
   );
 
   // Get unique option values grouped by option
@@ -213,6 +204,31 @@ export const VariantSettingsModal = () => {
     []
   );
 
+  // Handle row drag end
+  const handleRowDragEnd = useCallback(
+    (event: RowDragEndEvent<IVariantRow>) => {
+      const { node, overIndex } = event;
+      if (overIndex === undefined || overIndex === null) return;
+
+      const movedItem = node.data;
+      if (!movedItem) return;
+
+      setRowData((prev) => {
+        const newData = [...prev];
+        const oldIndex = newData.findIndex((item) => item.id === movedItem.id);
+        newData.splice(oldIndex, 1);
+        newData.splice(overIndex, 0, movedItem);
+
+        // Update sort indices
+        return newData.map((item, index) => ({
+          ...item,
+          sortIndex: index,
+        }));
+      });
+    },
+    []
+  );
+
   // Toggle by option value
   const handleOptionValueToggle = useCallback(
     (optionId: string, value: string, checked: boolean) => {
@@ -237,37 +253,40 @@ export const VariantSettingsModal = () => {
   // Save changes
   const handleSave = useCallback(() => {
     const allVariantIds = variants.map((v) => v.id);
+
+    // Get selected IDs in the order they appear in rowData
+    const orderedSelectedIds = rowData
+      .filter((row) => selectedVariantIds.includes(row.id))
+      .map((row) => row.id);
+
     const isAllSelected =
-      selectedVariantIds.length === allVariantIds.length &&
-      allVariantIds.every((id) => selectedVariantIds.includes(id));
+      orderedSelectedIds.length === allVariantIds.length &&
+      allVariantIds.every((id) => orderedSelectedIds.includes(id));
 
     onSave?.({
-      availableVariantIds: isAllSelected ? null : selectedVariantIds,
+      availableVariantIds: isAllSelected ? null : orderedSelectedIds,
     });
     pop();
-  }, [selectedVariantIds, variants, onSave, pop]);
+  }, [selectedVariantIds, variants, rowData, onSave, pop]);
 
   // Column definitions
   const columnDefs = useMemo<ColDef<IVariantRow>[]>(
     () => [
       {
+        headerName: "",
+        field: "sortIndex",
+        width: 50,
+        rowDrag: true,
+        suppressMovable: true,
+        resizable: false,
+      },
+      {
         headerName: "Variant",
         field: "title",
-        flex: 2,
+        flex: 1,
         minWidth: 150,
         headerCheckboxSelection: true,
         checkboxSelection: true,
-      },
-      {
-        headerName: "SKU",
-        field: "sku",
-        width: 120,
-      },
-      {
-        headerName: "Stock",
-        field: "stock",
-        width: 120,
-        cellRenderer: StockCellRenderer,
       },
       {
         headerName: "Price",
@@ -373,11 +392,9 @@ export const VariantSettingsModal = () => {
 
         {/* Variant Table */}
         <div className={styles.section}>
-          <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
-            <Typography.Text className={styles.sectionTitle} style={{ margin: 0 }}>
-              Available Variants
-            </Typography.Text>
-          </Flex>
+          <Typography.Text className={styles.sectionTitle}>
+            Available Variants
+          </Typography.Text>
 
           {variants.length === 0 ? (
             <Empty
@@ -395,7 +412,10 @@ export const VariantSettingsModal = () => {
                 rowSelection="multiple"
                 rowMultiSelectWithClick
                 suppressRowClickSelection={false}
+                rowDragManaged
+                animateRows
                 onSelectionChanged={handleSelectionChanged}
+                onRowDragEnd={handleRowDragEnd}
                 onGridReady={onGridReady}
                 rowHeight={44}
                 headerHeight={36}

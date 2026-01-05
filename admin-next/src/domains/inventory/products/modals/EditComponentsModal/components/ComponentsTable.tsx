@@ -27,7 +27,7 @@ import {
   PRICE_RULE_OPTIONS,
   type IComponentItem,
 } from "../types";
-import { getProductById, getVariantById, formatPrice } from "../mocks/mockData";
+import { getProductById, getVariantById } from "../mocks/mockData";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -77,55 +77,15 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     flexShrink: 0,
   },
-  productInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    minWidth: 0,
-  },
   productTitle: {
     fontSize: 13,
     fontWeight: 500,
-    lineHeight: 1.3,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  productSku: {
-    fontSize: 11,
-    color: token.colorTextSecondary,
   },
   variantsBadge: {
     marginLeft: 4,
   },
-  priceCell: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-  },
-  priceMain: {
-    fontWeight: 500,
-    fontSize: 13,
-  },
-  priceRange: {
-    color: token.colorTextSecondary,
-    fontSize: 11,
-  },
-  finalPriceCell: {
-    fontWeight: 600,
-    fontSize: 13,
-  },
-  finalPriceFree: {
-    color: token.colorSuccess,
-  },
-  finalPriceDiscount: {
-    color: token.colorError,
-  },
   unavailable: {
     opacity: 0.5,
-  },
-  stockBadge: {
-    fontSize: 11,
   },
 }));
 
@@ -154,7 +114,6 @@ const ProductCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) => {
       : null;
 
   const title = data.customTitle || variant?.title || product?.title || "Unknown";
-  const sku = variant?.sku || product?.sku || "";
   const imageUrl = variant?.imageUrl || product?.imageUrl || "/placeholder.png";
 
   const variantsCount =
@@ -165,75 +124,18 @@ const ProductCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) => {
   return (
     <div className={cx(styles.productCell, !data.isAvailable && styles.unavailable)}>
       <img src={imageUrl || "/placeholder.png"} className={styles.productImage} alt="" />
-      <div className={styles.productInfo}>
-        <span className={styles.productTitle}>
-          {title}
-          {variantsCount !== null && (
-            <Tag color="blue" className={styles.variantsBadge}>
-              {variantsCount} var
-            </Tag>
-          )}
-        </span>
-        <span className={styles.productSku}>{sku}</span>
-      </div>
-    </div>
-  );
-};
-
-const BasePriceCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) => {
-  const { styles, cx } = useStyles();
-  if (!data) return null;
-
-  const hasRange = data.basePriceMax && data.basePriceMax !== data.basePrice;
-
-  return (
-    <div className={cx(styles.priceCell, !data.isAvailable && styles.unavailable)}>
-      <span className={styles.priceMain}>{formatPrice(data.basePrice)}</span>
-      {hasRange && (
-        <span className={styles.priceRange}>- {formatPrice(data.basePriceMax!)}</span>
-      )}
-    </div>
-  );
-};
-
-const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) => {
-  const { styles, cx } = useStyles();
-  if (!data) return null;
-
-  const isFree =
-    data.priceType === ComponentPriceType.FREE ||
-    data.priceType === ComponentPriceType.INCLUDED;
-  const isDiscount =
-    data.priceType === ComponentPriceType.DISCOUNT_PERCENT ||
-    data.priceType === ComponentPriceType.DISCOUNT_FIXED;
-
-  const hasRange = data.finalPriceMax && data.finalPriceMax !== data.finalPrice;
-
-  if (isFree) {
-    return (
-      <span className={cx(styles.finalPriceCell, styles.finalPriceFree)}>
-        {data.priceType === ComponentPriceType.INCLUDED ? "Included" : "Free"}
-      </span>
-    );
-  }
-
-  return (
-    <div className={styles.priceCell}>
-      <span
-        className={cx(
-          styles.finalPriceCell,
-          isDiscount && styles.finalPriceDiscount,
-          !data.isAvailable && styles.unavailable
+      <span className={styles.productTitle}>
+        {title}
+        {variantsCount !== null && (
+          <Tag color="blue" className={styles.variantsBadge}>
+            {variantsCount} var
+          </Tag>
         )}
-      >
-        {formatPrice(data.finalPrice)}
       </span>
-      {hasRange && (
-        <span className={styles.priceRange}>- {formatPrice(data.finalPriceMax!)}</span>
-      )}
     </div>
   );
 };
+
 
 interface IActionsCellRendererProps extends ICellRendererParams<IComponentItem> {
   onDelete: (itemId: string) => void;
@@ -412,12 +314,6 @@ export const ComponentsTable = ({
         cellRenderer: ProductCellRenderer,
       },
       {
-        headerName: "Base Price",
-        field: "basePrice",
-        width: 120,
-        cellRenderer: BasePriceCellRenderer,
-      },
-      {
         headerName: "Price Rule",
         field: "priceType",
         width: 140,
@@ -447,12 +343,6 @@ export const ComponentsTable = ({
           if (params.value == null) return "—";
           return `${params.value}${rule.valueSuffix || ""}`;
         },
-      },
-      {
-        headerName: "Final",
-        field: "finalPrice",
-        width: 100,
-        cellRenderer: FinalPriceCellRenderer,
       },
       {
         headerName: "",
