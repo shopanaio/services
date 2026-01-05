@@ -685,6 +685,13 @@ interface IPricingBlockProps {
     price: number;
     compareAtPrice?: number | null;
     costPrice?: number | null;
+    options?: Array<{
+      title: string;
+      group: {
+        slug: string;
+        title: string;
+      };
+    }>;
   }>;
   selectedVariantId?: string;
   onVariantSelect?: (id: string) => void;
@@ -805,16 +812,17 @@ export const PricingBlock = ({
       if (action === "edit") {
         pushEditVariantsModal({
           initialTab: "pricing",
-          variants: variantPrices?.map((v) => ({
-            id: v.variantId,
-            title: v.variantTitle,
-            price: v.currentPrice,
-            compareAtPrice: v.compareAtPrice,
-            costPrice: v.costPrice,
-            options: variants?.find((vv) => vv.id === v.variantId)
-              ? []
-              : [],
-          })) || [{
+          variants: variantPrices?.map((v) => {
+            const originalVariant = variants?.find((vv) => vv.id === v.variantId);
+            return {
+              id: v.variantId,
+              title: v.variantTitle,
+              price: v.currentPrice,
+              compareAtPrice: v.compareAtPrice,
+              costPrice: v.costPrice,
+              options: originalVariant?.options,
+            };
+          }) || [{
             id: "default",
             title: "Default",
             price: actualPrice,

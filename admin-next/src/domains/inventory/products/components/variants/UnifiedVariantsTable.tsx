@@ -246,13 +246,32 @@ export const UnifiedVariantsTable = ({
   const [rowData, setRowData] = useState<IUnifiedVariantRow[]>(initialRowData);
   const rowDataRef = useRef(rowData);
 
+  // Sync rowData when variants change
+  useEffect(() => {
+    setRowData(initialRowData);
+  }, [initialRowData]);
+
   useEffect(() => {
     rowDataRef.current = rowData;
   }, [rowData]);
 
+  // Common image column
+  const imageColumn: ColDef<IUnifiedVariantRow> = useMemo(
+    () => ({
+      headerName: "Image",
+      field: "imageUrl",
+      width: 70,
+      cellRenderer: ImageCellRenderer,
+      sortable: false,
+      resizable: false,
+    }),
+    []
+  );
+
   // Column definitions for each tab
   const inventoryColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
     () => [
+      imageColumn,
       {
         headerName: "SKU",
         field: "sku",
@@ -288,11 +307,12 @@ export const UnifiedVariantsTable = ({
         valueFormatter: (params) => params.value ?? "—",
       },
     ],
-    []
+    [imageColumn]
   );
 
   const pricingColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
     () => [
+      imageColumn,
       {
         headerName: "Price",
         field: "price",
@@ -333,11 +353,12 @@ export const UnifiedVariantsTable = ({
         valueFormatter: (params) => (params.value != null ? formatPrice(params.value) : "—"),
       },
     ],
-    [formatPrice]
+    [imageColumn, formatPrice]
   );
 
   const shippingColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
     () => [
+      imageColumn,
       {
         headerName: "Weight",
         field: "weight",
@@ -389,24 +410,18 @@ export const UnifiedVariantsTable = ({
         },
       },
     ],
-    []
+    [imageColumn]
   );
 
   const mediaColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
-    () => [
-      {
-        headerName: "Image",
-        field: "imageUrl",
-        width: 80,
-        cellRenderer: ImageCellRenderer,
-        sortable: false,
-        resizable: false,
-      },
-    ],
-    []
+    () => [imageColumn],
+    [imageColumn]
   );
 
-  const optionsColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(() => [], []);
+  const optionsColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
+    () => [imageColumn],
+    [imageColumn]
+  );
 
   // Get columns based on active tab
   const additionalColumns = useMemo(() => {

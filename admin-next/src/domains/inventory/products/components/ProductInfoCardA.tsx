@@ -923,6 +923,13 @@ export const ProductInfoCardA = ({
                 price: v.price,
                 compareAtPrice: v.oldPrice || null,
                 costPrice: v.costPrice || null,
+                options: v.options?.map((opt) => ({
+                  title: opt.title,
+                  group: {
+                    slug: opt.group.slug,
+                    title: opt.group.title,
+                  },
+                })),
               }))
             : undefined
         }
