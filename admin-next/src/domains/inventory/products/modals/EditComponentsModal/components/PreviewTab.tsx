@@ -4,29 +4,18 @@ import { useState, useMemo, useCallback } from "react";
 import { createStyles } from "antd-style";
 import {
   Typography,
-  Flex,
-  Segmented,
   Radio,
   Checkbox,
   Select,
   Tag,
-  Collapse,
-  Divider,
   Image,
-  Badge,
-  Card,
 } from "antd";
 import {
-  DesktopOutlined,
-  TabletOutlined,
-  MobileOutlined,
-  CheckCircleFilled,
   GiftOutlined,
   SafetyCertificateOutlined,
   ShoppingOutlined,
 } from "@ant-design/icons";
 
-import { Paper } from "../../../components/Paper";
 import {
   type IComponentGroup,
   type IComponentItem,
@@ -39,8 +28,6 @@ import { getProductById, getVariantById, formatPrice } from "../mocks/mockData";
 // ============================================================================
 // Types
 // ============================================================================
-
-type DeviceType = "desktop" | "tablet" | "mobile";
 
 interface IPreviewTabProps {
   groups: IComponentGroup[];
@@ -65,14 +52,6 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: "column",
     gap: 16,
   },
-  toolbar: {
-    display: "flex",
-    justifyContent: "center",
-    padding: "12px 16px",
-    borderRadius: token.borderRadius,
-    backgroundColor: token.colorBgContainer,
-    border: `1px solid ${token.colorBorder}`,
-  },
   previewWrapper: {
     display: "flex",
     justifyContent: "center",
@@ -87,17 +66,8 @@ const useStyles = createStyles(({ token }) => ({
     borderRadius: token.borderRadius,
     boxShadow: token.boxShadowSecondary,
     overflow: "hidden",
-    transition: "width 0.3s ease",
-  },
-  desktopWidth: {
     width: "100%",
     maxWidth: 800,
-  },
-  tabletWidth: {
-    width: 600,
-  },
-  mobileWidth: {
-    width: 375,
   },
   storefrontHeader: {
     padding: "16px 20px",
@@ -276,16 +246,6 @@ const useStyles = createStyles(({ token }) => ({
 }));
 
 // ============================================================================
-// Device Options
-// ============================================================================
-
-const DEVICE_OPTIONS = [
-  { value: "desktop", icon: <DesktopOutlined />, label: "Desktop" },
-  { value: "tablet", icon: <TabletOutlined />, label: "Tablet" },
-  { value: "mobile", icon: <MobileOutlined />, label: "Mobile" },
-];
-
-// ============================================================================
 // Group Icons
 // ============================================================================
 
@@ -392,13 +352,23 @@ const StorefrontItem = ({
   const { styles, cx } = useStyles();
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
-  const title = getItemTitle(item);
-  const image = getItemImage(item);
-  const sku = getItemSku(item);
-  const { price, comparePrice, isFree, isIncluded } = formatPriceDisplay(item, showComparePrice);
-
   const product = getProductById(item.productId);
   const hasVariants = item.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && product?.variants;
+
+  // Get selected variant data if applicable
+  const selectedVariant = useMemo(() => {
+    if (hasVariants && selectedVariantId) {
+      return getVariantById(item.productId, selectedVariantId);
+    }
+    return null;
+  }, [hasVariants, selectedVariantId, item.productId]);
+
+  const title = getItemTitle(item);
+  const image = selectedVariant?.imageUrl ?? getItemImage(item);
+  const sku = hasVariants
+    ? (selectedVariant?.sku ?? null)
+    : getItemSku(item);
+  const { price, comparePrice, isFree, isIncluded } = formatPriceDisplay(item, showComparePrice);
 
   const availableVariants = useMemo(() => {
     if (!hasVariants || !product?.variants) return [];
@@ -709,8 +679,7 @@ export const PreviewTab = ({
   showStock,
   showComparePrice,
 }: IPreviewTabProps) => {
-  const { styles, cx } = useStyles();
-  const [device, setDevice] = useState<DeviceType>("desktop");
+  const { styles } = useStyles();
 
   // Initialize selected items with defaults
   const [selectedItems, setSelectedItems] = useState<ISelectedItems>(() => {
@@ -730,35 +699,11 @@ export const PreviewTab = ({
     }));
   }, []);
 
-  const containerClassName = cx(
-    styles.previewContainer,
-    device === "desktop" && styles.desktopWidth,
-    device === "tablet" && styles.tabletWidth,
-    device === "mobile" && styles.mobileWidth
-  );
-
   return (
     <div className={styles.container}>
-      {/* Device Switcher */}
-      <Paper className={styles.toolbar}>
-        <Segmented
-          value={device}
-          onChange={(value) => setDevice(value as DeviceType)}
-          options={DEVICE_OPTIONS.map((opt) => ({
-            value: opt.value,
-            label: (
-              <Flex gap={6} align="center">
-                {opt.icon}
-                {opt.label}
-              </Flex>
-            ),
-          }))}
-        />
-      </Paper>
-
       {/* Preview Container */}
       <div className={styles.previewWrapper}>
-        <div className={containerClassName}>
+        <div className={styles.previewContainer}>
           {/* Storefront Header */}
           <div className={styles.storefrontHeader}>
             <Typography.Title level={5} style={{ margin: 0 }}>
