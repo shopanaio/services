@@ -271,7 +271,6 @@ export const UnifiedVariantsTable = ({
   // Column definitions for each tab
   const inventoryColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
     () => [
-      imageColumn,
       {
         headerName: "SKU",
         field: "sku",
@@ -307,12 +306,11 @@ export const UnifiedVariantsTable = ({
         valueFormatter: (params) => params.value ?? "—",
       },
     ],
-    [imageColumn]
+    []
   );
 
   const pricingColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
     () => [
-      imageColumn,
       {
         headerName: "Price",
         field: "price",
@@ -353,12 +351,11 @@ export const UnifiedVariantsTable = ({
         valueFormatter: (params) => (params.value != null ? formatPrice(params.value) : "—"),
       },
     ],
-    [imageColumn, formatPrice]
+    [formatPrice]
   );
 
   const shippingColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
     () => [
-      imageColumn,
       {
         headerName: "Weight",
         field: "weight",
@@ -410,7 +407,7 @@ export const UnifiedVariantsTable = ({
         },
       },
     ],
-    [imageColumn]
+    []
   );
 
   const mediaColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
@@ -419,8 +416,8 @@ export const UnifiedVariantsTable = ({
   );
 
   const optionsColumns = useMemo<ColDef<IUnifiedVariantRow>[]>(
-    () => [imageColumn],
-    [imageColumn]
+    () => [],
+    []
   );
 
   // Get columns based on active tab
@@ -470,6 +467,7 @@ export const UnifiedVariantsTable = ({
       additionalColumns={additionalColumns}
       onCellValueChanged={handleCellValueChanged}
       pinnedTitle={activeTab !== "options"}
+      showOptions={activeTab === "options"}
     />
   );
 };

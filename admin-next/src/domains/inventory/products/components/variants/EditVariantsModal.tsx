@@ -55,9 +55,9 @@ const TAB_CONFIG: Array<{
   label: string;
   icon: React.ReactNode;
 }> = [
-  { key: "inventory", label: "Inventory", icon: <InboxOutlined /> },
   { key: "pricing", label: "Pricing", icon: <DollarOutlined /> },
-  { key: "shipping", label: "Shipping", icon: <AppstoreOutlined /> },
+  { key: "inventory", label: "Inventory", icon: <InboxOutlined /> },
+  { key: "shipping", label: "Attributes", icon: <AppstoreOutlined /> },
   { key: "media", label: "Media", icon: <PictureOutlined /> },
   { key: "options", label: "Options", icon: <SettingOutlined /> },
 ];
@@ -72,7 +72,7 @@ export const EditVariantsModal = () => {
   const typedPayload = payload as IEditVariantsModalPayload;
 
   const [activeTab, setActiveTab] = useState<VariantTabKey>(
-    typedPayload.initialTab || "inventory"
+    typedPayload.initialTab || "pricing"
   );
   const rowDataRef = useRef<IUnifiedVariantRow[]>([]);
 

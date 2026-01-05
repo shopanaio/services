@@ -43,6 +43,7 @@ export interface IVariantsTableProps<T extends IVariantRowBase> {
   onCellValueChanged?: (event: CellValueChangedEvent<T>) => void;
   domLayout?: "normal" | "autoHeight" | "print";
   pinnedTitle?: boolean;
+  showOptions?: boolean;
 }
 
 // ============================================================================
@@ -74,6 +75,7 @@ export function VariantsTable<T extends IVariantRowBase>({
   onCellValueChanged,
   domLayout = "autoHeight",
   pinnedTitle = true,
+  showOptions = false,
 }: IVariantsTableProps<T>) {
   const { styles } = useStyles();
   const gridRef = useRef<AgGridReact<T>>(null);
@@ -90,22 +92,29 @@ export function VariantsTable<T extends IVariantRowBase>({
       } as ColDef<T>,
     ];
 
-    // Add dynamic option columns
-    optionGroups.forEach((group) => {
-      cols.push({
-        headerName: group.title,
-        valueGetter: (params) =>
-          (params.data as IVariantRowBase)?.options[group.slug] || "—",
-        flex: 1,
-        minWidth: 120,
+    // Add dynamic option columns only when showOptions is true
+    if (showOptions) {
+      optionGroups.forEach((group) => {
+        cols.push({
+          headerName: group.title,
+          valueGetter: (params) =>
+            (params.data as IVariantRowBase)?.options[group.slug] || "—",
+          flex: 1,
+          minWidth: 120,
+        });
       });
-    });
+    }
 
     // Add additional columns (pricing, inventory, etc.)
     cols.push(...additionalColumns);
 
+    // Make the last column non-resizable
+    if (cols.length > 0) {
+      cols[cols.length - 1] = { ...cols[cols.length - 1], resizable: false };
+    }
+
     return cols;
-  }, [optionGroups, additionalColumns, pinnedTitle]);
+  }, [optionGroups, additionalColumns, pinnedTitle, showOptions]);
 
   const defaultColDef = useMemo<ColDef>(
     () => ({
