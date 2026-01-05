@@ -99,5 +99,23 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Categories modal
+    {
+      type: 'product-edit-categories',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditCategoriesModal').then(
+          (m) => m.EditCategoriesModal
+        )
+      ),
+    },
+    // Edit Tags modal
+    {
+      type: 'product-edit-tags',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditTagsModal').then(
+          (m) => m.EditTagsModal
+        )
+      ),
+    },
   ];
 }

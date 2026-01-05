@@ -33,7 +33,7 @@ import { ProductContentTabs } from "./ProductContentTabs";
 import { SeoBlock } from "./seo";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantsModal, type IEditSeoModalPayload } from "../modals";
+import { useProductModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantsModal, useEditCategoriesModal, useEditTagsModal, type IEditSeoModalPayload } from "../modals";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -847,6 +847,8 @@ export const ProductInfoCardA = ({
   const { push: openEditAttributesModal } = useEditAttributesModal();
   const { push: openEditSeoModal } = useEditSeoModal();
   const { push: openEditVariantsModal } = useEditVariantsModal();
+  const { push: openEditCategoriesModal } = useEditCategoriesModal();
+  const { push: openEditTagsModal } = useEditTagsModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -987,7 +989,20 @@ export const ProductInfoCardA = ({
       {/* CATEGORIES & TAGS */}
       <Flex gap={12}>
         <div style={{ flex: 1 }}>
-          <Section title="Categories" onEdit={() => handleEdit("categories")}>
+          <Section
+            title="Categories"
+            onEdit={() => {
+              openEditCategoriesModal({
+                productId: product.id,
+                primaryCategoryId: product.primaryCategory?.id ?? null,
+                categoryIds: product.categories?.map((c) => c.id) || [],
+                onSave: (data) => {
+                  console.log("Saved categories:", data);
+                  // TODO: Implement actual save logic
+                },
+              });
+            }}
+          >
             {product.primaryCategory || product.categories?.length > 0 ? (
               <Flex gap={4} wrap="wrap">
                 {product.primaryCategory && (
@@ -1011,7 +1026,19 @@ export const ProductInfoCardA = ({
           </Section>
         </div>
         <div style={{ flex: 1 }}>
-          <Section title="Tags" onEdit={() => handleEdit("tags")}>
+          <Section
+            title="Tags"
+            onEdit={() => {
+              openEditTagsModal({
+                productId: product.id,
+                selectedTagIds: product.tags?.map((t) => t.id) || [],
+                onSave: (data) => {
+                  console.log("Saved tags:", data);
+                  // TODO: Implement actual save logic
+                },
+              });
+            }}
+          >
             {product.tags?.length > 0 ? (
               <Flex gap={4} wrap="wrap">
                 {product.tags.map((tag) => (

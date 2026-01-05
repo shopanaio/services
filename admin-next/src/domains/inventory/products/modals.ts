@@ -24,6 +24,8 @@ export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
 export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
 export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-shipping';
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
+export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
+export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
 
 // ============================================================================
 // Payload Interfaces
@@ -248,6 +250,39 @@ export interface IEditVariantsModalPayload extends IModalStackPayload {
   }>) => void;
 }
 
+export interface IEditCategoriesModalPayload extends IModalStackPayload {
+  productId?: string;
+  primaryCategoryId?: string | null;
+  categoryIds?: string[];
+  availableCategories?: Array<{
+    id: string;
+    title: string;
+    slug: string;
+  }>;
+  categoryHierarchy?: Record<string, string | null>;
+  onSave?: (data: {
+    primaryCategoryId: string | null;
+    categoryIds: string[];
+  }) => void;
+}
+
+export interface ITag {
+  id: string;
+  title: string;
+  slug: string;
+  color?: string;
+}
+
+export interface IEditTagsModalPayload extends IModalStackPayload {
+  productId?: string;
+  selectedTagIds?: string[];
+  availableTags?: ITag[];
+  onSave?: (data: {
+    tagIds: string[];
+  }) => void;
+  onCreateTag?: (title: string) => Promise<ITag>;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -268,6 +303,8 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_SEO_MODAL_TYPE]: IEditSeoModalPayload;
     [PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE]: IEditVariantShippingModalPayload;
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
+    [PRODUCT_EDIT_CATEGORIES_MODAL_TYPE]: IEditCategoriesModalPayload;
+    [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
   }
 }
 
@@ -435,3 +472,34 @@ export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VAR
  * ```
  */
 export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_MODAL_TYPE);
+
+/**
+ * Hook to open edit categories modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditCategoriesModal();
+ * push({
+ *   productId: 'prod-123',
+ *   primaryCategoryId: 'cat-1',
+ *   categoryIds: ['cat-1', 'cat-2'],
+ *   onSave: (data) => console.log(data)
+ * });
+ * ```
+ */
+export const useEditCategoriesModal = createModalStackHook(PRODUCT_EDIT_CATEGORIES_MODAL_TYPE);
+
+/**
+ * Hook to open edit tags modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditTagsModal();
+ * push({
+ *   productId: 'prod-123',
+ *   selectedTagIds: ['tag-1', 'tag-2'],
+ *   onSave: (data) => console.log(data)
+ * });
+ * ```
+ */
+export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYPE);
