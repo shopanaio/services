@@ -86,8 +86,8 @@ export default function InventoryPage() {
         type: "rightAligned",
       },
       {
-        headerName: "Committed",
-        field: "committed",
+        headerName: "Reserved",
+        field: "reserved",
         width: 120,
         type: "rightAligned",
       },

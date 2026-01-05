@@ -23,12 +23,12 @@ export const filterSchema: IFilterSchema[] = [
     payloadKey: "available",
   },
   {
-    key: "committed",
-    label: "Committed",
-    description: "Filter by committed quantity",
+    key: "reserved",
+    label: "Reserved",
+    description: "Filter by reserved quantity",
     type: FilterType.Number,
     operators: numberOperators,
-    payloadKey: "committed",
+    payloadKey: "reserved",
   },
   {
     key: "unavailable",

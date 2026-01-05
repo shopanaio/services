@@ -8,7 +8,7 @@ export interface IInventoryListItem {
   variantName: string | null;
   sku: string;
   unavailable: number;
-  committed: number;
+  reserved: number;
   available: number;
   image: string;
 }
@@ -44,8 +44,8 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
     if (product.variants === null) {
       const onHand = Math.floor(Math.random() * 200);
       const unavailable = Math.floor(Math.random() * Math.min(10, onHand));
-      const committed = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
-      const available = onHand - unavailable - committed;
+      const reserved = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
+      const available = onHand - unavailable - reserved;
 
       return {
         id: String(++itemId),
@@ -53,7 +53,7 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
         variantName: null,
         sku: generateSku(productIndex, null),
         unavailable,
-        committed,
+        reserved,
         available,
         image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
       };
@@ -62,8 +62,8 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
     return product.variants.map((variant, variantIndex) => {
       const onHand = Math.floor(Math.random() * 200);
       const unavailable = Math.floor(Math.random() * Math.min(10, onHand));
-      const committed = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
-      const available = onHand - unavailable - committed;
+      const reserved = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
+      const available = onHand - unavailable - reserved;
 
       return {
         id: String(++itemId),
@@ -71,7 +71,7 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
         variantName: variant,
         sku: generateSku(productIndex, variantIndex),
         unavailable,
-        committed,
+        reserved,
         available,
         image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
       };
