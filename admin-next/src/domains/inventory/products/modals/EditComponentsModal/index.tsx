@@ -34,7 +34,7 @@ import {
   mockTieredDiscounts,
   mockModalSettings,
 } from "./mocks/mockData";
-import { GroupCard, ProductPicker } from "./components";
+import { GroupCard, ProductPicker, PricingRulesTab } from "./components";
 import { useComponentVariantSettingsModal } from "../../modals";
 import { getProductById } from "./mocks/mockData";
 
@@ -178,22 +178,6 @@ const GroupsTab = ({
   );
 };
 
-// ============================================================================
-// Pricing Rules Tab (Placeholder)
-// ============================================================================
-
-const PricingRulesTab = () => {
-  const { styles } = useStyles();
-  return (
-    <Paper className={styles.placeholder}>
-      <DollarOutlined style={{ fontSize: 32, marginBottom: 16 }} />
-      <Typography.Title level={5}>Pricing Rules</Typography.Title>
-      <Typography.Text type="secondary">
-        Configure bundle calculation mode and pricing rule templates
-      </Typography.Text>
-    </Paper>
-  );
-};
 
 // ============================================================================
 // Preview Tab (Placeholder)
@@ -424,7 +408,26 @@ export const EditComponentsModal = () => {
             Pricing
           </Flex>
         ),
-        children: <PricingRulesTab />,
+        children: (
+          <PricingRulesTab
+            bundleCalcMode={bundleCalcMode}
+            onBundleCalcModeChange={(mode) => {
+              setBundleCalcMode(mode);
+              setDirty(true);
+            }}
+            pricingTemplates={pricingTemplates}
+            onPricingTemplatesChange={(templates) => {
+              setPricingTemplates(templates);
+              setDirty(true);
+            }}
+            tieredDiscounts={tieredDiscounts}
+            onTieredDiscountsChange={(discounts) => {
+              setTieredDiscounts(discounts);
+              setDirty(true);
+            }}
+            groups={groups}
+          />
+        ),
       },
       {
         key: "preview" as const,
@@ -447,7 +450,16 @@ export const EditComponentsModal = () => {
         children: <SettingsTab />,
       },
     ],
-    [groups, handleGroupsChange, handleAddItem, handleEditVariants]
+    [
+      groups,
+      handleGroupsChange,
+      handleAddItem,
+      handleEditVariants,
+      bundleCalcMode,
+      pricingTemplates,
+      tieredDiscounts,
+      setDirty,
+    ]
   );
 
   return (

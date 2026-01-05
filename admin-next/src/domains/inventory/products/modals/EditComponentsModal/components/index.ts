@@ -3,3 +3,4 @@ export { GroupSettings } from "./GroupSettings";
 export { ComponentsTable } from "./ComponentsTable";
 export { ProductPicker } from "./ProductPicker";
 export { VariantSettingsModal } from "./VariantSettingsModal";
+export { PricingRulesTab } from "./PricingRulesTab";
