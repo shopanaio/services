@@ -32,3 +32,8 @@ export {
   type IShippingVariant,
   type IShippingVariantsTableProps,
 } from "./ShippingVariantsTable";
+
+// Modals
+export { EditVariantPricingModal } from "./EditVariantPricingModal";
+export { EditVariantInventoryModal } from "./EditVariantInventoryModal";
+export { EditVariantShippingModal } from "./EditVariantShippingModal";

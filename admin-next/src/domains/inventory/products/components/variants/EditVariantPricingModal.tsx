@@ -11,14 +11,14 @@ import {
   PricingVariantsTable,
   IPricingVariantRow,
   getPricingDataForSave,
-} from "../components/variants";
-import type { IEditVariantPricingModalPayload } from "../modals";
+} from "./PricingVariantsTable";
+import type { IEditVariantPricingModalPayload } from "../../modals";
 
 // ============================================================================
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   container: {
     display: "flex",
     flexDirection: "column",

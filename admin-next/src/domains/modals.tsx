@@ -58,7 +58,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-variant-pricing',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditVariantPricingModal').then(
+        import('@/domains/inventory/products/components/variants/EditVariantPricingModal').then(
           (m) => m.EditVariantPricingModal
         )
       ),
@@ -67,7 +67,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-variant-inventory',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditVariantInventoryModal').then(
+        import('@/domains/inventory/products/components/variants/EditVariantInventoryModal').then(
           (m) => m.EditVariantInventoryModal
         )
       ),
@@ -112,7 +112,7 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
     {
       type: 'product-edit-variant-shipping',
       component: dynamic(() =>
-        import('@/domains/inventory/products/modals/EditVariantShippingModal').then(
+        import('@/domains/inventory/products/components/variants/EditVariantShippingModal').then(
           (m) => m.EditVariantShippingModal
         )
       ),

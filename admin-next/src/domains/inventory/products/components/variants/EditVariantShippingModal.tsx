@@ -8,17 +8,17 @@ import {
   ModalHeader,
 } from "@/layouts/modals";
 import {
-  InventoryVariantsTable,
-  IInventoryVariantRow,
-  getInventoryDataForSave,
-} from "../components/variants";
-import type { IEditVariantInventoryModalPayload } from "../modals";
+  ShippingVariantsTable,
+  IShippingVariantRow,
+  getShippingDataForSave,
+} from "./ShippingVariantsTable";
+import type { IEditVariantShippingModalPayload } from "../../modals";
 
 // ============================================================================
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   container: {
     display: "flex",
     flexDirection: "column",
@@ -31,15 +31,15 @@ const useStyles = createStyles(({ token }) => ({
 // Main Component
 // ============================================================================
 
-export const EditVariantInventoryModal = () => {
+export const EditVariantShippingModal = () => {
   const { styles } = useStyles();
   const { payload, pop, setDirty } = useModalStackContext();
-  const typedPayload = payload as IEditVariantInventoryModalPayload;
+  const typedPayload = payload as IEditVariantShippingModalPayload;
 
-  const rowDataRef = useRef<IInventoryVariantRow[]>([]);
+  const rowDataRef = useRef<IShippingVariantRow[]>([]);
 
   const handleChange = useCallback(
-    (rows: IInventoryVariantRow[]) => {
+    (rows: IShippingVariantRow[]) => {
       rowDataRef.current = rows;
       setDirty(true);
     },
@@ -47,7 +47,7 @@ export const EditVariantInventoryModal = () => {
   );
 
   const handleSave = useCallback(() => {
-    const dataForSave = getInventoryDataForSave(rowDataRef.current);
+    const dataForSave = getShippingDataForSave(rowDataRef.current);
     typedPayload.onSave?.(dataForSave);
     pop();
   }, [typedPayload, pop]);
@@ -64,11 +64,11 @@ export const EditVariantInventoryModal = () => {
 
   return (
     <ModalLayout
-      name="edit-variant-inventory"
+      name="edit-variant-shipping"
       header={
         <ModalHeader
-          name="edit-variant-inventory"
-          title="Edit Variant Inventory"
+          name="edit-variant-shipping"
+          title="Edit Variant Shipping"
           onClose={pop}
           submitButtonProps={{
             children: "Save",
@@ -79,9 +79,8 @@ export const EditVariantInventoryModal = () => {
       fullWidth
     >
       <div className={styles.container}>
-        <InventoryVariantsTable
+        <ShippingVariantsTable
           variants={typedPayload.variants}
-          lowStockThreshold={typedPayload.lowStockThreshold}
           onChange={handleChange}
         />
       </div>
