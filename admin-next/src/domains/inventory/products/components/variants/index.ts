@@ -9,31 +9,13 @@ export {
 } from "./VariantsTable";
 
 export {
-  PricingVariantsTable,
-  getPricingDataForSave,
-  type IPricingVariantRow,
-  type IPricingVariant,
-  type IPricingVariantsTableProps,
-} from "./PricingVariantsTable";
-
-export {
-  InventoryVariantsTable,
-  getInventoryDataForSave,
-  type IInventoryVariantRow,
-  type IInventoryVariant,
-  type IInventoryVariantsTableProps,
+  UnifiedVariantsTable,
+  getUnifiedDataForSave,
+  type IUnifiedVariantRow,
+  type IUnifiedVariant,
+  type IUnifiedVariantsTableProps,
+  type VariantTabKey,
   type StockStatus,
-} from "./InventoryVariantsTable";
+} from "./UnifiedVariantsTable";
 
-export {
-  ShippingVariantsTable,
-  getShippingDataForSave,
-  type IShippingVariantRow,
-  type IShippingVariant,
-  type IShippingVariantsTableProps,
-} from "./ShippingVariantsTable";
-
-// Modals
-export { EditVariantPricingModal } from "./EditVariantPricingModal";
-export { EditVariantInventoryModal } from "./EditVariantInventoryModal";
-export { EditVariantShippingModal } from "./EditVariantShippingModal";
+export { EditVariantsModal } from "./EditVariantsModal";

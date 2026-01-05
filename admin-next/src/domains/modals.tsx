@@ -54,24 +54,6 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Variant Pricing modal
-    {
-      type: 'product-edit-variant-pricing',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/components/variants/EditVariantPricingModal').then(
-          (m) => m.EditVariantPricingModal
-        )
-      ),
-    },
-    // Edit Variant Inventory modal
-    {
-      type: 'product-edit-variant-inventory',
-      component: dynamic(() =>
-        import('@/domains/inventory/products/components/variants/EditVariantInventoryModal').then(
-          (m) => m.EditVariantInventoryModal
-        )
-      ),
-    },
     // Edit Media modal
     {
       type: 'product-edit-media',
@@ -108,12 +90,12 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
-    // Edit Variant Shipping modal
+    // Edit Variants modal (unified with tabs)
     {
-      type: 'product-edit-variant-shipping',
+      type: 'product-edit-variants',
       component: dynamic(() =>
-        import('@/domains/inventory/products/components/variants/EditVariantShippingModal').then(
-          (m) => m.EditVariantShippingModal
+        import('@/domains/inventory/products/components/variants/EditVariantsModal').then(
+          (m) => m.EditVariantsModal
         )
       ),
     },

@@ -12,7 +12,7 @@ import {
   generateMockScheduledPrices,
   getMockVariantPrices,
 } from "./PriceHistory";
-import { useProductPriceHistoryModal, useEditVariantPricingModal } from "../../modals";
+import { useProductPriceHistoryModal, useEditVariantsModal } from "../../modals";
 
 // ============================================================================
 // Types
@@ -716,7 +716,7 @@ export const PricingBlock = ({
 }: IPricingBlockProps) => {
   const { styles } = useStyles();
   const { push: pushPriceHistoryModal } = useProductPriceHistoryModal();
-  const { push: pushEditVariantPricingModal } = useEditVariantPricingModal();
+  const { push: pushEditVariantsModal } = useEditVariantsModal();
 
   const [internalSelectedVariantId, setInternalSelectedVariantId] = useState<
     string | undefined
@@ -803,7 +803,8 @@ export const PricingBlock = ({
   const handleMoreAction = useCallback(
     (action: string) => {
       if (action === "edit") {
-        pushEditVariantPricingModal({
+        pushEditVariantsModal({
+          initialTab: "pricing",
           variants: variantPrices?.map((v) => ({
             id: v.variantId,
             title: v.variantTitle,
@@ -811,7 +812,7 @@ export const PricingBlock = ({
             compareAtPrice: v.compareAtPrice,
             costPrice: v.costPrice,
             options: variants?.find((vv) => vv.id === v.variantId)
-              ? [] // Options would come from actual variant data
+              ? []
               : [],
           })) || [{
             id: "default",
@@ -821,7 +822,7 @@ export const PricingBlock = ({
             costPrice: actualCostPrice,
           }],
           formatPrice: formatPriceProp,
-          onSave: (updatedVariants: Array<{ id: string; price: number; compareAtPrice: number | null; costPrice: number | null }>) => {
+          onSave: (updatedVariants: Array<{ id: string; sku: string | null; stock: number; barcode: string | null; price: number; compareAtPrice: number | null; costPrice: number | null; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
             console.log("Updated variants:", updatedVariants);
           },
         });
@@ -849,7 +850,7 @@ export const PricingBlock = ({
       }
     },
     [
-      pushEditVariantPricingModal,
+      pushEditVariantsModal,
       pushPriceHistoryModal,
       actualPrice,
       actualCompareAtPrice,

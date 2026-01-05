@@ -7,7 +7,7 @@ import { useMemo, useCallback } from "react";
 import { Paper } from "../Paper";
 import { PaperHeader } from "../PaperHeader";
 import { Tile } from "../Tile";
-import { useEditVariantInventoryModal } from "../../modals";
+import { useEditVariantsModal } from "../../modals";
 
 // ============================================================================
 // Types
@@ -189,7 +189,7 @@ export const InventoryBlock = ({
   onMoreAction,
 }: IInventoryBlockProps) => {
   const { styles } = useStyles();
-  const { push: pushEditInventoryModal } = useEditVariantInventoryModal();
+  const { push: pushEditVariantsModal } = useEditVariantsModal();
 
   const inventoryData = useMemo(
     () => calculateInventoryData(variants, lowStockThreshold),
@@ -199,7 +199,8 @@ export const InventoryBlock = ({
   const handleMoreAction = useCallback(
     (action: string) => {
       if (action === "edit") {
-        pushEditInventoryModal({
+        pushEditVariantsModal({
+          initialTab: "inventory",
           variants: variants.map((v) => ({
             id: v.id,
             title: v.title,
@@ -211,7 +212,7 @@ export const InventoryBlock = ({
             options: v.options,
           })),
           lowStockThreshold,
-          onSave: (updatedVariants: Array<{ id: string; sku: string | null; stock: number; weight: number | null; weightUnit: string; barcode: string | null }>) => {
+          onSave: (updatedVariants: Array<{ id: string; sku: string | null; stock: number; barcode: string | null; price: number; compareAtPrice: number | null; costPrice: number | null; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
             console.log("Updated inventory:", updatedVariants);
           },
         });
@@ -219,7 +220,7 @@ export const InventoryBlock = ({
         onMoreAction?.(action);
       }
     },
-    [pushEditInventoryModal, variants, lowStockThreshold, onMoreAction]
+    [pushEditVariantsModal, variants, lowStockThreshold, onMoreAction]
   );
 
   const healthColor =

@@ -23,6 +23,7 @@ export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
 export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
 export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
 export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-shipping';
+export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 
 // ============================================================================
 // Payload Interfaces
@@ -201,6 +202,52 @@ export interface IEditVariantShippingModalPayload extends IModalStackPayload {
   }>) => void;
 }
 
+export type VariantTabKey = 'inventory' | 'pricing' | 'shipping' | 'media' | 'options';
+
+export interface IEditVariantsModalPayload extends IModalStackPayload {
+  productId?: string;
+  initialTab?: VariantTabKey;
+  variants: Array<{
+    id: string;
+    title: string;
+    imageUrl?: string | null;
+    // Inventory
+    sku?: string | null;
+    stock?: number;
+    barcode?: string | null;
+    // Pricing
+    price?: number;
+    compareAtPrice?: number | null;
+    costPrice?: number | null;
+    // Shipping
+    weight?: number | null;
+    weightUnit?: string;
+    length?: number | null;
+    width?: number | null;
+    height?: number | null;
+    dimensionUnit?: string;
+    // Options
+    options?: IVariantPricingOption[];
+  }>;
+  formatPrice?: (amount: number) => string;
+  lowStockThreshold?: number;
+  onSave?: (variants: Array<{
+    id: string;
+    sku: string | null;
+    stock: number;
+    barcode: string | null;
+    price: number;
+    compareAtPrice: number | null;
+    costPrice: number | null;
+    weight: number | null;
+    weightUnit: string;
+    length: number | null;
+    width: number | null;
+    height: number | null;
+    dimensionUnit: string;
+  }>) => void;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -220,6 +267,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE]: IEditAttributesModalPayload;
     [PRODUCT_EDIT_SEO_MODAL_TYPE]: IEditSeoModalPayload;
     [PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE]: IEditVariantShippingModalPayload;
+    [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
   }
 }
 
@@ -376,3 +424,14 @@ export const useEditSeoModal = createModalStackHook(PRODUCT_EDIT_SEO_MODAL_TYPE)
  * ```
  */
 export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE);
+
+/**
+ * Hook to open unified edit variants modal with tabs
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditVariantsModal();
+ * push({ variants: [...], initialTab: 'pricing', onSave: (variants) => console.log(variants) });
+ * ```
+ */
+export const useEditVariantsModal = createModalStackHook(PRODUCT_EDIT_VARIANTS_MODAL_TYPE);
