@@ -127,6 +127,7 @@ interface IGroupCardProps {
   onDuplicate: () => void;
   onAddItem: () => void;
   onEditVariants?: (item: IComponentItem) => void;
+  onIncludeVariants?: (item: IComponentItem) => void;
   pricingTemplates: IPricingRuleTemplate[];
 }
 
@@ -145,6 +146,7 @@ export const GroupCard = ({
   onDuplicate,
   onAddItem,
   onEditVariants,
+  onIncludeVariants,
   pricingTemplates,
 }: IGroupCardProps) => {
   const { styles, cx } = useStyles();
@@ -380,9 +382,9 @@ export const GroupCard = ({
               items={group.items}
               onItemsChange={handleItemsChange}
               onEditVariants={onEditVariants}
+              onIncludeVariants={onIncludeVariants}
               pricingTemplates={pricingTemplates}
               bulkEditMode={bulkEditMode}
-              selectedCount={selectedIds.size}
               onSelectionChange={handleSelectionChange}
             />
           )}

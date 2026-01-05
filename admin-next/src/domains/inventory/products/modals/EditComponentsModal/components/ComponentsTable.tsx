@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useRef, useState } from "react";
+import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -10,14 +10,17 @@ import {
   GetRowIdParams,
   ICellRendererParams,
   RowDragEndEvent,
+  RowDragEnterEvent,
   CellValueChangedEvent,
 } from "ag-grid-community";
 import { Button, Dropdown, Select, Checkbox } from "antd";
 import {
   MoreOutlined,
   DeleteOutlined,
-  EditOutlined,
   CopyOutlined,
+  PlusOutlined,
+  RightOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -64,11 +67,32 @@ const useStyles = createStyles(({ token }) => ({
     "& .ag-row-dragging": {
       cursor: "grabbing",
     },
+    "& .row-variant": {
+      background: `${token.colorFillQuaternary} !important`,
+    },
   },
   productCell: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    width: "100%",
+  },
+  expandIcon: {
+    cursor: "pointer",
+    fontSize: 10,
+    color: token.colorTextSecondary,
+    width: 16,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    "&:hover": {
+      color: token.colorText,
+    },
+  },
+  expandIconPlaceholder: {
+    width: 16,
+    flexShrink: 0,
   },
   productImage: {
     width: 36,
@@ -78,24 +102,40 @@ const useStyles = createStyles(({ token }) => ({
     background: token.colorBgLayout,
     flexShrink: 0,
   },
+  variantImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 3,
+    objectFit: "cover",
+    background: token.colorBgLayout,
+    flexShrink: 0,
+  },
   productInfo: {
     display: "flex",
     flexDirection: "column",
     gap: 0,
+    minWidth: 0,
   },
   productTitle: {
     fontSize: 13,
     fontWeight: 500,
     lineHeight: 1.3,
   },
-  variantsLink: {
+  variantTitle: {
     fontSize: 12,
-    padding: 0,
-    height: "auto",
+    fontWeight: 400,
     lineHeight: 1.3,
+    color: token.colorTextSecondary,
+  },
+  variantsCount: {
+    fontSize: 11,
+    color: token.colorTextTertiary,
   },
   unavailable: {
     opacity: 0.5,
+  },
+  indent: {
+    display: "inline-block",
   },
 }));
 
@@ -107,23 +147,53 @@ interface IComponentsTableProps {
   items: IComponentItem[];
   onItemsChange: (items: IComponentItem[]) => void;
   onEditVariants?: (item: IComponentItem) => void;
+  onIncludeVariants?: (item: IComponentItem) => void;
   pricingTemplates: IPricingRuleTemplate[];
   bulkEditMode: boolean;
-  selectedCount: number;
   onSelectionChange: (selectedIds: Set<string>) => void;
+}
+
+// Row type - either product or variant
+interface ITableRow {
+  id: string;
+  isVariant: boolean;
+  level: number; // 0 = product, 1 = variant
+  // Product-level fields
+  productId: string;
+  variantId?: string;
+  itemType: ComponentItemType;
+  customTitle?: string | null;
+  isAvailable: boolean;
+  // For products with variants
+  hasIncludedVariants: boolean;
+  includedVariantsCount: number;
+  // Pricing
+  priceType: ComponentPriceType;
+  priceValue: number | null;
+  templateId?: string;
+  basePrice: number;
+  finalPrice: number;
+  // For drag
+  sortIndex: number;
+  // Parent reference for variants
+  parentItemId?: string;
 }
 
 // ============================================================================
 // Cell Renderers
 // ============================================================================
 
-interface IProductCellRendererProps extends ICellRendererParams<IComponentItem> {
-  onEditVariants?: (item: IComponentItem) => void;
+interface IProductCellRendererParams extends ICellRendererParams<ITableRow> {
+  expandedIds: Set<string>;
+  onToggleExpand: (id: string) => void;
 }
 
-const ProductCellRenderer = ({ data, onEditVariants }: IProductCellRendererProps) => {
+const ProductCellRenderer = (params: IProductCellRendererParams) => {
   const { styles, cx } = useStyles();
+  const data = params.data;
   if (!data) return null;
+
+  const { expandedIds, onToggleExpand } = params;
 
   const product = getProductById(data.productId);
   const variant =
@@ -131,40 +201,56 @@ const ProductCellRenderer = ({ data, onEditVariants }: IProductCellRendererProps
       ? getVariantById(data.productId, data.variantId)
       : null;
 
+  const isVariant = data.isVariant;
   const title = data.customTitle || variant?.title || product?.title || "Unknown";
   const imageUrl = variant?.imageUrl || product?.imageUrl || "/placeholder.png";
 
-  const variantsCount =
-    data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS
-      ? data.availableVariantIds?.length || product?.variants?.length || 0
-      : null;
+  const hasChildren = data.hasIncludedVariants;
+  const isExpanded = expandedIds.has(data.id);
+  const indent = data.level * 24;
 
   return (
     <div className={cx(styles.productCell, !data.isAvailable && styles.unavailable)}>
-      <img src={imageUrl || "/placeholder.png"} className={styles.productImage} alt="" />
+      <span className={styles.indent} style={{ width: indent }} />
+
+      {hasChildren ? (
+        <span
+          className={styles.expandIcon}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand(data.id);
+          }}
+        >
+          {isExpanded ? <DownOutlined /> : <RightOutlined />}
+        </span>
+      ) : (
+        <span className={styles.expandIconPlaceholder} />
+      )}
+
+      <img
+        src={imageUrl || "/placeholder.png"}
+        className={isVariant ? styles.variantImage : styles.productImage}
+        alt=""
+      />
       <div className={styles.productInfo}>
-        <span className={styles.productTitle}>{title}</span>
-        {variantsCount !== null && onEditVariants && (
-          <Button
-            type="link"
-            size="small"
-            className={styles.variantsLink}
-            onClick={() => onEditVariants(data)}
-          >
-            {variantsCount} variants
-          </Button>
+        <span className={isVariant ? styles.variantTitle : styles.productTitle}>
+          {title}
+        </span>
+        {hasChildren && !isExpanded && (
+          <span className={styles.variantsCount}>
+            {data.includedVariantsCount} variant{data.includedVariantsCount !== 1 ? 's' : ''} included
+          </span>
         )}
       </div>
     </div>
   );
 };
 
-
 // ============================================================================
 // Checkbox Cell Renderer (for bulk edit)
 // ============================================================================
 
-interface ICheckboxCellRendererProps extends ICellRendererParams<IComponentItem> {
+interface ICheckboxCellRendererProps extends ICellRendererParams<ITableRow> {
   selectedIds: Set<string>;
   onToggle: (itemId: string) => void;
 }
@@ -174,7 +260,7 @@ const CheckboxCellRenderer = ({
   selectedIds,
   onToggle,
 }: ICheckboxCellRendererProps) => {
-  if (!data) return null;
+  if (!data || data.isVariant) return null;
 
   return (
     <Checkbox
@@ -188,10 +274,11 @@ const CheckboxCellRenderer = ({
 // Price Rule Cell Renderer
 // ============================================================================
 
-interface IPriceRuleCellRendererProps extends ICellRendererParams<IComponentItem> {
+interface IPriceRuleCellRendererProps extends ICellRendererParams<ITableRow> {
   pricingTemplates: IPricingRuleTemplate[];
   onPriceRuleChange: (
-    itemId: string,
+    rowId: string,
+    isVariant: boolean,
     priceType: ComponentPriceType,
     priceValue: number | null,
     templateId?: string
@@ -207,9 +294,7 @@ const PriceRuleCellRenderer = ({
 }: IPriceRuleCellRendererProps) => {
   if (!data) return null;
 
-  // Build options: templates first, then custom rules
   const options = [
-    // Templates group
     ...(pricingTemplates.length > 0
       ? [
           {
@@ -228,7 +313,6 @@ const PriceRuleCellRenderer = ({
           },
         ]
       : []),
-    // Custom rules group
     {
       label: "Custom",
       options: PRICE_RULE_OPTIONS.map((opt) => ({
@@ -238,25 +322,22 @@ const PriceRuleCellRenderer = ({
     },
   ];
 
-  // Determine current value
   const currentValue = data.templateId
     ? `${TEMPLATE_PREFIX}${data.templateId}`
     : data.priceType;
 
   const handleChange = (value: string) => {
     if (value.startsWith(TEMPLATE_PREFIX)) {
-      // Template selected
       const templateId = value.replace(TEMPLATE_PREFIX, "");
       const template = pricingTemplates.find((t) => t.id === templateId);
       if (template) {
-        onPriceRuleChange(data.id, template.priceType, template.priceValue, templateId);
+        onPriceRuleChange(data.id, data.isVariant, template.priceType, template.priceValue, templateId);
       }
     } else {
-      // Custom rule selected
       const priceType = value as ComponentPriceType;
       const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
       const priceValue = rule?.requiresValue ? data.priceValue ?? 0 : null;
-      onPriceRuleChange(data.id, priceType, priceValue, undefined);
+      onPriceRuleChange(data.id, data.isVariant, priceType, priceValue, undefined);
     }
   };
 
@@ -276,19 +357,41 @@ const PriceRuleCellRenderer = ({
 // Actions Cell Renderer
 // ============================================================================
 
-interface IActionsCellRendererProps extends ICellRendererParams<IComponentItem> {
-  onDelete: (itemId: string) => void;
-  onDuplicate: (itemId: string) => void;
-  onEditVariants?: (item: IComponentItem) => void;
+interface IActionsCellRendererProps extends ICellRendererParams<ITableRow> {
+  onDelete: (rowId: string, isVariant: boolean) => void;
+  onDuplicate: (rowId: string) => void;
+  onIncludeVariants?: (item: IComponentItem) => void;
+  items: IComponentItem[];
 }
 
 const ActionsCellRenderer = ({
   data,
   onDelete,
   onDuplicate,
-  onEditVariants,
+  onIncludeVariants,
+  items,
 }: IActionsCellRendererProps) => {
   if (!data) return null;
+
+  if (data.isVariant) {
+    const menuItems: MenuProps["items"] = [
+      {
+        key: "delete",
+        icon: <DeleteOutlined />,
+        label: "Remove variant",
+        danger: true,
+        onClick: () => onDelete(data.id, true),
+      },
+    ];
+
+    return (
+      <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+        <Button type="text" size="small" icon={<MoreOutlined />} />
+      </Dropdown>
+    );
+  }
+
+  const fullItem = items.find((item) => item.id === data.id);
 
   const menuItems: MenuProps["items"] = [
     {
@@ -297,13 +400,13 @@ const ActionsCellRenderer = ({
       label: "Duplicate",
       onClick: () => onDuplicate(data.id),
     },
-    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && onEditVariants
+    ...(data.itemType === ComponentItemType.PRODUCT_WITH_VARIANTS && onIncludeVariants && fullItem
       ? [
           {
-            key: "variants",
-            icon: <EditOutlined />,
-            label: "Edit variants",
-            onClick: () => onEditVariants(data),
+            key: "include-variants",
+            icon: <PlusOutlined />,
+            label: "Include variants",
+            onClick: () => onIncludeVariants(fullItem),
           },
         ]
       : []),
@@ -313,7 +416,7 @@ const ActionsCellRenderer = ({
       icon: <DeleteOutlined />,
       label: "Delete",
       danger: true,
-      onClick: () => onDelete(data.id),
+      onClick: () => onDelete(data.id, false),
     },
   ];
 
@@ -331,19 +434,27 @@ const ActionsCellRenderer = ({
 export const ComponentsTable = ({
   items,
   onItemsChange,
-  onEditVariants,
+  onIncludeVariants,
   pricingTemplates,
   bulkEditMode,
-  selectedCount,
   onSelectionChange,
 }: IComponentsTableProps) => {
   const { styles } = useStyles();
-  const gridRef = useRef<AgGridReact<IComponentItem>>(null);
+  const gridRef = useRef<AgGridReact<ITableRow>>(null);
 
-  // Selected items for bulk edit (internal state synced with parent)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
-  // Sync selection with parent
+  // Refs for drag handling (like in EditAttributesModal)
+  const expandedBeforeDragRef = useRef<Set<string> | null>(null);
+  const draggingRowIdRef = useRef<string | null>(null);
+
+  // Refs to avoid stale closures in drag handlers
+  const expandedIdsRef = useRef(expandedIds);
+  useEffect(() => {
+    expandedIdsRef.current = expandedIds;
+  }, [expandedIds]);
+
   const updateSelection = useCallback(
     (newSelectedIds: Set<string>) => {
       setSelectedIds(newSelectedIds);
@@ -352,14 +463,6 @@ export const ComponentsTable = ({
     [onSelectionChange]
   );
 
-  // Clear selection when bulk edit mode is turned off
-  const prevBulkEditMode = useRef(bulkEditMode);
-  if (prevBulkEditMode.current && !bulkEditMode) {
-    setSelectedIds(new Set());
-  }
-  prevBulkEditMode.current = bulkEditMode;
-
-  // Toggle selection for a single item
   const handleToggleSelection = useCallback(
     (itemId: string) => {
       const next = new Set(selectedIds);
@@ -373,7 +476,6 @@ export const ComponentsTable = ({
     [selectedIds, updateSelection]
   );
 
-  // Toggle all items
   const handleToggleAll = useCallback(() => {
     if (selectedIds.size === items.length) {
       updateSelection(new Set());
@@ -382,60 +484,203 @@ export const ComponentsTable = ({
     }
   }, [items, selectedIds.size, updateSelection]);
 
-  // Handle price rule change (from custom cell renderer)
+  const handleToggleExpand = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  // Build all rows (products + variants)
+  const allRows = useMemo<ITableRow[]>(() => {
+    const rows: ITableRow[] = [];
+
+    items.forEach((item) => {
+      const hasIncludedVariants = !!(item.includedVariants && item.includedVariants.length > 0);
+
+      rows.push({
+        id: item.id,
+        isVariant: false,
+        level: 0,
+        productId: item.productId,
+        variantId: item.variantId,
+        itemType: item.itemType,
+        customTitle: item.customTitle,
+        isAvailable: item.isAvailable,
+        hasIncludedVariants,
+        includedVariantsCount: item.includedVariants?.length ?? 0,
+        priceType: item.priceType,
+        priceValue: item.priceValue,
+        templateId: item.templateId,
+        basePrice: item.basePrice,
+        finalPrice: item.finalPrice,
+        sortIndex: item.sortIndex,
+      });
+
+      if (item.includedVariants) {
+        item.includedVariants.forEach((variant) => {
+          rows.push({
+            id: variant.id,
+            isVariant: true,
+            level: 1,
+            productId: item.productId,
+            variantId: variant.variantId,
+            itemType: ComponentItemType.SINGLE_VARIANT,
+            isAvailable: item.isAvailable,
+            hasIncludedVariants: false,
+            includedVariantsCount: 0,
+            priceType: variant.priceType,
+            priceValue: variant.priceValue,
+            templateId: variant.templateId,
+            basePrice: variant.basePrice,
+            finalPrice: variant.finalPrice,
+            sortIndex: 0,
+            parentItemId: item.id,
+          });
+        });
+      }
+    });
+
+    return rows;
+  }, [items]);
+
+  // Filter visible rows based on expanded state
+  const visibleRows = useMemo(() => {
+    return allRows.filter((row) => {
+      if (!row.isVariant) return true;
+      // Variant is visible only if parent is expanded
+      return row.parentItemId && expandedIds.has(row.parentItemId);
+    });
+  }, [allRows, expandedIds]);
+
   const handlePriceRuleChange = useCallback(
     (
-      itemId: string,
+      rowId: string,
+      isVariant: boolean,
       priceType: ComponentPriceType,
       priceValue: number | null,
       templateId?: string
     ) => {
-      const newItems = items.map((item) => {
-        if (item.id !== itemId) return item;
+      if (isVariant) {
+        const newItems = items.map((item) => {
+          if (!item.includedVariants) return item;
 
-        const finalPrice = calculateFinalPrice(item.basePrice, priceType, priceValue);
+          const variantIndex = item.includedVariants.findIndex((v) => v.id === rowId);
+          if (variantIndex === -1) return item;
 
-        return {
-          ...item,
-          priceType,
-          priceValue,
-          templateId,
-          finalPrice,
-        };
-      });
-      onItemsChange(newItems);
+          const updatedVariants = [...item.includedVariants];
+          const variant = updatedVariants[variantIndex];
+          const finalPrice = calculateFinalPrice(variant.basePrice, priceType, priceValue);
+
+          updatedVariants[variantIndex] = {
+            ...variant,
+            priceType,
+            priceValue,
+            templateId,
+            finalPrice,
+          };
+
+          return { ...item, includedVariants: updatedVariants };
+        });
+        onItemsChange(newItems);
+      } else {
+        const applyToIds = bulkEditMode && selectedIds.has(rowId)
+          ? selectedIds
+          : new Set([rowId]);
+
+        const newItems = items.map((item) => {
+          if (!applyToIds.has(item.id)) return item;
+
+          const finalPrice = calculateFinalPrice(item.basePrice, priceType, priceValue);
+
+          return {
+            ...item,
+            priceType,
+            priceValue,
+            templateId,
+            finalPrice,
+          };
+        });
+        onItemsChange(newItems);
+      }
     },
-    [items, onItemsChange]
+    [items, onItemsChange, bulkEditMode, selectedIds]
   );
 
-  // Handle value change (from AG Grid editor)
   const handleCellValueChanged = useCallback(
-    (event: CellValueChangedEvent<IComponentItem>) => {
+    (event: CellValueChangedEvent<ITableRow>) => {
       const field = event.colDef?.field;
       if (!event.data || field !== "priceValue") return;
 
-      const newItems = items.map((item) => {
-        if (item.id !== event.data?.id) return item;
+      const rowId = event.data.id;
+      const isVariant = event.data.isVariant;
+      const newPriceValue = event.newValue as number | null;
 
-        const priceValue = event.newValue as number | null;
-        const finalPrice = calculateFinalPrice(item.basePrice, item.priceType, priceValue);
+      if (isVariant) {
+        const newItems = items.map((item) => {
+          if (!item.includedVariants) return item;
 
-        return {
-          ...item,
-          priceValue,
-          finalPrice,
-          // Clear templateId when value is manually changed
-          templateId: undefined,
-        };
-      });
-      onItemsChange(newItems);
+          const variantIndex = item.includedVariants.findIndex((v) => v.id === rowId);
+          if (variantIndex === -1) return item;
+
+          const updatedVariants = [...item.includedVariants];
+          const variant = updatedVariants[variantIndex];
+          const finalPrice = calculateFinalPrice(variant.basePrice, variant.priceType, newPriceValue);
+
+          updatedVariants[variantIndex] = {
+            ...variant,
+            priceValue: newPriceValue,
+            finalPrice,
+            templateId: undefined,
+          };
+
+          return { ...item, includedVariants: updatedVariants };
+        });
+        onItemsChange(newItems);
+      } else {
+        const applyToIds = bulkEditMode && selectedIds.has(rowId)
+          ? selectedIds
+          : new Set([rowId]);
+
+        const newItems = items.map((item) => {
+          if (!applyToIds.has(item.id)) return item;
+
+          const finalPrice = calculateFinalPrice(item.basePrice, item.priceType, newPriceValue);
+
+          return {
+            ...item,
+            priceValue: newPriceValue,
+            finalPrice,
+            templateId: undefined,
+          };
+        });
+        onItemsChange(newItems);
+      }
     },
-    [items, onItemsChange]
+    [items, onItemsChange, bulkEditMode, selectedIds]
   );
 
   const handleDelete = useCallback(
-    (itemId: string) => {
-      onItemsChange(items.filter((item) => item.id !== itemId));
+    (rowId: string, isVariant: boolean) => {
+      if (isVariant) {
+        const newItems = items.map((item) => {
+          if (!item.includedVariants) return item;
+
+          const newVariants = item.includedVariants.filter((v) => v.id !== rowId);
+          return {
+            ...item,
+            includedVariants: newVariants.length > 0 ? newVariants : undefined,
+          };
+        });
+        onItemsChange(newItems);
+      } else {
+        onItemsChange(items.filter((item) => item.id !== rowId));
+      }
     },
     [items, onItemsChange]
   );
@@ -449,40 +694,86 @@ export const ComponentsTable = ({
         ...itemToDuplicate,
         id: `item-${Date.now()}`,
         sortIndex: items.length,
+        includedVariants: itemToDuplicate.includedVariants?.map((v) => ({
+          ...v,
+          id: `variant-${Date.now()}-${v.variantId}`,
+        })),
       };
       onItemsChange([...items, newItem]);
     },
     [items, onItemsChange]
   );
 
+  // Handle row drag enter - collapse all expanded products when dragging
+  const handleRowDragEnter = useCallback((event: RowDragEnterEvent<ITableRow>) => {
+    const movingData = event.node?.data;
+    if (!movingData || movingData.isVariant) return;
+
+    // Prevent multiple triggers for same drag
+    if (draggingRowIdRef.current === movingData.id) return;
+
+    draggingRowIdRef.current = movingData.id;
+    expandedBeforeDragRef.current = new Set(expandedIdsRef.current);
+
+    // Collapse all products for easier reordering
+    setExpandedIds(new Set());
+  }, []);
+
   const handleRowDragEnd = useCallback(
-    (event: RowDragEndEvent<IComponentItem>) => {
+    (event: RowDragEndEvent<ITableRow>) => {
+      const savedExpandedIds = expandedBeforeDragRef.current;
+      draggingRowIdRef.current = null;
+      expandedBeforeDragRef.current = null;
+
       const { node, overIndex } = event;
-      if (overIndex === undefined || overIndex === null) return;
+      const movingData = node?.data;
 
-      const movedItem = node.data;
-      if (!movedItem) return;
+      if (!movingData || movingData.isVariant) {
+        // Restore expanded state if invalid drag
+        if (savedExpandedIds) setExpandedIds(savedExpandedIds);
+        return;
+      }
 
-      const newItems = [...items];
-      const oldIndex = newItems.findIndex((item) => item.id === movedItem.id);
-      newItems.splice(oldIndex, 1);
-      newItems.splice(overIndex, 0, movedItem);
+      if (overIndex === undefined || overIndex === null) {
+        if (savedExpandedIds) setExpandedIds(savedExpandedIds);
+        return;
+      }
 
-      // Update sort indices
-      const reindexed = newItems.map((item, index) => ({
-        ...item,
-        sortIndex: index,
-      }));
+      // Get the new order from the grid (only top-level products)
+      const newOrderedIds: string[] = [];
+      event.api.forEachNodeAfterFilterAndSort((rowNode) => {
+        if (rowNode.data && !rowNode.data.isVariant) {
+          newOrderedIds.push(rowNode.data.id);
+        }
+      });
 
-      onItemsChange(reindexed);
+      // Rebuild items array in new order
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+      const reorderedItems = newOrderedIds
+        .map((id) => itemMap.get(id))
+        .filter((item): item is IComponentItem => item !== undefined)
+        .map((item, index) => ({
+          ...item,
+          sortIndex: index,
+        }));
+
+      onItemsChange(reorderedItems);
+
+      // Restore expanded state
+      if (savedExpandedIds) {
+        setExpandedIds(savedExpandedIds);
+      }
     },
     [items, onItemsChange]
   );
 
-  // Column definitions
-  const columnDefs = useMemo<ColDef<IComponentItem>[]>(
+  const getRowClass = useCallback((params: { data: ITableRow | undefined }) => {
+    if (params.data?.isVariant) return "row-variant";
+    return "";
+  }, []);
+
+  const columnDefs = useMemo<ColDef<ITableRow>[]>(
     () => [
-      // Checkbox column (only in bulk edit mode)
       ...(bulkEditMode
         ? [
             {
@@ -498,7 +789,7 @@ export const ComponentsTable = ({
                   onChange={handleToggleAll}
                 />
               ),
-              cellRenderer: (params: ICellRendererParams<IComponentItem>) => (
+              cellRenderer: (params: ICellRendererParams<ITableRow>) => (
                 <CheckboxCellRenderer
                   {...params}
                   selectedIds={selectedIds}
@@ -508,14 +799,13 @@ export const ComponentsTable = ({
             },
           ]
         : []),
-      // Drag handle column (hidden in bulk edit mode)
       ...(!bulkEditMode
         ? [
             {
               headerName: "",
               field: "sortIndex" as const,
               width: 50,
-              rowDrag: true,
+              rowDrag: (params: { data?: ITableRow }) => !params.data?.isVariant,
               suppressMovable: true,
               resizable: false,
               valueFormatter: () => "",
@@ -527,15 +817,17 @@ export const ComponentsTable = ({
         field: "productId",
         flex: 2,
         minWidth: 200,
-        cellRenderer: (params: ICellRendererParams<IComponentItem>) => (
-          <ProductCellRenderer {...params} onEditVariants={onEditVariants} />
-        ),
+        cellRenderer: ProductCellRenderer,
+        cellRendererParams: {
+          expandedIds,
+          onToggleExpand: handleToggleExpand,
+        },
       },
       {
         headerName: "Price Rule",
         field: "priceType",
         width: 180,
-        cellRenderer: (params: ICellRendererParams<IComponentItem>) => (
+        cellRenderer: (params: ICellRendererParams<ITableRow>) => (
           <PriceRuleCellRenderer
             {...params}
             pricingTemplates={pricingTemplates}
@@ -564,12 +856,13 @@ export const ComponentsTable = ({
         headerName: "",
         field: "id",
         width: 50,
-        cellRenderer: (params: ICellRendererParams<IComponentItem>) => (
+        cellRenderer: (params: ICellRendererParams<ITableRow>) => (
           <ActionsCellRenderer
             {...params}
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
-            onEditVariants={onEditVariants}
+            onIncludeVariants={onIncludeVariants}
+            items={items}
           />
         ),
       },
@@ -577,12 +870,14 @@ export const ComponentsTable = ({
     [
       bulkEditMode,
       selectedIds,
-      items.length,
+      items,
+      expandedIds,
       handleToggleAll,
       handleToggleSelection,
+      handleToggleExpand,
       handleDelete,
       handleDuplicate,
-      onEditVariants,
+      onIncludeVariants,
       pricingTemplates,
       handlePriceRuleChange,
     ]
@@ -598,24 +893,26 @@ export const ComponentsTable = ({
   );
 
   const getRowId = useCallback(
-    (params: GetRowIdParams<IComponentItem>) => params.data.id,
+    (params: GetRowIdParams<ITableRow>) => params.data.id,
     []
   );
 
   return (
     <div>
       <div className={styles.gridWrapper}>
-        <AgGridReact<IComponentItem>
+        <AgGridReact<ITableRow>
           ref={gridRef}
-          rowData={items}
+          rowData={visibleRows}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           getRowId={getRowId}
+          getRowClass={getRowClass}
           rowDragManaged={!bulkEditMode}
           animateRows
           domLayout="autoHeight"
           rowHeight={52}
           headerHeight={36}
+          onRowDragEnter={handleRowDragEnter}
           onRowDragEnd={handleRowDragEnd}
           onCellValueChanged={handleCellValueChanged}
         />

@@ -88,6 +88,23 @@ export interface IPickerProduct {
 }
 
 // ============================================================================
+// Included Variant (for variant-level pricing within a product)
+// ============================================================================
+
+export interface IIncludedVariant {
+  id: string;
+  variantId: string;
+  /** Pricing configuration (can override parent) */
+  priceType: ComponentPriceType;
+  priceValue: number | null;
+  /** Template ID if using a pricing template */
+  templateId?: string;
+  /** Computed prices */
+  basePrice: number;
+  finalPrice: number;
+}
+
+// ============================================================================
 // Component Item
 // ============================================================================
 
@@ -112,6 +129,9 @@ export interface IComponentItem {
     optionId: string;
     allowedValues: string[];
   }[];
+
+  /** Included variants with individual pricing (for PRODUCT_WITH_VARIANTS) */
+  includedVariants?: IIncludedVariant[];
 
   sortIndex: number;
 

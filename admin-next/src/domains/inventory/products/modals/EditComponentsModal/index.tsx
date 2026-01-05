@@ -25,6 +25,8 @@ import type {
   ITieredDiscount,
   DisplayStyle,
   OutOfStockBehavior,
+  IIncludedVariant,
+  ComponentPriceType,
 } from "./types";
 import {
   mockGroups,
@@ -67,6 +69,7 @@ interface IGroupsTabProps {
   onGroupsChange: (groups: IComponentGroup[]) => void;
   onAddItem: (groupId: string) => void;
   onEditVariants?: (item: IComponentItem, groupId: string) => void;
+  onIncludeVariants?: (item: IComponentItem, groupId: string) => void;
   pricingTemplates: IPricingRuleTemplate[];
 }
 
@@ -75,6 +78,7 @@ const GroupsTab = ({
   onGroupsChange,
   onAddItem,
   onEditVariants,
+  onIncludeVariants,
   pricingTemplates,
 }: IGroupsTabProps) => {
   const { styles } = useStyles();
@@ -165,6 +169,11 @@ const GroupsTab = ({
           onEditVariants={
             onEditVariants
               ? (item) => onEditVariants(item, group.id)
+              : undefined
+          }
+          onIncludeVariants={
+            onIncludeVariants
+              ? (item) => onIncludeVariants(item, group.id)
               : undefined
           }
           pricingTemplates={pricingTemplates}
@@ -290,7 +299,7 @@ export const EditComponentsModal = () => {
           options: v.options,
         })),
         options: product.options,
-        onSave: (data) => {
+        onSave: (data: { availableVariantIds: string[] | null }) => {
           const updatedGroups = groups.map((group) => {
             if (group.id !== groupId) return group;
 
@@ -301,6 +310,95 @@ export const EditComponentsModal = () => {
                   ? {
                       ...i,
                       availableVariantIds: data.availableVariantIds,
+                    }
+                  : i
+              ),
+            };
+          });
+
+          setGroups(updatedGroups);
+          setDirty(true);
+        },
+      });
+    },
+    [pushVariantSettings, groups, setDirty]
+  );
+
+  // Handle including variants in the table with individual pricing
+  const handleIncludeVariants = useCallback(
+    (item: IComponentItem, groupId: string) => {
+      const product = getProductById(item.productId);
+      if (!product || !product.variants) return;
+
+      // Get variants that are available for this item
+      const availableVariants = item.availableVariantIds
+        ? product.variants.filter((v) => item.availableVariantIds!.includes(v.id))
+        : product.variants;
+
+      // Get already included variant IDs
+      const alreadyIncludedIds = new Set(
+        item.includedVariants?.map((iv) => iv.variantId) ?? []
+      );
+
+      pushVariantSettings({
+        itemId: item.id,
+        productId: item.productId,
+        productTitle: `Include variants: ${product.title}`,
+        availableVariantIds: availableVariants
+          .filter((v) => !alreadyIncludedIds.has(v.id))
+          .map((v) => v.id),
+        priceType: item.priceType,
+        priceValue: item.priceValue,
+        variants: availableVariants
+          .filter((v) => !alreadyIncludedIds.has(v.id))
+          .map((v) => ({
+            id: v.id,
+            title: v.title,
+            sku: v.sku,
+            price: v.price,
+            stock: v.stock,
+            options: v.options,
+          })),
+        options: product.options,
+        onSave: (data: { availableVariantIds: string[] | null }) => {
+          // If null, all variants were selected; if empty array, nothing selected
+          const selectedIds = data.availableVariantIds === null
+            ? availableVariants.filter((v) => !alreadyIncludedIds.has(v.id)).map((v) => v.id)
+            : data.availableVariantIds;
+
+          if (selectedIds.length === 0) {
+            return; // No variants selected
+          }
+
+          // Create included variants with default pricing (inherits from parent)
+          const newIncludedVariants: IIncludedVariant[] = selectedIds.map(
+            (variantId: string) => {
+              const variant = product.variants?.find((v) => v.id === variantId);
+              const basePrice = variant?.price ?? 0;
+              return {
+                id: `inc-${Date.now()}-${variantId}`,
+                variantId,
+                priceType: item.priceType as ComponentPriceType,
+                priceValue: item.priceValue,
+                basePrice,
+                finalPrice: basePrice, // Will be calculated properly
+              };
+            }
+          );
+
+          const updatedGroups = groups.map((group) => {
+            if (group.id !== groupId) return group;
+
+            return {
+              ...group,
+              items: group.items.map((i) =>
+                i.id === item.id
+                  ? {
+                      ...i,
+                      includedVariants: [
+                        ...(i.includedVariants ?? []),
+                        ...newIncludedVariants,
+                      ],
                     }
                   : i
               ),
@@ -354,6 +452,7 @@ export const EditComponentsModal = () => {
             onGroupsChange={handleGroupsChange}
             onAddItem={handleAddItem}
             onEditVariants={handleEditVariants}
+            onIncludeVariants={handleIncludeVariants}
             pricingTemplates={pricingTemplates}
           />
         ),
@@ -454,6 +553,7 @@ export const EditComponentsModal = () => {
       handleGroupsChange,
       handleAddItem,
       handleEditVariants,
+      handleIncludeVariants,
       pricingTemplates,
       tieredDiscounts,
       displayStyle,
