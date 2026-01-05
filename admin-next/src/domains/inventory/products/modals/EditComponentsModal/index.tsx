@@ -15,7 +15,6 @@ import {
   ModalLayout,
   ModalHeader,
 } from "@/layouts/modals";
-import { Paper } from "../../components/Paper";
 
 import type {
   IComponentGroup,
@@ -34,7 +33,7 @@ import {
   mockTieredDiscounts,
   mockModalSettings,
 } from "./mocks/mockData";
-import { GroupCard, ProductPicker, PricingRulesTab, PreviewTab } from "./components";
+import { GroupCard, ProductPicker, PricingRulesTab, PreviewTab, SettingsTab } from "./components";
 import { useComponentVariantSettingsModal } from "../../modals";
 import { getProductById } from "./mocks/mockData";
 
@@ -42,7 +41,7 @@ import { getProductById } from "./mocks/mockData";
 // Styles
 // ============================================================================
 
-const useStyles = createStyles(({ token }) => ({
+const useStyles = createStyles(() => ({
   container: {
     display: "flex",
     flexDirection: "column",
@@ -56,11 +55,6 @@ const useStyles = createStyles(({ token }) => ({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
-  },
-  placeholder: {
-    padding: 32,
-    textAlign: "center",
-    color: token.colorTextSecondary,
   },
 }));
 
@@ -178,23 +172,6 @@ const GroupsTab = ({
   );
 };
 
-
-// ============================================================================
-// Settings Tab (Placeholder)
-// ============================================================================
-
-const SettingsTab = () => {
-  const { styles } = useStyles();
-  return (
-    <Paper className={styles.placeholder}>
-      <SettingOutlined style={{ fontSize: 32, marginBottom: 16 }} />
-      <Typography.Title level={5}>Settings</Typography.Title>
-      <Typography.Text type="secondary">
-        Display, inventory and validation settings
-      </Typography.Text>
-    </Paper>
-  );
-};
 
 // ============================================================================
 // Main Modal Component
@@ -439,7 +416,45 @@ export const EditComponentsModal = () => {
             Settings
           </Flex>
         ),
-        children: <SettingsTab />,
+        children: (
+          <SettingsTab
+            displayStyle={displayStyle}
+            onDisplayStyleChange={(style) => {
+              setDisplayStyle(style);
+              setDirty(true);
+            }}
+            showImages={settings.showImages}
+            onShowImagesChange={(value) => {
+              setSettings((prev) => ({ ...prev, showImages: value }));
+              setDirty(true);
+            }}
+            showSku={settings.showSku}
+            onShowSkuChange={(value) => {
+              setSettings((prev) => ({ ...prev, showSku: value }));
+              setDirty(true);
+            }}
+            showStock={settings.showStock}
+            onShowStockChange={(value) => {
+              setSettings((prev) => ({ ...prev, showStock: value }));
+              setDirty(true);
+            }}
+            showComparePrice={settings.showComparePrice}
+            onShowComparePriceChange={(value) => {
+              setSettings((prev) => ({ ...prev, showComparePrice: value }));
+              setDirty(true);
+            }}
+            outOfStockBehavior={settings.outOfStockBehavior}
+            onOutOfStockBehaviorChange={(value) => {
+              setSettings((prev) => ({ ...prev, outOfStockBehavior: value }));
+              setDirty(true);
+            }}
+            inheritStock={settings.inheritStock}
+            onInheritStockChange={(value) => {
+              setSettings((prev) => ({ ...prev, inheritStock: value }));
+              setDirty(true);
+            }}
+          />
+        ),
       },
     ],
     [
