@@ -336,7 +336,6 @@ export const EditComponentsModal = () => {
         productId: item.productId,
         productTitle: product.title,
         availableVariantIds: item.availableVariantIds ?? null,
-        autoHideOutOfStock: item.autoHideOutOfStock ?? false,
         variants: product.variants.map((v) => ({
           id: v.id,
           title: v.title,
@@ -357,7 +356,6 @@ export const EditComponentsModal = () => {
                   ? {
                       ...i,
                       availableVariantIds: data.availableVariantIds,
-                      autoHideOutOfStock: data.autoHideOutOfStock,
                     }
                   : i
               ),

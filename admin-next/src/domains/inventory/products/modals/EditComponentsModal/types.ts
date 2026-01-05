@@ -124,8 +124,6 @@ export interface IComponentItem {
     optionId: string;
     allowedValues: string[];
   }[];
-  /** Auto-hide out of stock variants */
-  autoHideOutOfStock?: boolean;
 
   sortIndex: number;
 

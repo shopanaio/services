@@ -296,8 +296,6 @@ export interface IComponentVariantSettingsModalPayload extends IModalStackPayloa
   productTitle: string;
   /** Current available variant IDs (null = all) */
   availableVariantIds: string[] | null;
-  /** Auto-hide out of stock */
-  autoHideOutOfStock: boolean;
   /** All variants of the product */
   variants: Array<{
     id: string;
@@ -320,7 +318,6 @@ export interface IComponentVariantSettingsModalPayload extends IModalStackPayloa
   /** Callback when saved */
   onSave?: (data: {
     availableVariantIds: string[] | null;
-    autoHideOutOfStock: boolean;
   }) => void;
 }
 
@@ -569,7 +566,6 @@ export const useEditComponentsModal = createModalStackHook(PRODUCT_EDIT_COMPONEN
  *   productId: 'prod-1',
  *   productTitle: 'Premium Case',
  *   availableVariantIds: ['var-1', 'var-2'],
- *   autoHideOutOfStock: false,
  *   variants: [...],
  *   onSave: (data) => console.log(data)
  * });

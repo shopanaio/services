@@ -10,20 +10,14 @@ import {
   GetRowIdParams,
   ICellRendererParams,
   RowDragEndEvent,
+  CellValueChangedEvent,
 } from "ag-grid-community";
-import {
-  Select,
-  InputNumber,
-  Tag,
-  Button,
-  Dropdown,
-} from "antd";
+import { Tag, Button, Dropdown } from "antd";
 import {
   MoreOutlined,
   DeleteOutlined,
   EditOutlined,
   CopyOutlined,
-  HolderOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -54,15 +48,20 @@ const useStyles = createStyles(({ token }) => ({
       alignItems: "center",
       lineHeight: 1.4,
     },
+    "& .ag-cell-wrapper": {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+    },
     "& .ag-row-drag": {
       cursor: "grab",
-      marginRight: 0,
+      color: token.colorTextQuaternary,
+      "&:hover": {
+        color: token.colorTextSecondary,
+      },
     },
     "& .ag-row-dragging": {
       cursor: "grabbing",
-    },
-    "& .ag-drag-handle": {
-      color: token.colorTextQuaternary,
     },
   },
   productCell: {
@@ -111,12 +110,6 @@ const useStyles = createStyles(({ token }) => ({
   priceRange: {
     color: token.colorTextSecondary,
     fontSize: 11,
-  },
-  priceRuleCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    width: "100%",
   },
   finalPriceCell: {
     fontWeight: 600,
@@ -198,48 +191,6 @@ const BasePriceCellRenderer = ({ data }: ICellRendererParams<IComponentItem>) =>
       <span className={styles.priceMain}>{formatPrice(data.basePrice)}</span>
       {hasRange && (
         <span className={styles.priceRange}>- {formatPrice(data.basePriceMax!)}</span>
-      )}
-    </div>
-  );
-};
-
-interface IPriceRuleCellRendererProps extends ICellRendererParams<IComponentItem> {
-  onPriceTypeChange: (itemId: string, priceType: ComponentPriceType) => void;
-  onPriceValueChange: (itemId: string, priceValue: number | null) => void;
-}
-
-const PriceRuleCellRenderer = ({
-  data,
-  onPriceTypeChange,
-  onPriceValueChange,
-}: IPriceRuleCellRendererProps) => {
-  const { styles } = useStyles();
-  if (!data) return null;
-
-  const selectedRule = PRICE_RULE_OPTIONS.find((r) => r.value === data.priceType);
-  const showValueInput = selectedRule?.requiresValue;
-
-  return (
-    <div className={styles.priceRuleCell}>
-      <Select
-        value={data.priceType}
-        onChange={(value) => onPriceTypeChange(data.id, value)}
-        options={PRICE_RULE_OPTIONS.map((opt) => ({
-          value: opt.value,
-          label: opt.label,
-        }))}
-        size="small"
-        style={{ width: showValueInput ? 110 : "100%" }}
-      />
-      {showValueInput && (
-        <InputNumber
-          value={data.priceValue}
-          onChange={(value) => onPriceValueChange(data.id, value)}
-          size="small"
-          style={{ width: 70 }}
-          addonAfter={selectedRule?.valueSuffix}
-          min={0}
-        />
       )}
     </div>
   );
@@ -345,54 +296,29 @@ export const ComponentsTable = ({
   const gridRef = useRef<AgGridReact<IComponentItem>>(null);
 
   // Handlers
-  const handlePriceTypeChange = useCallback(
-    (itemId: string, priceType: ComponentPriceType) => {
+  const handleCellValueChanged = useCallback(
+    (event: CellValueChangedEvent<IComponentItem>) => {
+      const field = event.colDef?.field;
+      if (!event.data || (field !== "priceType" && field !== "priceValue")) return;
+
       const newItems = items.map((item) => {
-        if (item.id !== itemId) return item;
+        if (item.id !== event.data?.id) return item;
 
-        const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
-        const priceValue = rule?.requiresValue ? item.priceValue ?? 0 : null;
+        let priceType = item.priceType;
+        let priceValue = item.priceValue;
 
-        // Recalculate final price
-        let finalPrice = item.basePrice;
-        switch (priceType) {
-          case ComponentPriceType.FIXED:
-            finalPrice = priceValue ?? item.basePrice;
-            break;
-          case ComponentPriceType.MARKUP_PERCENT:
-            finalPrice = Math.round(item.basePrice * (1 + (priceValue ?? 0) / 100));
-            break;
-          case ComponentPriceType.DISCOUNT_PERCENT:
-            finalPrice = Math.round(item.basePrice * (1 - (priceValue ?? 0) / 100));
-            break;
-          case ComponentPriceType.MARKUP_FIXED:
-            finalPrice = item.basePrice + (priceValue ?? 0);
-            break;
-          case ComponentPriceType.DISCOUNT_FIXED:
-            finalPrice = Math.max(0, item.basePrice - (priceValue ?? 0));
-            break;
-          case ComponentPriceType.FREE:
-          case ComponentPriceType.INCLUDED:
-            finalPrice = 0;
-            break;
+        if (field === "priceType") {
+          priceType = event.newValue as ComponentPriceType;
+          const rule = PRICE_RULE_OPTIONS.find((r) => r.value === priceType);
+          priceValue = rule?.requiresValue ? item.priceValue ?? 0 : null;
+        } else if (field === "priceValue") {
+          priceValue = event.newValue as number | null;
         }
-
-        return { ...item, priceType, priceValue, finalPrice };
-      });
-      onItemsChange(newItems);
-    },
-    [items, onItemsChange]
-  );
-
-  const handlePriceValueChange = useCallback(
-    (itemId: string, priceValue: number | null) => {
-      const newItems = items.map((item) => {
-        if (item.id !== itemId) return item;
 
         // Recalculate final price
         let finalPrice = item.basePrice;
         const value = priceValue ?? 0;
-        switch (item.priceType) {
+        switch (priceType) {
           case ComponentPriceType.FIXED:
             finalPrice = value;
             break;
@@ -408,9 +334,13 @@ export const ComponentsTable = ({
           case ComponentPriceType.DISCOUNT_FIXED:
             finalPrice = Math.max(0, item.basePrice - value);
             break;
+          case ComponentPriceType.FREE:
+          case ComponentPriceType.INCLUDED:
+            finalPrice = 0;
+            break;
         }
 
-        return { ...item, priceValue, finalPrice };
+        return { ...item, priceType, priceValue, finalPrice };
       });
       onItemsChange(newItems);
     },
@@ -469,10 +399,10 @@ export const ComponentsTable = ({
       {
         headerName: "",
         field: "sortIndex",
-        width: 40,
+        width: 50,
         rowDrag: true,
-        cellRenderer: () => <HolderOutlined style={{ color: "#999", cursor: "grab" }} />,
         suppressMovable: true,
+        resizable: false,
       },
       {
         headerName: "Product",
@@ -490,14 +420,33 @@ export const ComponentsTable = ({
       {
         headerName: "Price Rule",
         field: "priceType",
-        width: 200,
-        cellRenderer: (params: ICellRendererParams<IComponentItem>) => (
-          <PriceRuleCellRenderer
-            {...params}
-            onPriceTypeChange={handlePriceTypeChange}
-            onPriceValueChange={handlePriceValueChange}
-          />
-        ),
+        width: 140,
+        editable: true,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: {
+          values: PRICE_RULE_OPTIONS.map((opt) => opt.value),
+        },
+        valueFormatter: (params) => {
+          const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.value);
+          return rule?.label ?? params.value;
+        },
+      },
+      {
+        headerName: "Value",
+        field: "priceValue",
+        width: 100,
+        editable: (params) => {
+          const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.data?.priceType);
+          return !!rule?.requiresValue;
+        },
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0, precision: 0 },
+        valueFormatter: (params) => {
+          const rule = PRICE_RULE_OPTIONS.find((r) => r.value === params.data?.priceType);
+          if (!rule?.requiresValue) return "—";
+          if (params.value == null) return "—";
+          return `${params.value}${rule.valueSuffix || ""}`;
+        },
       },
       {
         headerName: "Final",
@@ -518,9 +467,10 @@ export const ComponentsTable = ({
           />
         ),
         resizable: false,
+        pinned: "right",
       },
     ],
-    [handlePriceTypeChange, handlePriceValueChange, handleDelete, handleDuplicate, onEditVariants]
+    [handleDelete, handleDuplicate, onEditVariants]
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -551,6 +501,7 @@ export const ComponentsTable = ({
         rowHeight={52}
         headerHeight={36}
         onRowDragEnd={handleRowDragEnd}
+        onCellValueChanged={handleCellValueChanged}
       />
     </div>
   );

@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { createStyles } from "antd-style";
+import { Typography, Tag, Divider, Empty, Flex } from "antd";
+import { AgGridReact } from "ag-grid-react";
 import {
-  Checkbox,
-  Typography,
-  Tag,
-  Switch,
-  Divider,
-  Empty,
-  Flex,
-} from "antd";
-import type { CheckboxChangeEvent } from "antd/es/checkbox";
+  ColDef,
+  ModuleRegistry,
+  AllCommunityModule,
+  GetRowIdParams,
+  ICellRendererParams,
+  SelectionChangedEvent,
+} from "ag-grid-community";
 import {
   useModalStackContext,
   ModalLayout,
@@ -20,6 +20,21 @@ import {
 
 import type { IComponentVariantSettingsModalPayload } from "../../../modals";
 import { formatPrice } from "../mocks/mockData";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface IVariantRow {
+  id: string;
+  title: string;
+  sku: string;
+  price: number;
+  stock: number;
+  options?: { optionId: string; value: string }[];
+}
 
 // ============================================================================
 // Styles
@@ -54,67 +69,23 @@ const useStyles = createStyles(({ token }) => ({
     flexWrap: "wrap",
     gap: 8,
   },
-  variantList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    maxHeight: 300,
-    overflow: "auto",
-  },
-  variantItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "8px 12px",
-    borderRadius: token.borderRadius,
-    border: `1px solid ${token.colorBorderSecondary}`,
-    cursor: "pointer",
-    transition: "all 0.2s",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-      background: token.colorPrimaryBg,
+  gridWrapper: {
+    width: "100%",
+    height: 300,
+    "& .ag-header-cell": {
+      fontSize: 12,
+      fontWeight: 500,
     },
-  },
-  variantItemSelected: {
-    borderColor: token.colorPrimary,
-    background: token.colorPrimaryBg,
-  },
-  variantItemDisabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-    "&:hover": {
-      borderColor: token.colorBorderSecondary,
-      background: "transparent",
+    "& .ag-cell": {
+      display: "flex",
+      alignItems: "center",
+      lineHeight: 1.4,
     },
-  },
-  variantInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  variantTitle: {
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  variantMeta: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 2,
-  },
-  variantSku: {
-    fontSize: 11,
-    color: token.colorTextSecondary,
-  },
-  variantPrice: {
-    fontSize: 13,
-    fontWeight: 500,
-    flexShrink: 0,
-  },
-  settingsRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "8px 0",
+    "& .ag-cell-wrapper": {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+    },
   },
   summary: {
     padding: "12px 16px",
@@ -125,15 +96,45 @@ const useStyles = createStyles(({ token }) => ({
   summaryText: {
     fontSize: 13,
   },
+  stockTag: {
+    margin: 0,
+  },
 }));
+
+// ============================================================================
+// Cell Renderers
+// ============================================================================
+
+const StockCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
+  const { styles } = useStyles();
+  if (!data) return null;
+
+  const isOutOfStock = data.stock === 0;
+
+  return isOutOfStock ? (
+    <Tag color="red" className={styles.stockTag}>
+      Out of stock
+    </Tag>
+  ) : (
+    <Tag color="green" className={styles.stockTag}>
+      {data.stock} in stock
+    </Tag>
+  );
+};
+
+const PriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
+  if (!data) return null;
+  return <span style={{ fontWeight: 500 }}>{formatPrice(data.price)}</span>;
+};
 
 // ============================================================================
 // Component
 // ============================================================================
 
 export const VariantSettingsModal = () => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const { pop, payload } = useModalStackContext();
+  const gridRef = useRef<AgGridReact<IVariantRow>>(null);
 
   const modalPayload = payload as IComponentVariantSettingsModalPayload | undefined;
 
@@ -141,7 +142,6 @@ export const VariantSettingsModal = () => {
   const {
     productTitle = "Product",
     availableVariantIds: initialVariantIds,
-    autoHideOutOfStock: initialAutoHide = false,
     variants = [],
     options = [],
     onSave,
@@ -151,7 +151,20 @@ export const VariantSettingsModal = () => {
   const [selectedVariantIds, setSelectedVariantIds] = useState<string[]>(
     () => initialVariantIds ?? variants.map((v) => v.id)
   );
-  const [autoHideOutOfStock, setAutoHideOutOfStock] = useState(initialAutoHide);
+
+  // Row data for grid
+  const rowData = useMemo<IVariantRow[]>(
+    () =>
+      variants.map((v) => ({
+        id: v.id,
+        title: v.title,
+        sku: v.sku,
+        price: v.price,
+        stock: v.stock,
+        options: v.options,
+      })),
+    [variants]
+  );
 
   // Get unique option values grouped by option
   const optionGroups = useMemo(() => {
@@ -178,36 +191,26 @@ export const VariantSettingsModal = () => {
         values: option.values.map((value) => ({
           value,
           isSelected: availableValues.has(value),
-          count:
-            selectedVariants.filter((v) =>
-              v.options?.some(
-                (o) => o.optionId === option.id && o.value === value
-              )
-            ).length,
+          count: selectedVariants.filter((v) =>
+            v.options?.some(
+              (o) => o.optionId === option.id && o.value === value
+            )
+          ).length,
         })),
       };
     });
   }, [options, variants, selectedVariantIds]);
 
-  // Toggle variant selection
-  const handleVariantToggle = useCallback((variantId: string) => {
-    setSelectedVariantIds((prev) =>
-      prev.includes(variantId)
-        ? prev.filter((id) => id !== variantId)
-        : [...prev, variantId]
-    );
-  }, []);
-
-  // Select/deselect all
-  const handleSelectAll = useCallback(
-    (e: CheckboxChangeEvent) => {
-      if (e.target.checked) {
-        setSelectedVariantIds(variants.map((v) => v.id));
-      } else {
-        setSelectedVariantIds([]);
-      }
+  // Handle selection change from grid
+  const handleSelectionChanged = useCallback(
+    (event: SelectionChangedEvent<IVariantRow>) => {
+      const selectedNodes = event.api.getSelectedNodes();
+      const selectedIds = selectedNodes
+        .map((node) => node.data?.id)
+        .filter((id): id is string => !!id);
+      setSelectedVariantIds(selectedIds);
     },
-    [variants]
+    []
   );
 
   // Toggle by option value
@@ -240,20 +243,90 @@ export const VariantSettingsModal = () => {
 
     onSave?.({
       availableVariantIds: isAllSelected ? null : selectedVariantIds,
-      autoHideOutOfStock,
     });
     pop();
-  }, [selectedVariantIds, autoHideOutOfStock, variants, onSave, pop]);
+  }, [selectedVariantIds, variants, onSave, pop]);
 
-  // Check states
-  const allSelected = selectedVariantIds.length === variants.length;
-  const someSelected =
-    selectedVariantIds.length > 0 && selectedVariantIds.length < variants.length;
+  // Column definitions
+  const columnDefs = useMemo<ColDef<IVariantRow>[]>(
+    () => [
+      {
+        headerName: "Variant",
+        field: "title",
+        flex: 2,
+        minWidth: 150,
+        headerCheckboxSelection: true,
+        checkboxSelection: true,
+      },
+      {
+        headerName: "SKU",
+        field: "sku",
+        width: 120,
+      },
+      {
+        headerName: "Stock",
+        field: "stock",
+        width: 120,
+        cellRenderer: StockCellRenderer,
+      },
+      {
+        headerName: "Price",
+        field: "price",
+        width: 100,
+        cellRenderer: PriceCellRenderer,
+      },
+    ],
+    []
+  );
+
+  const defaultColDef = useMemo<ColDef>(
+    () => ({
+      resizable: false,
+      sortable: true,
+      suppressMovable: true,
+    }),
+    []
+  );
+
+  const getRowId = useCallback(
+    (params: GetRowIdParams<IVariantRow>) => params.data.id,
+    []
+  );
+
+  // Sync grid selection with state
+  const onGridReady = useCallback(() => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.forEachNode((node) => {
+        if (node.data && selectedVariantIds.includes(node.data.id)) {
+          node.setSelected(true);
+        }
+      });
+    }
+  }, [selectedVariantIds]);
+
+  // Update grid selection when option filters change
+  const updateGridSelection = useCallback(() => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.forEachNode((node) => {
+        if (node.data) {
+          const shouldSelect = selectedVariantIds.includes(node.data.id);
+          if (node.isSelected() !== shouldSelect) {
+            node.setSelected(shouldSelect);
+          }
+        }
+      });
+    }
+  }, [selectedVariantIds]);
+
+  // Sync selection when selectedVariantIds changes from option filters
+  useMemo(() => {
+    updateGridSelection();
+  }, [updateGridSelection]);
 
   return (
     <ModalLayout
       name="component-variant-settings"
-      width={550}
+      width={600}
       header={
         <ModalHeader
           name="component-variant-settings"
@@ -267,20 +340,6 @@ export const VariantSettingsModal = () => {
       }
     >
       <div className={styles.content}>
-        {/* Settings */}
-        <div className={styles.section}>
-          <div className={styles.settingsRow}>
-            <Typography.Text>Auto-hide out of stock variants</Typography.Text>
-            <Switch
-              checked={autoHideOutOfStock}
-              onChange={setAutoHideOutOfStock}
-              size="small"
-            />
-          </div>
-        </div>
-
-        <Divider style={{ margin: "12px 0" }} />
-
         {/* Option Filters */}
         {optionGroups.length > 0 && (
           <div className={styles.section}>
@@ -312,19 +371,12 @@ export const VariantSettingsModal = () => {
 
         <Divider style={{ margin: "12px 0" }} />
 
-        {/* Variant List */}
+        {/* Variant Table */}
         <div className={styles.section}>
           <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
             <Typography.Text className={styles.sectionTitle} style={{ margin: 0 }}>
               Available Variants
             </Typography.Text>
-            <Checkbox
-              indeterminate={someSelected}
-              checked={allSelected}
-              onChange={handleSelectAll}
-            >
-              Select all
-            </Checkbox>
           </Flex>
 
           {variants.length === 0 ? (
@@ -333,51 +385,21 @@ export const VariantSettingsModal = () => {
               description="No variants"
             />
           ) : (
-            <div className={styles.variantList}>
-              {variants.map((variant) => {
-                const isSelected = selectedVariantIds.includes(variant.id);
-                const isOutOfStock = variant.stock === 0;
-
-                return (
-                  <div
-                    key={variant.id}
-                    className={cx(
-                      styles.variantItem,
-                      isSelected && styles.variantItemSelected,
-                      isOutOfStock && autoHideOutOfStock && styles.variantItemDisabled
-                    )}
-                    onClick={() => handleVariantToggle(variant.id)}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={() => handleVariantToggle(variant.id)}
-                    />
-                    <div className={styles.variantInfo}>
-                      <Typography.Text className={styles.variantTitle}>
-                        {variant.title}
-                      </Typography.Text>
-                      <div className={styles.variantMeta}>
-                        <Typography.Text className={styles.variantSku}>
-                          {variant.sku}
-                        </Typography.Text>
-                        {isOutOfStock ? (
-                          <Tag color="red" style={{ margin: 0 }}>
-                            Out of stock
-                          </Tag>
-                        ) : (
-                          <Tag color="green" style={{ margin: 0 }}>
-                            {variant.stock} in stock
-                          </Tag>
-                        )}
-                      </div>
-                    </div>
-                    <Typography.Text className={styles.variantPrice}>
-                      {formatPrice(variant.price)}
-                    </Typography.Text>
-                  </div>
-                );
-              })}
+            <div className={styles.gridWrapper}>
+              <AgGridReact<IVariantRow>
+                ref={gridRef}
+                rowData={rowData}
+                columnDefs={columnDefs}
+                defaultColDef={defaultColDef}
+                getRowId={getRowId}
+                rowSelection="multiple"
+                rowMultiSelectWithClick
+                suppressRowClickSelection={false}
+                onSelectionChanged={handleSelectionChanged}
+                onGridReady={onGridReady}
+                rowHeight={44}
+                headerHeight={36}
+              />
             </div>
           )}
         </div>
@@ -387,7 +409,6 @@ export const VariantSettingsModal = () => {
           <Typography.Text className={styles.summaryText}>
             <strong>{selectedVariantIds.length}</strong> of {variants.length} variants
             selected
-            {autoHideOutOfStock && <> (out of stock will be hidden)</>}
           </Typography.Text>
         </div>
       </div>
