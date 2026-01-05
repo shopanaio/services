@@ -39,18 +39,6 @@ export enum ComponentPriceType {
 }
 
 /**
- * Bundle calculation mode
- */
-export enum BundleCalcMode {
-  /** Component prices added to base price */
-  ADDITIVE = "ADDITIVE",
-  /** Component prices absorbed by base */
-  INCLUSIVE = "INCLUSIVE",
-  /** Per-group configuration */
-  HYBRID = "HYBRID",
-}
-
-/**
  * Display style for storefront
  */
 export type DisplayStyle = "accordion" | "tabs" | "flat" | "wizard";
@@ -166,9 +154,6 @@ export interface IComponentGroup {
   /** Default selected items */
   defaultItemIds: string[];
 
-  /** Pricing mode for HYBRID bundle calc */
-  bundleCalcMode?: BundleCalcMode;
-
   /** Items in this group */
   items: IComponentItem[];
 }
@@ -200,7 +185,6 @@ export interface IEditComponentsModalPayload {
   groups: IComponentGroup[];
 
   /** Global settings */
-  bundleCalcMode: BundleCalcMode;
   pricingTemplates: IPricingRuleTemplate[];
   tieredDiscounts: ITieredDiscount[];
 
@@ -224,7 +208,6 @@ export interface IEditComponentsModalPayload {
 
 export interface IEditComponentsModalSaveData {
   groups: IComponentGroup[];
-  bundleCalcMode: BundleCalcMode;
   pricingTemplates: IPricingRuleTemplate[];
   tieredDiscounts: ITieredDiscount[];
   displayStyle: DisplayStyle;

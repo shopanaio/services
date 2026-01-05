@@ -21,7 +21,6 @@ import type {
   IComponentItem,
   IEditComponentsModalPayload,
   EditComponentsTabKey,
-  BundleCalcMode,
   IPricingRuleTemplate,
   ITieredDiscount,
   DisplayStyle,
@@ -188,9 +187,6 @@ export const EditComponentsModal = () => {
   const [groups, setGroups] = useState<IComponentGroup[]>(
     modalPayload?.groups ?? mockGroups
   );
-  const [bundleCalcMode, setBundleCalcMode] = useState<BundleCalcMode>(
-    modalPayload?.bundleCalcMode ?? mockModalSettings.bundleCalcMode
-  );
   const [pricingTemplates, setPricingTemplates] = useState<IPricingRuleTemplate[]>(
     modalPayload?.pricingTemplates ?? mockPricingTemplates
   );
@@ -319,7 +315,6 @@ export const EditComponentsModal = () => {
   const handleSave = useCallback(() => {
     const saveData = {
       groups,
-      bundleCalcMode,
       pricingTemplates,
       tieredDiscounts,
       displayStyle,
@@ -331,7 +326,6 @@ export const EditComponentsModal = () => {
     pop();
   }, [
     groups,
-    bundleCalcMode,
     pricingTemplates,
     tieredDiscounts,
     displayStyle,
@@ -370,11 +364,6 @@ export const EditComponentsModal = () => {
         ),
         children: (
           <PricingRulesTab
-            bundleCalcMode={bundleCalcMode}
-            onBundleCalcModeChange={(mode) => {
-              setBundleCalcMode(mode);
-              setDirty(true);
-            }}
             pricingTemplates={pricingTemplates}
             onPricingTemplatesChange={(templates) => {
               setPricingTemplates(templates);
@@ -462,7 +451,6 @@ export const EditComponentsModal = () => {
       handleGroupsChange,
       handleAddItem,
       handleEditVariants,
-      bundleCalcMode,
       pricingTemplates,
       tieredDiscounts,
       displayStyle,

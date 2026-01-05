@@ -4,8 +4,6 @@ import { useCallback, useMemo, useState } from "react";
 import { createStyles } from "antd-style";
 import {
   Typography,
-  Radio,
-  Flex,
   Table,
   Button,
   Input,
@@ -29,7 +27,6 @@ import type { ColumnsType } from "antd/es/table";
 
 import { Paper } from "../../../components/Paper";
 import {
-  BundleCalcMode,
   ComponentPriceType,
   type IPricingRuleTemplate,
   type ITieredDiscount,
@@ -62,34 +59,6 @@ const useStyles = createStyles(({ token }) => ({
     alignItems: "center",
     gap: 8,
   },
-  radioGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  radioOption: {
-    padding: "12px 16px",
-    border: `1px solid ${token.colorBorder}`,
-    borderRadius: token.borderRadius,
-    cursor: "pointer",
-    transition: "all 0.2s",
-    "&:hover": {
-      borderColor: token.colorPrimary,
-    },
-  },
-  radioOptionSelected: {
-    borderColor: token.colorPrimary,
-    backgroundColor: "rgba(22, 119, 255, 0.04)",
-  },
-  radioLabel: {
-    fontWeight: 500,
-    marginBottom: 4,
-  },
-  radioDescription: {
-    fontSize: 12,
-    color: token.colorTextSecondary,
-    marginLeft: 24,
-  },
   tableActions: {
     display: "flex",
     gap: 4,
@@ -115,8 +84,6 @@ const useStyles = createStyles(({ token }) => ({
 // ============================================================================
 
 interface IPricingRulesTabProps {
-  bundleCalcMode: BundleCalcMode;
-  onBundleCalcModeChange: (mode: BundleCalcMode) => void;
   pricingTemplates: IPricingRuleTemplate[];
   onPricingTemplatesChange: (templates: IPricingRuleTemplate[]) => void;
   tieredDiscounts: ITieredDiscount[];
@@ -133,31 +100,6 @@ interface IEditingDiscount extends ITieredDiscount {
 }
 
 // ============================================================================
-// Bundle Calc Mode Options
-// ============================================================================
-
-const BUNDLE_CALC_OPTIONS = [
-  {
-    value: BundleCalcMode.ADDITIVE,
-    label: "Additive",
-    description:
-      "Component prices are added to the base product price. Total = Base + Components.",
-  },
-  {
-    value: BundleCalcMode.INCLUSIVE,
-    label: "Inclusive",
-    description:
-      "Component prices are included in the base price. Components marked as FREE or INCLUDED don't add extra cost.",
-  },
-  {
-    value: BundleCalcMode.HYBRID,
-    label: "Hybrid",
-    description:
-      "Configure calculation mode per group. Some groups can be additive while others are inclusive.",
-  },
-];
-
-// ============================================================================
 // Price Type Options for Select
 // ============================================================================
 
@@ -171,15 +113,13 @@ const PRICE_TYPE_SELECT_OPTIONS = PRICE_RULE_OPTIONS.map((opt) => ({
 // ============================================================================
 
 export const PricingRulesTab = ({
-  bundleCalcMode,
-  onBundleCalcModeChange,
   pricingTemplates,
   onPricingTemplatesChange,
   tieredDiscounts,
   onTieredDiscountsChange,
   groups,
 }: IPricingRulesTabProps) => {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
 
   // ========================================
   // Pricing Templates State
@@ -643,40 +583,6 @@ export const PricingRulesTab = ({
 
   return (
     <div className={styles.container}>
-      {/* Bundle Calculation Mode */}
-      <Paper>
-        <div className={styles.section}>
-          <div className={styles.sectionTitle}>
-            <Typography.Text strong>Bundle Calculation Mode</Typography.Text>
-            <Tooltip title="Determines how component prices affect the total bundle price">
-              <InfoCircleOutlined style={{ color: "var(--ant-color-text-secondary)" }} />
-            </Tooltip>
-          </div>
-
-          <Radio.Group
-            value={bundleCalcMode}
-            onChange={(e) => onBundleCalcModeChange(e.target.value)}
-            className={styles.radioGroup}
-          >
-            {BUNDLE_CALC_OPTIONS.map((option) => (
-              <div
-                key={option.value}
-                className={cx(
-                  styles.radioOption,
-                  bundleCalcMode === option.value && styles.radioOptionSelected
-                )}
-                onClick={() => onBundleCalcModeChange(option.value)}
-              >
-                <Radio value={option.value}>
-                  <span className={styles.radioLabel}>{option.label}</span>
-                </Radio>
-                <div className={styles.radioDescription}>{option.description}</div>
-              </div>
-            ))}
-          </Radio.Group>
-        </div>
-      </Paper>
-
       {/* Pricing Rule Templates */}
       <Paper>
         <div className={styles.section}>

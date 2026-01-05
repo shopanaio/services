@@ -1,7 +1,6 @@
 import {
   ComponentItemType,
   ComponentPriceType,
-  BundleCalcMode,
   type IComponentGroup,
   type IPickerProduct,
   type IPricingRuleTemplate,
@@ -418,7 +417,6 @@ export const mockTieredDiscounts: ITieredDiscount[] = [
 // ============================================================================
 
 export const mockModalSettings = {
-  bundleCalcMode: BundleCalcMode.ADDITIVE,
   displayStyle: "accordion" as const,
   showImages: true,
   showSku: true,
@@ -436,7 +434,6 @@ export const mockModalSettings = {
 export const mockPayload: IEditComponentsModalPayload = {
   productId: "main-product-123",
   groups: mockGroups,
-  bundleCalcMode: mockModalSettings.bundleCalcMode,
   pricingTemplates: mockPricingTemplates,
   tieredDiscounts: mockTieredDiscounts,
   displayStyle: mockModalSettings.displayStyle,

@@ -55,13 +55,6 @@ export enum ComponentPriceType {
   INCLUDED = "INCLUDED",
 }
 
-// Режим расчёта бандла
-export enum BundleCalcMode {
-  ADDITIVE = "ADDITIVE",
-  INCLUSIVE = "INCLUSIVE",
-  HYBRID = "HYBRID",
-}
-
 // Интерфейсы: IComponentGroup, IComponentItem, IPricingRuleTemplate, ITieredDiscount
 // (полные определения в design.md)
 ```
@@ -275,7 +268,6 @@ export const mockTieredDiscounts: ITieredDiscount[] = [
 
 // Мок настройки модалки
 export const mockModalSettings = {
-  bundleCalcMode: BundleCalcMode.ADDITIVE,
   displayStyle: "accordion" as const,
   showImages: true,
   showSku: true,
@@ -461,10 +453,8 @@ const [expandedProducts, setExpandedProducts] = useState<string[]>([]);
 
 ### 6.1 Секции
 
-1. **Режим расчёта бандла** — Radio.Group (Добавить к базе / Включить в бандл / Гибридный)
-2. **Правила по умолчанию** — Select
-3. **Шаблоны правил** — Таблица с CRUD
-4. **Многоуровневые скидки** — Таблица с настройкой порогов
+1. **Шаблоны правил** — Таблица с CRUD
+2. **Многоуровневые скидки** — Таблица с настройкой порогов
 
 ---
 
