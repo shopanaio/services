@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Image, Typography, Flex, Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
@@ -9,14 +9,11 @@ import {
   ColDef,
   ModuleRegistry,
   AllCommunityModule,
-  RowSelectionOptions,
-  SelectionChangedEvent,
   PaginationModule,
   RowDragModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
-import { Actions } from "@/layouts/table/components/Navigation/Actions";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
@@ -45,7 +42,6 @@ const ProductCellRenderer = (props: CustomCellRendererProps<IProductListItem>) =
 
 export default function ProductsPage() {
   const gridRef = useRef<AgGridReact<IProductListItem>>(null);
-  const [selectedRows, setSelectedRows] = useState<IProductListItem[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
@@ -78,35 +74,8 @@ export default function ProductsPage() {
     []
   );
 
-  const rowSelection = useMemo<RowSelectionOptions>(
-    () => ({
-      mode: "multiRow",
-      checkboxes: true,
-      headerCheckbox: true,
-    }),
-    []
-  );
-
   const handleCreate = () => {
     console.log("Create new product");
-  };
-
-  const onSelectionChanged = useCallback((event: SelectionChangedEvent<IProductListItem>) => {
-    const selected = event.api.getSelectedRows();
-    setSelectedRows(selected);
-  }, []);
-
-  const handleDelete = (rows: IProductListItem[]) => {
-    console.log("Delete products:", rows);
-  };
-
-  const handleArchive = (rows: IProductListItem[]) => {
-    console.log("Archive products:", rows);
-  };
-
-  const clearSelectedRows = () => {
-    gridRef.current?.api.deselectAll();
-    setSelectedRows([]);
   };
 
   return (
@@ -127,23 +96,13 @@ export default function ProductsPage() {
     >
       <DataLayout.Toolbar
         left={
-          <>
-            {selectedRows.length > 0 && (
-              <Actions
-                selectedRows={selectedRows}
-                clearSelectedRows={clearSelectedRows}
-                onDelete={handleDelete}
-                onArchive={handleArchive}
-              />
-            )}
-            <FilterWidget
-              {...widgetProps}
-              searchProps={{
-                searchValue,
-                onChangeSearchValue: setSearchValue,
-              }}
-            />
-          </>
+          <FilterWidget
+            {...widgetProps}
+            searchProps={{
+              searchValue,
+              onChangeSearchValue: setSearchValue,
+            }}
+          />
         }
       />
 
@@ -153,8 +112,6 @@ export default function ProductsPage() {
           rowData={filteredProducts}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
-          rowSelection={rowSelection}
-          onSelectionChanged={onSelectionChanged}
           getRowId={(params) => params.data.id}
           pagination={true}
           paginationPageSize={10}
