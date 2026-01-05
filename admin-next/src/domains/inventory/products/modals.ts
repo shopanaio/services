@@ -296,6 +296,9 @@ export interface IComponentVariantSettingsModalPayload extends IModalStackPayloa
   productTitle: string;
   /** Current available variant IDs (null = all) */
   availableVariantIds: string[] | null;
+  /** Price rule from group */
+  priceType: "BASE" | "FIXED" | "MARKUP_PERCENT" | "DISCOUNT_PERCENT" | "MARKUP_FIXED" | "DISCOUNT_FIXED" | "FREE" | "INCLUDED";
+  priceValue: number | null;
   /** All variants of the product */
   variants: Array<{
     id: string;

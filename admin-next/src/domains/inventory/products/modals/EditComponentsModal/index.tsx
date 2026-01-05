@@ -336,6 +336,8 @@ export const EditComponentsModal = () => {
         productId: item.productId,
         productTitle: product.title,
         availableVariantIds: item.availableVariantIds ?? null,
+        priceType: item.priceType,
+        priceValue: item.priceValue,
         variants: product.variants.map((v) => ({
           id: v.id,
           title: v.title,

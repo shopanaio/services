@@ -28,6 +28,8 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 // Types
 // ============================================================================
 
+type PriceType = "BASE" | "FIXED" | "MARKUP_PERCENT" | "DISCOUNT_PERCENT" | "MARKUP_FIXED" | "DISCOUNT_FIXED" | "FREE" | "INCLUDED";
+
 interface IVariantRow {
   id: string;
   title: string;
@@ -36,7 +38,62 @@ interface IVariantRow {
   stock: number;
   sortIndex: number;
   options?: { optionId: string; value: string }[];
+  finalPrice: number;
 }
+
+// ============================================================================
+// Price calculation helpers
+// ============================================================================
+
+const calculateFinalPrice = (
+  basePrice: number,
+  priceType: PriceType,
+  priceValue: number | null
+): number => {
+  switch (priceType) {
+    case "BASE":
+      return basePrice;
+    case "FIXED":
+      return priceValue ?? 0;
+    case "MARKUP_PERCENT":
+      return basePrice * (1 + (priceValue ?? 0) / 100);
+    case "DISCOUNT_PERCENT":
+      return basePrice * (1 - (priceValue ?? 0) / 100);
+    case "MARKUP_FIXED":
+      return basePrice + (priceValue ?? 0);
+    case "DISCOUNT_FIXED":
+      return basePrice - (priceValue ?? 0);
+    case "FREE":
+      return 0;
+    case "INCLUDED":
+      return 0;
+    default:
+      return basePrice;
+  }
+};
+
+const formatPriceRule = (priceType: PriceType, priceValue: number | null): string => {
+  switch (priceType) {
+    case "BASE":
+      return "No change";
+    case "FIXED":
+      return `Fixed: ${formatPrice(priceValue ?? 0)}`;
+    case "MARKUP_PERCENT":
+      return `+${priceValue ?? 0}%`;
+    case "DISCOUNT_PERCENT":
+      return `-${priceValue ?? 0}%`;
+    case "MARKUP_FIXED":
+      return `+${formatPrice(priceValue ?? 0)}`;
+    case "DISCOUNT_FIXED":
+      return `-${formatPrice(priceValue ?? 0)}`;
+    case "FREE":
+      return "Free";
+    case "INCLUDED":
+      return "Included";
+    default:
+      return "—";
+  }
+};
 
 // ============================================================================
 // Styles
@@ -99,14 +156,15 @@ const useStyles = createStyles(({ token }) => ({
       cursor: "grabbing",
     },
   },
-  summary: {
-    padding: "12px 16px",
-    background: token.colorBgLayout,
-    borderRadius: token.borderRadius,
-    marginTop: 16,
+  sectionHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
-  summaryText: {
-    fontSize: 13,
+  selectedCount: {
+    fontSize: 12,
+    color: token.colorTextSecondary,
   },
 }));
 
@@ -114,9 +172,14 @@ const useStyles = createStyles(({ token }) => ({
 // Cell Renderers
 // ============================================================================
 
-const PriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
+const BasePriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
   if (!data) return null;
-  return <span style={{ fontWeight: 500 }}>{formatPrice(data.price)}</span>;
+  return <span style={{ color: "#8c8c8c" }}>{formatPrice(data.price)}</span>;
+};
+
+const FinalPriceCellRenderer = ({ data }: ICellRendererParams<IVariantRow>) => {
+  if (!data) return null;
+  return <span style={{ fontWeight: 500 }}>{formatPrice(data.finalPrice)}</span>;
 };
 
 // ============================================================================
@@ -134,6 +197,8 @@ export const VariantSettingsModal = () => {
   const {
     productTitle = "Product",
     availableVariantIds: initialVariantIds,
+    priceType = "BASE" as PriceType,
+    priceValue = null,
     variants = [],
     options = [],
     onSave,
@@ -154,6 +219,7 @@ export const VariantSettingsModal = () => {
       stock: v.stock,
       sortIndex: index,
       options: v.options,
+      finalPrice: calculateFinalPrice(v.price, priceType, priceValue),
     }))
   );
 
@@ -269,6 +335,12 @@ export const VariantSettingsModal = () => {
     pop();
   }, [selectedVariantIds, variants, rowData, onSave, pop]);
 
+  // Price rule label for display
+  const priceRuleLabel = useMemo(
+    () => formatPriceRule(priceType, priceValue),
+    [priceType, priceValue]
+  );
+
   // Column definitions
   const columnDefs = useMemo<ColDef<IVariantRow>[]>(
     () => [
@@ -284,18 +356,31 @@ export const VariantSettingsModal = () => {
         headerName: "Variant",
         field: "title",
         flex: 1,
-        minWidth: 150,
+        minWidth: 120,
         headerCheckboxSelection: true,
         checkboxSelection: true,
       },
       {
-        headerName: "Price",
+        headerName: "Base Price",
         field: "price",
         width: 100,
-        cellRenderer: PriceCellRenderer,
+        cellRenderer: BasePriceCellRenderer,
+      },
+      {
+        headerName: "Rule",
+        field: "price",
+        width: 90,
+        valueGetter: () => priceRuleLabel,
+        cellStyle: { color: "#8c8c8c", fontSize: 12 },
+      },
+      {
+        headerName: "Final Price",
+        field: "finalPrice",
+        width: 100,
+        cellRenderer: FinalPriceCellRenderer,
       },
     ],
-    []
+    [priceRuleLabel]
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -345,7 +430,6 @@ export const VariantSettingsModal = () => {
   return (
     <ModalLayout
       name="component-variant-settings"
-      width={600}
       header={
         <ModalHeader
           name="component-variant-settings"
@@ -392,9 +476,14 @@ export const VariantSettingsModal = () => {
 
         {/* Variant Table */}
         <div className={styles.section}>
-          <Typography.Text className={styles.sectionTitle}>
-            Available Variants
-          </Typography.Text>
+          <div className={styles.sectionHeader}>
+            <Typography.Text className={styles.sectionTitle} style={{ marginBottom: 0 }}>
+              Variants
+            </Typography.Text>
+            <Typography.Text className={styles.selectedCount}>
+              {selectedVariantIds.length} of {variants.length} selected
+            </Typography.Text>
+          </div>
 
           {variants.length === 0 ? (
             <Empty
@@ -422,14 +511,6 @@ export const VariantSettingsModal = () => {
               />
             </div>
           )}
-        </div>
-
-        {/* Summary */}
-        <div className={styles.summary}>
-          <Typography.Text className={styles.summaryText}>
-            <strong>{selectedVariantIds.length}</strong> of {variants.length} variants
-            selected
-          </Typography.Text>
         </div>
       </div>
     </ModalLayout>
