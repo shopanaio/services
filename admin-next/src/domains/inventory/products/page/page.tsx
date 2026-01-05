@@ -28,89 +28,13 @@ import {
   type IFilterSchema,
   type IFilterValue,
 } from "@/layouts/filters";
+import { useProducts } from "../hooks";
+import type { IProductListItem } from "../mocks/products-list";
 
 ModuleRegistry.registerModules([AllCommunityModule, PaginationModule, RowDragModule]);
 
-interface IProduct {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  stock: number;
-  status: "active" | "draft" | "archived";
-  category: string;
-  image: string;
-}
-
-const productNames = [
-  "iPhone 15 Pro Max",
-  "Samsung Galaxy S24 Ultra",
-  "MacBook Pro 16",
-  "Sony WH-1000XM5",
-  "iPad Air M2",
-  "Dell XPS 15",
-  "AirPods Pro 2",
-  "Google Pixel 8 Pro",
-  "Nintendo Switch OLED",
-  "Logitech MX Master 3S",
-  "Sony PlayStation 5",
-  "Xbox Series X",
-  "LG OLED TV 55",
-  "Bose QuietComfort 45",
-  "Canon EOS R5",
-  "DJI Mavic 3 Pro",
-  "Apple Watch Ultra 2",
-  "Samsung Galaxy Watch 6",
-  "Razer BlackWidow V4",
-  "SteelSeries Arctis Nova",
-  "ASUS ROG Strix",
-  "MSI Titan GT77",
-  "Lenovo ThinkPad X1",
-  "HP Spectre x360",
-  "Acer Predator Helios",
-  "Corsair K100 RGB",
-  "Elgato Stream Deck",
-  "Blue Yeti X",
-  "Shure SM7B",
-  "Rode NT1",
-  "Wacom Cintiq Pro",
-  "Huion Kamvas 24",
-  "BenQ PD3220U",
-  "LG UltraGear 27",
-  "Samsung Odyssey G9",
-  "Secretlab Titan",
-  "Herman Miller Aeron",
-  "Dyson V15 Detect",
-  "iRobot Roomba j7",
-  "Sonos Arc",
-  "KEF LS50 Meta",
-  "Sennheiser HD 800S",
-  "Focal Clear MG",
-  "Anker PowerCore",
-  "Belkin MagSafe",
-  "CalDigit TS4",
-  "OWC Thunderbay",
-  "Synology DS923+",
-  "QNAP TS-464",
-  "Ubiquiti Dream Machine",
-];
-
-const categories = ["Electronics", "Computers", "Audio", "Gaming", "Accessories"];
-const statuses: IProduct["status"][] = ["active", "draft", "archived"];
-
-const mockProducts: IProduct[] = Array.from({ length: 50 }, (_, i) => ({
-  id: String(i + 1),
-  name: productNames[i % productNames.length],
-  sku: `SKU-${String(i + 1).padStart(4, "0")}`,
-  price: Math.floor(Math.random() * 2000) + 99,
-  stock: Math.floor(Math.random() * 150),
-  status: statuses[i % 10 === 0 ? 2 : i % 7 === 0 ? 1 : 0],
-  category: categories[i % categories.length],
-  image: `https://picsum.photos/seed/${i + 1}/40/40`,
-}));
-
 // Cell Renderers
-const ProductCellRenderer = (props: CustomCellRendererProps<IProduct>) => {
+const ProductCellRenderer = (props: CustomCellRendererProps<IProductListItem>) => {
   const { data } = props;
   if (!data) return null;
   return (
@@ -188,10 +112,10 @@ const filterSchema: IFilterSchema[] = [
  * This is a simple implementation - in real app, you'd use an adapter for API
  */
 function applyFiltersToData(
-  data: IProduct[],
+  data: IProductListItem[],
   filters: IFilterValue[],
   searchValue: string
-): IProduct[] {
+): IProductListItem[] {
   let result = data;
 
   // Apply search
@@ -206,7 +130,7 @@ function applyFiltersToData(
 
   // Apply filters
   filters.forEach((filter) => {
-    const key = filter.payloadKey as keyof IProduct;
+    const key = filter.payloadKey as keyof IProductListItem;
     const { operator, value } = filter;
 
     if (!value || (Array.isArray(value) && value.length === 0)) return;
@@ -241,21 +165,22 @@ function applyFiltersToData(
 }
 
 export default function ProductsPage() {
-  const gridRef = useRef<AgGridReact<IProduct>>(null);
-  const [selectedRows, setSelectedRows] = useState<IProduct[]>([]);
+  const gridRef = useRef<AgGridReact<IProductListItem>>(null);
+  const [selectedRows, setSelectedRows] = useState<IProductListItem[]>([]);
   const [searchValue, setSearchValue] = useState("");
   const { filters, widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
+  const { data: products, isLoading } = useProducts();
 
   const handleOpenProductModal = () => {
     push('product', { level: 1 });
   };
 
   const filteredProducts = useMemo(() => {
-    return applyFiltersToData(mockProducts, filters, searchValue);
-  }, [searchValue, filters]);
+    return applyFiltersToData(products, filters, searchValue);
+  }, [products, searchValue, filters]);
 
-  const columnDefs = useMemo<ColDef<IProduct>[]>(
+  const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
       {
         headerName: "Product",
@@ -289,16 +214,16 @@ export default function ProductsPage() {
     console.log("Create new product");
   };
 
-  const onSelectionChanged = useCallback((event: SelectionChangedEvent<IProduct>) => {
+  const onSelectionChanged = useCallback((event: SelectionChangedEvent<IProductListItem>) => {
     const selected = event.api.getSelectedRows();
     setSelectedRows(selected);
   }, []);
 
-  const handleDelete = (rows: IProduct[]) => {
+  const handleDelete = (rows: IProductListItem[]) => {
     console.log("Delete products:", rows);
   };
 
-  const handleArchive = (rows: IProduct[]) => {
+  const handleArchive = (rows: IProductListItem[]) => {
     console.log("Archive products:", rows);
   };
 
@@ -346,7 +271,7 @@ export default function ProductsPage() {
       />
 
       <div style={{ height: "100%", paddingBottom: 16 }}>
-        <AgGridReact<IProduct>
+        <AgGridReact<IProductListItem>
           ref={gridRef}
           rowData={filteredProducts}
           columnDefs={columnDefs}
