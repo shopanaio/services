@@ -9,21 +9,17 @@ import {
   ColDef,
   ModuleRegistry,
   AllCommunityModule,
-  PaginationModule,
   RowSelectionModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
+import { CursorPagination } from "@/ui-kit/CursorPagination";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-  PaginationModule,
-  RowSelectionModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
 
 // Cell Renderers
 const ProductCellRenderer = (
@@ -152,15 +148,27 @@ export default function ProductsPage() {
         }
       />
 
-      <div style={{ height: "100%", paddingBottom: 16 }}>
-        <AgGridReact<IProductListItem>
-          ref={gridRef}
-          rowData={products}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          getRowId={(params) => params.data.id}
-          pagination={true}
-          paginationPageSize={20}
+      <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1 }}>
+          <AgGridReact<IProductListItem>
+            ref={gridRef}
+            rowData={products}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            getRowId={(params) => params.data.id}
+          />
+        </div>
+
+        <CursorPagination
+          total={50}
+          rangeStart={1}
+          rangeEnd={20}
+          pageSize={20}
+          hasNext={true}
+          hasPrev={false}
+          onNext={() => {}}
+          onPrev={() => {}}
+          onPageSizeChange={() => {}}
         />
       </div>
     </DataLayout>
