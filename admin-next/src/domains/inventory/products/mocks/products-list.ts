@@ -5,11 +5,10 @@
 export interface IProductListItem {
   id: string;
   name: string;
-  sku: string;
-  price: number;
-  stock: number;
-  status: "active" | "draft" | "archived";
+  status: "published" | "draft";
+  inventory: number;
   category: string;
+  brand: string;
   image: string;
 }
 
@@ -66,16 +65,16 @@ const productNames = [
   "Ubiquiti Dream Machine",
 ];
 
-export const categories = ["Electronics", "Computers", "Audio", "Gaming", "Accessories"];
-export const statuses: IProductListItem["status"][] = ["active", "draft", "archived"];
+export const categories = ["Phone", "Laptop", "Audio", "Gaming", "Accessory"];
+export const brands = ["Apple", "Samsung", "Sony", "Microsoft", "Logitech", "Dell", "Google", "Nintendo", "Bose", "Canon"];
+export const statuses: IProductListItem["status"][] = ["published", "draft"];
 
 export const mockProductsList: IProductListItem[] = Array.from({ length: 50 }, (_, i) => ({
   id: String(i + 1),
   name: productNames[i % productNames.length],
-  sku: `SKU-${String(i + 1).padStart(4, "0")}`,
-  price: Math.floor(Math.random() * 2000) + 99,
-  stock: Math.floor(Math.random() * 150),
-  status: statuses[i % 10 === 0 ? 2 : i % 7 === 0 ? 1 : 0],
+  status: statuses[i % 5 === 0 ? 1 : 0],
+  inventory: Math.floor(Math.random() * 150),
   category: categories[i % categories.length],
+  brand: brands[i % brands.length],
   image: `https://picsum.photos/seed/${i + 1}/40/40`,
 }));

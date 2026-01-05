@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Image, Typography, Flex, Button } from "antd";
+import { Image, Typography, Flex, Button, Tag } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { AgGridReact } from "ag-grid-react";
 import { useModalStack } from "@/layouts/modals";
@@ -10,7 +10,7 @@ import {
   ModuleRegistry,
   AllCommunityModule,
   PaginationModule,
-  RowDragModule,
+  RowSelectionModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -19,10 +19,16 @@ import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
 
-ModuleRegistry.registerModules([AllCommunityModule, PaginationModule, RowDragModule]);
+ModuleRegistry.registerModules([
+  AllCommunityModule,
+  PaginationModule,
+  RowSelectionModule,
+]);
 
 // Cell Renderers
-const ProductCellRenderer = (props: CustomCellRendererProps<IProductListItem>) => {
+const ProductCellRenderer = (
+  props: CustomCellRendererProps<IProductListItem>
+) => {
   const { data } = props;
   if (!data) return null;
   return (
@@ -32,12 +38,34 @@ const ProductCellRenderer = (props: CustomCellRendererProps<IProductListItem>) =
         alt={data.name}
         width={40}
         height={40}
-        style={{ borderRadius: 4 }}
+        style={{ borderRadius: 4, objectFit: "cover" }}
         preview={false}
       />
       <Typography.Text strong>{data.name}</Typography.Text>
     </Flex>
   );
+};
+
+const StatusCellRenderer = (
+  props: CustomCellRendererProps<IProductListItem>
+) => {
+  const { value } = props;
+  const config: Record<string, { color: string; label: string }> = {
+    published: { color: "success", label: "Published" },
+    draft: { color: "default", label: "Draft" },
+  };
+  const { color, label } = config[value] || config.draft;
+  return <Tag color={color}>{label}</Tag>;
+};
+
+const InventoryCellRenderer = (
+  props: CustomCellRendererProps<IProductListItem>
+) => {
+  const { value } = props;
+  if (value === 0) {
+    return <Typography.Text type="danger">0 in stock</Typography.Text>;
+  }
+  return <Typography.Text>{value} in stock</Typography.Text>;
 };
 
 export default function ProductsPage() {
@@ -48,10 +76,8 @@ export default function ProductsPage() {
   const { data: products } = useProducts();
 
   const handleOpenProductModal = () => {
-    push('product', { level: 1 });
+    push("product", { level: 1 });
   };
-
-  const filteredProducts = products;
 
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
@@ -59,8 +85,30 @@ export default function ProductsPage() {
         headerName: "Product",
         field: "name",
         cellRenderer: ProductCellRenderer,
-        flex: 1,
-        rowDrag: true,
+        flex: 2,
+        minWidth: 250,
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        cellRenderer: StatusCellRenderer,
+        width: 120,
+      },
+      {
+        headerName: "Inventory",
+        field: "inventory",
+        cellRenderer: InventoryCellRenderer,
+        width: 130,
+      },
+      {
+        headerName: "Category",
+        field: "category",
+        width: 120,
+      },
+      {
+        headerName: "Brand",
+        field: "brand",
+        width: 120,
       },
     ],
     []
@@ -82,12 +130,10 @@ export default function ProductsPage() {
     <DataLayout
       name="products"
       title="Products"
-      count={filteredProducts.length}
+      count={products.length}
       actions={
         <Flex gap="small">
-          <Button onClick={handleOpenProductModal}>
-            Open Product
-          </Button>
+          <Button onClick={handleOpenProductModal}>Open Product</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Add Product
           </Button>
@@ -109,14 +155,12 @@ export default function ProductsPage() {
       <div style={{ height: "100%", paddingBottom: 16 }}>
         <AgGridReact<IProductListItem>
           ref={gridRef}
-          rowData={filteredProducts}
+          rowData={products}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           getRowId={(params) => params.data.id}
           pagination={true}
-          paginationPageSize={10}
-          rowDragManaged={true}
-          suppressMoveWhenRowDragging={false}
+          paginationPageSize={20}
         />
       </div>
     </DataLayout>
