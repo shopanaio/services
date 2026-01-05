@@ -1,88 +1,80 @@
 /**
- * Mock data for Inventory list page
+ * Mock data for Inventory list page (Shopify-style)
  */
 
 export interface IInventoryListItem {
   id: string;
-  sku: string;
   productName: string;
-  location: string;
-  quantity: number;
-  reserved: number;
+  variantName: string | null;
+  sku: string;
+  unavailable: number;
+  committed: number;
   available: number;
-  status: "in_stock" | "low_stock" | "out_of_stock";
-  lastUpdated: string;
+  image: string;
 }
 
-const productNames = [
-  "iPhone 15 Pro Max",
-  "Samsung Galaxy S24 Ultra",
-  "MacBook Pro 16",
-  "Sony WH-1000XM5",
-  "iPad Air M2",
-  "Dell XPS 15",
-  "AirPods Pro 2",
-  "Google Pixel 8 Pro",
-  "Nintendo Switch OLED",
-  "Logitech MX Master 3S",
-  "Sony PlayStation 5",
-  "Xbox Series X",
-  "LG OLED TV 55",
-  "Bose QuietComfort 45",
-  "Canon EOS R5",
-  "DJI Mavic 3 Pro",
-  "Apple Watch Ultra 2",
-  "Samsung Galaxy Watch 6",
-  "Razer BlackWidow V4",
-  "SteelSeries Arctis Nova",
+const products = [
+  { name: "iPhone 15 Pro Max", variants: ["128GB", "256GB", "512GB", "1TB"] },
+  { name: "Samsung Galaxy S24 Ultra", variants: ["256GB", "512GB", "1TB"] },
+  { name: "MacBook Pro 16", variants: ["M3 Pro", "M3 Max"] },
+  { name: "Sony WH-1000XM5", variants: ["Black", "Silver", "Blue"] },
+  { name: "iPad Air M2", variants: ["64GB", "256GB"] },
+  { name: "AirPods Pro 2", variants: null },
+  { name: "Nintendo Switch OLED", variants: ["White", "Neon"] },
+  { name: "Apple Watch Ultra 2", variants: ["49mm S/M", "49mm M/L"] },
+  { name: "Sony PlayStation 5", variants: ["Digital", "Disc"] },
+  { name: "Dyson V15 Detect", variants: null },
 ];
 
-const locations = [
-  "Warehouse A",
-  "Warehouse B",
-  "Warehouse C",
-  "Store Front",
-  "Distribution Center",
-];
-
-const statuses: IInventoryListItem["status"][] = [
-  "in_stock",
-  "low_stock",
-  "out_of_stock",
-];
-
-function generateSKU(index: number): string {
-  const prefix = ["SKU", "INV", "PRD"][index % 3];
-  return `${prefix}-${String(index + 1000).padStart(6, "0")}`;
+function generateSku(productIndex: number, variantIndex: number | null): string {
+  const prefix = products[productIndex].name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 3);
+  return variantIndex !== null
+    ? `${prefix}-${String(productIndex + 1).padStart(3, "0")}-${variantIndex + 1}`
+    : `${prefix}-${String(productIndex + 1).padStart(3, "0")}`;
 }
 
-function getStatus(quantity: number): IInventoryListItem["status"] {
-  if (quantity === 0) return "out_of_stock";
-  if (quantity < 10) return "low_stock";
-  return "in_stock";
-}
+let itemId = 0;
+export const mockInventoryList: IInventoryListItem[] = products.flatMap(
+  (product, productIndex) => {
+    if (product.variants === null) {
+      const onHand = Math.floor(Math.random() * 200);
+      const unavailable = Math.floor(Math.random() * Math.min(10, onHand));
+      const committed = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
+      const available = onHand - unavailable - committed;
 
-function generateDate(daysAgo: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString();
-}
+      return {
+        id: String(++itemId),
+        productName: product.name,
+        variantName: null,
+        sku: generateSku(productIndex, null),
+        unavailable,
+        committed,
+        available,
+        image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
+      };
+    }
 
-export const mockInventoryList: IInventoryListItem[] = Array.from(
-  { length: 50 },
-  (_, i) => {
-    const quantity = i % 7 === 0 ? 0 : Math.floor(Math.random() * 150);
-    const reserved = Math.floor(Math.random() * Math.min(quantity, 20));
-    return {
-      id: String(i + 1),
-      sku: generateSKU(i),
-      productName: productNames[i % productNames.length],
-      location: locations[i % locations.length],
-      quantity,
-      reserved,
-      available: quantity - reserved,
-      status: getStatus(quantity),
-      lastUpdated: generateDate(Math.floor(Math.random() * 30)),
-    };
+    return product.variants.map((variant, variantIndex) => {
+      const onHand = Math.floor(Math.random() * 200);
+      const unavailable = Math.floor(Math.random() * Math.min(10, onHand));
+      const committed = Math.floor(Math.random() * Math.min(20, onHand - unavailable));
+      const available = onHand - unavailable - committed;
+
+      return {
+        id: String(++itemId),
+        productName: product.name,
+        variantName: variant,
+        sku: generateSku(productIndex, variantIndex),
+        unavailable,
+        committed,
+        available,
+        image: `https://picsum.photos/seed/${productIndex + 1}/40/40`,
+      };
+    });
   }
 );

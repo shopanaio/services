@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
-import { Typography, Flex, Button, Tag } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Image, Typography, Flex, Button } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -20,28 +19,42 @@ import type { IInventoryListItem } from "../mocks/inventory-list";
 
 ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
 
-const StatusCellRenderer = (
+const ProductCellRenderer = (
   props: CustomCellRendererProps<IInventoryListItem>
 ) => {
-  const { value } = props;
-  const config: Record<string, { color: string; label: string }> = {
-    in_stock: { color: "success", label: "In Stock" },
-    low_stock: { color: "warning", label: "Low Stock" },
-    out_of_stock: { color: "error", label: "Out of Stock" },
-  };
-  const { color, label } = config[value] || config.out_of_stock;
-  return <Tag color={color}>{label}</Tag>;
+  const { data } = props;
+  if (!data) return null;
+
+  return (
+    <Flex align="center" gap="small">
+      <Image
+        src={data.image}
+        alt={data.productName}
+        width={40}
+        height={40}
+        style={{ borderRadius: 4, objectFit: "cover" }}
+        preview={false}
+      />
+      <Flex vertical gap={0}>
+        <Typography.Text strong style={{ lineHeight: 1.3 }}>
+          {data.productName}
+        </Typography.Text>
+        {data.variantName && (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {data.variantName}
+          </Typography.Text>
+        )}
+      </Flex>
+    </Flex>
+  );
 };
 
-const QuantityCellRenderer = (
+const AvailableCellRenderer = (
   props: CustomCellRendererProps<IInventoryListItem>
 ) => {
   const { value } = props;
   if (value === 0) {
-    return <Typography.Text type="danger">0</Typography.Text>;
-  }
-  if (value < 10) {
-    return <Typography.Text type="warning">{value}</Typography.Text>;
+    return <Typography.Text type="danger">{value}</Typography.Text>;
   }
   return <Typography.Text>{value}</Typography.Text>;
 };
@@ -55,43 +68,35 @@ export default function InventoryPage() {
   const columnDefs = useMemo<ColDef<IInventoryListItem>[]>(
     () => [
       {
-        headerName: "SKU",
-        field: "sku",
-        width: 150,
-      },
-      {
         headerName: "Product",
         field: "productName",
+        cellRenderer: ProductCellRenderer,
         flex: 2,
-        minWidth: 200,
+        minWidth: 280,
       },
       {
-        headerName: "Location",
-        field: "location",
-        width: 150,
-      },
-      {
-        headerName: "Status",
-        field: "status",
-        cellRenderer: StatusCellRenderer,
+        headerName: "SKU",
+        field: "sku",
         width: 130,
       },
       {
-        headerName: "Quantity",
-        field: "quantity",
-        cellRenderer: QuantityCellRenderer,
-        width: 100,
+        headerName: "Unavailable",
+        field: "unavailable",
+        width: 120,
+        type: "rightAligned",
       },
       {
-        headerName: "Reserved",
-        field: "reserved",
-        width: 100,
+        headerName: "Committed",
+        field: "committed",
+        width: 120,
+        type: "rightAligned",
       },
       {
         headerName: "Available",
         field: "available",
-        cellRenderer: QuantityCellRenderer,
-        width: 100,
+        cellRenderer: AvailableCellRenderer,
+        width: 120,
+        type: "rightAligned",
       },
     ],
     []
@@ -105,10 +110,6 @@ export default function InventoryPage() {
     []
   );
 
-  const handleCreate = () => {
-    console.log("Add inventory");
-  };
-
   return (
     <DataLayout
       name="inventory"
@@ -116,9 +117,8 @@ export default function InventoryPage() {
       count={inventory.length}
       actions={
         <Flex gap="small">
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Add Inventory
-          </Button>
+          <Button>Export</Button>
+          <Button>Import</Button>
         </Flex>
       }
     >
@@ -129,6 +129,7 @@ export default function InventoryPage() {
             searchProps={{
               searchValue,
               onChangeSearchValue: setSearchValue,
+              placeholder: "Search by product or SKU",
             }}
           />
         }
@@ -149,15 +150,16 @@ export default function InventoryPage() {
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
+            rowHeight={56}
           />
         </div>
 
         <CursorPagination
-          total={50}
+          total={inventory.length}
           rangeStart={1}
-          rangeEnd={20}
+          rangeEnd={Math.min(20, inventory.length)}
           pageSize={20}
-          hasNext={true}
+          hasNext={inventory.length > 20}
           hasPrev={false}
           onNext={() => {}}
           onPrev={() => {}}
