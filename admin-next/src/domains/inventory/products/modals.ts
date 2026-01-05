@@ -22,6 +22,7 @@ export const PRODUCT_EDIT_MEDIA_MODAL_TYPE = 'product-edit-media';
 export const PRODUCT_EDIT_OPTIONS_MODAL_TYPE = 'product-edit-options';
 export const PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE = 'product-edit-attributes';
 export const PRODUCT_EDIT_SEO_MODAL_TYPE = 'product-edit-seo';
+export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-shipping';
 
 // ============================================================================
 // Payload Interfaces
@@ -175,6 +176,31 @@ export interface IEditSeoModalPayload extends IModalStackPayload {
   }) => void;
 }
 
+export interface IEditVariantShippingModalPayload extends IModalStackPayload {
+  productId?: string;
+  variants: Array<{
+    id: string;
+    title: string;
+    imageUrl?: string | null;
+    weight?: number | null;
+    weightUnit?: string;
+    length?: number | null;
+    width?: number | null;
+    height?: number | null;
+    dimensionUnit?: string;
+    options?: IVariantPricingOption[];
+  }>;
+  onSave?: (variants: Array<{
+    id: string;
+    weight: number | null;
+    weightUnit: string;
+    length: number | null;
+    width: number | null;
+    height: number | null;
+    dimensionUnit: string;
+  }>) => void;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -193,6 +219,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_OPTIONS_MODAL_TYPE]: IEditOptionsModalPayload;
     [PRODUCT_EDIT_ATTRIBUTES_MODAL_TYPE]: IEditAttributesModalPayload;
     [PRODUCT_EDIT_SEO_MODAL_TYPE]: IEditSeoModalPayload;
+    [PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE]: IEditVariantShippingModalPayload;
   }
 }
 
@@ -338,3 +365,14 @@ export const useEditAttributesModal = createModalStackHook(PRODUCT_EDIT_ATTRIBUT
  * ```
  */
 export const useEditSeoModal = createModalStackHook(PRODUCT_EDIT_SEO_MODAL_TYPE);
+
+/**
+ * Hook to open edit variant shipping modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditVariantShippingModal();
+ * push({ variants: [...], onSave: (variants) => console.log(variants) });
+ * ```
+ */
+export const useEditVariantShippingModal = createModalStackHook(PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE);

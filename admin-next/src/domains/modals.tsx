@@ -108,5 +108,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Variant Shipping modal
+    {
+      type: 'product-edit-variant-shipping',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditVariantShippingModal').then(
+          (m) => m.EditVariantShippingModal
+        )
+      ),
+    },
   ];
 }

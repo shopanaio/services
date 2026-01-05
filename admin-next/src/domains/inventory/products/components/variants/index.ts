@@ -24,3 +24,11 @@ export {
   type IInventoryVariantsTableProps,
   type StockStatus,
 } from "./InventoryVariantsTable";
+
+export {
+  ShippingVariantsTable,
+  getShippingDataForSave,
+  type IShippingVariantRow,
+  type IShippingVariant,
+  type IShippingVariantsTableProps,
+} from "./ShippingVariantsTable";

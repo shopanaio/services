@@ -33,7 +33,7 @@ import { ProductContentTabs } from "./ProductContentTabs";
 import { SeoBlock } from "./seo";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal, useEditVariantInventoryModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, type IEditSeoModalPayload } from "../modals";
+import { useProductModal, useEditVariantInventoryModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantShippingModal, type IEditSeoModalPayload } from "../modals";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -845,6 +845,7 @@ export const ProductInfoCardA = ({
   const { push: openEditOptionsModal } = useEditOptionsModal();
   const { push: openEditAttributesModal } = useEditAttributesModal();
   const { push: openEditSeoModal } = useEditSeoModal();
+  const { push: openEditVariantShippingModal } = useEditVariantShippingModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -1133,7 +1134,32 @@ export const ProductInfoCardA = ({
       {product.isVariableProduct && product.variants?.length > 0 && (
         <Section
           title="Variants"
-          onEdit={() => handleEdit("variants")}
+          onEdit={() => {
+            openEditVariantShippingModal({
+              productId: product.id,
+              variants: product.variants?.map((v) => ({
+                id: v.id,
+                title: v.title || v.options?.map((o) => o.title).join(" / ") || v.sku || v.id,
+                imageUrl: v.gallery?.[0]?.url || null,
+                weight: v.weight,
+                weightUnit: v.weightUnit,
+                length: v.length,
+                width: v.width,
+                height: v.height,
+                dimensionUnit: v.dimensionUnit,
+                options: v.options?.map((opt) => ({
+                  title: opt.title,
+                  group: {
+                    slug: opt.group.slug,
+                    title: opt.group.title,
+                  },
+                })),
+              })) || [],
+              onSave: (updated: Array<{ id: string; weight: number | null; weightUnit: string; length: number | null; width: number | null; height: number | null; dimensionUnit: string }>) => {
+                console.log("Saved shipping:", updated);
+              },
+            });
+          }}
           extra={
             <Dropdown
               menu={{
