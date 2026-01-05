@@ -114,6 +114,7 @@ export default function ProductsPage() {
     () => ({
       resizable: true,
       sortable: true,
+      cellStyle: { display: "flex", alignItems: "center" },
     }),
     []
   );
@@ -156,6 +157,7 @@ export default function ProductsPage() {
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
+            rowHeight={52}
           />
         </div>
 

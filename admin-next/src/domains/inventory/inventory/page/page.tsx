@@ -106,6 +106,7 @@ export default function InventoryPage() {
     () => ({
       resizable: true,
       sortable: true,
+      cellStyle: { display: "flex", alignItems: "center" },
     }),
     []
   );
