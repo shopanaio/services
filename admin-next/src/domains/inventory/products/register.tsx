@@ -20,5 +20,16 @@ registerModule({
         order: 1,
       },
     },
+    {
+      key: "inventory-list",
+      path: "/inventory",
+      component: dynamic(
+        () => import("@/domains/inventory/inventory/page/page")
+      ),
+      sidebar: {
+        label: "Inventory",
+        order: 2,
+      },
+    },
   ],
 });

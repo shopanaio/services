@@ -7,7 +7,7 @@ import { SidebarLogo } from "@/layouts/app/components/Sidebar/SidebarLogo";
 import { createStyles } from "antd-style";
 import { useSidebarItems, type SidebarItem } from "@/registry";
 import { SubitemIcon } from "@/ui-kit/Arrows/Arrows";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { match } from "path-to-regexp";
 
 type AntMenuItem = NonNullable<MenuProps["items"]>[number];
@@ -35,6 +35,24 @@ function findMatchingItem(
         pathname,
         item.type === "group" ? parentKey : item.key
       );
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
+function findItemByKey(
+  items: SidebarItem[],
+  key: string
+): SidebarItem | null {
+  for (const item of items) {
+    if (item.key === key) {
+      return item;
+    }
+    if (item.children) {
+      const found = findItemByKey(item.children, key);
       if (found) {
         return found;
       }
@@ -125,6 +143,7 @@ const useStyles = createStyles(
 
 export const Sidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const sidebarItems = useSidebarItems();
   const menuItems = useMemo(() => buildMenuItems(sidebarItems), [sidebarItems]);
   const [collapsed, setCollapsed] = useState(false);
@@ -135,6 +154,13 @@ export const Sidebar = () => {
   const onOpenChange: MenuProps["onOpenChange"] = (keys) => {
     const latestOpenKey = keys.at(-1);
     setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
+  };
+
+  const onClick: MenuProps["onClick"] = (info) => {
+    const item = findItemByKey(sidebarItems, info.key);
+    if (item?.path) {
+      router.push(item.path);
+    }
   };
 
   const onCollapse = (value: boolean) => setCollapsed(value);
@@ -198,6 +224,7 @@ export const Sidebar = () => {
               items={menuItems}
               openKeys={openKeys}
               onOpenChange={onOpenChange}
+              onClick={onClick}
             />
           </ConfigProvider>
         </div>

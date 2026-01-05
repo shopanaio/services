@@ -1,0 +1,70 @@
+import {
+  FilterType,
+  numberOperators,
+  stringOperators,
+  enumOperators,
+  type IFilterSchema,
+} from "@/layouts/filters";
+
+export const filterSchema: IFilterSchema[] = [
+  {
+    key: "status",
+    label: "Status",
+    description: "Filter by inventory status",
+    type: FilterType.Enum,
+    operators: enumOperators,
+    payloadKey: "status",
+    options: [
+      { label: "In Stock", value: "in_stock" },
+      { label: "Low Stock", value: "low_stock" },
+      { label: "Out of Stock", value: "out_of_stock" },
+    ],
+  },
+  {
+    key: "location",
+    label: "Location",
+    description: "Filter by warehouse location",
+    type: FilterType.Enum,
+    operators: enumOperators,
+    payloadKey: "location",
+    options: [
+      { label: "Warehouse A", value: "Warehouse A" },
+      { label: "Warehouse B", value: "Warehouse B" },
+      { label: "Warehouse C", value: "Warehouse C" },
+      { label: "Store Front", value: "Store Front" },
+      { label: "Distribution Center", value: "Distribution Center" },
+    ],
+  },
+  {
+    key: "quantity",
+    label: "Quantity",
+    description: "Filter by quantity in stock",
+    type: FilterType.Number,
+    operators: numberOperators,
+    payloadKey: "quantity",
+  },
+  {
+    key: "available",
+    label: "Available",
+    description: "Filter by available quantity",
+    type: FilterType.Number,
+    operators: numberOperators,
+    payloadKey: "available",
+  },
+  {
+    key: "sku",
+    label: "SKU",
+    description: "Filter by SKU",
+    type: FilterType.String,
+    operators: stringOperators,
+    payloadKey: "sku",
+  },
+  {
+    key: "productName",
+    label: "Product Name",
+    description: "Filter by product name",
+    type: FilterType.String,
+    operators: stringOperators,
+    payloadKey: "productName",
+  },
+];
