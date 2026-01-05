@@ -17,12 +17,7 @@ import {
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { Actions } from "@/layouts/table/components/Navigation/Actions";
-import {
-  useFilters,
-  FilterOperator,
-  FilterWidget,
-  type IFilterValue,
-} from "@/layouts/filters";
+import { useFilters, FilterWidget } from "@/layouts/filters";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
@@ -48,78 +43,19 @@ const ProductCellRenderer = (props: CustomCellRendererProps<IProductListItem>) =
   );
 };
 
-/**
- * Apply filters to data (client-side filtering)
- * This is a simple implementation - in real app, you'd use an adapter for API
- */
-function applyFiltersToData(
-  data: IProductListItem[],
-  filters: IFilterValue[],
-  searchValue: string
-): IProductListItem[] {
-  let result = data;
-
-  // Apply search
-  if (searchValue) {
-    const search = searchValue.toLowerCase();
-    result = result.filter(
-      (p) =>
-        p.name.toLowerCase().includes(search) ||
-        p.sku.toLowerCase().includes(search)
-    );
-  }
-
-  // Apply filters
-  filters.forEach((filter) => {
-    const key = filter.payloadKey as keyof IProductListItem;
-    const { operator, value } = filter;
-
-    if (!value || (Array.isArray(value) && value.length === 0)) return;
-
-    result = result.filter((product) => {
-      const productValue = product[key];
-
-      switch (operator) {
-        case FilterOperator.In:
-          return (value as unknown[]).includes(productValue);
-        case FilterOperator.Eq:
-          return productValue === (value as unknown[])[0];
-        case FilterOperator.Gt:
-          return (productValue as number) > (value as number[])[0];
-        case FilterOperator.Gte:
-          return (productValue as number) >= (value as number[])[0];
-        case FilterOperator.Lt:
-          return (productValue as number) < (value as number[])[0];
-        case FilterOperator.Lte:
-          return (productValue as number) <= (value as number[])[0];
-        case FilterOperator.ILike:
-          return String(productValue)
-            .toLowerCase()
-            .includes(String((value as unknown[])[0]).toLowerCase());
-        default:
-          return true;
-      }
-    });
-  });
-
-  return result;
-}
-
 export default function ProductsPage() {
   const gridRef = useRef<AgGridReact<IProductListItem>>(null);
   const [selectedRows, setSelectedRows] = useState<IProductListItem[]>([]);
   const [searchValue, setSearchValue] = useState("");
-  const { filters, widgetProps } = useFilters({ schema: filterSchema });
+  const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
-  const { data: products, isLoading } = useProducts();
+  const { data: products } = useProducts();
 
   const handleOpenProductModal = () => {
     push('product', { level: 1 });
   };
 
-  const filteredProducts = useMemo(() => {
-    return applyFiltersToData(products, filters, searchValue);
-  }, [products, searchValue, filters]);
+  const filteredProducts = products;
 
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
