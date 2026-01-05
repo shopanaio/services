@@ -38,7 +38,7 @@ const useStyles = createStyles(({ token }) => ({
   },
   tabs: {
     "& .ant-tabs-nav": {
-      marginBottom: 0,
+      marginBottom: token.marginSM,
     },
   },
   tableContainer: {
@@ -124,14 +124,11 @@ export const EditVariantsModal = () => {
     >
       <div className={styles.container}>
         <Tabs
-          type="editable-card"
           activeKey={activeTab}
           onChange={handleTabChange}
           className={styles.tabs}
-          hideAdd
           items={TAB_CONFIG.map((tab) => ({
             key: tab.key,
-            closable: false,
             label: (
               <span>
                 {tab.icon} {tab.label}
