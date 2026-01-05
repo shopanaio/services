@@ -117,5 +117,23 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Edit Components modal (bundle configurator)
+    {
+      type: 'product-edit-components',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditComponentsModal').then(
+          (m) => m.EditComponentsModal
+        )
+      ),
+    },
+    // Component Variant Settings modal
+    {
+      type: 'component-variant-settings',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/modals/EditComponentsModal/components/VariantSettingsModal').then(
+          (m) => m.VariantSettingsModal
+        )
+      ),
+    },
   ];
 }

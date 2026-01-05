@@ -26,6 +26,8 @@ export const PRODUCT_EDIT_VARIANT_SHIPPING_MODAL_TYPE = 'product-edit-variant-sh
 export const PRODUCT_EDIT_VARIANTS_MODAL_TYPE = 'product-edit-variants';
 export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
+export const PRODUCT_EDIT_COMPONENTS_MODAL_TYPE = 'product-edit-components';
+export const COMPONENT_VARIANT_SETTINGS_MODAL_TYPE = 'component-variant-settings';
 
 // ============================================================================
 // Payload Interfaces
@@ -283,6 +285,45 @@ export interface IEditTagsModalPayload extends IModalStackPayload {
   onCreateTag?: (title: string) => Promise<ITag>;
 }
 
+export interface IEditComponentsModalPayload extends IModalStackPayload {
+  productId?: string;
+}
+
+export interface IComponentVariantSettingsModalPayload extends IModalStackPayload {
+  /** The component item being edited */
+  itemId: string;
+  productId: string;
+  productTitle: string;
+  /** Current available variant IDs (null = all) */
+  availableVariantIds: string[] | null;
+  /** Auto-hide out of stock */
+  autoHideOutOfStock: boolean;
+  /** All variants of the product */
+  variants: Array<{
+    id: string;
+    title: string;
+    sku: string;
+    price: number;
+    stock: number;
+    options?: Array<{
+      optionId: string;
+      optionName: string;
+      value: string;
+    }>;
+  }>;
+  /** Product options for filtering */
+  options?: Array<{
+    id: string;
+    name: string;
+    values: string[];
+  }>;
+  /** Callback when saved */
+  onSave?: (data: {
+    availableVariantIds: string[] | null;
+    autoHideOutOfStock: boolean;
+  }) => void;
+}
+
 // ============================================================================
 // Module Augmentation for Type Safety
 // ============================================================================
@@ -305,6 +346,8 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_VARIANTS_MODAL_TYPE]: IEditVariantsModalPayload;
     [PRODUCT_EDIT_CATEGORIES_MODAL_TYPE]: IEditCategoriesModalPayload;
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
+    [PRODUCT_EDIT_COMPONENTS_MODAL_TYPE]: IEditComponentsModalPayload;
+    [COMPONENT_VARIANT_SETTINGS_MODAL_TYPE]: IComponentVariantSettingsModalPayload;
   }
 }
 
@@ -503,3 +546,33 @@ export const useEditCategoriesModal = createModalStackHook(PRODUCT_EDIT_CATEGORI
  * ```
  */
 export const useEditTagsModal = createModalStackHook(PRODUCT_EDIT_TAGS_MODAL_TYPE);
+
+/**
+ * Hook to open edit components modal (bundle configurator)
+ *
+ * @example
+ * ```tsx
+ * const { push } = useEditComponentsModal();
+ * push({ productId: 'prod-123' });
+ * ```
+ */
+export const useEditComponentsModal = createModalStackHook(PRODUCT_EDIT_COMPONENTS_MODAL_TYPE);
+
+/**
+ * Hook to open component variant settings modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useComponentVariantSettingsModal();
+ * push({
+ *   itemId: 'item-1',
+ *   productId: 'prod-1',
+ *   productTitle: 'Premium Case',
+ *   availableVariantIds: ['var-1', 'var-2'],
+ *   autoHideOutOfStock: false,
+ *   variants: [...],
+ *   onSave: (data) => console.log(data)
+ * });
+ * ```
+ */
+export const useComponentVariantSettingsModal = createModalStackHook(COMPONENT_VARIANT_SETTINGS_MODAL_TYPE);

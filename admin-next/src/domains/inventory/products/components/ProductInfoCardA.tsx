@@ -33,7 +33,7 @@ import { ProductContentTabs } from "./ProductContentTabs";
 import { SeoBlock } from "./seo";
 import { IProduct, IMediaFile } from "../mocks/types";
 import { weightUnitOptions, dimensionUnitOptions } from "../constants";
-import { useProductModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantsModal, useEditCategoriesModal, useEditTagsModal, type IEditSeoModalPayload } from "../modals";
+import { useProductModal, useEditMediaModal, useEditOptionsModal, useEditAttributesModal, useEditSeoModal, useEditVariantsModal, useEditCategoriesModal, useEditTagsModal, useEditComponentsModal, type IEditSeoModalPayload } from "../modals";
 
 // ============================================================================
 // Inventory Types & Mock Data
@@ -849,6 +849,7 @@ export const ProductInfoCardA = ({
   const { push: openEditVariantsModal } = useEditVariantsModal();
   const { push: openEditCategoriesModal } = useEditCategoriesModal();
   const { push: openEditTagsModal } = useEditTagsModal();
+  const { push: openEditComponentsModal } = useEditComponentsModal();
 
   const handleEdit = (section: string) => onEditSection?.(section);
 
@@ -1518,7 +1519,10 @@ export const ProductInfoCardA = ({
 
       {/* GROUPS/COMPONENTS */}
       {product.groups?.length > 0 && (
-        <Section title="Components" onEdit={() => handleEdit("groups")}>
+        <Section
+          title="Components"
+          onEdit={() => openEditComponentsModal({ productId: product.id })}
+        >
           <Flex vertical gap={8}>
             {product.groups.map((group) => (
               <div key={group.id} className={styles.groupBox}>
