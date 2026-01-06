@@ -10,6 +10,7 @@ import {
   ModuleRegistry,
   AllCommunityModule,
   RowSelectionModule,
+  CellClickedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -71,7 +72,11 @@ export default function ProductsPage() {
   const { push } = useModalStack();
   const { data: products } = useProducts();
 
-  const handleCellClick = () => {
+  const handleCellClick = (event: CellClickedEvent<IProductListItem>) => {
+    if (event.column.getColId() === "ag-Grid-SelectionColumn") {
+      event.node.setSelected(!event.node.isSelected());
+      return;
+    }
     push("product", { level: 1 });
   };
 
@@ -167,6 +172,9 @@ export default function ProductsPage() {
               checkboxes: true,
               headerCheckbox: true,
               enableClickSelection: false,
+            }}
+            selectionColumnDef={{
+              cellStyle: { display: "flex", alignItems: "center" },
             }}
             suppressCellFocus
             onCellClicked={handleCellClick}
