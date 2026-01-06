@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { Image, Typography, Flex, Button, Tooltip } from "antd";
+import { Image, Typography, Flex, Button, Tooltip, App } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -11,6 +11,7 @@ import {
   CellClickedEvent,
   GridStateModule,
   CellValueChangedEvent,
+  ValueSetterParams,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -92,25 +93,35 @@ export default function InventoryPage() {
   const [searchValue, setSearchValue] = useState("");
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { data: inventoryData, refetch } = useInventory();
-  const [inventory, setInventory] = useState<IInventoryListItem[]>([]);
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "inventory-grid-state",
   });
 
-  const { hasChanges, discardAll, startSaving, onSaveSuccess, trackChange } =
+  const { hasChanges, discardAll, startSaving, onSaveSuccess, trackChange, originalValues } =
     useInventoryEditStore();
-
-  // Sync inventory data
-  useEffect(() => {
-    setInventory(inventoryData);
-  }, [inventoryData]);
+  const { message } = App.useApp();
 
   const handleDiscard = useCallback(() => {
-    // Restore original values
-    setInventory(inventoryData);
+    // Restore original values from Zustand store
+    const api = gridRef.current?.api;
+    if (api) {
+      Object.entries(originalValues).forEach(([itemId, fields]) => {
+        const rowNode = api.getRowNode(itemId);
+        if (rowNode && rowNode.data) {
+          Object.entries(fields).forEach(([field, change]) => {
+            if (change) {
+              rowNode.data[field as keyof typeof rowNode.data] = change.originalValue;
+            }
+          });
+          // Recalculate available
+          rowNode.data.available =
+            rowNode.data.onHand - rowNode.data.unavailable - rowNode.data.reserved;
+        }
+      });
+      api.refreshCells({ force: true });
+    }
     discardAll();
-    gridRef.current?.api?.refreshCells({ force: true });
-  }, [inventoryData, discardAll]);
+  }, [discardAll, originalValues]);
 
   const handleSave = useCallback(async () => {
     startSaving();
@@ -124,6 +135,32 @@ export default function InventoryPage() {
     await refetch();
   }, [startSaving, onSaveSuccess, refetch]);
 
+  const inventoryValueSetter = useCallback(
+    (params: ValueSetterParams<IInventoryListItem>) => {
+      const { data, colDef, oldValue, newValue } = params;
+      if (!data || oldValue === newValue) return false;
+
+      const field = colDef.field as "onHand" | "unavailable";
+      const newVal = Number(newValue);
+
+      // Calculate what available would be
+      const testOnHand = field === "onHand" ? newVal : data.onHand;
+      const testUnavailable = field === "unavailable" ? newVal : data.unavailable;
+      const newAvailable = testOnHand - testUnavailable - data.reserved;
+
+      if (newAvailable < 0) {
+        message.error("This change would result in negative availability");
+        return false;
+      }
+
+      // AG Grid requires mutation in valueSetter
+      data[field] = newVal;
+      data.available = newAvailable;
+      return true;
+    },
+    [message]
+  );
+
   const handleCellValueChanged = useCallback(
     (event: CellValueChangedEvent<IInventoryListItem>) => {
       const { data, colDef, oldValue, newValue } = event;
@@ -132,14 +169,12 @@ export default function InventoryPage() {
       const field = colDef.field as "onHand" | "unavailable";
       if (field === "onHand" || field === "unavailable") {
         trackChange(data.id, field, oldValue);
-
-        // Recalculate available
-        const newAvailable = data.onHand - data.unavailable - data.reserved;
-        setInventory((prev) =>
-          prev.map((item) =>
-            item.id === data.id ? { ...item, available: newAvailable } : item
-          )
-        );
+        // Refresh available cell to show updated value
+        gridRef.current?.api?.refreshCells({
+          rowNodes: [event.node],
+          columns: ["available"],
+          force: true,
+        });
       }
     },
     [trackChange]
@@ -171,6 +206,7 @@ export default function InventoryPage() {
         cellRenderer: OnHandCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0 },
+        valueSetter: inventoryValueSetter,
         editable: true,
         width: 130,
         type: "rightAligned",
@@ -181,6 +217,7 @@ export default function InventoryPage() {
         cellRenderer: UnavailableCellRenderer,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: { min: 0 },
+        valueSetter: inventoryValueSetter,
         editable: true,
         width: 130,
         type: "rightAligned",
@@ -202,7 +239,7 @@ export default function InventoryPage() {
         resizable: false,
       },
     ],
-    []
+    [inventoryValueSetter]
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -218,7 +255,7 @@ export default function InventoryPage() {
     <DataLayout
       name="inventory"
       title="Inventory"
-      count={inventory.length}
+      count={inventoryData.length}
       actions={
         <Flex gap="small">
           <Button>Export</Button>
@@ -249,7 +286,7 @@ export default function InventoryPage() {
         <div style={{ flex: 1 }}>
           <AgGridReact<IInventoryListItem>
             ref={gridRef}
-            rowData={inventory}
+            rowData={inventoryData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
@@ -263,7 +300,6 @@ export default function InventoryPage() {
             selectionColumnDef={{
               cellStyle: { display: "flex", alignItems: "center" },
             }}
-            suppressCellFocus
             suppressMovableColumns
             onCellClicked={handleCellClick}
             onCellValueChanged={handleCellValueChanged}
@@ -277,11 +313,11 @@ export default function InventoryPage() {
           <InventoryActionBar onSave={handleSave} onDiscard={handleDiscard} />
         ) : (
           <CursorPagination
-            total={inventory.length}
+            total={inventoryData.length}
             rangeStart={1}
-            rangeEnd={Math.min(20, inventory.length)}
+            rangeEnd={Math.min(20, inventoryData.length)}
             pageSize={20}
-            hasNext={inventory.length > 20}
+            hasNext={inventoryData.length > 20}
             hasPrev={false}
             onNext={() => {}}
             onPrev={() => {}}
