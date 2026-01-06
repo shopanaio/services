@@ -649,6 +649,7 @@ export const EditAttributesModal = () => {
             getRowClass={getRowClass}
             domLayout="autoHeight"
             animateRows
+            suppressMovableColumns
             rowDragManaged
             onCellValueChanged={handleCellValueChanged}
             onRowDragEnter={handleRowDragEnter}

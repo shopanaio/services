@@ -503,6 +503,7 @@ export const VariantSettingsModal = () => {
                 suppressRowClickSelection={false}
                 rowDragManaged
                 animateRows
+                suppressMovableColumns
                 onSelectionChanged={handleSelectionChanged}
                 onRowDragEnd={handleRowDragEnd}
                 onGridReady={onGridReady}

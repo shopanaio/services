@@ -198,6 +198,7 @@ export default function ProductsPage() {
               cellStyle: { display: "flex", alignItems: "center" },
             }}
             suppressCellFocus
+            suppressMovableColumns
             onCellClicked={handleCellClick}
             rowStyle={{ cursor: "pointer" }}
             initialState={initialState}

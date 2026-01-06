@@ -909,6 +909,7 @@ export const ComponentsTable = ({
           getRowClass={getRowClass}
           rowDragManaged={!bulkEditMode}
           animateRows
+          suppressMovableColumns
           domLayout="autoHeight"
           rowHeight={52}
           headerHeight={36}

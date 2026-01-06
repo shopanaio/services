@@ -139,6 +139,7 @@ export function VariantsTable<T extends IVariantRowBase>({
         getRowId={getRowId}
         onCellValueChanged={onCellValueChanged}
         animateRows
+        suppressMovableColumns
         domLayout={domLayout}
       />
     </div>

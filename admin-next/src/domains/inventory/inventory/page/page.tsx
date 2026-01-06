@@ -186,6 +186,7 @@ export default function InventoryPage() {
               cellStyle: { display: "flex", alignItems: "center" },
             }}
             suppressCellFocus
+            suppressMovableColumns
             onCellClicked={handleCellClick}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
