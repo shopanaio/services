@@ -474,11 +474,11 @@ interface InventoryAuditEntry {
 
 ## Implementation Checklist
 
-- [ ] Zustand store `useInventoryEditStore`
-- [ ] Editable cell renderer with inline editing
-- [ ] Cell diff display component (`100 → 150`)
-- [ ] Real-time calculation for `available`
-- [ ] Validation (non-negative, constraints)
-- [ ] Action bar (Discard / Save changes)
-- [ ] Keyboard navigation (Enter, Escape, Tab)
+- [x] Zustand store `useInventoryEditStore`
+- [x] Editable cell renderer with inline editing
+- [x] Cell diff display component (`100 → 150`)
+- [x] Real-time calculation for `available`
+- [x] Validation (non-negative, constraints)
+- [x] Action bar (Discard / Save changes)
+- [x] Keyboard navigation (Enter, Escape, Tab)
 - [ ] Unit tests for store logic

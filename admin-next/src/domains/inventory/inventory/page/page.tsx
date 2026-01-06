@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
-import { Image, Typography, Flex, Button } from "antd";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { Image, Typography, Flex, Button, Tooltip } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -10,6 +10,7 @@ import {
   RowSelectionModule,
   CellClickedEvent,
   GridStateModule,
+  CellValueChangedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -17,8 +18,13 @@ import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/CursorPagination";
 import { useGridState } from "@/hooks";
 import { filterSchema } from "./filterSchema";
-import { useInventory } from "../hooks";
+import { useInventory, useInventoryEditStore } from "../hooks";
 import type { IInventoryListItem } from "../mocks/inventory-list";
+import {
+  EditableNumberCell,
+  CalculatedAvailableCell,
+  InventoryActionBar,
+} from "../components";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -56,24 +62,88 @@ const ProductCellRenderer = (
   );
 };
 
-const AvailableCellRenderer = (
+const ReservedCellRenderer = (
   props: CustomCellRendererProps<IInventoryListItem>
 ) => {
   const { value } = props;
-  if (value === 0) {
-    return <Typography.Text type="danger">{value}</Typography.Text>;
-  }
-  return <Typography.Text>{value}</Typography.Text>;
+  return (
+    <Flex
+      align="center"
+      justify="flex-end"
+      style={{ width: "100%", paddingRight: 4 }}
+    >
+      <Tooltip title="Managed by order system">
+        <Typography.Text>{value}</Typography.Text>
+      </Tooltip>
+    </Flex>
+  );
 };
+
+const OnHandCellRenderer = (
+  props: CustomCellRendererProps<IInventoryListItem>
+) => <EditableNumberCell {...props} field="onHand" />;
+
+const UnavailableCellRenderer = (
+  props: CustomCellRendererProps<IInventoryListItem>
+) => <EditableNumberCell {...props} field="unavailable" />;
 
 export default function InventoryPage() {
   const gridRef = useRef<AgGridReact<IInventoryListItem>>(null);
   const [searchValue, setSearchValue] = useState("");
   const { widgetProps } = useFilters({ schema: filterSchema });
-  const { data: inventory } = useInventory();
+  const { data: inventoryData, refetch } = useInventory();
+  const [inventory, setInventory] = useState<IInventoryListItem[]>([]);
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "inventory-grid-state",
   });
+
+  const { hasChanges, discardAll, startSaving, onSaveSuccess, trackChange } =
+    useInventoryEditStore();
+
+  // Sync inventory data
+  useEffect(() => {
+    setInventory(inventoryData);
+  }, [inventoryData]);
+
+  const handleDiscard = useCallback(() => {
+    // Restore original values
+    setInventory(inventoryData);
+    discardAll();
+    gridRef.current?.api?.refreshCells({ force: true });
+  }, [inventoryData, discardAll]);
+
+  const handleSave = useCallback(async () => {
+    startSaving();
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // In a real app, send changes to API here
+
+    onSaveSuccess();
+    await refetch();
+  }, [startSaving, onSaveSuccess, refetch]);
+
+  const handleCellValueChanged = useCallback(
+    (event: CellValueChangedEvent<IInventoryListItem>) => {
+      const { data, colDef, oldValue, newValue } = event;
+      if (!data || oldValue === newValue) return;
+
+      const field = colDef.field as "onHand" | "unavailable";
+      if (field === "onHand" || field === "unavailable") {
+        trackChange(data.id, field, oldValue);
+
+        // Recalculate available
+        const newAvailable = data.onHand - data.unavailable - data.reserved;
+        setInventory((prev) =>
+          prev.map((item) =>
+            item.id === data.id ? { ...item, available: newAvailable } : item
+          )
+        );
+      }
+    },
+    [trackChange]
+  );
 
   const handleCellClick = (event: CellClickedEvent<IInventoryListItem>) => {
     if (event.column.getColId() === "ag-Grid-SelectionColumn") {
@@ -98,26 +168,35 @@ export default function InventoryPage() {
       {
         headerName: "On hand",
         field: "onHand",
-        width: 120,
+        cellRenderer: OnHandCellRenderer,
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0 },
+        editable: true,
+        width: 130,
         type: "rightAligned",
       },
       {
         headerName: "Unavailable",
         field: "unavailable",
-        width: 120,
+        cellRenderer: UnavailableCellRenderer,
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0 },
+        editable: true,
+        width: 130,
         type: "rightAligned",
       },
       {
         headerName: "Reserved",
         field: "reserved",
-        width: 120,
+        cellRenderer: ReservedCellRenderer,
+        width: 130,
         type: "rightAligned",
       },
       {
         headerName: "Available",
         field: "available",
-        cellRenderer: AvailableCellRenderer,
-        minWidth: 120,
+        cellRenderer: CalculatedAvailableCell,
+        minWidth: 130,
         flex: 1,
         type: "rightAligned",
         resizable: false,
@@ -154,7 +233,6 @@ export default function InventoryPage() {
             searchProps={{
               searchValue,
               onChangeSearchValue: setSearchValue,
-              placeholder: "Search by product or SKU",
             }}
           />
         }
@@ -188,22 +266,28 @@ export default function InventoryPage() {
             suppressCellFocus
             suppressMovableColumns
             onCellClicked={handleCellClick}
+            onCellValueChanged={handleCellValueChanged}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
+            stopEditingWhenCellsLoseFocus
           />
         </div>
 
-        <CursorPagination
-          total={inventory.length}
-          rangeStart={1}
-          rangeEnd={Math.min(20, inventory.length)}
-          pageSize={20}
-          hasNext={inventory.length > 20}
-          hasPrev={false}
-          onNext={() => {}}
-          onPrev={() => {}}
-          onPageSizeChange={() => {}}
-        />
+        {hasChanges() ? (
+          <InventoryActionBar onSave={handleSave} onDiscard={handleDiscard} />
+        ) : (
+          <CursorPagination
+            total={inventory.length}
+            rangeStart={1}
+            rangeEnd={Math.min(20, inventory.length)}
+            pageSize={20}
+            hasNext={inventory.length > 20}
+            hasPrev={false}
+            onNext={() => {}}
+            onPrev={() => {}}
+            onPageSizeChange={() => {}}
+          />
+        )}
       </div>
     </DataLayout>
   );
