@@ -109,7 +109,8 @@ export default function ProductsPage() {
       {
         headerName: "Brand",
         field: "brand",
-        width: 120,
+        minWidth: 120,
+        flex: 1,
         resizable: false,
       },
     ],

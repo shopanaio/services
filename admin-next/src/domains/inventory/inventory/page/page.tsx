@@ -8,6 +8,7 @@ import {
   ModuleRegistry,
   AllCommunityModule,
   RowSelectionModule,
+  CellClickedEvent,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
@@ -65,6 +66,12 @@ export default function InventoryPage() {
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { data: inventory } = useInventory();
 
+  const handleCellClick = (event: CellClickedEvent<IInventoryListItem>) => {
+    if (event.column.getColId() === "ag-Grid-SelectionColumn") {
+      event.node.setSelected(!event.node.isSelected());
+    }
+  };
+
   const columnDefs = useMemo<ColDef<IInventoryListItem>[]>(
     () => [
       {
@@ -101,8 +108,10 @@ export default function InventoryPage() {
         headerName: "Available",
         field: "available",
         cellRenderer: AvailableCellRenderer,
-        width: 120,
+        minWidth: 120,
+        flex: 1,
         type: "rightAligned",
+        resizable: false,
       },
     ],
     []
@@ -158,6 +167,17 @@ export default function InventoryPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={56}
+            rowSelection={{
+              mode: "multiRow",
+              checkboxes: true,
+              headerCheckbox: true,
+              enableClickSelection: false,
+            }}
+            selectionColumnDef={{
+              cellStyle: { display: "flex", alignItems: "center" },
+            }}
+            suppressCellFocus
+            onCellClicked={handleCellClick}
           />
         </div>
 
