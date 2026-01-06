@@ -71,22 +71,12 @@ export default function ProductsPage() {
   const { push } = useModalStack();
   const { data: products } = useProducts();
 
-  const handleOpenProductModal = () => {
+  const handleCellClick = () => {
     push("product", { level: 1 });
   };
 
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
-      {
-        headerName: "",
-        field: "checkbox",
-        checkboxSelection: true,
-        headerCheckboxSelection: true,
-        width: 50,
-        resizable: false,
-        sortable: false,
-        suppressHeaderMenuButton: true,
-      },
       {
         headerName: "Product",
         field: "name",
@@ -139,12 +129,9 @@ export default function ProductsPage() {
       title="Products"
       count={products.length}
       actions={
-        <Flex gap="small">
-          <Button onClick={handleOpenProductModal}>Open Product</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Add Product
-          </Button>
-        </Flex>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          Add Product
+        </Button>
       }
     >
       <DataLayout.Toolbar
@@ -159,7 +146,14 @@ export default function ProductsPage() {
         }
       />
 
-      <div style={{ height: "100%", paddingBottom: 16, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          height: "100%",
+          paddingBottom: 16,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <div style={{ flex: 1 }}>
           <AgGridReact<IProductListItem>
             ref={gridRef}
@@ -168,8 +162,15 @@ export default function ProductsPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={52}
-            rowSelection="multiple"
+            rowSelection={{
+              mode: "multiRow",
+              checkboxes: true,
+              headerCheckbox: true,
+              enableClickSelection: false,
+            }}
             suppressCellFocus
+            onCellClicked={handleCellClick}
+            rowStyle={{ cursor: "pointer" }}
           />
         </div>
 
