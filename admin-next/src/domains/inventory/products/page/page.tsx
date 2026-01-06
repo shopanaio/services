@@ -78,6 +78,16 @@ export default function ProductsPage() {
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
       {
+        headerName: "",
+        field: "checkbox",
+        checkboxSelection: true,
+        headerCheckboxSelection: true,
+        width: 50,
+        resizable: false,
+        sortable: false,
+        suppressHeaderMenuButton: true,
+      },
+      {
         headerName: "Product",
         field: "name",
         cellRenderer: ProductCellRenderer,
@@ -158,6 +168,8 @@ export default function ProductsPage() {
             defaultColDef={defaultColDef}
             getRowId={(params) => params.data.id}
             rowHeight={52}
+            rowSelection="multiple"
+            suppressCellFocus
           />
         </div>
 
