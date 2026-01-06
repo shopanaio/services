@@ -11,16 +11,22 @@ import {
   AllCommunityModule,
   RowSelectionModule,
   CellClickedEvent,
+  GridStateModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/CursorPagination";
+import { useGridState } from "@/hooks";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
 
-ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
+ModuleRegistry.registerModules([
+  AllCommunityModule,
+  RowSelectionModule,
+  GridStateModule,
+]);
 
 // Cell Renderers
 const ProductCellRenderer = (
@@ -71,6 +77,9 @@ export default function ProductsPage() {
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { push } = useModalStack();
   const { data: products } = useProducts();
+  const { initialState, onStateUpdated } = useGridState({
+    storageKey: "products-grid-state",
+  });
 
   const handleCellClick = (event: CellClickedEvent<IProductListItem>) => {
     if (event.column.getColId() === "ag-Grid-SelectionColumn") {
@@ -181,6 +190,8 @@ export default function ProductsPage() {
             suppressCellFocus
             onCellClicked={handleCellClick}
             rowStyle={{ cursor: "pointer" }}
+            initialState={initialState}
+            onStateUpdated={onStateUpdated}
           />
         </div>
 

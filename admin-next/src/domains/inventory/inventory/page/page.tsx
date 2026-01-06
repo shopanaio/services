@@ -9,16 +9,22 @@ import {
   AllCommunityModule,
   RowSelectionModule,
   CellClickedEvent,
+  GridStateModule,
 } from "ag-grid-community";
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/CursorPagination";
+import { useGridState } from "@/hooks";
 import { filterSchema } from "./filterSchema";
 import { useInventory } from "../hooks";
 import type { IInventoryListItem } from "../mocks/inventory-list";
 
-ModuleRegistry.registerModules([AllCommunityModule, RowSelectionModule]);
+ModuleRegistry.registerModules([
+  AllCommunityModule,
+  RowSelectionModule,
+  GridStateModule,
+]);
 
 const ProductCellRenderer = (
   props: CustomCellRendererProps<IInventoryListItem>
@@ -65,6 +71,9 @@ export default function InventoryPage() {
   const [searchValue, setSearchValue] = useState("");
   const { widgetProps } = useFilters({ schema: filterSchema });
   const { data: inventory } = useInventory();
+  const { initialState, onStateUpdated } = useGridState({
+    storageKey: "inventory-grid-state",
+  });
 
   const handleCellClick = (event: CellClickedEvent<IInventoryListItem>) => {
     if (event.column.getColId() === "ag-Grid-SelectionColumn") {
@@ -178,6 +187,8 @@ export default function InventoryPage() {
             }}
             suppressCellFocus
             onCellClicked={handleCellClick}
+            initialState={initialState}
+            onStateUpdated={onStateUpdated}
           />
         </div>
 
