@@ -7,6 +7,7 @@ export interface IInventoryListItem {
   productName: string;
   variantName: string | null;
   sku: string;
+  onHand: number;
   unavailable: number;
   reserved: number;
   available: number;
@@ -52,6 +53,7 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
         productName: product.name,
         variantName: null,
         sku: generateSku(productIndex, null),
+        onHand,
         unavailable,
         reserved,
         available,
@@ -70,6 +72,7 @@ export const mockInventoryList: IInventoryListItem[] = products.flatMap(
         productName: product.name,
         variantName: variant,
         sku: generateSku(productIndex, variantIndex),
+        onHand,
         unavailable,
         reserved,
         available,

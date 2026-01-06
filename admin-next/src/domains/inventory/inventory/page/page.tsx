@@ -80,6 +80,12 @@ export default function InventoryPage() {
         width: 130,
       },
       {
+        headerName: "On hand",
+        field: "onHand",
+        width: 120,
+        type: "rightAligned",
+      },
+      {
         headerName: "Unavailable",
         field: "unavailable",
         width: 120,
