@@ -2,49 +2,85 @@ import { create } from "zustand";
 
 export type EditableField = "onHand" | "unavailable";
 
-interface FieldChange {
+interface FieldEdit {
   originalValue: number;
+  currentValue: number;
 }
 
+type ItemEdits = Partial<Record<EditableField, FieldEdit>>;
+
 interface InventoryEditStore {
-  // Track original values before editing
-  originalValues: Record<string, Partial<Record<EditableField, FieldChange>>>;
+  // Current edits - source of truth for pending changes
+  edits: Record<string, ItemEdits>;
   status: "idle" | "saving";
 
   // Actions
-  trackChange: (itemId: string, field: EditableField, originalValue: number) => void;
+  setFieldValue: (
+    itemId: string,
+    field: EditableField,
+    originalValue: number,
+    newValue: number
+  ) => void;
   discardAll: () => void;
+  discardItem: (itemId: string) => void;
   startSaving: () => void;
   onSaveSuccess: () => void;
 
-  // Computed
+  // Selectors
   hasChanges: () => boolean;
   getChangesCount: () => number;
-  getOriginalValue: (itemId: string, field: EditableField) => number | null;
+  getFieldEdit: (itemId: string, field: EditableField) => FieldEdit | undefined;
+  getItemEdits: (itemId: string) => ItemEdits | undefined;
+  getAllEdits: () => Record<string, ItemEdits>;
 }
 
 export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
-  originalValues: {},
+  edits: {},
   status: "idle",
 
-  trackChange: (itemId, field, originalValue) => {
-    const current = get().originalValues[itemId]?.[field];
-    // Only track if not already tracking this field
-    if (!current) {
-      set((state) => ({
-        originalValues: {
-          ...state.originalValues,
-          [itemId]: {
-            ...state.originalValues[itemId],
-            [field]: { originalValue },
+  setFieldValue: (itemId, field, originalValue, newValue) => {
+    // If setting back to original, remove the edit
+    if (newValue === originalValue) {
+      set((state) => {
+        const itemEdits = { ...state.edits[itemId] };
+        delete itemEdits[field];
+
+        // If no more edits for this item, remove the item entry
+        if (Object.keys(itemEdits).length === 0) {
+          const { [itemId]: _, ...rest } = state.edits;
+          return { edits: rest };
+        }
+
+        return {
+          edits: {
+            ...state.edits,
+            [itemId]: itemEdits,
           },
-        },
-      }));
+        };
+      });
+      return;
     }
+
+    set((state) => ({
+      edits: {
+        ...state.edits,
+        [itemId]: {
+          ...state.edits[itemId],
+          [field]: { originalValue, currentValue: newValue },
+        },
+      },
+    }));
   },
 
   discardAll: () => {
-    set({ originalValues: {}, status: "idle" });
+    set({ edits: {}, status: "idle" });
+  },
+
+  discardItem: (itemId) => {
+    set((state) => {
+      const { [itemId]: _, ...rest } = state.edits;
+      return { edits: rest };
+    });
   },
 
   startSaving: () => {
@@ -52,20 +88,26 @@ export const useInventoryEditStore = create<InventoryEditStore>((set, get) => ({
   },
 
   onSaveSuccess: () => {
-    set({ originalValues: {}, status: "idle" });
+    set({ edits: {}, status: "idle" });
   },
 
-  hasChanges: () => Object.keys(get().originalValues).length > 0,
+  hasChanges: () => Object.keys(get().edits).length > 0,
 
   getChangesCount: () => {
-    const changes = get().originalValues;
-    return Object.values(changes).reduce(
+    const edits = get().edits;
+    return Object.values(edits).reduce(
       (count, fields) => count + Object.keys(fields || {}).length,
       0
     );
   },
 
-  getOriginalValue: (itemId, field) => {
-    return get().originalValues[itemId]?.[field]?.originalValue ?? null;
+  getFieldEdit: (itemId, field) => {
+    return get().edits[itemId]?.[field];
   },
+
+  getItemEdits: (itemId) => {
+    return get().edits[itemId];
+  },
+
+  getAllEdits: () => get().edits,
 }));

@@ -45,20 +45,20 @@ export function CalculatedAvailableCell(
 ) {
   const { data, value } = props;
   const { styles } = useStyles();
-  const { getOriginalValue } = useInventoryEditStore();
+  const { getFieldEdit } = useInventoryEditStore();
 
   if (!data) return null;
 
   const currentAvailable = value as number;
 
-  // Calculate original available based on original values
-  const originalOnHand = getOriginalValue(data.id, "onHand");
-  const originalUnavailable = getOriginalValue(data.id, "unavailable");
+  // Check if any field was edited
+  const onHandEdit = getFieldEdit(data.id, "onHand");
+  const unavailableEdit = getFieldEdit(data.id, "unavailable");
 
   // If any field was changed, calculate original available
-  if (originalOnHand !== null || originalUnavailable !== null) {
-    const origOnHand = originalOnHand ?? data.onHand;
-    const origUnavailable = originalUnavailable ?? data.unavailable;
+  if (onHandEdit || unavailableEdit) {
+    const origOnHand = onHandEdit?.originalValue ?? data.onHand;
+    const origUnavailable = unavailableEdit?.originalValue ?? data.unavailable;
     const originalAvailable = origOnHand - origUnavailable - data.reserved;
 
     if (originalAvailable !== currentAvailable) {

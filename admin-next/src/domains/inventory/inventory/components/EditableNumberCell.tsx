@@ -44,21 +44,21 @@ interface EditableNumberCellProps
 export function EditableNumberCell(props: EditableNumberCellProps) {
   const { data, value, field } = props;
   const { styles } = useStyles();
-  const { getOriginalValue } = useInventoryEditStore();
+  const { getFieldEdit } = useInventoryEditStore();
 
   if (!data) return null;
 
-  const originalValue = getOriginalValue(data.id, field);
+  const fieldEdit = getFieldEdit(data.id, field);
   const currentValue = value as number;
 
-  // Show diff if value changed from original
-  if (originalValue !== null && originalValue !== currentValue) {
+  // Show diff if there's an edit for this field
+  if (fieldEdit) {
     return (
       <div className={styles.cellWrapper}>
         <span className={styles.diffCell}>
-          <span className={styles.oldValue}>{originalValue}</span>
+          <span className={styles.oldValue}>{fieldEdit.originalValue}</span>
           <span className={styles.arrow}>→</span>
-          <span className={styles.newValue}>{currentValue}</span>
+          <span className={styles.newValue}>{fieldEdit.currentValue}</span>
         </span>
       </div>
     );
