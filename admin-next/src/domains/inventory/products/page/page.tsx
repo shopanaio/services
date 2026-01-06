@@ -17,7 +17,7 @@ import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/CursorPagination";
-import { useGridState } from "@/hooks";
+import { useGridState, useGridSort } from "@/hooks";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
@@ -79,6 +79,14 @@ export default function ProductsPage() {
   const { data: products } = useProducts();
   const { initialState, onStateUpdated } = useGridState({
     storageKey: "products-grid-state",
+  });
+
+  const { onSortChanged } = useGridSort({
+    gridRef,
+    onSortChange: (model) => {
+      // TODO: Replace with actual API call
+      console.log("Sort changed:", model);
+    },
   });
 
   const handleCellClick = (event: CellClickedEvent<IProductListItem>) => {
@@ -192,6 +200,7 @@ export default function ProductsPage() {
             rowStyle={{ cursor: "pointer" }}
             initialState={initialState}
             onStateUpdated={onStateUpdated}
+            onSortChanged={onSortChanged}
           />
         </div>
 
