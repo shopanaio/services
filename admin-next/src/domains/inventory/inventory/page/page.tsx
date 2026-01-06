@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Image, Typography, Flex, Button, Tooltip, App } from "antd";
+import { Flex, Button, App } from "antd";
+import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import {
   ColDef,
@@ -12,7 +13,6 @@ import {
   GridStateModule,
   CellEditRequestEvent,
 } from "ag-grid-community";
-import type { CustomCellRendererProps } from "ag-grid-react";
 import { DataLayout } from "@/layouts/data";
 import { useFilters, FilterWidget } from "@/layouts/filters";
 import { CursorPagination } from "@/ui-kit/CursorPagination";
@@ -21,9 +21,12 @@ import { filterSchema } from "./filterSchema";
 import { useInventory, useInventoryEditStore } from "../hooks";
 import type { IInventoryListItem } from "../mocks/inventory-list";
 import {
-  EditableNumberCell,
   CalculatedAvailableCell,
   InventoryActionBar,
+  ProductCellRenderer,
+  ReservedCellRenderer,
+  OnHandCellRenderer,
+  UnavailableCellRenderer,
 } from "../components";
 
 ModuleRegistry.registerModules([
@@ -32,62 +35,24 @@ ModuleRegistry.registerModules([
   GridStateModule,
 ]);
 
-const ProductCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
-) => {
-  const { data } = props;
-  if (!data) return null;
-
-  return (
-    <Flex align="center" gap="small">
-      <Image
-        src={data.image}
-        alt={data.productName}
-        width={40}
-        height={40}
-        style={{ borderRadius: 4, objectFit: "cover" }}
-        preview={false}
-      />
-      <Flex vertical gap={0}>
-        <Typography.Text strong style={{ lineHeight: 1.3 }}>
-          {data.productName}
-        </Typography.Text>
-        {data.variantName && (
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {data.variantName}
-          </Typography.Text>
-        )}
-      </Flex>
-    </Flex>
-  );
-};
-
-const ReservedCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
-) => {
-  const { value } = props;
-  return (
-    <Flex
-      align="center"
-      justify="flex-end"
-      style={{ width: "100%", paddingRight: 4 }}
-    >
-      <Tooltip title="Managed by order system">
-        <Typography.Text>{value}</Typography.Text>
-      </Tooltip>
-    </Flex>
-  );
-};
-
-const OnHandCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
-) => <EditableNumberCell {...props} field="onHand" />;
-
-const UnavailableCellRenderer = (
-  props: CustomCellRendererProps<IInventoryListItem>
-) => <EditableNumberCell {...props} field="unavailable" />;
+const useStyles = createStyles(({ token }) => ({
+  gridWrapper: {
+    flex: 1,
+    "& .ag-cell-editor input": {
+      textAlign: "right",
+      paddingRight: token.padding,
+    },
+  },
+  gridContainer: {
+    height: "100%",
+    paddingBottom: token.padding,
+    display: "flex",
+    flexDirection: "column",
+  },
+}));
 
 export default function InventoryPage() {
+  const { styles } = useStyles();
   const gridRef = useRef<AgGridReact<IInventoryListItem>>(null);
   const [searchValue, setSearchValue] = useState("");
   const { widgetProps } = useFilters({ schema: filterSchema });
@@ -96,8 +61,14 @@ export default function InventoryPage() {
     storageKey: "inventory-grid-state",
   });
 
-  const { hasChanges, discardAll, startSaving, onSaveSuccess, setFieldValue, edits } =
-    useInventoryEditStore();
+  const {
+    hasChanges,
+    discardAll,
+    startSaving,
+    onSaveSuccess,
+    setFieldValue,
+    edits,
+  } = useInventoryEditStore();
   const { message } = App.useApp();
 
   // Compute display data by merging server data with pending edits
@@ -107,7 +78,8 @@ export default function InventoryPage() {
       if (!itemEdits) return item;
 
       const onHand = itemEdits.onHand?.currentValue ?? item.onHand;
-      const unavailable = itemEdits.unavailable?.currentValue ?? item.unavailable;
+      const unavailable =
+        itemEdits.unavailable?.currentValue ?? item.unavailable;
       const available = onHand - unavailable - item.reserved;
 
       return {
@@ -155,12 +127,15 @@ export default function InventoryPage() {
 
       // Get current values (from edits or original server data)
       const currentEdits = edits[data.id];
-      const currentOnHand = currentEdits?.onHand?.currentValue ?? serverItem.onHand;
-      const currentUnavailable = currentEdits?.unavailable?.currentValue ?? serverItem.unavailable;
+      const currentOnHand =
+        currentEdits?.onHand?.currentValue ?? serverItem.onHand;
+      const currentUnavailable =
+        currentEdits?.unavailable?.currentValue ?? serverItem.unavailable;
 
       // Calculate what available would be
       const testOnHand = field === "onHand" ? newVal : currentOnHand;
-      const testUnavailable = field === "unavailable" ? newVal : currentUnavailable;
+      const testUnavailable =
+        field === "unavailable" ? newVal : currentUnavailable;
       const newAvailable = testOnHand - testUnavailable - serverItem.reserved;
 
       if (newAvailable < 0) {
@@ -268,15 +243,8 @@ export default function InventoryPage() {
         }
       />
 
-      <div
-        style={{
-          height: "100%",
-          paddingBottom: 16,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ flex: 1 }}>
+      <div className={styles.gridContainer}>
+        <div className={styles.gridWrapper}>
           <AgGridReact<IInventoryListItem>
             ref={gridRef}
             rowData={displayData}
