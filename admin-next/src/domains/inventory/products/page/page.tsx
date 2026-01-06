@@ -138,6 +138,8 @@ export default function ProductsPage() {
     () => ({
       resizable: true,
       sortable: true,
+      // Disable client-side sorting - server handles it
+      comparator: () => 0,
       cellStyle: { display: "flex", alignItems: "center" },
     }),
     []
