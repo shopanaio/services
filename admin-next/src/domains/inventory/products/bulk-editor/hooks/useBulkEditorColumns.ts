@@ -10,7 +10,9 @@ import {
   IBulkEditorRow,
   ALL_COLUMNS,
   PRODUCT_COLUMNS,
-  VARIANT_COLUMNS,
+  PRICING_COLUMNS,
+  INVENTORY_COLUMNS,
+  ATTRIBUTES_COLUMNS,
   VARIANT_FIELDS,
 } from "../types";
 import {
@@ -201,24 +203,32 @@ export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
       });
     }
 
-    // Variant columns
-    for (const col of VARIANT_COLUMNS) {
-      if (!columnVisibility[col.field]) continue;
+    // Variant columns (including all groups)
+    const variantColumnGroups = [
+      PRICING_COLUMNS,
+      INVENTORY_COLUMNS,
+      ATTRIBUTES_COLUMNS,
+    ];
 
-      columns.push({
-        field: col.field,
-        headerName: col.headerName,
-        width: col.width,
-        minWidth: col.minWidth,
-        flex: col.flex,
-        type: getColumnType(col),
-        editable: col.editable ? isCellEditable : false,
-        cellRenderer: getCellRenderer(col),
-        cellEditor: getCellEditor(col),
-        cellEditorParams: getCellEditorParams(col),
-        valueGetter: createValueGetter(col.field),
-        valueSetter: createValueSetter(col.field),
-      });
+    for (const group of variantColumnGroups) {
+      for (const col of group) {
+        if (!columnVisibility[col.field]) continue;
+
+        columns.push({
+          field: col.field,
+          headerName: col.headerName,
+          width: col.width,
+          minWidth: col.minWidth,
+          flex: col.flex,
+          type: getColumnType(col),
+          editable: col.editable ? isCellEditable : false,
+          cellRenderer: getCellRenderer(col),
+          cellEditor: getCellEditor(col),
+          cellEditorParams: getCellEditorParams(col),
+          valueGetter: createValueGetter(col.field),
+          valueSetter: createValueSetter(col.field),
+        });
+      }
     }
 
     return columns;

@@ -1,9 +1,15 @@
 import React from "react";
 import { createStyles } from "antd-style";
-import { Popover, Checkbox, Button, Divider, Typography } from "antd";
+import { Popover, Checkbox, Divider, Typography, Button } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import { useBulkEditorStore } from "../hooks/useBulkEditorStore";
-import { PRODUCT_COLUMNS, VARIANT_COLUMNS } from "../types";
+import {
+  PRODUCT_COLUMNS,
+  PRICING_COLUMNS,
+  INVENTORY_COLUMNS,
+  ATTRIBUTES_COLUMNS,
+  IBulkEditorColumn,
+} from "../types";
 
 const { Text } = Typography;
 
@@ -31,67 +37,58 @@ const useStyles = createStyles(({ token }) => ({
   checkbox: {
     marginLeft: 0,
   },
-  footer: {
-    paddingTop: 8,
-  },
-  resetButton: {
-    width: "100%",
-  },
 }));
+
+const ColumnSection: React.FC<{
+  title: string;
+  columns: IBulkEditorColumn[];
+  columnVisibility: Record<string, boolean>;
+  toggleColumn: (field: string) => void;
+  styles: ReturnType<typeof useStyles>["styles"];
+}> = ({ title, columns, columnVisibility, toggleColumn, styles }) => (
+  <div className={styles.section}>
+    <Text className={styles.sectionTitle}>{title}</Text>
+    <div className={styles.checkboxGroup}>
+      {columns.map((col) => (
+        <Checkbox
+          key={col.field}
+          checked={columnVisibility[col.field]}
+          onChange={() => toggleColumn(col.field)}
+          className={styles.checkbox}
+        >
+          {col.headerName}
+        </Checkbox>
+      ))}
+    </div>
+  </div>
+);
 
 export const ColumnSettingsPopover: React.FC = () => {
   const { styles } = useStyles();
   const columnVisibility = useBulkEditorStore((s) => s.columnVisibility);
   const toggleColumn = useBulkEditorStore((s) => s.toggleColumn);
-  const resetColumnsToDefault = useBulkEditorStore((s) => s.resetColumnsToDefault);
+
+  const sections = [
+    { title: "General", columns: PRODUCT_COLUMNS },
+    { title: "Pricing", columns: PRICING_COLUMNS },
+    { title: "Inventory", columns: INVENTORY_COLUMNS },
+    { title: "Attributes", columns: ATTRIBUTES_COLUMNS },
+  ];
 
   const content = (
     <div className={styles.content}>
-      <div className={styles.section}>
-        <Text className={styles.sectionTitle}>Product</Text>
-        <div className={styles.checkboxGroup}>
-          {PRODUCT_COLUMNS.map((col) => (
-            <Checkbox
-              key={col.field}
-              checked={columnVisibility[col.field]}
-              onChange={() => toggleColumn(col.field)}
-              className={styles.checkbox}
-            >
-              {col.headerName}
-            </Checkbox>
-          ))}
-        </div>
-      </div>
-
-      <Divider style={{ margin: "12px 0" }} />
-
-      <div className={styles.section}>
-        <Text className={styles.sectionTitle}>Variant</Text>
-        <div className={styles.checkboxGroup}>
-          {VARIANT_COLUMNS.map((col) => (
-            <Checkbox
-              key={col.field}
-              checked={columnVisibility[col.field]}
-              onChange={() => toggleColumn(col.field)}
-              className={styles.checkbox}
-            >
-              {col.headerName}
-            </Checkbox>
-          ))}
-        </div>
-      </div>
-
-      <Divider style={{ margin: "12px 0" }} />
-
-      <div className={styles.footer}>
-        <Button
-          size="small"
-          onClick={resetColumnsToDefault}
-          className={styles.resetButton}
-        >
-          Reset to default
-        </Button>
-      </div>
+      {sections.map((section, index) => (
+        <React.Fragment key={section.title}>
+          {index > 0 && <Divider style={{ margin: "12px 0" }} />}
+          <ColumnSection
+            title={section.title}
+            columns={section.columns}
+            columnVisibility={columnVisibility}
+            toggleColumn={toggleColumn}
+            styles={styles}
+          />
+        </React.Fragment>
+      ))}
     </div>
   );
 

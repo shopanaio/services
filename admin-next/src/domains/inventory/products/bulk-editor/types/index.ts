@@ -48,7 +48,7 @@ export interface IBulkEditorRow {
 }
 
 // Column categories
-export type ColumnCategory = "product" | "variant";
+export type ColumnCategory = "product" | "pricing" | "inventory" | "attributes";
 
 // Column definition with metadata
 export interface IBulkEditorColumn {
@@ -128,29 +128,11 @@ export const PRODUCT_COLUMNS: IBulkEditorColumn[] = [
   },
 ];
 
-export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
-  {
-    field: "sku",
-    headerName: "SKU",
-    category: "variant",
-    defaultVisible: true,
-    editable: true,
-    width: 120,
-    type: "text",
-  },
-  {
-    field: "barcode",
-    headerName: "Barcode",
-    category: "variant",
-    defaultVisible: false,
-    editable: true,
-    width: 140,
-    type: "text",
-  },
+export const PRICING_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "price",
     headerName: "Price",
-    category: "variant",
+    category: "pricing",
     defaultVisible: true,
     editable: true,
     width: 120,
@@ -159,7 +141,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "compareAtPrice",
     headerName: "Compare at",
-    category: "variant",
+    category: "pricing",
     defaultVisible: false,
     editable: true,
     width: 130,
@@ -168,16 +150,37 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "costPrice",
     headerName: "Cost",
-    category: "variant",
+    category: "pricing",
     defaultVisible: false,
     editable: true,
     width: 110,
     type: "number",
   },
+];
+
+export const INVENTORY_COLUMNS: IBulkEditorColumn[] = [
+  {
+    field: "sku",
+    headerName: "SKU",
+    category: "inventory",
+    defaultVisible: true,
+    editable: true,
+    width: 120,
+    type: "text",
+  },
+  {
+    field: "barcode",
+    headerName: "Barcode",
+    category: "inventory",
+    defaultVisible: false,
+    editable: true,
+    width: 140,
+    type: "text",
+  },
   {
     field: "onHand",
     headerName: "On hand",
-    category: "variant",
+    category: "inventory",
     defaultVisible: true,
     editable: true,
     width: 100,
@@ -186,7 +189,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "unavailable",
     headerName: "Unavailable",
-    category: "variant",
+    category: "inventory",
     defaultVisible: true,
     editable: true,
     width: 110,
@@ -195,7 +198,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "reserved",
     headerName: "Reserved",
-    category: "variant",
+    category: "inventory",
     defaultVisible: true,
     editable: false, // managed by order system
     width: 100,
@@ -204,16 +207,19 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "available",
     headerName: "Available",
-    category: "variant",
+    category: "inventory",
     defaultVisible: true,
     editable: false, // calculated
     width: 100,
     type: "number",
   },
+];
+
+export const ATTRIBUTES_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "weight",
     headerName: "Weight",
-    category: "variant",
+    category: "attributes",
     defaultVisible: false,
     editable: true,
     width: 100,
@@ -222,7 +228,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "length",
     headerName: "Length",
-    category: "variant",
+    category: "attributes",
     defaultVisible: false,
     editable: true,
     width: 90,
@@ -231,7 +237,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "width",
     headerName: "Width",
-    category: "variant",
+    category: "attributes",
     defaultVisible: false,
     editable: true,
     width: 90,
@@ -240,7 +246,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   {
     field: "height",
     headerName: "Height",
-    category: "variant",
+    category: "attributes",
     defaultVisible: false,
     editable: true,
     width: 90,
@@ -248,7 +254,12 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
   },
 ];
 
-export const ALL_COLUMNS = [...PRODUCT_COLUMNS, ...VARIANT_COLUMNS];
+export const ALL_COLUMNS = [
+  ...PRODUCT_COLUMNS,
+  ...PRICING_COLUMNS,
+  ...INVENTORY_COLUMNS,
+  ...ATTRIBUTES_COLUMNS,
+];
 
 // Variant field names - used for determining cell editability and display
 export const VARIANT_FIELDS = new Set<keyof IBulkEditorRow>([
