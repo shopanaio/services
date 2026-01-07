@@ -22,6 +22,12 @@ export interface ICellSelectionConfig {
   selectableColumns?: string[];
 
   /**
+   * Enable keyboard shortcuts (Escape, Delete, Ctrl+C, Ctrl+A)
+   * @default true
+   */
+  enableKeyboardShortcuts?: boolean;
+
+  /**
    * Callback fired when selection changes
    */
   onSelectionChange?: (cells: ICellSelection[]) => void;
@@ -35,6 +41,11 @@ export interface ICellSelectionConfig {
    * Callback to set the value of a cell
    */
   setCellValue?: (rowId: string, field: string, value: unknown) => void;
+
+  /**
+   * Callback to increment a cell value by delta (for numeric cells)
+   */
+  incrementCellValue?: (rowId: string, field: string, delta: number) => void;
 }
 
 /**
@@ -47,6 +58,9 @@ export interface ICellSelectionApi {
   /** The column that is currently being selected (for single column mode) */
   activeColumn: string | null;
 
+  /** Number of selected cells */
+  selectionCount: number;
+
   /** Check if a specific cell is selected */
   isCellSelected: (rowId: string, field: string) => boolean;
 
@@ -57,16 +71,25 @@ export interface ICellSelectionApi {
   clearSelection: () => void;
 
   /** Select all cells in a column */
-  selectAll: (field: string, rowIds: string[]) => void;
+  selectAll: (field: string, rowIds?: string[]) => void;
 
   /** Copy values of selected cells to clipboard */
   copySelectedValues: () => Promise<void>;
 
+  /** Paste values from clipboard to selected cells */
+  pasteToSelectedCells: () => Promise<void>;
+
   /** Set a value to all selected cells */
   setSelectedValues: (value: unknown) => void;
 
-  /** Clear values of all selected cells */
+  /** Clear values of all selected cells (set to null) */
   clearSelectedValues: () => void;
+
+  /** Increment all selected cell values by delta (for numeric cells) */
+  incrementSelectedValues: (delta: number) => void;
+
+  /** Get all values from selected cells */
+  getSelectedValues: () => unknown[];
 }
 
 /**

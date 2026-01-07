@@ -164,8 +164,7 @@ const BulkEditorGridInner: React.FC<BulkEditorGridInnerProps> = ({ gridRef }) =>
   // Handle cell edit request - update all selected cells
   const handleCellEditRequest = useCallback(
     (event: CellEditRequestEvent<IBulkEditorRow>) => {
-      const { data, colDef, newValue, oldValue } = event;
-      console.log("CellEditRequest:", { newValue, oldValue, field: colDef?.field, data });
+      const { data, colDef, newValue } = event;
       if (!data || !colDef?.field) return;
 
       const field = colDef.field as keyof IBulkEditorRow;
@@ -225,6 +224,7 @@ export const BulkEditorGrid: React.FC = () => {
   const selectionConfig = useMemo((): ICellSelectionConfig => ({
     singleColumnOnly: true,
     selectableColumns: SELECTABLE_COLUMNS,
+    enableKeyboardShortcuts: true,
     getCellValue: (rowId, field) => {
       const row = displayRows.find((r) => r.id === rowId);
       return row ? row[field as keyof IBulkEditorRow] : undefined;
@@ -234,6 +234,17 @@ export const BulkEditorGrid: React.FC = () => {
       if (originalRow) {
         const originalValue = originalRow[field as keyof IBulkEditorRow];
         setFieldValue(rowId, field, originalValue, value);
+      }
+    },
+    incrementCellValue: (rowId, field, delta) => {
+      const row = displayRows.find((r) => r.id === rowId);
+      const originalRow = rows.find((r) => r.id === rowId);
+      if (row && originalRow) {
+        const currentValue = row[field as keyof IBulkEditorRow];
+        if (typeof currentValue === "number") {
+          const originalValue = originalRow[field as keyof IBulkEditorRow];
+          setFieldValue(rowId, field, originalValue, currentValue + delta);
+        }
       }
     },
   }), [displayRows, rows, setFieldValue]);

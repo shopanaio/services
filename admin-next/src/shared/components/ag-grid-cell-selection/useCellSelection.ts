@@ -28,9 +28,11 @@ export const useCellSelection = <TData = unknown>(
   const {
     singleColumnOnly = true,
     selectableColumns,
+    enableKeyboardShortcuts = true,
     onSelectionChange,
     getCellValue,
     setCellValue,
+    incrementCellValue,
   } = config;
 
   // Create isolated store for this grid instance
@@ -123,12 +125,14 @@ export const useCellSelection = <TData = unknown>(
           state.toggleCell(rowId, field);
         }
       } else if (event.shiftKey && state.selectionAnchor) {
-        // Shift + Click - toggle single cell (same as Ctrl+Click)
+        // Shift + Click - select range from anchor to clicked cell
         if (singleColumnOnly && state.activeColumn && state.activeColumn !== field) {
           // Different column in single column mode - start fresh
           state.startSelection(rowId, field);
         } else {
-          state.toggleCell(rowId, field);
+          // Select range using anchor's field (for single column mode)
+          const targetField = singleColumnOnly ? state.selectionAnchor.field : field;
+          state.selectRange(rowId, targetField, getVisibleRowIds());
         }
       } else {
         // Regular click - start new selection
@@ -164,6 +168,10 @@ export const useCellSelection = <TData = unknown>(
         return store.getState().activeColumn;
       },
 
+      get selectionCount() {
+        return store.getState().selectedCells.length;
+      },
+
       isCellSelected: (rowId: string, field: string) => {
         return store.getState().isCellSelected(rowId, field);
       },
@@ -181,6 +189,12 @@ export const useCellSelection = <TData = unknown>(
         store.getState().selectAll(field, ids);
       },
 
+      getSelectedValues: () => {
+        if (!getCellValue) return [];
+        const { selectedCells } = store.getState();
+        return selectedCells.map((cell) => getCellValue(cell.rowId, cell.field));
+      },
+
       copySelectedValues: async () => {
         if (!getCellValue) return;
 
@@ -191,6 +205,33 @@ export const useCellSelection = <TData = unknown>(
 
         const text = values.join("\n");
         await navigator.clipboard.writeText(text);
+      },
+
+      pasteToSelectedCells: async () => {
+        if (!setCellValue) return;
+
+        try {
+          const text = await navigator.clipboard.readText();
+          const values = text.split("\n").filter((v) => v.trim() !== "");
+          const { selectedCells } = store.getState();
+
+          // Apply values cyclically if less values than cells
+          selectedCells.forEach((cell, index) => {
+            const value = values[index % values.length];
+            if (value !== undefined) {
+              // Try to parse as number if it looks like a number
+              const numValue = parseFloat(value);
+              setCellValue(
+                cell.rowId,
+                cell.field,
+                isNaN(numValue) ? value : numValue
+              );
+            }
+          });
+        } catch {
+          // Clipboard access denied or other error
+          console.warn("Could not paste from clipboard");
+        }
       },
 
       setSelectedValues: (value: unknown) => {
@@ -210,8 +251,17 @@ export const useCellSelection = <TData = unknown>(
           setCellValue(cell.rowId, cell.field, null);
         });
       },
+
+      incrementSelectedValues: (delta: number) => {
+        if (!incrementCellValue) return;
+
+        const { selectedCells } = store.getState();
+        selectedCells.forEach((cell) => {
+          incrementCellValue(cell.rowId, cell.field, delta);
+        });
+      },
     };
-  }, [store, getVisibleRowIds, getCellValue, setCellValue]);
+  }, [store, getVisibleRowIds, getCellValue, setCellValue, incrementCellValue]);
 
   const handlers = useMemo(
     (): ICellSelectionHandlers => ({
@@ -220,6 +270,97 @@ export const useCellSelection = <TData = unknown>(
     }),
     [handleMouseDown, handleMouseEnter]
   );
+
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    if (!enableKeyboardShortcuts) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const state = store.getState();
+      if (!state.hasSelection()) return;
+
+      // Check if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Escape - clear selection
+      if (event.key === "Escape") {
+        event.preventDefault();
+        state.clearSelection();
+        return;
+      }
+
+      // Delete/Backspace - clear values
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (setCellValue) {
+          event.preventDefault();
+          api.clearSelectedValues();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + C - copy
+      if ((event.ctrlKey || event.metaKey) && event.key === "c") {
+        if (getCellValue) {
+          event.preventDefault();
+          api.copySelectedValues();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + V - paste
+      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        if (setCellValue) {
+          event.preventDefault();
+          api.pasteToSelectedCells();
+        }
+        return;
+      }
+
+      // Ctrl/Cmd + A - select all in column
+      if ((event.ctrlKey || event.metaKey) && event.key === "a") {
+        const { activeColumn } = state;
+        if (activeColumn) {
+          event.preventDefault();
+          state.selectAll(activeColumn, getVisibleRowIds());
+        }
+        return;
+      }
+
+      // Arrow Up/Down with Shift - increment/decrement numeric values
+      if (event.shiftKey && incrementCellValue) {
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          api.incrementSelectedValues(1);
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          api.incrementSelectedValues(-1);
+          return;
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    enableKeyboardShortcuts,
+    store,
+    api,
+    getVisibleRowIds,
+    getCellValue,
+    setCellValue,
+    incrementCellValue,
+  ]);
 
   return { api, handlers, store };
 };

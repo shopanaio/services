@@ -14,12 +14,13 @@ interface CellSelectionState {
   extendSelection: (rowId: string, rowIds: string[]) => void;
   endSelection: () => void;
   toggleCell: (rowId: string, field: string) => void;
-  selectRange: (endRowId: string, rowIds: string[]) => void;
+  selectRange: (endRowId: string, field: string, rowIds: string[]) => void;
   clearSelection: () => void;
   selectAll: (field: string, rowIds: string[]) => void;
 
   // Selectors
   isCellSelected: (rowId: string, field: string) => boolean;
+  hasSelection: () => boolean;
 }
 
 /**
@@ -139,11 +140,11 @@ export const createCellSelectionStore = (): UseBoundStore<
     },
 
     // Select range from anchor to target (Shift + Click)
-    selectRange: (endRowId, rowIds) => {
+    selectRange: (endRowId, field, rowIds) => {
       const state = get();
       if (!state.selectionAnchor) return;
 
-      const { rowId: startRowId, field } = state.selectionAnchor;
+      const { rowId: startRowId } = state.selectionAnchor;
       const cells = getCellsInRange(startRowId, endRowId, field, rowIds);
 
       set({
@@ -178,6 +179,11 @@ export const createCellSelectionStore = (): UseBoundStore<
       return get().selectedCells.some(
         (c) => c.rowId === rowId && c.field === field
       );
+    },
+
+    // Check if there's any selection
+    hasSelection: () => {
+      return get().selectedCells.length > 0;
     },
   }));
 
