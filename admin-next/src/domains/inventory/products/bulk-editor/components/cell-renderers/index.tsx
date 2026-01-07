@@ -27,10 +27,17 @@ const useStyles = createStyles(({ token }) => ({
     paddingLeft: 16,
   },
   dashCell: {
-    color: token.colorTextQuaternary,
-    textAlign: "center",
-    userSelect: "none",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     width: "100%",
+    height: "100%",
+  },
+  dashLine: {
+    width: 16,
+    height: 3,
+    backgroundColor: token.colorBorder,
+    borderRadius: 2,
   },
   priceCell: {
     textAlign: "right",
@@ -98,9 +105,14 @@ export const TitleCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
 };
 
 // Dash cell for non-applicable columns
-export const DashCellRenderer: React.FC = () => {
+export const DashCellRenderer: React.FC<{ align?: "left" | "center" | "right" }> = ({ align = "center" }) => {
   const { styles } = useStyles();
-  return <div className={styles.dashCell}>—</div>;
+  const justifyContent = align === "right" ? "flex-end" : align === "left" ? "flex-start" : "center";
+  return (
+    <div className={styles.dashCell} style={{ justifyContent }}>
+      <div className={styles.dashLine} />
+    </div>
+  );
 };
 
 // Price cell with edit diff
@@ -121,7 +133,7 @@ export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     (data.rowType === "variant" && category === "product");
 
   if (shouldShowDash) {
-    return <DashCellRenderer />;
+    return <DashCellRenderer align="right" />;
   }
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
@@ -156,7 +168,7 @@ export const StockCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     (data.rowType === "variant" && !["sku", "barcode", "price", "compareAtPrice", "costPrice", "stock", "stockStatus", "weight", "weightUnit", "length", "width", "height", "dimensionUnit"].includes(field));
 
   if (shouldShowDash) {
-    return <DashCellRenderer />;
+    return <DashCellRenderer align="right" />;
   }
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
@@ -171,7 +183,11 @@ export const StockCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     );
   }
 
-  return <div className={styles.stockCell}>{value ?? "—"}</div>;
+  if (value == null) {
+    return <DashCellRenderer align="right" />;
+  }
+
+  return <div className={styles.stockCell}>{value}</div>;
 };
 
 // Stock status badge
@@ -183,7 +199,7 @@ export const StockStatusRenderer: React.FC<CustomCellRendererProps<IBulkEditorRo
 
   // Check if value should be dash (product rows for multi-variant)
   if (data.rowType === "product") {
-    return <DashCellRenderer />;
+    return <DashCellRenderer align="left" />;
   }
 
   const status = data.stockStatus;
@@ -213,7 +229,7 @@ export const ProductStatusRenderer: React.FC<CustomCellRendererProps<IBulkEditor
 
   // Check if value should be dash (variant rows)
   if (data.rowType === "variant") {
-    return <DashCellRenderer />;
+    return <DashCellRenderer align="left" />;
   }
 
   const status = data.productStatus;
@@ -248,7 +264,7 @@ export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>>
     (data.rowType === "variant" && !isVariantColumn);
 
   if (shouldShowDash) {
-    return <DashCellRenderer />;
+    return <DashCellRenderer align="left" />;
   }
 
   return <span>{value ?? "—"}</span>;
@@ -271,7 +287,7 @@ export const NumberCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow
     (data.rowType === "variant" && !isVariantColumn);
 
   if (shouldShowDash) {
-    return <DashCellRenderer />;
+    return <DashCellRenderer align="right" />;
   }
 
   const edit = getFieldEdit(data.id, field) as IFieldEdit<number | null> | undefined;
