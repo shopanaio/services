@@ -25,6 +25,7 @@ const useStyles = createStyles(({ token }) => ({
     "--ag-borders": "solid 1px",
     "--ag-border-color": token.colorBorder,
     "--ag-row-border-color": token.colorBorder,
+    "--ag-cell-horizontal-padding": "0px",
     "--ag-header-column-separator-display": "block",
     "--ag-header-column-separator-color": token.colorBorder,
     "--ag-header-column-separator-width": "1px",
