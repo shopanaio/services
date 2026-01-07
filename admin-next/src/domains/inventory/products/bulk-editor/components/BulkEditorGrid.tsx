@@ -3,7 +3,6 @@ import { createStyles } from "antd-style";
 import { AgGridReact } from "ag-grid-react";
 import type {
   CellEditRequestEvent,
-  GridReadyEvent,
   GetRowIdParams,
   RowClassParams,
 } from "ag-grid-community";
@@ -14,6 +13,7 @@ import { useBulkEditorColumns } from "../hooks/useBulkEditorColumns";
 import {
   CellSelectionProvider,
   ICellSelectionConfig,
+  useCellSelectionContext,
 } from "@/shared/components/ag-grid-cell-selection";
 
 const useStyles = createStyles(({ token }) => ({
@@ -128,30 +128,18 @@ const SELECTABLE_COLUMNS = [
   "height",
 ];
 
-export const BulkEditorGrid: React.FC = () => {
+interface BulkEditorGridInnerProps {
+  gridRef: React.RefObject<AgGridReact<IBulkEditorRow> | null>;
+}
+
+// Inner grid component that has access to cell selection context
+const BulkEditorGridInner: React.FC<BulkEditorGridInnerProps> = ({ gridRef }) => {
   const { styles } = useStyles();
-  const gridRef = useRef<AgGridReact<IBulkEditorRow>>(null);
 
   const { displayRows, rows } = useBulkEditorData();
   const columns = useBulkEditorColumns();
   const setFieldValue = useBulkEditorStore((s) => s.setFieldValue);
-
-  // Cell selection configuration
-  const selectionConfig = useMemo((): ICellSelectionConfig => ({
-    singleColumnOnly: true,
-    selectableColumns: SELECTABLE_COLUMNS,
-    getCellValue: (rowId, field) => {
-      const row = displayRows.find((r) => r.id === rowId);
-      return row ? row[field as keyof IBulkEditorRow] : undefined;
-    },
-    setCellValue: (rowId, field, value) => {
-      const originalRow = rows.find((r) => r.id === rowId);
-      if (originalRow) {
-        const originalValue = originalRow[field as keyof IBulkEditorRow];
-        setFieldValue(rowId, field, originalValue, value);
-      }
-    },
-  }), [displayRows, rows, setFieldValue]);
+  const { api: selectionApi } = useCellSelectionContext();
 
   // Get row ID
   const getRowId = useCallback((params: GetRowIdParams<IBulkEditorRow>) => {
@@ -173,55 +161,86 @@ export const BulkEditorGrid: React.FC = () => {
     }
   }, []);
 
-  // Handle cell edit request
+  // Handle cell edit request - update all selected cells
   const handleCellEditRequest = useCallback(
     (event: CellEditRequestEvent<IBulkEditorRow>) => {
-      const { data, colDef, newValue } = event;
+      const { data, colDef, newValue, oldValue } = event;
+      console.log("CellEditRequest:", { newValue, oldValue, field: colDef?.field, data });
       if (!data || !colDef?.field) return;
 
       const field = colDef.field as keyof IBulkEditorRow;
+      const selectedCells = selectionApi.selectedCells;
 
-      // Find original value from non-edited rows
-      const originalRow = rows.find((r) => r.id === data.id);
-      if (!originalRow) return;
+      // If we have selected cells in the same column, update all of them
+      if (selectedCells.length > 0 && selectedCells[0].field === field) {
+        selectedCells.forEach((cell) => {
+          const originalRow = rows.find((r) => r.id === cell.rowId);
+          if (originalRow) {
+            const originalValue = originalRow[field];
+            setFieldValue(cell.rowId, field, originalValue, newValue);
+          }
+        });
+      } else {
+        // No selection or different column - update single cell
+        const originalRow = rows.find((r) => r.id === data.id);
+        if (!originalRow) return;
 
-      const originalValue = originalRow[field];
-
-      // Update store
-      setFieldValue(data.id, field, originalValue, newValue);
+        const originalValue = originalRow[field];
+        setFieldValue(data.id, field, originalValue, newValue);
+      }
     },
-    [rows, setFieldValue]
+    [rows, setFieldValue, selectionApi]
   );
 
-  // Grid ready handler
-  const handleGridReady = useCallback((_event: GridReadyEvent) => {
-    // Auto-size columns if needed
-  }, []);
+  return (
+    <div className={styles.gridWrapper}>
+      <AgGridReact<IBulkEditorRow>
+        ref={gridRef}
+        rowData={displayRows}
+        columnDefs={columns}
+        rowHeight={52}
+        headerHeight={44}
+        getRowId={getRowId}
+        getRowClass={getRowClass}
+        readOnlyEdit
+        stopEditingWhenCellsLoseFocus
+        onCellEditRequest={handleCellEditRequest}
+        animateRows={false}
+        defaultColDef={{
+          resizable: true,
+          sortable: true,
+          suppressMovable: true,
+        }}
+      />
+    </div>
+  );
+};
+
+export const BulkEditorGrid: React.FC = () => {
+  const gridRef = useRef<AgGridReact<IBulkEditorRow>>(null);
+  const { displayRows, rows } = useBulkEditorData();
+  const setFieldValue = useBulkEditorStore((s) => s.setFieldValue);
+
+  // Cell selection configuration
+  const selectionConfig = useMemo((): ICellSelectionConfig => ({
+    singleColumnOnly: true,
+    selectableColumns: SELECTABLE_COLUMNS,
+    getCellValue: (rowId, field) => {
+      const row = displayRows.find((r) => r.id === rowId);
+      return row ? row[field as keyof IBulkEditorRow] : undefined;
+    },
+    setCellValue: (rowId, field, value) => {
+      const originalRow = rows.find((r) => r.id === rowId);
+      if (originalRow) {
+        const originalValue = originalRow[field as keyof IBulkEditorRow];
+        setFieldValue(rowId, field, originalValue, value);
+      }
+    },
+  }), [displayRows, rows, setFieldValue]);
 
   return (
     <CellSelectionProvider gridRef={gridRef} config={selectionConfig}>
-      <div className={styles.gridWrapper}>
-        <AgGridReact<IBulkEditorRow>
-          ref={gridRef}
-          rowData={displayRows}
-          columnDefs={columns}
-          rowHeight={52}
-          headerHeight={44}
-          getRowId={getRowId}
-          getRowClass={getRowClass}
-          readOnlyEdit
-          stopEditingWhenCellsLoseFocus
-          onCellEditRequest={handleCellEditRequest}
-          onGridReady={handleGridReady}
-          suppressRowClickSelection
-          animateRows={false}
-          defaultColDef={{
-            resizable: true,
-            sortable: true,
-            suppressMovable: true,
-          }}
-        />
-      </div>
+      <BulkEditorGridInner gridRef={gridRef} />
     </CellSelectionProvider>
   );
 };

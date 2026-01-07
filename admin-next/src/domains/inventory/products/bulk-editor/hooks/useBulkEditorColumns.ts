@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ColDef, EditableCallbackParams, ValueGetterParams } from "ag-grid-community";
+import type { ColDef, EditableCallbackParams, ValueGetterParams, ValueParserParams } from "ag-grid-community";
 import { useBulkEditorStore } from "./useBulkEditorStore";
 import { IBulkEditorRow, ALL_COLUMNS, PRODUCT_COLUMNS, VARIANT_COLUMNS } from "../types";
 import {
@@ -94,6 +94,8 @@ function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
 function getCellEditor(column: (typeof ALL_COLUMNS)[0]) {
   switch (column.type) {
     case "currency":
+      // Use text editor for currency to avoid AG Grid number formatting issues
+      return "agTextCellEditor";
     case "number":
       return "agNumberCellEditor";
     case "text":
@@ -128,7 +130,7 @@ function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
     case "price":
     case "compareAtPrice":
     case "costPrice":
-      return { min: 0 };
+      return { min: 0, precision: 0 };
     case "stock":
       return { min: 0, precision: 0 };
     case "weight":
@@ -139,6 +141,18 @@ function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
     default:
       return undefined;
   }
+}
+
+// Value parser - just return the new value as number
+function createValueParser(field: keyof IBulkEditorRow) {
+  return (params: ValueParserParams<IBulkEditorRow>) => {
+    const { newValue } = params;
+    if (newValue === null || newValue === undefined || newValue === "") {
+      return null;
+    }
+    const num = Number(newValue);
+    return isNaN(num) ? null : num;
+  };
 }
 
 export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
