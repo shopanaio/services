@@ -147,7 +147,6 @@ export function useVariantsColumns(
       headerName: "Image",
       width: 56,
       cellRenderer: ImageCellRenderer,
-      cellStyle: { padding: 0 },
       pinned: "left",
       sortable: false,
       resizable: false,
