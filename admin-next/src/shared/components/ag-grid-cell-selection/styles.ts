@@ -7,7 +7,7 @@ export const useSelectionStyles = createStyles(({ token }) => ({
     height: "100%",
     display: "flex",
     alignItems: "center",
-    cursor: "cell",
+    cursor: "default",
     userSelect: "none",
     transition: "background-color 0.1s, box-shadow 0.1s",
   },

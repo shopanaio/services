@@ -145,7 +145,7 @@ export function useVariantsColumns(
     columns.push({
       field: "imageUrl",
       headerName: "Image",
-      width: 56,
+      width: 72,
       cellRenderer: ImageCellRenderer,
       pinned: "left",
       sortable: false,

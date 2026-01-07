@@ -54,7 +54,7 @@ const useStyles = createStyles(({ token }) => ({
 
     // Selectable cell styles
     ".ag-cell:has([data-selectable])": {
-      cursor: "cell",
+      cursor: "default",
       userSelect: "none",
     },
 
