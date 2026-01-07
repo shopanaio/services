@@ -1,9 +1,14 @@
 import React from "react";
 import { createStyles } from "antd-style";
-import { Popover, Checkbox, Button, Divider, Typography } from "antd";
+import { Popover, Checkbox, Divider, Typography, Button } from "antd";
 import { SettingOutlined } from "@ant-design/icons";
 import { useVariantsEditorStore } from "../hooks";
-import { VARIANT_COLUMNS, type IOptionGroup } from "../config";
+import {
+  PRICING_COLUMNS,
+  INVENTORY_COLUMNS,
+  ATTRIBUTES_COLUMNS,
+  type IOptionGroup,
+} from "../config";
 
 const { Text } = Typography;
 
@@ -35,12 +40,6 @@ const useStyles = createStyles(({ token }) => ({
   checkbox: {
     marginLeft: 0,
   },
-  footer: {
-    paddingTop: 8,
-  },
-  resetButton: {
-    width: "100%",
-  },
 }));
 
 // ============================================================================
@@ -68,62 +67,58 @@ export const VariantsColumnSettings: React.FC<VariantsColumnSettingsProps> = ({
   const toggleOptionColumn = useVariantsEditorStore(
     (s) => s.toggleOptionColumn
   );
-  const resetColumnsToDefault = useVariantsEditorStore(
-    (s) => s.resetColumnsToDefault
-  );
+
+  const sections = [
+    { title: "Options", columns: optionGroups, isOptions: true },
+    { title: "Pricing", columns: PRICING_COLUMNS, isOptions: false },
+    { title: "Inventory", columns: INVENTORY_COLUMNS, isOptions: false },
+    { title: "Attributes", columns: ATTRIBUTES_COLUMNS, isOptions: false },
+  ];
 
   const content = (
     <div className={styles.content}>
-      {/* Options section (dynamic) */}
-      {optionGroups.length > 0 && (
-        <>
-          <div className={styles.section}>
-            <Text className={styles.sectionTitle}>Options</Text>
-            <div className={styles.checkboxGroup}>
-              {optionGroups.map((group) => (
-                <Checkbox
-                  key={group.name}
-                  checked={isOptionColumnVisible(group.name)}
-                  onChange={() => toggleOptionColumn(group.name)}
-                  className={styles.checkbox}
-                >
-                  {group.name}
-                </Checkbox>
-              ))}
+      {/* Title - always first and disabled */}
+      <Checkbox checked disabled className={styles.checkbox}>
+        Title
+      </Checkbox>
+
+      {sections.map((section) => {
+        // Skip options section if no option groups
+        if (section.isOptions && optionGroups.length === 0) return null;
+        if (section.columns.length === 0) return null;
+
+        return (
+          <React.Fragment key={section.title}>
+            <Divider style={{ margin: "12px 0" }} />
+            <div className={styles.section}>
+              <Text className={styles.sectionTitle}>{section.title}</Text>
+              <div className={styles.checkboxGroup}>
+                {section.isOptions
+                  ? optionGroups.map((group) => (
+                      <Checkbox
+                        key={group.name}
+                        checked={isOptionColumnVisible(group.name)}
+                        onChange={() => toggleOptionColumn(group.name)}
+                        className={styles.checkbox}
+                      >
+                        {group.name}
+                      </Checkbox>
+                    ))
+                  : (section.columns as typeof PRICING_COLUMNS).map((col) => (
+                      <Checkbox
+                        key={col.field}
+                        checked={columnVisibility[col.field]}
+                        onChange={() => toggleColumn(col.field)}
+                        className={styles.checkbox}
+                      >
+                        {col.headerName}
+                      </Checkbox>
+                    ))}
+              </div>
             </div>
-          </div>
-          <Divider style={{ margin: "12px 0" }} />
-        </>
-      )}
-
-      {/* Variant columns section */}
-      <div className={styles.section}>
-        <Text className={styles.sectionTitle}>Variant</Text>
-        <div className={styles.checkboxGroup}>
-          {VARIANT_COLUMNS.map((col) => (
-            <Checkbox
-              key={col.field}
-              checked={columnVisibility[col.field]}
-              onChange={() => toggleColumn(col.field)}
-              className={styles.checkbox}
-            >
-              {col.headerName}
-            </Checkbox>
-          ))}
-        </div>
-      </div>
-
-      <Divider style={{ margin: "12px 0" }} />
-
-      <div className={styles.footer}>
-        <Button
-          size="small"
-          onClick={resetColumnsToDefault}
-          className={styles.resetButton}
-        >
-          Reset to default
-        </Button>
-      </div>
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 

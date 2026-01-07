@@ -9,6 +9,9 @@ export type {
 
 export {
   VARIANT_COLUMNS,
+  PRICING_COLUMNS,
+  INVENTORY_COLUMNS,
+  ATTRIBUTES_COLUMNS,
   SELECTABLE_COLUMNS,
   createOptionColumns,
 } from "./columns";

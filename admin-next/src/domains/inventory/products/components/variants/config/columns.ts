@@ -1,27 +1,10 @@
 import type { IVariantColumn, IOptionGroup } from "./types";
 
 // ============================================================================
-// Variant Columns Configuration
-// Same as bulk editor VARIANT_COLUMNS
+// Variant Columns Configuration (grouped like bulk editor)
 // ============================================================================
 
-export const VARIANT_COLUMNS: IVariantColumn[] = [
-  {
-    field: "sku",
-    headerName: "SKU",
-    defaultVisible: true,
-    editable: true,
-    width: 120,
-    type: "text",
-  },
-  {
-    field: "barcode",
-    headerName: "Barcode",
-    defaultVisible: false,
-    editable: true,
-    width: 140,
-    type: "text",
-  },
+export const PRICING_COLUMNS: IVariantColumn[] = [
   {
     field: "price",
     headerName: "Price",
@@ -45,6 +28,25 @@ export const VARIANT_COLUMNS: IVariantColumn[] = [
     editable: true,
     width: 110,
     type: "number",
+  },
+];
+
+export const INVENTORY_COLUMNS: IVariantColumn[] = [
+  {
+    field: "sku",
+    headerName: "SKU",
+    defaultVisible: true,
+    editable: true,
+    width: 120,
+    type: "text",
+  },
+  {
+    field: "barcode",
+    headerName: "Barcode",
+    defaultVisible: false,
+    editable: true,
+    width: 140,
+    type: "text",
   },
   {
     field: "onHand",
@@ -78,6 +80,9 @@ export const VARIANT_COLUMNS: IVariantColumn[] = [
     width: 100,
     type: "number",
   },
+];
+
+export const ATTRIBUTES_COLUMNS: IVariantColumn[] = [
   {
     field: "weight",
     headerName: "Weight",
@@ -110,6 +115,13 @@ export const VARIANT_COLUMNS: IVariantColumn[] = [
     width: 90,
     type: "number",
   },
+];
+
+// Combined for backwards compatibility
+export const VARIANT_COLUMNS: IVariantColumn[] = [
+  ...PRICING_COLUMNS,
+  ...INVENTORY_COLUMNS,
+  ...ATTRIBUTES_COLUMNS,
 ];
 
 // ============================================================================
