@@ -39,6 +39,16 @@ ModuleRegistry.registerModules([
 const useStyles = createStyles(({ token }) => ({
   gridWrapper: {
     flex: 1,
+    // Transparent resize handles (visible on hover), full height
+    "& .ag-header-cell-resize": {
+      opacity: 0,
+      transition: "opacity 0.2s",
+      height: "100%",
+      top: 0,
+      "&:hover": {
+        opacity: 1,
+      },
+    },
   },
   gridContainer: {
     height: "100%",
