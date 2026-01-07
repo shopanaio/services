@@ -40,7 +40,9 @@ export const SelectableCell: React.FC<SelectableCellProps> = ({
   const store = useCellSelectionStore();
 
   // Subscribe to selection state for this specific cell
-  const isSelected = store((state) => state.isCellSelected(rowId, field));
+  const isSelected = store((state) =>
+    state.selectedCells.some((c) => c.rowId === rowId && c.field === field)
+  );
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {

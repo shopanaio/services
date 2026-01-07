@@ -55,10 +55,17 @@ const useStyles = createStyles(({ token }) => ({
       userSelect: "none",
     },
 
+    // Make selectable div fill the cell
+    "[data-selectable]": {
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+    },
+
     // Selected cell styles
     ".ag-cell:has([data-selected='true'])": {
-      backgroundColor: token.colorPrimaryBg,
-      boxShadow: `inset 0 0 0 2px ${token.colorPrimary}`,
+      backgroundColor: "var(--ag-range-selection-background-color)",
     },
 
     // Fix input alignment in edit mode
