@@ -227,6 +227,46 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
 
 export const ALL_COLUMNS = [...PRODUCT_COLUMNS, ...VARIANT_COLUMNS];
 
+// Variant field names - used for determining cell editability and display
+export const VARIANT_FIELDS = new Set<keyof IBulkEditorRow>([
+  "sku",
+  "barcode",
+  "price",
+  "compareAtPrice",
+  "costPrice",
+  "stock",
+  "stockStatus",
+  "weight",
+  "weightUnit",
+  "length",
+  "width",
+  "height",
+  "dimensionUnit",
+]);
+
+// Check if a cell should show dash (not applicable for this row type)
+export function shouldShowDash(
+  rowType: BulkEditorRowType,
+  field: keyof IBulkEditorRow
+): boolean {
+  const isVariantField = VARIANT_FIELDS.has(field);
+  return (
+    (rowType === "product" && isVariantField) ||
+    (rowType === "variant" && !isVariantField)
+  );
+}
+
+// Format price for display
+export function formatPrice(value: number | null): string {
+  if (value === null) return "";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 // Default column visibility
 export const DEFAULT_COLUMN_VISIBILITY: IColumnVisibility = ALL_COLUMNS.reduce(
   (acc, col) => ({

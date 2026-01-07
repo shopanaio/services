@@ -11,32 +11,16 @@ import {
   ALL_COLUMNS,
   PRODUCT_COLUMNS,
   VARIANT_COLUMNS,
+  VARIANT_FIELDS,
 } from "../types";
 import {
   TitleCellRenderer,
-  StockCellRenderer,
   StockStatusRenderer,
   ProductStatusRenderer,
   TextCellRenderer,
   NumberCellRenderer,
   PriceCellRenderer,
 } from "../components/cell-renderers";
-
-const VARIANT_FIELDS = new Set([
-  "sku",
-  "barcode",
-  "price",
-  "compareAtPrice",
-  "costPrice",
-  "stock",
-  "stockStatus",
-  "weight",
-  "weightUnit",
-  "length",
-  "width",
-  "height",
-  "dimensionUnit",
-]);
 
 // Check if cell should be editable
 function isCellEditable(
@@ -49,7 +33,7 @@ function isCellEditable(
   if (!column || !column.editable) return false;
 
   const { rowType } = data;
-  const isVariantColumn = VARIANT_FIELDS.has(column.field as string);
+  const isVariantColumn = VARIANT_FIELDS.has(column.field);
 
   // Single variant product: all columns editable
   if (rowType === "single-variant-product") return true;
@@ -69,12 +53,12 @@ function createValueGetter(field: keyof IBulkEditorRow) {
     const { data } = params;
     if (!data) return null;
 
-    const isVariantColumn = VARIANT_FIELDS.has(field as string);
-    const shouldShowDash =
+    const isVariantColumn = VARIANT_FIELDS.has(field);
+    const showDash =
       (data.rowType === "product" && isVariantColumn) ||
       (data.rowType === "variant" && !isVariantColumn);
 
-    if (shouldShowDash) return null;
+    if (showDash) return null;
 
     // Get edited value from store, or fall back to original
     const edit = useBulkEditorStore
@@ -113,7 +97,6 @@ function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
       return undefined;
     case "number":
       if (PRICE_FIELDS.has(column.field)) return PriceCellRenderer;
-      if (column.field === "stock") return StockCellRenderer;
       return NumberCellRenderer;
     case "text":
       return TextCellRenderer;
