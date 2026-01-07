@@ -43,21 +43,22 @@ const useStyles = createStyles(({ token }) => ({
     width: "100%",
   },
   editedValue: {
-    textAlign: "right",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
     width: "100%",
   },
   originalValue: {
+    color: token.colorTextSecondary,
     textDecoration: "line-through",
-    color: token.colorTextQuaternary,
-    fontSize: 12,
   },
   arrow: {
-    color: token.colorTextQuaternary,
-    fontSize: 11,
+    color: token.colorTextSecondary,
+    fontSize: 12,
   },
   newValue: {
-    fontWeight: 500,
-    color: token.colorPrimary,
+    fontWeight: 600,
   },
   statusTag: {
     margin: 0,
@@ -132,7 +133,7 @@ export const PriceCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     return (
       <div className={styles.editedValue}>
         <span className={styles.originalValue}>{origPrice ?? ""}</span>
-        <span className={styles.arrow}> → </span>
+        <span className={styles.arrow}>→</span>
         <span className={styles.newValue}>{newPrice ?? ""}</span>
       </div>
     );
@@ -168,7 +169,7 @@ export const StockCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>
     return (
       <div className={styles.editedValue}>
         <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
-        <span className={styles.arrow}> → </span>
+        <span className={styles.arrow}>→</span>
         <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
       </div>
     );
@@ -283,7 +284,7 @@ export const NumberCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow
     return (
       <div className={styles.editedValue}>
         <span className={styles.originalValue}>{edit.originalValue ?? ""}</span>
-        <span className={styles.arrow}> → </span>
+        <span className={styles.arrow}>→</span>
         <span className={styles.newValue}>{edit.currentValue ?? ""}</span>
       </div>
     );

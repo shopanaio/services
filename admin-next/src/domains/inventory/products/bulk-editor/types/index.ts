@@ -85,16 +85,6 @@ export interface IBulkEditorState {
 // Column definitions
 export const PRODUCT_COLUMNS: IBulkEditorColumn[] = [
   {
-    field: "productDescription",
-    headerName: "Description",
-    category: "product",
-    defaultVisible: false,
-    editable: true,
-    flex: 1,
-    minWidth: 150,
-    type: "text",
-  },
-  {
     field: "productStatus",
     headerName: "Status",
     category: "product",
@@ -207,15 +197,6 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     type: "number",
   },
   {
-    field: "weightUnit",
-    headerName: "W. Unit",
-    category: "variant",
-    defaultVisible: false,
-    editable: true,
-    width: 80,
-    type: "select",
-  },
-  {
     field: "length",
     headerName: "Length",
     category: "variant",
@@ -241,15 +222,6 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     editable: true,
     width: 90,
     type: "number",
-  },
-  {
-    field: "dimensionUnit",
-    headerName: "D. Unit",
-    category: "variant",
-    defaultVisible: false,
-    editable: true,
-    width: 80,
-    type: "select",
   },
 ];
 
