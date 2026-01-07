@@ -181,6 +181,7 @@ function EditorGridInnerComponent<T extends IEditorRowBase>({
         columnDefs={columns}
         rowHeight={rowHeight}
         headerHeight={headerHeight}
+        groupHeaderHeight={0}
         getRowId={getRowId}
         getRowClass={getRowClass}
         readOnlyEdit

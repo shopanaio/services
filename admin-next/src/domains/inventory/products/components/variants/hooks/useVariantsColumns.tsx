@@ -8,6 +8,7 @@ import {
   type IOptionGroup,
 } from "../config";
 import {
+  ImageCellRenderer,
   TitleCellRenderer,
   StockStatusRenderer,
   TextCellRenderer,
@@ -140,7 +141,19 @@ export function useVariantsColumns(
   return useMemo(() => {
     const columns: ColDef<IVariantEditorRow>[] = [];
 
-    // Fixed: Title column with image
+    // Fixed: Image column
+    columns.push({
+      field: "imageUrl",
+      headerName: "Image",
+      width: 56,
+      cellRenderer: ImageCellRenderer,
+      cellStyle: { padding: 0 },
+      pinned: "left",
+      sortable: false,
+      resizable: false,
+    });
+
+    // Fixed: Title column
     columns.push({
       field: "title",
       headerName: "Variant",

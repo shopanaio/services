@@ -19,16 +19,22 @@ const useStyles = createStyles(({ token }) => ({
     height: "100%",
     width: "100%",
   },
-  titleImage: {
-    width: 36,
-    height: 36,
+  imageCell: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: "100%",
+  },
+  variantImage: {
+    width: 40,
+    height: 40,
     borderRadius: 4,
     objectFit: "cover" as const,
-    flexShrink: 0,
   },
   imagePlaceholder: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     background: token.colorBgContainerDisabled,
     borderRadius: 4,
     flexShrink: 0,
@@ -98,7 +104,37 @@ export function formatPrice(value: number | null): string {
 }
 
 // ============================================================================
-// Title Cell (with image)
+// Image Cell
+// ============================================================================
+
+export const ImageCellRenderer: React.FC<
+  CustomCellRendererProps<IVariantEditorRow>
+> = (props) => {
+  const { styles } = useStyles();
+  const { data } = props;
+
+  if (!data) return null;
+
+  return (
+    <div className={styles.imageCell}>
+      {data.imageUrl ? (
+        <Image
+          src={data.imageUrl}
+          alt={data.title}
+          width={40}
+          height={40}
+          className={styles.variantImage}
+          preview={false}
+        />
+      ) : (
+        <div className={styles.imagePlaceholder} />
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// Title Cell
 // ============================================================================
 
 export const TitleCellRenderer: React.FC<
@@ -111,16 +147,6 @@ export const TitleCellRenderer: React.FC<
 
   return (
     <div className={styles.titleCell}>
-      {data.imageUrl ? (
-        <Image
-          src={data.imageUrl}
-          alt={data.title}
-          className={styles.titleImage}
-          preview={false}
-        />
-      ) : (
-        <div className={styles.imagePlaceholder} />
-      )}
       <span className={styles.titleText}>{data.title}</span>
     </div>
   );

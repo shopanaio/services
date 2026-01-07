@@ -5,6 +5,7 @@ export {
   type IVariantInput,
 } from "./VariantsEditorGrid";
 export {
+  ImageCellRenderer,
   TitleCellRenderer,
   StockStatusRenderer,
   TextCellRenderer,
