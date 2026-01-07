@@ -55,7 +55,7 @@ export interface IBulkEditorColumn {
   width?: number;
   minWidth?: number;
   flex?: number;
-  type?: "text" | "number" | "currency" | "select" | "tags" | "badge";
+  type?: "text" | "number" | "select" | "tags" | "badge";
 }
 
 // Column visibility state
@@ -149,7 +149,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     defaultVisible: true,
     editable: true,
     width: 120,
-    type: "currency",
+    type: "number",
   },
   {
     field: "compareAtPrice",
@@ -158,7 +158,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     defaultVisible: false,
     editable: true,
     width: 130,
-    type: "currency",
+    type: "number",
   },
   {
     field: "costPrice",
@@ -167,7 +167,7 @@ export const VARIANT_COLUMNS: IBulkEditorColumn[] = [
     defaultVisible: false,
     editable: true,
     width: 110,
-    type: "currency",
+    type: "number",
   },
   {
     field: "stock",

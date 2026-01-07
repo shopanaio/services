@@ -1,10 +1,19 @@
 import { useMemo } from "react";
-import type { ColDef, EditableCallbackParams, ValueGetterParams, ValueParserParams } from "ag-grid-community";
+import type {
+  ColDef,
+  EditableCallbackParams,
+  ValueGetterParams,
+  ValueSetterParams,
+} from "ag-grid-community";
 import { useBulkEditorStore } from "./useBulkEditorStore";
-import { IBulkEditorRow, ALL_COLUMNS, PRODUCT_COLUMNS, VARIANT_COLUMNS } from "../types";
+import {
+  IBulkEditorRow,
+  ALL_COLUMNS,
+  PRODUCT_COLUMNS,
+  VARIANT_COLUMNS,
+} from "../types";
 import {
   TitleCellRenderer,
-  PriceCellRenderer,
   StockCellRenderer,
   StockStatusRenderer,
   ProductStatusRenderer,
@@ -29,7 +38,9 @@ const VARIANT_FIELDS = new Set([
 ]);
 
 // Check if cell should be editable
-function isCellEditable(params: EditableCallbackParams<IBulkEditorRow>): boolean {
+function isCellEditable(
+  params: EditableCallbackParams<IBulkEditorRow>
+): boolean {
   const { data, colDef } = params;
   if (!data || !colDef?.field) return false;
 
@@ -51,7 +62,7 @@ function isCellEditable(params: EditableCallbackParams<IBulkEditorRow>): boolean
   return false;
 }
 
-// Get value or return null for dash cells
+// Get value from store (edited) or data (original)
 function createValueGetter(field: keyof IBulkEditorRow) {
   return (params: ValueGetterParams<IBulkEditorRow>) => {
     const { data } = params;
@@ -64,15 +75,34 @@ function createValueGetter(field: keyof IBulkEditorRow) {
 
     if (shouldShowDash) return null;
 
-    return data[field];
+    // Get edited value from store, or fall back to original
+    const edit = useBulkEditorStore
+      .getState()
+      .getFieldEdit(data.id, field as string);
+
+    return edit ? edit.currentValue : data[field];
+  };
+}
+
+// Value setter - save to store
+function createValueSetter(field: keyof IBulkEditorRow) {
+  return (params: ValueSetterParams<IBulkEditorRow>): boolean => {
+    const { data, newValue } = params;
+    if (!data) return false;
+
+    const originalValue = data[field];
+
+    useBulkEditorStore
+      .getState()
+      .setFieldValue(data.id, field as string, originalValue, newValue);
+
+    return true;
   };
 }
 
 // Get cell renderer based on column type
 function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
   switch (column.type) {
-    case "currency":
-      return PriceCellRenderer;
     case "badge":
       if (column.field === "stockStatus") return StockStatusRenderer;
       if (column.field === "productStatus") return ProductStatusRenderer;
@@ -93,9 +123,6 @@ function getCellRenderer(column: (typeof ALL_COLUMNS)[0]) {
 // Get cell editor based on column type
 function getCellEditor(column: (typeof ALL_COLUMNS)[0]) {
   switch (column.type) {
-    case "currency":
-      // Use text editor for currency to avoid AG Grid number formatting issues
-      return "agTextCellEditor";
     case "number":
       return "agNumberCellEditor";
     case "text":
@@ -110,7 +137,6 @@ function getCellEditor(column: (typeof ALL_COLUMNS)[0]) {
 // Get column type for alignment
 function getColumnType(column: (typeof ALL_COLUMNS)[0]): string | undefined {
   switch (column.type) {
-    case "currency":
     case "number":
       return "rightAligned";
     default:
@@ -130,7 +156,7 @@ function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
     case "price":
     case "compareAtPrice":
     case "costPrice":
-      return { min: 0, precision: 0 };
+      return { min: 0, precision: 2 };
     case "stock":
       return { min: 0, precision: 0 };
     case "weight":
@@ -141,18 +167,6 @@ function getCellEditorParams(column: (typeof ALL_COLUMNS)[0]) {
     default:
       return undefined;
   }
-}
-
-// Value parser - just return the new value as number
-function createValueParser(field: keyof IBulkEditorRow) {
-  return (params: ValueParserParams<IBulkEditorRow>) => {
-    const { newValue } = params;
-    if (newValue === null || newValue === undefined || newValue === "") {
-      return null;
-    }
-    const num = Number(newValue);
-    return isNaN(num) ? null : num;
-  };
 }
 
 export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
@@ -189,6 +203,7 @@ export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
         cellEditor: getCellEditor(col),
         cellEditorParams: getCellEditorParams(col),
         valueGetter: createValueGetter(col.field),
+        valueSetter: createValueSetter(col.field),
       });
     }
 
@@ -208,6 +223,7 @@ export function useBulkEditorColumns(): ColDef<IBulkEditorRow>[] {
         cellEditor: getCellEditor(col),
         cellEditorParams: getCellEditorParams(col),
         valueGetter: createValueGetter(col.field),
+        valueSetter: createValueSetter(col.field),
       });
     }
 

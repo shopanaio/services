@@ -140,15 +140,16 @@ export function applyEditsToRows(
   });
 }
 
-// Format price for display (in kopecks to rubles)
+// Format price for display (in kopecks to rubles with kopecks, dot separator)
 export function formatPrice(value: number | null): string | null {
   if (value === null) return null;
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
     currency: "RUB",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value / 100);
+    currencySign: "standard",
+    currencyDisplay: "narrowSymbol",
+  }).format(value * 0.01);
 }
 
 // Parse price input (rubles to kopecks)
