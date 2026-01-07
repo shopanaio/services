@@ -135,5 +135,14 @@ export function getModalStackDefinitions(): IModalStackDefinition[] {
         )
       ),
     },
+    // Bulk Editor modal
+    {
+      type: 'bulk-editor',
+      component: dynamic(() =>
+        import('@/domains/inventory/products/bulk-editor/BulkEditorModal').then(
+          (m) => m.BulkEditorModal
+        )
+      ),
+    },
   ];
 }

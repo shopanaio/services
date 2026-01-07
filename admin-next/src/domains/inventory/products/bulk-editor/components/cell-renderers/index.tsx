@@ -79,31 +79,19 @@ const useStyles = createStyles(({ token }) => ({
   },
 }));
 
-// Title cell with hierarchy and edit diff support
+// Title cell with hierarchy (no edit diff for text)
 export const TitleCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
   const { styles, cx } = useStyles();
-  const { data } = props;
-  const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
+  const { data, value } = props;
 
   if (!data) return null;
 
   const isVariant = data.rowType === "variant";
-  const edit = getFieldEdit(data.id, "title") as IFieldEdit<string> | undefined;
-
-  if (edit) {
-    return (
-      <div className={cx(styles.titleCell, isVariant ? styles.variantTitle : styles.productTitle)}>
-        <span className={styles.originalValue}>{edit.originalValue}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{edit.currentValue}</span>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.titleCell}>
       <span className={cx(styles.titleText, isVariant ? styles.variantTitle : styles.productTitle)}>
-        {data.title}
+        {value || data.title}
       </span>
     </div>
   );
@@ -245,11 +233,9 @@ export const ProductStatusRenderer: React.FC<CustomCellRendererProps<IBulkEditor
   );
 };
 
-// Generic text cell with edit diff
+// Generic text cell (no edit diff for text)
 export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>> = (props) => {
-  const { styles } = useStyles();
   const { data, colDef, value } = props;
-  const getFieldEdit = useBulkEditorStore((s) => s.getFieldEdit);
 
   if (!data || !colDef?.field) return null;
 
@@ -263,18 +249,6 @@ export const TextCellRenderer: React.FC<CustomCellRendererProps<IBulkEditorRow>>
 
   if (shouldShowDash) {
     return <DashCellRenderer />;
-  }
-
-  const edit = getFieldEdit(data.id, field) as IFieldEdit<string | null> | undefined;
-
-  if (edit) {
-    return (
-      <div className={styles.editedValue} style={{ justifyContent: "flex-start" }}>
-        <span className={styles.originalValue}>{edit.originalValue || "—"}</span>
-        <span className={styles.arrow}>→</span>
-        <span className={styles.newValue}>{edit.currentValue || "—"}</span>
-      </div>
-    );
   }
 
   return <span>{value ?? "—"}</span>;

@@ -28,6 +28,7 @@ export const PRODUCT_EDIT_CATEGORIES_MODAL_TYPE = 'product-edit-categories';
 export const PRODUCT_EDIT_TAGS_MODAL_TYPE = 'product-edit-tags';
 export const PRODUCT_EDIT_COMPONENTS_MODAL_TYPE = 'product-edit-components';
 export const COMPONENT_VARIANT_SETTINGS_MODAL_TYPE = 'component-variant-settings';
+export const BULK_EDITOR_MODAL_TYPE = 'bulk-editor';
 
 // ============================================================================
 // Payload Interfaces
@@ -289,6 +290,10 @@ export interface IEditComponentsModalPayload extends IModalStackPayload {
   productId?: string;
 }
 
+export interface IBulkEditorModalPayload extends IModalStackPayload {
+  productIds: string[];
+}
+
 export interface IComponentVariantSettingsModalPayload extends IModalStackPayload {
   /** The component item being edited */
   itemId: string;
@@ -348,6 +353,7 @@ declare module '@/layouts/modals' {
     [PRODUCT_EDIT_TAGS_MODAL_TYPE]: IEditTagsModalPayload;
     [PRODUCT_EDIT_COMPONENTS_MODAL_TYPE]: IEditComponentsModalPayload;
     [COMPONENT_VARIANT_SETTINGS_MODAL_TYPE]: IComponentVariantSettingsModalPayload;
+    [BULK_EDITOR_MODAL_TYPE]: IBulkEditorModalPayload;
   }
 }
 
@@ -575,3 +581,14 @@ export const useEditComponentsModal = createModalStackHook(PRODUCT_EDIT_COMPONEN
  * ```
  */
 export const useComponentVariantSettingsModal = createModalStackHook(COMPONENT_VARIANT_SETTINGS_MODAL_TYPE);
+
+/**
+ * Hook to open bulk editor modal
+ *
+ * @example
+ * ```tsx
+ * const { push } = useBulkEditorModal();
+ * push({ productIds: ['prod-1', 'prod-2'] });
+ * ```
+ */
+export const useBulkEditorModal = createModalStackHook(BULK_EDITOR_MODAL_TYPE);

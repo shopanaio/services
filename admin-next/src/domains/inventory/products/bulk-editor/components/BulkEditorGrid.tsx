@@ -45,6 +45,12 @@ const useStyles = createStyles(({ token }) => ({
       borderRight: `1px solid ${token.colorBorder}`,
     },
 
+    // Fix input alignment in edit mode
+    ".ag-cell-inline-editing": {
+      display: "block",
+      padding: 0,
+    },
+
     ".ag-header-cell": {
       fontSize: 13,
       fontWeight: 500,

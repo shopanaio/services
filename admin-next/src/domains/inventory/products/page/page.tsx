@@ -22,7 +22,7 @@ import { useGridState, useGridSort } from "@/hooks";
 import { filterSchema } from "./filterSchema";
 import { useProducts } from "../hooks";
 import type { IProductListItem } from "../mocks/products-list";
-import { useBulkEditorStore, BulkEditorPage } from "../bulk-editor";
+import { useBulkEditorStore } from "../bulk-editor";
 
 ModuleRegistry.registerModules([
   AllCommunityModule,
@@ -86,8 +86,6 @@ export default function ProductsPage() {
 
   // Bulk editor store
   const setSelectedProducts = useBulkEditorStore((s) => s.setSelectedProducts);
-  const openEditor = useBulkEditorStore((s) => s.openEditor);
-  const isEditorOpen = useBulkEditorStore((s) => s.isOpen);
 
   const { onSortChanged } = useGridSort({
     gridRef,
@@ -121,15 +119,8 @@ export default function ProductsPage() {
     // For demo purposes, we use the first 12 products from bulk editor mock
     const bulkEditorIds = selectedRows.map((_, index) => `prod-${(index % 12) + 1}`);
     setSelectedProducts(bulkEditorIds);
-    openEditor();
-  }, [setSelectedProducts, openEditor]);
-
-  // Close bulk editor
-  const handleCloseBulkEditor = useCallback(() => {
-    // Clear selection in grid
-    gridRef.current?.api.deselectAll();
-    setSelectedCount(0);
-  }, []);
+    push("bulk-editor", { productIds: bulkEditorIds });
+  }, [setSelectedProducts, push]);
 
   const columnDefs = useMemo<ColDef<IProductListItem>[]>(
     () => [
@@ -180,11 +171,6 @@ export default function ProductsPage() {
   const handleCreate = () => {
     console.log("Create new product");
   };
-
-  // Show bulk editor if open
-  if (isEditorOpen) {
-    return <BulkEditorPage onClose={handleCloseBulkEditor} />;
-  }
 
   return (
     <DataLayout
